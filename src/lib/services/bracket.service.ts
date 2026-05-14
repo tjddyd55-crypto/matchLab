@@ -1,0 +1,1036 @@
+import "server-only";
+
+import {
+  BracketChangeType,
+  BracketMatchOutcomeStyle,
+  BracketMatchStatus,
+  BracketStatus,
+  BracketType,
+  NextMatchSlot,
+  Prisma,
+} from "@/generated/prisma";
+import type { ActorContext } from "@/lib/auth/actor-context";
+import {
+  buildFighterBracketSnapshot,
+  formatDivisionNameLabel,
+  parseBracketFighterSnapshot,
+  type BracketFighterSnapshotPayload,
+} from "@/lib/bracket-snapshot";
+import type {
+  PublicBracketDetailDTO,
+  PublicBracketFighterDTO,
+  PublicBracketMatchDTO,
+} from "@/lib/dto/public";
+import { AppError } from "@/lib/errors/app-error";
+import { requireOrganizerForEvent, requireRole } from "@/lib/permissions";
+import { prisma } from "@/lib/prisma";
+import {
+  bracketRepository,
+  type BracketOwnershipContext,
+} from "@/lib/repositories/bracket.repository";
+import { eventRepository } from "@/lib/repositories/event.repository";
+import { notificationRepository } from "@/lib/repositories/notification.repository";
+import { notificationService } from "@/lib/services/notification.service";
+import type {
+  AssignFighterToMatchInput,
+  CreateBracketInput,
+  CreateMatchListMatchesInput,
+  CreateSingleEliminationDraftInput,
+  RemoveFighterFromMatchInput,
+  ResetBracketInput,
+  UpdateMatchOrderAndMatInput,
+} from "@/lib/validators/bracket.validator";
+
+function reasonFor(changeType: BracketChangeType, explicit?: string): string {
+  if (explicit?.trim()) return explicit.trim();
+  switch (changeType) {
+    case BracketChangeType.bracket_created:
+      return "대진표가 생성되었습니다.";
+    case BracketChangeType.bracket_published:
+      return "대진표가 공개되었습니다.";
+    case BracketChangeType.bracket_unpublished:
+      return "대진표 공개가 해제되었습니다.";
+    case BracketChangeType.fighter_assigned:
+      return "선수가 매치에 배치되었습니다.";
+    case BracketChangeType.fighter_removed:
+      return "매치에서 선수가 제거되었습니다.";
+    case BracketChangeType.opponent_changed:
+      return "매치 상대 슬롯이 변경되었습니다.";
+    case BracketChangeType.match_order_changed:
+      return "경기 순서가 변경되었습니다.";
+    case BracketChangeType.global_order_changed:
+      return "전체 순서가 변경되었습니다.";
+    case BracketChangeType.mat_changed:
+      return "매트 번호가 변경되었습니다.";
+    case BracketChangeType.bracket_reset:
+      return "대진표 매치 구성이 초기화되었습니다.";
+    default:
+      return "대진표가 변경되었습니다.";
+  }
+}
+
+async function appendChangeLog(
+  tx: Prisma.TransactionClient,
+  params: {
+    eventId: string;
+    bracketId: string;
+    matchId?: string | null;
+    changedByUserId: string;
+    bracketType: BracketType;
+    changeType: BracketChangeType;
+    beforeData?: Prisma.InputJsonValue | null;
+    afterData?: Prisma.InputJsonValue | null;
+    reason?: string | null;
+  },
+): Promise<void> {
+  await bracketRepository.createBracketChangeLog(
+    {
+      eventId: params.eventId,
+      bracketId: params.bracketId,
+      matchId: params.matchId ?? null,
+      changedByUserId: params.changedByUserId,
+      bracketType: params.bracketType,
+      changeType: params.changeType,
+      beforeData: params.beforeData ?? null,
+      afterData: params.afterData ?? null,
+      reason: reasonFor(params.changeType, params.reason ?? undefined),
+    },
+    tx,
+  );
+}
+
+async function ensureBracketOrganizer(
+  actor: ActorContext,
+  bracketId: string,
+): Promise<BracketOwnershipContext> {
+  requireRole(actor, ["organizer", "admin"]);
+  const ctx = await bracketRepository.findBracketOwnershipContext(bracketId);
+  if (!ctx) {
+    throw new AppError("NOT_FOUND", "대진표를 찾을 수 없습니다.");
+  }
+  await requireOrganizerForEvent(actor, ctx.eventId);
+  return ctx;
+}
+
+function singleElimRoundLabel(depth: number, r: number): string {
+  if (r === depth) return "결승";
+  const stage = 2 ** (depth - r + 1);
+  return `${stage}강`;
+}
+
+async function createSingleEliminationTree(
+  tx: Prisma.TransactionClient,
+  bracketId: string,
+  slotCount: number,
+): Promise<void> {
+  const depth = Math.round(Math.log2(slotCount));
+  if (2 ** depth !== slotCount) {
+    throw new AppError(
+      "VALIDATION_ERROR",
+      "단판 토너먼트 슬롯 수는 4·8·16만 지원합니다.",
+    );
+  }
+
+  let upperRoundMatches: { id: string }[] = [];
+  for (let r = depth; r >= 1; r--) {
+    const count = 2 ** (depth - r);
+    const currentRound: { id: string }[] = [];
+    for (let i = 0; i < count; i++) {
+      const parent =
+        r === depth ? null : upperRoundMatches[Math.floor(i / 2)]!;
+      const nextMatchId = parent?.id ?? null;
+      const nextMatchSlot =
+        r === depth
+          ? null
+          : i % 2 === 0
+            ? NextMatchSlot.red
+            : NextMatchSlot.blue;
+
+      const { id } = await bracketRepository.createBracketMatch(
+        {
+          bracketId,
+          round: r,
+          roundName: singleElimRoundLabel(depth, r),
+          matchOrder: i,
+          globalMatchOrder: null,
+          matchNumber: null,
+          matNumber: null,
+          nextMatchId,
+          nextMatchSlot,
+        },
+        tx,
+      );
+      currentRound.push({ id });
+    }
+    upperRoundMatches = currentRound;
+  }
+}
+
+function snapshotToPublic(
+  raw: unknown,
+): PublicBracketFighterDTO | null {
+  const p = parseBracketFighterSnapshot(raw);
+  if (!p) return null;
+  return {
+    fighterId: p.fighterId,
+    fighterCode: p.fighterCode,
+    name: p.name,
+    gymName: p.gymName,
+    profileImageUrl: p.profileImageUrl,
+    recordSummary: p.recordSummary,
+    divisionName: p.divisionName,
+  };
+}
+
+export type OrganizerBracketListItemVM = {
+  id: string;
+  title: string;
+  type: BracketType;
+  status: BracketStatus;
+  isPublic: boolean;
+  divisionId: string | null;
+  divisionLabel: string | null;
+  matchCount: number;
+};
+
+export type OrganizerBracketMatchVM = {
+  id: string;
+  round: number | null;
+  roundName: string | null;
+  matchOrder: number;
+  globalMatchOrder: number | null;
+  matchNumber: number | null;
+  matNumber: number | null;
+  fighterRedId: string | null;
+  fighterBlueId: string | null;
+  fighterRedSnapshot: BracketFighterSnapshotPayload | null;
+  fighterBlueSnapshot: BracketFighterSnapshotPayload | null;
+  nextMatchId: string | null;
+  nextMatchSlot: NextMatchSlot | null;
+  status: BracketMatchStatus;
+  winnerId: string | null;
+  loserId: string | null;
+  resultType: BracketMatchOutcomeStyle | null;
+  resultMemo: string | null;
+  /** 확정·정정된 MatchResult가 양쪽 모두 있을 때 공식 전적 반영으로 간주 */
+  hasOfficialResults: boolean;
+};
+
+export type OrganizerApprovedFighterOptionVM = {
+  applicationId: string;
+  fighterId: string;
+  label: string;
+  divisionLabel: string;
+};
+
+export type OrganizerBracketDetailVM = {
+  id: string;
+  eventId: string;
+  title: string;
+  type: BracketType;
+  status: BracketStatus;
+  isPublic: boolean;
+  divisionId: string | null;
+  divisionLabel: string | null;
+  matches: OrganizerBracketMatchVM[];
+  approvedFighterOptions: OrganizerApprovedFighterOptionVM[];
+  /** 서버 매치 스냅샷이 바뀌면 값이 달라지며, 클라이언트 폼 상태 리마운트에 사용한다. */
+  syncKey: string;
+};
+
+export const bracketService = {
+  async listOrganizerEventBrackets(
+    actor: ActorContext,
+    eventId: string,
+  ): Promise<OrganizerBracketListItemVM[]> {
+    requireRole(actor, ["organizer", "admin"]);
+    await requireOrganizerForEvent(actor, eventId);
+    const rows = await bracketRepository.listBracketsByEvent(eventId);
+    return rows.map((r) => ({
+      id: r.id,
+      title: r.title,
+      type: r.type,
+      status: r.status,
+      isPublic: r.isPublic,
+      divisionId: r.divisionId,
+      divisionLabel: r.division
+        ? formatDivisionNameLabel(r.division)
+        : null,
+      matchCount: r._count.matches,
+    }));
+  },
+
+  async getOrganizerBracketDetail(
+    actor: ActorContext,
+    bracketId: string,
+  ): Promise<OrganizerBracketDetailVM> {
+    await ensureBracketOrganizer(actor, bracketId);
+    const full = await bracketRepository.findBracketWithMatches(bracketId);
+    if (!full) {
+      throw new AppError("NOT_FOUND", "대진표를 찾을 수 없습니다.");
+    }
+
+    const approved =
+      await bracketRepository.listApprovedApplicationsForBracket(
+        full.eventId,
+        full.divisionId,
+      );
+
+    const approvedFighterOptions: OrganizerApprovedFighterOptionVM[] =
+      approved.map((a) => ({
+        applicationId: a.id,
+        fighterId: a.fighter.id,
+        label: `${a.fighter.name} · ${a.gym.name}`,
+        divisionLabel: formatDivisionNameLabel(a.division),
+      }));
+
+    const matches: OrganizerBracketMatchVM[] = full.matches.map((m) => ({
+      id: m.id,
+      round: m.round,
+      roundName: m.roundName,
+      matchOrder: m.matchOrder,
+      globalMatchOrder: m.globalMatchOrder,
+      matchNumber: m.matchNumber,
+      matNumber: m.matNumber,
+      fighterRedId: m.fighterRedId,
+      fighterBlueId: m.fighterBlueId,
+      fighterRedSnapshot: parseBracketFighterSnapshot(m.fighterRedSnapshot),
+      fighterBlueSnapshot: parseBracketFighterSnapshot(m.fighterBlueSnapshot),
+      nextMatchId: m.nextMatchId,
+      nextMatchSlot: m.nextMatchSlot,
+      status: m.status,
+      winnerId: m.winnerId,
+      loserId: m.loserId,
+      resultType: m.resultType,
+      resultMemo: m.resultMemo,
+      hasOfficialResults: (m.matchResults?.length ?? 0) >= 2,
+    }));
+
+    const syncKey = matches
+      .map(
+        (m) =>
+          `${m.id}:${m.fighterRedId ?? ""}:${m.fighterBlueId ?? ""}:${m.matchOrder}:${m.globalMatchOrder ?? ""}:${m.matNumber ?? ""}:${m.matchNumber ?? ""}:${m.status}:${m.winnerId ?? ""}:${m.resultType ?? ""}:${m.hasOfficialResults ? "1" : "0"}`,
+      )
+      .join("|");
+
+    return {
+      id: full.id,
+      eventId: full.eventId,
+      title: full.title,
+      type: full.type,
+      status: full.status,
+      isPublic: full.isPublic,
+      divisionId: full.divisionId,
+      divisionLabel: full.division
+        ? formatDivisionNameLabel(full.division)
+        : null,
+      matches,
+      approvedFighterOptions,
+      syncKey,
+    };
+  },
+
+  async createBracketForEvent(
+    actor: ActorContext,
+    input: CreateBracketInput,
+  ): Promise<{ bracketId: string }> {
+    requireRole(actor, ["organizer", "admin"]);
+    await requireOrganizerForEvent(actor, input.eventId);
+
+    if (input.divisionId) {
+      const ok = await eventRepository.findDivisionBelongsToEvent(
+        input.divisionId,
+        input.eventId,
+      );
+      if (!ok) {
+        throw new AppError(
+          "VALIDATION_ERROR",
+          "선택한 부문이 이 대회에 속하지 않습니다.",
+        );
+      }
+    }
+
+    const bracketId = await prisma.$transaction(async (tx) => {
+      const { id } = await bracketRepository.createBracket(
+        {
+          eventId: input.eventId,
+          divisionId: input.divisionId ?? null,
+          title: input.title,
+          type: input.type,
+        },
+        tx,
+      );
+
+      await appendChangeLog(tx, {
+        eventId: input.eventId,
+        bracketId: id,
+        changedByUserId: actor.userId,
+        bracketType: input.type,
+        changeType: BracketChangeType.bracket_created,
+        afterData: {
+          title: input.title,
+          divisionId: input.divisionId ?? null,
+          type: input.type,
+        },
+      });
+
+      return id;
+    });
+
+    return { bracketId };
+  },
+
+  async publishBracket(actor: ActorContext, bracketId: string): Promise<void> {
+    const ctx = await ensureBracketOrganizer(actor, bracketId);
+    const row = await bracketRepository.findBracketById(bracketId);
+    if (!row) {
+      throw new AppError("NOT_FOUND", "대진표를 찾을 수 없습니다.");
+    }
+
+    await prisma.$transaction(async (tx) => {
+      await bracketRepository.updateBracket(
+        bracketId,
+        {
+          status: BracketStatus.published,
+          isPublic: true,
+        },
+        tx,
+      );
+
+      await appendChangeLog(tx, {
+        eventId: ctx.eventId,
+        bracketId,
+        changedByUserId: actor.userId,
+        bracketType: ctx.type,
+        changeType: BracketChangeType.bracket_published,
+        beforeData: {
+          status: row.status,
+          isPublic: row.isPublic,
+        },
+        afterData: {
+          status: BracketStatus.published,
+          isPublic: true,
+        },
+      });
+
+      const ev = await notificationRepository.getEventSlugTitle(ctx.eventId, tx);
+      if (ev?.publicSlug) {
+        await notificationService.notifyBracketChanged(
+          {
+            eventId: ctx.eventId,
+            publicSlug: ev.publicSlug,
+            bracketId,
+            bracketTitle: row.title,
+            summaryLine: "공개 대진표가 게시되었습니다.",
+            scope: "bracket_all",
+          },
+          tx,
+        );
+      }
+    });
+  },
+
+  async unpublishBracket(actor: ActorContext, bracketId: string): Promise<void> {
+    const ctx = await ensureBracketOrganizer(actor, bracketId);
+    const row = await bracketRepository.findBracketById(bracketId);
+    if (!row) {
+      throw new AppError("NOT_FOUND", "대진표를 찾을 수 없습니다.");
+    }
+
+    await prisma.$transaction(async (tx) => {
+      await bracketRepository.updateBracket(
+        bracketId,
+        { isPublic: false },
+        tx,
+      );
+
+      await appendChangeLog(tx, {
+        eventId: ctx.eventId,
+        bracketId,
+        changedByUserId: actor.userId,
+        bracketType: ctx.type,
+        changeType: BracketChangeType.bracket_unpublished,
+        beforeData: { isPublic: row.isPublic },
+        afterData: { isPublic: false },
+      });
+
+      const ev = await notificationRepository.getEventSlugTitle(ctx.eventId, tx);
+      const br = await bracketRepository.findBracketById(bracketId, tx);
+      if (ev?.publicSlug && br) {
+        await notificationService.notifyBracketChanged(
+          {
+            eventId: ctx.eventId,
+            publicSlug: ev.publicSlug,
+            bracketId,
+            bracketTitle: br.title,
+            summaryLine: "대진표 공개가 해제되었습니다.",
+            scope: "bracket_all",
+          },
+          tx,
+        );
+      }
+    });
+  },
+
+  async createMatchListMatches(
+    actor: ActorContext,
+    input: CreateMatchListMatchesInput,
+  ): Promise<void> {
+    const ctx = await ensureBracketOrganizer(actor, input.bracketId);
+    if (ctx.type !== BracketType.match_list) {
+      throw new AppError(
+        "CONFLICT",
+        "경기 목록 매치는 match_list 브래킷에서만 생성할 수 있습니다.",
+      );
+    }
+
+    for (const m of input.matches) {
+      if (m.fighterRedId === m.fighterBlueId) {
+        throw new AppError(
+          "VALIDATION_ERROR",
+          "레드·블루에 동일 선수를 둘 수 없습니다.",
+        );
+      }
+    }
+
+    await prisma.$transaction(async (tx) => {
+      const beforeCount = await bracketRepository.countMatchesByBracketId(
+        input.bracketId,
+        tx,
+      );
+
+      await bracketRepository.deleteBracketMatchesByBracketId(
+        input.bracketId,
+        tx,
+      );
+
+      await appendChangeLog(tx, {
+        eventId: ctx.eventId,
+        bracketId: input.bracketId,
+        changedByUserId: actor.userId,
+        bracketType: ctx.type,
+        changeType: BracketChangeType.bracket_reset,
+        beforeData: { previousMatchCount: beforeCount },
+        afterData: { matchCount: input.matches.length },
+      });
+
+      for (const row of input.matches) {
+        const red =
+          await bracketRepository.findApprovedApplicationForBracketPlacement(
+            ctx.eventId,
+            row.fighterRedId,
+            ctx.divisionId,
+            tx,
+          );
+        const blue =
+          await bracketRepository.findApprovedApplicationForBracketPlacement(
+            ctx.eventId,
+            row.fighterBlueId,
+            ctx.divisionId,
+            tx,
+          );
+        if (!red || !blue) {
+          throw new AppError(
+            "VALIDATION_ERROR",
+            "승인된 신청 선수만 경기에 배치할 수 있습니다.",
+          );
+        }
+
+        const redSnap = buildFighterBracketSnapshot(red);
+        const blueSnap = buildFighterBracketSnapshot(blue);
+
+        const { id: matchId } = await bracketRepository.createBracketMatch(
+          {
+            bracketId: input.bracketId,
+            round: null,
+            roundName: null,
+            matchOrder: row.matchOrder,
+            globalMatchOrder: row.globalMatchOrder ?? null,
+            matchNumber: row.matchNumber ?? null,
+            matNumber: row.matNumber ?? null,
+            fighterRedId: red.fighterId,
+            fighterBlueId: blue.fighterId,
+            fighterRedSnapshot: redSnap,
+            fighterBlueSnapshot: blueSnap,
+          },
+          tx,
+        );
+
+        await appendChangeLog(tx, {
+          eventId: ctx.eventId,
+          bracketId: input.bracketId,
+          matchId,
+          changedByUserId: actor.userId,
+          bracketType: ctx.type,
+          changeType: BracketChangeType.fighter_assigned,
+          afterData: {
+            fighterRedId: red.fighterId,
+            fighterBlueId: blue.fighterId,
+            matchOrder: row.matchOrder,
+          },
+        });
+      }
+    });
+  },
+
+  async createSingleEliminationDraft(
+    actor: ActorContext,
+    input: CreateSingleEliminationDraftInput,
+  ): Promise<void> {
+    const ctx = await ensureBracketOrganizer(actor, input.bracketId);
+    if (ctx.type !== BracketType.single_elimination) {
+      throw new AppError(
+        "CONFLICT",
+        "토너먼트 드래프트는 single_elimination 브래킷에서만 생성할 수 있습니다.",
+      );
+    }
+
+    await prisma.$transaction(async (tx) => {
+      const fighterSnapshotIds =
+        await notificationRepository.listCornerFighterIdsForBracket(
+          input.bracketId,
+          tx,
+        );
+
+      const beforeCount = await bracketRepository.countMatchesByBracketId(
+        input.bracketId,
+        tx,
+      );
+
+      await bracketRepository.deleteBracketMatchesByBracketId(
+        input.bracketId,
+        tx,
+      );
+
+      await appendChangeLog(tx, {
+        eventId: ctx.eventId,
+        bracketId: input.bracketId,
+        changedByUserId: actor.userId,
+        bracketType: ctx.type,
+        changeType: BracketChangeType.bracket_reset,
+        beforeData: { previousMatchCount: beforeCount },
+        afterData: { slotCount: input.slotCount },
+      });
+
+      await createSingleEliminationTree(tx, input.bracketId, input.slotCount);
+
+      const ev = await notificationRepository.getEventSlugTitle(ctx.eventId, tx);
+      const br = await bracketRepository.findBracketById(input.bracketId, tx);
+      if (ev?.publicSlug && br && fighterSnapshotIds.length > 0) {
+        await notificationService.notifyBracketChanged(
+          {
+            eventId: ctx.eventId,
+            publicSlug: ev.publicSlug,
+            bracketId: input.bracketId,
+            bracketTitle: br.title,
+            summaryLine: "토너먼트 대진 구조가 다시 생성되었습니다.",
+            scope: "bracket_all",
+            fighterIdsOverride: fighterSnapshotIds,
+          },
+          tx,
+        );
+      }
+    });
+  },
+
+  async assignFighterToMatch(
+    actor: ActorContext,
+    input: AssignFighterToMatchInput,
+  ): Promise<void> {
+    const ctx = await ensureBracketOrganizer(actor, input.bracketId);
+
+    await prisma.$transaction(async (tx) => {
+      const mctx = await bracketRepository.findMatchOwnershipContext(
+        input.matchId,
+        tx,
+      );
+      if (!mctx || mctx.bracketId !== input.bracketId) {
+        throw new AppError("NOT_FOUND", "매치를 찾을 수 없습니다.");
+      }
+
+      const match = await bracketRepository.findBracketMatchById(
+        input.matchId,
+        tx,
+      );
+      if (!match || match.bracketId !== input.bracketId) {
+        throw new AppError("NOT_FOUND", "매치를 찾을 수 없습니다.");
+      }
+
+      const row =
+        await bracketRepository.findApprovedApplicationForBracketPlacement(
+          ctx.eventId,
+          input.fighterId,
+          ctx.divisionId,
+          tx,
+        );
+      if (!row) {
+        throw new AppError(
+          "VALIDATION_ERROR",
+          "승인된 신청 선수만 배치할 수 있습니다.",
+        );
+      }
+
+      const elsewhere =
+        await bracketRepository.countFighterAssignmentsInBracketExcluding(
+          input.bracketId,
+          input.fighterId,
+          input.matchId,
+          tx,
+        );
+      if (elsewhere > 0) {
+        throw new AppError(
+          "CONFLICT",
+          "이 선수는 이미 이 대진표의 다른 경기에 배치되어 있습니다.",
+        );
+      }
+
+      const snap = buildFighterBracketSnapshot(row);
+      const prevRedId = match.fighterRedId;
+      const prevBlueId = match.fighterBlueId;
+
+      if (input.slot === "red") {
+        if (prevBlueId === input.fighterId) {
+          throw new AppError(
+            "VALIDATION_ERROR",
+            "동일 선수를 레드·블루에 동시에 둘 수 없습니다.",
+          );
+        }
+        const changeType =
+          prevRedId && prevRedId !== input.fighterId
+            ? BracketChangeType.opponent_changed
+            : BracketChangeType.fighter_assigned;
+
+        await bracketRepository.updateBracketMatch(
+          input.matchId,
+          {
+            fighterRedId: input.fighterId,
+            fighterRedSnapshot: snap,
+          },
+          tx,
+        );
+
+        await appendChangeLog(tx, {
+          eventId: ctx.eventId,
+          bracketId: input.bracketId,
+          matchId: input.matchId,
+          changedByUserId: actor.userId,
+          bracketType: ctx.type,
+          changeType,
+          beforeData: {
+            slot: "red",
+            fighterId: prevRedId,
+          },
+          afterData: { slot: "red", fighterId: input.fighterId },
+          reason: input.reason ?? undefined,
+        });
+      } else {
+        if (prevRedId === input.fighterId) {
+          throw new AppError(
+            "VALIDATION_ERROR",
+            "동일 선수를 레드·블루에 동시에 둘 수 없습니다.",
+          );
+        }
+        const changeType =
+          prevBlueId && prevBlueId !== input.fighterId
+            ? BracketChangeType.opponent_changed
+            : BracketChangeType.fighter_assigned;
+
+        await bracketRepository.updateBracketMatch(
+          input.matchId,
+          {
+            fighterBlueId: input.fighterId,
+            fighterBlueSnapshot: snap,
+          },
+          tx,
+        );
+
+        await appendChangeLog(tx, {
+          eventId: ctx.eventId,
+          bracketId: input.bracketId,
+          matchId: input.matchId,
+          changedByUserId: actor.userId,
+          bracketType: ctx.type,
+          changeType,
+          beforeData: {
+            slot: "blue",
+            fighterId: prevBlueId,
+          },
+          afterData: { slot: "blue", fighterId: input.fighterId },
+          reason: input.reason ?? undefined,
+        });
+      }
+
+      const ev = await notificationRepository.getEventSlugTitle(ctx.eventId, tx);
+      const br = await bracketRepository.findBracketById(input.bracketId, tx);
+      if (ev?.publicSlug && br) {
+        await notificationService.notifyBracketChanged(
+          {
+            eventId: ctx.eventId,
+            publicSlug: ev.publicSlug,
+            bracketId: input.bracketId,
+            bracketTitle: br.title,
+            summaryLine: "대진표 배치가 변경되었습니다.",
+            scope: "match",
+            matchId: input.matchId,
+          },
+          tx,
+        );
+      }
+    });
+  },
+
+  async updateMatchOrderAndMat(
+    actor: ActorContext,
+    input: UpdateMatchOrderAndMatInput,
+  ): Promise<void> {
+    const mctx = await bracketRepository.findMatchOwnershipContext(input.matchId);
+    if (!mctx) {
+      throw new AppError("NOT_FOUND", "매치를 찾을 수 없습니다.");
+    }
+    const ctx = await ensureBracketOrganizer(actor, mctx.bracketId);
+
+    const match = await bracketRepository.findBracketMatchById(input.matchId);
+    if (!match) {
+      throw new AppError("NOT_FOUND", "매치를 찾을 수 없습니다.");
+    }
+
+    await prisma.$transaction(async (tx) => {
+      const patch: Prisma.BracketMatchUncheckedUpdateInput = {};
+      if (input.matchOrder !== undefined) {
+        patch.matchOrder = input.matchOrder;
+      }
+      if (input.globalMatchOrder !== undefined) {
+        patch.globalMatchOrder = input.globalMatchOrder;
+      }
+      if (input.matNumber !== undefined) {
+        patch.matNumber = input.matNumber;
+      }
+
+      await bracketRepository.updateBracketMatch(input.matchId, patch, tx);
+
+      if (
+        input.matchOrder !== undefined &&
+        input.matchOrder !== match.matchOrder
+      ) {
+        await appendChangeLog(tx, {
+          eventId: ctx.eventId,
+          bracketId: mctx.bracketId,
+          matchId: input.matchId,
+          changedByUserId: actor.userId,
+          bracketType: ctx.type,
+          changeType: BracketChangeType.match_order_changed,
+          beforeData: { matchOrder: match.matchOrder },
+          afterData: { matchOrder: input.matchOrder },
+          reason: input.reason ?? undefined,
+        });
+      }
+
+      if (
+        input.globalMatchOrder !== undefined &&
+        input.globalMatchOrder !== match.globalMatchOrder
+      ) {
+        await appendChangeLog(tx, {
+          eventId: ctx.eventId,
+          bracketId: mctx.bracketId,
+          matchId: input.matchId,
+          changedByUserId: actor.userId,
+          bracketType: ctx.type,
+          changeType: BracketChangeType.global_order_changed,
+          beforeData: { globalMatchOrder: match.globalMatchOrder },
+          afterData: { globalMatchOrder: input.globalMatchOrder },
+          reason: input.reason ?? undefined,
+        });
+      }
+
+      if (
+        input.matNumber !== undefined &&
+        input.matNumber !== match.matNumber
+      ) {
+        await appendChangeLog(tx, {
+          eventId: ctx.eventId,
+          bracketId: mctx.bracketId,
+          matchId: input.matchId,
+          changedByUserId: actor.userId,
+          bracketType: ctx.type,
+          changeType: BracketChangeType.mat_changed,
+          beforeData: { matNumber: match.matNumber },
+          afterData: { matNumber: input.matNumber },
+          reason: input.reason ?? undefined,
+        });
+      }
+
+      const ev = await notificationRepository.getEventSlugTitle(ctx.eventId, tx);
+      const br = await bracketRepository.findBracketById(mctx.bracketId, tx);
+      if (ev?.publicSlug && br) {
+        await notificationService.notifyBracketChanged(
+          {
+            eventId: ctx.eventId,
+            publicSlug: ev.publicSlug,
+            bracketId: mctx.bracketId,
+            bracketTitle: br.title,
+            summaryLine: "경기 순서·매트 정보가 변경되었습니다.",
+            scope: "match",
+            matchId: input.matchId,
+          },
+          tx,
+        );
+      }
+    });
+  },
+
+  async removeFighterFromMatch(
+    actor: ActorContext,
+    input: RemoveFighterFromMatchInput,
+  ): Promise<void> {
+    const ctx = await ensureBracketOrganizer(actor, input.bracketId);
+
+    await prisma.$transaction(async (tx) => {
+      const match = await bracketRepository.findBracketMatchById(
+        input.matchId,
+        tx,
+      );
+      if (!match || match.bracketId !== input.bracketId) {
+        throw new AppError("NOT_FOUND", "매치를 찾을 수 없습니다.");
+      }
+
+      const before =
+        input.slot === "red"
+          ? { fighterId: match.fighterRedId }
+          : { fighterId: match.fighterBlueId };
+
+      if (input.slot === "red") {
+        await bracketRepository.updateBracketMatch(
+          input.matchId,
+          {
+            fighterRedId: null,
+            fighterRedSnapshot: Prisma.JsonNull,
+          },
+          tx,
+        );
+      } else {
+        await bracketRepository.updateBracketMatch(
+          input.matchId,
+          {
+            fighterBlueId: null,
+            fighterBlueSnapshot: Prisma.JsonNull,
+          },
+          tx,
+        );
+      }
+
+      await appendChangeLog(tx, {
+        eventId: ctx.eventId,
+        bracketId: input.bracketId,
+        matchId: input.matchId,
+        changedByUserId: actor.userId,
+        bracketType: ctx.type,
+        changeType: BracketChangeType.fighter_removed,
+        beforeData: { slot: input.slot, ...before },
+        afterData: { slot: input.slot, fighterId: null },
+        reason: input.reason ?? undefined,
+      });
+
+      const ev = await notificationRepository.getEventSlugTitle(ctx.eventId, tx);
+      const br = await bracketRepository.findBracketById(input.bracketId, tx);
+      if (ev?.publicSlug && br) {
+        await notificationService.notifyBracketChanged(
+          {
+            eventId: ctx.eventId,
+            publicSlug: ev.publicSlug,
+            bracketId: input.bracketId,
+            bracketTitle: br.title,
+            summaryLine: "대진표 배치가 변경되었습니다.",
+            scope: "match",
+            matchId: input.matchId,
+          },
+          tx,
+        );
+      }
+    });
+  },
+
+  async resetBracket(actor: ActorContext, input: ResetBracketInput): Promise<void> {
+    const ctx = await ensureBracketOrganizer(actor, input.bracketId);
+
+    await prisma.$transaction(async (tx) => {
+      const fighterSnapshotIds =
+        await notificationRepository.listCornerFighterIdsForBracket(
+          input.bracketId,
+          tx,
+        );
+
+      const beforeCount = await bracketRepository.countMatchesByBracketId(
+        input.bracketId,
+        tx,
+      );
+
+      await bracketRepository.deleteBracketMatchesByBracketId(
+        input.bracketId,
+        tx,
+      );
+
+      await appendChangeLog(tx, {
+        eventId: ctx.eventId,
+        bracketId: input.bracketId,
+        changedByUserId: actor.userId,
+        bracketType: ctx.type,
+        changeType: BracketChangeType.bracket_reset,
+        beforeData: { previousMatchCount: beforeCount },
+        afterData: { cleared: true },
+        reason: input.reason ?? undefined,
+      });
+
+      const ev = await notificationRepository.getEventSlugTitle(ctx.eventId, tx);
+      const br = await bracketRepository.findBracketById(input.bracketId, tx);
+      if (ev?.publicSlug && br && fighterSnapshotIds.length > 0) {
+        await notificationService.notifyBracketChanged(
+          {
+            eventId: ctx.eventId,
+            publicSlug: ev.publicSlug,
+            bracketId: input.bracketId,
+            bracketTitle: br.title,
+            summaryLine: "대진표가 초기화되었습니다.",
+            scope: "bracket_all",
+            fighterIdsOverride: fighterSnapshotIds,
+          },
+          tx,
+        );
+      }
+    });
+  },
+
+  async getPublicBracketsByEventSlug(slug: string): Promise<PublicBracketDetailDTO[]> {
+    const rows = await bracketRepository.listPublicBracketsByEventSlug(slug);
+
+    return rows.map((b): PublicBracketDetailDTO => {
+      const divisionLabel = b.division
+        ? formatDivisionNameLabel(b.division)
+        : null;
+
+      const matches: PublicBracketMatchDTO[] = b.matches.map((m) => ({
+        id: m.id,
+        round: m.round,
+        roundName: m.roundName,
+        matchOrder: m.matchOrder,
+        globalMatchOrder: m.globalMatchOrder,
+        matchNumber: m.matchNumber,
+        matNumber: m.matNumber,
+        fighterRed: snapshotToPublic(m.fighterRedSnapshot),
+        fighterBlue: snapshotToPublic(m.fighterBlueSnapshot),
+        status: m.status,
+        winnerId: m.winnerId,
+        loserId: m.loserId,
+        resultType: m.resultType,
+      }));
+
+      return {
+        id: b.id,
+        title: b.title,
+        type: b.type,
+        status: b.status,
+        divisionLabel,
+        matches,
+      };
+    });
+  },
+};

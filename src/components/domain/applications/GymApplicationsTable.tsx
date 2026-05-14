@@ -1,0 +1,112 @@
+"use client";
+
+import type { ApplicationStatus, PaymentStatus } from "@/generated/prisma";
+import { ApplicationPaymentSummary } from "@/components/domain/applications/ApplicationPaymentSummary";
+import { PaymentInstructionCard } from "@/components/domain/payments/PaymentInstructionCard";
+import {
+  Dialog,
+  DialogContent,
+  DialogHeader,
+  DialogTitle,
+  DialogTrigger,
+} from "@/components/ui/dialog";
+import {
+  Table,
+  TableBody,
+  TableCell,
+  TableHead,
+  TableHeader,
+  TableRow,
+} from "@/components/ui/table";
+import { Button } from "@/components/ui/button";
+
+export type GymApplicationListItemVM = {
+  id: string;
+  eventId: string;
+  eventTitle: string;
+  divisionLabel: string;
+  fighterName: string;
+  applicationStatus: ApplicationStatus;
+  paymentStatus: PaymentStatus;
+  appliedAt: string | null;
+  createdAt: string;
+  registrationEndDate: string;
+  paymentInstruction: {
+    feeAmount: number;
+    bankName: string;
+    accountNumber: string;
+    accountHolder: string;
+    depositorRule: string | null;
+    paymentDueDate: string | null;
+  } | null;
+};
+
+export function GymApplicationsTable({
+  items,
+}: {
+  items: GymApplicationListItemVM[];
+}) {
+  return (
+    <div className="hidden md:block">
+      <Table>
+        <TableHeader>
+          <TableRow>
+            <TableHead>대회</TableHead>
+            <TableHead>선수</TableHead>
+            <TableHead>부문</TableHead>
+            <TableHead>상태</TableHead>
+            <TableHead>신청일</TableHead>
+            <TableHead className="text-right">입금 안내</TableHead>
+          </TableRow>
+        </TableHeader>
+        <TableBody>
+          {items.map((row) => (
+            <TableRow key={row.id}>
+              <TableCell className="max-w-[220px]">
+                <div className="font-medium">{row.eventTitle}</div>
+                <div className="text-muted-foreground text-xs">
+                  접수 마감{" "}
+                  {new Date(row.registrationEndDate).toLocaleDateString("ko-KR")}
+                </div>
+              </TableCell>
+              <TableCell>{row.fighterName}</TableCell>
+              <TableCell className="text-muted-foreground text-xs">
+                {row.divisionLabel}
+              </TableCell>
+              <TableCell>
+                <ApplicationPaymentSummary
+                  applicationStatus={row.applicationStatus}
+                  paymentStatus={row.paymentStatus}
+                />
+              </TableCell>
+              <TableCell className="text-muted-foreground text-xs whitespace-nowrap">
+                {row.appliedAt
+                  ? new Date(row.appliedAt).toLocaleString("ko-KR")
+                  : new Date(row.createdAt).toLocaleString("ko-KR")}
+              </TableCell>
+              <TableCell className="text-right">
+                {row.paymentInstruction ? (
+                  <Dialog>
+                    <DialogTrigger>
+                      <Button size="sm" variant="outline" type="button">
+                        다시 보기
+                      </Button>
+                    </DialogTrigger>
+                    <DialogContent className="max-w-lg">
+                      <DialogHeader>
+                        <DialogTitle>{row.eventTitle}</DialogTitle>
+                      </DialogHeader>
+                      <PaymentInstructionCard {...row.paymentInstruction} />
+                    </DialogContent>
+                  </Dialog>
+                ) : (
+                  <span className="text-muted-foreground text-xs">—</span>
+                )}
+              </TableCell>
+            </TableRow>
+          ))}
+        </TableBody>
+      </Table>
+    </div>
+  );
+}

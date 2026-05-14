@@ -56,8 +56,10 @@ Notification
 
 | 필드 | 설명 |
 |------|------|
-| id, email, phone, name | 로그인·표시 |
-| role | 플랫폼 역할 |
+| id | 내부 PK(cuid) |
+| authUserId | Supabase Auth `user.id`(UUID) 와 매핑, `@unique`, 시드·마이그레이션 전 사용자는 null 가능 |
+| email, phone, name | 로그인·표시 |
+| role | 플랫폼 역할(MVP 단일 역할) |
 | createdAt, updatedAt | 감사 |
 
 ### Gym
@@ -79,9 +81,9 @@ Notification
 
 ### Organizer / Event
 
-- `Event.publicSlug`: 공개 URL.
-- `photoRecordingEnabled`, `videoRecordingEnabled`, `liveStreamingEnabled`, `streamingConsentRequired`, `streamingNoticeText`: 대회 단위 촬영·스트리밍 정책.
-- **스트리밍 동의는 대회 설정에 종속** — 신청·동의서 UI는 이 플래그에 따라 항목 노출.
+- `Event.publicSlug`: 공개 URL. 제목 기반 ASCII 슬러그 + 충돌 시 랜덤 suffix(`allocateUniquePublicSlug`).
+- `Event.status` 기본값 `draft`. `draft`→`open` 시 제목·일정·장소·신청 기간·부문 1개 이상·`EventPaymentSetting` 존재를 서비스에서 검증.
+- `photoRecordingEnabled`, `videoRecordingEnabled`, `liveStreamingEnabled`, `streamingConsentRequired`, `streamingNoticeText`: 대회 단위 촬영·스트리밍 정책. **`liveStreamingEnabled` 가 true이면 신청 동의(`streamingConsentRequired`) 를 기본적으로 요구**하는 흐름을 권장(생성·수정 서비스에서 플래그에 맞춰 보정).
 
 ### EventDivision
 
@@ -92,13 +94,17 @@ Notification
 | 필드 | 설명 |
 |------|------|
 | fighterId, gymId, divisionId | 참조 |
-| fighterSnapshot, gymSnapshot | JSON 등 — 당시 표시 정보 |
-| applicationProfileImageUrl | 신청 시점 프로필 이미지 |
-| status, paymentStatus | 신청·입금(중복 표현 필요 시 Payment 테이블과 정합) |
+| fighterSnapshot, gymSnapshot | JSON — 서버가 신청 시점 표시 정보를 생성·저장 |
+| applicationAgreementSnapshot | JSON(선택) — 신청 시 체크박스·스트리밍 동의 등 **스냅샷**(전자서명 원본 아님) |
+| appliedByUserId, appliedAt | 신청을 수행한 체육관 사용자·시각 |
+| applicationProfileImageUrl | 신청 시점 프로필 이미지(선택) |
+| memo | 체육관·주최자 메모 |
+| status | `ApplicationStatus` |
+| paymentStatus | `PaymentStatus` — **`EventApplicationPayment` 와 트랜잭션으로 동기화되는 캐시** |
 
 ### EventPaymentSetting / EventApplicationPayment
 
-MVP: 계좌 안내 + 수동 입금 확인. `EventApplicationPayment` 로 금액·입금자명·확인자·시각 기록.
+MVP: 계좌 안내 + 수동 입금 확인. **`EventApplicationPayment` 가 입금 이벤트의 진실 원천**이며, `EventApplication.paymentStatus` 는 목록·필터 속도용 캐시이다. 공개 대회 상세 DTO에는 **`accountNumber` 를 포함하지 않는다** — 로그인한 체육관 신청 완료·내역 화면에서만 노출.
 
 ### GymInviteLink / FighterRegistrationSubmission
 
@@ -114,11 +120,27 @@ MVP: 계좌 안내 + 수동 입금 확인. `EventApplicationPayment` 로 금액�
 ### Bracket / BracketMatch
 
 - **Bracket 단위**로 `type` 선택 — 동일 Event 내 토너먼트·매치리스트 혼합 가능.
-- `fighterRedSnapshot`, `fighterBlueSnapshot`: 사진·체육관명·전적·체급 등 표시용.
+- `fighterRedSnapshot`, `fighterBlueSnapshot`: 사진·체육관명·전적 요약·부문 라벨 등 **표시 전용 JSON**(클라이언트 입력 신뢰 금지 — 서버에서 승인 신청·Fighter 캐시 기준 생성).
+- 예시 페이로드(키만 참고):
+
+```json
+{
+  "fighterId": "…",
+  "fighterCode": "F-001",
+  "name": "홍길동",
+  "gymName": "OO 체육관",
+  "profileImageUrl": "https://…",
+  "recordSummary": "1승 0패 0무",
+  "divisionName": "복싱 · 라이트급 · 남 · 신인"
+}
+```
+
 - `nextMatchId`, `nextMatchSlot`: 싱글 엘리미네이션 진출.
 - `globalMatchOrder`, `matNumber`: 순서·매트 운영.
 
 ### BracketChangeLog
+
+애플리케이션에서는 브래킷·매치 **쓰기 트랜잭션**과 함께 `BracketChangeType`(예: `bracket_created`, `fighter_assigned`, `bracket_reset`, `mat_changed`)으로 분류 삽입한다(`bracket.service.ts`).
 
 | 필드 | 설명 |
 |------|------|
@@ -154,6 +176,19 @@ MVP: `watchUrl`, `embedUrl`, 플랫폼 enum. **스트림 키 필드 없음.**
 
 알림·교차 도메인 감사. 세분화된 도메인 로그(Bracket/MatchResult)와 역할 분담.
 
+- **`EventStatus` 변경**: MVP에서는 `AuditAction.event_status_changed` 로 `AuditLog`에 이전/이후 상태 JSON을 남긴다(`event.service` `changeEventStatus` 트랜잭션). 상태 **뒤로 가는 보정 전이**는 관리자 전용 별도 플로우로 확장 예정.
+
+**Notification (인앱 MVP)**
+
+| 필드 | 설명 |
+|------|------|
+| userId | 수신 사용자 |
+| eventId | nullable, 맥락 필터용 |
+| type | `NotificationType`(신청·입금·대진·경기·결과 등) |
+| title, content | 짧은 안내 문구만 — 휴대폰·생년월일·보호자 연락처·서명 경로 등 민감 정보 금지 |
+| href | nullable, 내부·공개 라우트만 (예: `/gym/applications`, `/events/{slug}/brackets`) |
+| readAt | 읽음 시각 |
+
 ## 5. 인덱스·제약 권장
 
 - `Event(publicSlug)` UNIQUE
@@ -164,8 +199,8 @@ MVP: `watchUrl`, `embedUrl`, 플랫폼 enum. **스트림 키 필드 없음.**
 
 ## 6. 트랜잭션 경계 (중요 유스케이스)
 
-- **결과 확정**: `BracketMatch` 업데이트 + `MatchResult` 2건 생성 + `Fighter` 캐시 갱신 + (선택) 알림. 단일 트랜잭션.
-- **결과 수정**: 기존 MatchResult 상태 처리(void/corrected) + 변경 로그 + 캐시 재계산 또는 델타 갱신.
+- **결과 확정 (MVP 구현)**: 단일 트랜잭션에서 `BracketMatch` 운영 종료(`finished`) 및 결과 필드 확정, **`MatchResult` 2행(`confirmed`, 스냅샷은 서버 조립 — 클라이언트 문자열 불신)**, **`Fighter` 전적 캐시 재계산**(집계는 `confirmed`+`corrected`, **`no_contest`는 승·패·무 캐시에 미반영 MVP**), 단판(`single_elimination`)이면 **승자 다음 슬롯 배치** + `BracketChangeLog`. 인앱 **`Notification`** 생성은 동일 트랜잭션에서 처리한다(MVP 정합성 우선).
+- **결과 수정·무효 (MVP 구현)**: 조용한 덮어쓰기 금지 — **`MatchResultChangeLog` 필수**. 정정은 행을 `corrected`로 갱신하고, 무효는 `voided` 처리 후 (MVP) **`BracketMatch` 결과 필드 초기화** 및 캐시 재계산.
 - **대진표 저장**: Match 변경 + `BracketChangeLog` 삽입.
 
 ## 7. Seed 전략

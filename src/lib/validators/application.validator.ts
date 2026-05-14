@@ -1,0 +1,42 @@
+import { z } from "zod";
+
+const mustAgree = z.boolean().refine((v) => v === true, {
+  message: "동의가 필요합니다.",
+});
+
+/**
+ * 신청 시 휴대폰·생년월일 등은 클라이언트에서 새로 받지 않으며 Fighter 원본 기준 스냅샷만 서버가 생성한다.
+ */
+export const applyToEventSchema = z.object({
+  eventId: z.string().min(1),
+  divisionId: z.string().min(1),
+  fighterId: z.string().min(1),
+  applicationProfileImageUrl: z
+    .union([z.string().url(), z.literal("")])
+    .optional(),
+  memo: z.string().max(2000).optional(),
+  agreements: z.object({
+    rulesAgreed: mustAgree,
+    privacyAgreed: mustAgree,
+    resultDisclosureAgreed: mustAgree,
+    photoVideoAgreed: mustAgree,
+    streamingAgreed: z.boolean().optional(),
+  }),
+});
+
+export const approveApplicationSchema = z.object({
+  applicationId: z.string().min(1),
+});
+
+export const rejectApplicationSchema = z.object({
+  applicationId: z.string().min(1),
+  reason: z.string().max(1000).optional(),
+});
+
+export const updatePaymentStatusSchema = z.object({
+  paymentId: z.string().min(1),
+  depositorName: z.string().max(120).optional(),
+  memo: z.string().max(2000).optional(),
+});
+
+export type ApplyToEventInput = z.infer<typeof applyToEventSchema>;

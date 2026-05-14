@@ -2,6 +2,8 @@
 
 플랫폼 역할은 **User.role** 기준 5종: `admin`, `organizer`, `gym`, `fighter`, `spectator`(비로그인은 세션 없음으로 처리).
 
+역할 판단은 **항상 서버**에서 `getCurrentActor()` → `authService.getActorByAuthUserId(Supabase user.id)`로 조회한 `ActorContext`를 따른다. 클라이언트 `localStorage` 등에 역할을 저장해 판단하지 않는다.
+
 ## 1. 역할 정의
 
 ### admin

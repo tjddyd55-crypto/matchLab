@@ -1,0 +1,97 @@
+import { BracketType } from "@/generated/prisma";
+import { z } from "zod";
+
+const optionalId = z
+  .string()
+  .optional()
+  .transform((s) => (s && s.trim() !== "" ? s.trim() : undefined));
+
+export const createBracketSchema = z.object({
+  eventId: z.string().min(1),
+  divisionId: optionalId,
+  title: z.string().min(1).max(200),
+  type: z.nativeEnum(BracketType),
+});
+
+export const publishBracketSchema = z.object({
+  bracketId: z.string().min(1),
+});
+
+export const unpublishBracketSchema = publishBracketSchema;
+
+const matchListRowSchema = z.object({
+  fighterRedId: z.string().min(1),
+  fighterBlueId: z.string().min(1),
+  matchOrder: z.number().int().nonnegative(),
+  globalMatchOrder: z.number().int().nonnegative().optional(),
+  matchNumber: z.number().int().positive().optional(),
+  matNumber: z.number().int().positive().optional(),
+});
+
+export const createMatchListMatchesSchema = z.object({
+  bracketId: z.string().min(1),
+  matches: z.array(matchListRowSchema),
+});
+
+export const createSingleEliminationDraftSchema = z.object({
+  bracketId: z.string().min(1),
+  slotCount: z.union([
+    z.literal(4),
+    z.literal(8),
+    z.literal(16),
+  ]),
+});
+
+export const assignFighterToMatchSchema = z.object({
+  bracketId: z.string().min(1),
+  matchId: z.string().min(1),
+  fighterId: z.string().min(1),
+  slot: z.enum(["red", "blue"]),
+  reason: z.string().max(500).optional(),
+});
+
+export const updateMatchOrderAndMatSchema = z
+  .object({
+    matchId: z.string().min(1),
+    matchOrder: z.number().int().nonnegative().optional(),
+    globalMatchOrder: z.number().int().nonnegative().optional(),
+    matNumber: z.number().int().positive().optional(),
+    reason: z.string().max(500).optional(),
+  })
+  .refine(
+    (d) =>
+      d.matchOrder !== undefined ||
+      d.globalMatchOrder !== undefined ||
+      d.matNumber !== undefined,
+    { message: "변경할 순서 또는 매트 번호가 필요합니다." },
+  );
+
+export const removeFighterFromMatchSchema = z.object({
+  bracketId: z.string().min(1),
+  matchId: z.string().min(1),
+  slot: z.enum(["red", "blue"]),
+  reason: z.string().max(500).optional(),
+});
+
+export const resetBracketSchema = z.object({
+  bracketId: z.string().min(1),
+  reason: z.string().max(500).optional(),
+});
+
+export type CreateBracketInput = z.infer<typeof createBracketSchema>;
+export type CreateMatchListMatchesInput = z.infer<
+  typeof createMatchListMatchesSchema
+>;
+export type CreateSingleEliminationDraftInput = z.infer<
+  typeof createSingleEliminationDraftSchema
+>;
+export type AssignFighterToMatchInput = z.infer<
+  typeof assignFighterToMatchSchema
+>;
+export type UpdateMatchOrderAndMatInput = z.infer<
+  typeof updateMatchOrderAndMatSchema
+>;
+export type RemoveFighterFromMatchInput = z.infer<
+  typeof removeFighterFromMatchSchema
+>;
+export type ResetBracketInput = z.infer<typeof resetBracketSchema>;

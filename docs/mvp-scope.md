@@ -10,63 +10,84 @@
 
 ### 인증·계정
 
-- [ ] 주최자 회원가입/로그인(Supabase Auth).
-- [ ] 체육관 회원가입/로그인.
-- [ ] 선수 계정 구조(`Fighter.userId` 연결 가능, 조회 중심).
+- [ ] 주최자 회원가입/로그인(Supabase Auth) — **UI는 플레이스홀더**, 세션·`User.authUserId` 매핑은 `dev-start.md` 기준으로 수동 검증.
+- [ ] 체육관 회원가입/로그인 — 동일.
+- [x] 선수 계정 구조(`Fighter.userId` 연결, 시드·`/fighter` 조회 플로우).
 
 ### 대회
 
-- [ ] 주최자: 대회 공고 생성·편집·상태 관리(`draft` → `open` 등).
-- [ ] 공개 페이지: 목록·상세(slug)·디비전·촬영/스트리밍 안내.
+- [x] 주최자: 대회 생성·기본 정보 수정·상태 전이(`draft`→`open` 등, `event.service` / `/organizer/events`).
+- [x] 주최자: 디비전(EventDivision) 생성·수정·삭제(신청·대진표 연결 시 삭제 제한).
+- [x] 주최자: 참가비·입금 계좌(`EventPaymentSetting` upsert) — **계좌번호는 공개 DTO·공고에 미포함**.
+- [x] 주최자: 촬영·영상·라이브 스트리밍 플래그 및 안내 문구(`RecordingStreamingNotice` 등 공개 상세 반영).
+- [x] 공개 노출: `draft`·`cancelled` 는 목록·slug 상세에서 제외, `open` 이후 상태는 정책에 따라 노출.
+- [x] 공개 페이지: 목록·상세(slug)·디비전·촬영/스트리밍 안내(계좌번호 제외).
 
 ### 체육관·선수 등록
 
-- [ ] 체육관 대시보드 기본.
-- [ ] 선수 등록(내부) 및 **선수 등록 URL** 발급(`GymInviteLink`).
-- [ ] 공개 폼: 선수 정보 제출(`FighterRegistrationSubmission`).
-- [ ] 미성년/학생 플로우: 보호자 동의서 + **손사인**(`SignaturePad` → Storage).
-- [ ] 체육관 승인 후 **선수 고유번호(`fighterCode`)** 발급.
-- [ ] 동일 인물 조회: **생년월일 + 성별 + 휴대폰** (주민번호 미수집).
+- [x] 체육관 대시보드 기본(`/gym` 및 하위 네비).
+- [x] 선수 등록(내부) 및 **선수 등록 URL** 발급(`GymInviteLink`).
+- [x] 공개 폼: 선수 정보 제출(`FighterRegistrationSubmission`).
+- [x] 미성년/학생 플로우: 보호자 동의서 + **손사인**(`SignaturePad` → Storage private bucket).
+- [x] 서명은 **`signatureImagePath` 만 DB 저장**(영구 공개 URL 저장 금지), 업로드·조회는 **서버 검증 후 signed URL**.
+- [x] 동의 **`completed` 전** 체육관 등록 요청 **승인 불가**(UI + 서버 `fighter.service` 차단).
+- [x] 체육관 승인 후 **선수 고유번호(`fighterCode`)** 발급.
+- [x] 동일 인물 조회: **생년월일 + 성별 + 휴대폰** (주민번호 미수집, `registration.service` 중복 후보).
 
 ### 대회 신청·입금
 
-- [ ] 체육관: 공개 대회에서 소속 선수 선택 후 디비전 선택 신청.
-- [ ] 참가비 계좌 안내(`EventPaymentSetting`).
-- [ ] 주최자: 신청자별 **입금 상태 수동 반영**.
-- [ ] 주최자: 신청 **승인/반려**, 체급(디비전)별 분류·필터.
+- [x] 체육관: 공개 대회에서 소속 **활성** 선수 선택 후 디비전 선택 신청 (`application.service` / `/gym/events`).
+- [x] 참가비 계좌 안내(`EventPaymentSetting`) — **계좌번호는 공개 상세가 아니라 로그인 체육관 신청 완료·내역 UI에서만 표시**.
+- [x] 신청 시 `applicationAgreementSnapshot` 및 스트리밍 동의(대회 플래그에 따라 필수).
+- [x] 보호자 동의가 필요한 선수는 **`GuardianConsent.completed`** 전 신청 불가.
+- [x] 주최자: 신청자별 **입금 상태 수동 반영**(`payment.service` + `EventApplication.paymentStatus` 동기화).
+- [x] 주최자: 신청 **승인/반려**(MVP: 대기만 반려), 디비전·체육관 등 **클라이언트 필터**(추후 서버 검색 확장 가능).
 
 ### 대진표
 
-- [ ] Bracket 단위 `single_elimination` 및 `match_list` 지원(동일 Event 혼합 가능).
-- [ ] 스냅샷에 사진·체육관·전적·체급 등 표시 데이터 포함.
-- [ ] 공개 대진표 페이지.
-- [ ] Supabase Realtime으로 변경 반영 → 클라이언트 invalidate/refetch.
+- [x] Bracket 단위 `single_elimination` 및 `match_list` 지원(동일 Event 혼합 가능).
+- [x] 스냅샷에 사진·체육관·전적·체급 등 표시 데이터 포함(서버 생성 JSON).
+- [x] 공개 대진표 페이지(`/events/[slug]/brackets`).
+- [x] 대진표·매치 편집 시 **`BracketChangeLog`** 필수(`BracketChangeType`).
+- [x] Supabase Realtime으로 변경 반영 → 클라이언트 `invalidateQueries` 및 필요 시 `router.refresh()` (`features/realtime`, 공개 페이지 브리지).
+- [x] 인앱 `Notification` 생성·조회·읽음(API `/api/notifications`, 대시보드 벨).
+- [x] 선수·체육관 **현장 모드** 홈(`/fighter`, `/gym`) — 진행 예정 경기·요약.
 
 ### 경기 운영·결과
 
-- [ ] 순서·매트·상태 변경.
-- [ ] 결과 입력 → 확정 시 **`MatchResult` 생성**(양 선수 각 1행).
-- [ ] `Fighter` 전적 캐시 갱신.
-- [ ] 결과 수정 시 **`MatchResultChangeLog`** 필수.
-- [ ] 대진표 구조 변경 시 **`BracketChangeLog`** 필수.
+- [x] 주최자: 브래킷·경기 목록에서 순서·매트·선수 배치 편집 및 **`BracketChangeLog`** 기록.
+- [x] 주최자: 경기 상태 변경(`BracketMatchStatus`) — 확정 전 단계에서 **`MatchResult` 미생성**.
+- [x] 결과 임시 입력(승자·결방식·메모) — **`BracketMatch` 필드만 갱신**, **`MatchResult` 미생성**.
+- [x] 결과 확정 시 **`MatchResult` 2행 생성**(양 선수 각 1행, `confirmed`).
+- [x] 확정 트랜잭션에서 **`Fighter` 전적 캐시 재계산**(집계는 `confirmed`+`corrected` 기준 승·패·무, **`no_contest`는 승패무 미반영 MVP**).
+- [x] 단판(`single_elimination`) 확정 시 승자 **다음 매치 슬롯 반영** 및 **`BracketChangeLog`**.
+- [x] 결과 정정·무효 시 **`MatchResultChangeLog` 필수** — 무효(MVP) 시 **`BracketMatch` 결과 필드 초기화**.
 
 ### 전적·조회
 
-- [ ] 선수별 전적 조회(확정 결과 기준).
-- [ ] 체육관 소속 선수 전적 조회.
-- [ ] 관람자: 공개 결과 페이지.
+- [x] 선수별 전적 조회(확정·정정 결과 기준, `/fighter/records`).
+- [x] 체육관 소속 선수 전적 조회(현재 소속 기준, `/gym/records`).
+- [x] 관람자: 공개 결과 페이지(`/events/[slug]/results`, **`MatchResult.confirmed`만**).
 
 ### 라이브
 
-- [ ] 주최자: YouTube Live **watch/embed URL** 등록(매트별 가능).
-- [ ] 공개 라이브 페이지 iframe 재생.
-- [ ] `liveStreamingEnabled` 시 신청·동의서에 스트리밍 동의 항목 반영.
+- [x] 주최자: YouTube 등 **watch/embed URL** 표시(매트별 가능) — **DB·시드·주최자 읽기 전용 화면**; 일괄 편집 upsert는 후속.
+- [x] 공개 라이브 페이지: 임베드 iframe + 외부 시청 링크(`/events/[slug]/live`, 공개 스트림만).
+- [x] `liveStreamingEnabled` 시 신청·동의서에 스트리밍 동의 항목 반영.
+
+### 관리자 (조회 MVP)
+
+- [x] `UserRole.admin` 전용 `/admin` 레이아웃·사이드바·하단 네비(일부)·상단 `AdminNavStrip`.
+- [x] 관리자 홈: 통계 카드·최근 대회·최근 신청·최근 MatchResult·최근 `AuditLog`.
+- [x] 전체 목록 조회: 대회·주최자·체육관·선수·신청·결과·감사 로그(`admin.repository` → `admin.service` → 페이지, Prisma는 repository만).
+- [x] 민감 필드 비노출: 선수 전화·생년월일·보호자·체육관 전화/주소·감사 로그 JSON 본문·서명 경로 등.
+- [ ] 관리자 전용 **역할 변경·계정 정지·데이터 강제 수정·입금/정산 조작** UI (이번 단계 제외).
 
 ### 비기능
 
-- [ ] 역할별 라우트 보호 및 `permissions` 계약 준수.
-- [ ] 공개 응답 개인정보 마스킹 규칙 준수.
-- [ ] enum/상수 하드코딩 금지 원칙 준수.
+- [x] 역할별 라우트 보호: `(dashboard)/*/layout` + 서비스 계층 `require*`·`docs/roles-permissions.md` 계약(시연 전 라우트 스모크 권장).
+- [x] 공개 응답·공개 페이지 **개인정보 비포함 DTO** 및 마스킹(`public` DTO, 보호자 공개 뷰, 공개 결과 등).
+- [ ] enum/상수 하드코딩 금지 원칙 — 지속적 리팩터링 과제(신규 코드는 `enums`·라벨 헬퍼 우선).
 
 ## 3. 의도적 제외 (Out of scope)
 

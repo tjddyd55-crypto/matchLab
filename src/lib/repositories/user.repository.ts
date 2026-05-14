@@ -1,0 +1,77 @@
+/**
+ * [CONTRACT] PrismaClient import는 `src/lib/repositories` 내부에만 허용한다.
+ */
+import { prisma } from "@/lib/prisma";
+import type { UserRole } from "@/lib/enums";
+
+const actorProfileSelect = {
+  id: true,
+  email: true,
+  role: true,
+  organizer: { select: { id: true } },
+  ownedGym: { select: { id: true } },
+  fighter: { select: { id: true } },
+} as const;
+
+export type ActorProfileRow = {
+  id: string;
+  email: string | null;
+  role: UserRole;
+  organizer: { id: string } | null;
+  ownedGym: { id: string } | null;
+  fighter: { id: string } | null;
+};
+
+export const userRepository = {
+  async findUserById(id: string) {
+    return prisma.user.findUnique({ where: { id } });
+  },
+
+  async findUserByEmail(email: string) {
+    return prisma.user.findUnique({ where: { email } });
+  },
+
+  async findUserByAuthUserId(authUserId: string) {
+    return prisma.user.findUnique({ where: { authUserId } });
+  },
+
+  async findActorProfileByUserId(userId: string): Promise<ActorProfileRow | null> {
+    return prisma.user.findUnique({
+      where: { id: userId },
+      select: actorProfileSelect,
+    });
+  },
+
+  async findActorProfileByAuthUserId(
+    authUserId: string,
+  ): Promise<ActorProfileRow | null> {
+    return prisma.user.findUnique({
+      where: { authUserId },
+      select: actorProfileSelect,
+    });
+  },
+
+  async getOrganizerIdByUserId(userId: string): Promise<string | null> {
+    const o = await prisma.organizer.findUnique({
+      where: { userId },
+      select: { id: true },
+    });
+    return o?.id ?? null;
+  },
+
+  async getGymIdByOwnerUserId(ownerUserId: string): Promise<string | null> {
+    const g = await prisma.gym.findUnique({
+      where: { ownerUserId },
+      select: { id: true },
+    });
+    return g?.id ?? null;
+  },
+
+  async getFighterIdByUserId(userId: string): Promise<string | null> {
+    const f = await prisma.fighter.findUnique({
+      where: { userId },
+      select: { id: true },
+    });
+    return f?.id ?? null;
+  },
+};

@@ -1,0 +1,680 @@
+import "server-only";
+
+import type { ActorContext } from "@/lib/auth/actor-context";
+import type {
+  PublicEventDetailDTO,
+  PublicEventDivisionDTO,
+  PublicEventListItemDTO,
+  PublicEventPaymentSummaryDTO,
+} from "@/lib/dto/public";
+import type { Prisma } from "@/generated/prisma";
+import { AuditAction, EventStatus } from "@/generated/prisma";
+import {
+  type PublicEventDetailRecord,
+  type PublicEventDivisionRecord,
+  type PublicEventListRecord,
+  type PublicEventPaymentSummaryRecord,
+  eventRepository,
+} from "@/lib/repositories/event.repository";
+import { auditRepository } from "@/lib/repositories/audit.repository";
+import { allocateUniquePublicSlug } from "@/lib/event-public-slug";
+import { AppError } from "@/lib/errors/app-error";
+import { requireOrganizerForEvent, requireRole } from "@/lib/permissions";
+import { prisma } from "@/lib/prisma";
+import type {
+  ChangeEventStatusInput,
+  CreateEventDivisionInput,
+  CreateEventInput,
+  DeleteEventDivisionInput,
+  UpdateEventDivisionInput,
+  UpdateEventInput,
+  UpsertEventPaymentSettingInput,
+} from "@/lib/validators/event.validator";
+
+function toIso(d: Date): string {
+  return d.toISOString();
+}
+
+function buildDivisionSummary(
+  preview: PublicEventListRecord["divisions"],
+  total: number,
+): string {
+  if (total === 0) return "등록된 부문 없음";
+  const maxLabels = Math.min(3, total);
+  const labels = preview
+    .slice(0, maxLabels)
+    .map((d) =>
+      [d.sportType, d.weightClass ?? d.ageGroup].filter(Boolean).join(" · "),
+    )
+    .filter(Boolean);
+  const head = labels.join(" · ");
+  const rest = total - labels.length;
+  if (rest > 0) {
+    return head ? `${head} 외 ${rest}개 부문` : `${total}개 부문`;
+  }
+  return head || `${total}개 부문`;
+}
+
+function mapPaymentRecordToDto(
+  row: PublicEventPaymentSummaryRecord,
+): PublicEventPaymentSummaryDTO {
+  return {
+    feeAmount: row.feeAmount,
+    bankName: row.bankName,
+    accountHolder: row.accountHolder,
+    depositorRule: row.depositorRule,
+  };
+}
+
+function mapDivisionRecordToDto(
+  row: PublicEventDivisionRecord,
+): PublicEventDivisionDTO {
+  return {
+    id: row.id,
+    sportType: row.sportType,
+    ruleType: row.ruleType,
+    gender: row.gender,
+    ageGroup: row.ageGroup,
+    weightClass: row.weightClass,
+    skillLevel: row.skillLevel,
+  };
+}
+
+function assertEventStatusTransition(
+  current: EventStatus,
+  next: EventStatus,
+): void {
+  const allowed: Record<EventStatus, EventStatus[]> = {
+    [EventStatus.draft]: [EventStatus.open, EventStatus.cancelled],
+    [EventStatus.open]: [EventStatus.closed, EventStatus.cancelled],
+    [EventStatus.closed]: [EventStatus.bracket_ready, EventStatus.cancelled],
+    [EventStatus.bracket_ready]: [EventStatus.ongoing, EventStatus.cancelled],
+    [EventStatus.ongoing]: [EventStatus.finished, EventStatus.cancelled],
+    [EventStatus.finished]: [],
+    [EventStatus.cancelled]: [],
+  };
+  if (!allowed[current]?.includes(next)) {
+    throw new AppError(
+      "CONFLICT",
+      "허용되지 않는 대회 상태 전이입니다.",
+    );
+  }
+}
+
+async function assertReadyForPublicOpen(eventId: string): Promise<void> {
+  const full = await eventRepository.findOrganizerEventById(eventId);
+  if (!full) throw new AppError("NOT_FOUND", "대회를 찾을 수 없습니다.");
+
+  if (!full.title?.trim()) {
+    throw new AppError("VALIDATION_ERROR", "대회명이 필요합니다.");
+  }
+  if (!full.location?.trim()) {
+    throw new AppError("VALIDATION_ERROR", "장소가 필요합니다.");
+  }
+  if (full.divisions.length === 0) {
+    throw new AppError(
+      "VALIDATION_ERROR",
+      "공개 전에 최소 1개 부문이 필요합니다.",
+    );
+  }
+  if (!full.paymentSetting) {
+    throw new AppError(
+      "VALIDATION_ERROR",
+      "공개 전에 참가비·입금 계좌 설정이 필요합니다.",
+    );
+  }
+  if (full.registrationStartDate > full.registrationEndDate) {
+    throw new AppError("VALIDATION_ERROR", "신청 기간이 올바르지 않습니다.");
+  }
+  if (full.registrationEndDate > full.eventDate) {
+    throw new AppError(
+      "VALIDATION_ERROR",
+      "신청 마감일은 대회 일정 이전(또는 당일)이어야 합니다.",
+    );
+  }
+}
+
+function resolveOrganizerIdForCreate(
+  actor: ActorContext,
+  inputOrganizerId?: string,
+): string {
+  if (actor.role === "admin") {
+    const oid = inputOrganizerId?.trim();
+    if (!oid) {
+      throw new AppError(
+        "VALIDATION_ERROR",
+        "관리자는 주최자(organizerId)를 지정해야 합니다.",
+      );
+    }
+    return oid;
+  }
+  requireRole(actor, ["organizer"]);
+  if (!actor.organizerId) {
+    throw new AppError("FORBIDDEN", "주최자 정보가 없습니다.");
+  }
+  return actor.organizerId;
+}
+
+export type OrganizerEventListItemVM = {
+  id: string;
+  organizerId: string;
+  organizerName?: string;
+  publicSlug: string;
+  title: string;
+  location: string | null;
+  eventDate: string;
+  registrationStartDate: string;
+  registrationEndDate: string;
+  status: EventStatus;
+  applicationCount: number;
+};
+
+export type OrganizerEventPaymentSettingVM = {
+  feeAmount: number;
+  bankName: string;
+  accountNumber: string;
+  accountHolder: string;
+  depositorRule: string | null;
+  paymentDueDate: string | null;
+};
+
+export type OrganizerEventDivisionVM = {
+  id: string;
+  sportType: string;
+  ruleType: string | null;
+  gender: string | null;
+  ageGroup: string | null;
+  weightClass: string | null;
+  skillLevel: string | null;
+};
+
+export type OrganizerEventDetailVM = {
+  id: string;
+  organizerId: string;
+  organizerName: string;
+  publicSlug: string;
+  title: string;
+  description: string | null;
+  location: string | null;
+  eventDate: string;
+  registrationStartDate: string;
+  registrationEndDate: string;
+  status: EventStatus;
+  posterUrl: string | null;
+  photoRecordingEnabled: boolean;
+  videoRecordingEnabled: boolean;
+  liveStreamingEnabled: boolean;
+  streamingNoticeText: string | null;
+  streamingConsentRequired: boolean;
+  applicationCount: number;
+  divisions: OrganizerEventDivisionVM[];
+  paymentSetting: OrganizerEventPaymentSettingVM | null;
+};
+
+function mapOrganizerEventDetail(
+  row: NonNullable<Awaited<ReturnType<typeof eventRepository.findOrganizerEventById>>>,
+): OrganizerEventDetailVM {
+  const payment = row.paymentSetting;
+  return {
+    id: row.id,
+    organizerId: row.organizerId,
+    organizerName: row.organizer.name,
+    publicSlug: row.publicSlug,
+    title: row.title,
+    description: row.description,
+    location: row.location,
+    eventDate: toIso(row.eventDate),
+    registrationStartDate: toIso(row.registrationStartDate),
+    registrationEndDate: toIso(row.registrationEndDate),
+    status: row.status,
+    posterUrl: row.posterUrl,
+    photoRecordingEnabled: row.photoRecordingEnabled,
+    videoRecordingEnabled: row.videoRecordingEnabled,
+    liveStreamingEnabled: row.liveStreamingEnabled,
+    streamingNoticeText: row.streamingNoticeText,
+    streamingConsentRequired: row.streamingConsentRequired,
+    applicationCount: row._count.applications,
+    divisions: row.divisions.map((d) => ({
+      id: d.id,
+      sportType: d.sportType,
+      ruleType: d.ruleType,
+      gender: d.gender,
+      ageGroup: d.ageGroup,
+      weightClass: d.weightClass,
+      skillLevel: d.skillLevel,
+    })),
+    paymentSetting: payment
+      ? {
+          feeAmount: payment.feeAmount,
+          bankName: payment.bankName,
+          accountNumber: payment.accountNumber,
+          accountHolder: payment.accountHolder,
+          depositorRule: payment.depositorRule,
+          paymentDueDate: payment.paymentDueDate
+            ? toIso(payment.paymentDueDate)
+            : null,
+        }
+      : null,
+  };
+}
+
+export type GymDashboardOpenEventItemDTO = {
+  id: string;
+  title: string;
+  publicSlug: string;
+  eventDate: string;
+  registrationStartDate: string;
+  registrationEndDate: string;
+  status: EventStatus;
+  liveStreamingEnabled: boolean;
+  streamingConsentRequired: boolean;
+  organizerName: string;
+  divisionCount: number;
+};
+
+export const eventService = {
+  async healthPing(): Promise<void> {
+    await eventRepository.ping();
+  },
+
+  /** 주최자 대진표 등 내부 UI — 부문 선택 목록 */
+  async listOrganizerEventDivisions(
+    actor: ActorContext,
+    eventId: string,
+  ): Promise<PublicEventDivisionDTO[]> {
+    await requireOrganizerForEvent(actor, eventId);
+    const rows = await eventRepository.findPublicEventDivisions(eventId);
+    return rows.map(mapDivisionRecordToDto);
+  },
+
+  async listPublicEvents(): Promise<PublicEventListItemDTO[]> {
+    const rows = await eventRepository.listPublicEvents();
+    return rows.map((row) => eventService.mapEventToPublicListItemDTO(row));
+  },
+
+  mapEventToPublicListItemDTO(row: PublicEventListRecord): PublicEventListItemDTO {
+    const totalDivisions = row._count.divisions;
+    return {
+      id: row.id,
+      publicSlug: row.publicSlug,
+      title: row.title,
+      location: row.location,
+      eventDate: toIso(row.eventDate),
+      registrationStartDate: toIso(row.registrationStartDate),
+      registrationEndDate: toIso(row.registrationEndDate),
+      status: row.status,
+      posterUrl: row.posterUrl,
+      liveStreamingEnabled: row.liveStreamingEnabled,
+      divisionSummary: buildDivisionSummary(row.divisions, totalDivisions),
+      organizerName: row.organizer.name,
+    };
+  },
+
+  /**
+   * 공개 상세 — 없거나 비공개 상태면 `null` (페이지에서 `notFound()` 등 처리).
+   */
+  async getPublicEventBySlug(slug: string): Promise<PublicEventDetailDTO | null> {
+    const event = await eventRepository.findPublicEventBySlug(slug);
+    if (!event) return null;
+
+    const [divisions, payment] = await Promise.all([
+      eventRepository.findPublicEventDivisions(event.id),
+      eventRepository.findPublicEventPaymentSummary(event.id),
+    ]);
+
+    return eventService.mapEventToPublicDetailDTO(event, divisions, payment);
+  },
+
+  mapEventToPublicDetailDTO(
+    event: PublicEventDetailRecord,
+    divisions: PublicEventDivisionRecord[],
+    payment: PublicEventPaymentSummaryRecord | null,
+  ): PublicEventDetailDTO {
+    const dto: PublicEventDetailDTO = {
+      id: event.id,
+      publicSlug: event.publicSlug,
+      title: event.title,
+      description: event.description,
+      location: event.location,
+      eventDate: toIso(event.eventDate),
+      registrationStartDate: toIso(event.registrationStartDate),
+      registrationEndDate: toIso(event.registrationEndDate),
+      status: event.status,
+      posterUrl: event.posterUrl,
+      photoRecordingEnabled: event.photoRecordingEnabled,
+      videoRecordingEnabled: event.videoRecordingEnabled,
+      liveStreamingEnabled: event.liveStreamingEnabled,
+      streamingNoticeText: event.streamingNoticeText,
+      streamingConsentRequired: event.streamingConsentRequired,
+      organizerName: event.organizer.name,
+      divisions: divisions.map(mapDivisionRecordToDto),
+    };
+
+    if (payment) {
+      dto.paymentSummary = mapPaymentRecordToDto(payment);
+    }
+
+    return dto;
+  },
+
+  async listOpenRegistrationEventsForGymDashboard(): Promise<
+    GymDashboardOpenEventItemDTO[]
+  > {
+    const rows =
+      await eventRepository.listRegistrationOpenEventsForGymDashboard();
+    return rows.map((row) => ({
+      id: row.id,
+      title: row.title,
+      publicSlug: row.publicSlug,
+      eventDate: toIso(row.eventDate),
+      registrationStartDate: toIso(row.registrationStartDate),
+      registrationEndDate: toIso(row.registrationEndDate),
+      status: row.status,
+      liveStreamingEnabled: row.liveStreamingEnabled,
+      streamingConsentRequired: row.streamingConsentRequired,
+      organizerName: row.organizer.name,
+      divisionCount: row._count.divisions,
+    }));
+  },
+
+  async listOrganizerEvents(
+    actor: ActorContext,
+  ): Promise<OrganizerEventListItemVM[]> {
+    requireRole(actor, ["organizer", "admin"]);
+    if (actor.role === "admin") {
+      const rows = await eventRepository.listAllEventsForAdmin();
+      return rows.map((r) => ({
+        id: r.id,
+        organizerId: r.organizerId,
+        organizerName: r.organizer.name,
+        publicSlug: r.publicSlug,
+        title: r.title,
+        location: r.location,
+        eventDate: toIso(r.eventDate),
+        registrationStartDate: toIso(r.registrationStartDate),
+        registrationEndDate: toIso(r.registrationEndDate),
+        status: r.status,
+        applicationCount: r._count.applications,
+      }));
+    }
+    if (!actor.organizerId) {
+      throw new AppError("FORBIDDEN", "주최자 정보가 없습니다.");
+    }
+    const organizerId = actor.organizerId;
+    const rows = await eventRepository.listOrganizerEvents(organizerId);
+    return rows.map((r) => ({
+      id: r.id,
+      organizerId,
+      publicSlug: r.publicSlug,
+      title: r.title,
+      location: r.location,
+      eventDate: toIso(r.eventDate),
+      registrationStartDate: toIso(r.registrationStartDate),
+      registrationEndDate: toIso(r.registrationEndDate),
+      status: r.status,
+      applicationCount: r._count.applications,
+    }));
+  },
+
+  async getOrganizerEventDetail(
+    actor: ActorContext,
+    eventId: string,
+  ): Promise<OrganizerEventDetailVM> {
+    await requireOrganizerForEvent(actor, eventId);
+    const row = await eventRepository.findOrganizerEventById(eventId);
+    if (!row) {
+      throw new AppError("NOT_FOUND", "대회를 찾을 수 없습니다.");
+    }
+    return mapOrganizerEventDetail(row);
+  },
+
+  async createOrganizerEvent(
+    actor: ActorContext,
+    input: CreateEventInput,
+  ): Promise<{ id: string }> {
+    requireRole(actor, ["organizer", "admin"]);
+    const organizerId = resolveOrganizerIdForCreate(actor, input.organizerId);
+
+    const publicSlug = await allocateUniquePublicSlug(input.title, (slug) =>
+      eventRepository.isPublicSlugTaken(slug),
+    );
+
+    const posterUrl = input.posterUrl?.trim() || null;
+    const liveOn = input.liveStreamingEnabled;
+    const streamingConsentRequired = liveOn
+      ? (input.streamingConsentRequired ?? true)
+      : false;
+    const streamingNoticeText = liveOn
+      ? (input.streamingNoticeText?.trim() || null)
+      : null;
+
+    const event = await eventRepository.createEvent({
+      organizer: { connect: { id: organizerId } },
+      title: input.title.trim(),
+      description: input.description?.trim() || null,
+      location: input.location.trim(),
+      eventDate: input.eventDate,
+      registrationStartDate: input.registrationStartDate,
+      registrationEndDate: input.registrationEndDate,
+      status: EventStatus.draft,
+      publicSlug,
+      posterUrl,
+      photoRecordingEnabled: input.photoRecordingEnabled,
+      videoRecordingEnabled: input.videoRecordingEnabled,
+      liveStreamingEnabled: liveOn,
+      streamingNoticeText,
+      streamingConsentRequired,
+    });
+
+    return { id: event.id };
+  },
+
+  async updateOrganizerEvent(
+    actor: ActorContext,
+    input: UpdateEventInput,
+  ): Promise<void> {
+    await requireOrganizerForEvent(actor, input.eventId);
+    const current = await eventRepository.findOrganizerEventById(input.eventId);
+    if (!current) throw new AppError("NOT_FOUND", "대회를 찾을 수 없습니다.");
+
+    const patch: Record<string, unknown> = {};
+    if (input.title !== undefined) patch.title = input.title.trim();
+    if (input.description !== undefined) {
+      patch.description = input.description?.trim() || null;
+    }
+    if (input.location !== undefined) patch.location = input.location.trim();
+    if (input.eventDate !== undefined) patch.eventDate = input.eventDate;
+    if (input.registrationStartDate !== undefined) {
+      patch.registrationStartDate = input.registrationStartDate;
+    }
+    if (input.registrationEndDate !== undefined) {
+      patch.registrationEndDate = input.registrationEndDate;
+    }
+    if (input.posterUrl !== undefined) {
+      patch.posterUrl = input.posterUrl?.trim() || null;
+    }
+    if (input.photoRecordingEnabled !== undefined) {
+      patch.photoRecordingEnabled = input.photoRecordingEnabled;
+    }
+    if (input.videoRecordingEnabled !== undefined) {
+      patch.videoRecordingEnabled = input.videoRecordingEnabled;
+    }
+
+    let live = current.liveStreamingEnabled;
+    if (input.liveStreamingEnabled !== undefined) {
+      live = input.liveStreamingEnabled;
+      patch.liveStreamingEnabled = live;
+    }
+    if (input.streamingNoticeText !== undefined) {
+      patch.streamingNoticeText = input.streamingNoticeText?.trim() || null;
+    }
+    if (input.streamingConsentRequired !== undefined) {
+      patch.streamingConsentRequired = input.streamingConsentRequired;
+    }
+    if (input.liveStreamingEnabled !== undefined) {
+      if (!live) {
+        patch.streamingConsentRequired = false;
+        patch.streamingNoticeText = null;
+      } else if (input.streamingConsentRequired === undefined) {
+        patch.streamingConsentRequired = true;
+      }
+    }
+
+    if (Object.keys(patch).length === 0) return;
+
+    const rs = (patch.registrationStartDate as Date | undefined) ??
+      current.registrationStartDate;
+    const re = (patch.registrationEndDate as Date | undefined) ??
+      current.registrationEndDate;
+    const ed = (patch.eventDate as Date | undefined) ?? current.eventDate;
+    if (rs > re) {
+      throw new AppError("VALIDATION_ERROR", "신청 기간이 올바르지 않습니다.");
+    }
+    if (re > ed) {
+      throw new AppError(
+        "VALIDATION_ERROR",
+        "신청 마감일은 대회 일정 이전(또는 당일)이어야 합니다.",
+      );
+    }
+
+    await eventRepository.updateEvent(input.eventId, patch);
+  },
+
+  async changeEventStatus(
+    actor: ActorContext,
+    input: ChangeEventStatusInput,
+  ): Promise<void> {
+    await requireOrganizerForEvent(actor, input.eventId);
+    const row = await eventRepository.findOrganizerEventById(input.eventId);
+    if (!row) throw new AppError("NOT_FOUND", "대회를 찾을 수 없습니다.");
+
+    if (row.status === input.status) return;
+
+    assertEventStatusTransition(row.status, input.status);
+
+    if (row.status === EventStatus.draft && input.status === EventStatus.open) {
+      await assertReadyForPublicOpen(input.eventId);
+    }
+
+    await prisma.$transaction(async (tx) => {
+      await eventRepository.updateEventStatus(input.eventId, input.status, tx);
+      await auditRepository.createAuditLog(
+        {
+          actorUserId: actor.userId,
+          action: AuditAction.event_status_changed,
+          targetType: "Event",
+          targetId: input.eventId,
+          beforeData: { status: row.status },
+          afterData: { status: input.status },
+        },
+        tx,
+      );
+    });
+  },
+
+  async createEventDivision(
+    actor: ActorContext,
+    input: CreateEventDivisionInput,
+  ): Promise<{ divisionId: string }> {
+    await requireOrganizerForEvent(actor, input.eventId);
+    const div = await eventRepository.createEventDivision({
+      event: { connect: { id: input.eventId } },
+      sportType: input.sportType.trim(),
+      ruleType: input.ruleType?.trim() || null,
+      gender: input.gender?.trim() || null,
+      ageGroup: input.ageGroup?.trim() || null,
+      weightClass: input.weightClass?.trim() || null,
+      skillLevel: input.skillLevel?.trim() || null,
+    });
+    return { divisionId: div.id };
+  },
+
+  async updateEventDivision(
+    actor: ActorContext,
+    input: UpdateEventDivisionInput,
+  ): Promise<void> {
+    const eventId = await eventRepository.findDivisionEventId(input.divisionId);
+    if (!eventId) {
+      throw new AppError("NOT_FOUND", "부문을 찾을 수 없습니다.");
+    }
+    await requireOrganizerForEvent(actor, eventId);
+
+    const data: Prisma.EventDivisionUpdateInput = {};
+    if (input.sportType !== undefined) {
+      data.sportType = input.sportType.trim();
+    }
+    if (input.ruleType !== undefined) {
+      data.ruleType = input.ruleType?.trim() || null;
+    }
+    if (input.gender !== undefined) {
+      data.gender = input.gender?.trim() || null;
+    }
+    if (input.ageGroup !== undefined) {
+      data.ageGroup = input.ageGroup?.trim() || null;
+    }
+    if (input.weightClass !== undefined) {
+      data.weightClass = input.weightClass?.trim() || null;
+    }
+    if (input.skillLevel !== undefined) {
+      data.skillLevel = input.skillLevel?.trim() || null;
+    }
+
+    await eventRepository.updateEventDivision(input.divisionId, data);
+  },
+
+  async deleteEventDivision(
+    actor: ActorContext,
+    input: DeleteEventDivisionInput,
+  ): Promise<void> {
+    await requireOrganizerForEvent(actor, input.eventId);
+    const ok = await eventRepository.findDivisionBelongsToEvent(
+      input.divisionId,
+      input.eventId,
+    );
+    if (!ok) {
+      throw new AppError("NOT_FOUND", "부문을 찾을 수 없습니다.");
+    }
+
+    const event = await eventRepository.findOrganizerEventById(input.eventId);
+    if (!event) throw new AppError("NOT_FOUND", "대회를 찾을 수 없습니다.");
+
+    if (
+      event.status === EventStatus.open &&
+      event.divisions.length <= 1
+    ) {
+      throw new AppError(
+        "CONFLICT",
+        "신청 공개 중에는 마지막 부문을 삭제할 수 없습니다.",
+      );
+    }
+
+    const [appCount, bracketCount] = await Promise.all([
+      eventRepository.countApplicationsByDivision(input.divisionId),
+      eventRepository.countBracketsByDivision(input.divisionId),
+    ]);
+    if (appCount > 0 || bracketCount > 0) {
+      throw new AppError(
+        "CONFLICT",
+        "신청 또는 대진표가 연결된 부문은 삭제할 수 없습니다.",
+      );
+    }
+
+    await eventRepository.deleteEventDivision(input.divisionId);
+  },
+
+  async upsertEventPaymentSetting(
+    actor: ActorContext,
+    input: UpsertEventPaymentSettingInput,
+  ): Promise<void> {
+    await requireOrganizerForEvent(actor, input.eventId);
+    await eventRepository.upsertEventPaymentSetting({
+      eventId: input.eventId,
+      feeAmount: input.feeAmount,
+      bankName: input.bankName.trim(),
+      accountNumber: input.accountNumber.trim(),
+      accountHolder: input.accountHolder.trim(),
+      depositorRule: input.depositorRule?.trim() || null,
+      paymentDueDate: input.paymentDueDate ?? null,
+    });
+  },
+};

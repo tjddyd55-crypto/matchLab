@@ -1,0 +1,764 @@
+// =============================================================================
+// 격투기 대회 운영 플랫폼 — Prisma 스키마 (database.md / status-machine.md / api-contract.md 정합)
+// - 전적 원천: MatchResult / Fighter.record* 는 캐시
+// - 입금 진실: EventApplicationPayment / EventApplication.paymentStatus 는 집계 캐시
+// - 주민번호·스트림 키 필드 없음
+// - GuardianConsent.signatureImagePath: private storage 객체 경로(URL 아님)
+// =============================================================================
+
+generator client {
+  provider = "prisma-client-js"
+  output   = "../src/generated/prisma"
+}
+
+datasource db {
+  provider = "postgresql"
+}
+
+// --- Enums ------------------------------------------------------------------
+
+enum UserRole {
+  admin
+  organizer
+  gym
+  fighter
+}
+
+enum GymStatus {
+  active
+  suspended
+  archived
+}
+
+enum FighterStatus {
+  active
+  inactive
+  duplicate_review
+  archived
+}
+
+enum OrganizerType {
+  association
+  gym
+  company
+  individual
+}
+
+enum OrganizerStatus {
+  pending
+  active
+  suspended
+  archived
+}
+
+enum EventStatus {
+  draft
+  open
+  closed
+  bracket_ready
+  ongoing
+  finished
+  cancelled
+}
+
+enum ApplicationStatus {
+  pending
+  approved
+  rejected
+  cancelled
+}
+
+enum PaymentStatus {
+  unpaid
+  pending_check
+  paid
+  refunded
+  waived
+}
+
+enum BracketType {
+  single_elimination
+  match_list
+}
+
+enum BracketStatus {
+  draft
+  published
+  ongoing
+  finished
+}
+
+enum BracketMatchStatus {
+  waiting
+  called
+  ongoing
+  finished
+  delayed
+  cancelled
+}
+
+enum BracketMatchOutcomeStyle {
+  decision
+  ko
+  tko
+  submission
+  disqualification
+  walkover
+  forfeit
+  draw
+  no_contest
+}
+
+enum MatchRecordOutcome {
+  win
+  loss
+  draw
+  no_contest
+}
+
+enum MatchRecordStatus {
+  pending
+  confirmed
+  corrected
+  voided
+}
+
+enum InviteLinkType {
+  fighter_registration
+  guardian_consent
+}
+
+enum InviteLinkStatus {
+  active
+  paused
+  expired
+  revoked
+}
+
+enum FighterRegistrationSubmissionStatus {
+  submitted
+  duplicate_review
+  approved
+  rejected
+}
+
+enum DuplicateCheckStatus {
+  unchecked
+  clear
+  suspected
+  confirmed_duplicate
+}
+
+enum ConsentStatus {
+  draft
+  completed
+  revoked
+  superseded
+}
+
+enum LivePlatform {
+  youtube
+  vimeo
+  twitch
+  custom
+}
+
+enum StreamType {
+  main
+  mat
+}
+
+enum LiveStreamStatus {
+  scheduled
+  live
+  ended
+  hidden
+}
+
+enum NotificationType {
+  bracket_changed
+  match_changed
+  result_confirmed
+  application_status_changed
+  payment_status_changed
+  consent_required
+  live_started
+  event_notice
+}
+
+enum AuditAction {
+  event_status_changed
+  permission_changed
+  admin_adjustment
+  payment_high_risk_change
+  system_setting_changed
+}
+
+enum BracketChangeType {
+  bracket_created
+  bracket_published
+  bracket_unpublished
+  fighter_assigned
+  fighter_removed
+  opponent_changed
+  bye_assigned
+  match_order_changed
+  global_order_changed
+  mat_changed
+  match_status_changed
+  winner_changed
+  result_type_changed
+  match_cancelled
+  bracket_reset
+}
+
+/// 토너먼트 다음 매치 슬롯 — DB에서는 enum, 애플리케이션에서도 문자열 하드코딩 금지
+enum NextMatchSlot {
+  red
+  blue
+}
+
+// --- Models -----------------------------------------------------------------
+
+/// 내부 PK는 cuid. Supabase Auth `user.id`(UUID)는 `authUserId`로 연결한다 (`roles-permissions.md`).
+model User {
+  id          String   @id @default(cuid())
+  authUserId  String?  @unique
+  email       String?  @unique
+  phone       String?
+  name        String
+  role        UserRole
+  createdAt   DateTime @default(now())
+  updatedAt   DateTime @updatedAt
+
+  organizer Organizer?
+  ownedGym  Gym?     @relation("GymOwner")
+
+  fighter Fighter?
+
+  notifications Notification[]
+  auditLogs     AuditLog[] @relation("AuditLogActor")
+
+  paymentsConfirmed       EventApplicationPayment[] @relation("PaymentConfirmer")
+  inviteLinksCreated      GymInviteLink[]           @relation("InviteLinkCreator")
+  applicationsApplied     EventApplication[]        @relation("ApplicationApplicator")
+  bracketChangeLogs       BracketChangeLog[]        @relation("BracketChangeActor")
+  matchResultsConfirmed   MatchResult[]             @relation("MatchResultConfirmer")
+  matchResultChangeLogs   MatchResultChangeLog[]    @relation("MatchResultChangeActor")
+}
+
+model Organizer {
+  id        String           @id @default(cuid())
+  userId    String           @unique
+  name      String
+  type      OrganizerType
+  status    OrganizerStatus  @default(pending)
+  createdAt DateTime         @default(now())
+  updatedAt DateTime         @updatedAt
+
+  user   User    @relation(fields: [userId], references: [id], onDelete: Cascade)
+  events Event[]
+}
+
+model Gym {
+  id          String    @id @default(cuid())
+  ownerUserId String    @unique
+  name        String
+  phone       String?
+  address     String?
+  status      GymStatus @default(active)
+  createdAt   DateTime  @default(now())
+  updatedAt   DateTime  @updatedAt
+
+  ownerUser User @relation("GymOwner", fields: [ownerUserId], references: [id], onDelete: Cascade)
+
+  fighters                  Fighter[]
+  fighterHistories          FighterGymHistory[]
+  inviteLinks               GymInviteLink[]
+  registrationSubmissions   FighterRegistrationSubmission[]
+  applications              EventApplication[]
+  matchResults              MatchResult[]                    @relation("MatchResultFighterGym")
+  matchResultsAsOpponentGym MatchResult[]                    @relation("MatchResultOpponentGym")
+}
+
+model Fighter {
+  id               String        @id @default(cuid())
+  fighterCode      String        @unique
+  userId           String?       @unique
+  currentGymId     String?
+  name             String
+  birthDate        DateTime
+  /// MVP는 자유 문자열 — 추후 Gender enum 분리 가능
+  gender           String
+  phone            String
+  height           Float?
+  weight           Float?
+  profileImageUrl  String?
+  /// 등록 제출 시점 보존 — 보호자 동의 정책 판단용 (미입력 시 연령만으로 판단)
+  schoolName       String?
+  grade            String?
+  guardianName     String?
+  guardianPhone    String?
+  recordWin        Int           @default(0)
+  recordLoss       Int           @default(0)
+  recordDraw       Int           @default(0)
+  status           FighterStatus @default(active)
+  createdAt        DateTime      @default(now())
+  updatedAt        DateTime      @updatedAt
+
+  user       User? @relation(fields: [userId], references: [id], onDelete: SetNull)
+  currentGym Gym?  @relation(fields: [currentGymId], references: [id], onDelete: SetNull)
+
+  gymHistories      FighterGymHistory[]
+  applications      EventApplication[]
+  guardianConsents  GuardianConsent[]   @relation("GuardianConsentFighter")
+
+  matchesAsRed    BracketMatch[] @relation("MatchRed")
+  matchesAsBlue   BracketMatch[] @relation("MatchBlue")
+  matchesAsWinner BracketMatch[] @relation("MatchWinner")
+  matchesAsLoser  BracketMatch[] @relation("MatchLoser")
+
+  matchResults           MatchResult[] @relation("MatchResultFighter")
+  matchResultsAsOpponent MatchResult[] @relation("MatchResultOpponent")
+
+  @@index([birthDate, gender, phone])
+  @@index([currentGymId])
+}
+
+model FighterGymHistory {
+  id        String    @id @default(cuid())
+  fighterId String
+  gymId     String
+  startDate DateTime  @default(now())
+  endDate   DateTime?
+  status    String
+  createdAt DateTime  @default(now())
+
+  fighter Fighter @relation(fields: [fighterId], references: [id], onDelete: Cascade)
+  gym     Gym     @relation(fields: [gymId], references: [id], onDelete: Cascade)
+
+  @@index([fighterId])
+  @@index([gymId])
+}
+
+model Event {
+  id                       String      @id @default(cuid())
+  organizerId              String
+  title                    String
+  description              String?
+  location                 String?
+  eventDate                DateTime
+  registrationStartDate    DateTime
+  registrationEndDate      DateTime
+  status                   EventStatus @default(draft)
+  posterUrl                String?
+  publicSlug               String      @unique
+  photoRecordingEnabled    Boolean     @default(false)
+  videoRecordingEnabled    Boolean     @default(false)
+  liveStreamingEnabled     Boolean     @default(false)
+  streamingNoticeText      String?
+  streamingConsentRequired Boolean     @default(false)
+  createdAt                DateTime    @default(now())
+  updatedAt                DateTime    @updatedAt
+
+  organizer Organizer @relation(fields: [organizerId], references: [id], onDelete: Cascade)
+
+  divisions         EventDivision[]
+  paymentSetting    EventPaymentSetting?
+  liveStreams       EventLiveStream[]
+  applications      EventApplication[]
+  brackets          Bracket[]
+  bracketChangeLogs BracketChangeLog[]
+  matchResults      MatchResult[]
+  notifications     Notification[]
+  guardianConsents  GuardianConsent[]
+
+  @@index([organizerId])
+  @@index([status])
+  @@index([eventDate])
+}
+
+model EventDivision {
+  id           String   @id @default(cuid())
+  eventId      String
+  sportType    String
+  ruleType     String?
+  gender       String?
+  ageGroup     String?
+  weightClass  String?
+  skillLevel   String?
+  createdAt    DateTime @default(now())
+  updatedAt    DateTime @updatedAt
+
+  event Event @relation(fields: [eventId], references: [id], onDelete: Cascade)
+
+  applications EventApplication[]
+  brackets     Bracket[]
+
+  @@index([eventId])
+}
+
+/// 신청 단위 입금 UI 필터용 캐시 — 진실 원천은 EventApplicationPayment
+model EventApplication {
+  id                         String             @id @default(cuid())
+  eventId                    String
+  divisionId                 String
+  gymId                      String
+  fighterId                  String
+  status                     ApplicationStatus  @default(pending)
+  paymentStatus              PaymentStatus      @default(unpaid)
+  applicationProfileImageUrl String?
+  fighterSnapshot            Json
+  gymSnapshot                Json
+  /// 신청 시점 체크박스·스트리밍 동의 등 스냅샷 (전자서명 원본 아님)
+  applicationAgreementSnapshot Json?
+  appliedByUserId            String?
+  appliedAt                  DateTime?
+  memo                       String?
+  createdAt                  DateTime           @default(now())
+  updatedAt                  DateTime           @updatedAt
+
+  event         Event          @relation(fields: [eventId], references: [id], onDelete: Cascade)
+  division      EventDivision  @relation(fields: [divisionId], references: [id], onDelete: Cascade)
+  gym           Gym            @relation(fields: [gymId], references: [id], onDelete: Cascade)
+  fighter       Fighter        @relation(fields: [fighterId], references: [id], onDelete: Cascade)
+  appliedByUser User?          @relation("ApplicationApplicator", fields: [appliedByUserId], references: [id], onDelete: SetNull)
+
+  payments EventApplicationPayment[]
+
+  @@unique([eventId, fighterId, divisionId])
+  @@index([eventId])
+  @@index([divisionId])
+  @@index([gymId])
+  @@index([fighterId])
+  @@index([appliedByUserId])
+}
+
+model EventPaymentSetting {
+  id             String    @id @default(cuid())
+  eventId        String    @unique
+  feeAmount      Int
+  bankName       String
+  accountNumber  String
+  accountHolder  String
+  depositorRule  String?
+  paymentDueDate DateTime?
+  createdAt      DateTime  @default(now())
+  updatedAt      DateTime  @updatedAt
+
+  event Event @relation(fields: [eventId], references: [id], onDelete: Cascade)
+}
+
+/// 입금 상태의 진실 원천 — 서비스에서 Application.paymentStatus 와 트랜잭션 내 동기화
+model EventApplicationPayment {
+  id                 String        @id @default(cuid())
+  eventApplicationId String
+  amount             Int
+  paymentMethod      String        @default("bank_transfer")
+  paymentStatus      PaymentStatus @default(unpaid)
+  depositorName      String?
+  confirmedByUserId  String?
+  confirmedAt        DateTime?
+  memo               String?
+  createdAt          DateTime      @default(now())
+  updatedAt          DateTime      @updatedAt
+
+  eventApplication EventApplication @relation(fields: [eventApplicationId], references: [id], onDelete: Cascade)
+  confirmedByUser  User?            @relation("PaymentConfirmer", fields: [confirmedByUserId], references: [id], onDelete: SetNull)
+
+  @@index([eventApplicationId])
+  @@index([paymentStatus])
+}
+
+model GymInviteLink {
+  id              String           @id @default(cuid())
+  gymId           String
+  token           String           @unique
+  type            InviteLinkType
+  expiresAt       DateTime?
+  maxUses         Int?
+  usedCount       Int              @default(0)
+  status          InviteLinkStatus @default(active)
+  createdByUserId String
+  createdAt       DateTime         @default(now())
+  updatedAt       DateTime         @updatedAt
+
+  gym         Gym     @relation(fields: [gymId], references: [id], onDelete: Cascade)
+  createdByUser User  @relation("InviteLinkCreator", fields: [createdByUserId], references: [id], onDelete: Cascade)
+
+  submissions FighterRegistrationSubmission[]
+
+  @@index([gymId])
+  @@index([token])
+  @@index([status])
+}
+
+model FighterRegistrationSubmission {
+  id                   String                              @id @default(cuid())
+  gymId                String
+  inviteLinkId         String?
+  name                 String
+  birthDate            DateTime
+  gender               String
+  phone                String
+  height               Float?
+  weight               Float?
+  profileImageUrl      String?
+  schoolName           String?
+  grade                String?
+  guardianName         String?
+  guardianPhone        String?
+  status               FighterRegistrationSubmissionStatus @default(submitted)
+  duplicateCheckStatus DuplicateCheckStatus                @default(unchecked)
+  submittedAt          DateTime                            @default(now())
+  createdAt            DateTime                            @default(now())
+  updatedAt            DateTime                            @updatedAt
+
+  gym         Gym            @relation(fields: [gymId], references: [id], onDelete: Cascade)
+  inviteLink  GymInviteLink? @relation(fields: [inviteLinkId], references: [id], onDelete: SetNull)
+  guardianConsents GuardianConsent[]
+
+  @@index([gymId])
+  @@index([birthDate, gender, phone])
+  @@index([status])
+}
+
+/// 서명은 Supabase private bucket 객체 경로만 저장 (공개 URL 금지)
+model GuardianConsent {
+  id                      String        @id @default(cuid())
+  fighterId               String?
+  registrationSubmissionId String?
+  eventId                 String?
+  guardianName            String
+  guardianPhone           String
+  relationship            String?
+  documentTitle           String
+  documentVersion         String
+  consentStatus           ConsentStatus @default(draft)
+  signatureImagePath      String?
+  signedAt                DateTime?
+  ipAddress               String?
+  userAgent               String?
+  createdAt               DateTime      @default(now())
+  updatedAt               DateTime      @updatedAt
+
+  fighter               Fighter?                     @relation("GuardianConsentFighter", fields: [fighterId], references: [id], onDelete: SetNull)
+  registrationSubmission FighterRegistrationSubmission? @relation(fields: [registrationSubmissionId], references: [id], onDelete: SetNull)
+  event                 Event?                       @relation(fields: [eventId], references: [id], onDelete: SetNull)
+
+  @@index([fighterId])
+  @@index([registrationSubmissionId])
+  @@index([eventId])
+}
+
+model Bracket {
+  id        String        @id @default(cuid())
+  eventId   String
+  divisionId String?
+  title     String
+  type      BracketType
+  status    BracketStatus @default(draft)
+  isPublic  Boolean       @default(false)
+  createdAt DateTime      @default(now())
+  updatedAt DateTime      @updatedAt
+
+  event    Event          @relation(fields: [eventId], references: [id], onDelete: Cascade)
+  division EventDivision? @relation(fields: [divisionId], references: [id], onDelete: SetNull)
+
+  matches      BracketMatch[]
+  changeLogs   BracketChangeLog[]
+  matchResults MatchResult[]
+
+  @@index([eventId])
+  @@index([divisionId])
+  @@index([type])
+  @@index([status])
+}
+
+model BracketMatch {
+  id           String               @id @default(cuid())
+  bracketId    String
+  round        Int?
+  roundName    String?
+  matchOrder   Int
+  globalMatchOrder Int?
+  matchNumber  Int?
+  matNumber    Int?
+  fighterRedId String?
+  fighterBlueId String?
+  fighterRedSnapshot   Json?
+  fighterBlueSnapshot  Json?
+  winnerId     String?
+  loserId      String?
+  status       BracketMatchStatus   @default(waiting)
+  resultType   BracketMatchOutcomeStyle?
+  resultMemo   String?
+  nextMatchId  String?
+  nextMatchSlot NextMatchSlot?
+  scheduledStartTime DateTime?
+  startedAt    DateTime?
+  endedAt      DateTime?
+  createdAt    DateTime             @default(now())
+  updatedAt    DateTime             @updatedAt
+
+  bracket Bracket @relation(fields: [bracketId], references: [id], onDelete: Cascade)
+
+  fighterRed  Fighter? @relation("MatchRed", fields: [fighterRedId], references: [id], onDelete: SetNull)
+  fighterBlue Fighter? @relation("MatchBlue", fields: [fighterBlueId], references: [id], onDelete: SetNull)
+  winner      Fighter? @relation("MatchWinner", fields: [winnerId], references: [id], onDelete: SetNull)
+  loser       Fighter? @relation("MatchLoser", fields: [loserId], references: [id], onDelete: SetNull)
+
+  nextMatch   BracketMatch?  @relation("BracketMatchNext", fields: [nextMatchId], references: [id], onDelete: SetNull)
+  prevMatches BracketMatch[] @relation("BracketMatchNext")
+
+  matchResults           MatchResult[]
+  matchResultChangeLogs  MatchResultChangeLog[] @relation("MRCL_BracketMatch")
+  changeLogs             BracketChangeLog[]
+
+  @@index([bracketId])
+  @@index([bracketId, round, matchOrder])
+  @@index([globalMatchOrder])
+  @@index([matNumber])
+  @@index([status])
+}
+
+model BracketChangeLog {
+  id              String           @id @default(cuid())
+  eventId         String
+  bracketId       String
+  matchId         String?
+  changedByUserId String
+  bracketType     BracketType
+  changeType      BracketChangeType
+  beforeData      Json?
+  afterData       Json?
+  reason          String?
+  createdAt       DateTime         @default(now())
+
+  event   Event          @relation(fields: [eventId], references: [id], onDelete: Cascade)
+  bracket Bracket        @relation(fields: [bracketId], references: [id], onDelete: Cascade)
+  match   BracketMatch?  @relation(fields: [matchId], references: [id], onDelete: SetNull)
+  changedByUser User   @relation("BracketChangeActor", fields: [changedByUserId], references: [id], onDelete: Restrict)
+
+  @@index([eventId])
+  @@index([bracketId])
+  @@index([matchId])
+  @@index([changeType])
+}
+
+model MatchResult {
+  id                   String               @id @default(cuid())
+  eventId              String
+  bracketId            String
+  matchId              String
+  fighterId            String
+  opponentFighterId    String?
+  gymId                String?
+  opponentGymId        String?
+  result               MatchRecordOutcome
+  resultType           BracketMatchOutcomeStyle?
+  eventTitleSnapshot   String
+  fighterSnapshot      Json
+  opponentSnapshot     Json?
+  divisionSnapshot     Json?
+  matchDate            DateTime
+  status               MatchRecordStatus    @default(pending)
+  confirmedByUserId    String?
+  confirmedAt          DateTime?
+  createdAt            DateTime             @default(now())
+  updatedAt            DateTime             @updatedAt
+
+  event   Event         @relation(fields: [eventId], references: [id], onDelete: Cascade)
+  bracket Bracket       @relation(fields: [bracketId], references: [id], onDelete: Cascade)
+  match   BracketMatch  @relation(fields: [matchId], references: [id], onDelete: Cascade)
+  fighter Fighter       @relation("MatchResultFighter", fields: [fighterId], references: [id], onDelete: Cascade)
+  opponentFighter Fighter? @relation("MatchResultOpponent", fields: [opponentFighterId], references: [id], onDelete: SetNull)
+  gym             Gym?    @relation("MatchResultFighterGym", fields: [gymId], references: [id], onDelete: SetNull)
+  opponentGym     Gym?    @relation("MatchResultOpponentGym", fields: [opponentGymId], references: [id], onDelete: SetNull)
+  confirmedByUser User?   @relation("MatchResultConfirmer", fields: [confirmedByUserId], references: [id], onDelete: SetNull)
+
+  changeLogs MatchResultChangeLog[]
+
+  @@unique([matchId, fighterId])
+  @@index([eventId])
+  @@index([bracketId])
+  @@index([fighterId])
+  @@index([status])
+  @@index([matchDate])
+}
+
+model MatchResultChangeLog {
+  id              String   @id @default(cuid())
+  matchResultId   String
+  matchId         String
+  changedByUserId String
+  beforeResult    Json
+  afterResult     Json
+  reason          String?
+  createdAt       DateTime @default(now())
+
+  matchResult   MatchResult   @relation(fields: [matchResultId], references: [id], onDelete: Cascade)
+  match         BracketMatch  @relation("MRCL_BracketMatch", fields: [matchId], references: [id], onDelete: Cascade)
+  changedByUser User          @relation("MatchResultChangeActor", fields: [changedByUserId], references: [id], onDelete: Restrict)
+
+  @@index([matchResultId])
+  @@index([matchId])
+}
+
+/// 스트림 키 필드 없음 — watchUrl/embedUrl 만
+model EventLiveStream {
+  id         String            @id @default(cuid())
+  eventId    String
+  title      String
+  platform   LivePlatform
+  streamType StreamType
+  matNumber  Int?
+  watchUrl   String?
+  embedUrl   String?
+  status     LiveStreamStatus  @default(scheduled)
+  isPublic   Boolean           @default(false)
+  createdAt  DateTime          @default(now())
+  updatedAt  DateTime          @updatedAt
+
+  event Event @relation(fields: [eventId], references: [id], onDelete: Cascade)
+
+  @@index([eventId])
+  @@index([status])
+}
+
+model Notification {
+  id        String           @id @default(cuid())
+  userId    String
+  eventId   String?
+  type      NotificationType
+  title     String
+  content   String
+  /// 인앱 알림에서 이동할 내부·공개 경로(민감 정보 금지). 예: `/gym/applications`, `/events/{slug}/brackets`
+  href      String?
+  readAt    DateTime?
+  createdAt DateTime         @default(now())
+
+  user  User   @relation(fields: [userId], references: [id], onDelete: Cascade)
+  event Event? @relation(fields: [eventId], references: [id], onDelete: SetNull)
+
+  @@index([userId])
+  @@index([eventId])
+  @@index([readAt])
+}
+
+model AuditLog {
+  id          String       @id @default(cuid())
+  actorUserId String?
+  action      AuditAction
+  targetType  String
+  targetId    String?
+  beforeData  Json?
+  afterData   Json?
+  createdAt   DateTime     @default(now())
+
+  actorUser User? @relation("AuditLogActor", fields: [actorUserId], references: [id], onDelete: SetNull)
+
+  @@index([actorUserId])
+  @@index([action])
+  @@index([targetType, targetId])
+}

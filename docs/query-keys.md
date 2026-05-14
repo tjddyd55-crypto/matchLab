@@ -54,7 +54,7 @@ export const queryKeys = {
 | Results | `['events',eventId,'results']`, `['fighters',fighterId,'results','public']` | 공개 DTO |
 | Records summary | `['fighters',fighterId,'record-summary']` | 캐시 필드 표시용 |
 | Live | `['events',eventId,'live-streams']`, `['events','public',slug,'live-streams']` | 공개 |
-| Notifications | `['notifications',userId]` | 선택 |
+| Notifications | `['notifications',userId]` | 인앱 알림; 행에 선택적 `href`(내부 경로만, 민감 정보 금지) |
 
 ---
 

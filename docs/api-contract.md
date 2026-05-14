@@ -70,7 +70,7 @@
 { "error": { "code": string, "message": string, "details"?: unknown } }
 ```
 
-- `code`: 기계 판별용 (`FORBIDDEN`, `NOT_FOUND`, `VALIDATION_ERROR`, `CONFLICT`, `INTERNAL` 등).
+- `code`: 기계 판별용 (`UNAUTHORIZED`, `FORBIDDEN`, `NOT_FOUND`, `VALIDATION_ERROR`, `CONFLICT`, `INTERNAL` 등).
 - 민감한 DB/스택 정보는 `message`에 노출하지 않는다.
 
 ### 5.2 Server Action
@@ -109,6 +109,8 @@
 ## 8. 인증·세션
 
 - Supabase Auth 세션을 서버에서 검증한 후 `ActorContext`(userId, role, organizerId?, gymId?, fighterId?)를 service에 전달한다.
+- **로그인**: `signInWithPasswordAction` — anon `signInWithPassword` 후 `authService.getActorByAuthUserId`로 DB 매핑 확인. 매핑 없으면 세션 제거 + `ActionResult` 오류(`FORBIDDEN`, 고정 메시지). **service role로 로그인 처리 금지.**
+- **로그아웃**: `signOutAction` — anon `signOut` 후 `/login` 안내.
 - **spectator** 는 세션 없음; 공개 라우트만 허용.
 
 ## 9. 실시간과 API의 관계

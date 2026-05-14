@@ -1,0 +1,33 @@
+/**
+ * 도메인 enum·상수의 애플리케이션 진입점.
+ * 단일 진실은 `prisma/schema.prisma` — 생성된 Client와 동기화하여 재내보냅니다.
+ */
+
+export {
+  ApplicationStatus,
+  AuditAction,
+  BracketChangeType,
+  BracketMatchOutcomeStyle,
+  BracketMatchStatus,
+  BracketStatus,
+  BracketType,
+  ConsentStatus,
+  DuplicateCheckStatus,
+  EventStatus,
+  FighterRegistrationSubmissionStatus,
+  FighterStatus,
+  GymStatus,
+  InviteLinkStatus,
+  InviteLinkType,
+  LivePlatform,
+  LiveStreamStatus,
+  MatchRecordOutcome,
+  MatchRecordStatus,
+  NextMatchSlot,
+  NotificationType,
+  OrganizerStatus,
+  OrganizerType,
+  PaymentStatus,
+  StreamType,
+  UserRole,
+} from "@/generated/prisma";
