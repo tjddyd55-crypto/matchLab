@@ -8,6 +8,15 @@
 2. `tjddyd55-crypto/matchLab` (또는 본인 포크) 레포를 연결하고, 배포 브랜치를 **`main`**으로 둡니다.
 3. Railway가 빌드·시작 명령을 감지하지 못하면, Web Service 설정에서 **Build Command** / **Start Command**를 `package.json`의 `build` / `start`에 맞춥니다. (일반적으로 `npm run build` 후 `npm start`.)
 
+### Prisma Client와 빌드 순서
+
+- **`src/generated/prisma`는 Git에 포함하지 않습니다.**(`.gitignore`로 제외) 따라서 CI·Railway처럼 클론만 한 환경에는 생성된 클라이언트가 없습니다.
+- Next 빌드가 `@/generated/prisma` 등을 참조하므로, **`next build` 이전에 반드시 `prisma generate`가 실행**되어야 합니다.
+- 이 레포의 `package.json`에서는 **`build` 스크립트가 `npm run db:generate && next build` 형태**입니다.(`db:generate` → `prisma generate`)
+- Railway는 보통 **`npm ci` 후 `npm run build`**를 실행합니다. **Custom Build Command는 비워 두고** Railway 기본값을 쓰면 위 `build` 스크립트가 그대로 적용됩니다.
+- 서비스 설정에서 빌드 명령을 직접 지정한다면 **`npm run build` 한 줄**로 두는 것을 권장합니다.(`prisma generate`를 별도 단계로 중복하지 않아도 됨)
+- **생성된 Prisma Client 디렉터리를 Git에 올리지 마세요.** 배포 빌드 중에만 생성되도록 유지합니다.
+
 ## 2. PostgreSQL 추가
 
 1. 같은 프로젝트에 **PostgreSQL** 플러그인을 추가합니다.
