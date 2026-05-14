@@ -16,12 +16,13 @@
 - Railway는 보통 **`npm ci` 후 `npm run build`**를 실행합니다. **Custom Build Command는 비워 두고** Railway 기본값을 쓰면 위 `build` 스크립트가 그대로 적용됩니다.
 - 서비스 설정에서 빌드 명령을 직접 지정한다면 **`npm run build` 한 줄**로 두는 것을 권장합니다.(`prisma generate`를 별도 단계로 중복하지 않아도 됨)
 - **생성된 Prisma Client 디렉터리를 Git에 올리지 마세요.** 배포 빌드 중에만 생성되도록 유지합니다.
+- **`db:push`는 스키마를 DB에 반영하는 명령이므로 `build` / `start`에 자동으로 넣지 마세요.** 배포가 끝난 뒤 아래 [첫 배포 후 DB 초기화](#4-첫-배포-후-db-초기화)를 따릅니다.
 
 ## 2. PostgreSQL 추가
 
 1. 같은 프로젝트에 **PostgreSQL** 플러그인을 추가합니다.
 2. Postgres 서비스의 **Variables** 또는 **Connect** 탭에서 **`DATABASE_URL`**(또는 Railway가 제공하는 연결 문자열 변수명)을 확인합니다.
-3. Web Service의 환경 변수에 **`DATABASE_URL`**로 그 값을 넣습니다. (Railway가 `DATABASE_URL`을 자동 주입하는 템플릿이 있으면 그대로 사용해도 됩니다.)
+3. **app Web Service**의 환경 변수에 **`DATABASE_URL`**로 그 값을 넣습니다. (Railway가 Postgres와 웹 서비스를 연결하는 템플릿이 있으면 그대로 사용해도 됩니다.)
 
 ## 3. Web Service 환경 변수
 
@@ -45,28 +46,148 @@
 - **`DEMO_PASSWORD=1234`는 시연용**입니다. 운영 환경에서는 사용하지 않거나 강한 비밀번호로 바꾸세요.
 - 배포가 끝난 **Railway 공개 URL**을 `NEXT_PUBLIC_APP_URL`에 넣어야 리다이렉트·절대 링크가 올바르게 동작합니다.
 
-## 4. 배포 후 실행 명령
+### Railway Web Service Variables 체크리스트
 
-Railway **일회성 셸/Run Command** 또는 로컬에서 프로덕션 DB를 가리키는 `.env`로 다음을 순서대로 실행할 수 있습니다.
+다음이 **app Web Service**(Next 앱이 도는 서비스)에 설정되어 있는지 확인하세요.
+
+- [ ] `DATABASE_URL` — 없거나 잘못되면 `npm run db:push` 등 Prisma 명령이 실패합니다.
+- [ ] `NEXT_PUBLIC_SUPABASE_URL` — 없으면 `npm run setup:demo-users`가 실패할 수 있습니다.
+- [ ] `NEXT_PUBLIC_SUPABASE_ANON_KEY` — 앱·스크립트에서 Supabase 클라이언트에 필요합니다.
+- [ ] `SUPABASE_SERVICE_ROLE_KEY` — 없으면 `setup:demo-users` 등 서버 전용 스크립트가 실패합니다.
+- [ ] `NEXT_PUBLIC_APP_URL` — **Railway가 발급한 public domain**(HTTPS URL)으로 설정합니다.
+- [ ] `SUPABASE_CONSENT_SIGNATURE_BUCKET`
+- [ ] `SUPABASE_PROFILE_IMAGE_BUCKET`
+- [ ] `DEMO_PASSWORD` (선택, 미설정 시 코드 기본값 사용 가능)
+
+`DATABASE_URL`은 **PostgreSQL 서비스가 아니라 Web Service**에 연결되어 있어야 합니다. (Railway 템플릿이 Postgres URL을 웹 서비스 변수로 주입하는 패턴을 사용합니다.)
+
+## 4. 첫 배포 후 DB 초기화
+
+Railway에서 **빌드·배포가 성공해도** PostgreSQL은 **빈 데이터베이스**입니다. Prisma 스키마(`prisma/schema.prisma`)가 반영되지 않으면 `public.Event` 등 테이블이 없어 **`/`·`/events`·`/events/sample-open-2026` 등이 500**이 될 수 있습니다. (`/login`, `/register`처럼 DB의 `Event`를 읽지 않는 경로는 200일 수 있습니다.)
+
+**`db:push` 전에는** 위 공개 페이지가 500일 수 있습니다. 에러 로그에 **`The table public.Event does not exist`**(Prisma `P2021`)가 보이면 **스키마 미반영** → 아래 순서로 `db:push`부터 실행하세요.
+
+### 권장 실행 순서
+
+1. **`npm run db:push`** — Prisma 스키마를 Railway PostgreSQL에 반영합니다. `Event`, `User`, `Fighter` 등 테이블이 생성됩니다.
+2. **`npm run db:seed`** — `sample-open-2026`, divisions, applications, brackets, results 등 **시연용 시드 데이터**를 넣습니다. (`prisma db seed` → `prisma.config.ts`의 `migrations.seed`로 `tsx prisma/seed.ts` 실행)
+3. **`npm run setup:demo-users`** — Supabase Auth에 데모 계정을 만들고, Prisma `User.authUserId` 등을 맞춥니다.
+
+**중요**
+
+- `db:seed`가 `User` 등 데이터를 만들거나 갱신할 수 있으므로, **시드 이후에 `setup:demo-users`를 다시 한 번 실행**하는 것을 권장합니다(데모 계정·DB 매핑 일치).
+- 운영 환경에서는 **마이그레이션 전략**(`db:migrate` 등)을 쓰는 것이 일반적이지만, **MVP 시연 단계에서는 `db:push` 사용을 허용**합니다. `build` / `start`에 `db:push`를 자동으로 넣지 마세요.
+
+### Railway CLI 기준
+
+프로젝트 디렉터리에서 Railway CLI를 사용하는 경우:
 
 ```bash
-# Prisma 스키마를 DB에 반영 (프로젝트 스크립트명에 맞게 선택)
-npm run db:push
-# 또는
-npm run db:migrate
-
-# 데모 계정 생성 (Supabase Auth + Prisma User 등)
-npm run setup:demo-users
-
-# 시드 데이터
-npm run db:seed
+railway login
+railway link
+railway run npm run db:push
+railway run npm run db:seed
+railway run npm run setup:demo-users
+# db:seed 이후 User/auth 매핑을 다시 맞추려면 한 번 더 실행:
+railway run npm run setup:demo-users
 ```
 
-- `setup:demo-users`는 **`NEXT_PUBLIC_SUPABASE_URL`**, **`SUPABASE_SERVICE_ROLE_KEY`**, **`DATABASE_URL`**, **`DEMO_PASSWORD`**(또는 기본값)가 필요합니다.
-- 첫 배포 후 DB가 비어 있으면 위 순서를 권장합니다.
+### Railway 대시보드에서 실행 (CLI 없이)
 
-## 5. Railway 연결 전 체크리스트
+1. Railway 프로젝트로 이동합니다.
+2. **app Web Service**(Next.js가 배포된 서비스)를 선택합니다.
+3. **Shell** / **Run command** / **Command**(UI 명칭은 시기별로 다를 수 있음) 메뉴에서, 아래를 **순서대로** 실행합니다.
+
+```bash
+npm run db:push
+npm run db:seed
+npm run setup:demo-users
+```
+
+**주의**
+
+- 명령은 **PostgreSQL 서비스가 아니라 app Web Service** 환경에서 실행해야 합니다. (같은 변수·네트워크 컨텍스트)
+- 해당 서비스에 **`DATABASE_URL`**, **`NEXT_PUBLIC_SUPABASE_URL`**, **`NEXT_PUBLIC_SUPABASE_ANON_KEY`**, **`SUPABASE_SERVICE_ROLE_KEY`**가 설정되어 있어야 합니다.
+- **`DATABASE_URL`**은 Railway PostgreSQL 인스턴스의 URL과 **연결된 값**이어야 합니다.
+
+## 5. DB 상태 확인
+
+스키마가 반영되었는지 Prisma로 확인하려면 (CLI 사용 시):
+
+```bash
+railway run npx prisma db pull --print
+```
+
+로컬/원격 DB에 연결된 상태에서 스키마 덤프를 출력해 테이블 존재를 간접 확인할 수 있습니다.
+
+Prisma Studio를 쓸 수 있다면:
+
+```bash
+railway run npx prisma studio
+```
+
+Railway 환경에서는 **포트 노출·브라우저 접속**이 번거로울 수 있어 필수는 아닙니다.
+
+**간단한 확인**
+
+- `db:push` 성공 후 브라우저에서 **`/events`** — 200에 가까워지면 테이블 생성이 된 경우가 많습니다.
+- `db:seed` 성공 후 **`/events/sample-open-2026`** — 시드된 이벤트 슬러그 페이지가 열리는지 확인합니다.
+
+## 6. Troubleshooting
+
+### 1) `The table public.Event does not exist` (P2021)
+
+- **원인**: `db:push`를 아직 실행하지 않았거나 실패했습니다.
+- **해결**: `railway run npm run db:push` 또는 대시보드 Shell에서 `npm run db:push` 실행 후, 필요 시 `npm run db:seed`까지 진행합니다.
+
+### 2) `DATABASE_URL` is missing / Prisma가 DB에 연결하지 못함
+
+- **원인**: app Web Service에 **`DATABASE_URL`이 없거나** Postgres와 연결되지 않았습니다.
+- **해결**: Railway에서 Postgres 플러그인의 연결 문자열을 Web Service 변수 **`DATABASE_URL`**에 연결합니다.
+
+### 3) `setup:demo-users` fails — `NEXT_PUBLIC_SUPABASE_URL` missing
+
+- **원인**: Supabase 관련 env가 Web Service에 없습니다.
+- **해결**: **`NEXT_PUBLIC_SUPABASE_URL`**(및 필요 시 anon 키·service role 키)을 Railway Web Service Variables에 추가합니다.
+
+### 4) password too short / Supabase가 비밀번호 거절
+
+- **원인**: Supabase Auth 비밀번호 정책이 **`1234` 같은 짧은 비밀번호**를 거절합니다.
+- **해결**: Railway에서 **`DEMO_PASSWORD`**를 `123456` 또는 `Demo1234!` 등 정책을 만족하는 값으로 바꾼 뒤 **`npm run setup:demo-users`**를 다시 실행합니다.
+
+### 5) `sample-open-2026` not found / 404
+
+- **원인**: **`db:seed` 미실행** 또는 시드 실패입니다.
+- **해결**: `railway run npm run db:seed` 또는 대시보드에서 `npm run db:seed`를 실행하고 로그를 확인합니다.
+
+## 7. Railway 연결 전 체크리스트
 
 - [ ] GitHub에 **실제 시크릿·`.env`가 커밋되지 않았는지** 확인
 - [ ] Supabase에서 Storage 버킷 이름이 환경 변수와 일치하는지 확인
 - [ ] `NEXT_PUBLIC_APP_URL`을 배포 URL로 갱신
+
+## 8. 배포 후 검증 체크리스트
+
+- [ ] Railway build 성공
+- [ ] Railway deploy 성공
+- [ ] `/login` 200
+- [ ] `npm run db:push` 성공
+- [ ] `npm run db:seed` 성공
+- [ ] `npm run setup:demo-users` 성공
+- [ ] `/events` 200
+- [ ] `/events/sample-open-2026` 200
+- [ ] `admin@demo.local` 로그인 성공
+- [ ] `organizer@demo.local` 로그인 성공
+- [ ] `gym@demo.local` 로그인 성공
+- [ ] `fighter@demo.local` 로그인 성공
+
+## 9. `package.json` 스크립트 참고 (배포·DB 작업)
+
+| 스크립트 | 역할 |
+|----------|------|
+| `db:generate` | `prisma generate` — 빌드 시 클라이언트 생성 |
+| `db:push` | `prisma db push` — **배포 후 수동** 스키마 반영(MVP 시연) |
+| `db:seed` | `prisma db seed` — `prisma.config.ts`의 `migrations.seed`(`tsx prisma/seed.ts`) 실행 |
+| `setup:demo-users` | 데모 Auth·DB 사용자 정합 |
+| `build` | `npm run db:generate && next build` |
+| `start` | `next start` |

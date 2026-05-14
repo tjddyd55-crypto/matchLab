@@ -54,6 +54,10 @@ npm install
 
 | `DEMO_PASSWORD` | (선택) `npm run setup:demo-users` 시 Supabase Auth 비밀번호. 미설정 시 `1234` — 정책에 따라 거절되면 `123456` 또는 `Demo1234!` 등으로 지정 |
 
+### Railway 첫 배포 후 DB 초기화
+
+GitHub → Railway 배포가 성공해도 **Postgres는 빈 DB**입니다. `public.Event` 없음 등으로 **`/`·`/events`가 500**일 수 있습니다. **배포 직후 한 번** `db:push` → `db:seed` → `setup:demo-users` 순서를 실행해야 합니다. Railway CLI·대시보드 Shell·환경 변수 체크리스트·트러블슈팅은 **[deploy-railway.md](./deploy-railway.md)** 의 **「4. 첫 배포 후 DB 초기화」** 이하를 따르세요.
+
 ### Storage · 보호자 동의 서명 (`api-contract.md` §10)
 
 - Supabase 대시보드 **Storage**에서 bucket **`consent-signatures`(또는 위 환경 변수 값)** 을 만들고 **Public(bucket 공개)** 을 끕니다.
