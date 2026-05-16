@@ -1,7 +1,7 @@
 "use client";
 
 import { useRouter } from "next/navigation";
-import { useTransition } from "react";
+import { useState, useTransition } from "react";
 import {
   approveRegistrationSubmissionAction,
   rejectRegistrationSubmissionAction,
@@ -24,6 +24,7 @@ export function RegistrationRequestActions({
 }) {
   const router = useRouter();
   const [pending, startTransition] = useTransition();
+  const [actionError, setActionError] = useState<string | null>(null);
 
   const canAct =
     status === "submitted" || status === "duplicate_review";
@@ -34,15 +35,26 @@ export function RegistrationRequestActions({
     );
   }
 
+  function showFailure(message: string) {
+    setActionError(message);
+    window.alert(message);
+  }
+
   function run(fn: (fd: FormData) => Promise<ActionResult<unknown>>) {
     startTransition(async () => {
+      setActionError(null);
       const fd = new FormData();
       fd.set("submissionId", submissionId);
       const res = await fn(fd);
       if (!res.ok) {
-        window.alert(res.error.message);
+        const msg =
+          res.error.message?.trim() ||
+          "처리 중 오류가 발생했습니다.";
+        console.error("[registration request]", res.error.code, msg);
+        showFailure(msg);
         return;
       }
+      setActionError(null);
       router.refresh();
     });
   }
@@ -61,6 +73,14 @@ export function RegistrationRequestActions({
 
   return (
     <div className="flex flex-col items-end gap-2 sm:flex-row sm:justify-end">
+      {actionError ? (
+        <p
+          className="text-destructive max-w-[240px] text-right text-xs leading-relaxed"
+          role="alert"
+        >
+          {actionError}
+        </p>
+      ) : null}
       {consentCopyAbsoluteUrl ? (
         <Button
           type="button"

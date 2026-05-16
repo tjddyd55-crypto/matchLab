@@ -17,6 +17,7 @@ import {
   registrationService,
   type FighterRegistrationSubmitResult,
 } from "@/lib/services/registration.service";
+import { isPrismaUniqueViolation } from "@/lib/prisma-errors";
 import { fighterRegistrationPublicSchema } from "@/lib/validators/fighter-registration.validator";
 
 function mapCaught<T>(
@@ -29,10 +30,20 @@ function mapCaught<T>(
     if (e instanceof PermissionError) {
       return actionFailure(
         permissionReasonToActionCode(e.reason),
-        e.message,
+        e.message || "권한이 없습니다.",
       );
     }
-    console.error(e);
+    if (isPrismaUniqueViolation(e)) {
+      return actionFailure(
+        "CONFLICT",
+        "이미 등록된 정보와 충돌합니다. 중복 여부를 확인한 뒤 다시 시도해 주세요.",
+      );
+    }
+    if (e instanceof Error && e.message.trim()) {
+      console.error("[registration action]", e.name, e.message);
+    } else {
+      console.error("[registration action]", e);
+    }
     return actionFailure(
       "INTERNAL",
       "처리 중 오류가 발생했습니다.",

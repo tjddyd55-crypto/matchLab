@@ -2,6 +2,7 @@
  * [CONTRACT] PrismaClient import는 `src/lib/repositories` 내부에만 허용한다.
  */
 import { FighterStatus, type Prisma } from "@/generated/prisma";
+import { AppError } from "@/lib/errors/app-error";
 import { prisma } from "@/lib/prisma";
 import { normalizePhoneDigits } from "@/lib/phone";
 import { toUtcDateOnly } from "@/lib/date-only";
@@ -257,25 +258,34 @@ export const fighterRepository = {
   },
 
   /**
-   * 다음 fighterCode — 같은 연도 접두사 기준 최대 접미사 + 1.
-   * 동시 요청 시 충돌 가능 → UNIQUE 위반 시 재시도·시퀀스 테이블 도입 TODO.
+   * 다음 fighterCode — `FTR-YYYY-NNNNNN` 형식만 순번 대상 (데모·비표준 코드 제외).
    */
   async generateNextFighterCodeForYear(
     tx: Prisma.TransactionClient,
     year: number,
   ): Promise<string> {
     const prefix = `FTR-${year}-`;
-    const last = await tx.fighter.findFirst({
+    const numericPattern = new RegExp(`^FTR-${year}-(\\d{6})$`);
+
+    const rows = await tx.fighter.findMany({
       where: { fighterCode: { startsWith: prefix } },
-      orderBy: { fighterCode: "desc" },
       select: { fighterCode: true },
     });
 
-    let next = 1;
-    if (last?.fighterCode.startsWith(prefix)) {
-      const suffix = last.fighterCode.slice(prefix.length);
-      const n = parseInt(suffix, 10);
-      if (!Number.isNaN(n)) next = n + 1;
+    let maxSeq = 0;
+    for (const { fighterCode } of rows) {
+      const match = numericPattern.exec(fighterCode);
+      if (!match) continue;
+      const n = parseInt(match[1]!, 10);
+      if (!Number.isNaN(n) && n > maxSeq) maxSeq = n;
+    }
+
+    const next = maxSeq + 1;
+    if (next > 999_999) {
+      throw new AppError(
+        "CONFLICT",
+        "해당 연도 선수 고유번호 한도에 도달했습니다.",
+      );
     }
 
     return `${prefix}${String(next).padStart(6, "0")}`;

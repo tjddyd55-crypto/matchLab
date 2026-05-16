@@ -12,6 +12,7 @@ import { requiresGuardianConsent } from "@/lib/consent-policy";
 import { prisma } from "@/lib/prisma";
 import { normalizePhoneDigits } from "@/lib/phone";
 import { requireGymOwner, requireRole } from "@/lib/permissions";
+import { isPrismaUniqueViolation } from "@/lib/prisma-errors";
 import { consentRepository } from "@/lib/repositories/consent.repository";
 import { fighterRepository } from "@/lib/repositories/fighter.repository";
 import { registrationRepository } from "@/lib/repositories/registration.repository";
@@ -83,7 +84,8 @@ export const fighterService = {
         );
       }
 
-      if (requiresGuardianConsent(latest)) {
+      const consentRequired = requiresGuardianConsent(latest);
+      if (consentRequired) {
         const consent =
           await consentRepository.findConsentForRegistrationSubmission(
             submissionId,
@@ -100,10 +102,8 @@ export const fighterService = {
         }
       }
 
-      const fighterCode = await fighterService.generateFighterCode(tx);
-
-      const fighter = await fighterRepository.createFighterWithGymHistory(tx, {
-        fighterCode,
+      let fighter: { id: string; fighterCode: string } | null = null;
+      const fighterPayload = {
         name: latest.name,
         birthDate: latest.birthDate,
         gender: latest.gender,
@@ -116,13 +116,48 @@ export const fighterService = {
         guardianName: latest.guardianName ?? null,
         guardianPhone: latest.guardianPhone ?? null,
         currentGymId: latest.gymId,
-      });
+      };
 
-      await consentRepository.attachFighterToSubmissionConsents(
-        submissionId,
-        fighter.id,
-        tx,
-      );
+      const maxCodeAttempts = 3;
+      for (let attempt = 0; attempt < maxCodeAttempts; attempt++) {
+        const fighterCode = await fighterService.generateFighterCode(tx);
+        try {
+          fighter = await fighterRepository.createFighterWithGymHistory(tx, {
+            fighterCode,
+            ...fighterPayload,
+          });
+          break;
+        } catch (e) {
+          if (
+            isPrismaUniqueViolation(e, "fighterCode") &&
+            attempt < maxCodeAttempts - 1
+          ) {
+            continue;
+          }
+          if (isPrismaUniqueViolation(e, "fighterCode")) {
+            throw new AppError(
+              "CONFLICT",
+              "선수 고유번호 생성 중 충돌이 발생했습니다. 다시 시도해 주세요.",
+            );
+          }
+          throw e;
+        }
+      }
+
+      if (!fighter) {
+        throw new AppError(
+          "INTERNAL",
+          "선수 생성에 실패했습니다. 다시 시도해 주세요.",
+        );
+      }
+
+      if (consentRequired) {
+        await consentRepository.attachFighterToSubmissionConsents(
+          submissionId,
+          fighter.id,
+          tx,
+        );
+      }
 
       await registrationRepository.updateSubmissionStatus(
         submissionId,
