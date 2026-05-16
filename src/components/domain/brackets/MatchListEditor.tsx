@@ -8,6 +8,7 @@ import type { OrganizerApprovedFighterOptionVM } from "@/lib/services/bracket.se
 import type { OrganizerBracketMatchVM } from "@/lib/services/bracket.service";
 import { ApprovedApplicationPicker } from "@/components/domain/brackets/ApprovedApplicationPicker";
 import { Button } from "@/components/ui/button";
+import { getMatchListDisabledFighterIds } from "@/lib/bracket-match-placement";
 import { BracketType } from "@/lib/enums";
 import { cn } from "@/lib/utils";
 
@@ -94,17 +95,31 @@ export function MatchListEditor({
 
   const payloadJson = useMemo(() => {
     const normalized = rows
-      .filter((r) => r.fighterRedId && r.fighterBlueId)
-      .map((r) => ({
-        fighterRedId: r.fighterRedId,
-        fighterBlueId: r.fighterBlueId,
-        matchOrder: r.matchOrder,
-        globalMatchOrder: r.globalMatchOrder
-          ? Number(r.globalMatchOrder)
-          : undefined,
-        matchNumber: r.matchNumber ? Number(r.matchNumber) : undefined,
-        matNumber: r.matNumber ? Number(r.matNumber) : undefined,
-      }));
+      .map((r) => {
+        const red = r.fighterRedId.trim();
+        const blue = r.fighterBlueId.trim();
+        if (!red && !blue) return null;
+        const globalRaw = r.globalMatchOrder.trim();
+        const matchNumRaw = r.matchNumber.trim();
+        const matRaw = r.matNumber.trim();
+        const globalN = globalRaw === "" ? undefined : Number(globalRaw);
+        const matchN = matchNumRaw === "" ? undefined : Number(matchNumRaw);
+        const matN = matRaw === "" ? undefined : Number(matRaw);
+        return {
+          fighterRedId: red || undefined,
+          fighterBlueId: blue || undefined,
+          matchOrder: r.matchOrder,
+          globalMatchOrder:
+            globalN !== undefined && Number.isFinite(globalN)
+              ? globalN
+              : undefined,
+          matchNumber:
+            matchN !== undefined && Number.isFinite(matchN) ? matchN : undefined,
+          matNumber:
+            matN !== undefined && Number.isFinite(matN) ? matN : undefined,
+        };
+      })
+      .filter((row): row is NonNullable<typeof row> => row !== null);
     return JSON.stringify(normalized);
   }, [rows]);
 
@@ -196,6 +211,11 @@ export function MatchListEditor({
                         )
                       }
                       options={options}
+                      disabledOptionIds={getMatchListDisabledFighterIds(
+                        rows,
+                        idx,
+                        "red",
+                      )}
                       placeholder="레드 선수"
                     />
                   </td>
@@ -210,6 +230,11 @@ export function MatchListEditor({
                         )
                       }
                       options={options}
+                      disabledOptionIds={getMatchListDisabledFighterIds(
+                        rows,
+                        idx,
+                        "blue",
+                      )}
                       placeholder="블루 선수"
                     />
                   </td>
@@ -323,6 +348,11 @@ export function MatchListEditor({
                   )
                 }
                 options={options}
+                disabledOptionIds={getMatchListDisabledFighterIds(
+                  rows,
+                  idx,
+                  "red",
+                )}
                 placeholder="레드 선수"
                 className="max-w-none"
               />
@@ -336,6 +366,11 @@ export function MatchListEditor({
                   )
                 }
                 options={options}
+                disabledOptionIds={getMatchListDisabledFighterIds(
+                  rows,
+                  idx,
+                  "blue",
+                )}
                 placeholder="블루 선수"
                 className="max-w-none"
               />

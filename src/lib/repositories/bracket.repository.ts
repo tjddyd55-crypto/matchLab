@@ -326,6 +326,10 @@ export const bracketRepository = {
     bracketId: string,
     tx?: Prisma.TransactionClient,
   ): Promise<void> {
+    await db(tx).bracketMatch.updateMany({
+      where: { bracketId },
+      data: { nextMatchId: null },
+    });
     await db(tx).bracketMatch.deleteMany({ where: { bracketId } });
   },
 

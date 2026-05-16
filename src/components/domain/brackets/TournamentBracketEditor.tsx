@@ -15,6 +15,7 @@ import type {
 import { ApprovedApplicationPicker } from "@/components/domain/brackets/ApprovedApplicationPicker";
 import { OrganizerMatchOpsPanel } from "@/components/domain/brackets/OrganizerMatchOpsPanel";
 import { Button } from "@/components/ui/button";
+import { getBracketDisabledFighterIds } from "@/lib/bracket-match-placement";
 import { cn } from "@/lib/utils";
 import { BracketType } from "@/lib/enums";
 
@@ -191,6 +192,11 @@ export function TournamentBracketEditor({
                           name="fighterId"
                           value=""
                           options={detail.approvedFighterOptions}
+                          disabledOptionIds={getBracketDisabledFighterIds(
+                            sortedMatches,
+                            m.id,
+                            "red",
+                          )}
                           placeholder="레드 선택"
                         />
                         <Button type="submit" size="xs">
@@ -224,6 +230,11 @@ export function TournamentBracketEditor({
                           name="fighterId"
                           value=""
                           options={detail.approvedFighterOptions}
+                          disabledOptionIds={getBracketDisabledFighterIds(
+                            sortedMatches,
+                            m.id,
+                            "blue",
+                          )}
                           placeholder="블루 선택"
                         />
                         <Button type="submit" size="xs">
@@ -294,6 +305,11 @@ export function TournamentBracketEditor({
                   name="fighterId"
                   value=""
                   options={detail.approvedFighterOptions}
+                  disabledOptionIds={getBracketDisabledFighterIds(
+                    sortedMatches,
+                    m.id,
+                    "red",
+                  )}
                   placeholder="레드 선택"
                   className="max-w-none"
                 />
@@ -325,6 +341,11 @@ export function TournamentBracketEditor({
                   name="fighterId"
                   value=""
                   options={detail.approvedFighterOptions}
+                  disabledOptionIds={getBracketDisabledFighterIds(
+                    sortedMatches,
+                    m.id,
+                    "blue",
+                  )}
                   placeholder="블루 선택"
                   className="max-w-none"
                 />

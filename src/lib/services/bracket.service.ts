@@ -16,6 +16,7 @@ import {
   parseBracketFighterSnapshot,
   type BracketFighterSnapshotPayload,
 } from "@/lib/bracket-snapshot";
+import { validateMatchListPlacement } from "@/lib/bracket-match-placement";
 import type {
   PublicBracketDetailDTO,
   PublicBracketFighterDTO,
@@ -484,14 +485,7 @@ export const bracketService = {
       );
     }
 
-    for (const m of input.matches) {
-      if (m.fighterRedId === m.fighterBlueId) {
-        throw new AppError(
-          "VALIDATION_ERROR",
-          "레드·블루에 동일 선수를 둘 수 없습니다.",
-        );
-      }
-    }
+    validateMatchListPlacement(input.matches);
 
     await prisma.$transaction(async (tx) => {
       const beforeCount = await bracketRepository.countMatchesByBracketId(
@@ -515,29 +509,51 @@ export const bracketService = {
       });
 
       for (const row of input.matches) {
-        const red =
-          await bracketRepository.findApprovedApplicationForBracketPlacement(
-            ctx.eventId,
-            row.fighterRedId,
-            ctx.divisionId,
-            tx,
-          );
-        const blue =
-          await bracketRepository.findApprovedApplicationForBracketPlacement(
-            ctx.eventId,
-            row.fighterBlueId,
-            ctx.divisionId,
-            tx,
-          );
-        if (!red || !blue) {
-          throw new AppError(
-            "VALIDATION_ERROR",
-            "승인된 신청 선수만 경기에 배치할 수 있습니다.",
-          );
+        const redFighterId = row.fighterRedId;
+        const blueFighterId = row.fighterBlueId;
+        if (!redFighterId && !blueFighterId) {
+          continue;
         }
 
-        const redSnap = buildFighterBracketSnapshot(red);
-        const blueSnap = buildFighterBracketSnapshot(blue);
+        type PlacementRow = Awaited<
+          ReturnType<
+            typeof bracketRepository.findApprovedApplicationForBracketPlacement
+          >
+        >;
+        let redPlacement: PlacementRow = null;
+        let bluePlacement: PlacementRow = null;
+
+        if (redFighterId) {
+          redPlacement =
+            await bracketRepository.findApprovedApplicationForBracketPlacement(
+              ctx.eventId,
+              redFighterId,
+              ctx.divisionId,
+              tx,
+            );
+          if (!redPlacement) {
+            throw new AppError(
+              "VALIDATION_ERROR",
+              "승인된 신청자만 대진표에 배치할 수 있습니다.",
+            );
+          }
+        }
+
+        if (blueFighterId) {
+          bluePlacement =
+            await bracketRepository.findApprovedApplicationForBracketPlacement(
+              ctx.eventId,
+              blueFighterId,
+              ctx.divisionId,
+              tx,
+            );
+          if (!bluePlacement) {
+            throw new AppError(
+              "VALIDATION_ERROR",
+              "승인된 신청자만 대진표에 배치할 수 있습니다.",
+            );
+          }
+        }
 
         const { id: matchId } = await bracketRepository.createBracketMatch(
           {
@@ -548,10 +564,14 @@ export const bracketService = {
             globalMatchOrder: row.globalMatchOrder ?? null,
             matchNumber: row.matchNumber ?? null,
             matNumber: row.matNumber ?? null,
-            fighterRedId: red.fighterId,
-            fighterBlueId: blue.fighterId,
-            fighterRedSnapshot: redSnap,
-            fighterBlueSnapshot: blueSnap,
+            fighterRedId: redPlacement?.fighterId ?? null,
+            fighterBlueId: bluePlacement?.fighterId ?? null,
+            fighterRedSnapshot: redPlacement
+              ? buildFighterBracketSnapshot(redPlacement)
+              : null,
+            fighterBlueSnapshot: bluePlacement
+              ? buildFighterBracketSnapshot(bluePlacement)
+              : null,
           },
           tx,
         );
@@ -564,8 +584,8 @@ export const bracketService = {
           bracketType: ctx.type,
           changeType: BracketChangeType.fighter_assigned,
           afterData: {
-            fighterRedId: red.fighterId,
-            fighterBlueId: blue.fighterId,
+            fighterRedId: redPlacement?.fighterId ?? null,
+            fighterBlueId: bluePlacement?.fighterId ?? null,
             matchOrder: row.matchOrder,
           },
         });

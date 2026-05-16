@@ -10,6 +10,7 @@ import { PermissionError } from "@/lib/auth/permission-error";
 import { requireActorFromMutation } from "@/lib/auth/actor";
 import { AppError } from "@/lib/errors/app-error";
 import { bracketService } from "@/lib/services/bracket.service";
+import { isPrismaUniqueViolation } from "@/lib/prisma-errors";
 import {
   assignFighterToMatchSchema,
   createBracketSchema,
@@ -21,6 +22,7 @@ import {
   unpublishBracketSchema,
   updateMatchOrderAndMatSchema,
 } from "@/lib/validators/bracket.validator";
+import type { ZodError } from "zod";
 
 function mapCaught<T>(
   fn: () => Promise<ActionResult<T>>,
@@ -32,9 +34,40 @@ function mapCaught<T>(
     if (e instanceof PermissionError) {
       return actionFailure(permissionReasonToActionCode(e.reason), e.message);
     }
+    if (isPrismaUniqueViolation(e)) {
+      return actionFailure(
+        "CONFLICT",
+        "대진표 저장 중 데이터 충돌이 발생했습니다. 선수 중복 배치 여부를 확인해 주세요.",
+      );
+    }
     console.error(e);
-    return actionFailure("INTERNAL", "처리 중 오류가 발생했습니다.");
+    return actionFailure("INTERNAL", "대진표 저장 중 오류가 발생했습니다.");
   });
+}
+
+function optionalFighterIdFromUnknown(v: unknown): string | undefined {
+  if (v === undefined || v === null) return undefined;
+  const s = String(v).trim();
+  return s === "" ? undefined : s;
+}
+
+function optionalPositiveIntFromUnknown(v: unknown): number | undefined {
+  if (v === undefined || v === null || v === "") return undefined;
+  const n = typeof v === "number" ? v : Number(v);
+  if (!Number.isFinite(n) || !Number.isInteger(n) || n < 1) return undefined;
+  return n;
+}
+
+function optionalNonNegIntFromUnknown(v: unknown): number | undefined {
+  if (v === undefined || v === null || v === "") return undefined;
+  const n = typeof v === "number" ? v : Number(v);
+  if (!Number.isFinite(n) || !Number.isInteger(n) || n < 0) return undefined;
+  return n;
+}
+
+function firstZodMessage(error: ZodError, fallback: string): string {
+  const issue = error.issues[0];
+  return issue?.message?.trim() ? issue.message : fallback;
 }
 
 /** `<form action>` 단일 인자 vs `useActionState(prev, formData)` 모두 지원 */
@@ -159,32 +192,38 @@ export async function createMatchListMatchesAction(
       return actionFailure("VALIDATION_ERROR", "경기 목록은 배열이어야 합니다.");
     }
 
-    const normalized = rows.map((item, idx) => {
-      if (!item || typeof item !== "object") {
-        throw new AppError(
-          "VALIDATION_ERROR",
-          `경기 ${idx + 1}행 데이터가 올바르지 않습니다.`,
-        );
-      }
-      const r = item as Record<string, unknown>;
-      return {
-        fighterRedId: String(r.fighterRedId ?? ""),
-        fighterBlueId: String(r.fighterBlueId ?? ""),
-        matchOrder: Number(r.matchOrder),
-        globalMatchOrder:
-          r.globalMatchOrder === undefined || r.globalMatchOrder === ""
-            ? undefined
-            : Number(r.globalMatchOrder),
-        matchNumber:
-          r.matchNumber === undefined || r.matchNumber === ""
-            ? undefined
-            : Number(r.matchNumber),
-        matNumber:
-          r.matNumber === undefined || r.matNumber === ""
-            ? undefined
-            : Number(r.matNumber),
-      };
-    });
+    const normalized = rows
+      .map((item, idx) => {
+        if (!item || typeof item !== "object") {
+          throw new AppError(
+            "VALIDATION_ERROR",
+            `경기 ${idx + 1}행 데이터가 올바르지 않습니다.`,
+          );
+        }
+        const r = item as Record<string, unknown>;
+        const fighterRedId = optionalFighterIdFromUnknown(r.fighterRedId);
+        const fighterBlueId = optionalFighterIdFromUnknown(r.fighterBlueId);
+        if (!fighterRedId && !fighterBlueId) {
+          return null;
+        }
+        const matchOrderRaw = Number(r.matchOrder);
+        return {
+          fighterRedId,
+          fighterBlueId,
+          matchOrder: Number.isFinite(matchOrderRaw) ? matchOrderRaw : Number.NaN,
+          globalMatchOrder: optionalNonNegIntFromUnknown(r.globalMatchOrder),
+          matchNumber: optionalPositiveIntFromUnknown(r.matchNumber),
+          matNumber: optionalPositiveIntFromUnknown(r.matNumber),
+        };
+      })
+      .filter((row): row is NonNullable<typeof row> => row !== null);
+
+    if (normalized.length === 0) {
+      return actionFailure(
+        "VALIDATION_ERROR",
+        "저장할 경기가 없습니다. 레드 또는 블루 선수를 한 명 이상 지정해 주세요.",
+      );
+    }
 
     const parsed = createMatchListMatchesSchema.safeParse({
       bracketId: formReq(formData, "bracketId"),
@@ -193,7 +232,10 @@ export async function createMatchListMatchesAction(
     if (!parsed.success) {
       return actionFailure(
         "VALIDATION_ERROR",
-        "경기 목록 입력값을 확인해 주세요.",
+        firstZodMessage(
+          parsed.error,
+          "경기 목록 입력값을 확인해 주세요.",
+        ),
         parsed.error.flatten(),
       );
     }

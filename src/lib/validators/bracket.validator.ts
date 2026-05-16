@@ -19,14 +19,39 @@ export const publishBracketSchema = z.object({
 
 export const unpublishBracketSchema = publishBracketSchema;
 
-const matchListRowSchema = z.object({
-  fighterRedId: z.string().min(1),
-  fighterBlueId: z.string().min(1),
-  matchOrder: z.number().int().nonnegative(),
-  globalMatchOrder: z.number().int().nonnegative().optional(),
-  matchNumber: z.number().int().positive().optional(),
-  matNumber: z.number().int().positive().optional(),
-});
+const optionalFighterId = z
+  .string()
+  .optional()
+  .transform((s) => (s && s.trim() !== "" ? s.trim() : undefined));
+
+const optionalPositiveInt = z
+  .union([z.number(), z.string(), z.undefined(), z.null()])
+  .optional()
+  .transform((v) => {
+    if (v === undefined || v === null || v === "") return undefined;
+    const n = typeof v === "number" ? v : Number(v);
+    return Number.isFinite(n) ? n : Number.NaN;
+  })
+  .refine((n) => n === undefined || (Number.isInteger(n) && n > 0), {
+    message: "양의 정수여야 합니다.",
+  });
+
+const matchListRowSchema = z
+  .object({
+    fighterRedId: optionalFighterId,
+    fighterBlueId: optionalFighterId,
+    matchOrder: z.number().int().nonnegative(),
+    globalMatchOrder: z
+      .number()
+      .int()
+      .nonnegative()
+      .optional(),
+    matchNumber: optionalPositiveInt,
+    matNumber: optionalPositiveInt,
+  })
+  .refine((r) => Boolean(r.fighterRedId || r.fighterBlueId), {
+    message: "레드 또는 블루 선수를 하나 이상 지정해 주세요.",
+  });
 
 export const createMatchListMatchesSchema = z.object({
   bracketId: z.string().min(1),
