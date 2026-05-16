@@ -50,7 +50,7 @@ export const confirmMatchResultsSchema = z
     }
   });
 
-export const correctMatchResultSchema = confirmMatchResultsSchema.extend({
+export const correctMatchResultSchema = confirmMatchResultsSchema.safeExtend({
   reason: z.string().min(1, "정정 사유는 필수입니다.").max(2000),
 });
 
