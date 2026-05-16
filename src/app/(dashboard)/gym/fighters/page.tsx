@@ -81,6 +81,10 @@ export default async function GymFightersPage({
           />
         ) : (
           <>
+            <p className="text-muted-foreground text-sm leading-relaxed">
+              선수 또는 보호자가 등록 링크로 제출한 정보입니다. 체육관이 확인 후
+              승인하면 소속 선수로 등록됩니다.
+            </p>
             <GymRegistrationRequestsTable items={requests} />
             <GymRegistrationRequestsCards items={requests} />
           </>

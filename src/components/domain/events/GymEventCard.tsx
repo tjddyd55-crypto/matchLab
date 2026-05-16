@@ -8,22 +8,9 @@ import {
 } from "@/components/ui/card";
 import { buttonVariants } from "@/components/ui/button";
 import { cn } from "@/lib/utils";
+import type { GymDashboardEventItemDTO } from "@/lib/services/event.service";
 
-export type GymDashboardEventCardVM = {
-  id: string;
-  title: string;
-  publicSlug: string;
-  eventDate: string;
-  registrationStartDate: string;
-  registrationEndDate: string;
-  status: string;
-  liveStreamingEnabled: boolean;
-  streamingConsentRequired: boolean;
-  organizerName: string;
-  divisionCount: number;
-};
-
-export function GymEventCard({ event }: { event: GymDashboardEventCardVM }) {
+export function GymEventCard({ event }: { event: GymDashboardEventItemDTO }) {
   const regStart = new Date(event.registrationStartDate).toLocaleDateString(
     "ko-KR",
   );
@@ -36,6 +23,7 @@ export function GymEventCard({ event }: { event: GymDashboardEventCardVM }) {
         <CardTitle className="text-lg leading-snug">{event.title}</CardTitle>
         <CardDescription>
           주최 {event.organizerName} · 부문 {event.divisionCount}개
+          {!event.hasPaymentSetting ? " · 입금 미설정" : ""}
         </CardDescription>
       </CardHeader>
       <CardContent className="flex flex-col gap-3">
@@ -51,8 +39,19 @@ export function GymEventCard({ event }: { event: GymDashboardEventCardVM }) {
             </dd>
           </div>
           <div className="flex justify-between gap-2">
-            <dt>상태</dt>
-            <dd className="text-foreground">{event.status}</dd>
+            <dt>대회 상태</dt>
+            <dd className="text-foreground">{event.statusLabel}</dd>
+          </div>
+          <div className="flex justify-between gap-2">
+            <dt>신청</dt>
+            <dd
+              className={cn(
+                "text-right font-medium",
+                event.canApply ? "text-primary" : "text-foreground",
+              )}
+            >
+              {event.registrationStatusLabel}
+            </dd>
           </div>
           {(event.liveStreamingEnabled || event.streamingConsentRequired) ? (
             <div className="rounded-md bg-amber-950/15 px-2 py-1 text-amber-950 dark:text-amber-100">
@@ -60,12 +59,32 @@ export function GymEventCard({ event }: { event: GymDashboardEventCardVM }) {
             </div>
           ) : null}
         </dl>
-        <Link
-          href={`/gym/events/${event.id}/apply`}
-          className={cn(buttonVariants({ variant: "default" }), "inline-flex w-full justify-center")}
-        >
-          신청하기
-        </Link>
+        {event.applyDisabledReason && !event.canApply ? (
+          <p className="text-muted-foreground text-xs leading-relaxed">
+            {event.applyDisabledReason}
+          </p>
+        ) : null}
+        {event.canApply ? (
+          <Link
+            href={`/gym/events/${event.id}/apply`}
+            className={cn(
+              buttonVariants({ variant: "default" }),
+              "inline-flex w-full justify-center",
+            )}
+          >
+            신청하기
+          </Link>
+        ) : (
+          <span
+            className={cn(
+              buttonVariants({ variant: "secondary" }),
+              "inline-flex w-full cursor-not-allowed justify-center opacity-80",
+            )}
+            aria-disabled
+          >
+            신청 불가
+          </span>
+        )}
       </CardContent>
     </Card>
   );

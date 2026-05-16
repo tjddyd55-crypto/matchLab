@@ -28,7 +28,9 @@ export function FighterRegistrationForm({
         role="status"
       >
         <p className="font-medium">
-          등록 요청이 제출되었습니다. 체육관 확인 후 정식 선수로 등록됩니다.
+          {consentRequired
+            ? "등록 요청이 접수되었습니다. 보호자 동의가 완료되면 체육관에서 확인 후 승인할 수 있습니다."
+            : "등록 요청이 접수되었습니다. 체육관에서 확인 후 승인하면 선수 등록이 완료됩니다."}
         </p>
         {dup ? (
           <p className="text-amber-700 text-sm dark:text-amber-400">

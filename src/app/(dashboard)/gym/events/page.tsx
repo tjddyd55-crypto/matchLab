@@ -7,7 +7,7 @@ export const dynamic = "force-dynamic";
 
 export default async function GymEventsPage() {
   const actor = await requireActor();
-  const events = await eventService.listOpenRegistrationEventsForGymDashboard();
+  const events = await eventService.listEventsForGymDashboard(actor);
 
   if (!actor.gymId) {
     return (
@@ -24,17 +24,18 @@ export default async function GymEventsPage() {
     <div className="mx-auto flex w-full max-w-6xl flex-col gap-8 px-4 py-8 md:px-6">
       <div>
         <h1 className="font-heading text-2xl font-semibold tracking-tight">
-          신청 가능한 대회
+          대회 목록
         </h1>
         <p className="text-muted-foreground mt-1 text-sm">
-          상태가 열려 있고 신청 기간 안에 있는 공개 대회만 표시됩니다.
+          공개된 대회를 모두 표시합니다. 신청 가능 여부는 신청 기간·부문·입금
+          설정·소속 선수에 따라 카드에 안내됩니다.
         </p>
       </div>
 
       {events.length === 0 ? (
         <EmptyState
-          title="신청 가능한 대회가 없습니다"
-          description="신청 기간이 열리면 여기에서 바로 신청할 수 있습니다."
+          title="표시할 대회가 없습니다"
+          description="주최자가 대회를 공개(OPEN 등)하면 여기에 표시됩니다."
         />
       ) : (
         <div className="grid gap-4 sm:grid-cols-2 xl:grid-cols-3">

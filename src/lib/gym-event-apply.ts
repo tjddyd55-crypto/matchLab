@@ -1,0 +1,114 @@
+import { EventStatus } from "@/lib/enums";
+
+/** 체육관 대회 목록에 노출할 공개 상태 (draft·cancelled 제외) */
+export const GYM_VISIBLE_EVENT_STATUSES: EventStatus[] = [
+  EventStatus.open,
+  EventStatus.closed,
+  EventStatus.bracket_ready,
+  EventStatus.ongoing,
+  EventStatus.finished,
+];
+
+export type GymEventApplyEvaluationInput = {
+  status: EventStatus;
+  registrationStartDate: Date;
+  registrationEndDate: Date;
+  divisionCount: number;
+  hasPaymentSetting: boolean;
+  activeFighterCount: number;
+};
+
+export type GymEventApplyEvaluation = {
+  canApply: boolean;
+  applyDisabledReason?: string;
+  registrationStatusLabel: string;
+};
+
+/**
+ * 목록 카드용 신청 가능 여부·라벨 (실제 신청 API 검증은 application.service 유지).
+ */
+export function evaluateGymEventApplyEligibility(
+  input: GymEventApplyEvaluationInput,
+  now: Date = new Date(),
+): GymEventApplyEvaluation {
+  const { status, registrationStartDate, registrationEndDate } = input;
+
+  if (status === EventStatus.finished) {
+    return {
+      canApply: false,
+      registrationStatusLabel: "대회 종료",
+      applyDisabledReason: "종료된 대회입니다.",
+    };
+  }
+
+  if (
+    status === EventStatus.ongoing ||
+    status === EventStatus.bracket_ready ||
+    status === EventStatus.closed
+  ) {
+    const label =
+      status === EventStatus.ongoing
+        ? "대회 진행 중"
+        : status === EventStatus.bracket_ready
+          ? "대진 준비"
+          : "신청 마감";
+    return {
+      canApply: false,
+      registrationStatusLabel: label,
+      applyDisabledReason: "신청이 열려 있지 않은 대회입니다.",
+    };
+  }
+
+  if (status !== EventStatus.open) {
+    return {
+      canApply: false,
+      registrationStatusLabel: "신청 불가",
+      applyDisabledReason: "신청할 수 없는 상태입니다.",
+    };
+  }
+
+  if (now < registrationStartDate) {
+    return {
+      canApply: false,
+      registrationStatusLabel: "신청 시작 전",
+      applyDisabledReason: "신청 기간이 아직 시작되지 않았습니다.",
+    };
+  }
+
+  if (now > registrationEndDate) {
+    return {
+      canApply: false,
+      registrationStatusLabel: "신청 마감",
+      applyDisabledReason: "신청 기간이 종료되었습니다.",
+    };
+  }
+
+  if (input.divisionCount < 1) {
+    return {
+      canApply: false,
+      registrationStatusLabel: "부문 설정 필요",
+      applyDisabledReason: "주최자가 부문을 설정해야 신청할 수 있습니다.",
+    };
+  }
+
+  if (!input.hasPaymentSetting) {
+    return {
+      canApply: false,
+      registrationStatusLabel: "입금 설정 필요",
+      applyDisabledReason: "주최자가 입금 정보를 설정해야 신청할 수 있습니다.",
+    };
+  }
+
+  if (input.activeFighterCount < 1) {
+    return {
+      canApply: false,
+      registrationStatusLabel: "신청 가능",
+      applyDisabledReason: "소속 활성 선수가 없습니다. 선수 등록 후 신청해 주세요.",
+    };
+  }
+
+  return {
+    canApply: true,
+    registrationStatusLabel: "신청 가능",
+  };
+}

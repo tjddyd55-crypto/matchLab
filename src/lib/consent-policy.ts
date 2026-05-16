@@ -5,13 +5,29 @@
  * 나이 임계값만 별도 조정하면 되도록 여기에 모은다.
  */
 
-/** MVP: 출생일 기준 완료 나이가 이 값 미만이면 미성년으로 동의 필요. */
-const MVP_MINOR_MAX_COMPLETED_AGE = 18;
+import { toUtcDateOnly } from "@/lib/date-only";
 
-function completedAgeUtc(birthUtc: Date, referenceUtc: Date): number {
-  let age = referenceUtc.getUTCFullYear() - birthUtc.getUTCFullYear();
-  const m = referenceUtc.getUTCMonth() - birthUtc.getUTCMonth();
-  const d = referenceUtc.getUTCDate() - birthUtc.getUTCDate();
+/** MVP: 만 나이가 이 값 미만이면 보호자 동의 필요 (만 19세 미만). */
+const MVP_ADULT_MIN_AGE = 19;
+
+function hasMeaningfulText(value: string | null | undefined): boolean {
+  if (value == null) return false;
+  const t = value.trim();
+  if (!t) return false;
+  const lower = t.toLowerCase();
+  if (lower === "undefined" || lower === "null") return false;
+  return true;
+}
+
+function completedAgeFromBirthDate(
+  birthDate: Date,
+  referenceDate: Date,
+): number {
+  const birth = toUtcDateOnly(birthDate);
+  const ref = toUtcDateOnly(referenceDate);
+  let age = ref.getUTCFullYear() - birth.getUTCFullYear();
+  const m = ref.getUTCMonth() - birth.getUTCMonth();
+  const d = ref.getUTCDate() - birth.getUTCDate();
   if (m < 0 || (m === 0 && d < 0)) age -= 1;
   return age;
 }
@@ -30,18 +46,19 @@ export function requiresGuardianConsent(
 ): boolean {
   // TODO: 대회·체육관 정책별 성년/동의 기준을 설정으로 빼고 주입 가능하게 할 것.
 
-  const hasSchoolOrGrade = Boolean(
-    row.schoolName?.trim() || row.grade?.trim(),
-  );
-  if (hasSchoolOrGrade) return true;
+  const age = completedAgeFromBirthDate(row.birthDate, referenceDate);
+  if (age < MVP_ADULT_MIN_AGE) return true;
 
-  const hasGuardianContact = Boolean(
-    row.guardianName?.trim() || row.guardianPhone?.trim(),
-  );
-  if (hasGuardianContact) return true;
+  if (hasMeaningfulText(row.schoolName) || hasMeaningfulText(row.grade)) {
+    return true;
+  }
 
-  const age = completedAgeUtc(row.birthDate, referenceDate);
-  if (age <= MVP_MINOR_MAX_COMPLETED_AGE) return true;
+  if (
+    hasMeaningfulText(row.guardianName) ||
+    hasMeaningfulText(row.guardianPhone)
+  ) {
+    return true;
+  }
 
   return false;
 }

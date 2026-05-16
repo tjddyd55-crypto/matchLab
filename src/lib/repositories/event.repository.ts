@@ -452,7 +452,8 @@ export const eventRepository = {
     });
   },
 
-  async listRegistrationOpenEventsForGymDashboard(): Promise<
+  /** 체육관 대회 목록 — 공개 상태(draft·cancelled 제외), 신청 기간과 무관하게 전부 조회 */
+  async listEventsForGymDashboard(): Promise<
     Prisma.EventGetPayload<{
       select: {
         id: true;
@@ -466,16 +467,12 @@ export const eventRepository = {
         streamingConsentRequired: true;
         organizer: { select: { name: true } };
         _count: { select: { divisions: true } };
+        paymentSetting: { select: { eventId: true } };
       };
     }>[]
   > {
-    const now = new Date();
     return prisma.event.findMany({
-      where: {
-        status: EventStatus.open,
-        registrationStartDate: { lte: now },
-        registrationEndDate: { gte: now },
-      },
+      where: { status: { notIn: excludedFromPublic } },
       orderBy: [{ eventDate: "asc" }, { registrationEndDate: "asc" }],
       select: {
         id: true,
@@ -489,6 +486,7 @@ export const eventRepository = {
         streamingConsentRequired: true,
         organizer: { select: { name: true } },
         _count: { select: { divisions: true } },
+        paymentSetting: { select: { eventId: true } },
       },
     });
   },

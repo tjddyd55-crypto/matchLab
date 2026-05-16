@@ -186,6 +186,17 @@ export const registrationService = {
 
       await inviteLinkRepository.incrementInviteLinkUsage(token, tx);
 
+      const policyInput = {
+        birthDate: birthNorm,
+        schoolName: input.schoolName ?? null,
+        grade: input.grade ?? null,
+        guardianName: input.guardianName ?? null,
+        guardianPhone: input.guardianPhone?.trim()
+          ? normalizePhoneDigits(input.guardianPhone.trim())
+          : null,
+      };
+      const consentRequired = requiresGuardianConsent(policyInput);
+
       const created =
         await registrationRepository.createFighterRegistrationSubmission(
           {
@@ -198,29 +209,28 @@ export const registrationService = {
             height: input.height,
             weight: input.weight,
             profileImageUrl: input.profileImageUrl,
-            schoolName: input.schoolName,
-            grade: input.grade,
-            guardianName: input.guardianName,
-            guardianPhone: input.guardianPhone?.trim()
-              ? normalizePhoneDigits(input.guardianPhone.trim())
-              : undefined,
+            schoolName: input.schoolName ?? null,
+            grade: input.grade ?? null,
+            guardianName: input.guardianName ?? null,
+            guardianPhone: policyInput.guardianPhone ?? undefined,
             status: submissionStatus,
             duplicateCheckStatus: dupCheck,
           },
           tx,
         );
 
-      const consent =
-        await consentService.ensureConsentDraftForRegistrationSubmission(
-          created.id,
-          tx,
-        );
+      const consent = consentRequired
+        ? await consentService.ensureConsentDraftForRegistrationSubmission(
+            created.id,
+            tx,
+          )
+        : null;
 
       return {
         duplicateSuspected,
         submissionId: created.id,
         consentId: consent?.id,
-        consentRequired: Boolean(consent),
+        consentRequired,
       };
     });
 

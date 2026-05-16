@@ -10,6 +10,10 @@ import type {
 import type { Prisma } from "@/generated/prisma";
 import { AuditAction, EventStatus } from "@/generated/prisma";
 import {
+  evaluateGymEventApplyEligibility,
+} from "@/lib/gym-event-apply";
+import { fighterRepository } from "@/lib/repositories/fighter.repository";
+import {
   type PublicEventDetailRecord,
   type PublicEventDivisionRecord,
   type PublicEventListRecord,
@@ -258,7 +262,7 @@ function mapOrganizerEventDetail(
   };
 }
 
-export type GymDashboardOpenEventItemDTO = {
+export type GymDashboardEventItemDTO = {
   id: string;
   title: string;
   publicSlug: string;
@@ -266,10 +270,25 @@ export type GymDashboardOpenEventItemDTO = {
   registrationStartDate: string;
   registrationEndDate: string;
   status: EventStatus;
+  statusLabel: string;
   liveStreamingEnabled: boolean;
   streamingConsentRequired: boolean;
   organizerName: string;
   divisionCount: number;
+  hasPaymentSetting: boolean;
+  canApply: boolean;
+  applyDisabledReason?: string;
+  registrationStatusLabel: string;
+};
+
+const EVENT_STATUS_LABEL_KO: Record<EventStatus, string> = {
+  draft: "작성 중",
+  open: "모집 중",
+  closed: "신청 마감",
+  bracket_ready: "대진 준비",
+  ongoing: "진행 중",
+  finished: "종료",
+  cancelled: "취소",
 };
 
 export const eventService = {
@@ -357,24 +376,47 @@ export const eventService = {
     return dto;
   },
 
-  async listOpenRegistrationEventsForGymDashboard(): Promise<
-    GymDashboardOpenEventItemDTO[]
-  > {
-    const rows =
-      await eventRepository.listRegistrationOpenEventsForGymDashboard();
-    return rows.map((row) => ({
-      id: row.id,
-      title: row.title,
-      publicSlug: row.publicSlug,
-      eventDate: toIso(row.eventDate),
-      registrationStartDate: toIso(row.registrationStartDate),
-      registrationEndDate: toIso(row.registrationEndDate),
-      status: row.status,
-      liveStreamingEnabled: row.liveStreamingEnabled,
-      streamingConsentRequired: row.streamingConsentRequired,
-      organizerName: row.organizer.name,
-      divisionCount: row._count.divisions,
-    }));
+  async listEventsForGymDashboard(
+    actor: ActorContext,
+  ): Promise<GymDashboardEventItemDTO[]> {
+    const rows = await eventRepository.listEventsForGymDashboard();
+    const gymId = actor.gymId;
+    const activeFighterCount = gymId
+      ? (await fighterRepository.listActiveFightersForEventApplication(gymId))
+          .length
+      : 0;
+
+    return rows.map((row) => {
+      const divisionCount = row._count.divisions;
+      const hasPaymentSetting = row.paymentSetting != null;
+      const apply = evaluateGymEventApplyEligibility({
+        status: row.status,
+        registrationStartDate: row.registrationStartDate,
+        registrationEndDate: row.registrationEndDate,
+        divisionCount,
+        hasPaymentSetting,
+        activeFighterCount,
+      });
+
+      return {
+        id: row.id,
+        title: row.title,
+        publicSlug: row.publicSlug,
+        eventDate: toIso(row.eventDate),
+        registrationStartDate: toIso(row.registrationStartDate),
+        registrationEndDate: toIso(row.registrationEndDate),
+        status: row.status,
+        statusLabel: EVENT_STATUS_LABEL_KO[row.status],
+        liveStreamingEnabled: row.liveStreamingEnabled,
+        streamingConsentRequired: row.streamingConsentRequired,
+        organizerName: row.organizer.name,
+        divisionCount,
+        hasPaymentSetting,
+        canApply: apply.canApply,
+        applyDisabledReason: apply.applyDisabledReason,
+        registrationStatusLabel: apply.registrationStatusLabel,
+      };
+    });
   },
 
   async listOrganizerEvents(
