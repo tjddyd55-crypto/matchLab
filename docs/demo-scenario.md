@@ -39,6 +39,17 @@ MVP 범위는 `docs/mvp-scope.md`를 기준으로 하며, 본 문서는 **시연
 - [ ] 로그아웃 후 `/gym` 등 대시보드 URL을 직접 열면 `/login`으로 돌아가는가?
 - [ ] 시드 대회 **공개 슬러그**가 `sample-open-2026`인지 확인(주최자 홈 바로가기·본 문서 URL과 동일).
 
+## 2.1 테스트용 선수 20명 (선택)
+
+링크로 한 명씩 등록하기 어려울 때:
+
+```bash
+npm run setup:demo-users   # 선행
+npm run seed:demo-fighters # FTR-2026-TEST001~020, 데모 체육관 소속
+```
+
+`gym@demo.local`로 `/gym/fighters`·대회 신청·대진표에서 바로 선택할 수 있습니다. 상세는 `docs/dev-start.md` 참고.
+
 ## 3. 시연 데이터 설명 (`npm run db:seed` 후)
 
 - **대회**: `2026 샘플 오픈 대회`, 공개 슬러그 **`sample-open-2026`**, 상태 `open`.

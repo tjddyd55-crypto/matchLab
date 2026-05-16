@@ -189,5 +189,6 @@ Railway 환경에서는 **포트 노출·브라우저 접속**이 번거로울 �
 | `db:push` | `prisma db push` — **배포 후 수동** 스키마 반영(MVP 시연) |
 | `db:seed` | `prisma db seed` — `prisma.config.ts`의 `migrations.seed`(`tsx prisma/seed.ts`) 실행 |
 | `setup:demo-users` | 데모 Auth·DB 사용자 정합 |
+| `seed:demo-fighters` | 데모 체육관 소속 테스트 선수 20명 upsert (`DATABASE_URL`만 필요) |
 | `build` | `npm run db:generate && next build` |
 | `start` | `next start` |

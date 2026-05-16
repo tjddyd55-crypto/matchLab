@@ -94,6 +94,20 @@ GitHub → Railway 배포가 성공해도 **Postgres는 빈 DB**입니다. `publ
 
 생성되는 Auth 이메일: `admin@demo.local`, `organizer@demo.local`, `gym@demo.local`, `fighter@demo.local`. 선수 `fighterCode`는 `FTR-2026-DEMO001`(이미 있으면 갱신).
 
+### 테스트용 선수 20명 추가 (`npm run seed:demo-fighters`)
+
+대회 신청·대진표 실무 테스트용으로 **데모 체육관 소속 가상 선수 20명**을 DB에만 추가합니다. Supabase Auth 계정은 만들지 않으며(`userId` null), **기존 `db:seed` 전체를 다시 돌리지 않아도** 됩니다.
+
+**전제:** `npm run setup:demo-users`로 `gym@demo.local` / 데모 체육관이 있어야 합니다.
+
+```bash
+npm run seed:demo-fighters
+```
+
+- **코드 범위:** `FTR-2026-TEST001` ~ `FTR-2026-TEST020` (`fighterCode` 기준 upsert)
+- **동작:** 기존 선수·신청·대진 데이터는 삭제하지 않음. `currentGymId`·`FighterGymHistory(active)` 보장.
+- **Railway:** 로컬 PowerShell에서 Postgres **`DATABASE_PUBLIC_URL`**을 `DATABASE_URL`로 임시 설정한 뒤 위 명령 실행(Supabase env 불필요). 실행 후 `Remove-Item Env:DATABASE_URL`로 정리.
+
 ### Supabase 대시보드에서 할 일 (수동 경로 — 시드 `@example.com` 등)
 
 데모 자동화를 쓰지 않을 때만 아래를 따른다.
