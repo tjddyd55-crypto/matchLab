@@ -40,12 +40,11 @@ export type PublicEventDivisionDTO = {
   skillLevel: string | null;
 };
 
-/** 공개 상세의 입금 안내 — 계좌번호는 노출하지 않음 (`mvp-scope.md`) */
-export type PublicEventPaymentSummaryDTO = {
-  feeAmount: number;
-  bankName: string;
-  accountHolder: string;
-  depositorRule: string | null;
+export type PublicEventGalleryImageDTO = {
+  id: string;
+  imageUrl: string;
+  caption: string | null;
+  sortOrder: number;
 };
 
 export type PublicEventDetailDTO = {
@@ -59,6 +58,7 @@ export type PublicEventDetailDTO = {
   registrationEndDate: string;
   status: EventStatus;
   posterUrl: string | null;
+  galleryImages: PublicEventGalleryImageDTO[];
   photoRecordingEnabled: boolean;
   videoRecordingEnabled: boolean;
   liveStreamingEnabled: boolean;
@@ -66,7 +66,8 @@ export type PublicEventDetailDTO = {
   streamingConsentRequired: boolean;
   organizerName: string;
   divisions: PublicEventDivisionDTO[];
-  paymentSummary?: PublicEventPaymentSummaryDTO;
+  /** 참가비·계좌 등은 공개 페이지에 노출하지 않음 — 안내 문구만 사용 */
+  participantFeeNotice: string;
 };
 
 export type PublicFighterCardDTO = {

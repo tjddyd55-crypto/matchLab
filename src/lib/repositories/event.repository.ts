@@ -59,6 +59,9 @@ const detailHeaderSelect = {
   title: true,
   description: true,
   location: true,
+  roadAddress: true,
+  detailAddress: true,
+  locationName: true,
   eventDate: true,
   registrationStartDate: true,
   registrationEndDate: true,
@@ -69,7 +72,20 @@ const detailHeaderSelect = {
   liveStreamingEnabled: true,
   streamingNoticeText: true,
   streamingConsentRequired: true,
+  spectatorAccessEnabled: true,
+  spectatorAccessStartAt: true,
+  spectatorAccessEndAt: true,
+  spectatorAccessToken: true,
   organizer: { select: { name: true } },
+  images: {
+    select: {
+      id: true,
+      imageUrl: true,
+      caption: true,
+      sortOrder: true,
+    },
+    orderBy: { sortOrder: "asc" as const },
+  },
 } as const;
 
 export type PublicEventListRecord = Prisma.EventGetPayload<{
@@ -167,6 +183,28 @@ export const eventRepository = {
   },
 
   /** 주최자 관리 화면 — draft 포함, 계좌번호 포함 */
+  /** 관람 제한(spectator window)용 — 공개 slug 행사만 */
+  async findPublicSpectatorPolicyBySlug(
+    slug: string,
+  ): Promise<{
+    spectatorAccessEnabled: boolean;
+    spectatorAccessStartAt: Date | null;
+    spectatorAccessEndAt: Date | null;
+  } | null> {
+    const row = await prisma.event.findFirst({
+      where: {
+        publicSlug: slug,
+        status: { notIn: excludedFromPublic },
+      },
+      select: {
+        spectatorAccessEnabled: true,
+        spectatorAccessStartAt: true,
+        spectatorAccessEndAt: true,
+      },
+    });
+    return row;
+  },
+
   async findOrganizerEventById(
     eventId: string,
     tx?: Prisma.TransactionClient,
@@ -177,6 +215,7 @@ export const eventRepository = {
         organizer: { select: { id: true, name: true } },
         divisions: { orderBy: { createdAt: "asc" } },
         paymentSetting: true,
+        images: { orderBy: { sortOrder: "asc" } },
         _count: { select: { applications: true } },
       },
     });

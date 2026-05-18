@@ -189,6 +189,14 @@ MVP: `watchUrl`, `embedUrl`, 플랫폼 enum. **스트림 키 필드 없음.**
 | href | nullable, 내부·공개 라우트만 (예: `/gym/applications`, `/events/{slug}/brackets`) |
 | readAt | 읽음 시각 |
 
+### 추가 엔티티 (운영자 피드백 MVP 반영)
+
+- **`DivisionTemplate` / `DivisionTemplateItem`**: 주최자 체급·부문 템플릿 저장 후 행사에 적용.
+- **`EventImage`**: 행사 포스터·갤러리 메타(공개 URL은 Storage 공개 버킷 정책 기준).
+- **`GymEventFeeSetting`**: 체육관별 행사 참가비 안내(선수에게 보여 줄 금액·메모 — 공개 행사 DTO에는 계좌번호 미포함 유지).
+- **`EventStaffAccessLink`**: 결과 입력 스태프 전용 토큰 링크(권한 플래그·선택적 접속 코드·만료).
+- **`Event` 관람 제한 필드** (`spectatorAccessEnabled`, `spectatorAccessStartAt`, `spectatorAccessEndAt`, `spectatorAccessToken`): 공개 관람 페이지 시간 창·토큰 게이트.
+
 ## 5. 인덱스·제약 권장
 
 - `Event(publicSlug)` UNIQUE

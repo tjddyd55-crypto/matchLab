@@ -1,13 +1,13 @@
 /**
  * Private Storage 업로드·조회용 signed URL (`api-contract.md` §10).
- * 공개 URL 생성·반환 금지.
+ * 기본적으로 공개 URL은 반환하지 않으며, 예외적으로 대회 공개 이미지 전용 버킷 헬퍼를 별도 분리한다.
  */
 import "server-only";
 
 import { randomUUID } from "crypto";
 import type { ActorContext } from "@/lib/auth/actor-context";
 import { AppError } from "@/lib/errors/app-error";
-import { requireGymOwner, requireRole } from "@/lib/permissions";
+import { requireGymOwner, requireOrganizerForEvent, requireRole } from "@/lib/permissions";
 import { consentRepository } from "@/lib/repositories/consent.repository";
 import { createSupabaseAdminClient } from "@/lib/supabase/admin";
 
@@ -158,5 +158,118 @@ export async function getPrivateFileSignedUrl(
   return {
     signedUrl: data.signedUrl,
     expiresIn: PRIVATE_FILE_DOWNLOAD_EXPIRES_SEC,
+  };
+}
+
+/** MVP: 대회 공개 이미지 업로드 signed URL 만료(초). */
+export const EVENT_IMAGE_UPLOAD_EXPIRES_SEC = 300;
+
+/**
+ * 대회 포스터·갤러리(공개 페이지 노출) 최대 바이트 — 클라이언트에서 선제 검증 권장.
+ */
+export const EVENT_IMAGE_MAX_BYTES = 8 * 1024 * 1024;
+
+const ALLOWED_EVENT_IMAGE_MIME = new Set([
+  "image/jpeg",
+  "image/png",
+  "image/webp",
+]);
+
+function eventImagesBucket(): string {
+  return (
+    process.env.SUPABASE_EVENT_IMAGE_BUCKET?.trim() || "event-images"
+  );
+}
+
+function extensionForEventImageMime(mimeType: string): "jpg" | "png" | "webp" {
+  const m = mimeType.trim();
+  if (m === "image/jpeg") return "jpg";
+  if (m === "image/png") return "png";
+  if (m === "image/webp") return "webp";
+  throw new AppError(
+    "VALIDATION_ERROR",
+    "허용되지 않는 이미지 형식입니다. JPEG, PNG, WebP만 가능합니다.",
+  );
+}
+
+/**
+ * 공개 읽기 버킷(`SUPABASE_EVENT_IMAGE_BUCKET`) 객체 URL.
+ * 장기적으로 Cloudflare R2 등으로 옮길 수 있음 — TODO.
+ */
+export function buildPublicStorageUrlForEventImages(path: string): string {
+  const base = process.env.NEXT_PUBLIC_SUPABASE_URL?.replace(/\/$/, "") ?? "";
+  if (!base) {
+    throw new AppError(
+      "INTERNAL",
+      "NEXT_PUBLIC_SUPABASE_URL 이 필요합니다. 공개 이미지 URL을 만들 수 없습니다.",
+    );
+  }
+  const bucket = eventImagesBucket();
+  return `${base}/storage/v1/object/public/${bucket}/${path}`;
+}
+
+export function buildEventPosterStoragePath(
+  eventId: string,
+  mimeType: string,
+): string {
+  const ext = extensionForEventImageMime(mimeType);
+  return `events/${eventId}/poster/${randomUUID()}.${ext}`;
+}
+
+export function buildEventGalleryStoragePath(
+  eventId: string,
+  mimeType: string,
+): string {
+  const ext = extensionForEventImageMime(mimeType);
+  return `events/${eventId}/gallery/${randomUUID()}.${ext}`;
+}
+
+/**
+ * 대회 이미지 업로드용 signed URL (공개 버킷).
+ * consent-signatures 버킷과 경로·정책을 섞지 않는다.
+ */
+export async function createEventImageSignedUploadUrl(
+  actor: ActorContext,
+  input: {
+    eventId: string;
+    mimeType: string;
+    kind: "poster" | "gallery";
+  },
+): Promise<{ uploadUrl: string; path: string; publicUrl: string }> {
+  await requireOrganizerForEvent(actor, input.eventId);
+  const mimeType = input.mimeType.trim();
+  if (!ALLOWED_EVENT_IMAGE_MIME.has(mimeType)) {
+    throw new AppError(
+      "VALIDATION_ERROR",
+      "허용되지 않는 이미지 형식입니다.",
+    );
+  }
+
+  const path =
+    input.kind === "poster"
+      ? buildEventPosterStoragePath(input.eventId, mimeType)
+      : buildEventGalleryStoragePath(input.eventId, mimeType);
+
+  const supabase = createSupabaseAdminClient();
+  const bucket = eventImagesBucket();
+
+  const { data, error } = await supabase.storage
+    .from(bucket)
+    .createSignedUploadUrl(path, { upsert: true });
+
+  if (error || !data?.signedUrl) {
+    throw new AppError(
+      "INTERNAL",
+      "업로드 URL 발급에 실패했습니다.",
+      error?.message,
+    );
+  }
+
+  const publicUrl = buildPublicStorageUrlForEventImages(path);
+
+  return {
+    uploadUrl: data.signedUrl,
+    path,
+    publicUrl,
   };
 }

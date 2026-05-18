@@ -5,6 +5,7 @@ import {
   type EventApplicationFormDTO,
 } from "@/lib/services/application.service";
 import { EventApplicationForm } from "@/components/domain/applications/EventApplicationForm";
+import { GymAthleteFeePreflight } from "@/components/domain/applications/GymAthleteFeePreflight";
 import { EmptyState } from "@/components/shared/EmptyState";
 
 export const dynamic = "force-dynamic";
@@ -95,6 +96,13 @@ export default async function GymEventApplyPage({
           {new Date(form.event.registrationEndDate).toLocaleString("ko-KR")}
         </p>
       </div>
+
+      <GymAthleteFeePreflight
+        eventId={form.event.id}
+        organizerDepositPerAthlete={form.event.organizerDepositPerAthlete}
+        initialAthleteFee={form.event.gymAthleteFeeGuidance}
+        initialNote={form.event.gymAthleteFeeNote}
+      />
 
       <EventApplicationForm
         eventId={form.event.id}

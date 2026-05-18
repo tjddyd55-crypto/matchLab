@@ -12,6 +12,11 @@ import {
   correctMatchResultAction,
   voidMatchResultsAction,
 } from "@/features/results/actions";
+import {
+  staffConfirmMatchResultsAction,
+  staffRecordMatchOutcomeDraftAction,
+  staffUpdateMatchStatusAction,
+} from "@/features/staff-result/actions";
 import { Button } from "@/components/ui/button";
 import type { ActionResult } from "@/lib/action-result";
 import {
@@ -47,6 +52,13 @@ export type OrganizerMatchOpsPanelProps = {
   resultType: BracketMatchOutcomeStyle | null;
   resultMemo: string | null;
   compact?: boolean;
+  /** 로그인 없는 결과 입력자 전용 링크 모드 */
+  staffAccess?: {
+    token: string;
+    canChangeMatchStatus: boolean;
+    canRecordOutcomeDraft: boolean;
+    canConfirmResult: boolean;
+  };
 };
 
 async function runAction(
@@ -61,6 +73,7 @@ export function OrganizerMatchOpsPanel(props: OrganizerMatchOpsPanelProps) {
   const router = useRouter();
   const [pending, startTransition] = useTransition();
   const [error, setError] = useState<string | null>(null);
+  const staff = props.staffAccess;
 
   const canFillOutcome = Boolean(props.fighterRedId && props.fighterBlueId);
   const blocked = props.status === BracketMatchStatus.cancelled;
@@ -85,7 +98,12 @@ export function OrganizerMatchOpsPanel(props: OrganizerMatchOpsPanelProps) {
       const fd = new FormData();
       fd.set("matchId", props.matchId);
       fd.set("status", status);
-      const err = await runAction(() => updateMatchStatusAction(fd));
+      if (staff) fd.set("staffToken", staff.token);
+      const err = await runAction(() =>
+        staff
+          ? staffUpdateMatchStatusAction(fd)
+          : updateMatchStatusAction(fd),
+      );
       setError(err);
       if (!err) refresh();
     });
@@ -94,9 +112,12 @@ export function OrganizerMatchOpsPanel(props: OrganizerMatchOpsPanelProps) {
   const onDraftSubmit = (formData: FormData) => {
     setError(null);
     formData.set("matchId", props.matchId);
+    if (staff) formData.set("staffToken", staff.token);
     startTransition(async () => {
       const err = await runAction(() =>
-        recordMatchOutcomeDraftAction(formData),
+        staff
+          ? staffRecordMatchOutcomeDraftAction(formData)
+          : recordMatchOutcomeDraftAction(formData),
       );
       setError(err);
       if (!err) refresh();
@@ -106,8 +127,13 @@ export function OrganizerMatchOpsPanel(props: OrganizerMatchOpsPanelProps) {
   const onConfirmSubmit = (formData: FormData) => {
     setError(null);
     formData.set("matchId", props.matchId);
+    if (staff) formData.set("staffToken", staff.token);
     startTransition(async () => {
-      const err = await runAction(() => confirmMatchResultsAction(formData));
+      const err = await runAction(() =>
+        staff
+          ? staffConfirmMatchResultsAction(formData)
+          : confirmMatchResultsAction(formData),
+      );
       setError(err);
       if (!err) refresh();
     });
@@ -161,6 +187,13 @@ export function OrganizerMatchOpsPanel(props: OrganizerMatchOpsPanelProps) {
         )}
       </div>
 
+      {staff ? (
+        <p className="rounded-md border border-amber-500/40 bg-amber-500/10 px-2 py-1.5 text-[11px] leading-snug text-amber-900 dark:text-amber-100">
+          결과 입력 전용 링크입니다. URL 유출 시 무단 조작 위험이 있으니 현장에서만
+          공유하세요. (향후 PIN·전용 계정 도입 TODO)
+        </p>
+      ) : null}
+
       {error ? (
         <p className="text-destructive wrap-break-word font-medium">{error}</p>
       ) : null}
@@ -174,7 +207,11 @@ export function OrganizerMatchOpsPanel(props: OrganizerMatchOpsPanelProps) {
               type="button"
               size="xs"
               variant={props.status === s.value ? "default" : "outline"}
-              disabled={pending || blocked}
+              disabled={
+                pending ||
+                blocked ||
+                (staff ? !staff.canChangeMatchStatus : false)
+              }
               onClick={() => onStatus(s.value)}
             >
               {s.label}
@@ -183,6 +220,7 @@ export function OrganizerMatchOpsPanel(props: OrganizerMatchOpsPanelProps) {
         </div>
       </div>
 
+      {!staff ? (
       <form className="space-y-2 border-t pt-2" action={onCancelMatch}>
         <p className="text-muted-foreground font-semibold">경기 취소</p>
         <input
@@ -200,8 +238,9 @@ export function OrganizerMatchOpsPanel(props: OrganizerMatchOpsPanelProps) {
           매치 취소
         </Button>
       </form>
+      ) : null}
 
-      {!blocked && canFillOutcome ? (
+      {!blocked && canFillOutcome && (!staff || staff.canRecordOutcomeDraft) ? (
         <form className="space-y-2 border-t pt-2" action={onDraftSubmit}>
           <p className="text-muted-foreground font-semibold">
             결과 임시 입력 (MatchResult 미생성)
@@ -262,7 +301,10 @@ export function OrganizerMatchOpsPanel(props: OrganizerMatchOpsPanelProps) {
         </form>
       ) : null}
 
-      {!blocked && canFillOutcome && !props.hasOfficialResults ? (
+      {!blocked &&
+      canFillOutcome &&
+      !props.hasOfficialResults &&
+      (!staff || staff.canConfirmResult) ? (
         <form className="space-y-2 border-t pt-2" action={onConfirmSubmit}>
           <p className="text-muted-foreground font-semibold">
             결과 확정 (MatchResult 2행 · 전적 반영)
@@ -329,7 +371,7 @@ export function OrganizerMatchOpsPanel(props: OrganizerMatchOpsPanelProps) {
         </form>
       ) : null}
 
-      {!blocked && props.hasOfficialResults ? (
+      {!staff && !blocked && props.hasOfficialResults ? (
         <>
           <form className="space-y-2 border-t pt-2" action={onCorrectSubmit}>
             <p className="text-muted-foreground font-semibold">

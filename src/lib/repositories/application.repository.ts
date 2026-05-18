@@ -100,6 +100,7 @@ export const applicationRepository = {
       orderBy: { createdAt: "desc" },
       select: {
         id: true,
+        gymId: true,
         status: true,
         paymentStatus: true,
         createdAt: true,

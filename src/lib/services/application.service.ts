@@ -22,6 +22,7 @@ import { applicationRepository } from "@/lib/repositories/application.repository
 import { consentRepository } from "@/lib/repositories/consent.repository";
 import { eventRepository } from "@/lib/repositories/event.repository";
 import { fighterRepository } from "@/lib/repositories/fighter.repository";
+import { gymEventFeeRepository } from "@/lib/repositories/gym-event-fee.repository";
 import { registrationRepository } from "@/lib/repositories/registration.repository";
 import { notificationService } from "@/lib/services/notification.service";
 import type { ApplyToEventInput } from "@/lib/validators/application.validator";
@@ -132,6 +133,10 @@ export type GymApplicationListRowDTO = {
   createdAt: string;
   registrationEndDate: string;
   paymentInstruction: BankPaymentInstructionDTO | null;
+  /** 주최자에게 선수 1인당 입금할 금액(참가비 설정 기준) */
+  organizerDepositPerAthlete: number | null;
+  /** 체육관이 선수에게 안내하는 참가비 */
+  gymAthleteFeeGuidance: number | null;
 };
 
 /** 선수 계정에 연결된 프로필 기준 — 계좌번호 등 입금 세부는 포함하지 않음 */
@@ -148,6 +153,8 @@ export type FighterLinkedApplicationRowDTO = {
   appliedAt: string | null;
   createdAt: string;
   registrationEndDate: string;
+  /** 체육관이 설정한 선수 안내 참가비 — 미설정 시 null */
+  gymAthleteFeeGuidance: number | null;
 };
 
 export type OrganizerApplicationListRowDTO = {
@@ -187,6 +194,9 @@ export type EventApplicationFormDTO = {
     streamingConsentRequired: boolean;
     streamingNoticeText: string | null;
     streamingAgreementRequired: boolean;
+    organizerDepositPerAthlete: number | null;
+    gymAthleteFeeGuidance: number | null;
+    gymAthleteFeeNote: string | null;
   };
   divisions: { id: string; label: string }[];
   fighters: {
@@ -251,8 +261,12 @@ export const applicationService = {
       if (p) paymentByEvent.set(eid, p);
     }
 
+    const gymFees = await gymEventFeeRepository.listByGym(gymId);
+    const gfMap = new Map(gymFees.map((g) => [g.eventId, g]));
+
     return rows.map((row) => {
       const paymentFull = paymentByEvent.get(row.event.id);
+      const gf = gfMap.get(row.event.id);
       return {
         id: row.id,
         eventId: row.event.id,
@@ -277,6 +291,8 @@ export const applicationService = {
                 : null,
             }
           : null,
+        organizerDepositPerAthlete: paymentFull?.feeAmount ?? null,
+        gymAthleteFeeGuidance: gf?.athleteFeeAmount ?? null,
       };
     });
   },
@@ -290,7 +306,13 @@ export const applicationService = {
 
     const rows =
       await applicationRepository.listApplicationsForFighter(fighterId);
-    return rows.map((row) => ({
+    const feeRows = await Promise.all(
+      rows.map((r) =>
+        gymEventFeeRepository.findByGymAndEvent(r.gymId, r.event.id),
+      ),
+    );
+
+    return rows.map((row, i) => ({
       id: row.id,
       eventId: row.event.id,
       eventTitle: row.event.title,
@@ -303,6 +325,7 @@ export const applicationService = {
       appliedAt: row.appliedAt ? toIso(row.appliedAt) : null,
       createdAt: toIso(row.createdAt),
       registrationEndDate: toIso(row.event.registrationEndDate),
+      gymAthleteFeeGuidance: feeRows[i]?.athleteFeeAmount ?? null,
     }));
   },
 
@@ -412,6 +435,12 @@ export const applicationService = {
     const streamingAgreementRequired =
       event.liveStreamingEnabled || event.streamingConsentRequired;
 
+    const paymentRow = await eventRepository.findEventPaymentSetting(event.id);
+    const gymFeeRow = await gymEventFeeRepository.findByGymAndEvent(
+      gymId,
+      event.id,
+    );
+
     const fighterRows: EventApplicationFormDTO["fighters"] = [];
     for (const f of fighters) {
       const policyRequires = requiresGuardianConsentFromFighterProfile({
@@ -452,6 +481,9 @@ export const applicationService = {
         streamingConsentRequired: event.streamingConsentRequired,
         streamingNoticeText: event.streamingNoticeText,
         streamingAgreementRequired,
+        organizerDepositPerAthlete: paymentRow?.feeAmount ?? null,
+        gymAthleteFeeGuidance: gymFeeRow?.athleteFeeAmount ?? null,
+        gymAthleteFeeNote: gymFeeRow?.note ?? null,
       },
       divisions: event.divisions.map((d) => ({
         id: d.id,

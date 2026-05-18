@@ -345,7 +345,8 @@ export const bracketRepository = {
       eventId: string;
       bracketId: string;
       matchId?: string | null;
-      changedByUserId: string;
+      changedByUserId?: string | null;
+      changedByStaffLinkId?: string | null;
       bracketType: BracketType;
       changeType: BracketChangeType;
       beforeData?: Prisma.InputJsonValue | null;
@@ -359,7 +360,8 @@ export const bracketRepository = {
         eventId: data.eventId,
         bracketId: data.bracketId,
         matchId: data.matchId ?? null,
-        changedByUserId: data.changedByUserId,
+        changedByUserId: data.changedByUserId ?? null,
+        changedByStaffLinkId: data.changedByStaffLinkId ?? null,
         bracketType: data.bracketType,
         changeType: data.changeType,
         beforeData: data.beforeData ?? undefined,

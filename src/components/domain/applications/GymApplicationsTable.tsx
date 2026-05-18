@@ -31,6 +31,8 @@ export type GymApplicationListItemVM = {
   appliedAt: string | null;
   createdAt: string;
   registrationEndDate: string;
+  organizerDepositPerAthlete: number | null;
+  gymAthleteFeeGuidance: number | null;
   paymentInstruction: {
     feeAmount: number;
     bankName: string;
@@ -46,6 +48,8 @@ export function GymApplicationsTable({
 }: {
   items: GymApplicationListItemVM[];
 }) {
+  const nf = new Intl.NumberFormat("ko-KR");
+
   return (
     <div className="hidden md:block">
       <Table>
@@ -71,7 +75,18 @@ export function GymApplicationsTable({
               </TableCell>
               <TableCell>{row.fighterName}</TableCell>
               <TableCell className="text-muted-foreground text-xs">
-                {row.divisionLabel}
+                <div>{row.divisionLabel}</div>
+                <div className="mt-1 text-[11px] leading-snug">
+                  주최 입금{" "}
+                  {row.organizerDepositPerAthlete != null
+                    ? `${nf.format(row.organizerDepositPerAthlete)}원/인`
+                    : "—"}
+                  {" · "}
+                  선수 안내{" "}
+                  {row.gymAthleteFeeGuidance != null
+                    ? `${nf.format(row.gymAthleteFeeGuidance)}원`
+                    : "미설정"}
+                </div>
               </TableCell>
               <TableCell>
                 <ApplicationPaymentSummary

@@ -48,7 +48,9 @@ npm install
 
 | `SUPABASE_CONSENT_SIGNATURE_BUCKET` | 보호자 동의 **손사인** 이미지 저장용 private bucket 이름 (기본값 예: `consent-signatures`) |
 
-| `SUPABASE_PROFILE_IMAGE_BUCKET` | 향후 선수 프로필 등 이미지용 private bucket 이름 (기본값 예: `profile-images`) |
+| `SUPABASE_EVENT_IMAGE_BUCKET` | 대회 포스터·갤러리 이미지 bucket 이름 (기본값 예: `event-images`, 공개 읽기 정책과 맞춤) |
+
+| `SUPABASE_PROFILE_IMAGE_BUCKET` | 향후 선수 프로필 등 이미지용 private bucket 이름 (기본값 예: `profile-images`, 현재 업로드 코드 미연결 가능) |
 
 | `NEXT_PUBLIC_APP_URL` | 링크 생성·OAuth 리다이렉트 베이스 URL |
 

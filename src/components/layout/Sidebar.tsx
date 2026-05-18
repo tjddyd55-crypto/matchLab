@@ -8,6 +8,7 @@ const navByRole: Record<DashboardRole, NavItem[]> = {
   organizer: [
     { href: "/organizer", label: "홈" },
     { href: "/organizer/events", label: "대회" },
+    { href: "/organizer/division-templates", label: "체급표 템플릿" },
     { href: "/notifications", label: "알림" },
   ],
   gym: [

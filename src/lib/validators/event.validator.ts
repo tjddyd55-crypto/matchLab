@@ -5,12 +5,28 @@ const cuid = z.string().min(20).max(32);
 
 const dateIn = z.coerce.date();
 
+const trimmedNullable = z
+  .string()
+  .max(500)
+  .optional()
+  .nullable()
+  .transform((s) => {
+    if (s === undefined || s === null) return null;
+    const t = s.trim();
+    return t === "" ? null : t;
+  });
+
 export const createEventSchema = z
   .object({
     organizerId: cuid.optional(),
     title: z.string().min(1).max(200),
     description: z.string().max(8000).optional().nullable(),
-    location: z.string().min(1).max(500),
+    location: trimmedNullable,
+    roadAddress: trimmedNullable,
+    jibunAddress: trimmedNullable,
+    detailAddress: trimmedNullable,
+    postalCode: trimmedNullable,
+    locationName: trimmedNullable,
     eventDate: dateIn,
     registrationStartDate: dateIn,
     registrationEndDate: dateIn,
@@ -45,7 +61,12 @@ export const updateEventSchema = z
     eventId: cuid,
     title: z.string().min(1).max(200).optional(),
     description: z.string().max(8000).optional().nullable(),
-    location: z.string().min(1).max(500).optional(),
+    location: trimmedNullable,
+    roadAddress: trimmedNullable,
+    jibunAddress: trimmedNullable,
+    detailAddress: trimmedNullable,
+    postalCode: trimmedNullable,
+    locationName: trimmedNullable,
     eventDate: dateIn.optional(),
     registrationStartDate: dateIn.optional(),
     registrationEndDate: dateIn.optional(),
@@ -162,4 +183,47 @@ export const upsertEventPaymentSettingSchema = z.object({
 
 export type UpsertEventPaymentSettingInput = z.infer<
   typeof upsertEventPaymentSettingSchema
+>;
+
+export const updateSpectatorAccessSchema = z
+  .object({
+    eventId: cuid,
+    spectatorAccessEnabled: z.boolean(),
+    spectatorAccessStartAt: dateIn.optional().nullable(),
+    spectatorAccessEndAt: dateIn.optional().nullable(),
+  })
+  .superRefine((v, ctx) => {
+    if (!v.spectatorAccessEnabled) return;
+    if (!v.spectatorAccessStartAt || !v.spectatorAccessEndAt) {
+      ctx.addIssue({
+        code: z.ZodIssueCode.custom,
+        message: "관람 공개를 켠 경우 시작·종료 일시가 필요합니다.",
+        path: ["spectatorAccessStartAt"],
+      });
+    }
+    if (
+      v.spectatorAccessStartAt &&
+      v.spectatorAccessEndAt &&
+      v.spectatorAccessStartAt > v.spectatorAccessEndAt
+    ) {
+      ctx.addIssue({
+        code: z.ZodIssueCode.custom,
+        message: "관람 공개 종료는 시작 이후여야 합니다.",
+        path: ["spectatorAccessEndAt"],
+      });
+    }
+  });
+
+export type UpdateSpectatorAccessInput = z.infer<
+  typeof updateSpectatorAccessSchema
+>;
+
+export const upsertGymEventFeeSettingSchema = z.object({
+  eventId: cuid,
+  athleteFeeAmount: z.coerce.number().int().min(0).max(100_000_000),
+  note: z.string().max(500).optional().nullable(),
+});
+
+export type UpsertGymEventFeeSettingInput = z.infer<
+  typeof upsertGymEventFeeSettingSchema
 >;

@@ -76,7 +76,8 @@ async function appendChangeLog(
     eventId: string;
     bracketId: string;
     matchId?: string | null;
-    changedByUserId: string;
+    changedByUserId?: string | null;
+    changedByStaffLinkId?: string | null;
     bracketType: BracketType;
     changeType: BracketChangeType;
     beforeData?: Prisma.InputJsonValue | null;
@@ -89,7 +90,8 @@ async function appendChangeLog(
       eventId: params.eventId,
       bracketId: params.bracketId,
       matchId: params.matchId ?? null,
-      changedByUserId: params.changedByUserId,
+      changedByUserId: params.changedByUserId ?? null,
+      changedByStaffLinkId: params.changedByStaffLinkId ?? null,
       bracketType: params.bracketType,
       changeType: params.changeType,
       beforeData: params.beforeData ?? null,

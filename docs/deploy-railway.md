@@ -36,7 +36,8 @@
 | `SUPABASE_SERVICE_ROLE_KEY` | Supabase **service role** 키 — **서버 전용** |
 | `NEXT_PUBLIC_APP_URL` | 배포된 앱의 공개 URL (예: `https://xxx.up.railway.app`) |
 | `SUPABASE_CONSENT_SIGNATURE_BUCKET` | `consent-signatures` (기본값과 동일하면 그대로) |
-| `SUPABASE_PROFILE_IMAGE_BUCKET` | `profile-images` (기본값과 동일하면 그대로) |
+| `SUPABASE_EVENT_IMAGE_BUCKET` | 대회 포스터·갤러리용 Storage bucket (코드 기본값 `event-images`, **공개 읽기** 정책 권장) |
+| `SUPABASE_PROFILE_IMAGE_BUCKET` | `profile-images` (Railway에 두어도 됨 — 현재 코드에서 업로드 경로는 미연결, 향후 프로필 이미지용) |
 | `DEMO_PASSWORD` | 시연용 데모 계정 비밀번호. 기본 예: `1234` |
 
 ### 주의
@@ -56,6 +57,7 @@
 - [ ] `SUPABASE_SERVICE_ROLE_KEY` — 없으면 `setup:demo-users` 등 서버 전용 스크립트가 실패합니다.
 - [ ] `NEXT_PUBLIC_APP_URL` — **Railway가 발급한 public domain**(HTTPS URL)으로 설정합니다.
 - [ ] `SUPABASE_CONSENT_SIGNATURE_BUCKET`
+- [ ] `SUPABASE_EVENT_IMAGE_BUCKET`
 - [ ] `SUPABASE_PROFILE_IMAGE_BUCKET`
 - [ ] `DEMO_PASSWORD` (선택, 미설정 시 코드 기본값 사용 가능)
 
@@ -163,7 +165,7 @@ Railway 환경에서는 **포트 노출·브라우저 접속**이 번거로울 �
 ## 7. Railway 연결 전 체크리스트
 
 - [ ] GitHub에 **실제 시크릿·`.env`가 커밋되지 않았는지** 확인
-- [ ] Supabase에서 Storage 버킷 이름이 환경 변수와 일치하는지 확인
+- [ ] Supabase에서 Storage 버킷 이름이 환경 변수와 일치하는지 확인 (**대회 이미지 버킷은 공개 읽기**, 동의 서명·프로필(예정)은 private)
 - [ ] `NEXT_PUBLIC_APP_URL`을 배포 URL로 갱신
 
 ## 8. 배포 후 검증 체크리스트

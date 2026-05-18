@@ -21,9 +21,14 @@ export function GymEventCard({ event }: { event: GymDashboardEventItemDTO }) {
     <Card className="h-full">
       <CardHeader>
         <CardTitle className="text-lg leading-snug">{event.title}</CardTitle>
-        <CardDescription>
-          주최 {event.organizerName} · 부문 {event.divisionCount}개
-          {!event.hasPaymentSetting ? " · 입금 미설정" : ""}
+        <CardDescription className="flex flex-wrap items-center gap-2">
+          <span className="bg-muted rounded px-2 py-0.5 font-normal">
+            {event.listingBadgeLabel}
+          </span>
+          <span>
+            주최 {event.organizerName} · 부문 {event.divisionCount}개
+            {!event.hasPaymentSetting ? " · 입금 미설정" : ""}
+          </span>
         </CardDescription>
       </CardHeader>
       <CardContent className="flex flex-col gap-3">
@@ -64,6 +69,17 @@ export function GymEventCard({ event }: { event: GymDashboardEventItemDTO }) {
             {event.applyDisabledReason}
           </p>
         ) : null}
+        <Link
+          href={`/events/${event.publicSlug}`}
+          target="_blank"
+          rel="noopener noreferrer"
+          className={cn(
+            buttonVariants({ variant: "outline", size: "sm" }),
+            "inline-flex w-full justify-center",
+          )}
+        >
+          공개 공고 보기
+        </Link>
         {event.canApply ? (
           <Link
             href={`/gym/events/${event.id}/apply`}

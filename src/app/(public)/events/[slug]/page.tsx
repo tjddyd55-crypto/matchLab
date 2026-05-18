@@ -2,6 +2,7 @@ import Link from "next/link";
 import { notFound } from "next/navigation";
 import { PublicEventDetailHeader } from "@/components/domain/events/PublicEventDetailHeader";
 import { PublicEventDivisionList } from "@/components/domain/events/PublicEventDivisionList";
+import { PublicEventGallery } from "@/components/domain/events/PublicEventGallery";
 import { RecordingStreamingNotice } from "@/components/domain/events/RecordingStreamingNotice";
 import { buttonVariants } from "@/components/ui/button";
 import { eventService } from "@/lib/services/event.service";
@@ -18,10 +19,6 @@ export default async function PublicEventDetailPage({
   const event = await eventService.getPublicEventBySlug(slug);
   if (!event) notFound();
 
-  const feeLabel = event.paymentSummary
-    ? `${new Intl.NumberFormat("ko-KR").format(event.paymentSummary.feeAmount)}원`
-    : null;
-
   const subLinkClass = cn(
     buttonVariants({ variant: "outline", size: "sm" }),
     "justify-center",
@@ -37,9 +34,9 @@ export default async function PublicEventDetailPage({
             로그인 후 신청
           </Link>
           <p className="text-muted-foreground max-w-md text-xs sm:pl-2">
-            대회 신청은 소속 체육관 계정에서 진행합니다. 공개 페이지에는
-            계좌번호가 표시되지 않으며, 신청 완료 후 체육관 화면에서 입금 안내를
-            확인할 수 있습니다.
+            대회 신청은 소속 체육관 계정에서 진행합니다. 참가비와 입금 방법은
+            체육관을 통해 안내되며, 공개 페이지에는 계좌번호와 금액이 표시되지
+            않습니다.
           </p>
         </div>
         <nav
@@ -74,6 +71,8 @@ export default async function PublicEventDetailPage({
         streamingNoticeText={event.streamingNoticeText}
       />
 
+      <PublicEventGallery images={event.galleryImages} />
+
       <section className="space-y-2">
         <h2 className="text-lg font-semibold">대회 소개</h2>
         {event.description ? (
@@ -86,37 +85,16 @@ export default async function PublicEventDetailPage({
       </section>
 
       <section className="space-y-3">
+        <h2 className="text-lg font-semibold">참가 안내</h2>
+        <p className="text-muted-foreground text-sm leading-relaxed">
+          {event.participantFeeNotice}
+        </p>
+      </section>
+
+      <section className="space-y-3">
         <h2 className="text-lg font-semibold">부문</h2>
         <PublicEventDivisionList divisions={event.divisions} />
       </section>
-
-      {event.paymentSummary ? (
-        <section className="space-y-3">
-          <h2 className="text-lg font-semibold">참가비 안내</h2>
-          <div className="ring-foreground/10 space-y-2 rounded-xl bg-card p-4 text-sm ring-1">
-            <p>
-              <span className="text-muted-foreground">금액 · </span>
-              <span className="font-semibold">{feeLabel}</span>
-            </p>
-            <p>
-              <span className="text-muted-foreground">은행 · </span>
-              {event.paymentSummary.bankName}
-            </p>
-            <p>
-              <span className="text-muted-foreground">예금주 · </span>
-              {event.paymentSummary.accountHolder}
-            </p>
-            {event.paymentSummary.depositorRule ? (
-              <p className="text-muted-foreground whitespace-pre-wrap border-t pt-2">
-                입금자명 규칙: {event.paymentSummary.depositorRule}
-              </p>
-            ) : null}
-            <p className="text-muted-foreground border-t pt-2 text-xs">
-              계좌번호는 신청·입금 안내 단계에서 확인할 수 있습니다.
-            </p>
-          </div>
-        </section>
-      ) : null}
     </article>
   );
 }

@@ -6,6 +6,8 @@ import { createEventAction, updateEventAction } from "@/features/events/actions"
 import type { ActionResult } from "@/lib/action-result";
 import type { OrganizerEventDetailVM } from "@/lib/services/event.service";
 import type { UserRole } from "@/lib/enums";
+import { EventAddressInput } from "@/components/domain/events/EventAddressInput";
+import { EventPosterUpload } from "@/components/domain/events/EventPosterUpload";
 import { Button } from "@/components/ui/button";
 import { cn } from "@/lib/utils";
 
@@ -116,17 +118,7 @@ export function EventForm({
               )}
             />
           </label>
-          <label className="space-y-1 text-sm md:col-span-2">
-            <span className="text-muted-foreground">장소</span>
-            <input
-              name="location"
-              required
-              maxLength={500}
-              className={cn(
-                "border-input bg-background h-9 w-full rounded-md border px-3 text-sm shadow-sm",
-              )}
-            />
-          </label>
+          <EventAddressInput />
           <label className="space-y-1 text-sm">
             <span className="text-muted-foreground">대회 일시</span>
             <input
@@ -240,18 +232,16 @@ export function EventForm({
             )}
           />
         </label>
-        <label className="space-y-1 text-sm md:col-span-2">
-          <span className="text-muted-foreground">장소</span>
-          <input
-            name="location"
-            required
-            maxLength={500}
-            defaultValue={initial.location ?? ""}
-            className={cn(
-              "border-input bg-background h-9 w-full rounded-md border px-3 text-sm shadow-sm",
-            )}
-          />
-        </label>
+        <EventAddressInput
+          initial={{
+            postalCode: initial.postalCode,
+            roadAddress: initial.roadAddress,
+            jibunAddress: initial.jibunAddress,
+            detailAddress: initial.detailAddress,
+            locationName: initial.locationName,
+            location: initial.location,
+          }}
+        />
         <label className="space-y-1 text-sm">
           <span className="text-muted-foreground">대회 일시</span>
           <input
@@ -288,17 +278,25 @@ export function EventForm({
             )}
           />
         </label>
-        <label className="space-y-1 text-sm md:col-span-2">
-          <span className="text-muted-foreground">포스터 URL</span>
-          <input
-            name="posterUrl"
-            maxLength={2000}
-            defaultValue={initial.posterUrl ?? ""}
-            className={cn(
-              "border-input bg-background h-9 w-full rounded-md border px-3 text-sm shadow-sm",
-            )}
+        <div className="md:col-span-2 space-y-2">
+          <EventPosterUpload
+            eventId={initial.id}
+            posterUrl={initial.posterUrl}
           />
-        </label>
+          <label className="space-y-1 text-sm">
+            <span className="text-muted-foreground">
+              포스터 URL (직접 입력·외부 CDN 등)
+            </span>
+            <input
+              name="posterUrl"
+              maxLength={2000}
+              defaultValue={initial.posterUrl ?? ""}
+              className={cn(
+                "border-input bg-background h-9 w-full rounded-md border px-3 text-sm shadow-sm",
+              )}
+            />
+          </label>
+        </div>
         <div className="md:col-span-2">
           <Button type="submit" disabled={editPending}>
             {editPending ? "저장 중…" : "기본 정보 저장"}

@@ -109,7 +109,8 @@ export const resultRepository = {
     row: {
       matchResultId: string;
       matchId: string;
-      changedByUserId: string;
+      changedByUserId?: string | null;
+      changedByStaffLinkId?: string | null;
       beforeResult: Prisma.InputJsonValue;
       afterResult: Prisma.InputJsonValue;
       reason?: string | null;
@@ -120,7 +121,8 @@ export const resultRepository = {
       data: {
         matchResultId: row.matchResultId,
         matchId: row.matchId,
-        changedByUserId: row.changedByUserId,
+        changedByUserId: row.changedByUserId ?? null,
+        changedByStaffLinkId: row.changedByStaffLinkId ?? null,
         beforeResult: row.beforeResult,
         afterResult: row.afterResult,
         reason: row.reason ?? null,

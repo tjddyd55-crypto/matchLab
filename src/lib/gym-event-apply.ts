@@ -112,3 +112,31 @@ export function evaluateGymEventApplyEligibility(
     registrationStatusLabel: "신청 가능",
   };
 }
+
+/** 체육관 목록 카드용 단계 배지 (신청 가능 여부와 별개 그룹 라벨) */
+export function gymListingBadgeLabel(
+  input: Pick<
+    GymEventApplyEvaluationInput,
+    "status" | "registrationStartDate" | "registrationEndDate"
+  >,
+  now: Date = new Date(),
+): string {
+  switch (input.status) {
+    case EventStatus.finished:
+      return "종료";
+    case EventStatus.cancelled:
+      return "취소";
+    case EventStatus.ongoing:
+      return "대회 진행";
+    case EventStatus.bracket_ready:
+      return "대진표 준비";
+    case EventStatus.closed:
+      return "신청 마감";
+    case EventStatus.open:
+      if (now < input.registrationStartDate) return "신청 예정";
+      if (now > input.registrationEndDate) return "신청 마감";
+      return "신청 기간";
+    default:
+      return "안내";
+  }
+}

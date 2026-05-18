@@ -1,23 +1,25 @@
 import "server-only";
 
+import { randomBytes } from "node:crypto";
+
 import type { ActorContext } from "@/lib/auth/actor-context";
 import type {
   PublicEventDetailDTO,
   PublicEventDivisionDTO,
+  PublicEventGalleryImageDTO,
   PublicEventListItemDTO,
-  PublicEventPaymentSummaryDTO,
 } from "@/lib/dto/public";
 import type { Prisma } from "@/generated/prisma";
 import { AuditAction, EventStatus } from "@/generated/prisma";
 import {
   evaluateGymEventApplyEligibility,
+  gymListingBadgeLabel,
 } from "@/lib/gym-event-apply";
 import { fighterRepository } from "@/lib/repositories/fighter.repository";
 import {
   type PublicEventDetailRecord,
   type PublicEventDivisionRecord,
   type PublicEventListRecord,
-  type PublicEventPaymentSummaryRecord,
   eventRepository,
 } from "@/lib/repositories/event.repository";
 import { auditRepository } from "@/lib/repositories/audit.repository";
@@ -32,11 +34,37 @@ import type {
   DeleteEventDivisionInput,
   UpdateEventDivisionInput,
   UpdateEventInput,
+  UpdateSpectatorAccessInput,
   UpsertEventPaymentSettingInput,
 } from "@/lib/validators/event.validator";
 
 function toIso(d: Date): string {
   return d.toISOString();
+}
+
+function mapGalleryRows(
+  rows: PublicEventDetailRecord["images"],
+): PublicEventGalleryImageDTO[] {
+  return rows.map((im) => ({
+    id: im.id,
+    imageUrl: im.imageUrl,
+    caption: im.caption,
+    sortOrder: im.sortOrder,
+  }));
+}
+
+export function composeEventVenueDisplay(row: {
+  locationName?: string | null;
+  roadAddress?: string | null;
+  location?: string | null;
+  detailAddress?: string | null;
+}): string {
+  const name = row.locationName?.trim();
+  const road = row.roadAddress?.trim() || row.location?.trim();
+  const detail = row.detailAddress?.trim();
+  const main = [road, detail].filter(Boolean).join(", ");
+  if (name && main) return `${name} — ${main}`;
+  return name || main || "";
 }
 
 function buildDivisionSummary(
@@ -57,17 +85,6 @@ function buildDivisionSummary(
     return head ? `${head} 외 ${rest}개 부문` : `${total}개 부문`;
   }
   return head || `${total}개 부문`;
-}
-
-function mapPaymentRecordToDto(
-  row: PublicEventPaymentSummaryRecord,
-): PublicEventPaymentSummaryDTO {
-  return {
-    feeAmount: row.feeAmount,
-    bankName: row.bankName,
-    accountHolder: row.accountHolder,
-    depositorRule: row.depositorRule,
-  };
 }
 
 function mapDivisionRecordToDto(
@@ -112,8 +129,12 @@ async function assertReadyForPublicOpen(eventId: string): Promise<void> {
   if (!full.title?.trim()) {
     throw new AppError("VALIDATION_ERROR", "대회명이 필요합니다.");
   }
-  if (!full.location?.trim()) {
-    throw new AppError("VALIDATION_ERROR", "장소가 필요합니다.");
+  const venue = composeEventVenueDisplay(full).trim();
+  if (!venue) {
+    throw new AppError(
+      "VALIDATION_ERROR",
+      "공개 전에 개최 장소(주소·상세) 정보가 필요합니다.",
+    );
   }
   if (full.divisions.length === 0) {
     throw new AppError(
@@ -200,11 +221,20 @@ export type OrganizerEventDetailVM = {
   title: string;
   description: string | null;
   location: string | null;
+  roadAddress: string | null;
+  jibunAddress: string | null;
+  detailAddress: string | null;
+  postalCode: string | null;
+  locationName: string | null;
   eventDate: string;
   registrationStartDate: string;
   registrationEndDate: string;
   status: EventStatus;
   posterUrl: string | null;
+  spectatorAccessEnabled: boolean;
+  spectatorAccessStartAt: string | null;
+  spectatorAccessEndAt: string | null;
+  spectatorAccessToken: string | null;
   photoRecordingEnabled: boolean;
   videoRecordingEnabled: boolean;
   liveStreamingEnabled: boolean;
@@ -213,6 +243,7 @@ export type OrganizerEventDetailVM = {
   applicationCount: number;
   divisions: OrganizerEventDivisionVM[];
   paymentSetting: OrganizerEventPaymentSettingVM | null;
+  galleryImages: { id: string; imageUrl: string; caption: string | null; sortOrder: number }[];
 };
 
 function mapOrganizerEventDetail(
@@ -227,11 +258,24 @@ function mapOrganizerEventDetail(
     title: row.title,
     description: row.description,
     location: row.location,
+    roadAddress: row.roadAddress ?? null,
+    jibunAddress: row.jibunAddress ?? null,
+    detailAddress: row.detailAddress ?? null,
+    postalCode: row.postalCode ?? null,
+    locationName: row.locationName ?? null,
     eventDate: toIso(row.eventDate),
     registrationStartDate: toIso(row.registrationStartDate),
     registrationEndDate: toIso(row.registrationEndDate),
     status: row.status,
     posterUrl: row.posterUrl,
+    spectatorAccessEnabled: row.spectatorAccessEnabled,
+    spectatorAccessStartAt: row.spectatorAccessStartAt
+      ? toIso(row.spectatorAccessStartAt)
+      : null,
+    spectatorAccessEndAt: row.spectatorAccessEndAt
+      ? toIso(row.spectatorAccessEndAt)
+      : null,
+    spectatorAccessToken: row.spectatorAccessToken ?? null,
     photoRecordingEnabled: row.photoRecordingEnabled,
     videoRecordingEnabled: row.videoRecordingEnabled,
     liveStreamingEnabled: row.liveStreamingEnabled,
@@ -259,6 +303,12 @@ function mapOrganizerEventDetail(
             : null,
         }
       : null,
+    galleryImages: row.images.map((im) => ({
+      id: im.id,
+      imageUrl: im.imageUrl,
+      caption: im.caption,
+      sortOrder: im.sortOrder,
+    })),
   };
 }
 
@@ -271,6 +321,7 @@ export type GymDashboardEventItemDTO = {
   registrationEndDate: string;
   status: EventStatus;
   statusLabel: string;
+  listingBadgeLabel: string;
   liveStreamingEnabled: boolean;
   streamingConsentRequired: boolean;
   organizerName: string;
@@ -336,30 +387,36 @@ export const eventService = {
     const event = await eventRepository.findPublicEventBySlug(slug);
     if (!event) return null;
 
-    const [divisions, payment] = await Promise.all([
-      eventRepository.findPublicEventDivisions(event.id),
-      eventRepository.findPublicEventPaymentSummary(event.id),
-    ]);
+    const divisions = await eventRepository.findPublicEventDivisions(event.id);
 
-    return eventService.mapEventToPublicDetailDTO(event, divisions, payment);
+    return eventService.mapEventToPublicDetailDTO(event, divisions);
   },
 
   mapEventToPublicDetailDTO(
     event: PublicEventDetailRecord,
     divisions: PublicEventDivisionRecord[],
-    payment: PublicEventPaymentSummaryRecord | null,
   ): PublicEventDetailDTO {
-    const dto: PublicEventDetailDTO = {
+    const participantFeeNotice =
+      "참가비 및 납부 방식은 소속 체육관을 통해 안내됩니다.";
+
+    return {
       id: event.id,
       publicSlug: event.publicSlug,
       title: event.title,
       description: event.description,
-      location: event.location,
+      location:
+        composeEventVenueDisplay({
+          locationName: event.locationName,
+          roadAddress: event.roadAddress,
+          location: event.location,
+          detailAddress: event.detailAddress,
+        }) || event.location,
       eventDate: toIso(event.eventDate),
       registrationStartDate: toIso(event.registrationStartDate),
       registrationEndDate: toIso(event.registrationEndDate),
       status: event.status,
       posterUrl: event.posterUrl,
+      galleryImages: mapGalleryRows(event.images),
       photoRecordingEnabled: event.photoRecordingEnabled,
       videoRecordingEnabled: event.videoRecordingEnabled,
       liveStreamingEnabled: event.liveStreamingEnabled,
@@ -367,13 +424,8 @@ export const eventService = {
       streamingConsentRequired: event.streamingConsentRequired,
       organizerName: event.organizer.name,
       divisions: divisions.map(mapDivisionRecordToDto),
+      participantFeeNotice,
     };
-
-    if (payment) {
-      dto.paymentSummary = mapPaymentRecordToDto(payment);
-    }
-
-    return dto;
   },
 
   async listEventsForGymDashboard(
@@ -398,6 +450,12 @@ export const eventService = {
         activeFighterCount,
       });
 
+      const listingBadgeLabel = gymListingBadgeLabel({
+        status: row.status,
+        registrationStartDate: row.registrationStartDate,
+        registrationEndDate: row.registrationEndDate,
+      });
+
       return {
         id: row.id,
         title: row.title,
@@ -407,6 +465,7 @@ export const eventService = {
         registrationEndDate: toIso(row.registrationEndDate),
         status: row.status,
         statusLabel: EVENT_STATUS_LABEL_KO[row.status],
+        listingBadgeLabel,
         liveStreamingEnabled: row.liveStreamingEnabled,
         streamingConsentRequired: row.streamingConsentRequired,
         organizerName: row.organizer.name,
@@ -490,11 +549,24 @@ export const eventService = {
       ? (input.streamingNoticeText?.trim() || null)
       : null;
 
+    const composedLocation =
+      composeEventVenueDisplay({
+        locationName: input.locationName ?? null,
+        roadAddress: input.roadAddress ?? null,
+        detailAddress: input.detailAddress ?? null,
+        location: input.location ?? null,
+      }).trim() || null;
+
     const event = await eventRepository.createEvent({
       organizer: { connect: { id: organizerId } },
       title: input.title.trim(),
       description: input.description?.trim() || null,
-      location: input.location.trim(),
+      location: composedLocation,
+      roadAddress: input.roadAddress ?? null,
+      jibunAddress: input.jibunAddress ?? null,
+      detailAddress: input.detailAddress ?? null,
+      postalCode: input.postalCode ?? null,
+      locationName: input.locationName ?? null,
       eventDate: input.eventDate,
       registrationStartDate: input.registrationStartDate,
       registrationEndDate: input.registrationEndDate,
@@ -524,7 +596,14 @@ export const eventService = {
     if (input.description !== undefined) {
       patch.description = input.description?.trim() || null;
     }
-    if (input.location !== undefined) patch.location = input.location.trim();
+    if (input.location !== undefined) {
+      patch.location = input.location?.trim() || null;
+    }
+    if (input.roadAddress !== undefined) patch.roadAddress = input.roadAddress;
+    if (input.jibunAddress !== undefined) patch.jibunAddress = input.jibunAddress;
+    if (input.detailAddress !== undefined) patch.detailAddress = input.detailAddress;
+    if (input.postalCode !== undefined) patch.postalCode = input.postalCode;
+    if (input.locationName !== undefined) patch.locationName = input.locationName;
     if (input.eventDate !== undefined) patch.eventDate = input.eventDate;
     if (input.registrationStartDate !== undefined) {
       patch.registrationStartDate = input.registrationStartDate;
@@ -562,6 +641,39 @@ export const eventService = {
       }
     }
 
+    if (
+      input.location !== undefined ||
+      input.roadAddress !== undefined ||
+      input.jibunAddress !== undefined ||
+      input.detailAddress !== undefined ||
+      input.postalCode !== undefined ||
+      input.locationName !== undefined
+    ) {
+      const merged = {
+        locationName:
+          input.locationName !== undefined
+            ? input.locationName
+            : current.locationName,
+        roadAddress:
+          input.roadAddress !== undefined
+            ? input.roadAddress
+            : current.roadAddress,
+        detailAddress:
+          input.detailAddress !== undefined
+            ? input.detailAddress
+            : current.detailAddress,
+        location:
+          input.location !== undefined ? input.location : current.location,
+      };
+      patch.location =
+        composeEventVenueDisplay({
+          locationName: merged.locationName,
+          roadAddress: merged.roadAddress,
+          detailAddress: merged.detailAddress,
+          location: merged.location,
+        }).trim() || null;
+    }
+
     if (Object.keys(patch).length === 0) return;
 
     const rs = (patch.registrationStartDate as Date | undefined) ??
@@ -580,6 +692,35 @@ export const eventService = {
     }
 
     await eventRepository.updateEvent(input.eventId, patch);
+  },
+
+  async updateSpectatorAccess(
+    actor: ActorContext,
+    input: UpdateSpectatorAccessInput,
+  ): Promise<void> {
+    await requireOrganizerForEvent(actor, input.eventId);
+    const cur = await eventRepository.findOrganizerEventById(input.eventId);
+    if (!cur) throw new AppError("NOT_FOUND", "대회를 찾을 수 없습니다.");
+
+    let token = cur.spectatorAccessToken;
+    if (input.spectatorAccessEnabled) {
+      if (!token) {
+        token = randomBytes(18).toString("hex");
+      }
+      await eventRepository.updateEvent(input.eventId, {
+        spectatorAccessEnabled: true,
+        spectatorAccessStartAt: input.spectatorAccessStartAt ?? null,
+        spectatorAccessEndAt: input.spectatorAccessEndAt ?? null,
+        spectatorAccessToken: token,
+      });
+    } else {
+      await eventRepository.updateEvent(input.eventId, {
+        spectatorAccessEnabled: false,
+        spectatorAccessStartAt: null,
+        spectatorAccessEndAt: null,
+        spectatorAccessToken: null,
+      });
+    }
   },
 
   async changeEventStatus(

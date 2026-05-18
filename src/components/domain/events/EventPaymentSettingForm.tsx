@@ -34,10 +34,11 @@ export function EventPaymentSettingForm({
 
   return (
     <div className="ring-foreground/10 space-y-4 rounded-xl border bg-card p-4 shadow-sm md:p-6">
-      <h2 className="text-lg font-semibold">참가비·입금 계좌</h2>
+      <h2 className="text-lg font-semibold">참가비·입금 계좌 (주최자 ↔ 체육관)</h2>
       <p className="text-muted-foreground text-sm">
-        계좌번호는 주최자 관리 화면과 체육관 신청·입금 안내에만 노출됩니다. 공개
-        공고에는 노출되지 않습니다.
+        <strong className="text-foreground">참가비(원)</strong>는 체육관이 주최자
+        계좌로 입금할 선수 1인당 금액입니다. 계좌번호는 주최자·체육관 관리
+        화면에서만 노출되며, 공개 공고와 선수 계정에는 표시되지 않습니다.
       </p>
       {state?.ok === false ? (
         <p className="text-destructive text-sm">{state.error.message}</p>
@@ -45,7 +46,7 @@ export function EventPaymentSettingForm({
       <form action={action} className="grid gap-3 md:grid-cols-2">
         <input type="hidden" name="eventId" value={eventId} />
         <label className="space-y-1 text-sm">
-          <span className="text-muted-foreground">참가비 (원)</span>
+          <span className="text-muted-foreground">체육관 입금 기준 (선수 1인당, 원)</span>
           <input
             name="feeAmount"
             type="number"

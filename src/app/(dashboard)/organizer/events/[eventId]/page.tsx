@@ -1,15 +1,20 @@
+import { EventStaffRecorderLinksSection } from "@/components/domain/events/EventStaffRecorderLinksSection";
+import { EventGalleryManager } from "@/components/domain/events/EventGalleryManager";
 import { EventDivisionManager } from "@/components/domain/events/EventDivisionManager";
 import { EventForm } from "@/components/domain/events/EventForm";
 import { EventManagementNav } from "@/components/domain/events/EventManagementNav";
 import { EventPaymentSettingForm } from "@/components/domain/events/EventPaymentSettingForm";
 import { EventRecordingStreamingSettings } from "@/components/domain/events/EventRecordingStreamingSettings";
+import { SpectatorSettingsSection } from "@/components/domain/events/SpectatorSettingsSection";
 import { EventStatusControl } from "@/components/domain/events/EventStatusControl";
 import { EventStatusPill } from "@/components/domain/events/EventStatusPill";
 import { PermissionError } from "@/lib/auth/permission-error";
 import { requireActor } from "@/lib/auth/actor";
 import { AppError } from "@/lib/errors/app-error";
 import { EventStatus } from "@/lib/enums";
+import { divisionTemplateService } from "@/lib/services/division-template.service";
 import { eventService } from "@/lib/services/event.service";
+import { eventStaffAccessService } from "@/lib/services/event-staff-access.service";
 import { notFound } from "next/navigation";
 
 export const dynamic = "force-dynamic";
@@ -23,13 +28,23 @@ export default async function OrganizerEventDetailPage({
   const { eventId } = await params;
 
   let detail;
+  let divisionTemplates;
+  let staffRecorderLinks;
   try {
-    detail = await eventService.getOrganizerEventDetail(actor, eventId);
+    [detail, divisionTemplates, staffRecorderLinks] = await Promise.all([
+      eventService.getOrganizerEventDetail(actor, eventId),
+      divisionTemplateService.listTemplates(actor),
+      eventStaffAccessService.listLinksForOrganizer(actor, eventId),
+    ]);
   } catch (e) {
     if (e instanceof AppError && e.code === "NOT_FOUND") notFound();
     if (e instanceof PermissionError && e.reason === "NOT_FOUND") notFound();
     throw e;
   }
+
+  const baseUrl =
+    process.env.NEXT_PUBLIC_APP_URL?.replace(/\/$/, "") ??
+    "http://localhost:3000";
 
   return (
     <div className="mx-auto flex w-full max-w-4xl flex-col gap-8 px-4 py-8 md:px-6">
@@ -63,10 +78,21 @@ export default async function OrganizerEventDetailPage({
 
       <EventRecordingStreamingSettings event={detail} />
 
+      <SpectatorSettingsSection detail={detail} />
+
+      <EventStaffRecorderLinksSection
+        eventId={detail.id}
+        baseUrl={baseUrl}
+        links={staffRecorderLinks}
+      />
+
+      <EventGalleryManager eventId={detail.id} images={detail.galleryImages} />
+
       <EventDivisionManager
         eventId={detail.id}
         status={detail.status}
         divisions={detail.divisions}
+        templates={divisionTemplates}
       />
 
       <EventPaymentSettingForm

@@ -15,6 +15,8 @@ export default async function FighterEventsPage() {
 
   const rows = await applicationService.listFighterLinkedApplications(actor);
 
+  const nf = new Intl.NumberFormat("ko-KR");
+
   return (
     <div className="mx-auto flex w-full max-w-3xl flex-col gap-8 px-4 py-8 md:px-6">
       <header className="space-y-2">
@@ -52,6 +54,11 @@ export default async function FighterEventsPage() {
                     {r.appliedAt
                       ? new Date(r.appliedAt).toLocaleDateString("ko-KR")
                       : "—"}
+                  </div>
+                  <div className="text-muted-foreground text-xs">
+                    {r.gymAthleteFeeGuidance != null
+                      ? `선수 안내 참가비 ${nf.format(r.gymAthleteFeeGuidance)}원`
+                      : "선수 안내 참가비는 소속 체육관을 통해 안내됩니다."}
                   </div>
                 </div>
                 <div className="flex flex-wrap items-center gap-2">

@@ -17,6 +17,7 @@ import {
   deleteEventDivisionSchema,
   updateEventDivisionSchema,
   updateEventSchema,
+  updateSpectatorAccessSchema,
   upsertEventPaymentSettingSchema,
 } from "@/lib/validators/event.validator";
 
@@ -92,7 +93,12 @@ export async function createEventAction(
       organizerId: formReq(formData, "organizerId") || undefined,
       title: formReq(formData, "title"),
       description: formReq(formData, "description") || null,
-      location: formReq(formData, "location"),
+      location: formReq(formData, "location") || null,
+      roadAddress: formReq(formData, "roadAddress") || null,
+      jibunAddress: formReq(formData, "jibunAddress") || null,
+      detailAddress: formReq(formData, "detailAddress") || null,
+      postalCode: formReq(formData, "postalCode") || null,
+      locationName: formReq(formData, "locationName") || null,
       eventDate: new Date(formReq(formData, "eventDate")),
       registrationStartDate: new Date(
         formReq(formData, "registrationStartDate"),
@@ -148,7 +154,24 @@ export async function updateEventAction(
         raw.description = description || null;
       }
       const location = formReq(formData, "location");
-      if (location) raw.location = location;
+      if (formData.has("location")) {
+        raw.location = location || null;
+      }
+      if (formData.has("roadAddress")) {
+        raw.roadAddress = formReq(formData, "roadAddress") || null;
+      }
+      if (formData.has("jibunAddress")) {
+        raw.jibunAddress = formReq(formData, "jibunAddress") || null;
+      }
+      if (formData.has("detailAddress")) {
+        raw.detailAddress = formReq(formData, "detailAddress") || null;
+      }
+      if (formData.has("postalCode")) {
+        raw.postalCode = formReq(formData, "postalCode") || null;
+      }
+      if (formData.has("locationName")) {
+        raw.locationName = formReq(formData, "locationName") || null;
+      }
       const ed = optDateTime(formData, "eventDate");
       if (ed) raw.eventDate = ed;
       const rs = optDateTime(formData, "registrationStartDate");
@@ -348,6 +371,43 @@ export async function upsertEventPaymentSettingAction(
     }
     const actor = await requireActorFromMutation();
     await eventService.upsertEventPaymentSetting(actor, parsed.data);
+    return actionSuccess({ ok: true as const });
+  });
+}
+
+export async function updateSpectatorAccessAction(
+  arg1: unknown,
+  arg2?: FormData,
+): Promise<ActionResult<{ ok: true }>> {
+  const formData = resolveFormData(arg1, arg2);
+  if (!formData) {
+    return actionFailure("VALIDATION_ERROR", "요청 본문이 올바르지 않습니다.");
+  }
+  return mapCaught(async () => {
+    const raw = {
+      eventId: formReq(formData, "eventId"),
+      spectatorAccessEnabled: formToggle(formData, "spectatorAccessEnabled"),
+      spectatorAccessStartAt: optDateTimeOrNull(
+        formData,
+        "spectatorAccessStartAt",
+      ),
+      spectatorAccessEndAt: optDateTimeOrNull(
+        formData,
+        "spectatorAccessEndAt",
+      ),
+    };
+
+    const parsed = updateSpectatorAccessSchema.safeParse(raw);
+    if (!parsed.success) {
+      return actionFailure(
+        "VALIDATION_ERROR",
+        "관람 공개 설정을 확인해 주세요.",
+        parsed.error.flatten(),
+      );
+    }
+
+    const actor = await requireActorFromMutation();
+    await eventService.updateSpectatorAccess(actor, parsed.data);
     return actionSuccess({ ok: true as const });
   });
 }

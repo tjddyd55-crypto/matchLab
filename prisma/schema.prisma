@@ -258,6 +258,7 @@ model Organizer {
 
   user   User    @relation(fields: [userId], references: [id], onDelete: Cascade)
   events Event[]
+  divisionTemplates DivisionTemplate[]
 }
 
 model Gym {
@@ -279,6 +280,7 @@ model Gym {
   applications              EventApplication[]
   matchResults              MatchResult[]                    @relation("MatchResultFighterGym")
   matchResultsAsOpponentGym MatchResult[]                    @relation("MatchResultOpponentGym")
+  gymEventFeeSettings       GymEventFeeSetting[]
 }
 
 model Fighter {
@@ -347,6 +349,11 @@ model Event {
   title                    String
   description              String?
   location                 String?
+  roadAddress              String?
+  jibunAddress             String?
+  detailAddress            String?
+  postalCode               String?
+  locationName             String?
   eventDate                DateTime
   registrationStartDate    DateTime
   registrationEndDate      DateTime
@@ -358,6 +365,10 @@ model Event {
   liveStreamingEnabled     Boolean     @default(false)
   streamingNoticeText      String?
   streamingConsentRequired Boolean     @default(false)
+  spectatorAccessEnabled   Boolean     @default(false)
+  spectatorAccessStartAt   DateTime?
+  spectatorAccessEndAt     DateTime?
+  spectatorAccessToken     String?     @unique
   createdAt                DateTime    @default(now())
   updatedAt                DateTime    @updatedAt
 
@@ -365,6 +376,9 @@ model Event {
 
   divisions         EventDivision[]
   paymentSetting    EventPaymentSetting?
+  images            EventImage[]
+  gymFeeSettings    GymEventFeeSetting[]
+  staffAccessLinks  EventStaffAccessLink[]
   liveStreams       EventLiveStream[]
   applications      EventApplication[]
   brackets          Bracket[]
@@ -376,6 +390,76 @@ model Event {
   @@index([organizerId])
   @@index([status])
   @@index([eventDate])
+}
+
+model EventImage {
+  id        String   @id @default(cuid())
+  eventId   String
+  imageUrl  String
+  imagePath String?
+  caption   String?
+  sortOrder Int      @default(0)
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+
+  event Event @relation(fields: [eventId], references: [id], onDelete: Cascade)
+
+  @@index([eventId])
+}
+
+model DivisionTemplate {
+  id          String   @id @default(cuid())
+  organizerId String
+  title       String
+  sportType   String?
+  description String?
+  items       Json
+  createdAt   DateTime @default(now())
+  updatedAt   DateTime @updatedAt
+
+  organizer Organizer @relation(fields: [organizerId], references: [id], onDelete: Cascade)
+
+  @@index([organizerId])
+}
+
+model GymEventFeeSetting {
+  id               String   @id @default(cuid())
+  gymId            String
+  eventId          String
+  athleteFeeAmount Int
+  note             String?
+  createdAt        DateTime @default(now())
+  updatedAt        DateTime @updatedAt
+
+  gym   Gym   @relation(fields: [gymId], references: [id], onDelete: Cascade)
+  event Event @relation(fields: [eventId], references: [id], onDelete: Cascade)
+
+  @@unique([gymId, eventId])
+  @@index([gymId])
+  @@index([eventId])
+}
+
+model EventStaffAccessLink {
+  id                    String    @id @default(cuid())
+  eventId               String
+  token                 String    @unique
+  label                 String
+  accessCode            String?
+  role                  String
+  canChangeMatchStatus  Boolean   @default(true)
+  canRecordOutcomeDraft Boolean   @default(true)
+  canConfirmResult      Boolean   @default(false)
+  expiresAt             DateTime?
+  revokedAt             DateTime?
+  createdAt             DateTime  @default(now())
+  updatedAt             DateTime  @updatedAt
+
+  event                 Event                  @relation(fields: [eventId], references: [id], onDelete: Cascade)
+  bracketChangeLogs     BracketChangeLog[]     @relation("BracketChangeStaffLink")
+  matchResultChangeLogs MatchResultChangeLog[]   @relation("MatchResultChangeStaffLink")
+
+  @@index([eventId])
+  @@index([token])
 }
 
 model EventDivision {
@@ -623,22 +707,24 @@ model BracketMatch {
 }
 
 model BracketChangeLog {
-  id              String           @id @default(cuid())
-  eventId         String
-  bracketId       String
-  matchId         String?
-  changedByUserId String
-  bracketType     BracketType
-  changeType      BracketChangeType
-  beforeData      Json?
-  afterData       Json?
-  reason          String?
-  createdAt       DateTime         @default(now())
+  id                     String           @id @default(cuid())
+  eventId                String
+  bracketId              String
+  matchId                String?
+  changedByUserId        String?
+  changedByStaffLinkId   String?
+  bracketType            BracketType
+  changeType             BracketChangeType
+  beforeData             Json?
+  afterData              Json?
+  reason                 String?
+  createdAt              DateTime         @default(now())
 
-  event   Event          @relation(fields: [eventId], references: [id], onDelete: Cascade)
-  bracket Bracket        @relation(fields: [bracketId], references: [id], onDelete: Cascade)
-  match   BracketMatch?  @relation(fields: [matchId], references: [id], onDelete: SetNull)
-  changedByUser User   @relation("BracketChangeActor", fields: [changedByUserId], references: [id], onDelete: Restrict)
+  event             Event                @relation(fields: [eventId], references: [id], onDelete: Cascade)
+  bracket           Bracket              @relation(fields: [bracketId], references: [id], onDelete: Cascade)
+  match             BracketMatch?        @relation(fields: [matchId], references: [id], onDelete: SetNull)
+  changedByUser     User?                @relation("BracketChangeActor", fields: [changedByUserId], references: [id], onDelete: SetNull)
+  changedByStaffLink EventStaffAccessLink? @relation("BracketChangeStaffLink", fields: [changedByStaffLinkId], references: [id], onDelete: SetNull)
 
   @@index([eventId])
   @@index([bracketId])
@@ -688,18 +774,20 @@ model MatchResult {
 }
 
 model MatchResultChangeLog {
-  id              String   @id @default(cuid())
-  matchResultId   String
-  matchId         String
-  changedByUserId String
-  beforeResult    Json
-  afterResult     Json
-  reason          String?
-  createdAt       DateTime @default(now())
+  id                   String   @id @default(cuid())
+  matchResultId        String
+  matchId              String
+  changedByUserId      String?
+  changedByStaffLinkId String?
+  beforeResult         Json
+  afterResult          Json
+  reason               String?
+  createdAt            DateTime @default(now())
 
-  matchResult   MatchResult   @relation(fields: [matchResultId], references: [id], onDelete: Cascade)
-  match         BracketMatch  @relation("MRCL_BracketMatch", fields: [matchId], references: [id], onDelete: Cascade)
-  changedByUser User          @relation("MatchResultChangeActor", fields: [changedByUserId], references: [id], onDelete: Restrict)
+  matchResult          MatchResult            @relation(fields: [matchResultId], references: [id], onDelete: Cascade)
+  match                BracketMatch           @relation("MRCL_BracketMatch", fields: [matchId], references: [id], onDelete: Cascade)
+  changedByUser        User?                  @relation("MatchResultChangeActor", fields: [changedByUserId], references: [id], onDelete: SetNull)
+  changedByStaffLink   EventStaffAccessLink?  @relation("MatchResultChangeStaffLink", fields: [changedByStaffLinkId], references: [id], onDelete: SetNull)
 
   @@index([matchResultId])
   @@index([matchId])

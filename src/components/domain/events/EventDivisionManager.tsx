@@ -9,6 +9,8 @@ import {
 import type { ActionResult } from "@/lib/action-result";
 import { EventStatus } from "@/lib/enums";
 import type { OrganizerEventDetailVM } from "@/lib/services/event.service";
+import type { DivisionTemplateListItemVM } from "@/lib/services/division-template.service";
+import { ApplyDivisionTemplateButton } from "@/components/domain/division-templates/ApplyDivisionTemplateButton";
 import { EventDivisionForm } from "@/components/domain/events/EventDivisionForm";
 import { Button } from "@/components/ui/button";
 import { cn } from "@/lib/utils";
@@ -157,10 +159,12 @@ export function EventDivisionManager({
   eventId,
   status,
   divisions,
+  templates,
 }: {
   eventId: string;
   status: EventStatus;
   divisions: OrganizerEventDetailVM["divisions"];
+  templates: DivisionTemplateListItemVM[];
 }) {
   return (
     <section className="ring-foreground/10 space-y-4 rounded-xl border bg-card p-4 shadow-sm md:p-6">
@@ -188,6 +192,11 @@ export function EventDivisionManager({
           </div>
         ))}
       </div>
+
+      <ApplyDivisionTemplateButton
+        eventId={eventId}
+        templates={templates.map((t) => ({ id: t.id, title: t.title }))}
+      />
 
       <EventDivisionForm eventId={eventId} />
     </section>

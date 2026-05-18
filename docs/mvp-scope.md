@@ -43,6 +43,8 @@
 - [x] 주최자: 신청자별 **입금 상태 수동 반영**(`payment.service` + `EventApplication.paymentStatus` 동기화).
 - [x] 주최자: 신청 **승인/반려**(MVP: 대기만 반려), 디비전·체육관 등 **클라이언트 필터**(추후 서버 검색 확장 가능).
 
+- [x] 체육관: 행사별 **선수 참가비 안내** 저장(`GymEventFeeSetting`, 공개 행사 DTO에는 계좌번호 미포함 유지).
+
 ### 대진표
 
 - [x] Bracket 단위 `single_elimination` 및 `match_list` 지원(동일 Event 혼합 가능).
@@ -62,6 +64,10 @@
 - [x] 확정 트랜잭션에서 **`Fighter` 전적 캐시 재계산**(집계는 `confirmed`+`corrected` 기준 승·패·무, **`no_contest`는 승패무 미반영 MVP**).
 - [x] 단판(`single_elimination`) 확정 시 승자 **다음 매치 슬롯 반영** 및 **`BracketChangeLog`**.
 - [x] 결과 정정·무효 시 **`MatchResultChangeLog` 필수** — 무효(MVP) 시 **`BracketMatch` 결과 필드 초기화**.
+- [x] 주최자: **디비전 템플릿** 저장·행사 적용(`DivisionTemplate`).
+- [x] 주최자: 행사 **포스터·갤러리** 이미지(공개 Storage 버킷·`NEXT_PUBLIC_SUPABASE_URL` 기준 URL).
+- [x] 주최자: **관람 공개 시간 창**·토큰·공개 대진표 QR 안내(`NEXT_PUBLIC_APP_URL` 기준 링크).
+- [x] 주최자: **결과 입력 스태프 링크** 발급·폐기(토큰 URL `/staff/result/[token]/matches`, 로그인 없음).
 
 ### 전적·조회
 

@@ -37,6 +37,7 @@ import { fighterRepository } from "@/lib/repositories/fighter.repository";
 import { matchRepository } from "@/lib/repositories/match.repository";
 import { resultRepository } from "@/lib/repositories/result.repository";
 import { notificationService } from "@/lib/services/notification.service";
+import type { ResolvedStaffRecorderLink } from "@/lib/services/event-staff-access.service";
 import type {
   ConfirmMatchResultsInput,
   CorrectMatchResultInput,
@@ -69,7 +70,8 @@ async function appendBracketChangeLog(
     eventId: string;
     bracketId: string;
     matchId?: string | null;
-    changedByUserId: string;
+    changedByUserId?: string | null;
+    changedByStaffLinkId?: string | null;
     bracketType: BracketType;
     changeType: BracketChangeType;
     beforeData?: Prisma.InputJsonValue | null;
@@ -82,7 +84,8 @@ async function appendBracketChangeLog(
       eventId: params.eventId,
       bracketId: params.bracketId,
       matchId: params.matchId ?? null,
-      changedByUserId: params.changedByUserId,
+      changedByUserId: params.changedByUserId ?? null,
+      changedByStaffLinkId: params.changedByStaffLinkId ?? null,
       bracketType: params.bracketType,
       changeType: params.changeType,
       beforeData: params.beforeData ?? null,
@@ -93,11 +96,9 @@ async function appendBracketChangeLog(
   );
 }
 
-async function ensureMatchResultOrganizerContext(actor: ActorContext, matchId: string) {
-  requireRole(actor, ["organizer", "admin"]);
+async function loadMatchResultBracketCtx(matchId: string) {
   const own = await matchRepository.findMatchOwnershipContext(matchId);
   if (!own) throw new AppError("NOT_FOUND", "경기를 찾을 수 없습니다.");
-  await requireOrganizerForEvent(actor, own.eventId);
 
   const bracketRow = await prisma.bracket.findUnique({
     where: { id: own.bracketId },
@@ -107,6 +108,38 @@ async function ensureMatchResultOrganizerContext(actor: ActorContext, matchId: s
 
   return { ...own, bracketType: bracketRow.type };
 }
+
+async function ensureMatchResultOrganizerContext(actor: ActorContext, matchId: string) {
+  requireRole(actor, ["organizer", "admin"]);
+  const ctx = await loadMatchResultBracketCtx(matchId);
+  await requireOrganizerForEvent(actor, ctx.eventId);
+  return ctx;
+}
+
+async function ensureMatchResultStaffContext(
+  link: ResolvedStaffRecorderLink,
+  matchId: string,
+) {
+  const ctx = await loadMatchResultBracketCtx(matchId);
+  if (ctx.eventId !== link.eventId) {
+    throw new AppError("NOT_FOUND", "경기를 찾을 수 없습니다.");
+  }
+  return ctx;
+}
+
+function augmentStaffReason(
+  staffLabel: string | undefined,
+  explicit?: string | null,
+): string | null {
+  if (!staffLabel) return explicit?.trim() || null;
+  const prefix = `결과입력자(${staffLabel})`;
+  const tail = explicit?.trim();
+  return tail ? `${prefix}: ${tail}` : prefix;
+}
+
+export type ConfirmMatchResultsPrincipal =
+  | { kind: "organizer"; actor: ActorContext }
+  | { kind: "staff"; link: ResolvedStaffRecorderLink };
 
 function snapshotJson(value: unknown): Prisma.InputJsonValue {
   return JSON.parse(JSON.stringify(value)) as Prisma.InputJsonValue;
@@ -170,10 +203,33 @@ export type GymFighterRecordSummaryVM = {
 
 export const resultService = {
   async confirmMatchResults(
-    actor: ActorContext,
+    principal: ConfirmMatchResultsPrincipal,
     input: ConfirmMatchResultsInput,
   ): Promise<void> {
-    const ctx = await ensureMatchResultOrganizerContext(actor, input.matchId);
+    let ctx;
+    let confirmedByUserId: string | null;
+    let changedByStaffLinkId: string | null;
+    let staffLabel: string | undefined;
+
+    if (principal.kind === "organizer") {
+      ctx = await ensureMatchResultOrganizerContext(
+        principal.actor,
+        input.matchId,
+      );
+      confirmedByUserId = principal.actor.userId;
+      changedByStaffLinkId = null;
+    } else {
+      if (!principal.link.canConfirmResult) {
+        throw new AppError(
+          "FORBIDDEN",
+          "이 링크로는 공식 결과를 확정할 수 없습니다.",
+        );
+      }
+      ctx = await ensureMatchResultStaffContext(principal.link, input.matchId);
+      confirmedByUserId = null;
+      changedByStaffLinkId = principal.link.id;
+      staffLabel = principal.link.label;
+    }
 
     const match = await matchRepository.findMatchWithBracketContext(input.matchId);
     if (!match) throw new AppError("NOT_FOUND", "경기를 찾을 수 없습니다.");
@@ -281,7 +337,7 @@ export const resultService = {
           matchDate: now,
           status: MatchRecordStatus.confirmed,
           confirmedAt: now,
-          confirmedByUserId: actor.userId,
+          confirmedByUserId: confirmedByUserId,
         },
         {
           eventId: match.bracket.eventId,
@@ -304,7 +360,7 @@ export const resultService = {
           matchDate: now,
           status: MatchRecordStatus.confirmed,
           confirmedAt: now,
-          confirmedByUserId: actor.userId,
+          confirmedByUserId: confirmedByUserId,
         },
       ];
 
@@ -326,7 +382,8 @@ export const resultService = {
         eventId: ctx.eventId,
         bracketId: ctx.bracketId,
         matchId: input.matchId,
-        changedByUserId: actor.userId,
+        changedByUserId: confirmedByUserId,
+        changedByStaffLinkId,
         bracketType: ctx.bracketType,
         changeType: BracketChangeType.winner_changed,
         beforeData: {
@@ -334,19 +391,26 @@ export const resultService = {
           loserId: beforeBracket?.loserId,
         },
         afterData: { winnerId, loserId },
-        reason: input.reason ?? input.resultMemo ?? null,
+        reason: augmentStaffReason(
+          staffLabel,
+          input.reason ?? input.resultMemo ?? null,
+        ),
       });
 
       await appendBracketChangeLog(tx, {
         eventId: ctx.eventId,
         bracketId: ctx.bracketId,
         matchId: input.matchId,
-        changedByUserId: actor.userId,
+        changedByUserId: confirmedByUserId,
+        changedByStaffLinkId,
         bracketType: ctx.bracketType,
         changeType: BracketChangeType.result_type_changed,
         beforeData: { resultType: beforeBracket?.resultType },
         afterData: { resultType: input.resultType },
-        reason: input.reason ?? input.resultMemo ?? null,
+        reason: augmentStaffReason(
+          staffLabel,
+          input.reason ?? input.resultMemo ?? null,
+        ),
       });
 
       await resultRepository.recalculateManyFighterRecordCaches(
@@ -428,7 +492,8 @@ export const resultService = {
           eventId: ctx.eventId,
           bracketId: ctx.bracketId,
           matchId: match.nextMatchId,
-          changedByUserId: actor.userId,
+          changedByUserId: confirmedByUserId,
+          changedByStaffLinkId,
           bracketType: ctx.bracketType,
           changeType: advancementType,
           beforeData: {
@@ -441,7 +506,7 @@ export const resultService = {
             fighterId: winnerId,
             snapshot: bracketSnap,
           },
-          reason: "단판 토너먼트 승자 진출",
+          reason: augmentStaffReason(staffLabel, "단판 토너먼트 승자 진출"),
         });
       }
     });

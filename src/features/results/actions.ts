@@ -68,7 +68,10 @@ export async function confirmMatchResultsAction(
       );
     }
     const actor = await requireActorFromMutation();
-    await resultService.confirmMatchResults(actor, parsed.data);
+    await resultService.confirmMatchResults(
+      { kind: "organizer", actor },
+      parsed.data,
+    );
     return actionSuccess({ ok: true as const });
   });
 }

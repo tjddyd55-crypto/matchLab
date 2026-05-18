@@ -1,7 +1,10 @@
 "use client";
 
 import { useMemo, useState } from "react";
-import { OrganizerMatchOpsPanel } from "@/components/domain/brackets/OrganizerMatchOpsPanel";
+import {
+  OrganizerMatchOpsPanel,
+  type OrganizerMatchOpsPanelProps,
+} from "@/components/domain/brackets/OrganizerMatchOpsPanel";
 import type { OrganizerEventMatchListItemVM } from "@/lib/services/match.service";
 import { BracketMatchStatus } from "@/lib/enums";
 import { cn } from "@/lib/utils";
@@ -25,8 +28,10 @@ function rowOps(row: OrganizerEventMatchListItemVM) {
 
 export function OrganizerMatchesBoard({
   matches,
+  staffAccess,
 }: {
   matches: OrganizerEventMatchListItemVM[];
+  staffAccess?: OrganizerMatchOpsPanelProps["staffAccess"];
 }) {
   const [bracketId, setBracketId] = useState<string>("");
   const [divisionLabel, setDivisionLabel] = useState<string>("");
@@ -198,7 +203,7 @@ export function OrganizerMatchesBoard({
                   {m.hasOfficialResults ? "확정" : "미확정"}
                 </td>
                 <td className="px-3 py-3">
-                  <OrganizerMatchOpsPanel {...rowOps(m)} />
+                  <OrganizerMatchOpsPanel {...rowOps(m)} staffAccess={staffAccess} />
                 </td>
               </tr>
             ))}
@@ -239,7 +244,7 @@ export function OrganizerMatchesBoard({
                 </div>
               </div>
             </div>
-            <OrganizerMatchOpsPanel {...rowOps(m)} />
+            <OrganizerMatchOpsPanel {...rowOps(m)} staffAccess={staffAccess} />
           </div>
         ))}
       </div>
