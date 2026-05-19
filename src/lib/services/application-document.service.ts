@@ -402,9 +402,24 @@ export const applicationDocumentService = {
         },
         tx,
       );
+
+      if (!tx) {
+        void applicationDocumentService.finalizeCompletedDocument(documentId);
+      }
       return;
     }
 
     await applicationDocumentRepository.update(documentId, { status }, tx);
+
+    if (!tx && status === "completed") {
+      void applicationDocumentService.finalizeCompletedDocument(documentId);
+    }
+  },
+
+  async finalizeCompletedDocument(documentId: string): Promise<void> {
+    const { applicationFormPdfService } = await import(
+      "@/lib/services/application-form-pdf.service"
+    );
+    await applicationFormPdfService.generateApplicationDocumentPdf(documentId);
   },
 };

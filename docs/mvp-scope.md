@@ -35,14 +35,14 @@
 
 ### 공식 신청서 PDF (대회 신청 단계)
 
-- [x] 관리자: `ApplicationFormTemplate` CRUD — PDF 원본 경로 + `fieldsJson` / `repeatGroupsJson`.
+- [x] 관리자: `ApplicationFormTemplate` CRUD — **실제 PDF 업로드** + `fieldsJson` / `repeatGroupsJson`.
 - [x] 주최자: 대회에 템플릿 연결(좌표 편집 불가).
 - [x] 체육관: 등록 선수 선택 → 선수별 `ApplicationDocument` 생성 → 자동 매핑 미리보기.
 - [x] 선수 본인 서명(`/application-sign/[token]`, `FighterConsent`).
 - [x] 미성년/학생: 보호자 동의(`/guardian-consent/[id]?scope=application`).
 - [x] 체육관 일괄 제출(`EventApplicationBatch`).
 - [x] 주최자: 제출 묶음·선수별 완료본 조회·출력 HTML(`documentSnapshotJson` 기준).
-- [ ] **PDF overlay / 완료 PDF 생성** — MVP TODO(snapshot + 출력 화면 우선).
+- [x] **PDF overlay 1차** — `pdf-lib`로 텍스트·서명 이미지 overlay → `generatedPdfPath` (Storage `application-documents`). 실패 시 snapshot + HTML fallback.
 
 ### 대회 신청·입금
 

@@ -4,6 +4,7 @@ import { requireActor } from "@/lib/auth/actor";
 import { AppError } from "@/lib/errors/app-error";
 import { requireOrganizerForEventPage } from "@/lib/permissions";
 import { applicationDocumentService } from "@/lib/services/application-document.service";
+import { OrganizerApplicationDocumentPdfActions } from "@/components/domain/applications/OrganizerApplicationDocumentPdfActions";
 import { buttonVariants } from "@/components/ui/button";
 import { cn } from "@/lib/utils";
 
@@ -42,6 +43,16 @@ export default async function OrganizerApplicationDocumentPage({
       ? (formValues.preview as Record<string, string>)
       : {};
 
+  const snapshot = doc.documentSnapshotJson as Record<string, unknown> | null;
+  const snapshotPreview =
+    snapshot &&
+    typeof snapshot === "object" &&
+    "previewValues" in snapshot &&
+    typeof snapshot.previewValues === "object" &&
+    snapshot.previewValues
+      ? (snapshot.previewValues as Record<string, string>)
+      : null;
+
   return (
     <div className="mx-auto flex w-full max-w-3xl flex-col gap-8 px-4 py-8 md:px-6">
       <div>
@@ -57,6 +68,10 @@ export default async function OrganizerApplicationDocumentPage({
         <p className="text-muted-foreground mt-1 text-sm">
           {doc.fighter.name} · {doc.gym.name} · {doc.status}
         </p>
+        <p className="text-muted-foreground mt-2 text-xs leading-relaxed">
+          주최측 공식 PDF 신청서 기준으로 작성된 선수별 완료 문서입니다. PDF
+          생성이 완료된 경우 파일로 열 수 있습니다.
+        </p>
       </div>
 
       <div className="flex flex-wrap gap-2">
@@ -69,10 +84,17 @@ export default async function OrganizerApplicationDocumentPage({
         </Link>
       </div>
 
+      <OrganizerApplicationDocumentPdfActions
+        eventId={eventId}
+        documentId={documentId}
+        hasGeneratedPdf={Boolean(doc.generatedPdfPath)}
+        originalPdfFileName={doc.template.originalPdfFileName}
+      />
+
       <section className="rounded-lg border p-4">
-        <h2 className="mb-3 text-sm font-semibold">미리보기 값</h2>
+        <h2 className="mb-3 text-sm font-semibold">snapshot 미리보기</h2>
         <dl className="grid gap-2 text-sm sm:grid-cols-2">
-          {Object.entries(preview).map(([key, value]) => (
+          {Object.entries(snapshotPreview ?? preview).map(([key, value]) => (
             <div key={key}>
               <dt className="text-muted-foreground font-mono text-xs">{key}</dt>
               <dd>{value || "—"}</dd>

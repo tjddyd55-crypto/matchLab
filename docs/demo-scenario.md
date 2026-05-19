@@ -15,15 +15,16 @@ MVP 범위는 `docs/mvp-scope.md`를 기준으로 하며, 본 문서는 **시연
 
 ### 1.1 공식 신청서 E2E 테스트 순서
 
-1. **admin** — `/admin/application-form-templates/new`에서 템플릿 생성(「예시 JSON 불러오기」→ 저장).
-2. **organizer** — `/organizer/events/{eventId}`에서 공식 신청서 템플릿 연결 저장.
-3. **gym** — `/gym/events/{eventId}/apply`에서 선수·부문 선택 → 「선수별 신청서 생성」.
-4. **선수** — 복사한 `/application-sign/[token]` 링크에서 서명 완료.
-5. **보호자**(미성년·학생) — `/guardian-consent/[id]?scope=application`에서 동의·서명.
-6. **gym** — 문서 상태 `completed` 확인 후 「신청 묶음 제출」.
-7. **organizer** — `/organizer/events/{eventId}/application-batches` → 상세 → `.../print` 출력 확인.
+1. **admin** — `/admin/application-form-templates/new`에서 **실제 PDF 업로드** → 「테스트용 fieldsJson 불러오기」→ 저장.
+2. **admin** — 템플릿 상세에서 PDF 미리보기(iframe)·필드 표 확인.
+3. **organizer** — `/organizer/events/{eventId}`에서 공식 신청서 템플릿 연결 저장.
+4. **gym** — `/gym/events/{eventId}/apply`에서 선수·부문 선택 → 「선수별 신청서 생성」.
+5. **선수** — 「서명 페이지 열기」 또는 `/application-sign/[token]`에서 서명 완료.
+6. **보호자**(미성년·학생) — `/guardian-consent/[id]?scope=application`에서 동의·서명.
+7. **gym** — 문서 상태 `completed` 확인 → (선택) 완료 PDF 생성 대기 → 「신청 묶음 제출」.
+8. **organizer** — `/organizer/events/{eventId}/application-batches` → 문서 상세 → **완료 PDF 열기** 또는 `.../print` 출력.
 
-> PDF overlay·완료 PDF 파일 생성은 **TODO**. 현재는 `documentSnapshotJson` + 출력 HTML로 검증합니다.
+> `fieldsJson` 좌표는 **top-left pt** 기준입니다. 실제 PDF에 맞게 x/y를 조정한 뒤 overlay 결과를 확인하세요.
 
 ## 2. 역할별 로그인 계정 (미팅 권장: `@demo.local`)
 

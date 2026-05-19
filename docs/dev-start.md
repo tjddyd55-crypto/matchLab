@@ -52,6 +52,10 @@ npm install
 
 | `SUPABASE_PROFILE_IMAGE_BUCKET` | 향후 선수 프로필 등 이미지용 private bucket 이름 (기본값 예: `profile-images`, 현재 업로드 코드 미연결 가능) |
 
+| `SUPABASE_APPLICATION_FORM_BUCKET` | 공식 신청서 **템플릿 PDF** 원본 (private, 기본 `application-forms`) |
+
+| `SUPABASE_APPLICATION_DOCUMENT_BUCKET` | overlay **완료 PDF** (`application-documents/{eventId}/…`, private) |
+
 | `NEXT_PUBLIC_APP_URL` | 링크 생성·OAuth 리다이렉트 베이스 URL |
 
 | `DEMO_PASSWORD` | (선택) `npm run setup:demo-users` 시 Supabase Auth 비밀번호. 미설정 시 `1234` — 정책에 따라 거절되면 `123456` 또는 `Demo1234!` 등으로 지정 |
@@ -65,6 +69,12 @@ GitHub → Railway 배포가 성공해도 **Postgres는 빈 DB**입니다. `publ
 - Supabase 대시보드 **Storage**에서 bucket **`consent-signatures`(또는 위 환경 변수 값)** 을 만들고 **Public(bucket 공개)** 을 끕니다.
 - 업로드·조회는 **anon 클라이언트 정책만으로 열지 말고**, 서버에서 `SUPABASE_SERVICE_ROLE_KEY` 로 검증 후 **short-lived signed URL** 만 발급합니다(MVP 권장: 업로드 URL 약 5분).
 - 로컬 MVP에서는 CRM 손사인 UI를 **이 레포 안으로 복사·로컬화**한 `SignaturePad`를 사용합니다. 장기적으로는 전자서명 단독 서비스로 옮길 수 있도록 **`consent.service`/`completeGuardianConsentAction` 경계**를 유지합니다.
+
+### Storage · 공식 신청서 PDF
+
+- Supabase **Storage**에 private bucket **`application-forms`**(템플릿 원본 PDF), **`application-documents`**(완료 overlay PDF)를 생성합니다.
+- 환경 변수: `SUPABASE_APPLICATION_FORM_BUCKET`, `SUPABASE_APPLICATION_DOCUMENT_BUCKET` (기본값과 동일하면 생략 가능).
+- admin 템플릿 폼에서 PDF 업로드 → signed upload URL → `originalPdfPath` 저장. 조회는 서버에서 **short-lived signed URL** 만 발급(DB·공개 DTO에 path/URL 저장 금지).
 
 
 
@@ -309,10 +319,15 @@ npm run dev
 
 ## 아직 구현되지 않은 것 (TODO)
 
-- **공식 신청서 PDF overlay / 완료 PDF 생성** — 현재는 `documentSnapshotJson` + 출력 HTML. 추후 문서/PDF 서비스·R2 연동.
-- PDF 좌표 **시각 편집기** — JSON textarea만 제공, 기존 좌표 편집 모듈 연결 예정.
-- **Railway schema 변경 후** `npm run db:push` 필요 (로컬에서 `DATABASE_PUBLIC_URL` 세션 설정).
+- PDF 좌표 **시각 편집기** — JSON textarea + 필드 미리보기 표만 제공, 기존 좌표 편집 모듈 연결 예정.
+- **Railway schema 변경 후** `npm run db:push` 필요 (로컬에서 `DATABASE_PUBLIC_URL` 세션 설정). **Storage bucket만 추가 시 schema 변경 없음** — Supabase에서 `application-forms`, `application-documents` private bucket 생성.
 - 카카오 알림톡·SMS·웹푸시(인앱 `Notification` / Realtime 훅은 `features/realtime` 및 `Public*RealtimeBridge` 참고)
+
+### 공식 신청서 PDF 좌표계 주의
+
+- `fieldsJson`의 `x`, `y`는 **페이지 좌상단(top-left) 기준 pt** 입니다.
+- 서버 PDF overlay(`application-form-pdf.service.ts`)는 **pdf-lib bottom-left** 로 변환해 그립니다.
+- 실제 주최측 PDF에 맞게 좌표를 조정할 때는 admin 템플릿 상세의 PDF iframe 미리보기와 완료 PDF 결과를 함께 확인하세요.
 
 - `ensureUserProfileFromSupabaseAuth` 자동 프로필 생성·역할 배정(현재는 호출 시 안내용 에러만)
 

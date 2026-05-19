@@ -10,9 +10,10 @@ import {
 import {
   EXAMPLE_APPLICATION_FORM_FIELDS_JSON,
   EXAMPLE_APPLICATION_FORM_REPEAT_GROUPS_JSON,
-  PLACEHOLDER_PDF_FILE_NAME,
-  PLACEHOLDER_PDF_PATH,
 } from "@/lib/constants/application-form-template-examples";
+import { APPLICATION_FORM_COORDINATE_SYSTEM } from "@/lib/constants/application-form-pdf-upload";
+import { ApplicationFormTemplatePdfUpload } from "@/components/domain/application-form-templates/ApplicationFormTemplatePdfUpload";
+import { ApplicationFormTemplateFieldPreview } from "@/components/domain/application-form-templates/ApplicationFormTemplateFieldPreview";
 import { Button } from "@/components/ui/button";
 import { cn } from "@/lib/utils";
 
@@ -39,11 +40,10 @@ export function ApplicationFormTemplateForm({
   const [description, setDescription] = useState(initial?.description ?? "");
   const [organizerId, setOrganizerId] = useState(initial?.organizerId ?? "");
   const [originalPdfPath, setOriginalPdfPath] = useState(
-    initial?.originalPdfPath ?? (mode === "create" ? PLACEHOLDER_PDF_PATH : ""),
+    initial?.originalPdfPath ?? "",
   );
   const [originalPdfFileName, setOriginalPdfFileName] = useState(
-    initial?.originalPdfFileName ??
-      (mode === "create" ? PLACEHOLDER_PDF_FILE_NAME : ""),
+    initial?.originalPdfFileName ?? "",
   );
   const [fieldsJson, setFieldsJson] = useState(
     stringifyJson(initial?.fieldsJson, "[]"),
@@ -65,6 +65,11 @@ export function ApplicationFormTemplateForm({
 
   async function onSubmit(e: React.FormEvent) {
     e.preventDefault();
+    if (!originalPdfPath.trim() || !originalPdfFileName.trim()) {
+      setError("공식 신청서 PDF 파일을 업로드해 주세요.");
+      return;
+    }
+
     setPending(true);
     setError(null);
 
@@ -104,6 +109,11 @@ export function ApplicationFormTemplateForm({
     router.refresh();
   }
 
+  function loadTestFieldsJson() {
+    setFieldsJson(EXAMPLE_APPLICATION_FORM_FIELDS_JSON);
+    setRepeatGroupsJson(EXAMPLE_APPLICATION_FORM_REPEAT_GROUPS_JSON);
+  }
+
   return (
     <form onSubmit={(e) => void onSubmit(e)} className="space-y-6">
       {error ? (
@@ -132,26 +142,50 @@ export function ApplicationFormTemplateForm({
         value={organizerId}
         onChange={setOrganizerId}
       />
-      <FormField
-        label="원본 PDF Storage 경로"
-        value={originalPdfPath}
-        onChange={setOriginalPdfPath}
-        required
+
+      <ApplicationFormTemplatePdfUpload
+        templateId={initial?.id}
+        fileName={originalPdfFileName || null}
+        onUploaded={(path, name) => {
+          setOriginalPdfPath(path);
+          setOriginalPdfFileName(name);
+          if (fieldsJson.trim() === "[]" || fieldsJson.trim() === "") {
+            loadTestFieldsJson();
+          }
+        }}
       />
-      <FormField
-        label="원본 PDF 파일명"
-        value={originalPdfFileName}
-        onChange={setOriginalPdfFileName}
-        required
-      />
+
+      {originalPdfPath ? (
+        <p className="text-muted-foreground text-xs">
+          Storage 경로는 서버에만 저장됩니다. (업로드 완료)
+        </p>
+      ) : null}
+
+      <div className="rounded-lg border bg-muted/20 p-4 text-xs leading-relaxed">
+        <p className="font-medium">좌표 JSON 안내</p>
+        <ul className="text-muted-foreground mt-2 list-inside list-disc space-y-1">
+          <li>
+            좌표계: <strong className="text-foreground">{APPLICATION_FORM_COORDINATE_SYSTEM}</strong>{" "}
+            (페이지 좌상단 기준, 단위 pt). PDF 렌더 시 pdf-lib bottom-left로
+            자동 변환됩니다.
+          </li>
+          <li>A4 기준 약 595×842 pt — 실제 PDF 페이지 크기에 맞게 조정하세요.</li>
+          <li>
+            <code>type: signature</code> 필드는 서명 이미지 overlay용입니다
+            (경로는 공개되지 않음).
+          </li>
+        </ul>
+      </div>
 
       <JsonArea
         label="fieldsJson"
         hint="PDF 필드 좌표·source 정의 JSON 배열"
         value={fieldsJson}
         onChange={setFieldsJson}
-        onLoadExample={() => setFieldsJson(EXAMPLE_APPLICATION_FORM_FIELDS_JSON)}
+        onLoadExample={loadTestFieldsJson}
+        exampleLabel="테스트용 fieldsJson 불러오기"
       />
+      <ApplicationFormTemplateFieldPreview fieldsJson={fieldsJson} />
       <JsonArea
         label="repeatGroupsJson"
         hint="반복 행 그룹 JSON 배열"
@@ -222,12 +256,14 @@ function JsonArea({
   value,
   onChange,
   onLoadExample,
+  exampleLabel = "예시 JSON 불러오기",
 }: {
   label: string;
   hint?: string;
   value: string;
   onChange: (v: string) => void;
   onLoadExample?: () => void;
+  exampleLabel?: string;
 }) {
   return (
     <div className="space-y-1 text-sm">
@@ -240,11 +276,13 @@ function JsonArea({
             size="sm"
             onClick={onLoadExample}
           >
-            예시 JSON 불러오기
+            {exampleLabel}
           </Button>
         ) : null}
       </div>
-      {hint ? <span className="text-muted-foreground block text-xs">{hint}</span> : null}
+      {hint ? (
+        <span className="text-muted-foreground block text-xs">{hint}</span>
+      ) : null}
       <textarea
         required
         value={value}

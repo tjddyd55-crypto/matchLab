@@ -231,24 +231,44 @@ function DocRow({
       </div>
       <div className="flex flex-wrap gap-2">
         {doc.athleteSignUrl ? (
-          <Button
-            type="button"
-            size="sm"
-            variant="outline"
-            onClick={() => void onCopy(doc.athleteSignUrl)}
-          >
-            선수 서명 링크 복사
-          </Button>
+          <>
+            <Button
+              type="button"
+              size="sm"
+              variant="outline"
+              onClick={() => void onCopy(doc.athleteSignUrl)}
+            >
+              선수 서명 링크 복사
+            </Button>
+            <a
+              href={doc.athleteSignUrl}
+              target="_blank"
+              rel="noopener noreferrer"
+              className="inline-flex h-8 items-center rounded-md px-3 text-sm underline-offset-4 hover:underline"
+            >
+              서명 페이지 열기
+            </a>
+          </>
         ) : null}
         {doc.guardianConsentUrl ? (
-          <Button
-            type="button"
-            size="sm"
-            variant="outline"
-            onClick={() => void onCopy(doc.guardianConsentUrl)}
-          >
-            보호자 동의 링크 복사
-          </Button>
+          <>
+            <Button
+              type="button"
+              size="sm"
+              variant="outline"
+              onClick={() => void onCopy(doc.guardianConsentUrl)}
+            >
+              보호자 동의 링크 복사
+            </Button>
+            <a
+              href={doc.guardianConsentUrl}
+              target="_blank"
+              rel="noopener noreferrer"
+              className="inline-flex h-8 items-center rounded-md px-3 text-sm underline-offset-4 hover:underline"
+            >
+              동의 페이지 열기
+            </a>
+          </>
         ) : null}
       </div>
       <p className="text-muted-foreground text-xs">

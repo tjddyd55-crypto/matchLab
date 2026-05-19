@@ -122,8 +122,9 @@ MVP: 계좌 안내 + 수동 입금 확인. **`EventApplicationPayment` 가 입�
 ### ApplicationFormTemplate
 
 - 주최측 **공식 신청서 PDF 원본** + 좌표 JSON(`fieldsJson`, `repeatGroupsJson`).
-- `originalPdfPath` / `originalPdfFileName`: 원본 PDF 저장 경로(향후 R2·문서 서비스 연동).
-- `source` 매핑 예: `fighter.name`, `event.title`, `application.division`, `manual.*`.
+- `originalPdfPath` / `originalPdfFileName`: 원본 PDF **private Storage** 경로·표시용 파일명 (`SUPABASE_APPLICATION_FORM_BUCKET`, 기본 `application-forms`). **공개 URL·DB signed URL 저장 금지.**
+- `source` 매핑 예: `fighter.name`, `event.title`, `application.division`, `athlete.signatureImage`, `manual.*`.
+- `fieldsJson` 좌표: **페이지 좌상단(top-left) pt** — 렌더 시 pdf-lib bottom-left로 변환(`docs/dev-start.md` 참고).
 - 관리자/운영팀만 좌표 세팅 — 주최자는 선택·다운로드만.
 
 ### EventApplicationBatch
@@ -137,7 +138,8 @@ MVP: 계좌 안내 + 수동 입금 확인. **`EventApplicationPayment` 가 입�
 - `formValuesJson`: 자동 매핑·수동 입력값.
 - `documentSnapshotJson`: **제출/완료 시점 고정 스냅샷**(선수 정보 변경 후에도 불변).
 - `athleteConsentId` / `guardianConsentId`: 대회 신청 단계 서명·동의 연결.
-- `generatedPdfPath`: TODO — PDF overlay 생성 후 저장.
+- `generatedPdfPath`: 완료 시 **pdf-lib overlay** 결과 PDF (`SUPABASE_APPLICATION_DOCUMENT_BUCKET`, private). 없으면 snapshot + HTML 출력 fallback.
+- `FighterConsent.signatureImagePath` / `GuardianConsent.signatureImagePath`: private Storage 경로 — **공개 DTO·snapshot 미포함**.
 
 **상태 전이 (MVP):**
 

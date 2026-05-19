@@ -52,6 +52,14 @@ function resolveSource(
   ctx: FormRenderContext,
 ): string | boolean | null {
   if (source === "manual") return null;
+  if (
+    source === "athlete.signatureImage" ||
+    source === "guardian.signatureImage"
+  ) {
+    const bucket =
+      source === "athlete.signatureImage" ? ctx.athlete : ctx.guardian;
+    return bucket.consentStatus === "completed" ? "✓" : "";
+  }
   const parts = source.split(".");
   if (parts.length < 2) return null;
   const [root, key] = parts as [keyof FormRenderContext, string];
@@ -137,7 +145,7 @@ export const applicationFormRenderService = {
         label: f.label,
         source: f.source,
       })),
-      // TODO: PDF overlay 생성 시 좌표 기반 렌더링 결과를 generatedPdfPath에 저장
+      // PDF overlay: completed 시 application-form-pdf.service에서 generatedPdfPath 저장
     };
   },
 };

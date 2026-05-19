@@ -48,6 +48,10 @@ function consentSignaturesBucket(): string {
   );
 }
 
+export function getConsentSignaturesBucketName(): string {
+  return consentSignaturesBucket();
+}
+
 function extensionForMime(mimeType: string): "png" | "webp" {
   if (mimeType === "image/png") return "png";
   if (mimeType === "image/webp") return "webp";
@@ -337,6 +341,171 @@ export async function createApplicationAthleteSignatureUploadUrl(input: {
     path,
     expiresIn: CONSENT_SIGNATURE_UPLOAD_EXPIRES_SEC,
   };
+}
+
+/** MVP: 신청서 템플릿 PDF 업로드 signed URL 만료(초). */
+export const APPLICATION_FORM_PDF_UPLOAD_EXPIRES_SEC = 300;
+
+/** 공식 신청서 템플릿 PDF 최대 바이트 — 클라이언트 선제 검증 권장. */
+export const APPLICATION_FORM_PDF_MAX_BYTES = 10 * 1024 * 1024;
+
+const ALLOWED_APPLICATION_FORM_PDF_MIME = new Set(["application/pdf"]);
+
+function applicationFormsBucket(): string {
+  return (
+    process.env.SUPABASE_APPLICATION_FORM_BUCKET?.trim() ||
+    "application-forms"
+  );
+}
+
+function applicationDocumentsBucket(): string {
+  return (
+    process.env.SUPABASE_APPLICATION_DOCUMENT_BUCKET?.trim() ||
+    "application-documents"
+  );
+}
+
+export function buildApplicationFormTemplatePdfPath(input: {
+  templateId?: string;
+}): string {
+  const scope = input.templateId?.trim() || "draft";
+  return `templates/${scope}/${randomUUID()}.pdf`;
+}
+
+export function buildApplicationDocumentGeneratedPdfPath(input: {
+  eventId: string;
+  batchId: string;
+  documentId: string;
+}): string {
+  return `application-documents/${input.eventId}/${input.batchId}/${input.documentId}.pdf`;
+}
+
+export async function createApplicationFormTemplatePdfUploadUrl(
+  actor: ActorContext,
+  input: { templateId?: string; mimeType: string },
+): Promise<{ uploadUrl: string; path: string; expiresIn: number }> {
+  requireRole(actor, ["admin"]);
+  const mimeType = input.mimeType.trim();
+  if (!ALLOWED_APPLICATION_FORM_PDF_MIME.has(mimeType)) {
+    throw new AppError(
+      "VALIDATION_ERROR",
+      "PDF 파일(application/pdf)만 업로드할 수 있습니다.",
+    );
+  }
+
+  const path = buildApplicationFormTemplatePdfPath({
+    templateId: input.templateId,
+  });
+
+  const supabase = createSupabaseAdminClient();
+  const bucket = applicationFormsBucket();
+  const { data, error } = await supabase.storage
+    .from(bucket)
+    .createSignedUploadUrl(path, { upsert: true });
+
+  if (error || !data?.signedUrl) {
+    throw new AppError(
+      "INTERNAL",
+      "PDF 업로드 URL 발급에 실패했습니다.",
+      error?.message,
+    );
+  }
+
+  return {
+    uploadUrl: data.signedUrl,
+    path,
+    expiresIn: APPLICATION_FORM_PDF_UPLOAD_EXPIRES_SEC,
+  };
+}
+
+export async function downloadPrivateObjectBytes(
+  bucket: string,
+  path: string,
+): Promise<Uint8Array> {
+  const supabase = createSupabaseAdminClient();
+  const { data, error } = await supabase.storage.from(bucket).download(path);
+  if (error || !data) {
+    throw new AppError(
+      "NOT_FOUND",
+      "파일을 불러올 수 없습니다.",
+      error?.message,
+    );
+  }
+  return new Uint8Array(await data.arrayBuffer());
+}
+
+export async function uploadPrivateObjectBytes(
+  bucket: string,
+  path: string,
+  bytes: Uint8Array,
+  contentType: string,
+): Promise<void> {
+  const supabase = createSupabaseAdminClient();
+  const { error } = await supabase.storage.from(bucket).upload(path, bytes, {
+    contentType,
+    upsert: true,
+  });
+  if (error) {
+    throw new AppError(
+      "INTERNAL",
+      "파일 저장에 실패했습니다.",
+      error.message,
+    );
+  }
+}
+
+export async function createApplicationFormPdfDownloadSignedUrl(input: {
+  path: string;
+}): Promise<{ signedUrl: string; expiresIn: number }> {
+  const supabase = createSupabaseAdminClient();
+  const bucket = applicationFormsBucket();
+  const { data, error } = await supabase.storage
+    .from(bucket)
+    .createSignedUrl(input.path, PRIVATE_FILE_DOWNLOAD_EXPIRES_SEC);
+
+  if (error || !data?.signedUrl) {
+    throw new AppError(
+      "INTERNAL",
+      "PDF 조회 URL 발급에 실패했습니다.",
+      error?.message,
+    );
+  }
+
+  return {
+    signedUrl: data.signedUrl,
+    expiresIn: PRIVATE_FILE_DOWNLOAD_EXPIRES_SEC,
+  };
+}
+
+export async function createApplicationDocumentPdfDownloadSignedUrl(input: {
+  path: string;
+}): Promise<{ signedUrl: string; expiresIn: number }> {
+  const supabase = createSupabaseAdminClient();
+  const bucket = applicationDocumentsBucket();
+  const { data, error } = await supabase.storage
+    .from(bucket)
+    .createSignedUrl(input.path, PRIVATE_FILE_DOWNLOAD_EXPIRES_SEC);
+
+  if (error || !data?.signedUrl) {
+    throw new AppError(
+      "INTERNAL",
+      "완료 PDF 조회 URL 발급에 실패했습니다.",
+      error?.message,
+    );
+  }
+
+  return {
+    signedUrl: data.signedUrl,
+    expiresIn: PRIVATE_FILE_DOWNLOAD_EXPIRES_SEC,
+  };
+}
+
+export function getApplicationFormsBucketName(): string {
+  return applicationFormsBucket();
+}
+
+export function getApplicationDocumentsBucketName(): string {
+  return applicationDocumentsBucket();
 }
 
 export async function createApplicationGuardianSignatureUploadUrl(input: {

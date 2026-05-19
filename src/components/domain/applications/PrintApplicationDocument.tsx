@@ -7,13 +7,17 @@ export function PrintApplicationDocument({
   eventTitle,
   gymName,
   fighterName,
+  originalPdfFileName,
   previewValues,
+  hasGeneratedPdf,
 }: {
   title: string;
   eventTitle: string;
   gymName: string;
   fighterName: string;
+  originalPdfFileName: string;
   previewValues: Record<string, string>;
+  hasGeneratedPdf: boolean;
 }) {
   return (
     <div className="mx-auto max-w-3xl px-6 py-8 print:px-0 print:py-0">
@@ -23,8 +27,9 @@ export function PrintApplicationDocument({
         </Button>
       </div>
       <p className="text-muted-foreground mb-4 text-xs print:hidden">
-        PDF 자동 생성은 추후 연동 예정입니다. 현재는 제출 snapshot 기준 출력용
-        화면입니다.
+        {hasGeneratedPdf
+          ? "완료 PDF가 생성되었습니다. 문서 상세에서 PDF 파일을 열 수 있습니다."
+          : "PDF overlay가 아직 생성되지 않은 경우 현재 화면을 출력할 수 있습니다."}
       </p>
       <article className="space-y-4 text-sm">
         <header className="border-b pb-4">
@@ -32,6 +37,9 @@ export function PrintApplicationDocument({
           <p className="text-muted-foreground mt-1">{eventTitle}</p>
           <p className="mt-2">
             {gymName} · {fighterName}
+          </p>
+          <p className="text-muted-foreground mt-2 text-xs">
+            원본 PDF: {originalPdfFileName}
           </p>
         </header>
         <table className="w-full border-collapse">

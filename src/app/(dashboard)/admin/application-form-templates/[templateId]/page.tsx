@@ -1,6 +1,7 @@
 import Link from "next/link";
 import { notFound } from "next/navigation";
 import { ApplicationFormTemplateForm } from "@/components/domain/application-form-templates/ApplicationFormTemplateForm";
+import { ApplicationFormTemplatePdfPreview } from "@/components/domain/application-form-templates/ApplicationFormTemplatePdfPreview";
 import { buttonVariants } from "@/components/ui/button";
 import { requireActor } from "@/lib/auth/actor";
 import { AppError } from "@/lib/errors/app-error";
@@ -42,6 +43,12 @@ export default async function EditApplicationFormTemplatePage({
         템플릿 편집
       </h1>
       <p className="text-muted-foreground text-sm">{template.title}</p>
+      {template.originalPdfFileName ? (
+        <ApplicationFormTemplatePdfPreview
+          templateId={template.id}
+          fileName={template.originalPdfFileName}
+        />
+      ) : null}
       <ApplicationFormTemplateForm mode="edit" initial={template} />
     </div>
   );
