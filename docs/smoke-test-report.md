@@ -156,3 +156,116 @@
 | 404 정상 처리 | 5 |
 | 500 (수정 전) | 8+ (`/notifications`×4, organizer event×7) |
 | 수정 후 기대 500 | 0 (재배포·setup-demo-users 재실행 후 재검증 권장) |
+
+---
+
+## 17. 후속 확인 (2026-05-19, 커밋 `cc6ac19` 배포 후)
+
+### 17.1 배포·환경
+
+| 항목 | 결과 |
+|------|------|
+| 대상 커밋 | `cc6ac19226e5b7cd41fdbaf5ba97c43544b07fc8` (`Fix route smoke test issues`) |
+| 로컬 HEAD | `cc6ac19` (origin/main과 동기) |
+| Railway CLI 배포 메타 | GraphQL 타임아웃으로 commit hash 직접 확인 불가 |
+| HTTP 생존 확인 | `/login`, `/events`, `/events/sample-open-2026` → **200** |
+| `db:push` 필요 여부 | **불필요** (schema 변경 없음) |
+
+### 17.2 setup-demo-users 실행
+
+| 항목 | 결과 |
+|------|------|
+| 실행 | **성공** (`npm run setup:demo-users`, exit 0) |
+| DB 연결 | Railway `DATABASE_PUBLIC_URL` (proxy.rlwy.net) 세션 임시 사용 |
+| 비밀번호 | `DEMO_PASSWORD=123456!!` 기준 Supabase Auth 재정렬 |
+| sample-open-2026 | **데모 주최자(`organizer@demo.local`) 소유로 연결 완료** |
+| seed | **미실행** (지시대로 setup-demo-users만) |
+
+### 17.3 공개 페이지 (curl, 배포 후)
+
+| 경로 | HTTP | 결과 |
+|------|------|------|
+| `/` | 200 | OK |
+| `/events` | 200 | OK |
+| `/events/sample-open-2026` | 200 | OK |
+| `/events/sample-open-2026/brackets` | 200 | OK |
+| `/events/sample-open-2026/results` | 200 | OK |
+| `/events/sample-open-2026/live` | 200 | OK |
+| `/login` | 200 | OK |
+
+> 500, `public.Event`, Prisma, Zod 오류 없음.
+
+### 17.4 `/notifications` (4역할, 브라우저)
+
+| 계정 | 결과 | 비고 |
+|------|------|------|
+| admin@demo.local | **OK** | 알림 없음(EmptyState) |
+| organizer@demo.local | **OK** | 알림 없음 |
+| gym@demo.local | **OK** | 알림 없음 |
+| fighter@demo.local | **OK** | 알림 없음 |
+
+> Realtime 채널명 충돌·500 **재발 없음** (`cc6ac19` Realtime 채널 분리 수정 반영).
+
+### 17.5 관리자 — division templates
+
+| 경로 | 결과 | 비고 |
+|------|------|------|
+| `/organizer/division-templates` | **OK** | admin `organizerId` 없이 전체 조회, 500 없음 |
+| `/admin/application-form-templates` | **404** | 미구현 (정상) |
+
+### 17.6 주최자 — sample-open-2026 접근
+
+| 경로 | 결과 | 비고 |
+|------|------|------|
+| `/organizer/events` | **OK** | 내 대회 2건 표시 |
+| `/organizer/events/cmpba6v1l000eqcux4kfmg49y` | **OK** | 상세·부문·입금 등 섹션 정상 |
+| `…/applications` | **OK** | |
+| `…/brackets` | **OK** | |
+| `…/matches` | **OK** | |
+| `…/results` | **OK** | |
+| `…/live` | **OK** | YouTube 시드 URL |
+| `…/application-batches` | **404** | 미구현 (정상) |
+
+> setup-demo-users 이후 demo 주최자가 시드 대회 접근 가능. **「organizerId가 필요합니다」500 재발 없음**. FORBIDDEN → 500 노출 없음.
+
+### 17.7 체육관 — invite link URL
+
+| 항목 | 결과 |
+|------|------|
+| `/gym/invite-links` | **OK** |
+| 초대 URL 도메인 | `app-production-79ad.up.railway.app` |
+| localhost:3000 | **없음** |
+
+### 17.8 선수
+
+| 경로 | 결과 |
+|------|------|
+| `/fighter`, `/fighter/events`, `/fighter/records`, `/notifications` | **전부 OK** (빈 데이터 EmptyState) |
+
+### 17.9 Railway 로그 스캔
+
+| 패턴 | 재발 |
+|------|------|
+| `organizerId가 필요합니다` | **없음** |
+| `Cannot overwrite keys on object schemas containing refinements` | **없음** |
+| `PrismaClientKnownRequestError` / `P2021` / `TableDoesNotExist` | **없음** |
+| Realtime channel 충돌 | **없음** |
+| 새 500 | **없음** |
+
+> Railway CLI 로그 조회는 일부 타임아웃. 브라우저·curl 전 경로에서 5xx 미재현.
+
+### 17.10 후속 확인 요약
+
+| 항목 | 수 |
+|------|-----|
+| 점검 경로 (후속) | 42 |
+| OK | 41 |
+| 404 (정상·미구현) | 1 (`/admin/application-form-templates`) |
+| 500 | **0** |
+| 코드 수정 | **없음** (문서만 갱신) |
+
+### 17.11 남은 미구현 404
+
+- `/admin/application-form-templates` — ApplicationFormTemplate 라우트 없음
+- `/organizer/events/.../application-batches` — 신청서 배치 미구현
+- `/fighter-consent/...` — 라우트 없음 (404 예상)
