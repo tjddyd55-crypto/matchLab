@@ -87,6 +87,7 @@ function TemplateTable({
         <thead className="bg-muted/50 text-left">
           <tr>
             <th className="px-4 py-3 font-medium">제목</th>
+            <th className="px-4 py-3 font-medium">PDF 파일명</th>
             <th className="px-4 py-3 font-medium">주최자</th>
             <th className="px-4 py-3 font-medium">필드</th>
             <th className="px-4 py-3 font-medium">상태</th>
@@ -97,6 +98,9 @@ function TemplateTable({
           {templates.map((t) => (
             <tr key={t.id} className="border-t">
               <td className="px-4 py-3 font-medium">{t.title}</td>
+              <td className="text-muted-foreground px-4 py-3 font-mono text-xs">
+                {t.originalPdfFileName}
+              </td>
               <td className="text-muted-foreground px-4 py-3">
                 {t.organizerName ?? "전체 공용"}
               </td>

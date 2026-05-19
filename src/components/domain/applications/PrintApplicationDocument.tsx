@@ -22,6 +22,10 @@ export function PrintApplicationDocument({
           인쇄
         </Button>
       </div>
+      <p className="text-muted-foreground mb-4 text-xs print:hidden">
+        PDF 자동 생성은 추후 연동 예정입니다. 현재는 제출 snapshot 기준 출력용
+        화면입니다.
+      </p>
       <article className="space-y-4 text-sm">
         <header className="border-b pb-4">
           <h1 className="text-xl font-semibold">{title}</h1>

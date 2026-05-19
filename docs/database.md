@@ -139,6 +139,22 @@ MVP: 계좌 안내 + 수동 입금 확인. **`EventApplicationPayment` 가 입�
 - `athleteConsentId` / `guardianConsentId`: 대회 신청 단계 서명·동의 연결.
 - `generatedPdfPath`: TODO — PDF overlay 생성 후 저장.
 
+**상태 전이 (MVP):**
+
+| from | to | 조건 |
+|------|-----|------|
+| `draft` / `waiting_athlete_signature` | `waiting_athlete_signature` | 문서 생성, 선수 서명 대기 |
+| `waiting_athlete_signature` | `waiting_guardian_signature` | 선수 서명 완료, 보호자 동의 필요 |
+| `waiting_athlete_signature` | `completed` | 선수 서명 완료, 보호자 불필요 |
+| `waiting_guardian_signature` | `completed` | 보호자 동의 완료 |
+| `completed` | `submitted` | 체육관 batch 제출 |
+
+### EventApplicationBatch 제출 정책
+
+- 체육관 `draft` batch에 선수별 `ApplicationDocument`를 모은 뒤 일괄 `submitted`.
+- batch 내 **모든 문서가 `completed`** 여야 제출 가능.
+- 제출 시 `documentNo`, `totalFighterCount`, 입금 예정액 캐시 저장.
+
 ### FighterConsent
 
 - 선수 **본인 서명** — 대회 신청 `ApplicationDocument` 단위.

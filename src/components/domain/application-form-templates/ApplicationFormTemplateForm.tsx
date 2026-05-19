@@ -7,6 +7,12 @@ import {
   createApplicationFormTemplateAction,
   updateApplicationFormTemplateAction,
 } from "@/features/application-form-templates/actions";
+import {
+  EXAMPLE_APPLICATION_FORM_FIELDS_JSON,
+  EXAMPLE_APPLICATION_FORM_REPEAT_GROUPS_JSON,
+  PLACEHOLDER_PDF_FILE_NAME,
+  PLACEHOLDER_PDF_PATH,
+} from "@/lib/constants/application-form-template-examples";
 import { Button } from "@/components/ui/button";
 import { cn } from "@/lib/utils";
 
@@ -33,10 +39,11 @@ export function ApplicationFormTemplateForm({
   const [description, setDescription] = useState(initial?.description ?? "");
   const [organizerId, setOrganizerId] = useState(initial?.organizerId ?? "");
   const [originalPdfPath, setOriginalPdfPath] = useState(
-    initial?.originalPdfPath ?? "",
+    initial?.originalPdfPath ?? (mode === "create" ? PLACEHOLDER_PDF_PATH : ""),
   );
   const [originalPdfFileName, setOriginalPdfFileName] = useState(
-    initial?.originalPdfFileName ?? "",
+    initial?.originalPdfFileName ??
+      (mode === "create" ? PLACEHOLDER_PDF_FILE_NAME : ""),
   );
   const [fieldsJson, setFieldsJson] = useState(
     stringifyJson(initial?.fieldsJson, "[]"),
@@ -143,12 +150,16 @@ export function ApplicationFormTemplateForm({
         hint="PDF 필드 좌표·source 정의 JSON 배열"
         value={fieldsJson}
         onChange={setFieldsJson}
+        onLoadExample={() => setFieldsJson(EXAMPLE_APPLICATION_FORM_FIELDS_JSON)}
       />
       <JsonArea
         label="repeatGroupsJson"
         hint="반복 행 그룹 JSON 배열"
         value={repeatGroupsJson}
         onChange={setRepeatGroupsJson}
+        onLoadExample={() =>
+          setRepeatGroupsJson(EXAMPLE_APPLICATION_FORM_REPEAT_GROUPS_JSON)
+        }
       />
       <JsonArea
         label="manualFieldsJson (선택)"
@@ -210,15 +221,29 @@ function JsonArea({
   hint,
   value,
   onChange,
+  onLoadExample,
 }: {
   label: string;
   hint?: string;
   value: string;
   onChange: (v: string) => void;
+  onLoadExample?: () => void;
 }) {
   return (
-    <label className="block space-y-1 text-sm">
-      <span className="font-medium">{label}</span>
+    <div className="space-y-1 text-sm">
+      <div className="flex flex-wrap items-center justify-between gap-2">
+        <span className="font-medium">{label}</span>
+        {onLoadExample ? (
+          <Button
+            type="button"
+            variant="outline"
+            size="sm"
+            onClick={onLoadExample}
+          >
+            예시 JSON 불러오기
+          </Button>
+        ) : null}
+      </div>
       {hint ? <span className="text-muted-foreground block text-xs">{hint}</span> : null}
       <textarea
         required
@@ -228,6 +253,6 @@ function JsonArea({
         spellCheck={false}
         className={fieldClass}
       />
-    </label>
+    </div>
   );
 }

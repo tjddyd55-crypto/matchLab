@@ -23,7 +23,7 @@ export const fighterConsentService = {
   async getPublicSignSession(token: string): Promise<AthleteSignPublicView> {
     const consent = await fighterConsentRepository.findByToken(token);
     if (!consent) {
-      throw new AppError("NOT_FOUND", "서명 링크가 유효하지 않습니다.");
+      throw new AppError("NOT_FOUND", "유효하지 않거나 만료된 링크입니다.");
     }
     const documentId = consent.linkedDocument?.id ?? null;
 
@@ -75,7 +75,7 @@ export const fighterConsentService = {
   ): Promise<void> {
     const consent = await fighterConsentRepository.findByToken(input.token);
     if (!consent) {
-      throw new AppError("NOT_FOUND", "서명 링크가 유효하지 않습니다.");
+      throw new AppError("NOT_FOUND", "유효하지 않거나 만료된 링크입니다.");
     }
     if (consent.status === FighterConsentStatus.completed) {
       throw new AppError("CONFLICT", "이미 서명이 완료되었습니다.");

@@ -127,7 +127,16 @@ export default async function GymEventApplyPage({
           divisions={form.divisions}
           fighters={form.fighters}
         />
-      ) : null}
+      ) : (
+        <div className="rounded-xl border border-dashed p-4 text-sm">
+          <p className="font-medium">공식 신청서 템플릿 미연결</p>
+          <p className="text-muted-foreground mt-1 leading-relaxed">
+            이 대회에는 아직 공식 PDF 신청서 템플릿이 연결되지 않았습니다.
+            주최자에게 템플릿 연결을 요청하거나, 아래 기존 부문별 신청을
+            이용해 주세요.
+          </p>
+        </div>
+      )}
 
       <section className="space-y-4">
         <h2 className="text-lg font-semibold">

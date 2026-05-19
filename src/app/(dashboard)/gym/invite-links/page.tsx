@@ -2,6 +2,7 @@ import { requireActor } from "@/lib/auth/actor";
 import { inviteLinkService } from "@/lib/services/invite-link.service";
 import { InviteLinkCreateForm } from "@/components/domain/gym/InviteLinkCreateForm";
 import { CopyInviteUrlButton } from "@/components/domain/gym/CopyInviteUrlButton";
+import { GymFighterRegistrationPolicyNotice } from "@/components/domain/fighters/GymFighterRegistrationPolicyNotice";
 import { EmptyState } from "@/components/shared/EmptyState";
 import { InviteLinkStatus, InviteLinkType } from "@/lib/enums";
 import { format } from "date-fns";
@@ -39,6 +40,8 @@ export default async function GymInviteLinksPage() {
           않습니다.
         </p>
       </div>
+
+      <GymFighterRegistrationPolicyNotice />
 
       {actor.gymId ? <InviteLinkCreateForm baseUrl={baseUrl} /> : null}
 

@@ -11,7 +11,19 @@ MVP 범위는 `docs/mvp-scope.md`를 기준으로 하며, 본 문서는 **시연
 3. **`/login` → gym** — `/gym` 현장 모드·바로가기 → 선수·초대 링크·대회 신청·신청 내역·전적.
 4. **`/login` → fighter** — `/fighter` 현장 모드 → `/fighter/events`, `/fighter/records`.
 5. **로그아웃 후 spectator** — `/`, `/events`, 시드 슬러그 **`/events/sample-open-2026`** 및 하위 `brackets` / `results` / `live`. 배포 URL 사용 시 **`NEXT_PUBLIC_APP_URL`** 을 Railway 공개 도메인으로 맞춰 QR·절대 링크가 올바른지 확인한다(`docs/deploy-railway.md`).
-6. **(선택)** 공식 신청서 플로우 — admin `/admin/application-form-templates` → 주최자 대회 템플릿 연결 → gym `/gym/events/{id}/apply` → 선수 `/application-sign/[token]` → 보호자 `/guardian-consent/[id]?scope=application` → 주최자 `.../application-batches`·출력.
+6. **(선택)** 공식 신청서 E2E — 아래 **§1.1** 순서.
+
+### 1.1 공식 신청서 E2E 테스트 순서
+
+1. **admin** — `/admin/application-form-templates/new`에서 템플릿 생성(「예시 JSON 불러오기」→ 저장).
+2. **organizer** — `/organizer/events/{eventId}`에서 공식 신청서 템플릿 연결 저장.
+3. **gym** — `/gym/events/{eventId}/apply`에서 선수·부문 선택 → 「선수별 신청서 생성」.
+4. **선수** — 복사한 `/application-sign/[token]` 링크에서 서명 완료.
+5. **보호자**(미성년·학생) — `/guardian-consent/[id]?scope=application`에서 동의·서명.
+6. **gym** — 문서 상태 `completed` 확인 후 「신청 묶음 제출」.
+7. **organizer** — `/organizer/events/{eventId}/application-batches` → 상세 → `.../print` 출력 확인.
+
+> PDF overlay·완료 PDF 파일 생성은 **TODO**. 현재는 `documentSnapshotJson` + 출력 HTML로 검증합니다.
 
 ## 2. 역할별 로그인 계정 (미팅 권장: `@demo.local`)
 

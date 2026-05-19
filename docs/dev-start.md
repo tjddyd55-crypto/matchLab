@@ -311,6 +311,7 @@ npm run dev
 
 - **공식 신청서 PDF overlay / 완료 PDF 생성** — 현재는 `documentSnapshotJson` + 출력 HTML. 추후 문서/PDF 서비스·R2 연동.
 - PDF 좌표 **시각 편집기** — JSON textarea만 제공, 기존 좌표 편집 모듈 연결 예정.
+- **Railway schema 변경 후** `npm run db:push` 필요 (로컬에서 `DATABASE_PUBLIC_URL` 세션 설정).
 - 카카오 알림톡·SMS·웹푸시(인앱 `Notification` / Realtime 훅은 `features/realtime` 및 `Public*RealtimeBridge` 참고)
 
 - `ensureUserProfileFromSupabaseAuth` 자동 프로필 생성·역할 배정(현재는 호출 시 안내용 에러만)

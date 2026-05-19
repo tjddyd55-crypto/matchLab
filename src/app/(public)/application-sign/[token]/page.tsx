@@ -32,7 +32,14 @@ export default async function ApplicationSignPage({
   } catch (e: unknown) {
     if (e instanceof AppError) {
       return (
-        <SignEmpty title="서명 페이지를 열 수 없습니다" description={e.message} />
+        <SignEmpty
+          title="서명 페이지를 열 수 없습니다"
+          description={
+            e.code === "NOT_FOUND"
+              ? "유효하지 않거나 만료된 링크입니다."
+              : e.message
+          }
+        />
       );
     }
     throw e;

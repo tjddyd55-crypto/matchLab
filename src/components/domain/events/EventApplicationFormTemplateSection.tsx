@@ -21,6 +21,8 @@ export function EventApplicationFormTemplateSection({
   const [pending, setPending] = useState(false);
   const [error, setError] = useState<string | null>(null);
 
+  const linked = templates.find((t) => t.id === linkedTemplateId) ?? null;
+
   async function onSave(e: React.FormEvent) {
     e.preventDefault();
     setPending(true);
@@ -41,14 +43,42 @@ export function EventApplicationFormTemplateSection({
     <section className="space-y-4 rounded-xl border bg-card p-4">
       <h2 className="text-lg font-semibold">공식 신청서 템플릿</h2>
       <p className="text-muted-foreground text-sm leading-relaxed">
-        체육관 공식 신청(PDF) 흐름에 사용할 템플릿을 연결합니다. 연결 후 체육관
-        신청 화면에서 선수별 신청서·서명 절차가 열립니다.
+        체육관 공식 신청(PDF) 흐름에 사용할 템플릿을 연결합니다. 초기에는
+        운영팀(관리자)이 주최측 PDF 좌표를 세팅합니다. 주최자는 템플릿을
+        선택·연결만 할 수 있습니다.
       </p>
+
+      {linked ? (
+        <div className="rounded-md border bg-muted/30 px-3 py-2 text-sm">
+          <p className="font-medium">연결됨: {linked.title}</p>
+          <p className="text-muted-foreground text-xs">
+            파일: {linked.originalPdfFileName} · 필드 {linked.fieldCount}개
+            {linked.description ? ` · ${linked.description}` : ""}
+          </p>
+        </div>
+      ) : (
+        <p className="rounded-md border border-amber-500/40 bg-amber-500/10 px-3 py-2 text-sm">
+          연결된 템플릿이 없습니다. 관리자에게 공식 신청서 템플릿 세팅을
+          요청하세요.
+        </p>
+      )}
+
+      {templates.length === 0 ? (
+        <p className="text-muted-foreground text-sm">
+          선택 가능한 활성 템플릿이 없습니다. 관리자가{" "}
+          <code className="rounded bg-muted px-1 text-xs">
+            /admin/application-form-templates
+          </code>
+          에서 템플릿을 먼저 등록해야 합니다.
+        </p>
+      ) : null}
+
       {error ? (
         <p className="text-destructive text-sm" role="alert">
           {error}
         </p>
       ) : null}
+
       <form onSubmit={(e) => void onSave(e)} className="flex flex-wrap items-end gap-3">
         <label className="min-w-[240px] flex-1 space-y-1 text-sm">
           <span className="font-medium">신청서 템플릿</span>
@@ -64,11 +94,12 @@ export function EventApplicationFormTemplateSection({
               <option key={t.id} value={t.id}>
                 {t.title}
                 {t.organizerName ? ` (${t.organizerName})` : ""}
+                {!t.isActive ? " [비활성]" : ""}
               </option>
             ))}
           </select>
         </label>
-        <Button type="submit" disabled={pending}>
+        <Button type="submit" disabled={pending || templates.length === 0}>
           {pending ? "저장 중…" : "템플릿 연결 저장"}
         </Button>
       </form>

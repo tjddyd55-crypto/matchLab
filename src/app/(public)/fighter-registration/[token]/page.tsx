@@ -1,5 +1,6 @@
 import type { InviteGateReason } from "@/lib/services/invite-link.service";
 import { registrationService } from "@/lib/services/registration.service";
+import { GymFighterRegistrationPolicyNotice } from "@/components/domain/fighters/GymFighterRegistrationPolicyNotice";
 import { FighterRegistrationForm } from "@/components/domain/fighters/FighterRegistrationForm";
 import { EmptyState } from "@/components/shared/EmptyState";
 
@@ -34,7 +35,8 @@ export default async function FighterRegistrationPublicPage({
   const heading = `${ctx.gymDisplayLabel} 선수 등록`;
 
   return (
-    <div className="mx-auto max-w-2xl px-4 py-8 md:py-12">
+    <div className="mx-auto max-w-2xl space-y-6 px-4 py-8 md:py-12">
+      <GymFighterRegistrationPolicyNotice />
       <FighterRegistrationForm token={token} heading={heading} />
     </div>
   );

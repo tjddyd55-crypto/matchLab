@@ -165,14 +165,17 @@ export function GymOfficialApplicationWorkspace({
               disabled={pending || !fighterId}
               onClick={() => void addDocument()}
             >
-              선수 신청서 추가
+              선수별 신청서 생성
             </Button>
           </div>
         </div>
       ) : null}
 
       {documents.length === 0 ? (
-        <p className="text-muted-foreground text-sm">아직 추가된 선수 신청서가 없습니다.</p>
+        <p className="text-muted-foreground text-sm">
+          아직 생성된 선수별 신청서가 없습니다. 선수와 부문을 선택한 뒤
+          「선수별 신청서 생성」을 눌러 주세요.
+        </p>
       ) : (
         <ul className="divide-y rounded-lg border">
           {documents.map((doc) => (
@@ -184,13 +187,20 @@ export function GymOfficialApplicationWorkspace({
       )}
 
       {!batchSubmitted && documents.length > 0 ? (
-        <Button
-          type="button"
-          disabled={pending || documents.some((d) => d.status !== "completed")}
-          onClick={() => void submitBatch()}
-        >
-          {pending ? "제출 중…" : "신청 묶음 제출"}
-        </Button>
+        <>
+          {documents.some((d) => d.status !== "completed") ? (
+            <p className="text-amber-700 text-xs dark:text-amber-400">
+              모든 선수의 서명·동의가 완료(completed)되어야 제출할 수 있습니다.
+            </p>
+          ) : null}
+          <Button
+            type="button"
+            disabled={pending || documents.some((d) => d.status !== "completed")}
+            onClick={() => void submitBatch()}
+          >
+            {pending ? "제출 중…" : "신청 묶음 제출"}
+          </Button>
+        </>
       ) : null}
     </section>
   );
@@ -247,6 +257,16 @@ function DocRow({
           ? ` · 보호자: ${doc.guardianSigned ? "완료" : "대기"}`
           : null}
       </p>
+      {Object.keys(doc.previewValues).length > 0 ? (
+        <dl className="text-muted-foreground grid gap-1 text-xs sm:grid-cols-2">
+          {Object.entries(doc.previewValues).slice(0, 6).map(([k, v]) => (
+            <div key={k}>
+              <dt className="font-mono">{k}</dt>
+              <dd>{v || "—"}</dd>
+            </div>
+          ))}
+        </dl>
+      ) : null}
     </>
   );
 }

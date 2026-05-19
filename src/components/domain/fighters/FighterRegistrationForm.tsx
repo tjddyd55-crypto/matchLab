@@ -32,9 +32,8 @@ export function FighterRegistrationForm({
         사용됩니다.
       </p>
       <p className="rounded-md border border-sky-500/30 bg-sky-500/10 px-4 py-3 text-sm leading-relaxed">
-        선수 등록 단계에서는 보호자 전자동의를 받지 않습니다. 미성년·학생
-        선수의 보호자 동의는 <strong>대회 공식 신청서</strong> 제출 시
-        진행됩니다.
+        선수 등록은 체육관 선수 DB에 등록하는 단계입니다. 대회 참가 동의와
+        서명은 실제 대회 신청 시 주최측 공식 신청서 양식에 따라 진행됩니다.
       </p>
 
       {state?.ok === false ? (

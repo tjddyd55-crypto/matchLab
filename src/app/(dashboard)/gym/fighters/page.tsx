@@ -6,6 +6,7 @@ import { FightersTableDesktop } from "@/components/domain/fighters/FightersTable
 import { FightersCardListMobile } from "@/components/domain/fighters/FightersCardListMobile";
 import { GymRegistrationRequestsTable } from "@/components/domain/fighters/GymRegistrationRequestsTable";
 import { GymRegistrationRequestsCards } from "@/components/domain/fighters/GymRegistrationRequestsCards";
+import { GymFighterRegistrationPolicyNotice } from "@/components/domain/fighters/GymFighterRegistrationPolicyNotice";
 import { EmptyState } from "@/components/shared/EmptyState";
 import { buttonVariants } from "@/components/ui/button";
 import { cn } from "@/lib/utils";
@@ -67,6 +68,8 @@ export default async function GymFightersPage({
           </Link>
         </nav>
       </div>
+
+      <GymFighterRegistrationPolicyNotice />
 
       {!actor.gymId ? (
         <EmptyState
