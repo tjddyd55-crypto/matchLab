@@ -474,6 +474,17 @@ export const eventRepository = {
         liveStreamingEnabled: true,
         streamingConsentRequired: true,
         streamingNoticeText: true,
+        applicationFormTemplateId: true,
+        applicationFormTemplate: {
+          select: {
+            id: true,
+            title: true,
+            originalPdfFileName: true,
+            originalPdfPath: true,
+            fieldsJson: true,
+            repeatGroupsJson: true,
+          },
+        },
         organizer: { select: { name: true } },
         divisions: {
           orderBy: { createdAt: "asc" },

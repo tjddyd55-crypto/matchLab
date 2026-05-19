@@ -50,6 +50,10 @@ export async function completeGuardianConsentAction(
       string,
       string
     >;
+    const scopeRaw = formData.get("scope");
+    if (typeof scopeRaw === "string" && scopeRaw.trim() === "application") {
+      raw.scope = "application";
+    }
 
     const parsed = completeGuardianConsentFormSchema.safeParse(raw);
     if (!parsed.success) {
@@ -63,10 +67,21 @@ export async function completeGuardianConsentAction(
 
     const h = await headers();
 
+    const scope =
+      parsed.data.scope === "application" ? "application" : "registration";
+
+    const registrationSubmissionId =
+      typeof parsed.data.registrationSubmissionId === "string"
+        ? parsed.data.registrationSubmissionId.trim()
+        : "";
+    const token =
+      typeof parsed.data.token === "string" ? parsed.data.token.trim() : "";
+
     await consentService.completeGuardianConsentByToken({
       consentId: parsed.data.consentId.trim(),
-      registrationSubmissionId: parsed.data.registrationSubmissionId.trim(),
-      token: parsed.data.token.trim(),
+      registrationSubmissionId: registrationSubmissionId || undefined,
+      token: token || undefined,
+      scope,
       signatureImagePath: parsed.data.signatureImagePath.trim(),
       guardianName: parsed.data.guardianName,
       guardianPhone: parsed.data.guardianPhone,

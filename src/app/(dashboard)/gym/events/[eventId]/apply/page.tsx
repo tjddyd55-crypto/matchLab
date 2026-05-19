@@ -4,7 +4,10 @@ import {
   applicationService,
   type EventApplicationFormDTO,
 } from "@/lib/services/application.service";
+import { applicationBatchService } from "@/lib/services/application-batch.service";
+import { applicationDocumentService } from "@/lib/services/application-document.service";
 import { EventApplicationForm } from "@/components/domain/applications/EventApplicationForm";
+import { GymOfficialApplicationWorkspace } from "@/components/domain/applications/GymOfficialApplicationWorkspace";
 import { GymAthleteFeePreflight } from "@/components/domain/applications/GymAthleteFeePreflight";
 import { EmptyState } from "@/components/shared/EmptyState";
 
@@ -61,6 +64,19 @@ export default async function GymEventApplyPage({
     );
   }
 
+  const workspace = await applicationBatchService.getGymApplicationWorkspace(
+    actor,
+    eventId,
+  );
+
+  const documents =
+    workspace.batch?.id != null
+      ? await applicationDocumentService.listDocumentsForGymBatch(
+          actor,
+          workspace.batch.id,
+        )
+      : [];
+
   if (form.divisions.length === 0) {
     return (
       <div className="mx-auto flex w-full max-w-3xl flex-col gap-6 px-4 py-8 md:px-6">
@@ -104,13 +120,33 @@ export default async function GymEventApplyPage({
         initialNote={form.event.gymAthleteFeeNote}
       />
 
-      <EventApplicationForm
-        eventId={form.event.id}
-        divisions={form.divisions}
-        fighters={form.fighters}
-        streamingAgreementRequired={form.event.streamingAgreementRequired}
-        streamingNoticeText={form.event.streamingNoticeText}
-      />
+      {workspace.template ? (
+        <GymOfficialApplicationWorkspace
+          workspace={workspace}
+          documents={documents}
+          divisions={form.divisions}
+          fighters={form.fighters}
+        />
+      ) : null}
+
+      <section className="space-y-4">
+        <h2 className="text-lg font-semibold">
+          {workspace.template ? "부문별 개별 신청 (기존)" : "부문별 개별 신청"}
+        </h2>
+        {workspace.template ? (
+          <p className="text-muted-foreground text-sm leading-relaxed">
+            공식 PDF 신청서 묶음과 별도로, 부문·선수 단위의 기존 신청·입금 흐름을
+            사용할 수 있습니다.
+          </p>
+        ) : null}
+        <EventApplicationForm
+          eventId={form.event.id}
+          divisions={form.divisions}
+          fighters={form.fighters}
+          streamingAgreementRequired={form.event.streamingAgreementRequired}
+          streamingNoticeText={form.event.streamingNoticeText}
+        />
+      </section>
     </div>
   );
 }

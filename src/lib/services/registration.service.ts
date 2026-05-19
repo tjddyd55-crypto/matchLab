@@ -1,33 +1,28 @@
 import "server-only";
 
-import { prisma } from "@/lib/prisma";
+import type { GymRegistrationSubmissionListRow } from "@/lib/repositories/registration.repository";
 import type { ActorContext } from "@/lib/auth/actor-context";
 import { toUtcDateOnly } from "@/lib/date-only";
 import { normalizePhoneDigits } from "@/lib/phone";
 import {
   DuplicateCheckStatus,
-  ConsentStatus,
   FighterRegistrationSubmissionStatus,
 } from "@/lib/enums";
-import { requiresGuardianConsent } from "@/lib/consent-policy";
 import { requireGymOwner, requireRole } from "@/lib/permissions";
 import { fighterRepository } from "@/lib/repositories/fighter.repository";
 import { inviteLinkRepository } from "@/lib/repositories/invite-link.repository";
-import {
-  registrationRepository,
-  type GymRegistrationSubmissionListRow,
-} from "@/lib/repositories/registration.repository";
+import { registrationRepository } from "@/lib/repositories/registration.repository";
 import type { FighterRegistrationPublicInput } from "@/lib/validators/fighter-registration.validator";
 import {
   inviteLinkService,
   type InviteGateReason,
 } from "@/lib/services/invite-link.service";
-import { consentService } from "@/lib/services/consent.service";
 import {
   maskBirthYearOnly,
   maskPhoneLoosely,
   maskGymPublicLabel,
 } from "@/lib/privacy-display";
+import { prisma } from "@/lib/prisma";
 
 export type RegistrationFormContext =
   | { valid: true; gymDisplayLabel: string }
@@ -49,78 +44,16 @@ export type GymRegistrationRequestListItem = {
   duplicateCheckStatus: DuplicateCheckStatus;
   submittedAtIso: string;
   duplicateReviewFlow: boolean;
-  consentKind: GymConsentUiKind;
-  consentLabel: string;
-  consentCopyAbsoluteUrl: string | null;
-  approvalBlockedByConsent: boolean;
 };
 
 export type FighterRegistrationSubmitResult = {
   duplicateSuspected: boolean;
   submissionId: string;
-  consentRequired: boolean;
-  consentId?: string;
-  consentUrl?: string;
 };
-
-function consentAffordances(row: GymRegistrationSubmissionListRow): Pick<
-  GymRegistrationRequestListItem,
-  | "consentKind"
-  | "consentLabel"
-  | "consentCopyAbsoluteUrl"
-  | "approvalBlockedByConsent"
-> {
-  const baseUrl =
-    process.env.NEXT_PUBLIC_APP_URL?.replace(/\/$/, "") ?? "";
-
-  const required = requiresGuardianConsent(row);
-  const latest = row.guardianConsents[0];
-  const token = row.inviteLink?.token ?? null;
-
-  if (!required) {
-    return {
-      consentKind: "not_required",
-      consentLabel: "동의 불필요",
-      consentCopyAbsoluteUrl: null,
-      approvalBlockedByConsent: false,
-    };
-  }
-
-  if (!latest) {
-    return {
-      consentKind: "required_no_consent_row",
-      consentLabel: "동의 필요",
-      consentCopyAbsoluteUrl: null,
-      approvalBlockedByConsent: true,
-    };
-  }
-
-  const copyUrl =
-    token !== null && token !== ""
-      ? `${baseUrl}/guardian-consent/${latest.id}?token=${encodeURIComponent(token)}`
-      : null;
-
-  if (latest.consentStatus === ConsentStatus.completed) {
-    return {
-      consentKind: "completed",
-      consentLabel: "동의 완료",
-      consentCopyAbsoluteUrl: copyUrl,
-      approvalBlockedByConsent: false,
-    };
-  }
-
-  return {
-    consentKind: "draft",
-    consentLabel: "동의 작성 중",
-    consentCopyAbsoluteUrl: copyUrl,
-    approvalBlockedByConsent: true,
-  };
-}
 
 function toListItem(
   row: GymRegistrationSubmissionListRow,
 ): GymRegistrationRequestListItem {
-  const consent = consentAffordances(row);
   return {
     id: row.id,
     name: row.name,
@@ -133,7 +66,6 @@ function toListItem(
     duplicateReviewFlow:
       row.status === FighterRegistrationSubmissionStatus.duplicate_review ||
       row.duplicateCheckStatus === DuplicateCheckStatus.suspected,
-    ...consent,
   };
 }
 
@@ -195,7 +127,6 @@ export const registrationService = {
           ? normalizePhoneDigits(input.guardianPhone.trim())
           : null,
       };
-      const consentRequired = requiresGuardianConsent(policyInput);
 
       const created =
         await registrationRepository.createFighterRegistrationSubmission(
@@ -219,34 +150,15 @@ export const registrationService = {
           tx,
         );
 
-      const consent = consentRequired
-        ? await consentService.ensureConsentDraftForRegistrationSubmission(
-            created.id,
-            tx,
-          )
-        : null;
-
       return {
         duplicateSuspected,
         submissionId: created.id,
-        consentId: consent?.id,
-        consentRequired,
       };
     });
-
-    const baseUrl =
-      process.env.NEXT_PUBLIC_APP_URL?.replace(/\/$/, "") ?? "";
-    const consentUrl =
-      txResult.consentId != null && txResult.consentId !== ""
-        ? `${baseUrl}/guardian-consent/${txResult.consentId}?token=${encodeURIComponent(token)}`
-        : undefined;
 
     return {
       duplicateSuspected: txResult.duplicateSuspected,
       submissionId: txResult.submissionId,
-      consentRequired: txResult.consentRequired,
-      consentId: txResult.consentId,
-      consentUrl,
     };
   },
 
@@ -258,27 +170,8 @@ export const registrationService = {
     if (!gymId) return [];
     await requireGymOwner(actor, gymId);
 
-    const rowsInitial =
+    const rows =
       await registrationRepository.listGymRegistrationSubmissions(gymId);
-
-    const repairs = await Promise.all(
-      rowsInitial.map(async (row) => {
-        if (
-          requiresGuardianConsent(row) &&
-          row.guardianConsents.length === 0
-        ) {
-          await consentService.ensureConsentDraftForRegistrationSubmission(
-            row.id,
-          );
-          return true;
-        }
-        return false;
-      }),
-    );
-
-    const rows = repairs.some(Boolean)
-      ? await registrationRepository.listGymRegistrationSubmissions(gymId)
-      : rowsInitial;
 
     return rows.map(toListItem);
   },

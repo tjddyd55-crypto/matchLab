@@ -9,6 +9,7 @@ const LINKS = [
   { href: "/admin/gyms", label: "체육관" },
   { href: "/admin/fighters", label: "선수" },
   { href: "/admin/applications", label: "신청" },
+  { href: "/admin/application-form-templates", label: "신청서 템플릿" },
   { href: "/admin/results", label: "결과" },
   { href: "/admin/audit-logs", label: "감사 로그" },
 ] as const;

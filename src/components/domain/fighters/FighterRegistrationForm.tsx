@@ -1,9 +1,8 @@
 "use client";
 
 import { useActionState } from "react";
-import Link from "next/link";
 import { submitFighterRegistrationFormAction } from "@/features/registrations/actions";
-import { Button, buttonVariants } from "@/components/ui/button";
+import { Button } from "@/components/ui/button";
 import { cn } from "@/lib/utils";
 
 export function FighterRegistrationForm({
@@ -20,42 +19,8 @@ export function FighterRegistrationForm({
 
   if (state?.ok === true) {
     const dup = state.data.duplicateSuspected;
-    const consentRequired = state.data.consentRequired;
-    const consentUrl = state.data.consentUrl;
     return (
-      <div
-        className="ring-foreground/10 space-y-3 rounded-xl bg-card p-6 ring-1"
-        role="status"
-      >
-        <p className="font-medium">
-          {consentRequired
-            ? "등록 요청이 접수되었습니다. 보호자 동의가 완료되면 체육관에서 확인 후 승인할 수 있습니다."
-            : "등록 요청이 접수되었습니다. 체육관에서 확인 후 승인하면 선수 등록이 완료됩니다."}
-        </p>
-        {dup ? (
-          <p className="text-amber-700 text-sm dark:text-amber-400">
-            기존 선수와 정보가 유사합니다. 중복 확인이 필요합니다.
-          </p>
-        ) : null}
-        {consentRequired && consentUrl ? (
-          <div className="rounded-lg border border-sky-500/30 bg-sky-500/10 px-4 py-3 text-sm leading-relaxed">
-            <p className="font-medium text-sky-950 dark:text-sky-100">
-              미성년·학생 등록으로 보호자 동의가 필요합니다.
-            </p>
-            <p className="text-muted-foreground mt-1">
-              보호자 분께 아래 링크를 전달해 동의서 작성 및 서명을 완료해 주세요.
-            </p>
-            <Link
-              href={consentUrl}
-              target="_blank"
-              rel="noopener noreferrer"
-              className={cn(buttonVariants({ variant: "default" }), "inline-flex")}
-            >
-              보호자 동의서 열기
-            </Link>
-          </div>
-        ) : null}
-      </div>
+      <RegistrationSuccess dup={dup} />
     );
   }
 
@@ -65,6 +30,11 @@ export function FighterRegistrationForm({
       <p className="text-muted-foreground text-sm leading-relaxed">
         주민등록번호는 수집하지 않습니다. 입력 정보는 체육관 검토용으로만
         사용됩니다.
+      </p>
+      <p className="rounded-md border border-sky-500/30 bg-sky-500/10 px-4 py-3 text-sm leading-relaxed">
+        선수 등록 단계에서는 보호자 전자동의를 받지 않습니다. 미성년·학생
+        선수의 보호자 동의는 <strong>대회 공식 신청서</strong> 제출 시
+        진행됩니다.
       </p>
 
       {state?.ok === false ? (
@@ -202,15 +172,29 @@ export function FighterRegistrationForm({
           </label>
         </div>
 
-        <p className="text-muted-foreground text-xs">
-          미성년·학생 정보 또는 보호자 연락처가 있으면 제출 후 보호자 동의 링크가
-          표시됩니다.
-        </p>
-
         <Button type="submit" disabled={pending} className="w-full sm:w-auto">
           {pending ? "제출 중…" : "등록 요청 제출"}
         </Button>
       </form>
+    </div>
+  );
+}
+
+function RegistrationSuccess({ dup }: { dup: boolean }) {
+  return (
+    <div
+      className="ring-foreground/10 space-y-3 rounded-xl bg-card p-6 ring-1"
+      role="status"
+    >
+      <p className="font-medium">
+        등록 요청이 접수되었습니다. 체육관에서 확인 후 승인하면 선수 등록이
+        완료됩니다.
+      </p>
+      {dup ? (
+        <p className="text-amber-700 text-sm dark:text-amber-400">
+          기존 선수와 정보가 유사합니다. 중복 확인이 필요합니다.
+        </p>
+      ) : null}
     </div>
   );
 }

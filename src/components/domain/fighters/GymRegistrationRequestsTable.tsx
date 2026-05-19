@@ -3,7 +3,6 @@ import { ko } from "date-fns/locale";
 import type { GymRegistrationRequestListItem } from "@/lib/services/registration.service";
 import { RegistrationStatusBadge } from "@/components/domain/fighters/RegistrationStatusBadge";
 import { RegistrationRequestActions } from "@/components/domain/fighters/RegistrationRequestActions";
-import { ConsentStatusBadge } from "@/components/domain/consents/ConsentStatusBadge";
 import {
   Table,
   TableBody,
@@ -27,7 +26,6 @@ export function GymRegistrationRequestsTable({
             <TableHead>생년(마스킹)</TableHead>
             <TableHead>성별</TableHead>
             <TableHead>휴대폰</TableHead>
-            <TableHead>동의</TableHead>
             <TableHead>상태</TableHead>
             <TableHead>제출일</TableHead>
             <TableHead className="text-right">처리</TableHead>
@@ -40,9 +38,6 @@ export function GymRegistrationRequestsTable({
               <TableCell>{r.birthYearMasked}</TableCell>
               <TableCell>{r.gender}</TableCell>
               <TableCell className="font-mono text-xs">{r.phoneMasked}</TableCell>
-              <TableCell>
-                <ConsentStatusBadge label={r.consentLabel} kind={r.consentKind} />
-              </TableCell>
               <TableCell>
                 <div className="flex flex-wrap items-center gap-1">
                   <RegistrationStatusBadge status={r.status} />
@@ -62,8 +57,6 @@ export function GymRegistrationRequestsTable({
                 <RegistrationRequestActions
                   submissionId={r.id}
                   status={r.status}
-                  consentCopyAbsoluteUrl={r.consentCopyAbsoluteUrl}
-                  approvalBlockedByConsent={r.approvalBlockedByConsent}
                 />
               </TableCell>
             </TableRow>

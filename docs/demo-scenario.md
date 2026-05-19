@@ -11,7 +11,7 @@ MVP 범위는 `docs/mvp-scope.md`를 기준으로 하며, 본 문서는 **시연
 3. **`/login` → gym** — `/gym` 현장 모드·바로가기 → 선수·초대 링크·대회 신청·신청 내역·전적.
 4. **`/login` → fighter** — `/fighter` 현장 모드 → `/fighter/events`, `/fighter/records`.
 5. **로그아웃 후 spectator** — `/`, `/events`, 시드 슬러그 **`/events/sample-open-2026`** 및 하위 `brackets` / `results` / `live`. 배포 URL 사용 시 **`NEXT_PUBLIC_APP_URL`** 을 Railway 공개 도메인으로 맞춰 QR·절대 링크가 올바른지 확인한다(`docs/deploy-railway.md`).
-6. **(선택)** 보호자 동의 URL — `docs/dev-start.md` 초대·동의 구성. 공개 화면에 원문 연락처·서명 경로 없음을 짚는다.
+6. **(선택)** 공식 신청서 플로우 — admin `/admin/application-form-templates` → 주최자 대회 템플릿 연결 → gym `/gym/events/{id}/apply` → 선수 `/application-sign/[token]` → 보호자 `/guardian-consent/[id]?scope=application` → 주최자 `.../application-batches`·출력.
 
 ## 2. 역할별 로그인 계정 (미팅 권장: `@demo.local`)
 
@@ -62,7 +62,8 @@ npm run seed:demo-fighters # FTR-2026-TEST001~020, 데모 체육관 소속
 - **알림**: 주최자·체육관 사용자 각 1건 예시.
 - **감사 로그**: 시드 삽입·이벤트 상태 변경 예시.
 - **브래킷 변경 로그**: 경기 상태 변경 예시 1건.
-- **선수 등록**: 초대 토큰 `seed-token-fighter-reg`, 보호자 동의 완료·서명 경로는 private 예시, IP/User-Agent는 시드에서 비움.
+- **선수 등록**: 초대 토큰 `seed-token-fighter-reg` — **등록 단계 서명/동의 없음**(체육관 DB 등록만).
+- **공식 신청서**: admin이 템플릿 세팅 후 주최자가 대회에 연결 — 대회 신청 단계에서 선수/보호자 서명.
 
 ## 4. 주요 화면 URL
 
@@ -79,14 +80,15 @@ npm run seed:demo-fighters # FTR-2026-TEST001~020, 데모 체육관 소속
 - `/events/sample-open-2026/brackets` — 대진표
 - `/events/sample-open-2026/results` — 공식 결과
 - `/events/sample-open-2026/live` — 라이브(임베드·외부 링크)
-- `/fighter-registration/seed-token-fighter-reg` — 선수 공개 등록(시드 토큰)
-- `/guardian-consent/[consentId]?token=...` — 보호자 동의(실제 `consentId`는 DB에서 확인)
+- `/fighter-registration/seed-token-fighter-reg` — 선수 공개 등록(시드 토큰, **서명 없음**)
+- `/application-sign/[token]` — 대회 신청서 선수 본인 서명
+- `/guardian-consent/[consentId]?scope=application` — 대회 신청 보호자 동의
 
 ### 주최자 (`/organizer/...`)
 
 - `/organizer`, `/organizer/events`, `/organizer/events/new`
 - `/organizer/events/{eventId}` — 대회 편집·부문·입금·스트리밍 설정
-- `.../applications`, `.../brackets`, `.../matches`, `.../results`, `.../live`
+- `.../applications`, `.../application-batches`, `.../application-documents/[id]/print`, `.../brackets`, `.../matches`, `.../results`, `.../live`
 
 ### 체육관 (`/gym/...`)
 
@@ -99,7 +101,7 @@ npm run seed:demo-fighters # FTR-2026-TEST001~020, 데모 체육관 소속
 
 ### 관리자
 
-- `/admin`, `/admin/events`, `/admin/organizers`, `/admin/gyms`, `/admin/fighters`, `/admin/applications`, `/admin/results`, `/admin/audit-logs`
+- `/admin`, `/admin/events`, `/admin/organizers`, `/admin/gyms`, `/admin/fighters`, `/admin/applications`, `/admin/results`, `/admin/audit-logs`, `/admin/application-form-templates`
 
 `{eventId}`는 시드 실행 후 콘솔 로그 또는 관리자/주최자 목록에서 확인한다.
 

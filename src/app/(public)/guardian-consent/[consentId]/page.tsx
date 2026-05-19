@@ -13,20 +13,19 @@ export default async function GuardianConsentPage({
   searchParams,
 }: {
   params: Promise<{ consentId: string }>;
-  searchParams: Promise<{ token?: string }>;
+  searchParams: Promise<{ token?: string; scope?: string }>;
 }) {
   const { consentId } = await params;
-  const { token: tokenRaw } = await searchParams;
+  const { token: tokenRaw, scope: scopeRaw } = await searchParams;
   const token = typeof tokenRaw === "string" ? tokenRaw.trim() : "";
+  const scope = scopeRaw === "application" ? "application" : "registration";
 
-  if (!token) {
+  if (scope === "registration" && !token) {
     return (
-      <div className="mx-auto max-w-lg px-4 py-12">
-        <EmptyState
-          title="링크가 올바르지 않습니다"
-          description="초대 링크에 포함된 동의 주소 전체를 사용해 주세요."
-        />
-      </div>
+      <SignEmpty
+        title="링크가 올바르지 않습니다"
+        description="초대 링크에 포함된 동의 주소 전체를 사용해 주세요."
+      />
     );
   }
 
@@ -35,16 +34,14 @@ export default async function GuardianConsentPage({
   >;
 
   try {
-    session = await consentService.getGuardianConsentPublicSession(
-      consentId,
-      token,
-    );
+    session = await consentService.getGuardianConsentPublicSession(consentId, {
+      token: token || undefined,
+      scope,
+    });
   } catch (e: unknown) {
     if (e instanceof AppError) {
       return (
-        <div className="mx-auto max-w-lg px-4 py-12">
-          <EmptyState title="동의서를 열 수 없습니다" description={e.message} />
-        </div>
+        <SignEmpty title="동의서를 열 수 없습니다" description={e.message} />
       );
     }
     throw e;
@@ -61,13 +58,29 @@ export default async function GuardianConsentPage({
         </Link>
       </div>
       <h1 className="font-heading mb-6 text-2xl font-semibold">
-        보호자 동의서
+        {scope === "application" ? "대회 신청 보호자 동의" : "보호자 동의서"}
       </h1>
       <GuardianConsentForm
-        token={token}
+        token={token || undefined}
         registrationSubmissionId={session.registrationSubmissionId}
+        documentId={session.documentId}
+        scope={session.scope}
         initial={session.view}
       />
+    </div>
+  );
+}
+
+function SignEmpty({
+  title,
+  description,
+}: {
+  title: string;
+  description: string;
+}) {
+  return (
+    <div className="mx-auto max-w-lg px-4 py-12">
+      <EmptyState title={title} description={description} />
     </div>
   );
 }

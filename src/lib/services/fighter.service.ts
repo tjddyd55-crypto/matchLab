@@ -4,11 +4,9 @@ import type { Prisma } from "@/generated/prisma";
 import type { ActorContext } from "@/lib/auth/actor-context";
 import { AppError } from "@/lib/errors/app-error";
 import {
-  ConsentStatus,
   DuplicateCheckStatus,
   FighterRegistrationSubmissionStatus,
 } from "@/lib/enums";
-import { requiresGuardianConsent } from "@/lib/consent-policy";
 import { prisma } from "@/lib/prisma";
 import { normalizePhoneDigits } from "@/lib/phone";
 import { requireGymOwner, requireRole } from "@/lib/permissions";
@@ -84,24 +82,6 @@ export const fighterService = {
         );
       }
 
-      const consentRequired = requiresGuardianConsent(latest);
-      if (consentRequired) {
-        const consent =
-          await consentRepository.findConsentForRegistrationSubmission(
-            submissionId,
-            tx,
-          );
-        if (
-          !consent ||
-          consent.consentStatus !== ConsentStatus.completed
-        ) {
-          throw new AppError(
-            "FORBIDDEN",
-            "보호자 동의가 완료된 후에만 승인할 수 있습니다.",
-          );
-        }
-      }
-
       let fighter: { id: string; fighterCode: string } | null = null;
       const fighterPayload = {
         name: latest.name,
@@ -151,13 +131,11 @@ export const fighterService = {
         );
       }
 
-      if (consentRequired) {
-        await consentRepository.attachFighterToSubmissionConsents(
-          submissionId,
-          fighter.id,
-          tx,
-        );
-      }
+      await consentRepository.attachFighterToSubmissionConsents(
+        submissionId,
+        fighter.id,
+        tx,
+      );
 
       await registrationRepository.updateSubmissionStatus(
         submissionId,

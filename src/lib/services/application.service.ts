@@ -451,14 +451,6 @@ export const applicationService = {
         guardianPhone: f.guardianPhone,
       });
 
-      let guardianConsentOk = true;
-      if (policyRequires) {
-        const consent = await consentRepository.findLatestConsentForFighter(
-          f.id,
-        );
-        guardianConsentOk = consent?.consentStatus === ConsentStatus.completed;
-      }
-
       fighterRows.push({
         id: f.id,
         fighterCode: f.fighterCode,
@@ -467,7 +459,7 @@ export const applicationService = {
         recordSummary: formatRecordSummary(f),
         appliedDivisionIds: appliedMap.get(f.id) ?? [],
         guardianPolicyRequires: policyRequires,
-        guardianConsentOk,
+        guardianConsentOk: true,
       });
     }
 
@@ -534,26 +526,6 @@ export const applicationService = {
         "FORBIDDEN",
         "신청할 수 있는 소속 선수만 선택할 수 있습니다.",
       );
-    }
-
-    if (
-      requiresGuardianConsentFromFighterProfile({
-        birthDate: fighter.birthDate,
-        schoolName: fighter.schoolName,
-        grade: fighter.grade,
-        guardianName: fighter.guardianName,
-        guardianPhone: fighter.guardianPhone,
-      })
-    ) {
-      const consent = await consentRepository.findLatestConsentForFighter(
-        fighter.id,
-      );
-      if (consent?.consentStatus !== ConsentStatus.completed) {
-        throw new AppError(
-          "FORBIDDEN",
-          "보호자 동의가 완료된 선수만 신청할 수 있습니다.",
-        );
-      }
     }
 
     const existing = await applicationRepository.findExistingApplication(

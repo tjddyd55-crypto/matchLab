@@ -4,6 +4,7 @@
  */
 
 export {
+  ApplicationDocumentStatus,
   ApplicationStatus,
   AuditAction,
   BracketChangeType,
@@ -13,7 +14,10 @@ export {
   BracketType,
   ConsentStatus,
   DuplicateCheckStatus,
+  EventApplicationBatchStatus,
   EventStatus,
+  FighterConsentStatus,
+  FighterConsentType,
   FighterRegistrationSubmissionStatus,
   FighterStatus,
   GymStatus,

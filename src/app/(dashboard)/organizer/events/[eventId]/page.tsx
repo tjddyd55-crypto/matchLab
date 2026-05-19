@@ -11,7 +11,10 @@ import { EventStatusPill } from "@/components/domain/events/EventStatusPill";
 import { resolveOrganizerEventPageError } from "@/lib/permissions";
 import { requireActor } from "@/lib/auth/actor";
 import { EventStatus } from "@/lib/enums";
+import { EventApplicationFormTemplateSection } from "@/components/domain/events/EventApplicationFormTemplateSection";
+import { applicationFormTemplateService } from "@/lib/services/application-form-template.service";
 import { divisionTemplateService } from "@/lib/services/division-template.service";
+import { eventRepository } from "@/lib/repositories/event.repository";
 import { eventService } from "@/lib/services/event.service";
 import { eventStaffAccessService } from "@/lib/services/event-staff-access.service";
 
@@ -28,11 +31,18 @@ export default async function OrganizerEventDetailPage({
   let detail;
   let divisionTemplates;
   let staffRecorderLinks;
+  let formTemplates;
+  let linkedTemplateId: string | null = null;
   try {
     detail = await eventService.getOrganizerEventDetail(actor, eventId);
-    [divisionTemplates, staffRecorderLinks] = await Promise.all([
+    const eventApp = await eventRepository.findEventWithDivisionsForApplication(
+      eventId,
+    );
+    linkedTemplateId = eventApp?.applicationFormTemplateId ?? null;
+    [divisionTemplates, staffRecorderLinks, formTemplates] = await Promise.all([
       divisionTemplateService.listTemplatesForEvent(actor, eventId),
       eventStaffAccessService.listLinksForOrganizer(actor, eventId),
+      applicationFormTemplateService.listSelectableForEvent(actor, eventId),
     ]);
   } catch (e) {
     resolveOrganizerEventPageError(e);
@@ -83,6 +93,12 @@ export default async function OrganizerEventDetailPage({
       />
 
       <EventGalleryManager eventId={detail.id} images={detail.galleryImages} />
+
+      <EventApplicationFormTemplateSection
+        eventId={detail.id}
+        linkedTemplateId={linkedTemplateId}
+        templates={formTemplates}
+      />
 
       <EventDivisionManager
         eventId={detail.id}

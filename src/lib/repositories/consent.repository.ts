@@ -173,6 +173,53 @@ export const consentRepository = {
     return row as GuardianConsentEntity | null;
   },
 
+  async findGuardianConsentForPublic(id: string) {
+    return prisma.guardianConsent.findUnique({
+      where: { id },
+      include: {
+        fighter: { select: { id: true, name: true } },
+        event: { select: { id: true, title: true } },
+        registrationSubmission: {
+          select: { id: true, name: true, gymId: true, gym: { select: { name: true } } },
+        },
+        linkedDocument: { select: { id: true } },
+      },
+    });
+  },
+
+  async assertApplicationConsentUploadAllowed(input: {
+    consentId: string;
+    documentId: string;
+  }): Promise<void> {
+    const consent = await prisma.guardianConsent.findFirst({
+      where: {
+        id: input.consentId,
+        consentStatus: ConsentStatus.draft,
+        eventId: { not: null },
+        fighterId: { not: null },
+        registrationSubmissionId: null,
+        linkedDocument: { id: input.documentId },
+      },
+      select: { id: true },
+    });
+    if (!consent) {
+      throw new AppError(
+        "NOT_FOUND",
+        "동의서를 찾을 수 없거나 이미 완료되었습니다.",
+      );
+    }
+  },
+
+  async findDocumentIdByGuardianConsentId(
+    consentId: string,
+  ): Promise<string | null> {
+    const row = await prisma.applicationDocument.findFirst({
+      where: { guardianConsentId: consentId },
+      select: { id: true },
+    });
+    return row?.id ?? null;
+  },
+
   async findConsentForRegistrationSubmission(
     registrationSubmissionId: string,
     tx?: Prisma.TransactionClient,

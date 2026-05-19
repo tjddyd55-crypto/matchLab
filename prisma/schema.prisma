@@ -156,6 +156,38 @@ enum ConsentStatus {
   superseded
 }
 
+enum EventApplicationBatchStatus {
+  draft
+  submitted
+  organizer_review
+  approved
+  rejected
+  cancelled
+}
+
+enum ApplicationDocumentStatus {
+  draft
+  waiting_athlete_signature
+  waiting_guardian_signature
+  completed
+  submitted
+  rejected
+}
+
+enum FighterConsentType {
+  event_application
+  application_document_signature
+  streaming
+}
+
+enum FighterConsentStatus {
+  draft
+  pending
+  completed
+  expired
+  revoked
+}
+
 enum LivePlatform {
   youtube
   vimeo
@@ -245,6 +277,8 @@ model User {
   bracketChangeLogs       BracketChangeLog[]        @relation("BracketChangeActor")
   matchResultsConfirmed   MatchResult[]             @relation("MatchResultConfirmer")
   matchResultChangeLogs   MatchResultChangeLog[]    @relation("MatchResultChangeActor")
+  applicationFormTemplatesCreated ApplicationFormTemplate[] @relation("ApplicationFormTemplateCreator")
+  applicationBatchesSubmitted     EventApplicationBatch[]   @relation("BatchSubmitter")
 }
 
 model Organizer {
@@ -259,6 +293,7 @@ model Organizer {
   user   User    @relation(fields: [userId], references: [id], onDelete: Cascade)
   events Event[]
   divisionTemplates DivisionTemplate[]
+  applicationFormTemplates ApplicationFormTemplate[]
 }
 
 model Gym {
@@ -278,6 +313,8 @@ model Gym {
   inviteLinks               GymInviteLink[]
   registrationSubmissions   FighterRegistrationSubmission[]
   applications              EventApplication[]
+  applicationBatches        EventApplicationBatch[]
+  applicationDocuments      ApplicationDocument[]
   matchResults              MatchResult[]                    @relation("MatchResultFighterGym")
   matchResultsAsOpponentGym MatchResult[]                    @relation("MatchResultOpponentGym")
   gymEventFeeSettings       GymEventFeeSetting[]
@@ -314,6 +351,8 @@ model Fighter {
   gymHistories      FighterGymHistory[]
   applications      EventApplication[]
   guardianConsents  GuardianConsent[]   @relation("GuardianConsentFighter")
+  fighterConsents   FighterConsent[]
+  applicationDocuments ApplicationDocument[]
 
   matchesAsRed    BracketMatch[] @relation("MatchRed")
   matchesAsBlue   BracketMatch[] @relation("MatchBlue")
@@ -369,10 +408,12 @@ model Event {
   spectatorAccessStartAt   DateTime?
   spectatorAccessEndAt     DateTime?
   spectatorAccessToken     String?     @unique
+  applicationFormTemplateId String?
   createdAt                DateTime    @default(now())
   updatedAt                DateTime    @updatedAt
 
   organizer Organizer @relation(fields: [organizerId], references: [id], onDelete: Cascade)
+  applicationFormTemplate ApplicationFormTemplate? @relation(fields: [applicationFormTemplateId], references: [id], onDelete: SetNull)
 
   divisions         EventDivision[]
   paymentSetting    EventPaymentSetting?
@@ -381,15 +422,19 @@ model Event {
   staffAccessLinks  EventStaffAccessLink[]
   liveStreams       EventLiveStream[]
   applications      EventApplication[]
+  applicationBatches EventApplicationBatch[]
+  applicationDocuments ApplicationDocument[]
   brackets          Bracket[]
   bracketChangeLogs BracketChangeLog[]
   matchResults      MatchResult[]
   notifications     Notification[]
   guardianConsents  GuardianConsent[]
+  fighterConsents   FighterConsent[]
 
   @@index([organizerId])
   @@index([status])
   @@index([eventDate])
+  @@index([applicationFormTemplateId])
 }
 
 model EventImage {
@@ -499,6 +544,8 @@ model EventApplication {
   appliedByUserId            String?
   appliedAt                  DateTime?
   memo                       String?
+  applicationBatchId         String?
+  applicationDocumentId      String?            @unique
   createdAt                  DateTime           @default(now())
   updatedAt                  DateTime           @updatedAt
 
@@ -507,8 +554,12 @@ model EventApplication {
   gym           Gym            @relation(fields: [gymId], references: [id], onDelete: Cascade)
   fighter       Fighter        @relation(fields: [fighterId], references: [id], onDelete: Cascade)
   appliedByUser User?          @relation("ApplicationApplicator", fields: [appliedByUserId], references: [id], onDelete: SetNull)
+  applicationBatch EventApplicationBatch? @relation(fields: [applicationBatchId], references: [id], onDelete: SetNull)
+  applicationDocument ApplicationDocument? @relation(fields: [applicationDocumentId], references: [id], onDelete: SetNull)
 
   payments EventApplicationPayment[]
+  guardianConsents GuardianConsent[] @relation("GuardianConsentApplication")
+  fighterConsents  FighterConsent[]  @relation("FighterConsentApplication")
 
   @@unique([eventId, fighterId, divisionId])
   @@index([eventId])
@@ -516,6 +567,7 @@ model EventApplication {
   @@index([gymId])
   @@index([fighterId])
   @@index([appliedByUserId])
+  @@index([applicationBatchId])
 }
 
 model EventPaymentSetting {
@@ -613,6 +665,7 @@ model GuardianConsent {
   fighterId               String?
   registrationSubmissionId String?
   eventId                 String?
+  eventApplicationId      String?
   guardianName            String
   guardianPhone           String
   relationship            String?
@@ -629,10 +682,142 @@ model GuardianConsent {
   fighter               Fighter?                     @relation("GuardianConsentFighter", fields: [fighterId], references: [id], onDelete: SetNull)
   registrationSubmission FighterRegistrationSubmission? @relation(fields: [registrationSubmissionId], references: [id], onDelete: SetNull)
   event                 Event?                       @relation(fields: [eventId], references: [id], onDelete: SetNull)
+  eventApplication      EventApplication?            @relation("GuardianConsentApplication", fields: [eventApplicationId], references: [id], onDelete: SetNull)
+  linkedDocument        ApplicationDocument?         @relation("DocumentGuardianConsent")
 
   @@index([fighterId])
   @@index([registrationSubmissionId])
   @@index([eventId])
+  @@index([eventApplicationId])
+}
+
+/// 주최측 공식 신청서 PDF 템플릿 — 관리자/운영팀이 좌표·source mapping 세팅
+model ApplicationFormTemplate {
+  id                   String   @id @default(cuid())
+  organizerId          String?
+  title                String
+  description          String?
+  originalPdfPath      String
+  originalPdfFileName  String
+  fieldsJson           Json     @default("[]")
+  repeatGroupsJson     Json     @default("[]")
+  manualFieldsJson     Json?
+  consentMappingJson   Json?
+  isActive             Boolean  @default(true)
+  createdByAdminUserId String?
+  createdAt            DateTime @default(now())
+  updatedAt            DateTime @updatedAt
+
+  organizer      Organizer? @relation(fields: [organizerId], references: [id], onDelete: SetNull)
+  createdByAdmin User?      @relation("ApplicationFormTemplateCreator", fields: [createdByAdminUserId], references: [id], onDelete: SetNull)
+
+  events               Event[]
+  batches              EventApplicationBatch[]
+  applicationDocuments ApplicationDocument[]
+
+  @@index([organizerId])
+  @@index([isActive])
+}
+
+/// 체육관이 한 대회에 제출하는 신청 묶음
+model EventApplicationBatch {
+  id                        String                      @id @default(cuid())
+  eventId                   String
+  gymId                     String
+  applicationFormTemplateId String
+  documentNo                String?
+  status                    EventApplicationBatchStatus @default(draft)
+  submittedByUserId         String?
+  submittedAt               DateTime?
+  totalFighterCount         Int                         @default(0)
+  organizerFeePerFighter    Int?
+  organizerTotalFee         Int?
+  createdAt                 DateTime                    @default(now())
+  updatedAt                 DateTime                    @updatedAt
+
+  event       Event                   @relation(fields: [eventId], references: [id], onDelete: Cascade)
+  gym         Gym                     @relation(fields: [gymId], references: [id], onDelete: Cascade)
+  template    ApplicationFormTemplate @relation(fields: [applicationFormTemplateId], references: [id], onDelete: Restrict)
+  submittedBy User?                   @relation("BatchSubmitter", fields: [submittedByUserId], references: [id], onDelete: SetNull)
+
+  applications EventApplication[]
+  documents    ApplicationDocument[]
+
+  @@index([eventId])
+  @@index([gymId])
+  @@index([status])
+  @@index([applicationFormTemplateId])
+}
+
+/// 선수 1명당 공식 신청서 작성 문서
+model ApplicationDocument {
+  id                      String                   @id @default(cuid())
+  eventId                 String
+  gymId                   String
+  fighterId               String
+  applicationId           String?
+  batchId                 String?
+  templateId              String
+  status                  ApplicationDocumentStatus @default(draft)
+  formValuesJson          Json                     @default("{}")
+  documentSnapshotJson    Json?
+  generatedPdfPath        String?
+  originalTemplatePdfPath String
+  athleteConsentId        String?                  @unique
+  guardianConsentId       String?                  @unique
+  completedAt             DateTime?
+  submittedAt             DateTime?
+  createdAt               DateTime                 @default(now())
+  updatedAt               DateTime                 @updatedAt
+
+  event           Event                   @relation(fields: [eventId], references: [id], onDelete: Cascade)
+  gym             Gym                     @relation(fields: [gymId], references: [id], onDelete: Cascade)
+  fighter         Fighter                 @relation(fields: [fighterId], references: [id], onDelete: Cascade)
+  batch           EventApplicationBatch?  @relation(fields: [batchId], references: [id], onDelete: SetNull)
+  template        ApplicationFormTemplate @relation(fields: [templateId], references: [id], onDelete: Restrict)
+  athleteConsent  FighterConsent?         @relation("DocumentAthleteConsent", fields: [athleteConsentId], references: [id], onDelete: SetNull)
+  guardianConsent GuardianConsent?        @relation("DocumentGuardianConsent", fields: [guardianConsentId], references: [id], onDelete: SetNull)
+
+  eventApplication EventApplication?
+
+  @@index([eventId])
+  @@index([gymId])
+  @@index([fighterId])
+  @@index([batchId])
+  @@index([templateId])
+  @@index([status])
+}
+
+/// 선수 본인 서명/동의 — 대회 신청 문서 단위
+model FighterConsent {
+  id                    String               @id @default(cuid())
+  fighterId             String
+  eventId               String
+  eventApplicationId    String?
+  token                 String               @unique
+  consentType           FighterConsentType
+  status                FighterConsentStatus @default(draft)
+  signerName            String
+  signerPhoneMasked     String?
+  documentTitle         String
+  documentSnapshotJson  Json?
+  signatureImagePath    String?
+  signedAt              DateTime?
+  ipAddress             String?
+  userAgent             String?
+  expiresAt             DateTime?
+  createdAt             DateTime             @default(now())
+  updatedAt             DateTime             @updatedAt
+
+  fighter            Fighter              @relation(fields: [fighterId], references: [id], onDelete: Cascade)
+  event              Event                @relation(fields: [eventId], references: [id], onDelete: Cascade)
+  eventApplication   EventApplication?    @relation("FighterConsentApplication", fields: [eventApplicationId], references: [id], onDelete: SetNull)
+  linkedDocument     ApplicationDocument? @relation("DocumentAthleteConsent")
+
+  @@index([fighterId])
+  @@index([eventId])
+  @@index([eventApplicationId])
+  @@index([status])
 }
 
 model Bracket {

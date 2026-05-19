@@ -140,6 +140,7 @@ export const fighterRepository = {
     recordWin: number;
     recordLoss: number;
     recordDraw: number;
+    weight: number | null;
     status: FighterStatus;
     schoolName: string | null;
     grade: string | null;
@@ -159,6 +160,7 @@ export const fighterRepository = {
         recordWin: true,
         recordLoss: true,
         recordDraw: true,
+        weight: true,
         status: true,
         schoolName: true,
         grade: true,

@@ -49,9 +49,6 @@ function fighterDivisionBlockReason(
   if (fighter.appliedDivisionIds.includes(divisionId)) {
     return "이미 이 부문에 신청했습니다.";
   }
-  if (fighter.guardianPolicyRequires && !fighter.guardianConsentOk) {
-    return "보호자 전자동의가 완료된 선수만 신청 가능합니다.";
-  }
   return null;
 }
 
@@ -163,13 +160,7 @@ export function EventApplicationForm(props: EventApplicationFormProps) {
                     {f.fighterCode} · {f.recordSummary}
                   </div>
                   <div className="text-muted-foreground mt-1 text-xs">
-                    {reason
-                      ? reason
-                      : f.guardianPolicyRequires
-                        ? f.guardianConsentOk
-                          ? "보호자 동의 완료"
-                          : "보호자 동의 필요"
-                        : "신청 가능"}
+                    {reason ?? "신청 가능"}
                   </div>
                 </div>
               </button>

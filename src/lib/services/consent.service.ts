@@ -16,6 +16,7 @@ import {
   type GuardianConsentEntity,
 } from "@/lib/repositories/consent.repository";
 import { registrationRepository } from "@/lib/repositories/registration.repository";
+import { applicationDocumentService } from "@/lib/services/application-document.service";
 import type { GuardianConsentPublicFormView } from "@/lib/types/guardian-consent-public";
 
 export type { GuardianConsentPublicFormView };
@@ -27,9 +28,10 @@ export const CONSENT_DOCUMENT_TITLE =
   "보호자 대회 참가 및 선수 등록 동의서";
 
 export type CompleteGuardianConsentByTokenInput = {
-  token: string;
+  token?: string;
   consentId: string;
-  registrationSubmissionId: string;
+  registrationSubmissionId?: string;
+  scope?: "registration" | "application";
   signatureImagePath: string;
   guardianName: string;
   guardianPhone: string;
@@ -49,6 +51,27 @@ function assertValidConsentSignatureObjectPath(
   consentId: string,
 ): void {
   const prefix = `consents/${registrationSubmissionId}/${consentId}/`;
+  if (!path.startsWith(prefix)) {
+    throw new AppError(
+      "VALIDATION_ERROR",
+      "서명 파일 경로가 올바르지 않습니다.",
+    );
+  }
+  const tail = path.slice(prefix.length);
+  if (!/^[0-9a-f-]{36}\.(png|webp)$/i.test(tail)) {
+    throw new AppError(
+      "VALIDATION_ERROR",
+      "서명 파일 경로가 올바르지 않습니다.",
+    );
+  }
+}
+
+function assertValidApplicationConsentSignatureObjectPath(
+  path: string,
+  documentId: string,
+  consentId: string,
+): void {
+  const prefix = `application-consents/${documentId}/${consentId}/`;
   if (!path.startsWith(prefix)) {
     throw new AppError(
       "VALIDATION_ERROR",
@@ -112,13 +135,71 @@ async function buildPublicConsentView(
   };
 }
 
+async function buildApplicationPublicConsentView(
+  consentId: string,
+): Promise<GuardianConsentPublicFormView> {
+  const row = await consentRepository.findGuardianConsentForPublic(consentId);
+  if (
+    !row ||
+    !row.fighterId ||
+    !row.eventId ||
+    row.registrationSubmissionId
+  ) {
+    throw new AppError("NOT_FOUND", "대회 신청용 동의서를 찾을 수 없습니다.");
+  }
+  const { guardianNameMasked, guardianPhoneMasked } = maskGuardianDisplay(
+    row.guardianName,
+    row.guardianPhone,
+  );
+  return {
+    consentId: row.id,
+    consentStatus: row.consentStatus,
+    documentTitle: row.documentTitle,
+    documentVersion: row.documentVersion,
+    gymDisplayLabel: row.event?.title ?? "대회 신청",
+    fighterName: row.fighter?.name?.trim() ?? "선수",
+    guardianNameMasked,
+    guardianPhoneMasked,
+  };
+}
+
 async function resolveGuardianConsentPublicSession(
   consentId: string,
-  token: string,
+  options: { token?: string; scope?: string },
 ): Promise<{
   view: GuardianConsentPublicFormView;
-  registrationSubmissionId: string;
+  registrationSubmissionId: string | null;
+  documentId: string | null;
+  scope: "registration" | "application";
 }> {
+  const scope =
+    options.scope === "application" ? "application" : "registration";
+
+  if (scope === "application") {
+    const row = await consentRepository.findGuardianConsentForPublic(consentId);
+    if (
+      !row ||
+      !row.fighterId ||
+      !row.eventId ||
+      row.registrationSubmissionId
+    ) {
+      throw new AppError("NOT_FOUND", "동의서를 찾을 수 없습니다.");
+    }
+    const view = await buildApplicationPublicConsentView(consentId);
+    const documentId = row.linkedDocument?.id ?? null;
+    return {
+      view,
+      registrationSubmissionId: null,
+      documentId,
+      scope: "application",
+    };
+  }
+
+  const token = options.token?.trim();
+  if (!token) {
+    throw new AppError("VALIDATION_ERROR", "초대 토큰이 필요합니다.");
+  }
+
   const consent = await consentRepository.findGuardianConsentById(consentId);
   if (!consent?.registrationSubmissionId) {
     throw new AppError("NOT_FOUND", "동의서를 찾을 수 없습니다.");
@@ -131,6 +212,8 @@ async function resolveGuardianConsentPublicSession(
   return {
     view,
     registrationSubmissionId: consent.registrationSubmissionId,
+    documentId: null,
+    scope: "registration",
   };
 }
 
@@ -219,22 +302,23 @@ export const consentService = {
 
   async getGuardianConsentPublicSession(
     consentId: string,
-    token: string,
+    options: { token?: string; scope?: string },
   ): Promise<{
     view: GuardianConsentPublicFormView;
-    registrationSubmissionId: string;
+    registrationSubmissionId: string | null;
+    documentId: string | null;
+    scope: "registration" | "application";
   }> {
-    return resolveGuardianConsentPublicSession(consentId, token);
+    return resolveGuardianConsentPublicSession(consentId, options);
   },
 
   async getConsentFormByConsentId(
     consentId: string,
     token: string,
   ): Promise<GuardianConsentPublicFormView> {
-    const { view } = await resolveGuardianConsentPublicSession(
-      consentId,
+    const { view } = await resolveGuardianConsentPublicSession(consentId, {
       token,
-    );
+    });
     return view;
   },
 
@@ -256,20 +340,13 @@ export const consentService = {
   async completeGuardianConsentByToken(
     input: CompleteGuardianConsentByTokenInput,
   ): Promise<void> {
+    const scope = input.scope === "application" ? "application" : "registration";
     const consent = await consentRepository.findGuardianConsentById(
       input.consentId,
     );
-    if (
-      !consent?.registrationSubmissionId ||
-      consent.registrationSubmissionId !== input.registrationSubmissionId
-    ) {
+    if (!consent) {
       throw new AppError("NOT_FOUND", "동의서를 찾을 수 없습니다.");
     }
-
-    await consentRepository.assertInviteTokenForSubmission(
-      input.token,
-      input.registrationSubmissionId,
-    );
 
     if (consent.consentStatus !== ConsentStatus.draft) {
       throw new AppError("CONFLICT", "이미 처리된 동의서입니다.");
@@ -288,15 +365,63 @@ export const consentService = {
       );
     }
 
-    assertValidConsentSignatureObjectPath(
-      input.signatureImagePath,
-      input.registrationSubmissionId,
-      input.consentId,
+    const signedAt = new Date();
+    const guardianPhone = normalizePhoneDigits(input.guardianPhone.trim());
+
+    if (scope === "application") {
+      if (
+        !consent.eventId ||
+        !consent.fighterId ||
+        consent.registrationSubmissionId
+      ) {
+        throw new AppError("NOT_FOUND", "대회 신청용 동의서를 찾을 수 없습니다.");
+      }
+      const documentId =
+        await consentRepository.findDocumentIdByGuardianConsentId(
+          input.consentId,
+        );
+      if (!documentId) {
+        throw new AppError("NOT_FOUND", "연결된 신청서 문서를 찾을 수 없습니다.");
+      }
+      assertValidApplicationConsentSignatureObjectPath(
+        input.signatureImagePath,
+        documentId,
+        input.consentId,
+      );
+      await consentRepository.completeGuardianConsent(input.consentId, {
+        guardianName: input.guardianName.trim(),
+        guardianPhone,
+        relationship: input.relationship.trim(),
+        signatureImagePath: input.signatureImagePath.trim(),
+        signedAt,
+        ipAddress: input.ipAddress,
+        userAgent: input.userAgent,
+      });
+      await applicationDocumentService.refreshDocumentStatusAfterSignature(
+        documentId,
+      );
+      return;
+    }
+
+    const registrationSubmissionId = input.registrationSubmissionId?.trim();
+    const token = input.token?.trim();
+    if (!registrationSubmissionId || !token) {
+      throw new AppError("VALIDATION_ERROR", "등록 동의 정보가 올바르지 않습니다.");
+    }
+    if (consent.registrationSubmissionId !== registrationSubmissionId) {
+      throw new AppError("NOT_FOUND", "동의서를 찾을 수 없습니다.");
+    }
+
+    await consentRepository.assertInviteTokenForSubmission(
+      token,
+      registrationSubmissionId,
     );
 
-    const signedAt = new Date();
-
-    const guardianPhone = normalizePhoneDigits(input.guardianPhone.trim());
+    assertValidConsentSignatureObjectPath(
+      input.signatureImagePath,
+      registrationSubmissionId,
+      input.consentId,
+    );
 
     await consentRepository.completeGuardianConsent(input.consentId, {
       guardianName: input.guardianName.trim(),

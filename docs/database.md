@@ -113,9 +113,44 @@ MVP: 계좌 안내 + 수동 입금 확인. **`EventApplicationPayment` 가 입�
 
 ### GuardianConsent
 
-- `fighterId` / `registrationSubmissionId` / `eventId` nullable 조합으로 단계별 연결.
+- `fighterId` / `registrationSubmissionId` / `eventId` / `eventApplicationId` nullable 조합으로 단계별 연결.
+- **등록 단계**: `registrationSubmissionId` 연결 (MVP 이후 등록 단계 동의는 사용하지 않음 — DB만 유지).
+- **대회 신청 단계**: `eventId` + `fighterId` 로 `ApplicationDocument` 와 연결, `/guardian-consent/[id]?scope=application`.
 - **서명 이미지 URL**: Storage 경로만 저장, 공개 금지.
 - `ipAddress`, `userAgent`: 내부 증빙용 — **공개 API 미포함**.
+
+### ApplicationFormTemplate
+
+- 주최측 **공식 신청서 PDF 원본** + 좌표 JSON(`fieldsJson`, `repeatGroupsJson`).
+- `originalPdfPath` / `originalPdfFileName`: 원본 PDF 저장 경로(향후 R2·문서 서비스 연동).
+- `source` 매핑 예: `fighter.name`, `event.title`, `application.division`, `manual.*`.
+- 관리자/운영팀만 좌표 세팅 — 주최자는 선택·다운로드만.
+
+### EventApplicationBatch
+
+- 체육관이 한 대회에 **일괄 제출**하는 신청 묶음.
+- `documentNo`, `status`(draft → submitted → …), `totalFighterCount`, 입금 예정 금액 캐시.
+
+### ApplicationDocument
+
+- 선수 1명당 공식 신청서 작성 문서.
+- `formValuesJson`: 자동 매핑·수동 입력값.
+- `documentSnapshotJson`: **제출/완료 시점 고정 스냅샷**(선수 정보 변경 후에도 불변).
+- `athleteConsentId` / `guardianConsentId`: 대회 신청 단계 서명·동의 연결.
+- `generatedPdfPath`: TODO — PDF overlay 생성 후 저장.
+
+### FighterConsent
+
+- 선수 **본인 서명** — 대회 신청 `ApplicationDocument` 단위.
+- `token` 공개 링크(`/application-sign/[token]`), `signatureImagePath` private storage.
+
+### Event.applicationFormTemplateId
+
+- 대회에 연결된 공식 신청서 템플릿(주최자 선택, admin 전체 템플릿 연결 가능).
+
+### EventApplication (확장)
+
+- `applicationBatchId`, `applicationDocumentId`: 공식 신청서 플로우와 기존 선수별 신청 연결.
 
 ### Bracket / BracketMatch
 

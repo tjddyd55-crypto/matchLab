@@ -31,10 +31,14 @@ type UploadEnvelope = {
 export function GuardianConsentForm({
   token,
   registrationSubmissionId,
+  documentId,
+  scope = "registration",
   initial,
 }: {
-  token: string;
-  registrationSubmissionId: string;
+  token?: string;
+  registrationSubmissionId?: string | null;
+  documentId?: string | null;
+  scope?: "registration" | "application";
   initial: GuardianConsentPublicFormView;
 }) {
   const padRef = useRef<SignaturePadHandle | null>(null);
@@ -57,7 +61,9 @@ export function GuardianConsentForm({
       >
         <p className="font-medium">보호자 동의가 완료되었습니다.</p>
         <p className="text-muted-foreground text-sm leading-relaxed">
-          체육관에서 등록 요청을 검토한 뒤 선수 승인 절차가 진행됩니다.
+          {scope === "application"
+            ? "대회 신청서 작성이 계속 진행됩니다. 체육관에서 최종 제출을 확인해 주세요."
+            : "체육관에서 등록 요청을 검토한 뒤 선수 승인 절차가 진행됩니다."}
         </p>
         <Link
           href="/"
@@ -101,16 +107,29 @@ export function GuardianConsentForm({
 
     setPending(true);
     try {
-      const issueRes = await fetch("/api/uploads/consent-signature", {
-        method: "POST",
-        headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({
-          registrationSubmissionId,
-          consentId: initial.consentId,
-          token,
-          mimeType: "image/png",
-        }),
-      });
+      const issueRes = await fetch(
+        scope === "application"
+          ? "/api/uploads/application-guardian-signature"
+          : "/api/uploads/consent-signature",
+        {
+          method: "POST",
+          headers: { "Content-Type": "application/json" },
+          body: JSON.stringify(
+            scope === "application"
+              ? {
+                  consentId: initial.consentId,
+                  documentId: documentId ?? "",
+                  mimeType: "image/png",
+                }
+              : {
+                  registrationSubmissionId: registrationSubmissionId ?? "",
+                  consentId: initial.consentId,
+                  token: token ?? "",
+                  mimeType: "image/png",
+                },
+          ),
+        },
+      );
 
       const issueJson = (await issueRes.json()) as
         | UploadEnvelope
@@ -142,8 +161,12 @@ export function GuardianConsentForm({
 
       const fd = new FormData();
       fd.set("consentId", initial.consentId);
-      fd.set("registrationSubmissionId", registrationSubmissionId);
-      fd.set("token", token);
+      if (scope === "application") {
+        fd.set("scope", "application");
+      } else {
+        fd.set("registrationSubmissionId", registrationSubmissionId ?? "");
+        fd.set("token", token ?? "");
+      }
       fd.set("signatureImagePath", issueJson.data.path);
       fd.set("guardianName", guardianName.trim());
       fd.set("guardianPhone", guardianPhone.trim());

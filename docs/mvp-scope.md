@@ -28,18 +28,28 @@
 - [x] 체육관 대시보드 기본(`/gym` 및 하위 네비).
 - [x] 선수 등록(내부) 및 **선수 등록 URL** 발급(`GymInviteLink`).
 - [x] 공개 폼: 선수 정보 제출(`FighterRegistrationSubmission`).
-- [x] 미성년/학생 플로우: 보호자 동의서 + **손사인**(`SignaturePad` → Storage private bucket).
-- [x] 서명은 **`signatureImagePath` 만 DB 저장**(영구 공개 URL 저장 금지), 업로드·조회는 **서버 검증 후 signed URL**.
-- [x] 동의 **`completed` 전** 체육관 등록 요청 **승인 불가**(UI + 서버 `fighter.service` 차단).
-- [x] 체육관 승인 후 **선수 고유번호(`fighterCode`)** 발급.
+- [x] **선수 등록 단계에는 서명/보호자 동의 없음** — 체육관 내부 선수 DB 등록만.
+- [x] 보호자 이름/연락처는 정보로만 저장 가능(등록 완료 조건 아님).
+- [x] 체육관 승인 후 **선수 고유번호(`fighterCode`)** 발급(동의 완료 불필요).
 - [x] 동일 인물 조회: **생년월일 + 성별 + 휴대폰** (주민번호 미수집, `registration.service` 중복 후보).
+
+### 공식 신청서 PDF (대회 신청 단계)
+
+- [x] 관리자: `ApplicationFormTemplate` CRUD — PDF 원본 경로 + `fieldsJson` / `repeatGroupsJson`.
+- [x] 주최자: 대회에 템플릿 연결(좌표 편집 불가).
+- [x] 체육관: 등록 선수 선택 → 선수별 `ApplicationDocument` 생성 → 자동 매핑 미리보기.
+- [x] 선수 본인 서명(`/application-sign/[token]`, `FighterConsent`).
+- [x] 미성년/학생: 보호자 동의(`/guardian-consent/[id]?scope=application`).
+- [x] 체육관 일괄 제출(`EventApplicationBatch`).
+- [x] 주최자: 제출 묶음·선수별 완료본 조회·출력 HTML(`documentSnapshotJson` 기준).
+- [ ] **PDF overlay / 완료 PDF 생성** — MVP TODO(snapshot + 출력 화면 우선).
 
 ### 대회 신청·입금
 
 - [x] 체육관: 공개 대회에서 소속 **활성** 선수 선택 후 디비전 선택 신청 (`application.service` / `/gym/events`).
 - [x] 참가비 계좌 안내(`EventPaymentSetting`) — **계좌번호는 공개 상세가 아니라 로그인 체육관 신청 완료·내역 UI에서만 표시**.
 - [x] 신청 시 `applicationAgreementSnapshot` 및 스트리밍 동의(대회 플래그에 따라 필수).
-- [x] 보호자 동의가 필요한 선수는 **`GuardianConsent.completed`** 전 신청 불가.
+- [x] 보호자/선수 서명은 **대회 신청 `ApplicationDocument` 단계**에서 처리(등록 단계 consent 재사용 안 함).
 - [x] 주최자: 신청자별 **입금 상태 수동 반영**(`payment.service` + `EventApplication.paymentStatus` 동기화).
 - [x] 주최자: 신청 **승인/반려**(MVP: 대기만 반려), 디비전·체육관 등 **클라이언트 필터**(추후 서버 검색 확장 가능).
 
@@ -113,14 +123,14 @@
 ## 4. 완료 정의(샘플 시나리오)
 
 1. 주최자 A가 대회 생성·공개하고 디비전·계좌 정보를 등록한다.
-2. 체육관 B가 링크로 선수 C를 등록 요청하고 보호자 동의·서명까지 완료한다.
-3. B가 C를 승인하여 `fighterCode` 가 발급된다.
-4. B가 대회에 C를 신청하고 입금 안내를 확인한다.
-5. A가 입금을 확인하고 신청을 승인한다.
-6. A가 토너먼트 bracket과 별도 매치 리스트 bracket을 만들고 공개한다.
-7. 관람자가 실시간으로 대진표를 본다.
-8. A가 경기 결과를 확정한다 → `MatchResult` 2건 생성, 전적 캐시 갱신.
-9. A가 결과를 수정한다 → `MatchResultChangeLog` 가 남고 전적이 일관되게 반영된다.
+2. 관리자가 주최측 공식 신청서 PDF 템플릿을 등록하고 A가 대회에 연결한다.
+3. 체육관 B가 링크로 선수 C를 **등록 요청**(서명 없음)하고 B가 승인하여 `fighterCode` 가 발급된다.
+4. B가 대회 신청 화면에서 C를 선택하고 공식 신청서 문서를 생성한다.
+5. C가 선수 본인 서명 링크로 서명하고, 필요 시 보호자가 동의한다.
+6. B가 완료된 선수별 신청서를 묶어 주최자에 제출한다.
+7. B가 (기존 플로우) 디비전별 입금 신청도 진행할 수 있다.
+8. A가 입금을 확인하고 신청을 승인한다.
+9. A가 대진표를 만들고 공개·결과를 확정한다.
 10. 공개 페이지에서 개인정보·서명이 노출되지 않는다.
 
 ## 5. 품질 게이트

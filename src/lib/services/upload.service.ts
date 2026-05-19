@@ -9,6 +9,7 @@ import type { ActorContext } from "@/lib/auth/actor-context";
 import { AppError } from "@/lib/errors/app-error";
 import { requireGymOwner, requireOrganizerForEvent, requireRole } from "@/lib/permissions";
 import { consentRepository } from "@/lib/repositories/consent.repository";
+import { fighterConsentRepository } from "@/lib/repositories/fighter-consent.repository";
 import { createSupabaseAdminClient } from "@/lib/supabase/admin";
 
 /** MVP: 업로드 signed URL 만료(초). api-contract §10.5 권장 범위 내. */
@@ -271,5 +272,107 @@ export async function createEventImageSignedUploadUrl(
     uploadUrl: data.signedUrl,
     path,
     publicUrl,
+  };
+}
+
+export type ApplicationSignaturePathInput = {
+  documentId: string;
+  consentId: string;
+  mimeType: string;
+};
+
+export function buildApplicationAthleteSignaturePath(
+  input: ApplicationSignaturePathInput,
+): string {
+  const ext = extensionForMime(input.mimeType.trim());
+  return `application-signatures/${input.documentId}/${input.consentId}/${randomUUID()}.${ext}`;
+}
+
+export function buildApplicationGuardianSignaturePath(
+  input: ApplicationSignaturePathInput,
+): string {
+  const ext = extensionForMime(input.mimeType.trim());
+  return `application-consents/${input.documentId}/${input.consentId}/${randomUUID()}.${ext}`;
+}
+
+export async function createApplicationAthleteSignatureUploadUrl(input: {
+  token: string;
+  documentId: string;
+  consentId: string;
+  mimeType: string;
+}): Promise<{ uploadUrl: string; path: string; expiresIn: number }> {
+  const mimeType = input.mimeType.trim();
+  if (!ALLOWED_CONSENT_SIGNATURE_MIME.has(mimeType)) {
+    throw new AppError("VALIDATION_ERROR", "허용되지 않는 이미지 형식입니다.");
+  }
+
+  const consent = await fighterConsentRepository.findByToken(input.token.trim());
+  if (
+    !consent ||
+    consent.id !== input.consentId ||
+    consent.linkedDocument?.id !== input.documentId ||
+    consent.status !== "pending"
+  ) {
+    throw new AppError("NOT_FOUND", "서명 세션을 찾을 수 없습니다.");
+  }
+
+  const path = buildApplicationAthleteSignaturePath({
+    documentId: input.documentId,
+    consentId: input.consentId,
+    mimeType,
+  });
+
+  const supabase = createSupabaseAdminClient();
+  const bucket = consentSignaturesBucket();
+  const { data, error } = await supabase.storage
+    .from(bucket)
+    .createSignedUploadUrl(path, { upsert: true });
+
+  if (error || !data?.signedUrl) {
+    throw new AppError("INTERNAL", "업로드 URL 발급에 실패했습니다.", error?.message);
+  }
+
+  return {
+    uploadUrl: data.signedUrl,
+    path,
+    expiresIn: CONSENT_SIGNATURE_UPLOAD_EXPIRES_SEC,
+  };
+}
+
+export async function createApplicationGuardianSignatureUploadUrl(input: {
+  consentId: string;
+  documentId: string;
+  mimeType: string;
+}): Promise<{ uploadUrl: string; path: string; expiresIn: number }> {
+  const mimeType = input.mimeType.trim();
+  if (!ALLOWED_CONSENT_SIGNATURE_MIME.has(mimeType)) {
+    throw new AppError("VALIDATION_ERROR", "허용되지 않는 이미지 형식입니다.");
+  }
+
+  await consentRepository.assertApplicationConsentUploadAllowed({
+    consentId: input.consentId,
+    documentId: input.documentId,
+  });
+
+  const path = buildApplicationGuardianSignaturePath({
+    documentId: input.documentId,
+    consentId: input.consentId,
+    mimeType,
+  });
+
+  const supabase = createSupabaseAdminClient();
+  const bucket = consentSignaturesBucket();
+  const { data, error } = await supabase.storage
+    .from(bucket)
+    .createSignedUploadUrl(path, { upsert: true });
+
+  if (error || !data?.signedUrl) {
+    throw new AppError("INTERNAL", "업로드 URL 발급에 실패했습니다.", error?.message);
+  }
+
+  return {
+    uploadUrl: data.signedUrl,
+    path,
+    expiresIn: CONSENT_SIGNATURE_UPLOAD_EXPIRES_SEC,
   };
 }
