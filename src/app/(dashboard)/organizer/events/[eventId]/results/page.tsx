@@ -3,13 +3,11 @@ import { EventManagementNav } from "@/components/domain/events/EventManagementNa
 import { EmptyState } from "@/components/shared/EmptyState";
 import { buttonVariants } from "@/components/ui/button";
 import { requireActor } from "@/lib/auth/actor";
-import { PermissionError } from "@/lib/auth/permission-error";
-import { AppError } from "@/lib/errors/app-error";
+import { resolveOrganizerEventPageError } from "@/lib/permissions";
 import { MatchRecordOutcome } from "@/lib/enums";
 import { eventService } from "@/lib/services/event.service";
 import { resultService } from "@/lib/services/result.service";
 import { cn } from "@/lib/utils";
-import { notFound } from "next/navigation";
 
 export const dynamic = "force-dynamic";
 
@@ -40,9 +38,7 @@ export default async function OrganizerEventResultsPage({
   try {
     detail = await eventService.getOrganizerEventDetail(actor, eventId);
   } catch (e) {
-    if (e instanceof AppError && e.code === "NOT_FOUND") notFound();
-    if (e instanceof PermissionError && e.reason === "NOT_FOUND") notFound();
-    throw e;
+    resolveOrganizerEventPageError(e);
   }
 
   const rows = await resultService.listEventResults(actor, eventId);

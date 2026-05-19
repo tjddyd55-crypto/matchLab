@@ -1,5 +1,5 @@
 import { requireActor } from "@/lib/auth/actor";
-import { requireOrganizerForEvent } from "@/lib/permissions";
+import { requireOrganizerForEventPage } from "@/lib/permissions";
 import { bracketService } from "@/lib/services/bracket.service";
 import { eventService } from "@/lib/services/event.service";
 import { BracketCreateForm } from "@/components/domain/brackets/BracketCreateForm";
@@ -15,7 +15,7 @@ export default async function OrganizerEventBracketsPage({
   const actor = await requireActor();
   const { eventId } = await params;
 
-  await requireOrganizerForEvent(actor, eventId);
+  await requireOrganizerForEventPage(actor, eventId);
 
   const [brackets, divisions] = await Promise.all([
     bracketService.listOrganizerEventBrackets(actor, eventId),

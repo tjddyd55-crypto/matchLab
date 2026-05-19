@@ -4,6 +4,8 @@ import type { UserRole } from "@/lib/enums";
 import { eventRepository } from "@/lib/repositories/event.repository";
 import { fighterRepository } from "@/lib/repositories/fighter.repository";
 import { PermissionError } from "@/lib/auth/permission-error";
+import { AppError } from "@/lib/errors/app-error";
+import { notFound } from "next/navigation";
 
 /** 허용 역할이 아니면 FORBIDDEN (`requireActor*` 와 조합). */
 export function requireRole(
@@ -29,6 +31,26 @@ export async function requireOrganizerForEvent(
   if (actor.organizerId !== ownerOrgId) {
     throw new PermissionError("FORBIDDEN");
   }
+}
+
+/** 주최자 대회 페이지 — 권한·미존재 시 500 대신 404 */
+export async function requireOrganizerForEventPage(
+  actor: ActorContext,
+  eventId: string,
+): Promise<void> {
+  try {
+    await requireOrganizerForEvent(actor, eventId);
+  } catch (e) {
+    if (e instanceof PermissionError) notFound();
+    throw e;
+  }
+}
+
+/** getOrganizerEventDetail 등 서비스 호출 catch용 */
+export function resolveOrganizerEventPageError(e: unknown): never {
+  if (e instanceof AppError && e.code === "NOT_FOUND") notFound();
+  if (e instanceof PermissionError) notFound();
+  throw e;
 }
 
 export async function requireGymOwner(

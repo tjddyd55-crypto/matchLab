@@ -8,14 +8,12 @@ import { EventRecordingStreamingSettings } from "@/components/domain/events/Even
 import { SpectatorSettingsSection } from "@/components/domain/events/SpectatorSettingsSection";
 import { EventStatusControl } from "@/components/domain/events/EventStatusControl";
 import { EventStatusPill } from "@/components/domain/events/EventStatusPill";
-import { PermissionError } from "@/lib/auth/permission-error";
+import { resolveOrganizerEventPageError } from "@/lib/permissions";
 import { requireActor } from "@/lib/auth/actor";
-import { AppError } from "@/lib/errors/app-error";
 import { EventStatus } from "@/lib/enums";
 import { divisionTemplateService } from "@/lib/services/division-template.service";
 import { eventService } from "@/lib/services/event.service";
 import { eventStaffAccessService } from "@/lib/services/event-staff-access.service";
-import { notFound } from "next/navigation";
 
 export const dynamic = "force-dynamic";
 
@@ -37,9 +35,7 @@ export default async function OrganizerEventDetailPage({
       eventStaffAccessService.listLinksForOrganizer(actor, eventId),
     ]);
   } catch (e) {
-    if (e instanceof AppError && e.code === "NOT_FOUND") notFound();
-    if (e instanceof PermissionError && e.reason === "NOT_FOUND") notFound();
-    throw e;
+    resolveOrganizerEventPageError(e);
   }
 
   const baseUrl =

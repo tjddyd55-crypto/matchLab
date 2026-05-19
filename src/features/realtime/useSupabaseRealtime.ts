@@ -1,6 +1,6 @@
 "use client";
 
-import { useEffect, useMemo, useRef } from "react";
+import { useEffect, useMemo, useRef, useId } from "react";
 import { createSupabaseBrowserClient } from "@/lib/supabase/client";
 
 /**
@@ -43,11 +43,17 @@ export function useSupabaseRealtime(opts: {
     [opts.subscriptions],
   );
 
+  const instanceSuffix = useId().replace(/:/g, "");
+  const channelName = useMemo(
+    () => `${opts.channelName}:${instanceSuffix}`,
+    [opts.channelName, instanceSuffix],
+  );
+
   useEffect(() => {
     if (opts.enabled === false || opts.subscriptions.length === 0) return;
 
     const client = createSupabaseBrowserClient();
-    const ch = client.channel(opts.channelName);
+    const ch = client.channel(channelName);
 
     for (const sub of opts.subscriptions) {
       ch.on(
@@ -69,5 +75,5 @@ export function useSupabaseRealtime(opts: {
     return () => {
       client.removeChannel(ch);
     };
-  }, [opts.channelName, opts.enabled, subsKey]); // eslint-disable-line react-hooks/exhaustive-deps -- 구독 내용은 subsKey(JSON)와 동기
+  }, [channelName, opts.enabled, subsKey]); // eslint-disable-line react-hooks/exhaustive-deps -- 구독 내용은 subsKey(JSON)와 동기
 }

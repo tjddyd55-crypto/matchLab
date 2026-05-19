@@ -2,11 +2,9 @@ import Link from "next/link";
 import { EmptyState } from "@/components/shared/EmptyState";
 import { buttonVariants } from "@/components/ui/button";
 import { requireActor } from "@/lib/auth/actor";
-import { AppError } from "@/lib/errors/app-error";
-import { PermissionError } from "@/lib/auth/permission-error";
+import { resolveOrganizerEventPageError } from "@/lib/permissions";
 import { eventService } from "@/lib/services/event.service";
 import { liveStreamService } from "@/lib/services/live-stream.service";
-import { notFound } from "next/navigation";
 import { cn } from "@/lib/utils";
 
 export const dynamic = "force-dynamic";
@@ -23,9 +21,7 @@ export default async function OrganizerEventLivePage({
   try {
     detail = await eventService.getOrganizerEventDetail(actor, eventId);
   } catch (e) {
-    if (e instanceof AppError && e.code === "NOT_FOUND") notFound();
-    if (e instanceof PermissionError && e.reason === "NOT_FOUND") notFound();
-    throw e;
+    resolveOrganizerEventPageError(e);
   }
 
   const streams = await liveStreamService.listForOrganizerEvent(actor, eventId);

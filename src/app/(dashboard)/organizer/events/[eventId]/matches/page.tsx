@@ -4,7 +4,7 @@ import { OrganizerMatchesRealtimeBridge } from "@/components/domain/matches/Orga
 import { buttonVariants } from "@/components/ui/button";
 import { cn } from "@/lib/utils";
 import { requireActor } from "@/lib/auth/actor";
-import { requireOrganizerForEvent } from "@/lib/permissions";
+import { requireOrganizerForEventPage } from "@/lib/permissions";
 import { matchService } from "@/lib/services/match.service";
 
 export const dynamic = "force-dynamic";
@@ -17,7 +17,7 @@ export default async function OrganizerEventMatchesPage({
   const actor = await requireActor();
   const { eventId } = await params;
 
-  await requireOrganizerForEvent(actor, eventId);
+  await requireOrganizerForEventPage(actor, eventId);
 
   const matches = await matchService.listOrganizerEventMatches(actor, eventId);
   const eventTitle = matches[0]?.eventTitle ?? "행사";

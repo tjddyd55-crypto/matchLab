@@ -1,5 +1,5 @@
 import { requireActor } from "@/lib/auth/actor";
-import { requireOrganizerForEvent } from "@/lib/permissions";
+import { requireOrganizerForEventPage } from "@/lib/permissions";
 import { applicationService } from "@/lib/services/application.service";
 import { OrganizerApplicationsBoard } from "@/components/domain/applications/OrganizerApplicationsBoard";
 
@@ -13,7 +13,7 @@ export default async function OrganizerEventApplicationsPage({
   const actor = await requireActor();
   const { eventId } = await params;
 
-  await requireOrganizerForEvent(actor, eventId);
+  await requireOrganizerForEventPage(actor, eventId);
 
   const rows = await applicationService.listOrganizerEventApplications(
     actor,

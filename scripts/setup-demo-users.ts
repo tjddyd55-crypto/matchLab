@@ -265,6 +265,22 @@ async function main() {
     },
   });
 
+  const demoOrganizer = await prisma.organizer.findUnique({
+    where: { userId: orgUser.id },
+    select: { id: true },
+  });
+  if (demoOrganizer) {
+    const linked = await prisma.event.updateMany({
+      where: { publicSlug: "sample-open-2026" },
+      data: { organizerId: demoOrganizer.id },
+    });
+    if (linked.count > 0) {
+      console.info(
+        "[setup-demo-users] sample-open-2026 대회를 데모 주최자 소유로 연결했습니다.",
+      );
+    }
+  }
+
   // --- Gym ---
   const gymRow = DEMO_ACCOUNTS[2]!;
   const gymAuthId = authIds[gymRow.email]!;
