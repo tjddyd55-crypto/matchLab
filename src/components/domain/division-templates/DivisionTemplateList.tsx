@@ -10,8 +10,10 @@ import { deleteDivisionTemplateAction } from "@/features/division-templates/acti
 
 export function DivisionTemplateList({
   templates,
+  showOrganizer = false,
 }: {
   templates: DivisionTemplateDetailVM[];
+  showOrganizer?: boolean;
 }) {
   const router = useRouter();
   const [delState, delAction, delPending] = useActionState(
@@ -40,6 +42,11 @@ export function DivisionTemplateList({
         >
           <div className="min-w-0 space-y-1">
             <div className="font-medium">{t.title}</div>
+            {showOrganizer ? (
+              <div className="text-muted-foreground text-xs">
+                주최자: {t.organizerName}
+              </div>
+            ) : null}
             <div className="text-muted-foreground text-xs">
               항목 {t.items.length}개 · 마지막 수정{" "}
               {new Date(t.updatedAt).toLocaleString("ko-KR")}

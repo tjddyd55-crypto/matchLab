@@ -31,9 +31,9 @@ export default async function OrganizerEventDetailPage({
   let divisionTemplates;
   let staffRecorderLinks;
   try {
-    [detail, divisionTemplates, staffRecorderLinks] = await Promise.all([
-      eventService.getOrganizerEventDetail(actor, eventId),
-      divisionTemplateService.listTemplates(actor),
+    detail = await eventService.getOrganizerEventDetail(actor, eventId);
+    [divisionTemplates, staffRecorderLinks] = await Promise.all([
+      divisionTemplateService.listTemplatesForEvent(actor, eventId),
       eventStaffAccessService.listLinksForOrganizer(actor, eventId),
     ]);
   } catch (e) {

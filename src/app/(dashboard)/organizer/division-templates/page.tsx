@@ -1,9 +1,12 @@
 import Link from "next/link";
 import { DivisionTemplateForm } from "@/components/domain/division-templates/DivisionTemplateForm";
 import { DivisionTemplateList } from "@/components/domain/division-templates/DivisionTemplateList";
+import { EmptyState } from "@/components/shared/EmptyState";
 import { buttonVariants } from "@/components/ui/button";
 import { requireActor } from "@/lib/auth/actor";
+import { AppError } from "@/lib/errors/app-error";
 import { divisionTemplateService } from "@/lib/services/division-template.service";
+import type { DivisionTemplateDetailVM } from "@/lib/services/division-template.service";
 import { cn } from "@/lib/utils";
 
 export const dynamic = "force-dynamic";
@@ -15,25 +18,39 @@ export default async function OrganizerDivisionTemplatesPage({
 }) {
   const actor = await requireActor();
   const { organizerId: organizerIdParam } = await searchParams;
+  const organizerFilter = organizerIdParam?.trim() || undefined;
 
-  const canLoadTemplates =
-    actor.role !== "admin" || Boolean(organizerIdParam?.trim());
+  let templates: DivisionTemplateDetailVM[] = [];
+  let loadError: string | null = null;
 
-  const templates = canLoadTemplates
-    ? await divisionTemplateService.listTemplatesDetailed(actor, organizerIdParam)
-    : [];
+  try {
+    templates = await divisionTemplateService.listTemplatesDetailed(
+      actor,
+      organizerFilter,
+    );
+  } catch (e) {
+    if (e instanceof AppError && e.code === "FORBIDDEN") {
+      loadError = e.message;
+    } else {
+      throw e;
+    }
+  }
+
+  const isAdmin = actor.role === "admin";
+  const canCreateTemplate = !isAdmin || Boolean(organizerFilter);
 
   return (
     <div className="mx-auto flex w-full max-w-4xl flex-col gap-8 px-4 py-8 md:px-6">
-      {actor.role === "admin" && !organizerIdParam ? (
-        <p className="rounded-md border border-amber-500/40 bg-amber-500/10 px-3 py-2 text-sm">
-          관리자 계정은 주최자별 템플릿을 보려면 URL에{" "}
+      {isAdmin ? (
+        <p className="text-muted-foreground rounded-md border bg-muted/30 px-3 py-2 text-sm">
+          관리자는 전체 템플릿을 볼 수 있습니다. 특정 주최자만 보려면 URL에{" "}
           <code className="rounded bg-muted px-1 py-0.5 text-xs">
             ?organizerId=(주최자 ID)
           </code>
-          를 붙여 주세요.
+          를 붙이세요. 새 템플릿 저장은 주최자 ID가 지정된 경우에만 가능합니다.
         </p>
       ) : null}
+
       <div className="flex flex-col gap-2">
         <Link
           href="/organizer/events"
@@ -51,13 +68,26 @@ export default async function OrganizerDivisionTemplatesPage({
         </p>
       </div>
 
-      {canLoadTemplates ? (
-        <>
-          <DivisionTemplateList templates={templates} />
-          <DivisionTemplateForm
-            organizerIdForAdmin={organizerIdParam?.trim()}
-          />
-        </>
+      {loadError ? (
+        <EmptyState
+          title="템플릿을 불러올 수 없습니다"
+          description={loadError}
+        />
+      ) : templates.length === 0 ? (
+        <EmptyState
+          title="등록된 체급표 템플릿이 없습니다"
+          description={
+            canCreateTemplate
+              ? "아래 양식에서 새 템플릿을 만들 수 있습니다."
+              : "관리자는 주최자 ID를 지정한 뒤 템플릿을 추가할 수 있습니다."
+          }
+        />
+      ) : (
+        <DivisionTemplateList templates={templates} showOrganizer={isAdmin} />
+      )}
+
+      {canCreateTemplate && !loadError ? (
+        <DivisionTemplateForm organizerIdForAdmin={organizerFilter} />
       ) : null}
     </div>
   );

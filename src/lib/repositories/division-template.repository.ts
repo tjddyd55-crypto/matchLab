@@ -8,11 +8,30 @@ function db(tx?: Prisma.TransactionClient) {
   return tx ?? prisma;
 }
 
+export type DivisionTemplateListRow = {
+  id: string;
+  organizerId: string;
+  title: string;
+  sportType: string | null;
+  description: string | null;
+  items: Prisma.JsonValue;
+  createdAt: Date;
+  updatedAt: Date;
+  organizer: { id: string; name: string };
+};
+
 export const divisionTemplateRepository = {
-  async listByOrganizer(organizerId: string, tx?: Prisma.TransactionClient) {
+  async list(
+    options?: { organizerId?: string },
+    tx?: Prisma.TransactionClient,
+  ): Promise<DivisionTemplateListRow[]> {
+    const organizerId = options?.organizerId?.trim();
     return db(tx).divisionTemplate.findMany({
-      where: { organizerId },
+      where: organizerId ? { organizerId } : undefined,
       orderBy: [{ updatedAt: "desc" }],
+      include: {
+        organizer: { select: { id: true, name: true } },
+      },
     });
   },
 

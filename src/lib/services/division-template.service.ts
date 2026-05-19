@@ -3,7 +3,10 @@ import "server-only";
 import type { ActorContext } from "@/lib/auth/actor-context";
 import { AppError } from "@/lib/errors/app-error";
 import { requireOrganizerForEvent, requireRole } from "@/lib/permissions";
-import { divisionTemplateRepository } from "@/lib/repositories/division-template.repository";
+import {
+  divisionTemplateRepository,
+  type DivisionTemplateListRow,
+} from "@/lib/repositories/division-template.repository";
 import { eventRepository } from "@/lib/repositories/event.repository";
 import type {
   ApplyDivisionTemplateInput,
@@ -12,14 +15,26 @@ import type {
   UpdateDivisionTemplateInput,
 } from "@/lib/validators/division-template.validator";
 
-function resolveOrganizerId(actor: ActorContext, inputOrganizerId?: string) {
+/** 생성·수정 등 쓰기 작업용 — admin은 대상 주최자 ID가 필요 */
+function resolveOrganizerIdForWrite(
+  actor: ActorContext,
+  inputOrganizerId?: string,
+) {
   if (actor.role === "admin") {
     const id = inputOrganizerId?.trim();
-    if (!id) throw new AppError("VALIDATION_ERROR", "organizerId가 필요합니다.");
+    if (!id) {
+      throw new AppError(
+        "VALIDATION_ERROR",
+        "템플릿을 저장하려면 주최자(organizerId)를 지정해 주세요.",
+      );
+    }
     return id;
   }
   if (!actor.organizerId) {
-    throw new AppError("FORBIDDEN", "주최자 정보가 없습니다.");
+    throw new AppError(
+      "FORBIDDEN",
+      "주최자 프로필이 없습니다. 관리자에게 계정 연결을 요청해 주세요.",
+    );
   }
   return actor.organizerId;
 }
@@ -32,6 +47,29 @@ function assertTemplateOwned(
   if (!actor.organizerId || templateOrganizerId !== actor.organizerId) {
     throw new AppError("FORBIDDEN", "이 템플릿에 접근할 수 없습니다.");
   }
+}
+
+async function listTemplateRows(
+  actor: ActorContext,
+  options?: { organizerId?: string },
+): Promise<DivisionTemplateListRow[]> {
+  requireRole(actor, ["organizer", "admin"]);
+
+  if (actor.role === "admin") {
+    const filterId = options?.organizerId?.trim();
+    return divisionTemplateRepository.list(
+      filterId ? { organizerId: filterId } : undefined,
+    );
+  }
+
+  if (!actor.organizerId) {
+    throw new AppError(
+      "FORBIDDEN",
+      "주최자 프로필이 없습니다. 관리자에게 계정 연결을 요청해 주세요.",
+    );
+  }
+
+  return divisionTemplateRepository.list({ organizerId: actor.organizerId });
 }
 
 function normalizeDivisionKey(d: DivisionTemplateItemInput): string {
@@ -76,6 +114,8 @@ export type DivisionTemplateListItemVM = {
   description: string | null;
   itemCount: number;
   updatedAt: string;
+  organizerId: string;
+  organizerName: string;
 };
 
 export type DivisionTemplateDetailVM = {
@@ -85,41 +125,68 @@ export type DivisionTemplateDetailVM = {
   description: string | null;
   items: DivisionTemplateItemInput[];
   updatedAt: string;
+  organizerId: string;
+  organizerName: string;
 };
+
+function mapListItemVM(row: DivisionTemplateListRow): DivisionTemplateListItemVM {
+  return {
+    id: row.id,
+    title: row.title,
+    sportType: row.sportType,
+    description: row.description,
+    itemCount: Array.isArray(row.items) ? row.items.length : 0,
+    updatedAt: row.updatedAt.toISOString(),
+    organizerId: row.organizerId,
+    organizerName: row.organizer.name,
+  };
+}
+
+function mapDetailVM(row: DivisionTemplateListRow): DivisionTemplateDetailVM {
+  return {
+    id: row.id,
+    title: row.title,
+    sportType: row.sportType,
+    description: row.description,
+    items: parseTemplateItemsFromJson(row.items),
+    updatedAt: row.updatedAt.toISOString(),
+    organizerId: row.organizerId,
+    organizerName: row.organizer.name,
+  };
+}
 
 export const divisionTemplateService = {
   async listTemplatesDetailed(
     actor: ActorContext,
     organizerIdInput?: string,
   ): Promise<DivisionTemplateDetailVM[]> {
-    requireRole(actor, ["organizer", "admin"]);
-    const organizerId = resolveOrganizerId(actor, organizerIdInput);
-    const rows = await divisionTemplateRepository.listByOrganizer(organizerId);
-    return rows.map((r) => ({
-      id: r.id,
-      title: r.title,
-      sportType: r.sportType,
-      description: r.description,
-      items: parseTemplateItemsFromJson(r.items),
-      updatedAt: r.updatedAt.toISOString(),
-    }));
+    const rows = await listTemplateRows(actor, {
+      organizerId: organizerIdInput,
+    });
+    return rows.map(mapDetailVM);
   },
 
   async listTemplates(
     actor: ActorContext,
     organizerIdInput?: string,
   ): Promise<DivisionTemplateListItemVM[]> {
-    requireRole(actor, ["organizer", "admin"]);
-    const organizerId = resolveOrganizerId(actor, organizerIdInput);
-    const rows = await divisionTemplateRepository.listByOrganizer(organizerId);
-    return rows.map((r) => ({
-      id: r.id,
-      title: r.title,
-      sportType: r.sportType,
-      description: r.description,
-      itemCount: Array.isArray(r.items) ? r.items.length : 0,
-      updatedAt: r.updatedAt.toISOString(),
-    }));
+    const rows = await listTemplateRows(actor, {
+      organizerId: organizerIdInput,
+    });
+    return rows.map(mapListItemVM);
+  },
+
+  /** 대회 상세·템플릿 적용 UI — admin도 event.organizerId 기준으로 조회 */
+  async listTemplatesForEvent(
+    actor: ActorContext,
+    eventId: string,
+  ): Promise<DivisionTemplateListItemVM[]> {
+    await requireOrganizerForEvent(actor, eventId);
+    const eventRow = await eventRepository.findOrganizerEventById(eventId);
+    if (!eventRow) {
+      throw new AppError("NOT_FOUND", "대회를 찾을 수 없습니다.");
+    }
+    return this.listTemplates(actor, eventRow.organizerId);
   },
 
   async createTemplate(
@@ -127,7 +194,7 @@ export const divisionTemplateService = {
     input: CreateDivisionTemplateInput,
   ): Promise<{ templateId: string }> {
     requireRole(actor, ["organizer", "admin"]);
-    const organizerId = resolveOrganizerId(actor, input.organizerId);
+    const organizerId = resolveOrganizerIdForWrite(actor, input.organizerId);
     const row = await divisionTemplateRepository.create({
       organizerId,
       title: input.title,
