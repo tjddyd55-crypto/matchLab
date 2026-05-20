@@ -84,6 +84,27 @@ export async function getApplicationFormTemplatePdfViewUrlAction(
   });
 }
 
+export async function getApplicationFormTemplatePdfViewUrlByPathAction(
+  formData: FormData,
+): Promise<
+  ActionResult<{ viewUrl: string; expiresIn: number; fileName: string }>
+> {
+  return mapCaught(async () => {
+    const actor = await requireActorFromMutation();
+    const path = formReq(formData, "path");
+    const fileName = formReq(formData, "fileName") || "template.pdf";
+    if (!path) {
+      return actionFailure("VALIDATION_ERROR", "PDF 경로가 필요합니다.");
+    }
+    const result = await applicationPdfAccessService.getTemplatePdfViewUrlByPath(
+      actor,
+      path,
+      fileName,
+    );
+    return actionSuccess(result);
+  });
+}
+
 export async function getApplicationDocumentGeneratedPdfViewUrlAction(
   formData: FormData,
 ): Promise<

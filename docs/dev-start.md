@@ -319,9 +319,15 @@ npm run dev
 
 ## 아직 구현되지 않은 것 (TODO)
 
-- PDF 좌표 **시각 편집기** — JSON textarea + 필드 미리보기 표만 제공, 기존 좌표 편집 모듈 연결 예정.
+- PDF 좌표 **시각 편집기** — admin `/admin/application-form-templates/*` 에서 PDF overlay 박스 편집(보험 레포 `pdf-engine/PdfCoordinateEditor`·`PdfOverlayCanvas` 로컬화). JSON textarea는 고급 모드.
 - **Railway schema 변경 후** `npm run db:push` 필요 (로컬에서 `DATABASE_PUBLIC_URL` 세션 설정). **Storage bucket만 추가 시 schema 변경 없음** — Supabase에서 `application-forms`, `application-documents` private bucket 생성.
 - 카카오 알림톡·SMS·웹푸시(인앱 `Notification` / Realtime 훅은 `features/realtime` 및 `Public*RealtimeBridge` 참고)
+
+### 공식 신청서 PDF 좌표 편집 (보험 플랫폼 참고)
+
+- 참고 레포: `tjddyd55-crypto/insurance` — `src/features/pdf-engine/components/PdfCoordinateEditor.tsx`, `PdfOverlayCanvas.tsx`, `lib/coordinateMath.ts`
+- 본 프로젝트: `src/components/domain/application-form-templates/pdf-editor/*`, `src/lib/pdf-editor/pdf-coordinate-math.ts`
+- **차이:** 보험 레포는 bottom-left pt 저장, 본 프로젝트는 **top-left pt** 저장 → `application-form-pdf.service.ts` overlay와 호환
 
 ### 공식 신청서 PDF 좌표계 주의
 

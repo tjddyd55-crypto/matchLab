@@ -55,6 +55,23 @@ export const applicationPdfAccessService = {
     };
   },
 
+  async getTemplatePdfViewUrlByPath(
+    actor: ActorContext,
+    path: string,
+    fileName: string,
+  ): Promise<{ viewUrl: string; expiresIn: number; fileName: string }> {
+    requireRole(actor, ["admin"]);
+    assertTemplatePdfPath(path);
+    const { signedUrl, expiresIn } = await createApplicationFormPdfDownloadSignedUrl(
+      { path },
+    );
+    return {
+      viewUrl: signedUrl,
+      expiresIn,
+      fileName: fileName || "template.pdf",
+    };
+  },
+
   async getDocumentGeneratedPdfViewUrl(
     actor: ActorContext,
     eventId: string,

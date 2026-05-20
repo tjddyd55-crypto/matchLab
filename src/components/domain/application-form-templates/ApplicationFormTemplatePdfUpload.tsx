@@ -15,7 +15,7 @@ export function ApplicationFormTemplatePdfUpload({
 }: {
   templateId?: string;
   fileName: string | null;
-  onUploaded: (path: string, originalFileName: string) => void;
+  onUploaded: (path: string, originalFileName: string, pdfBytes: ArrayBuffer) => void;
 }) {
   const inputRef = useRef<HTMLInputElement>(null);
   const [pending, startTransition] = useTransition();
@@ -40,6 +40,14 @@ export function ApplicationFormTemplatePdfUpload({
 
     setError(null);
     startTransition(async () => {
+      let pdfBytes: ArrayBuffer;
+      try {
+        pdfBytes = await file.arrayBuffer();
+      } catch {
+        setError("PDF 파일을 읽을 수 없습니다.");
+        return;
+      }
+
       const fd = new FormData();
       if (templateId) fd.set("templateId", templateId);
       fd.set("mimeType", APPLICATION_FORM_PDF_MIME);
@@ -60,7 +68,7 @@ export function ApplicationFormTemplatePdfUpload({
       }
 
       setUploadedName(file.name);
-      onUploaded(issue.data.path, file.name);
+      onUploaded(issue.data.path, file.name, pdfBytes);
     });
   }
 

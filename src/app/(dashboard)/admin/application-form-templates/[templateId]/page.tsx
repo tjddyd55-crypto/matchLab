@@ -1,7 +1,6 @@
 import Link from "next/link";
 import { notFound } from "next/navigation";
-import { ApplicationFormTemplateForm } from "@/components/domain/application-form-templates/ApplicationFormTemplateForm";
-import { ApplicationFormTemplatePdfPreview } from "@/components/domain/application-form-templates/ApplicationFormTemplatePdfPreview";
+import { ApplicationFormTemplateEditor } from "@/components/domain/application-form-templates/ApplicationFormTemplateEditor";
 import { buttonVariants } from "@/components/ui/button";
 import { requireActor } from "@/lib/auth/actor";
 import { AppError } from "@/lib/errors/app-error";
@@ -32,7 +31,7 @@ export default async function EditApplicationFormTemplatePage({
   }
 
   return (
-    <div className="mx-auto flex w-full max-w-3xl flex-col gap-6 px-4 py-8 md:px-6">
+    <div className="mx-auto flex w-full max-w-7xl flex-col gap-6 px-4 py-8 md:px-6">
       <Link
         href="/admin/application-form-templates"
         className={cn(buttonVariants({ variant: "ghost", size: "sm" }), "-ml-2 w-fit")}
@@ -43,13 +42,7 @@ export default async function EditApplicationFormTemplatePage({
         템플릿 편집
       </h1>
       <p className="text-muted-foreground text-sm">{template.title}</p>
-      {template.originalPdfFileName ? (
-        <ApplicationFormTemplatePdfPreview
-          templateId={template.id}
-          fileName={template.originalPdfFileName}
-        />
-      ) : null}
-      <ApplicationFormTemplateForm mode="edit" initial={template} />
+      <ApplicationFormTemplateEditor mode="edit" initial={template} />
     </div>
   );
 }
