@@ -8,16 +8,14 @@ import {
   createDefaultField,
   duplicateField,
 } from "@/lib/pdf-editor/application-pdf-field";
-import { labelForApplicationFieldSource } from "@/lib/pdf-editor/application-field-sources";
 import { PdfPageCanvas } from "@/components/domain/application-form-templates/pdf-editor/PdfPageCanvas";
 import { PdfFieldToolbar } from "@/components/domain/application-form-templates/pdf-editor/PdfFieldToolbar";
 import { PdfFieldInspector } from "@/components/domain/application-form-templates/pdf-editor/PdfFieldInspector";
-import { cn } from "@/lib/utils";
+import { PdfFieldList } from "@/components/domain/application-form-templates/pdf-editor/PdfFieldList";
 
 /**
  * 관리자 PDF 좌표 편집기.
- * 보험 레포 PdfCoordinateEditor + PdfOverlayCanvas UX를 참고해
- * ApplicationFormTemplate.fieldsJson(top-left pt) 구조에 맞게 로컬화.
+ * [좌표 목록 220px] [좌표 상세 280px] [PDF 편집 flex-1]
  */
 export function PdfCoordinateEditor({
   pdfBytes,
@@ -35,6 +33,7 @@ export function PdfCoordinateEditor({
   const [pendingType, setPendingType] = useState<ApplicationPdfFieldType | null>(
     null,
   );
+  const [zoom, setZoom] = useState(1);
 
   const selectedField = useMemo(
     () => fields.find((f) => f.id === selectedFieldId) ?? null,
@@ -71,85 +70,31 @@ export function PdfCoordinateEditor({
     [existingIds, fields, onChange, pendingType],
   );
 
-  const pageFields = fields.filter((f) => f.page === pageIndex + 1);
+  const selectField = useCallback((field: ApplicationPdfField) => {
+    setSelectedFieldId(field.id);
+    setPageIndex(Math.max(0, field.page - 1));
+  }, []);
+
+  if (!pdfBytes) {
+    return (
+      <p className="text-muted-foreground rounded-lg border border-dashed p-8 text-center text-sm">
+        PDF를 먼저 업로드하세요.
+      </p>
+    );
+  }
 
   return (
-    <div className="space-y-4">
-      <PdfFieldToolbar
-        pageIndex={pageIndex}
-        pageCount={pageCount}
-        onPageChange={setPageIndex}
-        onAddField={(type) => {
-          setPendingType(type);
-          setPickMode(true);
-        }}
-        pickMode={pickMode}
-        onPickModeChange={(v) => {
-          setPickMode(v);
-          if (!v) setPendingType(null);
-        }}
-      />
-      {pickMode ? (
-        <p className="text-muted-foreground text-xs">
-          PDF 위를 드래그해 필드 영역을 그리세요.
-          {pendingType
-            ? ` (${APPLICATION_PDF_FIELD_TYPE_LABELS[pendingType]})`
-            : ""}
-        </p>
-      ) : null}
-
-      <div className="grid gap-4 xl:grid-cols-[200px_minmax(0,1fr)_260px]">
-        <aside className="space-y-2">
-          <h3 className="text-xs font-semibold">필드 목록</h3>
-          <ul className="max-h-[480px] space-y-1 overflow-y-auto text-xs">
-            {fields.length === 0 ? (
-              <li className="text-muted-foreground">필드 없음</li>
-            ) : (
-              fields.map((f) => (
-                <li key={f.id}>
-                  <button
-                    type="button"
-                    className={cn(
-                      "w-full rounded-md border px-2 py-1.5 text-left",
-                      f.id === selectedFieldId
-                        ? "border-primary bg-primary/5"
-                        : "hover:bg-muted/50",
-                    )}
-                    onClick={() => {
-                      setSelectedFieldId(f.id);
-                      setPageIndex(Math.max(0, f.page - 1));
-                    }}
-                  >
-                    <div className="font-medium">{f.label}</div>
-                    <div className="text-muted-foreground font-mono">
-                      p{f.page} · {f.type}
-                    </div>
-                    <div className="text-muted-foreground truncate">
-                      {labelForApplicationFieldSource(f.source)}
-                    </div>
-                  </button>
-                </li>
-              ))
-            )}
-          </ul>
-          <p className="text-muted-foreground text-[11px]">
-            현재 페이지 필드: {pageFields.length}개
-          </p>
-        </aside>
-
-        <PdfPageCanvas
-          pdfBytes={pdfBytes}
-          pageIndex={pageIndex}
+    <div className="flex flex-col gap-4 lg:flex-row lg:items-stretch">
+      <aside className="w-full shrink-0 space-y-2 lg:w-[220px]">
+        <h3 className="text-xs font-semibold">좌표 목록</h3>
+        <PdfFieldList
           fields={fields}
           selectedFieldId={selectedFieldId}
-          pickMode={pickMode}
-          pendingFieldType={pendingType}
-          onSelectField={setSelectedFieldId}
-          onFieldRectChange={(id, rect) => patchField(id, rect)}
-          onPickComplete={onPickComplete}
-          onPageMeta={({ pageCount: c }) => setPageCount(Math.max(1, c))}
+          onSelect={selectField}
         />
+      </aside>
 
+      <aside className="w-full shrink-0 lg:w-[280px]">
         <PdfFieldInspector
           field={selectedField}
           onChange={(patch) => {
@@ -172,6 +117,48 @@ export function PdfCoordinateEditor({
             setSelectedFieldId(dup.id);
           }}
         />
+      </aside>
+
+      <div className="min-w-0 flex-1 overflow-hidden rounded-lg border">
+        <PdfFieldToolbar
+          pageIndex={pageIndex}
+          pageCount={pageCount}
+          zoom={zoom}
+          onPageChange={setPageIndex}
+          onAddField={(type) => {
+            setPendingType(type);
+            setPickMode(true);
+          }}
+          pickMode={pickMode}
+          onPickModeChange={(v) => {
+            setPickMode(v);
+            if (!v) setPendingType(null);
+          }}
+          onZoomChange={setZoom}
+        />
+        {pickMode ? (
+          <p className="text-muted-foreground border-b px-3 py-2 text-xs">
+            PDF 위를 드래그해 필드 영역을 그리세요.
+            {pendingType
+              ? ` (${APPLICATION_PDF_FIELD_TYPE_LABELS[pendingType]})`
+              : ""}
+          </p>
+        ) : null}
+        <div className="p-2">
+          <PdfPageCanvas
+            pdfBytes={pdfBytes}
+            pageIndex={pageIndex}
+            fields={fields}
+            selectedFieldId={selectedFieldId}
+            pickMode={pickMode}
+            pendingFieldType={pendingType}
+            onSelectField={setSelectedFieldId}
+            onFieldRectChange={(id, rect) => patchField(id, rect)}
+            onPickComplete={onPickComplete}
+            onPageMeta={({ pageCount: c }) => setPageCount(Math.max(1, c))}
+            zoom={zoom}
+          />
+        </div>
       </div>
     </div>
   );

@@ -35,7 +35,7 @@
 
 ### 공식 신청서 PDF (대회 신청 단계)
 
-- [x] 관리자: `ApplicationFormTemplate` CRUD — **실제 PDF 업로드** + **PDF 좌표 시각 편집 UI**(보험 플랫폼 `PdfCoordinateEditor` 참고) + `fieldsJson` 자동 저장.
+- [x] 관리자: `ApplicationFormTemplate` CRUD — **실제 PDF 업로드** + **PDF 좌표 시각 편집 UI**(기본) + `fieldsJson` 자동 저장. JSON·repeatGroups 등은 **고급 설정**(접힘).
 - [x] 주최자: 대회에 템플릿 연결(좌표 편집 불가).
 - [x] 체육관: 등록 선수 선택 → 선수별 `ApplicationDocument` 생성 → 자동 매핑 미리보기.
 - [x] 선수 본인 서명(`/application-sign/[token]`, `FighterConsent`).

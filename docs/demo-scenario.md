@@ -15,8 +15,8 @@ MVP 범위는 `docs/mvp-scope.md`를 기준으로 하며, 본 문서는 **시연
 
 ### 1.1 공식 신청서 E2E 테스트 순서
 
-1. **admin** — `/admin/application-form-templates/new`에서 **실제 PDF 업로드** → PDF 위 필드 박스 생성·드래그·리사이즈 → source 연결 → 저장.
-2. **admin** — (고급) 「고급 JSON 편집」에서 fieldsJson 직접 수정 후 「JSON을 화면에 반영」 가능.
+1. **admin** — `/admin/application-form-templates/new`에서 **실제 PDF 업로드** → 업로드 직후 좌표는 **비어 있음** → PDF 위 「+ 텍스트」 등으로 필드 박스 추가·드래그·리사이즈 → source 연결 → 저장.
+2. **admin** — (선택) 「고급 설정」에서 fieldsJson 직접 수정 후 「JSON을 화면에 반영」 또는 「예시 좌표 불러오기」(자동 적용 없음).
 3. **organizer** — `/organizer/events/{eventId}`에서 공식 신청서 템플릿 연결 저장.
 4. **gym** — `/gym/events/{eventId}/apply`에서 선수·부문 선택 → 「선수별 신청서 생성」.
 5. **선수** — 「서명 페이지 열기」 또는 `/application-sign/[token]`에서 서명 완료.

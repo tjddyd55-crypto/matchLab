@@ -33,6 +33,7 @@ export function PdfPageCanvas({
   onFieldRectChange,
   onPickComplete,
   onPageMeta,
+  zoom = 1,
 }: {
   pdfBytes: ArrayBuffer | null;
   pageIndex: number;
@@ -50,6 +51,7 @@ export function PdfPageCanvas({
     page: number,
   ) => void;
   onPageMeta?: (meta: { pageCount: number; pageSizePt: PdfPageSizePt }) => void;
+  zoom?: number;
 }) {
   const wrapRef = useRef<HTMLDivElement | null>(null);
   const canvasRef = useRef<HTMLCanvasElement | null>(null);
@@ -116,7 +118,7 @@ export function PdfPageCanvas({
         if (!wrap || !canvas || cancelled) return;
 
         const maxW = Math.min(900, Math.max(320, wrap.clientWidth || 640));
-        const scale = maxW / base.width;
+        const scale = (maxW / base.width) * zoom;
         const viewport = page.getViewport({ scale });
         canvas.width = viewport.width;
         canvas.height = viewport.height;
@@ -146,7 +148,7 @@ export function PdfPageCanvas({
     return () => {
       cancelled = true;
     };
-  }, [pdfBytes, pageIndex, onPageMeta]);
+  }, [pdfBytes, pageIndex, onPageMeta, zoom]);
 
   const relativePoint = useCallback((e: ReactPointerEvent) => {
     const canvas = canvasRef.current;

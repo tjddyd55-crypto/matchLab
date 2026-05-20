@@ -15,7 +15,6 @@ import {
   EXAMPLE_APPLICATION_FORM_FIELDS_JSON,
   EXAMPLE_APPLICATION_FORM_REPEAT_GROUPS_JSON,
 } from "@/lib/constants/application-form-template-examples";
-import { APPLICATION_FORM_COORDINATE_SYSTEM } from "@/lib/constants/application-form-pdf-upload";
 import { ApplicationFormTemplatePdfUpload } from "@/components/domain/application-form-templates/ApplicationFormTemplatePdfUpload";
 import { PdfCoordinateEditor } from "@/components/domain/application-form-templates/pdf-editor/PdfCoordinateEditor";
 import {
@@ -31,6 +30,34 @@ function stringifyJson(value: unknown, fallback: string): string {
     return JSON.stringify(value ?? JSON.parse(fallback), null, 2);
   } catch {
     return fallback;
+  }
+}
+
+function validateFields(fields: ApplicationPdfField[]): string | null {
+  const ids = new Set<string>();
+  for (const f of fields) {
+    if (!f.id.trim()) return "필드 id가 비어 있습니다.";
+    if (ids.has(f.id)) return `필드 id "${f.id}"가 중복되었습니다.`;
+    ids.add(f.id);
+    if (!Number.isFinite(f.page) || f.page < 1) {
+      return `"${f.label}" 페이지 번호가 올바르지 않습니다.`;
+    }
+    for (const key of ["x", "y", "width", "height"] as const) {
+      if (!Number.isFinite(f[key])) {
+        return `"${f.label}" ${key} 값이 올바르지 않습니다.`;
+      }
+    }
+  }
+  return null;
+}
+
+function parseOptionalJson(raw: string, label: string): unknown | null {
+  const t = raw.trim();
+  if (!t) return null;
+  try {
+    return JSON.parse(t) as unknown;
+  } catch {
+    throw new Error(`${label} JSON 형식이 올바르지 않습니다.`);
   }
 }
 
@@ -50,7 +77,7 @@ export function ApplicationFormTemplateEditor({
   const router = useRouter();
   const [pending, setPending] = useState(false);
   const [error, setError] = useState<string | null>(null);
-  const [advancedJsonOpen, setAdvancedJsonOpen] = useState(false);
+  const [info, setInfo] = useState<string | null>(null);
   const [jsonError, setJsonError] = useState<string | null>(null);
 
   const [title, setTitle] = useState(initial?.title ?? "");
@@ -120,9 +147,9 @@ export function ApplicationFormTemplateEditor({
     };
   }, [initial?.id, originalPdfFileName, originalPdfPath, pdfBytes]);
 
-  function openAdvancedJson() {
+  function syncAdvancedJsonFromFields() {
     setFieldsJsonText(stringifyJson(fieldsToJsonValue(fields), "[]"));
-    setAdvancedJsonOpen(true);
+    setJsonError(null);
   }
 
   function applyJsonToFields() {
@@ -130,17 +157,24 @@ export function ApplicationFormTemplateEditor({
     try {
       const parsed = JSON.parse(fieldsJsonText || "[]") as unknown;
       const next = parseApplicationPdfFields(parsed);
+      const validationError = validateFields(next);
+      if (validationError) {
+        setJsonError(validationError);
+        return;
+      }
       setFields(next);
-      setAdvancedJsonOpen(false);
     } catch {
       setJsonError("fieldsJson JSON 형식이 올바르지 않습니다.");
     }
   }
 
   function loadExampleFieldsJson() {
+    setJsonError(null);
     try {
       const parsed = JSON.parse(EXAMPLE_APPLICATION_FORM_FIELDS_JSON) as unknown;
-      setFields(parseApplicationPdfFields(parsed));
+      const next = parseApplicationPdfFields(parsed);
+      setFields(next);
+      setFieldsJsonText(EXAMPLE_APPLICATION_FORM_FIELDS_JSON);
       setRepeatGroupsJson(EXAMPLE_APPLICATION_FORM_REPEAT_GROUPS_JSON);
     } catch {
       setJsonError("예시 JSON을 불러오지 못했습니다.");
@@ -149,8 +183,29 @@ export function ApplicationFormTemplateEditor({
 
   async function onSubmit(e: React.FormEvent) {
     e.preventDefault();
+    setInfo(null);
+
+    if (!title.trim()) {
+      setError("템플릿명을 입력해 주세요.");
+      return;
+    }
     if (!originalPdfPath.trim() || !originalPdfFileName.trim()) {
       setError("공식 신청서 PDF 파일을 업로드해 주세요.");
+      return;
+    }
+
+    const fieldValidation = validateFields(fields);
+    if (fieldValidation) {
+      setError(fieldValidation);
+      return;
+    }
+
+    try {
+      parseJsonArray(repeatGroupsJson, "repeatGroupsJson");
+      parseOptionalJson(manualFieldsJson, "manualFieldsJson");
+      parseOptionalJson(consentMappingJson, "consentMappingJson");
+    } catch (err) {
+      setError(err instanceof Error ? err.message : "JSON 형식을 확인해 주세요.");
       return;
     }
 
@@ -167,7 +222,7 @@ export function ApplicationFormTemplateEditor({
     fd.set("originalPdfPath", originalPdfPath);
     fd.set("originalPdfFileName", originalPdfFileName);
     fd.set("fieldsJson", fieldsJsonForSave);
-    fd.set("repeatGroupsJson", repeatGroupsJson);
+    fd.set("repeatGroupsJson", repeatGroupsJson || "[]");
     fd.set("manualFieldsJson", manualFieldsJson);
     fd.set("consentMappingJson", consentMappingJson);
     if (isActive) fd.set("isActive", "on");
@@ -181,6 +236,12 @@ export function ApplicationFormTemplateEditor({
     if (!res.ok) {
       setError(res.error.message);
       return;
+    }
+
+    if (fields.length === 0) {
+      setInfo(
+        "좌표가 아직 없습니다. 이후 템플릿 상세에서 좌표를 추가할 수 있습니다.",
+      );
     }
 
     if (mode === "create" && "templateId" in res.data) {
@@ -198,6 +259,11 @@ export function ApplicationFormTemplateEditor({
       {error ? (
         <p className="text-destructive text-sm" role="alert">
           {error}
+        </p>
+      ) : null}
+      {info ? (
+        <p className="text-muted-foreground text-sm" role="status">
+          {info}
         </p>
       ) : null}
 
@@ -226,25 +292,18 @@ export function ApplicationFormTemplateEditor({
           setOriginalPdfPath(path);
           setOriginalPdfFileName(name);
           setPdfBytes(bytes);
-          if (fields.length === 0) {
-            loadExampleFieldsJson();
-          }
         }}
       />
 
       {originalPdfPath ? (
         <section className="space-y-3 rounded-xl border p-4">
-          <div className="flex flex-wrap items-center justify-between gap-2">
-            <div>
-              <h2 className="text-sm font-semibold">PDF 좌표 편집</h2>
-              <p className="text-muted-foreground text-xs">
-                좌표계: {APPLICATION_FORM_COORDINATE_SYSTEM} · pt · 보험 플랫폼
-                PdfCoordinateEditor UX 참고
-              </p>
-            </div>
-            <Button type="button" variant="outline" size="sm" onClick={loadExampleFieldsJson}>
-              테스트용 fieldsJson 불러오기
-            </Button>
+          <div>
+            <h2 className="text-sm font-semibold">PDF 좌표 편집</h2>
+            <p className="text-muted-foreground mt-1 text-xs leading-relaxed">
+              PDF 위에서 직접 좌표 영역을 추가하세요.
+              <br />
+              테스트용 좌표는 필요할 때만 고급 설정에서 불러올 수 있습니다.
+            </p>
           </div>
           {pdfBytes ? (
             <PdfCoordinateEditor
@@ -259,68 +318,62 @@ export function ApplicationFormTemplateEditor({
       ) : null}
 
       <details
-        open={advancedJsonOpen}
-        onToggle={(e) => {
-          const open = e.currentTarget.open;
-          if (open) {
-            setFieldsJsonText(stringifyJson(fieldsToJsonValue(fields), "[]"));
-          }
-          setAdvancedJsonOpen(open);
-        }}
         className="rounded-lg border p-4"
+        onToggle={(e) => {
+          if (e.currentTarget.open) syncAdvancedJsonFromFields();
+        }}
       >
-        <summary
-          className="cursor-pointer text-sm font-medium"
-          onClick={() => {
-            if (!advancedJsonOpen) openAdvancedJson();
-          }}
-        >
-          고급 JSON 편집 (fieldsJson)
-        </summary>
-        <div className="mt-3 space-y-2">
+        <summary className="cursor-pointer text-sm font-medium">고급 설정</summary>
+        <div className="mt-4 space-y-6">
           {jsonError ? (
             <p className="text-destructive text-xs" role="alert">
               {jsonError}
             </p>
           ) : null}
-          <textarea
-            value={fieldsJsonText}
-            onChange={(e) => setFieldsJsonText(e.target.value)}
-            rows={12}
-            spellCheck={false}
-            className={fieldClass}
+
+          <div className="space-y-2">
+            <div className="flex flex-wrap items-center justify-between gap-2">
+              <h3 className="text-sm font-medium">fieldsJson 직접 편집</h3>
+              <Button
+                type="button"
+                variant="ghost"
+                size="sm"
+                className="text-xs"
+                onClick={loadExampleFieldsJson}
+              >
+                예시 좌표 불러오기
+              </Button>
+            </div>
+            <textarea
+              value={fieldsJsonText}
+              onChange={(e) => setFieldsJsonText(e.target.value)}
+              rows={12}
+              spellCheck={false}
+              className={fieldClass}
+            />
+            <Button type="button" variant="secondary" size="sm" onClick={applyJsonToFields}>
+              JSON을 화면에 반영
+            </Button>
+          </div>
+
+          <JsonArea
+            label="repeatGroupsJson"
+            value={repeatGroupsJson}
+            onChange={setRepeatGroupsJson}
+            rows={4}
           />
-          <Button type="button" variant="secondary" size="sm" onClick={applyJsonToFields}>
-            JSON을 화면에 반영
-          </Button>
+          <JsonArea
+            label="manualFieldsJson (선택)"
+            value={manualFieldsJson}
+            onChange={setManualFieldsJson}
+          />
+          <JsonArea
+            label="consentMappingJson (선택)"
+            value={consentMappingJson}
+            onChange={setConsentMappingJson}
+          />
         </div>
       </details>
-
-      <section className="space-y-2 rounded-lg border p-4">
-        <h2 className="text-sm font-semibold">repeatGroupsJson</h2>
-        <p className="text-muted-foreground text-xs">
-          반복 선수 목록은 추후 시각 편집 지원 예정입니다. 필요 시 JSON으로
-          입력하세요.
-        </p>
-        <textarea
-          value={repeatGroupsJson}
-          onChange={(e) => setRepeatGroupsJson(e.target.value)}
-          rows={4}
-          spellCheck={false}
-          className={fieldClass}
-        />
-      </section>
-
-      <JsonArea
-        label="manualFieldsJson (선택)"
-        value={manualFieldsJson}
-        onChange={setManualFieldsJson}
-      />
-      <JsonArea
-        label="consentMappingJson (선택)"
-        value={consentMappingJson}
-        onChange={setConsentMappingJson}
-      />
 
       <label className="flex items-center gap-2 text-sm">
         <input
@@ -336,6 +389,14 @@ export function ApplicationFormTemplateEditor({
       </Button>
     </form>
   );
+}
+
+function parseJsonArray(raw: string, label: string): unknown {
+  try {
+    return JSON.parse(raw || "[]") as unknown;
+  } catch {
+    throw new Error(`${label} JSON 형식이 올바르지 않습니다.`);
+  }
 }
 
 const fieldClass = cn(
@@ -370,10 +431,12 @@ function JsonArea({
   label,
   value,
   onChange,
+  rows = 4,
 }: {
   label: string;
   value: string;
   onChange: (v: string) => void;
+  rows?: number;
 }) {
   return (
     <label className="block space-y-1 text-sm">
@@ -381,7 +444,7 @@ function JsonArea({
       <textarea
         value={value}
         onChange={(e) => onChange(e.target.value)}
-        rows={4}
+        rows={rows}
         spellCheck={false}
         className={fieldClass}
       />

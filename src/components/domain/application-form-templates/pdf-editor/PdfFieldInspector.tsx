@@ -17,8 +17,8 @@ export function PdfFieldInspector({
 }) {
   if (!field) {
     return (
-      <div className="text-muted-foreground rounded-lg border p-4 text-sm">
-        PDF 위 필드를 선택하거나 「+ 텍스트」 등으로 추가하세요.
+      <div className="text-muted-foreground rounded-lg border border-dashed p-4 text-sm leading-relaxed">
+        PDF 위 필드를 선택하거나 PDF 영역에서 「+ 텍스트」 등으로 추가하세요.
       </div>
     );
   }
@@ -26,7 +26,7 @@ export function PdfFieldInspector({
   return (
     <div className="space-y-3 rounded-lg border p-4 text-sm">
       <div className="flex items-center justify-between gap-2">
-        <h3 className="font-semibold">필드 설정</h3>
+        <h3 className="font-semibold">좌표 상세</h3>
         <div className="flex gap-1">
           <Button type="button" variant="outline" size="sm" onClick={onDuplicate}>
             복제
@@ -97,10 +97,6 @@ export function PdfFieldInspector({
           </label>
         ))}
       </div>
-      <p className="text-muted-foreground text-[11px] leading-relaxed">
-        좌표 단위 pt, 페이지 좌상단(top-left) 기준. PDF overlay 생성 시 bottom-left로
-        자동 변환됩니다.
-      </p>
     </div>
   );
 }

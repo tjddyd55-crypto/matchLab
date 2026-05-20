@@ -7,20 +7,24 @@ import { Button } from "@/components/ui/button";
 export function PdfFieldToolbar({
   pageIndex,
   pageCount,
+  zoom,
   onPageChange,
   onAddField,
   pickMode,
   onPickModeChange,
+  onZoomChange,
 }: {
   pageIndex: number;
   pageCount: number;
+  zoom: number;
   onPageChange: (page: number) => void;
   onAddField: (type: ApplicationPdfFieldType) => void;
   pickMode: boolean;
   onPickModeChange: (v: boolean) => void;
+  onZoomChange: (zoom: number) => void;
 }) {
   return (
-    <div className="flex flex-wrap items-center gap-2 border-b pb-3">
+    <div className="flex flex-wrap items-center gap-2 border-b bg-muted/20 px-2 py-2">
       <div className="flex items-center gap-1">
         <Button
           type="button"
@@ -31,7 +35,7 @@ export function PdfFieldToolbar({
         >
           이전
         </Button>
-        <span className="text-muted-foreground px-2 text-xs">
+        <span className="text-muted-foreground min-w-[4.5rem] text-center text-xs">
           {pageIndex + 1} / {pageCount}
         </span>
         <Button
@@ -44,7 +48,7 @@ export function PdfFieldToolbar({
           다음
         </Button>
       </div>
-      <span className="text-muted-foreground hidden h-4 w-px bg-border sm:block" />
+      <span className="text-muted-foreground hidden h-4 w-px bg-border md:block" />
       {(Object.keys(APPLICATION_PDF_FIELD_TYPE_LABELS) as ApplicationPdfFieldType[]).map(
         (type) => (
           <Button
@@ -66,6 +70,30 @@ export function PdfFieldToolbar({
       >
         {pickMode ? "영역 그리기 ON" : "영역 그리기"}
       </Button>
+      <span className="text-muted-foreground hidden h-4 w-px bg-border md:block" />
+      <div className="flex items-center gap-1">
+        <Button
+          type="button"
+          variant="outline"
+          size="sm"
+          disabled={zoom <= 0.75}
+          onClick={() => onZoomChange(Math.max(0.75, zoom - 0.25))}
+        >
+          −
+        </Button>
+        <span className="text-muted-foreground min-w-[3rem] text-center text-xs">
+          {Math.round(zoom * 100)}%
+        </span>
+        <Button
+          type="button"
+          variant="outline"
+          size="sm"
+          disabled={zoom >= 1.5}
+          onClick={() => onZoomChange(Math.min(1.5, zoom + 0.25))}
+        >
+          +
+        </Button>
+      </div>
     </div>
   );
 }
