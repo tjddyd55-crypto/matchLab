@@ -1,12 +1,10 @@
 import Link from "next/link";
-import { DivisionTemplateForm } from "@/components/domain/division-templates/DivisionTemplateForm";
 import { DivisionTemplateList } from "@/components/domain/division-templates/DivisionTemplateList";
 import { EmptyState } from "@/components/shared/EmptyState";
 import { buttonVariants } from "@/components/ui/button";
 import { requireActor } from "@/lib/auth/actor";
 import { AppError } from "@/lib/errors/app-error";
 import { divisionTemplateService } from "@/lib/services/division-template.service";
-import type { DivisionTemplateDetailVM } from "@/lib/services/division-template.service";
 import { cn } from "@/lib/utils";
 
 export const dynamic = "force-dynamic";
@@ -20,11 +18,13 @@ export default async function OrganizerDivisionTemplatesPage({
   const { organizerId: organizerIdParam } = await searchParams;
   const organizerFilter = organizerIdParam?.trim() || undefined;
 
-  let templates: DivisionTemplateDetailVM[] = [];
+  let templates: Awaited<
+    ReturnType<typeof divisionTemplateService.listTemplates>
+  > = [];
   let loadError: string | null = null;
 
   try {
-    templates = await divisionTemplateService.listTemplatesDetailed(
+    templates = await divisionTemplateService.listTemplates(
       actor,
       organizerFilter,
     );
@@ -38,6 +38,9 @@ export default async function OrganizerDivisionTemplatesPage({
 
   const isAdmin = actor.role === "admin";
   const canCreateTemplate = !isAdmin || Boolean(organizerFilter);
+  const newHref = organizerFilter
+    ? `/organizer/division-templates/new?organizerId=${encodeURIComponent(organizerFilter)}`
+    : "/organizer/division-templates/new";
 
   return (
     <div className="mx-auto flex w-full max-w-4xl flex-col gap-8 px-4 py-8 md:px-6">
@@ -51,21 +54,27 @@ export default async function OrganizerDivisionTemplatesPage({
         </p>
       ) : null}
 
-      <div className="flex flex-col gap-2">
-        <Link
-          href="/organizer/events"
-          className={cn(buttonVariants({ variant: "ghost", size: "sm" }), "-ml-2 w-fit")}
-        >
-          ← 대회 목록
-        </Link>
-        <h1 className="font-heading text-2xl font-semibold tracking-tight">
-          체급표 템플릿
-        </h1>
-        <p className="text-muted-foreground max-w-2xl text-sm leading-relaxed">
-          자주 쓰는 부문 조합을 저장해 두었다가 대회 관리 화면에서 한 번에{" "}
-          <strong>EventDivision</strong>으로 옮길 수 있습니다. 템플릿은 신청
-          데이터가 아니라 생성 도구입니다.
-        </p>
+      <div className="flex flex-col gap-3 sm:flex-row sm:items-start sm:justify-between">
+        <div className="flex flex-col gap-2">
+          <Link
+            href="/organizer/events"
+            className={cn(buttonVariants({ variant: "ghost", size: "sm" }), "-ml-2 w-fit")}
+          >
+            ← 대회 목록
+          </Link>
+          <h1 className="font-heading text-2xl font-semibold tracking-tight">
+            체급표 템플릿
+          </h1>
+          <p className="text-muted-foreground max-w-2xl text-sm leading-relaxed">
+            체급표는 대회 부문을 빠르게 생성하기 위한 템플릿입니다. 저장한
+            체급표는 대회 상세에서 불러와 EventDivision으로 생성할 수 있습니다.
+          </p>
+        </div>
+        {canCreateTemplate && !loadError ? (
+          <Link href={newHref} className={buttonVariants({ size: "sm" })}>
+            새 체급표
+          </Link>
+        ) : null}
       </div>
 
       {loadError ? (
@@ -78,17 +87,13 @@ export default async function OrganizerDivisionTemplatesPage({
           title="등록된 체급표 템플릿이 없습니다"
           description={
             canCreateTemplate
-              ? "아래 양식에서 새 템플릿을 만들 수 있습니다."
+              ? "「새 체급표」에서 무에타이·킥복싱·복싱 예시를 불러와 수정할 수 있습니다."
               : "관리자는 주최자 ID를 지정한 뒤 템플릿을 추가할 수 있습니다."
           }
         />
       ) : (
         <DivisionTemplateList templates={templates} showOrganizer={isAdmin} />
       )}
-
-      {canCreateTemplate && !loadError ? (
-        <DivisionTemplateForm organizerIdForAdmin={organizerFilter} />
-      ) : null}
     </div>
   );
 }

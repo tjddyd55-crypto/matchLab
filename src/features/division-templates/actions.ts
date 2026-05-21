@@ -44,6 +44,10 @@ function formReq(formData: FormData, key: string): string {
   return typeof v === "string" ? v.trim() : "";
 }
 
+function formBool(formData: FormData, key: string): boolean {
+  return formData.get(key) === "on" || formData.get(key) === "true";
+}
+
 function parseItemsJson(raw: string): unknown {
   try {
     return JSON.parse(raw) as unknown;
@@ -83,6 +87,7 @@ export async function createDivisionTemplateAction(
       title: formReq(formData, "title"),
       sportType: formReq(formData, "sportType") || null,
       description: formReq(formData, "description") || null,
+      isActive: formBool(formData, "isActive"),
       items: itemsParsed.data,
     });
     if (!parsed.success) {
@@ -119,6 +124,7 @@ export async function updateDivisionTemplateAction(
       title?: string;
       sportType?: string | null;
       description?: string | null;
+      isActive?: boolean;
       items?: unknown[];
     } = { templateId };
 
@@ -128,6 +134,9 @@ export async function updateDivisionTemplateAction(
     }
     if (formData.has("description")) {
       patch.description = formReq(formData, "description") || null;
+    }
+    if (formData.has("isActive")) {
+      patch.isActive = formBool(formData, "isActive");
     }
     if (formData.has("itemsJson")) {
       const itemsParsed = divisionTemplateItemsSchema.safeParse(
@@ -190,7 +199,9 @@ export async function deleteDivisionTemplateAction(
 export async function applyDivisionTemplateToEventAction(
   arg1: unknown,
   arg2?: FormData,
-): Promise<ActionResult<{ created: number; skippedDuplicates: number }>> {
+): Promise<
+  ActionResult<{ created: number; skippedDuplicates: number; removed: number }>
+> {
   const formData = resolveFormData(arg1, arg2);
   if (!formData) {
     return actionFailure("VALIDATION_ERROR", "요청 본문이 올바르지 않습니다.");
@@ -198,9 +209,11 @@ export async function applyDivisionTemplateToEventAction(
 
   return mapCaught(async () => {
     const actor = await requireActorFromMutation();
+    const modeRaw = formReq(formData, "mode") || "append_skip";
     const parsed = applyDivisionTemplateSchema.safeParse({
       eventId: formReq(formData, "eventId"),
       templateId: formReq(formData, "templateId"),
+      mode: modeRaw,
     });
     if (!parsed.success) {
       return actionFailure(

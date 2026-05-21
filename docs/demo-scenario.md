@@ -26,6 +26,13 @@ MVP 범위는 `docs/mvp-scope.md`를 기준으로 하며, 본 문서는 **시연
 
 > `fieldsJson` 좌표는 **top-left pt** 기준입니다. 실제 PDF에 맞게 x/y를 조정한 뒤 overlay 결과를 확인하세요.
 
+### 1.2 체급표 템플릿 · 부문 생성
+
+1. **organizer** — `/organizer/division-templates/new` → 「무에타이 예시 불러오기」→ 일부 체급 수정 → 저장.
+2. **organizer** — `/organizer/events/{eventId}` → 「체급표로 부문 생성」→ 템플릿 선택·미리보기 → 「동일 부문 건너뛰기」로 적용.
+3. **spectator** — `/events/{slug}` 공개 상세에서 생성된 부문 목록 확인.
+4. **gym** — `/gym/events/{eventId}/apply`에서 생성된 부문으로 선수 신청.
+
 ## 2. 역할별 로그인 계정 (미팅 권장: `@demo.local`)
 
 **권장:** `npm run setup:demo-users` 로 Supabase Auth와 DB `User`·프로필을 한 번에 맞춘다(`docs/dev-start.md` 참고). 비밀번호 기본값은 **`1234`** 이며, 환경 변수 **`DEMO_PASSWORD`** 로 덮어쓸 수 있다.

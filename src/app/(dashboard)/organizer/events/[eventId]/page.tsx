@@ -30,6 +30,7 @@ export default async function OrganizerEventDetailPage({
 
   let detail;
   let divisionTemplates;
+  let divisionTemplateDetails;
   let staffRecorderLinks;
   let formTemplates;
   let linkedTemplateId: string | null = null;
@@ -39,8 +40,10 @@ export default async function OrganizerEventDetailPage({
       eventId,
     );
     linkedTemplateId = eventApp?.applicationFormTemplateId ?? null;
-    [divisionTemplates, staffRecorderLinks, formTemplates] = await Promise.all([
+    [divisionTemplates, divisionTemplateDetails, staffRecorderLinks, formTemplates] =
+      await Promise.all([
       divisionTemplateService.listTemplatesForEvent(actor, eventId),
+      divisionTemplateService.listTemplateDetailsForEvent(actor, eventId),
       eventStaffAccessService.listLinksForOrganizer(actor, eventId),
       applicationFormTemplateService.listSelectableForEvent(actor, eventId),
     ]);
@@ -105,6 +108,7 @@ export default async function OrganizerEventDetailPage({
         status={detail.status}
         divisions={detail.divisions}
         templates={divisionTemplates}
+        templateDetails={divisionTemplateDetails}
       />
 
       <EventPaymentSettingForm

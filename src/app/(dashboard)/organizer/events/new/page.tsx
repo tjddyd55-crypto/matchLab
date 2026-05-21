@@ -14,7 +14,8 @@ export default async function OrganizerNewEventPage() {
         </h1>
         <p className="text-muted-foreground mt-1 text-sm">
           생성 후 상태는 작성 중(draft)이며, 필수 항목을 채운 뒤 신청 공개로
-          전환하면 공개 목록에 나타납니다.
+          전환하면 공개 목록에 나타납니다. 부문(체급)은 생성 후 대회 상세에서
+          체급표 템플릿을 불러와 한 번에 만들 수 있습니다.
         </p>
       </div>
       <EventForm mode="create" actorRole={actor.role} />

@@ -74,7 +74,8 @@
 - [x] 확정 트랜잭션에서 **`Fighter` 전적 캐시 재계산**(집계는 `confirmed`+`corrected` 기준 승·패·무, **`no_contest`는 승패무 미반영 MVP**).
 - [x] 단판(`single_elimination`) 확정 시 승자 **다음 매치 슬롯 반영** 및 **`BracketChangeLog`**.
 - [x] 결과 정정·무효 시 **`MatchResultChangeLog` 필수** — 무효(MVP) 시 **`BracketMatch` 결과 필드 초기화**.
-- [x] 주최자: **디비전 템플릿** 저장·행사 적용(`DivisionTemplate`).
+- [x] 주최자: **체급표 템플릿** 관리(`/organizer/division-templates`) — 종목·연령·성별·체급 구조화 입력, 빠른 붙여넣기, 무에타이/킥복싱/복싱 예시 불러오기.
+- [x] 주최자: 대회 상세에서 체급표 선택·미리보기 후 **EventDivision 자동 생성**(추가/중복 스킵/초기화 옵션).
 - [x] 주최자: 행사 **포스터·갤러리** 이미지(공개 Storage 버킷·`NEXT_PUBLIC_SUPABASE_URL` 기준 URL).
 - [x] 주최자: **관람 공개 시간 창**·토큰·공개 대진표 QR 안내(`NEXT_PUBLIC_APP_URL` 기준 링크).
 - [x] 주최자: **결과 입력 스태프 링크** 발급·폐기(토큰 URL `/staff/result/[token]/matches`, 로그인 없음).

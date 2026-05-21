@@ -1,18 +1,23 @@
 "use client";
 
+import Link from "next/link";
 import { useActionState, useEffect } from "react";
 import { useRouter } from "next/navigation";
-import type { DivisionTemplateDetailVM } from "@/lib/services/division-template.service";
+import type { DivisionTemplateListItemVM } from "@/lib/services/division-template.service";
 import type { ActionResult } from "@/lib/action-result";
-import { DivisionTemplateEditDialog } from "@/components/domain/division-templates/DivisionTemplateEditDialog";
-import { Button } from "@/components/ui/button";
+import {
+  DIVISION_TEMPLATE_SPORT_LABELS,
+  type DivisionTemplateSportType,
+} from "@/lib/division-template/division-template-constants";
+import { Button, buttonVariants } from "@/components/ui/button";
+import { cn } from "@/lib/utils";
 import { deleteDivisionTemplateAction } from "@/features/division-templates/actions";
 
 export function DivisionTemplateList({
   templates,
   showOrganizer = false,
 }: {
-  templates: DivisionTemplateDetailVM[];
+  templates: DivisionTemplateListItemVM[];
   showOrganizer?: boolean;
 }) {
   const router = useRouter();
@@ -28,7 +33,7 @@ export function DivisionTemplateList({
   if (templates.length === 0) {
     return (
       <p className="text-muted-foreground text-sm">
-        저장된 템플릿이 없습니다. 아래에서 새로 만들 수 있습니다.
+        저장된 템플릿이 없습니다.
       </p>
     );
   }
@@ -41,14 +46,33 @@ export function DivisionTemplateList({
           className="flex flex-col gap-3 rounded-lg border bg-muted/10 p-4 sm:flex-row sm:items-center sm:justify-between"
         >
           <div className="min-w-0 space-y-1">
-            <div className="font-medium">{t.title}</div>
+            <div className="flex flex-wrap items-center gap-2">
+              <Link
+                href={`/organizer/division-templates/${t.id}`}
+                className="font-medium hover:underline"
+              >
+                {t.title}
+              </Link>
+              {!t.isActive ? (
+                <span className="rounded bg-muted px-1.5 py-0.5 text-[10px]">
+                  비활성
+                </span>
+              ) : null}
+            </div>
             {showOrganizer ? (
               <div className="text-muted-foreground text-xs">
                 주최자: {t.organizerName}
               </div>
             ) : null}
             <div className="text-muted-foreground text-xs">
-              항목 {t.items.length}개 · 마지막 수정{" "}
+              {t.sportType
+                ? `${
+                    DIVISION_TEMPLATE_SPORT_LABELS[
+                      t.sportType as DivisionTemplateSportType
+                    ] ?? t.sportType
+                  } · `
+                : ""}
+              체급 {t.itemCount}개 · 마지막 수정{" "}
               {new Date(t.updatedAt).toLocaleString("ko-KR")}
             </div>
             {t.description ? (
@@ -58,7 +82,12 @@ export function DivisionTemplateList({
             ) : null}
           </div>
           <div className="flex shrink-0 flex-wrap gap-2">
-            <DivisionTemplateEditDialog template={t} />
+            <Link
+              href={`/organizer/division-templates/${t.id}`}
+              className={cn(buttonVariants({ size: "sm", variant: "secondary" }))}
+            >
+              수정
+            </Link>
             <form
               action={delAction}
               className="inline"

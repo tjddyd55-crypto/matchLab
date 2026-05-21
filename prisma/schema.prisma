@@ -459,6 +459,7 @@ model DivisionTemplate {
   sportType   String?
   description String?
   items       Json
+  isActive    Boolean  @default(true)
   createdAt   DateTime @default(now())
   updatedAt   DateTime @updatedAt
 

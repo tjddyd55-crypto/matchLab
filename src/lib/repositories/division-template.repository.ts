@@ -15,6 +15,7 @@ export type DivisionTemplateListRow = {
   sportType: string | null;
   description: string | null;
   items: Prisma.JsonValue;
+  isActive: boolean;
   createdAt: Date;
   updatedAt: Date;
   organizer: { id: string; name: string };
@@ -22,12 +23,17 @@ export type DivisionTemplateListRow = {
 
 export const divisionTemplateRepository = {
   async list(
-    options?: { organizerId?: string },
+    options?: { organizerId?: string; isActive?: boolean },
     tx?: Prisma.TransactionClient,
   ): Promise<DivisionTemplateListRow[]> {
     const organizerId = options?.organizerId?.trim();
     return db(tx).divisionTemplate.findMany({
-      where: organizerId ? { organizerId } : undefined,
+      where: {
+        ...(organizerId ? { organizerId } : {}),
+        ...(options?.isActive !== undefined
+          ? { isActive: options.isActive }
+          : {}),
+      },
       orderBy: [{ updatedAt: "desc" }],
       include: {
         organizer: { select: { id: true, name: true } },
@@ -38,12 +44,13 @@ export const divisionTemplateRepository = {
   async findById(
     id: string,
     tx?: Prisma.TransactionClient,
-  ): Promise<{ id: string; organizerId: string; title: string; items: Prisma.JsonValue } | null> {
-    const row = await db(tx).divisionTemplate.findUnique({
+  ): Promise<DivisionTemplateListRow | null> {
+    return db(tx).divisionTemplate.findUnique({
       where: { id },
-      select: { id: true, organizerId: true, title: true, items: true },
+      include: {
+        organizer: { select: { id: true, name: true } },
+      },
     });
-    return row;
   },
 
   async create(
@@ -52,6 +59,7 @@ export const divisionTemplateRepository = {
       title: string;
       sportType?: string | null;
       description?: string | null;
+      isActive?: boolean;
       items: Prisma.InputJsonValue;
     },
     tx?: Prisma.TransactionClient,
@@ -62,6 +70,7 @@ export const divisionTemplateRepository = {
         title: data.title.trim(),
         sportType: data.sportType?.trim() || null,
         description: data.description?.trim() || null,
+        isActive: data.isActive ?? true,
         items: data.items,
       },
     });
@@ -73,6 +82,7 @@ export const divisionTemplateRepository = {
       title?: string;
       sportType?: string | null;
       description?: string | null;
+      isActive?: boolean;
       items?: Prisma.InputJsonValue;
     },
     tx?: Prisma.TransactionClient,
@@ -87,6 +97,7 @@ export const divisionTemplateRepository = {
         ...(data.description !== undefined
           ? { description: data.description?.trim() || null }
           : {}),
+        ...(data.isActive !== undefined ? { isActive: data.isActive } : {}),
         ...(data.items !== undefined ? { items: data.items } : {}),
       },
     });

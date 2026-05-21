@@ -330,6 +330,14 @@ npm run dev
 - 본 프로젝트: `src/components/domain/application-form-templates/pdf-editor/*`, `src/lib/pdf-editor/pdf-coordinate-math.ts`
 - **차이:** 보험 레포는 bottom-left pt 저장, 본 프로젝트는 **top-left pt** 저장 → `application-form-pdf.service.ts` overlay와 호환
 
+### 체급표 템플릿 (DivisionTemplate)
+
+- 예시 데이터: `src/lib/division-template/division-template-examples.ts`
+- 빠른 입력 파싱: `src/lib/division-template/division-template-parse.ts` (`/` 구분, `-30kg` / `+44kg` / `63.5kg`)
+- **예시는 버튼으로만 불러옴** — 저장 시 자동 적용 없음
+- 대회 적용 중복 키: `sportType` · `gender` · `ageGroup` · `weightClass`
+- **초기화(replace)**: 신청·대진표 연결 부문이 하나라도 있으면 거부
+
 ### 공식 신청서 PDF 좌표계 주의
 
 - `fieldsJson`의 `x`, `y`는 **페이지 좌상단(top-left) 기준 pt** 입니다.
