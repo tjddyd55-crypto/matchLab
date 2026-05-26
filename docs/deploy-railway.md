@@ -168,16 +168,33 @@ Railway 환경에서는 **포트 노출·브라우저 접속**이 번거로울 �
 
 ### 6) 대회 포스터·갤러리 업로드 실패 (주최자 상세)
 
-- **원인 후보**
-  - Web Service에 **`SUPABASE_EVENT_IMAGE_BUCKET`**·**`SUPABASE_SERVICE_ROLE_KEY`**·**`NEXT_PUBLIC_SUPABASE_URL`** 누락/오타
-  - Supabase Storage에 **`event-images`(또는 설정한 버킷명)** 미생성 또는 **공개 읽기** 미설정
-  - 버킷 **CORS**에 Railway 앱 도메인(`NEXT_PUBLIC_APP_URL`) 미허용
-  - 브라우저가 signed URL에 **raw File PUT** — 클라이언트는 **FormData PUT**(`putFileToEventSignedUploadUrl`)을 사용해야 함
-- **해결**
-  1. Variables: `SUPABASE_EVENT_IMAGE_BUCKET=event-images`(코드 기본값과 동일 권장)
-  2. Supabase → Storage → 해당 버킷 **public** + CORS에 `PUT`·앱 origin 추가
-  3. 주최자 상세에서 업로드 재시도 — 실패 시 UI에 HTTP 상태·짧은 응답 본문 표시
-  4. 공개 상세(`/events/{slug}`)에서 이미지 URL이 열리는지 확인(private `imagePath`는 API에 노출하지 않음)
+#### A) 화면: 「업로드 URL 발급에 실패했습니다」 (signed URL 발급 단계)
+
+서버 action(`requestEventPosterUploadAction` / `requestEventGalleryUploadAction`)에서 Supabase Storage signed upload URL 생성이 실패한 경우입니다. **브라우저 PUT 이전** 단계입니다.
+
+- **Railway app Variables 존재 여부 확인** (값 출력 금지)
+  - `NEXT_PUBLIC_SUPABASE_URL`
+  - `NEXT_PUBLIC_SUPABASE_ANON_KEY`
+  - `SUPABASE_SERVICE_ROLE_KEY` (**`NEXT_PUBLIC_` 접두사 금지**)
+  - `SUPABASE_EVENT_IMAGE_BUCKET` (미설정 시 코드 기본값 `event-images`)
+- **Supabase Storage**
+  - `SUPABASE_EVENT_IMAGE_BUCKET`과 **동일한 이름**의 bucket 존재
+  - 공개 상세에 포스터/갤러리를 보여야 하므로 bucket **public read** 권장
+  - bucket이 없으면 Supabase 대시보드 → Storage → **New bucket** → `event-images` (public)
+- **env 변경 후** Railway app **재배포** (Variables만 바꿔도 재배포 필요할 수 있음)
+- **UI 메시지** (2026-05 이후): bucket 미존재·service role 누락 등은 보다 구체적인 문구로 표시됨
+
+#### B) signed URL 발급은 성공했으나 스토리지 PUT 실패
+
+- 버킷 **CORS**에 Railway 앱 origin(`NEXT_PUBLIC_APP_URL`)과 `PUT` 허용
+- 클라이언트는 **FormData + `x-upsert` PUT** (`putFileToEventSignedUploadUrl`) 사용 — raw File PUT 금지
+
+#### C) 공통 체크
+
+1. Variables: `SUPABASE_EVENT_IMAGE_BUCKET=event-images`(코드 기본값과 동일 권장)
+2. Supabase → Storage → 해당 버킷 **public** + CORS에 `PUT`·앱 origin 추가
+3. 주최자 상세에서 업로드 재시도 — 실패 시 UI에 HTTP 상태·짧은 응답 본문 표시
+4. 공개 상세(`/events/{slug}`)에서 이미지 URL이 열리는지 확인(private `imagePath`는 API에 노출하지 않음)
 
 ## 7. Railway 연결 전 체크리스트
 
