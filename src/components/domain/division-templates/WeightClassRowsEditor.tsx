@@ -227,7 +227,7 @@ export function WeightClassRowsEditor({
       {DIVISION_TEMPLATE_AGE_GROUPS.map((ageGroup) => (
         <section key={ageGroup} className="space-y-3">
           <h3 className="text-base font-semibold">{ageGroup}</h3>
-          <div className="grid gap-4 lg:grid-cols-2">
+          <div className="grid gap-6 xl:grid-cols-2">
             {DIVISION_TEMPLATE_GENDERS.map((gender) => (
               <GenderSection
                 key={`${ageGroup}-${gender}`}

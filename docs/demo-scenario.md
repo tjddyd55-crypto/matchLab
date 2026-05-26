@@ -28,10 +28,17 @@ MVP 범위는 `docs/mvp-scope.md`를 기준으로 하며, 본 문서는 **시연
 
 ### 1.2 체급표 템플릿 · 부문 생성
 
-1. **organizer** — `/organizer/division-templates/new` → 「무에타이 예시 불러오기」→ 일부 체급 수정 → 저장.
+1. **organizer** — `/organizer/division-templates/new` → 「무에타이 예시 불러오기」→ 일부 체급 수정 → 저장. (편집 화면은 **넓은 레이아웃**·빠른 입력 textarea·부별 표를 확인.)
 2. **organizer** — `/organizer/events/{eventId}` → 「체급표로 부문 생성」→ 템플릿 선택·미리보기 → 「동일 부문 건너뛰기」로 적용.
 3. **spectator** — `/events/{slug}` 공개 상세에서 생성된 부문 목록 확인.
 4. **gym** — `/gym/events/{eventId}/apply`에서 생성된 부문으로 선수 신청.
+
+### 1.3 포스터 · 갤러리 · 대회 목록 상태 (주최자 UX)
+
+1. **organizer** — `/organizer/events/new`에서 **포스터 파일 선택** 후 대회 생성(생성 직후 자동 업로드) 또는 `/organizer/events/{eventId}` 기본 정보에서 **포스터 업로드**·교체.
+2. **organizer** — 동일 상세의 **상세 이미지(갤러리)** 에 JPEG/PNG/WebP 추가 → 새로고침 후 목록 유지 확인.
+3. **spectator** — `/events/{slug}`에서 포스터·갤러리 노출 확인(Storage **공개 URL**만 사용, private path 미노출).
+4. **organizer** — `/organizer/events` 목록에서 **대회 상태**(예: 공개)와 **신청 상태**(예: 신청 가능/신청 마감) **배지 2개**가 기간과 맞는지 확인.
 
 ## 2. 역할별 로그인 계정 (미팅 권장: `@demo.local`)
 

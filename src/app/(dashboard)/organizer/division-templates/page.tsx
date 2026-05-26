@@ -43,7 +43,7 @@ export default async function OrganizerDivisionTemplatesPage({
     : "/organizer/division-templates/new";
 
   return (
-    <div className="mx-auto flex w-full max-w-4xl flex-col gap-8 px-4 py-8 md:px-6">
+    <div className="mx-auto flex w-full max-w-[min(100%,80rem)] flex-col gap-8 px-4 py-8 md:px-6 lg:px-8">
       {isAdmin ? (
         <p className="text-muted-foreground rounded-md border bg-muted/30 px-3 py-2 text-sm">
           관리자는 전체 템플릿을 볼 수 있습니다. 특정 주최자만 보려면 URL에{" "}

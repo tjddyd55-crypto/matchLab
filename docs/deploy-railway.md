@@ -166,6 +166,19 @@ Railway 환경에서는 **포트 노출·브라우저 접속**이 번거로울 �
 - **원인**: **`db:seed` 미실행** 또는 시드 실패입니다.
 - **해결**: `railway run npm run db:seed` 또는 대시보드에서 `npm run db:seed`를 실행하고 로그를 확인합니다.
 
+### 6) 대회 포스터·갤러리 업로드 실패 (주최자 상세)
+
+- **원인 후보**
+  - Web Service에 **`SUPABASE_EVENT_IMAGE_BUCKET`**·**`SUPABASE_SERVICE_ROLE_KEY`**·**`NEXT_PUBLIC_SUPABASE_URL`** 누락/오타
+  - Supabase Storage에 **`event-images`(또는 설정한 버킷명)** 미생성 또는 **공개 읽기** 미설정
+  - 버킷 **CORS**에 Railway 앱 도메인(`NEXT_PUBLIC_APP_URL`) 미허용
+  - 브라우저가 signed URL에 **raw File PUT** — 클라이언트는 **FormData PUT**(`putFileToEventSignedUploadUrl`)을 사용해야 함
+- **해결**
+  1. Variables: `SUPABASE_EVENT_IMAGE_BUCKET=event-images`(코드 기본값과 동일 권장)
+  2. Supabase → Storage → 해당 버킷 **public** + CORS에 `PUT`·앱 origin 추가
+  3. 주최자 상세에서 업로드 재시도 — 실패 시 UI에 HTTP 상태·짧은 응답 본문 표시
+  4. 공개 상세(`/events/{slug}`)에서 이미지 URL이 열리는지 확인(private `imagePath`는 API에 노출하지 않음)
+
 ## 7. Railway 연결 전 체크리스트
 
 - [ ] GitHub에 **실제 시크릿·`.env`가 커밋되지 않았는지** 확인
