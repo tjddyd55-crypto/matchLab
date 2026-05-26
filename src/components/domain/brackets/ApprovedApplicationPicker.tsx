@@ -35,7 +35,8 @@ export function ApprovedApplicationPicker({
           value={o.fighterId}
           disabled={disabledOptionIds?.has(o.fighterId)}
         >
-          {o.label} ({o.divisionLabel})
+          {o.isEligibleForBracket ? "" : "⚠ "}
+          {o.label} ({o.divisionLabel}) — {o.eligibilityLabel}
         </option>
       ))}
     </>

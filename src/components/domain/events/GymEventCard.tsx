@@ -101,6 +101,15 @@ export function GymEventCard({ event }: { event: GymDashboardEventItemDTO }) {
             신청 불가
           </span>
         )}
+        <Link
+          href={`/gym/events/${event.id}/field-status`}
+          className={cn(
+            buttonVariants({ variant: "outline", size: "sm" }),
+            "inline-flex w-full justify-center",
+          )}
+        >
+          현장 확인·계체 상태
+        </Link>
       </CardContent>
     </Card>
   );

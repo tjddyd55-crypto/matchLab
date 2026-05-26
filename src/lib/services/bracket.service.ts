@@ -32,6 +32,7 @@ import {
 import { eventRepository } from "@/lib/repositories/event.repository";
 import { notificationRepository } from "@/lib/repositories/notification.repository";
 import { notificationService } from "@/lib/services/notification.service";
+import { fieldStatusService } from "@/lib/services/field-status.service";
 import type {
   AssignFighterToMatchInput,
   CreateBracketInput,
@@ -224,6 +225,9 @@ export type OrganizerApprovedFighterOptionVM = {
   fighterId: string;
   label: string;
   divisionLabel: string;
+  isEligibleForBracket: boolean;
+  eligibilityLabel: string;
+  eligibilityReason: string;
 };
 
 export type OrganizerBracketDetailVM = {
@@ -279,13 +283,27 @@ export const bracketService = {
         full.divisionId,
       );
 
+    const fieldStatusMap =
+      await fieldStatusService.listBracketCandidateFieldStatus(
+        full.eventId,
+        full.divisionId,
+      );
+
     const approvedFighterOptions: OrganizerApprovedFighterOptionVM[] =
-      approved.map((a) => ({
-        applicationId: a.id,
-        fighterId: a.fighter.id,
-        label: `${a.fighter.name} · ${a.gym.name}`,
-        divisionLabel: formatDivisionNameLabel(a.division),
-      }));
+      approved.map((a) => {
+        const field = fieldStatusMap.get(a.fighter.id);
+        return {
+          applicationId: a.id,
+          fighterId: a.fighter.id,
+          label: `${a.fighter.name} · ${a.gym.name}`,
+          divisionLabel: formatDivisionNameLabel(a.division),
+          isEligibleForBracket: field?.isEligibleForBracket ?? false,
+          eligibilityLabel: field?.eligibilityLabel ?? "현장 미확인",
+          eligibilityReason:
+            field?.eligibilityReason ??
+            "현장 확인·계체 상태가 아직 기록되지 않았습니다.",
+        };
+      });
 
     const matches: OrganizerBracketMatchVM[] = full.matches.map((m) => ({
       id: m.id,

@@ -3,6 +3,7 @@ import {
   publishBracketFormAction,
   unpublishBracketFormAction,
 } from "@/features/brackets/actions";
+import { BracketApprovedCandidatesSection } from "@/components/domain/brackets/BracketApprovedCandidatesSection";
 import { BracketStatusBadge } from "@/components/domain/brackets/BracketStatusBadge";
 import { BracketTypeBadge } from "@/components/domain/brackets/BracketTypeBadge";
 import { MatchListEditor } from "@/components/domain/brackets/MatchListEditor";
@@ -65,25 +66,10 @@ export function OrganizerBracketEditor({
         </div>
       </div>
 
-      <section className="ring-foreground/10 rounded-xl border bg-card p-4 shadow-sm">
-        <h2 className="text-lg font-semibold">승인된 신청 선수</h2>
-        <p className="text-muted-foreground mt-1 text-sm">
-          pending·거절·취소 상태의 신청자는 서버에서 배치 대상에서 제외됩니다.
-        </p>
-        <ul className="mt-3 grid gap-2 text-sm md:grid-cols-2">
-          {detail.approvedFighterOptions.map((o) => (
-            <li
-              key={o.applicationId}
-              className="bg-muted/25 rounded-md border px-3 py-2"
-            >
-              <span className="font-medium">{o.label}</span>
-              <span className="text-muted-foreground ml-2 text-xs">
-                {o.divisionLabel}
-              </span>
-            </li>
-          ))}
-        </ul>
-      </section>
+      <BracketApprovedCandidatesSection
+        options={detail.approvedFighterOptions}
+        matches={detail.matches}
+      />
 
       {detail.type === BracketType.match_list ? (
         <MatchListEditor

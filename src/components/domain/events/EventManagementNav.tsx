@@ -30,6 +30,9 @@ export function EventManagementNav({
       <Link href={`/organizer/events/${eventId}/applications`} className={linkClass}>
         신청자 관리
       </Link>
+      <Link href={`/organizer/events/${eventId}/check-in`} className={linkClass}>
+        현장 확인·계체
+      </Link>
       <Link
         href={`/organizer/events/${eventId}/application-batches`}
         className={linkClass}

@@ -68,6 +68,24 @@ enum ApplicationStatus {
   cancelled
 }
 
+/// 대회 당일 현장 확인(체크인) — 신청 승인과 별개
+enum CheckInStatus {
+  pending
+  checked_in
+  no_show
+  withdrawn
+  disqualified
+}
+
+/// 계체 결과 — 현장 확인과 별개
+enum WeighInStatus {
+  pending
+  pass
+  fail
+  manual_pass
+  manual_fail
+}
+
 enum PaymentStatus {
   unpaid
   pending_check
@@ -545,6 +563,11 @@ model EventApplication {
   appliedByUserId            String?
   appliedAt                  DateTime?
   memo                       String?
+  /// 현장 확인·계체 운영 메모 (신청 메모와 분리)
+  fieldMemo                  String?
+  checkInStatus              CheckInStatus @default(pending)
+  weighInStatus              WeighInStatus @default(pending)
+  weighInWeightKg            Float?
   applicationBatchId         String?
   applicationDocumentId      String?            @unique
   createdAt                  DateTime           @default(now())

@@ -12,6 +12,7 @@ export {
   BracketMatchStatus,
   BracketStatus,
   BracketType,
+  CheckInStatus,
   ConsentStatus,
   DuplicateCheckStatus,
   EventApplicationBatchStatus,
