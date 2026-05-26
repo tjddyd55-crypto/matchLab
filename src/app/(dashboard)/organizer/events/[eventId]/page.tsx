@@ -7,6 +7,7 @@ import { EventPaymentSettingForm } from "@/components/domain/events/EventPayment
 import { EventRecordingStreamingSettings } from "@/components/domain/events/EventRecordingStreamingSettings";
 import { SpectatorSettingsSection } from "@/components/domain/events/SpectatorSettingsSection";
 import { EventStatusControl } from "@/components/domain/events/EventStatusControl";
+import { OrganizerEventFlashBanner } from "@/components/domain/events/OrganizerEventFlashBanner";
 import { EventStatusPill } from "@/components/domain/events/EventStatusPill";
 import { resolveOrganizerEventPageError } from "@/lib/permissions";
 import { requireActor } from "@/lib/auth/actor";
@@ -78,6 +79,8 @@ export default async function OrganizerEventDetailPage({
           </p>
         ) : null}
       </header>
+
+      <OrganizerEventFlashBanner />
 
       <EventManagementNav eventId={detail.id} publicSlug={detail.publicSlug} />
 
