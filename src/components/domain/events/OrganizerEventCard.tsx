@@ -1,5 +1,6 @@
 import Link from "next/link";
 import { EventStatusPill } from "@/components/domain/events/EventStatusPill";
+import { RegistrationStatusPill } from "@/components/domain/events/RegistrationStatusPill";
 import { buttonVariants } from "@/components/ui/button";
 import type { OrganizerEventListItemVM } from "@/lib/services/event.service";
 import { cn } from "@/lib/utils";
@@ -36,7 +37,14 @@ export function OrganizerEventCard({
             신청: {formatRange(row.registrationStartDate, row.registrationEndDate)}
           </p>
         </div>
-        <EventStatusPill status={row.status} />
+        <div className="flex flex-wrap items-center justify-end gap-1.5">
+          <EventStatusPill status={row.status} />
+          <RegistrationStatusPill
+            status={row.status}
+            registrationStartDate={row.registrationStartDate}
+            registrationEndDate={row.registrationEndDate}
+          />
+        </div>
       </div>
       <div className="text-muted-foreground flex flex-wrap items-center justify-between gap-2 text-sm">
         <span>신청 {row.applicationCount}건</span>

@@ -4,6 +4,7 @@ import Image from "next/image";
 import { useRouter } from "next/navigation";
 import { useRef, useState, useTransition } from "react";
 import type { OrganizerEventDetailVM } from "@/lib/services/event.service";
+import { putFileToEventSignedUploadUrl } from "@/lib/client/event-image-storage-upload";
 import { EVENT_IMAGE_MAX_BYTES } from "@/lib/constants/event-image-upload";
 import { Button } from "@/components/ui/button";
 import {
@@ -55,13 +56,11 @@ export function EventGalleryManager({
         return;
       }
 
-      const putRes = await fetch(issue.data.uploadUrl, {
-        method: "PUT",
-        headers: { "Content-Type": mimeType },
-        body: file,
-      });
-      if (!putRes.ok) {
-        setError("스토리지 업로드에 실패했습니다.");
+      const put = await putFileToEventSignedUploadUrl(issue.data.uploadUrl, file);
+      if (!put.ok) {
+        setError(
+          `스토리지 업로드에 실패했습니다 (${put.status}). ${put.detail || "버킷 CORS·공개 정책을 확인해 주세요."}`,
+        );
         return;
       }
 

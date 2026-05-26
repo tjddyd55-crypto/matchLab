@@ -56,7 +56,7 @@ export default async function OrganizerEventDetailPage({
     "http://localhost:3000";
 
   return (
-    <div className="mx-auto flex w-full max-w-4xl flex-col gap-8 px-4 py-8 md:px-6">
+    <div className="mx-auto flex w-full max-w-[min(100%,56rem)] flex-col gap-8 px-4 py-8 md:px-6 lg:px-8">
       <header className="space-y-2">
         <div className="flex flex-wrap items-center gap-2">
           <h1 className="font-heading text-2xl font-semibold tracking-tight md:text-3xl">
