@@ -18,6 +18,8 @@ Prisma `enum` 또는 코드 상수와 동기화되는 문자열 제한 컬럼으
 - `GymStatus`, `FighterStatus`, `OrganizerType`, `OrganizerStatus` 등 도메인별 상태
 - `EventStatus`: `draft`, `open`, `closed`, `bracket_ready`, `ongoing`, `finished`, `cancelled`
 - `ApplicationStatus`: `pending`, `approved`, `rejected`, `cancelled`
+- `CheckInStatus`: `pending`, `checked_in`, `no_show`, `withdrawn`, `disqualified` — **신청 승인과 별개**, 대회 당일 현장 확인
+- `WeighInStatus`: `pending`, `pass`, `fail`, `manual_pass`, `manual_fail` — 계체 결과(현장 확인과 별개)
 - `PaymentStatus`: `unpaid`, `pending_check`, `paid`, `refunded`, `waived`
 - `BracketType`: `single_elimination`, `match_list`
 - `BracketStatus`, `BracketMatchStatus`, `MatchResultType`, `MatchResultRecordStatus` 등
@@ -99,6 +101,10 @@ Notification
 | appliedByUserId, appliedAt | 신청을 수행한 체육관 사용자·시각 |
 | applicationProfileImageUrl | 신청 시점 프로필 이미지(선택) |
 | memo | 체육관·주최자 메모 |
+| fieldMemo | 현장 확인·계체 운영 메모(신청 `memo`와 분리) |
+| checkInStatus | `CheckInStatus` — 기본 `pending` |
+| weighInStatus | `WeighInStatus` — 기본 `pending` |
+| weighInWeightKg | 계체 실측 몸무게(kg, `Float`) — **공개 API·공개 페이지 미노출** |
 | status | `ApplicationStatus` |
 | paymentStatus | `PaymentStatus` — **`EventApplicationPayment` 와 트랜잭션으로 동기화되는 캐시** |
 
@@ -169,6 +175,10 @@ MVP: 계좌 안내 + 수동 입금 확인. **`EventApplicationPayment` 가 입�
 ### EventApplication (확장)
 
 - `applicationBatchId`, `applicationDocumentId`: 공식 신청서 플로우와 기존 선수별 신청 연결.
+- **현장 확인·계체(MVP)**: 별도 `EventApplicationCheckIn` 테이블 없이 `EventApplication`에 `checkInStatus` / `weighInStatus` / `weighInWeightKg` / `fieldMemo` 를 둔다. 단위는 **선수 × 대회 × 부문 신청 1건**(`@@unique([eventId, fighterId, divisionId])`)과 동일.
+- **출전 확정**: DB 컬럼이 아니라 `src/lib/field-eligibility.ts`에서 계산 — `checked_in` + (`pass` \| `manual_pass`).
+- **공개 노출 금지**: `weighInWeightKg`, `checkInStatus`, `weighInStatus`, `fieldMemo` 는 주최자·체육관 대시보드 전용. 공개 DTO(`lib/dto/public`)에는 포함하지 않는다.
+- **TODO(향후)**: 감사 추적(`checkedInAt` / `checkedInByUserId` / `weighedAt` / `weighedByUserId`)·QR 체크인·선수 셀프 조회가 필요하면 `EventApplicationFieldStatus` 등 별도 테이블로 분리 검토.
 
 ### Bracket / BracketMatch
 

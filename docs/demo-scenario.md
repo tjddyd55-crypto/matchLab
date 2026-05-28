@@ -40,6 +40,16 @@ MVP 범위는 `docs/mvp-scope.md`를 기준으로 하며, 본 문서는 **시연
 3. **spectator** — `/events/{slug}`에서 포스터·갤러리 노출 확인(Storage **공개 URL**만 사용, private path 미노출).
 4. **organizer** — `/organizer/events` 목록에서 **대회 상태**(예: 공개)와 **신청 상태**(예: 신청 가능/신청 마감) **배지 2개**가 기간과 맞는지 확인.
 
+### 1.4 현장 확인·계체·출전 확정 (주최자 / 체육관)
+
+1. **organizer** — `/organizer/events/{eventId}/check-in` → 승인 신청자 목록·요약 카드 확인.
+2. **organizer** — 선수 **현장 확인** 처리 → 몸무게 입력 → 자동 pass/fail 또는 **수동 승인** 확인.
+3. **organizer** — `/organizer/events/{eventId}/brackets/{bracketId}` → 후보 목록 **출전 미확정 경고**·「출전 확정만 보기」 필터 확인.
+4. **gym** — `/gym/events/{eventId}/field-status` → **자기 체육관 선수만** 표시, 수정 버튼 없음.
+5. **spectator** — `/events/sample-open-2026` 및 `brackets` / `results` → **실제 몸무게·현장 상태 미노출** 확인.
+
+> schema 변경(`CheckInStatus` / `WeighInStatus` 등) 반영 후 **`npm run db:push`** 필요. **`db:seed`는 실행하지 않음.**
+
 ## 2. 역할별 로그인 계정 (미팅 권장: `@demo.local`)
 
 **권장:** `npm run setup:demo-users` 로 Supabase Auth와 DB `User`·프로필을 한 번에 맞춘다(`docs/dev-start.md` 참고). 비밀번호 기본값은 **`1234`** 이며, 환경 변수 **`DEMO_PASSWORD`** 로 덮어쓸 수 있다.

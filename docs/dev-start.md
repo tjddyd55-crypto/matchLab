@@ -320,6 +320,7 @@ npm run dev
 ## 아직 구현되지 않은 것 (TODO)
 
 - **Railway schema 변경 후** `npm run db:push` 필요 (로컬에서 `DATABASE_PUBLIC_URL` 세션 설정). **Storage bucket만 추가 시 schema 변경 없음** — Supabase에서 `application-forms`, `application-documents` private bucket 생성.
+- **현장 확인·계체 schema** (`EventApplication.checkInStatus`, `weighInStatus`, `weighInWeightKg`, `fieldMemo`) 반영 후에도 동일 — **`db:seed` 없이 `db:push`만** 실행.
 - 카카오 알림톡·SMS·웹푸시(인앱 `Notification` / Realtime 훅은 `features/realtime` 및 `Public*RealtimeBridge` 참고)
 
 ### 공식 신청서 PDF 좌표 편집
