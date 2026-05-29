@@ -8,7 +8,9 @@ import { applicationBatchService } from "@/lib/services/application-batch.servic
 import { applicationDocumentService } from "@/lib/services/application-document.service";
 import { EventApplicationForm } from "@/components/domain/applications/EventApplicationForm";
 import { GymOfficialApplicationWorkspace } from "@/components/domain/applications/GymOfficialApplicationWorkspace";
+import { GymBuiltInApplicationWorkspace } from "@/components/domain/applications/GymBuiltInApplicationWorkspace";
 import { GymAthleteFeePreflight } from "@/components/domain/applications/GymAthleteFeePreflight";
+import { ApplicationFormMode } from "@/lib/enums";
 import { EmptyState } from "@/components/shared/EmptyState";
 
 export const dynamic = "force-dynamic";
@@ -121,19 +123,28 @@ export default async function GymEventApplyPage({
       />
 
       {workspace.template ? (
-        <GymOfficialApplicationWorkspace
-          workspace={workspace}
-          documents={documents}
-          divisions={form.divisions}
-          fighters={form.fighters}
-        />
+        workspace.formMode === ApplicationFormMode.built_in_form ? (
+          <GymBuiltInApplicationWorkspace
+            workspace={workspace}
+            documents={documents}
+            divisions={form.divisions}
+            fighters={form.fighters}
+          />
+        ) : (
+          <GymOfficialApplicationWorkspace
+            workspace={workspace}
+            documents={documents}
+            divisions={form.divisions}
+            fighters={form.fighters}
+          />
+        )
       ) : (
         <div className="rounded-xl border border-dashed p-4 text-sm">
-          <p className="font-medium">공식 신청서 템플릿 미연결</p>
+          <p className="font-medium">신청서 템플릿 미연결</p>
           <p className="text-muted-foreground mt-1 leading-relaxed">
-            이 대회에는 아직 공식 PDF 신청서 템플릿이 연결되지 않았습니다.
-            주최자에게 템플릿 연결을 요청하거나, 아래 기존 부문별 신청을
-            이용해 주세요.
+            {workspace.formMode === ApplicationFormMode.built_in_form
+              ? "이 대회의 자체 웹 신청폼이 아직 설정되지 않았습니다. 주최자에게 문의해 주세요."
+              : "이 대회에는 아직 공식 PDF 신청서 템플릿이 연결되지 않았습니다. 주최자에게 템플릿 연결을 요청하거나, 아래 기존 부문별 신청을 이용해 주세요."}
           </p>
         </div>
       )}

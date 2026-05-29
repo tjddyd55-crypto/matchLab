@@ -40,6 +40,17 @@ MVP 범위는 `docs/mvp-scope.md`를 기준으로 하며, 본 문서는 **시연
 3. **spectator** — `/events/{slug}`에서 포스터·갤러리 노출 확인(Storage **공개 URL**만 사용, private path 미노출).
 4. **organizer** — `/organizer/events` 목록에서 **대회 상태**(예: 공개)와 **신청 상태**(예: 신청 가능/신청 마감) **배지 2개**가 기간과 맞는지 확인.
 
+### 1.5 대회 신청 방식 2종 (PDF vs 웹폼)
+
+**공식 PDF (`official_pdf`):** §1.1 공식 신청서 E2E와 동일.
+
+**자체 웹폼 (`built_in_form`):**
+
+1. **organizer** — 대회 상세 → 「자체 웹 신청폼」선택 → 「기본 신청폼 불러오기」→ 항목 저장
+2. **gym** — `/gym/events/{eventId}/apply` → 웹 신청폼으로 선수·부문·수동 입력 → 선수/보호자 서명 링크
+3. **organizer** — `/organizer/events/{eventId}/application-documents/{documentId}` → 제출 값 확인 · HTML 인쇄
+4. **spectator** — 공개 페이지에 신청 제출 개인정보 미노출 확인
+
 ### 1.4 현장 확인·계체·출전 확정 (주최자 / 체육관)
 
 1. **organizer** — `/organizer/events/{eventId}/check-in` → 승인 신청자 목록·요약 카드 확인.

@@ -19,6 +19,8 @@ import {
   applicationFormRenderService,
   type FormRenderContext,
 } from "@/lib/services/application-form-render.service";
+import { builtInFormRenderService } from "@/lib/built-in-form/built-in-form-render.service";
+import { ApplicationFormTemplateType } from "@/generated/prisma";
 import {
   CONSENT_DOCUMENT_TITLE,
   CONSENT_DOCUMENT_VERSION,
@@ -115,9 +117,11 @@ export const applicationDocumentService = {
     }
 
     const template = batch.template;
-    const fields = applicationFormRenderService.parseFieldsJson(
-      template.fieldsJson,
-    );
+    const isBuiltIn =
+      template.templateType === ApplicationFormTemplateType.built_in_form;
+    const fields = isBuiltIn
+      ? builtInFormRenderService.parseFieldsJson(template.fieldsJson)
+      : applicationFormRenderService.parseFieldsJson(template.fieldsJson);
     const manualValues = input.manualValues ?? {};
 
     const belongs = await eventRepository.findDivisionBelongsToEvent(
@@ -146,6 +150,9 @@ export const applicationDocumentService = {
         gender: fighter.gender,
         weight: fighter.weight,
         recordSummary: formatRecordSummary(fighter),
+        phone: fighter.phone,
+        guardianName: fighter.guardianName,
+        guardianPhone: fighter.guardianPhone,
       },
       application: {
         division: divisionLabel,
@@ -178,13 +185,24 @@ export const applicationDocumentService = {
           originalTemplatePdfPath: template.originalPdfPath,
           formValuesJson: JSON.parse(
             JSON.stringify({
+              mode: isBuiltIn ? "built_in_form" : "official_pdf",
               divisionId: input.divisionId,
               divisionLabel,
               manual: manualValues,
-              preview: applicationFormRenderService.buildPreviewValues(
-                fields,
-                renderCtx,
-              ),
+              preview: isBuiltIn
+                ? builtInFormRenderService.buildDisplayValues(
+                    fields as ReturnType<
+                      typeof builtInFormRenderService.parseFieldsJson
+                    >,
+                    renderCtx,
+                    manualValues,
+                  )
+                : applicationFormRenderService.buildPreviewValues(
+                    fields as ReturnType<
+                      typeof applicationFormRenderService.parseFieldsJson
+                    >,
+                    renderCtx,
+                  ),
             }),
           ) as Parameters<
             typeof applicationDocumentRepository.create
@@ -336,9 +354,8 @@ export const applicationDocumentService = {
     }
 
     if (status === "completed" && !doc.documentSnapshotJson) {
-      const fields = applicationFormRenderService.parseFieldsJson(
-        doc.template.fieldsJson,
-      );
+      const isBuiltIn =
+        doc.template.templateType === ApplicationFormTemplateType.built_in_form;
       const formValues = doc.formValuesJson as Record<string, unknown>;
       const manual =
         formValues &&
@@ -365,6 +382,9 @@ export const applicationDocumentService = {
           gender: doc.fighter.gender,
           weight: doc.fighter.weight,
           recordSummary: formatRecordSummary(doc.fighter),
+          phone: doc.fighter.phone,
+          guardianName: doc.fighter.guardianName,
+          guardianPhone: doc.fighter.guardianPhone,
         },
         application: {
           division: divisionLabel,
@@ -381,29 +401,49 @@ export const applicationDocumentService = {
         manual,
       };
 
-      const snapshot = applicationFormRenderService.buildDocumentSnapshot(
-        fields,
-        renderCtx,
-        {
-          templateId: doc.templateId,
-          templateTitle: doc.template.title,
-          originalPdfPath: doc.originalTemplatePdfPath,
-          originalPdfFileName: doc.template.originalPdfFileName,
-          capturedAt: new Date().toISOString(),
-        },
-      );
+      const requiresGuardian = Boolean(doc.guardianConsentId);
+
+      const snapshot = isBuiltIn
+        ? builtInFormRenderService.buildDocumentSnapshot(
+            builtInFormRenderService.parseFieldsJson(doc.template.fieldsJson),
+            renderCtx,
+            manual,
+            {
+              templateId: doc.templateId,
+              templateTitle: doc.template.title,
+              capturedAt: new Date().toISOString(),
+              requiresGuardian,
+              athleteSigned: athleteOk,
+              guardianSigned: guardianOk,
+            },
+          )
+        : applicationFormRenderService.buildDocumentSnapshot(
+            applicationFormRenderService.parseFieldsJson(
+              doc.template.fieldsJson,
+            ),
+            renderCtx,
+            {
+              templateId: doc.templateId,
+              templateTitle: doc.template.title,
+              originalPdfPath: doc.originalTemplatePdfPath ?? "",
+              originalPdfFileName: doc.template.originalPdfFileName ?? "",
+              capturedAt: new Date().toISOString(),
+            },
+          );
 
       await applicationDocumentRepository.update(
         documentId,
         {
           status,
-          documentSnapshotJson: snapshot,
+          documentSnapshotJson: snapshot as unknown as Parameters<
+            typeof applicationDocumentRepository.update
+          >[1]["documentSnapshotJson"],
           completedAt: new Date(),
         },
         tx,
       );
 
-      if (!tx) {
+      if (!tx && !isBuiltIn) {
         void applicationDocumentService.finalizeCompletedDocument(documentId);
       }
       return;
@@ -412,11 +452,24 @@ export const applicationDocumentService = {
     await applicationDocumentRepository.update(documentId, { status }, tx);
 
     if (!tx && status === "completed") {
-      void applicationDocumentService.finalizeCompletedDocument(documentId);
+      const docFresh = await applicationDocumentRepository.findById(documentId);
+      if (
+        docFresh?.template.templateType !==
+        ApplicationFormTemplateType.built_in_form
+      ) {
+        void applicationDocumentService.finalizeCompletedDocument(documentId);
+      }
     }
   },
 
   async finalizeCompletedDocument(documentId: string): Promise<void> {
+    const doc = await applicationDocumentRepository.findById(documentId);
+    if (
+      !doc ||
+      doc.template.templateType === ApplicationFormTemplateType.built_in_form
+    ) {
+      return;
+    }
     const { applicationFormPdfService } = await import(
       "@/lib/services/application-form-pdf.service"
     );

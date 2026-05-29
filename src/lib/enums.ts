@@ -5,6 +5,8 @@
 
 export {
   ApplicationDocumentStatus,
+  ApplicationFormMode,
+  ApplicationFormTemplateType,
   ApplicationStatus,
   AuditAction,
   BracketChangeType,

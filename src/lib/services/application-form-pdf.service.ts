@@ -72,6 +72,12 @@ export const applicationFormPdfService = {
     if (!doc || doc.status !== "completed") {
       return null;
     }
+    if (
+      doc.template.templateType === "built_in_form" ||
+      !doc.originalTemplatePdfPath
+    ) {
+      return null;
+    }
 
     const snapshot = doc.documentSnapshotJson as Record<string, unknown> | null;
     const previewValues =

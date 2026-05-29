@@ -44,6 +44,9 @@ export const applicationPdfAccessService = {
         throw new AppError("FORBIDDEN", "이 템플릿에 접근할 수 없습니다.");
       }
     }
+    if (!template.originalPdfPath) {
+      throw new AppError("NOT_FOUND", "PDF 원본이 없는 템플릿입니다.");
+    }
     assertTemplatePdfPath(template.originalPdfPath);
     const { signedUrl, expiresIn } = await createApplicationFormPdfDownloadSignedUrl(
       { path: template.originalPdfPath },
@@ -51,7 +54,7 @@ export const applicationPdfAccessService = {
     return {
       viewUrl: signedUrl,
       expiresIn,
-      fileName: template.originalPdfFileName,
+      fileName: template.originalPdfFileName ?? "template.pdf",
     };
   },
 
@@ -117,6 +120,9 @@ export const applicationPdfAccessService = {
     if (!doc || doc.eventId !== eventId) {
       throw new AppError("NOT_FOUND", "신청서 문서를 찾을 수 없습니다.");
     }
+    if (!doc.originalTemplatePdfPath) {
+      throw new AppError("NOT_FOUND", "PDF 원본이 없는 신청서입니다.");
+    }
     assertTemplatePdfPath(doc.originalTemplatePdfPath);
 
     if (actor.role === "admin") {
@@ -138,7 +144,7 @@ export const applicationPdfAccessService = {
     return {
       viewUrl: signedUrl,
       expiresIn,
-      fileName: doc.template.originalPdfFileName,
+      fileName: doc.template.originalPdfFileName ?? "template.pdf",
     };
   },
 };

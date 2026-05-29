@@ -475,10 +475,12 @@ export const eventRepository = {
         streamingConsentRequired: true,
         streamingNoticeText: true,
         applicationFormTemplateId: true,
+        applicationFormMode: true,
         applicationFormTemplate: {
           select: {
             id: true,
             title: true,
+            templateType: true,
             originalPdfFileName: true,
             originalPdfPath: true,
             fieldsJson: true,

@@ -4,6 +4,8 @@ import { AppError } from "@/lib/errors/app-error";
 import { requireOrganizerForEventPage } from "@/lib/permissions";
 import { applicationDocumentService } from "@/lib/services/application-document.service";
 import { PrintApplicationDocument } from "@/components/domain/applications/PrintApplicationDocument";
+import { ApplicationFormTemplateType } from "@/lib/enums";
+import type { BuiltInFormSnapshot } from "@/lib/built-in-form/built-in-form-types";
 
 export const dynamic = "force-dynamic";
 
@@ -50,6 +52,13 @@ export default async function PrintApplicationDocumentPage({
       ? (formValues.preview as Record<string, string>)
       : {};
 
+  const isBuiltIn =
+    doc.template.templateType === ApplicationFormTemplateType.built_in_form;
+  const builtInSnapshot =
+    snapshot && typeof snapshot === "object" && snapshot.mode === "built_in_form"
+      ? (snapshot as BuiltInFormSnapshot)
+      : null;
+
   return (
     <PrintApplicationDocument
       title={doc.template.title}
@@ -59,6 +68,8 @@ export default async function PrintApplicationDocumentPage({
       originalPdfFileName={doc.template.originalPdfFileName}
       previewValues={previewValues ?? fallbackPreview}
       hasGeneratedPdf={Boolean(doc.generatedPdfPath)}
+      isBuiltInForm={isBuiltIn}
+      builtInSnapshot={builtInSnapshot}
     />
   );
 }

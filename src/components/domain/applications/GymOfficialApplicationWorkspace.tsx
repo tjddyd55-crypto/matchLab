@@ -103,7 +103,7 @@ export function GymOfficialApplicationWorkspace({
         <p className="text-muted-foreground text-sm">
           템플릿: <strong className="text-foreground">{workspace.template.title}</strong>{" "}
           · 필드 {workspace.template.fieldCount}개 ·{" "}
-          {workspace.template.originalPdfFileName}
+          {workspace.template.originalPdfFileName ?? "PDF 없음"}
         </p>
         <ul className="text-muted-foreground list-inside list-disc text-xs leading-relaxed">
           {workspace.policyNotice.map((line) => (

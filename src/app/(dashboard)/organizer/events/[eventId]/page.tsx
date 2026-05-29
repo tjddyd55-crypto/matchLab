@@ -12,7 +12,7 @@ import { EventStatusPill } from "@/components/domain/events/EventStatusPill";
 import { resolveOrganizerEventPageError } from "@/lib/permissions";
 import { requireActor } from "@/lib/auth/actor";
 import { EventStatus } from "@/lib/enums";
-import { EventApplicationFormTemplateSection } from "@/components/domain/events/EventApplicationFormTemplateSection";
+import { EventApplicationFormModeSection } from "@/components/domain/events/EventApplicationFormModeSection";
 import { applicationFormTemplateService } from "@/lib/services/application-form-template.service";
 import { divisionTemplateService } from "@/lib/services/division-template.service";
 import { eventRepository } from "@/lib/repositories/event.repository";
@@ -35,18 +35,20 @@ export default async function OrganizerEventDetailPage({
   let staffRecorderLinks;
   let formTemplates;
   let linkedTemplateId: string | null = null;
+  let formConfig;
   try {
     detail = await eventService.getOrganizerEventDetail(actor, eventId);
     const eventApp = await eventRepository.findEventWithDivisionsForApplication(
       eventId,
     );
     linkedTemplateId = eventApp?.applicationFormTemplateId ?? null;
-    [divisionTemplates, divisionTemplateDetails, staffRecorderLinks, formTemplates] =
+    [divisionTemplates, divisionTemplateDetails, staffRecorderLinks, formTemplates, formConfig] =
       await Promise.all([
       divisionTemplateService.listTemplatesForEvent(actor, eventId),
       divisionTemplateService.listTemplateDetailsForEvent(actor, eventId),
       eventStaffAccessService.listLinksForOrganizer(actor, eventId),
       applicationFormTemplateService.listSelectableForEvent(actor, eventId),
+      applicationFormTemplateService.getBuiltInFormConfigForEvent(actor, eventId),
     ]);
   } catch (e) {
     resolveOrganizerEventPageError(e);
@@ -100,10 +102,13 @@ export default async function OrganizerEventDetailPage({
 
       <EventGalleryManager eventId={detail.id} images={detail.galleryImages} />
 
-      <EventApplicationFormTemplateSection
+      <EventApplicationFormModeSection
         eventId={detail.id}
+        applicationFormMode={formConfig.mode}
         linkedTemplateId={linkedTemplateId}
-        templates={formTemplates}
+        pdfTemplates={formTemplates}
+        builtInTitle={formConfig.title}
+        builtInFieldsJson={formConfig.fieldsJson}
       />
 
       <EventDivisionManager
