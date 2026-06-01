@@ -3,6 +3,7 @@ import { inviteLinkService } from "@/lib/services/invite-link.service";
 import { InviteLinkCreateForm } from "@/components/domain/gym/InviteLinkCreateForm";
 import { CopyInviteUrlButton } from "@/components/domain/gym/CopyInviteUrlButton";
 import { GymFighterRegistrationPolicyNotice } from "@/components/domain/fighters/GymFighterRegistrationPolicyNotice";
+import { GymProfileMissingBanner } from "@/components/domain/gym/GymProfileMissingBanner";
 import { EmptyState } from "@/components/shared/EmptyState";
 import { InviteLinkStatus, InviteLinkType } from "@/lib/enums";
 import { format } from "date-fns";
@@ -46,10 +47,7 @@ export default async function GymInviteLinksPage() {
       {actor.gymId ? <InviteLinkCreateForm baseUrl={baseUrl} /> : null}
 
       {!actor.gymId ? (
-        <EmptyState
-          title="체육관 계정이 필요합니다"
-          description="관장 계정으로 로그인 후 초대 링크를 생성할 수 있습니다."
-        />
+        <GymProfileMissingBanner />
       ) : links.length === 0 ? (
         <EmptyState title="생성된 링크가 없습니다" />
       ) : (

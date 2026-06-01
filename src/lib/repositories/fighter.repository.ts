@@ -3,6 +3,10 @@
  */
 import { FighterStatus, type Prisma } from "@/generated/prisma";
 import { AppError } from "@/lib/errors/app-error";
+import {
+  activeFighterAffiliatedWithGymWhere,
+  fighterAffiliatedWithGymWhere,
+} from "@/lib/gym-affiliation";
 import { prisma } from "@/lib/prisma";
 import { normalizePhoneDigits } from "@/lib/phone";
 import { toUtcDateOnly } from "@/lib/date-only";
@@ -50,7 +54,7 @@ export const fighterRepository = {
 
   async listFightersByGym(gymId: string): Promise<GymFighterListRow[]> {
     const rows = await prisma.fighter.findMany({
-      where: { currentGymId: gymId },
+      where: fighterAffiliatedWithGymWhere(gymId),
       orderBy: { createdAt: "desc" },
       select: {
         id: true,
@@ -190,7 +194,7 @@ export const fighterRepository = {
     }[]
   > {
     return prisma.fighter.findMany({
-      where: { currentGymId: gymId, status: FighterStatus.active },
+      where: activeFighterAffiliatedWithGymWhere(gymId),
       orderBy: { createdAt: "desc" },
       select: {
         id: true,

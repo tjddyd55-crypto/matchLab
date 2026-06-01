@@ -12,6 +12,7 @@
     "db:push": "prisma db push",
     "db:seed": "prisma db seed",
     "setup:demo-users": "tsx scripts/setup-demo-users.ts",
+    "repair:demo-gym": "tsx scripts/repair-gym-fighter-affiliations.ts",
     "seed:demo-fighters": "tsx scripts/seed-demo-fighters.ts"
   },
   "prisma": {

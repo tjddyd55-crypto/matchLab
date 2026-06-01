@@ -3,7 +3,9 @@ import { Card } from "@/components/ui/card";
 import { buttonVariants } from "@/components/ui/button";
 import { cn } from "@/lib/utils";
 import { requireActor } from "@/lib/auth/actor";
+import { AppError } from "@/lib/errors/app-error";
 import { matchService } from "@/lib/services/match.service";
+import { GymProfileMissingBanner } from "@/components/domain/gym/GymProfileMissingBanner";
 import { BracketMatchStatus } from "@/lib/enums";
 
 export const dynamic = "force-dynamic";
@@ -29,7 +31,28 @@ function statusKo(s: BracketMatchStatus): string {
 
 export default async function GymHomePage() {
   const actor = await requireActor();
-  const field = await matchService.getGymFieldMode(actor);
+
+  if (!actor.gymId) {
+    return (
+      <div className="mx-auto flex w-full max-w-4xl flex-col gap-8 px-4 py-8 md:px-6">
+        <GymProfileMissingBanner />
+      </div>
+    );
+  }
+
+  let field: Awaited<ReturnType<typeof matchService.getGymFieldMode>>;
+  try {
+    field = await matchService.getGymFieldMode(actor);
+  } catch (e) {
+    if (e instanceof AppError && e.code === "FORBIDDEN") {
+      return (
+        <div className="mx-auto flex w-full max-w-4xl flex-col gap-8 px-4 py-8 md:px-6">
+          <GymProfileMissingBanner />
+        </div>
+      );
+    }
+    throw e;
+  }
 
   return (
     <div className="mx-auto flex w-full max-w-4xl flex-col gap-8 px-4 py-8 md:px-6">

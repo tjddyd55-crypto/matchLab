@@ -7,6 +7,7 @@ import { FightersCardListMobile } from "@/components/domain/fighters/FightersCar
 import { GymRegistrationRequestsTable } from "@/components/domain/fighters/GymRegistrationRequestsTable";
 import { GymRegistrationRequestsCards } from "@/components/domain/fighters/GymRegistrationRequestsCards";
 import { GymFighterRegistrationPolicyNotice } from "@/components/domain/fighters/GymFighterRegistrationPolicyNotice";
+import { GymProfileMissingBanner } from "@/components/domain/gym/GymProfileMissingBanner";
 import { EmptyState } from "@/components/shared/EmptyState";
 import { buttonVariants } from "@/components/ui/button";
 import { cn } from "@/lib/utils";
@@ -72,10 +73,7 @@ export default async function GymFightersPage({
       <GymFighterRegistrationPolicyNotice />
 
       {!actor.gymId ? (
-        <EmptyState
-          title="체육관 계정이 필요합니다"
-          description="관장 계정으로 로그인하면 소속 선수와 등록 요청을 관리할 수 있습니다."
-        />
+        <GymProfileMissingBanner />
       ) : showRequests ? (
         requests.length === 0 ? (
           <EmptyState

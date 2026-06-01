@@ -1,8 +1,12 @@
+import Link from "next/link";
 import { requireActor } from "@/lib/auth/actor";
 import { applicationService } from "@/lib/services/application.service";
 import { GymApplicationsCards } from "@/components/domain/applications/GymApplicationsCards";
 import { GymApplicationsTable } from "@/components/domain/applications/GymApplicationsTable";
+import { GymProfileMissingBanner } from "@/components/domain/gym/GymProfileMissingBanner";
 import { EmptyState } from "@/components/shared/EmptyState";
+import { buttonVariants } from "@/components/ui/button";
+import { cn } from "@/lib/utils";
 
 export const dynamic = "force-dynamic";
 
@@ -13,10 +17,7 @@ export default async function GymApplicationsPage() {
   if (!actor.gymId) {
     return (
       <div className="mx-auto flex w-full max-w-6xl flex-col gap-8 px-4 py-8 md:px-6">
-        <EmptyState
-          title="체육관 계정이 필요합니다"
-          description="신청 내역은 체육관 계정에서 확인할 수 있습니다."
-        />
+        <GymProfileMissingBanner />
       </div>
     );
   }
@@ -36,6 +37,14 @@ export default async function GymApplicationsPage() {
         <EmptyState
           title="신청 내역이 없습니다"
           description="신청 가능한 대회에서 소속 선수를 선택해 신청해 보세요."
+          action={
+            <Link
+              href="/gym/events"
+              className={cn(buttonVariants({ variant: "default", size: "sm" }))}
+            >
+              대회 목록에서 신청하기
+            </Link>
+          }
         />
       ) : (
         <>

@@ -106,6 +106,16 @@ GitHub → Railway 배포가 성공해도 **Postgres는 빈 DB**입니다. `publ
 
 생성되는 Auth 이메일: `admin@demo.local`, `organizer@demo.local`, `gym@demo.local`, `fighter@demo.local`. 선수 `fighterCode`는 `FTR-2026-DEMO001`(이미 있으면 갱신).
 
+`setup:demo-users` 실행 시 데모 체육관 `FighterGymHistory(active)` → `Fighter.currentGymId` 동기화와 `sample-open-2026` 신청 마감(연말)·`open` 보정도 수행한다.
+
+### 체육관·선수 소속 복구 (`npm run repair:demo-gym`)
+
+**`db:seed` 없이** 체육관 화면에 선수가 안 보이거나 신청이 막힐 때(이력은 있는데 `currentGymId` 불일치 등) 실행한다.
+
+```bash
+npm run repair:demo-gym
+```
+
 ### 테스트용 선수 20명 추가 (`npm run seed:demo-fighters`)
 
 대회 신청·대진표 실무 테스트용으로 **데모 체육관 소속 가상 선수 20명**을 DB에만 추가합니다. Supabase Auth 계정은 만들지 않으며(`userId` null), **기존 `db:seed` 전체를 다시 돌리지 않아도** 됩니다.

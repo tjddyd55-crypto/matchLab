@@ -12,7 +12,9 @@ import {
   OrganizerType,
   UserRole,
 } from "../src/generated/prisma";
+import { EventStatus } from "../src/generated/prisma";
 import { prisma } from "../src/lib/prisma";
+import { repairGymFighterAffiliations } from "./lib/repair-gym-affiliation";
 
 const DEMO_ACCOUNTS = [
   {
@@ -358,6 +360,21 @@ async function main() {
   });
 
   await ensureFighterGymHistory(fighter.id, gym.id);
+
+  const repaired = await repairGymFighterAffiliations(gym.id);
+  if (repaired > 0) {
+    console.info(
+      `[setup-demo-users] 체육관 소속 currentGymId 동기화: ${repaired}명`,
+    );
+  }
+
+  await prisma.event.updateMany({
+    where: { publicSlug: "sample-open-2026" },
+    data: {
+      status: EventStatus.open,
+      registrationEndDate: new Date("2026-12-31T23:59:59.000Z"),
+    },
+  });
 
   console.info("");
   console.info("========== 데모 계정 (로그인: /login) ==========");
