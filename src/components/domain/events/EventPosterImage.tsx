@@ -9,7 +9,7 @@ function PosterPlaceholder({ className }: { className?: string }) {
   return (
     <div
       className={cn(
-        "flex flex-col items-center justify-center gap-2 bg-gradient-to-br from-neutral-100 to-neutral-200/80 text-muted-foreground dark:from-neutral-900 dark:to-neutral-800",
+        "flex flex-col items-center justify-center gap-2 bg-neutral-50 text-muted-foreground dark:bg-neutral-900/40",
         EVENT_POSTER_ASPECT_CLASS,
         className,
       )}
@@ -55,7 +55,7 @@ export function EventPosterImage({
   return (
     <div
       className={cn(
-        "relative overflow-hidden bg-neutral-50 dark:bg-neutral-900/40",
+        "relative overflow-hidden bg-white dark:bg-neutral-900/40",
         EVENT_POSTER_ASPECT_CLASS,
         className,
       )}
