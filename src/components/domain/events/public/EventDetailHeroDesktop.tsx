@@ -12,16 +12,15 @@ export function EventDetailHeroDesktop({
 }) {
   return (
     <header className="hidden md:block">
-      <div className="grid gap-10 lg:grid-cols-[minmax(0,300px)_1fr] lg:items-start">
-        <div className="w-full max-w-[320px]">
-          <EventPosterImage
-            src={event.coverImageUrl}
-            alt={`${event.title} 포스터`}
-            className="w-full rounded-xl ring-1 ring-foreground/10 shadow-lg"
-            sizes="320px"
-            priority
-          />
-        </div>
+      <div className="grid gap-10 lg:grid-cols-[minmax(0,420px)_1fr] lg:items-start">
+        <EventPosterImage
+          variant="detail"
+          src={event.coverImageUrl}
+          alt={`${event.title} 포스터`}
+          boxClassName="rounded-xl ring-1 ring-foreground/10 shadow-lg"
+          sizes="420px"
+          priority
+        />
 
         <div className="flex min-w-0 flex-col gap-6">
           <div className="space-y-4">

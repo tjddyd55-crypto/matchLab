@@ -12,10 +12,11 @@ export function EventDetailHeroMobile({
   return (
     <header className="space-y-4 md:hidden">
       <EventPosterImage
+        variant="detail"
         src={event.coverImageUrl}
         alt={`${event.title} 포스터`}
-        className="w-full rounded-xl ring-1 ring-foreground/10"
-        sizes="100vw"
+        boxClassName="rounded-xl ring-1 ring-foreground/10"
+        sizes="(max-width:768px) 100vw, 420px"
         priority
       />
 
