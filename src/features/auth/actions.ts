@@ -68,7 +68,7 @@ export async function signInWithPasswordAction(
       );
     }
 
-    const authEmail = await fighterAccountService.resolveAuthEmailForLogin(
+    const authEmail = await authService.resolveAuthEmailForLogin(
       parsed.data.identifier,
     );
     if (!authEmail) {

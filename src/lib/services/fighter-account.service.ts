@@ -4,7 +4,6 @@ import type { ActorContext } from "@/lib/auth/actor-context";
 import { AppError } from "@/lib/errors/app-error";
 import {
   generateTemporaryPassword,
-  isEmailLoginIdentifier,
   loginIdToAuthEmail,
   normalizeLoginId,
 } from "@/lib/fighter-login";
@@ -12,6 +11,7 @@ import { prisma } from "@/lib/prisma";
 import { requireGymOwner, requireRole } from "@/lib/permissions";
 import { fighterAccountRepository } from "@/lib/repositories/fighter-account.repository";
 import { fighterRepository } from "@/lib/repositories/fighter.repository";
+import { authService } from "@/lib/services/auth.service";
 import { userRepository } from "@/lib/repositories/user.repository";
 import { createSupabaseAdminClient } from "@/lib/supabase/admin";
 import { FighterRegistrationSubmissionStatus, UserRole } from "@/lib/enums";
@@ -71,16 +71,9 @@ async function updateSupabasePassword(authUserId: string, password: string) {
 }
 
 export const fighterAccountService = {
-  /** 로그인 identifier → Supabase email */
+  /** @deprecated authService.resolveAuthEmailForLogin 사용 */
   async resolveAuthEmailForLogin(identifier: string): Promise<string | null> {
-    const trimmed = identifier.trim();
-    if (isEmailLoginIdentifier(trimmed)) {
-      return trimmed.toLowerCase();
-    }
-    const loginId = normalizeLoginId(trimmed);
-    const user = await fighterAccountRepository.findUserByLoginId(loginId);
-    if (!user?.email) return null;
-    return user.email;
+    return authService.resolveAuthEmailForLogin(identifier);
   },
 
   async createFighterLoginAccount(input: {

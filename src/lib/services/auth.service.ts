@@ -3,12 +3,55 @@ import "server-only";
 import type { User } from "@/generated/prisma";
 import type { ActorContext } from "@/lib/auth/actor-context";
 import { actorProfileRowToContext } from "@/lib/auth/map-profile-to-actor";
+import {
+  isEmailLoginIdentifier,
+  loginIdToAuthEmail,
+  normalizeLoginId,
+} from "@/lib/fighter-login";
 import { userRepository } from "@/lib/repositories/user.repository";
 
 /**
  * 인증 주체 조립 — Repository만 사용하고 권한 판단은 하지 않는다.
  */
+function normalizeAuthEmail(email: string): string {
+  return email.trim().toLowerCase();
+}
+
 export const authService = {
+  /**
+   * 로그인 identifier(아이디 또는 이메일) → Supabase Auth email.
+   * 모든 User.role 지원. identifier를 Supabase에 그대로 넘기지 않습니다.
+   */
+  async resolveAuthEmailForLogin(identifier: string): Promise<string | null> {
+    const trimmed = identifier.trim();
+    if (!trimmed) return null;
+
+    if (isEmailLoginIdentifier(trimmed)) {
+      return normalizeAuthEmail(trimmed);
+    }
+
+    const loginId = normalizeLoginId(trimmed);
+    const byLoginId = await userRepository.findUserByLoginId(loginId);
+    if (byLoginId?.email) {
+      return normalizeAuthEmail(byLoginId.email);
+    }
+
+    // loginId 미기입 DB: 데모 @demo.local / 내부 auth email 하위 호환
+    const demoEmail = `${loginId}@demo.local`;
+    const demoUser = await userRepository.findUserByEmail(demoEmail);
+    if (demoUser?.email) {
+      return normalizeAuthEmail(demoUser.email);
+    }
+
+    const internalEmail = loginIdToAuthEmail(loginId);
+    const internalUser = await userRepository.findUserByEmail(internalEmail);
+    if (internalUser?.email) {
+      return normalizeAuthEmail(internalUser.email);
+    }
+
+    return null;
+  },
+
   async getActorByAuthUserId(authUserId: string): Promise<ActorContext | null> {
     const row =
       await userRepository.findActorProfileByAuthUserId(authUserId);
