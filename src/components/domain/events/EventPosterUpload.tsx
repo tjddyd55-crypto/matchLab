@@ -1,16 +1,17 @@
 "use client";
 
-import Image from "next/image";
 import { useRouter } from "next/navigation";
-import { useRef, useState, useTransition } from "react";
+import { useEffect, useRef, useState, useTransition } from "react";
+import { EventPosterOrganizerPreview } from "@/components/domain/events/EventPosterOrganizerPreview";
 import { putFileToEventSignedUploadUrl } from "@/lib/client/event-image-storage-upload";
-import { EVENT_IMAGE_MAX_BYTES } from "@/lib/constants/event-image-upload";
 import {
-  EVENT_POSTER_ASPECT_CLASS,
-  EVENT_POSTER_UPLOAD_HINT,
-} from "@/components/domain/events/public/public-event-layout";
+  getEventPosterAspectWarning,
+  readImageDimensionsFromFile,
+  readImageDimensionsFromUrl,
+} from "@/lib/client/event-poster-aspect";
+import { EVENT_IMAGE_MAX_BYTES } from "@/lib/constants/event-image-upload";
+import { EVENT_POSTER_UPLOAD_HINT } from "@/components/domain/events/public/public-event-layout";
 import { Button } from "@/components/ui/button";
-import { cn } from "@/lib/utils";
 import {
   finalizeEventPosterUploadAction,
   requestEventPosterUploadAction,
@@ -33,9 +34,58 @@ export function EventPosterUpload({
 }) {
   const router = useRouter();
   const inputRef = useRef<HTMLInputElement>(null);
+  const localPreviewRef = useRef<string | null>(null);
   const [pending, startTransition] = useTransition();
   const [error, setError] = useState<string | null>(null);
-  const [preview, setPreview] = useState<string | null>(posterUrl);
+  const [localPreview, setLocalPreview] = useState<string | null>(null);
+  const [aspectWarning, setAspectWarning] = useState<string | null>(null);
+
+  const displaySrc = localPreview ?? posterUrl;
+
+  useEffect(() => {
+    return () => {
+      if (localPreviewRef.current) {
+        URL.revokeObjectURL(localPreviewRef.current);
+        localPreviewRef.current = null;
+      }
+    };
+  }, []);
+
+  useEffect(() => {
+    if (!posterUrl || localPreview) return;
+
+    let cancelled = false;
+    void readImageDimensionsFromUrl(posterUrl)
+      .then(({ width, height }) => {
+        if (!cancelled) {
+          setAspectWarning(getEventPosterAspectWarning(width, height));
+        }
+      })
+      .catch(() => {
+        if (!cancelled) setAspectWarning(null);
+      });
+
+    return () => {
+      cancelled = true;
+    };
+  }, [posterUrl, localPreview]);
+
+  function revokeLocalPreview() {
+    if (localPreviewRef.current) {
+      URL.revokeObjectURL(localPreviewRef.current);
+      localPreviewRef.current = null;
+    }
+    setLocalPreview(null);
+  }
+
+  async function inspectFileAspect(file: File) {
+    try {
+      const { width, height } = await readImageDimensionsFromFile(file);
+      setAspectWarning(getEventPosterAspectWarning(width, height));
+    } catch {
+      setAspectWarning(null);
+    }
+  }
 
   async function uploadFile(file: File) {
     const mimeType = file.type;
@@ -51,6 +101,13 @@ export function EventPosterUpload({
     }
 
     setError(null);
+    await inspectFileAspect(file);
+
+    revokeLocalPreview();
+    const blobUrl = URL.createObjectURL(file);
+    localPreviewRef.current = blobUrl;
+    setLocalPreview(blobUrl);
+
     startTransition(async () => {
       const issueFd = new FormData();
       issueFd.set("eventId", eventId);
@@ -58,6 +115,7 @@ export function EventPosterUpload({
       const issue = await requestEventPosterUploadAction(issueFd);
       if (!issue.ok) {
         setError(issue.error.message);
+        revokeLocalPreview();
         return;
       }
 
@@ -66,6 +124,7 @@ export function EventPosterUpload({
         setError(
           `스토리지 업로드에 실패했습니다 (${put.status}). ${put.detail || "다시 시도해 주세요."}`,
         );
+        revokeLocalPreview();
         return;
       }
 
@@ -75,9 +134,11 @@ export function EventPosterUpload({
       const fin = await finalizeEventPosterUploadAction(finFd);
       if (!fin.ok) {
         setError(fin.error.message);
+        revokeLocalPreview();
         return;
       }
-      setPreview(fin.data.posterUrl);
+
+      revokeLocalPreview();
       onPosterUrlChange?.(fin.data.posterUrl);
       router.refresh();
     });
@@ -90,7 +151,8 @@ export function EventPosterUpload({
   }
 
   function clearPoster() {
-    setPreview(null);
+    revokeLocalPreview();
+    setAspectWarning(null);
     onPosterUrlChange?.(null);
   }
 
@@ -109,32 +171,10 @@ export function EventPosterUpload({
         </p>
       ) : null}
       <div className="flex flex-wrap items-start gap-4">
-        {preview ? (
-          <div
-            className={cn(
-              "relative w-32 shrink-0 overflow-hidden rounded-md bg-neutral-50 ring-1 ring-foreground/10",
-              EVENT_POSTER_ASPECT_CLASS,
-            )}
-          >
-            <Image
-              src={preview}
-              alt="포스터 미리보기"
-              fill
-              className="object-contain"
-              sizes="128px"
-              unoptimized
-            />
-          </div>
-        ) : (
-          <div
-            className={cn(
-              "flex w-32 shrink-0 items-center justify-center rounded-md border border-dashed bg-neutral-50 text-center text-[11px] text-muted-foreground",
-              EVENT_POSTER_ASPECT_CLASS,
-            )}
-          >
-            미리보기 없음
-          </div>
-        )}
+        <EventPosterOrganizerPreview
+          src={displaySrc}
+          aspectWarning={aspectWarning}
+        />
         <div className="flex min-w-[140px] flex-col gap-2">
           <input
             ref={inputRef}
@@ -150,9 +190,9 @@ export function EventPosterUpload({
             disabled={pending}
             onClick={() => inputRef.current?.click()}
           >
-            {pending ? "업로드 중…" : preview ? "이미지 교체" : "포스터 업로드"}
+            {pending ? "업로드 중…" : displaySrc ? "이미지 교체" : "포스터 업로드"}
           </Button>
-          {preview ? (
+          {displaySrc ? (
             <Button
               type="button"
               variant="outline"
