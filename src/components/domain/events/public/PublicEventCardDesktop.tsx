@@ -29,7 +29,7 @@ export function PublicEventCardDesktop({
           src={event.coverImageUrl}
           alt={`${event.title} 포스터`}
           className="aspect-[4/5] w-full"
-          sizes="(max-width:1280px) 25vw, 280px"
+          sizes="(max-width:1536px) 33vw, 380px"
           priority={priorityImage}
         />
         <div className="absolute inset-x-0 top-0 flex flex-wrap gap-1.5 p-3">
@@ -41,14 +41,17 @@ export function PublicEventCardDesktop({
         </div>
       </Link>
 
-      <div className="flex flex-1 flex-col gap-3 p-4">
-        <Link href={href} className="min-w-0 hover:underline">
+      <div className="flex min-h-0 flex-1 flex-col gap-2.5 p-5">
+        <Link href={href} className="min-w-0 shrink-0 hover:underline">
           <h3 className="font-heading line-clamp-2 text-lg font-semibold leading-snug">
             {event.title}
           </h3>
-          <p className="text-muted-foreground mt-1 text-xs">{event.organizerName}</p>
+          <p className="text-muted-foreground mt-1 line-clamp-1 text-xs">
+            {event.organizerName}
+          </p>
         </Link>
 
+        <div className="min-h-0 flex-1">
         <EventMetaList
           eventDate={event.eventDate}
           location={event.location}
@@ -59,12 +62,15 @@ export function PublicEventCardDesktop({
           divisionSummary={event.divisionSummary}
           compact
         />
+        </div>
 
         {event.liveStreamingEnabled ? (
-          <p className="text-primary text-xs font-medium">라이브 스트리밍 예정</p>
+          <p className="text-primary shrink-0 text-xs font-medium line-clamp-1">
+            라이브 스트리밍 예정
+          </p>
         ) : null}
 
-        <div className="mt-auto pt-2">
+        <div className="mt-auto shrink-0 pt-3">
           <Link
             href={href}
             className={cn(buttonVariants({ variant: "default", size: "sm" }))}

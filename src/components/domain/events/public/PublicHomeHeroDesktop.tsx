@@ -5,7 +5,7 @@ import { cn } from "@/lib/utils";
 export function PublicHomeHeroDesktop() {
   return (
     <section className="hidden border-b bg-gradient-to-b from-primary/8 via-background to-background md:block">
-      <div className="mx-auto flex w-full max-w-6xl flex-col gap-8 px-6 py-16 lg:py-20">
+      <div className="mx-auto flex w-full max-w-[1240px] flex-col gap-8 px-6 py-16 lg:py-20">
         <div className="max-w-3xl space-y-5">
           <p className="text-primary text-sm font-semibold tracking-wide">
             MatchLab

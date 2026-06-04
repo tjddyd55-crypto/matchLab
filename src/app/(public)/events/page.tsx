@@ -1,5 +1,7 @@
 import { PublicEventsBoard } from "@/components/domain/events/PublicEventsBoard";
+import { PUBLIC_EVENTS_CONTAINER_CLASS } from "@/components/domain/events/public/public-event-layout";
 import { eventService } from "@/lib/services/event.service";
+import { cn } from "@/lib/utils";
 
 export const dynamic = "force-dynamic";
 
@@ -12,7 +14,7 @@ export default async function PublicEventsPage() {
   ].sort();
 
   return (
-    <div className="mx-auto flex w-full max-w-6xl flex-col gap-8 px-4 py-8 md:px-6">
+    <div className={cn(PUBLIC_EVENTS_CONTAINER_CLASS, "flex flex-col gap-8 py-8")}>
       <div className="space-y-2">
         <h1 className="font-heading text-3xl font-semibold tracking-tight">
           대회 공고

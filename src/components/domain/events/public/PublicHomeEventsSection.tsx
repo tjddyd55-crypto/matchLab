@@ -4,6 +4,7 @@ import { PublicEventListDesktop } from "@/components/domain/events/public/Public
 import { PublicEventListMobile } from "@/components/domain/events/public/PublicEventListMobile";
 import { EmptyState } from "@/components/shared/EmptyState";
 import { buttonVariants } from "@/components/ui/button";
+import { PUBLIC_EVENTS_CONTAINER_CLASS } from "@/components/domain/events/public/public-event-layout";
 import { cn } from "@/lib/utils";
 
 export function PublicHomeEventsSection({
@@ -12,7 +13,12 @@ export function PublicHomeEventsSection({
   events: PublicEventListItemDTO[];
 }) {
   return (
-    <section className="mx-auto flex w-full max-w-6xl flex-col gap-5 px-4 py-8 md:gap-6 md:px-6 md:py-10">
+    <section
+      className={cn(
+        PUBLIC_EVENTS_CONTAINER_CLASS,
+        "flex flex-col gap-5 py-8 md:gap-6 md:py-10",
+      )}
+    >
       <div className="flex items-end justify-between gap-4">
         <div>
           <h2 className="text-lg font-semibold md:text-xl">대회 공고</h2>

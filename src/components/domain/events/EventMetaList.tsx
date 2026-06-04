@@ -35,17 +35,17 @@ export function EventMetaList({
       </li>
       <li>
         <span className="text-muted-foreground">장소 </span>
-        <span className="font-medium">{location ?? "추후 안내"}</span>
+        <span className="font-medium line-clamp-2">{location ?? "추후 안내"}</span>
       </li>
       <li>
         <span className="text-muted-foreground">신청 </span>
-        <span className="font-medium">
+        <span className="font-medium line-clamp-2">
           {formatPublicPeriod(registrationStartDate, registrationEndDate)}
         </span>
       </li>
       <li>
         <span className="text-muted-foreground">주최 </span>
-        <span className="font-medium">{organizerName}</span>
+        <span className="font-medium line-clamp-1">{organizerName}</span>
       </li>
       {primarySport ? (
         <li>
