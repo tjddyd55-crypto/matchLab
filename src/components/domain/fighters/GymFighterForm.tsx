@@ -340,9 +340,14 @@ export function GymFighterForm({
                   name="loginId"
                   required
                   className={inputClass}
-                  pattern="[a-zA-Z0-9_-]+"
+                  pattern="[a-z0-9][a-z0-9_-]{3,19}"
                   minLength={4}
+                  maxLength={20}
+                  autoComplete="off"
                 />
+                <span className="text-muted-foreground text-xs">
+                  4~20자, 영문 소문자·숫자·_·-
+                </span>
               </label>
               <label className="flex items-center gap-2 text-sm">
                 <input
@@ -359,7 +364,7 @@ export function GymFighterForm({
                   name="password"
                   type="password"
                   className={inputClass}
-                  minLength={6}
+                  minLength={8}
                   autoComplete="new-password"
                 />
               </label>

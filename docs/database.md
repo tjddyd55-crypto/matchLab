@@ -62,8 +62,8 @@ Notification
 |------|------|
 | id | 내부 PK(cuid) |
 | authUserId | Supabase Auth `user.id`(UUID) 와 매핑, `@unique`, 시드·마이그레이션 전 사용자는 null 가능 |
-| email, phone, name | 로그인·표시(admin/organizer/gym은 email; 선수는 `loginId` 우선) |
-| loginId | nullable, `@unique`, **전역 유일** 선수 로그인 아이디(저장 lowercase). Supabase Auth에는 `{loginId}@internal.matchlab.local` synthetic email 사용 — **공개·DTO·UI에 노출 금지** |
+| email, phone, name | 표시·레거시 로그인(이메일 형식 입력 시). 기본 로그인은 `loginId` |
+| loginId | nullable, `@unique`, **전역 유일** (4~20자, `a-z0-9_-`, lowercase 저장). 관리자·주최자·체육관·선수 공통. 신규 Auth는 `{loginId}@internal.matchlab.local` synthetic email — **공개·DTO·UI에 노출 금지** |
 | mustChangePassword | 체육관 발급·재발급 임시 비밀번호 시 true → 첫 로그인 후 `/fighter/change-password` |
 | passwordIssuedAt, passwordResetAt | 비밀번호 원문은 저장하지 않음. 발급·재발급 시각만 감사 |
 | role | 플랫폼 역할(MVP 단일 역할) |

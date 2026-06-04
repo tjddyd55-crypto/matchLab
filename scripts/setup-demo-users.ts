@@ -19,24 +19,28 @@ import { repairGymFighterAffiliations } from "./lib/repair-gym-affiliation";
 const DEMO_ACCOUNTS = [
   {
     role: UserRole.admin,
+    loginId: "admin",
     email: "admin@demo.local",
     name: "관리자",
     dashboard: "/admin",
   },
   {
     role: UserRole.organizer,
+    loginId: "organizer",
     email: "organizer@demo.local",
     name: "대회 주최자",
     dashboard: "/organizer",
   },
   {
     role: UserRole.gym,
+    loginId: "gym",
     email: "gym@demo.local",
     name: "데모 체육관",
     dashboard: "/gym",
   },
   {
     role: UserRole.fighter,
+    loginId: "fighter",
     email: "fighter@demo.local",
     name: "데모 선수",
     dashboard: "/fighter",
@@ -185,7 +189,7 @@ async function ensureFighterGymHistory(
 async function main() {
   const url = process.env.NEXT_PUBLIC_SUPABASE_URL;
   const serviceKey = process.env.SUPABASE_SERVICE_ROLE_KEY;
-  const password = process.env.DEMO_PASSWORD?.trim() || "1234";
+  const password = process.env.DEMO_PASSWORD?.trim() || "123456!!";
 
   if (!url?.trim()) {
     throw new Error("NEXT_PUBLIC_SUPABASE_URL이 설정되지 않았습니다.");
@@ -202,7 +206,9 @@ async function main() {
   });
 
   console.info("[setup-demo-users] Supabase Auth + Prisma DB 동기화 시작…");
-  console.info(`  비밀번호 소스: ${process.env.DEMO_PASSWORD ? "DEMO_PASSWORD" : '기본값 "1234"'}`);
+  console.info(
+    `  비밀번호 소스: ${process.env.DEMO_PASSWORD ? "DEMO_PASSWORD" : '기본값 "123456!!"'}`,
+  );
 
   const authIds: Record<string, string> = {};
   const authMeta: Record<string, { created: boolean; passwordUpdated: boolean }> =
@@ -224,12 +230,14 @@ async function main() {
     where: { email: adminRow.email },
     create: {
       email: adminRow.email,
+      loginId: adminRow.loginId,
       authUserId: adminAuthId,
       name: adminRow.name,
       role: UserRole.admin,
     },
     update: {
       authUserId: adminAuthId,
+      loginId: adminRow.loginId,
       name: adminRow.name,
       role: UserRole.admin,
     },
@@ -242,12 +250,14 @@ async function main() {
     where: { email: orgRow.email },
     create: {
       email: orgRow.email,
+      loginId: orgRow.loginId,
       authUserId: orgAuthId,
       name: orgRow.name,
       role: UserRole.organizer,
     },
     update: {
       authUserId: orgAuthId,
+      loginId: orgRow.loginId,
       name: orgRow.name,
       role: UserRole.organizer,
     },
@@ -290,12 +300,14 @@ async function main() {
     where: { email: gymRow.email },
     create: {
       email: gymRow.email,
+      loginId: gymRow.loginId,
       authUserId: gymAuthId,
       name: gymRow.name,
       role: UserRole.gym,
     },
     update: {
       authUserId: gymAuthId,
+      loginId: gymRow.loginId,
       name: gymRow.name,
       role: UserRole.gym,
     },
@@ -322,12 +334,15 @@ async function main() {
     where: { email: fighterRow.email },
     create: {
       email: fighterRow.email,
+      loginId: fighterRow.loginId,
       authUserId: fighterAuthId,
       name: fighterRow.name,
       role: UserRole.fighter,
+      mustChangePassword: false,
     },
     update: {
       authUserId: fighterAuthId,
+      loginId: fighterRow.loginId,
       name: fighterRow.name,
       role: UserRole.fighter,
     },
@@ -364,8 +379,7 @@ async function main() {
   // 일반 아이디 데모 선수 (fighterdemo / 123456!!)
   const DEMO_LOGIN_ID = "fighterdemo";
   const demoLoginEmail = `${DEMO_LOGIN_ID}@internal.matchlab.local`;
-  const demoPassword = process.env.DEMO_FIGHTER_PASSWORD?.trim() || "123456!!";
-  const demoAuth = await ensureAuthUser(supabase, demoLoginEmail, demoPassword);
+  const demoAuth = await ensureAuthUser(supabase, demoLoginEmail, password);
   const demoUser = await prisma.user.upsert({
     where: { loginId: DEMO_LOGIN_ID },
     create: {
@@ -422,21 +436,27 @@ async function main() {
   });
 
   console.info("");
-  console.info("========== 데모 계정 (로그인: /login) ==========");
+  console.info("========== 데모 계정 (로그인: /login — 아이디 + 비밀번호) ==========");
   for (const row of DEMO_ACCOUNTS) {
     const meta = authMeta[row.email]!;
     const pwdNote =
       meta.passwordUpdated === true
-        ? "비밀번호: 위에서 사용한 값으로 설정됨"
+        ? "비밀번호: DEMO_PASSWORD(또는 기본 123456!!)로 설정됨"
         : "비밀번호: 기존 Supabase 값 유지(갱신 실패 시 수동 확인)";
     console.info(
-      `${row.role.padEnd(10)} ${row.email.padEnd(26)} authUserId=${authIds[row.email]}  → ${row.dashboard}`,
+      `${row.role.padEnd(10)} loginId=${row.loginId.padEnd(12)} (이메일 ${row.email})  → ${row.dashboard}`,
     );
     console.info(`           ${pwdNote}`);
   }
-  console.info("===============================================");
+  console.info(
+    `fighter      loginId=${DEMO_LOGIN_ID.padEnd(12)} (내부 auth email)  → /fighter`,
+  );
+  console.info("================================================================");
   console.info("");
-  console.info("완료. `npm run dev` 후 /login 에서 위 이메일로 로그인해 보세요.");
+  console.info(
+    "완료. /login 에서 loginId(예: admin, gym, fighter, fighterdemo)로 로그인하세요.",
+  );
+  console.info("  레거시 이메일(admin@demo.local 등) 로그인도 동일 비밀번호로 유지됩니다.");
 }
 
 main()

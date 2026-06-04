@@ -13,8 +13,8 @@
 - [ ] 주최자 회원가입/로그인(Supabase Auth) — **UI는 플레이스홀더**, 세션·`User.authUserId` 매핑은 `dev-start.md` 기준으로 수동 검증.
 - [ ] 체육관 회원가입/로그인 — 동일.
 - [x] 선수 계정 구조(`Fighter.userId` 연결, 시드·`/fighter` 조회 플로우).
-- [x] **선수 일반 아이디 로그인** — `/login` 「이메일 또는 아이디」; `User.loginId` + Supabase synthetic email (`{loginId}@internal.matchlab.local`, UI 비노출).
-- [x] admin/organizer/gym **이메일 로그인 유지** (`@demo.local` 등).
+- [x] **전 역할 아이디 로그인** — `/login` 「아이디」; `User.loginId` + Supabase synthetic email (UI 비노출).
+- [x] **레거시 이메일 로그인** 하위 호환 (`@demo.local` 등, UI 기본은 아이디).
 - [x] 체육관 **선수 로그인 계정 발급** — 직접 등록·기존 선수·비밀번호 재발급(`/gym/fighters`, `fighter-account.service`).
 - [x] 등록 링크 제출 시 **아이디·비밀번호** 입력 → pending 계정 → 체육관 승인 후 `Fighter`·active 소속·계정 연결.
 - [x] `mustChangePassword` — 체육관 발급·재발급 시 true; 등록 링크 자가 설정 비밀번호는 false 가능.

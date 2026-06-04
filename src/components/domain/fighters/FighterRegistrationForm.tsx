@@ -182,11 +182,16 @@ export function FighterRegistrationForm({
               name="loginId"
               required
               minLength={4}
-              pattern="[a-zA-Z0-9_-]+"
+              maxLength={20}
+              pattern="[a-z0-9][a-z0-9_-]{3,19}"
+              autoComplete="username"
               className={cn(
                 "border-input bg-background h-9 w-full rounded-md border px-3 text-sm shadow-sm",
               )}
             />
+            <span className="text-muted-foreground text-xs">
+              영문 소문자·숫자·_·- 만, 4~20자
+            </span>
           </label>
           <label className="space-y-1 text-sm block">
             <span className="font-medium">비밀번호</span>
@@ -194,11 +199,13 @@ export function FighterRegistrationForm({
               name="password"
               type="password"
               required
-              minLength={6}
+              minLength={8}
+              autoComplete="new-password"
               className={cn(
                 "border-input bg-background h-9 w-full rounded-md border px-3 text-sm shadow-sm",
               )}
             />
+            <span className="text-muted-foreground text-xs">8자 이상, 공백 없음</span>
           </label>
           <label className="space-y-1 text-sm block">
             <span className="font-medium">비밀번호 확인</span>
@@ -206,7 +213,7 @@ export function FighterRegistrationForm({
               name="passwordConfirm"
               type="password"
               required
-              minLength={6}
+              minLength={8}
               className={cn(
                 "border-input bg-background h-9 w-full rounded-md border px-3 text-sm shadow-sm",
               )}

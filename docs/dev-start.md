@@ -99,22 +99,32 @@ GitHub → Railway 배포가 성공해도 **Postgres는 빈 DB**입니다. `publ
 미팅용 **`@demo.local`** 계정 4명을 Supabase Auth에 만들거나 재사용하고, DB `User.authUserId`·`Organizer`·`Gym`·`Fighter`·`FighterGymHistory`를 맞춘다. **service role 키는 이 스크립트에서만 사용**한다(클라이언트 번들 금지).
 
 1. `.env`에 `DATABASE_URL`, `NEXT_PUBLIC_SUPABASE_URL`, `SUPABASE_SERVICE_ROLE_KEY` 설정(`.env.example` 참고).
-2. (선택) `DEMO_PASSWORD` — 기본 `1234`. Supabase가 거절하면 `DEMO_PASSWORD=123456` 또는 `Demo1234!` 등으로 바꿔 **스크립트를 다시 실행**한다. **자동으로 다른 비밀번호로 바꾸지 않는다.**
+2. (선택) `DEMO_PASSWORD` — 기본 **`123456!!`**. Railway 등 운영 환경 값을 `.env`에 맞춘다.
 3. `npm run db:push` 또는 `npm run db:migrate`로 스키마 반영.
 4. `npm run setup:demo-users` 실행.
-5. `npm run dev` 후 `/login`에서 `admin@demo.local` 등으로 로그인해 `/admin` 등으로 이동하는지 확인.
+5. `npm run dev` 후 `/login`에서 **아이디**(`admin`, `organizer`, `gym`, `fighter`, `fighterdemo`)로 로그인해 역할별 홈 이동을 확인한다.
 
-생성되는 Auth 이메일: `admin@demo.local`, `organizer@demo.local`, `gym@demo.local`, `fighter@demo.local`. 선수 `fighterCode`는 `FTR-2026-DEMO001`(이미 있으면 갱신).
+**데모 loginId (기본 비밀번호 `DEMO_PASSWORD` 또는 `123456!!`):**
 
-추가 **일반 아이디 선수 데모**: `loginId` **`fighterdemo`**, 비밀번호 **`123456!!`**(또는 `DEMO_PASSWORD`), `fighterCode` **`FTR-2026-DEMO002`**. Supabase Auth synthetic email: `fighterdemo@internal.matchlab.local`(화면 비노출). 기존 `fighter@demo.local` 이메일 로그인은 유지.
+| loginId | 역할 | 레거시 이메일(하위 호환) |
+|---------|------|-------------------------|
+| `admin` | 관리자 | `admin@demo.local` |
+| `organizer` | 주최자 | `organizer@demo.local` |
+| `gym` | 체육관 | `gym@demo.local` |
+| `fighter` | 선수 | `fighter@demo.local` |
+| `fighterdemo` | 추가 선수 | (내부 auth email만) |
+
+선수 `fighterCode`: `FTR-2026-DEMO001` / `FTR-2026-DEMO002`(fighterdemo).
 
 `setup:demo-users` 실행 시 데모 체육관 `FighterGymHistory(active)` → `Fighter.currentGymId` 동기화와 `sample-open-2026` 신청 마감(연말)·`open` 보정도 수행한다.
 
-### 선수 일반 아이디 로그인 (`src/lib/fighter-login.ts`)
+### 로그인 정책 (아이디 + 비밀번호)
 
-- 앱 DB: `User.loginId` (전역 unique, lowercase 저장).
-- Supabase Auth: `{loginId}@internal.matchlab.local` — **사용자·공개 페이지에 표시하지 않음**.
-- `/login`: 라벨 「이메일 또는 아이디」. `@` 포함·이메일 형식이면 기존 email 로그인; 아니면 `loginId` 조회 후 synthetic email로 `signInWithPassword`.
+- **기본 UI**: `/login` — 라벨 「아이디」, placeholder 「아이디를 입력하세요」.
+- **앱 DB**: `User.loginId` 전역 unique, 4~20자, 영문 소문자·숫자·`_`·`-` (`src/lib/validators/login-id.validator.ts`).
+- **비밀번호**: 8자 이상, 공백 금지 (`src/lib/validators/password.validator.ts`). 원문 DB 저장 금지.
+- **Supabase Auth**: 신규·선수 계정은 `{loginId}@internal.matchlab.local` synthetic email. **화면·공개 DTO에 노출 금지**.
+- **하위 호환**: 입력이 이메일 형식이면 `User.email` 기준 기존 `@demo.local` 로그인 허용 (`fighter-account.service.resolveAuthEmailForLogin`).
 - `npm run build` 시 Prisma 초기화에 **`DATABASE_URL` 필요**(미설정 시 page data 수집 단계 실패 가능).
 
 ### SMS 비밀번호 찾기 (TODO)

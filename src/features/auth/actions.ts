@@ -74,7 +74,7 @@ export async function signInWithPasswordAction(
     if (!authEmail) {
       return actionFailure(
         "UNAUTHORIZED",
-        "이메일 또는 아이디가 올바르지 않습니다.",
+        "아이디 또는 비밀번호가 올바르지 않습니다.",
       );
     }
 
@@ -87,7 +87,7 @@ export async function signInWithPasswordAction(
     if (error || !data.user?.id) {
       return actionFailure(
         "UNAUTHORIZED",
-        "이메일 또는 비밀번호가 올바르지 않습니다.",
+        "아이디 또는 비밀번호가 올바르지 않습니다.",
         error?.message,
       );
     }

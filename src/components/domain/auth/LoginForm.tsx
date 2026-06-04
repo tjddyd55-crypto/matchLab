@@ -26,9 +26,12 @@ export function LoginForm() {
 
   return (
     <form action={formAction} className="space-y-4">
+      <p className="text-muted-foreground text-xs leading-relaxed">
+        관리자, 주최자, 체육관, 선수 모두 발급받은 아이디로 로그인합니다.
+      </p>
       <div className="space-y-2">
         <label htmlFor="login-identifier" className="text-sm font-medium">
-          이메일 또는 아이디
+          아이디
         </label>
         <input
           id="login-identifier"
@@ -37,6 +40,7 @@ export function LoginForm() {
           autoComplete="username"
           required
           disabled={pending}
+          placeholder="아이디를 입력하세요"
           className={cn(
             "border-input bg-background ring-offset-background placeholder:text-muted-foreground",
             "focus-visible:ring-ring flex h-9 w-full rounded-md border px-3 py-1 text-sm shadow-xs transition-colors",
