@@ -3,6 +3,10 @@ import { EventPosterImage } from "@/components/domain/events/EventPosterImage";
 import { EventStatusBadges } from "@/components/domain/events/EventStatusBadges";
 import { EventMetaSummaryMobile } from "@/components/domain/events/public/EventMetaSummaryMobile";
 import {
+  PUBLIC_EVENT_CARD_BODY_PADDING_CLASS,
+  PUBLIC_EVENT_CARD_POSTER_PADDING_CLASS,
+} from "@/components/domain/events/public/public-event-layout";
+import {
   publicEventCtaLabel,
   publicEventHref,
   type PublicEventCardProps,
@@ -24,15 +28,18 @@ export function PublicEventCardMobile({
         className,
       )}
     >
-      <Link href={href} className="block">
+      <Link
+        href={href}
+        className={cn("block", PUBLIC_EVENT_CARD_POSTER_PADDING_CLASS)}
+      >
         <EventPosterImage
           variant="card"
           src={event.coverImageUrl}
           alt={`${event.title} 포스터`}
-          sizes="(max-width:768px) 300px, 300px"
+          sizes="100vw"
           priority={priorityImage}
           overlay={
-            <div className="flex flex-wrap gap-1.5 p-3">
+            <div className="absolute top-3 left-3 z-10 flex flex-wrap gap-1.5">
               <EventStatusBadges
                 eventStatus={event.status}
                 registrationStatus={event.registrationStatus}
@@ -43,7 +50,12 @@ export function PublicEventCardMobile({
         />
       </Link>
 
-      <div className="flex flex-col gap-3 p-4">
+      <div
+        className={cn(
+          "flex flex-col gap-3 text-left",
+          PUBLIC_EVENT_CARD_BODY_PADDING_CLASS,
+        )}
+      >
         <Link href={href} className="min-w-0">
           <h3 className="font-heading line-clamp-2 text-base font-semibold leading-snug">
             {event.title}

@@ -14,11 +14,10 @@ function posterVariantLayout(variant: EventPosterImageVariant): {
   switch (variant) {
     case "card":
       return {
-        outer:
-          "flex w-full justify-center bg-neutral-50 dark:bg-neutral-900/20",
+        outer: "w-full bg-neutral-50 dark:bg-neutral-900/20",
         box: cn(
           EVENT_POSTER_ASPECT_CLASS,
-          "relative mx-auto w-[82%] max-w-[300px] overflow-hidden bg-white dark:bg-neutral-900/40",
+          "relative w-full overflow-hidden bg-white dark:bg-neutral-900/40",
         ),
       };
     case "detail":
