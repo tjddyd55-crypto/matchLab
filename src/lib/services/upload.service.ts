@@ -508,6 +508,10 @@ export function getApplicationDocumentsBucketName(): string {
   return applicationDocumentsBucket();
 }
 
+import { PROFILE_IMAGE_MAX_BYTES } from "@/lib/constants/profile-image-upload";
+
+export { PROFILE_IMAGE_MAX_BYTES };
+
 const ALLOWED_PROFILE_IMAGE_MIME = new Set([
   "image/jpeg",
   "image/png",

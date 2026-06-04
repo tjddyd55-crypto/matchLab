@@ -37,7 +37,7 @@
 | `NEXT_PUBLIC_APP_URL` | 배포된 앱의 공개 URL (예: `https://xxx.up.railway.app`) |
 | `SUPABASE_CONSENT_SIGNATURE_BUCKET` | `consent-signatures` (기본값과 동일하면 그대로) |
 | `SUPABASE_EVENT_IMAGE_BUCKET` | 대회 포스터·갤러리용 Storage bucket (코드 기본값 `event-images`, **공개 읽기** 정책 권장) |
-| `SUPABASE_PROFILE_IMAGE_BUCKET` | `profile-images` (Railway에 두어도 됨 — 현재 코드에서 업로드 경로는 미연결, 향후 프로필 이미지용) |
+| `SUPABASE_PROFILE_IMAGE_BUCKET` | `profile-images` — **Public bucket** 생성 권장(공개 프로필 이미지 URL). `/api/uploads/profile-image` 연동됨 |
 | `SUPABASE_APPLICATION_FORM_BUCKET` | `application-forms` — 공식 신청서 템플릿 PDF (private) |
 | `SUPABASE_APPLICATION_DOCUMENT_BUCKET` | `application-documents` — overlay 완료 PDF (private) |
 | `DEMO_PASSWORD` | 시연용 데모 계정 비밀번호. 기본 예: `1234` |

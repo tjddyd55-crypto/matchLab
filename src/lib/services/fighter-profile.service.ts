@@ -36,6 +36,8 @@ export type FighterProfileEditorDTO = {
   snsYoutube: string;
   snsTiktok: string;
   profileImageUrl: string | null;
+  /** 편집 폼 hidden용 — 공개 DTO에는 포함하지 않음 */
+  profileImagePath: string | null;
   isPublic: boolean;
   slug: string;
   publicProfileUrl: string | null;
@@ -101,6 +103,7 @@ export const fighterProfileService = {
       snsYoutube: profile?.snsYoutube ?? "",
       snsTiktok: profile?.snsTiktok ?? "",
       profileImageUrl: profile?.profileImageUrl ?? fighter.profileImageUrl,
+      profileImagePath: profile?.profileImagePath ?? null,
       isPublic: profile?.isPublic ?? false,
       slug,
       publicProfileUrl:
@@ -131,7 +134,18 @@ export const fighterProfileService = {
       slug = `${slug}-${Date.now().toString(36).slice(-4)}`;
     }
 
-    await fighterProfileRepository.upsertForFighter(actor.fighterId, {
+    const fighterId = actor.fighterId;
+    if (input.profileImagePath) {
+      const prefix = `fighters/${fighterId}/`;
+      if (!input.profileImagePath.startsWith(prefix)) {
+        throw new AppError(
+          "VALIDATION_ERROR",
+          "프로필 이미지 경로가 올바르지 않습니다. 다시 업로드해 주세요.",
+        );
+      }
+    }
+
+    await fighterProfileRepository.upsertForFighter(fighterId, {
       displayName: input.displayName,
       bio: input.bio,
       snsInstagram: input.snsInstagram,

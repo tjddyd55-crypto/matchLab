@@ -1,9 +1,10 @@
 "use client";
 
-import { useActionState } from "react";
+import { useActionState, useState } from "react";
 import { updateFighterProfileAction } from "@/features/fighter-profile/actions";
 import type { FighterProfileEditorDTO } from "@/lib/services/fighter-profile.service";
 import { Button } from "@/components/ui/button";
+import { FighterProfileImageUpload } from "@/components/domain/fighters/FighterProfileImageUpload";
 
 export function FighterProfileEditorForm({
   editor,
@@ -14,6 +15,16 @@ export function FighterProfileEditorForm({
     updateFighterProfileAction,
     null,
   );
+
+  const [profileImage, setProfileImage] = useState<{
+    url: string;
+    path: string;
+  } | null>(() => {
+    const url = editor.profileImageUrl?.trim();
+    const path = editor.profileImagePath?.trim();
+    if (url) return { url, path: path ?? "" };
+    return null;
+  });
 
   const inputClass =
     "border-input h-9 w-full rounded-md border px-3 text-sm";
@@ -41,6 +52,14 @@ export function FighterProfileEditorForm({
         </p>
       </section>
 
+      <FighterProfileImageUpload
+        fighterId={editor.fighterId}
+        initialImageUrl={editor.profileImageUrl}
+        imageUrl={profileImage?.url ?? ""}
+        imagePath={profileImage?.path ?? ""}
+        onImageChange={setProfileImage}
+      />
+
       <label className="block space-y-1 text-sm">
         <span className="font-medium">표시 이름</span>
         <input
@@ -59,17 +78,6 @@ export function FighterProfileEditorForm({
           className={`${inputClass} min-h-[80px] py-2`}
         />
       </label>
-      <label className="block space-y-1 text-sm">
-        <span className="font-medium">프로필 이미지 URL</span>
-        <input
-          name="profileImageUrl"
-          type="url"
-          defaultValue={editor.profileImageUrl ?? ""}
-          className={inputClass}
-          placeholder="https://..."
-        />
-      </label>
-      <input type="hidden" name="profileImagePath" value="" />
       <div className="grid gap-3 sm:grid-cols-3">
         <label className="block space-y-1 text-sm">
           <span>Instagram</span>

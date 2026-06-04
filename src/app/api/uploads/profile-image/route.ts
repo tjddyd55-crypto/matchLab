@@ -1,5 +1,6 @@
 import { NextResponse } from "next/server";
-import { toApiError } from "@/lib/action-result";
+import { toApiError, toApiSuccess } from "@/lib/action-result";
+import { PROFILE_IMAGE_MAX_BYTES } from "@/lib/constants/profile-image-upload";
 import { AppError } from "@/lib/errors/app-error";
 
 export const runtime = "nodejs";
@@ -31,7 +32,12 @@ export async function POST(request: Request) {
       fighterId: body.fighterId,
       mimeType: body.mimeType,
     });
-    return NextResponse.json({ ok: true, data: result });
+    return NextResponse.json(
+      toApiSuccess({
+        ...result,
+        maxBytes: PROFILE_IMAGE_MAX_BYTES,
+      }),
+    );
   } catch (e) {
     if (e instanceof AppError) {
       return NextResponse.json(toApiError(e.code, e.message), {

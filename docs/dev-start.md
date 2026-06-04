@@ -50,7 +50,7 @@ npm install
 
 | `SUPABASE_EVENT_IMAGE_BUCKET` | 대회 포스터·갤러리 이미지 bucket 이름 (기본값 예: `event-images`, 공개 읽기 정책과 맞춤) |
 
-| `SUPABASE_PROFILE_IMAGE_BUCKET` | 선수 프로필 사진 bucket (기본 `profile-images`). `POST /api/uploads/profile-image` signed upload → `FighterProfile.profileImageUrl` (공개 읽기 필요 시 bucket public read 정책) |
+| `SUPABASE_PROFILE_IMAGE_BUCKET` | 선수 프로필 사진 bucket (기본 `profile-images`). **Public bucket 권장**(공개 `/fighters/[slug]` 이미지 표시). `/fighter/profile`에서 파일 업로드 → signed URL → `profileImageUrl` 저장 |
 
 | `SUPABASE_APPLICATION_FORM_BUCKET` | 공식 신청서 **템플릿 PDF** 원본 (private, 기본 `application-forms`) |
 

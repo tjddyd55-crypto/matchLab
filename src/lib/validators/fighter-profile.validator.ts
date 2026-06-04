@@ -6,8 +6,16 @@ export const fighterProfileUpdateSchema = z.object({
   snsInstagram: z.string().trim().max(200).optional().transform((s) => s || undefined),
   snsYoutube: z.string().trim().max(200).optional().transform((s) => s || undefined),
   snsTiktok: z.string().trim().max(200).optional().transform((s) => s || undefined),
-  profileImageUrl: z.string().trim().max(2048).optional().transform((s) => s || undefined),
-  profileImagePath: z.string().trim().max(512).optional().transform((s) => s || undefined),
+  profileImageUrl: z
+    .string()
+    .trim()
+    .max(2048)
+    .transform((s) => (s === "" ? null : s || null)),
+  profileImagePath: z
+    .string()
+    .trim()
+    .max(512)
+    .transform((s) => (s === "" ? null : s || null)),
   isPublic: z
     .enum(["true", "false"])
     .transform((v) => v === "true"),
