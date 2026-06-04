@@ -24,6 +24,11 @@ import {
 } from "@/lib/repositories/event.repository";
 import { auditRepository } from "@/lib/repositories/audit.repository";
 import { allocateUniquePublicSlug } from "@/lib/event-public-slug";
+import {
+  primarySportFromDivisions,
+  resolveEventCoverImageUrl,
+  resolvePublicRegistrationStatus,
+} from "@/lib/event-public-display";
 import { AppError } from "@/lib/errors/app-error";
 import { requireOrganizerForEvent, requireRole } from "@/lib/permissions";
 import { prisma } from "@/lib/prisma";
@@ -364,16 +369,28 @@ export const eventService = {
 
   mapEventToPublicListItemDTO(row: PublicEventListRecord): PublicEventListItemDTO {
     const totalDivisions = row._count.divisions;
+    const registrationStartDate = toIso(row.registrationStartDate);
+    const registrationEndDate = toIso(row.registrationEndDate);
     return {
       id: row.id,
       publicSlug: row.publicSlug,
       title: row.title,
       location: row.location,
       eventDate: toIso(row.eventDate),
-      registrationStartDate: toIso(row.registrationStartDate),
-      registrationEndDate: toIso(row.registrationEndDate),
+      registrationStartDate,
+      registrationEndDate,
       status: row.status,
       posterUrl: row.posterUrl,
+      coverImageUrl: resolveEventCoverImageUrl({
+        posterUrl: row.posterUrl,
+        galleryImageUrl: row.images[0]?.imageUrl ?? null,
+      }),
+      registrationStatus: resolvePublicRegistrationStatus({
+        status: row.status,
+        registrationStartDate,
+        registrationEndDate,
+      }),
+      primarySport: primarySportFromDivisions(row.divisions),
       liveStreamingEnabled: row.liveStreamingEnabled,
       divisionSummary: buildDivisionSummary(row.divisions, totalDivisions),
       organizerName: row.organizer.name,
@@ -399,6 +416,10 @@ export const eventService = {
     const participantFeeNotice =
       "참가비 및 납부 방식은 소속 체육관을 통해 안내됩니다.";
 
+    const registrationStartDate = toIso(event.registrationStartDate);
+    const registrationEndDate = toIso(event.registrationEndDate);
+    const galleryImages = mapGalleryRows(event.images);
+
     return {
       id: event.id,
       publicSlug: event.publicSlug,
@@ -412,11 +433,21 @@ export const eventService = {
           detailAddress: event.detailAddress,
         }) || event.location,
       eventDate: toIso(event.eventDate),
-      registrationStartDate: toIso(event.registrationStartDate),
-      registrationEndDate: toIso(event.registrationEndDate),
+      registrationStartDate,
+      registrationEndDate,
       status: event.status,
       posterUrl: event.posterUrl,
-      galleryImages: mapGalleryRows(event.images),
+      coverImageUrl: resolveEventCoverImageUrl({
+        posterUrl: event.posterUrl,
+        galleryImageUrl: galleryImages[0]?.imageUrl ?? null,
+      }),
+      registrationStatus: resolvePublicRegistrationStatus({
+        status: event.status,
+        registrationStartDate,
+        registrationEndDate,
+      }),
+      primarySport: primarySportFromDivisions(divisions),
+      galleryImages,
       photoRecordingEnabled: event.photoRecordingEnabled,
       videoRecordingEnabled: event.videoRecordingEnabled,
       liveStreamingEnabled: event.liveStreamingEnabled,

@@ -29,6 +29,8 @@
 - [x] 주최자: 촬영·영상·라이브 스트리밍 플래그 및 안내 문구(`RecordingStreamingNotice` 등 공개 상세 반영).
 - [x] 공개 노출: `draft`·`cancelled` 는 목록·slug 상세에서 제외, `open` 이후 상태는 정책에 따라 노출.
 - [x] 공개 페이지: 목록·상세(slug)·디비전·촬영/스트리밍 안내(계좌번호 제외).
+- [x] **공개 메인·대회 목록 포스터형 카드** — `/`, `/events` (`PublicEventCard`, `EventPosterImage`, 신청 상태 필터).
+- [x] **대회 상세 랜딩형** — `/events/[slug]` 포스터 Hero·신청 CTA·대진표/결과/라이브 링크 (`PublicEventDetailHero`).
 
 ### 체육관·선수 등록
 

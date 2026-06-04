@@ -48,7 +48,7 @@ npm install
 
 | `SUPABASE_CONSENT_SIGNATURE_BUCKET` | 보호자 동의 **손사인** 이미지 저장용 private bucket 이름 (기본값 예: `consent-signatures`) |
 
-| `SUPABASE_EVENT_IMAGE_BUCKET` | 대회 포스터·갤러리 이미지 bucket 이름 (기본값 예: `event-images`, 공개 읽기 정책과 맞춤) |
+| `SUPABASE_EVENT_IMAGE_BUCKET` | 대회 포스터·갤러리 이미지 bucket (기본 `event-images`). **Public bucket** 필수 — 공개 `/`, `/events`, `/events/[slug]`는 `posterUrl`·`imageUrl`(공개 URL)만 사용, private path·signed URL 미노출 |
 
 | `SUPABASE_PROFILE_IMAGE_BUCKET` | 선수 프로필 사진 bucket (기본 `profile-images`). **Public bucket 권장**(공개 `/fighters/[slug]` 이미지 표시). `/fighter/profile`에서 파일 업로드 → signed URL → `profileImageUrl` 저장 |
 

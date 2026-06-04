@@ -1,66 +1,77 @@
 import Link from "next/link";
 import type { PublicEventListItemDTO } from "@/lib/dto/public";
-import {
-  formatPublicDate,
-  formatPublicPeriod,
-} from "@/lib/date-display";
-import {
-  Card,
-  CardContent,
-  CardFooter,
-  CardHeader,
-  CardTitle,
-} from "@/components/ui/card";
-import { EventStatusPill } from "@/components/domain/events/EventStatusPill";
+import { EventPosterImage } from "@/components/domain/events/EventPosterImage";
+import { EventStatusBadges } from "@/components/domain/events/EventStatusBadges";
+import { EventMetaList } from "@/components/domain/events/EventMetaList";
 import { buttonVariants } from "@/components/ui/button";
 import { cn } from "@/lib/utils";
 
 export function PublicEventCard({
   event,
   className,
+  priorityImage,
 }: {
   event: PublicEventListItemDTO;
   className?: string;
+  priorityImage?: boolean;
 }) {
+  const href = `/events/${event.publicSlug}`;
+
   return (
-    <Card
-      size="sm"
-      className={cn("transition-shadow hover:shadow-md", className)}
+    <article
+      className={cn(
+        "group flex flex-col overflow-hidden rounded-xl border bg-card shadow-sm transition-shadow hover:shadow-md",
+        className,
+      )}
     >
-      <CardHeader className="flex-row items-start justify-between gap-2 border-b pb-3">
-        <div className="min-w-0 space-y-1">
-          <CardTitle className="line-clamp-2 leading-snug">{event.title}</CardTitle>
-          <p className="text-muted-foreground text-xs">{event.organizerName}</p>
+      <Link href={href} className="relative block">
+        <EventPosterImage
+          src={event.coverImageUrl}
+          alt={`${event.title} 포스터`}
+          className="aspect-[4/5] w-full"
+          sizes="(max-width:640px) 100vw, (max-width:1024px) 50vw, 25vw"
+          priority={priorityImage}
+        />
+        <div className="absolute inset-x-0 top-0 flex flex-wrap gap-1.5 p-3">
+          <EventStatusBadges
+            eventStatus={event.status}
+            registrationStatus={event.registrationStatus}
+            emphasizeRegistration={event.registrationStatus === "open"}
+          />
         </div>
-        <EventStatusPill status={event.status} />
-      </CardHeader>
-      <CardContent className="space-y-2 pt-1">
-        <p className="text-muted-foreground text-xs">
-          대회일 · {formatPublicDate(event.eventDate)}
-        </p>
-        <p className="text-muted-foreground text-xs">
-          신청 ·{" "}
-          {formatPublicPeriod(
-            event.registrationStartDate,
-            event.registrationEndDate,
-          )}
-        </p>
-        <p className="text-muted-foreground line-clamp-1 text-xs">
-          장소 · {event.location ?? "추후 안내"}
-        </p>
-        <p className="line-clamp-2 text-xs">{event.divisionSummary}</p>
+      </Link>
+
+      <div className="flex flex-1 flex-col gap-3 p-4">
+        <Link href={href} className="min-w-0 space-y-1 hover:underline">
+          <h3 className="font-heading line-clamp-2 text-base font-semibold leading-snug">
+            {event.title}
+          </h3>
+        </Link>
+
+        <EventMetaList
+          eventDate={event.eventDate}
+          location={event.location}
+          registrationStartDate={event.registrationStartDate}
+          registrationEndDate={event.registrationEndDate}
+          organizerName={event.organizerName}
+          primarySport={event.primarySport}
+          divisionSummary={event.divisionSummary}
+          compact
+        />
+
         {event.liveStreamingEnabled ? (
           <p className="text-primary text-xs font-medium">라이브 스트리밍 예정</p>
         ) : null}
-      </CardContent>
-      <CardFooter className="justify-end border-t pt-3">
-        <Link
-          href={`/events/${event.publicSlug}`}
-          className={cn(buttonVariants({ variant: "outline", size: "sm" }))}
-        >
-          상세 보기
-        </Link>
-      </CardFooter>
-    </Card>
+
+        <div className="mt-auto pt-1">
+          <Link
+            href={href}
+            className={cn(buttonVariants({ variant: "outline", size: "sm" }), "w-full sm:w-auto")}
+          >
+            {event.registrationStatus === "open" ? "신청하기" : "자세히 보기"}
+          </Link>
+        </div>
+      </div>
+    </article>
   );
 }

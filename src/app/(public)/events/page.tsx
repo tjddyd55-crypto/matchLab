@@ -1,52 +1,30 @@
-import { PublicEventCard } from "@/components/domain/events/PublicEventCard";
-import { EmptyState } from "@/components/shared/EmptyState";
+import { PublicEventsBoard } from "@/components/domain/events/PublicEventsBoard";
 import { eventService } from "@/lib/services/event.service";
 
 export const dynamic = "force-dynamic";
 
 export default async function PublicEventsPage() {
   const events = await eventService.listPublicEvents();
+  const sportOptions = [
+    ...new Set(
+      events.map((e) => e.primarySport).filter((s): s is string => Boolean(s)),
+    ),
+  ].sort();
 
   return (
     <div className="mx-auto flex w-full max-w-6xl flex-col gap-8 px-4 py-8 md:px-6">
       <div className="space-y-2">
         <h1 className="font-heading text-3xl font-semibold tracking-tight">
-          공개 대회 목록
+          대회 공고
         </h1>
-        <p className="text-muted-foreground text-sm">
-          신청·운영 정보는 역할별 로그인 후 제공됩니다.
+        <p className="text-muted-foreground max-w-2xl text-sm leading-relaxed">
+          참가 가능한 대회를 확인하고 체육관 계정으로 신청하세요. 참가비·입금
+          안내는 체육관을 통해 제공되며, 공개 페이지에는 계좌번호가 표시되지
+          않습니다.
         </p>
       </div>
 
-      <div className="space-y-2">
-        <label htmlFor="event-search" className="text-sm font-medium">
-          검색
-        </label>
-        <input
-          id="event-search"
-          placeholder="대회명 검색 (MVP에서 미연결)"
-          disabled
-          aria-describedby="event-search-hint"
-          className="border-input bg-muted/40 text-muted-foreground placeholder:text-muted-foreground flex h-9 w-full max-w-md rounded-md border px-3 py-1 text-sm shadow-sm"
-        />
-        <p id="event-search-hint" className="text-muted-foreground text-xs">
-          현재는 전체 공개 목록만 표시합니다. 검색·필터는 이후 단계에서
-          연결합니다.
-        </p>
-      </div>
-
-      {events.length === 0 ? (
-        <EmptyState
-          title="공개된 대회가 없습니다"
-          description="주최측에서 공개 상태로 전환된 대회가 있으면 여기에 표시됩니다."
-        />
-      ) : (
-        <div className="grid gap-4 sm:grid-cols-2 lg:grid-cols-3">
-          {events.map((e) => (
-            <PublicEventCard key={e.id} event={e} />
-          ))}
-        </div>
-      )}
+      <PublicEventsBoard events={events} sportOptions={sportOptions} />
     </div>
   );
 }

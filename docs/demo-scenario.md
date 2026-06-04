@@ -33,12 +33,15 @@ MVP 범위는 `docs/mvp-scope.md`를 기준으로 하며, 본 문서는 **시연
 3. **spectator** — `/events/{slug}` 공개 상세에서 생성된 부문 목록 확인.
 4. **gym** — `/gym/events/{eventId}/apply`에서 생성된 부문으로 선수 신청.
 
-### 1.3 포스터 · 갤러리 · 대회 목록 상태 (주최자 UX)
+### 1.3 포스터 · 갤러리 · 공개 공고 UI
 
 1. **organizer** — `/organizer/events/new`에서 **포스터 파일 선택** 후 대회 생성(생성 직후 자동 업로드) 또는 `/organizer/events/{eventId}` 기본 정보에서 **포스터 업로드**·교체.
 2. **organizer** — 동일 상세의 **상세 이미지(갤러리)** 에 JPEG/PNG/WebP 추가 → 새로고침 후 목록 유지 확인.
-3. **spectator** — `/events/{slug}`에서 포스터·갤러리 노출 확인(Storage **공개 URL**만 사용, private path 미노출).
-4. **organizer** — `/organizer/events` 목록에서 **대회 상태**(예: 공개)와 **신청 상태**(예: 신청 가능/신청 마감) **배지 2개**가 기간과 맞는지 확인.
+3. **spectator** — `/` 메인 **대회 공고** 카드에 포스터·신청 상태 배지 확인.
+4. **spectator** — `/events` 목록 포스터 그리드·필터(신청 가능/마감 등) 확인.
+5. **spectator** — `/events/sample-open-2026` 상세에서 포스터 Hero·「대회 신청하기」CTA·대진표/결과 링크 확인.
+6. 포스터 없는 대회 — placeholder·갤러리 첫 장 fallback 확인(public URL만, storage path 미노출).
+7. **organizer** — `/organizer/events` 목록에서 **대회 상태**·**신청 상태** 배지 확인.
 
 ### 1.4 현장 확인·계체·출전 확정 (주최자 / 체육관)
 

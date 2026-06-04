@@ -8,6 +8,7 @@ import type {
   LiveStreamStatus,
   MatchRecordOutcome,
 } from "@/lib/enums";
+import type { OrganizerRegistrationStatus } from "@/lib/event-organizer-status";
 
 /**
  * 공개 API·페이지 전용 DTO.
@@ -24,6 +25,10 @@ export type PublicEventListItemDTO = {
   registrationEndDate: string;
   status: EventStatus;
   posterUrl: string | null;
+  /** 포스터 없을 때 갤러리 첫 장(공개 URL만) */
+  coverImageUrl: string | null;
+  registrationStatus: OrganizerRegistrationStatus;
+  primarySport: string | null;
   liveStreamingEnabled: boolean;
   /** 부문 요약 문구 (예: 라벨 나열 · 외 N개) */
   divisionSummary: string;
@@ -58,6 +63,9 @@ export type PublicEventDetailDTO = {
   registrationEndDate: string;
   status: EventStatus;
   posterUrl: string | null;
+  coverImageUrl: string | null;
+  registrationStatus: OrganizerRegistrationStatus;
+  primarySport: string | null;
   galleryImages: PublicEventGalleryImageDTO[];
   photoRecordingEnabled: boolean;
   videoRecordingEnabled: boolean;

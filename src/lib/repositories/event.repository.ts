@@ -51,6 +51,11 @@ const listSelect = {
     take: 6,
   },
   _count: { select: { divisions: true } },
+  images: {
+    select: { imageUrl: true },
+    orderBy: { sortOrder: "asc" as const },
+    take: 1,
+  },
 } as const;
 
 const detailHeaderSelect = {
