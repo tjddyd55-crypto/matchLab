@@ -28,7 +28,7 @@ export function PublicEventCardMobile({
         <EventPosterImage
           src={event.coverImageUrl}
           alt={`${event.title} 포스터`}
-          className="aspect-[4/5] w-full"
+          className="w-full"
           sizes="100vw"
           priority={priorityImage}
         />

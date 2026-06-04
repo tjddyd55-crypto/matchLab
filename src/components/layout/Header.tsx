@@ -1,5 +1,7 @@
 import Link from "next/link";
+import { PUBLIC_CONTENT_CONTAINER_CLASS } from "@/components/domain/events/public/public-event-layout";
 import type { DashboardRole } from "@/components/layout/DashboardShell";
+import { cn } from "@/lib/utils";
 import { LogoutButton } from "@/components/domain/auth/LogoutButton";
 import { NotificationBell } from "@/components/domain/notifications/NotificationBell";
 
@@ -15,8 +17,13 @@ type HeaderProps =
 export function Header(props: HeaderProps) {
   if (props.variant === "public") {
     return (
-      <header className="border-b bg-background px-4 py-3">
-        <div className="mx-auto flex max-w-6xl items-center justify-between gap-4">
+      <header className="border-b bg-background py-3">
+        <div
+          className={cn(
+            PUBLIC_CONTENT_CONTAINER_CLASS,
+            "flex items-center justify-between gap-4",
+          )}
+        >
           <Link href="/" className="font-semibold tracking-tight">
             대회 플랫폼
           </Link>

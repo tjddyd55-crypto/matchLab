@@ -1,11 +1,17 @@
 import Link from "next/link";
+import { PUBLIC_CONTENT_CONTAINER_CLASS } from "@/components/domain/events/public/public-event-layout";
 import { buttonVariants } from "@/components/ui/button";
 import { cn } from "@/lib/utils";
 
 export function PublicHomeHeroDesktop() {
   return (
     <section className="hidden border-b bg-gradient-to-b from-primary/8 via-background to-background md:block">
-      <div className="mx-auto flex w-full max-w-[1240px] flex-col gap-8 px-6 py-16 lg:py-20">
+      <div
+        className={cn(
+          PUBLIC_CONTENT_CONTAINER_CLASS,
+          "flex flex-col gap-8 py-16 lg:py-20",
+        )}
+      >
         <div className="max-w-3xl space-y-5">
           <p className="text-primary text-sm font-semibold tracking-wide">
             MatchLab

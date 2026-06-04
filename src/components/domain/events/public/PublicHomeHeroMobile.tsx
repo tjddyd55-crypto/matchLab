@@ -1,11 +1,12 @@
 import Link from "next/link";
+import { PUBLIC_CONTENT_CONTAINER_CLASS } from "@/components/domain/events/public/public-event-layout";
 import { buttonVariants } from "@/components/ui/button";
 import { cn } from "@/lib/utils";
 
 export function PublicHomeHeroMobile() {
   return (
-    <section className="border-b bg-gradient-to-b from-primary/5 to-background px-4 py-8 md:hidden">
-      <div className="space-y-3">
+    <section className="border-b bg-gradient-to-b from-primary/5 to-background py-8 md:hidden">
+      <div className={cn(PUBLIC_CONTENT_CONTAINER_CLASS, "space-y-3")}>
         <p className="text-primary text-xs font-semibold tracking-wide">
           MatchLab
         </p>

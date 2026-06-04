@@ -28,8 +28,8 @@ export function PublicEventCardDesktop({
         <EventPosterImage
           src={event.coverImageUrl}
           alt={`${event.title} 포스터`}
-          className="aspect-[4/5] w-full"
-          sizes="(max-width:1536px) 33vw, 380px"
+          className="w-full rounded-none"
+          sizes="(max-width:1024px) 50vw, 360px"
           priority={priorityImage}
         />
         <div className="absolute inset-x-0 top-0 flex flex-wrap gap-1.5 p-3">

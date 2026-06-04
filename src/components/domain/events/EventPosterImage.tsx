@@ -2,13 +2,15 @@
 
 import Image from "next/image";
 import { useState } from "react";
+import { EVENT_POSTER_ASPECT_CLASS } from "@/components/domain/events/public/public-event-layout";
 import { cn } from "@/lib/utils";
 
 function PosterPlaceholder({ className }: { className?: string }) {
   return (
     <div
       className={cn(
-        "flex flex-col items-center justify-center gap-2 bg-gradient-to-br from-muted to-muted/60 text-muted-foreground",
+        "flex flex-col items-center justify-center gap-2 bg-gradient-to-br from-neutral-100 to-neutral-200/80 text-muted-foreground dark:from-neutral-900 dark:to-neutral-800",
+        EVENT_POSTER_ASPECT_CLASS,
         className,
       )}
       aria-hidden
@@ -51,12 +53,18 @@ export function EventPosterImage({
   }
 
   return (
-    <div className={cn("relative overflow-hidden bg-muted", className)}>
+    <div
+      className={cn(
+        "relative overflow-hidden bg-neutral-50 dark:bg-neutral-900/40",
+        EVENT_POSTER_ASPECT_CLASS,
+        className,
+      )}
+    >
       <Image
         src={src!.trim()}
         alt={alt}
         fill
-        className={cn("object-cover", imageClassName)}
+        className={cn("h-full w-full object-contain", imageClassName)}
         sizes={sizes}
         unoptimized
         priority={priority}

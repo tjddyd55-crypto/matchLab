@@ -4,7 +4,7 @@ import { PublicEventListDesktop } from "@/components/domain/events/public/Public
 import { PublicEventListMobile } from "@/components/domain/events/public/PublicEventListMobile";
 import { EmptyState } from "@/components/shared/EmptyState";
 import { buttonVariants } from "@/components/ui/button";
-import { PUBLIC_EVENTS_CONTAINER_CLASS } from "@/components/domain/events/public/public-event-layout";
+import { PUBLIC_CONTENT_CONTAINER_CLASS } from "@/components/domain/events/public/public-event-layout";
 import { cn } from "@/lib/utils";
 
 export function PublicHomeEventsSection({
@@ -15,7 +15,7 @@ export function PublicHomeEventsSection({
   return (
     <section
       className={cn(
-        PUBLIC_EVENTS_CONTAINER_CLASS,
+        PUBLIC_CONTENT_CONTAINER_CLASS,
         "flex flex-col gap-5 py-8 md:gap-6 md:py-10",
       )}
     >
