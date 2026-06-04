@@ -508,6 +508,65 @@ export function getApplicationDocumentsBucketName(): string {
   return applicationDocumentsBucket();
 }
 
+const ALLOWED_PROFILE_IMAGE_MIME = new Set([
+  "image/jpeg",
+  "image/png",
+  "image/webp",
+]);
+
+function profileImagesBucket(): string {
+  return (
+    process.env.SUPABASE_PROFILE_IMAGE_BUCKET?.trim() || "profile-images"
+  );
+}
+
+export function buildPublicStorageUrlForProfileImages(path: string): string {
+  const base = process.env.NEXT_PUBLIC_SUPABASE_URL?.replace(/\/$/, "") ?? "";
+  if (!base) {
+    throw new AppError(
+      "INTERNAL",
+      "NEXT_PUBLIC_SUPABASE_URL 이 필요합니다.",
+    );
+  }
+  const bucket = profileImagesBucket();
+  return `${base}/storage/v1/object/public/${bucket}/${path}`;
+}
+
+export async function createFighterProfileImageUploadUrl(
+  actor: ActorContext,
+  input: { fighterId: string; mimeType: string },
+): Promise<{ uploadUrl: string; path: string; publicUrl: string }> {
+  requireRole(actor, ["fighter", "admin"]);
+  if (actor.role === "fighter" && actor.fighterId !== input.fighterId) {
+    throw new AppError("FORBIDDEN", "본인 프로필만 수정할 수 있습니다.");
+  }
+
+  const mimeType = input.mimeType.trim();
+  if (!ALLOWED_PROFILE_IMAGE_MIME.has(mimeType)) {
+    throw new AppError("VALIDATION_ERROR", "jpg, png, webp만 업로드할 수 있습니다.");
+  }
+
+  const ext =
+    mimeType === "image/png" ? "png" : mimeType === "image/webp" ? "webp" : "jpg";
+  const path = `fighters/${input.fighterId}/avatar/${randomUUID()}.${ext}`;
+
+  const supabase = createSupabaseAdminClient();
+  const bucket = profileImagesBucket();
+  const { data, error } = await supabase.storage
+    .from(bucket)
+    .createSignedUploadUrl(path, { upsert: true });
+
+  if (error || !data?.signedUrl) {
+    throw new AppError("INTERNAL", "업로드 URL 발급에 실패했습니다.");
+  }
+
+  return {
+    uploadUrl: data.signedUrl,
+    path,
+    publicUrl: buildPublicStorageUrlForProfileImages(path),
+  };
+}
+
 export async function createApplicationGuardianSignatureUploadUrl(input: {
   consentId: string;
   documentId: string;

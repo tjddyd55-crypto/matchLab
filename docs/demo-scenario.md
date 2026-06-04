@@ -63,6 +63,19 @@ MVP 범위는 `docs/mvp-scope.md`를 기준으로 하며, 본 문서는 **시연
 
 > `Fighter.primarySport`, `FighterGymHistory.gymInternalMemo` 추가 시 **`npm run db:push`**. **`db:seed` 금지.**
 
+### 1.8 선수 로그인 계정·프로필
+
+1. **gym** — `/gym/fighters/new` → 「선수 로그인 계정도 같이 만들기」→ 아이디·초기 비밀번호(자동 생성 가능) → 저장 후 **1회성** 로그인 정보 카드 확인.
+2. 로그아웃 → 발급 아이디·비밀번호로 `/login`(「이메일 또는 아이디」) 로그인 → `mustChangePassword` 시 `/fighter/change-password` → `/fighter` 대시보드.
+3. **fighter** — `/fighter/profile` → 사진·표시 이름·자기소개·SNS·**공개 ON** → `/fighters/{slug}` 공개 페이지(민감정보·내부 path 미노출).
+4. **gym** — `/gym/invite-links` → 링크 → 비로그인 폼에서 선수 정보 + **아이디·비밀번호** 제출 → 승인 전 해당 아이디 로그인 시 **승인 대기** 화면만.
+5. **gym** — 등록 요청 **승인** → 동일 아이디로 `/fighter` 정상 진입.
+6. **gym** — `/gym/fighters`에서 **비밀번호 재발급** → 새 임시 비밀번호 1회 표시 → 선수 재로그인·변경 안내.
+7. (선택) `fighterdemo` / `123456!!` — `setup:demo-users` 후 일반 아이디 로그인; `fighter@demo.local` 이메일 로그인도 병행 가능.
+8. **gym** — 타 체육관 선수 계정 발급·재발급 **불가** 확인.
+
+> `User.loginId`, `FighterProfile`, `FighterRegistrationSubmission.pendingUserId` 반영 후 **`npm run db:push`**. **`db:seed` 금지.**
+
 ### 1.6 주최자 공개 선수
 
 1. **gym** — `/gym/fighters` → 선수 1명 「주최자에게 공개」 ON
@@ -93,12 +106,13 @@ MVP 범위는 `docs/mvp-scope.md`를 기준으로 하며, 본 문서는 **시연
 | 주최자 | `organizer@demo.local` | 동일 | `/organizer` |
 | 체육관 | `gym@demo.local` | 동일 | `/gym` |
 | 선수 | `fighter@demo.local` | 동일 | `/fighter` |
+| 선수(일반 아이디) | `fighterdemo` (비밀번호 `123456!!` 또는 `DEMO_PASSWORD`) | `setup:demo-users` | `/fighter` |
 
 **주의 (Supabase 비밀번호 정책):** 프로젝트 설정에 따라 **`1234`가 거절**될 수 있다. 이 경우 **정책을 낮추지 말고**, 예를 들어 `DEMO_PASSWORD=123456` 또는 `DEMO_PASSWORD=Demo1234!` 로 `.env`에 지정한 뒤 **`npm run setup:demo-users`를 다시 실행**한다. 스크립트가 정책 오류를 감지하면 콘솔에 동일 안내를 출력한다. **실서비스에서는 짧은 비밀번호를 사용하지 말 것.**
 
 **수동 경로(레거시 시드):** `prisma/seed.ts`의 `@example.com` 계정과 `DEV_AUTH_USER_IDS`를 쓰는 방법은 `docs/dev-start.md`의 SQL 예시를 따른다. 미팅에서는 **`@demo.local` 자동화**와 **시드 데이터** 중 한 가지로 통일하는 것이 안전하다.
 
-`/login`에서 이메일·비밀번호로 로그인한다. 성공 시 `User.role`에 따라 `/admin`, `/organizer`, `/gym`, `/fighter`로 이동한다.
+`/login`에서 **이메일 또는 아이디**·비밀번호로 로그인한다. admin/organizer/gym은 이메일; 선수는 `fighterdemo` 같은 **아이디** 또는 `fighter@demo.local` 이메일. 성공 시 `User.role`에 따라 해당 홈으로 이동한다.
 
 ### 로그인·authUserId 리허설 체크리스트 (미팅 전)
 
@@ -139,7 +153,9 @@ npm run seed:demo-fighters # FTR-2026-TEST001~020, 데모 체육관 소속
 
 ### 공통
 
-- `/login` — 이메일·비밀번호 로그인
+- `/login` — 이메일 또는 아이디·비밀번호 로그인
+- `/fighters/[slug]` — 선수 공개 프로필(`FighterProfile.isPublic`)
+- `/fighter/profile`, `/fighter/change-password` — 선수 전용
 - `/register` — 자가가입 안내(MVP 미개방)
 
 ### 공개 (spectator)

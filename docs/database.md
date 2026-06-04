@@ -62,9 +62,14 @@ Notification
 |------|------|
 | id | 내부 PK(cuid) |
 | authUserId | Supabase Auth `user.id`(UUID) 와 매핑, `@unique`, 시드·마이그레이션 전 사용자는 null 가능 |
-| email, phone, name | 로그인·표시 |
+| email, phone, name | 로그인·표시(admin/organizer/gym은 email; 선수는 `loginId` 우선) |
+| loginId | nullable, `@unique`, **전역 유일** 선수 로그인 아이디(저장 lowercase). Supabase Auth에는 `{loginId}@internal.matchlab.local` synthetic email 사용 — **공개·DTO·UI에 노출 금지** |
+| mustChangePassword | 체육관 발급·재발급 임시 비밀번호 시 true → 첫 로그인 후 `/fighter/change-password` |
+| passwordIssuedAt, passwordResetAt | 비밀번호 원문은 저장하지 않음. 발급·재발급 시각만 감사 |
 | role | 플랫폼 역할(MVP 단일 역할) |
 | createdAt, updatedAt | 감사 |
+
+**비밀번호**: DB·Prisma에 평문 저장하지 않음. Supabase Auth `updateUser`/`signUp`만 사용.
 
 ### Gym
 
@@ -75,13 +80,30 @@ Notification
 | 필드 | 설명 |
 |------|------|
 | fighterCode | 대외 고유번호(표시·조회) |
-| userId | nullable, 선수 계정 연결 |
+| userId | nullable, `@unique` — 선수 로그인 `User` 1:1. null이면 계정 미발급 |
 | currentGymId | 현재 소속 |
 | primarySport | 체육관 등록 참고용 주 종목 |
 | recordWin/Loss/Draw | **캐시**, MatchResult 확정 시만 갱신 — 체육관 UI에서 수동 수정 금지 |
 | schoolName / grade / guardian* | 보호자 동의 정책 판단용(등록 단계 필수 아님) |
 
 프로필 수정 시 **이미 제출된 `ApplicationDocument` snapshot** 은 유지. 이후 신청·조회에는 수정값 사용.
+
+### FighterProfile
+
+선수 **공개 개인 프로필**(체육관이 편집하지 않음). `fighterId` PK.
+
+| 필드 | 설명 |
+|------|------|
+| slug | 공개 URL `/fighters/[slug]`, unique |
+| displayName, bio | 선수가 수정 가능 |
+| profileImageUrl | 공개 표시용 URL |
+| profileImagePath | Storage 객체 경로 — **공개 DTO·페이지에 미노출** |
+| snsInstagram, snsYoutube, snsTiktok | 선수 입력 |
+| isPublic, publicEnabledAt | true일 때만 공개 페이지 노출 |
+
+읽기 전용 표시(편집 UI): 소속 체육관·지역·성별·연령부·체급·주종목·전적 — `Fighter`·active `FighterGymHistory`·`MatchResult` 캐시에서 파생.
+
+`FighterGymHistory.isPublicToOrganizers` 와 **혼동 금지**(주최자 매칭용 vs 선수 일반 공개).
 
 ### FighterGymHistory
 
@@ -129,6 +151,8 @@ MVP: 계좌 안내 + 수동 입금 확인. **`EventApplicationPayment` 가 입�
 
 - 링크별 `token`, 만료, 최대 사용 횟수.
 - 제출 데이터: 조회용 생년월일+성별+전화 조합 인덱스 설계 검토(복합 유니크는 비즈니스 규칙과 충돌 시 애플리케이션에서 검증).
+- **등록 링크 + 계정**: 제출 시 `loginId`·`pendingUserId`(선수 `User` + Auth, `role=fighter`) 저장. **승인 전** `Fighter`·active 소속 없음 — 로그인 시 `/fighter/pending`만. **승인** 시 `Fighter` 생성·`FighterGymHistory` active·`Fighter.userId` 연결. **반려** 시 `/fighter/rejected`; Auth 비활성/삭제는 구조에 맞게 안전 처리.
+- 등록 단계 **서명·보호자 동의 없음**(대회 신청 단계만).
 
 ### GuardianConsent
 

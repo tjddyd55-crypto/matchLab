@@ -33,6 +33,11 @@ export type GymFighterListRow = {
   affiliationStartDate: Date | null;
   gymInternalMemo: string | null;
   createdAt: Date;
+  userId: string | null;
+  loginId: string | null;
+  mustChangePassword: boolean;
+  profileIsPublic: boolean;
+  hasFighterProfile: boolean;
 };
 
 export type GymFighterEditRow = {
@@ -100,7 +105,17 @@ export const fighterRepository = {
         recordDraw: true,
         status: true,
         profileImageUrl: true,
+        userId: true,
         createdAt: true,
+        user: {
+          select: {
+            loginId: true,
+            mustChangePassword: true,
+          },
+        },
+        fighterProfile: {
+          select: { isPublic: true },
+        },
         gymHistories: {
           where: activeGymHistoryWhere(gymId),
           orderBy: { startDate: "desc" },
@@ -130,6 +145,11 @@ export const fighterRepository = {
       affiliationStartDate: f.gymHistories[0]?.startDate ?? null,
       gymInternalMemo: f.gymHistories[0]?.gymInternalMemo ?? null,
       createdAt: f.createdAt,
+      userId: f.userId,
+      loginId: f.user?.loginId ?? null,
+      mustChangePassword: f.user?.mustChangePassword ?? false,
+      profileIsPublic: f.fighterProfile?.isPublic ?? false,
+      hasFighterProfile: Boolean(f.fighterProfile),
     }));
   },
 

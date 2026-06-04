@@ -171,6 +171,49 @@ export function FighterRegistrationForm({
           </label>
         </div>
 
+        <div className="rounded-lg border p-4 space-y-3">
+          <h2 className="text-sm font-semibold">로그인 계정</h2>
+          <p className="text-muted-foreground text-xs">
+            체육관 승인 전에도 로그인할 수 있습니다. 승인 후 대회 신청이 가능합니다.
+          </p>
+          <label className="space-y-1 text-sm block">
+            <span className="font-medium">아이디</span>
+            <input
+              name="loginId"
+              required
+              minLength={4}
+              pattern="[a-zA-Z0-9_-]+"
+              className={cn(
+                "border-input bg-background h-9 w-full rounded-md border px-3 text-sm shadow-sm",
+              )}
+            />
+          </label>
+          <label className="space-y-1 text-sm block">
+            <span className="font-medium">비밀번호</span>
+            <input
+              name="password"
+              type="password"
+              required
+              minLength={6}
+              className={cn(
+                "border-input bg-background h-9 w-full rounded-md border px-3 text-sm shadow-sm",
+              )}
+            />
+          </label>
+          <label className="space-y-1 text-sm block">
+            <span className="font-medium">비밀번호 확인</span>
+            <input
+              name="passwordConfirm"
+              type="password"
+              required
+              minLength={6}
+              className={cn(
+                "border-input bg-background h-9 w-full rounded-md border px-3 text-sm shadow-sm",
+              )}
+            />
+          </label>
+        </div>
+
         <Button type="submit" disabled={pending} className="w-full sm:w-auto">
           {pending ? "제출 중…" : "등록 요청 제출"}
         </Button>
@@ -186,8 +229,8 @@ function RegistrationSuccess({ dup }: { dup: boolean }) {
       role="status"
     >
       <p className="font-medium">
-        등록 요청이 접수되었습니다. 체육관에서 확인 후 승인하면 선수 등록이
-        완료됩니다.
+        등록 요청이 접수되었습니다. 입력한 아이디로 로그인할 수 있으며,
+        체육관 승인 후 대회 신청이 가능합니다.
       </p>
       {dup ? (
         <p className="text-amber-700 text-sm dark:text-amber-400">

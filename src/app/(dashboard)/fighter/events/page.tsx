@@ -4,6 +4,7 @@ import { EmptyState } from "@/components/shared/EmptyState";
 import { PaymentStatusBadge } from "@/components/shared/PaymentStatusBadge";
 import { buttonVariants } from "@/components/ui/button";
 import { redirectUnlessDashboardRole, requireActor } from "@/lib/auth/actor";
+import { requireFighterDashboardReady } from "@/lib/auth/fighter-dashboard-gate";
 import { applicationService } from "@/lib/services/application.service";
 import { cn } from "@/lib/utils";
 
@@ -12,6 +13,7 @@ export const dynamic = "force-dynamic";
 export default async function FighterEventsPage() {
   const actor = await requireActor();
   redirectUnlessDashboardRole(actor, ["fighter", "admin"]);
+  await requireFighterDashboardReady(actor);
 
   const rows = await applicationService.listFighterLinkedApplications(actor);
 

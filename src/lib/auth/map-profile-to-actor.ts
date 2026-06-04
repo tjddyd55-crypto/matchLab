@@ -6,6 +6,8 @@ export function actorProfileRowToContext(row: ActorProfileRow): ActorContext {
     userId: row.id,
     role: row.role,
     email: row.email ?? "",
+    loginId: row.loginId ?? undefined,
+    mustChangePassword: row.mustChangePassword,
     organizerId: row.organizer?.id,
     gymId: row.ownedGym?.id,
     fighterId: row.fighter?.id,

@@ -18,7 +18,7 @@ import {
   type FighterRegistrationSubmitResult,
 } from "@/lib/services/registration.service";
 import { isPrismaUniqueViolation } from "@/lib/prisma-errors";
-import { fighterRegistrationPublicSchema } from "@/lib/validators/fighter-registration.validator";
+import { fighterRegistrationWithAccountSchema } from "@/lib/validators/fighter-registration.validator";
 
 function mapCaught<T>(
   fn: () => Promise<ActionResult<T>>,
@@ -51,7 +51,14 @@ function mapCaught<T>(
   });
 }
 
-function payloadFromFighterRegistrationForm(formData: FormData): unknown {
+function formReq(formData: FormData, key: string): string {
+  const v = formData.get(key);
+  return typeof v === "string" ? v.trim() : "";
+}
+
+function payloadFromFighterRegistrationForm(
+  formData: FormData,
+): Record<string, unknown> {
   const gv = (k: string): string | undefined => {
     const v = formData.get(k);
     if (v === null || typeof v !== "string") return undefined;
@@ -105,9 +112,12 @@ export async function submitFighterRegistrationFormAction(
     }
     const token = tokenRaw.trim();
 
-    const parsed = fighterRegistrationPublicSchema.safeParse(
-      payloadFromFighterRegistrationForm(formData),
-    );
+    const parsed = fighterRegistrationWithAccountSchema.safeParse({
+      ...payloadFromFighterRegistrationForm(formData),
+      loginId: formReq(formData, "loginId"),
+      password: formReq(formData, "password"),
+      passwordConfirm: formReq(formData, "passwordConfirm"),
+    });
     if (!parsed.success) {
       const msg = parsed.error.issues.map((i) => i.message).join(" ");
       return actionFailure(

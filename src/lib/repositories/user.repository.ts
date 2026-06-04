@@ -8,6 +8,8 @@ const actorProfileSelect = {
   id: true,
   email: true,
   role: true,
+  loginId: true,
+  mustChangePassword: true,
   organizer: { select: { id: true } },
   ownedGym: { select: { id: true } },
   fighter: { select: { id: true } },
@@ -17,6 +19,8 @@ export type ActorProfileRow = {
   id: string;
   email: string | null;
   role: UserRole;
+  loginId: string | null;
+  mustChangePassword: boolean;
   organizer: { id: string } | null;
   ownedGym: { id: string } | null;
   fighter: { id: string } | null;

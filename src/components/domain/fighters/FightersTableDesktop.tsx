@@ -48,6 +48,7 @@ export function FightersTableDesktop({
             <TableHead className="text-center">전적</TableHead>
             <TableHead>상태</TableHead>
             <TableHead>소속 시작</TableHead>
+            <TableHead>계정</TableHead>
             <TableHead>주최자 공개</TableHead>
             <TableHead />
           </TableRow>
@@ -92,6 +93,16 @@ export function FightersTableDesktop({
                 {f.affiliationStartDate
                   ? format(f.affiliationStartDate, "yyyy.MM.dd", { locale: ko })
                   : "—"}
+              </TableCell>
+              <TableCell className="text-xs">
+                {f.userId ? (
+                  <span>
+                    {f.loginId ?? "연결됨"}
+                    {f.mustChangePassword ? " · 임시PW" : ""}
+                  </span>
+                ) : (
+                  <span className="text-muted-foreground">미발급</span>
+                )}
               </TableCell>
               <TableCell>
                 <GymFighterPublicToggle

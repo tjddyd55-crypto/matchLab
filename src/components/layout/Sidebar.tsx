@@ -23,6 +23,7 @@ const navByRole: Record<DashboardRole, NavItem[]> = {
   ],
   fighter: [
     { href: "/fighter", label: "홈" },
+    { href: "/fighter/profile", label: "내 프로필" },
     { href: "/fighter/events", label: "대회" },
     { href: "/fighter/records", label: "전적" },
     { href: "/notifications", label: "알림" },

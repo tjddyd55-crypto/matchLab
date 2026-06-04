@@ -7,6 +7,8 @@ export type ActorContext = {
   userId: string;
   role: UserRole;
   email: string;
+  loginId?: string;
+  mustChangePassword?: boolean;
   organizerId?: string;
   gymId?: string;
   fighterId?: string;

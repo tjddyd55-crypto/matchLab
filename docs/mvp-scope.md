@@ -13,6 +13,13 @@
 - [ ] 주최자 회원가입/로그인(Supabase Auth) — **UI는 플레이스홀더**, 세션·`User.authUserId` 매핑은 `dev-start.md` 기준으로 수동 검증.
 - [ ] 체육관 회원가입/로그인 — 동일.
 - [x] 선수 계정 구조(`Fighter.userId` 연결, 시드·`/fighter` 조회 플로우).
+- [x] **선수 일반 아이디 로그인** — `/login` 「이메일 또는 아이디」; `User.loginId` + Supabase synthetic email (`{loginId}@internal.matchlab.local`, UI 비노출).
+- [x] admin/organizer/gym **이메일 로그인 유지** (`@demo.local` 등).
+- [x] 체육관 **선수 로그인 계정 발급** — 직접 등록·기존 선수·비밀번호 재발급(`/gym/fighters`, `fighter-account.service`).
+- [x] 등록 링크 제출 시 **아이디·비밀번호** 입력 → pending 계정 → 체육관 승인 후 `Fighter`·active 소속·계정 연결.
+- [x] `mustChangePassword` — 체육관 발급·재발급 시 true; 등록 링크 자가 설정 비밀번호는 false 가능.
+- [x] **간단 선수 개인 프로필** — `/fighter/profile`, 공개 `/fighters/[slug]` (`FighterProfile.isPublic`).
+- [ ] **SMS 비밀번호 찾기** — MVP 제외; `User.phone`·보호자 연락처 구조만 유지(TODO).
 
 ### 대회
 
@@ -26,7 +33,7 @@
 ### 체육관·선수 등록
 
 - [x] 체육관 대시보드 기본(`/gym` 및 하위 네비).
-- [x] **선수 직접 등록** (`/gym/fighters/new`, `createFighterDirectlyForGym`) — 서명·동의·신청서 PDF 없음.
+- [x] **선수 직접 등록** (`/gym/fighters/new`, `createFighterDirectlyForGym`) — 서명·동의·신청서 PDF 없음; 옵션으로 로그인 계정 동시 발급.
 - [x] **등록 선수 수정** (`/gym/fighters/[fighterId]/edit`, `updateGymFighter`) — 전적·신청 snapshot은 자동 변경 안 함.
 - [x] **소속 해제** (`FighterGymHistory` end, `currentGymId` 정리) — Fighter 삭제·과거 신청 유지.
 - [x] `/gym/fighters` — 활성 소속 목록·검색·직접 등록/링크/요청 탭·주최자 공개 토글.

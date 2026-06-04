@@ -50,7 +50,7 @@ npm install
 
 | `SUPABASE_EVENT_IMAGE_BUCKET` | 대회 포스터·갤러리 이미지 bucket 이름 (기본값 예: `event-images`, 공개 읽기 정책과 맞춤) |
 
-| `SUPABASE_PROFILE_IMAGE_BUCKET` | 향후 선수 프로필 등 이미지용 private bucket 이름 (기본값 예: `profile-images`, 현재 업로드 코드 미연결 가능) |
+| `SUPABASE_PROFILE_IMAGE_BUCKET` | 선수 프로필 사진 bucket (기본 `profile-images`). `POST /api/uploads/profile-image` signed upload → `FighterProfile.profileImageUrl` (공개 읽기 필요 시 bucket public read 정책) |
 
 | `SUPABASE_APPLICATION_FORM_BUCKET` | 공식 신청서 **템플릿 PDF** 원본 (private, 기본 `application-forms`) |
 
@@ -106,7 +106,25 @@ GitHub → Railway 배포가 성공해도 **Postgres는 빈 DB**입니다. `publ
 
 생성되는 Auth 이메일: `admin@demo.local`, `organizer@demo.local`, `gym@demo.local`, `fighter@demo.local`. 선수 `fighterCode`는 `FTR-2026-DEMO001`(이미 있으면 갱신).
 
+추가 **일반 아이디 선수 데모**: `loginId` **`fighterdemo`**, 비밀번호 **`123456!!`**(또는 `DEMO_PASSWORD`), `fighterCode` **`FTR-2026-DEMO002`**. Supabase Auth synthetic email: `fighterdemo@internal.matchlab.local`(화면 비노출). 기존 `fighter@demo.local` 이메일 로그인은 유지.
+
 `setup:demo-users` 실행 시 데모 체육관 `FighterGymHistory(active)` → `Fighter.currentGymId` 동기화와 `sample-open-2026` 신청 마감(연말)·`open` 보정도 수행한다.
+
+### 선수 일반 아이디 로그인 (`src/lib/fighter-login.ts`)
+
+- 앱 DB: `User.loginId` (전역 unique, lowercase 저장).
+- Supabase Auth: `{loginId}@internal.matchlab.local` — **사용자·공개 페이지에 표시하지 않음**.
+- `/login`: 라벨 「이메일 또는 아이디」. `@` 포함·이메일 형식이면 기존 email 로그인; 아니면 `loginId` 조회 후 synthetic email로 `signInWithPassword`.
+- `npm run build` 시 Prisma 초기화에 **`DATABASE_URL` 필요**(미설정 시 page data 수집 단계 실패 가능).
+
+### SMS 비밀번호 찾기 (TODO)
+
+- MVP: 체육관 **임시 비밀번호 재발급**만 (`/gym/fighters` → 비밀번호 재발급).
+- 추후: 미성년 → 보호자 휴대폰, 성인 → 선수 휴대폰 SMS 인증(5~10분 만료, 재발송 제한). `User.phone`·`Fighter.guardianPhone` 필드 유지.
+
+### Railway schema 반영 (이번 작업)
+
+`User.loginId`, `mustChangePassword`, `FighterProfile`, `FighterRegistrationSubmission.loginId`/`pendingUserId` 추가 후 **`npm run db:push`** 필요. **`db:seed` 실행 금지.**
 
 ### 주최자 공개 선수
 

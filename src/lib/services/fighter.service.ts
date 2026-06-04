@@ -8,7 +8,9 @@ import {
   FighterRegistrationSubmissionStatus,
   FighterStatus,
 } from "@/lib/enums";
+import { generateTemporaryPassword } from "@/lib/fighter-login";
 import { normalizeGymFighterPhone } from "@/lib/gym-fighter-management";
+import { fighterAccountService } from "@/lib/services/fighter-account.service";
 import { toUtcDateOnly } from "@/lib/date-only";
 import { prisma } from "@/lib/prisma";
 import { normalizePhoneDigits } from "@/lib/phone";
@@ -21,6 +23,7 @@ import {
   type GymFighterEditRow,
   type GymFighterListRow,
 } from "@/lib/repositories/fighter.repository";
+import { fighterAccountRepository } from "@/lib/repositories/fighter-account.repository";
 import { registrationRepository } from "@/lib/repositories/registration.repository";
 import type {
   GymFighterCreateInput,
@@ -107,7 +110,12 @@ export const fighterService = {
   async createFighterDirectlyForGym(
     actor: ActorContext,
     input: GymFighterCreateInput,
-  ): Promise<{ fighterId: string; fighterCode: string; linked: boolean }> {
+  ): Promise<{
+    fighterId: string;
+    fighterCode: string;
+    linked: boolean;
+    loginCredentials?: { loginId: string; temporaryPassword: string };
+  }> {
     requireRole(actor, ["gym", "admin"]);
     const gymId = actor.gymId;
     if (!gymId) {
@@ -170,11 +178,19 @@ export const fighterService = {
       const linked = await fighterRepository.findFighterById(
         input.linkFighterId!,
       );
-      return {
+      const result = {
         fighterId: input.linkFighterId!,
         fighterCode: linked?.fighterCode ?? "",
         linked: true,
       };
+      if (input.createLoginAccount && input.loginId) {
+        const creds = await fighterService.provisionLoginAfterCreate(
+          input.linkFighterId!,
+          input,
+        );
+        return { ...result, loginCredentials: creds };
+      }
+      return result;
     }
 
     if (duplicates.length > 0) {
@@ -234,12 +250,48 @@ export const fighterService = {
         );
       }
 
-      return {
+      const result = {
         fighterId: fighter.id,
         fighterCode: fighter.fighterCode,
         linked: false,
       };
+      if (input.createLoginAccount && input.loginId) {
+        const creds = await fighterService.provisionLoginAfterCreate(
+          fighter.id,
+          input,
+        );
+        return { ...result, loginCredentials: creds };
+      }
+      return result;
     });
+  },
+
+  async provisionLoginAfterCreate(
+    fighterId: string,
+    input: Pick<
+      GymFighterCreateInput,
+      "loginId" | "password" | "autoGeneratePassword"
+    >,
+  ): Promise<{ loginId: string; temporaryPassword: string }> {
+    const loginId = input.loginId!;
+    const password =
+      input.password?.trim() ||
+      (input.autoGeneratePassword ? generateTemporaryPassword() : "");
+    if (!password) {
+      throw new AppError(
+        "VALIDATION_ERROR",
+        "초기 비밀번호를 입력하거나 자동 생성을 선택해 주세요.",
+      );
+    }
+    const row = await fighterRepository.findFighterById(fighterId);
+    const acc = await fighterAccountService.createFighterLoginAccount({
+      loginId,
+      password,
+      name: row?.name ?? "선수",
+      mustChangePassword: true,
+    });
+    await fighterAccountService.linkFighterToUserAccount(fighterId, acc.userId);
+    return { loginId: acc.loginId, temporaryPassword: password };
   },
 
   async releaseGymFighterAffiliation(
@@ -459,6 +511,14 @@ export const fighterService = {
         throw new AppError(
           "INTERNAL",
           "선수 생성에 실패했습니다. 다시 시도해 주세요.",
+        );
+      }
+
+      if (latest.pendingUserId) {
+        await fighterAccountRepository.linkFighterUserId(
+          tx,
+          fighter.id,
+          latest.pendingUserId,
         );
       }
 

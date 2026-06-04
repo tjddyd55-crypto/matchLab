@@ -3,6 +3,9 @@ import { notFound } from "next/navigation";
 import { requireActor } from "@/lib/auth/actor";
 import { AppError } from "@/lib/errors/app-error";
 import { fighterService } from "@/lib/services/fighter.service";
+import { fighterRepository } from "@/lib/repositories/fighter.repository";
+import { userRepository } from "@/lib/repositories/user.repository";
+import { GymFighterAccountPanel } from "@/components/domain/fighters/GymFighterAccountPanel";
 import {
   GymFighterForm,
   gymFighterFormInitialFromEdit,
@@ -38,6 +41,11 @@ export default async function GymFighterEditPage({
     throw e;
   }
 
+  const ctx = await fighterRepository.findFighterVisibilityContext(fighterId);
+  const user = ctx?.userId
+    ? await userRepository.findUserById(ctx.userId)
+    : null;
+
   return (
     <div className="mx-auto flex w-full max-w-2xl flex-col gap-6 px-4 py-8 md:px-6">
       <div>
@@ -56,11 +64,13 @@ export default async function GymFighterEditPage({
         <p className="text-muted-foreground mt-1 font-mono text-xs">
           {row.fighterCode}
         </p>
-        <p className="text-muted-foreground mt-2 text-xs leading-relaxed">
-          전적은 경기 결과 기준으로 유지됩니다. 이미 제출된 대회 신청서
-          snapshot은 자동으로 바뀌지 않습니다.
-        </p>
       </div>
+
+      <GymFighterAccountPanel
+        fighterId={fighterId}
+        loginId={user?.loginId ?? null}
+        hasAccount={Boolean(ctx?.userId)}
+      />
 
       <GymFighterForm
         mode="edit"

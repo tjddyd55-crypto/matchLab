@@ -12,7 +12,8 @@ import { requireGymOwner, requireRole } from "@/lib/permissions";
 import { fighterRepository } from "@/lib/repositories/fighter.repository";
 import { inviteLinkRepository } from "@/lib/repositories/invite-link.repository";
 import { registrationRepository } from "@/lib/repositories/registration.repository";
-import type { FighterRegistrationPublicInput } from "@/lib/validators/fighter-registration.validator";
+import { fighterAccountService } from "@/lib/services/fighter-account.service";
+import type { FighterRegistrationWithAccountInput } from "@/lib/validators/fighter-registration.validator";
 import {
   inviteLinkService,
   type InviteGateReason,
@@ -91,7 +92,7 @@ export const registrationService = {
 
   async submitFighterRegistrationByToken(
     token: string,
-    input: FighterRegistrationPublicInput,
+    input: FighterRegistrationWithAccountInput,
   ): Promise<FighterRegistrationSubmitResult> {
     const normalizedPhone = normalizePhoneDigits(input.phone);
     const birthNorm = toUtcDateOnly(input.birthDate);
@@ -144,6 +145,7 @@ export const registrationService = {
             grade: input.grade ?? null,
             guardianName: input.guardianName ?? null,
             guardianPhone: policyInput.guardianPhone ?? undefined,
+            loginId: input.loginId,
             status: submissionStatus,
             duplicateCheckStatus: dupCheck,
           },
@@ -154,6 +156,13 @@ export const registrationService = {
         duplicateSuspected,
         submissionId: created.id,
       };
+    });
+
+    await fighterAccountService.createPendingRegistrationAccount({
+      loginId: input.loginId,
+      password: input.password,
+      name: input.name.trim(),
+      submissionId: txResult.submissionId,
     });
 
     return {

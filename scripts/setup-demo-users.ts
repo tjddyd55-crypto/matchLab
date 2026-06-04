@@ -361,6 +361,51 @@ async function main() {
 
   await ensureFighterGymHistory(fighter.id, gym.id);
 
+  // 일반 아이디 데모 선수 (fighterdemo / 123456!!)
+  const DEMO_LOGIN_ID = "fighterdemo";
+  const demoLoginEmail = `${DEMO_LOGIN_ID}@internal.matchlab.local`;
+  const demoPassword = process.env.DEMO_FIGHTER_PASSWORD?.trim() || "123456!!";
+  const demoAuth = await ensureAuthUser(supabase, demoLoginEmail, demoPassword);
+  const demoUser = await prisma.user.upsert({
+    where: { loginId: DEMO_LOGIN_ID },
+    create: {
+      email: demoLoginEmail,
+      authUserId: demoAuth.id,
+      loginId: DEMO_LOGIN_ID,
+      name: "데모 아이디 선수",
+      role: UserRole.fighter,
+      mustChangePassword: false,
+    },
+    update: {
+      authUserId: demoAuth.id,
+      email: demoLoginEmail,
+      name: "데모 아이디 선수",
+      role: UserRole.fighter,
+    },
+  });
+  const demoFighterByLogin = await prisma.fighter.upsert({
+    where: { fighterCode: "FTR-2026-DEMO002" },
+    create: {
+      fighterCode: "FTR-2026-DEMO002",
+      userId: demoUser.id,
+      currentGymId: gym.id,
+      name: "아이디 데모 선수",
+      birthDate: new Date("2001-06-15T00:00:00.000Z"),
+      gender: "female",
+      phone: "01000000002",
+      status: FighterStatus.active,
+    },
+    update: {
+      userId: demoUser.id,
+      currentGymId: gym.id,
+      status: FighterStatus.active,
+    },
+  });
+  await ensureFighterGymHistory(demoFighterByLogin.id, gym.id);
+  console.info(
+    `[setup-demo-users] 일반 아이디 선수: loginId=${DEMO_LOGIN_ID} (이메일 로그인 아님)`,
+  );
+
   const repaired = await repairGymFighterAffiliations(gym.id);
   if (repaired > 0) {
     console.info(

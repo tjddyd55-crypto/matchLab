@@ -9,6 +9,7 @@ import {
 import { PermissionError } from "@/lib/auth/permission-error";
 import { requireActorFromMutation } from "@/lib/auth/actor";
 import { AppError } from "@/lib/errors/app-error";
+import { fighterAccountService } from "@/lib/services/fighter-account.service";
 import { fighterService } from "@/lib/services/fighter.service";
 import {
   gymFighterCreateSchema,
@@ -58,6 +59,10 @@ function payloadFromGymFighterForm(formData: FormData): unknown {
     gymInternalMemo: gv("gymInternalMemo"),
     confirmDuplicateLink: gv("confirmDuplicateLink"),
     linkFighterId: gv("linkFighterId"),
+    createLoginAccount: gv("createLoginAccount"),
+    loginId: gv("loginId"),
+    password: gv("password"),
+    autoGeneratePassword: gv("autoGeneratePassword"),
     fighterId: gv("fighterId"),
     status: gv("status"),
     releaseAffiliation: gv("releaseAffiliation"),
@@ -73,6 +78,7 @@ export async function createGymFighterDirectAction(
     fighterCode: string;
     linked: boolean;
     duplicateCandidates?: { id: string; fighterCode: string; name: string }[];
+    loginCredentials?: { loginId: string; temporaryPassword: string };
   }>
 > {
   return mapCaught(async () => {
@@ -125,6 +131,69 @@ export async function releaseGymFighterAffiliationAction(
     }
     await fighterService.releaseGymFighterAffiliation(actor, fighterId);
     return actionSuccess({ ok: true as const });
+  });
+}
+
+export async function provisionGymFighterAccountAction(
+  _prev: unknown,
+  formData: FormData,
+): Promise<
+  ActionResult<{
+    loginId: string;
+    temporaryPassword: string;
+  }>
+> {
+  return mapCaught(async () => {
+    const actor = await requireActorFromMutation();
+    const fighterId = formReq(formData, "fighterId");
+    const loginId = formReq(formData, "loginId");
+    const password = formReq(formData, "password");
+    const auto = formReq(formData, "autoGeneratePassword") === "true";
+    if (!fighterId || !loginId) {
+      return actionFailure("VALIDATION_ERROR", "입력값을 확인해 주세요.");
+    }
+    const result = await fighterAccountService.provisionAccountForGymFighter(
+      actor,
+      fighterId,
+      {
+        loginId,
+        password: password || undefined,
+        autoGeneratePassword: auto || !password,
+      },
+    );
+    return actionSuccess({
+      loginId: result.loginId,
+      temporaryPassword: result.temporaryPassword ?? "",
+    });
+  });
+}
+
+export async function resetGymFighterPasswordAction(
+  _prev: unknown,
+  formData: FormData,
+): Promise<
+  ActionResult<{
+    loginId: string;
+    temporaryPassword: string;
+  }>
+> {
+  return mapCaught(async () => {
+    const actor = await requireActorFromMutation();
+    const fighterId = formReq(formData, "fighterId");
+    if (!fighterId) {
+      return actionFailure("VALIDATION_ERROR", "선수 ID가 필요합니다.");
+    }
+    const password = formReq(formData, "password");
+    const auto = formReq(formData, "autoGeneratePassword") === "true";
+    const result = await fighterAccountService.resetFighterPassword(
+      actor,
+      fighterId,
+      {
+        password: password || undefined,
+        autoGenerate: auto || !password,
+      },
+    );
+    return actionSuccess(result);
   });
 }
 

@@ -1,5 +1,9 @@
 import { z } from "zod";
 import { FighterStatus } from "@/lib/enums";
+import {
+  fighterPasswordSchema,
+  loginIdSchema,
+} from "@/lib/validators/fighter-account.validator";
 
 function optionalPositiveFloat() {
   return z.preprocess((val) => {
@@ -42,8 +46,62 @@ export const gymFighterCreateSchema = z
       .optional()
       .transform((v) => v === "true"),
     linkFighterId: z.string().trim().optional(),
+    createLoginAccount: z
+      .enum(["true", "false"])
+      .optional()
+      .transform((v) => v === "true"),
+    loginId: z
+      .string()
+      .trim()
+      .optional()
+      .transform((s) => (s === "" ? undefined : s)),
+    password: z
+      .string()
+      .trim()
+      .optional()
+      .transform((s) => (s === "" ? undefined : s)),
+    autoGeneratePassword: z
+      .enum(["true", "false"])
+      .optional()
+      .transform((v) => v === "true"),
   })
-  .strict();
+  .strict()
+  .superRefine((data, ctx) => {
+    if (!data.createLoginAccount) return;
+    if (!data.loginId) {
+      ctx.addIssue({
+        code: "custom",
+        message: "로그인 아이디를 입력해 주세요.",
+        path: ["loginId"],
+      });
+    } else {
+      const r = loginIdSchema.safeParse(data.loginId);
+      if (!r.success) {
+        ctx.addIssue({
+          code: "custom",
+          message: r.error.issues[0]?.message ?? "아이디 형식이 올바르지 않습니다.",
+          path: ["loginId"],
+        });
+      }
+    }
+    if (!data.password && !data.autoGeneratePassword) {
+      ctx.addIssue({
+        code: "custom",
+        message: "초기 비밀번호를 입력하거나 자동 생성을 선택해 주세요.",
+        path: ["password"],
+      });
+    }
+    if (data.password) {
+      const r = fighterPasswordSchema.safeParse(data.password);
+      if (!r.success) {
+        ctx.addIssue({
+          code: "custom",
+          message: r.error.issues[0]?.message ?? "비밀번호 형식이 올바르지 않습니다.",
+          path: ["password"],
+        });
+      }
+    }
+  });
 
 export const gymFighterUpdateSchema = z
   .object({

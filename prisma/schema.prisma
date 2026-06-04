@@ -291,10 +291,16 @@ enum NextMatchSlot {
 model User {
   id          String   @id @default(cuid())
   authUserId  String?  @unique
+  /// Supabase signIn용(선수는 synthetic internal email, 화면 미노출)
   email       String?  @unique
+  /// 선수 일반 아이디 로그인(전역 unique, lowercase 저장)
+  loginId     String?  @unique
   phone       String?
   name        String
   role        UserRole
+  mustChangePassword Boolean  @default(false)
+  passwordIssuedAt   DateTime?
+  passwordResetAt    DateTime?
   createdAt   DateTime @default(now())
   updatedAt   DateTime @updatedAt
 
@@ -302,6 +308,8 @@ model User {
   ownedGym  Gym?     @relation("GymOwner")
 
   fighter Fighter?
+
+  registrationSubmissionsPending FighterRegistrationSubmission[] @relation("RegistrationPendingUser")
 
   notifications Notification[]
   auditLogs     AuditLog[] @relation("AuditLogActor")
@@ -402,8 +410,32 @@ model Fighter {
   matchResults           MatchResult[] @relation("MatchResultFighter")
   matchResultsAsOpponent MatchResult[] @relation("MatchResultOpponent")
 
+  fighterProfile FighterProfile?
+
   @@index([birthDate, gender, phone])
   @@index([currentGymId])
+}
+
+/// 선수 공개 개인 프로필 (주최자 공개 풀·체육관 DB와 별도)
+model FighterProfile {
+  id               String   @id @default(cuid())
+  fighterId        String   @unique
+  profileImageUrl  String?
+  profileImagePath String?
+  displayName      String?
+  slug             String   @unique
+  bio              String?
+  snsInstagram     String?
+  snsYoutube       String?
+  snsTiktok        String?
+  isPublic         Boolean  @default(false)
+  publicEnabledAt  DateTime?
+  createdAt        DateTime @default(now())
+  updatedAt        DateTime @updatedAt
+
+  fighter Fighter @relation(fields: [fighterId], references: [id], onDelete: Cascade)
+
+  @@index([isPublic])
 }
 
 model FighterGymHistory {
@@ -704,6 +736,10 @@ model FighterRegistrationSubmission {
   grade                String?
   guardianName         String?
   guardianPhone        String?
+  /// 등록 링크 제출 시 선수 로그인 아이디(승인 전)
+  loginId              String?
+  /// 제출 시 생성된 pending User (승인 전 로그인·대기 화면용)
+  pendingUserId        String?  @unique
   status               FighterRegistrationSubmissionStatus @default(submitted)
   duplicateCheckStatus DuplicateCheckStatus                @default(unchecked)
   submittedAt          DateTime                            @default(now())
@@ -712,9 +748,11 @@ model FighterRegistrationSubmission {
 
   gym         Gym            @relation(fields: [gymId], references: [id], onDelete: Cascade)
   inviteLink  GymInviteLink? @relation(fields: [inviteLinkId], references: [id], onDelete: SetNull)
+  pendingUser User?          @relation("RegistrationPendingUser", fields: [pendingUserId], references: [id], onDelete: SetNull)
   guardianConsents GuardianConsent[]
 
   @@index([gymId])
+  @@index([loginId])
   @@index([birthDate, gender, phone])
   @@index([status])
 }

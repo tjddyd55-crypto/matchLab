@@ -64,6 +64,13 @@ export function GymFighterForm({
     null,
   );
   const [selectedLinkId, setSelectedLinkId] = useState<string | null>(null);
+  const [createLoginAccount, setCreateLoginAccount] = useState(
+    mode === "create",
+  );
+  const [issuedCredentials, setIssuedCredentials] = useState<{
+    loginId: string;
+    temporaryPassword: string;
+  } | null>(null);
 
   const inputClass =
     "border-input bg-background h-10 w-full rounded-md border px-3 text-sm";
@@ -103,12 +110,55 @@ export function GymFighterForm({
       return;
     }
 
+    if (
+      mode === "create" &&
+      res.ok &&
+      "loginCredentials" in res.data &&
+      res.data.loginCredentials
+    ) {
+      setIssuedCredentials(res.data.loginCredentials);
+      return;
+    }
+
     if (returnTo) {
       router.push(returnTo);
     } else {
       router.push("/gym/fighters");
     }
     router.refresh();
+  }
+
+  if (issuedCredentials) {
+    return (
+      <div className="rounded-xl border bg-card p-6 space-y-4">
+        <h2 className="font-semibold">선수에게 전달할 로그인 정보</h2>
+        <p className="text-muted-foreground text-xs">
+          아래 비밀번호는 지금 한 번만 표시됩니다. 기존 비밀번호는 확인할 수
+          없습니다.
+        </p>
+        <dl className="grid gap-2 text-sm">
+          <div>
+            <dt className="text-muted-foreground">아이디</dt>
+            <dd className="font-mono font-medium">{issuedCredentials.loginId}</dd>
+          </div>
+          <div>
+            <dt className="text-muted-foreground">임시 비밀번호</dt>
+            <dd className="font-mono font-medium">
+              {issuedCredentials.temporaryPassword}
+            </dd>
+          </div>
+        </dl>
+        <Button
+          type="button"
+          onClick={() => {
+            router.push(returnTo ?? "/gym/fighters");
+            router.refresh();
+          }}
+        >
+          목록으로
+        </Button>
+      </div>
+    );
   }
 
   return (
@@ -270,6 +320,55 @@ export function GymFighterForm({
           />
         </label>
       </div>
+
+      {mode === "create" ? (
+        <div className="rounded-lg border p-4 space-y-3">
+          <label className="flex items-center gap-2 text-sm font-medium">
+            <input
+              type="checkbox"
+              checked={createLoginAccount}
+              onChange={(e) => setCreateLoginAccount(e.target.checked)}
+            />
+            선수 로그인 계정도 같이 만들기
+          </label>
+          {createLoginAccount ? (
+            <>
+              <input type="hidden" name="createLoginAccount" value="true" />
+              <label className="block space-y-1 text-sm">
+                <span className="font-medium">로그인 아이디</span>
+                <input
+                  name="loginId"
+                  required
+                  className={inputClass}
+                  pattern="[a-zA-Z0-9_-]+"
+                  minLength={4}
+                />
+              </label>
+              <label className="flex items-center gap-2 text-sm">
+                <input
+                  type="checkbox"
+                  name="autoGeneratePassword"
+                  value="true"
+                  defaultChecked
+                />
+                초기 비밀번호 자동 생성
+              </label>
+              <label className="block space-y-1 text-sm">
+                <span className="font-medium">초기 비밀번호 (직접 입력 시)</span>
+                <input
+                  name="password"
+                  type="password"
+                  className={inputClass}
+                  minLength={6}
+                  autoComplete="new-password"
+                />
+              </label>
+            </>
+          ) : (
+            <input type="hidden" name="createLoginAccount" value="false" />
+          )}
+        </div>
+      ) : null}
 
       <p className="text-muted-foreground text-xs leading-relaxed">
         선수 등록 단계에서는 서명·보호자 전자동의가 필요하지 않습니다. 대회

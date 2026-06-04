@@ -28,6 +28,8 @@ export type FighterRegistrationSubmissionFull = {
   grade: string | null;
   guardianName: string | null;
   guardianPhone: string | null;
+  loginId: string | null;
+  pendingUserId: string | null;
   status: FighterRegistrationSubmissionStatus;
   duplicateCheckStatus: DuplicateCheckStatus;
   submittedAt: Date;
@@ -64,6 +66,7 @@ export const registrationRepository = {
       grade?: string | null;
       guardianName?: string | null;
       guardianPhone?: string | null;
+      loginId?: string | null;
       status: FighterRegistrationSubmissionStatus;
       duplicateCheckStatus: DuplicateCheckStatus;
     },
@@ -84,6 +87,7 @@ export const registrationRepository = {
         grade: data.grade,
         guardianName: data.guardianName,
         guardianPhone: data.guardianPhone,
+        loginId: data.loginId ?? null,
         status: data.status,
         duplicateCheckStatus: data.duplicateCheckStatus,
       },
@@ -113,6 +117,8 @@ export const registrationRepository = {
         grade: true,
         guardianName: true,
         guardianPhone: true,
+        loginId: true,
+        pendingUserId: true,
         status: true,
         duplicateCheckStatus: true,
         submittedAt: true,

@@ -27,14 +27,14 @@ export function LoginForm() {
   return (
     <form action={formAction} className="space-y-4">
       <div className="space-y-2">
-        <label htmlFor="login-email" className="text-sm font-medium">
-          이메일
+        <label htmlFor="login-identifier" className="text-sm font-medium">
+          이메일 또는 아이디
         </label>
         <input
-          id="login-email"
-          name="email"
-          type="email"
-          autoComplete="email"
+          id="login-identifier"
+          name="identifier"
+          type="text"
+          autoComplete="username"
           required
           disabled={pending}
           className={cn(

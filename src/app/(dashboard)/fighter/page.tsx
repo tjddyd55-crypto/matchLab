@@ -3,6 +3,7 @@ import { Card } from "@/components/ui/card";
 import { buttonVariants } from "@/components/ui/button";
 import { cn } from "@/lib/utils";
 import { requireActor } from "@/lib/auth/actor";
+import { requireFighterDashboardReady } from "@/lib/auth/fighter-dashboard-gate";
 import { notificationService } from "@/lib/services/notification.service";
 import { matchService } from "@/lib/services/match.service";
 import { BracketMatchStatus } from "@/lib/enums";
@@ -30,6 +31,7 @@ function statusKo(s: BracketMatchStatus): string {
 
 export default async function FighterHomePage() {
   const actor = await requireActor();
+  await requireFighterDashboardReady(actor);
   const field = await matchService.getFighterFieldMode(actor);
   const alerts = await notificationService.listMyNotifications(actor);
 

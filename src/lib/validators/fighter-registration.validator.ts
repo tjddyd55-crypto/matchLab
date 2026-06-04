@@ -1,4 +1,5 @@
 import { z } from "zod";
+import { registrationAccountSchema } from "@/lib/validators/fighter-account.validator";
 
 function optionalPositiveFloat() {
   return z.preprocess((val) => {
@@ -38,4 +39,13 @@ export const fighterRegistrationPublicSchema = z
 
 export type FighterRegistrationPublicInput = z.infer<
   typeof fighterRegistrationPublicSchema
+>;
+
+export const fighterRegistrationWithAccountSchema =
+  fighterRegistrationPublicSchema
+    .merge(registrationAccountSchema)
+    .strict();
+
+export type FighterRegistrationWithAccountInput = z.infer<
+  typeof fighterRegistrationWithAccountSchema
 >;

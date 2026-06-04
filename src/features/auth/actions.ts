@@ -8,6 +8,7 @@ import {
 import { dashboardPathForRole, isSupabaseAuthConfigured } from "@/lib/auth/actor";
 import { authService } from "@/lib/services/auth.service";
 import { createSupabaseServerClient } from "@/lib/supabase/server";
+import { fighterAccountService } from "@/lib/services/fighter-account.service";
 import { signInWithPasswordFormSchema } from "@/lib/validators/auth.validator";
 
 const PROFILE_NOT_LINKED_MESSAGE =
@@ -55,7 +56,7 @@ export async function signInWithPasswordAction(
     }
 
     const parsed = signInWithPasswordFormSchema.safeParse({
-      email: formReq(formData, "email"),
+      identifier: formReq(formData, "identifier") || formReq(formData, "email"),
       password: formReq(formData, "password"),
     });
     if (!parsed.success) {
@@ -67,9 +68,19 @@ export async function signInWithPasswordAction(
       );
     }
 
+    const authEmail = await fighterAccountService.resolveAuthEmailForLogin(
+      parsed.data.identifier,
+    );
+    if (!authEmail) {
+      return actionFailure(
+        "UNAUTHORIZED",
+        "이메일 또는 아이디가 올바르지 않습니다.",
+      );
+    }
+
     const supabase = await createSupabaseServerClient();
     const { data, error } = await supabase.auth.signInWithPassword({
-      email: parsed.data.email,
+      email: authEmail,
       password: parsed.data.password,
     });
 
@@ -85,6 +96,25 @@ export async function signInWithPasswordAction(
     if (!actor) {
       await supabase.auth.signOut();
       return actionFailure("FORBIDDEN", PROFILE_NOT_LINKED_MESSAGE);
+    }
+
+    if (actor.role === "fighter" && actor.mustChangePassword) {
+      return actionSuccess({ redirectTo: "/fighter/change-password" });
+    }
+
+    if (actor.role === "fighter" && !actor.fighterId) {
+      const gate = await fighterAccountService.getFighterRegistrationGate(
+        actor,
+      );
+      if (gate.kind === "pending") {
+        return actionSuccess({ redirectTo: "/fighter/pending" });
+      }
+      if (gate.kind === "rejected") {
+        return actionSuccess({ redirectTo: "/fighter/rejected" });
+      }
+      if (gate.kind === "no_fighter_link") {
+        return actionSuccess({ redirectTo: "/fighter/unlinked" });
+      }
     }
 
     return actionSuccess({

@@ -1,10 +1,12 @@
 import { requireActor } from "@/lib/auth/actor";
+import { requireFighterDashboardReady } from "@/lib/auth/fighter-dashboard-gate";
 import { resultService } from "@/lib/services/result.service";
 
 export const dynamic = "force-dynamic";
 
 export default async function FighterRecordsPage() {
   const actor = await requireActor();
+  await requireFighterDashboardReady(actor);
 
   if (actor.role !== "fighter" || !actor.fighterId) {
     return (
