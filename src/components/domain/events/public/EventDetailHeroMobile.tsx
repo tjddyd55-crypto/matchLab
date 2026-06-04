@@ -14,7 +14,7 @@ export function EventDetailHeroMobile({
       <EventPosterImage
         src={event.coverImageUrl}
         alt={`${event.title} 포스터`}
-        className="aspect-[4/5] w-full rounded-xl ring-1 ring-foreground/10"
+        className="w-full rounded-xl ring-1 ring-foreground/10"
         sizes="100vw"
         priority
       />
