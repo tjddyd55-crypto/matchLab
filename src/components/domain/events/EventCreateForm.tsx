@@ -12,8 +12,13 @@ import {
   finalizeEventPosterUploadAction,
   requestEventPosterUploadAction,
 } from "@/features/event-images/actions";
+import { EventPosterOrganizerPreview } from "@/components/domain/events/EventPosterOrganizerPreview";
 import { stashPosterUploadFlashMessage } from "@/components/domain/events/OrganizerEventFlashBanner";
 import { EVENT_POSTER_UPLOAD_HINT } from "@/components/domain/events/public/public-event-layout";
+import {
+  getEventPosterAspectWarning,
+  readImageDimensionsFromFile,
+} from "@/lib/client/event-poster-aspect";
 import { Button } from "@/components/ui/button";
 import { cn } from "@/lib/utils";
 
@@ -52,7 +57,12 @@ function TogglePair({
 export function EventCreateForm({ actorRole }: { actorRole: UserRole }) {
   const router = useRouter();
   const posterInputRef = useRef<HTMLInputElement>(null);
+  const posterPreviewRef = useRef<string | null>(null);
   const [posterFile, setPosterFile] = useState<File | null>(null);
+  const [posterPreviewUrl, setPosterPreviewUrl] = useState<string | null>(null);
+  const [posterAspectWarning, setPosterAspectWarning] = useState<string | null>(
+    null,
+  );
   const [posterError, setPosterError] = useState<string | null>(null);
   const [uploadingPoster, startPosterUpload] = useTransition();
   const [createState, createAction, createPending] = useActionState(
@@ -60,6 +70,14 @@ export function EventCreateForm({ actorRole }: { actorRole: UserRole }) {
     null as CreateOk | null,
   );
   const handledCreateIdRef = useRef<string | null>(null);
+
+  useEffect(() => {
+    return () => {
+      if (posterPreviewRef.current) {
+        URL.revokeObjectURL(posterPreviewRef.current);
+      }
+    };
+  }, []);
 
   useEffect(() => {
     if (createState?.ok !== true || !createState.data.id) return;
@@ -117,16 +135,28 @@ export function EventCreateForm({ actorRole }: { actorRole: UserRole }) {
     });
   }, [createState, posterFile, router]);
 
-  function onPosterPick(e: React.ChangeEvent<HTMLInputElement>) {
+  function revokePosterPreview() {
+    if (posterPreviewRef.current) {
+      URL.revokeObjectURL(posterPreviewRef.current);
+      posterPreviewRef.current = null;
+    }
+    setPosterPreviewUrl(null);
+  }
+
+  async function onPosterPick(e: React.ChangeEvent<HTMLInputElement>) {
     const file = e.target.files?.[0];
     e.target.value = "";
     setPosterError(null);
     if (!file) {
+      revokePosterPreview();
+      setPosterAspectWarning(null);
       setPosterFile(null);
       return;
     }
     if (!ALLOWED_POSTER_MIME.has(file.type)) {
       setPosterError("JPEG, PNG, WebP 이미지만 선택할 수 있습니다.");
+      revokePosterPreview();
+      setPosterAspectWarning(null);
       setPosterFile(null);
       return;
     }
@@ -134,10 +164,31 @@ export function EventCreateForm({ actorRole }: { actorRole: UserRole }) {
       setPosterError(
         `파일 크기는 ${Math.round(EVENT_IMAGE_MAX_BYTES / (1024 * 1024))}MB 이하여야 합니다.`,
       );
+      revokePosterPreview();
+      setPosterAspectWarning(null);
       setPosterFile(null);
       return;
     }
+
+    revokePosterPreview();
+    const url = URL.createObjectURL(file);
+    posterPreviewRef.current = url;
+    setPosterPreviewUrl(url);
     setPosterFile(file);
+
+    try {
+      const { width, height } = await readImageDimensionsFromFile(file);
+      setPosterAspectWarning(getEventPosterAspectWarning(width, height));
+    } catch {
+      setPosterAspectWarning(null);
+    }
+  }
+
+  function clearPosterSelection() {
+    revokePosterPreview();
+    setPosterAspectWarning(null);
+    setPosterFile(null);
+    setPosterError(null);
   }
 
   const busy = createPending || uploadingPoster;
@@ -236,32 +287,38 @@ export function EventCreateForm({ actorRole }: { actorRole: UserRole }) {
             className="hidden"
             onChange={onPosterPick}
           />
-          <div className="flex flex-wrap items-center gap-2">
-            <Button
-              type="button"
-              variant="secondary"
-              size="sm"
-              disabled={busy}
-              onClick={() => posterInputRef.current?.click()}
-            >
-              {posterFile ? "다른 파일 선택" : "포스터 선택"}
-            </Button>
-            {posterFile ? (
-              <span className="text-muted-foreground text-xs">
-                {posterFile.name} ({Math.round(posterFile.size / 1024)} KB)
-              </span>
-            ) : null}
-            {posterFile ? (
+          <div className="flex flex-wrap items-start gap-4">
+            <EventPosterOrganizerPreview
+              src={posterPreviewUrl}
+              aspectWarning={posterAspectWarning}
+            />
+            <div className="flex min-w-[140px] flex-col gap-2">
               <Button
                 type="button"
-                variant="ghost"
+                variant="secondary"
                 size="sm"
                 disabled={busy}
-                onClick={() => setPosterFile(null)}
+                onClick={() => posterInputRef.current?.click()}
               >
-                선택 취소
+                {posterFile ? "다른 파일 선택" : "포스터 선택"}
               </Button>
-            ) : null}
+              {posterFile ? (
+                <span className="text-muted-foreground text-xs">
+                  {posterFile.name} ({Math.round(posterFile.size / 1024)} KB)
+                </span>
+              ) : null}
+              {posterFile ? (
+                <Button
+                  type="button"
+                  variant="ghost"
+                  size="sm"
+                  disabled={busy}
+                  onClick={clearPosterSelection}
+                >
+                  선택 취소
+                </Button>
+              ) : null}
+            </div>
           </div>
         </div>
 
