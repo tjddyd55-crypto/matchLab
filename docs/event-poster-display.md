@@ -29,7 +29,7 @@
 - 4:5가 아니면 경고 문구 표시 (업로드는 차단하지 않음)
 - 미리보기 영역은 공개 카드와 동일한 4:5 + `object-contain`
 - 공개: `EventPosterImage` — variant별 wrapper 크기 + 4:5 + contain
-  - `card`: 중앙 정렬, `w-[82%] max-w-[300px]` (카드 폭 전체를 포스터가 채우지 않음)
+  - `card`: inner padding 기준 `w-full` + `aspect-[4/5]` (포스터·본문 좌측 라인 정렬)
   - `detail`: `max-w-[420px]`
   - `uploadPreview`: 업로드 폼용 `w-32`
 

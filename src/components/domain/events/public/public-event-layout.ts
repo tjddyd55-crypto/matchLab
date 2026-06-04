@@ -1,10 +1,14 @@
 /**
  * 공개 페이지(메인·목록·상세) 공통 컨테이너·포스터·그리드
  * - Hero·Header·대회 공고·/events·상세가 동일한 좌측 시작점
- * - PC 목록: max 1180px · 3열 · gap-6
+ * - PC 목록: max 1120px · 3열 · gap-6 · 카드 열 폭 약 320~350px
  */
 export const PUBLIC_CONTENT_CONTAINER_CLASS =
-  "mx-auto w-full max-w-[1180px] px-4 sm:px-6 lg:px-8";
+  "mx-auto w-full max-w-[1120px] px-4 sm:px-6 lg:px-8";
+
+/** 공개 대회 카드 — 포스터·본문 동일 좌측 기준 */
+export const PUBLIC_EVENT_CARD_POSTER_PADDING_CLASS = "px-5 pt-5";
+export const PUBLIC_EVENT_CARD_BODY_PADDING_CLASS = "px-5 pb-5 pt-4";
 
 /** @deprecated PUBLIC_CONTENT_CONTAINER_CLASS 사용 */
 export const PUBLIC_EVENTS_CONTAINER_CLASS = PUBLIC_CONTENT_CONTAINER_CLASS;
