@@ -270,7 +270,7 @@ export const applicationRepository = {
         status: true,
         paymentStatus: true,
         memo: true,
-        event: { select: { organizerId: true } },
+        event: { select: { organizerId: true, title: true } },
       },
     });
   },

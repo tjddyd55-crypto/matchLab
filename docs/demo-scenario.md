@@ -50,6 +50,19 @@ MVP 범위는 `docs/mvp-scope.md`를 기준으로 하며, 본 문서는 **시연
 
 > schema 변경(`CheckInStatus` / `WeighInStatus` 등) 반영 후 **`npm run db:push`** 필요. **`db:seed`는 실행하지 않음.**
 
+### 1.5 주최자 크레딧 · 승인 차감
+
+1. **admin** — `/admin/credits` → 데모 주최자 선택 → **10,000C** 수동 충전 → ledger `manual_charge` 확인.
+2. **organizer** — `/organizer/credits` → 잔액 10,000C·원화 환산·승인 가능 인원 안내 확인.
+3. **organizer** — (선택) 충전 상품 → 결제 주문 생성 → 시연 환경에서 「결제 성공 처리」(`ALLOW_DEV_CREDIT_PAYMENT_CONFIRM` 또는 admin).
+4. **organizer** — `/organizer/events/{eventId}/applications` → 승인 대기 1명 **승인** → 잔액 **100C** 차감.
+5. **organizer** — 동일 신청 재승인 시도 없음(이미 approved) · 다른 pending 1명 추가 승인 시 누적 차감.
+6. **organizer** — 승인된 신청 **반려** → **100C** 환불 (`refund_participant`).
+7. **organizer** — 잔액 0 또는 100C 미만 상태에서 승인 → 「크레딧이 부족…」 실패.
+8. **gym / fighter / spectator** — 크레딧 잔액·ledger **미노출** 확인.
+
+> 크레딧 schema 반영 후 **`npm run db:push`** 필요. **`db:seed` 금지.**
+
 ## 2. 역할별 로그인 계정 (미팅 권장: `@demo.local`)
 
 **권장:** `npm run setup:demo-users` 로 Supabase Auth와 DB `User`·프로필을 한 번에 맞춘다(`docs/dev-start.md` 참고). 비밀번호 기본값은 **`1234`** 이며, 환경 변수 **`DEMO_PASSWORD`** 로 덮어쓸 수 있다.

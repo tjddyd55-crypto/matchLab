@@ -25,6 +25,7 @@ import { fighterRepository } from "@/lib/repositories/fighter.repository";
 import { gymEventFeeRepository } from "@/lib/repositories/gym-event-fee.repository";
 import { registrationRepository } from "@/lib/repositories/registration.repository";
 import { notificationService } from "@/lib/services/notification.service";
+import { creditService } from "@/lib/services/credit.service";
 import type { ApplyToEventInput } from "@/lib/validators/application.validator";
 
 /** 신청 동의 스냅샷 버전 — 문구·정책 변경 시 함께 올릴 것. */
@@ -642,7 +643,19 @@ export const applicationService = {
       );
     }
 
+    const organizerId = ctx.event.organizerId;
+
     await prisma.$transaction(async (tx) => {
+      await creditService.debitParticipantFee(
+        {
+          organizerId,
+          eventId: ctx.eventId,
+          eventApplicationId: applicationId,
+          actor,
+        },
+        tx,
+      );
+
       await applicationRepository.updateApplicationStatus(
         applicationId,
         ApplicationStatus.approved,
@@ -691,14 +704,31 @@ export const applicationService = {
     }
     await requireOrganizerForEvent(actor, ctx.eventId);
 
-    if (ctx.status !== ApplicationStatus.pending) {
+    if (
+      ctx.status !== ApplicationStatus.pending &&
+      ctx.status !== ApplicationStatus.approved
+    ) {
       throw new AppError(
         "CONFLICT",
-        "대기 중인 신청만 반려할 수 있습니다.",
+        "대기 또는 승인된 신청만 반려할 수 있습니다.",
       );
     }
 
+    const organizerId = ctx.event.organizerId;
+
     await prisma.$transaction(async (tx) => {
+      if (ctx.status === ApplicationStatus.approved) {
+        await creditService.refundParticipantFee(
+          {
+            organizerId,
+            eventId: ctx.eventId,
+            eventApplicationId: applicationId,
+            actor,
+          },
+          tx,
+        );
+      }
+
       await applicationRepository.patchApplication(
         applicationId,
         {

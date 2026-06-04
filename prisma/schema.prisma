@@ -94,6 +94,23 @@ enum PaymentStatus {
   waived
 }
 
+/// 주최자 크레딧 ledger 거래 유형
+enum CreditLedgerType {
+  payment_charge
+  manual_charge
+  debit_participant
+  refund_participant
+  adjustment
+}
+
+enum CreditPaymentStatus {
+  pending
+  paid
+  failed
+  cancelled
+  refunded
+}
+
 enum BracketType {
   single_elimination
   match_list
@@ -312,6 +329,9 @@ model Organizer {
   events Event[]
   divisionTemplates DivisionTemplate[]
   applicationFormTemplates ApplicationFormTemplate[]
+  creditWallet       OrganizerCreditWallet?
+  creditLedgers      OrganizerCreditLedger[]
+  creditPayments     OrganizerCreditPayment[]
 }
 
 model Gym {
@@ -570,6 +590,12 @@ model EventApplication {
   weighInWeightKg            Float?
   applicationBatchId         String?
   applicationDocumentId      String?            @unique
+  /// 참가 승인 시 크레딧 차감 추적
+  creditChargedAt            DateTime?
+  creditChargeLedgerId       String?
+  creditChargeAmount         Int                @default(0)
+  creditRefundedAt           DateTime?
+  creditRefundLedgerId       String?
   createdAt                  DateTime           @default(now())
   updatedAt                  DateTime           @updatedAt
 
@@ -1041,6 +1067,69 @@ model Notification {
   @@index([userId])
   @@index([eventId])
   @@index([readAt])
+}
+
+/// 주최자별 크레딧 지갑 — balance는 ledger 거래로만 변경
+model OrganizerCreditWallet {
+  id          String   @id @default(cuid())
+  organizerId String   @unique
+  balance     Int      @default(0)
+  createdAt   DateTime @default(now())
+  updatedAt   DateTime @updatedAt
+
+  organizer Organizer             @relation(fields: [organizerId], references: [id], onDelete: Cascade)
+  ledgers   OrganizerCreditLedger[]
+}
+
+model OrganizerCreditLedger {
+  id                 String           @id @default(cuid())
+  walletId           String
+  organizerId        String
+  type               CreditLedgerType
+  /// 충전·환불: 양수, 차감: 음수
+  amount             Int
+  balanceAfter       Int
+  reason             String
+  eventId            String?
+  eventApplicationId String?
+  paymentId          String?
+  paymentRef         String?
+  memo               String?
+  createdByUserId    String?
+  createdAt          DateTime         @default(now())
+
+  wallet    OrganizerCreditWallet @relation(fields: [walletId], references: [id], onDelete: Cascade)
+  organizer Organizer             @relation(fields: [organizerId], references: [id], onDelete: Cascade)
+
+  @@index([walletId])
+  @@index([organizerId])
+  @@index([createdAt])
+  @@index([paymentId])
+}
+
+model OrganizerCreditPayment {
+  id          String              @id @default(cuid())
+  organizerId String
+  userId      String?
+  provider    String              @default("toss")
+  orderId     String              @unique
+  paymentKey  String?
+  amountKrw   Int
+  credits     Int
+  status      CreditPaymentStatus @default(pending)
+  approvedAt  DateTime?
+  failedAt    DateTime?
+  cancelledAt DateTime?
+  refundedAt  DateTime?
+  ledgerId    String?             @unique
+  memo        String?
+  createdAt   DateTime            @default(now())
+  updatedAt   DateTime            @updatedAt
+
+  organizer Organizer @relation(fields: [organizerId], references: [id], onDelete: Cascade)
+
+  @@index([organizerId])
+  @@index([status])
 }
 
 model AuditLog {

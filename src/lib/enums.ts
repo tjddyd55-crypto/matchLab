@@ -13,6 +13,8 @@ export {
   BracketStatus,
   BracketType,
   CheckInStatus,
+  CreditLedgerType,
+  CreditPaymentStatus,
   ConsentStatus,
   DuplicateCheckStatus,
   EventApplicationBatchStatus,

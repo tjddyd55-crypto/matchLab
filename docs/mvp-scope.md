@@ -53,6 +53,16 @@
 - [x] 주최자: 신청자별 **입금 상태 수동 반영**(`payment.service` + `EventApplication.paymentStatus` 동기화).
 - [x] 주최자: 신청 **승인/반려**(MVP: 대기만 반려), 디비전·체육관 등 **클라이언트 필터**(추후 서버 검색 확장 가능).
 
+### 주최자 크레딧 (참가 승인 과금)
+
+- [x] `OrganizerCreditWallet` / `OrganizerCreditLedger` / `OrganizerCreditPayment` — 잔액은 ledger 거래로만 변경.
+- [x] 주최자: `/organizer/credits` — 잔액·충전 상품·결제 주문·ledger (체육관/선수/공개 미노출).
+- [x] 관리자: `/admin/credits` — 주최자 **수동 충전** (`manual_charge`).
+- [x] `EventApplication` **approved** 시 선수 1명당 **100C** 차감 (기본, `credit-policy.ts`).
+- [x] 승인 취소(approved→rejected) 시 차감분 **환불** (`refund_participant`), 중복 차감·환불 방지.
+- [x] 잔액 부족 시 승인 실패.
+- [ ] **PG 연동 TODO** — Toss Payments 결제창·승인 API·성공/취소 webhook·영수증 (MVP: 주문 생성 + 시연용 결제 확인).
+
 - [x] 체육관: 행사별 **선수 참가비 안내** 저장(`GymEventFeeSetting`, 공개 행사 DTO에는 계좌번호 미포함 유지).
 
 ### 대진표

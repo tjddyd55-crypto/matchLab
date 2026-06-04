@@ -21,6 +21,8 @@ Prisma `enum` 또는 코드 상수와 동기화되는 문자열 제한 컬럼으
 - `CheckInStatus`: `pending`, `checked_in`, `no_show`, `withdrawn`, `disqualified` — **신청 승인과 별개**, 대회 당일 현장 확인
 - `WeighInStatus`: `pending`, `pass`, `fail`, `manual_pass`, `manual_fail` — 계체 결과(현장 확인과 별개)
 - `PaymentStatus`: `unpaid`, `pending_check`, `paid`, `refunded`, `waived`
+- `CreditLedgerType`: `payment_charge`, `manual_charge`, `debit_participant`, `refund_participant`, `adjustment`
+- `CreditPaymentStatus`: `pending`, `paid`, `failed`, `cancelled`, `refunded`
 - `BracketType`: `single_elimination`, `match_list`
 - `BracketStatus`, `BracketMatchStatus`, `MatchResultType`, `MatchResultRecordStatus` 등
 - `InviteLinkType`, `ConsentStatus`, `LivePlatform`, `StreamType`, `LiveStreamStatus`
@@ -273,11 +275,34 @@ MVP: `watchUrl`, `embedUrl`, 플랫폼 enum. **스트림 키 필드 없음.**
 - `MatchResult(matchId, fighterId)` UNIQUE — 동일 매치·동일 선수 중복 방지
 - `EventApplication(eventId, fighterId, divisionId)` 비즈니스 규칙에 따라 UNIQUE 또는 부분 유니크
 
+## 5.1 주최자 크레딧 (OrganizerCredit*)
+
+| 모델 | 설명 |
+|------|------|
+| `OrganizerCreditWallet` | `organizerId` 1:1, `balance` — **ledger 없이 직접 수정 금지** |
+| `OrganizerCreditLedger` | 모든 잔액 변동 원천. `amount` 충전·환불 양수, 차감 음수, `balanceAfter` 필수 |
+| `OrganizerCreditPayment` | PG 결제 주문. `orderId` UNIQUE, `paid` 시 `ledgerId` 연결 |
+
+`EventApplication` 차감 추적:
+
+- `creditChargedAt` / `creditChargeLedgerId` / `creditChargeAmount` — **approved 시 1회 차감**
+- `creditRefundedAt` / `creditRefundLedgerId` — 승인 취소·반려 시 환불 1회
+
+중복 방지:
+
+- 동일 신청: `creditChargedAt` 또는 `debit_participant` ledger 존재 시 재차감 스킵
+- 동일 신청: `creditRefundedAt` 또는 `refund_participant` ledger 존재 시 재환불 스킵
+- 동일 결제: `OrganizerCreditPayment.status === paid` 시 재충전 스킵
+
+단위: `src/lib/credits/credit-policy.ts` — 1C = 10원, 기본 승인 100C/명.
+
 ## 6. 트랜잭션 경계 (중요 유스케이스)
 
 - **결과 확정 (MVP 구현)**: 단일 트랜잭션에서 `BracketMatch` 운영 종료(`finished`) 및 결과 필드 확정, **`MatchResult` 2행(`confirmed`, 스냅샷은 서버 조립 — 클라이언트 문자열 불신)**, **`Fighter` 전적 캐시 재계산**(집계는 `confirmed`+`corrected`, **`no_contest`는 승·패·무 캐시에 미반영 MVP**), 단판(`single_elimination`)이면 **승자 다음 슬롯 배치** + `BracketChangeLog`. 인앱 **`Notification`** 생성은 동일 트랜잭션에서 처리한다(MVP 정합성 우선).
 - **결과 수정·무효 (MVP 구현)**: 조용한 덮어쓰기 금지 — **`MatchResultChangeLog` 필수**. 정정은 행을 `corrected`로 갱신하고, 무효는 `voided` 처리 후 (MVP) **`BracketMatch` 결과 필드 초기화** 및 캐시 재계산.
 - **대진표 저장**: Match 변경 + `BracketChangeLog` 삽입.
+- **참가 승인 + 크레딧 차감**: 단일 트랜잭션에서 `debit_participant` ledger + wallet 갱신 + `EventApplication.status=approved` + (선택) 알림.
+- **결제 충전**: `paid` 처리와 `payment_charge` ledger + wallet 갱신을 동일 트랜잭션.
 
 ## 7. Seed 전략
 

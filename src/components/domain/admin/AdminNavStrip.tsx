@@ -6,6 +6,7 @@ const LINKS = [
   { href: "/admin", label: "대시보드" },
   { href: "/admin/events", label: "대회" },
   { href: "/admin/organizers", label: "주최자" },
+  { href: "/admin/credits", label: "크레딧" },
   { href: "/admin/gyms", label: "체육관" },
   { href: "/admin/fighters", label: "선수" },
   { href: "/admin/applications", label: "신청" },

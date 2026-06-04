@@ -108,6 +108,13 @@ GitHub → Railway 배포가 성공해도 **Postgres는 빈 DB**입니다. `publ
 
 `setup:demo-users` 실행 시 데모 체육관 `FighterGymHistory(active)` → `Fighter.currentGymId` 동기화와 `sample-open-2026` 신청 마감(연말)·`open` 보정도 수행한다.
 
+### 주최자 크레딧 (`credit-policy.ts`)
+
+- **1크레딧 = 10원** (`CREDIT_UNIT_KRW`). 기본 참가 승인 차감: **100C/명** (= 1,000원).
+- 충전 상품 예: 100,000원 → 10,000C (`/organizer/credits`).
+- **PG 연동 TODO**: Toss Payments 결제창·승인·webhook — MVP는 `OrganizerCreditPayment` 주문 + 시연용 결제 확인(`ALLOW_DEV_CREDIT_PAYMENT_CONFIRM=true` 비프로덕션, 또는 admin).
+- schema 추가 후 **`npm run db:push`** 필요. **`db:seed` 금지.**
+
 ### 체육관·선수 소속 복구 (`npm run repair:demo-gym`)
 
 **`db:seed` 없이** 체육관 화면에 선수가 안 보이거나 신청이 막힐 때(이력은 있는데 `currentGymId` 불일치 등) 실행한다.
