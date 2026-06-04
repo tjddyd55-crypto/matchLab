@@ -24,21 +24,23 @@ export function PublicEventCardMobile({
         className,
       )}
     >
-      <Link href={href} className="relative block">
+      <Link href={href} className="block">
         <EventPosterImage
+          variant="card"
           src={event.coverImageUrl}
           alt={`${event.title} 포스터`}
-          className="w-full"
-          sizes="100vw"
+          sizes="(max-width:768px) 300px, 300px"
           priority={priorityImage}
+          overlay={
+            <div className="flex flex-wrap gap-1.5 p-3">
+              <EventStatusBadges
+                eventStatus={event.status}
+                registrationStatus={event.registrationStatus}
+                emphasizeRegistration={event.registrationStatus === "open"}
+              />
+            </div>
+          }
         />
-        <div className="absolute inset-x-0 top-0 flex flex-wrap gap-1.5 p-3">
-          <EventStatusBadges
-            eventStatus={event.status}
-            registrationStatus={event.registrationStatus}
-            emphasizeRegistration={event.registrationStatus === "open"}
-          />
-        </div>
       </Link>
 
       <div className="flex flex-col gap-3 p-4">
