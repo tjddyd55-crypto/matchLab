@@ -124,8 +124,15 @@ GitHub → Railway 배포가 성공해도 **Postgres는 빈 DB**입니다. `publ
 - **앱 DB**: `User.loginId` 전역 unique, 4~20자, 영문 소문자·숫자·`_`·`-` (`src/lib/validators/login-id.validator.ts`).
 - **비밀번호**: 8자 이상, 공백 금지 (`src/lib/validators/password.validator.ts`). 원문 DB 저장 금지.
 - **Supabase Auth**: 신규·선수 계정은 `{loginId}@internal.matchlab.local` synthetic email. **화면·공개 DTO에 노출 금지**.
-- **하위 호환**: 입력이 이메일 형식이면 `User.email` 기준 기존 `@demo.local` 로그인 허용 (`fighter-account.service.resolveAuthEmailForLogin`).
+- **로그인 해석**: `authService.resolveAuthEmailForLogin` — trim → 이메일이면 그대로 → 아니면 `User.loginId` 조회 → 없으면 `{loginId}@demo.local` / `{loginId}@internal.matchlab.local` 이메일 조회(운영 DB에 loginId 미기입 시 하위 호환).
+- **이메일 로그인**: `@demo.local` 등 기존 `User.email` 그대로 허용.
 - `npm run build` 시 Prisma 초기화에 **`DATABASE_URL` 필요**(미설정 시 page data 수집 단계 실패 가능).
+
+**아이디 로그인만 실패할 때 (이메일 로그인은 됨):**
+
+1. Railway 배포 커밋이 `52aab16`(아이디 로그인) 이후인지 확인 후 redeploy.
+2. production DB에서 `User.loginId` 확인 — 비어 있으면 `npm run repair:demo-login-ids` 또는 `npm run setup:demo-users` (**`db:seed` 금지**).
+3. 확인 쿼리 예: `SELECT "email", "loginId", "role" FROM "User" WHERE "loginId" IN ('admin','organizer','gym','fighter','fighterdemo');`
 
 ### SMS 비밀번호 찾기 (TODO)
 

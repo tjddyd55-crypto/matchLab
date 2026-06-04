@@ -32,7 +32,28 @@ export const userRepository = {
   },
 
   async findUserByEmail(email: string) {
-    return prisma.user.findUnique({ where: { email } });
+    return prisma.user.findUnique({
+      where: { email: email.trim().toLowerCase() },
+    });
+  },
+
+  /** 모든 역할 — 로그인 아이디(정규화된 소문자) */
+  async findUserByLoginId(loginId: string) {
+    const id = loginId.trim().toLowerCase();
+    if (!id) return null;
+    return prisma.user.findFirst({
+      where: {
+        loginId: { equals: id, mode: "insensitive" },
+      },
+      select: {
+        id: true,
+        email: true,
+        authUserId: true,
+        role: true,
+        loginId: true,
+        mustChangePassword: true,
+      },
+    });
   },
 
   async findUserByAuthUserId(authUserId: string) {

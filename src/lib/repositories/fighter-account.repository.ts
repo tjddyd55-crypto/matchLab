@@ -4,11 +4,14 @@
 import type { Prisma } from "@/generated/prisma";
 import { UserRole } from "@/generated/prisma";
 import { prisma } from "@/lib/prisma";
+import { userRepository } from "@/lib/repositories/user.repository";
 
 export const fighterAccountRepository = {
   async findUserByLoginId(loginId: string) {
+    const user = await userRepository.findUserByLoginId(loginId);
+    if (!user) return null;
     return prisma.user.findUnique({
-      where: { loginId },
+      where: { id: user.id },
       select: {
         id: true,
         email: true,
