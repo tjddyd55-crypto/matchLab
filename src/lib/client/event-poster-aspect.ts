@@ -1,11 +1,12 @@
+import { EVENT_POSTER_ASPECT_MISMATCH_WARNING } from "@/components/domain/events/public/public-event-layout";
+
 /** 인스타 피드형 4:5 (권장 1080×1350px) */
 export const EVENT_POSTER_TARGET_ASPECT = 4 / 5;
 
 /** 비율 허용 오차 (약 1.5% — 1080×1350 등 미세 픽셀 차이 허용) */
 export const EVENT_POSTER_ASPECT_TOLERANCE = 0.015;
 
-export const EVENT_POSTER_ASPECT_MISMATCH_WARNING =
-  "현재 이미지 비율이 4:5가 아닙니다. 카드에서 여백이 생길 수 있습니다. 1080 x 1350px 포스터를 권장합니다.";
+export { EVENT_POSTER_ASPECT_MISMATCH_WARNING };
 
 export function isEventPosterFourFiveAspect(
   width: number,
