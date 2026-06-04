@@ -1,7 +1,9 @@
 import Link from "next/link";
 import { requireActor } from "@/lib/auth/actor";
 import { fighterService } from "@/lib/services/fighter.service";
+import { publicFighterService } from "@/lib/services/public-fighter.service";
 import { registrationService } from "@/lib/services/registration.service";
+import { GymFighterPublicPolicyNotice } from "@/components/domain/fighters/GymFighterPublicPolicyNotice";
 import { FightersTableDesktop } from "@/components/domain/fighters/FightersTableDesktop";
 import { FightersCardListMobile } from "@/components/domain/fighters/FightersCardListMobile";
 import { GymRegistrationRequestsTable } from "@/components/domain/fighters/GymRegistrationRequestsTable";
@@ -23,10 +25,15 @@ export default async function GymFightersPage({
   const { tab } = await searchParams;
   const showRequests = tab === "requests";
 
-  const [fighters, requests] = await Promise.all([
+  const [fighters, requests, publicSettings] = await Promise.all([
     fighterService.listGymFighters(actor),
     registrationService.listGymRegistrationSubmissions(actor),
+    publicFighterService.listGymFighterPublicSettings(actor),
   ]);
+
+  const publicByFighterId = Object.fromEntries(
+    publicSettings.map((s) => [s.fighterId, s]),
+  );
 
   const tabBase = "/gym/fighters";
   return (
@@ -98,8 +105,15 @@ export default async function GymFightersPage({
         />
       ) : (
         <>
-          <FightersTableDesktop fighters={fighters} />
-          <FightersCardListMobile fighters={fighters} />
+          <GymFighterPublicPolicyNotice />
+          <FightersTableDesktop
+            fighters={fighters}
+            publicByFighterId={publicByFighterId}
+          />
+          <FightersCardListMobile
+            fighters={fighters}
+            publicByFighterId={publicByFighterId}
+          />
         </>
       )}
     </div>

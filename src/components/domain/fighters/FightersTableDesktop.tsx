@@ -1,6 +1,8 @@
 import { format } from "date-fns";
 import { ko } from "date-fns/locale";
 import type { GymFighterListRow } from "@/lib/repositories/fighter.repository";
+import type { GymFighterPublicSettingsRow } from "@/lib/services/public-fighter.service";
+import { GymFighterPublicToggle } from "@/components/domain/fighters/GymFighterPublicToggle";
 import { FighterStatus } from "@/lib/enums";
 import {
   Table,
@@ -20,8 +22,10 @@ const FIGHTER_STATUS_LABEL: Record<FighterStatus, string> = {
 
 export function FightersTableDesktop({
   fighters,
+  publicByFighterId = {},
 }: {
   fighters: GymFighterListRow[];
+  publicByFighterId?: Record<string, GymFighterPublicSettingsRow>;
 }) {
   return (
     <div className="hidden overflow-x-auto rounded-lg border md:block">
@@ -34,6 +38,7 @@ export function FightersTableDesktop({
             <TableHead className="text-right">체중(kg)</TableHead>
             <TableHead className="text-center">전적</TableHead>
             <TableHead>상태</TableHead>
+            <TableHead>주최자 공개</TableHead>
             <TableHead>등록일</TableHead>
           </TableRow>
         </TableHeader>
@@ -64,6 +69,14 @@ export function FightersTableDesktop({
                 {f.recordWin}승 {f.recordLoss}패 {f.recordDraw}무
               </TableCell>
               <TableCell>{FIGHTER_STATUS_LABEL[f.status]}</TableCell>
+              <TableCell>
+                <GymFighterPublicToggle
+                  fighterId={f.id}
+                  initialPublic={
+                    publicByFighterId[f.id]?.isPublicToOrganizers ?? false
+                  }
+                />
+              </TableCell>
               <TableCell className="text-muted-foreground text-xs whitespace-nowrap">
                 {format(f.createdAt, "yyyy.MM.dd", { locale: ko })}
               </TableCell>

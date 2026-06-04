@@ -108,6 +108,12 @@ GitHub → Railway 배포가 성공해도 **Postgres는 빈 DB**입니다. `publ
 
 `setup:demo-users` 실행 시 데모 체육관 `FighterGymHistory(active)` → `Fighter.currentGymId` 동기화와 `sample-open-2026` 신청 마감(연말)·`open` 보정도 수행한다.
 
+### 주최자 공개 선수
+
+- `/organizer/public-fighters` — **organizer/admin 로그인 전용**. public API·공개 페이지 DTO에 포함 금지.
+- 공개 필드: `FighterGymHistory.isPublicToOrganizers` (체육관 소속 단위).
+- schema 반영 후 **`npm run db:push`**. **`db:seed` 금지.**
+
 ### 주최자 크레딧 (`credit-policy.ts`)
 
 - **1크레딧 = 10원** (`CREDIT_UNIT_KRW`). 기본 참가 승인 차감: **100C/명** (= 1,000원).

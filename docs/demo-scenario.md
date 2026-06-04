@@ -50,6 +50,13 @@ MVP 범위는 `docs/mvp-scope.md`를 기준으로 하며, 본 문서는 **시연
 
 > schema 변경(`CheckInStatus` / `WeighInStatus` 등) 반영 후 **`npm run db:push`** 필요. **`db:seed`는 실행하지 않음.**
 
+### 1.6 주최자 공개 선수
+
+1. **gym** — `/gym/fighters` → 선수 1명 「주최자에게 공개」 ON
+2. **organizer** — `/organizer/public-fighters` → 해당 선수 표시·필터·상세 모달
+3. **gym** — 공개 OFF → organizer 목록에서 즉시 사라짐(새로고침)
+4. **spectator** — `/events` 등 비로그인 화면에 선수 DB 미노출
+
 ### 1.5 주최자 크레딧 · 승인 차감
 
 1. **admin** — `/admin/credits` → 데모 주최자 선택 → **10,000C** 수동 충전 → ledger `manual_charge` 확인.

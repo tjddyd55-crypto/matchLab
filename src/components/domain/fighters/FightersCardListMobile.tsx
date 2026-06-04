@@ -1,6 +1,8 @@
 import { format } from "date-fns";
 import { ko } from "date-fns/locale";
 import type { GymFighterListRow } from "@/lib/repositories/fighter.repository";
+import type { GymFighterPublicSettingsRow } from "@/lib/services/public-fighter.service";
+import { GymFighterPublicToggle } from "@/components/domain/fighters/GymFighterPublicToggle";
 import { FighterStatus } from "@/lib/enums";
 
 const FIGHTER_STATUS_LABEL: Record<FighterStatus, string> = {
@@ -12,8 +14,10 @@ const FIGHTER_STATUS_LABEL: Record<FighterStatus, string> = {
 
 export function FightersCardListMobile({
   fighters,
+  publicByFighterId = {},
 }: {
   fighters: GymFighterListRow[];
+  publicByFighterId?: Record<string, GymFighterPublicSettingsRow>;
 }) {
   return (
     <ul className="flex flex-col gap-3 md:hidden">
@@ -51,6 +55,12 @@ export function FightersCardListMobile({
               </p>
             </div>
           </div>
+          <GymFighterPublicToggle
+            fighterId={f.id}
+            initialPublic={
+              publicByFighterId[f.id]?.isPublicToOrganizers ?? false
+            }
+          />
         </li>
       ))}
     </ul>

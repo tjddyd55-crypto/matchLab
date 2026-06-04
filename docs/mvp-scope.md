@@ -53,6 +53,13 @@
 - [x] 주최자: 신청자별 **입금 상태 수동 반영**(`payment.service` + `EventApplication.paymentStatus` 동기화).
 - [x] 주최자: 신청 **승인/반려**(MVP: 대기만 반려), 디비전·체육관 등 **클라이언트 필터**(추후 서버 검색 확장 가능).
 
+### 주최자 전용 공개 선수 목록
+
+- [x] 체육관: 소속 선수별 **주최자에게 공개** 토글 (`FighterGymHistory.isPublicToOrganizers`)
+- [x] 주최자: `/organizer/public-fighters` — 로그인 주최자 전용(공개 라우트·public DTO 금지)
+- [x] 개인정보 최소 노출 — 연령부·체급·전적·체육관·지역만, 생년월일·휴대폰·보호자·서명 미노출
+- [ ] 선수 개인 연락처 공개 — 별도 동의 필드 TODO
+
 ### 주최자 크레딧 (참가 승인 과금)
 
 - [x] `OrganizerCreditWallet` / `OrganizerCreditLedger` / `OrganizerCreditPayment` — 잔액은 ledger 거래로만 변경.

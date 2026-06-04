@@ -411,6 +411,11 @@ model FighterGymHistory {
   startDate DateTime  @default(now())
   endDate   DateTime?
   status    String
+  /// 로그인한 주최자 전용 매칭 후보 목록 공개 (체육관 소속 단위)
+  isPublicToOrganizers Boolean  @default(false)
+  publicEnabledAt      DateTime?
+  publicDisabledAt     DateTime?
+  publicMemo           String?
   createdAt DateTime  @default(now())
 
   fighter Fighter @relation(fields: [fighterId], references: [id], onDelete: Cascade)
@@ -418,6 +423,7 @@ model FighterGymHistory {
 
   @@index([fighterId])
   @@index([gymId])
+  @@index([gymId, isPublicToOrganizers])
 }
 
 model Event {

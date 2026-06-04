@@ -275,7 +275,19 @@ MVP: `watchUrl`, `embedUrl`, 플랫폼 enum. **스트림 키 필드 없음.**
 - `MatchResult(matchId, fighterId)` UNIQUE — 동일 매치·동일 선수 중복 방지
 - `EventApplication(eventId, fighterId, divisionId)` 비즈니스 규칙에 따라 UNIQUE 또는 부분 유니크
 
-## 5.1 주최자 크레딧 (OrganizerCredit*)
+## 5.1 주최자 공개 선수 (FighterGymHistory)
+
+체육관 **소속 단위**로 주최자 매칭 후보 공개 여부를 관리한다(MVP). 추후 `Fighter` 단일 필드 대신 소속 이력 기준이 맞다.
+
+| 필드 | 설명 |
+|------|------|
+| `isPublicToOrganizers` | 로그인 주최자 목록 노출 여부 (기본 `false`) |
+| `publicEnabledAt` / `publicDisabledAt` | 공개 on/off 시각 |
+| `publicMemo` | 체육관 내부 메모(주최자 화면에 선택적 표시) |
+
+조회 조건: `isPublicToOrganizers=true`, active history, `Fighter.status=active`, `Fighter.currentGymId=gymId`, `Gym.status=active`.
+
+## 5.2 주최자 크레딧 (OrganizerCredit*)
 
 | 모델 | 설명 |
 |------|------|
