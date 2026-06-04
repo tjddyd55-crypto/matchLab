@@ -5,6 +5,8 @@ import { AppError } from "@/lib/errors/app-error";
 import { requireOrganizerForEventPage } from "@/lib/permissions";
 import { applicationDocumentService } from "@/lib/services/application-document.service";
 import { OrganizerApplicationDocumentPdfActions } from "@/components/domain/applications/OrganizerApplicationDocumentPdfActions";
+import { ApplicationFormTemplateType } from "@/lib/enums";
+import type { BuiltInFormSnapshot } from "@/lib/built-in-form/built-in-form-types";
 import { buttonVariants } from "@/components/ui/button";
 import { cn } from "@/lib/utils";
 
@@ -53,6 +55,26 @@ export default async function OrganizerApplicationDocumentPage({
       ? (snapshot.previewValues as Record<string, string>)
       : null;
 
+  const isBuiltIn =
+    doc.template.templateType === ApplicationFormTemplateType.built_in_form;
+  const builtInSnapshot =
+    snapshot && typeof snapshot === "object" && snapshot.mode === "built_in_form"
+      ? (snapshot as BuiltInFormSnapshot)
+      : null;
+
+  const displayEntries =
+    builtInSnapshot != null
+      ? Object.entries(builtInSnapshot.values).map(([id, value]) => ({
+          key: id,
+          label: builtInSnapshot.fieldLabels[id] ?? id,
+          value,
+        }))
+      : Object.entries(snapshotPreview ?? preview).map(([key, value]) => ({
+          key,
+          label: key,
+          value,
+        }));
+
   return (
     <div className="mx-auto flex w-full max-w-3xl flex-col gap-8 px-4 py-8 md:px-6">
       <div>
@@ -69,8 +91,9 @@ export default async function OrganizerApplicationDocumentPage({
           {doc.fighter.name} · {doc.gym.name} · {doc.status}
         </p>
         <p className="text-muted-foreground mt-2 text-xs leading-relaxed">
-          주최측 공식 PDF 신청서 기준으로 작성된 선수별 완료 문서입니다. PDF
-          생성이 완료된 경우 파일로 열 수 있습니다.
+          {isBuiltIn
+            ? "이 신청서는 자체 웹 신청폼으로 제출되었습니다. 공식 PDF 원본은 없습니다."
+            : "주최측 공식 PDF 신청서 기준으로 작성된 선수별 완료 문서입니다. PDF 생성이 완료된 경우 파일로 열 수 있습니다."}
         </p>
       </div>
 
@@ -84,19 +107,23 @@ export default async function OrganizerApplicationDocumentPage({
         </Link>
       </div>
 
-      <OrganizerApplicationDocumentPdfActions
-        eventId={eventId}
-        documentId={documentId}
-        hasGeneratedPdf={Boolean(doc.generatedPdfPath)}
-        originalPdfFileName={doc.template.originalPdfFileName}
-      />
+      {!isBuiltIn ? (
+        <OrganizerApplicationDocumentPdfActions
+          eventId={eventId}
+          documentId={documentId}
+          hasGeneratedPdf={Boolean(doc.generatedPdfPath)}
+          originalPdfFileName={doc.template.originalPdfFileName}
+        />
+      ) : null}
 
       <section className="rounded-lg border p-4">
-        <h2 className="mb-3 text-sm font-semibold">snapshot 미리보기</h2>
+        <h2 className="mb-3 text-sm font-semibold">
+          {isBuiltIn ? "제출된 웹폼 값" : "snapshot 미리보기"}
+        </h2>
         <dl className="grid gap-2 text-sm sm:grid-cols-2">
-          {Object.entries(snapshotPreview ?? preview).map(([key, value]) => (
+          {displayEntries.map(({ key, label, value }) => (
             <div key={key}>
-              <dt className="text-muted-foreground font-mono text-xs">{key}</dt>
+              <dt className="text-muted-foreground text-xs">{label}</dt>
               <dd>{value || "—"}</dd>
             </div>
           ))}

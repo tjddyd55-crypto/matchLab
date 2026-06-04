@@ -49,10 +49,21 @@ export async function createApplicationDocumentAction(
 
   return mapCaught(async () => {
     const actor = await requireActorFromMutation();
+    const manualRaw = formReq(formData, "manualValuesJson");
+    let manualValues: Record<string, unknown> | undefined;
+    if (manualRaw) {
+      try {
+        manualValues = JSON.parse(manualRaw) as Record<string, unknown>;
+      } catch {
+        return actionFailure("VALIDATION_ERROR", "입력값 JSON을 확인해 주세요.");
+      }
+    }
+
     const parsed = createApplicationDocumentSchema.safeParse({
       batchId: formReq(formData, "batchId"),
       fighterId: formReq(formData, "fighterId"),
       divisionId: formReq(formData, "divisionId"),
+      manualValues,
     });
     if (!parsed.success) {
       return actionFailure(

@@ -51,7 +51,7 @@ export const applicationDocumentRepository = {
       fighterId: string;
       batchId: string;
       templateId: string;
-      originalTemplatePdfPath: string;
+      originalTemplatePdfPath?: string | null;
       formValuesJson?: Prisma.InputJsonValue;
       status?: ApplicationDocumentStatus;
     },
@@ -64,7 +64,7 @@ export const applicationDocumentRepository = {
         fighterId: data.fighterId,
         batchId: data.batchId,
         templateId: data.templateId,
-        originalTemplatePdfPath: data.originalTemplatePdfPath,
+        originalTemplatePdfPath: data.originalTemplatePdfPath ?? null,
         formValuesJson: data.formValuesJson ?? {},
         status: data.status ?? "draft",
       },

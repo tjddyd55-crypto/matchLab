@@ -31,6 +31,9 @@ export type FormRenderContext = {
     gender: string;
     weight: number | null;
     recordSummary: string;
+    phone?: string | null;
+    guardianName?: string | null;
+    guardianPhone?: string | null;
   };
   application: {
     division: string;

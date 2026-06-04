@@ -2,12 +2,14 @@ import "server-only";
 
 import type { ActorContext } from "@/lib/auth/actor-context";
 import { AppError } from "@/lib/errors/app-error";
-import { EventStatus } from "@/lib/enums";
+import { ApplicationFormMode, ApplicationFormTemplateType, EventStatus } from "@/lib/enums";
 import { prisma } from "@/lib/prisma";
 import { requireGymOwner, requireOrganizerForEvent, requireRole } from "@/lib/permissions";
 import { applicationBatchRepository } from "@/lib/repositories/application-batch.repository";
 import { applicationDocumentRepository } from "@/lib/repositories/application-document.repository";
 import { eventRepository } from "@/lib/repositories/event.repository";
+import { builtInFormRenderService } from "@/lib/built-in-form/built-in-form-render.service";
+import type { BuiltInFormFieldDefinition } from "@/lib/built-in-form/built-in-form-types";
 
 function assertRegistrationWindow(event: {
   registrationStartDate: Date;
@@ -40,12 +42,16 @@ export type GymApplicationWorkspaceVM = {
     registrationStartDate: string;
     registrationEndDate: string;
   };
+  formMode: ApplicationFormMode;
   template: {
     id: string;
     title: string;
-    originalPdfFileName: string;
-    originalPdfPath: string;
+    templateType: ApplicationFormTemplateType;
+    originalPdfFileName: string | null;
+    originalPdfPath: string | null;
     fieldCount: number;
+    fieldsJson: unknown;
+    formFields: BuiltInFormFieldDefinition[];
   } | null;
   batch: {
     id: string;
@@ -73,6 +79,9 @@ export const applicationBatchService = {
       gymId,
     );
 
+    const formMode =
+      event.applicationFormMode ?? ApplicationFormMode.official_pdf;
+
     if (!event.applicationFormTemplate) {
       return {
         event: {
@@ -81,12 +90,19 @@ export const applicationBatchService = {
           registrationStartDate: event.registrationStartDate.toISOString(),
           registrationEndDate: event.registrationEndDate.toISOString(),
         },
+        formMode,
         template: null,
         batch: null,
-        policyNotice: [
-          "이 대회에는 공식 신청서 템플릿이 연결되지 않았습니다.",
-          "주최자에게 문의해 주세요.",
-        ],
+        policyNotice:
+          formMode === ApplicationFormMode.built_in_form
+            ? [
+                "자체 웹 신청폼 템플릿이 연결되지 않았습니다.",
+                "주최자에게 웹 신청폼 설정을 요청해 주세요.",
+              ]
+            : [
+                "이 대회에는 공식 신청서 템플릿이 연결되지 않았습니다.",
+                "주최자에게 문의해 주세요.",
+              ],
       };
     }
 
@@ -101,6 +117,8 @@ export const applicationBatchService = {
 
     const template = event.applicationFormTemplate;
     const fields = Array.isArray(template.fieldsJson) ? template.fieldsJson : [];
+    const isBuiltIn =
+      template.templateType === ApplicationFormTemplateType.built_in_form;
 
     return {
       event: {
@@ -109,12 +127,18 @@ export const applicationBatchService = {
         registrationStartDate: event.registrationStartDate.toISOString(),
         registrationEndDate: event.registrationEndDate.toISOString(),
       },
+      formMode,
       template: {
         id: template.id,
         title: template.title,
+        templateType: template.templateType,
         originalPdfFileName: template.originalPdfFileName,
         originalPdfPath: template.originalPdfPath,
         fieldCount: fields.length,
+        fieldsJson: template.fieldsJson,
+        formFields: isBuiltIn
+          ? builtInFormRenderService.parseFieldsJson(template.fieldsJson)
+          : [],
       },
       batch: batch
         ? {
@@ -123,13 +147,19 @@ export const applicationBatchService = {
             documentCount: batch.documents.length,
           }
         : null,
-      policyNotice: [
-        "이 신청서는 주최측이 제공한 공식 PDF 신청서를 기준으로 작성됩니다.",
-        "작성 완료 후 선수별 신청서 파일이 생성됩니다.",
-        "완료된 신청서는 체육관을 통해 주최측에 제출됩니다.",
-        "미성년자 또는 학생 선수는 보호자 동의가 필요합니다.",
-        "선수 등록 단계의 동의/서명과 별개로, 대회 신청 시 공식 신청서에 서명합니다.",
-      ],
+      policyNotice: isBuiltIn
+        ? [
+            "자체 웹 신청폼으로 신청합니다. 공식 PDF 원본은 없습니다.",
+            "선수·보호자 서명/동의는 대회 신청 단계에서만 받습니다.",
+            "제출 후 주최자 화면에서 목록·인쇄로 확인할 수 있습니다.",
+          ]
+        : [
+            "이 신청서는 주최측이 제공한 공식 PDF 신청서를 기준으로 작성됩니다.",
+            "작성 완료 후 선수별 신청서 파일이 생성됩니다.",
+            "완료된 신청서는 체육관을 통해 주최측에 제출됩니다.",
+            "미성년자 또는 학생 선수는 보호자 동의가 필요합니다.",
+            "선수 등록 단계의 동의/서명과 별개로, 대회 신청 시 공식 신청서에 서명합니다.",
+          ],
     };
   },
 

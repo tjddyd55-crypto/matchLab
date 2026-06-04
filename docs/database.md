@@ -17,7 +17,8 @@ Prisma `enum` 또는 코드 상수와 동기화되는 문자열 제한 컬럼으
 - `UserRole`: `admin`, `organizer`, `gym`, `fighter`
 - `GymStatus`, `FighterStatus`, `OrganizerType`, `OrganizerStatus` 등 도메인별 상태
 - `EventStatus`: `draft`, `open`, `closed`, `bracket_ready`, `ongoing`, `finished`, `cancelled`
-- `ApplicationStatus`: `pending`, `approved`, `rejected`, `cancelled`
+- `ApplicationFormMode`: `official_pdf`, `built_in_form` — `Event.applicationFormMode`
+- `ApplicationFormTemplateType`: `official_pdf`, `built_in_form` — `ApplicationFormTemplate.templateType`
 - `CheckInStatus`: `pending`, `checked_in`, `no_show`, `withdrawn`, `disqualified` — **신청 승인과 별개**, 대회 당일 현장 확인
 - `WeighInStatus`: `pending`, `pass`, `fail`, `manual_pass`, `manual_fail` — 계체 결과(현장 확인과 별개)
 - `PaymentStatus`: `unpaid`, `pending_check`, `paid`, `refunded`, `waived`
@@ -127,25 +128,29 @@ MVP: 계좌 안내 + 수동 입금 확인. **`EventApplicationPayment` 가 입�
 
 ### ApplicationFormTemplate
 
-- 주최측 **공식 신청서 PDF 원본** + 좌표 JSON(`fieldsJson`, `repeatGroupsJson`).
-- `originalPdfPath` / `originalPdfFileName`: 원본 PDF **private Storage** 경로·표시용 파일명 (`SUPABASE_APPLICATION_FORM_BUCKET`, 기본 `application-forms`). **공개 URL·DB signed URL 저장 금지.**
-- `source` 매핑 예: `fighter.name`, `event.title`, `application.division`, `athlete.signatureImage`, `manual.*`.
-- `fieldsJson` 좌표: **페이지 좌상단(top-left) pt** — 렌더 시 pdf-lib bottom-left로 변환(`docs/dev-start.md` 참고).
-- 관리자/운영팀만 좌표 세팅 — 주최자는 선택·다운로드만.
+- `templateType`: `official_pdf` | `built_in_form`
+- **official_pdf**: 주최측 PDF 원본 + 좌표 JSON(`fieldsJson`, `repeatGroupsJson`). `originalPdfPath` / `originalPdfFileName` 필수.
+- **built_in_form**: 웹 폼 `fieldsJson` (text/textarea/signature/consentText 등). PDF 경로 null.
+- `source` 매핑 예: `fighter.name`, `application.division`, `manual`, `athlete.signatureImage`.
+- 관리자: PDF 좌표 세팅. 주최자: 대회별 방식 선택·built_in_form 항목 구성.
+
+### Event.applicationFormMode
+
+- `official_pdf` (기본): 공식 PDF 템플릿 연결 필수
+- `built_in_form`: 자체 웹 신청폼 — snapshot HTML 인쇄, `generatedPdfPath` 없음
+
+### ApplicationDocument
+
+- 선수 1명당 신청서 작성 문서 (PDF·웹폼 공통).
+- `formValuesJson`: 자동 매핑·수동 입력값. built_in_form 은 `mode: built_in_form` 포함.
+- `documentSnapshotJson`: **제출/완료 시점 고정 스냅샷**. built_in_form 은 `{ mode, values, fieldLabels, signatures }`.
+- `generatedPdfPath`: **official_pdf 전용** overlay PDF. built_in_form 은 null.
+- **공개 DTO·공개 페이지에 제출 개인정보·서명 경로 미포함.**
 
 ### EventApplicationBatch
 
 - 체육관이 한 대회에 **일괄 제출**하는 신청 묶음.
 - `documentNo`, `status`(draft → submitted → …), `totalFighterCount`, 입금 예정 금액 캐시.
-
-### ApplicationDocument
-
-- 선수 1명당 공식 신청서 작성 문서.
-- `formValuesJson`: 자동 매핑·수동 입력값.
-- `documentSnapshotJson`: **제출/완료 시점 고정 스냅샷**(선수 정보 변경 후에도 불변).
-- `athleteConsentId` / `guardianConsentId`: 대회 신청 단계 서명·동의 연결.
-- `generatedPdfPath`: 완료 시 **pdf-lib overlay** 결과 PDF (`SUPABASE_APPLICATION_DOCUMENT_BUCKET`, private). 없으면 snapshot + HTML 출력 fallback.
-- `FighterConsent.signatureImagePath` / `GuardianConsent.signatureImagePath`: private Storage 경로 — **공개 DTO·snapshot 미포함**.
 
 **상태 전이 (MVP):**
 

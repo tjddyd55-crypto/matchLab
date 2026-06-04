@@ -68,6 +68,18 @@ enum ApplicationStatus {
   cancelled
 }
 
+/// 대회별 신청 방식 — 공식 PDF vs 자체 웹 신청폼
+enum ApplicationFormMode {
+  official_pdf
+  built_in_form
+}
+
+/// ApplicationFormTemplate 종류
+enum ApplicationFormTemplateType {
+  official_pdf
+  built_in_form
+}
+
 /// 대회 당일 현장 확인(체크인) — 신청 승인과 별개
 enum CheckInStatus {
   pending
@@ -427,6 +439,7 @@ model Event {
   spectatorAccessEndAt     DateTime?
   spectatorAccessToken     String?     @unique
   applicationFormTemplateId String?
+  applicationFormMode       ApplicationFormMode @default(official_pdf)
   createdAt                DateTime    @default(now())
   updatedAt                DateTime    @updatedAt
 
@@ -717,13 +730,14 @@ model GuardianConsent {
 
 /// 주최측 공식 신청서 PDF 템플릿 — 관리자/운영팀이 좌표·source mapping 세팅
 model ApplicationFormTemplate {
-  id                   String   @id @default(cuid())
+  id                   String                    @id @default(cuid())
   organizerId          String?
   title                String
   description          String?
-  originalPdfPath      String
-  originalPdfFileName  String
-  fieldsJson           Json     @default("[]")
+  templateType         ApplicationFormTemplateType @default(official_pdf)
+  originalPdfPath      String?
+  originalPdfFileName  String?
+  fieldsJson           Json                      @default("[]")
   repeatGroupsJson     Json     @default("[]")
   manualFieldsJson     Json?
   consentMappingJson   Json?
@@ -786,7 +800,7 @@ model ApplicationDocument {
   formValuesJson          Json                     @default("{}")
   documentSnapshotJson    Json?
   generatedPdfPath        String?
-  originalTemplatePdfPath String
+  originalTemplatePdfPath String?
   athleteConsentId        String?                  @unique
   guardianConsentId       String?                  @unique
   completedAt             DateTime?

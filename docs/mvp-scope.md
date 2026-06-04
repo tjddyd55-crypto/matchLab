@@ -80,7 +80,9 @@
 - [x] 주최자: `/organizer/events` 목록 — **대회 상태**(`open`→「공개」 등)와 **신청 상태**(기간 기준) 배지 분리.
 - [x] 주최자: 체급표 템플릿 편집 — **넓은 레이아웃**(max-width 확대·표·빠른 입력 영역).
 - [x] 주최자: **관람 공개 시간 창**·토큰·공개 대진표 QR 안내(`NEXT_PUBLIC_APP_URL` 기준 링크).
-- [x] 주최자: **결과 입력 스태프 링크** 발급·폐기(토큰 URL `/staff/result/[token]/matches`, 로그인 없음).
+- [x] **대회 신청 방식 2종** — `ApplicationFormMode`: 공식 PDF(`official_pdf`) · 자체 웹 신청폼(`built_in_form`)
+- [x] 공식 PDF: 기존 `ApplicationFormTemplate` 좌표·overlay·완료 PDF 흐름 유지
+- [x] 자체 웹폼: `fieldsJson` 항목 구성 · `ApplicationDocument.documentSnapshotJson` 저장 · HTML 인쇄 (PDF overlay 없음)
 - [x] 주최자: **현장 확인·계체** (`/organizer/events/[eventId]/check-in`) — 승인 신청자 대상 `CheckInStatus` / `WeighInStatus` 기록, 출전 확정은 서비스 계산.
 - [x] 체육관: **현장 상태 조회** (`/gym/events/[eventId]/field-status`, 읽기 전용).
 - [x] 대진표 후보: 출전 미확정 **경고**·「출전 확정만 보기」필터 — 기존 배치 **자동 삭제 없음**.

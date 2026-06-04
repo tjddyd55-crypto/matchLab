@@ -12,7 +12,7 @@ export function OrganizerApplicationDocumentPdfActions({
   eventId: string;
   documentId: string;
   hasGeneratedPdf: boolean;
-  originalPdfFileName: string;
+  originalPdfFileName: string | null;
 }) {
   return (
     <div className="flex flex-wrap gap-2">
@@ -40,7 +40,7 @@ export function OrganizerApplicationDocumentPdfActions({
         </p>
       )}
       <span className="text-muted-foreground self-center text-xs">
-        원본 템플릿: {originalPdfFileName}
+        원본 템플릿: {originalPdfFileName ?? "—"}
       </span>
     </div>
   );
