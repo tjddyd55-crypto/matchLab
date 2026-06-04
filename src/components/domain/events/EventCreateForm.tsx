@@ -13,6 +13,7 @@ import {
   requestEventPosterUploadAction,
 } from "@/features/event-images/actions";
 import { stashPosterUploadFlashMessage } from "@/components/domain/events/OrganizerEventFlashBanner";
+import { EVENT_POSTER_UPLOAD_HINT } from "@/components/domain/events/public/public-event-layout";
 import { Button } from "@/components/ui/button";
 import { cn } from "@/lib/utils";
 
@@ -226,7 +227,7 @@ export function EventCreateForm({ actorRole }: { actorRole: UserRole }) {
         <div className="md:col-span-2 space-y-2 rounded-lg border bg-muted/20 p-4">
           <p className="text-sm font-medium">포스터 이미지 (선택)</p>
           <p className="text-muted-foreground text-xs leading-relaxed">
-            권장: 세로형 포스터. 대회 생성 직후 자동 업로드됩니다.
+            {EVENT_POSTER_UPLOAD_HINT}. 대회 생성 직후 자동 업로드됩니다.
           </p>
           <input
             ref={posterInputRef}

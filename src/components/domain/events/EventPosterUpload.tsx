@@ -5,7 +5,12 @@ import { useRouter } from "next/navigation";
 import { useRef, useState, useTransition } from "react";
 import { putFileToEventSignedUploadUrl } from "@/lib/client/event-image-storage-upload";
 import { EVENT_IMAGE_MAX_BYTES } from "@/lib/constants/event-image-upload";
+import {
+  EVENT_POSTER_ASPECT_CLASS,
+  EVENT_POSTER_UPLOAD_HINT,
+} from "@/components/domain/events/public/public-event-layout";
 import { Button } from "@/components/ui/button";
+import { cn } from "@/lib/utils";
 import {
   finalizeEventPosterUploadAction,
   requestEventPosterUploadAction,
@@ -94,7 +99,7 @@ export function EventPosterUpload({
       <div>
         <p className="text-sm font-medium">포스터 이미지</p>
         <p className="text-muted-foreground mt-1 text-xs leading-relaxed">
-          권장: 세로형 포스터 이미지 (JPEG, PNG, WebP · 최대{" "}
+          {EVENT_POSTER_UPLOAD_HINT} (JPEG, PNG, WebP · 최대{" "}
           {Math.round(EVENT_IMAGE_MAX_BYTES / (1024 * 1024))}MB)
         </p>
       </div>
@@ -105,18 +110,28 @@ export function EventPosterUpload({
       ) : null}
       <div className="flex flex-wrap items-start gap-4">
         {preview ? (
-          <div className="relative h-48 w-32 shrink-0 overflow-hidden rounded-md ring-1 ring-foreground/10">
+          <div
+            className={cn(
+              "relative w-32 shrink-0 overflow-hidden rounded-md bg-neutral-50 ring-1 ring-foreground/10",
+              EVENT_POSTER_ASPECT_CLASS,
+            )}
+          >
             <Image
               src={preview}
               alt="포스터 미리보기"
               fill
-              className="object-cover"
+              className="object-contain"
               sizes="128px"
               unoptimized
             />
           </div>
         ) : (
-          <div className="flex h-48 w-32 shrink-0 items-center justify-center rounded-md border border-dashed bg-muted/30 text-center text-[11px] text-muted-foreground">
+          <div
+            className={cn(
+              "flex w-32 shrink-0 items-center justify-center rounded-md border border-dashed bg-neutral-50 text-center text-[11px] text-muted-foreground",
+              EVENT_POSTER_ASPECT_CLASS,
+            )}
+          >
             미리보기 없음
           </div>
         )}

@@ -9,8 +9,11 @@ export const PUBLIC_CONTENT_CONTAINER_CLASS =
 /** @deprecated PUBLIC_CONTENT_CONTAINER_CLASS 사용 */
 export const PUBLIC_EVENTS_CONTAINER_CLASS = PUBLIC_CONTENT_CONTAINER_CLASS;
 
-/** A2 세로 포스터 (420mm × 594mm) */
-export const EVENT_POSTER_ASPECT_CLASS = "aspect-[420/594]";
+/** 인스타 피드형 세로 포스터 (4:5, 권장 1080×1350px) */
+export const EVENT_POSTER_ASPECT_CLASS = "aspect-[4/5]";
+
+export const EVENT_POSTER_UPLOAD_HINT =
+  "권장: 1080 x 1350px, 4:5 세로형 포스터";
 
 /** gap-6 = 24px, lg 3열 고정 */
 export const PUBLIC_EVENTS_GRID_DESKTOP_CLASS =
