@@ -77,11 +77,22 @@ Notification
 | fighterCode | 대외 고유번호(표시·조회) |
 | userId | nullable, 선수 계정 연결 |
 | currentGymId | 현재 소속 |
-| recordWin/Loss/Draw | **캐시**, MatchResult 확정 시만 갱신 로직에서 수정 |
+| primarySport | 체육관 등록 참고용 주 종목 |
+| recordWin/Loss/Draw | **캐시**, MatchResult 확정 시만 갱신 — 체육관 UI에서 수동 수정 금지 |
+| schoolName / grade / guardian* | 보호자 동의 정책 판단용(등록 단계 필수 아님) |
+
+프로필 수정 시 **이미 제출된 `ApplicationDocument` snapshot** 은 유지. 이후 신청·조회에는 수정값 사용.
 
 ### FighterGymHistory
 
-소속 이력. 과거 경기는 매치·결과 스냅샷으로 보존.
+소속 이력. `status=active`·`endDate=null` 이 현재 소속. 해제 시 `ended`·`endDate`·주최자 공개 OFF.
+
+| 필드 | 설명 |
+|------|------|
+| gymInternalMemo | 체육관 내부 메모 (`publicMemo`와 별도) |
+| isPublicToOrganizers | 주최자 매칭 목록 (기본 false, 직접 등록 시 자동 ON 안 함) |
+
+`/gym/fighters` 기본 목록: `activeFighterAffiliatedWithGymWhere` (활성 소속·`Fighter.active`).
 
 ### Organizer / Event
 
@@ -283,7 +294,8 @@ MVP: `watchUrl`, `embedUrl`, 플랫폼 enum. **스트림 키 필드 없음.**
 |------|------|
 | `isPublicToOrganizers` | 로그인 주최자 목록 노출 여부 (기본 `false`) |
 | `publicEnabledAt` / `publicDisabledAt` | 공개 on/off 시각 |
-| `publicMemo` | 체육관 내부 메모(주최자 화면에 선택적 표시) |
+| `publicMemo` | 주최자 공개 목록용 메모(선택 표시) |
+| `gymInternalMemo` | 체육관 전용 내부 메모(주최자·공개 목록 미노출) |
 
 조회 조건: `isPublicToOrganizers=true`, active history, `Fighter.status=active`, `Fighter.currentGymId=gymId`, `Gym.status=active`.
 

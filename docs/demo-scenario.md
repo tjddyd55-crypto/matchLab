@@ -50,6 +50,19 @@ MVP 범위는 `docs/mvp-scope.md`를 기준으로 하며, 본 문서는 **시연
 
 > schema 변경(`CheckInStatus` / `WeighInStatus` 등) 반영 후 **`npm run db:push`** 필요. **`db:seed`는 실행하지 않음.**
 
+### 1.7 체육관 선수 DB (직접 등록·요청·수정)
+
+1. **gym** — `/gym/fighters` → 데모 선수 1명 이상 표시 (`setup-demo-users` active 소속).
+2. **gym** — 「선수 직접 등록」→ 새 선수 저장 → 목록 즉시 표시.
+3. **gym** — 등록 선수 「수정」→ 체중·메모 변경 저장.
+4. **gym** — `/gym/invite-links` → 링크 생성·복사 (`NEXT_PUBLIC_APP_URL` 도메인 확인).
+5. **비로그인** — `/fighter-registration/{token}` 제출 → **gym** `/gym/fighters?tab=requests` 승인.
+6. **gym** — `/gym/events/{eventId}/apply` → 직접 등록·승인 선수 선택 가능.
+7. **gym** — 선수 「소속 해제」→ 목록에서 제외, 주최자 공개 OFF 유지.
+8. **organizer** — `/gym/fighters` 접근 불가(홈 리다이렉트).
+
+> `Fighter.primarySport`, `FighterGymHistory.gymInternalMemo` 추가 시 **`npm run db:push`**. **`db:seed` 금지.**
+
 ### 1.6 주최자 공개 선수
 
 1. **gym** — `/gym/fighters` → 선수 1명 「주최자에게 공개」 ON

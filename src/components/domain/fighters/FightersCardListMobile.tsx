@@ -1,9 +1,12 @@
+import Link from "next/link";
 import { format } from "date-fns";
 import { ko } from "date-fns/locale";
-import type { GymFighterListRow } from "@/lib/repositories/fighter.repository";
+import type { GymFighterTableRow } from "@/components/domain/fighters/FightersTableDesktop";
 import type { GymFighterPublicSettingsRow } from "@/lib/services/public-fighter.service";
 import { GymFighterPublicToggle } from "@/components/domain/fighters/GymFighterPublicToggle";
 import { FighterStatus } from "@/lib/enums";
+import { buttonVariants } from "@/components/ui/button";
+import { cn } from "@/lib/utils";
 
 const FIGHTER_STATUS_LABEL: Record<FighterStatus, string> = {
   active: "활성",
@@ -16,7 +19,7 @@ export function FightersCardListMobile({
   fighters,
   publicByFighterId = {},
 }: {
-  fighters: GymFighterListRow[];
+  fighters: GymFighterTableRow[];
   publicByFighterId?: Record<string, GymFighterPublicSettingsRow>;
 }) {
   return (
@@ -24,7 +27,7 @@ export function FightersCardListMobile({
       {fighters.map((f) => (
         <li
           key={f.id}
-          className="ring-foreground/10 space-y-2 rounded-xl bg-card p-4 ring-1"
+          className="ring-foreground/10 space-y-3 rounded-xl bg-card p-4 ring-1"
         >
           <div className="flex items-start gap-3">
             {f.profileImageUrl ? (
@@ -43,15 +46,16 @@ export function FightersCardListMobile({
                 {f.fighterCode}
               </p>
               <p className="text-muted-foreground text-xs">
-                {f.gender} · 체중{" "}
-                {f.weight != null ? `${f.weight}kg` : "—"} ·{" "}
-                {FIGHTER_STATUS_LABEL[f.status]}
-              </p>
-              <p className="text-xs">
-                전적 {f.recordWin}승 {f.recordLoss}패 {f.recordDraw}무
+                {f.gender} · {f.ageGroup ?? "—"} ·{" "}
+                {format(f.birthDate, "yyyy.MM.dd", { locale: ko })}
               </p>
               <p className="text-muted-foreground text-xs">
-                등록 {format(f.createdAt, "yyyy.MM.dd", { locale: ko })}
+                {f.phone || "연락처 없음"} · 체중{" "}
+                {f.weight != null ? `${f.weight}kg` : "—"}
+              </p>
+              <p className="text-xs">
+                전적 {f.recordWin}승 {f.recordLoss}패 {f.recordDraw}무 ·{" "}
+                {FIGHTER_STATUS_LABEL[f.status]}
               </p>
             </div>
           </div>
@@ -61,6 +65,12 @@ export function FightersCardListMobile({
               publicByFighterId[f.id]?.isPublicToOrganizers ?? false
             }
           />
+          <Link
+            href={`/gym/fighters/${f.id}/edit`}
+            className={cn(buttonVariants({ variant: "outline", size: "sm" }), "w-full")}
+          >
+            수정
+          </Link>
         </li>
       ))}
     </ul>

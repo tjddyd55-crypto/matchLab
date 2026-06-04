@@ -26,12 +26,18 @@
 ### 체육관·선수 등록
 
 - [x] 체육관 대시보드 기본(`/gym` 및 하위 네비).
-- [x] 선수 등록(내부) 및 **선수 등록 URL** 발급(`GymInviteLink`).
-- [x] 공개 폼: 선수 정보 제출(`FighterRegistrationSubmission`).
-- [x] **선수 등록 단계에는 서명/보호자 동의 없음** — 체육관 내부 선수 DB 등록만.
+- [x] **선수 직접 등록** (`/gym/fighters/new`, `createFighterDirectlyForGym`) — 서명·동의·신청서 PDF 없음.
+- [x] **등록 선수 수정** (`/gym/fighters/[fighterId]/edit`, `updateGymFighter`) — 전적·신청 snapshot은 자동 변경 안 함.
+- [x] **소속 해제** (`FighterGymHistory` end, `currentGymId` 정리) — Fighter 삭제·과거 신청 유지.
+- [x] `/gym/fighters` — 활성 소속 목록·검색·직접 등록/링크/요청 탭·주최자 공개 토글.
+- [x] 선수 등록 URL 발급(`/gym/invite-links`, `GymInviteLink`, `NEXT_PUBLIC_APP_URL` 기준).
+- [x] 공개 폼: 선수 정보 제출(`/fighter-registration/[token]`).
+- [x] 등록 요청 승인/반려 — 승인 시 GuardianConsent 게이트 없음, 기존 선수 1명이면 소속 연결.
+- [x] **선수 등록 단계에는 서명/보호자 동의 없음** — 대회 신청 단계에서만 처리.
 - [x] 보호자 이름/연락처는 정보로만 저장 가능(등록 완료 조건 아님).
-- [x] 체육관 승인 후 **선수 고유번호(`fighterCode`)** 발급(동의 완료 불필요).
-- [x] 동일 인물 조회: **생년월일 + 성별 + 휴대폰** (주민번호 미수집, `registration.service` 중복 후보).
+- [x] 체육관 승인 후 **선수 고유번호(`fighterCode`)** 발급.
+- [x] 중복 후보: 이름+생년월일+성별(+휴대폰) — 500 대신 안내·기존 선수 연결 선택.
+- [x] 대회 신청(`/gym/events/[eventId]/apply`) — 활성 소속 선수만, 0명 시 등록 CTA.
 
 ### 공식 신청서 PDF (대회 신청 단계)
 

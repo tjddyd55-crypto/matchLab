@@ -16,6 +16,7 @@ const navByRole: Record<DashboardRole, NavItem[]> = {
   gym: [
     { href: "/gym", label: "홈" },
     { href: "/gym/fighters", label: "선수" },
+    { href: "/gym/invite-links", label: "등록 링크" },
     { href: "/gym/events", label: "대회" },
     { href: "/gym/applications", label: "신청" },
     { href: "/notifications", label: "알림" },

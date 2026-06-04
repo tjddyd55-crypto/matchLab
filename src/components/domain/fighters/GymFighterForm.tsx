@@ -1,0 +1,366 @@
+"use client";
+
+import Link from "next/link";
+import { useRouter } from "next/navigation";
+import { useState } from "react";
+import {
+  createGymFighterDirectAction,
+  releaseGymFighterAffiliationAction,
+  updateGymFighterAction,
+} from "@/features/fighters/actions";
+import { Button, buttonVariants } from "@/components/ui/button";
+import { cn } from "@/lib/utils";
+import { FighterStatus } from "@/lib/enums";
+
+type DuplicateCandidate = {
+  id: string;
+  fighterCode: string;
+  name: string;
+};
+
+export type GymFighterFormValues = {
+  name: string;
+  birthDate: string;
+  gender: string;
+  phone: string;
+  height: string;
+  weight: string;
+  primarySport: string;
+  guardianName: string;
+  guardianPhone: string;
+  gymInternalMemo: string;
+  status?: FighterStatus;
+};
+
+const GENDER_OPTIONS = [
+  { value: "male", label: "남" },
+  { value: "female", label: "여" },
+] as const;
+
+const STATUS_OPTIONS: { value: FighterStatus; label: string }[] = [
+  { value: FighterStatus.active, label: "활성" },
+  { value: FighterStatus.inactive, label: "비활성" },
+];
+
+function toDateInputValue(d: Date): string {
+  return d.toISOString().slice(0, 10);
+}
+
+export function GymFighterForm({
+  mode,
+  fighterId,
+  initial,
+  returnTo,
+}: {
+  mode: "create" | "edit";
+  fighterId?: string;
+  initial?: Partial<GymFighterFormValues>;
+  returnTo?: string;
+}) {
+  const router = useRouter();
+  const [pending, setPending] = useState(false);
+  const [error, setError] = useState<string | null>(null);
+  const [duplicates, setDuplicates] = useState<DuplicateCandidate[] | null>(
+    null,
+  );
+  const [selectedLinkId, setSelectedLinkId] = useState<string | null>(null);
+
+  const inputClass =
+    "border-input bg-background h-10 w-full rounded-md border px-3 text-sm";
+
+  async function onSubmit(e: React.FormEvent<HTMLFormElement>) {
+    e.preventDefault();
+    setPending(true);
+    setError(null);
+    const fd = new FormData(e.currentTarget);
+
+    if (mode === "create" && duplicates?.length && selectedLinkId) {
+      fd.set("confirmDuplicateLink", "true");
+      fd.set("linkFighterId", selectedLinkId);
+    }
+
+    const res =
+      mode === "create"
+        ? await createGymFighterDirectAction(null, fd)
+        : await updateGymFighterAction(null, fd);
+
+    setPending(false);
+
+    if (!res.ok) {
+      const dupes =
+        res.error.details &&
+        typeof res.error.details === "object" &&
+        "duplicateCandidates" in res.error.details
+          ? (res.error.details as { duplicateCandidates: DuplicateCandidate[] })
+              .duplicateCandidates
+          : null;
+      if (dupes?.length) {
+        setDuplicates(dupes);
+        setError(res.error.message);
+        return;
+      }
+      setError(res.error.message);
+      return;
+    }
+
+    if (returnTo) {
+      router.push(returnTo);
+    } else {
+      router.push("/gym/fighters");
+    }
+    router.refresh();
+  }
+
+  return (
+    <form onSubmit={(e) => void onSubmit(e)} className="flex flex-col gap-6">
+      {mode === "edit" && fighterId ? (
+        <input type="hidden" name="fighterId" value={fighterId} />
+      ) : null}
+
+      {duplicates?.length ? (
+        <div
+          className="rounded-lg border border-amber-500/40 bg-amber-500/5 p-4 text-sm"
+          role="alert"
+        >
+          <p className="font-medium">중복 후보가 있습니다</p>
+          <p className="text-muted-foreground mt-1 text-xs leading-relaxed">
+            동일한 이름·생년월일·성별(및 연락처)의 선수가 이미 있습니다. 기존
+            선수에 소속을 연결하거나 정보를 수정해 주세요.
+          </p>
+          <ul className="mt-3 space-y-2">
+            {duplicates.map((d) => (
+              <li key={d.id}>
+                <label className="flex cursor-pointer items-center gap-2">
+                  <input
+                    type="radio"
+                    name="dupPick"
+                    checked={selectedLinkId === d.id}
+                    onChange={() => setSelectedLinkId(d.id)}
+                  />
+                  <span>
+                    {d.name}{" "}
+                    <span className="text-muted-foreground font-mono text-xs">
+                      {d.fighterCode}
+                    </span>
+                  </span>
+                </label>
+              </li>
+            ))}
+          </ul>
+        </div>
+      ) : null}
+
+      <div className="grid gap-4 sm:grid-cols-2">
+        <label className="space-y-1 text-sm sm:col-span-2">
+          <span className="font-medium">선수명 *</span>
+          <input
+            className={inputClass}
+            name="name"
+            required
+            defaultValue={initial?.name ?? ""}
+          />
+        </label>
+        <label className="space-y-1 text-sm">
+          <span className="font-medium">생년월일 *</span>
+          <input
+            className={inputClass}
+            type="date"
+            name="birthDate"
+            required
+            defaultValue={initial?.birthDate ?? ""}
+          />
+        </label>
+        <label className="space-y-1 text-sm">
+          <span className="font-medium">성별 *</span>
+          <select
+            className={inputClass}
+            name="gender"
+            required
+            defaultValue={initial?.gender ?? ""}
+          >
+            <option value="">선택</option>
+            {GENDER_OPTIONS.map((o) => (
+              <option key={o.value} value={o.value}>
+                {o.label}
+              </option>
+            ))}
+          </select>
+        </label>
+        <label className="space-y-1 text-sm">
+          <span className="font-medium">휴대폰</span>
+          <input
+            className={inputClass}
+            name="phone"
+            inputMode="tel"
+            placeholder="선택"
+            defaultValue={initial?.phone ?? ""}
+          />
+        </label>
+        <label className="space-y-1 text-sm">
+          <span className="font-medium">체중(kg)</span>
+          <input
+            className={inputClass}
+            name="weight"
+            type="number"
+            step="0.1"
+            min="0"
+            defaultValue={initial?.weight ?? ""}
+          />
+        </label>
+        <label className="space-y-1 text-sm">
+          <span className="font-medium">키(cm)</span>
+          <input
+            className={inputClass}
+            name="height"
+            type="number"
+            step="0.1"
+            min="0"
+            defaultValue={initial?.height ?? ""}
+          />
+        </label>
+        <label className="space-y-1 text-sm sm:col-span-2">
+          <span className="font-medium">주 종목</span>
+          <input
+            className={inputClass}
+            name="primarySport"
+            placeholder="예: 킥복싱"
+            defaultValue={initial?.primarySport ?? ""}
+          />
+        </label>
+        <label className="space-y-1 text-sm">
+          <span className="font-medium">보호자명</span>
+          <input
+            className={inputClass}
+            name="guardianName"
+            defaultValue={initial?.guardianName ?? ""}
+          />
+        </label>
+        <label className="space-y-1 text-sm">
+          <span className="font-medium">보호자 연락처</span>
+          <input
+            className={inputClass}
+            name="guardianPhone"
+            inputMode="tel"
+            defaultValue={initial?.guardianPhone ?? ""}
+          />
+        </label>
+        {mode === "edit" ? (
+          <label className="space-y-1 text-sm">
+            <span className="font-medium">상태</span>
+            <select
+              className={inputClass}
+              name="status"
+              defaultValue={initial?.status ?? FighterStatus.active}
+            >
+              {STATUS_OPTIONS.map((o) => (
+                <option key={o.value} value={o.value}>
+                  {o.label}
+                </option>
+              ))}
+            </select>
+          </label>
+        ) : null}
+        <label className="space-y-1 text-sm sm:col-span-2">
+          <span className="font-medium">체육관 메모</span>
+          <textarea
+            className={cn(inputClass, "min-h-[80px] py-2")}
+            name="gymInternalMemo"
+            rows={3}
+            defaultValue={initial?.gymInternalMemo ?? ""}
+          />
+        </label>
+      </div>
+
+      <p className="text-muted-foreground text-xs leading-relaxed">
+        선수 등록 단계에서는 서명·보호자 전자동의가 필요하지 않습니다. 대회
+        공식 신청 시 별도로 진행됩니다.
+      </p>
+
+      {error ? (
+        <p className="text-destructive text-sm" role="alert">
+          {error}
+        </p>
+      ) : null}
+
+      <div className="flex flex-wrap gap-2">
+        <Button type="submit" disabled={pending}>
+          {pending ? "저장 중…" : mode === "create" ? "선수 등록" : "저장"}
+        </Button>
+        <Link
+          href={returnTo ?? "/gym/fighters"}
+          className={cn(buttonVariants({ variant: "outline" }))}
+        >
+          취소
+        </Link>
+      </div>
+
+      {mode === "edit" && fighterId ? (
+        <div className="rounded-lg border border-dashed p-4">
+          <p className="text-sm font-medium">소속 해제</p>
+          <p className="text-muted-foreground mt-1 text-xs leading-relaxed">
+            소속만 해제하며 선수·과거 대회 신청 기록은 삭제되지 않습니다.
+          </p>
+          <Button
+            type="button"
+            variant="destructive"
+            size="sm"
+            className="mt-3"
+            disabled={pending}
+            onClick={() => {
+              void (async () => {
+                if (
+                  !window.confirm(
+                    "이 선수의 체육관 소속을 해제할까요? 목록에서 제외됩니다.",
+                  )
+                ) {
+                  return;
+                }
+                setPending(true);
+                const fd = new FormData();
+                fd.set("fighterId", fighterId);
+                const res = await releaseGymFighterAffiliationAction(null, fd);
+                setPending(false);
+                if (!res.ok) {
+                  setError(res.error.message);
+                  return;
+                }
+                router.push("/gym/fighters");
+                router.refresh();
+              })();
+            }}
+          >
+            소속 해제
+          </Button>
+        </div>
+      ) : null}
+    </form>
+  );
+}
+
+export function gymFighterFormInitialFromEdit(row: {
+  name: string;
+  birthDate: Date;
+  gender: string;
+  phone: string;
+  height: number | null;
+  weight: number | null;
+  primarySport: string | null;
+  guardianName: string | null;
+  guardianPhone: string | null;
+  gymInternalMemo: string | null;
+  status: FighterStatus;
+}): GymFighterFormValues {
+  return {
+    name: row.name,
+    birthDate: toDateInputValue(row.birthDate),
+    gender: row.gender,
+    phone: row.phone,
+    height: row.height != null ? String(row.height) : "",
+    weight: row.weight != null ? String(row.weight) : "",
+    primarySport: row.primarySport ?? "",
+    guardianName: row.guardianName ?? "",
+    guardianPhone: row.guardianPhone ?? "",
+    gymInternalMemo: row.gymInternalMemo ?? "",
+    status: row.status,
+  };
+}

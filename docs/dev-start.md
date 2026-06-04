@@ -121,6 +121,14 @@ GitHub → Railway 배포가 성공해도 **Postgres는 빈 DB**입니다. `publ
 - **PG 연동 TODO**: Toss Payments 결제창·승인·webhook — MVP는 `OrganizerCreditPayment` 주문 + 시연용 결제 확인(`ALLOW_DEV_CREDIT_PAYMENT_CONFIRM=true` 비프로덕션, 또는 admin).
 - schema 추가 후 **`npm run db:push`** 필요. **`db:seed` 금지.**
 
+### 체육관 선수 DB (`/gym/fighters`)
+
+- **직접 등록**: `/gym/fighters/new` — 서명·`GuardianConsent`·신청서 PDF 없음.
+- **등록 요청**: `/gym/invite-links` → `/fighter-registration/[token]` → `/gym/fighters?tab=requests` 승인.
+- **수정·소속 해제**: `/gym/fighters/[fighterId]/edit`.
+- `Fighter.primarySport`, `FighterGymHistory.gymInternalMemo` 추가 시 **`npm run db:push`**. **`db:seed` 금지.**
+- `npm run setup:demo-users` — 데모 gym·fighter·active `FighterGymHistory` upsert(삭제 없음).
+
 ### 체육관·선수 소속 복구 (`npm run repair:demo-gym`)
 
 **`db:seed` 없이** 체육관 화면에 선수가 안 보이거나 신청이 막힐 때(이력은 있는데 `currentGymId` 불일치 등) 실행한다.

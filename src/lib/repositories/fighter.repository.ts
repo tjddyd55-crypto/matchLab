@@ -3,10 +3,11 @@
  */
 import { FighterStatus, type Prisma } from "@/generated/prisma";
 import { AppError } from "@/lib/errors/app-error";
+import { activeFighterAffiliatedWithGymWhere } from "@/lib/gym-affiliation";
 import {
-  activeFighterAffiliatedWithGymWhere,
-  fighterAffiliatedWithGymWhere,
-} from "@/lib/gym-affiliation";
+  activeGymHistoryWhere,
+  fighterIdentityDayRange,
+} from "@/lib/gym-fighter-management";
 import { prisma } from "@/lib/prisma";
 import { normalizePhoneDigits } from "@/lib/phone";
 import { toUtcDateOnly } from "@/lib/date-only";
@@ -20,13 +21,35 @@ export type GymFighterListRow = {
   fighterCode: string;
   name: string;
   gender: string;
+  birthDate: Date;
+  phone: string;
   weight: number | null;
+  primarySport: string | null;
   recordWin: number;
   recordLoss: number;
   recordDraw: number;
   status: FighterStatus;
   profileImageUrl: string | null;
+  affiliationStartDate: Date | null;
+  gymInternalMemo: string | null;
   createdAt: Date;
+};
+
+export type GymFighterEditRow = {
+  id: string;
+  fighterCode: string;
+  name: string;
+  birthDate: Date;
+  gender: string;
+  phone: string;
+  height: number | null;
+  weight: number | null;
+  primarySport: string | null;
+  guardianName: string | null;
+  guardianPhone: string | null;
+  status: FighterStatus;
+  gymInternalMemo: string | null;
+  historyId: string;
 };
 
 export type FighterDuplicateCandidate = {
@@ -53,24 +76,165 @@ export const fighterRepository = {
   },
 
   async listFightersByGym(gymId: string): Promise<GymFighterListRow[]> {
-    const rows = await prisma.fighter.findMany({
-      where: fighterAffiliatedWithGymWhere(gymId),
+    return this.listActiveFightersForGymManagement(gymId);
+  },
+
+  /** 체육관 관리 화면 — active 소속·active 선수만 */
+  async listActiveFightersForGymManagement(
+    gymId: string,
+  ): Promise<GymFighterListRow[]> {
+    const fighters = await prisma.fighter.findMany({
+      where: activeFighterAffiliatedWithGymWhere(gymId),
       orderBy: { createdAt: "desc" },
       select: {
         id: true,
         fighterCode: true,
         name: true,
         gender: true,
+        birthDate: true,
+        phone: true,
         weight: true,
+        primarySport: true,
         recordWin: true,
         recordLoss: true,
         recordDraw: true,
         status: true,
         profileImageUrl: true,
         createdAt: true,
+        gymHistories: {
+          where: activeGymHistoryWhere(gymId),
+          orderBy: { startDate: "desc" },
+          take: 1,
+          select: {
+            startDate: true,
+            gymInternalMemo: true,
+          },
+        },
       },
     });
-    return rows as GymFighterListRow[];
+
+    return fighters.map((f) => ({
+      id: f.id,
+      fighterCode: f.fighterCode,
+      name: f.name,
+      gender: f.gender,
+      birthDate: f.birthDate,
+      phone: f.phone,
+      weight: f.weight,
+      primarySport: f.primarySport,
+      recordWin: f.recordWin,
+      recordLoss: f.recordLoss,
+      recordDraw: f.recordDraw,
+      status: f.status,
+      profileImageUrl: f.profileImageUrl,
+      affiliationStartDate: f.gymHistories[0]?.startDate ?? null,
+      gymInternalMemo: f.gymHistories[0]?.gymInternalMemo ?? null,
+      createdAt: f.createdAt,
+    }));
+  },
+
+  async findActiveGymHistory(fighterId: string, gymId: string) {
+    return prisma.fighterGymHistory.findFirst({
+      where: {
+        fighterId,
+        ...activeGymHistoryWhere(gymId),
+      },
+    });
+  },
+
+  async hasActiveAffiliationAtGym(fighterId: string, gymId: string): Promise<boolean> {
+    const row = await this.findActiveGymHistory(fighterId, gymId);
+    return Boolean(row);
+  },
+
+  async findFighterEditRowForGym(
+    fighterId: string,
+    gymId: string,
+  ): Promise<GymFighterEditRow | null> {
+    const history = await prisma.fighterGymHistory.findFirst({
+      where: {
+        fighterId,
+        ...activeGymHistoryWhere(gymId),
+      },
+      include: {
+        fighter: {
+          select: {
+            id: true,
+            fighterCode: true,
+            name: true,
+            birthDate: true,
+            gender: true,
+            phone: true,
+            height: true,
+            weight: true,
+            primarySport: true,
+            guardianName: true,
+            guardianPhone: true,
+            status: true,
+          },
+        },
+      },
+    });
+    if (!history) return null;
+    const f = history.fighter;
+    return {
+      id: f.id,
+      fighterCode: f.fighterCode,
+      name: f.name,
+      birthDate: f.birthDate,
+      gender: f.gender,
+      phone: f.phone,
+      height: f.height,
+      weight: f.weight,
+      primarySport: f.primarySport,
+      guardianName: f.guardianName,
+      guardianPhone: f.guardianPhone,
+      status: f.status,
+      gymInternalMemo: history.gymInternalMemo,
+      historyId: history.id,
+    };
+  },
+
+  async findIdentityDuplicateCandidates(input: {
+    name: string;
+    birthDate: Date;
+    gender: string;
+    phone?: string;
+    excludeFighterId?: string;
+  }): Promise<FighterDuplicateCandidate[]> {
+    const day = fighterIdentityDayRange(input.birthDate);
+    const normalizedName = input.name.trim();
+    const targetPhone = input.phone
+      ? normalizePhoneDigits(input.phone)
+      : null;
+
+    const rows = await prisma.fighter.findMany({
+      where: {
+        gender: input.gender,
+        birthDate: day,
+        ...(input.excludeFighterId
+          ? { id: { not: input.excludeFighterId } }
+          : {}),
+      },
+      select: {
+        id: true,
+        fighterCode: true,
+        phone: true,
+        name: true,
+      },
+    });
+
+    const nameLower = normalizedName.toLowerCase();
+    const byName = rows.filter(
+      (r) => r.name.trim().toLowerCase() === nameLower,
+    );
+
+    if (targetPhone && targetPhone.length > 0) {
+      return byName.filter(
+        (r) => normalizePhoneDigits(r.phone) === targetPhone,
+      ) as FighterDuplicateCandidate[];
+    }
+    return byName as FighterDuplicateCandidate[];
   },
 
   async findFighterById(
@@ -152,7 +316,10 @@ export const fighterRepository = {
     guardianPhone: string | null;
   } | null> {
     const row = await db(tx).fighter.findFirst({
-      where: { id: fighterId, currentGymId: gymId },
+      where: {
+        id: fighterId,
+        ...activeFighterAffiliatedWithGymWhere(gymId),
+      },
       select: {
         id: true,
         fighterCode: true,
@@ -230,6 +397,8 @@ export const fighterRepository = {
       grade?: string | null;
       guardianName?: string | null;
       guardianPhone?: string | null;
+      primarySport?: string | null;
+      gymInternalMemo?: string | null;
       currentGymId: string;
     },
   ): Promise<{ id: string; fighterCode: string }> {
@@ -247,20 +416,168 @@ export const fighterRepository = {
         grade: params.grade ?? null,
         guardianName: params.guardianName ?? null,
         guardianPhone: params.guardianPhone ?? null,
+        primarySport: params.primarySport ?? null,
         currentGymId: params.currentGymId,
       },
       select: { id: true, fighterCode: true },
     });
+
+    const existingHistory = await tx.fighterGymHistory.findFirst({
+      where: {
+        fighterId: fighter.id,
+        gymId: params.currentGymId,
+        status: "active",
+        endDate: null,
+      },
+    });
+    if (existingHistory) {
+      throw new AppError(
+        "CONFLICT",
+        "이미 이 체육관에 활성 소속으로 등록된 선수입니다.",
+      );
+    }
 
     await tx.fighterGymHistory.create({
       data: {
         fighterId: fighter.id,
         gymId: params.currentGymId,
         status: "active",
+        gymInternalMemo: params.gymInternalMemo ?? null,
       },
     });
 
     return fighter;
+  },
+
+  async linkExistingFighterToGym(
+    tx: Prisma.TransactionClient,
+    input: {
+      fighterId: string;
+      gymId: string;
+      gymInternalMemo?: string | null;
+    },
+  ): Promise<void> {
+    const fighter = await tx.fighter.findUnique({
+      where: { id: input.fighterId },
+      select: { id: true, currentGymId: true },
+    });
+    if (!fighter) {
+      throw new AppError("NOT_FOUND", "선수를 찾을 수 없습니다.");
+    }
+
+    const existing = await tx.fighterGymHistory.findFirst({
+      where: {
+        fighterId: input.fighterId,
+        gymId: input.gymId,
+        status: "active",
+        endDate: null,
+      },
+    });
+    if (existing) {
+      throw new AppError(
+        "CONFLICT",
+        "이미 이 체육관에 활성 소속으로 등록된 선수입니다.",
+      );
+    }
+
+    await tx.fighterGymHistory.create({
+      data: {
+        fighterId: input.fighterId,
+        gymId: input.gymId,
+        status: "active",
+        gymInternalMemo: input.gymInternalMemo ?? null,
+      },
+    });
+
+    await tx.fighter.update({
+      where: { id: input.fighterId },
+      data: { currentGymId: input.gymId, status: FighterStatus.active },
+    });
+  },
+
+  async updateFighterProfile(
+    tx: Prisma.TransactionClient,
+    fighterId: string,
+    data: {
+      name: string;
+      birthDate: Date;
+      gender: string;
+      phone: string;
+      height?: number | null;
+      weight?: number | null;
+      primarySport?: string | null;
+      guardianName?: string | null;
+      guardianPhone?: string | null;
+      status?: FighterStatus;
+    },
+  ): Promise<void> {
+    await tx.fighter.update({
+      where: { id: fighterId },
+      data: {
+        name: data.name,
+        birthDate: data.birthDate,
+        gender: data.gender,
+        phone: data.phone,
+        height: data.height,
+        weight: data.weight,
+        primarySport: data.primarySport ?? null,
+        guardianName: data.guardianName ?? null,
+        guardianPhone: data.guardianPhone ?? null,
+        ...(data.status ? { status: data.status } : {}),
+      },
+    });
+  },
+
+  async updateGymHistoryMemo(
+    tx: Prisma.TransactionClient,
+    historyId: string,
+    gymInternalMemo: string | null,
+  ): Promise<void> {
+    await tx.fighterGymHistory.update({
+      where: { id: historyId },
+      data: { gymInternalMemo },
+    });
+  },
+
+  async endActiveGymAffiliation(
+    tx: Prisma.TransactionClient,
+    fighterId: string,
+    gymId: string,
+  ): Promise<void> {
+    const history = await tx.fighterGymHistory.findFirst({
+      where: {
+        fighterId,
+        ...activeGymHistoryWhere(gymId),
+      },
+    });
+    if (!history) {
+      throw new AppError(
+        "NOT_FOUND",
+        "이 선수는 현재 체육관 소속이 아닙니다.",
+      );
+    }
+
+    const now = new Date();
+    await tx.fighterGymHistory.update({
+      where: { id: history.id },
+      data: {
+        endDate: now,
+        status: "ended",
+        isPublicToOrganizers: false,
+        publicDisabledAt: now,
+      },
+    });
+
+    const fighter = await tx.fighter.findUnique({
+      where: { id: fighterId },
+      select: { currentGymId: true },
+    });
+    if (fighter?.currentGymId === gymId) {
+      await tx.fighter.update({
+        where: { id: fighterId },
+        data: { currentGymId: null },
+      });
+    }
   },
 
   /**

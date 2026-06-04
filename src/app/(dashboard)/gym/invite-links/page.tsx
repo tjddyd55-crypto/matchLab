@@ -5,6 +5,7 @@ import { CopyInviteUrlButton } from "@/components/domain/gym/CopyInviteUrlButton
 import { GymFighterRegistrationPolicyNotice } from "@/components/domain/fighters/GymFighterRegistrationPolicyNotice";
 import { GymProfileMissingBanner } from "@/components/domain/gym/GymProfileMissingBanner";
 import { EmptyState } from "@/components/shared/EmptyState";
+import { getAppBaseUrl } from "@/lib/app-url";
 import { InviteLinkStatus, InviteLinkType } from "@/lib/enums";
 import { format } from "date-fns";
 import { ko } from "date-fns/locale";
@@ -27,8 +28,7 @@ export default async function GymInviteLinksPage() {
   const actor = await requireActor();
   const links = await inviteLinkService.listGymInviteLinks(actor);
 
-  const baseUrl =
-    process.env.NEXT_PUBLIC_APP_URL?.replace(/\/$/, "") ?? "http://localhost:3000";
+  const baseUrl = getAppBaseUrl();
 
   return (
     <div className="mx-auto flex w-full max-w-6xl flex-col gap-8 px-4 py-8 md:px-6">

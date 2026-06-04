@@ -376,6 +376,8 @@ model Fighter {
   grade            String?
   guardianName     String?
   guardianPhone    String?
+  /// 체육관 등록 시 참고용 주 종목 (대회 부문과 별도)
+  primarySport     String?
   recordWin        Int           @default(0)
   recordLoss       Int           @default(0)
   recordDraw       Int           @default(0)
@@ -416,6 +418,8 @@ model FighterGymHistory {
   publicEnabledAt      DateTime?
   publicDisabledAt     DateTime?
   publicMemo           String?
+  /// 체육관 내부 메모 (주최자 공개·대회 신청 snapshot과 무관)
+  gymInternalMemo      String?
   createdAt DateTime  @default(now())
 
   fighter Fighter @relation(fields: [fighterId], references: [id], onDelete: Cascade)
