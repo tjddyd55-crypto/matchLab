@@ -1,9 +1,12 @@
 import { requireActor } from "@/lib/auth/actor";
 import { requireOrganizerForEventPage } from "@/lib/permissions";
+import { AutoBracketGenerationPanel } from "@/components/domain/brackets/AutoBracketGenerationPanel";
+import { bracketAutoMatchService } from "@/lib/services/bracket-auto-match.service";
 import { bracketService } from "@/lib/services/bracket.service";
 import { eventService } from "@/lib/services/event.service";
 import { BracketCreateForm } from "@/components/domain/brackets/BracketCreateForm";
 import { OrganizerBracketList } from "@/components/domain/brackets/OrganizerBracketList";
+import { UnmatchedBracketCandidatesPanel } from "@/components/domain/brackets/UnmatchedBracketCandidatesPanel";
 
 export const dynamic = "force-dynamic";
 
@@ -17,10 +20,13 @@ export default async function OrganizerEventBracketsPage({
 
   await requireOrganizerForEventPage(actor, eventId);
 
-  const [brackets, divisions] = await Promise.all([
-    bracketService.listOrganizerEventBrackets(actor, eventId),
-    eventService.listOrganizerEventDivisions(actor, eventId),
-  ]);
+  const [brackets, divisions, unmatchedCandidates, resetCheck] =
+    await Promise.all([
+      bracketService.listOrganizerEventBrackets(actor, eventId),
+      eventService.listOrganizerEventDivisions(actor, eventId),
+      bracketAutoMatchService.listUnmatchedCandidatesForEvent(actor, eventId),
+      bracketAutoMatchService.canResetBracketSafely(actor, eventId),
+    ]);
 
   return (
     <div className="mx-auto flex w-full max-w-7xl flex-col gap-10 px-4 py-8 md:px-6">
@@ -33,6 +39,14 @@ export default async function OrganizerEventBracketsPage({
           있습니다.
         </p>
       </div>
+
+      <AutoBracketGenerationPanel
+        eventId={eventId}
+        canResetSafely={resetCheck.safe}
+        matchesWithResults={resetCheck.matchesWithResults}
+      />
+
+      <UnmatchedBracketCandidatesPanel candidates={unmatchedCandidates} />
 
       <BracketCreateForm eventId={eventId} divisions={divisions} />
 

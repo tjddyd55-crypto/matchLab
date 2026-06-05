@@ -172,6 +172,22 @@ GitHub → Railway 배포가 성공해도 **Postgres는 빈 DB**입니다. `publ
 npm run repair:demo-gym
 ```
 
+### 대진표 자동 매칭 테스트 데이터 (`npm run setup:bracket-demo-data`)
+
+대진표 **자동 1차 매칭** 실무 테스트용으로 체육관 `gym1`~`gym7`·각 10명 선수(총 80명)·테스트 대회 `approved` `EventApplication`을 **idempotent upsert**합니다.
+
+**전제:** `DATABASE_URL`, `NEXT_PUBLIC_SUPABASE_URL`, `SUPABASE_SERVICE_ROLE_KEY`, `npm run setup:demo-users`(기존 `gym` 계정).
+
+```bash
+npm run setup:bracket-demo-data
+```
+
+- 대상 대회 우선순위: `DEMO_BRACKET_EVENT_ID` → `DEMO_BRACKET_EVENT_SLUG` → `sample-open-2026`
+- **`db:seed` 금지** — 운영·스테이징 DB에서 wipe 없음
+- **크레딧 ledger 미발생** — `approveEventApplication` 경유 없이 `EventApplication` 직접 upsert
+- Railway production Shell에서는 `DATABASE_PUBLIC_URL`을 `DATABASE_URL`로 export한 뒤 실행 (`docs/deploy-railway.md` 참고)
+- 두 번 실행해도 동일 수량 유지(fighterCode·loginId 기준 upsert)
+
 ### 테스트용 선수 20명 추가 (`npm run seed:demo-fighters`)
 
 대회 신청·대진표 실무 테스트용으로 **데모 체육관 소속 가상 선수 20명**을 DB에만 추가합니다. Supabase Auth 계정은 만들지 않으며(`userId` null), **기존 `db:seed` 전체를 다시 돌리지 않아도** 됩니다.

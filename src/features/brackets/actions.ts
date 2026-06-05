@@ -9,6 +9,7 @@ import {
 import { PermissionError } from "@/lib/auth/permission-error";
 import { requireActorFromMutation } from "@/lib/auth/actor";
 import { AppError } from "@/lib/errors/app-error";
+import { bracketAutoMatchService } from "@/lib/services/bracket-auto-match.service";
 import { bracketService } from "@/lib/services/bracket.service";
 import { isPrismaUniqueViolation } from "@/lib/prisma-errors";
 import {
@@ -22,6 +23,7 @@ import {
   unpublishBracketSchema,
   updateMatchOrderAndMatSchema,
 } from "@/lib/validators/bracket.validator";
+import { generateAutoBracketMatchesSchema } from "@/lib/validators/bracket-auto-match.validator";
 import type { ZodError } from "zod";
 
 function mapCaught<T>(
@@ -416,4 +418,48 @@ export async function updateMatchOrderAndMatFormAction(
   formData: FormData,
 ): Promise<void> {
   await updateMatchOrderAndMatAction(formData);
+}
+
+function parseCheckbox(formData: FormData, key: string): boolean {
+  const v = formData.get(key);
+  return v === "on" || v === "true" || v === "1";
+}
+
+export async function generateAutoBracketMatchesAction(
+  arg1: unknown,
+  arg2?: FormData,
+): Promise<
+  ActionResult<
+    Awaited<
+      ReturnType<
+        typeof bracketAutoMatchService.generateAutoBracketMatchesForEvent
+      >
+    >
+  >
+> {
+  const formData = resolveFormData(arg1, arg2);
+  if (!formData) {
+    return actionFailure("VALIDATION_ERROR", "요청 본문이 올바르지 않습니다.");
+  }
+  return mapCaught(async () => {
+    const parsed = generateAutoBracketMatchesSchema.safeParse({
+      eventId: formReq(formData, "eventId"),
+      eligibleOnly: parseCheckbox(formData, "eligibleOnly"),
+      resetExisting: parseCheckbox(formData, "resetExisting"),
+    });
+    if (!parsed.success) {
+      return actionFailure(
+        "VALIDATION_ERROR",
+        "자동 대진 생성 입력값을 확인해 주세요.",
+        parsed.error.flatten(),
+      );
+    }
+    const actor = await requireActorFromMutation();
+    const summary =
+      await bracketAutoMatchService.generateAutoBracketMatchesForEvent(
+        actor,
+        parsed.data,
+      );
+    return actionSuccess(summary);
+  });
 }

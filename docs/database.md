@@ -238,6 +238,14 @@ MVP: 계좌 안내 + 수동 입금 확인. **`EventApplicationPayment` 가 입�
 - `nextMatchId`, `nextMatchSlot`: 싱글 엘리미네이션 진출.
 - `globalMatchOrder`, `matNumber`: 순서·매트 운영.
 
+**자동 대진 생성 (MVP)**:
+
+- 승인 `EventApplication` + `divisionId` + `Fighter.status=active` 기준으로 division별 2명 페어링.
+- 기존 `BracketMatch`는 **덮어쓰지 않음** — 미배치 선수만 `match_list` 브래킷에 **append**.
+- division별 `match_list` 브래킷이 없으면 자동 생성(`bracket-auto-match.service.ts`).
+- **결과 입력된 match 보호**: 확정·정정 `MatchResult` 2행 이상인 경기가 있으면 이벤트 전체 초기화 후 재생성 불가.
+- 데모 approved 신청: `npm run setup:bracket-demo-data` — `creditChargedAt`/`creditChargeLedgerId` 없이 직접 upsert(승인 서비스·ledger 우회).
+
 ### BracketChangeLog
 
 애플리케이션에서는 브래킷·매치 **쓰기 트랜잭션**과 함께 `BracketChangeType`(예: `bracket_created`, `fighter_assigned`, `bracket_reset`, `mat_changed`)으로 분류 삽입한다(`bracket.service.ts`).

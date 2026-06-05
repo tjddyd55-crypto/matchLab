@@ -8,9 +8,12 @@ import {
   BracketMatchStatus,
   BracketStatus,
   BracketType,
+  CheckInStatus,
   EventStatus,
+  FighterStatus,
   MatchRecordStatus,
   NextMatchSlot,
+  WeighInStatus,
 } from "@/generated/prisma";
 import { prisma } from "@/lib/prisma";
 
@@ -60,6 +63,39 @@ export type ApprovedApplicationForBracketRow = {
     skillLevel: string | null;
   };
   gym: { name: string };
+};
+
+export type AutoMatchApplicationRow = {
+  id: string;
+  fighterId: string;
+  divisionId: string;
+  gymId: string;
+  status: ApplicationStatus;
+  checkInStatus: CheckInStatus;
+  weighInStatus: WeighInStatus;
+  appliedAt: Date | null;
+  createdAt: Date;
+  fighter: {
+    id: string;
+    fighterCode: string;
+    name: string;
+    gender: string | null;
+    profileImageUrl: string | null;
+    recordWin: number;
+    recordLoss: number;
+    recordDraw: number;
+    status: FighterStatus;
+  };
+  division: {
+    id: string;
+    sportType: string | null;
+    ruleType: string | null;
+    gender: string | null;
+    ageGroup: string | null;
+    weightClass: string | null;
+    skillLevel: string | null;
+  };
+  gym: { id: string; name: string };
 };
 
 export const bracketRepository = {
@@ -566,5 +602,151 @@ export const bracketRepository = {
       select: { nextMatchId: true, nextMatchSlot: true },
     });
     return row;
+  },
+
+  async listPlacedFighterIdsForEvent(
+    eventId: string,
+    tx?: Prisma.TransactionClient,
+  ): Promise<string[]> {
+    const rows = await db(tx).bracketMatch.findMany({
+      where: {
+        bracket: { eventId },
+        status: { not: BracketMatchStatus.cancelled },
+        OR: [
+          { fighterRedId: { not: null } },
+          { fighterBlueId: { not: null } },
+        ],
+      },
+      select: { fighterRedId: true, fighterBlueId: true },
+    });
+    const ids = new Set<string>();
+    for (const r of rows) {
+      if (r.fighterRedId) ids.add(r.fighterRedId);
+      if (r.fighterBlueId) ids.add(r.fighterBlueId);
+    }
+    return [...ids];
+  },
+
+  async countEventMatchesWithOfficialResults(
+    eventId: string,
+    tx?: Prisma.TransactionClient,
+  ): Promise<number> {
+    const matches = await db(tx).bracketMatch.findMany({
+      where: { bracket: { eventId } },
+      select: {
+        id: true,
+        matchResults: {
+          where: {
+            status: {
+              in: [
+                MatchRecordStatus.confirmed,
+                MatchRecordStatus.corrected,
+              ],
+            },
+          },
+          select: { id: true },
+        },
+      },
+    });
+    return matches.filter((m) => m.matchResults.length >= 2).length;
+  },
+
+  async deleteAllEventBracketMatches(
+    eventId: string,
+    tx?: Prisma.TransactionClient,
+  ): Promise<number> {
+    const brackets = await db(tx).bracket.findMany({
+      where: { eventId },
+      select: { id: true },
+    });
+    let deleted = 0;
+    for (const b of brackets) {
+      const count = await db(tx).bracketMatch.count({
+        where: { bracketId: b.id },
+      });
+      if (count > 0) {
+        await bracketRepository.deleteBracketMatchesByBracketId(b.id, tx);
+        deleted += count;
+      }
+    }
+    return deleted;
+  },
+
+  async findMatchListBracketByDivision(
+    eventId: string,
+    divisionId: string,
+    tx?: Prisma.TransactionClient,
+  ) {
+    return db(tx).bracket.findFirst({
+      where: {
+        eventId,
+        divisionId,
+        type: BracketType.match_list,
+      },
+      orderBy: { createdAt: "asc" },
+      select: { id: true, title: true },
+    });
+  },
+
+  async getMaxMatchOrderForBracket(
+    bracketId: string,
+    tx?: Prisma.TransactionClient,
+  ): Promise<number> {
+    const agg = await db(tx).bracketMatch.aggregate({
+      where: { bracketId },
+      _max: { matchOrder: true },
+    });
+    return agg._max.matchOrder ?? -1;
+  },
+
+  async listApprovedApplicationsForAutoMatch(
+    eventId: string,
+    tx?: Prisma.TransactionClient,
+  ): Promise<AutoMatchApplicationRow[]> {
+    const rows = await db(tx).eventApplication.findMany({
+      where: {
+        eventId,
+        status: ApplicationStatus.approved,
+        fighter: { status: FighterStatus.active },
+      },
+      orderBy: [{ gym: { name: "asc" } }, { createdAt: "asc" }],
+      select: {
+        id: true,
+        fighterId: true,
+        divisionId: true,
+        gymId: true,
+        status: true,
+        checkInStatus: true,
+        weighInStatus: true,
+        appliedAt: true,
+        createdAt: true,
+        fighter: {
+          select: {
+            id: true,
+            fighterCode: true,
+            name: true,
+            gender: true,
+            profileImageUrl: true,
+            recordWin: true,
+            recordLoss: true,
+            recordDraw: true,
+            status: true,
+          },
+        },
+        division: {
+          select: {
+            id: true,
+            sportType: true,
+            ruleType: true,
+            gender: true,
+            ageGroup: true,
+            weightClass: true,
+            skillLevel: true,
+          },
+        },
+        gym: { select: { id: true, name: true } },
+      },
+    });
+    return rows as AutoMatchApplicationRow[];
   },
 };
