@@ -2,6 +2,7 @@
 
 import { useMemo, useState } from "react";
 import type { OrganizerApplicationRowVM } from "@/components/domain/applications/OrganizerApplicationsTable";
+import { OrganizerApplicationDetailDrawer } from "@/components/domain/applications/OrganizerApplicationDetailDrawer";
 import { OrganizerApplicationsCards } from "@/components/domain/applications/OrganizerApplicationsCards";
 import {
   OrganizerApplicationsFilterBar,
@@ -18,12 +19,17 @@ const DEFAULT_FILTERS: OrganizerApplicationFiltersState = {
 };
 
 export function OrganizerApplicationsBoard({
+  eventId,
   rows,
 }: {
+  eventId: string;
   rows: OrganizerApplicationRowVM[];
 }) {
   const [filters, setFilters] =
     useState<OrganizerApplicationFiltersState>(DEFAULT_FILTERS);
+  const [detailRow, setDetailRow] =
+    useState<OrganizerApplicationRowVM | null>(null);
+  const [detailOpen, setDetailOpen] = useState(false);
 
   const divisionOptions = useMemo(() => {
     const map = new Map<string, string>();
@@ -71,6 +77,11 @@ export function OrganizerApplicationsBoard({
     });
   }, [rows, filters]);
 
+  function openDetail(row: OrganizerApplicationRowVM) {
+    setDetailRow(row);
+    setDetailOpen(true);
+  }
+
   return (
     <div className="flex flex-col gap-6">
       <OrganizerApplicationsFilterBar
@@ -79,8 +90,14 @@ export function OrganizerApplicationsBoard({
         divisionOptions={divisionOptions}
         gymOptions={gymOptions}
       />
-      <OrganizerApplicationsTable rows={filtered} />
-      <OrganizerApplicationsCards rows={filtered} />
+      <OrganizerApplicationsTable rows={filtered} onOpenDetail={openDetail} />
+      <OrganizerApplicationsCards rows={filtered} onOpenDetail={openDetail} />
+      <OrganizerApplicationDetailDrawer
+        eventId={eventId}
+        row={detailRow}
+        open={detailOpen}
+        onOpenChange={setDetailOpen}
+      />
     </div>
   );
 }

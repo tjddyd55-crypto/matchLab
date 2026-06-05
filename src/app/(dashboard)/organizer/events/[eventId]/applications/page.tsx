@@ -51,7 +51,7 @@ export default async function OrganizerEventApplicationsPage({
 
       {creditCtx ? <OrganizerEventCreditNotice credit={creditCtx} /> : null}
 
-      <OrganizerApplicationsBoard rows={rows} />
+      <OrganizerApplicationsBoard eventId={eventId} rows={rows} />
     </div>
   );
 }

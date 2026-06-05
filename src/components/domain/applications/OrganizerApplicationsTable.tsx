@@ -2,13 +2,12 @@
 
 import { useState } from "react";
 import type { ApplicationStatus, PaymentStatus } from "@/generated/prisma";
-import { ApplicationPaymentSummary } from "@/components/domain/applications/ApplicationPaymentSummary";
+import { ApplicationStatusBadgesGroup } from "@/components/domain/applications/ApplicationStatusBadgesGroup";
 import { PaymentStatusControl } from "@/components/domain/payments/PaymentStatusControl";
 import {
   approveApplicationFormAction,
   rejectApplicationFormAction,
 } from "@/features/applications/actions";
-import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
 import {
   Table,
@@ -42,29 +41,34 @@ export type OrganizerApplicationRowVM = {
 
 export function OrganizerApplicationsTable({
   rows,
+  onOpenDetail,
 }: {
   rows: OrganizerApplicationRowVM[];
+  onOpenDetail: (row: OrganizerApplicationRowVM) => void;
 }) {
   return (
-    <div className="hidden lg:block">
-      <Table>
+    <div className="hidden overflow-x-auto lg:block">
+      <Table className="min-w-[64rem]">
         <TableHeader>
           <TableRow>
-            <TableHead>선수</TableHead>
-            <TableHead>체육관</TableHead>
-            <TableHead>부문</TableHead>
-            <TableHead>동의</TableHead>
-            <TableHead>상태</TableHead>
-            <TableHead>입금자명</TableHead>
-            <TableHead>신청일</TableHead>
-            <TableHead className="text-right">조치</TableHead>
+            <TableHead className="min-w-[10rem]">선수</TableHead>
+            <TableHead className="min-w-[8rem]">체육관</TableHead>
+            <TableHead className="min-w-[260px]">부문</TableHead>
+            <TableHead className="min-w-[150px]">상태</TableHead>
+            <TableHead className="min-w-[7rem]">입금자명</TableHead>
+            <TableHead className="min-w-[8rem]">신청일</TableHead>
+            <TableHead className="min-w-[180px] text-right">조치</TableHead>
           </TableRow>
         </TableHeader>
         <TableBody>
           {rows.map((row) => (
             <TableRow key={row.applicationId}>
               <TableCell>
-                <div className="flex items-center gap-2">
+                <button
+                  type="button"
+                  className="flex w-full items-center gap-2 text-left"
+                  onClick={() => onOpenDetail(row)}
+                >
                   <div className="relative size-10 shrink-0 overflow-hidden rounded-md bg-muted">
                     {row.fighterProfileImageUrl ? (
                       // eslint-disable-next-line @next/next/no-img-element
@@ -79,36 +83,34 @@ export function OrganizerApplicationsTable({
                       </span>
                     )}
                   </div>
-                  <div>
-                    <div className="font-medium">{row.fighterName}</div>
-                    <div className="text-muted-foreground text-xs">
+                  <div className="min-w-0">
+                    <div className="truncate font-medium underline-offset-2 hover:underline">
+                      {row.fighterName}
+                    </div>
+                    <div className="text-muted-foreground truncate text-xs">
                       {row.fighterId.slice(0, 8)}…
                     </div>
                   </div>
-                </div>
+                </button>
               </TableCell>
-              <TableCell className="max-w-[140px]">
+              <TableCell className="max-w-[10rem]">
                 <div className="truncate text-sm">{row.gymName}</div>
               </TableCell>
-              <TableCell className="text-muted-foreground max-w-[160px] text-xs">
-                {row.divisionLabel}
-              </TableCell>
-              <TableCell className="text-xs whitespace-nowrap">
-                {row.consentSummaryLabel}
+              <TableCell className="text-muted-foreground max-w-[280px] text-xs leading-snug">
+                <span className="line-clamp-2">{row.divisionLabel}</span>
               </TableCell>
               <TableCell>
-                <div className="flex flex-col gap-1">
-                  <ApplicationPaymentSummary
-                    applicationStatus={row.applicationStatus}
-                    paymentStatus={row.paymentStatus}
-                  />
-                  {row.applicationStatus === "pending" &&
-                  row.paymentStatus === "unpaid" ? (
-                    <Badge variant="outline" className="w-fit text-[10px]">
-                      입금 미확인 (승인 가능)
-                    </Badge>
-                  ) : null}
-                </div>
+                <ApplicationStatusBadgesGroup
+                  applicationStatus={row.applicationStatus}
+                  paymentStatus={row.paymentStatus}
+                  consentSummaryLabel={row.consentSummaryLabel}
+                  consentFilterKey={row.consentFilterKey}
+                  showPendingPaymentHint={
+                    row.applicationStatus === "pending" &&
+                    row.paymentStatus === "unpaid"
+                  }
+                  onBadgeClick={() => onOpenDetail(row)}
+                />
               </TableCell>
               <TableCell className="text-muted-foreground max-w-[120px] truncate text-xs">
                 {row.depositorName ?? "—"}
@@ -133,7 +135,7 @@ function OrganizerRowActions({ row }: { row: OrganizerApplicationRowVM }) {
   const [showReject, setShowReject] = useState(false);
 
   return (
-    <div className="flex flex-col items-end gap-2">
+    <div className="flex min-w-[11rem] flex-col items-end gap-2">
       <PaymentStatusControl
         paymentId={row.paymentId}
         paymentStatus={row.paymentStatus}

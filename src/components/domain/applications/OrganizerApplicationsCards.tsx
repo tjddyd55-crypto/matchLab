@@ -1,14 +1,13 @@
 "use client";
 
 import { useState } from "react";
-import { ApplicationPaymentSummary } from "@/components/domain/applications/ApplicationPaymentSummary";
+import { ApplicationStatusBadgesGroup } from "@/components/domain/applications/ApplicationStatusBadgesGroup";
 import type { OrganizerApplicationRowVM } from "@/components/domain/applications/OrganizerApplicationsTable";
 import { PaymentStatusControl } from "@/components/domain/payments/PaymentStatusControl";
 import {
   approveApplicationFormAction,
   rejectApplicationFormAction,
 } from "@/features/applications/actions";
-import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 
@@ -62,33 +61,41 @@ function OrganizerCardActions({ row }: { row: OrganizerApplicationRowVM }) {
 
 export function OrganizerApplicationsCards({
   rows,
+  onOpenDetail,
 }: {
   rows: OrganizerApplicationRowVM[];
+  onOpenDetail: (row: OrganizerApplicationRowVM) => void;
 }) {
   return (
     <div className="flex flex-col gap-3 lg:hidden">
       {rows.map((row) => (
         <Card key={row.applicationId}>
           <CardHeader className="pb-2">
-            <CardTitle className="text-base">{row.fighterName}</CardTitle>
-            <div className="text-muted-foreground text-xs">{row.gymName}</div>
+            <button
+              type="button"
+              className="text-left"
+              onClick={() => onOpenDetail(row)}
+            >
+              <CardTitle className="text-base">{row.fighterName}</CardTitle>
+              <div className="text-muted-foreground text-xs">{row.gymName}</div>
+            </button>
           </CardHeader>
           <CardContent className="flex flex-col gap-2 text-sm">
-            <div className="text-muted-foreground text-xs">{row.divisionLabel}</div>
-            <div className="flex flex-wrap gap-2 text-xs">
-              <span className="text-muted-foreground">보호자 동의</span>
-              <span>{row.consentSummaryLabel}</span>
+            <div className="text-muted-foreground line-clamp-2 text-xs">
+              {row.divisionLabel}
             </div>
-            <ApplicationPaymentSummary
+            <ApplicationStatusBadgesGroup
               applicationStatus={row.applicationStatus}
               paymentStatus={row.paymentStatus}
+              consentSummaryLabel={row.consentSummaryLabel}
+              consentFilterKey={row.consentFilterKey}
+              showPendingPaymentHint={
+                row.applicationStatus === "pending" &&
+                row.paymentStatus === "unpaid"
+              }
+              onBadgeClick={() => onOpenDetail(row)}
+              layout="wrap"
             />
-            {row.applicationStatus === "pending" &&
-            row.paymentStatus === "unpaid" ? (
-              <Badge variant="outline" className="w-fit text-[10px]">
-                입금 미확인 (승인 가능)
-              </Badge>
-            ) : null}
             <div className="text-muted-foreground text-xs">
               입금자명 {row.depositorName ?? "—"}
             </div>

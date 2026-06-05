@@ -1,152 +1,40 @@
 "use client";
 
-import {
-  checkInActionFormActionVoid,
-  markDisqualifiedFormActionVoid,
-  markNoShowFormActionVoid,
-  markWithdrawnFormActionVoid,
-  recordWeighInWeightFormActionVoid,
-  saveFieldMemoFormActionVoid,
-  weighInFailFormActionVoid,
-  weighInManualFailFormActionVoid,
-  weighInManualPassFormActionVoid,
-  weighInPassFormActionVoid,
-} from "@/features/field-status/actions";
+import type { ReactNode } from "react";
 import { CheckInStatusBadge } from "@/components/domain/field-status/CheckInStatusBadge";
 import { EligibilityBadge } from "@/components/domain/field-status/EligibilityBadge";
+import {
+  FieldMemoForm,
+  FieldStatusRowActions,
+  WeighInWeightForm,
+} from "@/components/domain/field-status/FieldStatusApplicationActions";
 import { WeighInStatusBadge } from "@/components/domain/field-status/WeighInStatusBadge";
-import { Button } from "@/components/ui/button";
 import type { FieldStatusRowDTO } from "@/lib/services/field-status.service";
-import { cn } from "@/lib/utils";
 
-function ActionButton({
-  label,
-  variant = "outline",
-  formAction,
-  applicationId,
-  confirmMessage,
+function StatusClickWrap({
+  onOpenDetail,
+  children,
 }: {
-  label: string;
-  variant?: "outline" | "secondary" | "destructive" | "default";
-  formAction: (formData: FormData) => Promise<void>;
-  applicationId: string;
-  confirmMessage?: string;
+  onOpenDetail: () => void;
+  children: ReactNode;
 }) {
   return (
-    <form
-      action={async (formData) => {
-        if (confirmMessage && !window.confirm(confirmMessage)) return;
-        await formAction(formData);
-      }}
+    <button
+      type="button"
+      onClick={onOpenDetail}
+      className="cursor-pointer text-left focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring"
     >
-      <input type="hidden" name="applicationId" value={applicationId} />
-      <Button type="submit" size="sm" variant={variant} className="h-7 text-xs">
-        {label}
-      </Button>
-    </form>
-  );
-}
-
-function FieldStatusRowActions({ row }: { row: FieldStatusRowDTO }) {
-  return (
-    <div className="flex min-w-[16rem] flex-wrap gap-1">
-      <ActionButton
-        label="현장 확인"
-        variant="default"
-        formAction={checkInActionFormActionVoid}
-        applicationId={row.applicationId}
-      />
-      <ActionButton
-        label="미출석"
-        formAction={markNoShowFormActionVoid}
-        applicationId={row.applicationId}
-        confirmMessage={`${row.fighterName} 선수를 미출석 처리할까요?`}
-      />
-      <ActionButton
-        label="철회"
-        formAction={markWithdrawnFormActionVoid}
-        applicationId={row.applicationId}
-        confirmMessage={`${row.fighterName} 선수를 철회 처리할까요?`}
-      />
-      <ActionButton
-        label="실격"
-        variant="destructive"
-        formAction={markDisqualifiedFormActionVoid}
-        applicationId={row.applicationId}
-        confirmMessage={`${row.fighterName} 선수를 실격 처리할까요?`}
-      />
-      <ActionButton
-        label="계체 통과"
-        formAction={weighInPassFormActionVoid}
-        applicationId={row.applicationId}
-      />
-      <ActionButton
-        label="계체 실패"
-        variant="destructive"
-        formAction={weighInFailFormActionVoid}
-        applicationId={row.applicationId}
-      />
-      <ActionButton
-        label="수동 승인"
-        formAction={weighInManualPassFormActionVoid}
-        applicationId={row.applicationId}
-      />
-      <ActionButton
-        label="수동 실패"
-        variant="destructive"
-        formAction={weighInManualFailFormActionVoid}
-        applicationId={row.applicationId}
-      />
-    </div>
-  );
-}
-
-function WeighInWeightForm({ row }: { row: FieldStatusRowDTO }) {
-  return (
-    <form action={recordWeighInWeightFormActionVoid} className="flex items-center gap-1">
-      <input type="hidden" name="applicationId" value={row.applicationId} />
-      <input
-        name="weightKg"
-        type="number"
-        step="0.1"
-        min="0"
-        placeholder="kg"
-        defaultValue={row.weighInWeightKg ?? ""}
-        className={cn(
-          "border-input bg-background h-8 w-20 rounded-md border px-2 text-xs",
-        )}
-      />
-      <Button type="submit" size="sm" variant="secondary" className="h-8 text-xs">
-        입력
-      </Button>
-    </form>
-  );
-}
-
-function FieldMemoForm({ row }: { row: FieldStatusRowDTO }) {
-  return (
-    <form action={saveFieldMemoFormActionVoid} className="flex flex-col gap-1">
-      <input type="hidden" name="applicationId" value={row.applicationId} />
-      <textarea
-        name="memo"
-        rows={2}
-        defaultValue={row.fieldMemo ?? ""}
-        placeholder="현장 메모"
-        className={cn(
-          "border-input bg-background min-h-[2.5rem] w-full min-w-[10rem] rounded-md border px-2 py-1 text-xs",
-        )}
-      />
-      <Button type="submit" size="sm" variant="outline" className="h-7 self-start text-xs">
-        메모 저장
-      </Button>
-    </form>
+      {children}
+    </button>
   );
 }
 
 export function OrganizerFieldStatusTable({
   rows,
+  onOpenDetail,
 }: {
   rows: FieldStatusRowDTO[];
+  onOpenDetail: (row: FieldStatusRowDTO) => void;
 }) {
   if (rows.length === 0) {
     return (
@@ -157,57 +45,112 @@ export function OrganizerFieldStatusTable({
   }
 
   return (
-    <div className="overflow-x-auto rounded-xl border">
-      <table className="w-full min-w-[72rem] text-left text-sm">
-        <thead className="bg-muted/40 text-xs">
-          <tr>
-            <th className="px-3 py-2 font-medium">선수명</th>
-            <th className="px-3 py-2 font-medium">체육관</th>
-            <th className="px-3 py-2 font-medium">신청 부문</th>
-            <th className="px-3 py-2 font-medium">신청 체급</th>
-            <th className="px-3 py-2 font-medium">현장 확인</th>
-            <th className="px-3 py-2 font-medium">계체 몸무게</th>
-            <th className="px-3 py-2 font-medium">계체 결과</th>
-            <th className="px-3 py-2 font-medium">출전 확정</th>
-            <th className="px-3 py-2 font-medium">메모</th>
-            <th className="px-3 py-2 font-medium">액션</th>
-          </tr>
-        </thead>
-        <tbody className="divide-y">
-          {rows.map((row) => (
-            <tr key={row.applicationId} className="align-top">
-              <td className="px-3 py-3 font-medium">{row.fighterName}</td>
-              <td className="px-3 py-3">{row.gymName}</td>
-              <td className="px-3 py-3 text-xs">{row.divisionLabel}</td>
-              <td className="px-3 py-3 text-xs">
-                {row.weightClassLabel ?? "—"}
-              </td>
-              <td className="px-3 py-3">
-                <CheckInStatusBadge status={row.checkInStatus} />
-              </td>
-              <td className="px-3 py-3">
-                <WeighInWeightForm row={row} />
-              </td>
-              <td className="px-3 py-3">
-                <WeighInStatusBadge status={row.weighInStatus} />
-              </td>
-              <td className="px-3 py-3">
-                <EligibilityBadge
-                  label={row.eligibilityLabel}
-                  isEligible={row.isEligibleForBracket}
-                  title={row.eligibilityReason}
-                />
-              </td>
-              <td className="px-3 py-3">
-                <FieldMemoForm row={row} />
-              </td>
-              <td className="px-3 py-3">
-                <FieldStatusRowActions row={row} />
-              </td>
+    <>
+      <div className="hidden overflow-x-auto rounded-xl border md:block">
+        <table className="w-full min-w-[72rem] text-left text-sm">
+          <thead className="bg-muted/40 text-xs">
+            <tr>
+              <th className="min-w-[7rem] px-3 py-2 font-medium">선수명</th>
+              <th className="min-w-[8rem] px-3 py-2 font-medium">체육관</th>
+              <th className="min-w-[14rem] px-3 py-2 font-medium">신청 부문</th>
+              <th className="min-w-[6rem] px-3 py-2 font-medium">신청 체급</th>
+              <th className="min-w-[7rem] px-3 py-2 font-medium">현장 확인</th>
+              <th className="min-w-[8rem] px-3 py-2 font-medium">계체 몸무게</th>
+              <th className="min-w-[7rem] px-3 py-2 font-medium">계체 결과</th>
+              <th className="min-w-[8rem] px-3 py-2 font-medium">출전 확정</th>
+              <th className="min-w-[10rem] px-3 py-2 font-medium">메모</th>
+              <th className="min-w-[11rem] px-3 py-2 font-medium">액션</th>
             </tr>
-          ))}
-        </tbody>
-      </table>
-    </div>
+          </thead>
+          <tbody className="divide-y">
+            {rows.map((row) => (
+              <tr key={row.applicationId} className="align-top">
+                <td className="px-3 py-3">
+                  <button
+                    type="button"
+                    className="font-medium underline-offset-2 hover:underline"
+                    onClick={() => onOpenDetail(row)}
+                  >
+                    {row.fighterName}
+                  </button>
+                </td>
+                <td className="max-w-[10rem] truncate px-3 py-3">
+                  {row.gymName}
+                </td>
+                <td className="max-w-[16rem] px-3 py-3 text-xs leading-snug">
+                  <span className="line-clamp-2">{row.divisionLabel}</span>
+                </td>
+                <td className="px-3 py-3 text-xs">
+                  {row.weightClassLabel ?? "—"}
+                </td>
+                <td className="px-3 py-3">
+                  <StatusClickWrap onOpenDetail={() => onOpenDetail(row)}>
+                    <CheckInStatusBadge status={row.checkInStatus} />
+                  </StatusClickWrap>
+                </td>
+                <td className="px-3 py-3">
+                  <WeighInWeightForm row={row} />
+                </td>
+                <td className="px-3 py-3">
+                  <StatusClickWrap onOpenDetail={() => onOpenDetail(row)}>
+                    <WeighInStatusBadge status={row.weighInStatus} />
+                  </StatusClickWrap>
+                </td>
+                <td className="px-3 py-3">
+                  <StatusClickWrap onOpenDetail={() => onOpenDetail(row)}>
+                    <EligibilityBadge
+                      label={row.eligibilityLabel}
+                      isEligible={row.isEligibleForBracket}
+                      title={row.eligibilityReason}
+                    />
+                  </StatusClickWrap>
+                </td>
+                <td className="px-3 py-3">
+                  <FieldMemoForm row={row} />
+                </td>
+                <td className="px-3 py-3">
+                  <FieldStatusRowActions row={row} />
+                </td>
+              </tr>
+            ))}
+          </tbody>
+        </table>
+      </div>
+
+      <div className="flex flex-col gap-3 md:hidden">
+        {rows.map((row) => (
+          <article
+            key={row.applicationId}
+            className="ring-foreground/10 rounded-xl border bg-card p-4 shadow-sm"
+          >
+            <button
+              type="button"
+              className="text-left"
+              onClick={() => onOpenDetail(row)}
+            >
+              <h3 className="font-medium">{row.fighterName}</h3>
+              <p className="text-muted-foreground text-xs">{row.gymName}</p>
+              <p className="text-muted-foreground mt-1 line-clamp-2 text-xs">
+                {row.divisionLabel}
+              </p>
+            </button>
+            <div className="mt-3 flex flex-wrap gap-1.5">
+              <CheckInStatusBadge status={row.checkInStatus} />
+              <WeighInStatusBadge status={row.weighInStatus} />
+              <EligibilityBadge
+                label={row.eligibilityLabel}
+                isEligible={row.isEligibleForBracket}
+                title={row.eligibilityReason}
+              />
+            </div>
+            <div className="mt-3 space-y-2 border-t pt-3">
+              <WeighInWeightForm row={row} />
+              <FieldMemoForm row={row} />
+              <FieldStatusRowActions row={row} />
+            </div>
+          </article>
+        ))}
+      </div>
+    </>
   );
 }
