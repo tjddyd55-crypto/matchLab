@@ -26,7 +26,10 @@ import { gymEventFeeRepository } from "@/lib/repositories/gym-event-fee.reposito
 import { registrationRepository } from "@/lib/repositories/registration.repository";
 import { notificationService } from "@/lib/services/notification.service";
 import { creditService } from "@/lib/services/credit.service";
+import { formatFighterGenderLabel } from "@/lib/applications/division-fighter-match";
+import { publicAgeGroupFromBirthDate } from "@/lib/public-fighter/age-group";
 import type { ApplyToEventInput } from "@/lib/validators/application.validator";
+import type { BulkApplyToEventInput } from "@/lib/validators/bulk-application.validator";
 
 /** 신청 동의 스냅샷 버전 — 문구·정책 변경 시 함께 올릴 것. */
 const APPLICATION_AGREEMENT_SNAPSHOT_VERSION = "v1";
@@ -98,6 +101,84 @@ async function assertGymApplicator(actor: ActorContext): Promise<string> {
   }
   await requireGymOwner(actor, gymId);
   return gymId;
+}
+
+type GymApplicationCreateContext = {
+  eventId: string;
+  divisionId: string;
+  gymId: string;
+  gymDisplayName: string;
+  fighter: {
+    id: string;
+    fighterCode: string;
+    name: string;
+    profileImageUrl: string | null;
+    recordWin: number;
+    recordLoss: number;
+    recordDraw: number;
+  };
+  agreements: ApplyToEventInput["agreements"];
+  streamingAgreementRequired: boolean;
+  appliedByUserId: string;
+  appliedAt: Date;
+  feeAmount: number;
+  applicationProfileImageUrl?: string | null;
+  memo?: string | null;
+};
+
+async function createGymEventApplication(
+  ctx: GymApplicationCreateContext,
+): Promise<{ applicationId: string }> {
+  const profileUrl =
+    ctx.applicationProfileImageUrl?.trim() ||
+    ctx.fighter.profileImageUrl ||
+    null;
+
+  const fighterSnapshot = {
+    fighterId: ctx.fighter.id,
+    fighterCode: ctx.fighter.fighterCode,
+    name: ctx.fighter.name,
+    gymName: ctx.gymDisplayName,
+    profileImageUrl: profileUrl,
+    recordSummary: formatRecordSummary(ctx.fighter),
+  };
+
+  const gymSnapshot = {
+    gymId: ctx.gymId,
+    name: ctx.gymDisplayName,
+  };
+
+  const applicationAgreementSnapshot = {
+    version: APPLICATION_AGREEMENT_SNAPSHOT_VERSION,
+    rulesAgreed: ctx.agreements.rulesAgreed,
+    privacyAgreed: ctx.agreements.privacyAgreed,
+    resultDisclosureAgreed: ctx.agreements.resultDisclosureAgreed,
+    photoVideoAgreed: ctx.agreements.photoVideoAgreed,
+    streamingAgreed: ctx.agreements.streamingAgreed ?? false,
+    streamingRequired: ctx.streamingAgreementRequired,
+    agreedAt: ctx.appliedAt.toISOString(),
+    appliedByUserId: ctx.appliedByUserId,
+  };
+
+  return prisma.$transaction(async (tx) =>
+    applicationRepository.createEventApplicationWithPayment(
+      {
+        eventId: ctx.eventId,
+        divisionId: ctx.divisionId,
+        gymId: ctx.gymId,
+        fighterId: ctx.fighter.id,
+        fighterSnapshot,
+        gymSnapshot,
+        applicationAgreementSnapshot,
+        appliedByUserId: ctx.appliedByUserId,
+        appliedAt: ctx.appliedAt,
+        applicationProfileImageUrl: profileUrl,
+        memo: ctx.memo?.trim() || null,
+        feeAmount: ctx.feeAmount,
+      },
+      tx,
+    ),
+  );
 }
 
 function readSnapshotName(snapshot: unknown): string {
@@ -199,22 +280,59 @@ export type EventApplicationFormDTO = {
     gymAthleteFeeGuidance: number | null;
     gymAthleteFeeNote: string | null;
   };
-  divisions: { id: string; label: string }[];
-  fighters: {
-    id: string;
-    fighterCode: string;
-    name: string;
-    profileImageUrl: string | null;
-    recordSummary: string;
-    appliedDivisionIds: string[];
-    guardianPolicyRequires: boolean;
-    guardianConsentOk: boolean;
-  }[];
+  divisions: EventApplicationDivisionRowDTO[];
+  fighters: EventApplicationFighterRowDTO[];
+};
+
+export type EventApplicationDivisionRowDTO = {
+  id: string;
+  label: string;
+  sportType: string | null;
+  ruleType: string | null;
+  gender: string | null;
+  ageGroup: string | null;
+  weightClass: string | null;
+  skillLevel: string | null;
+};
+
+export type EventApplicationFighterRowDTO = {
+  id: string;
+  fighterCode: string;
+  name: string;
+  profileImageUrl: string | null;
+  recordSummary: string;
+  gender: string;
+  genderLabel: string;
+  birthDate: string;
+  ageGroup: string;
+  weightKg: number | null;
+  primarySport: string | null;
+  appliedDivisionIds: string[];
+  guardianPolicyRequires: boolean;
+  guardianConsentOk: boolean;
 };
 
 export type ApplyToEventSuccessDTO = {
   applicationId: string;
   paymentInstruction: BankPaymentInstructionDTO;
+};
+
+export type BulkApplyItemResultDTO = {
+  fighterId: string;
+  fighterName: string;
+  divisionId: string;
+  outcome: "created" | "skipped" | "failed";
+  message?: string;
+  applicationId?: string;
+};
+
+export type BulkApplyToEventSuccessDTO = {
+  totalSelected: number;
+  createdCount: number;
+  skippedCount: number;
+  failedCount: number;
+  items: BulkApplyItemResultDTO[];
+  paymentInstruction: BankPaymentInstructionDTO | null;
 };
 
 function consentSummaryFields(
@@ -458,6 +576,12 @@ export const applicationService = {
         name: f.name,
         profileImageUrl: f.profileImageUrl,
         recordSummary: formatRecordSummary(f),
+        gender: f.gender,
+        genderLabel: formatFighterGenderLabel(f.gender),
+        birthDate: toIso(f.birthDate),
+        ageGroup: publicAgeGroupFromBirthDate(f.birthDate),
+        weightKg: f.weight,
+        primarySport: f.primarySport,
         appliedDivisionIds: appliedMap.get(f.id) ?? [],
         guardianPolicyRequires: policyRequires,
         guardianConsentOk: true,
@@ -481,6 +605,12 @@ export const applicationService = {
       divisions: event.divisions.map((d) => ({
         id: d.id,
         label: formatDivisionLabel(d),
+        sportType: d.sportType,
+        ruleType: d.ruleType,
+        gender: d.gender,
+        ageGroup: d.ageGroup,
+        weightClass: d.weightClass,
+        skillLevel: d.skillLevel,
       })),
       fighters: fighterRows,
     };
@@ -554,60 +684,21 @@ export const applicationService = {
       );
     }
 
-    const profileUrl =
-      input.applicationProfileImageUrl?.trim() ||
-      fighter.profileImageUrl ||
-      null;
-
-    const fighterSnapshot = {
-      fighterId: fighter.id,
-      fighterCode: fighter.fighterCode,
-      name: fighter.name,
-      gymName: gymDisplayName,
-      profileImageUrl: profileUrl,
-      recordSummary: formatRecordSummary(fighter),
-    };
-
-    const gymSnapshot = {
-      gymId,
-      name: gymDisplayName,
-    };
-
     const appliedAt = new Date();
 
-    // TODO: 향후 Event 단위 GuardianConsent 레코드를 두고 대회별 보호자 동의를 확장할 때,
-    // applicationAgreementSnapshot 와 연계하는 마이그레이션을 검토한다.
-
-    const applicationAgreementSnapshot = {
-      version: APPLICATION_AGREEMENT_SNAPSHOT_VERSION,
-      rulesAgreed: input.agreements.rulesAgreed,
-      privacyAgreed: input.agreements.privacyAgreed,
-      resultDisclosureAgreed: input.agreements.resultDisclosureAgreed,
-      photoVideoAgreed: input.agreements.photoVideoAgreed,
-      streamingAgreed: input.agreements.streamingAgreed ?? false,
-      streamingRequired: streamingAgreementRequired,
-      agreedAt: appliedAt.toISOString(),
+    const { applicationId } = await createGymEventApplication({
+      eventId: input.eventId,
+      divisionId: input.divisionId,
+      gymId,
+      gymDisplayName,
+      fighter,
+      agreements: input.agreements,
+      streamingAgreementRequired,
       appliedByUserId: actor.userId,
-    };
-
-    const { applicationId } = await prisma.$transaction(async (tx) => {
-      return applicationRepository.createEventApplicationWithPayment(
-        {
-          eventId: input.eventId,
-          divisionId: input.divisionId,
-          gymId,
-          fighterId: fighter.id,
-          fighterSnapshot,
-          gymSnapshot,
-          applicationAgreementSnapshot,
-          appliedByUserId: actor.userId,
-          appliedAt,
-          applicationProfileImageUrl: profileUrl,
-          memo: input.memo?.trim() || null,
-          feeAmount: paymentSetting.feeAmount,
-        },
-        tx,
-      );
+      appliedAt,
+      feeAmount: paymentSetting.feeAmount,
+      applicationProfileImageUrl: input.applicationProfileImageUrl,
+      memo: input.memo,
     });
 
     return {
@@ -622,6 +713,177 @@ export const applicationService = {
           ? toIso(paymentSetting.paymentDueDate)
           : null,
       },
+    };
+  },
+
+  async bulkApplyToEventAsGym(
+    actor: ActorContext,
+    input: BulkApplyToEventInput,
+  ): Promise<BulkApplyToEventSuccessDTO> {
+    const gymId = await assertGymApplicator(actor);
+
+    const event =
+      await eventRepository.findEventWithDivisionsForApplication(input.eventId);
+    if (!event) {
+      throw new AppError("NOT_FOUND", "대회를 찾을 수 없습니다.");
+    }
+    assertRegistrationWindow(event);
+
+    const streamingAgreementRequired =
+      event.liveStreamingEnabled || event.streamingConsentRequired;
+    if (streamingAgreementRequired && input.agreements.streamingAgreed !== true) {
+      throw new AppError(
+        "FORBIDDEN",
+        "본 대회는 촬영·스트리밍 관련 동의가 필요합니다.",
+      );
+    }
+
+    const paymentSetting = await eventRepository.findEventPaymentSettingFull(
+      input.eventId,
+    );
+    if (!paymentSetting) {
+      throw new AppError(
+        "NOT_FOUND",
+        "참가비 입금 정보가 설정되지 않았습니다. 주최자에게 문의해 주세요.",
+      );
+    }
+
+    const gymMeta = await registrationRepository.findGymNameById(gymId);
+    const gymDisplayName = gymMeta?.name ?? "체육관";
+
+    const divisionIds = new Set(event.divisions.map((d) => d.id));
+    const fighterNameById = new Map(
+      (await fighterRepository.listActiveFightersForEventApplication(gymId)).map(
+        (f) => [f.id, f.name] as const,
+      ),
+    );
+
+    const items: BulkApplyItemResultDTO[] = [];
+    let createdCount = 0;
+    let skippedCount = 0;
+    let failedCount = 0;
+    const appliedAt = new Date();
+    const seenKeys = new Set<string>();
+
+    for (const row of input.applications) {
+      const fighterName = fighterNameById.get(row.fighterId) ?? "선수";
+      const dedupeKey = `${row.fighterId}:${row.divisionId}`;
+
+      if (seenKeys.has(dedupeKey)) {
+        items.push({
+          fighterId: row.fighterId,
+          fighterName,
+          divisionId: row.divisionId,
+          outcome: "skipped",
+          message: "요청 목록에 중복된 선수·부문 조합이 있습니다.",
+        });
+        skippedCount += 1;
+        continue;
+      }
+      seenKeys.add(dedupeKey);
+
+      if (!divisionIds.has(row.divisionId)) {
+        items.push({
+          fighterId: row.fighterId,
+          fighterName,
+          divisionId: row.divisionId,
+          outcome: "failed",
+          message: "유효하지 않은 부문입니다.",
+        });
+        failedCount += 1;
+        continue;
+      }
+
+      const fighter = await fighterRepository.findFighterForGymApplication(
+        row.fighterId,
+        gymId,
+      );
+      if (!fighter || fighter.status !== FighterStatus.active) {
+        items.push({
+          fighterId: row.fighterId,
+          fighterName,
+          divisionId: row.divisionId,
+          outcome: "failed",
+          message: "신청할 수 있는 소속 선수가 아닙니다.",
+        });
+        failedCount += 1;
+        continue;
+      }
+
+      const existing = await applicationRepository.findExistingApplication(
+        input.eventId,
+        fighter.id,
+        row.divisionId,
+      );
+      if (existing) {
+        items.push({
+          fighterId: row.fighterId,
+          fighterName: fighter.name,
+          divisionId: row.divisionId,
+          outcome: "skipped",
+          message: "이미 해당 부문에 신청되어 있습니다.",
+        });
+        skippedCount += 1;
+        continue;
+      }
+
+      try {
+        const { applicationId } = await createGymEventApplication({
+          eventId: input.eventId,
+          divisionId: row.divisionId,
+          gymId,
+          gymDisplayName,
+          fighter,
+          agreements: input.agreements,
+          streamingAgreementRequired,
+          appliedByUserId: actor.userId,
+          appliedAt,
+          feeAmount: paymentSetting.feeAmount,
+          memo: input.memo,
+        });
+        items.push({
+          fighterId: row.fighterId,
+          fighterName: fighter.name,
+          divisionId: row.divisionId,
+          outcome: "created",
+          applicationId,
+        });
+        createdCount += 1;
+      } catch (e) {
+        const message =
+          e instanceof AppError
+            ? e.message
+            : "신청 생성 중 오류가 발생했습니다.";
+        items.push({
+          fighterId: row.fighterId,
+          fighterName: fighter.name,
+          divisionId: row.divisionId,
+          outcome: "failed",
+          message,
+        });
+        failedCount += 1;
+      }
+    }
+
+    return {
+      totalSelected: input.applications.length,
+      createdCount,
+      skippedCount,
+      failedCount,
+      items,
+      paymentInstruction:
+        createdCount > 0
+          ? {
+              feeAmount: paymentSetting.feeAmount,
+              bankName: paymentSetting.bankName,
+              accountNumber: paymentSetting.accountNumber,
+              accountHolder: paymentSetting.accountHolder,
+              depositorRule: paymentSetting.depositorRule,
+              paymentDueDate: paymentSetting.paymentDueDate
+                ? toIso(paymentSetting.paymentDueDate)
+                : null,
+            }
+          : null,
     };
   },
 

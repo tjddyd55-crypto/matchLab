@@ -369,6 +369,8 @@ export const fighterRepository = {
       name: string;
       birthDate: Date;
       gender: string;
+      weight: number | null;
+      primarySport: string | null;
       profileImageUrl: string | null;
       recordWin: number;
       recordLoss: number;
@@ -389,6 +391,8 @@ export const fighterRepository = {
         name: true,
         birthDate: true,
         gender: true,
+        weight: true,
+        primarySport: true,
         profileImageUrl: true,
         recordWin: true,
         recordLoss: true,

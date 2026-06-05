@@ -18,7 +18,12 @@ import {
 } from "@/lib/validators/application.validator";
 import type {
   ApplyToEventSuccessDTO,
+  BulkApplyToEventSuccessDTO,
 } from "@/lib/services/application.service";
+import {
+  bulkApplyToEventSchema,
+  type BulkApplyToEventInput,
+} from "@/lib/validators/bulk-application.validator";
 
 function mapCaught<T>(
   fn: () => Promise<ActionResult<T>>,
@@ -54,15 +59,10 @@ export async function applyToEventAction(
     const streamingRequired =
       formReq(formData, "streamingAgreementRequired") === "1";
 
-    const agreements: ApplyToEventInput["agreements"] = {
-      rulesAgreed: formData.get("rulesAgreed") === "on",
-      privacyAgreed: formData.get("privacyAgreed") === "on",
-      resultDisclosureAgreed: formData.get("resultDisclosureAgreed") === "on",
-      photoVideoAgreed: formData.get("photoVideoAgreed") === "on",
-    };
-    if (streamingRequired) {
-      agreements.streamingAgreed = formData.get("streamingAgreed") === "on";
-    }
+    const agreements = parseAgreementsFromFormData(
+      formData,
+      streamingRequired,
+    );
 
     const raw: ApplyToEventInput = {
       eventId: formReq(formData, "eventId"),
@@ -85,6 +85,71 @@ export async function applyToEventAction(
 
     const actor = await requireActorFromMutation();
     const data = await applicationService.applyToEventAsGym(actor, parsed.data);
+    return actionSuccess(data);
+  });
+}
+
+function parseAgreementsFromFormData(
+  formData: FormData,
+  streamingRequired: boolean,
+): ApplyToEventInput["agreements"] {
+  const agreements: ApplyToEventInput["agreements"] = {
+    rulesAgreed: formData.get("rulesAgreed") === "on",
+    privacyAgreed: formData.get("privacyAgreed") === "on",
+    resultDisclosureAgreed: formData.get("resultDisclosureAgreed") === "on",
+    photoVideoAgreed: formData.get("photoVideoAgreed") === "on",
+  };
+  if (streamingRequired) {
+    agreements.streamingAgreed = formData.get("streamingAgreed") === "on";
+  }
+  return agreements;
+}
+
+export async function createBulkEventApplicationsAction(
+  _prev: unknown,
+  formData: FormData,
+): Promise<ActionResult<BulkApplyToEventSuccessDTO>> {
+  return mapCaught(async () => {
+    const streamingRequired =
+      formReq(formData, "streamingAgreementRequired") === "1";
+
+    let applications: BulkApplyToEventInput["applications"] = [];
+    const applicationsJson = formReq(formData, "applicationsJson");
+    if (applicationsJson) {
+      try {
+        const parsedJson = JSON.parse(applicationsJson) as unknown;
+        if (Array.isArray(parsedJson)) {
+          applications = parsedJson as BulkApplyToEventInput["applications"];
+        }
+      } catch {
+        return actionFailure(
+          "VALIDATION_ERROR",
+          "신청 목록 형식이 올바르지 않습니다.",
+        );
+      }
+    }
+
+    const raw: BulkApplyToEventInput = {
+      eventId: formReq(formData, "eventId"),
+      applications,
+      memo: formReq(formData, "memo") || undefined,
+      agreements: parseAgreementsFromFormData(formData, streamingRequired),
+    };
+
+    const parsed = bulkApplyToEventSchema.safeParse(raw);
+    if (!parsed.success) {
+      return actionFailure(
+        "VALIDATION_ERROR",
+        "입력값을 확인해 주세요.",
+        parsed.error.flatten(),
+      );
+    }
+
+    const actor = await requireActorFromMutation();
+    const data = await applicationService.bulkApplyToEventAsGym(
+      actor,
+      parsed.data,
+    );
     return actionSuccess(data);
   });
 }

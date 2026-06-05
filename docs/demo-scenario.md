@@ -18,7 +18,7 @@ MVP 범위는 `docs/mvp-scope.md`를 기준으로 하며, 본 문서는 **시연
 1. **admin** — `/admin/application-form-templates/new`에서 **실제 PDF 업로드** → 업로드 직후 좌표는 **비어 있음** → PDF 위 「+ 텍스트」 등으로 필드 박스 추가·드래그·리사이즈 → source 연결 → 저장.
 2. **admin** — (선택) 「고급 설정」에서 fieldsJson 직접 수정 후 「JSON을 화면에 반영」 또는 「예시 좌표 불러오기」(자동 적용 없음).
 3. **organizer** — `/organizer/events/{eventId}`에서 공식 신청서 템플릿 연결 저장.
-4. **gym** — `/gym/events/{eventId}/apply`에서 선수·부문 선택 → 「선수별 신청서 생성」.
+4. **gym** — `/gym/events/{eventId}/apply`에서 선수·부문 선택 → 「선수별 신청서 생성」(또는 **선수 일괄 신청**으로 부문별 일반 신청).
 5. **선수** — 「서명 페이지 열기」 또는 `/application-sign/[token]`에서 서명 완료.
 6. **보호자**(미성년·학생) — `/guardian-consent/[id]?scope=application`에서 동의·서명.
 7. **gym** — 문서 상태 `completed` 확인 → (선택) 완료 PDF 생성 대기 → 「신청 묶음 제출」.
@@ -31,7 +31,7 @@ MVP 범위는 `docs/mvp-scope.md`를 기준으로 하며, 본 문서는 **시연
 1. **organizer** — `/organizer/division-templates/new` → 「무에타이 예시 불러오기」→ 일부 체급 수정 → 저장. (편집 화면은 **넓은 레이아웃**·빠른 입력 textarea·부별 표를 확인.)
 2. **organizer** — `/organizer/events/{eventId}` → 「체급표로 부문 생성」→ 템플릿 선택·미리보기 → 「동일 부문 건너뛰기」로 적용.
 3. **spectator** — `/events/{slug}` 공개 상세에서 생성된 부문 목록 확인.
-4. **gym** — `/gym/events/{eventId}/apply`에서 생성된 부문으로 선수 신청.
+4. **gym** — `/gym/events/{eventId}/apply`에서 **선수 일괄 신청**(체크·행별 부문 select·공통 동의) 또는 개별 신청으로 부문 신청.
 
 ### 1.3 포스터 · 갤러리 · 공개 공고 UI
 

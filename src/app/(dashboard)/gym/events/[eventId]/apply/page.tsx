@@ -7,6 +7,7 @@ import {
 import { applicationBatchService } from "@/lib/services/application-batch.service";
 import { applicationDocumentService } from "@/lib/services/application-document.service";
 import { EventApplicationForm } from "@/components/domain/applications/EventApplicationForm";
+import { GymBulkApplicationForm } from "@/components/domain/applications/GymBulkApplicationForm";
 import { GymOfficialApplicationWorkspace } from "@/components/domain/applications/GymOfficialApplicationWorkspace";
 import { GymAthleteFeePreflight } from "@/components/domain/applications/GymAthleteFeePreflight";
 import Link from "next/link";
@@ -26,10 +27,10 @@ export default async function GymEventApplyPage({
 
   if (!actor.gymId) {
     return (
-      <div className="mx-auto flex w-full max-w-3xl flex-col gap-6 px-4 py-8 md:px-6">
+      <div className="mx-auto flex w-full max-w-5xl flex-col gap-6 px-4 py-8 md:px-6">
         <EmptyState
           title="체육관 계정이 필요합니다"
-          description="대회 신청은 체육관(관장) 계정에서 진행됩니다."
+          description="대회 신청은 체육관(관장) 계정에서 진행합니다."
         />
       </div>
     );
@@ -50,7 +51,7 @@ export default async function GymEventApplyPage({
 
   if (blocked) {
     return (
-      <div className="mx-auto flex w-full max-w-3xl flex-col gap-6 px-4 py-8 md:px-6">
+      <div className="mx-auto flex w-full max-w-5xl flex-col gap-6 px-4 py-8 md:px-6">
         <EmptyState title="신청할 수 없습니다" description={blocked.message} />
       </div>
     );
@@ -58,7 +59,7 @@ export default async function GymEventApplyPage({
 
   if (!form) {
     return (
-      <div className="mx-auto flex w-full max-w-3xl flex-col gap-6 px-4 py-8 md:px-6">
+      <div className="mx-auto flex w-full max-w-5xl flex-col gap-6 px-4 py-8 md:px-6">
         <EmptyState
           title="대회 정보를 불러올 수 없습니다"
           description="잠시 후 다시 시도해 주세요."
@@ -82,7 +83,7 @@ export default async function GymEventApplyPage({
 
   if (form.divisions.length === 0) {
     return (
-      <div className="mx-auto flex w-full max-w-3xl flex-col gap-6 px-4 py-8 md:px-6">
+      <div className="mx-auto flex w-full max-w-5xl flex-col gap-6 px-4 py-8 md:px-6">
         <EmptyState
           title="신청 가능한 부문이 없습니다"
           description="주최자에게 문의해 주세요."
@@ -93,7 +94,7 @@ export default async function GymEventApplyPage({
 
   if (form.fighters.length === 0) {
     return (
-      <div className="mx-auto flex w-full max-w-3xl flex-col gap-6 px-4 py-8 md:px-6">
+      <div className="mx-auto flex w-full max-w-5xl flex-col gap-6 px-4 py-8 md:px-6">
         <EmptyState
           title="신청 가능한 선수가 없습니다"
           description="먼저 선수를 등록한 뒤 대회 신청을 진행해 주세요."
@@ -119,7 +120,7 @@ export default async function GymEventApplyPage({
   }
 
   return (
-    <div className="mx-auto flex w-full max-w-3xl flex-col gap-8 px-4 py-8 md:px-6">
+    <div className="mx-auto flex w-full max-w-5xl flex-col gap-8 px-4 py-8 md:px-6">
       <div>
         <h1 className="font-heading text-2xl font-semibold tracking-tight">
           대회 신청
@@ -146,35 +147,44 @@ export default async function GymEventApplyPage({
           divisions={form.divisions}
           fighters={form.fighters}
         />
-      ) : (
-        <div className="rounded-xl border border-dashed p-4 text-sm">
-          <p className="font-medium">공식 신청서 템플릿 미연결</p>
-          <p className="text-muted-foreground mt-1 leading-relaxed">
-            이 대회에는 아직 공식 PDF 신청서 템플릿이 연결되지 않았습니다.
-            주최자에게 템플릿 연결을 요청하거나, 아래 기존 부문별 신청을
-            이용해 주세요.
-          </p>
-        </div>
-      )}
+      ) : null}
 
       <section className="space-y-4">
-        <h2 className="text-lg font-semibold">
-          {workspace.template ? "부문별 개별 신청 (기존)" : "부문별 개별 신청"}
-        </h2>
-        {workspace.template ? (
-          <p className="text-muted-foreground text-sm leading-relaxed">
-            공식 PDF 신청서 묶음과 별도로, 부문·선수 단위의 기존 신청·입금 흐름을
-            사용할 수 있습니다.
+        <div>
+          <h2 className="text-lg font-semibold">선수 일괄 신청</h2>
+          <p className="text-muted-foreground mt-1 text-sm leading-relaxed">
+            소속 선수 목록에서 신청할 선수를 선택하고, 각 선수별 부문을 지정한
+            뒤 한 번에 저장합니다.
           </p>
-        ) : null}
-        <EventApplicationForm
+        </div>
+        <GymBulkApplicationForm
           eventId={form.event.id}
           divisions={form.divisions}
           fighters={form.fighters}
           streamingAgreementRequired={form.event.streamingAgreementRequired}
           streamingNoticeText={form.event.streamingNoticeText}
+          hasOfficialTemplate={Boolean(workspace.template)}
         />
       </section>
+
+      <details className="rounded-xl border border-border/70 bg-muted/10 p-4">
+        <summary className="cursor-pointer text-sm font-medium">
+          기존 방식으로 1명씩 신청하기
+        </summary>
+        <div className="mt-4 space-y-4">
+          <p className="text-muted-foreground text-sm leading-relaxed">
+            부문을 먼저 선택한 뒤 선수 1명을 지정해 개별 신청합니다. 공식 PDF
+            신청서와 별도로 동일한 부문별 신청·입금 흐름을 사용합니다.
+          </p>
+          <EventApplicationForm
+            eventId={form.event.id}
+            divisions={form.divisions}
+            fighters={form.fighters}
+            streamingAgreementRequired={form.event.streamingAgreementRequired}
+            streamingNoticeText={form.event.streamingNoticeText}
+          />
+        </div>
+      </details>
     </div>
   );
 }

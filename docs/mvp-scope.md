@@ -48,6 +48,7 @@
 - [x] 체육관 승인 후 **선수 고유번호(`fighterCode`)** 발급.
 - [x] 중복 후보: 이름+생년월일+성별(+휴대폰) — 500 대신 안내·기존 선수 연결 선택.
 - [x] 대회 신청(`/gym/events/[eventId]/apply`) — 활성 소속 선수만, 0명 시 등록 CTA.
+- [x] **선수 일괄 신청** — 선수 목록·행별 부문 select·공통 동의·`createBulkEventApplicationsAction`(부분 성공/건너뜀/실패 요약).
 
 ### 공식 신청서 PDF (대회 신청 단계)
 
