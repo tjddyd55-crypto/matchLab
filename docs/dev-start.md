@@ -174,19 +174,41 @@ npm run repair:demo-gym
 
 ### 대진표 자동 매칭 테스트 데이터 (`npm run setup:bracket-demo-data`)
 
-대진표 **자동 1차 매칭** 실무 테스트용으로 체육관 `gym1`~`gym7`·각 10명 선수(총 80명)·테스트 대회 `approved` `EventApplication`을 **idempotent upsert**합니다.
+대진표 **자동 1차 매칭** 실무 테스트용으로 체육관 `gym`+`gym1`~`gym7`(8개)·각 10명 선수(총 80명)·테스트 대회 `approved` `EventApplication`을 **idempotent upsert**합니다.
+
+**실행 순서:**
+
+```bash
+npm run setup:demo-users
+npm run setup:bracket-demo-data
+```
 
 **전제:** `DATABASE_URL`, `NEXT_PUBLIC_SUPABASE_URL`, `SUPABASE_SERVICE_ROLE_KEY`, `npm run setup:demo-users`(기존 `gym` 계정).
+
+**로컬:**
 
 ```bash
 npm run setup:bracket-demo-data
 ```
 
+**Railway production (PowerShell 예시):**
+
+```powershell
+$env:DATABASE_URL = "<Railway Postgres DATABASE_PUBLIC_URL>"
+$env:NEXT_PUBLIC_SUPABASE_URL = "<Supabase URL>"
+$env:SUPABASE_SERVICE_ROLE_KEY = "<Supabase service role key>"
+$env:DEMO_PASSWORD = "123456!!"
+$env:NEXT_PUBLIC_APP_URL = "https://app-production-79ad.up.railway.app"
+
+npm run setup:bracket-demo-data
+```
+
 - 대상 대회 우선순위: `DEMO_BRACKET_EVENT_ID` → `DEMO_BRACKET_EVENT_SLUG` → `sample-open-2026`
-- **`db:seed` 금지** — 운영·스테이징 DB에서 wipe 없음
+- 선수 `fighterCode`: `FTR-BKT-GYM-01` ~ `FTR-BKT-GYM7-10` (upsert, 중복 생성 없음)
+- division 12개·3종목(kickboxing/boxing/muaythai)·체육관 라운드로빈 분산
+- **`db:seed` 금지** — 기존 데이터 삭제 없음
 - **크레딧 ledger 미발생** — `approveEventApplication` 경유 없이 `EventApplication` 직접 upsert
-- Railway production Shell에서는 `DATABASE_PUBLIC_URL`을 `DATABASE_URL`로 export한 뒤 실행 (`docs/deploy-railway.md` 참고)
-- 두 번 실행해도 동일 수량 유지(fighterCode·loginId 기준 upsert)
+- 여러 번 실행 가능(idempotent repair)
 
 ### 테스트용 선수 20명 추가 (`npm run seed:demo-fighters`)
 

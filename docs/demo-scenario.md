@@ -137,7 +137,12 @@ npm run seed:demo-fighters # FTR-2026-TEST001~020, 데모 체육관 소속
 
 ### 대진표 자동 매칭 리허설 (선택)
 
-1. `npm run setup:bracket-demo-data` — gym1~7·80명 선수·승인 신청 upsert(크레딧 ledger 없음).
+```bash
+npm run setup:demo-users
+npm run setup:bracket-demo-data
+```
+
+1. `setup:bracket-demo-data` — gym+gym1~7·각 10명(80명)·12 division·승인 신청 upsert(크레딧 ledger 없음, idempotent).
 2. **organizer** `/login` → 테스트 대회(`/organizer/events/{eventId}`) → **신청자**에서 더미 승인자 확인.
 3. **대진표** (`/organizer/events/{eventId}/brackets`) → **자동 대진 생성** 클릭.
 4. division별 2명씩 매칭·홀수 division **미매칭/대기 선수** 패널 확인.
