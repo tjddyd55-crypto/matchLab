@@ -21,6 +21,7 @@ export function EventDetailHeroMobile({
       />
 
       <EventStatusBadges
+        className="gap-2"
         eventStatus={event.status}
         registrationStatus={event.registrationStatus}
         emphasizeRegistration={event.registrationStatus === "open"}

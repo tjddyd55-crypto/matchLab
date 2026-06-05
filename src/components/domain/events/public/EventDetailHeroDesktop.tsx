@@ -25,6 +25,7 @@ export function EventDetailHeroDesktop({
         <div className="flex min-w-0 flex-col gap-6">
           <div className="space-y-4">
             <EventStatusBadges
+              className="gap-2"
               eventStatus={event.status}
               registrationStatus={event.registrationStatus}
               emphasizeRegistration={event.registrationStatus === "open"}

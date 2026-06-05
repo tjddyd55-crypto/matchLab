@@ -38,15 +38,6 @@ export function PublicEventCardMobile({
           alt={`${event.title} 포스터`}
           sizes="100vw"
           priority={priorityImage}
-          overlay={
-            <div className="absolute top-3 left-3 z-10 flex flex-wrap gap-1.5">
-              <EventStatusBadges
-                eventStatus={event.status}
-                registrationStatus={event.registrationStatus}
-                emphasizeRegistration={event.registrationStatus === "open"}
-              />
-            </div>
-          }
         />
       </Link>
 
@@ -56,6 +47,13 @@ export function PublicEventCardMobile({
           PUBLIC_EVENT_CARD_BODY_PADDING_CLASS,
         )}
       >
+        <EventStatusBadges
+          className="mb-1 gap-2"
+          eventStatus={event.status}
+          registrationStatus={event.registrationStatus}
+          emphasizeRegistration={event.registrationStatus === "open"}
+        />
+
         <Link href={href} className="min-w-0">
           <h3 className="font-heading line-clamp-2 text-base font-semibold leading-snug">
             {event.title}
