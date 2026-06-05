@@ -257,17 +257,21 @@ export const bracketAutoMatchService = {
     }
 
     const byDivision = groupCandidatesByDivision(matchable);
-    const appByFighterId = new Map(
-      applications.map((a) => [a.fighterId, a]),
+    const appByFighterDivision = new Map(
+      applications.map((a) => [`${a.fighterId}:${a.divisionId}`, a]),
     );
 
     await prisma.$transaction(async (tx) => {
       for (const [divisionId, group] of byDivision) {
         const pairing = pairCandidatesWithinDivision(group);
-        if (pairing.pairs.length === 0) continue;
+        summary.unmatchedCount += pairing.unmatched.length;
+
+        if (pairing.pairs.length === 0) {
+          if (group.length > 0) summary.divisionsProcessed += 1;
+          continue;
+        }
 
         summary.divisionsProcessed += 1;
-        summary.unmatchedCount += pairing.unmatched.length;
         summary.sameGymPairWarnings += pairing.sameGymPairCount;
 
         let bracket =
@@ -278,7 +282,9 @@ export const bracketAutoMatchService = {
           );
 
         if (!bracket) {
-          const sampleRow = appByFighterId.get(group[0]!.fighterId);
+          const sampleRow = appByFighterDivision.get(
+            `${group[0]!.fighterId}:${divisionId}`,
+          );
           const divisionLabel = sampleRow
             ? formatDivisionNameLabel(sampleRow.division)
             : divisionId;
@@ -315,8 +321,12 @@ export const bracketAutoMatchService = {
           )) + 1;
 
         for (const pair of pairing.pairs) {
-          const redRow = appByFighterId.get(pair.red.fighterId);
-          const blueRow = appByFighterId.get(pair.blue.fighterId);
+          const redRow = appByFighterDivision.get(
+            `${pair.red.fighterId}:${divisionId}`,
+          );
+          const blueRow = appByFighterDivision.get(
+            `${pair.blue.fighterId}:${divisionId}`,
+          );
           if (!redRow || !blueRow) continue;
 
           const { id: matchId } = await bracketRepository.createBracketMatch(
