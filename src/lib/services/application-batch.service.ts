@@ -124,6 +124,12 @@ export const applicationBatchService = {
 
     const template = event.applicationFormTemplate;
     const fields = Array.isArray(template.fieldsJson) ? template.fieldsJson : [];
+    if (!template.originalPdfPath || !template.originalPdfFileName) {
+      throw new AppError(
+        "INTERNAL",
+        "PDF 템플릿 파일 정보가 없습니다. 관리자에게 문의해 주세요.",
+      );
+    }
 
     return {
       event: {

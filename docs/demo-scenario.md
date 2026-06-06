@@ -28,10 +28,11 @@ MVP 범위는 `docs/mvp-scope.md`를 기준으로 하며, 본 문서는 **시연
 
 ### 1.1b 자체 폼형 신청서 E2E
 
-1. **admin** — `/admin/application-form-templates/new`에서 PDF 1장 업로드(스키마상 필수) → 고급 설정 `manualFieldsJson`에 **「자체 폼 예시 불러오기」** → `formMode: "custom"` 확인 후 저장.
+1. **admin** — `/admin/application-form-templates/new` → **「자체 폼 신청서」** 선택 → PDF 없이 폼 빌더로 text/textarea/select 항목 추가·필수 설정·미리보기 확인 후 저장.
 2. **organizer** — 테스트 대회에 해당 템플릿 연결.
-3. **gym** — `/gym/events/{eventId}/apply` → **선수 일괄 신청** → 선택 선수별 신청서 항목 작성 → 일괄 제출.
-4. **organizer** — `/organizer/events/{eventId}/applications` → 신청자 상세 Drawer에서 **신청서 답변** 확인(공개 화면에는 미노출).
+3. **gym** — `/gym/events/{eventId}/apply` → **선수 일괄 신청** → 선택 선수별 신청서 항목 작성(필수 누락 시 제출 실패) → 일괄 제출.
+4. **organizer** — `/organizer/events/{eventId}/applications` → 신청자 상세 Drawer에서 **신청서 답변** 확인 → **인쇄용 보기**(`/applications/{applicationId}/print`) 출력(공개 화면에는 미노출).
+5. **회귀** — PDF 템플릿 생성·좌표 편집·`GymOfficialApplicationWorkspace` 흐름이 기존과 동일한지 확인.
 
 ### 1.2 체급표 템플릿 · 부문 생성
 

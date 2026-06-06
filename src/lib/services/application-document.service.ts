@@ -115,6 +115,13 @@ export const applicationDocumentService = {
     }
 
     const template = batch.template;
+    const originalTemplatePdfPath = template.originalPdfPath;
+    if (!originalTemplatePdfPath) {
+      throw new AppError(
+        "CONFLICT",
+        "PDF 템플릿이 아닌 신청서에는 공식 PDF 문서를 생성할 수 없습니다.",
+      );
+    }
     const fields = applicationFormRenderService.parseFieldsJson(
       template.fieldsJson,
     );
@@ -175,7 +182,7 @@ export const applicationDocumentService = {
           fighterId: fighter.id,
           batchId: batch.id,
           templateId: template.id,
-          originalTemplatePdfPath: template.originalPdfPath,
+          originalTemplatePdfPath,
           formValuesJson: JSON.parse(
             JSON.stringify({
               divisionId: input.divisionId,
@@ -388,7 +395,7 @@ export const applicationDocumentService = {
           templateId: doc.templateId,
           templateTitle: doc.template.title,
           originalPdfPath: doc.originalTemplatePdfPath,
-          originalPdfFileName: doc.template.originalPdfFileName,
+          originalPdfFileName: doc.template.originalPdfFileName ?? "—",
           capturedAt: new Date().toISOString(),
         },
       );

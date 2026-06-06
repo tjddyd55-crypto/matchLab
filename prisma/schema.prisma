@@ -795,8 +795,8 @@ model ApplicationFormTemplate {
   organizerId          String?
   title                String
   description          String?
-  originalPdfPath      String
-  originalPdfFileName  String
+  originalPdfPath      String?
+  originalPdfFileName  String?
   fieldsJson           Json     @default("[]")
   repeatGroupsJson     Json     @default("[]")
   manualFieldsJson     Json?

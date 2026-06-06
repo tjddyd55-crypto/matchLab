@@ -88,7 +88,7 @@ export default async function OrganizerApplicationDocumentPage({
         eventId={eventId}
         documentId={documentId}
         hasGeneratedPdf={Boolean(doc.generatedPdfPath)}
-        originalPdfFileName={doc.template.originalPdfFileName}
+        originalPdfFileName={doc.template.originalPdfFileName ?? "—"}
       />
 
       <section className="rounded-lg border p-4">

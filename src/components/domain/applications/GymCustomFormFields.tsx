@@ -69,11 +69,15 @@ export function GymCustomFormFields({
                 {field.label}
                 {field.required ? <span className="text-destructive"> *</span> : null}
               </span>
+              {field.helpText ? (
+                <span className="text-muted-foreground text-xs">{field.helpText}</span>
+              ) : null}
               <textarea
                 id={inputId}
                 disabled={disabled}
                 required={field.required}
                 rows={3}
+                placeholder={field.placeholder}
                 value={displayValue}
                 onChange={(e) => setValue(field.id, e.target.value)}
                 className="border-input bg-background min-h-[72px] w-full rounded-lg border px-3 py-2 text-sm"
@@ -161,11 +165,15 @@ export function GymCustomFormFields({
               {field.label}
               {field.required ? <span className="text-destructive"> *</span> : null}
             </span>
+            {field.helpText ? (
+              <span className="text-muted-foreground text-xs">{field.helpText}</span>
+            ) : null}
             <input
               id={inputId}
               type={field.type === "number" ? "number" : field.type === "date" ? "date" : "text"}
               disabled={disabled}
               required={field.required}
+              placeholder={field.placeholder}
               value={displayValue}
               onChange={(e) => setValue(field.id, e.target.value)}
               className="border-input bg-background h-10 w-full rounded-lg border px-3 text-sm"

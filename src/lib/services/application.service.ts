@@ -255,6 +255,26 @@ export type FighterLinkedApplicationRowDTO = {
   gymAthleteFeeGuidance: number | null;
 };
 
+export type OrganizerApplicationPrintVM = {
+  eventTitle: string;
+  fighterName: string;
+  gymName: string;
+  divisionLabel: string;
+  applicationStatus: ApplicationStatus;
+  paymentStatus: PaymentStatus;
+  appliedAt: string;
+  customFormSnapshot: CustomFormSnapshot;
+  agreementSnapshot: {
+    rulesAgreed: boolean;
+    privacyAgreed: boolean;
+    resultDisclosureAgreed: boolean;
+    photoVideoAgreed: boolean;
+    streamingAgreed: boolean;
+    streamingRequired: boolean;
+    agreedAt: string | null;
+  } | null;
+};
+
 export type OrganizerApplicationListRowDTO = {
   applicationId: string;
   fighterId: string;
@@ -472,6 +492,65 @@ export const applicationService = {
       registrationEndDate: toIso(row.event.registrationEndDate),
       gymAthleteFeeGuidance: feeRows[i]?.athleteFeeAmount ?? null,
     }));
+  },
+
+  async getOrganizerApplicationPrintDetail(
+    actor: ActorContext,
+    eventId: string,
+    applicationId: string,
+  ): Promise<OrganizerApplicationPrintVM> {
+    await requireOrganizerForEvent(actor, eventId);
+    const row = await applicationRepository.findOrganizerApplicationForPrint(
+      eventId,
+      applicationId,
+    );
+    if (!row) {
+      throw new AppError("NOT_FOUND", "신청을 찾을 수 없습니다.");
+    }
+
+    const snap = row.fighterSnapshot as Record<string, unknown>;
+    const fighterName =
+      typeof snap.name === "string" ? snap.name : row.fighter.name;
+    const gymName = row.gym?.name ?? "—";
+    const customFormSnapshot = readCustomFormFromAgreementSnapshot(
+      row.applicationAgreementSnapshot,
+    );
+    if (!customFormSnapshot) {
+      throw new AppError(
+        "NOT_FOUND",
+        "자체 폼형 신청서 답변이 없습니다.",
+      );
+    }
+
+    const agreement =
+      row.applicationAgreementSnapshot &&
+      typeof row.applicationAgreementSnapshot === "object" &&
+      !Array.isArray(row.applicationAgreementSnapshot)
+        ? (row.applicationAgreementSnapshot as Record<string, unknown>)
+        : null;
+
+    return {
+      eventTitle: row.event.title,
+      fighterName,
+      gymName,
+      divisionLabel: formatDivisionLabel(row.division),
+      applicationStatus: row.status,
+      paymentStatus: row.paymentStatus,
+      appliedAt: row.appliedAt ? toIso(row.appliedAt) : toIso(row.createdAt),
+      customFormSnapshot,
+      agreementSnapshot: agreement
+        ? {
+            rulesAgreed: agreement.rulesAgreed === true,
+            privacyAgreed: agreement.privacyAgreed === true,
+            resultDisclosureAgreed: agreement.resultDisclosureAgreed === true,
+            photoVideoAgreed: agreement.photoVideoAgreed === true,
+            streamingAgreed: agreement.streamingAgreed === true,
+            streamingRequired: agreement.streamingRequired === true,
+            agreedAt:
+              typeof agreement.agreedAt === "string" ? agreement.agreedAt : null,
+          }
+        : null,
+    };
   },
 
   async listOrganizerEventApplications(
@@ -927,6 +1006,12 @@ export const applicationService = {
             eventTitle: event.title,
             gymName: gymDisplayName,
             divisionLabel: division ? formatDivisionLabel(division) : "",
+            division: {
+              sportType: division?.sportType ?? null,
+              gender: division?.gender ?? null,
+              ageGroup: division?.ageGroup ?? null,
+              weightClass: division?.weightClass ?? null,
+            },
             fighter: {
               name: fighter.name,
               gender: fighter.gender,

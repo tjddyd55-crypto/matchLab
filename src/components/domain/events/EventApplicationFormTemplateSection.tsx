@@ -52,7 +52,11 @@ export function EventApplicationFormTemplateSection({
         <div className="rounded-md border bg-muted/30 px-3 py-2 text-sm">
           <p className="font-medium">연결됨: {linked.title}</p>
           <p className="text-muted-foreground text-xs">
-            파일: {linked.originalPdfFileName} · 필드 {linked.fieldCount}개
+            방식: {linked.formModeLabel}
+            {linked.originalPdfFileName
+              ? ` · PDF: ${linked.originalPdfFileName}`
+              : ""}{" "}
+            · 필드 {linked.fieldCount}개
             {linked.description ? ` · ${linked.description}` : ""}
           </p>
         </div>

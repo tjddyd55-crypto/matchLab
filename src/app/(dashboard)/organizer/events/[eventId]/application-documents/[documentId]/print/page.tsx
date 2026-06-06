@@ -56,7 +56,7 @@ export default async function PrintApplicationDocumentPage({
       fighterName={doc.fighter.name}
       gymName={doc.gym.name}
       eventTitle={doc.event.title}
-      originalPdfFileName={doc.template.originalPdfFileName}
+      originalPdfFileName={doc.template.originalPdfFileName ?? "—"}
       previewValues={previewValues ?? fallbackPreview}
       hasGeneratedPdf={Boolean(doc.generatedPdfPath)}
     />

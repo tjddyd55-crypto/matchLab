@@ -146,6 +146,16 @@ export const applicationRepository = {
     });
   },
 
+  async findOrganizerApplicationForPrint(eventId: string, applicationId: string) {
+    return prisma.eventApplication.findFirst({
+      where: { id: applicationId, eventId },
+      select: {
+        ...organizerApplicationSelect,
+        event: { select: { id: true, title: true } },
+      },
+    });
+  },
+
   async findApplicationById(
     applicationId: string,
     tx?: Prisma.TransactionClient,

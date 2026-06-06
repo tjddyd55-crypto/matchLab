@@ -109,7 +109,17 @@ export function OrganizerApplicationDetailDrawer({
         </dl>
 
         {row.customFormSnapshot ? (
-          <OrganizerCustomFormAnswersSection snapshot={row.customFormSnapshot} />
+          <div className="space-y-3">
+            <OrganizerCustomFormAnswersSection snapshot={row.customFormSnapshot} />
+            <Link
+              href={`/organizer/events/${eventId}/applications/${row.applicationId}/print`}
+              target="_blank"
+              rel="noopener noreferrer"
+              className="text-primary inline-flex text-sm underline underline-offset-2"
+            >
+              인쇄용 보기
+            </Link>
+          </div>
         ) : null}
 
         <div className="space-y-3 border-t pt-4">

@@ -13,8 +13,8 @@ export type ApplicationFormTemplateListRow = {
   organizerId: string | null;
   title: string;
   description: string | null;
-  originalPdfPath: string;
-  originalPdfFileName: string;
+  originalPdfPath: string | null;
+  originalPdfFileName: string | null;
   fieldsJson: Prisma.JsonValue;
   repeatGroupsJson: Prisma.JsonValue;
   manualFieldsJson: Prisma.JsonValue | null;
@@ -51,8 +51,8 @@ export const applicationFormTemplateRepository = {
       organizerId?: string | null;
       title: string;
       description?: string | null;
-      originalPdfPath: string;
-      originalPdfFileName: string;
+      originalPdfPath?: string | null;
+      originalPdfFileName?: string | null;
       fieldsJson: Prisma.InputJsonValue;
       repeatGroupsJson: Prisma.InputJsonValue;
       manualFieldsJson?: Prisma.InputJsonValue | null;
@@ -67,8 +67,8 @@ export const applicationFormTemplateRepository = {
         organizerId: data.organizerId?.trim() || null,
         title: data.title.trim(),
         description: data.description?.trim() || null,
-        originalPdfPath: data.originalPdfPath.trim(),
-        originalPdfFileName: data.originalPdfFileName.trim(),
+        originalPdfPath: data.originalPdfPath?.trim() || null,
+        originalPdfFileName: data.originalPdfFileName?.trim() || null,
         fieldsJson: data.fieldsJson,
         repeatGroupsJson: data.repeatGroupsJson,
         manualFieldsJson: data.manualFieldsJson ?? undefined,
@@ -85,8 +85,8 @@ export const applicationFormTemplateRepository = {
       organizerId?: string | null;
       title?: string;
       description?: string | null;
-      originalPdfPath?: string;
-      originalPdfFileName?: string;
+      originalPdfPath?: string | null;
+      originalPdfFileName?: string | null;
       fieldsJson?: Prisma.InputJsonValue;
       repeatGroupsJson?: Prisma.InputJsonValue;
       manualFieldsJson?: Prisma.InputJsonValue | null;
@@ -111,10 +111,10 @@ export const applicationFormTemplateRepository = {
           ? { description: data.description?.trim() || null }
           : {}),
         ...(data.originalPdfPath !== undefined
-          ? { originalPdfPath: data.originalPdfPath.trim() }
+          ? { originalPdfPath: data.originalPdfPath?.trim() || null }
           : {}),
         ...(data.originalPdfFileName !== undefined
-          ? { originalPdfFileName: data.originalPdfFileName.trim() }
+          ? { originalPdfFileName: data.originalPdfFileName?.trim() || null }
           : {}),
         ...(data.fieldsJson !== undefined ? { fieldsJson: data.fieldsJson } : {}),
         ...(data.repeatGroupsJson !== undefined

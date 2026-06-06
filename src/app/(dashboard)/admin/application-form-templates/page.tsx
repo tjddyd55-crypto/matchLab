@@ -64,11 +64,11 @@ function PageTitle() {
   return (
     <div>
       <h1 className="font-heading text-2xl font-semibold tracking-tight">
-        신청서 PDF 템플릿
+        신청서 템플릿
       </h1>
       <p className="text-muted-foreground mt-1 max-w-2xl text-sm leading-relaxed">
-        주최측 공식 신청서 양식(PDF)과 필드 좌표 JSON을 관리합니다. 대회 상세에서
-        템플릿을 연결하면 체육관 공식 신청 흐름이 활성화됩니다.
+        PDF 좌표형·자체 폼형 신청서 템플릿을 관리합니다. 대회 상세에서 템플릿을
+        연결하면 체육관 신청 흐름이 활성화됩니다.
       </p>
     </div>
   );
@@ -87,6 +87,7 @@ function TemplateTable({
         <thead className="bg-muted/50 text-left">
           <tr>
             <th className="px-4 py-3 font-medium">제목</th>
+            <th className="px-4 py-3 font-medium">방식</th>
             <th className="px-4 py-3 font-medium">PDF 파일명</th>
             <th className="px-4 py-3 font-medium">주최자</th>
             <th className="px-4 py-3 font-medium">필드</th>
@@ -98,8 +99,9 @@ function TemplateTable({
           {templates.map((t) => (
             <tr key={t.id} className="border-t">
               <td className="px-4 py-3 font-medium">{t.title}</td>
+              <td className="px-4 py-3">{t.formModeLabel}</td>
               <td className="text-muted-foreground px-4 py-3 font-mono text-xs">
-                {t.originalPdfFileName}
+                {t.originalPdfFileName ?? "—"}
               </td>
               <td className="text-muted-foreground px-4 py-3">
                 {t.organizerName ?? "전체 공용"}

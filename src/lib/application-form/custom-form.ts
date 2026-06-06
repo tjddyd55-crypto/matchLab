@@ -1,4 +1,5 @@
 import type { Prisma } from "@/generated/prisma";
+import { CUSTOM_FORM_SOURCE_VALUES } from "@/lib/application-form/custom-form-sources";
 import { publicAgeGroupFromBirthDate } from "@/lib/public-fighter/age-group";
 
 export type ApplicationFormMode = "none" | "pdf" | "custom";
@@ -21,6 +22,13 @@ export type CustomFormFieldDefinition = {
   readonly?: boolean;
   displayOrder?: number;
   options?: string[];
+  placeholder?: string;
+  helpText?: string;
+};
+
+export type ManualFieldsConfig = {
+  formMode: ApplicationFormMode;
+  fields: CustomFormFieldDefinition[];
 };
 
 export type CustomFormAnswerRow = {
@@ -42,6 +50,12 @@ export type CustomFormSourceContext = {
   eventTitle: string;
   gymName: string;
   divisionLabel: string;
+  division: {
+    sportType: string | null;
+    gender: string | null;
+    ageGroup: string | null;
+    weightClass: string | null;
+  };
   fighter: {
     name: string;
     gender: string;
@@ -75,21 +89,27 @@ function parseField(raw: unknown): CustomFormFieldDefinition | null {
   const options = Array.isArray(o.options)
     ? o.options.filter((x): x is string => typeof x === "string")
     : undefined;
+  const source =
+    typeof o.source === "string" && o.source.trim() ? o.source.trim() : null;
   return {
     id,
     label,
     type: type as CustomFormFieldType,
     required: o.required === true,
-    source: typeof o.source === "string" ? o.source : null,
-    readonly: o.readonly === true || Boolean(o.source),
+    source,
+    readonly: o.readonly === true,
     displayOrder:
       typeof o.displayOrder === "number" ? o.displayOrder : undefined,
     options,
+    placeholder:
+      typeof o.placeholder === "string" ? o.placeholder.trim() || undefined : undefined,
+    helpText:
+      typeof o.helpText === "string" ? o.helpText.trim() || undefined : undefined,
   };
 }
 
 export function parseManualFieldsConfig(
-  raw: Prisma.JsonValue | null | undefined,
+  raw: unknown,
 ): {
   formMode?: ApplicationFormMode;
   fields: CustomFormFieldDefinition[];
@@ -156,7 +176,12 @@ function resolveSourceValue(
       if (key === "title") return ctx.eventTitle;
       break;
     case "division":
-      if (key === "weightClass") return ctx.divisionLabel;
+      if (key === "weightClass") {
+        return ctx.division.weightClass ?? ctx.divisionLabel;
+      }
+      if (key === "sportType") return ctx.division.sportType ?? "";
+      if (key === "gender") return ctx.division.gender ?? "";
+      if (key === "ageGroup") return ctx.division.ageGroup ?? "";
       break;
     case "guardian":
       if (key === "name") return ctx.fighter.guardianName ?? "";
@@ -238,6 +263,116 @@ export function buildCustomFormSnapshot(
     capturedAt: meta.capturedAt,
     answers: buildCustomFormAnswerRows(fields, answers, ctx),
   };
+}
+
+const FIELD_ID_PATTERN = /^[a-z][a-z0-9_]*$/;
+
+export function suggestFieldId(label: string, existingIds: Set<string>): string {
+  const base =
+    label
+      .trim()
+      .toLowerCase()
+      .replace(/[^a-z0-9]+/g, "_")
+      .replace(/^_+|_+$/g, "")
+      .replace(/^[0-9]+/, "") || "field";
+  const normalized = FIELD_ID_PATTERN.test(base) ? base : `field_${base}`;
+  let id = normalized;
+  let n = 1;
+  while (existingIds.has(id)) {
+    id = `${normalized}_${n++}`;
+  }
+  return id;
+}
+
+export function normalizeCustomFormFields(
+  fields: CustomFormFieldDefinition[],
+): CustomFormFieldDefinition[] {
+  return fields.map((field, index) => ({
+    ...field,
+    id: field.id.trim(),
+    label: field.label.trim(),
+    displayOrder: index + 1,
+    source: field.source?.trim() || null,
+    readonly: field.readonly === true,
+    options:
+      field.type === "select" || field.type === "radio" || field.type === "checkbox"
+        ? (field.options ?? []).map((o) => o.trim()).filter(Boolean)
+        : undefined,
+  }));
+}
+
+export function serializeManualFieldsConfig(
+  config: ManualFieldsConfig,
+): Record<string, unknown> {
+  const fields = normalizeCustomFormFields(config.fields).map((field) => {
+    const row: Record<string, unknown> = {
+      id: field.id,
+      label: field.label,
+      type: field.type,
+      required: field.required === true,
+      readonly: field.readonly === true,
+      source: field.source ?? null,
+      displayOrder: field.displayOrder,
+    };
+    if (field.placeholder) row.placeholder = field.placeholder;
+    if (field.helpText) row.helpText = field.helpText;
+    if (field.options?.length) row.options = field.options;
+    return row;
+  });
+  return { formMode: config.formMode, fields };
+}
+
+export function validateCustomFormFieldDefinitions(
+  fields: CustomFormFieldDefinition[],
+): string | null {
+  if (fields.length === 0) {
+    return "자체 폼 항목을 1개 이상 추가해 주세요.";
+  }
+  const ids = new Set<string>();
+  for (const field of fields) {
+    if (!field.label.trim()) {
+      return "모든 항목에 라벨을 입력해 주세요.";
+    }
+    const id = field.id.trim();
+    if (!id || !FIELD_ID_PATTERN.test(id)) {
+      return `"${field.label}" 항목 ID는 영문 소문자·숫자·밑줄(_)만 사용할 수 있습니다.`;
+    }
+    if (ids.has(id)) {
+      return `항목 ID "${id}"가 중복되었습니다.`;
+    }
+    ids.add(id);
+    if (field.source && !CUSTOM_FORM_SOURCE_VALUES.has(field.source)) {
+      return `"${field.label}" 자동 입력 source가 올바르지 않습니다.`;
+    }
+    if (
+      field.type === "select" ||
+      field.type === "radio" ||
+      (field.type === "checkbox" && (field.options?.length ?? 0) > 0)
+    ) {
+      const opts = (field.options ?? []).map((o) => o.trim()).filter(Boolean);
+      if (opts.length === 0) {
+        return `"${field.label}" 항목에 옵션을 1개 이상 추가해 주세요.`;
+      }
+    }
+  }
+  return null;
+}
+
+export function inferTemplateEditorFormMode(input: {
+  fieldsJson: unknown;
+  manualFieldsJson: unknown | null;
+  originalPdfPath: string | null;
+}): ApplicationFormMode {
+  const manual = parseManualFieldsConfig(input.manualFieldsJson);
+  if (manual.formMode === "custom" && manual.fields.length > 0) {
+    return "custom";
+  }
+  if (Array.isArray(input.fieldsJson) && input.fieldsJson.length > 0) {
+    return "pdf";
+  }
+  if (input.originalPdfPath) return "pdf";
+  if (manual.fields.length > 0) return "custom";
+  return "none";
 }
 
 export function readCustomFormFromAgreementSnapshot(

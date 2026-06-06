@@ -44,6 +44,9 @@ export const applicationPdfAccessService = {
         throw new AppError("FORBIDDEN", "이 템플릿에 접근할 수 없습니다.");
       }
     }
+    if (!template.originalPdfPath || !template.originalPdfFileName) {
+      throw new AppError("NOT_FOUND", "PDF 파일이 연결되지 않은 템플릿입니다.");
+    }
     assertTemplatePdfPath(template.originalPdfPath);
     const { signedUrl, expiresIn } = await createApplicationFormPdfDownloadSignedUrl(
       { path: template.originalPdfPath },
@@ -138,7 +141,7 @@ export const applicationPdfAccessService = {
     return {
       viewUrl: signedUrl,
       expiresIn,
-      fileName: doc.template.originalPdfFileName,
+      fileName: doc.template.originalPdfFileName ?? "template.pdf",
     };
   },
 };

@@ -174,9 +174,11 @@ npm run repair:demo-gym
 
 ### 신청서 모드 테스트 순서
 
-1. **PDF 좌표형** — `/admin/application-form-templates`에서 PDF 업로드·좌표 편집 → 주최자가 대회에 연결 → 체육관 `GymOfficialApplicationWorkspace` 흐름.
-2. **자체 폼형(schema 변경 없음)** — 템플릿 고급 설정 `manualFieldsJson`에 `formMode: "custom"` + `fields` 배열(「자체 폼 예시 불러오기」) → 주최자 연결 → 체육관 일괄 신청에서 선수별 답변 작성.
-3. **없음** — 템플릿 미연결 대회는 부문별 일괄/개별 신청만.
+1. **PDF 좌표형** — `/admin/application-form-templates`에서 **PDF 신청서** 선택 → PDF 업로드·좌표 편집 → 주최자가 대회에 연결 → 체육관 `GymOfficialApplicationWorkspace` 흐름.
+2. **자체 폼형** — **자체 폼 신청서** 선택 → 폼 빌더로 항목 구성(PDF 불필요) → 주최자 연결 → 체육관 일괄 신청에서 선수별 답변 작성 → 주최자 인쇄용 보기.
+3. **없음** — 템플릿 미연결 또는 템플릿에서 **신청서 없음** 모드 — 부문별 일괄/개별 신청만.
+
+**DB**: 자체 폼 PDF-less 지원을 위해 `ApplicationFormTemplate.originalPdfPath`/`originalPdfFileName`이 optional입니다. Railway 등 배포 DB에는 **`npm run db:push`** 로 스키마 반영이 필요합니다(`db:seed` 금지).
 
 ### 대진표 자동 매칭 테스트 데이터 (`npm run setup:bracket-demo-data`)
 

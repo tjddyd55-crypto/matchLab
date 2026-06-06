@@ -61,12 +61,14 @@
 - [x] 주최자: 제출 묶음·선수별 완료본 조회·출력 HTML(`documentSnapshotJson` 기준).
 - [x] **PDF overlay 1차** — `pdf-lib`로 텍스트·서명 이미지 overlay → `generatedPdfPath` (Storage `application-documents`). 실패 시 snapshot + HTML fallback.
 
-### 자체 폼형 신청서 (schema 변경 없음)
+### 자체 폼형 신청서 운영 UI
 
 - [x] `ApplicationFormTemplate.manualFieldsJson` — `{ formMode: "custom", fields: [...] }` 로 항목 정의(text/textarea/number/date/select/checkbox/radio).
+- [x] **PDF 없이** 자체 폼 템플릿 생성 — `originalPdfPath` / `originalPdfFileName` optional (custom 모드).
+- [x] 관리자 템플릿 편집 — 신청서 방식 선택(PDF / 자체 폼 / 없음) + **시각 폼 빌더**(항목 추가·수정·삭제·복제·순서·source·미리보기). 고급 JSON은 접힘 유지.
 - [x] 대회당 신청서 방식: **없음** / **PDF**(`fieldsJson` 있음) / **자체 폼**(`formMode=custom`) — 동시 혼용은 TODO.
 - [x] 체육관 일괄 신청(`GymBulkApplicationForm`) — 선수별 답변 작성·필수 검증·`applicationAgreementSnapshot.customForm` 저장.
-- [x] 주최자 신청자 상세 Drawer — 자체 폼 답변 label/value 표시(공개 화면 미노출).
+- [x] 주최자 신청자 상세 Drawer — 자체 폼 답변 label/value 표시 + **인쇄용 보기**(`/organizer/events/.../applications/.../print`, 공개 화면 미노출).
 
 ### 대회 신청·입금
 

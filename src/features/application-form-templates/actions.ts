@@ -73,12 +73,22 @@ export async function createApplicationFormTemplateAction(
       formReq(formData, "repeatGroupsJson"),
     );
 
+    const templateFormMode = formReq(formData, "templateFormMode") as
+      | "pdf"
+      | "custom"
+      | "none";
     const parsed = createApplicationFormTemplateSchema.safeParse({
       organizerId: formReq(formData, "organizerId") || undefined,
       title: formReq(formData, "title"),
       description: formReq(formData, "description") || null,
-      originalPdfPath: formReq(formData, "originalPdfPath"),
-      originalPdfFileName: formReq(formData, "originalPdfFileName"),
+      templateFormMode:
+        templateFormMode === "pdf" ||
+        templateFormMode === "custom" ||
+        templateFormMode === "none"
+          ? templateFormMode
+          : "none",
+      originalPdfPath: formReq(formData, "originalPdfPath") || null,
+      originalPdfFileName: formReq(formData, "originalPdfFileName") || null,
       fieldsJson: fieldsParsed,
       repeatGroupsJson: repeatParsed,
       manualFieldsJson: optionalJson(formReq(formData, "manualFieldsJson")),
@@ -117,13 +127,20 @@ export async function updateApplicationFormTemplateAction(
     const fieldsRaw = formReq(formData, "fieldsJson");
     const repeatRaw = formReq(formData, "repeatGroupsJson");
 
+    const templateFormModeRaw = formReq(formData, "templateFormMode");
     const parsed = updateApplicationFormTemplateSchema.safeParse({
       templateId,
       organizerId: formReq(formData, "organizerId") || null,
       title: formReq(formData, "title"),
       description: formReq(formData, "description") || null,
-      originalPdfPath: formReq(formData, "originalPdfPath"),
-      originalPdfFileName: formReq(formData, "originalPdfFileName"),
+      templateFormMode:
+        templateFormModeRaw === "pdf" ||
+        templateFormModeRaw === "custom" ||
+        templateFormModeRaw === "none"
+          ? templateFormModeRaw
+          : undefined,
+      originalPdfPath: formReq(formData, "originalPdfPath") || null,
+      originalPdfFileName: formReq(formData, "originalPdfFileName") || null,
       fieldsJson: fieldsRaw ? parseFieldsJson(fieldsRaw) : undefined,
       repeatGroupsJson: repeatRaw ? parseRepeatGroupsJson(repeatRaw) : undefined,
       manualFieldsJson: optionalJson(formReq(formData, "manualFieldsJson")),

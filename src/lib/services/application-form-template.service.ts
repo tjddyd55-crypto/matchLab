@@ -9,11 +9,63 @@ import {
   type ApplicationFormTemplateListRow,
 } from "@/lib/repositories/application-form-template.repository";
 import { eventRepository } from "@/lib/repositories/event.repository";
+import {
+  parseManualFieldsConfig,
+  resolveApplicationFormMode,
+} from "@/lib/application-form/custom-form";
 import type {
   CreateApplicationFormTemplateInput,
   LinkEventApplicationFormTemplateInput,
   UpdateApplicationFormTemplateInput,
 } from "@/lib/validators/application-form-template.validator";
+
+function formModeLabel(mode: ReturnType<typeof resolveApplicationFormMode>): string {
+  switch (mode) {
+    case "pdf":
+      return "PDF";
+    case "custom":
+      return "자체 폼";
+    default:
+      return "없음";
+  }
+}
+
+function normalizeTemplatePayload(
+  input: CreateApplicationFormTemplateInput | UpdateApplicationFormTemplateInput,
+): {
+  originalPdfPath?: string | null;
+  originalPdfFileName?: string | null;
+  fieldsJson?: Prisma.InputJsonValue;
+  repeatGroupsJson?: Prisma.InputJsonValue;
+  manualFieldsJson?: Prisma.InputJsonValue | null;
+} {
+  const mode = input.templateFormMode ?? "none";
+  if (mode === "pdf") {
+    return {
+      originalPdfPath: input.originalPdfPath ?? null,
+      originalPdfFileName: input.originalPdfFileName ?? null,
+      fieldsJson: input.fieldsJson as Prisma.InputJsonValue,
+      repeatGroupsJson: input.repeatGroupsJson as Prisma.InputJsonValue,
+      manualFieldsJson: null,
+    };
+  }
+  if (mode === "custom") {
+    return {
+      originalPdfPath: null,
+      originalPdfFileName: null,
+      fieldsJson: [],
+      repeatGroupsJson: input.repeatGroupsJson as Prisma.InputJsonValue ?? [],
+      manualFieldsJson: input.manualFieldsJson as Prisma.InputJsonValue,
+    };
+  }
+  return {
+    originalPdfPath: null,
+    originalPdfFileName: null,
+    fieldsJson: [],
+    repeatGroupsJson: [],
+    manualFieldsJson: null,
+  };
+}
 
 function assertAdmin(actor: ActorContext): void {
   requireRole(actor, ["admin"]);
@@ -39,16 +91,17 @@ export type ApplicationFormTemplateListItemVM = {
   id: string;
   title: string;
   description: string | null;
-  originalPdfFileName: string;
+  originalPdfFileName: string | null;
   isActive: boolean;
   organizerId: string | null;
   organizerName: string | null;
   fieldCount: number;
+  formModeLabel: string;
   updatedAt: string;
 };
 
 export type ApplicationFormTemplateDetailVM = ApplicationFormTemplateListItemVM & {
-  originalPdfPath: string;
+  originalPdfPath: string | null;
   fieldsJson: unknown;
   repeatGroupsJson: unknown;
   manualFieldsJson: unknown | null;
@@ -57,6 +110,15 @@ export type ApplicationFormTemplateDetailVM = ApplicationFormTemplateListItemVM 
 
 function toListItem(row: ApplicationFormTemplateListRow): ApplicationFormTemplateListItemVM {
   const fields = Array.isArray(row.fieldsJson) ? row.fieldsJson : [];
+  const mode = resolveApplicationFormMode({
+    templateId: row.id,
+    fieldsJson: row.fieldsJson,
+    manualFieldsJson: row.manualFieldsJson,
+  });
+  const customFieldCount =
+    mode === "custom"
+      ? parseManualFieldsConfig(row.manualFieldsJson).fields.length
+      : 0;
   return {
     id: row.id,
     title: row.title,
@@ -65,7 +127,8 @@ function toListItem(row: ApplicationFormTemplateListRow): ApplicationFormTemplat
     isActive: row.isActive,
     organizerId: row.organizerId,
     organizerName: row.organizer?.name ?? null,
-    fieldCount: fields.length,
+    fieldCount: mode === "custom" ? customFieldCount : fields.length,
+    formModeLabel: formModeLabel(mode),
     updatedAt: row.updatedAt.toISOString(),
   };
 }
@@ -118,15 +181,16 @@ export const applicationFormTemplateService = {
     input: CreateApplicationFormTemplateInput,
   ): Promise<{ templateId: string }> {
     assertAdmin(actor);
+    const normalized = normalizeTemplatePayload(input);
     const created = await applicationFormTemplateRepository.create({
       organizerId: input.organizerId ?? null,
       title: input.title,
       description: input.description ?? null,
-      originalPdfPath: input.originalPdfPath,
-      originalPdfFileName: input.originalPdfFileName,
-      fieldsJson: input.fieldsJson,
-      repeatGroupsJson: input.repeatGroupsJson,
-      manualFieldsJson: input.manualFieldsJson ?? null,
+      originalPdfPath: normalized.originalPdfPath ?? null,
+      originalPdfFileName: normalized.originalPdfFileName ?? null,
+      fieldsJson: normalized.fieldsJson ?? [],
+      repeatGroupsJson: normalized.repeatGroupsJson ?? [],
+      manualFieldsJson: normalized.manualFieldsJson ?? null,
       consentMappingJson: input.consentMappingJson ?? null,
       isActive: input.isActive ?? true,
       createdByAdminUserId: actor.userId,
@@ -145,15 +209,31 @@ export const applicationFormTemplateService = {
     if (!existing) {
       throw new AppError("NOT_FOUND", "신청서 템플릿을 찾을 수 없습니다.");
     }
+    const normalized = input.templateFormMode
+      ? normalizeTemplatePayload(input as CreateApplicationFormTemplateInput)
+      : null;
     await applicationFormTemplateRepository.update(input.templateId, {
       organizerId: input.organizerId,
       title: input.title,
       description: input.description,
-      originalPdfPath: input.originalPdfPath,
-      originalPdfFileName: input.originalPdfFileName,
-      fieldsJson: input.fieldsJson,
-      repeatGroupsJson: input.repeatGroupsJson,
-      manualFieldsJson: input.manualFieldsJson as Prisma.InputJsonValue | null | undefined,
+      ...(normalized
+        ? {
+            originalPdfPath: normalized.originalPdfPath,
+            originalPdfFileName: normalized.originalPdfFileName,
+            fieldsJson: normalized.fieldsJson,
+            repeatGroupsJson: normalized.repeatGroupsJson,
+            manualFieldsJson: normalized.manualFieldsJson,
+          }
+        : {
+            originalPdfPath: input.originalPdfPath,
+            originalPdfFileName: input.originalPdfFileName,
+            fieldsJson: input.fieldsJson,
+            repeatGroupsJson: input.repeatGroupsJson,
+            manualFieldsJson: input.manualFieldsJson as
+              | Prisma.InputJsonValue
+              | null
+              | undefined,
+          }),
       consentMappingJson: input.consentMappingJson as Prisma.InputJsonValue | null | undefined,
       isActive: input.isActive,
     });
