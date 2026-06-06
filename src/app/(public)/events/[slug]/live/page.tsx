@@ -1,9 +1,10 @@
-import Link from "next/link";
 import { notFound } from "next/navigation";
 import { EmptyState } from "@/components/shared/EmptyState";
-import { buttonVariants } from "@/components/ui/button";
+import { PUBLIC_EVENT_DETAIL_PAGE_CLASS } from "@/components/domain/events/public/public-event-layout";
+import { PublicEventSubpageHeader } from "@/components/domain/events/public/PublicEventSubpageHeader";
 import { eventService } from "@/lib/services/event.service";
 import { liveStreamService } from "@/lib/services/live-stream.service";
+import { buttonVariants } from "@/components/ui/button";
 import { cn } from "@/lib/utils";
 
 export const dynamic = "force-dynamic";
@@ -20,19 +21,12 @@ export default async function PublicEventLivePage({
   const streams = await liveStreamService.listPublicForEventSlug(slug);
 
   return (
-    <div className="mx-auto flex w-full max-w-3xl flex-col gap-8 px-4 py-8 md:px-6">
-      <header className="space-y-2">
-        <Link
-          href={`/events/${slug}`}
-          className={cn(buttonVariants({ variant: "ghost", size: "sm" }), "-ml-2")}
-        >
-          ← 행사 안내
-        </Link>
-        <h1 className="font-heading text-2xl font-semibold tracking-tight md:text-3xl">
-          라이브 안내
-        </h1>
-        <p className="text-muted-foreground text-sm">{event.title}</p>
-      </header>
+    <main className={PUBLIC_EVENT_DETAIL_PAGE_CLASS}>
+      <PublicEventSubpageHeader
+        slug={slug}
+        title="라이브 안내"
+        eventTitle={event.title}
+      />
 
       {streams.length === 0 ? (
         <EmptyState
@@ -40,18 +34,21 @@ export default async function PublicEventLivePage({
           description="주최측에서 공개·URL이 등록되면 이 페이지에 표시됩니다. (시연 시드에는 샘플 링크가 포함될 수 있습니다.)"
         />
       ) : (
-        <ul className="flex flex-col gap-4">
+        <ul className="flex w-full flex-col gap-4">
           {streams.map((s) => (
             <li
               key={s.id}
-              className="ring-foreground/10 rounded-xl border bg-card p-4 shadow-sm"
+              className="ring-foreground/10 w-full rounded-xl border bg-card p-4 shadow-sm"
             >
               <div className="flex flex-wrap items-start justify-between gap-2">
                 <div>
                   <h2 className="font-medium">{s.title}</h2>
                   <p className="text-muted-foreground text-xs">
-                    {s.platform} · {s.streamType === "mat" ? `매트 ${s.matNumber ?? "—"}` : "메인"} ·{" "}
-                    {s.status}
+                    {s.platform} ·{" "}
+                    {s.streamType === "mat"
+                      ? `매트 ${s.matNumber ?? "—"}`
+                      : "메인"}{" "}
+                    · {s.status}
                   </p>
                 </div>
               </div>
@@ -69,14 +66,16 @@ export default async function PublicEventLivePage({
                     href={s.embedUrl}
                     target="_blank"
                     rel="noopener noreferrer"
-                    className={cn(buttonVariants({ variant: "outline", size: "sm" }))}
+                    className={cn(
+                      buttonVariants({ variant: "outline", size: "sm" }),
+                    )}
                   >
                     임베드 URL
                   </a>
                 ) : null}
               </div>
               {s.embedUrl ? (
-                <div className="mt-4 w-full overflow-hidden rounded-md border bg-black/5">
+                <div className="mt-4 w-full max-w-3xl overflow-hidden rounded-md border bg-black/5">
                   <div className="aspect-video w-full">
                     <iframe
                       title={`${s.title} 라이브`}
@@ -96,9 +95,9 @@ export default async function PublicEventLivePage({
       )}
 
       <p className="text-muted-foreground text-xs leading-relaxed">
-        스트림 키·자체 송출 서버·YouTube OAuth 연동은 MVP 범위 밖입니다. 공개되는 것은
-        시청/임베드 URL뿐입니다.
+        스트림 키·자체 송출 서버·YouTube OAuth 연동은 MVP 범위 밖입니다. 공개되는
+        것은 시청/임베드 URL뿐입니다.
       </p>
-    </div>
+    </main>
   );
 }

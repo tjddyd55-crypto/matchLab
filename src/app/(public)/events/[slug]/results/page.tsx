@@ -1,9 +1,8 @@
-import Link from "next/link";
 import { notFound } from "next/navigation";
 import { FighterAvatar } from "@/components/shared/FighterAvatar";
 import { PublicResultsRealtimeBridge } from "@/components/domain/results/PublicResultsRealtimeBridge";
-import { buttonVariants } from "@/components/ui/button";
-import { cn } from "@/lib/utils";
+import { PUBLIC_EVENT_DETAIL_PAGE_CLASS } from "@/components/domain/events/public/public-event-layout";
+import { PublicEventSubpageHeader } from "@/components/domain/events/public/PublicEventSubpageHeader";
 import type { PublicMatchResultDTO } from "@/lib/dto/public";
 import { MatchRecordOutcome } from "@/lib/enums";
 import { eventService } from "@/lib/services/event.service";
@@ -51,39 +50,29 @@ export default async function PublicEventResultsPage({
   );
 
   return (
-    <div className="mx-auto flex w-full max-w-5xl flex-col gap-10 px-4 py-10 md:px-6">
+    <main className={PUBLIC_EVENT_DETAIL_PAGE_CLASS}>
       <PublicResultsRealtimeBridge
         eventId={event.id}
         slug={slug}
         bracketIds={[]}
       />
-      <header className="space-y-2">
-        <Link
-          href={`/events/${slug}`}
-          className={cn(buttonVariants({ variant: "ghost", size: "sm" }), "-ml-2")}
-        >
-          ← 행사 안내
-        </Link>
-        <h1 className="font-heading text-3xl font-semibold tracking-tight">
-          공식 결과
-        </h1>
-        <p className="text-muted-foreground text-sm">{payload.eventTitle}</p>
-        <p className="text-muted-foreground max-w-2xl text-xs">
-          확정된 MatchResult만 표시합니다. 휴대폰·생년월일 등 개인정보는 공개하지
-          않습니다.
-        </p>
-      </header>
+      <PublicEventSubpageHeader
+        slug={slug}
+        title="공식 결과"
+        eventTitle={payload.eventTitle}
+        description="확정된 MatchResult만 표시합니다. 휴대폰·생년월일 등 개인정보는 공개하지 않습니다."
+      />
 
       {payload.results.length === 0 ? (
         <p className="text-muted-foreground text-sm">
           아직 공개할 확정 결과가 없습니다.
         </p>
       ) : (
-        <div className="flex flex-col gap-12">
+        <div className="flex w-full flex-col gap-12">
           {sections.map(([key, rows]) => {
             const [bracketTitle, divisionLabel] = key.split("|||");
             return (
-              <section key={key} className="space-y-4">
+              <section key={key} className="w-full space-y-4">
                 <div>
                   <h2 className="text-xl font-semibold">{bracketTitle}</h2>
                   <p className="text-muted-foreground text-sm">
@@ -92,11 +81,11 @@ export default async function PublicEventResultsPage({
                       : "부문 정보 없음"}
                   </p>
                 </div>
-                <div className="flex flex-col gap-4">
+                <div className="flex w-full flex-col gap-4">
                   {rows.map((r) => (
                     <article
                       key={`${r.matchId}-${r.fighter?.fighterId ?? "x"}`}
-                      className="ring-foreground/10 rounded-xl border bg-card p-4 shadow-sm"
+                      className="ring-foreground/10 w-full rounded-xl border bg-card p-4 shadow-sm"
                     >
                       <div className="text-muted-foreground mb-3 flex flex-wrap gap-2 text-xs">
                         <span>
@@ -165,6 +154,6 @@ export default async function PublicEventResultsPage({
           })}
         </div>
       )}
-    </div>
+    </main>
   );
 }

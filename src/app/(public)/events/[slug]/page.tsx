@@ -1,8 +1,7 @@
 import type { Metadata } from "next";
 import { notFound } from "next/navigation";
-import { PUBLIC_CONTENT_CONTAINER_CLASS } from "@/components/domain/events/public/public-event-layout";
+import { PUBLIC_EVENT_DETAIL_PAGE_CLASS } from "@/components/domain/events/public/public-event-layout";
 import { PublicEventDetailHero } from "@/components/domain/events/PublicEventDetailHero";
-import { cn } from "@/lib/utils";
 import { PublicEventDivisionList } from "@/components/domain/events/PublicEventDivisionList";
 import { PublicEventGallery } from "@/components/domain/events/PublicEventGallery";
 import { PublicEventDetailNavDesktop } from "@/components/domain/events/public/PublicEventDetailNavDesktop";
@@ -71,12 +70,7 @@ export default async function PublicEventDetailPage({
   if (!event) notFound();
 
   return (
-    <article
-      className={cn(
-        PUBLIC_CONTENT_CONTAINER_CLASS,
-        "flex flex-col gap-8 py-6 md:gap-10 md:py-10",
-      )}
-    >
+    <article className={PUBLIC_EVENT_DETAIL_PAGE_CLASS}>
       <PublicEventDetailHero event={event} />
 
       <PublicEventDetailNavDesktop
