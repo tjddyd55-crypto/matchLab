@@ -4,11 +4,7 @@ import { EventStatusBadges } from "@/components/domain/events/EventStatusBadges"
 import { EventMetaSummaryMobile } from "@/components/domain/events/public/EventMetaSummaryMobile";
 import { EventApplicationCta } from "@/components/domain/events/EventApplicationCta";
 import { EventShareButtons } from "@/components/domain/events/public/EventShareButtons";
-import {
-  buildEventPublicUrl,
-  buildEventShareText,
-  buildEventShareTitle,
-} from "@/lib/share/event-share";
+import { buildEventPublicUrl } from "@/lib/share/event-share";
 
 export function EventDetailHeroMobile({
   event,
@@ -56,8 +52,6 @@ export function EventDetailHeroMobile({
           size="lg"
         />
         <EventShareButtons
-          title={buildEventShareTitle(event)}
-          text={buildEventShareText(event)}
           url={buildEventPublicUrl(event)}
           layout="stacked"
           className="pt-1"

@@ -1,6 +1,6 @@
 "use client";
 
-import { useEffect, useState, useSyncExternalStore } from "react";
+import { useEffect, useState } from "react";
 import { buildFacebookShareUrl } from "@/lib/share/event-share";
 import { Button } from "@/components/ui/button";
 import { cn } from "@/lib/utils";
@@ -10,32 +10,15 @@ function resolveShareUrl(fallback: string): string {
   return window.location.href;
 }
 
-function subscribeNoop() {
-  return () => {};
-}
-
-function getCanNativeShare(): boolean {
-  return typeof navigator !== "undefined" && typeof navigator.share === "function";
-}
-
 export function EventShareButtons({
-  title,
-  text,
   url,
   className,
   layout = "inline",
 }: {
-  title: string;
-  text: string;
   url: string;
   className?: string;
   layout?: "inline" | "stacked";
 }) {
-  const canNativeShare = useSyncExternalStore(
-    subscribeNoop,
-    getCanNativeShare,
-    () => false,
-  );
   const [copied, setCopied] = useState(false);
   const [error, setError] = useState<string | null>(null);
 
@@ -57,21 +40,6 @@ export function EventShareButtons({
     }
   }
 
-  async function handleNativeShare() {
-    setError(null);
-    const pageUrl = resolveShareUrl(url);
-    if (!canNativeShare) {
-      await handleCopyLink();
-      return;
-    }
-    try {
-      await navigator.share({ title, text, url: pageUrl });
-    } catch (err) {
-      if (err instanceof DOMException && err.name === "AbortError") return;
-      await handleCopyLink();
-    }
-  }
-
   function handleFacebookShare() {
     setError(null);
     const pageUrl = resolveShareUrl(url);
@@ -88,46 +56,27 @@ export function EventShareButtons({
       <div
         className={cn(
           "flex gap-2",
-          isStacked ? "flex-col" : "flex-wrap items-center",
+          isStacked ? "grid w-full grid-cols-2" : "flex-wrap items-center",
         )}
       >
-        {canNativeShare ? (
-          <Button
-            type="button"
-            variant={isStacked ? "default" : "secondary"}
-            size={isStacked ? "lg" : "sm"}
-            className={cn(isStacked && "w-full")}
-            onClick={() => void handleNativeShare()}
-          >
-            공유하기
-          </Button>
-        ) : null}
-
-        <div
-          className={cn(
-            "flex gap-2",
-            isStacked ? "grid w-full grid-cols-2" : "flex-wrap",
-          )}
+        <Button
+          type="button"
+          variant="outline"
+          size={isStacked ? "default" : "sm"}
+          className={cn(isStacked && "w-full")}
+          onClick={handleFacebookShare}
         >
-          <Button
-            type="button"
-            variant="outline"
-            size={isStacked ? "default" : "sm"}
-            className={cn(isStacked && "w-full")}
-            onClick={handleFacebookShare}
-          >
-            Facebook 공유
-          </Button>
-          <Button
-            type="button"
-            variant="outline"
-            size={isStacked ? "default" : "sm"}
-            className={cn(isStacked && "w-full")}
-            onClick={() => void handleCopyLink()}
-          >
-            링크 복사
-          </Button>
-        </div>
+          Facebook 공유
+        </Button>
+        <Button
+          type="button"
+          variant="outline"
+          size={isStacked ? "default" : "sm"}
+          className={cn(isStacked && "w-full")}
+          onClick={() => void handleCopyLink()}
+        >
+          링크 복사
+        </Button>
       </div>
 
       {copied ? (

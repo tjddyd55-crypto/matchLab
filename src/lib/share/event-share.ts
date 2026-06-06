@@ -37,7 +37,7 @@ export function buildEventShareDescription(
   return parts.join(" · ");
 }
 
-/** Web Share API text — title 외 요약 한 줄 */
+/** 공유 채널용 요약 한 줄 — 향후 카카오/인스타 등 연동 시 재사용 */
 export function buildEventShareText(
   event: Pick<
     PublicEventDetailDTO,

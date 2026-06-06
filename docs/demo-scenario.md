@@ -53,10 +53,10 @@ MVP 범위는 `docs/mvp-scope.md`를 기준으로 하며, 본 문서는 **시연
 
 ### 1.3b 대회 상세 공유
 
-1. **spectator** — `/events/sample-open-2026` Hero에서 **공유하기** 섹션 확인(PC: CTA 아래, Mobile: CTA 아래 전체폭).
-2. **링크 복사** — 「대회 링크를 복사했습니다.」 안내 확인.
-3. **Facebook 공유** — 새 창/탭에서 Facebook sharer 열림 확인.
-4. **모바일 폭** — `navigator.share` 지원 시 「공유하기」 버튼 우선 표시 확인.
+1. **spectator** — `/events/sample-open-2026` Hero에서 **공유하기** 섹션 확인(PC: CTA 아래, Mobile: CTA 아래 2열).
+2. **Facebook 공유** — 새 창/탭에서 Facebook sharer 열림 확인.
+3. **링크 복사** — 「대회 링크를 복사했습니다.」 안내 확인.
+4. PC/모바일 모두 **Facebook 공유 · 링크 복사** 두 버튼만 표시되는지 확인.
 5. **OG** — 페이지 소스·메타 태그에 `og:title` / `og:description` / `og:image`(공개 https URL) 확인. signed URL·storage path 없음.
 
 ### 1.4 현장 확인·계체·출전 확정 (주최자 / 체육관)

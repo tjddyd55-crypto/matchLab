@@ -31,7 +31,7 @@
 - [x] 공개 페이지: 목록·상세(slug)·디비전·촬영/스트리밍 안내(계좌번호 제외).
 - [x] **공개 메인·대회 목록 포스터형 카드** — `/`, `/events` (`PublicEventCard`, `EventPosterImage`, 신청 상태 필터).
 - [x] **대회 상세 랜딩형** — `/events/[slug]` 포스터 Hero·신청 CTA·대진표/결과/라이브 링크 (`PublicEventDetailHero`).
-- [x] **대회 상세 공유** — Facebook 공유·링크 복사·Web Share API(모바일)·OG/Twitter 메타데이터 (`EventShareButtons`, `generateMetadata`).
+- [x] **대회 상세 공유** — Facebook 공유·링크 복사·OG/Twitter 메타데이터 (`EventShareButtons`, `generateMetadata`). 카카오/인스타/Web Share API는 후속 TODO.
 - [x] 공개 대회 UI **PC/모바일 분리** — `*Desktop` / `*Mobile` + `md` 브레이크포인트 (`FightersTableDesktop` 패턴).
 
 ### 체육관·선수 등록

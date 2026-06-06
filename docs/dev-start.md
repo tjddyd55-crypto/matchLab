@@ -209,8 +209,10 @@ npm run repair:demo-gym
 
 1. `/events/{slug}` — `generateMetadata`로 `title` / `description` / `openGraph` / `twitter` 설정.
 2. `og:image` 우선순위: `coverImageUrl` → `posterUrl` → 갤러리 첫 장 → `/og-event-default` (공개 https만).
-3. 로컬 확인: 브라우저 개발자 도구 → Elements → `<meta property="og:*">` 검사.
-4. Facebook Sharing Debugger는 배포 URL 기준 후속 TODO.
+3. 공유 UI: **Facebook 공유** · **링크 복사** 두 버튼만 (`EventShareButtons`). Web Share API·카카오·인스타는 후속 TODO.
+4. 로컬 확인: 브라우저 개발자 도구 → Elements → `<meta property="og:*">` 검사.
+5. Facebook Sharing Debugger는 배포 URL 기준 후속 TODO.
+6. 인스타 공유 후속 TODO: 공유용 이미지 다운로드·스토리 공유 가이드(웹 직접 게시 URL 제외).
 
 ### 대진표 자동 매칭 테스트 데이터 (`npm run setup:bracket-demo-data`)
 
