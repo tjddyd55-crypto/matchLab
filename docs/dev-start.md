@@ -180,6 +180,13 @@ npm run repair:demo-gym
 
 **DB**: 자체 폼 PDF-less 지원을 위해 `ApplicationFormTemplate.originalPdfPath`/`originalPdfFileName`이 optional입니다. Railway 등 배포 DB에는 **`npm run db:push`** 로 스키마 반영이 필요합니다(`db:seed` 금지).
 
+### 대회 상세 공유·OG 메타데이터
+
+1. `/events/{slug}` — `generateMetadata`로 `title` / `description` / `openGraph` / `twitter` 설정.
+2. `og:image` 우선순위: `coverImageUrl` → `posterUrl` → 갤러리 첫 장 → `/og-event-default` (공개 https만).
+3. 로컬 확인: 브라우저 개발자 도구 → Elements → `<meta property="og:*">` 검사.
+4. Facebook Sharing Debugger는 배포 URL 기준 후속 TODO.
+
 ### 대진표 자동 매칭 테스트 데이터 (`npm run setup:bracket-demo-data`)
 
 대진표 **자동 1차 매칭** 실무 테스트용으로 체육관 `gym1`~`gym7`·각 10명 선수(총 80명)·테스트 대회 `approved` `EventApplication`을 **idempotent upsert**합니다.

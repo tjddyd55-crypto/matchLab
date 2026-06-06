@@ -1,3 +1,4 @@
+import type { Metadata } from "next";
 import { notFound } from "next/navigation";
 import { PUBLIC_CONTENT_CONTAINER_CLASS } from "@/components/domain/events/public/public-event-layout";
 import { PublicEventDetailHero } from "@/components/domain/events/PublicEventDetailHero";
@@ -9,8 +10,56 @@ import { PublicEventDetailNavMobile } from "@/components/domain/events/public/Pu
 import { RecordingStreamingNotice } from "@/components/domain/events/RecordingStreamingNotice";
 import { EventApplicationCta } from "@/components/domain/events/EventApplicationCta";
 import { eventService } from "@/lib/services/event.service";
+import {
+  buildEventPublicUrl,
+  buildEventShareDescription,
+  buildEventShareTitle,
+  resolveEventOgImageForMetadata,
+} from "@/lib/share/event-share";
 
 export const dynamic = "force-dynamic";
+
+export async function generateMetadata({
+  params,
+}: {
+  params: Promise<{ slug: string }>;
+}): Promise<Metadata> {
+  const { slug } = await params;
+  const event = await eventService.getPublicEventBySlug(slug);
+  if (!event) {
+    return { title: "대회를 찾을 수 없습니다" };
+  }
+
+  const title = buildEventShareTitle(event);
+  const description = buildEventShareDescription(event);
+  const url = buildEventPublicUrl(event);
+  const ogImage = resolveEventOgImageForMetadata(event);
+
+  return {
+    title,
+    description,
+    openGraph: {
+      title,
+      description,
+      url,
+      type: "website",
+      siteName: "MatchLab",
+      locale: "ko_KR",
+      images: [
+        {
+          url: ogImage,
+          alt: `${event.title} 포스터`,
+        },
+      ],
+    },
+    twitter: {
+      card: "summary_large_image",
+      title,
+      description,
+      images: [ogImage],
+    },
+  };
+}
 
 export default async function PublicEventDetailPage({
   params,

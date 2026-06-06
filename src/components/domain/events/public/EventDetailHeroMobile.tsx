@@ -3,6 +3,12 @@ import { EventPosterImage } from "@/components/domain/events/EventPosterImage";
 import { EventStatusBadges } from "@/components/domain/events/EventStatusBadges";
 import { EventMetaSummaryMobile } from "@/components/domain/events/public/EventMetaSummaryMobile";
 import { EventApplicationCta } from "@/components/domain/events/EventApplicationCta";
+import { EventShareButtons } from "@/components/domain/events/public/EventShareButtons";
+import {
+  buildEventPublicUrl,
+  buildEventShareText,
+  buildEventShareTitle,
+} from "@/lib/share/event-share";
 
 export function EventDetailHeroMobile({
   event,
@@ -43,11 +49,18 @@ export function EventDetailHeroMobile({
         showOrganizer
       />
 
-      <div className="w-full [&_a]:flex [&_a]:w-full [&_a]:justify-center">
+      <div className="w-full space-y-4 [&_a]:flex [&_a]:w-full [&_a]:justify-center">
         <EventApplicationCta
           eventStatus={event.status}
           registrationStatus={event.registrationStatus}
           size="lg"
+        />
+        <EventShareButtons
+          title={buildEventShareTitle(event)}
+          text={buildEventShareText(event)}
+          url={buildEventPublicUrl(event)}
+          layout="stacked"
+          className="pt-1"
         />
       </div>
     </header>

@@ -51,6 +51,14 @@ MVP 범위는 `docs/mvp-scope.md`를 기준으로 하며, 본 문서는 **시연
 6. 포스터 없는 대회 — placeholder·갤러리 첫 장 fallback 확인(public URL만, storage path 미노출).
 7. **organizer** — `/organizer/events` 목록에서 **대회 상태**·**신청 상태** 배지 확인.
 
+### 1.3b 대회 상세 공유
+
+1. **spectator** — `/events/sample-open-2026` Hero에서 **공유하기** 섹션 확인(PC: CTA 아래, Mobile: CTA 아래 전체폭).
+2. **링크 복사** — 「대회 링크를 복사했습니다.」 안내 확인.
+3. **Facebook 공유** — 새 창/탭에서 Facebook sharer 열림 확인.
+4. **모바일 폭** — `navigator.share` 지원 시 「공유하기」 버튼 우선 표시 확인.
+5. **OG** — 페이지 소스·메타 태그에 `og:title` / `og:description` / `og:image`(공개 https URL) 확인. signed URL·storage path 없음.
+
 ### 1.4 현장 확인·계체·출전 확정 (주최자 / 체육관)
 
 1. **organizer** — `/organizer/events/{eventId}/check-in` → 승인 신청자 목록·요약 카드 확인.

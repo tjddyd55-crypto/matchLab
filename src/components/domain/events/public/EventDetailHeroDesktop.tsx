@@ -3,7 +3,13 @@ import { EventPosterImage } from "@/components/domain/events/EventPosterImage";
 import { EventStatusBadges } from "@/components/domain/events/EventStatusBadges";
 import { EventMetaList } from "@/components/domain/events/EventMetaList";
 import { EventApplicationCta } from "@/components/domain/events/EventApplicationCta";
+import { EventShareButtons } from "@/components/domain/events/public/EventShareButtons";
 import { publicEventDivisionSummary } from "@/components/domain/events/public/public-event-ui";
+import {
+  buildEventPublicUrl,
+  buildEventShareText,
+  buildEventShareTitle,
+} from "@/lib/share/event-share";
 
 export function EventDetailHeroDesktop({
   event,
@@ -53,10 +59,15 @@ export function EventDetailHeroDesktop({
               primarySport={event.primarySport}
               divisionSummary={publicEventDivisionSummary(event)}
             />
-            <div className="mt-5 border-t pt-5">
+            <div className="mt-5 space-y-4 border-t pt-5">
               <EventApplicationCta
                 eventStatus={event.status}
                 registrationStatus={event.registrationStatus}
+              />
+              <EventShareButtons
+                title={buildEventShareTitle(event)}
+                text={buildEventShareText(event)}
+                url={buildEventPublicUrl(event)}
               />
             </div>
           </div>
