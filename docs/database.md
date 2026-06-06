@@ -297,8 +297,14 @@ MVP: `watchUrl`, `embedUrl`, 플랫폼 enum. **스트림 키 필드 없음.**
 | eventId | nullable, 맥락 필터용 |
 | type | `NotificationType`(신청·입금·대진·경기·결과 등) |
 | title, content | 짧은 안내 문구만 — 휴대폰·생년월일·보호자 연락처·서명 경로 등 민감 정보 금지 |
-| href | nullable, 내부·공개 라우트만 (예: `/gym/applications`, `/events/{slug}/brackets`) |
+| href | nullable, 내부·공개 라우트만 (예: `/gym/events/{eventId}/status`, `/fighter/events`, `/organizer/events/{eventId}/applications`) |
 | readAt | 읽음 시각 |
+
+**수신자**: `userId` 기준 — 체육관 관장(`Gym.ownerUserId`), 선수(`Fighter.userId`), 주최자(`Organizer.userId`). 역할별 href는 `notification.service`에서 결정.
+
+**발생 이벤트 (MVP)**: 신청 접수·승인/반려·입금·현장/계체·자동 대진·대진 공개·경기 변경·결과 확정/정정/무효.
+
+**정책**: 알림 생성 실패는 `safeNotify`/`tryNotify`로 격리 — 도메인 트랜잭션 성공과 분리(best-effort). 동일 상태 no-op 시 알림 생략.
 
 ### 추가 엔티티 (운영자 피드백 MVP 반영)
 
@@ -357,7 +363,7 @@ MVP: `watchUrl`, `embedUrl`, 플랫폼 enum. **스트림 키 필드 없음.**
 
 ## 6. 트랜잭션 경계 (중요 유스케이스)
 
-- **결과 확정 (MVP 구현)**: 단일 트랜잭션에서 `BracketMatch` 운영 종료(`finished`) 및 결과 필드 확정, **`MatchResult` 2행(`confirmed`, 스냅샷은 서버 조립 — 클라이언트 문자열 불신)**, **`Fighter` 전적 캐시 재계산**(집계는 `confirmed`+`corrected`, **`no_contest`는 승·패·무 캐시에 미반영 MVP**), 단판(`single_elimination`)이면 **승자 다음 슬롯 배치** + `BracketChangeLog`. 인앱 **`Notification`** 생성은 동일 트랜잭션에서 처리한다(MVP 정합성 우선).
+- **결과 확정 (MVP 구현)**: 단일 트랜잭션에서 `BracketMatch` 운영 종료(`finished`) 및 결과 필드 확정, **`MatchResult` 2행(`confirmed`)**, **`Fighter` 전적 캐시 재계산**, 단판이면 **승자 다음 슬롯 배치** + `BracketChangeLog`. 인앱 **`Notification`** 은 트랜잭션 내 `tryNotify`로 best-effort 생성(실패 시 도메인 롤백 없음).
 - **결과 수정·무효 (MVP 구현)**: 조용한 덮어쓰기 금지 — **`MatchResultChangeLog` 필수**. 정정은 행을 `corrected`로 갱신하고, 무효는 `voided` 처리 후 (MVP) **`BracketMatch` 결과 필드 초기화** 및 캐시 재계산.
 - **대진표 저장**: Match 변경 + `BracketChangeLog` 삽입.
 - **참가 승인 + 크레딧 차감**: 단일 트랜잭션에서 `debit_participant` ledger + wallet 갱신 + `EventApplication.status=approved` + (선택) 알림.

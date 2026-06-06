@@ -25,6 +25,7 @@ import { eventRepository } from "@/lib/repositories/event.repository";
 import { fighterRepository } from "@/lib/repositories/fighter.repository";
 import { gymEventFeeRepository } from "@/lib/repositories/gym-event-fee.repository";
 import { registrationRepository } from "@/lib/repositories/registration.repository";
+import { safeNotify } from "@/lib/notifications/safe-dispatch";
 import { notificationService } from "@/lib/services/notification.service";
 import { creditService } from "@/lib/services/credit.service";
 import {
@@ -841,6 +842,14 @@ export const applicationService = {
       memo: input.memo,
     });
 
+    safeNotify(`application-submitted:${applicationId}`, () =>
+      notificationService.notifyApplicationSubmitted({
+        eventId: input.eventId,
+        eventTitle: event.title,
+        count: 1,
+      }),
+    );
+
     return {
       applicationId,
       paymentInstruction: {
@@ -1070,6 +1079,16 @@ export const applicationService = {
       }
     }
 
+    if (createdCount > 0) {
+      safeNotify(`application-batch-submitted:${input.eventId}`, () =>
+        notificationService.notifyApplicationSubmitted({
+          eventId: input.eventId,
+          eventTitle: event.title,
+          count: createdCount,
+        }),
+      );
+    }
+
     return {
       totalSelected: input.applications.length,
       createdCount,
@@ -1128,32 +1147,24 @@ export const applicationService = {
         ApplicationStatus.approved,
         tx,
       );
-
-      const nctx =
-        await applicationRepository.findApplicationNotificationContext(
-          applicationId,
-          tx,
-        );
-      if (
-        nctx?.event &&
-        nctx.gym &&
-        nctx.fighter &&
-        nctx.event.publicSlug
-      ) {
-        await notificationService.notifyApplicationStatusChanged(
-          {
-            applicationId,
-            eventId: nctx.eventId,
-            eventTitle: nctx.event.title,
-            publicSlug: nctx.event.publicSlug,
-            status: ApplicationStatus.approved,
-            gymOwnerUserId: nctx.gym.ownerUserId,
-            fighterUserId: nctx.fighter.userId,
-          },
-          tx,
-        );
-      }
     });
+
+    const nctxApproved =
+      await applicationRepository.findApplicationNotificationContext(
+        applicationId,
+      );
+    if (nctxApproved?.event && nctxApproved.gym && nctxApproved.fighter) {
+      safeNotify(`application-approved:${applicationId}`, () =>
+        notificationService.notifyApplicationStatusChanged({
+          applicationId,
+          eventId: nctxApproved.eventId,
+          eventTitle: nctxApproved.event.title,
+          status: ApplicationStatus.approved,
+          gymOwnerUserId: nctxApproved.gym.ownerUserId,
+          fighterUserId: nctxApproved.fighter.userId,
+        }),
+      );
+    }
 
     // MVP: 입금 미확인(unpaid)이어도 승인 가능 — 향후 대회별 "입금 확인 후 승인" 정책 확장 TODO.
     void ctx.paymentStatus;
@@ -1204,32 +1215,24 @@ export const applicationService = {
         },
         tx,
       );
-
-      const nctx =
-        await applicationRepository.findApplicationNotificationContext(
-          applicationId,
-          tx,
-        );
-      if (
-        nctx?.event &&
-        nctx.gym &&
-        nctx.fighter &&
-        nctx.event.publicSlug
-      ) {
-        await notificationService.notifyApplicationStatusChanged(
-          {
-            applicationId,
-            eventId: nctx.eventId,
-            eventTitle: nctx.event.title,
-            publicSlug: nctx.event.publicSlug,
-            status: ApplicationStatus.rejected,
-            gymOwnerUserId: nctx.gym.ownerUserId,
-            fighterUserId: nctx.fighter.userId,
-          },
-          tx,
-        );
-      }
     });
+
+    const nctxRejected =
+      await applicationRepository.findApplicationNotificationContext(
+        applicationId,
+      );
+    if (nctxRejected?.event && nctxRejected.gym && nctxRejected.fighter) {
+      safeNotify(`application-rejected:${applicationId}`, () =>
+        notificationService.notifyApplicationStatusChanged({
+          applicationId,
+          eventId: nctxRejected.eventId,
+          eventTitle: nctxRejected.event.title,
+          status: ApplicationStatus.rejected,
+          gymOwnerUserId: nctxRejected.gym.ownerUserId,
+          fighterUserId: nctxRejected.fighter.userId,
+        }),
+      );
+    }
 
     // TODO: 승인 이후 취소·환불 조합 플로우는 별도 정의 (`ApplicationStatus.cancelled` 등).
   },

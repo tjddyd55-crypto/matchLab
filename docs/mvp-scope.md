@@ -106,7 +106,9 @@
 - [x] 공개 대진표 페이지(`/events/[slug]/brackets`).
 - [x] 대진표·매치 편집 시 **`BracketChangeLog`** 필수(`BracketChangeType`).
 - [x] Supabase Realtime으로 변경 반영 → 클라이언트 `invalidateQueries` 및 필요 시 `router.refresh()` (`features/realtime`, 공개 페이지 브리지).
-- [x] 인앱 `Notification` 생성·조회·읽음(API `/api/notifications`, 대시보드 벨).
+- [x] 인앱 `Notification` 생성·조회·읽음(API `/api/notifications`, `/notifications`, Header 벨·배지).
+- [x] 알림 발생: 신청 접수(주최자), 승인/반려(체육관·선수), 입금(체육관), 현장/계체(체육관·선수), 자동 대진/공개(주최자·체육관·선수), 경기·결과(체육관·선수) — **best-effort** 생성(원래 액션 실패 방지).
+- [ ] SMS·카카오 알림톡·이메일·웹푸시 (후속 TODO).
 - [x] 선수·체육관 **현장 모드** 홈(`/fighter`, `/gym`) — 진행 예정 경기·요약.
 
 ### 경기 운영·결과
@@ -172,7 +174,7 @@
 - 스트림 키 저장
 - 자동 랭킹 산정
 - 자동 bye 승급(홀수 인원 부전승) — TODO
-- 카카오 알림톡·문자
+- 카카오 알림톡·문자·이메일·웹푸시 (인앱 알림은 MVP 완료)
 - QR 체크인 (MVP는 주최자 수동 현장 확인·계체 화면만 — QR/선수 셀프 조회는 후속)
 - 티켓 판매
 - 심판 배정

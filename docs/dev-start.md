@@ -112,6 +112,15 @@ GitHub → Railway 배포가 성공해도 **Postgres는 빈 DB**입니다. `publ
 | 체육관 | `gym` | `123456!!` | `/gym/events/{eventId}/field-status` (현장/계체 읽기 전용) |
 | 선수 | `fighter` | `123456!!` | `/fighter/events` (내 대회·내 경기, 조회만) |
 
+**인앱 알림 테스트 순서 (schema 변경 없음):**
+
+1. `gym` 로그인 → 대회 일괄 신청 → 로그아웃.
+2. `organizer` 로그인 → Header 벨 또는 `/notifications`에서 신청 접수 알림 확인.
+3. 신청 승인 → `gym`·`fighter` 각각 알림 확인.
+4. `/organizer/events/{eventId}/check-in`에서 현장/계체 변경 → gym·fighter 알림.
+5. 자동 대진 생성·대진표 공개 → gym·fighter 알림.
+6. 결과 입력·확정 → gym·fighter 알림, href 이동·읽음 처리 확인.
+
 **데모 loginId (기본 비밀번호 `DEMO_PASSWORD` 또는 `123456!!`):**
 
 | loginId | 역할 | 레거시 이메일(하위 호환) |

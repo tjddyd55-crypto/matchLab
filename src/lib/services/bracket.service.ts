@@ -31,6 +31,7 @@ import {
 } from "@/lib/repositories/bracket.repository";
 import { eventRepository } from "@/lib/repositories/event.repository";
 import { notificationRepository } from "@/lib/repositories/notification.repository";
+import { safeNotify, tryNotify } from "@/lib/notifications/safe-dispatch";
 import { notificationService } from "@/lib/services/notification.service";
 import { fieldStatusService } from "@/lib/services/field-status.service";
 import type {
@@ -408,6 +409,10 @@ export const bracketService = {
       throw new AppError("NOT_FOUND", "대진표를 찾을 수 없습니다.");
     }
 
+    if (row.status === BracketStatus.published && row.isPublic) {
+      return;
+    }
+
     await prisma.$transaction(async (tx) => {
       await bracketRepository.updateBracket(
         bracketId,
@@ -433,22 +438,23 @@ export const bracketService = {
           isPublic: true,
         },
       });
-
-      const ev = await notificationRepository.getEventSlugTitle(ctx.eventId, tx);
-      if (ev?.publicSlug) {
-        await notificationService.notifyBracketChanged(
-          {
-            eventId: ctx.eventId,
-            publicSlug: ev.publicSlug,
-            bracketId,
-            bracketTitle: row.title,
-            summaryLine: "공개 대진표가 게시되었습니다.",
-            scope: "bracket_all",
-          },
-          tx,
-        );
-      }
     });
+
+    const [ev, fighterIds] = await Promise.all([
+      notificationRepository.getEventSlugTitle(ctx.eventId),
+      notificationRepository.listCornerFighterIdsForBracket(bracketId),
+    ]);
+    if (ev?.publicSlug && fighterIds.length > 0) {
+      safeNotify(`bracket-published:${bracketId}`, () =>
+        notificationService.notifyBracketPublished({
+          eventId: ctx.eventId,
+          eventTitle: ev.title,
+          publicSlug: ev.publicSlug,
+          bracketTitle: row.title,
+          fighterIds,
+        }),
+      );
+    }
   },
 
   async unpublishBracket(actor: ActorContext, bracketId: string): Promise<void> {
@@ -478,7 +484,8 @@ export const bracketService = {
       const ev = await notificationRepository.getEventSlugTitle(ctx.eventId, tx);
       const br = await bracketRepository.findBracketById(bracketId, tx);
       if (ev?.publicSlug && br) {
-        await notificationService.notifyBracketChanged(
+        await tryNotify("bracket-changed", () =>
+          notificationService.notifyBracketChanged(
           {
             eventId: ctx.eventId,
             publicSlug: ev.publicSlug,
@@ -488,6 +495,7 @@ export const bracketService = {
             scope: "bracket_all",
           },
           tx,
+          ),
         );
       }
     });
@@ -657,7 +665,8 @@ export const bracketService = {
       const ev = await notificationRepository.getEventSlugTitle(ctx.eventId, tx);
       const br = await bracketRepository.findBracketById(input.bracketId, tx);
       if (ev?.publicSlug && br && fighterSnapshotIds.length > 0) {
-        await notificationService.notifyBracketChanged(
+        await tryNotify("bracket-changed", () =>
+          notificationService.notifyBracketChanged(
           {
             eventId: ctx.eventId,
             publicSlug: ev.publicSlug,
@@ -668,6 +677,7 @@ export const bracketService = {
             fighterIdsOverride: fighterSnapshotIds,
           },
           tx,
+          ),
         );
       }
     });
@@ -803,7 +813,8 @@ export const bracketService = {
       const ev = await notificationRepository.getEventSlugTitle(ctx.eventId, tx);
       const br = await bracketRepository.findBracketById(input.bracketId, tx);
       if (ev?.publicSlug && br) {
-        await notificationService.notifyBracketChanged(
+        await tryNotify("bracket-changed", () =>
+          notificationService.notifyBracketChanged(
           {
             eventId: ctx.eventId,
             publicSlug: ev.publicSlug,
@@ -814,6 +825,7 @@ export const bracketService = {
             matchId: input.matchId,
           },
           tx,
+          ),
         );
       }
     });
@@ -902,7 +914,8 @@ export const bracketService = {
       const ev = await notificationRepository.getEventSlugTitle(ctx.eventId, tx);
       const br = await bracketRepository.findBracketById(mctx.bracketId, tx);
       if (ev?.publicSlug && br) {
-        await notificationService.notifyBracketChanged(
+        await tryNotify("bracket-changed", () =>
+          notificationService.notifyBracketChanged(
           {
             eventId: ctx.eventId,
             publicSlug: ev.publicSlug,
@@ -913,6 +926,7 @@ export const bracketService = {
             matchId: input.matchId,
           },
           tx,
+          ),
         );
       }
     });
@@ -973,7 +987,8 @@ export const bracketService = {
       const ev = await notificationRepository.getEventSlugTitle(ctx.eventId, tx);
       const br = await bracketRepository.findBracketById(input.bracketId, tx);
       if (ev?.publicSlug && br) {
-        await notificationService.notifyBracketChanged(
+        await tryNotify("bracket-changed", () =>
+          notificationService.notifyBracketChanged(
           {
             eventId: ctx.eventId,
             publicSlug: ev.publicSlug,
@@ -984,6 +999,7 @@ export const bracketService = {
             matchId: input.matchId,
           },
           tx,
+          ),
         );
       }
     });
@@ -1023,7 +1039,8 @@ export const bracketService = {
       const ev = await notificationRepository.getEventSlugTitle(ctx.eventId, tx);
       const br = await bracketRepository.findBracketById(input.bracketId, tx);
       if (ev?.publicSlug && br && fighterSnapshotIds.length > 0) {
-        await notificationService.notifyBracketChanged(
+        await tryNotify("bracket-changed", () =>
+          notificationService.notifyBracketChanged(
           {
             eventId: ctx.eventId,
             publicSlug: ev.publicSlug,
@@ -1034,6 +1051,7 @@ export const bracketService = {
             fighterIdsOverride: fighterSnapshotIds,
           },
           tx,
+          ),
         );
       }
     });

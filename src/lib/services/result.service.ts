@@ -36,6 +36,7 @@ import { bracketRepository } from "@/lib/repositories/bracket.repository";
 import { fighterRepository } from "@/lib/repositories/fighter.repository";
 import { matchRepository } from "@/lib/repositories/match.repository";
 import { resultRepository } from "@/lib/repositories/result.repository";
+import { tryNotify } from "@/lib/notifications/safe-dispatch";
 import { notificationService } from "@/lib/services/notification.service";
 import type { ResolvedStaffRecorderLink } from "@/lib/services/event-staff-access.service";
 import type {
@@ -420,18 +421,20 @@ export const resultService = {
 
       const pubSlug = match.bracket.event?.publicSlug;
       if (pubSlug) {
-        await notificationService.notifyResultConfirmed(
-          {
-            eventId: match.bracket.eventId,
-            publicSlug: pubSlug,
-            bracketTitle: match.bracket.title,
-            matchId: input.matchId,
-            redFighterId: redId,
-            blueFighterId: blueId,
-            summaryLine:
-              "공식 결과가 확정되어 전적에 반영되었습니다.",
-          },
-          tx,
+        await tryNotify(`result-confirmed:${input.matchId}`, () =>
+          notificationService.notifyResultConfirmed(
+            {
+              eventId: match.bracket.eventId,
+              publicSlug: pubSlug,
+              bracketTitle: match.bracket.title,
+              matchId: input.matchId,
+              redFighterId: redId,
+              blueFighterId: blueId,
+              summaryLine:
+                "공식 결과가 확정되어 전적에 반영되었습니다.",
+            },
+            tx,
+          ),
         );
       }
 
@@ -691,14 +694,16 @@ export const resultService = {
 
       const pubSlug = match.bracket.event?.publicSlug;
       if (pubSlug) {
-        await notificationService.notifyOfficialResultAdjusted(
-          {
-            eventId: match.bracket.eventId,
-            publicSlug: pubSlug,
-            bracketTitle: match.bracket.title,
-            matchId: input.matchId,
-          },
-          tx,
+        await tryNotify(`result-adjusted:${input.matchId}`, () =>
+          notificationService.notifyOfficialResultAdjusted(
+            {
+              eventId: match.bracket.eventId,
+              publicSlug: pubSlug,
+              bracketTitle: match.bracket.title,
+              matchId: input.matchId,
+            },
+            tx,
+          ),
         );
       }
 
@@ -763,14 +768,16 @@ export const resultService = {
 
       const pubSlug = matchRow?.bracket.event?.publicSlug;
       if (pubSlug && matchRow?.bracket.title) {
-        await notificationService.notifyOfficialResultVoided(
-          {
-            eventId: ctx.eventId,
-            publicSlug: pubSlug,
-            bracketTitle: matchRow.bracket.title,
-            matchId: input.matchId,
-          },
-          tx,
+        await tryNotify(`result-voided:${input.matchId}`, () =>
+          notificationService.notifyOfficialResultVoided(
+            {
+              eventId: ctx.eventId,
+              publicSlug: pubSlug,
+              bracketTitle: matchRow.bracket.title,
+              matchId: input.matchId,
+            },
+            tx,
+          ),
         );
       }
 

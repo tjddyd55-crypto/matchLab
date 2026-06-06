@@ -67,6 +67,17 @@ MVP 범위는 `docs/mvp-scope.md`를 기준으로 하며, 본 문서는 **시연
 4. **gym** — `/gym/events/{eventId}/field-status` → **자기 체육관 선수만** 표시, 수정 버튼 없음.
 5. **spectator** — `/events/sample-open-2026` 및 `brackets` / `results` → **실제 몸무게·현장 상태 미노출** 확인.
 
+### 1.4c 인앱 알림
+
+1. **gym** — 대회 일괄 신청 제출.
+2. **organizer** — Header 알림 벨 또는 `/notifications`에서 「새 신청이 접수되었습니다」 확인 → 신청자 관리 링크.
+3. **organizer** — 신청 승인.
+4. **gym** / **fighter** — 「신청이 승인되었습니다」 알림, href 각각 `/gym/events/{eventId}/status`, `/fighter/events`.
+5. **organizer** — 현장 확인·계체 변경 → **gym**·**fighter** 현장/계체 알림.
+6. **organizer** — 자동 대진 생성·대진표 공개 → **gym**·**fighter** 대진 알림.
+7. **organizer** — 결과 입력·확정 → **gym**·**fighter** 경기/결과 알림.
+8. 알림 **읽음**·**모두 읽음** 처리, 다른 사용자 알림 접근 차단 확인.
+
 ### 1.4b 체육관·선수 신청 현황·내 경기
 
 1. **gym** — `/login` (`gym` / `123456!!`) → `/gym/events` → 대회 카드 **신청 현황** → `/gym/events/{eventId}/status`.

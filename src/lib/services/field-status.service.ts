@@ -22,7 +22,10 @@ import {
   fieldStatusRepository,
   type FieldStatusApplicationRow,
 } from "@/lib/repositories/field-status.repository";
+import { applicationRepository } from "@/lib/repositories/application.repository";
 import { eventRepository } from "@/lib/repositories/event.repository";
+import { safeNotify } from "@/lib/notifications/safe-dispatch";
+import { notificationService } from "@/lib/services/notification.service";
 import { evaluateWeighInWeight } from "@/lib/weigh-in-eval";
 
 function readSnapshotName(snapshot: unknown): string {
@@ -117,6 +120,39 @@ async function assertOrganizerApplication(
   return row;
 }
 
+function dispatchFieldStatusNotification(
+  applicationId: string,
+  before: { checkInStatus: CheckInStatus; weighInStatus: WeighInStatus },
+  after: { checkInStatus: CheckInStatus; weighInStatus: WeighInStatus },
+): void {
+  if (
+    before.checkInStatus === after.checkInStatus &&
+    before.weighInStatus === after.weighInStatus
+  ) {
+    return;
+  }
+
+  safeNotify(`field-status:${applicationId}`, async () => {
+    const nctx =
+      await applicationRepository.findApplicationNotificationContext(
+        applicationId,
+      );
+    if (!nctx?.event || !nctx.gym) return;
+
+    await notificationService.notifyFieldStatusChanged({
+      eventId: nctx.eventId,
+      eventTitle: nctx.event.title,
+      fighterId: nctx.fighterId,
+      gymOwnerUserId: nctx.gym.ownerUserId,
+      fighterUserId: nctx.fighter.userId,
+      previousCheckIn: before.checkInStatus,
+      previousWeighIn: before.weighInStatus,
+      nextCheckIn: after.checkInStatus,
+      nextWeighIn: after.weighInStatus,
+    });
+  });
+}
+
 export const fieldStatusService = {
   async listOrganizerEventFieldStatus(
     actor: ActorContext,
@@ -181,10 +217,21 @@ export const fieldStatusService = {
     applicationId: string,
     status: CheckInStatus,
   ): Promise<void> {
-    await assertOrganizerApplication(actor, applicationId);
+    const row = await assertOrganizerApplication(actor, applicationId);
+    if (row.checkInStatus === status) return;
+
     await fieldStatusRepository.updateFieldStatus(applicationId, {
       checkInStatus: status,
     });
+
+    dispatchFieldStatusNotification(
+      applicationId,
+      {
+        checkInStatus: row.checkInStatus,
+        weighInStatus: row.weighInStatus,
+      },
+      { checkInStatus: status, weighInStatus: row.weighInStatus },
+    );
   },
 
   async setWeighInStatus(
@@ -192,10 +239,21 @@ export const fieldStatusService = {
     applicationId: string,
     status: WeighInStatus,
   ): Promise<void> {
-    await assertOrganizerApplication(actor, applicationId);
+    const row = await assertOrganizerApplication(actor, applicationId);
+    if (row.weighInStatus === status) return;
+
     await fieldStatusRepository.updateFieldStatus(applicationId, {
       weighInStatus: status,
     });
+
+    dispatchFieldStatusNotification(
+      applicationId,
+      {
+        checkInStatus: row.checkInStatus,
+        weighInStatus: row.weighInStatus,
+      },
+      { checkInStatus: row.checkInStatus, weighInStatus: status },
+    );
   },
 
   async recordWeighInWeight(
@@ -217,10 +275,23 @@ export const fieldStatusService = {
         : WeighInStatus.fail;
     }
 
+    const nextWeighIn = weighInStatus ?? row.weighInStatus;
+
     await fieldStatusRepository.updateFieldStatus(applicationId, {
       weighInWeightKg: weightKg,
       ...(weighInStatus ? { weighInStatus } : {}),
     });
+
+    if (weighInStatus && weighInStatus !== row.weighInStatus) {
+      dispatchFieldStatusNotification(
+        applicationId,
+        {
+          checkInStatus: row.checkInStatus,
+          weighInStatus: row.weighInStatus,
+        },
+        { checkInStatus: row.checkInStatus, weighInStatus: nextWeighIn },
+      );
+    }
 
     return {
       autoStatus: weighInStatus ?? null,

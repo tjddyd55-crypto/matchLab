@@ -10,7 +10,32 @@ import {
   paymentRepository,
   type PaymentOwnershipContext,
 } from "@/lib/repositories/payment.repository";
+import { safeNotify } from "@/lib/notifications/safe-dispatch";
 import { notificationService } from "@/lib/services/notification.service";
+
+function dispatchPaymentNotification(
+  eventId: string,
+  gymId: string,
+  paymentStatus: PaymentStatus,
+): void {
+  safeNotify(`payment:${eventId}:${paymentStatus}`, async () => {
+    const gym = await prisma.gym.findUnique({
+      where: { id: gymId },
+      select: { ownerUserId: true },
+    });
+    const ev = await prisma.event.findUnique({
+      where: { id: eventId },
+      select: { title: true },
+    });
+    if (!gym?.ownerUserId || !ev) return;
+    await notificationService.notifyPaymentStatusChanged({
+      eventId,
+      eventTitle: ev.title,
+      gymOwnerUserId: gym.ownerUserId,
+      paymentStatus,
+    });
+  });
+}
 
 async function loadPaymentContextOrThrow(
   paymentId: string,
@@ -86,27 +111,9 @@ export const paymentService = {
         PaymentStatus.paid,
         tx,
       );
-
-      const gym = await tx.gym.findUnique({
-        where: { id: ctx.gymId },
-        select: { ownerUserId: true },
-      });
-      const ev = await tx.event.findUnique({
-        where: { id: ctx.eventId },
-        select: { title: true, publicSlug: true },
-      });
-      if (gym?.ownerUserId && ev) {
-        await notificationService.notifyPaymentStatusChanged(
-          {
-            eventId: ctx.eventId,
-            eventTitle: ev.title,
-            gymOwnerUserId: gym.ownerUserId,
-            paymentStatus: PaymentStatus.paid,
-          },
-          tx,
-        );
-      }
     });
+
+    dispatchPaymentNotification(ctx.eventId, ctx.gymId, PaymentStatus.paid);
   },
 
   async markPaymentPendingCheck(
@@ -141,27 +148,13 @@ export const paymentService = {
         PaymentStatus.pending_check,
         tx,
       );
-
-      const gym = await tx.gym.findUnique({
-        where: { id: ctx.gymId },
-        select: { ownerUserId: true },
-      });
-      const ev = await tx.event.findUnique({
-        where: { id: ctx.eventId },
-        select: { title: true, publicSlug: true },
-      });
-      if (gym?.ownerUserId && ev) {
-        await notificationService.notifyPaymentStatusChanged(
-          {
-            eventId: ctx.eventId,
-            eventTitle: ev.title,
-            gymOwnerUserId: gym.ownerUserId,
-            paymentStatus: PaymentStatus.pending_check,
-          },
-          tx,
-        );
-      }
     });
+
+    dispatchPaymentNotification(
+      ctx.eventId,
+      ctx.gymId,
+      PaymentStatus.pending_check,
+    );
   },
 
   async markPaymentRefunded(
@@ -198,27 +191,9 @@ export const paymentService = {
         PaymentStatus.refunded,
         tx,
       );
-
-      const gym = await tx.gym.findUnique({
-        where: { id: ctx.gymId },
-        select: { ownerUserId: true },
-      });
-      const ev = await tx.event.findUnique({
-        where: { id: ctx.eventId },
-        select: { title: true, publicSlug: true },
-      });
-      if (gym?.ownerUserId && ev) {
-        await notificationService.notifyPaymentStatusChanged(
-          {
-            eventId: ctx.eventId,
-            eventTitle: ev.title,
-            gymOwnerUserId: gym.ownerUserId,
-            paymentStatus: PaymentStatus.refunded,
-          },
-          tx,
-        );
-      }
     });
+
+    dispatchPaymentNotification(ctx.eventId, ctx.gymId, PaymentStatus.refunded);
   },
 
   async markPaymentWaived(
@@ -258,26 +233,8 @@ export const paymentService = {
         PaymentStatus.waived,
         tx,
       );
-
-      const gym = await tx.gym.findUnique({
-        where: { id: ctx.gymId },
-        select: { ownerUserId: true },
-      });
-      const ev = await tx.event.findUnique({
-        where: { id: ctx.eventId },
-        select: { title: true, publicSlug: true },
-      });
-      if (gym?.ownerUserId && ev) {
-        await notificationService.notifyPaymentStatusChanged(
-          {
-            eventId: ctx.eventId,
-            eventTitle: ev.title,
-            gymOwnerUserId: gym.ownerUserId,
-            paymentStatus: PaymentStatus.waived,
-          },
-          tx,
-        );
-      }
     });
+
+    dispatchPaymentNotification(ctx.eventId, ctx.gymId, PaymentStatus.waived);
   },
 };

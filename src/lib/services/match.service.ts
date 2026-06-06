@@ -24,6 +24,7 @@ import {
   type MatchOwnershipContext,
 } from "@/lib/repositories/match.repository";
 import { notificationRepository } from "@/lib/repositories/notification.repository";
+import { tryNotify } from "@/lib/notifications/safe-dispatch";
 import { notificationService } from "@/lib/services/notification.service";
 import type { ResolvedStaffRecorderLink } from "@/lib/services/event-staff-access.service";
 import type {
@@ -160,15 +161,17 @@ async function notifyMatchStakeholdersAfterChange(
     select: { title: true },
   });
   if (!slugRow?.publicSlug || !bracketTitleRow?.title) return;
-  await notificationService.notifyMatchChanged(
-    {
-      eventId: ctx.eventId,
-      publicSlug: slugRow.publicSlug,
-      bracketTitle: bracketTitleRow.title,
-      matchId,
-      summaryLine,
-    },
-    tx,
+  await tryNotify(`match-changed:${matchId}`, () =>
+    notificationService.notifyMatchChanged(
+      {
+        eventId: ctx.eventId,
+        publicSlug: slugRow.publicSlug,
+        bracketTitle: bracketTitleRow.title,
+        matchId,
+        summaryLine,
+      },
+      tx,
+    ),
   );
 }
 
