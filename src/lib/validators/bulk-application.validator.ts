@@ -7,6 +7,7 @@ const mustAgree = z.boolean().refine((v) => v === true, {
 export const bulkApplicationItemSchema = z.object({
   fighterId: z.string().min(1),
   divisionId: z.string().min(1),
+  formAnswers: z.record(z.string(), z.unknown()).optional(),
 });
 
 export const bulkApplyToEventSchema = z.object({

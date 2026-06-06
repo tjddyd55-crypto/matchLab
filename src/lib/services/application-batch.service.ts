@@ -5,6 +5,7 @@ import { AppError } from "@/lib/errors/app-error";
 import { EventStatus } from "@/lib/enums";
 import { prisma } from "@/lib/prisma";
 import { requireGymOwner, requireOrganizerForEvent, requireRole } from "@/lib/permissions";
+import { resolveApplicationFormMode } from "@/lib/application-form/custom-form";
 import { applicationBatchRepository } from "@/lib/repositories/application-batch.repository";
 import { applicationDocumentRepository } from "@/lib/repositories/application-document.repository";
 import { eventRepository } from "@/lib/repositories/event.repository";
@@ -86,6 +87,28 @@ export const applicationBatchService = {
         policyNotice: [
           "이 대회에는 공식 신청서 템플릿이 연결되지 않았습니다.",
           "주최자에게 문의해 주세요.",
+        ],
+      };
+    }
+
+    const formMode = resolveApplicationFormMode({
+      templateId: event.applicationFormTemplateId,
+      fieldsJson: event.applicationFormTemplate.fieldsJson,
+      manualFieldsJson: event.applicationFormTemplate.manualFieldsJson,
+    });
+    if (formMode === "custom") {
+      return {
+        event: {
+          id: event.id,
+          title: event.title,
+          registrationStartDate: event.registrationStartDate.toISOString(),
+          registrationEndDate: event.registrationEndDate.toISOString(),
+        },
+        template: null,
+        batch: null,
+        policyNotice: [
+          "이 대회는 자체 폼형 신청서가 연결되어 있습니다.",
+          "아래 일괄 신청에서 선수별 항목을 작성해 주세요.",
         ],
       };
     }

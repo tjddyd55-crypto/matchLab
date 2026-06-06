@@ -1,5 +1,6 @@
 "use client";
 
+import type React from "react";
 import { useMemo } from "react";
 import {
   divisionMismatchWarnings,
@@ -19,6 +20,7 @@ import { cn } from "@/lib/utils";
 export type FighterRowState = {
   checked: boolean;
   divisionId: string;
+  formAnswers: Record<string, unknown>;
 };
 
 type GymBulkApplicationRowProps = {
@@ -27,6 +29,7 @@ type GymBulkApplicationRowProps = {
   rowState: FighterRowState;
   onCheckedChange: (checked: boolean) => void;
   onDivisionChange: (divisionId: string) => void;
+  formStatus?: React.ReactNode;
 };
 
 function formatWeight(kg: number | null): string {
@@ -153,8 +156,14 @@ function FighterMeta({ fighter }: { fighter: EventApplicationFighterRowDTO }) {
 }
 
 export function GymBulkApplicationTableRow(props: GymBulkApplicationRowProps) {
-  const { fighter, divisions, rowState, onCheckedChange, onDivisionChange } =
-    props;
+  const {
+    fighter,
+    divisions,
+    rowState,
+    onCheckedChange,
+    onDivisionChange,
+    formStatus,
+  } = props;
   const status = rowStatusLabel(fighter, rowState);
   const alreadyApplied = Boolean(
     rowState.divisionId &&
@@ -188,6 +197,7 @@ export function GymBulkApplicationTableRow(props: GymBulkApplicationRowProps) {
           onChange={onDivisionChange}
         />
       </TableCell>
+      {formStatus ? <TableCell>{formStatus}</TableCell> : null}
       <TableCell>
         <Badge variant={status.tone}>{status.label}</Badge>
       </TableCell>
@@ -196,8 +206,14 @@ export function GymBulkApplicationTableRow(props: GymBulkApplicationRowProps) {
 }
 
 export function GymBulkApplicationCard(props: GymBulkApplicationRowProps) {
-  const { fighter, divisions, rowState, onCheckedChange, onDivisionChange } =
-    props;
+  const {
+    fighter,
+    divisions,
+    rowState,
+    onCheckedChange,
+    onDivisionChange,
+    formStatus,
+  } = props;
   const status = rowStatusLabel(fighter, rowState);
   const alreadyApplied = Boolean(
     rowState.divisionId &&
@@ -218,7 +234,10 @@ export function GymBulkApplicationCard(props: GymBulkApplicationRowProps) {
             <FighterMeta fighter={fighter} />
           </div>
         </div>
-        <Badge variant={status.tone}>{status.label}</Badge>
+        <div className="flex flex-col items-end gap-1">
+          <Badge variant={status.tone}>{status.label}</Badge>
+          {formStatus}
+        </div>
       </div>
 
       <div className="mt-4 grid gap-3">

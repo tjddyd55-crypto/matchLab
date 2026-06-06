@@ -11,6 +11,7 @@ import {
   rejectApplicationFormAction,
 } from "@/features/applications/actions";
 import { useState } from "react";
+import { OrganizerCustomFormAnswersSection } from "@/components/domain/applications/OrganizerCustomFormAnswersSection";
 
 function DetailRow({
   label,
@@ -90,14 +91,26 @@ export function OrganizerApplicationDetailDrawer({
             </DetailRow>
           ) : null}
           <DetailRow label="신청서/문서">
-            <Link
-              href={`/organizer/events/${eventId}/application-batches`}
-              className="text-primary text-sm underline underline-offset-2"
-            >
-              공식 신청서 묶음에서 확인
-            </Link>
+            {row.applicationFormMode === "custom" ? (
+              <span className="text-sm">자체 폼형 신청서 (아래 답변 참고)</span>
+            ) : row.applicationFormMode === "pdf" ? (
+              <Link
+                href={`/organizer/events/${eventId}/application-batches`}
+                className="text-primary text-sm underline underline-offset-2"
+              >
+                공식 PDF 신청서 묶음에서 확인
+              </Link>
+            ) : (
+              <span className="text-muted-foreground text-sm">
+                연결된 신청서 없음
+              </span>
+            )}
           </DetailRow>
         </dl>
+
+        {row.customFormSnapshot ? (
+          <OrganizerCustomFormAnswersSection snapshot={row.customFormSnapshot} />
+        ) : null}
 
         <div className="space-y-3 border-t pt-4">
           <p className="text-sm font-medium">조치</p>

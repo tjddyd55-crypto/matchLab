@@ -18,13 +18,20 @@ MVP 범위는 `docs/mvp-scope.md`를 기준으로 하며, 본 문서는 **시연
 1. **admin** — `/admin/application-form-templates/new`에서 **실제 PDF 업로드** → 업로드 직후 좌표는 **비어 있음** → PDF 위 「+ 텍스트」 등으로 필드 박스 추가·드래그·리사이즈 → source 연결 → 저장.
 2. **admin** — (선택) 「고급 설정」에서 fieldsJson 직접 수정 후 「JSON을 화면에 반영」 또는 「예시 좌표 불러오기」(자동 적용 없음).
 3. **organizer** — `/organizer/events/{eventId}`에서 공식 신청서 템플릿 연결 저장.
-4. **gym** — `/gym/events/{eventId}/apply`에서 선수·부문 선택 → 「선수별 신청서 생성」(또는 **선수 일괄 신청**으로 부문별 일반 신청).
+4. **gym** — `/gym/events/{eventId}/apply`에서 선수·부문 선택 → 「선수별 신청서 생성」(PDF) 또는 **선수 일괄 신청** + 자체 폼 답변 작성(custom).
 5. **선수** — 「서명 페이지 열기」 또는 `/application-sign/[token]`에서 서명 완료.
 6. **보호자**(미성년·학생) — `/guardian-consent/[id]?scope=application`에서 동의·서명.
 7. **gym** — 문서 상태 `completed` 확인 → (선택) 완료 PDF 생성 대기 → 「신청 묶음 제출」.
 8. **organizer** — `/organizer/events/{eventId}/application-batches` → 문서 상세 → **완료 PDF 열기** 또는 `.../print` 출력.
 
 > `fieldsJson` 좌표는 **top-left pt** 기준입니다. 실제 PDF에 맞게 x/y를 조정한 뒤 overlay 결과를 확인하세요.
+
+### 1.1b 자체 폼형 신청서 E2E
+
+1. **admin** — `/admin/application-form-templates/new`에서 PDF 1장 업로드(스키마상 필수) → 고급 설정 `manualFieldsJson`에 **「자체 폼 예시 불러오기」** → `formMode: "custom"` 확인 후 저장.
+2. **organizer** — 테스트 대회에 해당 템플릿 연결.
+3. **gym** — `/gym/events/{eventId}/apply` → **선수 일괄 신청** → 선택 선수별 신청서 항목 작성 → 일괄 제출.
+4. **organizer** — `/organizer/events/{eventId}/applications` → 신청자 상세 Drawer에서 **신청서 답변** 확인(공개 화면에는 미노출).
 
 ### 1.2 체급표 템플릿 · 부문 생성
 

@@ -14,6 +14,7 @@ import {
 import {
   EXAMPLE_APPLICATION_FORM_FIELDS_JSON,
   EXAMPLE_APPLICATION_FORM_REPEAT_GROUPS_JSON,
+  EXAMPLE_CUSTOM_FORM_MANUAL_FIELDS_JSON,
 } from "@/lib/constants/application-form-template-examples";
 import { ApplicationFormTemplatePdfUpload } from "@/components/domain/application-form-templates/ApplicationFormTemplatePdfUpload";
 import { PdfCoordinateEditor } from "@/components/domain/application-form-templates/pdf-editor/PdfCoordinateEditor";
@@ -362,11 +363,23 @@ export function ApplicationFormTemplateEditor({
             onChange={setRepeatGroupsJson}
             rows={4}
           />
-          <JsonArea
-            label="manualFieldsJson (선택)"
-            value={manualFieldsJson}
-            onChange={setManualFieldsJson}
-          />
+          <div className="grid gap-2">
+            <JsonArea
+              label="manualFieldsJson (선택 — formMode=custom 자체 폼)"
+              value={manualFieldsJson}
+              onChange={setManualFieldsJson}
+            />
+            <Button
+              type="button"
+              variant="secondary"
+              size="sm"
+              onClick={() =>
+                setManualFieldsJson(EXAMPLE_CUSTOM_FORM_MANUAL_FIELDS_JSON)
+              }
+            >
+              자체 폼 예시 불러오기
+            </Button>
+          </div>
           <JsonArea
             label="consentMappingJson (선택)"
             value={consentMappingJson}

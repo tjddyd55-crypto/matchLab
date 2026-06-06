@@ -140,7 +140,7 @@ export default async function GymEventApplyPage({
         initialNote={form.event.gymAthleteFeeNote}
       />
 
-      {workspace.template ? (
+      {form.applicationForm.mode === "pdf" && workspace.template ? (
         <GymOfficialApplicationWorkspace
           workspace={workspace}
           documents={documents}
@@ -163,7 +163,7 @@ export default async function GymEventApplyPage({
           fighters={form.fighters}
           streamingAgreementRequired={form.event.streamingAgreementRequired}
           streamingNoticeText={form.event.streamingNoticeText}
-          hasOfficialTemplate={Boolean(workspace.template)}
+          applicationForm={form.applicationForm}
         />
       </section>
 

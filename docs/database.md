@@ -167,6 +167,8 @@ MVP: 계좌 안내 + 수동 입금 확인. **`EventApplicationPayment` 가 입�
 - 주최측 **공식 신청서 PDF 원본** + 좌표 JSON(`fieldsJson`, `repeatGroupsJson`).
 - `originalPdfPath` / `originalPdfFileName`: 원본 PDF **private Storage** 경로·표시용 파일명 (`SUPABASE_APPLICATION_FORM_BUCKET`, 기본 `application-forms`). **공개 URL·DB signed URL 저장 금지.**
 - `source` 매핑 예: `fighter.name`, `event.title`, `application.division`, `athlete.signatureImage`, `manual.*`.
+- **자체 폼형(MVP, schema 변경 없음)**: `manualFieldsJson`에 `{ "formMode": "custom", "fields": [...] }` 저장. `fieldsJson`이 비어 있거나 `formMode=custom`이면 PDF 좌표 대신 항목 기반 신청서로 해석.
+- 답변 저장: `EventApplication.applicationAgreementSnapshot.customForm` — `{ templateId, templateTitle, capturedAt, answers: [{ id, label, type, value, readonly }] }` (주최자 전용, 공개 DTO 제외).
 - `fieldsJson` 좌표: **페이지 좌상단(top-left) pt** — 렌더 시 pdf-lib bottom-left로 변환(`docs/dev-start.md` 참고).
 - 관리자/운영팀만 좌표 세팅 — 주최자는 선택·다운로드만.
 

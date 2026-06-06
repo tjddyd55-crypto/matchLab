@@ -7,6 +7,7 @@ import {
   EventStatus,
   FighterStatus,
   PaymentStatus,
+  type Prisma,
 } from "@/generated/prisma";
 import { prisma } from "@/lib/prisma";
 import {
@@ -26,6 +27,16 @@ import { gymEventFeeRepository } from "@/lib/repositories/gym-event-fee.reposito
 import { registrationRepository } from "@/lib/repositories/registration.repository";
 import { notificationService } from "@/lib/services/notification.service";
 import { creditService } from "@/lib/services/credit.service";
+import {
+  buildCustomFormSnapshot,
+  parseManualFieldsConfig,
+  readCustomFormFromAgreementSnapshot,
+  resolveApplicationFormMode,
+  validateCustomFormAnswers,
+  type ApplicationFormMode,
+  type CustomFormFieldDefinition,
+  type CustomFormSnapshot,
+} from "@/lib/application-form/custom-form";
 import { formatFighterGenderLabel } from "@/lib/applications/division-fighter-match";
 import { publicAgeGroupFromBirthDate } from "@/lib/public-fighter/age-group";
 import type { ApplyToEventInput } from "@/lib/validators/application.validator";
@@ -124,6 +135,7 @@ type GymApplicationCreateContext = {
   feeAmount: number;
   applicationProfileImageUrl?: string | null;
   memo?: string | null;
+  customFormSnapshot?: CustomFormSnapshot | null;
 };
 
 async function createGymEventApplication(
@@ -148,7 +160,7 @@ async function createGymEventApplication(
     name: ctx.gymDisplayName,
   };
 
-  const applicationAgreementSnapshot = {
+  const applicationAgreementSnapshot: Record<string, unknown> = {
     version: APPLICATION_AGREEMENT_SNAPSHOT_VERSION,
     rulesAgreed: ctx.agreements.rulesAgreed,
     privacyAgreed: ctx.agreements.privacyAgreed,
@@ -159,6 +171,9 @@ async function createGymEventApplication(
     agreedAt: ctx.appliedAt.toISOString(),
     appliedByUserId: ctx.appliedByUserId,
   };
+  if (ctx.customFormSnapshot) {
+    applicationAgreementSnapshot.customForm = ctx.customFormSnapshot;
+  }
 
   return prisma.$transaction(async (tx) =>
     applicationRepository.createEventApplicationWithPayment(
@@ -169,7 +184,8 @@ async function createGymEventApplication(
         fighterId: ctx.fighter.id,
         fighterSnapshot,
         gymSnapshot,
-        applicationAgreementSnapshot,
+        applicationAgreementSnapshot:
+          applicationAgreementSnapshot as Prisma.InputJsonValue,
         appliedByUserId: ctx.appliedByUserId,
         appliedAt: ctx.appliedAt,
         applicationProfileImageUrl: profileUrl,
@@ -264,6 +280,15 @@ export type OrganizerApplicationListRowDTO = {
     | "draft"
     | "missing"
     | "other";
+  customFormSnapshot: CustomFormSnapshot | null;
+  applicationFormMode: ApplicationFormMode;
+};
+
+export type EventApplicationFormConfigDTO = {
+  mode: ApplicationFormMode;
+  templateId: string | null;
+  templateTitle: string | null;
+  customFields: CustomFormFieldDefinition[];
 };
 
 export type EventApplicationFormDTO = {
@@ -282,6 +307,7 @@ export type EventApplicationFormDTO = {
   };
   divisions: EventApplicationDivisionRowDTO[];
   fighters: EventApplicationFighterRowDTO[];
+  applicationForm: EventApplicationFormConfigDTO;
 };
 
 export type EventApplicationDivisionRowDTO = {
@@ -453,6 +479,18 @@ export const applicationService = {
     eventId: string,
   ): Promise<OrganizerApplicationListRowDTO[]> {
     await requireOrganizerForEvent(actor, eventId);
+    const eventMeta =
+      await eventRepository.findEventWithDivisionsForApplication(eventId);
+    const applicationFormMode = resolveApplicationFormMode(
+      eventMeta?.applicationFormTemplate
+        ? {
+            templateId: eventMeta.applicationFormTemplateId,
+            fieldsJson: eventMeta.applicationFormTemplate.fieldsJson,
+            manualFieldsJson: eventMeta.applicationFormTemplate.manualFieldsJson,
+          }
+        : null,
+    );
+
     const rows =
       await applicationRepository.listApplicationsForOrganizerEvent(eventId);
 
@@ -519,6 +557,10 @@ export const applicationService = {
         guardianConsentRequired: policyRequires,
         consentSummaryLabel: summary.consentSummaryLabel,
         consentFilterKey: summary.consentFilterKey,
+        customFormSnapshot: readCustomFormFromAgreementSnapshot(
+          row.applicationAgreementSnapshot,
+        ),
+        applicationFormMode,
       });
     }
 
@@ -588,6 +630,19 @@ export const applicationService = {
       });
     }
 
+    const applicationFormMode = resolveApplicationFormMode(
+      event.applicationFormTemplate
+        ? {
+            templateId: event.applicationFormTemplateId,
+            fieldsJson: event.applicationFormTemplate.fieldsJson,
+            manualFieldsJson: event.applicationFormTemplate.manualFieldsJson,
+          }
+        : null,
+    );
+    const manualConfig = parseManualFieldsConfig(
+      event.applicationFormTemplate?.manualFieldsJson,
+    );
+
     return {
       event: {
         id: event.id,
@@ -613,6 +668,12 @@ export const applicationService = {
         skillLevel: d.skillLevel,
       })),
       fighters: fighterRows,
+      applicationForm: {
+        mode: applicationFormMode,
+        templateId: event.applicationFormTemplateId,
+        templateTitle: event.applicationFormTemplate?.title ?? null,
+        customFields: manualConfig.fields,
+      },
     };
   },
 
@@ -752,11 +813,25 @@ export const applicationService = {
     const gymDisplayName = gymMeta?.name ?? "체육관";
 
     const divisionIds = new Set(event.divisions.map((d) => d.id));
+    const divisionById = new Map(event.divisions.map((d) => [d.id, d]));
     const fighterNameById = new Map(
       (await fighterRepository.listActiveFightersForEventApplication(gymId)).map(
         (f) => [f.id, f.name] as const,
       ),
     );
+
+    const applicationFormMode = resolveApplicationFormMode(
+      event.applicationFormTemplate
+        ? {
+            templateId: event.applicationFormTemplateId,
+            fieldsJson: event.applicationFormTemplate.fieldsJson,
+            manualFieldsJson: event.applicationFormTemplate.manualFieldsJson,
+          }
+        : null,
+    );
+    const customFormFields = parseManualFieldsConfig(
+      event.applicationFormTemplate?.manualFieldsJson,
+    ).fields;
 
     const items: BulkApplyItemResultDTO[] = [];
     let createdCount = 0;
@@ -827,6 +902,50 @@ export const applicationService = {
         continue;
       }
 
+      let customFormSnapshot: CustomFormSnapshot | null = null;
+      if (applicationFormMode === "custom") {
+        const formError = validateCustomFormAnswers(
+          customFormFields,
+          row.formAnswers,
+        );
+        if (formError) {
+          items.push({
+            fighterId: row.fighterId,
+            fighterName: fighter.name,
+            divisionId: row.divisionId,
+            outcome: "failed",
+            message: formError,
+          });
+          failedCount += 1;
+          continue;
+        }
+        const division = divisionById.get(row.divisionId);
+        customFormSnapshot = buildCustomFormSnapshot(
+          customFormFields,
+          row.formAnswers ?? {},
+          {
+            eventTitle: event.title,
+            gymName: gymDisplayName,
+            divisionLabel: division ? formatDivisionLabel(division) : "",
+            fighter: {
+              name: fighter.name,
+              gender: fighter.gender,
+              birthDate: fighter.birthDate,
+              weightKg: fighter.weight,
+              primarySport: null,
+              guardianName: fighter.guardianName,
+              guardianPhone: fighter.guardianPhone,
+            },
+          },
+          {
+            templateId: event.applicationFormTemplateId!,
+            templateTitle:
+              event.applicationFormTemplate?.title ?? "자체 신청서",
+            capturedAt: appliedAt.toISOString(),
+          },
+        );
+      }
+
       try {
         const { applicationId } = await createGymEventApplication({
           eventId: input.eventId,
@@ -840,6 +959,7 @@ export const applicationService = {
           appliedAt,
           feeAmount: paymentSetting.feeAmount,
           memo: input.memo,
+          customFormSnapshot,
         });
         items.push({
           fighterId: row.fighterId,

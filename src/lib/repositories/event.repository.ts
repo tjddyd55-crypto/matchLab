@@ -488,6 +488,7 @@ export const eventRepository = {
             originalPdfPath: true,
             fieldsJson: true,
             repeatGroupsJson: true,
+            manualFieldsJson: true,
           },
         },
         organizer: { select: { name: true } },

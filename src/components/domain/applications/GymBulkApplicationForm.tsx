@@ -7,7 +7,9 @@ import type {
   BulkApplyToEventSuccessDTO,
   EventApplicationDivisionRowDTO,
   EventApplicationFighterRowDTO,
+  EventApplicationFormConfigDTO,
 } from "@/lib/services/application.service";
+import type { CustomFormFieldDefinition } from "@/lib/application-form/custom-form";
 import { ApplicationAgreementChecklist } from "@/components/domain/applications/ApplicationAgreementChecklist";
 import {
   GymBulkApplicationCard,
@@ -15,7 +17,12 @@ import {
   type FighterRowState,
 } from "@/components/domain/applications/GymBulkApplicationRow";
 import { GymBulkApplicationResult } from "@/components/domain/applications/GymBulkApplicationResult";
+import {
+  GymCustomFormFields,
+  isCustomFormComplete,
+} from "@/components/domain/applications/GymCustomFormFields";
 import { Button } from "@/components/ui/button";
+import { Badge } from "@/components/ui/badge";
 import {
   Table,
   TableBody,
@@ -30,7 +37,7 @@ type GymBulkApplicationFormProps = {
   fighters: EventApplicationFighterRowDTO[];
   streamingAgreementRequired: boolean;
   streamingNoticeText: string | null;
-  hasOfficialTemplate: boolean;
+  applicationForm: EventApplicationFormConfigDTO;
 };
 
 function initialRowStates(
@@ -38,7 +45,7 @@ function initialRowStates(
 ): Record<string, FighterRowState> {
   const map: Record<string, FighterRowState> = {};
   for (const fighter of fighters) {
-    map[fighter.id] = { checked: false, divisionId: "" };
+    map[fighter.id] = { checked: false, divisionId: "", formAnswers: {} };
   }
   return map;
 }
@@ -46,18 +53,48 @@ function initialRowStates(
 function buildApplicationsPayload(
   fighters: EventApplicationFighterRowDTO[],
   rowStates: Record<string, FighterRowState>,
+  customFields: CustomFormFieldDefinition[],
+  requireCustomForm: boolean,
 ) {
-  const applications: Array<{ fighterId: string; divisionId: string }> = [];
+  const applications: Array<{
+    fighterId: string;
+    divisionId: string;
+    formAnswers?: Record<string, unknown>;
+  }> = [];
   for (const fighter of fighters) {
     const state = rowStates[fighter.id];
     if (!state?.checked || !state.divisionId) continue;
     if (fighter.appliedDivisionIds.includes(state.divisionId)) continue;
+    if (
+      requireCustomForm &&
+      customFields.length > 0 &&
+      !isCustomFormComplete(customFields, state.formAnswers)
+    ) {
+      continue;
+    }
     applications.push({
       fighterId: fighter.id,
       divisionId: state.divisionId,
+      formAnswers:
+        requireCustomForm && customFields.length > 0
+          ? state.formAnswers
+          : undefined,
     });
   }
   return applications;
+}
+
+function customFormStatusLabel(
+  fields: CustomFormFieldDefinition[],
+  answers: Record<string, unknown>,
+  checked: boolean,
+): { label: string; tone: "default" | "secondary" | "outline" | "destructive" } {
+  if (!checked) return { label: "—", tone: "outline" };
+  if (fields.length === 0) return { label: "불필요", tone: "secondary" };
+  if (isCustomFormComplete(fields, answers)) {
+    return { label: "작성 완료", tone: "default" };
+  }
+  return { label: "작성 필요", tone: "destructive" };
 }
 
 export function GymBulkApplicationForm(props: GymBulkApplicationFormProps) {
@@ -70,15 +107,40 @@ export function GymBulkApplicationForm(props: GymBulkApplicationFormProps) {
     null as ActionResult<BulkApplyToEventSuccessDTO> | null,
   );
 
-  const selectedCount = useMemo(
+  const requireCustomForm = props.applicationForm.mode === "custom";
+  const customFields = props.applicationForm.customFields;
+
+  const selectedRows = useMemo(
     () =>
-      buildApplicationsPayload(props.fighters, rowStates).length,
+      props.fighters.filter((f) => {
+        const s = rowStates[f.id];
+        return s?.checked && s.divisionId;
+      }),
     [props.fighters, rowStates],
   );
 
+  const selectedCount = useMemo(
+    () =>
+      buildApplicationsPayload(
+        props.fighters,
+        rowStates,
+        customFields,
+        requireCustomForm,
+      ).length,
+    [props.fighters, rowStates, customFields, requireCustomForm],
+  );
+
   const applicationsJson = useMemo(
-    () => JSON.stringify(buildApplicationsPayload(props.fighters, rowStates)),
-    [props.fighters, rowStates],
+    () =>
+      JSON.stringify(
+        buildApplicationsPayload(
+          props.fighters,
+          rowStates,
+          customFields,
+          requireCustomForm,
+        ),
+      ),
+    [props.fighters, rowStates, customFields, requireCustomForm],
   );
 
   const updateRow = (
@@ -105,17 +167,25 @@ export function GymBulkApplicationForm(props: GymBulkApplicationFormProps) {
       />
       <input type="hidden" name="applicationsJson" value={applicationsJson} />
 
-      {props.hasOfficialTemplate ? (
+      {props.applicationForm.mode === "pdf" ? (
         <p className="text-muted-foreground text-sm leading-relaxed">
           공식 PDF 신청서가 연결된 대회입니다. 아래 일괄 신청은 부문별 일반
           신청·입금 흐름이며, 공식 신청서 묶음과 별도로 진행됩니다.
         </p>
+      ) : props.applicationForm.mode === "custom" ? (
+        <div className="rounded-xl border border-primary/30 bg-primary/5 p-4 text-sm">
+          <p className="font-medium">자체 폼형 신청서 연결됨</p>
+          <p className="text-muted-foreground mt-1 leading-relaxed">
+            {props.applicationForm.templateTitle ?? "신청서"} — 선택한 선수마다
+            아래 항목을 작성한 뒤 일괄 신청해 주세요.
+          </p>
+        </div>
       ) : (
         <div className="rounded-xl border border-dashed p-4 text-sm">
           <p className="font-medium">공식 신청서 템플릿 미연결</p>
           <p className="text-muted-foreground mt-1 leading-relaxed">
-            이 대회에는 공식 PDF 신청서 템플릿이 연결되지 않았습니다. 아래에서
-            선수별 부문을 선택해 일괄 신청할 수 있습니다.
+            이 대회에는 신청서 템플릿이 연결되지 않았습니다. 아래에서 선수별
+            부문을 선택해 일괄 신청할 수 있습니다.
           </p>
         </div>
       )}
@@ -128,42 +198,100 @@ export function GymBulkApplicationForm(props: GymBulkApplicationFormProps) {
               <TableHead>선수</TableHead>
               <TableHead>성별/연령/체중</TableHead>
               <TableHead>신청 부문</TableHead>
+              {requireCustomForm ? (
+                <TableHead>신청서</TableHead>
+              ) : null}
               <TableHead>상태</TableHead>
             </TableRow>
           </TableHeader>
           <TableBody>
-            {props.fighters.map((fighter) => (
-              <GymBulkApplicationTableRow
-                key={fighter.id}
-                fighter={fighter}
-                divisions={props.divisions}
-                rowState={rowStates[fighter.id]!}
-                onCheckedChange={(checked) =>
-                  updateRow(fighter.id, { checked })
-                }
-                onDivisionChange={(divisionId) =>
-                  updateRow(fighter.id, { divisionId })
-                }
-              />
-            ))}
+            {props.fighters.map((fighter) => {
+              const rowState = rowStates[fighter.id]!;
+              const formStatus = customFormStatusLabel(
+                customFields,
+                rowState.formAnswers,
+                rowState.checked,
+              );
+              return (
+                <GymBulkApplicationTableRow
+                  key={fighter.id}
+                  fighter={fighter}
+                  divisions={props.divisions}
+                  rowState={rowState}
+                  onCheckedChange={(checked) =>
+                    updateRow(fighter.id, { checked })
+                  }
+                  onDivisionChange={(divisionId) =>
+                    updateRow(fighter.id, { divisionId })
+                  }
+                  formStatus={
+                    requireCustomForm ? (
+                      <Badge variant={formStatus.tone}>{formStatus.label}</Badge>
+                    ) : undefined
+                  }
+                />
+              );
+            })}
           </TableBody>
         </Table>
       </div>
 
       <div className="grid gap-3 md:hidden">
-        {props.fighters.map((fighter) => (
-          <GymBulkApplicationCard
-            key={fighter.id}
-            fighter={fighter}
-            divisions={props.divisions}
-            rowState={rowStates[fighter.id]!}
-            onCheckedChange={(checked) => updateRow(fighter.id, { checked })}
-            onDivisionChange={(divisionId) =>
-              updateRow(fighter.id, { divisionId })
-            }
-          />
-        ))}
+        {props.fighters.map((fighter) => {
+          const rowState = rowStates[fighter.id]!;
+          const formStatus = customFormStatusLabel(
+            customFields,
+            rowState.formAnswers,
+            rowState.checked,
+          );
+          return (
+            <GymBulkApplicationCard
+              key={fighter.id}
+              fighter={fighter}
+              divisions={props.divisions}
+              rowState={rowState}
+              onCheckedChange={(checked) => updateRow(fighter.id, { checked })}
+              onDivisionChange={(divisionId) =>
+                updateRow(fighter.id, { divisionId })
+              }
+              formStatus={
+                requireCustomForm ? (
+                  <Badge variant={formStatus.tone}>{formStatus.label}</Badge>
+                ) : undefined
+              }
+            />
+          );
+        })}
       </div>
+
+      {requireCustomForm && customFields.length > 0 && selectedRows.length > 0 ? (
+        <section className="space-y-4">
+          <h3 className="text-sm font-semibold">선택 선수 신청서 작성</h3>
+          {selectedRows.map((fighter) => {
+            const rowState = rowStates[fighter.id]!;
+            return (
+              <details
+                key={fighter.id}
+                className="rounded-xl border border-border/70 bg-card p-4"
+                open={selectedRows.length <= 3}
+              >
+                <summary className="cursor-pointer text-sm font-medium">
+                  {fighter.name} — 신청서 작성
+                </summary>
+                <div className="mt-4">
+                  <GymCustomFormFields
+                    fields={customFields}
+                    answers={rowState.formAnswers}
+                    onChange={(formAnswers) =>
+                      updateRow(fighter.id, { formAnswers })
+                    }
+                  />
+                </div>
+              </details>
+            );
+          })}
+        </section>
+      ) : null}
 
       <div className="sticky bottom-0 z-10 -mx-4 border-t border-border/80 bg-background/95 px-4 py-4 backdrop-blur md:static md:mx-0 md:border-0 md:bg-transparent md:px-0 md:py-0 md:backdrop-blur-none">
         <ApplicationAgreementChecklist
@@ -197,6 +325,7 @@ export function GymBulkApplicationForm(props: GymBulkApplicationFormProps) {
           </Button>
           <p className="text-muted-foreground text-xs">
             선택 {selectedCount}명 · 필수 동의는 신청 시 스냅샷으로 저장됩니다
+            {requireCustomForm ? " · 신청서 필수 항목 작성 필요" : ""}
           </p>
         </div>
       </div>

@@ -2,6 +2,10 @@
 
 import { useState } from "react";
 import type { ApplicationStatus, PaymentStatus } from "@/generated/prisma";
+import type {
+  ApplicationFormMode,
+  CustomFormSnapshot,
+} from "@/lib/application-form/custom-form";
 import { ApplicationStatusBadgesGroup } from "@/components/domain/applications/ApplicationStatusBadgesGroup";
 import { PaymentStatusControl } from "@/components/domain/payments/PaymentStatusControl";
 import {
@@ -37,6 +41,8 @@ export type OrganizerApplicationRowVM = {
   guardianConsentRequired: boolean;
   consentSummaryLabel: string;
   consentFilterKey: string;
+  customFormSnapshot: CustomFormSnapshot | null;
+  applicationFormMode: ApplicationFormMode;
 };
 
 export function OrganizerApplicationsTable({

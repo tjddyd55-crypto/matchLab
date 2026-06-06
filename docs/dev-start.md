@@ -172,6 +172,12 @@ GitHub → Railway 배포가 성공해도 **Postgres는 빈 DB**입니다. `publ
 npm run repair:demo-gym
 ```
 
+### 신청서 모드 테스트 순서
+
+1. **PDF 좌표형** — `/admin/application-form-templates`에서 PDF 업로드·좌표 편집 → 주최자가 대회에 연결 → 체육관 `GymOfficialApplicationWorkspace` 흐름.
+2. **자체 폼형(schema 변경 없음)** — 템플릿 고급 설정 `manualFieldsJson`에 `formMode: "custom"` + `fields` 배열(「자체 폼 예시 불러오기」) → 주최자 연결 → 체육관 일괄 신청에서 선수별 답변 작성.
+3. **없음** — 템플릿 미연결 대회는 부문별 일괄/개별 신청만.
+
 ### 대진표 자동 매칭 테스트 데이터 (`npm run setup:bracket-demo-data`)
 
 대진표 **자동 1차 매칭** 실무 테스트용으로 체육관 `gym1`~`gym7`·각 10명 선수(총 80명)·테스트 대회 `approved` `EventApplication`을 **idempotent upsert**합니다.

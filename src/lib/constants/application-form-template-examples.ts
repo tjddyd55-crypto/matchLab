@@ -1,3 +1,47 @@
+/** 자체 폼형 신청서 manualFieldsJson 예시 — formMode=custom */
+export const EXAMPLE_CUSTOM_FORM_MANUAL_FIELDS_JSON = `{
+  "formMode": "custom",
+  "fields": [
+    {
+      "id": "fighter_name",
+      "label": "선수명",
+      "type": "text",
+      "source": "fighter.name",
+      "readonly": true,
+      "displayOrder": 1
+    },
+    {
+      "id": "division_label",
+      "label": "신청 부문",
+      "type": "text",
+      "source": "division.weightClass",
+      "readonly": true,
+      "displayOrder": 2
+    },
+    {
+      "id": "medical_note",
+      "label": "특이사항 / 부상 이력",
+      "type": "textarea",
+      "required": false,
+      "displayOrder": 3
+    },
+    {
+      "id": "emergency_contact",
+      "label": "비상 연락처",
+      "type": "text",
+      "required": true,
+      "displayOrder": 4
+    },
+    {
+      "id": "experience_years",
+      "label": "경력(년)",
+      "type": "number",
+      "required": false,
+      "displayOrder": 5
+    }
+  ]
+}`;
+
 /** 관리자 템플릿 생성 폼용 예시 JSON — 좌표는 페이지 좌상단(top-left) 기준 pt */
 export const EXAMPLE_APPLICATION_FORM_FIELDS_JSON = `[
   {
