@@ -41,7 +41,7 @@ export function FighterProfileImageUpload({
   async function uploadFile(file: File) {
     const mimeType = file.type;
     if (!ALLOWED_MIME.has(mimeType)) {
-      setError("JPEG, PNG, WebP 이미지만 업로드할 수 있습니다.");
+      setError("JPG, PNG, WebP 이미지만 업로드할 수 있습니다.");
       return;
     }
     if (file.size > PROFILE_IMAGE_MAX_BYTES) {
@@ -104,13 +104,14 @@ export function FighterProfileImageUpload({
   }
 
   return (
-    <div className="space-y-3 rounded-lg border bg-muted/20 p-4">
+    <div className="space-y-3">
       <div>
         <p className="text-sm font-medium">프로필 사진</p>
         <p className="text-muted-foreground mt-1 text-xs leading-relaxed">
-          JPEG, PNG, WebP · 최대{" "}
-          {Math.round(PROFILE_IMAGE_MAX_BYTES / (1024 * 1024))}MB. 저장 시 프로필에
-          반영됩니다.
+          권장: 800 × 800px 정사각형 이미지
+          <br />
+          JPG, PNG, WebP · 최대{" "}
+          {Math.round(PROFILE_IMAGE_MAX_BYTES / (1024 * 1024))}MB
         </p>
       </div>
       {error ? (
@@ -120,18 +121,18 @@ export function FighterProfileImageUpload({
       ) : null}
       <div className="flex flex-wrap items-start gap-4">
         {preview ? (
-          <div className="relative size-28 shrink-0 overflow-hidden rounded-full ring-1 ring-foreground/10">
+          <div className="relative size-32 shrink-0 overflow-hidden rounded-2xl ring-1 ring-foreground/10 md:rounded-full">
             <Image
               src={preview}
               alt="프로필 미리보기"
               fill
               className="object-cover"
-              sizes="112px"
+              sizes="128px"
               unoptimized
             />
           </div>
         ) : (
-          <div className="flex size-28 shrink-0 items-center justify-center rounded-full border border-dashed bg-muted/30 text-center text-[11px] text-muted-foreground px-2">
+          <div className="flex size-32 shrink-0 items-center justify-center rounded-2xl border border-dashed bg-muted/30 text-center text-[11px] text-muted-foreground px-2 md:rounded-full">
             사진 없음
           </div>
         )}
@@ -154,7 +155,7 @@ export function FighterProfileImageUpload({
               ? "업로드 중…"
               : preview
                 ? "사진 교체"
-                : "사진 업로드"}
+                : "사진 선택"}
           </Button>
           {preview ? (
             <Button
@@ -167,6 +168,9 @@ export function FighterProfileImageUpload({
               사진 제거
             </Button>
           ) : null}
+          <p className="text-muted-foreground text-[11px] leading-relaxed">
+            업로드 후 저장 버튼을 눌러 반영하세요.
+          </p>
         </div>
       </div>
       <input type="hidden" name="profileImageUrl" value={imageUrl} />

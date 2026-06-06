@@ -18,7 +18,7 @@
 - [x] 체육관 **선수 로그인 계정 발급** — 직접 등록·기존 선수·비밀번호 재발급(`/gym/fighters`, `fighter-account.service`).
 - [x] 등록 링크 제출 시 **아이디·비밀번호** 입력 → pending 계정 → 체육관 승인 후 `Fighter`·active 소속·계정 연결.
 - [x] `mustChangePassword` — 체육관 발급·재발급 시 true; 등록 링크 자가 설정 비밀번호는 false 가능.
-- [x] **간단 선수 개인 프로필** — `/fighter/profile`, 공개 `/fighters/[slug]` (`FighterProfile.isPublic`).
+- [x] **선수 개인 프로필 고도화** — `/fighter/profile` (사진 업로드·표시 이름·자기소개·SNS·공개 설정), 공개 `/fighters/[slug]` (`FighterProfile.isPublic`). 체육관 `/gym/fighters` 프로필 상태 뱃지·주최자 `/organizer/public-fighters` 공개 프로필 링크 연동.
 - [ ] **SMS 비밀번호 찾기** — MVP 제외; `User.phone`·보호자 연락처 구조만 유지(TODO).
 
 ### 대회

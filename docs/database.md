@@ -98,12 +98,16 @@ Notification
 | displayName, bio | 선수가 수정 가능 |
 | profileImageUrl | 공개 표시용 URL |
 | profileImagePath | Storage 객체 경로 — **공개 DTO·페이지에 미노출** |
-| snsInstagram, snsYoutube, snsTiktok | 선수 입력 |
-| isPublic, publicEnabledAt | true일 때만 공개 페이지 노출 |
+| snsInstagram, snsYoutube, snsTiktok | 선수 입력 — `https://` URL만 허용, `javascript:`·`data:` 금지 |
+| isPublic, publicEnabledAt | true일 때만 공개 페이지 노출 (`Fighter.active` + active gym affiliation 필요) |
 
 읽기 전용 표시(편집 UI): 소속 체육관·지역·성별·연령부·체급·주종목·전적 — `Fighter`·active `FighterGymHistory`·`MatchResult` 캐시에서 파생.
 
-`FighterGymHistory.isPublicToOrganizers` 와 **혼동 금지**(주최자 매칭용 vs 선수 일반 공개).
+프로필 저장 시 `Fighter.profileImageUrl` 캐시를 동기화(체육관·주최자 목록 썸네일). 공개 페이지·편집 UI는 `FighterProfile.profileImageUrl` 우선.
+
+`FighterGymHistory.isPublicToOrganizers` 와 **혼동 금지**:
+- **isPublicToOrganizers** — 체육관이 켜는 주최자 매칭 풀(`/organizer/public-fighters`)
+- **FighterProfile.isPublic** — 선수가 켜는 일반 공개 프로필(`/fighters/[slug]`)
 
 ### FighterGymHistory
 

@@ -35,6 +35,12 @@ export type OrganizerPublicFighterListItemDTO = {
   publicEnabledAtIso: string | null;
   publicMemo: string | null;
   profileImageUrl: string | null;
+  /** 주최자 공개 풀 — FighterGymHistory.isPublicToOrganizers */
+  isPublicToOrganizers: boolean;
+  /** 일반 공개 프로필 — FighterProfile.isPublic */
+  profileIsPublic: boolean;
+  publicProfileSlug: string | null;
+  publicProfileUrl: string | null;
 };
 
 export type OrganizerPublicFighterDetailDTO = {
@@ -52,6 +58,10 @@ export type OrganizerPublicFighterDetailDTO = {
   publicEnabledAtIso: string | null;
   publicMemo: string | null;
   profileImageUrl: string | null;
+  isPublicToOrganizers: boolean;
+  profileIsPublic: boolean;
+  publicProfileSlug: string | null;
+  publicProfileUrl: string | null;
   recentParticipations: {
     eventTitle: string;
     eventDateIso: string | null;
@@ -76,6 +86,20 @@ function divisionLabel(d: {
 }): string {
   const parts = [d.sportType, d.ageGroup, d.weightClass].filter(Boolean);
   return parts.join(" · ") || "—";
+}
+
+function buildPublicProfileUrl(slug: string | null, isPublic: boolean): string | null {
+  if (!slug || !isPublic) return null;
+  return `/fighters/${slug}`;
+}
+
+function resolveFighterDisplayImage(fighter: {
+  profileImageUrl: string | null;
+  fighterProfile?: {
+    profileImageUrl: string | null;
+  } | null;
+}): string | null {
+  return fighter.fighterProfile?.profileImageUrl ?? fighter.profileImageUrl;
 }
 
 export const publicFighterService = {
@@ -176,9 +200,13 @@ export const publicFighterService = {
       const recentEventTitle = recent?.eventTitle ?? null;
       const sportType = recent?.sportType ?? null;
 
+      const profile = h.fighter.fighterProfile;
+      const profileIsPublic = profile?.isPublic ?? false;
+      const publicProfileSlug = profile?.slug ?? null;
+
       const row: OrganizerPublicFighterListItemDTO = {
         fighterId: h.fighter.id,
-        name: h.fighter.name,
+        name: profile?.displayName ?? h.fighter.name,
         gender: h.fighter.gender,
         ageGroup,
         weightClassLabel: weightLabel(h.fighter.weight),
@@ -194,7 +222,11 @@ export const publicFighterService = {
         recentEventTitle,
         publicEnabledAtIso: h.publicEnabledAt?.toISOString() ?? null,
         publicMemo: h.publicMemo,
-        profileImageUrl: h.fighter.profileImageUrl,
+        profileImageUrl: resolveFighterDisplayImage(h.fighter),
+        isPublicToOrganizers: h.isPublicToOrganizers,
+        profileIsPublic,
+        publicProfileSlug,
+        publicProfileUrl: buildPublicProfileUrl(publicProfileSlug, profileIsPublic),
       };
 
       if (filters.gymId && row.gymId !== filters.gymId) continue;
@@ -246,9 +278,13 @@ export const publicFighterService = {
     const { history, recentApplications } = detail;
     const region = parseRegionFromGymAddress(history.gym.address);
 
+    const profile = history.fighter.fighterProfile;
+    const profileIsPublic = profile?.isPublic ?? false;
+    const publicProfileSlug = profile?.slug ?? null;
+
     return {
       fighterId: history.fighter.id,
-      name: history.fighter.name,
+      name: profile?.displayName ?? history.fighter.name,
       gender: history.fighter.gender,
       ageGroup: publicAgeGroupFromBirthDate(history.fighter.birthDate),
       weightClassLabel: weightLabel(history.fighter.weight),
@@ -264,7 +300,11 @@ export const publicFighterService = {
       gymPhone: history.gym.phone,
       publicEnabledAtIso: history.publicEnabledAt?.toISOString() ?? null,
       publicMemo: history.publicMemo,
-      profileImageUrl: history.fighter.profileImageUrl,
+      profileImageUrl: resolveFighterDisplayImage(history.fighter),
+      isPublicToOrganizers: history.isPublicToOrganizers,
+      profileIsPublic,
+      publicProfileSlug,
+      publicProfileUrl: buildPublicProfileUrl(publicProfileSlug, profileIsPublic),
       recentParticipations: recentApplications.map((a) => ({
         eventTitle: a.event.title,
         eventDateIso: a.event.eventDate.toISOString(),

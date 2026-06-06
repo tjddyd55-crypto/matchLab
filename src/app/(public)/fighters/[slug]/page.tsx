@@ -1,7 +1,28 @@
+import type { Metadata } from "next";
 import { notFound } from "next/navigation";
+import { PublicFighterProfileView } from "@/components/domain/fighters/PublicFighterProfileView";
+import { PUBLIC_CONTENT_CONTAINER_CLASS } from "@/components/domain/events/public/public-event-layout";
 import { fighterProfileService } from "@/lib/services/fighter-profile.service";
+import { cn } from "@/lib/utils";
 
 export const dynamic = "force-dynamic";
+
+export async function generateMetadata({
+  params,
+}: {
+  params: Promise<{ slug: string }>;
+}): Promise<Metadata> {
+  const { slug } = await params;
+  const profile = await fighterProfileService.getPublicBySlug(slug);
+  if (!profile) {
+    return { title: "선수 프로필을 찾을 수 없습니다" };
+  }
+  return {
+    title: `${profile.displayName} · 선수 프로필`,
+    description: `${profile.displayName} 선수 프로필 — ${profile.recordSummary}`,
+    robots: { index: true, follow: true },
+  };
+}
 
 export default async function PublicFighterProfilePage({
   params,
@@ -13,58 +34,13 @@ export default async function PublicFighterProfilePage({
   if (!profile) notFound();
 
   return (
-    <div className="mx-auto max-w-lg px-4 py-12">
-      <article className="space-y-6">
-        {profile.profileImageUrl ? (
-          // eslint-disable-next-line @next/next/no-img-element
-          <img
-            src={profile.profileImageUrl}
-            alt=""
-            className="mx-auto size-32 rounded-full object-cover"
-          />
-        ) : null}
-        <header className="text-center">
-          <h1 className="font-heading text-2xl font-semibold">
-            {profile.displayName}
-          </h1>
-          <p className="text-muted-foreground mt-1 text-sm">
-            {profile.gymName} · {profile.regionLabel}
-          </p>
-          <p className="text-muted-foreground mt-1 text-sm">
-            {profile.gender} · {profile.ageGroup} · {profile.weightLabel}
-            {profile.primarySport ? ` · ${profile.primarySport}` : ""}
-          </p>
-          <p className="mt-2 text-sm font-medium">{profile.recordSummary}</p>
-        </header>
-        {profile.bio ? (
-          <p className="text-sm leading-relaxed whitespace-pre-wrap">
-            {profile.bio}
-          </p>
-        ) : null}
-        <ul className="flex flex-wrap justify-center gap-3 text-sm text-primary">
-          {profile.snsInstagram ? (
-            <li>
-              <a href={profile.snsInstagram} rel="noopener noreferrer">
-                Instagram
-              </a>
-            </li>
-          ) : null}
-          {profile.snsYoutube ? (
-            <li>
-              <a href={profile.snsYoutube} rel="noopener noreferrer">
-                YouTube
-              </a>
-            </li>
-          ) : null}
-          {profile.snsTiktok ? (
-            <li>
-              <a href={profile.snsTiktok} rel="noopener noreferrer">
-                TikTok
-              </a>
-            </li>
-          ) : null}
-        </ul>
-      </article>
+    <div
+      className={cn(
+        PUBLIC_CONTENT_CONTAINER_CLASS,
+        "py-8 md:py-12",
+      )}
+    >
+      <PublicFighterProfileView profile={profile} />
     </div>
   );
 }

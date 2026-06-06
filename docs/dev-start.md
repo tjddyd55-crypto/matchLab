@@ -160,10 +160,18 @@ GitHub → Railway 배포가 성공해도 **Postgres는 빈 DB**입니다. `publ
 
 `User.loginId`, `mustChangePassword`, `FighterProfile`, `FighterRegistrationSubmission.loginId`/`pendingUserId` 추가 후 **`npm run db:push`** 필요. **`db:seed` 실행 금지.**
 
+### 선수 프로필 사진 (`profile-images` bucket)
+
+- Supabase Storage **`profile-images`** (public bucket 권장). 환경변수 `SUPABASE_PROFILE_IMAGE_BUCKET`.
+- 업로드 API: `POST /api/uploads/profile-image` — fighter 본인 또는 admin. 경로 `fighters/{fighterId}/avatar/{uuid}.ext`.
+- 클라이언트: `/fighter/profile` → `FighterProfileImageUpload` (JPG/PNG/WebP, 최대 8MB, 권장 800×800).
+- 테스트: `fighter` / `123456!!` 또는 `fighterdemo` 계정으로 `/fighter/profile` 접속 후 업로드·저장.
+
 ### 주최자 공개 선수
 
 - `/organizer/public-fighters` — **organizer/admin 로그인 전용**. public API·공개 페이지 DTO에 포함 금지.
-- 공개 필드: `FighterGymHistory.isPublicToOrganizers` (체육관 소속 단위).
+- **주최자 공개 풀**: `FighterGymHistory.isPublicToOrganizers` (체육관 소속 단위).
+- **일반 공개 프로필**: `FighterProfile.isPublic=true` 인 경우에만 `/fighters/[slug]` 링크 표시.
 - schema 반영 후 **`npm run db:push`**. **`db:seed` 금지.**
 
 ### 주최자 크레딧 (`credit-policy.ts`)

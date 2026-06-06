@@ -20,6 +20,12 @@ function slugifyBase(name: string, fighterId: string): string {
   return `${base || "fighter"}-${suffix}`.replace(/[^a-z0-9-]/g, "");
 }
 
+function buildPublicProfileUrl(slug: string, isPublic: boolean): string | null {
+  if (!isPublic) return null;
+  const baseUrl = process.env.NEXT_PUBLIC_APP_URL?.replace(/\/$/, "") ?? "";
+  return baseUrl ? `${baseUrl}/fighters/${slug}` : `/fighters/${slug}`;
+}
+
 export type FighterProfileEditorDTO = {
   fighterId: string;
   name: string;
@@ -43,7 +49,20 @@ export type FighterProfileEditorDTO = {
   publicProfileUrl: string | null;
 };
 
+export type PublicFighterRecentResultDTO = {
+  eventTitle: string;
+  matchDateIso: string;
+  outcomeLabel: string;
+};
+
+export type PublicFighterRecentEventDTO = {
+  eventTitle: string;
+  eventDateIso: string | null;
+  divisionLabel: string;
+};
+
 export type PublicFighterProfileDTO = {
+  slug: string;
   displayName: string;
   gymName: string | null;
   regionLabel: string;
@@ -57,6 +76,8 @@ export type PublicFighterProfileDTO = {
   snsYoutube: string | null;
   snsTiktok: string | null;
   profileImageUrl: string | null;
+  recentResults: PublicFighterRecentResultDTO[];
+  recentEvents: PublicFighterRecentEventDTO[];
 };
 
 export const fighterProfileService = {
@@ -83,7 +104,7 @@ export const fighterProfileService = {
     const profile = fighter.fighterProfile;
     const slug =
       profile?.slug ?? slugifyBase(fighter.name, fighter.id);
-    const baseUrl = process.env.NEXT_PUBLIC_APP_URL?.replace(/\/$/, "") ?? "";
+    const isPublic = profile?.isPublic ?? false;
 
     return {
       fighterId: fighter.id,
@@ -104,19 +125,16 @@ export const fighterProfileService = {
       snsTiktok: profile?.snsTiktok ?? "",
       profileImageUrl: profile?.profileImageUrl ?? fighter.profileImageUrl,
       profileImagePath: profile?.profileImagePath ?? null,
-      isPublic: profile?.isPublic ?? false,
+      isPublic,
       slug,
-      publicProfileUrl:
-        profile?.isPublic && baseUrl
-          ? `${baseUrl}/fighters/${slug}`
-          : null,
+      publicProfileUrl: buildPublicProfileUrl(slug, isPublic),
     };
   },
 
   async updateProfile(
     actor: ActorContext,
     input: FighterProfileUpdateInput,
-  ): Promise<void> {
+  ): Promise<{ publicProfileUrl: string | null }> {
     requireRole(actor, ["fighter", "admin"]);
     if (!actor.fighterId) {
       throw new AppError("FORBIDDEN", "선수 계정 연결이 필요합니다.");
@@ -156,6 +174,16 @@ export const fighterProfileService = {
       isPublic: input.isPublic,
       slug,
     });
+
+    // 체육관·주최자 목록 등 Fighter.profileImageUrl 캐시 동기화
+    await prisma.fighter.update({
+      where: { id: fighterId },
+      data: { profileImageUrl: input.profileImageUrl },
+    });
+
+    return {
+      publicProfileUrl: buildPublicProfileUrl(slug, input.isPublic),
+    };
   },
 
   async getPublicBySlug(slug: string): Promise<PublicFighterProfileDTO | null> {
@@ -163,7 +191,13 @@ export const fighterProfileService = {
     if (!row?.fighter) return null;
 
     const f = row.fighter;
+    const [recentResults, recentEvents] = await Promise.all([
+      fighterProfileRepository.listRecentPublicResults(f.id),
+      fighterProfileRepository.listRecentApprovedEvents(f.id),
+    ]);
+
     return {
+      slug: row.slug,
       displayName: row.displayName ?? f.name,
       gymName: f.currentGym?.name ?? null,
       regionLabel: parseRegionFromGymAddress(f.currentGym?.address ?? null)
@@ -177,7 +211,9 @@ export const fighterProfileService = {
       snsInstagram: row.snsInstagram,
       snsYoutube: row.snsYoutube,
       snsTiktok: row.snsTiktok,
-      profileImageUrl: row.profileImageUrl,
+      profileImageUrl: row.profileImageUrl ?? f.profileImageUrl,
+      recentResults,
+      recentEvents,
     };
   },
 };

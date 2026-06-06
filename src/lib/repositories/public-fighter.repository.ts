@@ -85,6 +85,14 @@ export const publicFighterRepository = {
             recordDraw: true;
             profileImageUrl: true;
             currentGymId: true;
+            fighterProfile: {
+              select: {
+                isPublic: true;
+                slug: true;
+                profileImageUrl: true;
+                displayName: true;
+              };
+            };
           };
         };
         gym: {
@@ -122,6 +130,14 @@ export const publicFighterRepository = {
             recordDraw: true,
             profileImageUrl: true,
             currentGymId: true,
+            fighterProfile: {
+              select: {
+                isPublic: true,
+                slug: true,
+                profileImageUrl: true,
+                displayName: true,
+              },
+            },
           },
         },
         gym: {
@@ -167,6 +183,14 @@ export const publicFighterRepository = {
             recordDraw: true,
             profileImageUrl: true,
             currentGymId: true,
+            fighterProfile: {
+              select: {
+                isPublic: true,
+                slug: true,
+                profileImageUrl: true,
+                displayName: true,
+              },
+            },
           },
         },
         gym: {

@@ -3,6 +3,10 @@ import { format } from "date-fns";
 import { ko } from "date-fns/locale";
 import type { GymFighterListRow } from "@/lib/repositories/fighter.repository";
 import type { GymFighterPublicSettingsRow } from "@/lib/services/public-fighter.service";
+import {
+  FighterProfileStatusBadge,
+  resolveFighterProfileStatus,
+} from "@/components/domain/fighters/FighterProfileStatusBadge";
 import { GymFighterPublicToggle } from "@/components/domain/fighters/GymFighterPublicToggle";
 import { FighterStatus } from "@/lib/enums";
 import { buttonVariants } from "@/components/ui/button";
@@ -49,6 +53,7 @@ export function FightersTableDesktop({
             <TableHead>상태</TableHead>
             <TableHead>소속 시작</TableHead>
             <TableHead>계정</TableHead>
+            <TableHead>프로필</TableHead>
             <TableHead>주최자 공개</TableHead>
             <TableHead />
           </TableRow>
@@ -103,6 +108,16 @@ export function FightersTableDesktop({
                 ) : (
                   <span className="text-muted-foreground">미발급</span>
                 )}
+              </TableCell>
+              <TableCell>
+                <FighterProfileStatusBadge
+                  status={resolveFighterProfileStatus({
+                    userId: f.userId,
+                    hasFighterProfile: f.hasFighterProfile,
+                    profileIsPublic: f.profileIsPublic,
+                  })}
+                  className="whitespace-nowrap text-[10px]"
+                />
               </TableCell>
               <TableCell>
                 <GymFighterPublicToggle

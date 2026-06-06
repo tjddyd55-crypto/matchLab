@@ -1,5 +1,6 @@
 "use client";
 
+import Link from "next/link";
 import { useMemo, useState, useTransition } from "react";
 import type {
   OrganizerPublicFighterDetailDTO,
@@ -213,8 +214,13 @@ export function OrganizerPublicFightersBoard({
         </label>
       </section>
 
-      <p className="text-muted-foreground text-sm">
-        공개 선수 {filtered.length}명 (체육관이 공개를 허용한 선수만 표시)
+      <p className="text-muted-foreground text-sm leading-relaxed">
+        주최자 공개 선수 {filtered.length}명 — 체육관이{" "}
+        <span className="font-medium text-foreground">주최자 공개</span>를 허용한
+        선수입니다.{" "}
+        <span className="font-medium text-foreground">일반 공개 프로필</span>
+        (FighterProfile.isPublic)이 켜진 경우에만 공개 프로필 링크가
+        표시됩니다.
       </p>
 
       {filtered.length === 0 ? (
@@ -263,7 +269,7 @@ export function OrganizerPublicFightersBoard({
                   </div>
                 ) : null}
               </dl>
-              <div className="flex flex-wrap gap-2">
+              <div className="flex flex-wrap items-center gap-2">
                 <Button
                   type="button"
                   size="sm"
@@ -273,9 +279,20 @@ export function OrganizerPublicFightersBoard({
                 >
                   상세 보기
                 </Button>
-                <span className="text-muted-foreground self-center text-xs">
-                  체육관에 문의
-                </span>
+                {row.publicProfileUrl ? (
+                  <Link
+                    href={row.publicProfileUrl}
+                    target="_blank"
+                    rel="noopener noreferrer"
+                    className="text-primary text-xs underline-offset-4 hover:underline"
+                  >
+                    공개 프로필
+                  </Link>
+                ) : (
+                  <span className="text-muted-foreground text-xs">
+                    공개 프로필 OFF
+                  </span>
+                )}
               </div>
             </article>
           ))}
@@ -329,6 +346,26 @@ export function OrganizerPublicFightersBoard({
                   </p>
                 )}
               </dl>
+              <div className="mt-4 space-y-2 rounded-lg border bg-muted/20 p-3 text-xs">
+                <p>
+                  <span className="text-muted-foreground">주최자 공개 풀: </span>
+                  {detail.isPublicToOrganizers ? "허용됨" : "비허용"}
+                </p>
+                <p>
+                  <span className="text-muted-foreground">일반 공개 프로필: </span>
+                  {detail.profileIsPublic ? "공개 ON" : "공개 OFF"}
+                </p>
+                {detail.publicProfileUrl ? (
+                  <Link
+                    href={detail.publicProfileUrl}
+                    target="_blank"
+                    rel="noopener noreferrer"
+                    className="text-primary inline-block underline-offset-4 hover:underline"
+                  >
+                    공개 프로필 페이지 열기
+                  </Link>
+                ) : null}
+              </div>
               {detail.recentParticipations.length > 0 ? (
                 <div className="mt-4">
                   <h4 className="text-sm font-semibold">참가 이력</h4>

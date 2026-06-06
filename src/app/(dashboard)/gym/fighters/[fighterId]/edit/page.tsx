@@ -6,6 +6,7 @@ import { fighterService } from "@/lib/services/fighter.service";
 import { fighterRepository } from "@/lib/repositories/fighter.repository";
 import { userRepository } from "@/lib/repositories/user.repository";
 import { GymFighterAccountPanel } from "@/components/domain/fighters/GymFighterAccountPanel";
+import { GymFighterProfileStatusPanel } from "@/components/domain/fighters/GymFighterProfileStatusPanel";
 import {
   GymFighterForm,
   gymFighterFormInitialFromEdit,
@@ -71,6 +72,16 @@ export default async function GymFighterEditPage({
         loginId={user?.loginId ?? null}
         hasAccount={Boolean(ctx?.userId)}
       />
+
+      {ctx ? (
+        <GymFighterProfileStatusPanel
+          userId={ctx.userId}
+          loginId={user?.loginId ?? null}
+          hasFighterProfile={ctx.hasFighterProfile}
+          profileIsPublic={ctx.profileIsPublic}
+          profileSlug={ctx.profileSlug}
+        />
+      ) : null}
 
       <GymFighterForm
         mode="edit"

@@ -38,6 +38,7 @@ export type GymFighterListRow = {
   mustChangePassword: boolean;
   profileIsPublic: boolean;
   hasFighterProfile: boolean;
+  profileSlug: string | null;
 };
 
 export type GymFighterEditRow = {
@@ -69,15 +70,30 @@ export const fighterRepository = {
     id: string;
     currentGymId: string | null;
     userId: string | null;
+    hasFighterProfile: boolean;
+    profileIsPublic: boolean;
+    profileSlug: string | null;
   } | null> {
-    return prisma.fighter.findUnique({
+    const row = await prisma.fighter.findUnique({
       where: { id: fighterId },
       select: {
         id: true,
         currentGymId: true,
         userId: true,
+        fighterProfile: {
+          select: { isPublic: true, slug: true },
+        },
       },
     });
+    if (!row) return null;
+    return {
+      id: row.id,
+      currentGymId: row.currentGymId,
+      userId: row.userId,
+      hasFighterProfile: Boolean(row.fighterProfile),
+      profileIsPublic: row.fighterProfile?.isPublic ?? false,
+      profileSlug: row.fighterProfile?.slug ?? null,
+    };
   },
 
   async listFightersByGym(gymId: string): Promise<GymFighterListRow[]> {
@@ -114,7 +130,7 @@ export const fighterRepository = {
           },
         },
         fighterProfile: {
-          select: { isPublic: true },
+          select: { isPublic: true, slug: true, profileImageUrl: true },
         },
         gymHistories: {
           where: activeGymHistoryWhere(gymId),
@@ -141,7 +157,8 @@ export const fighterRepository = {
       recordLoss: f.recordLoss,
       recordDraw: f.recordDraw,
       status: f.status,
-      profileImageUrl: f.profileImageUrl,
+      profileImageUrl:
+        f.fighterProfile?.profileImageUrl ?? f.profileImageUrl,
       affiliationStartDate: f.gymHistories[0]?.startDate ?? null,
       gymInternalMemo: f.gymHistories[0]?.gymInternalMemo ?? null,
       createdAt: f.createdAt,
@@ -150,6 +167,7 @@ export const fighterRepository = {
       mustChangePassword: f.user?.mustChangePassword ?? false,
       profileIsPublic: f.fighterProfile?.isPublic ?? false,
       hasFighterProfile: Boolean(f.fighterProfile),
+      profileSlug: f.fighterProfile?.slug ?? null,
     }));
   },
 

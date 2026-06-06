@@ -1,7 +1,25 @@
 /**
  * [CONTRACT] PrismaClient import는 `src/lib/repositories` 내부에만 허용한다.
  */
+import {
+  ApplicationStatus,
+  FighterStatus,
+  MatchRecordOutcome,
+  MatchRecordStatus,
+} from "@/generated/prisma";
 import { prisma } from "@/lib/prisma";
+
+const COUNTABLE_STATUSES: MatchRecordStatus[] = [
+  MatchRecordStatus.confirmed,
+  MatchRecordStatus.corrected,
+];
+
+const OUTCOME_LABEL: Record<MatchRecordOutcome, string> = {
+  win: "승",
+  loss: "패",
+  draw: "무",
+  no_contest: "무효",
+};
 
 export const fighterProfileRepository = {
   async findByFighterId(fighterId: string) {
@@ -12,7 +30,14 @@ export const fighterProfileRepository = {
 
   async findPublicBySlug(slug: string) {
     return prisma.fighterProfile.findFirst({
-      where: { slug, isPublic: true },
+      where: {
+        slug,
+        isPublic: true,
+        fighter: {
+          status: FighterStatus.active,
+          currentGymId: { not: null },
+        },
+      },
       include: {
         fighter: {
           select: {
@@ -25,6 +50,7 @@ export const fighterProfileRepository = {
             recordWin: true,
             recordLoss: true,
             recordDraw: true,
+            profileImageUrl: true,
             currentGym: {
               select: {
                 name: true,
@@ -35,6 +61,60 @@ export const fighterProfileRepository = {
         },
       },
     });
+  },
+
+  async listRecentPublicResults(fighterId: string, take = 5) {
+    const rows = await prisma.matchResult.findMany({
+      where: {
+        fighterId,
+        status: { in: COUNTABLE_STATUSES },
+        result: { not: MatchRecordOutcome.no_contest },
+      },
+      orderBy: { matchDate: "desc" },
+      take,
+      select: {
+        eventTitleSnapshot: true,
+        matchDate: true,
+        result: true,
+        resultType: true,
+      },
+    });
+
+    return rows.map((r) => ({
+      eventTitle: r.eventTitleSnapshot,
+      matchDateIso: r.matchDate.toISOString(),
+      outcomeLabel: OUTCOME_LABEL[r.result],
+      resultType: r.resultType,
+    }));
+  },
+
+  async listRecentApprovedEvents(fighterId: string, take = 5) {
+    const rows = await prisma.eventApplication.findMany({
+      where: {
+        fighterId,
+        status: ApplicationStatus.approved,
+      },
+      orderBy: { appliedAt: "desc" },
+      take,
+      select: {
+        event: { select: { title: true, eventDate: true } },
+        division: {
+          select: {
+            sportType: true,
+            weightClass: true,
+            ageGroup: true,
+          },
+        },
+      },
+    });
+
+    return rows.map((r) => ({
+      eventTitle: r.event.title,
+      eventDateIso: r.event.eventDate?.toISOString() ?? null,
+      divisionLabel: [r.division.sportType, r.division.ageGroup, r.division.weightClass]
+        .filter(Boolean)
+        .join(" · "),
+    }));
   },
 
   async isSlugTaken(slug: string, excludeFighterId?: string): Promise<boolean> {

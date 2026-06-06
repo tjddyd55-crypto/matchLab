@@ -204,6 +204,14 @@ npm run seed:demo-fighters # FTR-2026-TEST001~020, 데모 체육관 소속
 - `/login` — 아이디·비밀번호 로그인
 - `/fighters/[slug]` — 선수 공개 프로필(`FighterProfile.isPublic`)
 - `/fighter/profile`, `/fighter/change-password` — 선수 전용
+
+### 선수 프로필 시연 (fighter / 123456!!)
+
+1. `/fighter/profile` — 프로필 사진 업로드(JPG/PNG/WebP, 최대 8MB), 표시 이름·자기소개·SNS(https://) 저장
+2. **공개 프로필 ON** → 저장 후 공개 프로필 링크 확인 → `/fighters/[slug]` 접속
+3. 공개 페이지에서 휴대폰·생년월일·보호자·계체 실측·크레딧 미노출 확인
+4. **gym / 123456!!** → `/gym/fighters` 프로필 상태 뱃지(미작성/공개 ON/OFF) 확인
+5. **organizer / 123456!!** → `/organizer/public-fighters` — 주최자 공개 풀과 일반 공개 프로필 링크 구분 확인
 - `/register` — 자가가입 안내(MVP 미개방)
 
 ### 공개 (spectator)

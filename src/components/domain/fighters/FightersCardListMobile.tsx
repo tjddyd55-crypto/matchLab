@@ -3,6 +3,10 @@ import { format } from "date-fns";
 import { ko } from "date-fns/locale";
 import type { GymFighterTableRow } from "@/components/domain/fighters/FightersTableDesktop";
 import type { GymFighterPublicSettingsRow } from "@/lib/services/public-fighter.service";
+import {
+  FighterProfileStatusBadge,
+  resolveFighterProfileStatus,
+} from "@/components/domain/fighters/FighterProfileStatusBadge";
 import { GymFighterPublicToggle } from "@/components/domain/fighters/GymFighterPublicToggle";
 import { FighterStatus } from "@/lib/enums";
 import { buttonVariants } from "@/components/ui/button";
@@ -59,12 +63,22 @@ export function FightersCardListMobile({
               </p>
             </div>
           </div>
-          <GymFighterPublicToggle
-            fighterId={f.id}
-            initialPublic={
-              publicByFighterId[f.id]?.isPublicToOrganizers ?? false
-            }
-          />
+          <div className="flex flex-wrap items-center gap-2">
+            <FighterProfileStatusBadge
+              status={resolveFighterProfileStatus({
+                userId: f.userId,
+                hasFighterProfile: f.hasFighterProfile,
+                profileIsPublic: f.profileIsPublic,
+              })}
+              className="text-[10px]"
+            />
+            <GymFighterPublicToggle
+              fighterId={f.id}
+              initialPublic={
+                publicByFighterId[f.id]?.isPublicToOrganizers ?? false
+              }
+            />
+          </div>
           <Link
             href={`/gym/fighters/${f.id}/edit`}
             className={cn(buttonVariants({ variant: "outline", size: "sm" }), "w-full")}

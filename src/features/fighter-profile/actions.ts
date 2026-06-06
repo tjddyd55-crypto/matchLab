@@ -13,7 +13,7 @@ import { fighterProfileUpdateSchema } from "@/lib/validators/fighter-profile.val
 export async function updateFighterProfileAction(
   _prev: unknown,
   formData: FormData,
-): Promise<ActionResult<{ ok: true }>> {
+): Promise<ActionResult<{ ok: true; publicProfileUrl: string | null }>> {
   try {
     const actor = await requireActorFromMutation();
     const parsed = fighterProfileUpdateSchema.safeParse({
@@ -24,14 +24,15 @@ export async function updateFighterProfileAction(
       snsTiktok: formData.get("snsTiktok"),
       profileImageUrl: formData.get("profileImageUrl"),
       profileImagePath: formData.get("profileImagePath"),
-      isPublic: formData.get("isPublic"),
+      isPublic:
+        formData.get("isPublic") === "true" ? "true" : "false",
       slug: formData.get("slug"),
     });
     if (!parsed.success) {
       return actionFailure("VALIDATION_ERROR", "입력값을 확인해 주세요.");
     }
-    await fighterProfileService.updateProfile(actor, parsed.data);
-    return actionSuccess({ ok: true as const });
+    const result = await fighterProfileService.updateProfile(actor, parsed.data);
+    return actionSuccess({ ok: true as const, publicProfileUrl: result.publicProfileUrl });
   } catch (e) {
     if (e instanceof AppError) {
       return actionFailure(e.code, e.message);
