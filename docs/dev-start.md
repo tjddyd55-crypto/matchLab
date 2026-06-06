@@ -104,6 +104,14 @@ GitHub → Railway 배포가 성공해도 **Postgres는 빈 DB**입니다. `publ
 4. `npm run setup:demo-users` 실행.
 5. `npm run dev` 후 `/login`에서 **아이디**(`admin`, `organizer`, `gym`, `fighter`, `fighterdemo`)로 로그인해 역할별 홈 이동을 확인한다.
 
+**체육관·선수 신청 현황·내 경기 확인 경로 (schema 변경 없음):**
+
+| 역할 | loginId | 비밀번호(기본) | 확인 URL |
+|------|---------|----------------|----------|
+| 체육관 | `gym` | `123456!!` | `/gym/events` → 대회 **신청 현황** → `/gym/events/{eventId}/status` |
+| 체육관 | `gym` | `123456!!` | `/gym/events/{eventId}/field-status` (현장/계체 읽기 전용) |
+| 선수 | `fighter` | `123456!!` | `/fighter/events` (내 대회·내 경기, 조회만) |
+
 **데모 loginId (기본 비밀번호 `DEMO_PASSWORD` 또는 `123456!!`):**
 
 | loginId | 역할 | 레거시 이메일(하위 호환) |

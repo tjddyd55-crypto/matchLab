@@ -335,4 +335,82 @@ export const applicationRepository = {
       },
     });
   },
+
+  async listGymEventApplications(gymId: string, eventId: string) {
+    return prisma.eventApplication.findMany({
+      where: { gymId, eventId },
+      orderBy: { createdAt: "desc" },
+      select: {
+        id: true,
+        fighterId: true,
+        divisionId: true,
+        status: true,
+        paymentStatus: true,
+        memo: true,
+        checkInStatus: true,
+        weighInStatus: true,
+        appliedAt: true,
+        createdAt: true,
+        fighterSnapshot: true,
+        applicationAgreementSnapshot: true,
+        applicationDocumentId: true,
+        fighter: { select: { id: true, name: true } },
+        division: {
+          select: {
+            id: true,
+            sportType: true,
+            ruleType: true,
+            gender: true,
+            ageGroup: true,
+            weightClass: true,
+            skillLevel: true,
+          },
+        },
+      },
+    });
+  },
+
+  async listFighterApplicationsWithField(fighterId: string) {
+    return prisma.eventApplication.findMany({
+      where: { fighterId },
+      orderBy: { createdAt: "desc" },
+      select: {
+        id: true,
+        gymId: true,
+        fighterId: true,
+        divisionId: true,
+        status: true,
+        paymentStatus: true,
+        memo: true,
+        checkInStatus: true,
+        weighInStatus: true,
+        appliedAt: true,
+        createdAt: true,
+        fighterSnapshot: true,
+        applicationAgreementSnapshot: true,
+        applicationDocumentId: true,
+        event: {
+          select: {
+            id: true,
+            title: true,
+            publicSlug: true,
+            registrationEndDate: true,
+            status: true,
+          },
+        },
+        division: {
+          select: {
+            id: true,
+            sportType: true,
+            ruleType: true,
+            gender: true,
+            ageGroup: true,
+            weightClass: true,
+            skillLevel: true,
+          },
+        },
+        gym: { select: { id: true, name: true } },
+      },
+    });
+  },
 };

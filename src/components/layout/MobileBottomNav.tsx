@@ -18,7 +18,7 @@ const bottomNavByRole: Record<
   ],
   fighter: [
     { href: "/fighter", label: "홈" },
-    { href: "/fighter/events", label: "대회" },
+    { href: "/fighter/events", label: "내 대회" },
     { href: "/fighter/records", label: "전적" },
   ],
   admin: [

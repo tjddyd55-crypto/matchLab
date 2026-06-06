@@ -116,4 +116,15 @@ export const applicationDocumentRepository = {
       orderBy: { createdAt: "asc" },
     });
   },
+
+  async listForGymEvent(gymId: string, eventId: string, tx?: Prisma.TransactionClient) {
+    return db(tx).applicationDocument.findMany({
+      where: { gymId, eventId },
+      select: {
+        id: true,
+        fighterId: true,
+        status: true,
+      },
+    });
+  },
 };

@@ -84,7 +84,7 @@ export default async function GymHomePage() {
             href="/gym/events"
             className={cn(buttonVariants({ variant: "outline", size: "sm" }))}
           >
-            대회 신청
+            대회·신청 현황
           </Link>
           <Link
             href="/gym/records"

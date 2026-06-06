@@ -56,12 +56,20 @@ export default async function FighterHomePage() {
               예정된 진행 중 경기가 없습니다. 시연 시드에서는 배정된 카드가
               없을 수 있습니다.
             </p>
-            <Link
-              href="/fighter/records"
-              className={cn(buttonVariants({ variant: "outline", size: "sm" }))}
-            >
-              전적 보기
-            </Link>
+            <div className="flex flex-wrap gap-2">
+              <Link
+                href="/fighter/events"
+                className={cn(buttonVariants({ variant: "default", size: "sm" }))}
+              >
+                내 대회·경기
+              </Link>
+              <Link
+                href="/fighter/records"
+                className={cn(buttonVariants({ variant: "outline", size: "sm" }))}
+              >
+                전적 보기
+              </Link>
+            </div>
           </div>
         ) : (
           <dl className="grid gap-2 text-sm">
@@ -101,7 +109,13 @@ export default async function FighterHomePage() {
                 {next.hasOfficialResults ? "확정됨" : "미확정"}
               </dd>
             </div>
-            <div className="pt-2">
+            <div className="flex flex-wrap gap-2 pt-2">
+              <Link
+                href="/fighter/events"
+                className={cn(buttonVariants({ variant: "default", size: "sm" }))}
+              >
+                내 대회·경기 전체
+              </Link>
               <Link
                 href={`/events/${next.publicSlug}/brackets`}
                 className={cn(buttonVariants({ variant: "outline", size: "sm" }))}

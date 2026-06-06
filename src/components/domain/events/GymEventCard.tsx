@@ -102,13 +102,22 @@ export function GymEventCard({ event }: { event: GymDashboardEventItemDTO }) {
           </span>
         )}
         <Link
-          href={`/gym/events/${event.id}/field-status`}
+          href={`/gym/events/${event.id}/status`}
           className={cn(
             buttonVariants({ variant: "outline", size: "sm" }),
             "inline-flex w-full justify-center",
           )}
         >
-          현장 확인·계체 상태
+          신청 현황
+        </Link>
+        <Link
+          href={`/gym/events/${event.id}/field-status`}
+          className={cn(
+            buttonVariants({ variant: "ghost", size: "sm" }),
+            "inline-flex w-full justify-center",
+          )}
+        >
+          현장/계체 상태
         </Link>
       </CardContent>
     </Card>

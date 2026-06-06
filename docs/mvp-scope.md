@@ -127,6 +127,9 @@
 - [x] 주최자: **결과 입력 스태프 링크** 발급·폐기(토큰 URL `/staff/result/[token]/matches`, 로그인 없음).
 - [x] 주최자: **현장 확인·계체** (`/organizer/events/[eventId]/check-in`) — 승인 신청자 대상 `CheckInStatus` / `WeighInStatus` 기록, 출전 확정은 서비스 계산.
 - [x] 체육관: **현장 상태 조회** (`/gym/events/[eventId]/field-status`, 읽기 전용).
+- [x] 체육관: **신청 현황 조회** (`/gym/events/[eventId]/status`) — 소속 선수만, 신청·입금·신청서·현장·계체·대진·경기·결과 요약, 요약 카드 필터·검색·상세 Drawer(주최자 `fieldMemo`·계체 실측 미노출).
+- [x] 체육관: **자기 선수 경기 확인** — 동일 화면 「우리 체육관 경기」·미배정 선수, 공개 대진표 링크.
+- [x] 선수: **내 대회·내 경기 조회** (`/fighter/events`) — 본인 `fighterId` 연결 신청·현장·대진·결과 **조회만**, 입금은 「체육관/주최자 확인 중」 수준 표시.
 - [x] 대진표 후보: 출전 미확정 **경고**·「출전 확정만 보기」필터 — 기존 배치 **자동 삭제 없음**.
 - [x] **실제 계체 몸무게·현장 메모** — 공개 페이지(`/events/*`) 미노출.
 - [x] **자동 대진 생성** (`/organizer/events/[eventId]/brackets`) — 승인 신청자를 `divisionId` 기준 2명씩 `match_list`에 추가(기존 대진 유지·미배치 선수만).

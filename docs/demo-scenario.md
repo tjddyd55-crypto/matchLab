@@ -67,6 +67,17 @@ MVP 범위는 `docs/mvp-scope.md`를 기준으로 하며, 본 문서는 **시연
 4. **gym** — `/gym/events/{eventId}/field-status` → **자기 체육관 선수만** 표시, 수정 버튼 없음.
 5. **spectator** — `/events/sample-open-2026` 및 `brackets` / `results` → **실제 몸무게·현장 상태 미노출** 확인.
 
+### 1.4b 체육관·선수 신청 현황·내 경기
+
+1. **gym** — `/login` (`gym` / `123456!!`) → `/gym/events` → 대회 카드 **신청 현황** → `/gym/events/{eventId}/status`.
+2. **gym** — 요약 카드 클릭·선수명 검색·필터(승인/미배정 등) 동작 확인.
+3. **gym** — **자기 체육관 선수 신청만** 표시, 타 체육관 신청 목록·주최자 전용 버튼 없음.
+4. **gym** — 대진 생성된 대회에서 **우리 체육관 경기**·미배정 선수·공개 대진표 링크 확인.
+5. **fighter** — `/login` (`fighter` / `123456!!`) → `/fighter/events` (**내 대회·경기**).
+6. **fighter** — 신청·현장·계체·대진·결과 조회만, 수정·입금·현장 확인 액션 없음.
+7. **spectator** — 공개 화면에 신청서 답변·연락처·계체 실측·크레딧 미노출 재확인.
+8. **organizer** — `/organizer/events/{eventId}/applications`·대진표 화면 **회귀 없음** 확인.
+
 > schema 변경(`CheckInStatus` / `WeighInStatus` 등) 반영 후 **`npm run db:push`** 필요. **`db:seed`는 실행하지 않음.**
 
 ### 1.7 체육관 선수 DB (직접 등록·요청·수정)

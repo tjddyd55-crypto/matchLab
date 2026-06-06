@@ -523,6 +523,168 @@ export const matchRepository = {
     });
   },
 
+  async findMatchesForGymInEvent(
+    gymId: string,
+    eventId: string,
+    tx?: Prisma.TransactionClient,
+  ) {
+    return db(tx).bracketMatch.findMany({
+      where: {
+        bracket: { eventId },
+        status: { not: BracketMatchStatus.cancelled },
+        OR: [
+          { fighterRed: { currentGymId: gymId } },
+          { fighterBlue: { currentGymId: gymId } },
+        ],
+      },
+      orderBy: [
+        { globalMatchOrder: "asc" },
+        { round: "asc" },
+        { matchOrder: "asc" },
+      ],
+      include: {
+        bracket: {
+          select: {
+            id: true,
+            title: true,
+            type: true,
+            divisionId: true,
+            event: { select: { title: true, publicSlug: true } },
+            division: {
+              select: {
+                id: true,
+                sportType: true,
+                ruleType: true,
+                gender: true,
+                ageGroup: true,
+                weightClass: true,
+                skillLevel: true,
+              },
+            },
+          },
+        },
+        fighterRed: {
+          select: {
+            id: true,
+            fighterCode: true,
+            name: true,
+            profileImageUrl: true,
+            currentGymId: true,
+            currentGym: { select: { name: true } },
+          },
+        },
+        fighterBlue: {
+          select: {
+            id: true,
+            fighterCode: true,
+            name: true,
+            profileImageUrl: true,
+            currentGymId: true,
+            currentGym: { select: { name: true } },
+          },
+        },
+        winner: { select: { id: true, name: true } },
+        loser: { select: { id: true, name: true } },
+        matchResults: {
+          where: {
+            status: {
+              in: [MatchRecordStatus.confirmed, MatchRecordStatus.corrected],
+            },
+          },
+          select: {
+            id: true,
+            fighterId: true,
+            result: true,
+            status: true,
+          },
+        },
+      },
+    });
+  },
+
+  async findMatchesForFighter(
+    fighterId: string,
+    tx?: Prisma.TransactionClient,
+  ) {
+    return db(tx).bracketMatch.findMany({
+      where: {
+        status: { not: BracketMatchStatus.cancelled },
+        OR: [{ fighterRedId: fighterId }, { fighterBlueId: fighterId }],
+      },
+      orderBy: [
+        { bracket: { event: { eventDate: "desc" } } },
+        { globalMatchOrder: "asc" },
+        { round: "asc" },
+        { matchOrder: "asc" },
+      ],
+      include: {
+        bracket: {
+          select: {
+            id: true,
+            title: true,
+            type: true,
+            divisionId: true,
+            event: {
+              select: {
+                id: true,
+                title: true,
+                publicSlug: true,
+                eventDate: true,
+                status: true,
+              },
+            },
+            division: {
+              select: {
+                id: true,
+                sportType: true,
+                ruleType: true,
+                gender: true,
+                ageGroup: true,
+                weightClass: true,
+                skillLevel: true,
+              },
+            },
+          },
+        },
+        fighterRed: {
+          select: {
+            id: true,
+            fighterCode: true,
+            name: true,
+            profileImageUrl: true,
+            currentGymId: true,
+            currentGym: { select: { name: true } },
+          },
+        },
+        fighterBlue: {
+          select: {
+            id: true,
+            fighterCode: true,
+            name: true,
+            profileImageUrl: true,
+            currentGymId: true,
+            currentGym: { select: { name: true } },
+          },
+        },
+        winner: { select: { id: true, name: true } },
+        loser: { select: { id: true, name: true } },
+        matchResults: {
+          where: {
+            status: {
+              in: [MatchRecordStatus.confirmed, MatchRecordStatus.corrected],
+            },
+          },
+          select: {
+            id: true,
+            fighterId: true,
+            result: true,
+            status: true,
+          },
+        },
+      },
+    });
+  },
+
   async findUpcomingMatchesForGym(
     gymId: string,
     take = 16,
