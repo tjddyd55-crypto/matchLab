@@ -128,6 +128,7 @@
 - [x] 주최자: 체급표 템플릿 편집 — **넓은 레이아웃**(max-width 확대·표·빠른 입력 영역).
 - [x] 주최자: **관람 공개 시간 창**·토큰·공개 대진표 QR 안내(`NEXT_PUBLIC_APP_URL` 기준 링크).
 - [x] 주최자: **결과 입력 스태프 링크** 발급·폐기(토큰 URL `/staff/result/[token]/matches`, 로그인 없음).
+- [x] **스태프 모바일 결과 입력 MVP** — `/staff/result/[token]/matches` 카드 목록·요약·필터·Bottom Sheet 결과 입력(`StaffMatchResultForm` → 기존 staff 액션). 민감정보 미노출. 경기 운영 보드에서 링크 복사 안내.
 - [x] 주최자: **현장 확인·계체** (`/organizer/events/[eventId]/check-in`) — 승인 신청자 대상 `CheckInStatus` / `WeighInStatus` 기록, 출전 확정은 서비스 계산.
 - [x] 체육관: **현장 상태 조회** (`/gym/events/[eventId]/field-status`, 읽기 전용).
 - [x] 체육관: **신청 현황 조회** (`/gym/events/[eventId]/status`) — 소속 선수만, 신청·입금·신청서·현장·계체·대진·경기·결과 요약, 요약 카드 필터·검색·상세 Drawer(주최자 `fieldMemo`·계체 실측 미노출).

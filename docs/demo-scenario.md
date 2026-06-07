@@ -51,6 +51,15 @@ MVP 범위는 `docs/mvp-scope.md`를 기준으로 하며, 본 문서는 **시연
 6. 포스터 없는 대회 — placeholder·갤러리 첫 장 fallback 확인(public URL만, storage path 미노출).
 7. **organizer** — `/organizer/events` 목록에서 **대회 상태**·**신청 상태** 배지 확인.
 
+### 1.4b 스태프 모바일 결과 입력
+
+1. **organizer** — `/organizer/events/{eventId}` 또는 **경기 운영** 상단에서 스태프 링크 복사(없으면 행사 상세에서 생성).
+2. **시크릿 창·모바일 폭** — `/staff/result/{token}/matches` 접속(접속 코드 있으면 입력).
+3. 요약 카드·필터·경기 카드(선수 A/B·체육관·상태) 확인.
+4. **결과 입력** Sheet → 승자·승리 방식 → 임시 저장 또는 **결과 확정**(링크 권한에 따라).
+5. **organizer** — `/operation`·공개 `/events/{slug}/results`·선수 전적 반영 확인.
+6. 신청서·연락처·계체 실측 등 민감정보 미노출 확인.
+
 ### 1.4 주최자 경기 운영 보드
 
 1. **organizer** — `/organizer/events/{eventId}` → **경기 운영** (`/operation`) 진입. 요약 카드(전체·예정·진행 중·완료)와 경기 목록 확인.

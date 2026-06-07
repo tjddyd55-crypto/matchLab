@@ -1,9 +1,12 @@
 import { EventManagementNav } from "@/components/domain/events/EventManagementNav";
 import { OrganizerMatchesRealtimeBridge } from "@/components/domain/matches/OrganizerMatchesRealtimeBridge";
 import { OrganizerOperationBoard } from "@/components/domain/operation/OrganizerOperationBoard";
+import { OrganizerOperationStaffLinkBanner } from "@/components/domain/operation/OrganizerOperationStaffLinkBanner";
 import { requireActor } from "@/lib/auth/actor";
+import { getAppBaseUrl } from "@/lib/app-url";
 import { requireOrganizerForEventPage } from "@/lib/permissions";
 import { eventRepository } from "@/lib/repositories/event.repository";
+import { eventStaffAccessService } from "@/lib/services/event-staff-access.service";
 import { matchService } from "@/lib/services/match.service";
 
 export const dynamic = "force-dynamic";
@@ -18,9 +21,10 @@ export default async function OrganizerEventOperationPage({
 
   await requireOrganizerForEventPage(actor, eventId);
 
-  const [matches, eventMeta] = await Promise.all([
+  const [matches, eventMeta, staffRecorderLinks] = await Promise.all([
     matchService.listOrganizerEventMatches(actor, eventId),
     eventRepository.findOrganizerEventById(eventId),
+    eventStaffAccessService.listLinksForOrganizer(actor, eventId),
   ]);
 
   const bracketIds = [...new Set(matches.map((m) => m.bracketId))];
@@ -52,6 +56,12 @@ export default async function OrganizerEventOperationPage({
           흐름을 사용하며, 공식 전적은 확정 후에만 반영됩니다.
         </p>
       </div>
+
+      <OrganizerOperationStaffLinkBanner
+        eventId={eventId}
+        baseUrl={getAppBaseUrl()}
+        links={staffRecorderLinks}
+      />
 
       <OrganizerOperationBoard matches={matches} />
     </div>

@@ -27,6 +27,11 @@ import { notificationRepository } from "@/lib/repositories/notification.reposito
 import { tryNotify } from "@/lib/notifications/safe-dispatch";
 import { notificationService } from "@/lib/services/notification.service";
 import type { ResolvedStaffRecorderLink } from "@/lib/services/event-staff-access.service";
+import {
+  toStaffEventMatchRow,
+  type StaffEventMatchListItemVM,
+} from "@/lib/staff-match-display";
+import { MatchRecordStatus } from "@/lib/enums";
 import type {
   CancelMatchInput,
   RecordMatchOutcomeDraftInput,
@@ -306,7 +311,12 @@ export const matchService = {
         ? formatDivisionNameLabel(m.bracket.division)
         : null;
 
-      const official = m.matchResults ?? [];
+      const results = m.matchResults ?? [];
+      const official = results.filter(
+        (r) =>
+          r.status === MatchRecordStatus.confirmed ||
+          r.status === MatchRecordStatus.corrected,
+      );
       const hasOfficialResults = official.length >= 2;
 
       return {
@@ -525,18 +535,25 @@ export const matchService = {
 
   async listStaffEventMatches(
     link: ResolvedStaffRecorderLink,
-  ): Promise<OrganizerEventMatchListItemVM[]> {
+  ): Promise<StaffEventMatchListItemVM[]> {
     const rows = await matchRepository.listMatchesByEvent(link.eventId);
 
-    return rows.map((m): OrganizerEventMatchListItemVM => {
+    return rows.map((m) => {
       const divisionLabel = m.bracket.division
         ? formatDivisionNameLabel(m.bracket.division)
         : null;
 
-      const official = m.matchResults ?? [];
+      const results = m.matchResults ?? [];
+      const official = results.filter(
+        (r) =>
+          r.status === MatchRecordStatus.confirmed ||
+          r.status === MatchRecordStatus.corrected,
+      );
       const hasOfficialResults = official.length >= 2;
 
-      return {
+      const base: OrganizerEventMatchListItemVM & {
+        matchResultStatuses: MatchRecordStatus[];
+      } = {
         eventTitle: m.bracket.event?.title ?? "",
         matchId: m.id,
         bracketId: m.bracketId,
@@ -571,7 +588,10 @@ export const matchService = {
         resultMemo: m.resultMemo ?? null,
         isFinishedOps: m.status === "finished",
         hasOfficialResults,
+        matchResultStatuses: results.map((r) => r.status),
       };
+
+      return toStaffEventMatchRow(base);
     });
   },
 

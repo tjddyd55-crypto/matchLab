@@ -128,7 +128,11 @@ export const matchRepository = {
         matchResults: {
           where: {
             status: {
-              in: [MatchRecordStatus.confirmed, MatchRecordStatus.corrected],
+              in: [
+                MatchRecordStatus.confirmed,
+                MatchRecordStatus.corrected,
+                MatchRecordStatus.voided,
+              ],
             },
           },
           select: {

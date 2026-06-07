@@ -129,6 +129,14 @@ GitHub → Railway 배포가 성공해도 **Postgres는 빈 DB**입니다. `publ
 4. 결과 입력 후 목록 상태·`/organizer/events/{eventId}/results`·공개 `/events/{slug}/results` 반영 확인.
 5. `gym`·`fighter`·비로그인으로 `/operation` 접근 차단(404) 확인.
 
+**스태프 모바일 결과 입력 테스트 (schema 변경 없음):**
+
+1. `organizer` 로그인 → `/organizer/events/{eventId}` → **결과 입력 링크 (스태프)** 섹션에서 링크 생성(임시 입력·확정 권한 설정).
+2. 생성된 URL `/staff/result/{token}/matches` 를 시크릿 창 또는 DevTools 모바일 폭에서 열기.
+3. 접속 코드가 있으면 입력 후 경기 카드·결과 입력 Sheet 동작 확인.
+4. 확정 후 `/organizer/events/{eventId}/operation`·공개 결과·알림 회귀 확인.
+5. 스태프 화면에 신청서·연락처·fieldMemo 미노출 확인.
+
 **데모 loginId (기본 비밀번호 `DEMO_PASSWORD` 또는 `123456!!`):**
 
 | loginId | 역할 | 레거시 이메일(하위 호환) |
