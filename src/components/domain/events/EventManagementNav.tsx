@@ -42,7 +42,7 @@ export function EventManagementNav({
       <Link href={`/organizer/events/${eventId}/brackets`} className={linkClass}>
         대진표
       </Link>
-      <Link href={`/organizer/events/${eventId}/matches`} className={linkClass}>
+      <Link href={`/organizer/events/${eventId}/operation`} className={linkClass}>
         경기 운영
       </Link>
       <Link href={`/organizer/events/${eventId}/results`} className={linkClass}>

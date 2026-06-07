@@ -69,7 +69,7 @@ export default async function OrganizerEventResultsPage({
           공개 결과 페이지
         </Link>
         <Link
-          href={`/organizer/events/${eventId}/matches`}
+          href={`/organizer/events/${eventId}/operation`}
           className={cn(buttonVariants({ variant: "outline", size: "sm" }))}
         >
           경기 운영으로 이동

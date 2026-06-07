@@ -121,6 +121,14 @@ GitHub → Railway 배포가 성공해도 **Postgres는 빈 DB**입니다. `publ
 5. 자동 대진 생성·대진표 공개 → gym·fighter 알림.
 6. 결과 입력·확정 → gym·fighter 알림, href 이동·읽음 처리 확인.
 
+**주최자 경기 운영 보드 테스트 (schema 변경 없음):**
+
+1. `organizer` / `123456!!` 로그인 → `/organizer/events` → 시드 대회 상세 → **경기 운영** (`/organizer/events/{eventId}/operation`).
+2. 자동 대진 생성 후 경기 목록·요약 카드(전체/예정/진행 중/완료) 확인.
+3. **진행 시작** → **경기 종료** → **결과 입력**(Drawer에서 기존 `OrganizerMatchOpsPanel` 확정) 순서 확인.
+4. 결과 입력 후 목록 상태·`/organizer/events/{eventId}/results`·공개 `/events/{slug}/results` 반영 확인.
+5. `gym`·`fighter`·비로그인으로 `/operation` 접근 차단(404) 확인.
+
 **데모 loginId (기본 비밀번호 `DEMO_PASSWORD` 또는 `123456!!`):**
 
 | loginId | 역할 | 레거시 이메일(하위 호환) |
@@ -409,7 +417,7 @@ npm run dev
 
 ## 주최자 대회 생성·관리 (MVP)
 
-- **라우트**: `/organizer/events`(목록), `/organizer/events/new`(생성), `/organizer/events/[eventId]`(상세·수정·부문·입금·촬영/스트리밍·상태).
+- **라우트**: `/organizer/events`(목록), `/organizer/events/new`(생성), `/organizer/events/[eventId]`(상세·수정·부문·입금·촬영/스트리밍·상태), `/organizer/events/[eventId]/operation`(경기 운영 보드).
 - **레이어**: Server Actions `src/features/events/actions.ts` → `event.service` → `event.repository`(Prisma는 repository만). 페이지(`page.tsx`)는 서비스만 호출.
 - **`publicSlug`**: 대회 생성 시 `allocateUniquePublicSlug`로 고유값 할당. 초안(`draft`) 상태에서는 공개 상세가 `notFound`와 동일하게 동작(저장소에서 `draft`·`cancelled` 제외 조회).
 - **`EventStatus` 전이**: `docs/status-machine.md` 권장 전이만 허용. `draft`→`open` 시 필수 필드·부문·입금 설정 검증. 전이 성공 시 `AuditLog.event_status_changed`.

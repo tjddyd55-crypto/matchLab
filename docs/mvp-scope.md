@@ -113,6 +113,7 @@
 
 ### 경기 운영·결과
 
+- [x] 주최자: **경기 운영 보드 MVP** (`/organizer/events/[eventId]/operation`) — 요약 카드·경기 목록·진행 시작/종료·결과 입력 Drawer(`OrganizerMatchOpsPanel` 재사용)·필터·검색·PC 테이블/모바일 카드. 기존 `/matches`는 `/operation`으로 리다이렉트.
 - [x] 주최자: 브래킷·경기 목록에서 순서·매트·선수 배치 편집 및 **`BracketChangeLog`** 기록.
 - [x] 주최자: 경기 상태 변경(`BracketMatchStatus`) — 확정 전 단계에서 **`MatchResult` 미생성**.
 - [x] 결과 임시 입력(승자·결방식·메모) — **`BracketMatch` 필드만 갱신**, **`MatchResult` 미생성**.

@@ -7,7 +7,7 @@ MVP 범위는 `docs/mvp-scope.md`를 기준으로 하며, 본 문서는 **시연
 아래 순서로 로그인을 바꿔 가며 한 바퀴 돌리면, 미팅 때 흐름이 끊기지 않기 쉽다.
 
 1. **`/login` → admin** — `/admin` 개요, 최근 위젯, `/admin/events` … `/admin/audit-logs` 목록까지 훑기.
-2. **`/login` → organizer** — `/organizer` 홈 → **내 대회**에서 시드 대회 상세 진입 → 신청자 관리·대진표·경기 운영·결과·라이브(읽기) 순. (선택: 행사 상세에서 **결과 입력 스태프 링크** 발급 후 시크릿 창에서 `/staff/result/…/matches` 확인.)
+2. **`/login` → organizer** — `/organizer` 홈 → **내 대회**에서 시드 대회 상세 진입 → 신청자 관리·대진표·**경기 운영**(`/organizer/events/{eventId}/operation`)·결과·라이브(읽기) 순. 경기 운영에서 **진행 시작 → 경기 종료 → 결과 입력** 후 공개 `/events/{slug}/results` 반영 확인. (선택: 행사 상세에서 **결과 입력 스태프 링크** 발급 후 시크릿 창에서 `/staff/result/…/matches` 확인.)
 3. **`/login` → gym** — `/gym` 현장 모드·바로가기 → 선수·초대 링크·대회 신청·신청 내역·전적.
 4. **`/login` → fighter** — `/fighter` 현장 모드 → `/fighter/events`, `/fighter/records`.
 5. **로그아웃 후 spectator** — `/`, `/events`, 시드 슬러그 **`/events/sample-open-2026`** 및 하위 `brackets` / `results` / `live`. 배포 URL 사용 시 **`NEXT_PUBLIC_APP_URL`** 을 Railway 공개 도메인으로 맞춰 QR·절대 링크가 올바른지 확인한다(`docs/deploy-railway.md`).
@@ -50,6 +50,16 @@ MVP 범위는 `docs/mvp-scope.md`를 기준으로 하며, 본 문서는 **시연
 5. **spectator** — `/events/sample-open-2026` 상세에서 포스터 Hero·「대회 신청하기」CTA·대진표/결과 링크 확인.
 6. 포스터 없는 대회 — placeholder·갤러리 첫 장 fallback 확인(public URL만, storage path 미노출).
 7. **organizer** — `/organizer/events` 목록에서 **대회 상태**·**신청 상태** 배지 확인.
+
+### 1.4 주최자 경기 운영 보드
+
+1. **organizer** — `/organizer/events/{eventId}` → **경기 운영** (`/operation`) 진입. 요약 카드(전체·예정·진행 중·완료)와 경기 목록 확인.
+2. **진행 시작** — 예정 경기에서 클릭 → 상태 **진행 중** 반영.
+3. **경기 종료** — 진행 중 경기에서 클릭 → 상태 **종료** 반영.
+4. **결과 입력** — 종료 경기에서 Drawer 열기 → 기존 `OrganizerMatchOpsPanel`로 확정 → 목록 **결과 입력 완료** 반영.
+5. **결과 보기** — 확정된 경기에서 Drawer로 정정·무효 흐름 확인(선택).
+6. **필터·검색** — 예정/결과 미입력 필터, 선수명·체육관·부문 검색 동작 확인.
+7. **spectator** — `/events/{slug}/results` 공개 결과 페이지에 확정 결과 반영 확인.
 
 ### 1.3b 대회 상세 공유
 
@@ -230,7 +240,7 @@ npm run seed:demo-fighters # FTR-2026-TEST001~020, 데모 체육관 소속
 
 - `/organizer`, `/organizer/events`, `/organizer/events/new`
 - `/organizer/events/{eventId}` — 대회 편집·부문·입금·스트리밍 설정
-- `.../applications`, `.../application-batches`, `.../application-documents/[id]/print`, `.../brackets`, `.../matches`, `.../results`, `.../live`
+- `.../applications`, `.../application-batches`, `.../application-documents/[id]/print`, `.../brackets`, `.../operation`(경기 운영), `.../results`, `.../live`
 
 ### 체육관 (`/gym/...`)
 
