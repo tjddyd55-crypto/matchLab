@@ -51,6 +51,15 @@ MVP 범위는 `docs/mvp-scope.md`를 기준으로 하며, 본 문서는 **시연
 6. 포스터 없는 대회 — placeholder·갤러리 첫 장 fallback 확인(public URL만, storage path 미노출).
 7. **organizer** — `/organizer/events` 목록에서 **대회 상태**·**신청 상태** 배지 확인.
 
+### 1.4a 주최자 대회 생성·준비 체크리스트
+
+1. **organizer** — `/organizer/events/new`에서 대회명·일시·장소·신청 기간만 입력해 생성.
+2. 생성 후 관리 홈(`/organizer/events/{eventId}?welcome=1`)에서 **다음 작업**·**준비 체크리스트** 확인.
+3. 포스터 없을 때 **권장** 표시 → 포스터 등록 후 완료 확인.
+4. 부문 없을 때 **필요** 표시 → 체급표로 부문 생성 후 완료 확인.
+5. 신청서·참가비·공개 페이지 링크가 체크리스트에서 바로가기 되는지 확인.
+6. `EventManagementNav` 운영 순서(관리 홈 → 기본 설정 → 부문 → …) 확인.
+
 ### 1.4b 스태프 모바일 결과 입력
 
 1. **organizer** — `/organizer/events/{eventId}` 또는 **경기 운영** 상단에서 스태프 링크 복사(없으면 행사 상세에서 생성).

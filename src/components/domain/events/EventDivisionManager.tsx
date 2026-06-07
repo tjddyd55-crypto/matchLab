@@ -172,7 +172,10 @@ export function EventDivisionManager({
   templateDetails: DivisionTemplateDetailVM[];
 }) {
   return (
-    <section className="ring-foreground/10 space-y-4 rounded-xl border bg-card p-4 shadow-sm md:p-6">
+    <section
+      id="setup-divisions"
+      className="ring-foreground/10 scroll-mt-24 space-y-4 rounded-xl border bg-card p-4 shadow-sm md:p-6"
+    >
       <div className="flex flex-col gap-1 sm:flex-row sm:items-center sm:justify-between">
         <h2 className="text-lg font-semibold">부문 (디비전)</h2>
         {status === EventStatus.open ? (

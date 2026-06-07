@@ -3,6 +3,8 @@ import { EventGalleryManager } from "@/components/domain/events/EventGalleryMana
 import { EventDivisionManager } from "@/components/domain/events/EventDivisionManager";
 import { EventForm } from "@/components/domain/events/EventForm";
 import { EventManagementNav } from "@/components/domain/events/EventManagementNav";
+import { OrganizerEventNextActions } from "@/components/domain/events/OrganizerEventNextActions";
+import { OrganizerEventSetupChecklist } from "@/components/domain/events/OrganizerEventSetupChecklist";
 import { EventPaymentSettingForm } from "@/components/domain/events/EventPaymentSettingForm";
 import { EventRecordingStreamingSettings } from "@/components/domain/events/EventRecordingStreamingSettings";
 import { SpectatorSettingsSection } from "@/components/domain/events/SpectatorSettingsSection";
@@ -18,16 +20,34 @@ import { divisionTemplateService } from "@/lib/services/division-template.servic
 import { eventRepository } from "@/lib/repositories/event.repository";
 import { eventService } from "@/lib/services/event.service";
 import { eventStaffAccessService } from "@/lib/services/event-staff-access.service";
+import {
+  buildEventSetupChecklist,
+  buildEventSetupInputFromDetail,
+} from "@/lib/organizer-event-setup";
+import type { ApplicationFormMode } from "@/lib/application-form/custom-form";
 
 export const dynamic = "force-dynamic";
 
+function resolveLinkedFormMode(
+  formModeLabel: string | undefined,
+): ApplicationFormMode {
+  if (!formModeLabel) return "none";
+  if (formModeLabel.includes("자체")) return "custom";
+  if (formModeLabel.includes("PDF")) return "pdf";
+  return "none";
+}
+
 export default async function OrganizerEventDetailPage({
   params,
+  searchParams,
 }: {
   params: Promise<{ eventId: string }>;
+  searchParams: Promise<{ welcome?: string }>;
 }) {
   const actor = await requireActor();
   const { eventId } = await params;
+  const sp = await searchParams;
+  const showWelcome = sp.welcome === "1";
 
   let detail;
   let divisionTemplates;
@@ -56,6 +76,16 @@ export default async function OrganizerEventDetailPage({
     process.env.NEXT_PUBLIC_APP_URL?.replace(/\/$/, "") ??
     "http://localhost:3000";
 
+  const linkedTemplate = linkedTemplateId
+    ? formTemplates.find((t) => t.id === linkedTemplateId)
+    : null;
+
+  const setupInput = buildEventSetupInputFromDetail(detail, {
+    applicationFormMode: resolveLinkedFormMode(linkedTemplate?.formModeLabel),
+    applicationFormConfigured: linkedTemplateId !== null,
+  });
+  const setupChecklist = buildEventSetupChecklist(setupInput);
+
   return (
     <div className="mx-auto flex w-full max-w-[min(100%,56rem)] flex-col gap-8 px-4 py-8 md:px-6 lg:px-8">
       <header className="space-y-2">
@@ -83,6 +113,22 @@ export default async function OrganizerEventDetailPage({
       <OrganizerEventFlashBanner />
 
       <EventManagementNav eventId={detail.id} publicSlug={detail.publicSlug} />
+
+      {showWelcome ? (
+        <OrganizerEventNextActions
+          title="대회가 생성되었습니다"
+          subtitle="이제 아래 순서대로 준비해 주세요. 생성 직후에는 작성 중 상태이며, 준비가 끝나면 신청 공개로 전환할 수 있습니다."
+          actions={setupChecklist.nextActions}
+        />
+      ) : setupChecklist.completionRate < 100 ? (
+        <OrganizerEventNextActions
+          title="다음 작업"
+          subtitle="아직 채우지 않은 준비 항목이 있습니다."
+          actions={setupChecklist.nextActions}
+        />
+      ) : null}
+
+      <OrganizerEventSetupChecklist checklist={setupChecklist} />
 
       <EventStatusControl event={detail} />
 

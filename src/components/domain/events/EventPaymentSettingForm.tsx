@@ -33,7 +33,10 @@ export function EventPaymentSettingForm({
   }, [state, router]);
 
   return (
-    <div className="ring-foreground/10 space-y-4 rounded-xl border bg-card p-4 shadow-sm md:p-6">
+    <div
+      id="setup-payment"
+      className="ring-foreground/10 scroll-mt-24 space-y-4 rounded-xl border bg-card p-4 shadow-sm md:p-6"
+    >
       <h2 className="text-lg font-semibold">참가비·입금 계좌 (주최자 ↔ 체육관)</h2>
       <p className="text-muted-foreground text-sm">
         <strong className="text-foreground">참가비(원)</strong>는 체육관이 주최자

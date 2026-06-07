@@ -52,7 +52,10 @@ export function EventForm({
   if (!initial) return null;
 
   return (
-    <div className="ring-foreground/10 space-y-4 rounded-xl border bg-card p-4 shadow-sm md:p-6">
+    <div
+      id="setup-basic"
+      className="ring-foreground/10 scroll-mt-24 space-y-4 rounded-xl border bg-card p-4 shadow-sm md:p-6"
+    >
       <h2 className="text-lg font-semibold">기본 정보</h2>
       {editState?.ok === false ? (
         <p className="text-destructive text-sm">{editState.error.message}</p>
@@ -130,7 +133,7 @@ export function EventForm({
             )}
           />
         </label>
-        <div className="md:col-span-2 space-y-2">
+        <div id="setup-poster" className="md:col-span-2 scroll-mt-24 space-y-2">
           <EventPosterUpload
             eventId={initial.id}
             posterUrl={initial.posterUrl}

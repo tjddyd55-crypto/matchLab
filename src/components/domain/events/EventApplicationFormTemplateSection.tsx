@@ -40,7 +40,10 @@ export function EventApplicationFormTemplateSection({
   }
 
   return (
-    <section className="space-y-4 rounded-xl border bg-card p-4">
+    <section
+      id="setup-application-form"
+      className="scroll-mt-24 space-y-4 rounded-xl border bg-card p-4"
+    >
       <h2 className="text-lg font-semibold">공식 신청서 템플릿</h2>
       <p className="text-muted-foreground text-sm leading-relaxed">
         체육관 공식 신청(PDF) 흐름에 사용할 템플릿을 연결합니다. 초기에는

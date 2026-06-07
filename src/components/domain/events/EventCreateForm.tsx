@@ -87,7 +87,7 @@ export function EventCreateForm({ actorRole }: { actorRole: UserRole }) {
     handledCreateIdRef.current = eventId;
 
     if (!posterFile) {
-      router.push(`/organizer/events/${eventId}`);
+      router.push(`/organizer/events/${eventId}?welcome=1`);
       return;
     }
 
@@ -104,7 +104,7 @@ export function EventCreateForm({ actorRole }: { actorRole: UserRole }) {
         stashPosterUploadFlashMessage(
           `${msg} 대회는 생성되었습니다. 상세 화면에서 포스터를 다시 업로드해 주세요.`,
         );
-        router.push(`/organizer/events/${eventId}`);
+        router.push(`/organizer/events/${eventId}?welcome=1`);
         return;
       }
 
@@ -116,7 +116,7 @@ export function EventCreateForm({ actorRole }: { actorRole: UserRole }) {
         const msg = `포스터 업로드에 실패했습니다 (${put.status}). 대회는 생성되었습니다. 상세 화면에서 다시 업로드해 주세요.`;
         setPosterError(msg);
         stashPosterUploadFlashMessage(msg);
-        router.push(`/organizer/events/${eventId}`);
+        router.push(`/organizer/events/${eventId}?welcome=1`);
         return;
       }
 
@@ -131,7 +131,7 @@ export function EventCreateForm({ actorRole }: { actorRole: UserRole }) {
           `${msg} 대회는 생성되었습니다. 상세 화면에서 포스터를 다시 업로드해 주세요.`,
         );
       }
-      router.push(`/organizer/events/${eventId}`);
+      router.push(`/organizer/events/${eventId}?welcome=1`);
     });
   }, [createState, posterFile, router]);
 

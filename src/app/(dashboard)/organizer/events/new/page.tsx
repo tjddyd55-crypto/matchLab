@@ -13,9 +13,9 @@ export default async function OrganizerNewEventPage() {
           대회 생성
         </h1>
         <p className="text-muted-foreground mt-1 text-sm">
-          생성 후 상태는 작성 중(draft)이며, 필수 항목을 채운 뒤 신청 공개로
-          전환하면 공개 목록에 나타납니다. 부문(체급)은 생성 후 대회 상세에서
-          체급표 템플릿을 불러와 한 번에 만들 수 있습니다.
+          대회명·일시·장소·신청 기간만 입력하면 생성할 수 있습니다. 포스터,
+          부문·체급, 신청서, 참가비는 생성 후 관리 홈의 준비 체크리스트를 따라
+          이어서 설정하면 됩니다.
         </p>
       </div>
       <EventForm mode="create" actorRole={actor.role} />

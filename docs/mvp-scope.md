@@ -24,6 +24,7 @@
 ### 대회
 
 - [x] 주최자: 대회 생성·기본 정보 수정·상태 전이(`draft`→`open` 등, `event.service` / `/organizer/events`).
+- [x] **대회 준비 체크리스트·가이드** — `/organizer/events/[eventId]` 관리 홈 6단계 체크리스트·다음 작업 안내·`EventManagementNav` 운영 순서 정리·생성 후 `?welcome=1` 다음 단계 (`organizer-event-setup.ts`).
 - [x] 주최자: 디비전(EventDivision) 생성·수정·삭제(신청·대진표 연결 시 삭제 제한).
 - [x] 주최자: 참가비·입금 계좌(`EventPaymentSetting` upsert) — **계좌번호는 공개 DTO·공고에 미포함**.
 - [x] 주최자: 촬영·영상·라이브 스트리밍 플래그 및 안내 문구(`RecordingStreamingNotice` 등 공개 상세 반영).

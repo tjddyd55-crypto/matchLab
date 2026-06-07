@@ -68,7 +68,10 @@ export function EventStaffRecorderLinksSection({
       : null;
 
   return (
-    <section className="ring-foreground/10 space-y-6 rounded-xl border bg-card p-5 shadow-sm">
+    <section
+      id="setup-staff-links"
+      className="ring-foreground/10 scroll-mt-24 space-y-6 rounded-xl border bg-card p-5 shadow-sm"
+    >
       <div className="space-y-1">
         <h2 className="text-lg font-semibold">결과 입력 링크 (스태프)</h2>
         <p className="text-muted-foreground text-sm">

@@ -425,7 +425,14 @@ npm run dev
 
 ## 주최자 대회 생성·관리 (MVP)
 
-- **라우트**: `/organizer/events`(목록), `/organizer/events/new`(생성), `/organizer/events/[eventId]`(상세·수정·부문·입금·촬영/스트리밍·상태), `/organizer/events/[eventId]/operation`(경기 운영 보드).
+- **라우트**: `/organizer/events`(목록), `/organizer/events/new`(생성), `/organizer/events/[eventId]`(관리 홈·준비 체크리스트·기본 설정·부문·신청서·참가비), `/organizer/events/[eventId]/operation`(경기 운영 보드).
+
+**대회 생성 UX 테스트 (schema 변경 없음):**
+
+1. `organizer` / `123456!!` → `/organizer/events/new` → 최소 정보로 대회 생성.
+2. 리다이렉트된 관리 홈에서 **다음 작업**·6단계 **준비 체크리스트** 확인.
+3. 부문 생성 전/후 체크리스트 상태 변화, 공개 페이지·신청서·참가비 바로가기 확인.
+4. 모바일 폭에서 체크리스트 카드·버튼 전체폭 표시 확인.
 - **레이어**: Server Actions `src/features/events/actions.ts` → `event.service` → `event.repository`(Prisma는 repository만). 페이지(`page.tsx`)는 서비스만 호출.
 - **`publicSlug`**: 대회 생성 시 `allocateUniquePublicSlug`로 고유값 할당. 초안(`draft`) 상태에서는 공개 상세가 `notFound`와 동일하게 동작(저장소에서 `draft`·`cancelled` 제외 조회).
 - **`EventStatus` 전이**: `docs/status-machine.md` 권장 전이만 허용. `draft`→`open` 시 필수 필드·부문·입금 설정 검증. 전이 성공 시 `AuditLog.event_status_changed`.
