@@ -3,14 +3,20 @@ import { PublicEventDivisionList } from "@/components/domain/events/PublicEventD
 import { PublicEventGallery } from "@/components/domain/events/PublicEventGallery";
 import { RecordingStreamingNotice } from "@/components/domain/events/RecordingStreamingNotice";
 import { EventApplicationCta } from "@/components/domain/events/EventApplicationCta";
+import { PublicEventInfoSummaryCard } from "@/components/domain/events/public/PublicEventInfoSummaryCard";
+import { PublicEventMapLink } from "@/components/domain/events/public/PublicEventMapLink";
 
 export function PublicEventOverviewSection({
   event,
 }: {
   event: PublicEventDetailDTO;
 }) {
+  const paymentLines = event.paymentInfo?.noticeLines ?? [event.participantFeeNotice];
+
   return (
     <div className="flex flex-col gap-8 md:gap-10">
+      <PublicEventInfoSummaryCard event={event} />
+
       <section className="space-y-3 rounded-xl border p-4 md:p-5">
         <h2 className="text-base font-semibold md:text-lg">대회 개요</h2>
         {event.description ? (
@@ -34,10 +40,17 @@ export function PublicEventOverviewSection({
       ) : null}
 
       <section className="hidden space-y-4 rounded-xl border p-5 md:block">
-        <h2 className="text-lg font-semibold">참가 신청 안내</h2>
-        <p className="text-muted-foreground text-sm leading-relaxed">
-          {event.participantFeeNotice}
-        </p>
+        <h2 className="text-lg font-semibold">참가 신청 · 입금 안내</h2>
+        <ul className="text-muted-foreground space-y-2 text-sm leading-relaxed">
+          {paymentLines.map((line) => (
+            <li key={line}>{line}</li>
+          ))}
+        </ul>
+        {event.location ? (
+          <div className="pt-1">
+            <PublicEventMapLink location={event.location} />
+          </div>
+        ) : null}
         <EventApplicationCta
           eventStatus={event.status}
           registrationStatus={event.registrationStatus}
@@ -45,10 +58,12 @@ export function PublicEventOverviewSection({
       </section>
 
       <section className="space-y-3 rounded-xl border p-4 md:hidden">
-        <h2 className="text-base font-semibold">참가 신청</h2>
-        <p className="text-muted-foreground text-xs leading-relaxed">
-          {event.participantFeeNotice}
-        </p>
+        <h2 className="text-base font-semibold">참가 신청 · 입금 안내</h2>
+        <ul className="text-muted-foreground space-y-1.5 text-xs leading-relaxed">
+          {paymentLines.map((line) => (
+            <li key={line}>{line}</li>
+          ))}
+        </ul>
       </section>
 
       {event.streamingConsentRequired ? (

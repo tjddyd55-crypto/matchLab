@@ -22,6 +22,7 @@ export function PublicEventDetailShell({
         slug={slug}
         activeTab={activeTab}
         showLive={event.liveStreamingEnabled}
+        event={event}
       />
       <div id="event-tab-panel">{children}</div>
     </article>

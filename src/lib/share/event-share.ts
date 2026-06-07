@@ -73,17 +73,39 @@ export function resolveEventOgImageUrl(
   return null;
 }
 
-export function getDefaultEventOgImageUrl(): string {
-  return `${getAppBaseUrl()}/og-event-default`;
+function truncateOgParam(text: string, maxLength: number): string {
+  const trimmed = text.trim();
+  if (trimmed.length <= maxLength) return trimmed;
+  return `${trimmed.slice(0, maxLength - 1)}…`;
+}
+
+export function getDefaultEventOgImageUrl(
+  event?: Pick<PublicEventDetailDTO, "title" | "eventDate" | "location">,
+): string {
+  const base = `${getAppBaseUrl()}/og-event-default`;
+  if (!event) return base;
+
+  const params = new URLSearchParams();
+  if (event.title?.trim()) {
+    params.set("title", truncateOgParam(event.title, 80));
+  }
+  params.set("date", formatPublicDate(event.eventDate));
+  const location = event.location?.trim();
+  if (location) {
+    params.set("location", truncateOgParam(location, 60));
+  }
+
+  const query = params.toString();
+  return query ? `${base}?${query}` : base;
 }
 
 export function resolveEventOgImageForMetadata(
   event: Pick<
     PublicEventDetailDTO,
-    "coverImageUrl" | "posterUrl" | "galleryImages"
+    "coverImageUrl" | "posterUrl" | "galleryImages" | "title" | "eventDate" | "location"
   >,
 ): string {
-  return resolveEventOgImageUrl(event) ?? getDefaultEventOgImageUrl();
+  return resolveEventOgImageUrl(event) ?? getDefaultEventOgImageUrl(event);
 }
 
 export function buildFacebookShareUrl(pageUrl: string): string {

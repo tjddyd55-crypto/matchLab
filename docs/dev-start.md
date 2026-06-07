@@ -224,11 +224,12 @@ npm run repair:demo-gym
 ### 대회 상세 공유·OG 메타데이터
 
 1. `/events/{slug}` — `generateMetadata`로 `title` / `description` / `openGraph` / `twitter` 설정.
-2. `og:image` 우선순위: `coverImageUrl` → `posterUrl` → 갤러리 첫 장 → `/og-event-default` (공개 https만).
+2. `og:image` 우선순위: `coverImageUrl` → `posterUrl` → 갤러리 첫 장 → `/og-event-default?title=…&date=…&location=…` (공개 https만). fallback은 1200×630 `ImageResponse` — 대회명·날짜·장소·MatchLab 브랜딩.
 3. 공유 UI: **Facebook 공유** · **링크 복사** 두 버튼만 (`EventShareButtons`). Web Share API·카카오·인스타는 후속 TODO.
-4. 로컬 확인: 브라우저 개발자 도구 → Elements → `<meta property="og:*">` 검사.
-5. Facebook Sharing Debugger는 배포 URL 기준 후속 TODO.
-6. 인스타 공유 후속 TODO: 공유용 이미지 다운로드·스토리 공유 가이드(웹 직접 게시 URL 제외).
+4. 로컬 확인: 브라우저 개발자 도구 → Elements → `<meta property="og:*">` 검사. 포스터 없는 대회는 `/og-event-default` 직접 열어 fallback 이미지 확인.
+5. **공개 페이지 수동 확인**: `/events/sample-open-2026` — D-day·참가비/입금 안내·지도 링크·대진표/결과 뱃지·행사 안내 요약 박스. `/events` 목록 카드·메인 카드에 D-day·공개 상태 간략 표시. 계좌번호·크레딧·ledger 미노출 재확인.
+6. Facebook Sharing Debugger는 배포 URL 기준 후속 TODO.
+7. 인스타 공유 후속 TODO: 공유용 이미지 다운로드·스토리 공유 가이드(웹 직접 게시 URL 제외).
 
 ### 대진표 자동 매칭 테스트 데이터 (`npm run setup:bracket-demo-data`)
 

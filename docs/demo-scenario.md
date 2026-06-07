@@ -79,6 +79,14 @@ MVP 범위는 `docs/mvp-scope.md`를 기준으로 하며, 본 문서는 **시연
 6. **필터·검색** — 예정/결과 미입력 필터, 선수명·체육관·부문 검색 동작 확인.
 7. **spectator** — `/events/{slug}/results` 공개 결과 페이지에 확정 결과 반영 확인.
 
+### 1.3a 공개 대회 신뢰 정보
+
+1. **spectator** — `/events/sample-open-2026` Hero·행사 안내 탭에서 **신청 마감 D-day** 뱃지 확인.
+2. **참가비·입금 안내** — 행사 안내 탭 요약·입금 안내 섹션에 참가비·입금 문구 표시. **계좌번호·크레딧·ledger 미노출**.
+3. **지도 링크** — 장소 옆 **지도에서 보기** 클릭 시 Google Maps 새 탭(`rel=noopener noreferrer`).
+4. **대진표/결과 뱃지** — 탭 위·요약 카드·목록 카드에 「대진표 공개/준비 중」「결과 공개/준비 중/없음」 표시.
+5. PC·모바일(390px)에서 요약 박스·뱃지 줄바꿈 확인.
+
 ### 1.3b 대회 상세 공유
 
 1. **spectator** — `/events/sample-open-2026` Hero에서 **공유하기** 섹션 확인(PC: CTA 아래, Mobile: CTA 아래 2열).
@@ -86,6 +94,7 @@ MVP 범위는 `docs/mvp-scope.md`를 기준으로 하며, 본 문서는 **시연
 3. **링크 복사** — 「대회 링크를 복사했습니다.」 안내 확인.
 4. PC/모바일 모두 **Facebook 공유 · 링크 복사** 두 버튼만 표시되는지 확인.
 5. **OG** — 페이지 소스·메타 태그에 `og:title` / `og:description` / `og:image`(공개 https URL) 확인. signed URL·storage path 없음.
+6. **OG fallback** — 포스터 없는 대회에서 `/og-event-default?title=…&date=…&location=…` 미리보기(대회명·날짜·장소·MatchLab 브랜딩) 확인.
 
 ### 1.4 현장 확인·계체·출전 확정 (주최자 / 체육관)
 

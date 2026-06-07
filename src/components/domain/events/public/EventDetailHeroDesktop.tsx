@@ -4,6 +4,9 @@ import { EventStatusBadges } from "@/components/domain/events/EventStatusBadges"
 import { EventMetaList } from "@/components/domain/events/EventMetaList";
 import { EventApplicationCta } from "@/components/domain/events/EventApplicationCta";
 import { EventShareButtons } from "@/components/domain/events/public/EventShareButtons";
+import { PublicEventDeadlineBadge } from "@/components/domain/events/public/PublicEventDeadlineBadge";
+import { PublicEventMapLink } from "@/components/domain/events/public/PublicEventMapLink";
+import { PublicEventTrustBadges } from "@/components/domain/events/public/PublicEventTrustBadges";
 import { publicEventDivisionSummary } from "@/components/domain/events/public/public-event-ui";
 import { buildEventPublicUrl } from "@/lib/share/event-share";
 
@@ -26,12 +29,15 @@ export function EventDetailHeroDesktop({
 
         <div className="flex min-w-0 flex-col gap-6">
           <div className="space-y-4">
-            <EventStatusBadges
-              className="gap-2"
-              eventStatus={event.status}
-              registrationStatus={event.registrationStatus}
-              emphasizeRegistration={event.registrationStatus === "open"}
-            />
+            <div className="flex flex-wrap items-center gap-2">
+              <EventStatusBadges
+                className="gap-2"
+                eventStatus={event.status}
+                registrationStatus={event.registrationStatus}
+                emphasizeRegistration={event.registrationStatus === "open"}
+              />
+              <PublicEventDeadlineBadge event={event} />
+            </div>
             <h1 className="font-heading text-3xl font-semibold tracking-tight lg:text-4xl">
               {event.title}
             </h1>
@@ -55,6 +61,19 @@ export function EventDetailHeroDesktop({
               primarySport={event.primarySport}
               divisionSummary={publicEventDivisionSummary(event)}
             />
+            {event.location ? (
+              <div className="mt-3">
+                <PublicEventMapLink location={event.location} />
+              </div>
+            ) : null}
+            {event.paymentInfo ? (
+              <p className="text-muted-foreground mt-3 text-sm">
+                {event.paymentInfo.feeLabel}
+              </p>
+            ) : null}
+            <div className="mt-3">
+              <PublicEventTrustBadges event={event} compact />
+            </div>
             <div className="mt-5 space-y-4 border-t pt-5">
               <EventApplicationCta
                 eventStatus={event.status}

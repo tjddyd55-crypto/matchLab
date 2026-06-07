@@ -1,4 +1,6 @@
 import Link from "next/link";
+import type { PublicEventDetailDTO } from "@/lib/dto/public";
+import { PublicEventTrustBadges } from "@/components/domain/events/public/PublicEventTrustBadges";
 import {
   PUBLIC_EVENT_TABS,
   publicEventTabHref,
@@ -10,21 +12,30 @@ export function PublicEventDetailTabs({
   slug,
   activeTab,
   showLive,
+  event,
 }: {
   slug: string;
   activeTab: PublicEventTabId;
   showLive: boolean;
+  event?: Pick<
+    PublicEventDetailDTO,
+    "status" | "hasPublicBrackets" | "hasPublicResults"
+  >;
 }) {
   const tabs = PUBLIC_EVENT_TABS.filter(
     (t) => t.id !== "live" || showLive,
   );
 
   return (
-    <nav
-      className="ring-foreground/10 -mx-1 rounded-xl bg-muted/30 p-1 ring-1"
-      aria-label="대회 정보 탭"
-    >
-      <div className="flex gap-1 overflow-x-auto pb-0.5 [-ms-overflow-style:none] [scrollbar-width:none] md:overflow-visible md:pb-0 [&::-webkit-scrollbar]:hidden">
+    <div className="space-y-2">
+      {event ? (
+        <PublicEventTrustBadges event={event} className="px-0.5" compact />
+      ) : null}
+      <nav
+        className="ring-foreground/10 -mx-1 rounded-xl bg-muted/30 p-1 ring-1"
+        aria-label="대회 정보 탭"
+      >
+        <div className="flex gap-1 overflow-x-auto pb-0.5 [-ms-overflow-style:none] [scrollbar-width:none] md:overflow-visible md:pb-0 [&::-webkit-scrollbar]:hidden">
         {tabs.map((tab) => {
           const isActive = activeTab === tab.id;
           return (
@@ -45,7 +56,8 @@ export function PublicEventDetailTabs({
             </Link>
           );
         })}
-      </div>
-    </nav>
+        </div>
+      </nav>
+    </div>
   );
 }

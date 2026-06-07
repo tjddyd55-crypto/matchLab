@@ -15,6 +15,16 @@ import type { OrganizerRegistrationStatus } from "@/lib/event-organizer-status";
  * 휴대폰·생년월일·보호자·서명 경로·IP·userAgent·내부 메모 등은 포함하지 않는다.
  */
 
+export type PublicEventPaymentInfoDTO = {
+  feeAmount: number;
+  feeLabel: string;
+  bankName: string | null;
+  accountHolder: string | null;
+  depositorRule: string | null;
+  /** 계좌번호는 공개 정책상 미포함 — 체육관 신청 화면에서만 확인 */
+  noticeLines: string[];
+};
+
 export type PublicEventListItemDTO = {
   id: string;
   publicSlug: string;
@@ -33,6 +43,8 @@ export type PublicEventListItemDTO = {
   /** 부문 요약 문구 (예: 라벨 나열 · 외 N개) */
   divisionSummary: string;
   organizerName: string;
+  hasPublicBrackets: boolean;
+  hasPublicResults: boolean;
 };
 
 export type PublicEventDivisionDTO = {
@@ -76,6 +88,9 @@ export type PublicEventDetailDTO = {
   divisions: PublicEventDivisionDTO[];
   /** 참가비·계좌 등은 공개 페이지에 노출하지 않음 — 안내 문구만 사용 */
   participantFeeNotice: string;
+  paymentInfo: PublicEventPaymentInfoDTO | null;
+  hasPublicBrackets: boolean;
+  hasPublicResults: boolean;
 };
 
 export type PublicFighterCardDTO = {

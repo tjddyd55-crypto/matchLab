@@ -4,6 +4,9 @@ import { EventStatusBadges } from "@/components/domain/events/EventStatusBadges"
 import { EventMetaSummaryMobile } from "@/components/domain/events/public/EventMetaSummaryMobile";
 import { EventApplicationCta } from "@/components/domain/events/EventApplicationCta";
 import { EventShareButtons } from "@/components/domain/events/public/EventShareButtons";
+import { PublicEventDeadlineBadge } from "@/components/domain/events/public/PublicEventDeadlineBadge";
+import { PublicEventMapLink } from "@/components/domain/events/public/PublicEventMapLink";
+import { PublicEventTrustBadges } from "@/components/domain/events/public/PublicEventTrustBadges";
 import { buildEventPublicUrl } from "@/lib/share/event-share";
 
 export function EventDetailHeroMobile({
@@ -22,12 +25,15 @@ export function EventDetailHeroMobile({
         priority
       />
 
-      <EventStatusBadges
-        className="gap-2"
-        eventStatus={event.status}
-        registrationStatus={event.registrationStatus}
-        emphasizeRegistration={event.registrationStatus === "open"}
-      />
+      <div className="flex flex-wrap items-center gap-2">
+        <EventStatusBadges
+          className="gap-2"
+          eventStatus={event.status}
+          registrationStatus={event.registrationStatus}
+          emphasizeRegistration={event.registrationStatus === "open"}
+        />
+        <PublicEventDeadlineBadge event={event} />
+      </div>
 
       <div className="space-y-2">
         <h1 className="font-heading text-2xl font-semibold leading-tight">
@@ -44,6 +50,16 @@ export function EventDetailHeroMobile({
         organizerName={event.organizerName}
         showOrganizer
       />
+
+      {event.location ? (
+        <PublicEventMapLink location={event.location} className="w-fit" />
+      ) : null}
+
+      {event.paymentInfo ? (
+        <p className="text-muted-foreground text-sm">{event.paymentInfo.feeLabel}</p>
+      ) : null}
+
+      <PublicEventTrustBadges event={event} compact />
 
       <div className="w-full space-y-4 [&_a]:flex [&_a]:w-full [&_a]:justify-center">
         <EventApplicationCta

@@ -25,6 +25,8 @@ import {
 import { auditRepository } from "@/lib/repositories/audit.repository";
 import { allocateUniquePublicSlug } from "@/lib/event-public-slug";
 import {
+  buildPublicPaymentDisplayLines,
+  formatPublicFeeAmount,
   primarySportFromDivisions,
   resolveEventCoverImageUrl,
   resolvePublicRegistrationStatus,
@@ -364,10 +366,23 @@ export const eventService = {
 
   async listPublicEvents(): Promise<PublicEventListItemDTO[]> {
     const rows = await eventRepository.listPublicEvents();
-    return rows.map((row) => eventService.mapEventToPublicListItemDTO(row));
+    const eventIds = rows.map((row) => row.id);
+    const [bracketIds, resultIds] = await Promise.all([
+      eventRepository.findEventIdsWithPublicBrackets(eventIds),
+      eventRepository.findEventIdsWithPublicResults(eventIds),
+    ]);
+    return rows.map((row) =>
+      eventService.mapEventToPublicListItemDTO(row, {
+        hasPublicBrackets: bracketIds.has(row.id),
+        hasPublicResults: resultIds.has(row.id),
+      }),
+    );
   },
 
-  mapEventToPublicListItemDTO(row: PublicEventListRecord): PublicEventListItemDTO {
+  mapEventToPublicListItemDTO(
+    row: PublicEventListRecord,
+    visibility?: { hasPublicBrackets: boolean; hasPublicResults: boolean },
+  ): PublicEventListItemDTO {
     const totalDivisions = row._count.divisions;
     const registrationStartDate = toIso(row.registrationStartDate);
     const registrationEndDate = toIso(row.registrationEndDate);
@@ -394,6 +409,8 @@ export const eventService = {
       liveStreamingEnabled: row.liveStreamingEnabled,
       divisionSummary: buildDivisionSummary(row.divisions, totalDivisions),
       organizerName: row.organizer.name,
+      hasPublicBrackets: visibility?.hasPublicBrackets ?? false,
+      hasPublicResults: visibility?.hasPublicResults ?? false,
     };
   },
 
@@ -404,17 +421,45 @@ export const eventService = {
     const event = await eventRepository.findPublicEventBySlug(slug);
     if (!event) return null;
 
-    const divisions = await eventRepository.findPublicEventDivisions(event.id);
+    const [divisions, payment, bracketIds, resultIds] = await Promise.all([
+      eventRepository.findPublicEventDivisions(event.id),
+      eventRepository.findPublicEventPaymentSummary(event.id),
+      eventRepository.findEventIdsWithPublicBrackets([event.id]),
+      eventRepository.findEventIdsWithPublicResults([event.id]),
+    ]);
 
-    return eventService.mapEventToPublicDetailDTO(event, divisions);
+    return eventService.mapEventToPublicDetailDTO(event, divisions, {
+      payment,
+      hasPublicBrackets: bracketIds.has(event.id),
+      hasPublicResults: resultIds.has(event.id),
+    });
   },
 
   mapEventToPublicDetailDTO(
     event: PublicEventDetailRecord,
     divisions: PublicEventDivisionRecord[],
+    extras?: {
+      payment: Awaited<
+        ReturnType<typeof eventRepository.findPublicEventPaymentSummary>
+      >;
+      hasPublicBrackets: boolean;
+      hasPublicResults: boolean;
+    },
   ): PublicEventDetailDTO {
-    const participantFeeNotice =
-      "참가비 및 납부 방식은 소속 체육관을 통해 안내됩니다.";
+    const paymentInfo = extras?.payment
+      ? {
+          feeAmount: extras.payment.feeAmount,
+          feeLabel: formatPublicFeeAmount(extras.payment.feeAmount),
+          bankName: extras.payment.bankName,
+          accountHolder: extras.payment.accountHolder,
+          depositorRule: extras.payment.depositorRule,
+          noticeLines: buildPublicPaymentDisplayLines(extras.payment),
+        }
+      : null;
+
+    const participantFeeNotice = paymentInfo
+      ? paymentInfo.noticeLines.join(" ")
+      : "참가비 및 납부 방식은 소속 체육관을 통해 안내됩니다.";
 
     const registrationStartDate = toIso(event.registrationStartDate);
     const registrationEndDate = toIso(event.registrationEndDate);
@@ -456,6 +501,9 @@ export const eventService = {
       organizerName: event.organizer.name,
       divisions: divisions.map(mapDivisionRecordToDto),
       participantFeeNotice,
+      paymentInfo,
+      hasPublicBrackets: extras?.hasPublicBrackets ?? false,
+      hasPublicResults: extras?.hasPublicResults ?? false,
     };
   },
 

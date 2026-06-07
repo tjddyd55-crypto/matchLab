@@ -2,7 +2,11 @@
  * [CONTRACT] PrismaClient import는 `src/lib/repositories` 내부에만 허용한다.
  */
 import type { Prisma } from "@/generated/prisma";
-import { EventStatus } from "@/generated/prisma";
+import {
+  BracketStatus,
+  EventStatus,
+  MatchRecordStatus,
+} from "@/generated/prisma";
 import { prisma } from "@/lib/prisma";
 
 function db(tx?: Prisma.TransactionClient) {
@@ -420,6 +424,45 @@ export const eventRepository = {
         skillLevel: true,
       },
     });
+  },
+
+  /** 공개 대진표 존재 여부 — isPublic + published/ongoing/finished */
+  async findEventIdsWithPublicBrackets(
+    eventIds: string[],
+  ): Promise<Set<string>> {
+    if (eventIds.length === 0) return new Set();
+    const rows = await prisma.bracket.findMany({
+      where: {
+        eventId: { in: eventIds },
+        isPublic: true,
+        status: {
+          in: [
+            BracketStatus.published,
+            BracketStatus.ongoing,
+            BracketStatus.finished,
+          ],
+        },
+      },
+      select: { eventId: true },
+      distinct: ["eventId"],
+    });
+    return new Set(rows.map((row) => row.eventId));
+  },
+
+  /** 공개 결과 존재 여부 — confirmed MatchResult만 */
+  async findEventIdsWithPublicResults(
+    eventIds: string[],
+  ): Promise<Set<string>> {
+    if (eventIds.length === 0) return new Set();
+    const rows = await prisma.matchResult.findMany({
+      where: {
+        eventId: { in: eventIds },
+        status: MatchRecordStatus.confirmed,
+      },
+      select: { eventId: true },
+      distinct: ["eventId"],
+    });
+    return new Set(rows.map((row) => row.eventId));
   },
 
   /** 계좌번호(accountNumber)는 select 하지 않음 */

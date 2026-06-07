@@ -2,6 +2,8 @@ import Link from "next/link";
 import { EventPosterImage } from "@/components/domain/events/EventPosterImage";
 import { EventStatusBadges } from "@/components/domain/events/EventStatusBadges";
 import { EventMetaSummaryMobile } from "@/components/domain/events/public/EventMetaSummaryMobile";
+import { PublicEventDeadlineBadge } from "@/components/domain/events/public/PublicEventDeadlineBadge";
+import { PublicEventTrustBadges } from "@/components/domain/events/public/PublicEventTrustBadges";
 import {
   PUBLIC_EVENT_CARD_BODY_PADDING_CLASS,
   PUBLIC_EVENT_CARD_POSTER_PADDING_CLASS,
@@ -47,12 +49,16 @@ export function PublicEventCardMobile({
           PUBLIC_EVENT_CARD_BODY_PADDING_CLASS,
         )}
       >
-        <EventStatusBadges
-          className="mb-1 gap-2"
-          eventStatus={event.status}
-          registrationStatus={event.registrationStatus}
-          emphasizeRegistration={event.registrationStatus === "open"}
-        />
+        <div className="mb-1 flex flex-wrap items-center gap-1.5">
+          <EventStatusBadges
+            className="gap-2"
+            eventStatus={event.status}
+            registrationStatus={event.registrationStatus}
+            emphasizeRegistration={event.registrationStatus === "open"}
+          />
+          <PublicEventDeadlineBadge event={event} compact />
+        </div>
+        <PublicEventTrustBadges event={event} compact className="mb-1" />
 
         <Link href={href} className="min-w-0">
           <h3 className="font-heading line-clamp-2 text-base font-semibold leading-snug">
