@@ -15,7 +15,8 @@
     "repair:demo-login-ids": "tsx scripts/repair-demo-login-ids.ts",
     "repair:demo-gym": "tsx scripts/repair-gym-fighter-affiliations.ts",
     "seed:demo-fighters": "tsx scripts/seed-demo-fighters.ts",
-    "setup:bracket-demo-data": "tsx scripts/setup-bracket-demo-data.ts"
+    "setup:bracket-demo-data": "tsx scripts/setup-bracket-demo-data.ts",
+    "setup:demo-org-gym-fighters": "tsx scripts/setup-demo-org-gym-fighters.ts"
   },
   "prisma": {
     "seed": "tsx prisma/seed.ts"

@@ -205,9 +205,48 @@ GitHub → Railway 배포가 성공해도 **Postgres는 빈 DB**입니다. `publ
 - `Fighter.primarySport`, `FighterGymHistory.gymInternalMemo` 추가 시 **`npm run db:push`**. **`db:seed` 금지.**
 - `npm run setup:demo-users` — 데모 gym·fighter·active `FighterGymHistory` upsert(삭제 없음).
 
+### 테스트용 주최자·체육관·선수 복구 (`npm run setup:demo-org-gym-fighters`)
+
+**`db:seed` 없이** 체육관별 선수 10명·추가 주최자 계정을 idempotent upsert합니다. 운영 DB에서 `/gym/fighters`에 선수가 안 보일 때 우선 실행하세요.
+
+**생성·복구 대상:**
+
+| 구분 | loginId | 비밀번호(기본) |
+|------|---------|----------------|
+| 주최자(기존) | `organizer` | `123456!!` |
+| 주최자(추가) | `organizer1` ~ `organizer3` | `123456!!` |
+| 체육관 | `gym`, `gym1` ~ `gym7` | `123456!!` |
+
+- 체육관별 **FTR-BKT-*** 선수 10명(총 80명) — `Fighter.currentGymId` + `FighterGymHistory(active)` 동기화
+- Supabase Auth + Prisma `User` / `Gym` / `Organizer` 연결
+- **계좌번호·크레딧 ledger·기존 신청/결과 삭제 없음**
+
+**전제:** `DATABASE_URL`, `NEXT_PUBLIC_SUPABASE_URL`, `SUPABASE_SERVICE_ROLE_KEY`. (선택) `DEMO_PASSWORD`.
+
+```bash
+npm run setup:demo-org-gym-fighters
+```
+
+Railway production Shell 예 (PowerShell):
+
+```powershell
+$env:DATABASE_URL = "<Railway Postgres DATABASE_PUBLIC_URL>"
+$env:NEXT_PUBLIC_SUPABASE_URL = "<Supabase URL>"
+$env:SUPABASE_SERVICE_ROLE_KEY = "<Supabase service role key>"
+$env:DEMO_PASSWORD = "123456!!"
+npm run setup:demo-org-gym-fighters
+Remove-Item Env:DATABASE_URL -ErrorAction SilentlyContinue
+Remove-Item Env:NEXT_PUBLIC_SUPABASE_URL -ErrorAction SilentlyContinue
+Remove-Item Env:SUPABASE_SERVICE_ROLE_KEY -ErrorAction SilentlyContinue
+Remove-Item Env:DEMO_PASSWORD -ErrorAction SilentlyContinue
+```
+
+- `DATABASE_URL`에는 **`DATABASE_PUBLIC_URL`** 사용 (`postgres.railway.internal` 금지)
+- 대회 신청·자동 대진까지 필요하면 이어서 `npm run setup:bracket-demo-data`
+
 ### 체육관·선수 소속 복구 (`npm run repair:demo-gym`)
 
-**`db:seed` 없이** 체육관 화면에 선수가 안 보이거나 신청이 막힐 때(이력은 있는데 `currentGymId` 불일치 등) 실행한다.
+**`db:seed` 없이** 체육관 화면에 선수가 안 보이거나 신청이 막힐 때(이력은 있는데 `currentGymId` 불일치 등) 실행한다. **gym1~gym7·organizer1~3·80명 선수**까지 한 번에 맞추려면 `setup:demo-org-gym-fighters`를 우선 실행하세요.
 
 ```bash
 npm run repair:demo-gym

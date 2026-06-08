@@ -120,6 +120,14 @@ Notification
 
 `/gym/fighters` 기본 목록: `activeFighterAffiliatedWithGymWhere` (활성 소속·`Fighter.active`).
 
+**데모 데이터 repair 정책** (`npm run setup:demo-org-gym-fighters`):
+
+- `fighterCode`(`FTR-BKT-GYM*-*`) 기준 upsert — 중복 생성 없음
+- `FighterGymHistory` — `status=active`, `endDate=null` 행이 없으면 생성; 데모 선수는 잘못된 `gymId`면 **update**로 교정(삭제·ended 처리 없음)
+- `repairGymFighterAffiliations` — active history 기준으로 `Fighter.currentGymId` 동기화
+- 검증 summary는 `activeFighterAffiliatedWithGymWhere`와 동일 조건으로 `/gym/fighters` count 출력
+- `db:seed` / truncate / hard delete / 기존 신청·결과 삭제 **금지**
+
 ### Organizer / Event
 
 - `Event.publicSlug`: 공개 URL. 제목 기반 ASCII 슬러그 + 충돌 시 랜덤 suffix(`allocateUniquePublicSlug`).

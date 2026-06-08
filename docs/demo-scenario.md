@@ -130,14 +130,16 @@ MVP 범위는 `docs/mvp-scope.md`를 기준으로 하며, 본 문서는 **시연
 
 ### 1.7 체육관 선수 DB (직접 등록·요청·수정)
 
-1. **gym** — `/gym/fighters` → 데모 선수 1명 이상 표시 (`setup-demo-users` active 소속).
-2. **gym** — 「선수 직접 등록」→ 새 선수 저장 → 목록 즉시 표시.
-3. **gym** — 등록 선수 「수정」→ 체중·메모 변경 저장.
-4. **gym** — `/gym/invite-links` → 링크 생성·복사 (`NEXT_PUBLIC_APP_URL` 도메인 확인).
-5. **비로그인** — `/fighter-registration/{token}` 제출 → **gym** `/gym/fighters?tab=requests` 승인.
-6. **gym** — `/gym/events/{eventId}/apply` → 직접 등록·승인 선수 선택 가능.
-7. **gym** — 선수 「소속 해제」→ 목록에서 제외, 주최자 공개 OFF 유지.
-8. **organizer** — `/gym/fighters` 접근 불가(홈 리다이렉트).
+1. **gym** — `/gym/fighters` → 데모 선수 10명 이상 표시 (`npm run setup:demo-org-gym-fighters` — FTR-BKT-GYM-*).
+2. **gym1** ~ **gym7** — 각각 `/login` 후 `/gym/fighters`에서 **FTR-BKT-GYMn-*** 선수 10명 확인.
+3. **organizer1** ~ **organizer3** — `/login` 후 `/organizer` 진입(기존 `organizer` 유지).
+4. **gym** — 「선수 직접 등록」→ 새 선수 저장 → 목록 즉시 표시.
+5. **gym** — 등록 선수 「수정」→ 체중·메모 변경 저장.
+6. **gym** — `/gym/invite-links` → 링크 생성·복사 (`NEXT_PUBLIC_APP_URL` 도메인 확인).
+7. **비로그인** — `/fighter-registration/{token}` 제출 → **gym** `/gym/fighters?tab=requests` 승인.
+8. **gym** — `/gym/events/{eventId}/apply` → 직접 등록·승인 선수 선택 가능.
+9. **gym** — 선수 「소속 해제」→ 목록에서 제외, 주최자 공개 OFF 유지.
+10. **organizer** — `/gym/fighters` 접근 불가(홈 리다이렉트).
 
 > `Fighter.primarySport`, `FighterGymHistory.gymInternalMemo` 추가 시 **`npm run db:push`**. **`db:seed` 금지.**
 
@@ -212,7 +214,8 @@ npm run seed:demo-fighters # FTR-2026-TEST001~020, 데모 체육관 소속
 
 ### 대진표 자동 매칭 리허설 (선택)
 
-1. `npm run setup:bracket-demo-data` — gym1~7·80명 선수·승인 신청 upsert(크레딧 ledger 없음).
+0. `npm run setup:demo-org-gym-fighters` — gym·gym1~7·organizer1~3·체육관별 선수 10명(80명) 복구. `/gym/fighters` 선수 미표시 시 **먼저** 실행.
+1. `npm run setup:bracket-demo-data` — 승인 `EventApplication` upsert(크레딧 ledger 없음). 선수·소속은 0단계에서 보장.
 2. **organizer** `/login` → 테스트 대회(`/organizer/events/{eventId}`) → **신청자**에서 더미 승인자 확인.
 3. **대진표** (`/organizer/events/{eventId}/brackets`) → **자동 대진 생성** 클릭.
 4. division별 2명씩 매칭·홀수 division **미매칭/대기 선수** 패널 확인.
