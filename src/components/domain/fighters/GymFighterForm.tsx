@@ -43,6 +43,7 @@ const STATUS_OPTIONS: { value: FighterStatus; label: string }[] = [
 ];
 
 function toDateInputValue(d: Date): string {
+  if (Number.isNaN(d.getTime())) return "";
   return d.toISOString().slice(0, 10);
 }
 
@@ -458,7 +459,7 @@ export function gymFighterFormInitialFromEdit(row: {
     name: row.name,
     birthDate: toDateInputValue(row.birthDate),
     gender: row.gender,
-    phone: row.phone,
+    phone: row.phone ?? "",
     height: row.height != null ? String(row.height) : "",
     weight: row.weight != null ? String(row.weight) : "",
     primarySport: row.primarySport ?? "",

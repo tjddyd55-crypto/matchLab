@@ -185,49 +185,64 @@ export const fighterRepository = {
     return Boolean(row);
   },
 
+  /**
+   * 체육관 선수 수정 화면 — 목록과 동일한 소속 조건(`activeFighterAffiliatedWithGymWhere`).
+   * active history가 없으면 복구 생성(삭제 없음).
+   */
   async findFighterEditRowForGym(
     fighterId: string,
     gymId: string,
   ): Promise<GymFighterEditRow | null> {
-    const history = await prisma.fighterGymHistory.findFirst({
+    const fighter = await prisma.fighter.findFirst({
       where: {
-        fighterId,
-        ...activeGymHistoryWhere(gymId),
+        id: fighterId,
+        ...activeFighterAffiliatedWithGymWhere(gymId),
       },
-      include: {
-        fighter: {
-          select: {
-            id: true,
-            fighterCode: true,
-            name: true,
-            birthDate: true,
-            gender: true,
-            phone: true,
-            height: true,
-            weight: true,
-            primarySport: true,
-            guardianName: true,
-            guardianPhone: true,
-            status: true,
-          },
-        },
+      select: {
+        id: true,
+        fighterCode: true,
+        name: true,
+        birthDate: true,
+        gender: true,
+        phone: true,
+        height: true,
+        weight: true,
+        primarySport: true,
+        guardianName: true,
+        guardianPhone: true,
+        status: true,
+        currentGymId: true,
       },
     });
-    if (!history) return null;
-    const f = history.fighter;
+    if (!fighter) return null;
+
+    let history = await this.findActiveGymHistory(fighterId, gymId);
+    if (!history) {
+      history = await prisma.fighterGymHistory.create({
+        data: { fighterId, gymId, status: "active" },
+      });
+    }
+
+    if (fighter.currentGymId !== gymId) {
+      await prisma.fighter.update({
+        where: { id: fighterId },
+        data: { currentGymId: gymId },
+      });
+    }
+
     return {
-      id: f.id,
-      fighterCode: f.fighterCode,
-      name: f.name,
-      birthDate: f.birthDate,
-      gender: f.gender,
-      phone: f.phone,
-      height: f.height,
-      weight: f.weight,
-      primarySport: f.primarySport,
-      guardianName: f.guardianName,
-      guardianPhone: f.guardianPhone,
-      status: f.status,
+      id: fighter.id,
+      fighterCode: fighter.fighterCode,
+      name: fighter.name,
+      birthDate: fighter.birthDate,
+      gender: fighter.gender,
+      phone: fighter.phone ?? "",
+      height: fighter.height,
+      weight: fighter.weight,
+      primarySport: fighter.primarySport,
+      guardianName: fighter.guardianName,
+      guardianPhone: fighter.guardianPhone,
+      status: fighter.status,
       gymInternalMemo: history.gymInternalMemo,
       historyId: history.id,
     };

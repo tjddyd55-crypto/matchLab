@@ -26,12 +26,27 @@ import {
 import { fighterAccountRepository } from "@/lib/repositories/fighter-account.repository";
 import { registrationRepository } from "@/lib/repositories/registration.repository";
 import type {
+  GymFighterAccountStatus,
+  GymFighterProfileDisplayStatus,
+} from "@/lib/gym-fighter-edit-display";
+import { userRepository } from "@/lib/repositories/user.repository";
+import type {
   GymFighterCreateInput,
   GymFighterUpdateInput,
 } from "@/lib/validators/gym-fighter.validator";
 
 export type GymFighterDuplicateConflict = {
   candidates: FighterDuplicateCandidate[];
+};
+
+export type GymFighterEditPageViewModel = {
+  row: GymFighterEditRow;
+  accountStatus: GymFighterAccountStatus;
+  profileStatus: GymFighterProfileDisplayStatus;
+  loginId: string | null;
+  email: string | null;
+  publicProfileHref: string | null;
+  hasFighterProfile: boolean;
 };
 
 export const fighterService = {
@@ -105,6 +120,41 @@ export const fighterService = {
       fighterId,
     );
     return row;
+  },
+
+  async getGymFighterEditPageData(
+    actor: ActorContext,
+    fighterId: string,
+  ): Promise<GymFighterEditPageViewModel> {
+    const row = await fighterService.getGymFighterForEdit(actor, fighterId);
+    const ctx = await fighterRepository.findFighterVisibilityContext(fighterId);
+    if (!ctx) {
+      throw new AppError("NOT_FOUND", "선수를 찾을 수 없습니다.");
+    }
+
+    const user = ctx.userId
+      ? await userRepository.findUserById(ctx.userId)
+      : null;
+
+    const accountStatus: GymFighterAccountStatus = ctx.userId ? "issued" : "none";
+    const profileStatus: GymFighterProfileDisplayStatus = !ctx.hasFighterProfile
+      ? "missing"
+      : ctx.profileIsPublic
+        ? "public"
+        : "private";
+
+    return {
+      row,
+      accountStatus,
+      profileStatus,
+      loginId: user?.loginId ?? null,
+      email: user?.email ?? null,
+      publicProfileHref:
+        ctx.profileIsPublic && ctx.profileSlug
+          ? `/fighters/${ctx.profileSlug}`
+          : null,
+      hasFighterProfile: ctx.hasFighterProfile,
+    };
   },
 
   async createFighterDirectlyForGym(

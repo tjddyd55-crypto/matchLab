@@ -2,9 +2,8 @@ import Link from "next/link";
 import { notFound } from "next/navigation";
 import { requireActor } from "@/lib/auth/actor";
 import { AppError } from "@/lib/errors/app-error";
+import { PermissionError } from "@/lib/auth/permission-error";
 import { fighterService } from "@/lib/services/fighter.service";
-import { fighterRepository } from "@/lib/repositories/fighter.repository";
-import { userRepository } from "@/lib/repositories/user.repository";
 import { GymFighterAccountPanel } from "@/components/domain/fighters/GymFighterAccountPanel";
 import { GymFighterProfileStatusPanel } from "@/components/domain/fighters/GymFighterProfileStatusPanel";
 import {
@@ -33,19 +32,17 @@ export default async function GymFighterEditPage({
     );
   }
 
-  let row;
+  let data;
   try {
-    row = await fighterService.getGymFighterForEdit(actor, fighterId);
+    data = await fighterService.getGymFighterEditPageData(actor, fighterId);
   } catch (e) {
     if (e instanceof AppError && e.code === "NOT_FOUND") notFound();
     if (e instanceof AppError && e.code === "FORBIDDEN") notFound();
+    if (e instanceof PermissionError) notFound();
     throw e;
   }
 
-  const ctx = await fighterRepository.findFighterVisibilityContext(fighterId);
-  const user = ctx?.userId
-    ? await userRepository.findUserById(ctx.userId)
-    : null;
+  const { row } = data;
 
   return (
     <div className="mx-auto flex w-full max-w-2xl flex-col gap-6 px-4 py-8 md:px-6">
@@ -69,19 +66,17 @@ export default async function GymFighterEditPage({
 
       <GymFighterAccountPanel
         fighterId={fighterId}
-        loginId={user?.loginId ?? null}
-        hasAccount={Boolean(ctx?.userId)}
+        loginId={data.loginId}
+        hasAccount={data.accountStatus === "issued"}
       />
 
-      {ctx ? (
-        <GymFighterProfileStatusPanel
-          userId={ctx.userId}
-          loginId={user?.loginId ?? null}
-          hasFighterProfile={ctx.hasFighterProfile}
-          profileIsPublic={ctx.profileIsPublic}
-          profileSlug={ctx.profileSlug}
-        />
-      ) : null}
+      <GymFighterProfileStatusPanel
+        accountStatus={data.accountStatus}
+        loginId={data.loginId}
+        profileStatus={data.profileStatus}
+        hasFighterProfile={data.hasFighterProfile}
+        publicProfileHref={data.publicProfileHref}
+      />
 
       <GymFighterForm
         mode="edit"

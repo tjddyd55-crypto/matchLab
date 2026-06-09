@@ -64,7 +64,14 @@ export function GymFighterAccountPanel({
 
   return (
     <div className="rounded-lg border border-dashed p-4 space-y-3">
-      <h3 className="text-sm font-semibold">선수 로그인 계정</h3>
+      <div className="flex flex-wrap items-center justify-between gap-2">
+        <h3 className="text-sm font-semibold">선수 로그인 계정</h3>
+        {!hasAccount ? (
+          <span className="text-muted-foreground rounded-md border px-2 py-0.5 text-xs font-medium">
+            계정 발급 필요
+          </span>
+        ) : null}
+      </div>
       {hasAccount ? (
         <>
           <p className="text-muted-foreground text-xs">
