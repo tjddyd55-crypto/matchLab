@@ -518,7 +518,6 @@ async function main(): Promise<void> {
         where: { fighterCode: code },
         create: {
           fighterCode: code,
-          userId: null,
           currentGymId: gymId,
           name,
           birthDate: toUtcDateOnly(

@@ -68,6 +68,11 @@ function fighterCodeFor(gymLoginId: string, seq: number): string {
   return `FTR-BKT-${tag}-${String(seq).padStart(2, "0")}`;
 }
 
+function dummyPhone(gymLoginId: string, seq: number): string {
+  const gymNum = gymLoginId === "gym" ? "00" : gymLoginId.replace("gym", "").padStart(2, "0");
+  return `0109${gymNum}${String(seq).padStart(3, "0")}`;
+}
+
 function formatRecord(win: number, loss: number, draw: number): string {
   return `${win}승 ${loss}패 ${draw}무`;
 }
@@ -346,12 +351,11 @@ async function main(): Promise<void> {
         where: { fighterCode: code },
         create: {
           fighterCode: code,
-          userId: null,
           currentGymId: gymId,
           name,
           birthDate: toUtcDateOnly(new Date(`${birthYear}-06-15`)),
           gender,
-          phone: null,
+          phone: dummyPhone(gymLoginId, seq),
           status: FighterStatus.active,
           recordWin: 0,
           recordLoss: 0,
@@ -361,6 +365,7 @@ async function main(): Promise<void> {
           currentGymId: gymId,
           name,
           gender,
+          phone: dummyPhone(gymLoginId, seq),
           status: FighterStatus.active,
           recordWin: 0,
           recordLoss: 0,
