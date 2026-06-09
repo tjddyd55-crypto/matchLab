@@ -510,6 +510,10 @@ model Event {
   notifications     Notification[]
   guardianConsents  GuardianConsent[]
   fighterConsents   FighterConsent[]
+  judgeOfficials    JudgeOfficial[]
+  judgeCredentials  JudgeAccessCredential[]
+  judgeAssignments  JudgeMatchAssignment[]
+  judgeScorecards   JudgeScorecard[]
 
   @@index([organizerId])
   @@index([status])
@@ -981,6 +985,8 @@ model BracketMatch {
   matchResults           MatchResult[]
   matchResultChangeLogs  MatchResultChangeLog[] @relation("MRCL_BracketMatch")
   changeLogs             BracketChangeLog[]
+  judgeAssignments       JudgeMatchAssignment[]
+  judgeScorecards        JudgeScorecard[]
 
   @@index([bracketId])
   @@index([bracketId, round, matchOrder])
@@ -1195,4 +1201,149 @@ model AuditLog {
   @@index([actorUserId])
   @@index([action])
   @@index([targetType, targetId])
+}
+
+// --- Judge scoring (MVP) — MatchResult와 분리된 심판 채점 근거 데이터 ----------------
+
+enum JudgeScorecardStatus {
+  draft
+  submitted
+  locked
+}
+
+enum JudgeWinnerCorner {
+  red
+  blue
+  draw
+  no_contest
+  undecided
+}
+
+enum JudgeDecisionMethod {
+  decision
+  ko_tko
+  submission
+  disqualification
+  forfeit
+  no_contest
+  other
+}
+
+/// 대회별 심판 인적 정보(선택) — MVP는 JudgeAccessCredential 중심
+model JudgeOfficial {
+  id        String   @id @default(cuid())
+  eventId   String
+  name      String
+  role      String?
+  phone     String?
+  memo      String?
+  isActive  Boolean  @default(true)
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+
+  event       Event                  @relation(fields: [eventId], references: [id], onDelete: Cascade)
+  assignments JudgeMatchAssignment[]
+
+  @@index([eventId])
+  @@index([isActive])
+}
+
+/// 심판 접속 계정 — loginId + passwordHash (평문 저장 금지)
+model JudgeAccessCredential {
+  id           String    @id @default(cuid())
+  eventId      String
+  loginId      String
+  passwordHash String
+  displayName  String?
+  memo         String?
+  isActive     Boolean   @default(true)
+  lastLoginAt  DateTime?
+  createdAt    DateTime  @default(now())
+  updatedAt    DateTime  @updatedAt
+
+  event       Event                  @relation(fields: [eventId], references: [id], onDelete: Cascade)
+  assignments JudgeMatchAssignment[]
+  scorecards  JudgeScorecard[]
+
+  @@unique([eventId, loginId])
+  @@index([eventId])
+  @@index([isActive])
+}
+
+/// 경기별 심판 배정
+model JudgeMatchAssignment {
+  id           String   @id @default(cuid())
+  eventId      String
+  matchId      String
+  judgeId      String?
+  credentialId String?
+  judgeOrder   Int
+  isHeadJudge  Boolean  @default(false)
+  isActive     Boolean  @default(true)
+  createdAt    DateTime @default(now())
+  updatedAt    DateTime @updatedAt
+
+  event      Event                  @relation(fields: [eventId], references: [id], onDelete: Cascade)
+  match      BracketMatch           @relation(fields: [matchId], references: [id], onDelete: Cascade)
+  judge      JudgeOfficial?         @relation(fields: [judgeId], references: [id], onDelete: SetNull)
+  credential JudgeAccessCredential? @relation(fields: [credentialId], references: [id], onDelete: SetNull)
+
+  @@index([eventId])
+  @@index([matchId])
+  @@index([credentialId])
+  @@index([judgeId])
+}
+
+/// 심판별 채점표 — MatchResult와 분리
+model JudgeScorecard {
+  id                 String                @id @default(cuid())
+  eventId            String
+  matchId            String
+  credentialId       String
+  judgeName          String
+  cornerRedFighterId String?
+  cornerBlueFighterId String?
+  roundCount         Int
+  status             JudgeScorecardStatus  @default(draft)
+  redTotal           Int?
+  blueTotal          Int?
+  winnerCorner       JudgeWinnerCorner     @default(undecided)
+  decisionMethod     JudgeDecisionMethod?
+  memo               String?
+  submittedAt        DateTime?
+  createdAt          DateTime              @default(now())
+  updatedAt          DateTime              @updatedAt
+
+  event      Event                 @relation(fields: [eventId], references: [id], onDelete: Cascade)
+  match      BracketMatch          @relation(fields: [matchId], references: [id], onDelete: Cascade)
+  credential JudgeAccessCredential @relation(fields: [credentialId], references: [id], onDelete: Cascade)
+  rounds     JudgeRoundScore[]
+
+  @@unique([matchId, credentialId])
+  @@index([eventId])
+  @@index([matchId])
+  @@index([credentialId])
+  @@index([status])
+}
+
+/// 라운드별 점수
+model JudgeRoundScore {
+  id             String   @id @default(cuid())
+  scorecardId    String
+  roundNumber    Int
+  redScore       Int?
+  blueScore      Int?
+  redKnockdowns  Int      @default(0)
+  blueKnockdowns Int      @default(0)
+  redDeductions  Int      @default(0)
+  blueDeductions Int      @default(0)
+  warningMemo    String?
+  roundMemo      String?
+  createdAt      DateTime @default(now())
+  updatedAt      DateTime @updatedAt
+
+  scorecard JudgeScorecard @relation(fields: [scorecardId], references: [id], onDelete: Cascade)
+
+  @@unique([scorecardId, roundNumber])
+  @@index([scorecardId])
 }

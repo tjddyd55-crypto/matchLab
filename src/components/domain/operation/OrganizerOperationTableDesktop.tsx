@@ -31,6 +31,7 @@ export function OrganizerOperationTableDesktop({
             <th className="px-3 py-2 font-medium">부문/체급</th>
             <th className="px-3 py-2 font-medium">선수 A</th>
             <th className="px-3 py-2 font-medium">선수 B</th>
+            <th className="px-3 py-2 font-medium">심판</th>
             <th className="px-3 py-2 font-medium">경기 상태</th>
             <th className="px-3 py-2 font-medium">액션</th>
           </tr>
@@ -54,6 +55,9 @@ export function OrganizerOperationTableDesktop({
                 <div className="text-muted-foreground">
                   {row.fighterBlue?.gymName ?? "—"}
                 </div>
+              </td>
+              <td className="text-muted-foreground px-3 py-3 text-xs">
+                {row.judgeSubmitLabel ?? "—"}
               </td>
               <td className="px-3 py-3">
                 <OrganizerOperationStatusBadges

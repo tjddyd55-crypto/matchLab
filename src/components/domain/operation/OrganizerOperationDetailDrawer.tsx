@@ -1,6 +1,7 @@
 "use client";
 
 import { OrganizerMatchOpsPanel } from "@/components/domain/brackets/OrganizerMatchOpsPanel";
+import { OrganizerJudgeAggregationDrawerSection } from "@/components/domain/judges/OrganizerJudgeAggregationDrawerSection";
 import { DrawerPanel } from "@/components/ui/drawer-panel";
 import type { OrganizerEventMatchListItemVM } from "@/lib/services/match.service";
 import { toMatchOpsProps } from "@/components/domain/operation/operation-match-row";
@@ -30,7 +31,13 @@ export function OrganizerOperationDetailDrawer({
       description={`${match.divisionLabel ?? "부문 미상"} · ${red} vs ${blue}`}
       className="sm:max-w-lg"
     >
-      <OrganizerMatchOpsPanel {...toMatchOpsProps(match)} />
+      <div className="flex flex-col gap-6">
+        <OrganizerMatchOpsPanel {...toMatchOpsProps(match)} />
+        <OrganizerJudgeAggregationDrawerSection
+          matchId={match.matchId}
+          open={open}
+        />
+      </div>
     </DrawerPanel>
   );
 }

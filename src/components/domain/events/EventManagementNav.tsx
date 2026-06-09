@@ -31,6 +31,7 @@ export function EventManagementNav({
     { href: `${base}/check-in`, label: "현장·계체" },
     { href: `${base}/brackets`, label: "대진표" },
     { href: `${base}/operation`, label: "경기 운영" },
+    { href: `${base}/judges`, label: "심판 관리" },
     { href: `${base}/results`, label: "결과" },
     { href: `${base}#setup-staff-links`, label: "스태프 링크" },
     { href: `/events/${publicSlug}`, label: "공개 공고", external: true },

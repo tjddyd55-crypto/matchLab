@@ -352,6 +352,22 @@ MVP: `watchUrl`, `embedUrl`, 플랫폼 enum. **스트림 키 필드 없음.**
 
 조회 조건: `isPublicToOrganizers=true`, active history, `Fighter.status=active`, `Fighter.currentGymId=gymId`, `Gym.status=active`.
 
+## 5.1.1 심판 채점 (Judge* — MatchResult와 분리)
+
+최종 공식 결과는 `MatchResult`만 원천. 심판 채점은 **결과 확정 전 참고 데이터**이며 `confirmMatchResults`와 별도 저장한다.
+
+| 모델 | 설명 |
+|------|------|
+| `JudgeOfficial` | 대회별 심판 인적 정보(선택, MVP는 credential 중심) |
+| `JudgeAccessCredential` | 심판 접속 계정. `loginId` + `passwordHash`(scrypt, 평문 금지). `@@unique([eventId, loginId])` |
+| `JudgeMatchAssignment` | 경기별 심판 배정. `judgeOrder`, `isHeadJudge`, `credentialId` |
+| `JudgeScorecard` | 심판별 채점표. `@@unique([matchId, credentialId])`. `status`: `draft` / `submitted` / `locked` |
+| `JudgeRoundScore` | 라운드별 홍/청 점수·다운·감점·메모. `@@unique([scorecardId, roundNumber])` |
+
+enum: `JudgeScorecardStatus`, `JudgeWinnerCorner`, `JudgeDecisionMethod`.
+
+집계: 제출된 scorecard 다수결 → 동률 시 총점 합산 참고 → UI 참고용만(자동 `MatchResult` 반영 없음 MVP).
+
 ## 5.2 주최자 크레딧 (OrganizerCredit*)
 
 | 모델 | 설명 |

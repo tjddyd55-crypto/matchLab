@@ -8,6 +8,8 @@ import { requireOrganizerForEventPage } from "@/lib/permissions";
 import { eventRepository } from "@/lib/repositories/event.repository";
 import { eventStaffAccessService } from "@/lib/services/event-staff-access.service";
 import { matchService } from "@/lib/services/match.service";
+import { judgeScorecardService } from "@/lib/services/judge-scorecard.service";
+import Link from "next/link";
 
 export const dynamic = "force-dynamic";
 
@@ -21,11 +23,25 @@ export default async function OrganizerEventOperationPage({
 
   await requireOrganizerForEventPage(actor, eventId);
 
-  const [matches, eventMeta, staffRecorderLinks] = await Promise.all([
-    matchService.listOrganizerEventMatches(actor, eventId),
-    eventRepository.findOrganizerEventById(eventId),
-    eventStaffAccessService.listLinksForOrganizer(actor, eventId),
-  ]);
+  const [matches, eventMeta, staffRecorderLinks, judgeSummaries] =
+    await Promise.all([
+      matchService.listOrganizerEventMatches(actor, eventId),
+      eventRepository.findOrganizerEventById(eventId),
+      eventStaffAccessService.listLinksForOrganizer(actor, eventId),
+      judgeScorecardService.getEventJudgeSummary(actor, eventId),
+    ]);
+
+  const judgeSummaryByMatch = new Map(
+    judgeSummaries.map((s) => [s.matchId, s] as const),
+  );
+  const totalJudgeAssigned = judgeSummaries.reduce(
+    (n, s) => n + s.assignedCount,
+    0,
+  );
+  const totalJudgeSubmitted = judgeSummaries.reduce(
+    (n, s) => n + s.submittedCount,
+    0,
+  );
 
   const bracketIds = [...new Set(matches.map((m) => m.bracketId))];
 
@@ -63,7 +79,28 @@ export default async function OrganizerEventOperationPage({
         links={staffRecorderLinks}
       />
 
-      <OrganizerOperationBoard matches={matches} />
+      <div className="rounded-lg border p-4 text-sm">
+        <div className="flex flex-wrap items-center justify-between gap-2">
+          <div>
+            <p className="font-medium">심판 채점</p>
+            <p className="text-muted-foreground mt-1 text-xs">
+              배정 {totalJudgeAssigned}건 · 제출 {totalJudgeSubmitted}건 ·
+              경기 상세 Drawer에서 집계 확인
+            </p>
+          </div>
+          <Link
+            href={`/organizer/events/${eventId}/judges`}
+            className="text-primary text-sm underline"
+          >
+            심판 관리
+          </Link>
+        </div>
+      </div>
+
+      <OrganizerOperationBoard
+        matches={matches}
+        judgeSummaryByMatch={Object.fromEntries(judgeSummaryByMatch)}
+      />
     </div>
   );
 }

@@ -11,16 +11,24 @@ export type OperationMatchRowVM = OrganizerEventMatchListItemVM & {
   orderLabel: string;
   phaseLabel: string;
   resultStatusLabel: string;
+  judgeSubmitLabel: string | null;
 };
 
 export function toOperationMatchRow(
   match: OrganizerEventMatchListItemVM,
+  judgeSummary?: { assignedCount: number; submittedCount: number } | null,
 ): OperationMatchRowVM {
+  const judgeSubmitLabel =
+    judgeSummary && judgeSummary.assignedCount > 0
+      ? `심판 ${judgeSummary.submittedCount}/${judgeSummary.assignedCount}`
+      : null;
+
   return {
     ...match,
     orderLabel: formatOperationMatchOrder(match),
     phaseLabel: operationPhaseLabel(getOperationMatchPhase(match)),
     resultStatusLabel: operationResultStatusLabel(match),
+    judgeSubmitLabel,
   };
 }
 

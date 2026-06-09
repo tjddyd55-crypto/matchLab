@@ -27,10 +27,17 @@ const FILTER_OPTIONS: { value: OperationBoardFilter; label: string }[] = [
   { value: "result_done", label: "결과 입력 완료" },
 ];
 
+export type JudgeMatchSummaryVM = {
+  assignedCount: number;
+  submittedCount: number;
+};
+
 export function OrganizerOperationBoard({
   matches,
+  judgeSummaryByMatch,
 }: {
   matches: OrganizerEventMatchListItemVM[];
+  judgeSummaryByMatch?: Record<string, JudgeMatchSummaryVM>;
 }) {
   const listRef = useRef<HTMLDivElement>(null);
   const [summaryFilter, setSummaryFilter] = useState<OperationBoardFilter>("all");
@@ -52,8 +59,8 @@ export function OrganizerOperationBoard({
         if (ga !== gb) return ga - gb;
         return a.matchOrder - b.matchOrder;
       })
-      .map(toOperationMatchRow);
-  }, [matches]);
+      .map((m) => toOperationMatchRow(m, judgeSummaryByMatch?.[m.matchId]));
+  }, [matches, judgeSummaryByMatch]);
 
   const activeFilter = statusFilter !== "all" ? statusFilter : summaryFilter;
 

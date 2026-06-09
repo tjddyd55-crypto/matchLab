@@ -129,6 +129,16 @@ GitHub → Railway 배포가 성공해도 **Postgres는 빈 DB**입니다. `publ
 4. 결과 입력 후 목록 상태·`/organizer/events/{eventId}/results`·공개 `/events/{slug}/results` 반영 확인.
 5. `gym`·`fighter`·비로그인으로 `/operation` 접근 차단(404) 확인.
 
+**심판 라운드별 채점 테스트 (`db:push` 필요 — Judge* 테이블 additive):**
+
+1. `organizer` / `123456!!` 로그인 → `/organizer/events/{eventId}/judges` → 심판 계정 3개 생성(로그인 ID·임시 비밀번호 확인).
+2. 경기 1개 선택 → 심판 3명 배정(순서·주심 지정).
+3. 시크릿 창 `/judge/login` — 심판1 로그인 → 이름 입력 → 배정 경기만 목록 표시 확인.
+4. `/judge/matches/{matchId}/score` — 라운드별 홍/청 점수·감점·다운 입력 → 임시 저장 → 전송.
+5. 심판2·3도 전송 → `/organizer/events/{eventId}/operation` → 경기 Drawer **심판 채점 집계**(제출 3/3·추천 결과) 확인.
+6. 동일 Drawer 또는 스태프 링크에서 **기존 결과 확정** → 공개 결과·전적·알림 회귀.
+7. 심판 화면에 신청서·연락처·다른 심판 점수 미노출 확인.
+
 **스태프 모바일 결과 입력 테스트 (schema 변경 없음):**
 
 1. `organizer` 로그인 → `/organizer/events/{eventId}` → **결과 입력 링크 (스태프)** 섹션에서 링크 생성(임시 입력·확정 권한 설정).
