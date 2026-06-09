@@ -107,31 +107,185 @@ async function findAuthUserByEmail(
   }
 }
 
+async function forceAuthPassword(
+  supabase: ReturnType<typeof createClient>,
+  authUserId: string,
+  email: string,
+  password: string,
+): Promise<void> {
+  const { error } = await supabase.auth.admin.updateUserById(authUserId, {
+    password,
+    email: normalizeEmail(email),
+    email_confirm: true,
+  });
+  if (error) {
+    throw new Error(
+      `Auth 비밀번호 동기화 실패 (${email}): ${error.message}\n` +
+        "DEMO_PASSWORD 정책을 확인하세요.",
+    );
+  }
+}
+
 async function ensureAuthUser(
   supabase: ReturnType<typeof createClient>,
   email: string,
   password: string,
-): Promise<{ created: boolean }> {
-  const existing = await findAuthUserByEmail(supabase, email);
+): Promise<{ id: string; created: boolean; passwordSynced: boolean }> {
+  const normalized = normalizeEmail(email);
+  const existing = await findAuthUserByEmail(supabase, normalized);
   if (existing) {
-    const { error } = await supabase.auth.admin.updateUserById(existing.id, {
-      password,
-      email_confirm: true,
-    });
-    if (error) {
-      console.warn(`[경고] Auth 비밀번호 갱신 생략 (${email}): ${error.message}`);
-    }
-    return { created: false };
+    await forceAuthPassword(supabase, existing.id, normalized, password);
+    return { id: existing.id, created: false, passwordSynced: true };
   }
 
   const { data, error } = await supabase.auth.admin.createUser({
-    email: normalizeEmail(email),
+    email: normalized,
     password,
     email_confirm: true,
   });
-  if (error) throw new Error(`Auth 생성 실패 (${email}): ${error.message}`);
-  if (!data.user?.id) throw new Error(`Auth id 없음: ${email}`);
-  return { created: true };
+  if (error) {
+    const duplicate =
+      error.message.toLowerCase().includes("already") ||
+      error.message.toLowerCase().includes("registered") ||
+      error.message.toLowerCase().includes("exists");
+    if (duplicate) {
+      const again = await findAuthUserByEmail(supabase, normalized);
+      if (again) {
+        await forceAuthPassword(supabase, again.id, normalized, password);
+        return { id: again.id, created: false, passwordSynced: true };
+      }
+    }
+    throw new Error(`Auth 생성 실패 (${normalized}): ${error.message}`);
+  }
+  if (!data.user?.id) throw new Error(`Auth id 없음: ${normalized}`);
+  return { id: data.user.id, created: true, passwordSynced: true };
+}
+
+type DemoUserRow = {
+  loginId: string;
+  email: string;
+  name: string;
+  role: UserRole;
+  authUserId: string;
+};
+
+/** loginId·email·authUserId 불일치 복구 — upsert(where: loginId)만으로는 누락되는 케이스 처리 */
+async function ensureDemoUser(row: DemoUserRow) {
+  const normalizedEmail = normalizeEmail(row.email);
+
+  const byLoginId = await prisma.user.findFirst({
+    where: { loginId: row.loginId },
+  });
+  if (byLoginId) {
+    return prisma.user.update({
+      where: { id: byLoginId.id },
+      data: {
+        email: normalizedEmail,
+        authUserId: row.authUserId,
+        name: row.name,
+        role: row.role,
+        loginId: row.loginId,
+      },
+    });
+  }
+
+  const byEmail = await prisma.user.findFirst({
+    where: { email: normalizedEmail },
+  });
+  if (byEmail) {
+    return prisma.user.update({
+      where: { id: byEmail.id },
+      data: {
+        loginId: row.loginId,
+        authUserId: row.authUserId,
+        name: row.name,
+        role: row.role,
+      },
+    });
+  }
+
+  const byAuth = await prisma.user.findFirst({
+    where: { authUserId: row.authUserId },
+  });
+  if (byAuth) {
+    return prisma.user.update({
+      where: { id: byAuth.id },
+      data: {
+        loginId: row.loginId,
+        email: normalizedEmail,
+        name: row.name,
+        role: row.role,
+      },
+    });
+  }
+
+  return prisma.user.create({
+    data: {
+      loginId: row.loginId,
+      email: normalizedEmail,
+      authUserId: row.authUserId,
+      name: row.name,
+      role: row.role,
+    },
+  });
+}
+
+async function ensureGymForOwner(
+  userId: string,
+  row: (typeof GYM_ACCOUNTS)[number],
+): Promise<{ id: string; repairedOwner: boolean }> {
+  const existing = await prisma.gym.findUnique({
+    where: { ownerUserId: userId },
+  });
+  if (existing) {
+    await prisma.gym.update({
+      where: { id: existing.id },
+      data: { name: row.name, status: GymStatus.active },
+    });
+    return { id: existing.id, repairedOwner: false };
+  }
+
+  const byName = await prisma.gym.findFirst({
+    where: { name: row.name },
+    include: {
+      ownerUser: { select: { id: true, loginId: true, email: true } },
+    },
+  });
+  if (byName) {
+    const ownerLogin = byName.ownerUser.loginId;
+    const ownerEmail = byName.ownerUser.email;
+    const isDemoOwner =
+      ownerLogin === row.loginId ||
+      ownerEmail === normalizeEmail(row.email) ||
+      ownerLogin == null;
+
+    if (isDemoOwner && byName.ownerUserId !== userId) {
+      console.warn(
+        `[repair] ${row.loginId} Gym.ownerUserId 재연결: gym=${byName.id}`,
+      );
+      await prisma.gym.update({
+        where: { id: byName.id },
+        data: {
+          ownerUserId: userId,
+          name: row.name,
+          status: GymStatus.active,
+        },
+      });
+      return { id: byName.id, repairedOwner: true };
+    }
+  }
+
+  const gymSuffix = row.loginId === "gym" ? "0" : row.loginId.replace("gym", "");
+  const created = await prisma.gym.create({
+    data: {
+      ownerUserId: userId,
+      name: row.name,
+      phone: `0108000${gymSuffix.padStart(4, "0").slice(-4)}`,
+      address: "데모 주소",
+      status: GymStatus.active,
+    },
+  });
+  return { id: created.id, repairedOwner: false };
 }
 
 async function ensureActiveGymHistory(
@@ -165,26 +319,15 @@ async function ensureOrganizerAccount(
   supabase: ReturnType<typeof createClient>,
   row: (typeof ORGANIZER_ACCOUNTS)[number],
   password: string,
-): Promise<{ created: boolean }> {
+): Promise<{ created: boolean; passwordSynced: boolean }> {
   const auth = await ensureAuthUser(supabase, row.email, password);
-  const authUser = await findAuthUserByEmail(supabase, row.email);
-  if (!authUser) throw new Error(`Auth 사용자 없음: ${row.email}`);
 
-  const user = await prisma.user.upsert({
-    where: { loginId: row.loginId },
-    create: {
-      email: row.email,
-      loginId: row.loginId,
-      authUserId: authUser.id,
-      name: row.name,
-      role: UserRole.organizer,
-    },
-    update: {
-      email: row.email,
-      authUserId: authUser.id,
-      name: row.name,
-      role: UserRole.organizer,
-    },
+  const user = await ensureDemoUser({
+    loginId: row.loginId,
+    email: row.email,
+    name: row.name,
+    role: UserRole.organizer,
+    authUserId: auth.id,
   });
 
   await prisma.organizer.upsert({
@@ -202,52 +345,54 @@ async function ensureOrganizerAccount(
     },
   });
 
-  return { created: auth.created };
+  return { created: auth.created, passwordSynced: auth.passwordSynced };
 }
 
 async function ensureGymAccount(
   supabase: ReturnType<typeof createClient>,
   row: (typeof GYM_ACCOUNTS)[number],
   password: string,
-): Promise<{ gymId: string; created: boolean }> {
+): Promise<{ gymId: string; created: boolean; passwordSynced: boolean }> {
   const auth = await ensureAuthUser(supabase, row.email, password);
-  const authUser = await findAuthUserByEmail(supabase, row.email);
-  if (!authUser) throw new Error(`Auth 사용자 없음: ${row.email}`);
 
-  const user = await prisma.user.upsert({
-    where: { loginId: row.loginId },
-    create: {
-      email: row.email,
-      loginId: row.loginId,
-      authUserId: authUser.id,
-      name: row.name,
-      role: UserRole.gym,
-    },
-    update: {
-      email: row.email,
-      authUserId: authUser.id,
-      name: row.name,
-      role: UserRole.gym,
-    },
+  const user = await ensureDemoUser({
+    loginId: row.loginId,
+    email: row.email,
+    name: row.name,
+    role: UserRole.gym,
+    authUserId: auth.id,
   });
 
-  const gymSuffix = row.loginId === "gym" ? "0" : row.loginId.replace("gym", "");
-  const gym = await prisma.gym.upsert({
-    where: { ownerUserId: user.id },
-    create: {
-      ownerUserId: user.id,
-      name: row.name,
-      phone: `0108000${gymSuffix.padStart(4, "0").slice(-4)}`,
-      address: "데모 주소",
-      status: GymStatus.active,
-    },
-    update: {
-      name: row.name,
-      status: GymStatus.active,
-    },
-  });
+  const gym = await ensureGymForOwner(user.id, row);
 
-  return { gymId: gym.id, created: auth.created };
+  return {
+    gymId: gym.id,
+    created: auth.created,
+    passwordSynced: auth.passwordSynced,
+  };
+}
+
+async function verifySupabaseLogin(
+  supabaseUrl: string,
+  anonKey: string,
+  email: string,
+  password: string,
+  loginId: string,
+): Promise<boolean> {
+  const client = createClient(supabaseUrl, anonKey, {
+    auth: { autoRefreshToken: false, persistSession: false },
+  });
+  const { error } = await client.auth.signInWithPassword({
+    email: normalizeEmail(email),
+    password,
+  });
+  if (error) {
+    console.warn(`  ✗ ${loginId} 로그인 실패: ${error.message}`);
+    return false;
+  }
+  await client.auth.signOut();
+  console.info(`  ✓ ${loginId} / ${password} Supabase 로그인 OK`);
+  return true;
 }
 
 type GymSummary = {
@@ -325,18 +470,29 @@ async function main(): Promise<void> {
   });
 
   let organizersCreated = 0;
+  let passwordsSynced = 0;
   for (const row of ORGANIZER_ACCOUNTS) {
-    const { created } = await ensureOrganizerAccount(supabase, row, password);
+    const { created, passwordSynced } = await ensureOrganizerAccount(
+      supabase,
+      row,
+      password,
+    );
     if (created) organizersCreated += 1;
+    if (passwordSynced) passwordsSynced += 1;
   }
 
   let gymsCreated = 0;
   const gymIdByLogin = new Map<string, string>();
 
   for (const row of GYM_ACCOUNTS) {
-    const { gymId, created } = await ensureGymAccount(supabase, row, password);
+    const { gymId, created, passwordSynced } = await ensureGymAccount(
+      supabase,
+      row,
+      password,
+    );
     gymIdByLogin.set(row.loginId, gymId);
     if (created) gymsCreated += 1;
+    if (passwordSynced) passwordsSynced += 1;
   }
 
   let fightersCreated = 0;
@@ -452,14 +608,47 @@ async function main(): Promise<void> {
     console.info(`- ${row.loginId}`);
   }
 
+  const anonKey = process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY?.trim();
+  console.info("");
+  console.info("Login verification (Supabase signInWithPassword):");
+  if (!anonKey) {
+    console.warn(
+      "  NEXT_PUBLIC_SUPABASE_ANON_KEY 없음 — 로그인 실검증 생략. 운영 Shell에서 anon key 설정 후 재실행 권장.",
+    );
+  } else {
+    for (const row of ORGANIZER_ACCOUNTS) {
+      await verifySupabaseLogin(
+        supabaseUrl,
+        anonKey,
+        row.email,
+        password,
+        row.loginId,
+      );
+    }
+    for (const row of ["gym1", "gym7"] as const) {
+      const gymRow = GYM_ACCOUNTS.find((g) => g.loginId === row);
+      if (gymRow) {
+        await verifySupabaseLogin(
+          supabaseUrl,
+          anonKey,
+          gymRow.email,
+          password,
+          gymRow.loginId,
+        );
+      }
+    }
+  }
+
   console.info("");
   console.info("Upsert summary:");
+  console.info(`- auth passwords synced: ${passwordsSynced}`);
   console.info(`- organizers created (auth): ${organizersCreated}`);
   console.info(`- gyms created (auth): ${gymsCreated}`);
   console.info(`- fighters created: ${fightersCreated}`);
   console.info(`- fighters updated: ${fightersUpdated}`);
   console.info(`- histories created: ${historiesCreated}`);
   console.info(`- histories updated: ${historiesUpdated}`);
+  console.info(`- DEMO_PASSWORD: ${process.env.DEMO_PASSWORD ? "env" : "default 123456!!"}`);
   console.info("");
   console.info("※ db:seed / truncate / hard delete 없음");
   console.info("※ 대회 신청(EventApplication)은 setup:bracket-demo-data 별도 실행");

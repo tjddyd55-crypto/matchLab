@@ -242,6 +242,8 @@ Remove-Item Env:DEMO_PASSWORD -ErrorAction SilentlyContinue
 ```
 
 - `DATABASE_URL`에는 **`DATABASE_PUBLIC_URL`** 사용 (`postgres.railway.internal` 금지)
+- 로그인 실검증까지 하려면 **`NEXT_PUBLIC_SUPABASE_ANON_KEY`** 도 함께 export (스크립트가 `signInWithPassword`로 organizer1~3·gym1·gym7 확인)
+- 기존 Auth 계정이 있어도 **`DEMO_PASSWORD`로 비밀번호 강제 동기화** (`loginId`·`authUserId`·`Gym.ownerUserId` 불일치도 repair)
 - 대회 신청·자동 대진까지 필요하면 이어서 `npm run setup:bracket-demo-data`
 
 ### 체육관·선수 소속 복구 (`npm run repair:demo-gym`)
