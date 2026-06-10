@@ -1,6 +1,6 @@
 "use client";
 
-import type { ReactNode } from "react";
+import { Fragment, type ReactNode } from "react";
 import { CheckInStatusBadge } from "@/components/domain/field-status/CheckInStatusBadge";
 import { EligibilityBadge } from "@/components/domain/field-status/EligibilityBadge";
 import {
@@ -49,71 +49,74 @@ export function OrganizerFieldStatusTable({
   return (
     <>
       <div className="hidden overflow-x-auto rounded-xl border md:block">
-        <table className="w-full min-w-[72rem] text-left text-sm">
+        <table className="w-full min-w-[64rem] text-left text-sm">
           <thead className="bg-muted/40 text-xs">
             <tr>
               <th className="min-w-[7rem] px-3 py-2 font-medium">선수명</th>
               <th className="min-w-[8rem] px-3 py-2 font-medium">체육관</th>
-              <th className="min-w-[14rem] px-3 py-2 font-medium">신청 부문</th>
-              <th className="min-w-[6rem] px-3 py-2 font-medium">신청 체급</th>
-              <th className="min-w-[7rem] px-3 py-2 font-medium">현장 확인</th>
-              <th className="min-w-[8rem] px-3 py-2 font-medium">계체 몸무게</th>
-              <th className="min-w-[7rem] px-3 py-2 font-medium">계체 결과</th>
-              <th className="min-w-[8rem] px-3 py-2 font-medium">출전 확정</th>
+              <th className="min-w-[12rem] px-3 py-2 font-medium">신청 부문</th>
+              <th className="min-w-[5rem] px-3 py-2 font-medium">신청 체급</th>
+              <th className="min-w-[6rem] px-3 py-2 font-medium">현장 확인</th>
+              <th className="min-w-[7rem] px-3 py-2 font-medium">계체 몸무게</th>
+              <th className="min-w-[6rem] px-3 py-2 font-medium">계체 결과</th>
+              <th className="min-w-[7rem] px-3 py-2 font-medium">출전 확정</th>
               <th className="min-w-[10rem] px-3 py-2 font-medium">메모</th>
-              <th className="min-w-[11rem] px-3 py-2 font-medium">액션</th>
             </tr>
           </thead>
-          <tbody className="divide-y">
+          <tbody>
             {rows.map((row) => (
-              <tr key={row.applicationId} className="align-top">
-                <td className="px-3 py-3">
-                  <button
-                    type="button"
-                    className="font-medium underline-offset-2 hover:underline"
-                    onClick={() => onOpenDetail(row)}
-                  >
-                    {row.fighterName}
-                  </button>
-                </td>
-                <td className="max-w-[10rem] truncate px-3 py-3">
-                  {row.gymName}
-                </td>
-                <td className="max-w-[16rem] px-3 py-3 text-xs leading-snug">
-                  <span className="line-clamp-2">{row.divisionLabel}</span>
-                </td>
-                <td className="px-3 py-3 text-xs">
-                  {row.weightClassLabel ?? "—"}
-                </td>
-                <td className="px-3 py-3">
-                  <StatusClickWrap onOpenDetail={() => onOpenDetail(row)}>
-                    <CheckInStatusBadge status={row.checkInStatus} />
-                  </StatusClickWrap>
-                </td>
-                <td className="px-3 py-3">
-                  <WeighInWeightForm row={row} />
-                </td>
-                <td className="px-3 py-3">
-                  <StatusClickWrap onOpenDetail={() => onOpenDetail(row)}>
-                    <WeighInStatusBadge status={row.weighInStatus} />
-                  </StatusClickWrap>
-                </td>
-                <td className="px-3 py-3">
-                  <StatusClickWrap onOpenDetail={() => onOpenDetail(row)}>
-                    <EligibilityBadge
-                      label={row.eligibilityLabel}
-                      isEligible={row.isEligibleForBracket}
-                      title={row.eligibilityReason}
-                    />
-                  </StatusClickWrap>
-                </td>
-                <td className="px-3 py-3">
-                  <FieldMemoForm row={row} />
-                </td>
-                <td className="px-3 py-3">
-                  <FieldStatusRowActions row={row} />
-                </td>
-              </tr>
+              <Fragment key={row.applicationId}>
+                <tr className="border-t align-top">
+                  <td className="px-3 py-2">
+                    <button
+                      type="button"
+                      className="font-medium underline-offset-2 hover:underline"
+                      onClick={() => onOpenDetail(row)}
+                    >
+                      {row.fighterName}
+                    </button>
+                  </td>
+                  <td className="max-w-[10rem] truncate px-3 py-2 text-xs">
+                    {row.gymName}
+                  </td>
+                  <td className="max-w-[14rem] px-3 py-2 text-xs leading-snug">
+                    <span className="line-clamp-2">{row.divisionLabel}</span>
+                  </td>
+                  <td className="px-3 py-2 text-xs">
+                    {row.weightClassLabel ?? "—"}
+                  </td>
+                  <td className="px-3 py-2">
+                    <StatusClickWrap onOpenDetail={() => onOpenDetail(row)}>
+                      <CheckInStatusBadge status={row.checkInStatus} />
+                    </StatusClickWrap>
+                  </td>
+                  <td className="px-3 py-2">
+                    <WeighInWeightForm row={row} />
+                  </td>
+                  <td className="px-3 py-2">
+                    <StatusClickWrap onOpenDetail={() => onOpenDetail(row)}>
+                      <WeighInStatusBadge status={row.weighInStatus} />
+                    </StatusClickWrap>
+                  </td>
+                  <td className="px-3 py-2">
+                    <StatusClickWrap onOpenDetail={() => onOpenDetail(row)}>
+                      <EligibilityBadge
+                        label={row.eligibilityLabel}
+                        isEligible={row.isEligibleForBracket}
+                        title={row.eligibilityReason}
+                      />
+                    </StatusClickWrap>
+                  </td>
+                  <td className="px-3 py-2">
+                    <FieldMemoForm row={row} />
+                  </td>
+                </tr>
+                <tr className="border-b bg-muted/15">
+                  <td colSpan={9} className="px-3 py-2">
+                    <FieldStatusRowActions row={row} layout="compact" />
+                  </td>
+                </tr>
+              </Fragment>
             ))}
           </tbody>
         </table>
@@ -123,7 +126,7 @@ export function OrganizerFieldStatusTable({
         {rows.map((row) => (
           <article
             key={row.applicationId}
-            className="ring-foreground/10 rounded-xl border bg-card p-4 shadow-sm"
+            className="ring-foreground/10 rounded-xl border bg-card p-3 shadow-sm"
           >
             <button
               type="button"
@@ -132,11 +135,11 @@ export function OrganizerFieldStatusTable({
             >
               <h3 className="font-medium">{row.fighterName}</h3>
               <p className="text-muted-foreground text-xs">{row.gymName}</p>
-              <p className="text-muted-foreground mt-1 line-clamp-2 text-xs">
+              <p className="text-muted-foreground mt-0.5 line-clamp-2 text-xs">
                 {row.divisionLabel}
               </p>
             </button>
-            <div className="mt-3 flex flex-wrap gap-1.5">
+            <div className="mt-2 flex flex-wrap gap-1.5">
               <CheckInStatusBadge status={row.checkInStatus} />
               <WeighInStatusBadge status={row.weighInStatus} />
               <EligibilityBadge
@@ -145,10 +148,12 @@ export function OrganizerFieldStatusTable({
                 title={row.eligibilityReason}
               />
             </div>
-            <div className="mt-3 space-y-3 border-t pt-3">
+            <div className="mt-2 grid grid-cols-2 gap-2 border-t pt-2">
               <WeighInWeightForm row={row} />
               <FieldMemoForm row={row} />
-              <FieldStatusRowActions row={row} />
+            </div>
+            <div className="mt-2 border-t pt-2">
+              <FieldStatusRowActions row={row} layout="compact" />
             </div>
           </article>
         ))}

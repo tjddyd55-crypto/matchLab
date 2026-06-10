@@ -1,6 +1,6 @@
 "use client";
 
-import { useState } from "react";
+import { Fragment, useState } from "react";
 import { applyFieldBracketOutcomeFormActionVoid } from "@/features/field-status/actions";
 import { Button } from "@/components/ui/button";
 import type { FieldStatusRowDTO } from "@/lib/services/field-status.service";
@@ -83,16 +83,16 @@ export function FieldStatusBracketPanel({
   if (compact) {
     const primary = assignments[0]!;
     return (
-      <div className="space-y-1.5 text-xs">
-        <p>
+      <div className="flex flex-wrap items-center gap-1 text-xs">
+        <span className="text-muted-foreground shrink-0">
           {primary.matchLabel} vs {primary.opponentName}
-        </p>
+        </span>
         {showOutcomePrompt ? (
-          <div className="grid grid-cols-2 gap-1">
+          <div className="flex flex-wrap items-center gap-1">
             {assignments
               .filter((a) => !a.hasOfficialResult)
               .map((a) => (
-                <div key={a.matchId} className="contents">
+                <Fragment key={a.matchId}>
                   <OutcomeForm
                     row={row}
                     assignment={a}
@@ -117,7 +117,7 @@ export function FieldStatusBracketPanel({
                     variant="secondary"
                     confirmMessage={`${row.fighterName} 선수를 기권 처리할까요?`}
                   />
-                </div>
+                </Fragment>
               ))}
             <Button
               type="button"

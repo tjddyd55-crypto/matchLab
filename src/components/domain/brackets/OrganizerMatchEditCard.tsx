@@ -1,6 +1,6 @@
 "use client";
 
-import { useState } from "react";
+import { useState, type ReactNode } from "react";
 import { OrganizerMatchOpsPanel } from "@/components/domain/brackets/OrganizerMatchOpsPanel";
 import { OrganizerMatchEditSlot } from "@/components/domain/brackets/OrganizerMatchEditSlot";
 import { BracketMatchOrderControls } from "@/components/domain/brackets/BracketMatchOrderControls";
@@ -9,8 +9,8 @@ import type { OrganizerApprovedFighterOptionVM } from "@/lib/services/bracket.se
 import type { OrganizerBracketMatchVM } from "@/lib/services/bracket.service";
 import { BracketType, type BracketMatchStatus } from "@/lib/enums";
 import { formatMatchOrderFormal } from "@/lib/match-order-display";
+import { cornerSlotInGridClass } from "@/lib/corner-slot-styles";
 import { getMatchListDisabledFighterIds } from "@/lib/bracket-match-placement";
-
 function statusLabel(s: BracketMatchStatus): string {
   switch (s) {
     case "waiting":
@@ -60,6 +60,21 @@ function matchListOpsProps(
   };
 }
 
+function CompactField({
+  label,
+  children,
+}: {
+  label: string;
+  children: ReactNode;
+}) {
+  return (
+    <label className="flex items-center gap-1">
+      <span className="text-muted-foreground shrink-0 text-[10px]">{label}</span>
+      {children}
+    </label>
+  );
+}
+
 export function OrganizerMatchEditCard({
   row,
   rowIndex,
@@ -91,22 +106,25 @@ export function OrganizerMatchEditCard({
 
   const patch = (p: Partial<MatchListEditorRow>) => onUpdateRow(rowIndex, p);
 
+  const inputClass =
+    "border-input bg-background h-6 w-14 rounded-md border px-1.5 text-[11px]";
+
   return (
     <article className="ring-foreground/10 overflow-hidden rounded-xl border bg-card shadow-sm">
-      <header className="flex flex-wrap items-center justify-between gap-2 border-b bg-muted/30 px-4 py-2.5">
+      <header className="flex flex-wrap items-center justify-between gap-2 border-b bg-muted/30 px-3 py-1.5">
         <div className="flex flex-wrap items-center gap-2">
-          <span className="text-base font-bold">{orderLabel}</span>
+          <span className="text-sm font-bold">{orderLabel}</span>
           {divisionLabel ? (
-            <span className="text-muted-foreground text-xs">{divisionLabel}</span>
+            <span className="text-muted-foreground text-[11px]">{divisionLabel}</span>
           ) : null}
         </div>
-        <div className="flex flex-wrap items-center gap-2 text-xs">
+        <div className="flex flex-wrap items-center gap-1.5 text-[11px]">
           {serverMatch ? (
-            <span className="rounded-full bg-background px-2.5 py-0.5 font-medium">
+            <span className="rounded-full bg-background px-2 py-0.5 font-medium">
               {statusLabel(serverMatch.status)}
             </span>
           ) : (
-            <span className="text-muted-foreground rounded-full bg-background px-2.5 py-0.5">
+            <span className="text-muted-foreground rounded-full bg-background px-2 py-0.5">
               미저장
             </span>
           )}
@@ -129,54 +147,11 @@ export function OrganizerMatchEditCard({
           disabledOptionIds={getMatchListDisabledFighterIds(rows, rowIndex, "red")}
           onChange={(v) => patch({ fighterRedId: v })}
           editDisabled={editLocked}
-          className="rounded-none border-0 border-b md:border-b-0 md:border-r"
+          className={cornerSlotInGridClass("홍코너", "border-b md:border-b-0")}
         />
 
-        <div className="bg-muted/40 flex flex-col items-center justify-center gap-3 border-b px-4 py-4 md:border-b-0 md:py-6">
-          <span className="text-2xl font-black tracking-widest text-muted-foreground">
-            VS
-          </span>
-          <div className="grid w-full min-w-[7rem] gap-2 text-xs">
-            <label className="space-y-0.5">
-              <span className="text-muted-foreground">경기번호</span>
-              <input
-                className="border-input bg-background h-8 w-full rounded-md border px-2 text-sm"
-                value={row.matchNumber}
-                placeholder="—"
-                onChange={(e) => patch({ matchNumber: e.target.value })}
-              />
-            </label>
-            <label className="space-y-0.5">
-              <span className="text-muted-foreground">편집 순서</span>
-              <input
-                type="number"
-                min={0}
-                className="border-input bg-background h-8 w-full rounded-md border px-2 text-sm"
-                value={row.matchOrder}
-                onChange={(e) =>
-                  patch({ matchOrder: Number(e.target.value) })
-                }
-              />
-            </label>
-            <label className="space-y-0.5">
-              <span className="text-muted-foreground">매트</span>
-              <input
-                className="border-input bg-background h-8 w-full rounded-md border px-2 text-sm"
-                value={row.matNumber}
-                placeholder="—"
-                onChange={(e) => patch({ matNumber: e.target.value })}
-              />
-            </label>
-            <label className="space-y-0.5">
-              <span className="text-muted-foreground">전체 순서</span>
-              <input
-                className="border-input bg-background h-8 w-full rounded-md border px-2 text-sm"
-                value={row.globalMatchOrder}
-                placeholder="—"
-                onChange={(e) => patch({ globalMatchOrder: e.target.value })}
-              />
-            </label>
-          </div>
+        <div className="bg-muted/30 text-muted-foreground flex flex-col items-center justify-center border-b px-3 py-2 md:border-b-0 md:py-0">
+          <span className="text-lg font-black tracking-widest">VS</span>
         </div>
 
         <OrganizerMatchEditSlot
@@ -191,44 +166,85 @@ export function OrganizerMatchEditCard({
           )}
           onChange={(v) => patch({ fighterBlueId: v })}
           editDisabled={editLocked}
-          className="rounded-none border-0"
+          className={cornerSlotInGridClass("청코너")}
         />
       </div>
 
-      <footer className="space-y-3 border-t bg-muted/15 px-4 py-3">
-        {showOps && serverMatch ? (
-          <BracketMatchOrderControls
-            match={serverMatch}
-            allMatches={sortedServerMatches}
-          />
-        ) : (
-          <p className="text-muted-foreground text-xs">
-            경기 목록 저장 후 순서 변경·경기 운영을 사용할 수 있습니다.
-          </p>
-        )}
+      <footer className="space-y-2 border-t bg-muted/10 px-3 py-2">
+        <div className="flex flex-wrap items-center gap-x-3 gap-y-1.5 text-xs">
+          <CompactField label="경기번호">
+            <input
+              className={inputClass}
+              value={row.matchNumber}
+              placeholder="—"
+              onChange={(e) => patch({ matchNumber: e.target.value })}
+            />
+          </CompactField>
+          <CompactField label="매트">
+            <input
+              className={inputClass}
+              value={row.matNumber}
+              placeholder="—"
+              onChange={(e) => patch({ matNumber: e.target.value })}
+            />
+          </CompactField>
+          <CompactField label="편집순서">
+            <input
+              type="number"
+              min={0}
+              className={inputClass}
+              value={row.matchOrder}
+              onChange={(e) =>
+                patch({ matchOrder: Number(e.target.value) })
+              }
+            />
+          </CompactField>
+          <CompactField label="전체순서">
+            <input
+              className={inputClass}
+              value={row.globalMatchOrder}
+              placeholder="—"
+              onChange={(e) => patch({ globalMatchOrder: e.target.value })}
+            />
+          </CompactField>
 
-        {showOps && serverMatch ? (
-          <div>
+          {showOps && serverMatch ? (
+            <BracketMatchOrderControls
+              inline
+              match={serverMatch}
+              allMatches={sortedServerMatches}
+            />
+          ) : null}
+
+          {showOps && serverMatch ? (
             <Button
               type="button"
               variant="outline"
               size="sm"
+              className="h-6 text-[11px]"
               onClick={() => setOpsOpen((v) => !v)}
             >
               {opsOpen ? "경기 운영 닫기" : "경기 운영 열기"}
             </Button>
-            {opsOpen ? (
-              <div className="mt-3">
-                <OrganizerMatchOpsPanel
-                  {...matchListOpsProps(serverMatch, bracketType)}
-                />
-              </div>
-            ) : null}
+          ) : null}
+        </div>
+
+        {!showOps ? (
+          <p className="text-muted-foreground text-[11px]">
+            경기 목록 저장 후 순서 변경·경기 운영을 사용할 수 있습니다.
+          </p>
+        ) : null}
+
+        {opsOpen && serverMatch ? (
+          <div className="pt-1">
+            <OrganizerMatchOpsPanel
+              {...matchListOpsProps(serverMatch, bracketType)}
+            />
           </div>
         ) : null}
 
         {serverMatch?.hasOfficialResults ? (
-          <p className="text-amber-800 text-xs dark:text-amber-200">
+          <p className="text-amber-800 text-[11px] dark:text-amber-200">
             공식 결과가 확정된 경기는 순서·선수 변경이 제한됩니다.
           </p>
         ) : null}

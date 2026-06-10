@@ -1,5 +1,6 @@
 import type { PublicBracketMatchDTO } from "@/lib/dto/public";
 import type { BracketMatchStatus } from "@/lib/enums";
+import { cornerSlotInGridClass } from "@/lib/corner-slot-styles";
 import { cn } from "@/lib/utils";
 import { formatMatchOrderFormal } from "@/lib/match-order-display";
 import { outcomeStylePublicLabel } from "@/lib/match-result-snapshot";
@@ -58,9 +59,9 @@ export function BracketMatchCard({
         className,
       )}
     >
-      <div className="flex flex-wrap items-center justify-between gap-2 border-b bg-muted/30 px-4 py-2 text-xs">
+      <div className="flex flex-wrap items-center justify-between gap-2 border-b bg-muted/30 px-3 py-1.5 text-xs">
         <div className="flex flex-wrap items-center gap-2">
-          <span className="text-base font-bold">{matchNoLabel}</span>
+          <span className="text-sm font-bold">{matchNoLabel}</span>
           {divisionLabel ? (
             <span className="text-muted-foreground">{divisionLabel}</span>
           ) : null}
@@ -71,7 +72,7 @@ export function BracketMatchCard({
             </span>
           ) : null}
         </div>
-        <span className="rounded-full bg-background px-2.5 py-0.5 font-medium">
+        <span className="rounded-full bg-background px-2 py-0.5 text-[11px] font-medium">
           {statusLabel(match.status)}
         </span>
       </div>
@@ -81,26 +82,26 @@ export function BracketMatchCard({
           cornerLabel="홍코너"
           fighter={match.fighterRed}
           className={cn(
-            "rounded-none border-0 border-b md:border-b-0 md:border-r",
+            cornerSlotInGridClass("홍코너", "border-b md:border-b-0"),
             redHighlight && "ring-2 ring-inset ring-emerald-600/60",
           )}
         />
-        <div className="bg-muted/40 text-muted-foreground flex items-center justify-center px-4 py-2 text-sm font-bold tracking-widest md:py-0">
-          VS
+        <div className="bg-muted/30 text-muted-foreground flex flex-col items-center justify-center px-3 py-2 md:min-w-[3rem] md:py-0">
+          <span className="text-lg font-black tracking-widest">VS</span>
         </div>
         <FighterSlotCard
           cornerLabel="청코너"
           fighter={match.fighterBlue}
           bye={blueIsBye}
           className={cn(
-            "rounded-none border-0",
+            cornerSlotInGridClass("청코너"),
             blueHighlight && "ring-2 ring-inset ring-emerald-600/60",
           )}
         />
       </div>
 
       {match.resultType ? (
-        <p className="text-muted-foreground border-t px-4 py-2 text-[11px]">
+        <p className="text-muted-foreground border-t px-3 py-1.5 text-[11px]">
           결과:{" "}
           <span className="text-foreground font-medium">
             {outcomeStylePublicLabel(match.resultType)}

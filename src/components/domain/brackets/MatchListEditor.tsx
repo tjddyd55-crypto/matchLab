@@ -151,7 +151,7 @@ export function MatchListEditor({
         <input type="hidden" name="bracketId" value={bracketId} />
         <input type="hidden" name="matchesPayload" value={payloadJson} />
 
-        <div className="flex flex-col gap-4">
+        <div className="flex flex-col gap-3">
           {rows.map((r, idx) => {
             const serverMatch = matches.find((m) => m.id === r.key);
             return (

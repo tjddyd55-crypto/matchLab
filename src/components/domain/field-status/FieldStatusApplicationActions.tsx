@@ -62,11 +62,24 @@ function ActionGroup({
   title,
   children,
   className,
+  inline = false,
 }: {
   title: string;
   children: ReactNode;
   className?: string;
+  inline?: boolean;
 }) {
+  if (inline) {
+    return (
+      <div className={cn("flex flex-wrap items-center gap-1", className)}>
+        <span className="text-muted-foreground mr-0.5 text-[10px] font-medium">
+          {title}
+        </span>
+        {children}
+      </div>
+    );
+  }
+
   return (
     <div className={cn("space-y-1.5", className)}>
       <p className="text-muted-foreground text-[11px] font-medium">{title}</p>
@@ -121,13 +134,26 @@ async function runAction(
   }
 }
 
-export function FieldStatusRowActions({ row }: { row: FieldStatusRowDTO }) {
+export function FieldStatusRowActions({
+  row,
+  layout = "stack",
+}: {
+  row: FieldStatusRowDTO;
+  layout?: "stack" | "compact";
+}) {
   const id = row.applicationId;
   const name = row.fighterName;
+  const inline = layout === "compact";
 
   return (
-    <div className="flex min-w-[12rem] flex-col gap-2">
-      <ActionGroup title="현장">
+    <div
+      className={cn(
+        inline
+          ? "flex flex-wrap items-center gap-x-3 gap-y-1.5"
+          : "flex min-w-[12rem] flex-col gap-2",
+      )}
+    >
+      <ActionGroup title="현장" inline={inline}>
         <ActionButton
           label="현장 확인"
           variant="default"
@@ -151,7 +177,7 @@ export function FieldStatusRowActions({ row }: { row: FieldStatusRowDTO }) {
         />
       </ActionGroup>
 
-      <ActionGroup title="계체">
+      <ActionGroup title="계체" inline={inline}>
         <ActionButton
           label="계체 통과"
           onClick={() => runAction(id, weighInPassFormAction)}
@@ -167,7 +193,7 @@ export function FieldStatusRowActions({ row }: { row: FieldStatusRowDTO }) {
         />
       </ActionGroup>
 
-      <ActionGroup title="출전">
+      <ActionGroup title="출전" inline={inline}>
         <ActionButton
           label="출전 확정"
           variant="secondary"
@@ -181,7 +207,7 @@ export function FieldStatusRowActions({ row }: { row: FieldStatusRowDTO }) {
         />
       </ActionGroup>
 
-      <ActionGroup title="대진 처리">
+      <ActionGroup title="대진" inline={inline}>
         <FieldStatusBracketPanel row={row} compact />
       </ActionGroup>
     </div>
@@ -219,8 +245,8 @@ export function WeighInWeightForm({ row }: { row: FieldStatusRowDTO }) {
   }
 
   return (
-    <div className="space-y-1">
-      <form onSubmit={handleSubmit} className="flex w-full items-center gap-1">
+    <div className="space-y-0.5">
+      <form onSubmit={handleSubmit} className="flex items-center gap-1">
         <input
           name="weightKg"
           type="number"
@@ -228,15 +254,13 @@ export function WeighInWeightForm({ row }: { row: FieldStatusRowDTO }) {
           min="0"
           placeholder="kg"
           defaultValue={row.weighInWeightKg ?? ""}
-          className={cn(
-            "border-input bg-background h-8 min-w-0 flex-1 rounded-md border px-2 text-xs md:w-20 md:flex-none",
-          )}
+          className="border-input bg-background h-7 w-16 rounded-md border px-2 text-xs"
         />
         <Button
           type="submit"
           size="sm"
           variant="secondary"
-          className="h-8 shrink-0 text-xs"
+          className="h-7 shrink-0 px-2 text-xs"
           disabled={pending}
         >
           {pending ? "저장 중…" : "저장"}
@@ -274,25 +298,23 @@ export function FieldMemoForm({ row }: { row: FieldStatusRowDTO }) {
   }
 
   return (
-    <div className="space-y-1">
-      <form onSubmit={handleSubmit} className="flex flex-col gap-1">
+    <div className="space-y-0.5">
+      <form onSubmit={handleSubmit} className="flex items-start gap-1">
         <textarea
           name="memo"
-          rows={2}
+          rows={1}
           defaultValue={row.fieldMemo ?? ""}
           placeholder="현장 메모"
-          className={cn(
-            "border-input bg-background min-h-[2.5rem] w-full min-w-[10rem] rounded-md border px-2 py-1 text-xs",
-          )}
+          className="border-input bg-background min-h-[1.75rem] min-w-0 flex-1 resize-y rounded-md border px-2 py-1 text-xs"
         />
         <Button
           type="submit"
           size="sm"
           variant="outline"
-          className="h-7 self-start text-xs"
+          className="h-7 shrink-0 px-2 text-xs"
           disabled={pending}
         >
-          {pending ? "저장 중…" : "메모 저장"}
+          {pending ? "저장 중…" : "저장"}
         </Button>
       </form>
       <SaveFeedbackLine feedback={feedback} />

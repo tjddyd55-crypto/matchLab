@@ -18,10 +18,13 @@ export function BracketMatchOrderControls({
   match,
   allMatches,
   className,
+  inline = false,
 }: {
   match: OrganizerBracketMatchVM;
   allMatches: OrganizerBracketMatchVM[];
   className?: string;
+  /** 하단 compact control row에 인라인 배치 */
+  inline?: boolean;
 }) {
   const router = useRouter();
   const [pending, startTransition] = useTransition();
@@ -74,6 +77,65 @@ export function BracketMatchOrderControls({
         });
       }
     });
+  }
+
+  if (inline) {
+    return (
+      <div className={cn("flex flex-wrap items-center gap-1.5", className)}>
+        <span className="text-muted-foreground text-[11px]">순서</span>
+        <span className="text-xs font-semibold">
+          {formatMatchOrderShort(match)}
+        </span>
+        <Button
+          type="button"
+          size="sm"
+          variant="outline"
+          className="h-6 w-6 px-0 text-[10px]"
+          disabled={!canMoveUp || pending}
+          onClick={() => runReorder("up")}
+          aria-label="위로"
+        >
+          ▲
+        </Button>
+        <Button
+          type="button"
+          size="sm"
+          variant="outline"
+          className="h-6 w-6 px-0 text-[10px]"
+          disabled={!canMoveDown || pending}
+          onClick={() => runReorder("down")}
+          aria-label="아래로"
+        >
+          ▼
+        </Button>
+        <input
+          type="number"
+          min={0}
+          defaultValue={
+            match.globalMatchOrder ?? match.matchNumber ?? match.matchOrder
+          }
+          className="border-input bg-background h-6 w-14 rounded-md border px-1 text-[11px]"
+          onBlur={(e) => saveDirectOrder(e.target.value)}
+          disabled={match.hasOfficialResults || pending}
+          title="순서 직접 입력"
+        />
+        {feedback ? (
+          <span
+            className={cn(
+              "text-[10px] font-medium",
+              feedback.type === "success"
+                ? "text-emerald-700 dark:text-emerald-400"
+                : "text-destructive",
+            )}
+          >
+            {feedback.message}
+          </span>
+        ) : null}
+        {match.hasOfficialResults ? (
+          <span className="text-muted-foreground text-[10px]">순서 변경 불가</span>
+        ) : null}
+      </div>
+    );
   }
 
   return (
