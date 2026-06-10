@@ -7,6 +7,8 @@ import { eventService } from "@/lib/services/event.service";
 import { BracketCreateForm } from "@/components/domain/brackets/BracketCreateForm";
 import { OrganizerBracketList } from "@/components/domain/brackets/OrganizerBracketList";
 import { UnmatchedBracketCandidatesPanel } from "@/components/domain/brackets/UnmatchedBracketCandidatesPanel";
+import { EventManagementNav } from "@/components/domain/events/EventManagementNav";
+import { eventRepository } from "@/lib/repositories/event.repository";
 
 export const dynamic = "force-dynamic";
 
@@ -20,16 +22,24 @@ export default async function OrganizerEventBracketsPage({
 
   await requireOrganizerForEventPage(actor, eventId);
 
-  const [brackets, divisions, unmatchedCandidates, resetCheck] =
+  const [brackets, divisions, unmatchedCandidates, resetCheck, eventMeta] =
     await Promise.all([
       bracketService.listOrganizerEventBrackets(actor, eventId),
       eventService.listOrganizerEventDivisions(actor, eventId),
       bracketAutoMatchService.listUnmatchedCandidatesForEvent(actor, eventId),
       bracketAutoMatchService.canResetBracketSafely(actor, eventId),
+      eventRepository.findOrganizerEventById(eventId),
     ]);
 
   return (
     <div className="mx-auto flex w-full max-w-7xl flex-col gap-10 px-4 py-8 md:px-6">
+      {eventMeta ? (
+        <EventManagementNav
+          eventId={eventId}
+          publicSlug={eventMeta.publicSlug}
+        />
+      ) : null}
+
       <div>
         <h1 className="font-heading text-2xl font-semibold tracking-tight">
           대진표 관리

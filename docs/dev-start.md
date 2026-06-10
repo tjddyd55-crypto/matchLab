@@ -121,6 +121,13 @@ GitHub → Railway 배포가 성공해도 **Postgres는 빈 DB**입니다. `publ
 5. 자동 대진 생성·대진표 공개 → gym·fighter 알림.
 6. 결과 입력·확정 → gym·fighter 알림, href 이동·읽음 처리 확인.
 
+**대회 관리 메뉴·현장·계체 UX 테스트 (schema 변경 없음):**
+
+1. `organizer` / `123456!!` 로그인 → `/organizer/events` → 시드 대회 관리 홈.
+2. **기본 설정·부문·신청서·참가비** 앵커 메뉴가 관리 홈 해당 섹션으로 스크롤되는지 확인.
+3. **신청자** 메뉴 → `/organizer/events/{eventId}/applications` 정상 이동·상단 nav 유지 확인.
+4. **현장·계체** → 선수명/체육관/부문 검색, 요약 카드 필터, **현장 확인 → 몸무게 입력 → 계체 통과 → 출전 확정** 단축 버튼 순서 확인.
+
 **주최자 경기 운영 보드 테스트 (schema 변경 없음):**
 
 1. `organizer` / `123456!!` 로그인 → `/organizer/events` → 시드 대회 상세 → **경기 운영** (`/organizer/events/{eventId}/operation`).
