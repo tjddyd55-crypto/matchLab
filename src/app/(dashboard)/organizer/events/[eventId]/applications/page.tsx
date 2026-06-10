@@ -5,6 +5,7 @@ import { creditService } from "@/lib/services/credit.service";
 import { eventRepository } from "@/lib/repositories/event.repository";
 import { OrganizerApplicationsBoard } from "@/components/domain/applications/OrganizerApplicationsBoard";
 import { OrganizerEventCreditNotice } from "@/components/domain/credits/OrganizerEventCreditNotice";
+import { EventManagementNav } from "@/components/domain/events/EventManagementNav";
 import { ApplicationStatus } from "@/lib/enums";
 
 export const dynamic = "force-dynamic";
@@ -19,10 +20,10 @@ export default async function OrganizerEventApplicationsPage({
 
   await requireOrganizerForEventPage(actor, eventId);
 
-  const rows = await applicationService.listOrganizerEventApplications(
-    actor,
-    eventId,
-  );
+  const [rows, eventMeta] = await Promise.all([
+    applicationService.listOrganizerEventApplications(actor, eventId),
+    eventRepository.findOrganizerEventById(eventId),
+  ]);
 
   const organizerId =
     actor.organizerId ??
@@ -40,12 +41,23 @@ export default async function OrganizerEventApplicationsPage({
 
   return (
     <div className="mx-auto flex w-full max-w-7xl flex-col gap-8 px-4 py-8 md:px-6">
+      {eventMeta ? (
+        <EventManagementNav
+          eventId={eventId}
+          publicSlug={eventMeta.publicSlug}
+        />
+      ) : null}
+
       <div>
         <h1 className="font-heading text-2xl font-semibold tracking-tight">
           신청자 관리
         </h1>
         <p className="text-muted-foreground mt-1 text-sm">
-          입금 상태는 결제 행을 진실 원천으로 두며, 목록의 입금 상태는 동기화된 캐시입니다.
+          {eventMeta?.title ?? "행사"}
+        </p>
+        <p className="text-muted-foreground mt-2 text-sm">
+          입금 상태는 결제 행을 진실 원천으로 두며, 목록의 입금 상태는 동기화된
+          캐시입니다.
         </p>
       </div>
 

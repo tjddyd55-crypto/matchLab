@@ -44,6 +44,20 @@ export function matchesFieldStatusSummaryFilter(
   }
 }
 
+export function matchesFieldStatusSearchQuery(
+  row: FieldStatusRowDTO,
+  query: string,
+): boolean {
+  const q = query.trim().toLowerCase();
+  if (!q) return true;
+  return (
+    row.fighterName.toLowerCase().includes(q) ||
+    row.gymName.toLowerCase().includes(q) ||
+    row.divisionLabel.toLowerCase().includes(q) ||
+    (row.weightClassLabel?.toLowerCase().includes(q) ?? false)
+  );
+}
+
 export function checkInSelectValueForFilter(
   filter: FieldStatusSummaryFilter,
 ): string {

@@ -134,6 +134,8 @@
 - [x] **심판 라운드별 채점 MVP** — `JudgeAccessCredential`·`JudgeMatchAssignment`·`JudgeScorecard`·`JudgeRoundScore`(MatchResult와 분리). 주최자 `/organizer/events/[eventId]/judges`에서 계정·배정, 심판 `/judge/login` → 라운드별 홍/청 점수·감점·다운·메모·전송. 운영 Drawer에서 제출 집계·다수결 추천(참고용). **최종 확정은 기존 `confirmMatchResults` 흐름 유지**.
 - [x] **심판 수 정책** — 1~5명 허용, 3·5명 권장. 짝수 심판 동점 시 자동 확정 없음, 주최자/주심 최종 확정.
 - [x] 주최자: **현장 확인·계체** (`/organizer/events/[eventId]/check-in`) — 승인 신청자 대상 `CheckInStatus` / `WeighInStatus` 기록, 출전 확정은 서비스 계산.
+- [x] **대회 관리 메뉴 정리** — `EventManagementNav` 앵커(관리 홈·기본 설정·부문·신청서·참가비)와 별도 페이지(신청자·현장·계체·대진표·운영·결과·심판) 구분, pathname 기준 active 표시.
+- [x] **현장·계체 검색·UX** — 선수명·체육관·부문 검색, 요약 카드 필터, 버튼 그룹(현장 확인·계체·출전 확정 단축) 중심 입력.
 - [x] 체육관: **현장 상태 조회** (`/gym/events/[eventId]/field-status`, 읽기 전용).
 - [x] 체육관: **신청 현황 조회** (`/gym/events/[eventId]/status`) — 소속 선수만, 신청·입금·신청서·현장·계체·대진·경기·결과 요약, 요약 카드 필터·검색·상세 Drawer(주최자 `fieldMemo`·계체 실측 미노출).
 - [x] 체육관: **자기 선수 경기 확인** — 동일 화면 「우리 체육관 경기」·미배정 선수, 공개 대진표 링크.

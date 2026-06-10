@@ -234,6 +234,62 @@ export const fieldStatusService = {
     );
   },
 
+  /**
+   * 출전 확정 단축 — 현장 확인(pending→checked_in) 후 계체 통과(pending→pass).
+   * 기존 setCheckInStatus / setWeighInStatus만 순서대로 호출한다.
+   */
+  async quickConfirmEligibility(
+    actor: ActorContext,
+    applicationId: string,
+  ): Promise<void> {
+    const row = await assertOrganizerApplication(actor, applicationId);
+
+    if (
+      row.checkInStatus !== CheckInStatus.checked_in &&
+      row.checkInStatus !== CheckInStatus.pending
+    ) {
+      throw new AppError(
+        "VALIDATION_ERROR",
+        "미출석·철회·실격 상태에서는 출전 확정할 수 없습니다.",
+      );
+    }
+
+    if (row.checkInStatus === CheckInStatus.pending) {
+      await fieldStatusService.setCheckInStatus(
+        actor,
+        applicationId,
+        CheckInStatus.checked_in,
+      );
+    }
+
+    const refreshed = await fieldStatusRepository.findApprovedApplicationById(
+      applicationId,
+    );
+    if (!refreshed) {
+      throw new AppError("NOT_FOUND", "승인된 신청을 찾을 수 없습니다.");
+    }
+
+    if (
+      refreshed.weighInStatus === WeighInStatus.pass ||
+      refreshed.weighInStatus === WeighInStatus.manual_pass
+    ) {
+      return;
+    }
+
+    if (refreshed.weighInStatus !== WeighInStatus.pending) {
+      throw new AppError(
+        "VALIDATION_ERROR",
+        "계체 실패 상태에서는 출전 확정할 수 없습니다. 수동 승인을 사용해 주세요.",
+      );
+    }
+
+    await fieldStatusService.setWeighInStatus(
+      actor,
+      applicationId,
+      WeighInStatus.pass,
+    );
+  },
+
   async setWeighInStatus(
     actor: ActorContext,
     applicationId: string,
