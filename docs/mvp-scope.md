@@ -140,8 +140,10 @@
 - [x] 선수: **내 대회·내 경기 조회** (`/fighter/events`) — 본인 `fighterId` 연결 신청·현장·대진·결과 **조회만**, 입금은 「체육관/주최자 확인 중」 수준 표시.
 - [x] 대진표 후보: 출전 미확정 **경고**·「출전 확정만 보기」필터 — 기존 배치 **자동 삭제 없음**.
 - [x] **실제 계체 몸무게·현장 메모** — 공개 페이지(`/events/*`) 미노출.
-- [x] **자동 대진 생성** (`/organizer/events/[eventId]/brackets`) — 승인 신청자를 `divisionId` 기준 2명씩 `match_list`에 추가(기존 대진 유지·미배치 선수만).
-- [x] **홀수 인원 미매칭/대기 목록** — 미매칭 사유(홀수·상대 없음·출전 미확정 등) 표시, 수동 편집 흐름과 연동.
+- [x] **자동 대진 생성** (`/organizer/events/[eventId]/brackets`) — **신청자 기준**(pending·approved, `divisionId`·active fighter)으로 `divisionId`별 2명씩 `match_list`에 추가. 현장 확인·계체·출전 확정은 생성 조건에서 제외. 「출전 확정자만 생성」은 고급 옵션(`eligibleOnly`).
+- [x] **홀수 인원 미매칭/대기 목록** — 주최자 화면·(토글 시) 공개 페이지 「추가 매칭 대기 명단」. 미매칭 사유(홀수·상대 없음 등) 표시.
+- [x] **대진표·미매칭 공개 토글** — `Bracket.isPublic` + `Event.publicUnmatchedListEnabled`. 공개 대진표 VS 카드(홍코너/청코너·체육관).
+- [x] **계체 탈락 후 대진 패 처리** — 현장·계체 화면에서 배정 경기 안내·주최자 선택(패배/실격/기권/그래도 진행). 공식 결과는 기존 `recordMatchOutcomeDraft` → `confirmMatchResults` 재사용.
 - [x] **테스트용 체육관·선수 더미 데이터** — `npm run setup:bracket-demo-data`(gym1~7, 80명 선수, approved 신청, 크레딧 ledger 미발생).
 
 ### 전적·조회

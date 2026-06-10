@@ -504,7 +504,36 @@ export const eventService = {
       paymentInfo,
       hasPublicBrackets: extras?.hasPublicBrackets ?? false,
       hasPublicResults: extras?.hasPublicResults ?? false,
+      publicUnmatchedListEnabled: event.publicUnmatchedListEnabled ?? false,
     };
+  },
+
+  async setPublicUnmatchedListEnabled(
+    actor: ActorContext,
+    eventId: string,
+    enabled: boolean,
+  ): Promise<void> {
+    requireRole(actor, ["organizer", "admin"]);
+    await requireOrganizerForEvent(actor, eventId);
+    await eventRepository.updateEvent(eventId, {
+      publicUnmatchedListEnabled: enabled,
+    });
+  },
+
+  async getEventBracketPublicationSettings(
+    actor: ActorContext,
+    eventId: string,
+  ): Promise<{
+    publicSlug: string;
+    publicUnmatchedListEnabled: boolean;
+  }> {
+    requireRole(actor, ["organizer", "admin"]);
+    await requireOrganizerForEvent(actor, eventId);
+    const row = await eventRepository.findEventPublicationSettings(eventId);
+    if (!row) {
+      throw new AppError("NOT_FOUND", "대회를 찾을 수 없습니다.");
+    }
+    return row;
   },
 
   async listEventsForGymDashboard(

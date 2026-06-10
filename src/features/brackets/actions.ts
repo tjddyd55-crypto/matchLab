@@ -9,8 +9,11 @@ import {
 import { PermissionError } from "@/lib/auth/permission-error";
 import { requireActorFromMutation } from "@/lib/auth/actor";
 import { AppError } from "@/lib/errors/app-error";
+import { revalidatePath } from "next/cache";
 import { bracketAutoMatchService } from "@/lib/services/bracket-auto-match.service";
 import { bracketService } from "@/lib/services/bracket.service";
+import { eventRepository } from "@/lib/repositories/event.repository";
+import { eventService } from "@/lib/services/event.service";
 import { isPrismaUniqueViolation } from "@/lib/prisma-errors";
 import {
   assignFighterToMatchSchema,
@@ -19,7 +22,9 @@ import {
   createSingleEliminationDraftSchema,
   publishBracketSchema,
   removeFighterFromMatchSchema,
+  eventBracketPublicationSchema,
   resetBracketSchema,
+  setPublicUnmatchedListSchema,
   unpublishBracketSchema,
   updateMatchOrderAndMatSchema,
 } from "@/lib/validators/bracket.validator";
@@ -423,6 +428,114 @@ export async function updateMatchOrderAndMatFormAction(
 function parseCheckbox(formData: FormData, key: string): boolean {
   const v = formData.get(key);
   return v === "on" || v === "true" || v === "1";
+}
+
+async function revalidateBracketPublicPaths(eventId: string): Promise<void> {
+  const settings = await eventRepository.findEventPublicationSettings(eventId);
+  revalidatePath(`/organizer/events/${eventId}/brackets`);
+  if (settings?.publicSlug) {
+    revalidatePath(`/events/${settings.publicSlug}/brackets`);
+    revalidatePath(`/events/${settings.publicSlug}`);
+  }
+}
+
+export async function publishAllEventBracketsAction(
+  arg1: unknown,
+  arg2?: FormData,
+): Promise<ActionResult<{ published: number }>> {
+  const formData = resolveFormData(arg1, arg2);
+  if (!formData) {
+    return actionFailure("VALIDATION_ERROR", "요청 본문이 올바르지 않습니다.");
+  }
+  return mapCaught(async () => {
+    const parsed = eventBracketPublicationSchema.safeParse({
+      eventId: formReq(formData, "eventId"),
+    });
+    if (!parsed.success) {
+      return actionFailure("VALIDATION_ERROR", "대회 정보가 올바르지 않습니다.");
+    }
+    const actor = await requireActorFromMutation();
+    const result = await bracketService.publishAllEventBrackets(
+      actor,
+      parsed.data.eventId,
+    );
+    await revalidateBracketPublicPaths(parsed.data.eventId);
+    return actionSuccess(result);
+  });
+}
+
+export async function unpublishAllEventBracketsAction(
+  arg1: unknown,
+  arg2?: FormData,
+): Promise<ActionResult<{ unpublished: number }>> {
+  const formData = resolveFormData(arg1, arg2);
+  if (!formData) {
+    return actionFailure("VALIDATION_ERROR", "요청 본문이 올바르지 않습니다.");
+  }
+  return mapCaught(async () => {
+    const parsed = eventBracketPublicationSchema.safeParse({
+      eventId: formReq(formData, "eventId"),
+    });
+    if (!parsed.success) {
+      return actionFailure("VALIDATION_ERROR", "대회 정보가 올바르지 않습니다.");
+    }
+    const actor = await requireActorFromMutation();
+    const result = await bracketService.unpublishAllEventBrackets(
+      actor,
+      parsed.data.eventId,
+    );
+    await revalidateBracketPublicPaths(parsed.data.eventId);
+    return actionSuccess(result);
+  });
+}
+
+export async function setPublicUnmatchedListAction(
+  arg1: unknown,
+  arg2?: FormData,
+): Promise<ActionResult<{ enabled: boolean }>> {
+  const formData = resolveFormData(arg1, arg2);
+  if (!formData) {
+    return actionFailure("VALIDATION_ERROR", "요청 본문이 올바르지 않습니다.");
+  }
+  return mapCaught(async () => {
+    const enabledRaw = formReq(formData, "enabled");
+    const parsed = setPublicUnmatchedListSchema.safeParse({
+      eventId: formReq(formData, "eventId"),
+      enabled:
+        enabledRaw === "true" ||
+        enabledRaw === "on" ||
+        enabledRaw === "1",
+    });
+    if (!parsed.success) {
+      return actionFailure("VALIDATION_ERROR", "입력값을 확인해 주세요.");
+    }
+    const actor = await requireActorFromMutation();
+    await eventService.setPublicUnmatchedListEnabled(
+      actor,
+      parsed.data.eventId,
+      parsed.data.enabled,
+    );
+    await revalidateBracketPublicPaths(parsed.data.eventId);
+    return actionSuccess({ enabled: parsed.data.enabled });
+  });
+}
+
+export async function publishAllEventBracketsFormAction(
+  formData: FormData,
+): Promise<void> {
+  await publishAllEventBracketsAction(formData);
+}
+
+export async function unpublishAllEventBracketsFormAction(
+  formData: FormData,
+): Promise<void> {
+  await unpublishAllEventBracketsAction(formData);
+}
+
+export async function setPublicUnmatchedListFormAction(
+  formData: FormData,
+): Promise<void> {
+  await setPublicUnmatchedListAction(formData);
 }
 
 export async function generateAutoBracketMatchesAction(

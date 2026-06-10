@@ -22,11 +22,19 @@ import { safeNotify } from "@/lib/notifications/safe-dispatch";
 import { prisma } from "@/lib/prisma";
 import { notificationRepository } from "@/lib/repositories/notification.repository";
 import { notificationService } from "@/lib/services/notification.service";
+import type { PublicUnmatchedCandidateDTO } from "@/lib/dto/public";
 import {
   bracketRepository,
   type AutoMatchApplicationRow,
 } from "@/lib/repositories/bracket.repository";
+import { eventRepository } from "@/lib/repositories/event.repository";
 import type { GenerateAutoBracketMatchesInput } from "@/lib/validators/bracket-auto-match.validator";
+
+export type AutoBracketDivisionSummary = {
+  divisionLabel: string;
+  createdMatches: number;
+  unmatchedCount: number;
+};
 
 export type AutoBracketGenerationSummary = {
   createdMatches: number;
@@ -37,6 +45,7 @@ export type AutoBracketGenerationSummary = {
   sameGymPairWarnings: number;
   createdBrackets: number;
   resetDeletedMatches: number;
+  divisionSummaries: AutoBracketDivisionSummary[];
   messages: string[];
 };
 
@@ -63,7 +72,7 @@ export type CanResetBracketSafelyResult = {
 const REASON_LABELS: Record<UnmatchedReason, string> = {
   odd_count: "홀수 인원으로 남음",
   no_opponent_in_division: "같은 division 내 상대 없음",
-  not_field_eligible: "출전 미확정",
+  not_field_eligible: "현장·계체 미완료(대진 생성에는 포함됨)",
   already_placed: "이미 다른 대진에 배치됨",
   missing_division: "division 정보 없음",
 };
@@ -121,7 +130,7 @@ export const bracketAutoMatchService = {
     await requireOrganizerForEvent(actor, eventId);
 
     const applications =
-      await bracketRepository.listApprovedApplicationsForAutoMatch(eventId);
+      await bracketRepository.listApplicantApplicationsForAutoMatch(eventId);
     const placedIds = new Set(
       await bracketRepository.listPlacedFighterIdsForEvent(eventId),
     );
@@ -143,11 +152,6 @@ export const bracketAutoMatchService = {
 
       if (placedIds.has(row.fighterId)) {
         result.push(mapUnmatchedRow(row, eligibility, "already_placed"));
-        continue;
-      }
-
-      if (!eligibility.isEligibleForBracket) {
-        result.push(mapUnmatchedRow(row, eligibility, "not_field_eligible"));
         continue;
       }
 
@@ -186,14 +190,14 @@ export const bracketAutoMatchService = {
     await requireOrganizerForEvent(actor, input.eventId);
 
     const applications =
-      await bracketRepository.listApprovedApplicationsForAutoMatch(
+      await bracketRepository.listApplicantApplicationsForAutoMatch(
         input.eventId,
       );
 
     if (applications.length === 0) {
       throw new AppError(
         "VALIDATION_ERROR",
-        "자동 매칭할 승인 선수가 없습니다.",
+        "자동 매칭할 신청 선수가 없습니다.",
       );
     }
 
@@ -210,6 +214,7 @@ export const bracketAutoMatchService = {
       sameGymPairWarnings: 0,
       createdBrackets: 0,
       resetDeletedMatches: 0,
+      divisionSummaries: [],
       messages: [],
     };
 
@@ -255,7 +260,7 @@ export const bracketAutoMatchService = {
       }
       throw new AppError(
         "VALIDATION_ERROR",
-        "자동 매칭할 승인 선수가 없습니다.",
+        "자동 매칭할 신청 선수가 없습니다.",
       );
     }
 
@@ -281,6 +286,18 @@ export const bracketAutoMatchService = {
 
         summary.divisionsProcessed += 1;
         summary.sameGymPairWarnings += pairing.sameGymPairCount;
+
+        const sampleForLabel = appByFighterDivision.get(
+          `${group[0]!.fighterId}:${divisionId}`,
+        );
+        const divisionLabel = sampleForLabel
+          ? formatDivisionNameLabel(sampleForLabel.division)
+          : divisionId;
+        summary.divisionSummaries.push({
+          divisionLabel,
+          createdMatches: pairing.pairs.length,
+          unmatchedCount: pairing.unmatched.length,
+        });
 
         let bracket =
           await bracketRepository.findMatchListBracketByDivision(
@@ -383,9 +400,17 @@ export const bracketAutoMatchService = {
       }
     });
 
+    summary.messages.push(
+      "대진표는 신청자 기준으로 먼저 생성됩니다. 현장 확인·계체 결과는 이후 경기 진행/패 처리에 반영할 수 있습니다.",
+    );
+    if (summary.createdMatches > 0) {
+      summary.messages.push(
+        `신청자 기준으로 ${summary.createdMatches}경기를 생성했습니다.`,
+      );
+    }
     if (summary.unmatchedCount > 0) {
       summary.messages.push(
-        `일부 선수는 홀수 인원으로 미매칭 목록에 남았습니다. (${summary.unmatchedCount}명)`,
+        `미매칭 선수 ${summary.unmatchedCount}명은 대기 명단에 표시됩니다.`,
       );
     }
     if (summary.sameGymPairWarnings > 0) {
@@ -395,7 +420,7 @@ export const bracketAutoMatchService = {
     }
     if (summary.ineligibleWarningCount > 0 && !input.eligibleOnly) {
       summary.messages.push(
-        `출전 미확정 선수 ${summary.ineligibleWarningCount}명이 포함되었습니다.`,
+        `현장·계체 미완료 선수 ${summary.ineligibleWarningCount}명이 포함되었습니다.`,
       );
     }
 
@@ -416,6 +441,72 @@ export const bracketAutoMatchService = {
     }
 
     return summary;
+  },
+
+  /** 공개 페이지용 미매칭 명단 — event.publicUnmatchedListEnabled 가 켜져 있을 때만 */
+  async listPublicUnmatchedCandidatesByEventSlug(
+    slug: string,
+  ): Promise<PublicUnmatchedCandidateDTO[]> {
+    const event = await eventRepository.findPublicEventBySlug(slug);
+    if (!event?.publicUnmatchedListEnabled) {
+      return [];
+    }
+
+    const applications =
+      await bracketRepository.listApplicantApplicationsForAutoMatch(event.id);
+    const placedIds = new Set(
+      await bracketRepository.listPlacedFighterIdsForEvent(event.id),
+    );
+
+    const unplacedByDivision = new Map<string, AutoMatchApplicationRow[]>();
+    const waitingRows: Array<{
+      row: AutoMatchApplicationRow;
+      reason: UnmatchedReason;
+    }> = [];
+
+    for (const row of applications) {
+      if (!row.divisionId) continue;
+      if (placedIds.has(row.fighterId)) continue;
+
+      const list = unplacedByDivision.get(row.divisionId) ?? [];
+      list.push(row);
+      unplacedByDivision.set(row.divisionId, list);
+    }
+
+    for (const [, group] of unplacedByDivision) {
+      const candidates = group.map(toAutoMatchCandidate);
+      const pairing = pairCandidatesWithinDivision(candidates);
+      for (const u of pairing.unmatched) {
+        const row = group.find((g) => g.fighterId === u.fighterId);
+        if (!row) continue;
+        const reason: UnmatchedReason =
+          group.length === 1 ? "no_opponent_in_division" : "odd_count";
+        waitingRows.push({ row, reason });
+      }
+    }
+
+    waitingRows.sort((a, b) => {
+      const divCmp = formatDivisionNameLabel(a.row.division).localeCompare(
+        formatDivisionNameLabel(b.row.division),
+        "ko",
+      );
+      if (divCmp !== 0) return divCmp;
+      const gymCmp = a.row.gym.name.localeCompare(b.row.gym.name, "ko");
+      if (gymCmp !== 0) return gymCmp;
+      return a.row.fighter.name.localeCompare(b.row.fighter.name, "ko");
+    });
+
+    return waitingRows.map(({ row, reason }, index) => ({
+      order: index + 1,
+      fighterName: row.fighter.name,
+      gymName: row.gym.name,
+      gender: row.division.gender ?? row.fighter.gender,
+      ageGroup: row.division.ageGroup,
+      weightClass: row.division.weightClass,
+      divisionLabel: formatDivisionNameLabel(row.division),
+      recordSummary: `${row.fighter.recordWin}승 ${row.fighter.recordLoss}패 ${row.fighter.recordDraw}무`,
+      reasonLabel: REASON_LABELS[reason],
+    }));
   },
 };
 

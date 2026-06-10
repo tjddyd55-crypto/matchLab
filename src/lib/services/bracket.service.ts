@@ -457,6 +457,40 @@ export const bracketService = {
     }
   },
 
+  async publishAllEventBrackets(
+    actor: ActorContext,
+    eventId: string,
+  ): Promise<{ published: number }> {
+    requireRole(actor, ["organizer", "admin"]);
+    await requireOrganizerForEvent(actor, eventId);
+    const brackets = await bracketRepository.listBracketsByEvent(eventId);
+    let published = 0;
+    for (const b of brackets) {
+      if (!b.isPublic) {
+        await bracketService.publishBracket(actor, b.id);
+        published += 1;
+      }
+    }
+    return { published };
+  },
+
+  async unpublishAllEventBrackets(
+    actor: ActorContext,
+    eventId: string,
+  ): Promise<{ unpublished: number }> {
+    requireRole(actor, ["organizer", "admin"]);
+    await requireOrganizerForEvent(actor, eventId);
+    const brackets = await bracketRepository.listBracketsByEvent(eventId);
+    let unpublished = 0;
+    for (const b of brackets) {
+      if (b.isPublic) {
+        await bracketService.unpublishBracket(actor, b.id);
+        unpublished += 1;
+      }
+    }
+    return { unpublished };
+  },
+
   async unpublishBracket(actor: ActorContext, bracketId: string): Promise<void> {
     const ctx = await ensureBracketOrganizer(actor, bracketId);
     const row = await bracketRepository.findBracketById(bracketId);

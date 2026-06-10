@@ -26,10 +26,12 @@ function statusLabel(s: BracketMatchStatus): string {
 
 export function BracketMatchCard({
   match,
+  divisionLabel,
   matPrefix,
   className,
 }: {
   match: PublicBracketMatchDTO;
+  divisionLabel?: string | null;
   /** 예: "경기 #3" 앞에 붙는 매트 라벨 */
   matPrefix?: string | null;
   className?: string;
@@ -46,69 +48,67 @@ export function BracketMatchCard({
     match.fighterBlue?.fighterId &&
     match.winnerId === match.fighterBlue.fighterId;
 
+  const matchNoLabel =
+    match.matchNumber != null
+      ? `${match.matchNumber}경기`
+      : `${match.matchOrder + 1}번`;
+
   return (
     <div
       className={cn(
-        "ring-foreground/10 space-y-3 rounded-xl border bg-card p-4 shadow-sm",
+        "ring-foreground/10 overflow-hidden rounded-xl border bg-card shadow-sm",
         className,
       )}
     >
-      <div className="flex flex-wrap items-center justify-between gap-2 text-xs">
-        <div className="text-muted-foreground flex flex-wrap gap-2">
-          {match.roundName ? (
-            <span className="font-medium">{match.roundName}</span>
+      <div className="flex flex-wrap items-center justify-between gap-2 border-b bg-muted/30 px-4 py-2 text-xs">
+        <div className="flex flex-wrap items-center gap-2">
+          <span className="text-base font-bold">{matchNoLabel}</span>
+          {divisionLabel ? (
+            <span className="text-muted-foreground">{divisionLabel}</span>
           ) : null}
-          {match.matchNumber != null ? (
-            <span>경기 #{match.matchNumber}</span>
-          ) : (
-            <span>순번 {match.matchOrder + 1}</span>
-          )}
           {matPrefix != null && match.matNumber != null ? (
-            <span>
+            <span className="text-muted-foreground">
               {matPrefix}
               {match.matNumber}
             </span>
           ) : null}
-          {match.globalMatchOrder != null ? (
-            <span>전체순서 {match.globalMatchOrder}</span>
-          ) : null}
         </div>
-        <span className="bg-muted rounded px-2 py-0.5 font-medium">
+        <span className="rounded-full bg-background px-2.5 py-0.5 font-medium">
           {statusLabel(match.status)}
         </span>
       </div>
-      <div className="flex flex-col gap-2 md:flex-row md:items-stretch">
+
+      <div className="grid gap-0 md:grid-cols-[1fr_auto_1fr] md:items-stretch">
         <FighterSlotCard
-          cornerLabel="레드"
+          cornerLabel="홍코너"
           fighter={match.fighterRed}
           className={cn(
-            redHighlight && "ring-emerald-600/70 ring-2 ring-offset-2",
+            "rounded-none border-0 border-b md:border-b-0 md:border-r",
+            redHighlight && "ring-2 ring-inset ring-emerald-600/60",
           )}
         />
-        <div className="text-muted-foreground hidden shrink-0 items-center px-1 text-xs font-semibold md:flex">
+        <div className="bg-muted/40 text-muted-foreground flex items-center justify-center px-4 py-2 text-sm font-bold tracking-widest md:py-0">
           VS
         </div>
         <FighterSlotCard
-          cornerLabel="블루"
+          cornerLabel="청코너"
           fighter={match.fighterBlue}
           bye={blueIsBye}
           className={cn(
-            blueHighlight && "ring-emerald-600/70 ring-2 ring-offset-2",
+            "rounded-none border-0",
+            blueHighlight && "ring-2 ring-inset ring-emerald-600/60",
           )}
         />
       </div>
-      <p className="text-muted-foreground text-[11px]">
-        {match.resultType ? (
-          <>
-            공식 결방식:{" "}
-            <span className="text-foreground font-medium">
-              {outcomeStylePublicLabel(match.resultType)}
-            </span>
-          </>
-        ) : (
-          <>브래킷에 확정된 결방식 정보가 없습니다.</>
-        )}
-      </p>
+
+      {match.resultType ? (
+        <p className="text-muted-foreground border-t px-4 py-2 text-[11px]">
+          결과:{" "}
+          <span className="text-foreground font-medium">
+            {outcomeStylePublicLabel(match.resultType)}
+          </span>
+        </p>
+      ) : null}
     </div>
   );
 }

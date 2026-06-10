@@ -1,5 +1,9 @@
 import { z } from "zod";
-import { CheckInStatus, WeighInStatus } from "@/generated/prisma";
+import {
+  BracketMatchOutcomeStyle,
+  CheckInStatus,
+  WeighInStatus,
+} from "@/generated/prisma";
 
 export const fieldStatusApplicationIdSchema = z.object({
   applicationId: z.string().min(1, "신청 ID가 필요합니다."),
@@ -22,4 +26,12 @@ export const recordWeighInWeightSchema = fieldStatusApplicationIdSchema.extend({
 
 export const saveFieldMemoSchema = fieldStatusApplicationIdSchema.extend({
   memo: z.string().max(2000).nullable(),
+});
+
+export const applyFieldBracketOutcomeSchema = z.object({
+  matchId: z.string().min(1, "경기 ID가 필요합니다."),
+  loserFighterId: z.string().min(1, "선수 ID가 필요합니다."),
+  resultType: z.nativeEnum(BracketMatchOutcomeStyle),
+  confirmOfficial: z.boolean().optional().default(true),
+  resultMemo: z.string().max(500).nullable().optional(),
 });

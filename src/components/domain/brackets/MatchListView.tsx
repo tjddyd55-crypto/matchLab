@@ -19,7 +19,12 @@ export function MatchListView({ bracket }: { bracket: PublicBracketDetailDTO }) 
       </header>
       <div className="flex flex-col gap-4">
         {sorted.map((m) => (
-          <BracketMatchCard key={m.id} match={m} matPrefix="매트 " />
+          <BracketMatchCard
+            key={m.id}
+            match={m}
+            divisionLabel={bracket.divisionLabel}
+            matPrefix="매트 "
+          />
         ))}
       </div>
     </section>

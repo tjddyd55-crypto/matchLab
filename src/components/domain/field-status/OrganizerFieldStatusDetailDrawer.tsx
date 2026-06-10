@@ -8,6 +8,7 @@ import {
   FieldStatusRowActions,
   WeighInWeightForm,
 } from "@/components/domain/field-status/FieldStatusApplicationActions";
+import { FieldStatusBracketPanel } from "@/components/domain/field-status/FieldStatusBracketPanel";
 import { WeighInStatusBadge } from "@/components/domain/field-status/WeighInStatusBadge";
 import { DrawerPanel } from "@/components/ui/drawer-panel";
 import type { FieldStatusRowDTO } from "@/lib/services/field-status.service";
@@ -76,6 +77,8 @@ export function OrganizerFieldStatusDetailDrawer({
             </DetailRow>
           ) : null}
         </dl>
+
+        <FieldStatusBracketPanel row={row} />
 
         <div className="space-y-3 border-t pt-4">
           <p className="text-sm font-medium">계체·메모</p>

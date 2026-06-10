@@ -12,11 +12,13 @@ import { requireActorFromMutation } from "@/lib/auth/actor";
 import { AppError } from "@/lib/errors/app-error";
 import { fieldStatusService } from "@/lib/services/field-status.service";
 import {
+  applyFieldBracketOutcomeSchema,
   recordWeighInWeightSchema,
   saveFieldMemoSchema,
   setCheckInStatusSchema,
   setWeighInStatusSchema,
 } from "@/lib/validators/field-status.validator";
+import { BracketMatchOutcomeStyle } from "@/generated/prisma";
 import { fieldStatusRepository } from "@/lib/repositories/field-status.repository";
 
 function mapCaught<T>(
@@ -271,4 +273,39 @@ export async function weighInManualFailFormActionVoid(
   formData: FormData,
 ): Promise<void> {
   await weighInManualFailFormAction(formData);
+}
+
+export async function applyFieldBracketOutcomeFormAction(
+  formData: FormData,
+): Promise<ActionResult<{ ok: true }>> {
+  return mapCaught(async () => {
+    const actor = await requireActorFromMutation();
+    const resultTypeRaw = formReq(formData, "resultType");
+    const parsed = applyFieldBracketOutcomeSchema.safeParse({
+      matchId: formReq(formData, "matchId"),
+      loserFighterId: formReq(formData, "loserFighterId"),
+      resultType: resultTypeRaw as BracketMatchOutcomeStyle,
+      confirmOfficial: formReq(formData, "confirmOfficial") !== "false",
+      resultMemo: formReq(formData, "resultMemo") || null,
+    });
+    if (!parsed.success) {
+      return actionFailure("VALIDATION_ERROR", "패 처리 입력값을 확인해 주세요.");
+    }
+    await fieldStatusService.applyFieldBracketOutcome(actor, parsed.data);
+    const row = await fieldStatusRepository.findApprovedApplicationById(
+      formReq(formData, "applicationId"),
+    );
+    if (row) {
+      revalidatePath(`/organizer/events/${row.eventId}/check-in`);
+      revalidatePath(`/organizer/events/${row.eventId}/operation`);
+      revalidatePath(`/organizer/events/${row.eventId}/brackets`);
+    }
+    return actionSuccess({ ok: true });
+  });
+}
+
+export async function applyFieldBracketOutcomeFormActionVoid(
+  formData: FormData,
+): Promise<void> {
+  await applyFieldBracketOutcomeFormAction(formData);
 }

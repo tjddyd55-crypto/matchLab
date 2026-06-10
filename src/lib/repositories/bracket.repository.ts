@@ -699,14 +699,19 @@ export const bracketRepository = {
     return agg._max.matchOrder ?? -1;
   },
 
-  async listApprovedApplicationsForAutoMatch(
+  /**
+   * 자동 대진 후보 — 신청 접수·승인 선수(반려/취소 제외), 현장·계체 무관.
+   */
+  async listApplicantApplicationsForAutoMatch(
     eventId: string,
     tx?: Prisma.TransactionClient,
   ): Promise<AutoMatchApplicationRow[]> {
     const rows = await db(tx).eventApplication.findMany({
       where: {
         eventId,
-        status: ApplicationStatus.approved,
+        status: {
+          in: [ApplicationStatus.pending, ApplicationStatus.approved],
+        },
         fighter: { status: FighterStatus.active },
       },
       orderBy: [{ gym: { name: "asc" } }, { createdAt: "asc" }],
@@ -748,5 +753,65 @@ export const bracketRepository = {
       },
     });
     return rows as AutoMatchApplicationRow[];
+  },
+
+  /** @deprecated listApplicantApplicationsForAutoMatch 사용 */
+  async listApprovedApplicationsForAutoMatch(
+    eventId: string,
+    tx?: Prisma.TransactionClient,
+  ): Promise<AutoMatchApplicationRow[]> {
+    return bracketRepository.listApplicantApplicationsForAutoMatch(eventId, tx);
+  },
+
+  async listFighterBracketMatchesInEvent(
+    eventId: string,
+    tx?: Prisma.TransactionClient,
+  ) {
+    return db(tx).bracketMatch.findMany({
+      where: {
+        bracket: { eventId },
+        status: { not: BracketMatchStatus.cancelled },
+        OR: [
+          { fighterRedId: { not: null } },
+          { fighterBlueId: { not: null } },
+        ],
+      },
+      select: {
+        id: true,
+        matchNumber: true,
+        globalMatchOrder: true,
+        matchOrder: true,
+        fighterRedId: true,
+        fighterBlueId: true,
+        fighterRedSnapshot: true,
+        fighterBlueSnapshot: true,
+        status: true,
+        winnerId: true,
+        resultType: true,
+        matchResults: {
+          where: {
+            status: {
+              in: [MatchRecordStatus.confirmed, MatchRecordStatus.corrected],
+            },
+          },
+          select: { id: true },
+        },
+        bracket: {
+          select: {
+            division: {
+              select: {
+                sportType: true,
+                ruleType: true,
+                gender: true,
+                ageGroup: true,
+                weightClass: true,
+                skillLevel: true,
+              },
+            },
+          },
+        },
+      },
+      orderBy: [{ globalMatchOrder: "asc" }, { matchOrder: "asc" }],
+    });
   },
 };

@@ -21,7 +21,7 @@ function SummaryBlock({ summary }: { summary: AutoBracketGenerationSummary }) {
         <li>처리 부문: {summary.divisionsProcessed}개</li>
         <li>기존 배치 제외: {summary.excludedAlreadyPlaced}명</li>
         {summary.ineligibleWarningCount > 0 ? (
-          <li>출전 미확정 경고: {summary.ineligibleWarningCount}명</li>
+          <li>현장·계체 미확정 포함: {summary.ineligibleWarningCount}명</li>
         ) : null}
         {summary.sameGymPairWarnings > 0 ? (
           <li>같은 체육관 매칭: {summary.sameGymPairWarnings}건</li>
@@ -33,6 +33,16 @@ function SummaryBlock({ summary }: { summary: AutoBracketGenerationSummary }) {
           <li>초기화된 기존 경기: {summary.resetDeletedMatches}건</li>
         ) : null}
       </ul>
+      {summary.divisionSummaries.length > 0 ? (
+        <ul className="mt-2 space-y-1 text-xs">
+          {summary.divisionSummaries.map((d) => (
+            <li key={d.divisionLabel}>
+              {d.divisionLabel}: {d.createdMatches}경기 생성 · 미매칭{" "}
+              {d.unmatchedCount}명
+            </li>
+          ))}
+        </ul>
+      ) : null}
       {summary.messages.length > 0 ? (
         <ul className="mt-2 space-y-1 text-xs text-amber-900 dark:text-amber-100">
           {summary.messages.map((m) => (
@@ -82,8 +92,8 @@ export function AutoBracketGenerationPanel({
         <div>
           <h2 className="text-lg font-semibold">자동 대진 생성</h2>
           <p className="text-muted-foreground mt-1 text-sm">
-            승인된 신청자를 division별로 2명씩 자동 매칭합니다. 기존 대진은
-            유지되며, 아직 배치되지 않은 선수만 추가됩니다.
+            대진표는 신청자 기준으로 먼저 생성됩니다. 현장 확인·계체 결과는
+            이후 경기 진행/패 처리에 반영할 수 있습니다.
           </p>
         </div>
       </div>
@@ -99,7 +109,7 @@ export function AutoBracketGenerationPanel({
               name="eligibleOnly"
               className="size-4 rounded border"
             />
-            <span>출전 확정 선수만 자동 매칭</span>
+            <span>출전 확정자만 생성 (고급)</span>
           </label>
 
           <Button type="submit" disabled={isPending}>
@@ -128,7 +138,7 @@ export function AutoBracketGenerationPanel({
                 name="eligibleOnly"
                 className="size-4 rounded border"
               />
-              <span>출전 확정 선수만 자동 매칭</span>
+              <span>출전 확정자만 생성 (고급)</span>
             </label>
             <Button type="submit" variant="destructive" disabled={isPending}>
               {resetPending ? "초기화·생성 중…" : "기존 대진 초기화 후 자동 생성"}

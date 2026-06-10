@@ -2,6 +2,24 @@ import { FighterAvatar } from "@/components/shared/FighterAvatar";
 import type { PublicBracketFighterDTO } from "@/lib/dto/public";
 import { cn } from "@/lib/utils";
 
+const CORNER_STYLES: Record<
+  string,
+  { label: string; border: string; bg: string; accent: string }
+> = {
+  홍코너: {
+    label: "홍코너",
+    border: "border-red-500/50",
+    bg: "bg-red-500/5",
+    accent: "text-red-700 dark:text-red-300",
+  },
+  청코너: {
+    label: "청코너",
+    border: "border-blue-500/50",
+    bg: "bg-blue-500/5",
+    accent: "text-blue-700 dark:text-blue-300",
+  },
+};
+
 export function FighterSlotCard({
   cornerLabel,
   fighter,
@@ -13,18 +31,29 @@ export function FighterSlotCard({
   bye?: boolean;
   className?: string;
 }) {
+  const style = CORNER_STYLES[cornerLabel] ?? {
+    label: cornerLabel,
+    border: "border-border",
+    bg: "bg-card",
+    accent: "text-muted-foreground",
+  };
+
   if (bye && !fighter) {
     return (
       <div
         className={cn(
-          "bg-muted/40 flex min-h-[4.5rem] flex-1 flex-col justify-center rounded-lg border border-dashed px-3 py-2 text-sm",
+          "flex min-h-[6rem] flex-1 flex-col justify-center rounded-xl border border-dashed px-4 py-3",
+          style.border,
+          style.bg,
           className,
         )}
       >
-        <span className="text-muted-foreground text-xs font-medium">
-          {cornerLabel}
+        <span className={cn("text-xs font-semibold tracking-wide", style.accent)}>
+          {style.label}
         </span>
-        <span className="text-muted-foreground mt-1 font-medium">BYE · 부전승</span>
+        <span className="text-muted-foreground mt-2 text-sm font-medium">
+          BYE · 부전승
+        </span>
       </div>
     );
   }
@@ -33,14 +62,16 @@ export function FighterSlotCard({
     return (
       <div
         className={cn(
-          "bg-muted/30 flex min-h-[4.5rem] flex-1 flex-col justify-center rounded-lg border border-dashed px-3 py-2 text-sm",
+          "flex min-h-[6rem] flex-1 flex-col justify-center rounded-xl border border-dashed px-4 py-3",
+          style.border,
+          style.bg,
           className,
         )}
       >
-        <span className="text-muted-foreground text-xs font-medium">
-          {cornerLabel}
+        <span className={cn("text-xs font-semibold tracking-wide", style.accent)}>
+          {style.label}
         </span>
-        <span className="text-muted-foreground mt-1">미배정</span>
+        <span className="text-muted-foreground mt-2 text-sm">미배정</span>
       </div>
     );
   }
@@ -48,22 +79,29 @@ export function FighterSlotCard({
   return (
     <div
       className={cn(
-        "flex min-h-[4.5rem] flex-1 gap-2 rounded-lg border bg-card px-3 py-2 text-sm shadow-sm",
+        "flex min-h-[6rem] flex-1 gap-3 rounded-xl border px-4 py-3 shadow-sm",
+        style.border,
+        style.bg,
         className,
       )}
     >
-      <FighterAvatar src={fighter.profileImageUrl} name={fighter.name} />
-      <div className="min-w-0 flex-1 space-y-0.5">
-        <div className="text-muted-foreground text-[11px] font-medium tracking-wide uppercase">
-          {cornerLabel}
+      <FighterAvatar
+        src={fighter.profileImageUrl}
+        name={fighter.name}
+        className="size-12 shrink-0"
+      />
+      <div className="min-w-0 flex-1 space-y-1">
+        <div className={cn("text-xs font-semibold tracking-wide", style.accent)}>
+          {style.label}
         </div>
-        <div className="truncate font-semibold">{fighter.name}</div>
-        <div className="text-muted-foreground truncate text-xs">
-          {fighter.gymName ?? "소속 미상"} · {fighter.fighterCode}
+        <div className="truncate text-lg font-bold leading-tight">
+          {fighter.name}
+        </div>
+        <div className="text-muted-foreground truncate text-sm">
+          {fighter.gymName ?? "소속 미상"}
         </div>
         <div className="text-muted-foreground text-xs">
           {fighter.recordSummary}
-          {fighter.divisionName ? ` · ${fighter.divisionName}` : ""}
         </div>
       </div>
     </div>

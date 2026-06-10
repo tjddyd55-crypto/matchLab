@@ -1,5 +1,9 @@
 import { BracketType } from "@/lib/enums";
-import type { PublicBracketDetailDTO } from "@/lib/dto/public";
+import type {
+  PublicBracketDetailDTO,
+  PublicUnmatchedCandidateDTO,
+} from "@/lib/dto/public";
+import { PublicUnmatchedListSection } from "@/components/domain/brackets/PublicUnmatchedListSection";
 import { MatchListView } from "@/components/domain/brackets/MatchListView";
 import { PublicBracketRealtimeBridge } from "@/components/domain/brackets/PublicBracketRealtimeBridge";
 import { TournamentBracketView } from "@/components/domain/brackets/TournamentBracketView";
@@ -8,15 +12,21 @@ export function PublicEventBracketsSection({
   eventId,
   slug,
   brackets,
+  unmatchedCandidates = [],
+  publicUnmatchedListEnabled = false,
 }: {
   eventId: string;
   slug: string;
   brackets: PublicBracketDetailDTO[];
+  unmatchedCandidates?: PublicUnmatchedCandidateDTO[];
+  publicUnmatchedListEnabled?: boolean;
 }) {
   const bracketIds = brackets.map((b) => b.id);
+  const showUnmatched =
+    publicUnmatchedListEnabled && unmatchedCandidates.length > 0;
 
   return (
-    <div className="flex flex-col gap-6">
+    <div className="flex flex-col gap-10">
       <PublicBracketRealtimeBridge
         eventId={eventId}
         slug={slug}
@@ -32,8 +42,8 @@ export function PublicEventBracketsSection({
       </div>
 
       {brackets.length === 0 ? (
-        <p className="text-muted-foreground text-sm">
-          현재 공개된 대진표가 없습니다.
+        <p className="text-muted-foreground rounded-xl border border-dashed bg-muted/20 px-4 py-8 text-center text-sm">
+          대진표 준비 중입니다.
         </p>
       ) : (
         <div className="flex w-full flex-col gap-16">
@@ -46,6 +56,10 @@ export function PublicEventBracketsSection({
           )}
         </div>
       )}
+
+      {showUnmatched ? (
+        <PublicUnmatchedListSection candidates={unmatchedCandidates} />
+      ) : null}
     </div>
   );
 }

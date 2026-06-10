@@ -85,6 +85,7 @@ const detailHeaderSelect = {
   spectatorAccessStartAt: true,
   spectatorAccessEndAt: true,
   spectatorAccessToken: true,
+  publicUnmatchedListEnabled: true,
   organizer: { select: { name: true } },
   images: {
     select: {
@@ -396,6 +397,16 @@ export const eventRepository = {
   },
 
   /** 공개 상세 헤더 — slug 기준, draft·cancelled 는 미존재와 동일 */
+  async findEventPublicationSettings(eventId: string) {
+    return prisma.event.findUnique({
+      where: { id: eventId },
+      select: {
+        publicSlug: true,
+        publicUnmatchedListEnabled: true,
+      },
+    });
+  },
+
   async findPublicEventBySlug(
     slug: string,
   ): Promise<PublicEventDetailRecord | null> {

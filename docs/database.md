@@ -133,6 +133,7 @@ Notification
 - `Event.publicSlug`: 공개 URL. 제목 기반 ASCII 슬러그 + 충돌 시 랜덤 suffix(`allocateUniquePublicSlug`).
 - `Event.status` 기본값 `draft`. `draft`→`open` 시 제목·일정·장소·신청 기간·부문 1개 이상·`EventPaymentSetting` 존재를 서비스에서 검증.
 - `photoRecordingEnabled`, `videoRecordingEnabled`, `liveStreamingEnabled`, `streamingConsentRequired`, `streamingNoticeText`: 대회 단위 촬영·스트리밍 정책. **`liveStreamingEnabled` 가 true이면 신청 동의(`streamingConsentRequired`) 를 기본적으로 요구**하는 흐름을 권장(생성·수정 서비스에서 플래그에 맞춰 보정).
+- `publicUnmatchedListEnabled` (Boolean, 기본 `false`): 공개 페이지에 **추가 매칭 대기 명단** 표시 여부. 대진표 공개(`Bracket.isPublic`)와 별도 토글.
 
 ### EventDivision
 

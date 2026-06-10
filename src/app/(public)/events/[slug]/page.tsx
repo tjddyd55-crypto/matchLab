@@ -6,6 +6,7 @@ import { PublicEventDetailShell } from "@/components/domain/events/public/Public
 import { PublicEventLiveSection } from "@/components/domain/events/public/PublicEventLiveSection";
 import { PublicEventOverviewSection } from "@/components/domain/events/public/PublicEventOverviewSection";
 import { PublicEventResultsSection } from "@/components/domain/events/public/PublicEventResultsSection";
+import { bracketAutoMatchService } from "@/lib/services/bracket-auto-match.service";
 import { bracketService } from "@/lib/services/bracket.service";
 import { eventService } from "@/lib/services/event.service";
 import { liveStreamService } from "@/lib/services/live-stream.service";
@@ -82,12 +83,17 @@ export default async function PublicEventDetailPage({
 
   switch (tab) {
     case "brackets": {
-      const brackets = await bracketService.getPublicBracketsByEventSlug(slug);
+      const [brackets, unmatchedCandidates] = await Promise.all([
+        bracketService.getPublicBracketsByEventSlug(slug),
+        bracketAutoMatchService.listPublicUnmatchedCandidatesByEventSlug(slug),
+      ]);
       tabPanel = (
         <PublicEventBracketsSection
           eventId={event.id}
           slug={slug}
           brackets={brackets}
+          unmatchedCandidates={unmatchedCandidates}
+          publicUnmatchedListEnabled={event.publicUnmatchedListEnabled}
         />
       );
       break;

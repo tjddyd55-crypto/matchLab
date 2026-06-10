@@ -298,6 +298,15 @@ npm run setup:bracket-demo-data
 - Railway production Shell에서는 `DATABASE_PUBLIC_URL`을 `DATABASE_URL`로 export한 뒤 실행 (`docs/deploy-railway.md` 참고)
 - 두 번 실행해도 동일 수량 유지(fighterCode·loginId 기준 upsert)
 
+**자동 대진 테스트 순서 (로컬):**
+
+1. `npm run setup:bracket-demo-data` (또는 시드 대회에 신청자 80명 확인)
+2. organizer `/login` → `2026 샘플 오픈 대회` → `/organizer/events/{eventId}/brackets`
+3. **자동 대진 생성** (출전 확정 옵션 없이) → 생성 요약·미매칭 패널 확인
+4. **공개 설정** → 대진표·미매칭 리스트 공개 ON
+5. `/events/sample-open-2026?tab=brackets` — VS 카드·미매칭 명단 확인
+6. `/organizer/events/{eventId}/check-in` — 계체 실패 후 대진 패 처리 선택 확인
+
 ### 테스트용 선수 20명 추가 (`npm run seed:demo-fighters`)
 
 대회 신청·대진표 실무 테스트용으로 **데모 체육관 소속 가상 선수 20명**을 DB에만 추가합니다. Supabase Auth 계정은 만들지 않으며(`userId` null), **기존 `db:seed` 전체를 다시 돌리지 않아도** 됩니다.

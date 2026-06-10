@@ -19,6 +19,15 @@ export const publishBracketSchema = z.object({
 
 export const unpublishBracketSchema = publishBracketSchema;
 
+export const eventBracketPublicationSchema = z.object({
+  eventId: z.string().min(1),
+});
+
+export const setPublicUnmatchedListSchema = z.object({
+  eventId: z.string().min(1),
+  enabled: z.boolean(),
+});
+
 const optionalFighterId = z
   .string()
   .optional()

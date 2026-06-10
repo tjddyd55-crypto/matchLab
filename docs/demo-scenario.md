@@ -217,10 +217,12 @@ npm run seed:demo-fighters # FTR-2026-TEST001~020, 데모 체육관 소속
 0. `npm run setup:demo-org-gym-fighters` — gym·gym1~7·organizer1~3·체육관별 선수 10명(80명) 복구. `/gym/fighters` 선수 미표시 시 **먼저** 실행.
 1. `npm run setup:bracket-demo-data` — 승인 `EventApplication` upsert(크레딧 ledger 없음). 선수·소속은 0단계에서 보장.
 2. **organizer** `/login` → 테스트 대회(`/organizer/events/{eventId}`) → **신청자**에서 더미 승인자 확인.
-3. **대진표** (`/organizer/events/{eventId}/brackets`) → **자동 대진 생성** 클릭.
-4. division별 2명씩 매칭·홀수 division **미매칭/대기 선수** 패널 확인.
-5. 개별 브래킷 상세에서 **수동 수정**(`MatchListEditor`) 가능 여부 확인.
-6. **spectator** `/events/sample-open-2026/brackets` — 공개 대진표에 경기 표시 확인.
+3. **대진표** (`/organizer/events/{eventId}/brackets`) → **현장·계체 미완료 상태**에서 **자동 대진 생성**(신청자 기준) → 약 38경기·미매칭 약 4명 요약 확인.
+4. **공개 설정** — 「대진표 전체 공개」·「미매칭 리스트 공개」 토글.
+5. division별 2명씩 매칭·홀수 division **미매칭/대기 선수** 패널 확인.
+6. 개별 브래킷 상세에서 **수동 수정**(`MatchListEditor`) 가능 여부 확인.
+7. **spectator** `/events/sample-open-2026?tab=brackets` — VS 카드(홍코너/청코너·체육관)·미매칭 명단 확인.
+8. **organizer** 현장·계체(`/check-in`) — 계체 실패 선수의 배정 경기 안내 → 패/실격/기권 또는 「그래도 진행」 선택.
 
 ## 3. 시연 데이터 설명 (`npm run db:seed` 후)
 

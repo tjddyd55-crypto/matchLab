@@ -91,6 +91,8 @@ export type PublicEventDetailDTO = {
   paymentInfo: PublicEventPaymentInfoDTO | null;
   hasPublicBrackets: boolean;
   hasPublicResults: boolean;
+  /** 미매칭(대기) 명단 공개 여부 — 주최자 토글 */
+  publicUnmatchedListEnabled: boolean;
 };
 
 export type PublicFighterCardDTO = {
@@ -142,6 +144,19 @@ export type PublicBracketDetailDTO = {
   status: BracketStatus;
   divisionLabel: string | null;
   matches: PublicBracketMatchDTO[];
+};
+
+/** 공개 미매칭(대기) 명단 — 민감정보 제외 */
+export type PublicUnmatchedCandidateDTO = {
+  order: number;
+  fighterName: string;
+  gymName: string;
+  gender: string | null;
+  ageGroup: string | null;
+  weightClass: string | null;
+  divisionLabel: string;
+  recordSummary: string;
+  reasonLabel: string;
 };
 
 export type PublicResultDTO = {

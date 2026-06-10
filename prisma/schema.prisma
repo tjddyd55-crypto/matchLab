@@ -489,6 +489,8 @@ model Event {
   spectatorAccessEndAt     DateTime?
   spectatorAccessToken     String?     @unique
   applicationFormTemplateId String?
+  /// 공개 페이지에 미매칭(대기) 명단 표시 여부
+  publicUnmatchedListEnabled Boolean   @default(false)
   createdAt                DateTime    @default(now())
   updatedAt                DateTime    @updatedAt
 

@@ -27,6 +27,16 @@ import { eventRepository } from "@/lib/repositories/event.repository";
 import { safeNotify } from "@/lib/notifications/safe-dispatch";
 import { notificationService } from "@/lib/services/notification.service";
 import { evaluateWeighInWeight } from "@/lib/weigh-in-eval";
+import {
+  buildFighterBracketAssignmentMap,
+  type FieldStatusBracketAssignmentVM,
+} from "@/lib/field-status-bracket";
+import { bracketRepository } from "@/lib/repositories/bracket.repository";
+import { matchRepository } from "@/lib/repositories/match.repository";
+import { resultRepository } from "@/lib/repositories/result.repository";
+import { matchService } from "@/lib/services/match.service";
+import { resultService } from "@/lib/services/result.service";
+import { BracketMatchOutcomeStyle } from "@/generated/prisma";
 
 function readSnapshotName(snapshot: unknown): string {
   if (
@@ -67,7 +77,9 @@ function mapRow(row: FieldStatusApplicationRow) {
   };
 }
 
-export type FieldStatusRowDTO = ReturnType<typeof mapRow>;
+export type FieldStatusRowDTO = ReturnType<typeof mapRow> & {
+  bracketAssignments: FieldStatusBracketAssignmentVM[];
+};
 
 export type FieldStatusSummaryDTO = {
   totalApproved: number;
@@ -161,10 +173,15 @@ export const fieldStatusService = {
     requireRole(actor, ["organizer", "admin"]);
     await requireOrganizerForEvent(actor, eventId);
 
-    const raw = await fieldStatusRepository.listApprovedApplicationsForEvent(
-      eventId,
-    );
-    const rows = raw.map(mapRow);
+    const [raw, bracketMatches] = await Promise.all([
+      fieldStatusRepository.listApprovedApplicationsForEvent(eventId),
+      bracketRepository.listFighterBracketMatchesInEvent(eventId),
+    ]);
+    const assignmentMap = buildFighterBracketAssignmentMap(bracketMatches);
+    const rows = raw.map((r) => ({
+      ...mapRow(r),
+      bracketAssignments: assignmentMap.get(r.fighterId) ?? [],
+    }));
     return { rows, summary: buildSummary(rows) };
   },
 
@@ -196,7 +213,7 @@ export const fieldStatusService = {
 
     return {
       eventTitle: event.title,
-      rows: raw.map(mapRow),
+      rows: raw.map((r) => ({ ...mapRow(r), bracketAssignments: [] })),
     };
   },
 
@@ -209,7 +226,86 @@ export const fieldStatusService = {
       eventId,
       divisionId ? { divisionId } : undefined,
     );
-    return new Map(raw.map((r) => [r.fighterId, mapRow(r)]));
+    return new Map(
+      raw.map((r) => [
+        r.fighterId,
+        { ...mapRow(r), bracketAssignments: [] },
+      ]),
+    );
+  },
+
+  /**
+   * 현장·계체 탈락 후 대진 패 처리 — draft 후 선택 시 공식 확정(기존 result 흐름).
+   */
+  async applyFieldBracketOutcome(
+    actor: ActorContext,
+    input: {
+      matchId: string;
+      loserFighterId: string;
+      resultType: BracketMatchOutcomeStyle;
+      confirmOfficial: boolean;
+      resultMemo?: string | null;
+    },
+  ): Promise<void> {
+    const match = await matchRepository.findMatchWithBracketContext(
+      input.matchId,
+    );
+    if (!match) {
+      throw new AppError("NOT_FOUND", "경기를 찾을 수 없습니다.");
+    }
+    await requireOrganizerForEvent(actor, match.bracket.eventId);
+
+    const official = await resultRepository.findOfficialResultsByMatchId(
+      input.matchId,
+    );
+    if (official.length > 0) {
+      throw new AppError(
+        "CONFLICT",
+        "이미 공식 결과가 확정된 경기입니다. 정정·무효 플로우를 이용해 주세요.",
+      );
+    }
+
+    const redId = match.fighterRedId;
+    const blueId = match.fighterBlueId;
+    if (!redId || !blueId) {
+      throw new AppError(
+        "VALIDATION_ERROR",
+        "양 선수가 배치된 경기만 처리할 수 있습니다.",
+      );
+    }
+    if (
+      input.loserFighterId !== redId &&
+      input.loserFighterId !== blueId
+    ) {
+      throw new AppError("VALIDATION_ERROR", "해당 경기의 선수가 아닙니다.");
+    }
+
+    const winnerId =
+      input.loserFighterId === redId ? blueId : redId;
+    const memo = input.resultMemo?.trim() || undefined;
+
+    await matchService.recordMatchOutcomeDraft(actor, {
+      matchId: input.matchId,
+      outcomeMode: "win_loss",
+      winnerId,
+      loserId: input.loserFighterId,
+      resultType: input.resultType,
+      resultMemo: memo,
+    });
+
+    if (input.confirmOfficial) {
+      await resultService.confirmMatchResults(
+        { kind: "organizer", actor },
+        {
+          matchId: input.matchId,
+          outcomeMode: "win_loss",
+          winnerId,
+          resultType: input.resultType,
+          resultMemo: memo,
+          reason: memo,
+        },
+      );
+    }
   },
 
   async setCheckInStatus(
