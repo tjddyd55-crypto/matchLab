@@ -5,6 +5,7 @@ import { applyFieldBracketOutcomeFormActionVoid } from "@/features/field-status/
 import { Button } from "@/components/ui/button";
 import type { FieldStatusRowDTO } from "@/lib/services/field-status.service";
 import { BracketMatchOutcomeStyle } from "@/generated/prisma";
+import { cn } from "@/lib/utils";
 
 function OutcomeForm({
   row,
@@ -42,19 +43,27 @@ function OutcomeForm({
         name="resultMemo"
         value="현장·계체 처리에 따른 대진 패 처리"
       />
-      <Button type="submit" size="sm" variant={variant} className="h-8 text-xs">
+      <Button type="submit" size="sm" variant={variant} className="h-7 text-xs">
         {label}
       </Button>
     </form>
   );
 }
 
-export function FieldStatusBracketPanel({ row }: { row: FieldStatusRowDTO }) {
+export function FieldStatusBracketPanel({
+  row,
+  compact = false,
+}: {
+  row: FieldStatusRowDTO;
+  compact?: boolean;
+}) {
   const [dismissed, setDismissed] = useState(false);
   const assignments = row.bracketAssignments;
 
   if (assignments.length === 0) {
-    return (
+    return compact ? (
+      <span className="text-muted-foreground text-xs">대진 미배정</span>
+    ) : (
       <div className="rounded-lg border border-dashed bg-muted/20 px-3 py-2 text-sm">
         <p className="text-muted-foreground text-xs font-medium">대진 배정</p>
         <p className="mt-1">대진 미배정</p>
@@ -70,6 +79,69 @@ export function FieldStatusBracketPanel({ row }: { row: FieldStatusRowDTO }) {
       row.checkInStatus === "no_show" ||
       row.checkInStatus === "withdrawn" ||
       row.checkInStatus === "disqualified");
+
+  if (compact) {
+    const primary = assignments[0]!;
+    return (
+      <div className="space-y-1.5 text-xs">
+        <p>
+          {primary.matchLabel} vs {primary.opponentName}
+        </p>
+        {showOutcomePrompt ? (
+          <div className="grid grid-cols-2 gap-1">
+            {assignments
+              .filter((a) => !a.hasOfficialResult)
+              .map((a) => (
+                <div key={a.matchId} className="contents">
+                  <OutcomeForm
+                    row={row}
+                    assignment={a}
+                    resultType={BracketMatchOutcomeStyle.forfeit}
+                    label="패배"
+                    variant="destructive"
+                    confirmMessage={`${row.fighterName} 선수를 패배 처리할까요?`}
+                  />
+                  <OutcomeForm
+                    row={row}
+                    assignment={a}
+                    resultType={BracketMatchOutcomeStyle.disqualification}
+                    label="실격"
+                    variant="destructive"
+                    confirmMessage={`${row.fighterName} 선수를 실격 처리할까요?`}
+                  />
+                  <OutcomeForm
+                    row={row}
+                    assignment={a}
+                    resultType={BracketMatchOutcomeStyle.forfeit}
+                    label="기권"
+                    variant="secondary"
+                    confirmMessage={`${row.fighterName} 선수를 기권 처리할까요?`}
+                  />
+                </div>
+              ))}
+            <Button
+              type="button"
+              size="sm"
+              variant="outline"
+              className="h-7 text-xs"
+              onClick={() => setDismissed(true)}
+            >
+              그래도 진행
+            </Button>
+            <Button
+              type="button"
+              size="sm"
+              variant="ghost"
+              className="h-7 text-xs"
+              onClick={() => setDismissed(true)}
+            >
+              나중에
+            </Button>
+          </div>
+        ) : null}
+      </div>
+    );
+  }
 
   return (
     <div className="space-y-3 rounded-lg border bg-muted/20 p-3">
@@ -110,7 +182,12 @@ export function FieldStatusBracketPanel({ row }: { row: FieldStatusRowDTO }) {
             계체 실패·미출석·철회·실격 상태입니다. 대진에서 어떻게 처리할지
             선택해 주세요.
           </p>
-          <div className="flex flex-wrap gap-2">
+          <div
+            className={cn(
+              "flex flex-wrap gap-2",
+              compact && "grid grid-cols-2 gap-1",
+            )}
+          >
             {assignments
               .filter((a) => !a.hasOfficialResult)
               .map((a) => (

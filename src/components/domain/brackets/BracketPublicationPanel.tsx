@@ -48,7 +48,7 @@ export function BracketPublicationPanel({
           <p className="text-sm font-medium">대진표 공개</p>
           <p className="text-muted-foreground mt-1 text-xs">
             {hasPublicBrackets
-              ? `대진표는 공개 중입니다. (${publicBracketCount}/${totalBracketCount}개 브래킷)`
+              ? `대진표는 공개 중입니다. (${publicBracketCount}/${totalBracketCount}개 그룹)`
               : totalBracketCount > 0
                 ? "대진표는 비공개입니다."
                 : "생성된 대진표가 없습니다."}

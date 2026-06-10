@@ -107,6 +107,11 @@ export const removeFighterFromMatchSchema = z.object({
   reason: z.string().max(500).optional(),
 });
 
+export const reorderBracketMatchSchema = z.object({
+  matchId: z.string().min(1),
+  direction: z.enum(["up", "down"]),
+});
+
 export const resetBracketSchema = z.object({
   bracketId: z.string().min(1),
   reason: z.string().max(500).optional(),

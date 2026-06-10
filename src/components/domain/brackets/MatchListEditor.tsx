@@ -8,8 +8,10 @@ import type { OrganizerApprovedFighterOptionVM } from "@/lib/services/bracket.se
 import type { OrganizerBracketMatchVM } from "@/lib/services/bracket.service";
 import { ApprovedApplicationPicker } from "@/components/domain/brackets/ApprovedApplicationPicker";
 import { Button } from "@/components/ui/button";
+import { BracketMatchOrderControls } from "@/components/domain/brackets/BracketMatchOrderControls";
 import { getMatchListDisabledFighterIds } from "@/lib/bracket-match-placement";
 import { BracketType } from "@/lib/enums";
+import { sortMatchesByOrder } from "@/lib/match-order-display";
 import { cn } from "@/lib/utils";
 
 function matchListOpsProps(
@@ -93,6 +95,11 @@ export function MatchListEditor({
     }
   }, [state, router]);
 
+  const sortedServerMatches = useMemo(
+    () => sortMatchesByOrder(matches),
+    [matches],
+  );
+
   const payloadJson = useMemo(() => {
     const normalized = rows
       .map((r) => {
@@ -166,9 +173,10 @@ export function MatchListEditor({
           <table className="w-full min-w-[960px] text-left text-sm">
             <thead className="bg-muted/50 border-b text-xs uppercase">
               <tr>
-                <th className="px-3 py-2">순서</th>
-                <th className="px-3 py-2">레드</th>
-                <th className="px-3 py-2">블루</th>
+                <th className="px-3 py-2">경기 순서</th>
+                <th className="px-3 py-2">편집 순서</th>
+                <th className="px-3 py-2">홍코너</th>
+                <th className="px-3 py-2">청코너</th>
                 <th className="px-3 py-2">경기번호</th>
                 <th className="px-3 py-2">매트</th>
                 <th className="px-3 py-2">전체순서</th>
@@ -182,6 +190,16 @@ export function MatchListEditor({
                   Boolean(serverMatch) && !String(r.key).includes("-");
                 return (
                 <tr key={r.key} className="border-b last:border-0">
+                  <td className="px-3 py-2 align-middle">
+                    {showOps && serverMatch ? (
+                      <BracketMatchOrderControls
+                        match={serverMatch}
+                        allMatches={sortedServerMatches}
+                      />
+                    ) : (
+                      <span className="text-muted-foreground text-xs">—</span>
+                    )}
+                  </td>
                   <td className="px-3 py-2 align-middle">
                     <input
                       type="number"
@@ -216,7 +234,7 @@ export function MatchListEditor({
                         idx,
                         "red",
                       )}
-                      placeholder="레드 선수"
+                      placeholder="홍코너 선수"
                     />
                   </td>
                   <td className="px-3 py-2 align-middle">
@@ -235,7 +253,7 @@ export function MatchListEditor({
                         idx,
                         "blue",
                       )}
-                      placeholder="블루 선수"
+                      placeholder="청코너 선수"
                     />
                   </td>
                   <td className="px-3 py-2 align-middle">
@@ -318,7 +336,14 @@ export function MatchListEditor({
               key={r.key}
               className="bg-muted/20 space-y-3 rounded-lg border p-3 text-sm"
             >
-              <div className="font-medium">경기 {idx + 1}</div>
+              {showOps && serverMatch ? (
+                <BracketMatchOrderControls
+                  match={serverMatch}
+                  allMatches={sortedServerMatches}
+                />
+              ) : (
+                <div className="font-medium">경기 {idx + 1}</div>
+              )}
               <label className="block space-y-1">
                 <span className="text-muted-foreground text-xs">순서</span>
                 <input
@@ -353,7 +378,7 @@ export function MatchListEditor({
                   idx,
                   "red",
                 )}
-                placeholder="레드 선수"
+                placeholder="홍코너 선수"
                 className="max-w-none"
               />
               <ApprovedApplicationPicker
@@ -371,7 +396,7 @@ export function MatchListEditor({
                   idx,
                   "blue",
                 )}
-                placeholder="블루 선수"
+                placeholder="청코너 선수"
                 className="max-w-none"
               />
               {showOps && serverMatch ? (

@@ -1,4 +1,5 @@
 import { BracketMatchStatus } from "@/lib/enums";
+import { formatMatchOrderShort } from "@/lib/match-order-display";
 import type { OrganizerEventMatchListItemVM } from "@/lib/services/match.service";
 
 export type OperationBoardFilter =
@@ -135,8 +136,7 @@ export function formatOperationMatchOrder(
     "matchNumber" | "globalMatchOrder" | "matchOrder"
   >,
 ): string {
-  const order = match.matchNumber ?? match.globalMatchOrder ?? match.matchOrder;
-  return String(order);
+  return formatMatchOrderShort(match);
 }
 
 /** 진행 시작 시 필요한 상태 전이 순서 (기존 상태머신 준수) */

@@ -31,15 +31,17 @@ function StatusClickWrap({
 
 export function OrganizerFieldStatusTable({
   rows,
+  emptyMessage = "표시할 승인 신청자가 없습니다.",
   onOpenDetail,
 }: {
   rows: FieldStatusRowDTO[];
+  emptyMessage?: string;
   onOpenDetail: (row: FieldStatusRowDTO) => void;
 }) {
   if (rows.length === 0) {
     return (
-      <p className="text-muted-foreground text-sm">
-        표시할 승인 신청자가 없습니다.
+      <p className="text-muted-foreground rounded-xl border border-dashed px-4 py-8 text-center text-sm">
+        {emptyMessage}
       </p>
     );
   }
@@ -143,7 +145,7 @@ export function OrganizerFieldStatusTable({
                 title={row.eligibilityReason}
               />
             </div>
-            <div className="mt-3 space-y-2 border-t pt-3">
+            <div className="mt-3 space-y-3 border-t pt-3">
               <WeighInWeightForm row={row} />
               <FieldMemoForm row={row} />
               <FieldStatusRowActions row={row} />

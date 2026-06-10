@@ -133,14 +133,16 @@
 - [x] **스태프 모바일 결과 입력 MVP** — `/staff/result/[token]/matches` 카드 목록·요약·필터·Bottom Sheet 결과 입력(`StaffMatchResultForm` → 기존 staff 액션). 민감정보 미노출. 경기 운영 보드에서 링크 복사 안내.
 - [x] **심판 라운드별 채점 MVP** — `JudgeAccessCredential`·`JudgeMatchAssignment`·`JudgeScorecard`·`JudgeRoundScore`(MatchResult와 분리). 주최자 `/organizer/events/[eventId]/judges`에서 계정·배정, 심판 `/judge/login` → 라운드별 홍/청 점수·감점·다운·메모·전송. 운영 Drawer에서 제출 집계·다수결 추천(참고용). **최종 확정은 기존 `confirmMatchResults` 흐름 유지**.
 - [x] **심판 수 정책** — 1~5명 허용, 3·5명 권장. 짝수 심판 동점 시 자동 확정 없음, 주최자/주심 최종 확정.
-- [x] 주최자: **현장 확인·계체** (`/organizer/events/[eventId]/check-in`) — 승인 신청자 대상 `CheckInStatus` / `WeighInStatus` 기록, 출전 확정은 서비스 계산.
+- [x] 주최자: **현장 확인·계체** (`/organizer/events/[eventId]/check-in`) — 승인 신청자 대상 `CheckInStatus` / `WeighInStatus` 기록, **선수명·체육관·부문·체급 검색**, 몸무게·메모 저장 피드백, 단계별 액션(현장/계체/출전/대진 처리).
 - [x] 체육관: **현장 상태 조회** (`/gym/events/[eventId]/field-status`, 읽기 전용).
 - [x] 체육관: **신청 현황 조회** (`/gym/events/[eventId]/status`) — 소속 선수만, 신청·입금·신청서·현장·계체·대진·경기·결과 요약, 요약 카드 필터·검색·상세 Drawer(주최자 `fieldMemo`·계체 실측 미노출).
 - [x] 체육관: **자기 선수 경기 확인** — 동일 화면 「우리 체육관 경기」·미배정 선수, 공개 대진표 링크.
 - [x] 선수: **내 대회·내 경기 조회** (`/fighter/events`) — 본인 `fighterId` 연결 신청·현장·대진·결과 **조회만**, 입금은 「체육관/주최자 확인 중」 수준 표시.
 - [x] 대진표 후보: 출전 미확정 **경고**·「출전 확정만 보기」필터 — 기존 배치 **자동 삭제 없음**.
 - [x] **실제 계체 몸무게·현장 메모** — 공개 페이지(`/events/*`) 미노출.
-- [x] **자동 대진 생성** (`/organizer/events/[eventId]/brackets`) — **신청자 기준**(pending·approved, `divisionId`·active fighter)으로 `divisionId`별 2명씩 `match_list`에 추가. 현장 확인·계체·출전 확정은 생성 조건에서 제외. 「출전 확정자만 생성」은 고급 옵션(`eligibleOnly`).
+- [x] **자동 대진 생성** (`/organizer/events/[eventId]/brackets`) — **신청자 기준**(pending·approved)으로 생성. 현장·계체·출전 확정은 생성 조건에서 제외.
+- [x] **경기 순서 관리** — 주최자 대진표·경기 운영·공개 대진표에 `제N경기` 표시, ▲▼·직접 입력 순서 변경(결과 확정 경기 제외).
+- [x] **주최자 UI 용어** — 「브라켓」→「대진표 그룹」/「대진 방식」.
 - [x] **홀수 인원 미매칭/대기 목록** — 주최자 화면·(토글 시) 공개 페이지 「추가 매칭 대기 명단」. 미매칭 사유(홀수·상대 없음 등) 표시.
 - [x] **대진표·미매칭 공개 토글** — `Bracket.isPublic` + `Event.publicUnmatchedListEnabled`. 공개 대진표 VS 카드(홍코너/청코너·체육관).
 - [x] **계체 탈락 후 대진 패 처리** — 현장·계체 화면에서 배정 경기 안내·주최자 선택(패배/실격/기권/그래도 진행). 공식 결과는 기존 `recordMatchOutcomeDraft` → `confirmMatchResults` 재사용.

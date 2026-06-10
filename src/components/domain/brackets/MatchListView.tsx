@@ -1,12 +1,9 @@
 import type { PublicBracketDetailDTO } from "@/lib/dto/public";
 import { BracketMatchCard } from "@/components/domain/brackets/BracketMatchCard";
+import { sortMatchesByOrder } from "@/lib/match-order-display";
 
 export function MatchListView({ bracket }: { bracket: PublicBracketDetailDTO }) {
-  const sorted = [...bracket.matches].sort((a, b) => {
-    const ga = a.globalMatchOrder ?? a.matchOrder;
-    const gb = b.globalMatchOrder ?? b.matchOrder;
-    return ga - gb;
-  });
+  const sorted = sortMatchesByOrder(bracket.matches);
 
   return (
     <section className="space-y-4">

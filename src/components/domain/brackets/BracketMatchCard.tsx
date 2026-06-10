@@ -1,6 +1,7 @@
 import type { PublicBracketMatchDTO } from "@/lib/dto/public";
 import type { BracketMatchStatus } from "@/lib/enums";
 import { cn } from "@/lib/utils";
+import { formatMatchOrderFormal } from "@/lib/match-order-display";
 import { outcomeStylePublicLabel } from "@/lib/match-result-snapshot";
 
 import { FighterSlotCard } from "@/components/domain/brackets/FighterSlotCard";
@@ -48,10 +49,7 @@ export function BracketMatchCard({
     match.fighterBlue?.fighterId &&
     match.winnerId === match.fighterBlue.fighterId;
 
-  const matchNoLabel =
-    match.matchNumber != null
-      ? `${match.matchNumber}경기`
-      : `${match.matchOrder + 1}번`;
+  const matchNoLabel = formatMatchOrderFormal(match);
 
   return (
     <div

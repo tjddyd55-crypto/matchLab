@@ -574,6 +574,29 @@ export const bracketRepository = {
     });
   },
 
+  async listBracketMatchesForOrder(
+    bracketId: string,
+    tx?: Prisma.TransactionClient,
+  ) {
+    return db(tx).bracketMatch.findMany({
+      where: { bracketId },
+      select: {
+        id: true,
+        matchOrder: true,
+        globalMatchOrder: true,
+        matchNumber: true,
+        matchResults: {
+          where: {
+            status: {
+              in: [MatchRecordStatus.confirmed, MatchRecordStatus.corrected],
+            },
+          },
+          select: { id: true },
+        },
+      },
+    });
+  },
+
   async findBracketMatchById(matchId: string, tx?: Prisma.TransactionClient) {
     return db(tx).bracketMatch.findUnique({
       where: { id: matchId },

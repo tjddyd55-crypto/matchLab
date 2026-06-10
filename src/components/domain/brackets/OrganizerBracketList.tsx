@@ -24,10 +24,10 @@ export function OrganizerBracketList({
             <tr>
               <th className="px-4 py-3">제목</th>
               <th className="px-4 py-3">부문</th>
-              <th className="px-4 py-3">타입</th>
+              <th className="px-4 py-3">대진 방식</th>
               <th className="px-4 py-3">상태</th>
               <th className="px-4 py-3">공개</th>
-              <th className="px-4 py-3">매치 수</th>
+              <th className="px-4 py-3">경기 수</th>
               <th className="px-4 py-3 text-right">동작</th>
             </tr>
           </thead>
@@ -95,7 +95,7 @@ export function OrganizerBracketList({
             <div className="flex flex-wrap gap-2">
               <BracketTypeBadge type={b.type} />
               <span className="text-muted-foreground text-xs">
-                공개 {b.isPublic ? "예" : "아니오"} · 매치 {b.matchCount}
+                공개 {b.isPublic ? "예" : "아니오"} · 경기 {b.matchCount}
               </span>
             </div>
             <div className="flex flex-wrap gap-2">

@@ -31,7 +31,7 @@ export function OrganizerBracketEditor({
               "-ml-2 mb-2",
             )}
           >
-            ← 목록
+            ← 대진표 그룹
           </Link>
           <h1 className="font-heading text-2xl font-semibold tracking-tight">
             {detail.title}

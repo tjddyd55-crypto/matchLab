@@ -269,6 +269,27 @@ export async function weighInManualPassFormActionVoid(
   await weighInManualPassFormAction(formData);
 }
 
+export async function quickConfirmEligibilityFormAction(
+  formData: FormData,
+): Promise<ActionResult<{ ok: true }>> {
+  return mapCaught(async () => {
+    const actor = await requireActorFromMutation();
+    const applicationId = formReq(formData, "applicationId");
+    if (!applicationId) {
+      return actionFailure("VALIDATION_ERROR", "신청 정보가 없습니다.");
+    }
+    await fieldStatusService.quickConfirmEligibility(actor, applicationId);
+    await revalidateFieldStatusPaths(applicationId);
+    return actionSuccess({ ok: true });
+  });
+}
+
+export async function quickConfirmEligibilityFormActionVoid(
+  formData: FormData,
+): Promise<void> {
+  await quickConfirmEligibilityFormAction(formData);
+}
+
 export async function weighInManualFailFormActionVoid(
   formData: FormData,
 ): Promise<void> {

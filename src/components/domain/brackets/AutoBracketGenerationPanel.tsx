@@ -27,7 +27,7 @@ function SummaryBlock({ summary }: { summary: AutoBracketGenerationSummary }) {
           <li>같은 체육관 매칭: {summary.sameGymPairWarnings}건</li>
         ) : null}
         {summary.createdBrackets > 0 ? (
-          <li>신규 브래킷: {summary.createdBrackets}개</li>
+          <li>신규 대진표 그룹: {summary.createdBrackets}개</li>
         ) : null}
         {summary.resetDeletedMatches > 0 ? (
           <li>초기화된 기존 경기: {summary.resetDeletedMatches}건</li>
@@ -93,7 +93,7 @@ export function AutoBracketGenerationPanel({
           <h2 className="text-lg font-semibold">자동 대진 생성</h2>
           <p className="text-muted-foreground mt-1 text-sm">
             대진표는 신청자 기준으로 먼저 생성됩니다. 현장 확인·계체 결과는
-            이후 경기 진행/패 처리에 반영할 수 있습니다.
+            이후 경기 진행 또는 패 처리에 반영할 수 있습니다.
           </p>
         </div>
       </div>
@@ -102,15 +102,6 @@ export function AutoBracketGenerationPanel({
         <form action={formAction} className="space-y-3">
           <input type="hidden" name="eventId" value={eventId} />
           <input type="hidden" name="resetExisting" value="off" />
-
-          <label className="flex cursor-pointer items-center gap-2 text-sm">
-            <input
-              type="checkbox"
-              name="eligibleOnly"
-              className="size-4 rounded border"
-            />
-            <span>출전 확정자만 생성 (고급)</span>
-          </label>
 
           <Button type="submit" disabled={isPending}>
             {pending ? "생성 중…" : "자동 대진 생성"}
@@ -132,14 +123,6 @@ export function AutoBracketGenerationPanel({
           >
             <input type="hidden" name="eventId" value={eventId} />
             <input type="hidden" name="resetExisting" value="on" />
-            <label className="mb-2 flex cursor-pointer items-center gap-2 text-sm">
-              <input
-                type="checkbox"
-                name="eligibleOnly"
-                className="size-4 rounded border"
-              />
-              <span>출전 확정자만 생성 (고급)</span>
-            </label>
             <Button type="submit" variant="destructive" disabled={isPending}>
               {resetPending ? "초기화·생성 중…" : "기존 대진 초기화 후 자동 생성"}
             </Button>

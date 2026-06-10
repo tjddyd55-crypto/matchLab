@@ -177,7 +177,7 @@ export function OrganizerMatchOpsPanel(props: OrganizerMatchOpsPanelProps) {
       )}
     >
       <div className="text-muted-foreground flex flex-wrap gap-2">
-        <span>브래킷 {props.bracketType}</span>
+        <span>대진 방식 {props.bracketType}</span>
         {props.hasOfficialResults ? (
           <span className="text-emerald-700 dark:text-emerald-400">
             공식 결과 확정됨

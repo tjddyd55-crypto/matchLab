@@ -17,6 +17,10 @@ import {
   type BracketFighterSnapshotPayload,
 } from "@/lib/bracket-snapshot";
 import { validateMatchListPlacement } from "@/lib/bracket-match-placement";
+import {
+  buildOrderSwapPatches,
+  sortMatchesByOrder,
+} from "@/lib/match-order-display";
 import type {
   PublicBracketDetailDTO,
   PublicBracketFighterDTO,
@@ -963,6 +967,63 @@ export const bracketService = {
           ),
         );
       }
+    });
+  },
+
+  async reorderBracketMatch(
+    actor: ActorContext,
+    input: { matchId: string; direction: "up" | "down" },
+  ): Promise<void> {
+    const mctx = await bracketRepository.findMatchOwnershipContext(input.matchId);
+    if (!mctx) {
+      throw new AppError("NOT_FOUND", "매치를 찾을 수 없습니다.");
+    }
+    const ctx = await ensureBracketOrganizer(actor, mctx.bracketId);
+
+    const raw = await bracketRepository.listBracketMatchesForOrder(mctx.bracketId);
+    if (raw.length < 2) {
+      throw new AppError("VALIDATION_ERROR", "순서를 변경할 경기가 충분하지 않습니다.");
+    }
+
+    const sorted = sortMatchesByOrder(raw);
+    const idx = sorted.findIndex((m) => m.id === input.matchId);
+    if (idx < 0) {
+      throw new AppError("NOT_FOUND", "경기를 찾을 수 없습니다.");
+    }
+    const neighborIdx = input.direction === "up" ? idx - 1 : idx + 1;
+    if (neighborIdx < 0 || neighborIdx >= sorted.length) {
+      throw new AppError("VALIDATION_ERROR", "더 이상 이동할 수 없습니다.");
+    }
+
+    const current = sorted[idx]!;
+    const neighbor = sorted[neighborIdx]!;
+
+    if (current.matchResults.length > 0 || neighbor.matchResults.length > 0) {
+      throw new AppError(
+        "CONFLICT",
+        "공식 결과가 확정된 경기는 순서를 변경할 수 없습니다.",
+      );
+    }
+
+    const patches = buildOrderSwapPatches(current, neighbor);
+
+    await prisma.$transaction(async (tx) => {
+      for (const patch of patches) {
+        await bracketRepository.updateBracketMatch(patch.id, patch.data, tx);
+      }
+      await appendChangeLog(tx, {
+        eventId: ctx.eventId,
+        bracketId: mctx.bracketId,
+        matchId: input.matchId,
+        changedByUserId: actor.userId,
+        bracketType: ctx.type,
+        changeType: BracketChangeType.match_order_changed,
+        afterData: {
+          direction: input.direction,
+          swappedWith: neighbor.id,
+        },
+        reason: "경기 순서 변경",
+      });
     });
   },
 

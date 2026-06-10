@@ -85,7 +85,7 @@ export function OrganizerMatchesBoard({
     <div className="space-y-6">
       <div className="flex flex-wrap gap-3 text-sm">
         <label className="flex flex-col gap-1">
-          <span className="text-muted-foreground text-xs">브래킷</span>
+          <span className="text-muted-foreground text-xs">대진표 그룹</span>
           <select
             value={bracketId}
             onChange={(e) => setBracketId(e.target.value)}
@@ -158,7 +158,7 @@ export function OrganizerMatchesBoard({
         <table className="w-full min-w-[1100px] text-left text-sm">
           <thead className="bg-muted/50 border-b text-xs uppercase">
             <tr>
-              <th className="px-3 py-2">브래킷</th>
+              <th className="px-3 py-2">대진표 그룹</th>
               <th className="px-3 py-2">부문</th>
               <th className="px-3 py-2">라운드</th>
               <th className="px-3 py-2">번호</th>

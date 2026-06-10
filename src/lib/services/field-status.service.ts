@@ -308,6 +308,51 @@ export const fieldStatusService = {
     }
   },
 
+  /** 현장 확인 + 계체 통과(또는 수동 승인)로 출전 확정 조건 충족 */
+  async quickConfirmEligibility(
+    actor: ActorContext,
+    applicationId: string,
+  ): Promise<void> {
+    const row = await assertOrganizerApplication(actor, applicationId);
+    const eligibility = computeFieldEligibility({
+      checkInStatus: row.checkInStatus,
+      weighInStatus: row.weighInStatus,
+    });
+    if (eligibility.isEligibleForBracket) return;
+
+    if (row.checkInStatus !== CheckInStatus.checked_in) {
+      await fieldStatusService.setCheckInStatus(
+        actor,
+        applicationId,
+        CheckInStatus.checked_in,
+      );
+    }
+
+    const refreshed = await fieldStatusRepository.findApprovedApplicationById(
+      applicationId,
+    );
+    if (!refreshed) return;
+
+    const weighIn = refreshed.weighInStatus;
+    if (
+      weighIn === WeighInStatus.pass ||
+      weighIn === WeighInStatus.manual_pass
+    ) {
+      return;
+    }
+
+    const nextWeighIn =
+      weighIn === WeighInStatus.fail || weighIn === WeighInStatus.manual_fail
+        ? WeighInStatus.manual_pass
+        : WeighInStatus.pass;
+
+    await fieldStatusService.setWeighInStatus(
+      actor,
+      applicationId,
+      nextWeighIn,
+    );
+  },
+
   async setCheckInStatus(
     actor: ActorContext,
     applicationId: string,

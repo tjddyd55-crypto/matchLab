@@ -87,7 +87,7 @@ export default async function OrganizerEventResultsPage({
             <thead className="bg-muted/50 text-muted-foreground border-b text-xs">
               <tr>
                 <th className="px-3 py-2 font-medium">일시</th>
-                <th className="px-3 py-2 font-medium">브래킷</th>
+                <th className="px-3 py-2 font-medium">대진표 그룹</th>
                 <th className="px-3 py-2 font-medium">부문</th>
                 <th className="px-3 py-2 font-medium">선수(행 기준)</th>
                 <th className="px-3 py-2 font-medium">상대</th>

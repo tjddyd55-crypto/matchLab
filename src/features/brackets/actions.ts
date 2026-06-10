@@ -23,6 +23,7 @@ import {
   publishBracketSchema,
   removeFighterFromMatchSchema,
   eventBracketPublicationSchema,
+  reorderBracketMatchSchema,
   resetBracketSchema,
   setPublicUnmatchedListSchema,
   unpublishBracketSchema,
@@ -307,6 +308,34 @@ export async function assignFighterToMatchAction(
     await bracketService.assignFighterToMatch(actor, parsed.data);
     return actionSuccess({ ok: true as const });
   });
+}
+
+export async function reorderBracketMatchAction(
+  arg1: unknown,
+  arg2?: FormData,
+): Promise<ActionResult<{ ok: true }>> {
+  const formData = resolveFormData(arg1, arg2);
+  if (!formData) {
+    return actionFailure("VALIDATION_ERROR", "요청 본문이 올바르지 않습니다.");
+  }
+  return mapCaught(async () => {
+    const parsed = reorderBracketMatchSchema.safeParse({
+      matchId: formReq(formData, "matchId"),
+      direction: formReq(formData, "direction"),
+    });
+    if (!parsed.success) {
+      return actionFailure("VALIDATION_ERROR", "경기 순서 변경 입력값을 확인해 주세요.");
+    }
+    const actor = await requireActorFromMutation();
+    await bracketService.reorderBracketMatch(actor, parsed.data);
+    return actionSuccess({ ok: true as const });
+  });
+}
+
+export async function reorderBracketMatchFormAction(
+  formData: FormData,
+): Promise<void> {
+  await reorderBracketMatchAction(formData);
 }
 
 export async function updateMatchOrderAndMatAction(

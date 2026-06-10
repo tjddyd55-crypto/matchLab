@@ -34,7 +34,7 @@ export function BracketCreateForm({
     <div className="ring-foreground/10 space-y-4 rounded-xl border bg-card p-4 shadow-sm">
       <h2 className="text-lg font-semibold">대진표 만들기</h2>
       <p className="text-muted-foreground text-sm">
-        승인된 신청자만 이후 단계에서 배치할 수 있습니다. 브래킷 타입은 생성 후
+        승인된 신청자만 이후 단계에서 배치할 수 있습니다. 대진 방식은 생성 후
         변경할 수 없습니다.
       </p>
       {state?.ok === false ? (
@@ -72,7 +72,7 @@ export function BracketCreateForm({
           </select>
         </label>
         <label className="space-y-1 text-sm">
-          <span className="text-muted-foreground">타입</span>
+          <span className="text-muted-foreground">대진 방식</span>
           <select
             name="type"
             required

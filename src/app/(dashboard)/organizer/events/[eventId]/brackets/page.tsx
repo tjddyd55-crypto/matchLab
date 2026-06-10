@@ -39,8 +39,8 @@ export default async function OrganizerEventBracketsPage({
           대진표 관리
         </h1>
         <p className="text-muted-foreground mt-1 text-sm">
-          브래킷 타입은 단위별로 지정되며, 같은 대회에서 토너먼트와 경기 목록을 함께 둘 수
-          있습니다.
+          대진표 그룹은 부문별로 묶인 경기 목록입니다. 같은 대회에서 토너먼트와 경기
+          목록 방식을 함께 둘 수 있습니다.
         </p>
       </div>
 
@@ -64,7 +64,7 @@ export default async function OrganizerEventBracketsPage({
       <BracketCreateForm eventId={eventId} divisions={divisions} />
 
       <div className="space-y-4">
-        <h2 className="text-lg font-semibold">브래킷 목록</h2>
+        <h2 className="text-lg font-semibold">대진표 그룹</h2>
         {brackets.length === 0 ? (
           <p className="text-muted-foreground text-sm">
             아직 생성된 대진표가 없습니다.

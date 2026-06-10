@@ -222,7 +222,8 @@ npm run seed:demo-fighters # FTR-2026-TEST001~020, 데모 체육관 소속
 5. division별 2명씩 매칭·홀수 division **미매칭/대기 선수** 패널 확인.
 6. 개별 브래킷 상세에서 **수동 수정**(`MatchListEditor`) 가능 여부 확인.
 7. **spectator** `/events/sample-open-2026?tab=brackets` — VS 카드(홍코너/청코너·체육관)·미매칭 명단 확인.
-8. **organizer** 현장·계체(`/check-in`) — 계체 실패 선수의 배정 경기 안내 → 패/실격/기권 또는 「그래도 진행」 선택.
+8. **organizer** 현장·계체(`/check-in`) — 선수명 검색 → 몸무게 입력 후 「저장됨」 확인 → 계체 실패 선수 배정 경기 안내 → 패/실격/기권 또는 「그래도 진행」.
+9. **organizer** 대진표 그룹 상세 — 경기 순서 ▲▼ 변경 → 새로고침 후 유지 → 공개 대진표 `제N경기` 순서 확인.
 
 ## 3. 시연 데이터 설명 (`npm run db:seed` 후)
 
