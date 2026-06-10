@@ -9,6 +9,7 @@ export function ApprovedApplicationPicker({
   disabledOptionIds,
   placeholder,
   required,
+  disabled,
   className,
 }: {
   /** 비제어 폼 제출용 — `onChange` 가 없을 때만 전달한다. */
@@ -19,6 +20,7 @@ export function ApprovedApplicationPicker({
   disabledOptionIds?: ReadonlySet<string>;
   placeholder?: string;
   required?: boolean;
+  disabled?: boolean;
   className?: string;
 }) {
   const selectClass = cn(
@@ -46,6 +48,7 @@ export function ApprovedApplicationPicker({
     return (
       <select
         required={required}
+        disabled={disabled}
         className={selectClass}
         value={value}
         onChange={(e) => onChange(e.target.value)}
@@ -59,6 +62,7 @@ export function ApprovedApplicationPicker({
     <select
       name={name}
       required={required}
+      disabled={disabled}
       className={selectClass}
       defaultValue={value}
     >

@@ -40,7 +40,7 @@ export default async function FighterRecordsPage() {
               <tr>
                 <th className="px-3 py-2">일시</th>
                 <th className="px-3 py-2">대회</th>
-                <th className="px-3 py-2">브래킷</th>
+                <th className="px-3 py-2">대진표 그룹</th>
                 <th className="px-3 py-2">상대</th>
                 <th className="px-3 py-2">결과</th>
               </tr>

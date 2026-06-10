@@ -78,6 +78,7 @@ export function OrganizerBracketEditor({
           bracketType={detail.type}
           matches={detail.matches}
           options={detail.approvedFighterOptions}
+          divisionLabel={detail.divisionLabel ?? detail.title}
         />
       ) : (
         <TournamentBracketEditor detail={detail} />

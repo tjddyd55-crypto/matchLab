@@ -3,48 +3,17 @@
 import { useActionState, useEffect, useMemo, useState } from "react";
 import { useRouter } from "next/navigation";
 import { createMatchListMatchesAction } from "@/features/brackets/actions";
-import { OrganizerMatchOpsPanel } from "@/components/domain/brackets/OrganizerMatchOpsPanel";
+import {
+  OrganizerMatchEditCard,
+  type MatchListEditorRow,
+} from "@/components/domain/brackets/OrganizerMatchEditCard";
 import type { OrganizerApprovedFighterOptionVM } from "@/lib/services/bracket.service";
 import type { OrganizerBracketMatchVM } from "@/lib/services/bracket.service";
-import { ApprovedApplicationPicker } from "@/components/domain/brackets/ApprovedApplicationPicker";
 import { Button } from "@/components/ui/button";
-import { BracketMatchOrderControls } from "@/components/domain/brackets/BracketMatchOrderControls";
-import { getMatchListDisabledFighterIds } from "@/lib/bracket-match-placement";
 import { BracketType } from "@/lib/enums";
 import { sortMatchesByOrder } from "@/lib/match-order-display";
-import { cn } from "@/lib/utils";
 
-function matchListOpsProps(
-  m: OrganizerBracketMatchVM,
-  bracketType: BracketType,
-) {
-  return {
-    bracketType,
-    matchId: m.id,
-    status: m.status,
-    fighterRedId: m.fighterRedId,
-    fighterBlueId: m.fighterBlueId,
-    fighterRedName: m.fighterRedSnapshot?.name ?? "미배정",
-    fighterBlueName: m.fighterBlueSnapshot?.name ?? "미배정",
-    hasOfficialResults: m.hasOfficialResults,
-    winnerId: m.winnerId,
-    resultType: m.resultType,
-    resultMemo: m.resultMemo,
-    compact: true as const,
-  };
-}
-
-type Row = {
-  key: string;
-  fighterRedId: string;
-  fighterBlueId: string;
-  matchOrder: number;
-  globalMatchOrder: string;
-  matchNumber: string;
-  matNumber: string;
-};
-
-function vmToRows(matches: OrganizerBracketMatchVM[]): Row[] {
+function vmToRows(matches: OrganizerBracketMatchVM[]): MatchListEditorRow[] {
   if (matches.length === 0) {
     return [
       {
@@ -75,14 +44,16 @@ export function MatchListEditor({
   bracketType,
   matches,
   options,
+  divisionLabel,
 }: {
   bracketId: string;
   bracketType: BracketType;
   matches: OrganizerBracketMatchVM[];
   options: OrganizerApprovedFighterOptionVM[];
+  divisionLabel?: string | null;
 }) {
   const router = useRouter();
-  const [rows, setRows] = useState<Row[]>(() => vmToRows(matches));
+  const [rows, setRows] = useState<MatchListEditorRow[]>(() => vmToRows(matches));
 
   const [state, formAction, pending] = useActionState(
     createMatchListMatchesAction,
@@ -130,10 +101,21 @@ export function MatchListEditor({
     return JSON.stringify(normalized);
   }, [rows]);
 
+  function updateRow(index: number, patch: Partial<MatchListEditorRow>) {
+    setRows((prev) =>
+      prev.map((x, i) => (i === index ? { ...x, ...patch } : x)),
+    );
+  }
+
   return (
     <div className="ring-foreground/10 space-y-4 rounded-xl border bg-card p-4 shadow-sm">
       <div className="flex flex-wrap items-center justify-between gap-2">
-        <h2 className="text-lg font-semibold">경기 목록 편집</h2>
+        <div>
+          <h2 className="text-lg font-semibold">경기 목록 편집</h2>
+          <p className="text-muted-foreground mt-1 text-sm">
+            홍코너와 청코너를 한눈에 확인하고 배치·순서를 조정합니다.
+          </p>
+        </div>
         <Button
           type="button"
           variant="outline"
@@ -153,7 +135,7 @@ export function MatchListEditor({
             ])
           }
         >
-          경기 행 추가
+          경기 추가
         </Button>
       </div>
       {state?.ok === false ? (
@@ -169,246 +151,22 @@ export function MatchListEditor({
         <input type="hidden" name="bracketId" value={bracketId} />
         <input type="hidden" name="matchesPayload" value={payloadJson} />
 
-        <div className="hidden lg:block overflow-x-auto rounded-lg border">
-          <table className="w-full min-w-[960px] text-left text-sm">
-            <thead className="bg-muted/50 border-b text-xs uppercase">
-              <tr>
-                <th className="px-3 py-2">경기 순서</th>
-                <th className="px-3 py-2">편집 순서</th>
-                <th className="px-3 py-2">홍코너</th>
-                <th className="px-3 py-2">청코너</th>
-                <th className="px-3 py-2">경기번호</th>
-                <th className="px-3 py-2">매트</th>
-                <th className="px-3 py-2">전체순서</th>
-                <th className="px-3 py-2 w-[min(280px,40vw)]">현장 운영</th>
-              </tr>
-            </thead>
-            <tbody>
-              {rows.map((r, idx) => {
-                const serverMatch = matches.find((m) => m.id === r.key);
-                const showOps =
-                  Boolean(serverMatch) && !String(r.key).includes("-");
-                return (
-                <tr key={r.key} className="border-b last:border-0">
-                  <td className="px-3 py-2 align-middle">
-                    {showOps && serverMatch ? (
-                      <BracketMatchOrderControls
-                        match={serverMatch}
-                        allMatches={sortedServerMatches}
-                      />
-                    ) : (
-                      <span className="text-muted-foreground text-xs">—</span>
-                    )}
-                  </td>
-                  <td className="px-3 py-2 align-middle">
-                    <input
-                      type="number"
-                      min={0}
-                      className={cn(
-                        "border-input bg-background h-9 w-20 rounded-md border px-2 text-sm",
-                      )}
-                      value={r.matchOrder}
-                      onChange={(e) => {
-                        const v = Number(e.target.value);
-                        setRows((prev) =>
-                          prev.map((x, i) =>
-                            i === idx ? { ...x, matchOrder: v } : x,
-                          ),
-                        );
-                      }}
-                    />
-                  </td>
-                  <td className="px-3 py-2 align-middle">
-                    <ApprovedApplicationPicker
-                      value={r.fighterRedId}
-                      onChange={(v) =>
-                        setRows((prev) =>
-                          prev.map((x, i) =>
-                            i === idx ? { ...x, fighterRedId: v } : x,
-                          ),
-                        )
-                      }
-                      options={options}
-                      disabledOptionIds={getMatchListDisabledFighterIds(
-                        rows,
-                        idx,
-                        "red",
-                      )}
-                      placeholder="홍코너 선수"
-                    />
-                  </td>
-                  <td className="px-3 py-2 align-middle">
-                    <ApprovedApplicationPicker
-                      value={r.fighterBlueId}
-                      onChange={(v) =>
-                        setRows((prev) =>
-                          prev.map((x, i) =>
-                            i === idx ? { ...x, fighterBlueId: v } : x,
-                          ),
-                        )
-                      }
-                      options={options}
-                      disabledOptionIds={getMatchListDisabledFighterIds(
-                        rows,
-                        idx,
-                        "blue",
-                      )}
-                      placeholder="청코너 선수"
-                    />
-                  </td>
-                  <td className="px-3 py-2 align-middle">
-                    <input
-                      className={cn(
-                        "border-input bg-background h-9 w-20 rounded-md border px-2 text-sm",
-                      )}
-                      value={r.matchNumber}
-                      placeholder="선택"
-                      onChange={(e) =>
-                        setRows((prev) =>
-                          prev.map((x, i) =>
-                            i === idx
-                              ? { ...x, matchNumber: e.target.value }
-                              : x,
-                          ),
-                        )
-                      }
-                    />
-                  </td>
-                  <td className="px-3 py-2 align-middle">
-                    <input
-                      className={cn(
-                        "border-input bg-background h-9 w-20 rounded-md border px-2 text-sm",
-                      )}
-                      value={r.matNumber}
-                      placeholder="선택"
-                      onChange={(e) =>
-                        setRows((prev) =>
-                          prev.map((x, i) =>
-                            i === idx ? { ...x, matNumber: e.target.value } : x,
-                          ),
-                        )
-                      }
-                    />
-                  </td>
-                  <td className="px-3 py-2 align-middle">
-                    <input
-                      className={cn(
-                        "border-input bg-background h-9 w-24 rounded-md border px-2 text-sm",
-                      )}
-                      value={r.globalMatchOrder}
-                      placeholder="선택"
-                      onChange={(e) =>
-                        setRows((prev) =>
-                          prev.map((x, i) =>
-                            i === idx
-                              ? { ...x, globalMatchOrder: e.target.value }
-                              : x,
-                          ),
-                        )
-                      }
-                    />
-                  </td>
-                  <td className="px-3 py-2 align-top">
-                    {showOps && serverMatch ? (
-                      <OrganizerMatchOpsPanel
-                        {...matchListOpsProps(serverMatch, bracketType)}
-                      />
-                    ) : (
-                      <span className="text-muted-foreground text-[11px]">
-                        저장 후 운영 패널이 열립니다.
-                      </span>
-                    )}
-                  </td>
-                </tr>
-              );
-              })}
-            </tbody>
-          </table>
-        </div>
-
-        <div className="flex flex-col gap-3 lg:hidden">
+        <div className="flex flex-col gap-4">
           {rows.map((r, idx) => {
             const serverMatch = matches.find((m) => m.id === r.key);
-            const showOps =
-              Boolean(serverMatch) && !String(r.key).includes("-");
             return (
-            <div
-              key={r.key}
-              className="bg-muted/20 space-y-3 rounded-lg border p-3 text-sm"
-            >
-              {showOps && serverMatch ? (
-                <BracketMatchOrderControls
-                  match={serverMatch}
-                  allMatches={sortedServerMatches}
-                />
-              ) : (
-                <div className="font-medium">경기 {idx + 1}</div>
-              )}
-              <label className="block space-y-1">
-                <span className="text-muted-foreground text-xs">순서</span>
-                <input
-                  type="number"
-                  min={0}
-                  className={cn(
-                    "border-input bg-background h-9 w-full rounded-md border px-2 text-sm",
-                  )}
-                  value={r.matchOrder}
-                  onChange={(e) => {
-                    const v = Number(e.target.value);
-                    setRows((prev) =>
-                      prev.map((x, i) =>
-                        i === idx ? { ...x, matchOrder: v } : x,
-                      ),
-                    );
-                  }}
-                />
-              </label>
-              <ApprovedApplicationPicker
-                value={r.fighterRedId}
-                onChange={(v) =>
-                  setRows((prev) =>
-                    prev.map((x, i) =>
-                      i === idx ? { ...x, fighterRedId: v } : x,
-                    ),
-                  )
-                }
+              <OrganizerMatchEditCard
+                key={r.key}
+                row={r}
+                rowIndex={idx}
+                rows={rows}
                 options={options}
-                disabledOptionIds={getMatchListDisabledFighterIds(
-                  rows,
-                  idx,
-                  "red",
-                )}
-                placeholder="홍코너 선수"
-                className="max-w-none"
+                serverMatch={serverMatch}
+                bracketType={bracketType}
+                divisionLabel={divisionLabel}
+                sortedServerMatches={sortedServerMatches}
+                onUpdateRow={updateRow}
               />
-              <ApprovedApplicationPicker
-                value={r.fighterBlueId}
-                onChange={(v) =>
-                  setRows((prev) =>
-                    prev.map((x, i) =>
-                      i === idx ? { ...x, fighterBlueId: v } : x,
-                    ),
-                  )
-                }
-                options={options}
-                disabledOptionIds={getMatchListDisabledFighterIds(
-                  rows,
-                  idx,
-                  "blue",
-                )}
-                placeholder="청코너 선수"
-                className="max-w-none"
-              />
-              {showOps && serverMatch ? (
-                <OrganizerMatchOpsPanel
-                  {...matchListOpsProps(serverMatch, bracketType)}
-                />
-              ) : (
-                <p className="text-muted-foreground text-[11px]">
-                  저장 후 현장 운영 패널을 사용할 수 있습니다.
-                </p>
-              )}
-            </div>
             );
           })}
         </div>
