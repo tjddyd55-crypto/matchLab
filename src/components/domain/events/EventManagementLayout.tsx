@@ -1,6 +1,10 @@
 import type { ReactNode } from "react";
-import { EventManagementNav } from "@/components/domain/events/EventManagementNav";
-import { EVENT_MANAGEMENT_CONTAINER_CLASS } from "@/lib/event-management-layout";
+import { EventManagementSideNav } from "@/components/domain/events/EventManagementSideNav";
+import { MobileEventManagementNav } from "@/components/domain/events/MobileEventManagementNav";
+import {
+  EVENT_MANAGEMENT_CONTAINER_CLASS,
+  EVENT_MANAGEMENT_CONTENT_CLASS,
+} from "@/lib/event-management-layout";
 import { cn } from "@/lib/utils";
 
 export function EventManagementLayout({
@@ -16,8 +20,15 @@ export function EventManagementLayout({
 }) {
   return (
     <div className={cn(EVENT_MANAGEMENT_CONTAINER_CLASS, className)}>
-      <EventManagementNav eventId={eventId} publicSlug={publicSlug} />
-      {children}
+      <div className="lg:grid lg:grid-cols-[240px_minmax(0,1fr)] lg:gap-6">
+        <aside className="hidden lg:block">
+          <EventManagementSideNav eventId={eventId} publicSlug={publicSlug} />
+        </aside>
+        <div className={EVENT_MANAGEMENT_CONTENT_CLASS}>
+          <MobileEventManagementNav eventId={eventId} publicSlug={publicSlug} />
+          {children}
+        </div>
+      </div>
     </div>
   );
 }

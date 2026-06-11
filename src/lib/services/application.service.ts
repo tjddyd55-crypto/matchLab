@@ -288,7 +288,7 @@ export type OrganizerApplicationListRowDTO = {
   divisionLabel: string;
   applicationStatus: ApplicationStatus;
   paymentStatus: PaymentStatus;
-  paymentId: string;
+  paymentId: string | null;
   depositorName: string | null;
   memo: string | null;
   appliedAt: string | null;
@@ -606,13 +606,7 @@ export const applicationService = {
           ? snap.profileImageUrl
           : row.fighter.profileImageUrl ?? null;
 
-      const paymentRow = row.payments[0];
-      if (!paymentRow) {
-        throw new AppError(
-          "INTERNAL",
-          "결제 행이 없는 신청입니다. 관리자에게 문의해 주세요.",
-        );
-      }
+      const paymentRow = row.payments[0] ?? null;
 
       const gymName = row.gym?.name ?? "—";
       const summary = consentSummaryFields(policyRequires, consent);
@@ -623,14 +617,14 @@ export const applicationService = {
         fighterSnapshot: snap,
         fighterProfileImageUrl,
         fighterName,
-        gymId: row.gym.id,
+        gymId: row.gym?.id ?? "",
         gymName,
         divisionId: row.division.id,
         divisionLabel: formatDivisionLabel(row.division),
         applicationStatus: row.status,
         paymentStatus: row.paymentStatus,
-        paymentId: paymentRow.id,
-        depositorName: paymentRow.depositorName,
+        paymentId: paymentRow?.id ?? null,
+        depositorName: paymentRow?.depositorName ?? null,
         memo: row.memo,
         appliedAt: row.appliedAt ? toIso(row.appliedAt) : null,
         createdAt: toIso(row.createdAt),

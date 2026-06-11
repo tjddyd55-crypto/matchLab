@@ -306,7 +306,7 @@ npm run setup:bracket-demo-data
 4. **공개 설정** → 대진표·미매칭 리스트 공개 ON
 5. `/events/sample-open-2026?tab=brackets` — VS 카드·미매칭 명단 확인
 6. `/organizer/events/{eventId}/check-in` — 선수 검색·몸무게/메모 저장 피드백·계체 실패 후 대진 패 처리 확인
-7. 대회 관리 하위 메뉴(신청자·현장·계체·대진표·경기 운영) 전환 — EventManagementNav·콘텐츠 max-width 일관성 확인
+7. 대회 관리 **좌측 사이드 메뉴**(PC)로 신청자·현장·계체·대진표·경기 운영 이동 — `EventManagementLayout`·콘텐츠 `max-w-[96rem]`·시작선 일관성 확인. 모바일은 「대회 메뉴」 접힘 확인.
 8. 대진표 그룹 상세 — compact VS 카드·하단 운영 control·홍/청 대칭 스타일 확인. 현장·계체(`/check-in`) compact action row·저장 피드백 확인
 
 ### 테스트용 선수 20명 추가 (`npm run seed:demo-fighters`)
@@ -489,6 +489,13 @@ npm run dev
 ## 주최자 대회 생성·관리 (MVP)
 
 - **라우트**: `/organizer/events`(목록), `/organizer/events/new`(생성), `/organizer/events/[eventId]`(관리 홈·준비 체크리스트·기본 설정·부문·신청서·참가비), `/organizer/events/[eventId]/operation`(경기 운영 보드).
+- **대회 관리 레이아웃**: `EventManagementLayout` — PC 좌측 sticky 사이드 메뉴(`event-management-nav-items.ts`), 모바일 「대회 메뉴」 접힘·가로 스크롤. 하위 페이지 콘텐츠 폭 `max-w-[96rem]` 통일.
+
+**신청자 페이지 수동 확인 (schema 변경 없음):**
+
+1. `organizer` / `123456!!` → `2026 샘플 오픈 대회` 관리 홈.
+2. 좌측 **신청자** 메뉴 → `/organizer/events/{eventId}/applications` 정상 로드.
+3. 신청자 목록·크레딧 안내·필터·상세 Drawer·승인/반려/입금 action 회귀 확인.
 
 **대회 생성 UX 테스트 (schema 변경 없음):**
 

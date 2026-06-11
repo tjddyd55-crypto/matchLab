@@ -11,9 +11,17 @@ export function PaymentStatusControl({
   paymentId,
   paymentStatus,
 }: {
-  paymentId: string;
+  paymentId: string | null;
   paymentStatus: PaymentStatus;
 }) {
+  if (!paymentId) {
+    return (
+      <p className="text-muted-foreground text-xs">
+        결제 행이 없어 입금 확인을 할 수 없습니다.
+      </p>
+    );
+  }
+
   return (
     <div className="flex flex-wrap gap-1">
       {(paymentStatus === "unpaid" || paymentStatus === "pending_check") ? (

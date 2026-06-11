@@ -33,7 +33,7 @@ export type OrganizerApplicationRowVM = {
   divisionLabel: string;
   applicationStatus: ApplicationStatus;
   paymentStatus: PaymentStatus;
-  paymentId: string;
+  paymentId: string | null;
   depositorName: string | null;
   memo: string | null;
   appliedAt: string | null;
