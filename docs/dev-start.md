@@ -306,7 +306,8 @@ npm run setup:bracket-demo-data
 4. **공개 설정** → 대진표·미매칭 리스트 공개 ON
 5. `/events/sample-open-2026?tab=brackets` — VS 카드·미매칭 명단 확인
 6. `/organizer/events/{eventId}/check-in` — 선수 검색·몸무게/메모 저장 피드백·계체 실패 후 대진 패 처리 확인
-7. 대진표 그룹 상세 — compact VS 카드·하단 운영 control·홍/청 대칭 스타일 확인. 현장·계체(`/check-in`) compact action row·저장 피드백 확인
+7. 대회 관리 하위 메뉴(신청자·현장·계체·대진표·경기 운영) 전환 — EventManagementNav·콘텐츠 max-width 일관성 확인
+8. 대진표 그룹 상세 — compact VS 카드·하단 운영 control·홍/청 대칭 스타일 확인. 현장·계체(`/check-in`) compact action row·저장 피드백 확인
 
 ### 테스트용 선수 20명 추가 (`npm run seed:demo-fighters`)
 

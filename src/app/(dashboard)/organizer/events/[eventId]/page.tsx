@@ -2,7 +2,7 @@ import { EventStaffRecorderLinksSection } from "@/components/domain/events/Event
 import { EventGalleryManager } from "@/components/domain/events/EventGalleryManager";
 import { EventDivisionManager } from "@/components/domain/events/EventDivisionManager";
 import { EventForm } from "@/components/domain/events/EventForm";
-import { EventManagementNav } from "@/components/domain/events/EventManagementNav";
+import { EventManagementLayout } from "@/components/domain/events/EventManagementLayout";
 import { OrganizerEventNextActions } from "@/components/domain/events/OrganizerEventNextActions";
 import { OrganizerEventSetupChecklist } from "@/components/domain/events/OrganizerEventSetupChecklist";
 import { EventPaymentSettingForm } from "@/components/domain/events/EventPaymentSettingForm";
@@ -87,7 +87,7 @@ export default async function OrganizerEventDetailPage({
   const setupChecklist = buildEventSetupChecklist(setupInput);
 
   return (
-    <div className="mx-auto flex w-full max-w-[min(100%,56rem)] flex-col gap-8 px-4 py-8 md:px-6 lg:px-8">
+    <EventManagementLayout eventId={detail.id} publicSlug={detail.publicSlug}>
       <header className="space-y-2">
         <div className="flex flex-wrap items-center gap-2">
           <h1 className="font-heading text-2xl font-semibold tracking-tight md:text-3xl">
@@ -111,8 +111,6 @@ export default async function OrganizerEventDetailPage({
       </header>
 
       <OrganizerEventFlashBanner />
-
-      <EventManagementNav eventId={detail.id} publicSlug={detail.publicSlug} />
 
       {showWelcome ? (
         <OrganizerEventNextActions
@@ -164,6 +162,6 @@ export default async function OrganizerEventDetailPage({
         eventId={detail.id}
         initial={detail.paymentSetting}
       />
-    </div>
+    </EventManagementLayout>
   );
 }

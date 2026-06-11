@@ -4,6 +4,9 @@ import { requireOrganizerForEventPage } from "@/lib/permissions";
 import { applicationBatchService } from "@/lib/services/application-batch.service";
 import { EmptyState } from "@/components/shared/EmptyState";
 import { buttonVariants } from "@/components/ui/button";
+import { EventManagementLayout } from "@/components/domain/events/EventManagementLayout";
+import { EventManagementPageHeader } from "@/components/domain/events/EventManagementPageHeader";
+import { loadEventManagementNavContext } from "@/lib/event-management-nav-context";
 import { cn } from "@/lib/utils";
 
 export const dynamic = "force-dynamic";
@@ -17,27 +20,18 @@ export default async function OrganizerApplicationBatchesPage({
   const { eventId } = await params;
   await requireOrganizerForEventPage(actor, eventId);
 
-  const batches = await applicationBatchService.listBatchesForOrganizer(
-    actor,
-    eventId,
-  );
+  const [nav, batches] = await Promise.all([
+    loadEventManagementNavContext(eventId),
+    applicationBatchService.listBatchesForOrganizer(actor, eventId),
+  ]);
 
   return (
-    <div className="mx-auto flex w-full max-w-5xl flex-col gap-8 px-4 py-8 md:px-6">
-      <div>
-        <Link
-          href={`/organizer/events/${eventId}`}
-          className={cn(buttonVariants({ variant: "ghost", size: "sm" }), "-ml-2 w-fit")}
-        >
-          ← 대회 관리
-        </Link>
-        <h1 className="font-heading mt-2 text-2xl font-semibold tracking-tight">
-          공식 신청서 묶음
-        </h1>
-        <p className="text-muted-foreground mt-1 text-sm">
-          체육관이 PDF 공식 신청서로 제출한 묶음 목록입니다.
-        </p>
-      </div>
+    <EventManagementLayout eventId={nav.eventId} publicSlug={nav.publicSlug}>
+      <EventManagementPageHeader
+        title="공식 신청서 묶음"
+        eventTitle={nav.title}
+        description="체육관이 PDF 공식 신청서로 제출한 묶음 목록입니다."
+      />
 
       {batches.length === 0 ? (
         <EmptyState
@@ -46,7 +40,7 @@ export default async function OrganizerApplicationBatchesPage({
         />
       ) : (
         <div className="overflow-x-auto rounded-lg border">
-          <table className="w-full text-sm">
+          <table className="w-full min-w-[640px] text-sm">
             <thead className="bg-muted/50 text-left">
               <tr>
                 <th className="px-4 py-3 font-medium">접수번호</th>
@@ -87,6 +81,6 @@ export default async function OrganizerApplicationBatchesPage({
           </table>
         </div>
       )}
-    </div>
+    </EventManagementLayout>
   );
 }

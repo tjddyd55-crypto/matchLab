@@ -1,9 +1,11 @@
 import Link from "next/link";
-import { EventManagementNav } from "@/components/domain/events/EventManagementNav";
+import { EventManagementLayout } from "@/components/domain/events/EventManagementLayout";
+import { EventManagementPageHeader } from "@/components/domain/events/EventManagementPageHeader";
 import { EmptyState } from "@/components/shared/EmptyState";
 import { buttonVariants } from "@/components/ui/button";
 import { requireActor } from "@/lib/auth/actor";
 import { resolveOrganizerEventPageError } from "@/lib/permissions";
+import { loadEventManagementNavContext } from "@/lib/event-management-nav-context";
 import { MatchRecordOutcome } from "@/lib/enums";
 import { eventService } from "@/lib/services/event.service";
 import { resultService } from "@/lib/services/result.service";
@@ -41,33 +43,33 @@ export default async function OrganizerEventResultsPage({
     resolveOrganizerEventPageError(e);
   }
 
-  const rows = await resultService.listEventResults(actor, eventId);
+  const [nav, rows] = await Promise.all([
+    loadEventManagementNavContext(eventId),
+    resultService.listEventResults(actor, eventId),
+  ]);
   const sorted = [...rows].sort(
     (a, b) => b.matchDate.getTime() - a.matchDate.getTime(),
   );
 
   return (
-    <div className="mx-auto flex w-full max-w-5xl flex-col gap-8 px-4 py-8 md:px-6">
-      <header className="space-y-2">
-        <h1 className="font-heading text-2xl font-semibold tracking-tight md:text-3xl">
-          결과 · {detail.title}
-        </h1>
-        <p className="text-muted-foreground text-sm">
-          MatchResult 행 단위로 표시합니다. 공개 페이지에는 확정 건만 노출됩니다.
-        </p>
-      </header>
-
-      <EventManagementNav eventId={detail.id} publicSlug={detail.publicSlug} />
+    <EventManagementLayout eventId={nav.eventId} publicSlug={nav.publicSlug}>
+      <EventManagementPageHeader
+        title="결과"
+        eventTitle={detail.title}
+        description="MatchResult 행 단위로 표시합니다. 공개 페이지에는 확정 건만 노출됩니다."
+      />
 
       <div className="flex flex-wrap gap-2">
-        <Link
-          href={`/events/${detail.publicSlug}/results`}
-          className={cn(buttonVariants({ variant: "outline", size: "sm" }))}
-          target="_blank"
-          rel="noopener noreferrer"
-        >
-          공개 결과 페이지
-        </Link>
+        {detail.publicSlug ? (
+          <Link
+            href={`/events/${detail.publicSlug}/results`}
+            className={cn(buttonVariants({ variant: "outline", size: "sm" }))}
+            target="_blank"
+            rel="noopener noreferrer"
+          >
+            공개 결과 페이지
+          </Link>
+        ) : null}
         <Link
           href={`/organizer/events/${eventId}/operation`}
           className={cn(buttonVariants({ variant: "outline", size: "sm" }))}
@@ -126,6 +128,6 @@ export default async function OrganizerEventResultsPage({
           </table>
         </div>
       )}
-    </div>
+    </EventManagementLayout>
   );
 }

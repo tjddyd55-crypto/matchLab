@@ -1,4 +1,7 @@
+"use client";
+
 import Link from "next/link";
+import { usePathname } from "next/navigation";
 import { buttonVariants } from "@/components/ui/button";
 import { cn } from "@/lib/utils";
 
@@ -8,17 +11,34 @@ type NavItem = {
   external?: boolean;
 };
 
+function isNavItemActive(
+  pathname: string,
+  eventId: string,
+  item: NavItem,
+): boolean {
+  if (item.external) return false;
+
+  const base = `/organizer/events/${eventId}`;
+
+  if (item.href === base) {
+    return pathname === base;
+  }
+
+  if (item.href.startsWith(`${base}#`)) {
+    return pathname === base;
+  }
+
+  return pathname === item.href || pathname.startsWith(`${item.href}/`);
+}
+
 export function EventManagementNav({
   eventId,
   publicSlug,
 }: {
   eventId: string;
-  publicSlug: string;
+  publicSlug?: string | null;
 }) {
-  const linkClass = cn(
-    buttonVariants({ variant: "outline", size: "sm" }),
-    "justify-center",
-  );
+  const pathname = usePathname() ?? "";
 
   const base = `/organizer/events/${eventId}`;
   const items: NavItem[] = [
@@ -34,7 +54,15 @@ export function EventManagementNav({
     { href: `${base}/judges`, label: "심판 관리" },
     { href: `${base}/results`, label: "결과" },
     { href: `${base}#setup-staff-links`, label: "스태프 링크" },
-    { href: `/events/${publicSlug}`, label: "공개 공고", external: true },
+    ...(publicSlug
+      ? [
+          {
+            href: `/events/${publicSlug}`,
+            label: "공개 공고",
+            external: true,
+          } satisfies NavItem,
+        ]
+      : []),
     { href: `${base}/application-batches`, label: "공식 신청서" },
     { href: `${base}/live`, label: "라이브 URL" },
   ];
@@ -44,17 +72,27 @@ export function EventManagementNav({
       className="flex flex-wrap gap-2 border-b pb-4"
       aria-label="대회 관리 바로가기"
     >
-      {items.map((item) => (
-        <Link
-          key={item.href + item.label}
-          href={item.href}
-          className={linkClass}
-          target={item.external ? "_blank" : undefined}
-          rel={item.external ? "noopener noreferrer" : undefined}
-        >
-          {item.label}
-        </Link>
-      ))}
+      {items.map((item) => {
+        const active = isNavItemActive(pathname, eventId, item);
+        return (
+          <Link
+            key={item.href + item.label}
+            href={item.href}
+            className={cn(
+              buttonVariants({
+                variant: active ? "default" : "outline",
+                size: "sm",
+              }),
+              "justify-center",
+            )}
+            target={item.external ? "_blank" : undefined}
+            rel={item.external ? "noopener noreferrer" : undefined}
+            aria-current={active ? "page" : undefined}
+          >
+            {item.label}
+          </Link>
+        );
+      })}
     </nav>
   );
 }

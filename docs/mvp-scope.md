@@ -145,6 +145,7 @@
 - [x] **주최자 UI 용어** — 「브라켓」→「대진표 그룹」/「대진 방식」.
 - [x] **주최자 대진표 편집 UI** — 경기 목록 `MatchListEditor`를 공개 대진표와 동일한 홍코너 VS 청코너 카드형으로 정리. 선수명·체육관·부문 표시, 선수 변경 select·▲▼ 순서 변경·「경기 운영 열기」로 결과 패널 접기. 승인 후보·대진 후보 카드형·요약 경고.
 - [x] **대진표 카드 compact UI** — 편집 카드 높이 축소(중앙 VS만·운영 정보 하단 이동), 홍/청 코너 배경색 대칭 통일, 현장·계체 액션 가로 compact row.
+- [x] **대회 관리 layout 통일** — `EventManagementLayout`·`max-w-[90rem]` container, 신청자 페이지 서버 오류 수정(EventManagementNav 안전 로드), 하위 메뉴 폭·padding 일관화.
 - [x] **홀수 인원 미매칭/대기 목록** — 주최자 화면·(토글 시) 공개 페이지 「추가 매칭 대기 명단」. 미매칭 사유(홀수·상대 없음 등) 표시.
 - [x] **대진표·미매칭 공개 토글** — `Bracket.isPublic` + `Event.publicUnmatchedListEnabled`. 공개 대진표 VS 카드(홍코너/청코너·체육관).
 - [x] **계체 탈락 후 대진 패 처리** — 현장·계체 화면에서 배정 경기 안내·주최자 선택(패배/실격/기권/그래도 진행). 공식 결과는 기존 `recordMatchOutcomeDraft` → `confirmMatchResults` 재사용.

@@ -5,6 +5,9 @@ import { creditService } from "@/lib/services/credit.service";
 import { eventRepository } from "@/lib/repositories/event.repository";
 import { OrganizerApplicationsBoard } from "@/components/domain/applications/OrganizerApplicationsBoard";
 import { OrganizerEventCreditNotice } from "@/components/domain/credits/OrganizerEventCreditNotice";
+import { EventManagementLayout } from "@/components/domain/events/EventManagementLayout";
+import { EventManagementPageHeader } from "@/components/domain/events/EventManagementPageHeader";
+import { loadEventManagementNavContext } from "@/lib/event-management-nav-context";
 import { ApplicationStatus } from "@/lib/enums";
 
 export const dynamic = "force-dynamic";
@@ -19,10 +22,10 @@ export default async function OrganizerEventApplicationsPage({
 
   await requireOrganizerForEventPage(actor, eventId);
 
-  const rows = await applicationService.listOrganizerEventApplications(
-    actor,
-    eventId,
-  );
+  const [nav, rows] = await Promise.all([
+    loadEventManagementNavContext(eventId),
+    applicationService.listOrganizerEventApplications(actor, eventId),
+  ]);
 
   const organizerId =
     actor.organizerId ??
@@ -39,19 +42,16 @@ export default async function OrganizerEventApplicationsPage({
       : null;
 
   return (
-    <div className="mx-auto flex w-full max-w-7xl flex-col gap-8 px-4 py-8 md:px-6">
-      <div>
-        <h1 className="font-heading text-2xl font-semibold tracking-tight">
-          신청자 관리
-        </h1>
-        <p className="text-muted-foreground mt-1 text-sm">
-          입금 상태는 결제 행을 진실 원천으로 두며, 목록의 입금 상태는 동기화된 캐시입니다.
-        </p>
-      </div>
+    <EventManagementLayout eventId={nav.eventId} publicSlug={nav.publicSlug}>
+      <EventManagementPageHeader
+        title="신청자 관리"
+        eventTitle={nav.title}
+        description="입금 상태는 결제 행을 진실 원천으로 두며, 목록의 입금 상태는 동기화된 캐시입니다."
+      />
 
       {creditCtx ? <OrganizerEventCreditNotice credit={creditCtx} /> : null}
 
       <OrganizerApplicationsBoard eventId={eventId} rows={rows} />
-    </div>
+    </EventManagementLayout>
   );
 }

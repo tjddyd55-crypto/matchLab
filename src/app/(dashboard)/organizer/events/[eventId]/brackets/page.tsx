@@ -8,6 +8,9 @@ import { BracketCreateForm } from "@/components/domain/brackets/BracketCreateFor
 import { OrganizerBracketList } from "@/components/domain/brackets/OrganizerBracketList";
 import { BracketPublicationPanel } from "@/components/domain/brackets/BracketPublicationPanel";
 import { UnmatchedBracketCandidatesPanel } from "@/components/domain/brackets/UnmatchedBracketCandidatesPanel";
+import { EventManagementLayout } from "@/components/domain/events/EventManagementLayout";
+import { EventManagementPageHeader } from "@/components/domain/events/EventManagementPageHeader";
+import { loadEventManagementNavContext } from "@/lib/event-management-nav-context";
 
 export const dynamic = "force-dynamic";
 
@@ -21,8 +24,9 @@ export default async function OrganizerEventBracketsPage({
 
   await requireOrganizerForEventPage(actor, eventId);
 
-  const [brackets, divisions, unmatchedCandidates, resetCheck, publication] =
+  const [nav, brackets, divisions, unmatchedCandidates, resetCheck, publication] =
     await Promise.all([
+      loadEventManagementNavContext(eventId),
       bracketService.listOrganizerEventBrackets(actor, eventId),
       eventService.listOrganizerEventDivisions(actor, eventId),
       bracketAutoMatchService.listUnmatchedCandidatesForEvent(actor, eventId),
@@ -33,16 +37,12 @@ export default async function OrganizerEventBracketsPage({
   const publicBracketCount = brackets.filter((b) => b.isPublic).length;
 
   return (
-    <div className="mx-auto flex w-full max-w-7xl flex-col gap-10 px-4 py-8 md:px-6">
-      <div>
-        <h1 className="font-heading text-2xl font-semibold tracking-tight">
-          대진표 관리
-        </h1>
-        <p className="text-muted-foreground mt-1 text-sm">
-          대진표 그룹은 부문별로 묶인 경기 목록입니다. 같은 대회에서 토너먼트와 경기
-          목록 방식을 함께 둘 수 있습니다.
-        </p>
-      </div>
+    <EventManagementLayout eventId={nav.eventId} publicSlug={nav.publicSlug}>
+      <EventManagementPageHeader
+        title="대진표 관리"
+        eventTitle={nav.title}
+        description="대진표 그룹은 부문별로 묶인 경기 목록입니다. 같은 대회에서 토너먼트와 경기 목록 방식을 함께 둘 수 있습니다."
+      />
 
       <BracketPublicationPanel
         eventId={eventId}
@@ -70,9 +70,11 @@ export default async function OrganizerEventBracketsPage({
             아직 생성된 대진표가 없습니다.
           </p>
         ) : (
-          <OrganizerBracketList eventId={eventId} brackets={brackets} />
+          <div className="overflow-x-auto">
+            <OrganizerBracketList eventId={eventId} brackets={brackets} />
+          </div>
         )}
       </div>
-    </div>
+    </EventManagementLayout>
   );
 }
