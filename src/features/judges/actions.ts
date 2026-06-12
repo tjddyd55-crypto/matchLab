@@ -1,5 +1,6 @@
 "use server";
 
+import { revalidatePath } from "next/cache";
 import {
   actionFailure,
   actionSuccess,
@@ -80,6 +81,7 @@ export async function createJudgeCredentialAction(
       actor,
       parsed.data,
     );
+    revalidatePath(`/organizer/events/${parsed.data.eventId}/judges`);
     return actionSuccess({
       loginId: result.credential.loginId,
       plainPassword: result.plainPassword,
@@ -156,6 +158,7 @@ export async function assignJudgeToMatchAction(
       );
     }
     await judgeAssignmentService.assign(actor, parsed.data);
+    revalidatePath(`/organizer/events/${parsed.data.eventId}/judges`);
     return actionSuccess({ ok: true as const });
   });
 }

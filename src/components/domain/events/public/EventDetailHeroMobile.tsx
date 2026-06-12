@@ -52,7 +52,12 @@ export function EventDetailHeroMobile({
       />
 
       {event.location ? (
-        <PublicEventMapLink location={event.location} className="w-fit" />
+        <PublicEventMapLink
+          locationName={event.locationName}
+          roadAddress={event.roadAddress}
+          location={event.location}
+          className="w-fit"
+        />
       ) : null}
 
       {event.paymentInfo ? (

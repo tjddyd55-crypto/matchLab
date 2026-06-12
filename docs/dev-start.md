@@ -505,6 +505,14 @@ npm run dev
 1. `organizer` / `123456!!` → `2026 샘플 오픈 대회` 관리 홈.
 2. 좌측 **신청자** 메뉴 → `/organizer/events/{eventId}/applications` 정상 로드.
 3. 신청자 목록·크레딧 안내·필터·상세 Drawer·승인/반려/입금 action 회귀 확인.
+4. PC 폭에서 **페이지 전체 가로 스크롤이 없는지** 확인(2xl 미만은 카드형, 2xl 이상은 고정폭 테이블).
+
+**주소·지도·스태프/심판 UX 수동 확인 (schema 변경 없음):**
+
+1. 기본 설정 → **주소 검색**으로 도로명 선택(직접 입력 불가) → 장소명·상세 주소 저장.
+2. 공식 신청서 템플릿 연결 저장 → pending 해제·완료 메시지.
+3. 스태프 링크 생성·심판 계정 생성 → 오류 없이 목록 갱신.
+4. 공개 `/events/{slug}` — **네이버 지도에서 보기** 링크(`map.naver.com/p/search/...`), 행사 안내 **오시는 길** preview card. **NAVER_MAP_CLIENT_ID 없이** 검색 링크+placeholder card만 동작(API 키·SDK 미도입).
 
 **대회 생성 UX 테스트 (schema 변경 없음):**
 

@@ -24,6 +24,7 @@
 ### 대회
 
 - [x] 주최자: 대회 생성·기본 정보 수정·상태 전이(`draft`→`open` 등, `event.service` / `/organizer/events`).
+- [x] **개최 장소 주소 검색 고정** — `EventAddressInput`: 도로명 주소는 Daum 우편번호 검색으로만 선택(직접 입력 불가), 장소명·상세 주소는 직접 입력. 공개(`open`) 전 도로명 주소 필수 검증.
 - [x] **대회 준비 체크리스트·가이드** — `/organizer/events/[eventId]` 관리 홈 6단계 체크리스트·다음 작업 안내·`EventManagementNav` 운영 순서 정리·생성 후 `?welcome=1` 다음 단계 (`organizer-event-setup.ts`).
 - [x] 주최자: 디비전(EventDivision) 생성·수정·삭제(신청·대진표 연결 시 삭제 제한).
 - [x] 주최자: 참가비·입금 계좌(`EventPaymentSetting` upsert) — **계좌번호는 공개 DTO·공고에 미포함**.
@@ -32,7 +33,7 @@
 - [x] 공개 페이지: 목록·상세(slug)·디비전·촬영/스트리밍 안내(계좌번호 제외).
 - [x] **공개 메인·대회 목록 포스터형 카드** — `/`, `/events` (`PublicEventCard`, `EventPosterImage`, 신청 상태 필터).
 - [x] **대회 상세 랜딩형** — `/events/[slug]` 포스터 Hero·신청 CTA·대진표/결과/라이브 링크 (`PublicEventDetailHero`).
-- [x] **공개 페이지 신뢰 정보** — 신청 D-day(`PublicEventDeadlineBadge`)·참가비/입금 안내(계좌번호 제외)·장소 지도 링크(`buildMapSearchUrl`)·대진표/결과 공개 뱃지(`PublicEventTrustBadges`)·행사 안내 탭 요약(`PublicEventInfoSummaryCard`). 목록·메인 카드에 D-day·공개 상태 간략 표시.
+- [x] **공개 페이지 신뢰 정보** — 신청 D-day(`PublicEventDeadlineBadge`)·참가비/입금 안내(계좌번호 제외)·**네이버 지도** 검색 링크(`buildMapSearchUrl`)·행사 안내 **오시는 길**(`PublicEventVenueSection`)·대진표/결과 공개 뱃지(`PublicEventTrustBadges`)·행사 안내 탭 요약(`PublicEventInfoSummaryCard`). 목록·메인 카드에 D-day·공개 상태 간략 표시.
 - [x] **대회 상세 공유** — Facebook 공유·링크 복사·OG/Twitter 메타데이터 (`EventShareButtons`, `generateMetadata`). 포스터 없을 때 `/og-event-default` 동적 fallback(대회명·날짜·장소·MatchLab 브랜딩). 카카오/인스타/Web Share API는 후속 TODO.
 - [x] 공개 대회 UI **PC/모바일 분리** — `*Desktop` / `*Mobile` + `md` 브레이크포인트 (`FightersTableDesktop` 패턴).
 
@@ -149,6 +150,8 @@
 - [x] **주최자 dashboard content layout 통일** — `OrganizerDashboardContent`·`max-w-[96rem]`로 홈·대회·공개 선수·크레딧·체급표 템플릿·알림(organizer) 콘텐츠 시작선·폭 일관화. 대회 상세는 상위 wrapper + `EventManagementLayout` grid 중첩 padding 방지.
 - [x] **대진표 선수 사진 미노출** — 공개·주최자 대진표 편집(`FighterSlotCard`·`OrganizerMatchEditSlot`)에서 프로필 사진·avatar 제거, 텍스트(선수명·체육관·부문·전적) 중심. 선수 프로필(`/fighter/profile`·`/fighters/[slug]`) 사진 기능은 유지.
 - [x] **신청자 페이지 서버 오류 수정** — 결제 행(`EventApplicationPayment`)이 없는 신청도 목록에 null-safe 렌더(전체 500 방지), 입금 확인은 결제 행 있을 때만 표시.
+- [x] **신청자 페이지 가로 스크롤 제거** — `OrganizerApplicationsTable`/`OrganizerApplicationsCards`: 2xl 미만 카드형, 넓은 화면 `table-fixed`·compact 입금 action·결제 행 없음 짧은 문구.
+- [x] **스태프·심판 링크/계정 생성 UX** — 스태프 링크 `useActionState`+form reset null guard, 신청서 템플릿 저장 pending 해제, 심판 계정 생성 후 `formRef` reset(비동기 refresh 후 null 방지).
 - [x] **홀수 인원 미매칭/대기 목록** — 주최자 화면·(토글 시) 공개 페이지 「추가 매칭 대기 명단」. 미매칭 사유(홀수·상대 없음 등) 표시.
 - [x] **대진표·미매칭 공개 토글** — `Bracket.isPublic` + `Event.publicUnmatchedListEnabled`. 공개 대진표 VS 카드(홍코너/청코너·체육관).
 - [x] **계체 탈락 후 대진 패 처리** — 현장·계체 화면에서 배정 경기 안내·주최자 선택(패배/실격/기권/그래도 진행). 공식 결과는 기존 `recordMatchOutcomeDraft` → `confirmMatchResults` 재사용.

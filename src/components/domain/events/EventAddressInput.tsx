@@ -109,21 +109,26 @@ export function EventAddressInput({
       <input type="hidden" name={pk("roadAddress")} value={roadAddress} readOnly />
       <input type="hidden" name={pk("location")} value={composedLocation} readOnly />
 
-      <div className="flex flex-wrap items-center gap-2">
+      <div className="flex flex-wrap items-center justify-between gap-2">
         <span className="text-sm font-medium">개최 장소</span>
         <button
           type="button"
           className={cn(
-            "border-input bg-background inline-flex h-9 items-center rounded-md border px-3 text-sm shadow-sm",
+            "border-input bg-background inline-flex h-9 items-center rounded-md border px-3 text-sm shadow-sm hover:bg-muted/50",
           )}
           onClick={openSearch}
         >
-          다음 우편번호로 주소 검색
+          주소 검색
         </button>
       </div>
 
+      <p className="text-muted-foreground text-[11px] leading-relaxed">
+        주소는 검색으로 선택해 주세요. 장소명과 상세 주소(동·호수·층 등)는 직접
+        입력할 수 있습니다.
+      </p>
+
       <label className="block space-y-1 text-sm">
-        <span className="text-muted-foreground text-xs">장소명 (선택)</span>
+        <span className="text-muted-foreground text-xs">장소명</span>
         <input
           id={`${fieldId}-loc-name`}
           value={locationName}
@@ -134,26 +139,36 @@ export function EventAddressInput({
           }}
           name={pk("locationName")}
           maxLength={200}
-          placeholder="예: OO 체육관"
+          placeholder="예: 올림픽공원 체조경기장, OO 체육관"
           className={cn(
             "border-input bg-background h-9 w-full rounded-md border px-3 text-sm shadow-sm",
           )}
         />
       </label>
 
-      <div className="text-muted-foreground space-y-1 text-xs">
-        <div>
-          <span className="font-medium text-foreground">우편번호</span>{" "}
-          {postalCode || "—"}
-        </div>
-        <div>
-          <span className="font-medium text-foreground">도로명</span>{" "}
-          {roadAddress || "주소 검색으로 선택해 주세요."}
-        </div>
-        {jibunAddress ? (
+      <div className="space-y-2 rounded-md border bg-background/80 px-3 py-2.5 text-sm">
+        <div className="text-muted-foreground space-y-1 text-xs">
           <div>
-            <span className="font-medium text-foreground">지번</span> {jibunAddress}
+            <span className="font-medium text-foreground">우편번호</span>{" "}
+            {postalCode || "—"}
           </div>
+          <div>
+            <span className="font-medium text-foreground">도로명 주소</span>
+          </div>
+        </div>
+        <p
+          className={cn(
+            "text-sm leading-snug",
+            roadAddress ? "text-foreground" : "text-muted-foreground italic",
+          )}
+        >
+          {roadAddress || "주소 검색으로 선택해 주세요."}
+        </p>
+        {jibunAddress ? (
+          <p className="text-muted-foreground text-xs">
+            <span className="font-medium text-foreground">지번</span>{" "}
+            {jibunAddress}
+          </p>
         ) : null}
       </div>
 
@@ -168,7 +183,7 @@ export function EventAddressInput({
           }}
           name={pk("detailAddress")}
           maxLength={300}
-          placeholder="동·호수·층 등"
+          placeholder="예: 3층, A동, 101호"
           className={cn(
             "border-input bg-background h-9 w-full rounded-md border px-3 text-sm shadow-sm",
           )}
@@ -177,7 +192,8 @@ export function EventAddressInput({
 
       <p className="text-muted-foreground text-[11px] leading-relaxed">
         저장 시 도로명 주소와 상세 주소가 조합되어 장소 정보로 저장됩니다. 공개
-        전까지 비워 두어도 되며, 공개(OPEN) 전에는 주소가 필요합니다.
+        전까지 비워 두어도 되며, 신청 공개(OPEN) 전에는 주소 검색으로 선택한
+        도로명 주소가 필요합니다.
       </p>
     </div>
   );

@@ -3,6 +3,7 @@ import { PublicEventDivisionList } from "@/components/domain/events/PublicEventD
 import { PublicEventGallery } from "@/components/domain/events/PublicEventGallery";
 import { RecordingStreamingNotice } from "@/components/domain/events/RecordingStreamingNotice";
 import { EventApplicationCta } from "@/components/domain/events/EventApplicationCta";
+import { PublicEventVenueSection } from "@/components/domain/events/public/PublicEventVenueSection";
 import { PublicEventInfoSummaryCard } from "@/components/domain/events/public/PublicEventInfoSummaryCard";
 import { PublicEventMapLink } from "@/components/domain/events/public/PublicEventMapLink";
 
@@ -16,6 +17,8 @@ export function PublicEventOverviewSection({
   return (
     <div className="flex flex-col gap-8 md:gap-10">
       <PublicEventInfoSummaryCard event={event} />
+
+      <PublicEventVenueSection event={event} />
 
       <section className="space-y-3 rounded-xl border p-4 md:p-5">
         <h2 className="text-base font-semibold md:text-lg">대회 개요</h2>
@@ -48,7 +51,11 @@ export function PublicEventOverviewSection({
         </ul>
         {event.location ? (
           <div className="pt-1">
-            <PublicEventMapLink location={event.location} />
+            <PublicEventMapLink
+              locationName={event.locationName}
+              roadAddress={event.roadAddress}
+              location={event.location}
+            />
           </div>
         ) : null}
         <EventApplicationCta

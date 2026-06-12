@@ -63,7 +63,11 @@ export function EventDetailHeroDesktop({
             />
             {event.location ? (
               <div className="mt-3">
-                <PublicEventMapLink location={event.location} />
+                <PublicEventMapLink
+                  locationName={event.locationName}
+                  roadAddress={event.roadAddress}
+                  location={event.location}
+                />
               </div>
             ) : null}
             {event.paymentInfo ? (

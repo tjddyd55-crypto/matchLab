@@ -1,9 +1,10 @@
 "use client";
 
+import { useActionState, useEffect } from "react";
 import { useRouter } from "next/navigation";
-import { useState } from "react";
 import type { ApplicationFormTemplateListItemVM } from "@/lib/services/application-form-template.service";
 import { linkEventApplicationFormTemplateAction } from "@/features/application-form-templates/actions";
+import type { ActionResult } from "@/lib/action-result";
 import { Button } from "@/components/ui/button";
 import { cn } from "@/lib/utils";
 
@@ -17,27 +18,18 @@ export function EventApplicationFormTemplateSection({
   templates: ApplicationFormTemplateListItemVM[];
 }) {
   const router = useRouter();
-  const [selected, setSelected] = useState(linkedTemplateId ?? "");
-  const [pending, setPending] = useState(false);
-  const [error, setError] = useState<string | null>(null);
+  const [saveState, saveAction, savePending] = useActionState(
+    linkEventApplicationFormTemplateAction,
+    null as ActionResult<{ ok: true }> | null,
+  );
+
+  useEffect(() => {
+    if (saveState?.ok === true) {
+      router.refresh();
+    }
+  }, [saveState, router]);
 
   const linked = templates.find((t) => t.id === linkedTemplateId) ?? null;
-
-  async function onSave(e: React.FormEvent) {
-    e.preventDefault();
-    setPending(true);
-    setError(null);
-    const fd = new FormData();
-    fd.set("eventId", eventId);
-    fd.set("applicationFormTemplateId", selected);
-    const res = await linkEventApplicationFormTemplateAction(fd);
-    setPending(false);
-    if (!res.ok) {
-      setError(res.error.message);
-      return;
-    }
-    router.refresh();
-  }
 
   return (
     <section
@@ -80,18 +72,25 @@ export function EventApplicationFormTemplateSection({
         </p>
       ) : null}
 
-      {error ? (
+      {saveState?.ok === false ? (
         <p className="text-destructive text-sm" role="alert">
-          {error}
+          {saveState.error.message}
+        </p>
+      ) : null}
+      {saveState?.ok === true ? (
+        <p className="text-sm text-green-700 dark:text-green-400" role="status">
+          신청서 템플릿이 저장되었습니다.
         </p>
       ) : null}
 
-      <form onSubmit={(e) => void onSave(e)} className="flex flex-wrap items-end gap-3">
+      <form action={saveAction} className="flex flex-wrap items-end gap-3">
+        <input type="hidden" name="eventId" value={eventId} />
         <label className="min-w-[240px] flex-1 space-y-1 text-sm">
           <span className="font-medium">신청서 템플릿</span>
           <select
-            value={selected}
-            onChange={(e) => setSelected(e.target.value)}
+            name="applicationFormTemplateId"
+            defaultValue={linkedTemplateId ?? ""}
+            key={linkedTemplateId ?? "none"}
             className={cn(
               "border-input bg-background h-9 w-full rounded-md border px-3 text-sm shadow-sm",
             )}
@@ -106,8 +105,8 @@ export function EventApplicationFormTemplateSection({
             ))}
           </select>
         </label>
-        <Button type="submit" disabled={pending || templates.length === 0}>
-          {pending ? "저장 중…" : "템플릿 연결 저장"}
+        <Button type="submit" disabled={savePending || templates.length === 0}>
+          {savePending ? "저장 중…" : "템플릿 연결 저장"}
         </Button>
       </form>
     </section>

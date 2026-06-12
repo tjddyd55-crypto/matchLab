@@ -4,14 +4,22 @@ import { cn } from "@/lib/utils";
 
 export function PublicEventMapLink({
   location,
+  locationName,
+  roadAddress,
   className,
   compact,
 }: {
-  location: string | null | undefined;
+  location?: string | null;
+  locationName?: string | null;
+  roadAddress?: string | null;
   className?: string;
   compact?: boolean;
 }) {
-  const href = buildMapSearchUrl(location ?? "");
+  const href = buildMapSearchUrl({
+    locationName,
+    roadAddress,
+    location,
+  });
   if (!href) return null;
 
   return (
@@ -26,7 +34,7 @@ export function PublicEventMapLink({
       )}
     >
       <MapPin className={compact ? "size-3" : "size-3.5"} aria-hidden />
-      지도에서 보기
+      네이버 지도에서 보기
     </a>
   );
 }

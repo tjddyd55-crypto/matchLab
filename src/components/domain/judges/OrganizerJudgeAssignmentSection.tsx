@@ -1,6 +1,6 @@
 "use client";
 
-import { useState, useTransition } from "react";
+import { useRef, useState, useTransition } from "react";
 import { useRouter } from "next/navigation";
 import {
   assignJudgeToMatchAction,
@@ -23,6 +23,7 @@ export function OrganizerJudgeAssignmentSection({
   assignments: JudgeAssignmentVM[];
 }) {
   const router = useRouter();
+  const assignFormRef = useRef<HTMLFormElement>(null);
   const [pending, startTransition] = useTransition();
   const [selectedMatchId, setSelectedMatchId] = useState(matches[0]?.matchId ?? "");
   const [error, setError] = useState<string | null>(null);
@@ -69,6 +70,7 @@ export function OrganizerJudgeAssignmentSection({
       ) : null}
 
       <form
+        ref={assignFormRef}
         className="flex flex-wrap items-end gap-2 rounded-lg border p-4"
         onSubmit={(e) => {
           e.preventDefault();
@@ -83,8 +85,8 @@ export function OrganizerJudgeAssignmentSection({
               setError(res.error.message);
               return;
             }
+            assignFormRef.current?.reset();
             router.refresh();
-            e.currentTarget.reset();
           });
         }}
       >

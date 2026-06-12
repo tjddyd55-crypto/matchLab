@@ -1,6 +1,6 @@
 "use client";
 
-import { useActionState, useEffect } from "react";
+import { useActionState, useEffect, useRef } from "react";
 import { useRouter } from "next/navigation";
 import {
   createStaffRecorderLinkAction,
@@ -12,7 +12,13 @@ import { CopyInviteUrlButton } from "@/components/domain/gym/CopyInviteUrlButton
 import { Button } from "@/components/ui/button";
 import { cn } from "@/lib/utils";
 
-function RevokeStaffLinkButton({ linkId }: { linkId: string }) {
+function RevokeStaffLinkButton({
+  eventId,
+  linkId,
+}: {
+  eventId: string;
+  linkId: string;
+}) {
   const router = useRouter();
   const [state, action, pending] = useActionState(
     revokeStaffRecorderLinkAction,
@@ -25,6 +31,7 @@ function RevokeStaffLinkButton({ linkId }: { linkId: string }) {
 
   return (
     <form action={action} className="inline">
+      <input type="hidden" name="eventId" value={eventId} />
       <input type="hidden" name="linkId" value={linkId} />
       <Button type="submit" variant="outline" size="sm" disabled={pending}>
         {pending ? "처리 중…" : "폐기"}
@@ -51,6 +58,7 @@ export function EventStaffRecorderLinksSection({
   links: EventStaffLinkListItemVM[];
 }) {
   const router = useRouter();
+  const createFormRef = useRef<HTMLFormElement>(null);
   const root = baseUrl.replace(/\/$/, "");
 
   const [createState, createAction, createPending] = useActionState(
@@ -59,7 +67,10 @@ export function EventStaffRecorderLinksSection({
   );
 
   useEffect(() => {
-    if (createState?.ok === true) router.refresh();
+    if (createState?.ok === true) {
+      createFormRef.current?.reset();
+      router.refresh();
+    }
   }, [createState, router]);
 
   const createdUrl =
@@ -116,7 +127,7 @@ export function EventStaffRecorderLinksSection({
                     {!l.revokedAt ? (
                       <>
                         <CopyInviteUrlButton url={staffUrl} />
-                        <RevokeStaffLinkButton linkId={l.id} />
+                        <RevokeStaffLinkButton eventId={eventId} linkId={l.id} />
                       </>
                     ) : null}
                   </div>
@@ -134,12 +145,15 @@ export function EventStaffRecorderLinksSection({
         ) : null}
         {createdUrl ? (
           <div className="bg-muted/40 space-y-2 rounded-lg p-3 text-sm">
+            <p className="font-medium text-green-700 dark:text-green-400">
+              링크가 생성되었습니다.
+            </p>
             <p className="font-mono text-xs break-all">{createdUrl}</p>
             <CopyInviteUrlButton url={createdUrl} />
           </div>
         ) : null}
 
-        <form action={createAction} className="grid gap-3">
+        <form ref={createFormRef} action={createAction} className="grid gap-3">
           <input type="hidden" name="eventId" value={eventId} />
 
           <label className="space-y-1 text-sm">

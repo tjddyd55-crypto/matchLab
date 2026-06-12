@@ -63,6 +63,16 @@ MVP 범위는 `docs/mvp-scope.md`를 기준으로 하며, 본 문서는 **시연
 8. **큰 메뉴 간 이동**(홈 → 대회 → 공개 선수 → 크레딧 → 체급표 템플릿 → 알림) 시 오른쪽 content 시작선·최대 폭이 일관적인지 확인.
 9. **공개 대진표**(`/events/sample-open-2026?tab=brackets`) — 홍/청 코너에 **선수 사진 없이** 선수명·체육관·부문·전적 텍스트만 표시되는지 확인. **공개 선수 프로필**(`/fighters/{slug}`)에서는 사진이 기존처럼 표시되는지 확인.
 
+### 1.4c 주소·신청자·스태프·심판·지도 UX
+
+1. **organizer** — `/organizer/events/{eventId}` 기본 설정 → **주소 검색**으로 도로명 선택 → 장소명·상세 주소 입력 후 저장.
+2. **organizer** — 공식 신청서 템플릿 선택 → **템플릿 연결 저장** → 「저장 중…」에서 멈추지 않고 완료 메시지 확인.
+3. **organizer** — 관리 홈 **결과 입력 링크(스태프)** → 새 링크 생성(접속 코드·만료일 유/무) → 목록·복사 버튼 확인.
+4. **organizer** — `/organizer/events/{eventId}/applications` → 페이지 **가로 스크롤 없음**, Drawer·승인/반려/입금 action 확인.
+5. **organizer** — `/organizer/events/{eventId}/judges` → 심판 계정 생성 → `reset` 오류 없이 목록 갱신 확인.
+6. **spectator** — `/events/sample-open-2026` Hero **네이버 지도에서 보기** → `map.naver.com` 검색 URL 확인.
+7. **spectator** — 행사 안내(`?tab=overview`) **오시는 길** 섹션(장소·주소·preview card·네이버 지도 링크) 확인.
+
 ### 1.4b 스태프 모바일 결과 입력
 
 1. **organizer** — `/organizer/events/{eventId}` 또는 **경기 운영** 상단에서 스태프 링크 복사(없으면 행사 상세에서 생성).

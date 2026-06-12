@@ -74,7 +74,12 @@ export function PublicEventInfoSummaryCard({
             <span className="font-medium">
               {event.location?.trim() || "추후 안내"}
             </span>
-            <PublicEventMapLink location={event.location} compact />
+            <PublicEventMapLink
+              locationName={event.locationName}
+              roadAddress={event.roadAddress}
+              location={event.location}
+              compact
+            />
           </div>
           <p className="text-muted-foreground mt-1 text-xs">
             대회일 {formatPublicDate(event.eventDate)}

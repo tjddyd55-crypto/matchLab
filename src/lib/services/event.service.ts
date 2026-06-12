@@ -140,7 +140,7 @@ async function assertReadyForPublicOpen(eventId: string): Promise<void> {
   if (!venue) {
     throw new AppError(
       "VALIDATION_ERROR",
-      "공개 전에 개최 장소(주소·상세) 정보가 필요합니다.",
+      "공개 전에 주소 검색으로 도로명 주소를 선택하고, 필요하면 상세 주소를 입력해 주세요.",
     );
   }
   if (full.divisions.length === 0) {
@@ -477,6 +477,9 @@ export const eventService = {
           location: event.location,
           detailAddress: event.detailAddress,
         }) || event.location,
+      locationName: event.locationName ?? null,
+      roadAddress: event.roadAddress ?? null,
+      detailAddress: event.detailAddress ?? null,
       eventDate: toIso(event.eventDate),
       registrationStartDate,
       registrationEndDate,

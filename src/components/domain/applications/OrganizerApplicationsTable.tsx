@@ -45,6 +45,16 @@ export type OrganizerApplicationRowVM = {
   applicationFormMode: ApplicationFormMode;
 };
 
+function formatAppliedAt(row: OrganizerApplicationRowVM): string {
+  const raw = row.appliedAt ?? row.createdAt;
+  return new Date(raw).toLocaleDateString("ko-KR", {
+    month: "numeric",
+    day: "numeric",
+    hour: "2-digit",
+    minute: "2-digit",
+  });
+}
+
 export function OrganizerApplicationsTable({
   rows,
   onOpenDetail,
@@ -53,29 +63,29 @@ export function OrganizerApplicationsTable({
   onOpenDetail: (row: OrganizerApplicationRowVM) => void;
 }) {
   return (
-    <div className="hidden overflow-x-auto lg:block">
-      <Table className="min-w-[64rem]">
+    <div className="hidden min-w-0 2xl:block">
+      <Table className="w-full table-fixed">
         <TableHeader>
           <TableRow>
-            <TableHead className="min-w-[10rem]">선수</TableHead>
-            <TableHead className="min-w-[8rem]">체육관</TableHead>
-            <TableHead className="min-w-[260px]">부문</TableHead>
-            <TableHead className="min-w-[150px]">상태</TableHead>
-            <TableHead className="min-w-[7rem]">입금자명</TableHead>
-            <TableHead className="min-w-[8rem]">신청일</TableHead>
-            <TableHead className="min-w-[180px] text-right">조치</TableHead>
+            <TableHead className="w-[14%]">선수</TableHead>
+            <TableHead className="w-[10%]">체육관</TableHead>
+            <TableHead className="w-[22%]">부문/체급</TableHead>
+            <TableHead className="w-[14%]">상태</TableHead>
+            <TableHead className="w-[12%]">입금</TableHead>
+            <TableHead className="w-[10%]">신청일</TableHead>
+            <TableHead className="w-[18%] text-right">액션</TableHead>
           </TableRow>
         </TableHeader>
         <TableBody>
           {rows.map((row) => (
             <TableRow key={row.applicationId}>
-              <TableCell>
+              <TableCell className="align-top">
                 <button
                   type="button"
-                  className="flex w-full items-center gap-2 text-left"
+                  className="flex w-full min-w-0 items-center gap-2 text-left"
                   onClick={() => onOpenDetail(row)}
                 >
-                  <div className="relative size-10 shrink-0 overflow-hidden rounded-md bg-muted">
+                  <div className="relative size-8 shrink-0 overflow-hidden rounded-md bg-muted">
                     {row.fighterProfileImageUrl ? (
                       // eslint-disable-next-line @next/next/no-img-element
                       <img
@@ -84,28 +94,25 @@ export function OrganizerApplicationsTable({
                         className="size-full object-cover"
                       />
                     ) : (
-                      <span className="flex size-full items-center justify-center text-xs font-semibold">
+                      <span className="flex size-full items-center justify-center text-[10px] font-semibold">
                         {row.fighterName.slice(0, 1)}
                       </span>
                     )}
                   </div>
                   <div className="min-w-0">
-                    <div className="truncate font-medium underline-offset-2 hover:underline">
+                    <div className="truncate text-sm font-medium underline-offset-2 hover:underline">
                       {row.fighterName}
-                    </div>
-                    <div className="text-muted-foreground truncate text-xs">
-                      {row.fighterId.slice(0, 8)}…
                     </div>
                   </div>
                 </button>
               </TableCell>
-              <TableCell className="max-w-[10rem]">
+              <TableCell className="align-top">
                 <div className="truncate text-sm">{row.gymName}</div>
               </TableCell>
-              <TableCell className="text-muted-foreground max-w-[280px] text-xs leading-snug">
-                <span className="line-clamp-2">{row.divisionLabel}</span>
+              <TableCell className="text-muted-foreground align-top text-xs leading-snug">
+                <span className="line-clamp-2 break-words">{row.divisionLabel}</span>
               </TableCell>
-              <TableCell>
+              <TableCell className="align-top">
                 <ApplicationStatusBadgesGroup
                   applicationStatus={row.applicationStatus}
                   paymentStatus={row.paymentStatus}
@@ -118,15 +125,17 @@ export function OrganizerApplicationsTable({
                   onBadgeClick={() => onOpenDetail(row)}
                 />
               </TableCell>
-              <TableCell className="text-muted-foreground max-w-[120px] truncate text-xs">
-                {row.depositorName ?? "—"}
+              <TableCell className="align-top">
+                <PaymentStatusControl
+                  paymentId={row.paymentId}
+                  paymentStatus={row.paymentStatus}
+                  compact
+                />
               </TableCell>
-              <TableCell className="text-muted-foreground text-xs whitespace-nowrap">
-                {row.appliedAt
-                  ? new Date(row.appliedAt).toLocaleString("ko-KR")
-                  : new Date(row.createdAt).toLocaleString("ko-KR")}
+              <TableCell className="text-muted-foreground align-top text-xs whitespace-nowrap">
+                {formatAppliedAt(row)}
               </TableCell>
-              <TableCell className="text-right">
+              <TableCell className="align-top text-right">
                 <OrganizerRowActions row={row} />
               </TableCell>
             </TableRow>
@@ -141,16 +150,12 @@ function OrganizerRowActions({ row }: { row: OrganizerApplicationRowVM }) {
   const [showReject, setShowReject] = useState(false);
 
   return (
-    <div className="flex min-w-[11rem] flex-col items-end gap-2">
-      <PaymentStatusControl
-        paymentId={row.paymentId}
-        paymentStatus={row.paymentStatus}
-      />
+    <div className="flex flex-col items-end gap-1.5">
       <div className="flex flex-wrap justify-end gap-1">
         {row.applicationStatus === "pending" ? (
           <form action={approveApplicationFormAction}>
             <input type="hidden" name="applicationId" value={row.applicationId} />
-            <Button size="sm" type="submit" variant="default">
+            <Button size="sm" type="submit" variant="default" className="h-7 px-2 text-xs">
               승인
             </Button>
           </form>
@@ -160,6 +165,7 @@ function OrganizerRowActions({ row }: { row: OrganizerApplicationRowVM }) {
             size="sm"
             type="button"
             variant="outline"
+            className="h-7 px-2 text-xs"
             onClick={() => setShowReject((v) => !v)}
           >
             반려
@@ -169,7 +175,7 @@ function OrganizerRowActions({ row }: { row: OrganizerApplicationRowVM }) {
       {showReject && row.applicationStatus === "pending" ? (
         <form
           action={rejectApplicationFormAction}
-          className="w-full max-w-xs space-y-2"
+          className="w-full max-w-[12rem] space-y-1.5"
         >
           <input type="hidden" name="applicationId" value={row.applicationId} />
           <textarea
@@ -179,7 +185,7 @@ function OrganizerRowActions({ row }: { row: OrganizerApplicationRowVM }) {
             placeholder="반려 사유 (선택)"
             maxLength={1000}
           />
-          <Button size="sm" type="submit" variant="destructive">
+          <Button size="sm" type="submit" variant="destructive" className="h-7 text-xs">
             반려 확정
           </Button>
         </form>

@@ -1,5 +1,6 @@
 "use server";
 
+import { revalidatePath } from "next/cache";
 import {
   actionFailure,
   actionSuccess,
@@ -89,6 +90,7 @@ export async function createStaffRecorderLinkAction(
       canConfirmResult: parsePermissionBool(formData, "canConfirmResult"),
     });
 
+    revalidatePath(`/organizer/events/${eventId}`);
     return actionSuccess(created);
   });
 }
@@ -109,6 +111,10 @@ export async function revokeStaffRecorderLinkAction(
       return actionFailure("VALIDATION_ERROR", "링크 ID가 필요합니다.");
     }
     await eventStaffAccessService.revokeLink(actor, linkId);
+    const eventId = formReq(formData, "eventId");
+    if (eventId) {
+      revalidatePath(`/organizer/events/${eventId}`);
+    }
     return actionSuccess({ ok: true as const });
   });
 }

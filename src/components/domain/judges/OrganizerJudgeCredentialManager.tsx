@@ -1,6 +1,6 @@
 "use client";
 
-import { useState, useTransition } from "react";
+import { useRef, useState, useTransition } from "react";
 import { useRouter } from "next/navigation";
 import {
   createJudgeCredentialAction,
@@ -20,6 +20,7 @@ export function OrganizerJudgeCredentialManager({
   loginUrl: string;
 }) {
   const router = useRouter();
+  const createFormRef = useRef<HTMLFormElement>(null);
   const [pending, startTransition] = useTransition();
   const [message, setMessage] = useState<string | null>(null);
   const [error, setError] = useState<string | null>(null);
@@ -62,6 +63,7 @@ export function OrganizerJudgeCredentialManager({
       <p className="text-muted-foreground text-xs">{loginUrl}</p>
 
       <form
+        ref={createFormRef}
         className="grid gap-3 rounded-lg border p-4 sm:grid-cols-2"
         onSubmit={(e) => {
           e.preventDefault();
@@ -77,7 +79,7 @@ export function OrganizerJudgeCredentialManager({
             setMessage(
               `계정 ${res.data.loginId} 생성됨 — 임시 비밀번호: ${res.data.plainPassword}`,
             );
-            e.currentTarget.reset();
+            createFormRef.current?.reset();
           });
         }}
       >

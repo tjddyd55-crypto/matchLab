@@ -1,5 +1,6 @@
 "use server";
 
+import { revalidatePath } from "next/cache";
 import { z } from "zod";
 import {
   actionFailure,
@@ -185,6 +186,7 @@ export async function linkEventApplicationFormTemplateAction(
     }
 
     await applicationFormTemplateService.linkTemplateToEvent(actor, parsed.data);
+    revalidatePath(`/organizer/events/${parsed.data.eventId}`);
     return actionSuccess({ ok: true as const });
   });
 }

@@ -125,11 +125,31 @@ export function resolvePublicResultsVisibility(input: {
   return "none";
 }
 
-/** Google Maps 검색 링크 — 사용자 입력은 encodeURIComponent 처리 */
-export function buildMapSearchUrl(locationText: string): string | null {
-  const query = locationText.trim();
+/** 네이버 지도 검색용 쿼리 — 사용자 입력은 encodeURIComponent 처리 */
+export function buildMapSearchQuery(input: {
+  locationName?: string | null;
+  roadAddress?: string | null;
+  location?: string | null;
+}): string | null {
+  const name = input.locationName?.trim();
+  const road = input.roadAddress?.trim();
+  const loc = input.location?.trim();
+  if (name && road) return `${name} ${road}`;
+  if (road) return road;
+  if (name) return name;
+  if (loc) return loc;
+  return null;
+}
+
+/** 네이버 지도 검색 링크 */
+export function buildMapSearchUrl(input: {
+  locationName?: string | null;
+  roadAddress?: string | null;
+  location?: string | null;
+}): string | null {
+  const query = buildMapSearchQuery(input);
   if (!query) return null;
-  return `https://www.google.com/maps/search/?api=1&query=${encodeURIComponent(query)}`;
+  return `https://map.naver.com/p/search/${encodeURIComponent(query)}`;
 }
 
 export function formatPublicFeeAmount(feeAmount: number): string {
