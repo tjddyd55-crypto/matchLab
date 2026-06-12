@@ -54,7 +54,7 @@ export default async function OrganizerApplicationDocumentPage({
       : null;
 
   return (
-    <div className="mx-auto flex w-full max-w-3xl flex-col gap-8 px-4 py-8 md:px-6">
+    <div className="max-w-3xl space-y-8">
       <div>
         <Link
           href={`/organizer/events/${eventId}/application-batches/${doc.batchId ?? ""}`}

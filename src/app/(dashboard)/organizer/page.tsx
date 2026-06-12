@@ -1,6 +1,7 @@
 import Link from "next/link";
 import { Card } from "@/components/ui/card";
 import { buttonVariants } from "@/components/ui/button";
+import { OrganizerDashboardPageHeader } from "@/components/dashboard/OrganizerDashboardPageHeader";
 import { requireActor } from "@/lib/auth/actor";
 import { cn } from "@/lib/utils";
 
@@ -10,13 +11,11 @@ export default async function OrganizerHomePage() {
   await requireActor();
 
   return (
-    <div className="mx-auto flex w-full max-w-3xl flex-col gap-8 px-4 py-8 md:px-6">
-      <div className="space-y-1">
-        <h1 className="font-heading text-2xl font-semibold tracking-tight">주최자 홈</h1>
-        <p className="text-muted-foreground text-sm">
-          대회를 만들고 공개한 뒤 신청·대진표·경기·결과 순으로 운영합니다.
-        </p>
-      </div>
+    <>
+      <OrganizerDashboardPageHeader
+        title="주최자 홈"
+        description="대회를 만들고 공개한 뒤 신청·대진표·경기·결과 순으로 운영합니다."
+      />
 
       <div className="grid gap-4 sm:grid-cols-2">
         <Card className="p-5">
@@ -68,6 +67,6 @@ export default async function OrganizerHomePage() {
           </li>
         </ul>
       </Card>
-    </div>
+    </>
   );
 }

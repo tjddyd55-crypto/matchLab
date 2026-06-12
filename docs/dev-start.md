@@ -490,6 +490,14 @@ npm run dev
 
 - **라우트**: `/organizer/events`(목록), `/organizer/events/new`(생성), `/organizer/events/[eventId]`(관리 홈·준비 체크리스트·기본 설정·부문·신청서·참가비), `/organizer/events/[eventId]/operation`(경기 운영 보드).
 - **대회 관리 레이아웃**: `EventManagementLayout` — PC 좌측 sticky 사이드 메뉴(`event-management-nav-items.ts`), 모바일 「대회 메뉴」 접힘·가로 스크롤. 하위 페이지 콘텐츠 폭 `max-w-[96rem]` 통일.
+- **주최자 dashboard 레이아웃**: `organizer/layout.tsx`의 `OrganizerDashboardContent` — 홈·대회·공개 선수·크레딧·체급표 템플릿 등 큰 메뉴 페이지 콘텐츠 시작선·폭 통일. 알림(`/notifications`)은 organizer/admin일 때 동일 폭 적용.
+
+**주최자 큰 메뉴 layout 수동 확인 (schema 변경 없음):**
+
+1. `organizer` / `123456!!` 로그인.
+2. 홈 → 대회 → 공개 선수 → 크레딧 → 체급표 템플릿 → 알림 순으로 이동.
+3. 각 페이지 오른쪽 content 시작선·최대 폭이 동일한지 확인.
+4. 대회 상세 진입 후 내부 좌측 메뉴 + content가 과도하게 좁아지지 않는지 확인.
 
 **신청자 페이지 수동 확인 (schema 변경 없음):**
 

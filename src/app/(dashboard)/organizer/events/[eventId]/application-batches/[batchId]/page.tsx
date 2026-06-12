@@ -33,7 +33,7 @@ export default async function OrganizerApplicationBatchDetailPage({
   }
 
   return (
-    <div className="mx-auto flex w-full max-w-4xl flex-col gap-8 px-4 py-8 md:px-6">
+    <>
       <div>
         <Link
           href={`/organizer/events/${eventId}/application-batches`}
@@ -96,7 +96,7 @@ export default async function OrganizerApplicationBatchDetailPage({
           ))}
         </ul>
       </section>
-    </div>
+    </>
   );
 }
 

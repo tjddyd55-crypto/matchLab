@@ -18,7 +18,7 @@ export default async function NewDivisionTemplatePage({
 
   if (isAdmin && !organizerFilter) {
     return (
-      <div className="mx-auto max-w-2xl px-4 py-8">
+      <div className="max-w-2xl">
         <p className="text-muted-foreground text-sm">
           관리자는 템플릿 목록에서 주최자 ID(
           <code>?organizerId=</code>)를 지정한 뒤 새 체급표를 만들 수 있습니다.
@@ -38,7 +38,7 @@ export default async function NewDivisionTemplatePage({
     : "/organizer/division-templates";
 
   return (
-    <div className="mx-auto flex w-full max-w-[min(100%,80rem)] flex-col gap-6 px-4 py-8 md:px-6 lg:px-8">
+    <>
       <div className="flex flex-col gap-2">
         <Link
           href={backHref}
@@ -54,6 +54,6 @@ export default async function NewDivisionTemplatePage({
         mode="create"
         organizerIdForAdmin={organizerFilter}
       />
-    </div>
+    </>
   );
 }

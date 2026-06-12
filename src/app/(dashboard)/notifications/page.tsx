@@ -1,4 +1,6 @@
 import { NotificationsPageClient } from "@/components/domain/notifications/NotificationsPageClient";
+import { OrganizerDashboardContent } from "@/components/dashboard/OrganizerDashboardContent";
+import { OrganizerDashboardPageHeader } from "@/components/dashboard/OrganizerDashboardPageHeader";
 import { Card } from "@/components/ui/card";
 import { requireActor } from "@/lib/auth/actor";
 import { notificationService } from "@/lib/services/notification.service";
@@ -9,6 +11,30 @@ export default async function NotificationsPage() {
   const actor = await requireActor();
   const { items, unreadCount } =
     await notificationService.listMyNotifications(actor);
+
+  const useOrganizerLayout =
+    actor.role === "organizer" || actor.role === "admin";
+
+  const content = (
+    <>
+      <OrganizerDashboardPageHeader
+        title="알림"
+        description="인앱 알림만 지원합니다. 카카오 알림톡·문자·웹푸시는 확장 TODO입니다."
+      />
+
+      <Card className="p-4">
+        <NotificationsPageClient
+          userId={actor.userId}
+          initialItems={items}
+          initialUnread={unreadCount}
+        />
+      </Card>
+    </>
+  );
+
+  if (useOrganizerLayout) {
+    return <OrganizerDashboardContent>{content}</OrganizerDashboardContent>;
+  }
 
   return (
     <div className="mx-auto flex w-full max-w-2xl flex-col gap-6 px-4 py-8 md:px-6">
