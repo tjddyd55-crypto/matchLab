@@ -1,5 +1,4 @@
 import { ApprovedApplicationPicker } from "@/components/domain/brackets/ApprovedApplicationPicker";
-import { FighterAvatar } from "@/components/shared/FighterAvatar";
 import type { OrganizerApprovedFighterOptionVM } from "@/lib/services/bracket.service";
 import type { BracketFighterSnapshotPayload } from "@/lib/bracket-snapshot";
 import { CORNER_SLOT_STYLES } from "@/lib/corner-slot-styles";
@@ -13,14 +12,12 @@ function resolveFighterDisplay(
   name: string;
   gymName: string;
   divisionLabel: string;
-  profileImageUrl: string | null;
 } {
   if (snapshot) {
     return {
       name: snapshot.name,
       gymName: snapshot.gymName ?? "소속 미상",
       divisionLabel: snapshot.divisionName ?? "—",
-      profileImageUrl: snapshot.profileImageUrl,
     };
   }
   const opt = options.find((o) => o.fighterId === fighterId);
@@ -30,14 +27,12 @@ function resolveFighterDisplay(
       name: name ?? opt.label,
       gymName: gym ?? "소속 미상",
       divisionLabel: opt.divisionLabel,
-      profileImageUrl: null,
     };
   }
   return {
     name: "미배정",
     gymName: "—",
     divisionLabel: "—",
-    profileImageUrl: null,
   };
 }
 
@@ -72,22 +67,15 @@ export function OrganizerMatchEditSlot({
       </span>
 
       {display ? (
-        <div className="mt-1 flex gap-2">
-          <FighterAvatar
-            src={display.profileImageUrl}
-            name={display.name}
-            className="size-9 shrink-0"
-          />
-          <div className="min-w-0 flex-1">
-            <div className="truncate text-base font-bold leading-tight">
-              {display.name}
-            </div>
-            <div className="text-muted-foreground truncate text-xs">
-              {display.gymName}
-            </div>
-            <div className="text-muted-foreground truncate text-[11px]">
-              {display.divisionLabel}
-            </div>
+        <div className="mt-1 min-w-0 space-y-0.5">
+          <div className="truncate text-base font-bold leading-tight md:text-lg">
+            {display.name}
+          </div>
+          <div className="text-muted-foreground truncate text-xs md:text-sm">
+            {display.gymName}
+          </div>
+          <div className="text-muted-foreground truncate text-[11px]">
+            {display.divisionLabel}
           </div>
         </div>
       ) : (

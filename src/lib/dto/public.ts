@@ -110,12 +110,13 @@ export type PublicFighterCardDTO = {
   recordDraw: number;
 };
 
-/** 공개 대진표 선수 카드 — 휴대폰·생년월일 등 미포함. 스냅샷 JSON과 동형 필드를 유지한다. */
+/** 공개 대진표 선수 카드 — 휴대폰·생년월일·프로필 사진 미포함. 스냅샷 JSON과 동형 필드를 유지한다. */
 export type PublicBracketFighterDTO = {
   fighterId: string;
   fighterCode: string;
   name: string;
   gymName: string | null;
+  /** 대진표 UI에서는 미사용 — 항상 null 로 내려간다 */
   profileImageUrl: string | null;
   recordSummary: string;
   divisionName: string | null;

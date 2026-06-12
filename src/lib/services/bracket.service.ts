@@ -185,7 +185,7 @@ function snapshotToPublic(
     fighterCode: p.fighterCode,
     name: p.name,
     gymName: p.gymName,
-    profileImageUrl: p.profileImageUrl,
+    profileImageUrl: null,
     recordSummary: p.recordSummary,
     divisionName: p.divisionName,
   };

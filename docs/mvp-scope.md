@@ -147,6 +147,7 @@
 - [x] **대진표 카드 compact UI** — 편집 카드 높이 축소(중앙 VS만·운영 정보 하단 이동), 홍/청 코너 배경색 대칭 통일, 현장·계체 액션 가로 compact row.
 - [x] **대회 관리 layout 통일** — `EventManagementLayout`·`max-w-[96rem]` container, 좌측 sticky 사이드 메뉴(PC)·접힘 가로 메뉴(모바일), 하위 페이지 콘텐츠 폭·시작선 일관화.
 - [x] **주최자 dashboard content layout 통일** — `OrganizerDashboardContent`·`max-w-[96rem]`로 홈·대회·공개 선수·크레딧·체급표 템플릿·알림(organizer) 콘텐츠 시작선·폭 일관화. 대회 상세는 상위 wrapper + `EventManagementLayout` grid 중첩 padding 방지.
+- [x] **대진표 선수 사진 미노출** — 공개·주최자 대진표 편집(`FighterSlotCard`·`OrganizerMatchEditSlot`)에서 프로필 사진·avatar 제거, 텍스트(선수명·체육관·부문·전적) 중심. 선수 프로필(`/fighter/profile`·`/fighters/[slug]`) 사진 기능은 유지.
 - [x] **신청자 페이지 서버 오류 수정** — 결제 행(`EventApplicationPayment`)이 없는 신청도 목록에 null-safe 렌더(전체 500 방지), 입금 확인은 결제 행 있을 때만 표시.
 - [x] **홀수 인원 미매칭/대기 목록** — 주최자 화면·(토글 시) 공개 페이지 「추가 매칭 대기 명단」. 미매칭 사유(홀수·상대 없음 등) 표시.
 - [x] **대진표·미매칭 공개 토글** — `Bracket.isPublic` + `Event.publicUnmatchedListEnabled`. 공개 대진표 VS 카드(홍코너/청코너·체육관).
