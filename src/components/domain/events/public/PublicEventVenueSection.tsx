@@ -11,6 +11,7 @@ export function PublicEventVenueSection({
   const mapQuery = buildMapSearchQuery({
     locationName: event.locationName,
     roadAddress: event.roadAddress,
+    jibunAddress: event.jibunAddress,
     location: event.location,
   });
 
@@ -20,7 +21,15 @@ export function PublicEventVenueSection({
 
   const venueName = event.locationName?.trim();
   const road = event.roadAddress?.trim();
+  const jibun = event.jibunAddress?.trim();
   const detail = event.detailAddress?.trim();
+
+  const mapLinkProps = {
+    locationName: event.locationName,
+    roadAddress: event.roadAddress,
+    jibunAddress: event.jibunAddress,
+    location: event.location,
+  };
 
   return (
     <section className="min-w-0 space-y-4 rounded-xl border p-4 md:p-5">
@@ -49,6 +58,12 @@ export function PublicEventVenueSection({
             <dd className="break-words">{event.location}</dd>
           </div>
         ) : null}
+        {jibun ? (
+          <div className="min-w-0 sm:col-span-2">
+            <dt className="text-muted-foreground text-xs">지번 주소</dt>
+            <dd className="break-words">{jibun}</dd>
+          </div>
+        ) : null}
         {detail ? (
           <div className="min-w-0 sm:col-span-2">
             <dt className="text-muted-foreground text-xs">상세 주소</dt>
@@ -61,16 +76,13 @@ export function PublicEventVenueSection({
         key={mapQuery ?? "venue"}
         locationName={event.locationName}
         roadAddress={event.roadAddress}
+        jibunAddress={event.jibunAddress}
         detailAddress={event.detailAddress}
         location={event.location}
       />
 
       <div className="flex flex-wrap justify-end gap-2">
-        <PublicEventMapLink
-          locationName={event.locationName}
-          roadAddress={event.roadAddress}
-          location={event.location}
-        />
+        <PublicEventMapLink {...mapLinkProps} />
       </div>
     </section>
   );

@@ -33,7 +33,7 @@
 - [x] 공개 페이지: 목록·상세(slug)·디비전·촬영/스트리밍 안내(계좌번호 제외).
 - [x] **공개 메인·대회 목록 포스터형 카드** — `/`, `/events` (`PublicEventCard`, `EventPosterImage`, 신청 상태 필터).
 - [x] **대회 상세 랜딩형** — `/events/[slug]` 포스터 Hero·신청 CTA·대진표/결과/라이브 링크 (`PublicEventDetailHero`).
-- [x] **공개 페이지 신뢰 정보** — 신청 D-day(`PublicEventDeadlineBadge`)·참가비/입금 안내(계좌번호 제외)·**네이버 지도** 검색 링크(`buildMapSearchUrl`)·행사 안내 **오시는 길**(`PublicEventVenueSection` + `PublicEventNaverMapPreview`, API 키 있으면 실제 지도·없으면 placeholder)·대진표/결과 공개 뱃지·행사 안내 탭 요약. 목록·메인 카드에 D-day·공개 상태 간략 표시.
+- [x] **공개 페이지 신뢰 정보** — … **네이버 지도**는 Hero/입금 안내가 아닌 행사 안내 **오시는 길**(`PublicEventVenueSection`)에만 embed·링크 1개 …
 - [x] **대회 상세 공유** — Facebook 공유·링크 복사·OG/Twitter 메타데이터 (`EventShareButtons`, `generateMetadata`). 포스터 없을 때 `/og-event-default` 동적 fallback(대회명·날짜·장소·MatchLab 브랜딩). 카카오/인스타/Web Share API는 후속 TODO.
 - [x] 공개 대회 UI **PC/모바일 분리** — `*Desktop` / `*Mobile` + `md` 브레이크포인트 (`FightersTableDesktop` 패턴).
 

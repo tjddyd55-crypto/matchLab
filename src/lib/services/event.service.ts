@@ -479,6 +479,7 @@ export const eventService = {
         }) || event.location,
       locationName: event.locationName ?? null,
       roadAddress: event.roadAddress ?? null,
+      jibunAddress: event.jibunAddress ?? null,
       detailAddress: event.detailAddress ?? null,
       eventDate: toIso(event.eventDate),
       registrationStartDate,

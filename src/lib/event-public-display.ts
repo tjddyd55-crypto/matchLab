@@ -129,13 +129,16 @@ export function resolvePublicResultsVisibility(input: {
 export function buildMapSearchQuery(input: {
   locationName?: string | null;
   roadAddress?: string | null;
+  jibunAddress?: string | null;
   location?: string | null;
 }): string | null {
   const name = input.locationName?.trim();
   const road = input.roadAddress?.trim();
+  const jibun = input.jibunAddress?.trim();
   const loc = input.location?.trim();
   if (name && road) return `${name} ${road}`;
   if (road) return road;
+  if (jibun) return jibun;
   if (name) return name;
   if (loc) return loc;
   return null;
@@ -145,6 +148,7 @@ export function buildMapSearchQuery(input: {
 export function buildMapSearchUrl(input: {
   locationName?: string | null;
   roadAddress?: string | null;
+  jibunAddress?: string | null;
   location?: string | null;
 }): string | null {
   const query = buildMapSearchQuery(input);

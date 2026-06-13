@@ -6,18 +6,21 @@ export function PublicEventMapLink({
   location,
   locationName,
   roadAddress,
+  jibunAddress,
   className,
   compact,
 }: {
   location?: string | null;
   locationName?: string | null;
   roadAddress?: string | null;
+  jibunAddress?: string | null;
   className?: string;
   compact?: boolean;
 }) {
   const href = buildMapSearchUrl({
     locationName,
     roadAddress,
+    jibunAddress,
     location,
   });
   if (!href) return null;

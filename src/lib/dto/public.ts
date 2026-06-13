@@ -72,6 +72,7 @@ export type PublicEventDetailDTO = {
   location: string | null;
   locationName: string | null;
   roadAddress: string | null;
+  jibunAddress: string | null;
   detailAddress: string | null;
   eventDate: string;
   registrationStartDate: string;

@@ -5,7 +5,6 @@ import { RecordingStreamingNotice } from "@/components/domain/events/RecordingSt
 import { EventApplicationCta } from "@/components/domain/events/EventApplicationCta";
 import { PublicEventVenueSection } from "@/components/domain/events/public/PublicEventVenueSection";
 import { PublicEventInfoSummaryCard } from "@/components/domain/events/public/PublicEventInfoSummaryCard";
-import { PublicEventMapLink } from "@/components/domain/events/public/PublicEventMapLink";
 
 export function PublicEventOverviewSection({
   event,
@@ -49,15 +48,6 @@ export function PublicEventOverviewSection({
             <li key={line}>{line}</li>
           ))}
         </ul>
-        {event.location ? (
-          <div className="pt-1">
-            <PublicEventMapLink
-              locationName={event.locationName}
-              roadAddress={event.roadAddress}
-              location={event.location}
-            />
-          </div>
-        ) : null}
         <EventApplicationCta
           eventStatus={event.status}
           registrationStatus={event.registrationStatus}

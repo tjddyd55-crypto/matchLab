@@ -70,8 +70,8 @@ MVP 범위는 `docs/mvp-scope.md`를 기준으로 하며, 본 문서는 **시연
 3. **organizer** — 관리 홈 **결과 입력 링크(스태프)** → 새 링크 생성(접속 코드·만료일 유/무) → 목록·복사 버튼 확인.
 4. **organizer** — `/organizer/events/{eventId}/applications` → 페이지 **가로 스크롤 없음**, Drawer·승인/반려/입금 action 확인.
 5. **organizer** — `/organizer/events/{eventId}/judges` → 심판 계정 생성 → `reset` 오류 없이 목록 갱신 확인.
-6. **spectator** — `/events/sample-open-2026` Hero **네이버 지도에서 보기** → `map.naver.com` 검색 URL 확인.
-7. **spectator** — 행사 안내(`?tab=overview`) **오시는 길** 섹션(장소·주소·preview card·네이버 지도 링크) 확인.
+6. **spectator** — `/events/sample-open-2026` Hero **지도 버튼 없음** 확인.
+7. **spectator** — 행사 안내(`?tab=overview`) **오시는 길**에만 지도 preview + 「네이버 지도에서 보기」 1개.
 
 ### 1.4b 스태프 모바일 결과 입력
 

@@ -5,7 +5,6 @@ import { EventMetaList } from "@/components/domain/events/EventMetaList";
 import { EventApplicationCta } from "@/components/domain/events/EventApplicationCta";
 import { EventShareButtons } from "@/components/domain/events/public/EventShareButtons";
 import { PublicEventDeadlineBadge } from "@/components/domain/events/public/PublicEventDeadlineBadge";
-import { PublicEventMapLink } from "@/components/domain/events/public/PublicEventMapLink";
 import { PublicEventTrustBadges } from "@/components/domain/events/public/PublicEventTrustBadges";
 import { publicEventDivisionSummary } from "@/components/domain/events/public/public-event-ui";
 import { buildEventPublicUrl } from "@/lib/share/event-share";
@@ -61,15 +60,6 @@ export function EventDetailHeroDesktop({
               primarySport={event.primarySport}
               divisionSummary={publicEventDivisionSummary(event)}
             />
-            {event.location ? (
-              <div className="mt-3">
-                <PublicEventMapLink
-                  locationName={event.locationName}
-                  roadAddress={event.roadAddress}
-                  location={event.location}
-                />
-              </div>
-            ) : null}
             {event.paymentInfo ? (
               <p className="text-muted-foreground mt-3 text-sm">
                 {event.paymentInfo.feeLabel}

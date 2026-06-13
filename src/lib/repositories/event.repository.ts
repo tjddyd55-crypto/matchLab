@@ -69,6 +69,7 @@ const detailHeaderSelect = {
   description: true,
   location: true,
   roadAddress: true,
+  jibunAddress: true,
   detailAddress: true,
   locationName: true,
   eventDate: true,

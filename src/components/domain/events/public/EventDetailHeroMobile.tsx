@@ -5,7 +5,6 @@ import { EventMetaSummaryMobile } from "@/components/domain/events/public/EventM
 import { EventApplicationCta } from "@/components/domain/events/EventApplicationCta";
 import { EventShareButtons } from "@/components/domain/events/public/EventShareButtons";
 import { PublicEventDeadlineBadge } from "@/components/domain/events/public/PublicEventDeadlineBadge";
-import { PublicEventMapLink } from "@/components/domain/events/public/PublicEventMapLink";
 import { PublicEventTrustBadges } from "@/components/domain/events/public/PublicEventTrustBadges";
 import { buildEventPublicUrl } from "@/lib/share/event-share";
 
@@ -50,15 +49,6 @@ export function EventDetailHeroMobile({
         organizerName={event.organizerName}
         showOrganizer
       />
-
-      {event.location ? (
-        <PublicEventMapLink
-          locationName={event.locationName}
-          roadAddress={event.roadAddress}
-          location={event.location}
-          className="w-fit"
-        />
-      ) : null}
 
       {event.paymentInfo ? (
         <p className="text-muted-foreground text-sm">{event.paymentInfo.feeLabel}</p>

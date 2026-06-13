@@ -3,7 +3,6 @@ import type { PublicEventDetailDTO } from "@/lib/dto/public";
 import { PUBLIC_REGISTRATION_STATUS_LABELS } from "@/lib/event-public-display";
 import { formatPublicDate } from "@/lib/date-display";
 import { PublicEventDeadlineBadge } from "@/components/domain/events/public/PublicEventDeadlineBadge";
-import { PublicEventMapLink } from "@/components/domain/events/public/PublicEventMapLink";
 import { PublicEventTrustBadges } from "@/components/domain/events/public/PublicEventTrustBadges";
 
 function SummaryRow({
@@ -70,17 +69,9 @@ export function PublicEventInfoSummaryCard({
         </SummaryRow>
 
         <SummaryRow label="장소">
-          <div className="flex flex-wrap items-center gap-2">
-            <span className="font-medium">
-              {event.location?.trim() || "추후 안내"}
-            </span>
-            <PublicEventMapLink
-              locationName={event.locationName}
-              roadAddress={event.roadAddress}
-              location={event.location}
-              compact
-            />
-          </div>
+          <span className="font-medium">
+            {event.location?.trim() || "추후 안내"}
+          </span>
           <p className="text-muted-foreground mt-1 text-xs">
             대회일 {formatPublicDate(event.eventDate)}
           </p>

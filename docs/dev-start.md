@@ -512,27 +512,35 @@ npm run dev
 1. 기본 설정 → **주소 검색**으로 도로명 선택(직접 입력 불가) → 장소명·상세 주소 저장.
 2. 공식 신청서 템플릿 연결 저장 → pending 해제·완료 메시지.
 3. 스태프 링크 생성·심판 계정 생성 → 오류 없이 목록 갱신.
-4. 공개 `/events/{slug}` — **네이버 지도에서 보기** 링크, 행사 안내 **오시는 길** + `PublicEventNaverMapPreview`. `NEXT_PUBLIC_NAVER_MAP_NCP_KEY_ID` 없으면 placeholder+링크만(API 키 하드코딩 금지).
+4. 공개 `/events/{slug}` — **Hero·참가 신청/입금 안내에는 지도 버튼 없음**. 행사 안내 탭 **오시는 길** 섹션에만 지도 embed + 「네이버 지도에서 보기」 1개.
 
-### 네이버 지도 (공개 행사 안내)
+### 네이버 지도 (공개 행사 안내 · 오시는 길 전용)
 
 | 변수 | 용도 |
 |------|------|
-| `NEXT_PUBLIC_NAVER_MAP_NCP_KEY_ID` | 네이버클라우드 Maps JavaScript API Client ID — 행사 안내 탭 지도 미리보기 |
+| `NEXT_PUBLIC_NAVER_MAP_NCP_KEY_ID` | **필수(프론트)** 네이버클라우드 Maps JavaScript API **Client ID** |
+| `NAVER_MAP_NCP_KEY_SECRET` | **선택(서버)** Client Secret — `NEXT_PUBLIC_` 금지, 현재 지도 embed 미사용 |
 
-**네이버클라우드 설정 (선택):**
+**네이버클라우드 설정:**
 
-1. [네이버클라우드 콘솔](https://console.ncloud.com/) → Application → Maps → **Web Dynamic Map** 또는 **Maps JavaScript API** 사용 설정
-2. **서비스 URL(도메인)** 등록: `http://localhost:3000`, Railway 배포 도메인, 운영 도메인
-3. `.env`에 `NEXT_PUBLIC_NAVER_MAP_NCP_KEY_ID=<Client ID>` 설정 후 dev 서버 재시작
-4. 미설정 시 공개 페이지는 **placeholder card + 네이버 지도 검색 링크**로 동작(페이지 깨짐 없음)
+1. [네이버클라우드 콘솔](https://console.ncloud.com/) → Application → Maps → **Dynamic Map** · **Geocoding** 사용 설정
+2. **Web 서비스 URL** 등록: `http://localhost:3000`, `http://127.0.0.1:3000`, Railway production domain, 운영 도메인
+3. Railway Variables에 `NEXT_PUBLIC_NAVER_MAP_NCP_KEY_ID=<Client ID>` 추가 후 **앱 redeploy** (NEXT_PUBLIC은 빌드 시 번들에 포함)
+4. 로컬 `.env` 변경 후 `npm run dev` 재시작
+5. 미설정·geocode 실패 시 **placeholder + 오시는 길 하단 링크**만 표시(페이지 깨짐 없음)
+
+**지도 UI 위치:**
+
+- Hero 카드: 장소 **텍스트만** (지도 버튼 없음)
+- 참가 신청·입금 안내: 지도 버튼 없음
+- 행사 안내 탭 → **오시는 길**: 지도 preview + 「네이버 지도에서 보기」 버튼 1개
 
 **수동 확인 순서 (schema 변경 없음):**
 
-1. 심판 관리 → 계정 생성 → 오류 문구 없음·목록 갱신
-2. 신청자 페이지 → 1366px에서 가로 스크롤 없음
-3. 기본 설정 → 주소 검색 → 우편번호/도로명/지번 read-only input 표시
-4. `/events/sample-open-2026?tab=overview` → 오시는 길 지도 영역(API 키 유/무 각각)
+1. `/events/sample-open-2026` Hero에 지도 버튼 없음
+2. 행사 안내 → 오시는 길에 지도 + 버튼 1개
+3. API key 설정·redeploy 후 실제 지도·marker 표시
+4. API key 제거 local에서 placeholder fallback
 
 **대회 생성 UX 테스트 (schema 변경 없음):**
 
