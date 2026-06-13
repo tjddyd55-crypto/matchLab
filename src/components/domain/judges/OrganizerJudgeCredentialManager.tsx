@@ -8,12 +8,15 @@ import {
   setJudgeCredentialActiveAction,
 } from "@/features/judges/actions";
 import { Button } from "@/components/ui/button";
+import { JUDGE_ROLE_LABELS } from "@/lib/judge-identity";
 import type { JudgeCredentialListItemVM } from "@/lib/services/judge-credential.service";
+import { JudgeCredentialRole } from "@/generated/prisma";
 
 type CreateCredentialFormState = {
   loginId: string;
   password: string;
   displayName: string;
+  role: JudgeCredentialRole;
   memo: string;
 };
 
@@ -21,6 +24,7 @@ const EMPTY_CREATE_FORM: CreateCredentialFormState = {
   loginId: "",
   password: "",
   displayName: "",
+  role: JudgeCredentialRole.SCORING_JUDGE,
   memo: "",
 };
 
@@ -80,6 +84,10 @@ export function OrganizerJudgeCredentialManager({
         </Button>
       </div>
       <p className="text-muted-foreground break-all text-xs">{loginUrl}</p>
+      <p className="text-muted-foreground text-xs leading-relaxed">
+        심판이 최초 로그인하면 성함과 생년월일을 확인합니다. 채점 기록에는
+        확인된 심판 성함이 함께 저장됩니다.
+      </p>
 
       <form
         className="grid gap-3 rounded-lg border p-4 sm:grid-cols-2"
@@ -93,6 +101,7 @@ export function OrganizerJudgeCredentialManager({
           fd.set("loginId", createForm.loginId.trim());
           fd.set("password", createForm.password);
           fd.set("displayName", createForm.displayName);
+          fd.set("role", createForm.role);
           fd.set("memo", createForm.memo);
 
           run(async () => {
@@ -140,6 +149,23 @@ export function OrganizerJudgeCredentialManager({
             className={inputClass}
           />
         </label>
+        <label className="flex flex-col gap-1 text-sm">
+          <span className="text-muted-foreground text-xs">역할</span>
+          <select
+            name="role"
+            value={createForm.role}
+            onChange={(e) =>
+              patchCreateForm("role", e.target.value as JudgeCredentialRole)
+            }
+            className={inputClass}
+          >
+            {Object.entries(JUDGE_ROLE_LABELS).map(([value, label]) => (
+              <option key={value} value={value}>
+                {label}
+              </option>
+            ))}
+          </select>
+        </label>
         <label className="flex flex-col gap-1 text-sm sm:col-span-2">
           <span className="text-muted-foreground text-xs">메모</span>
           <input
@@ -176,7 +202,11 @@ export function OrganizerJudgeCredentialManager({
           <thead className="bg-muted/50 text-xs">
             <tr>
               <th className="px-3 py-2">ID</th>
-              <th className="px-3 py-2">이름</th>
+              <th className="px-3 py-2">역할</th>
+              <th className="px-3 py-2">본인 확인</th>
+              <th className="px-3 py-2">확인 성함</th>
+              <th className="px-3 py-2">생년월일</th>
+              <th className="px-3 py-2">배정</th>
               <th className="px-3 py-2">상태</th>
               <th className="px-3 py-2">최근 접속</th>
               <th className="px-3 py-2">작업</th>
@@ -186,7 +216,13 @@ export function OrganizerJudgeCredentialManager({
             {credentials.map((c) => (
               <tr key={c.id} className="border-t text-xs">
                 <td className="px-3 py-2 font-mono">{c.loginId}</td>
-                <td className="px-3 py-2">{c.displayName ?? "—"}</td>
+                <td className="px-3 py-2">{c.roleLabel}</td>
+                <td className="px-3 py-2">
+                  {c.identityConfirmed ? "확인 완료" : "미확인"}
+                </td>
+                <td className="px-3 py-2">{c.verifiedName ?? "—"}</td>
+                <td className="px-3 py-2">{c.birthDateMasked ?? "—"}</td>
+                <td className="px-3 py-2">{c.assignmentCount}경기</td>
                 <td className="px-3 py-2">
                   {c.isActive ? "활성" : "비활성"}
                 </td>

@@ -131,13 +131,23 @@ GitHub → Railway 배포가 성공해도 **Postgres는 빈 DB**입니다. `publ
 
 **심판 라운드별 채점 테스트 (`db:push` 필요 — Judge* 테이블 additive):**
 
-1. `organizer` / `123456!!` 로그인 → `/organizer/events/{eventId}/judges` → 심판 계정 3개 생성(로그인 ID·임시 비밀번호 확인).
-2. 경기 1개 선택 → 심판 3명 배정(순서·주심 지정).
-3. 시크릿 창 `/judge/login` — 심판1 로그인 → 이름 입력 → 배정 경기만 목록 표시 확인.
-4. `/judge/matches/{matchId}/score` — 라운드별 홍/청 점수·감점·다운 입력 → 임시 저장 → 전송.
-5. 심판2·3도 전송 → `/organizer/events/{eventId}/operation` → 경기 Drawer **심판 채점 집계**(제출 3/3·추천 결과) 확인.
-6. 동일 Drawer 또는 스태프 링크에서 **기존 결과 확정** → 공개 결과·전적·알림 회귀.
-7. 심판 화면에 신청서·연락처·다른 심판 점수 미노출 확인.
+1. `organizer` / `123456!!` 로그인 → `/organizer/events/{eventId}/judges` → 심판 계정 A/B/C 3개 생성(역할: **채점 심판**, 로그인 ID·임시 비밀번호 확인). 관리 화면에서 **본인 확인: 미확인**·배정 경기 수·생년월일 마스킹(`1990-**-**`) 표시 확인.
+2. 경기 1개(또는 여러 경기)에 심판 A/B/C 배정(순서·주심 지정).
+3. **같은 브라우저 A/B/C 격리 테스트** — `/judge/login` → 심판 A 로그인 → **`/judge/verify` 본인 확인**(성함·생년월일 YYYY-MM-DD, 연락처/소속 선택) → 확인 완료 후 **`/judge/matches`**(배정 경기만) 이동.
+4. 본인 확인 **전** `/judge/matches`·`/judge/matches/{matchId}/score` 직접 접근 시 **`/judge/verify`로 redirect** 확인.
+5. `/judge/matches/{matchId}/score` — 라운드별 홍/청 점수·감점·다운 입력 → 임시 저장 → **전송**. 제출 기록에 `judgeCredentialId`·`judgeNameSnapshot`·`submittedAt`·IP/UA 저장(내부 감사).
+6. 로그아웃 → 심판 B 로그인 → B 본인 확인 → B 배정 경기 채점. **B가 A의 scorecard·점수를 보거나 수정할 수 없음** 확인.
+7. 심판 C 동일 → 주심 계정(역할 **주심/최종 판정자**)은 `/judge/review`에서 경기별 제출 집계·심판명·제출 시간·홍/청 총점·승자 확인.
+8. 결과 발표자(역할 **결과 발표자**)는 `/judge/results` **read-only** — 「최종 확정 전 결과는 참고용입니다.」 표시, 채점 수정 불가.
+9. `/organizer/events/{eventId}/operation` → 경기 Drawer **심판 채점 집계**(제출 3/3·심판별 점수·추천 결과) 확인.
+10. 동일 Drawer 또는 스태프 링크에서 **기존 결과 확정** → 공개 결과·전적·알림 회귀. 확정 후 심판 채점 **수정 불가** 확인.
+11. 심판 화면·공개 페이지에 신청서·연락처·**생년월일 전체**·다른 심판 점수 미노출 확인.
+
+**심판 본인 확인·채점 감사 (schema additive, `JudgeAccessCredential` + `JudgeScorecardChangeLog`):**
+
+- 본인 확인 필드: `verifiedName`, `birthDate`, `identityConfirmedAt`/`Ip`/`UserAgent` (선택: `phone`, `organization`)
+- 채점 제출 snapshot: `judgeName`(=`judgeNameSnapshot`), `judgeBirthDateSnapshot`, `judgeRoleSnapshot`, `submittedIp`, `submittedUserAgent`
+- 수정 이력: `JudgeScorecardChangeLog` — `draft_save` / `submit` / `revise`, 이전·신규 점수, `changedByJudgeCredentialId`, IP/UA (hard delete 금지)
 
 **스태프 모바일 결과 입력 테스트 (schema 변경 없음):**
 

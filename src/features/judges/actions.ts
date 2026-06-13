@@ -68,6 +68,7 @@ export async function createJudgeCredentialAction(
       loginId: formReq(formData, "loginId"),
       password,
       displayName: formReq(formData, "displayName") || undefined,
+      role: formReq(formData, "role") || undefined,
       memo: formReq(formData, "memo") || undefined,
     });
     if (!parsed.success) {

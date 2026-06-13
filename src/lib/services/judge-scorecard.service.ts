@@ -7,6 +7,8 @@ import {
 import type { ActorContext } from "@/lib/auth/actor-context";
 import { formatDivisionNameLabel } from "@/lib/bracket-snapshot";
 import { AppError } from "@/lib/errors/app-error";
+import { formatBirthDateInput, judgeRoleCanScore, JUDGE_ROLE_LABELS } from "@/lib/judge-identity";
+import { readRequestClientMeta } from "@/lib/judge-request-meta";
 import { defaultRoundCountForSport } from "@/lib/judge-round-count";
 import {
   aggregateJudgeScorecards,
@@ -17,6 +19,8 @@ import { requireOrganizerForEvent, requireRole } from "@/lib/permissions";
 import { prisma } from "@/lib/prisma";
 import { judgeAssignmentRepository } from "@/lib/repositories/judge-assignment.repository";
 import { judgeScorecardRepository } from "@/lib/repositories/judge-scorecard.repository";
+import { judgeScorecardChangeLogRepository } from "@/lib/repositories/judge-scorecard-change-log.repository";
+import { judgeCredentialRepository } from "@/lib/repositories/judge-credential.repository";
 import type { SaveJudgeScorecardInput } from "@/lib/validators/judge.validator";
 import type { ResolvedJudgeSession } from "@/lib/services/judge-credential.service";
 import { judgeAssignmentService } from "@/lib/services/judge-assignment.service";
@@ -268,8 +272,8 @@ export const judgeScorecardService = {
         : emptyRounds(roundCount);
 
     const judgeName =
+      session.verifiedName ??
       existing?.judgeName ??
-      session.displayName ??
       "";
 
     return {
@@ -308,6 +312,13 @@ export const judgeScorecardService = {
     session: ResolvedJudgeSession,
     input: SaveJudgeScorecardInput,
   ): Promise<void> {
+    if (!judgeRoleCanScore(session.role)) {
+      throw new AppError("FORBIDDEN", "채점 권한이 없는 역할입니다.");
+    }
+    if (!session.verifiedName?.trim()) {
+      throw new AppError("FORBIDDEN", "본인 확인 후 채점할 수 있습니다.");
+    }
+
     await judgeAssignmentService.assertJudgeAssignedToMatch(
       session,
       input.matchId,
@@ -329,9 +340,17 @@ export const judgeScorecardService = {
       throw new AppError("FORBIDDEN", "잠긴 채점표는 수정할 수 없습니다.");
     }
 
-    if (!input.judgeName.trim()) {
-      throw new AppError("VALIDATION_ERROR", "심판 이름을 입력해 주세요.");
+    const credential = await judgeCredentialRepository.findById(
+      session.credentialId,
+    );
+    if (!credential) {
+      throw new AppError("UNAUTHORIZED", "심판 계정을 찾을 수 없습니다.");
     }
+
+    const judgeName = session.verifiedName.trim();
+    const birthSnapshot = credential.birthDate
+      ? formatBirthDateInput(credential.birthDate)
+      : null;
 
     const roundCount = input.rounds.length;
     if (input.submit) {
@@ -346,15 +365,33 @@ export const judgeScorecardService = {
     }
 
     const totals = computeScorecardTotals(input.rounds);
-    const status = input.submit
-      ? JudgeScorecardStatus.submitted
-      : JudgeScorecardStatus.draft;
+    const meta = await readRequestClientMeta();
 
-    await judgeScorecardRepository.upsertDraft({
+    let status: JudgeScorecardStatus;
+    if (input.submit) {
+      status =
+        existing?.status === JudgeScorecardStatus.submitted ||
+        existing?.status === JudgeScorecardStatus.revised
+          ? JudgeScorecardStatus.revised
+          : JudgeScorecardStatus.submitted;
+    } else {
+      status = JudgeScorecardStatus.draft;
+    }
+
+    const action = input.submit
+      ? existing?.status === JudgeScorecardStatus.submitted ||
+        existing?.status === JudgeScorecardStatus.revised
+        ? "revise"
+        : "submit"
+      : "draft_save";
+
+    const upserted = await judgeScorecardRepository.upsertDraft({
       eventId: m.bracket.event.id,
       matchId: input.matchId,
       credentialId: session.credentialId,
-      judgeName: input.judgeName.trim(),
+      judgeName,
+      judgeBirthDateSnapshot: birthSnapshot,
+      judgeRoleSnapshot: session.role,
       cornerRedFighterId: m.fighterRedId,
       cornerBlueFighterId: m.fighterBlueId,
       roundCount,
@@ -367,6 +404,10 @@ export const judgeScorecardService = {
       decisionMethod: input.decisionMethod ?? null,
       memo: input.memo?.trim() || null,
       submittedAt: input.submit ? new Date() : existing?.submittedAt ?? null,
+      submittedIp: input.submit ? meta.ip : existing?.submittedIp ?? null,
+      submittedUserAgent: input.submit
+        ? meta.userAgent
+        : existing?.submittedUserAgent ?? null,
       rounds: input.rounds.map((r) => ({
         roundNumber: r.roundNumber,
         redScore: r.redScore,
@@ -378,6 +419,29 @@ export const judgeScorecardService = {
         warningMemo: r.warningMemo?.trim() || null,
         roundMemo: r.roundMemo?.trim() || null,
       })),
+    });
+
+    await judgeScorecardChangeLogRepository.create({
+      scorecardId: upserted.id,
+      eventId: upserted.eventId,
+      matchId: upserted.matchId,
+      credentialId: upserted.credentialId,
+      judgeNameSnapshot: judgeName,
+      judgeBirthDateSnapshot: birthSnapshot,
+      judgeRoleSnapshot: session.role,
+      action,
+      previousStatus: existing?.status ?? null,
+      newStatus: status,
+      previousRedTotal: existing?.redTotal ?? null,
+      previousBlueTotal: existing?.blueTotal ?? null,
+      newRedTotal: upserted.redTotal,
+      newBlueTotal: upserted.blueTotal,
+      previousWinnerCorner: existing?.winnerCorner ?? null,
+      newWinnerCorner: upserted.winnerCorner,
+      roundsSnapshotJson: input.rounds,
+      changedByCredentialId: session.credentialId,
+      changedIp: meta.ip,
+      changedUserAgent: meta.userAgent,
     });
   },
 
@@ -399,13 +463,23 @@ export const judgeScorecardService = {
     const cardInputs = assignments.map((a) => {
       const card = scorecards.find((s) => s.credentialId === a.credentialId);
       const submitted =
-        card?.status === "submitted" || card?.status === "locked";
+        card?.status === "submitted" ||
+        card?.status === "revised" ||
+        card?.status === "locked";
+      const role = card?.judgeRoleSnapshot ?? a.credential?.role ?? "SCORING_JUDGE";
       return {
-        judgeName: card?.judgeName ?? assignedJudgeNames.find((_, i) => assignments[i]?.credentialId === a.credentialId) ?? `심판${a.judgeOrder}`,
+        judgeName:
+          card?.judgeName ??
+          a.credential?.verifiedName ??
+          a.credential?.displayName ??
+          a.credential?.loginId ??
+          `심판${a.judgeOrder}`,
+        roleLabel: JUDGE_ROLE_LABELS[role],
         redTotal: card?.redTotal ?? null,
         blueTotal: card?.blueTotal ?? null,
         winnerCorner: card?.winnerCorner ?? "undecided",
         submitted: Boolean(submitted),
+        submittedAt: card?.submittedAt?.toISOString() ?? null,
       };
     });
 
@@ -448,7 +522,13 @@ export const judgeScorecardService = {
       byMatch.set(a.matchId, cur);
     }
     for (const s of scorecards) {
-      if (s.status !== "submitted" && s.status !== "locked") continue;
+      if (
+        s.status !== "submitted" &&
+        s.status !== "revised" &&
+        s.status !== "locked"
+      ) {
+        continue;
+      }
       const cur = byMatch.get(s.matchId) ?? { assigned: 0, submitted: 0 };
       cur.submitted += 1;
       byMatch.set(s.matchId, cur);
@@ -459,5 +539,107 @@ export const judgeScorecardService = {
       assignedCount: v.assigned,
       submittedCount: v.submitted,
     }));
+  },
+
+  async listEventMatchesForHeadJudge(
+    session: ResolvedJudgeSession,
+  ): Promise<
+    {
+      matchId: string;
+      matchNumber: number | null;
+      fighterRedName: string;
+      fighterBlueName: string;
+      assignedCount: number;
+      submittedCount: number;
+    }[]
+  > {
+    if (session.role !== "HEAD_JUDGE" && session.role !== "ANNOUNCER") {
+      throw new AppError("FORBIDDEN", "접근 권한이 없습니다.");
+    }
+
+    const matches = await prisma.bracketMatch.findMany({
+      where: { bracket: { eventId: session.eventId } },
+      include: {
+        fighterRed: { select: { name: true } },
+        fighterBlue: { select: { name: true } },
+      },
+      orderBy: [{ globalMatchOrder: "asc" }, { matchOrder: "asc" }],
+    });
+
+    const assignments = await judgeAssignmentRepository.listByEvent(
+      session.eventId,
+    );
+    const scorecards = await judgeScorecardRepository.listByEvent(
+      session.eventId,
+    );
+
+    return matches.map((m) => {
+      const assigned = assignments.filter((a) => a.matchId === m.id).length;
+      const submitted = scorecards.filter(
+        (s) =>
+          s.matchId === m.id &&
+          (s.status === "submitted" ||
+            s.status === "revised" ||
+            s.status === "locked"),
+      ).length;
+      return {
+        matchId: m.id,
+        matchNumber: m.matchNumber,
+        fighterRedName: m.fighterRed?.name ?? "미배정",
+        fighterBlueName: m.fighterBlue?.name ?? "미배정",
+        assignedCount: assigned,
+        submittedCount: submitted,
+      };
+    });
+  },
+
+  async getMatchAggregationForJudgeSession(
+    session: ResolvedJudgeSession,
+    matchId: string,
+  ): Promise<JudgeMatchAggregationVM> {
+    if (session.role !== "HEAD_JUDGE" && session.role !== "ANNOUNCER") {
+      throw new AppError("FORBIDDEN", "접근 권한이 없습니다.");
+    }
+
+    const m = await loadMatchContext(matchId);
+    if (m.bracket.event.id !== session.eventId) {
+      throw new AppError("FORBIDDEN", "다른 대회 경기입니다.");
+    }
+
+    const assignments = await judgeAssignmentRepository.listByMatch(matchId);
+    const scorecards = await judgeScorecardRepository.listByMatch(matchId);
+
+    const assignedJudgeNames = assignments.map(
+      (a) =>
+        a.credential?.verifiedName ??
+        a.credential?.displayName ??
+        a.credential?.loginId ??
+        `심판${a.judgeOrder}`,
+    );
+
+    const cardInputs = assignments.map((a) => {
+      const card = scorecards.find((s) => s.credentialId === a.credentialId);
+      const submitted =
+        card?.status === "submitted" ||
+        card?.status === "revised" ||
+        card?.status === "locked";
+      const role = card?.judgeRoleSnapshot ?? a.credential?.role ?? "SCORING_JUDGE";
+      return {
+        judgeName:
+          card?.judgeName ??
+          a.credential?.verifiedName ??
+          a.credential?.displayName ??
+          a.credential?.loginId ??
+          `심판${a.judgeOrder}`,
+        roleLabel: JUDGE_ROLE_LABELS[role],
+        redTotal: card?.redTotal ?? null,
+        blueTotal: card?.blueTotal ?? null,
+        winnerCorner: card?.winnerCorner ?? "undecided",
+        submitted: Boolean(submitted),
+        submittedAt: card?.submittedAt?.toISOString() ?? null,
+      };
+    });
+
+    return aggregateJudgeScorecards(assignedJudgeNames, cardInputs);
   },
 };

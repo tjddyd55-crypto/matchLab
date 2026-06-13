@@ -51,23 +51,32 @@ export function JudgeMatchAggregationPanel({
           <thead className="bg-muted/50">
             <tr>
               <th className="px-2 py-2 font-medium">심판</th>
+              <th className="px-2 py-2 font-medium">역할</th>
               <th className="px-2 py-2 font-medium">홍</th>
               <th className="px-2 py-2 font-medium">청</th>
               <th className="px-2 py-2 font-medium">승자</th>
-              <th className="px-2 py-2 font-medium">상태</th>
+              <th className="px-2 py-2 font-medium">제출</th>
             </tr>
           </thead>
           <tbody>
             {aggregation.scorecards.map((s) => (
-              <tr key={s.judgeName} className="border-t">
+              <tr key={`${s.judgeName}-${s.submittedAt ?? "pending"}`} className="border-t">
                 <td className="px-2 py-2">{s.judgeName}</td>
+                <td className="px-2 py-2">{s.roleLabel ?? "—"}</td>
                 <td className="px-2 py-2">{s.redTotal ?? "—"}</td>
                 <td className="px-2 py-2">{s.blueTotal ?? "—"}</td>
                 <td className="px-2 py-2">
                   {CORNER_LABEL[s.winnerCorner] ?? s.winnerCorner}
                 </td>
                 <td className="px-2 py-2">
-                  {s.submitted ? "제출" : "미제출"}
+                  {s.submitted
+                    ? s.submittedAt
+                      ? new Date(s.submittedAt).toLocaleTimeString("ko-KR", {
+                          hour: "2-digit",
+                          minute: "2-digit",
+                        })
+                      : "제출"
+                    : "미제출"}
                 </td>
               </tr>
             ))}

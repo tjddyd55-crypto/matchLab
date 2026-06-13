@@ -33,6 +33,8 @@ export type JudgeScorecardRow = {
   matchId: string;
   credentialId: string;
   judgeName: string;
+  judgeBirthDateSnapshot: string | null;
+  judgeRoleSnapshot: import("@/generated/prisma").JudgeCredentialRole | null;
   cornerRedFighterId: string | null;
   cornerBlueFighterId: string | null;
   roundCount: number;
@@ -43,6 +45,8 @@ export type JudgeScorecardRow = {
   decisionMethod: JudgeDecisionMethod | null;
   memo: string | null;
   submittedAt: Date | null;
+  submittedIp: string | null;
+  submittedUserAgent: string | null;
   rounds: JudgeRoundScoreRow[];
 };
 
@@ -78,6 +82,8 @@ export const judgeScorecardRepository = {
       matchId: string;
       credentialId: string;
       judgeName: string;
+      judgeBirthDateSnapshot?: string | null;
+      judgeRoleSnapshot?: import("@/generated/prisma").JudgeCredentialRole | null;
       cornerRedFighterId: string | null;
       cornerBlueFighterId: string | null;
       roundCount: number;
@@ -88,6 +94,8 @@ export const judgeScorecardRepository = {
       decisionMethod: JudgeDecisionMethod | null;
       memo: string | null;
       submittedAt: Date | null;
+      submittedIp?: string | null;
+      submittedUserAgent?: string | null;
       rounds: {
         roundNumber: number;
         redScore: number | null;
@@ -116,6 +124,8 @@ export const judgeScorecardRepository = {
         matchId: data.matchId,
         credentialId: data.credentialId,
         judgeName: data.judgeName,
+        judgeBirthDateSnapshot: data.judgeBirthDateSnapshot ?? null,
+        judgeRoleSnapshot: data.judgeRoleSnapshot ?? null,
         cornerRedFighterId: data.cornerRedFighterId,
         cornerBlueFighterId: data.cornerBlueFighterId,
         roundCount: data.roundCount,
@@ -126,9 +136,13 @@ export const judgeScorecardRepository = {
         decisionMethod: data.decisionMethod,
         memo: data.memo,
         submittedAt: data.submittedAt,
+        submittedIp: data.submittedIp ?? null,
+        submittedUserAgent: data.submittedUserAgent ?? null,
       },
       update: {
         judgeName: data.judgeName,
+        judgeBirthDateSnapshot: data.judgeBirthDateSnapshot ?? null,
+        judgeRoleSnapshot: data.judgeRoleSnapshot ?? null,
         cornerRedFighterId: data.cornerRedFighterId,
         cornerBlueFighterId: data.cornerBlueFighterId,
         roundCount: data.roundCount,
@@ -139,6 +153,8 @@ export const judgeScorecardRepository = {
         decisionMethod: data.decisionMethod,
         memo: data.memo,
         submittedAt: data.submittedAt,
+        submittedIp: data.submittedIp ?? null,
+        submittedUserAgent: data.submittedUserAgent ?? null,
       },
     });
 

@@ -1,13 +1,21 @@
 import { JudgeLoginForm } from "@/components/domain/judges/JudgeLoginForm";
 import { JUDGE_COUNT_POLICY_LINES } from "@/lib/judge-round-count";
-import { readJudgeSession } from "@/lib/judge-session";
+import { judgeDefaultRoute } from "@/lib/judge-identity";
+import { judgeCredentialService } from "@/lib/services/judge-credential.service";
 import { redirect } from "next/navigation";
 
 export const dynamic = "force-dynamic";
 
 export default async function JudgeLoginPage() {
-  const session = await readJudgeSession();
-  if (session) redirect("/judge/matches");
+  try {
+    const session = await judgeCredentialService.assertJudgeSession();
+    if (!session.identityConfirmedAt) {
+      redirect("/judge/verify");
+    }
+    redirect(judgeDefaultRoute(session.role));
+  } catch {
+    // not logged in
+  }
 
   return (
     <div className="mx-auto flex w-full max-w-md flex-col gap-6 px-4 py-8">

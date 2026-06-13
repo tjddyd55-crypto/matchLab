@@ -1210,7 +1210,20 @@ model AuditLog {
 enum JudgeScorecardStatus {
   draft
   submitted
+  revised
   locked
+}
+
+enum JudgeCredentialRole {
+  SCORING_JUDGE
+  HEAD_JUDGE
+  ANNOUNCER
+}
+
+enum JudgeScorecardRevisionAction {
+  draft_save
+  submit
+  revise
 }
 
 enum JudgeWinnerCorner {
@@ -1257,6 +1270,14 @@ model JudgeAccessCredential {
   loginId      String
   passwordHash String
   displayName  String?
+  role         JudgeCredentialRole @default(SCORING_JUDGE)
+  verifiedName String?
+  birthDate    DateTime? @db.Date
+  phone        String?
+  organization String?
+  identityConfirmedAt        DateTime?
+  identityConfirmedIp        String?
+  identityConfirmedUserAgent String?
   memo         String?
   isActive     Boolean   @default(true)
   lastLoginAt  DateTime?
@@ -1270,6 +1291,7 @@ model JudgeAccessCredential {
   @@unique([eventId, loginId])
   @@index([eventId])
   @@index([isActive])
+  @@index([role])
 }
 
 /// 경기별 심판 배정
@@ -1303,6 +1325,8 @@ model JudgeScorecard {
   matchId            String
   credentialId       String
   judgeName          String
+  judgeBirthDateSnapshot String?
+  judgeRoleSnapshot  JudgeCredentialRole?
   cornerRedFighterId String?
   cornerBlueFighterId String?
   roundCount         Int
@@ -1313,6 +1337,8 @@ model JudgeScorecard {
   decisionMethod     JudgeDecisionMethod?
   memo               String?
   submittedAt        DateTime?
+  submittedIp        String?
+  submittedUserAgent String?
   createdAt          DateTime              @default(now())
   updatedAt          DateTime              @updatedAt
 
@@ -1320,12 +1346,46 @@ model JudgeScorecard {
   match      BracketMatch          @relation(fields: [matchId], references: [id], onDelete: Cascade)
   credential JudgeAccessCredential @relation(fields: [credentialId], references: [id], onDelete: Cascade)
   rounds     JudgeRoundScore[]
+  changeLogs JudgeScorecardChangeLog[]
 
   @@unique([matchId, credentialId])
   @@index([eventId])
   @@index([matchId])
   @@index([credentialId])
   @@index([status])
+}
+
+/// 채점표 제출·수정 감사 이력 — hard delete 금지
+model JudgeScorecardChangeLog {
+  id                      String                      @id @default(cuid())
+  scorecardId             String
+  eventId                 String
+  matchId                 String
+  credentialId            String
+  judgeNameSnapshot       String
+  judgeBirthDateSnapshot  String?
+  judgeRoleSnapshot       JudgeCredentialRole
+  action                  JudgeScorecardRevisionAction
+  previousStatus          JudgeScorecardStatus?
+  newStatus               JudgeScorecardStatus
+  previousRedTotal        Int?
+  previousBlueTotal       Int?
+  newRedTotal             Int?
+  newBlueTotal            Int?
+  previousWinnerCorner    JudgeWinnerCorner?
+  newWinnerCorner         JudgeWinnerCorner?
+  roundsSnapshotJson      Json?
+  changedAt               DateTime                    @default(now())
+  changedByCredentialId   String
+  changedIp               String?
+  changedUserAgent        String?
+
+  scorecard JudgeScorecard @relation(fields: [scorecardId], references: [id], onDelete: Cascade)
+
+  @@index([scorecardId])
+  @@index([matchId])
+  @@index([credentialId])
+  @@index([changedAt])
 }
 
 /// 라운드별 점수
