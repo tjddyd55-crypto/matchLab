@@ -2,6 +2,7 @@ import Link from "next/link";
 import { redirect } from "next/navigation";
 import { JudgeSessionHeader } from "@/components/domain/judges/JudgeSessionHeader";
 import { requireJudgeSessionWithIdentity } from "@/lib/judge-gate";
+import { judgeDefaultRoute } from "@/lib/judge-identity";
 import { judgeScorecardService } from "@/lib/services/judge-scorecard.service";
 
 export const dynamic = "force-dynamic";
@@ -9,7 +10,7 @@ export const dynamic = "force-dynamic";
 export default async function JudgeReviewPage() {
   const session = await requireJudgeSessionWithIdentity();
   if (session.role !== "HEAD_JUDGE") {
-    redirect("/judge/matches");
+    redirect(judgeDefaultRoute(session.role));
   }
 
   const matches = await judgeScorecardService.listEventMatchesForHeadJudge(

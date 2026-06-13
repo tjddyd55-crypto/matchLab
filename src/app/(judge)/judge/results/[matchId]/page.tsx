@@ -2,6 +2,7 @@ import { redirect } from "next/navigation";
 import { JudgeMatchAggregationPanel } from "@/components/domain/judges/JudgeMatchAggregationPanel";
 import { JudgeSessionHeader } from "@/components/domain/judges/JudgeSessionHeader";
 import { requireJudgeSessionWithIdentity } from "@/lib/judge-gate";
+import { judgeDefaultRoute } from "@/lib/judge-identity";
 import { judgeScorecardService } from "@/lib/services/judge-scorecard.service";
 
 export const dynamic = "force-dynamic";
@@ -13,7 +14,7 @@ export default async function JudgeResultsMatchPage({
 }) {
   const session = await requireJudgeSessionWithIdentity();
   if (session.role !== "ANNOUNCER") {
-    redirect("/judge/matches");
+    redirect(judgeDefaultRoute(session.role));
   }
 
   const { matchId } = await params;
