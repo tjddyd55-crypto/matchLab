@@ -1,6 +1,6 @@
 "use client";
 
-import { useMemo, useState, useTransition } from "react";
+import { useMemo, useState } from "react";
 import { useRouter } from "next/navigation";
 import { saveJudgeScorecardAction } from "@/features/judge/actions";
 import { Button } from "@/components/ui/button";
@@ -48,7 +48,7 @@ export function JudgeScorecardForm({
   verifiedName?: string | null;
 }) {
   const router = useRouter();
-  const [pending, startTransition] = useTransition();
+  const [pending, setPending] = useState(false);
   const [error, setError] = useState<string | null>(null);
   const judgeName = verifiedName?.trim() || form.judgeName;
   const [decisionMethod, setDecisionMethod] = useState(
@@ -66,9 +66,10 @@ export function JudgeScorecardForm({
     );
   }
 
-  function save(submit: boolean) {
+  async function save(submit: boolean) {
     setError(null);
-    startTransition(async () => {
+    setPending(true);
+    try {
       const fd = new FormData();
       fd.set("matchId", form.matchId);
       fd.set("judgeName", judgeName);
@@ -82,8 +83,13 @@ export function JudgeScorecardForm({
         return;
       }
       router.refresh();
-      if (submit) router.push("/judge/matches");
-    });
+      if (submit) {
+        window.location.assign("/judge/matches");
+        return;
+      }
+    } finally {
+      setPending(false);
+    }
   }
 
   const inputClass =

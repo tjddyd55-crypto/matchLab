@@ -1,7 +1,6 @@
 "use client";
 
-import { useState, useTransition } from "react";
-import { useRouter } from "next/navigation";
+import { useState } from "react";
 import { confirmJudgeIdentityAction } from "@/features/judge/actions";
 import { Button } from "@/components/ui/button";
 import type { ResolvedJudgeSession } from "@/lib/services/judge-credential.service";
@@ -19,8 +18,7 @@ export function JudgeIdentityForm({
     identityConfirmed: boolean;
   };
 }) {
-  const router = useRouter();
-  const [pending, startTransition] = useTransition();
+  const [pending, setPending] = useState(false);
   const [error, setError] = useState<string | null>(null);
   const [verifiedName, setVerifiedName] = useState(initial.verifiedName);
   const [birthDate, setBirthDate] = useState(initial.birthDate);
@@ -30,7 +28,7 @@ export function JudgeIdentityForm({
   return (
     <form
       className="flex w-full max-w-md flex-col gap-4"
-      onSubmit={(e) => {
+      onSubmit={async (e) => {
         e.preventDefault();
         setError(null);
         const fd = new FormData();
@@ -39,15 +37,17 @@ export function JudgeIdentityForm({
         fd.set("phone", phone);
         fd.set("organization", organization);
 
-        startTransition(async () => {
+        setPending(true);
+        try {
           const res = await confirmJudgeIdentityAction(fd);
           if (!res.ok) {
             setError(res.error.message);
             return;
           }
-          router.push(res.data.redirectTo);
-          router.refresh();
-        });
+          window.location.assign(res.data.redirectTo);
+        } finally {
+          setPending(false);
+        }
       }}
     >
       <p className="text-muted-foreground text-sm leading-relaxed">

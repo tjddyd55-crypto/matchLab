@@ -18,7 +18,10 @@
     "setup:bracket-demo-data": "tsx scripts/setup-bracket-demo-data.ts",
     "setup:demo-org-gym-fighters": "tsx scripts/setup-demo-org-gym-fighters.ts",
     "verify:judge-schema": "tsx scripts/verify-judge-schema-after-push.ts",
-    "e2e:judge-identity": "tsx scripts/e2e-judge-identity-smoke.ts"
+    "e2e:judge-identity": "tsx scripts/e2e-judge-identity-smoke.ts",
+    "setup:judge-ui-e2e": "tsx scripts/setup-judge-ui-e2e-fixtures.ts",
+    "lock:judge-ui-e2e-match": "tsx scripts/lock-judge-ui-e2e-match.ts",
+    "ui-e2e:judge": "playwright test"
   },
   "prisma": {
     "seed": "tsx prisma/seed.ts"
@@ -51,6 +54,7 @@
     "zod": "^4.4.3"
   },
   "devDependencies": {
+    "@playwright/test": "^1.52.0",
     "@tailwindcss/postcss": "^4",
     "@types/node": "^20",
     "@types/pg": "^8.20.0",
