@@ -16,6 +16,39 @@ const trimmedNullable = z
     return t === "" ? null : t;
   });
 
+const locationNameField = z
+  .string()
+  .max(200)
+  .optional()
+  .nullable()
+  .transform((s) => {
+    if (s === undefined || s === null) return null;
+    const t = s.trim();
+    return t === "" ? null : t;
+  });
+
+const detailAddressField = z
+  .string()
+  .max(300)
+  .optional()
+  .nullable()
+  .transform((s) => {
+    if (s === undefined || s === null) return null;
+    const t = s.trim();
+    return t === "" ? null : t;
+  });
+
+const postalCodeField = z
+  .string()
+  .max(10)
+  .optional()
+  .nullable()
+  .transform((s) => {
+    if (s === undefined || s === null) return null;
+    const t = s.trim();
+    return t === "" ? null : t;
+  });
+
 export const createEventSchema = z
   .object({
     organizerId: cuid.optional(),
@@ -24,9 +57,9 @@ export const createEventSchema = z
     location: trimmedNullable,
     roadAddress: trimmedNullable,
     jibunAddress: trimmedNullable,
-    detailAddress: trimmedNullable,
-    postalCode: trimmedNullable,
-    locationName: trimmedNullable,
+    detailAddress: detailAddressField,
+    postalCode: postalCodeField,
+    locationName: locationNameField,
     eventDate: dateIn,
     registrationStartDate: dateIn,
     registrationEndDate: dateIn,
@@ -64,9 +97,9 @@ export const updateEventSchema = z
     location: trimmedNullable,
     roadAddress: trimmedNullable,
     jibunAddress: trimmedNullable,
-    detailAddress: trimmedNullable,
-    postalCode: trimmedNullable,
-    locationName: trimmedNullable,
+    detailAddress: detailAddressField,
+    postalCode: postalCodeField,
+    locationName: locationNameField,
     eventDate: dateIn.optional(),
     registrationStartDate: dateIn.optional(),
     registrationEndDate: dateIn.optional(),

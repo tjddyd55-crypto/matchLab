@@ -65,13 +65,13 @@ MVP 범위는 `docs/mvp-scope.md`를 기준으로 하며, 본 문서는 **시연
 
 ### 1.4c 주소·신청자·스태프·심판·지도 UX
 
-1. **organizer** — `/organizer/events/{eventId}` 기본 설정 → **주소 검색**으로 도로명 선택 → 장소명·상세 주소 입력 후 저장.
+1. **organizer** — `/organizer/events/{eventId}` 기본 설정 → **주소 검색**으로 도로명 선택 → 장소명·상세 주소 입력 → **기본 정보 저장** → 성공 메시지 → 새로고침 후 주소 유지.
 2. **organizer** — 공식 신청서 템플릿 선택 → **템플릿 연결 저장** → 「저장 중…」에서 멈추지 않고 완료 메시지 확인.
 3. **organizer** — 관리 홈 **결과 입력 링크(스태프)** → 새 링크 생성(접속 코드·만료일 유/무) → 목록·복사 버튼 확인.
 4. **organizer** — `/organizer/events/{eventId}/applications` → 페이지 **가로 스크롤 없음**, Drawer·승인/반려/입금 action 확인.
 5. **organizer** — `/organizer/events/{eventId}/judges` → 심판 계정 생성 → `reset` 오류 없이 목록 갱신 확인.
 6. **spectator** — `/events/sample-open-2026` Hero **지도 버튼 없음** 확인.
-7. **spectator** — 행사 안내(`?tab=overview`) **오시는 길**에만 지도 preview + 「네이버 지도에서 보기」 1개.
+7. **spectator** — 행사 안내(`?tab=overview`) **오시는 길**에 도로명 주소 표시 + 지도 preview + 「네이버 지도에서 보기」 1개.
 
 ### 1.4b 스태프 모바일 결과 입력
 

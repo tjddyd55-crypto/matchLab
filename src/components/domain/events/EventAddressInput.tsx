@@ -20,19 +20,6 @@ declare global {
   }
 }
 
-function composeLine(parts: {
-  roadAddress: string;
-  detailAddress: string;
-  locationName: string;
-}): string {
-  const road = parts.roadAddress.trim();
-  const detail = parts.detailAddress.trim();
-  const name = parts.locationName.trim();
-  const base = [road, detail].filter(Boolean).join(", ");
-  if (name && base) return `${name} — ${base}`;
-  return name || base || "";
-}
-
 const inputClass =
   "border-input bg-background h-9 w-full rounded-md border px-3 text-sm shadow-sm";
 
@@ -65,22 +52,6 @@ export function EventAddressInput({
   const [locationName, setLocationName] = useState(
     initial?.locationName ?? "",
   );
-  const [composedLocation, setComposedLocation] = useState(
-    initial?.location?.trim() ??
-      composeLine({
-        roadAddress: initial?.roadAddress ?? "",
-        detailAddress: initial?.detailAddress ?? "",
-        locationName: initial?.locationName ?? "",
-      }),
-  );
-
-  const applyComposed = (next: {
-    roadAddress: string;
-    detailAddress: string;
-    locationName: string;
-  }) => {
-    setComposedLocation(composeLine(next));
-  };
 
   const fieldId = useId();
 
@@ -95,11 +66,6 @@ export function EventAddressInput({
         setPostalCode(data.zonecode ?? "");
         setRoadAddress(road);
         setJibunAddress(data.jibunAddress?.trim() ?? "");
-        applyComposed({
-          roadAddress: road,
-          detailAddress,
-          locationName,
-        });
       },
     }).open();
   };
@@ -110,10 +76,9 @@ export function EventAddressInput({
         src="https://t1.daumcdn.net/mapjsapi/bundle/postcode/prod/postcode.v2.js"
         strategy="lazyOnload"
       />
-      <input type="hidden" name={pk("postalCode")} value={postalCode} readOnly />
-      <input type="hidden" name={pk("jibunAddress")} value={jibunAddress} readOnly />
-      <input type="hidden" name={pk("roadAddress")} value={roadAddress} readOnly />
-      <input type="hidden" name={pk("location")} value={composedLocation} readOnly />
+      <input type="hidden" name={pk("postalCode")} value={postalCode} />
+      <input type="hidden" name={pk("jibunAddress")} value={jibunAddress} />
+      <input type="hidden" name={pk("roadAddress")} value={roadAddress} />
 
       <div className="flex flex-wrap items-center justify-between gap-2">
         <span className="text-sm font-medium">개최 장소</span>
@@ -138,11 +103,7 @@ export function EventAddressInput({
         <input
           id={`${fieldId}-loc-name`}
           value={locationName}
-          onChange={(e) => {
-            const v = e.target.value;
-            setLocationName(v);
-            applyComposed({ roadAddress, detailAddress, locationName: v });
-          }}
+          onChange={(e) => setLocationName(e.target.value)}
           name={pk("locationName")}
           maxLength={200}
           placeholder="예: 올림픽공원 체조경기장, OO 체육관"
@@ -193,11 +154,7 @@ export function EventAddressInput({
         <span className="text-muted-foreground text-xs">상세 주소</span>
         <input
           value={detailAddress}
-          onChange={(e) => {
-            const v = e.target.value;
-            setDetailAddress(v);
-            applyComposed({ roadAddress, detailAddress: v, locationName });
-          }}
+          onChange={(e) => setDetailAddress(e.target.value)}
           name={pk("detailAddress")}
           maxLength={300}
           placeholder="예: 3층, A동, 101호"

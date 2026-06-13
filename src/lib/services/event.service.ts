@@ -60,6 +60,8 @@ function mapGalleryRows(
   }));
 }
 
+const VENUE_DISPLAY_MAX_LENGTH = 500;
+
 export function composeEventVenueDisplay(row: {
   locationName?: string | null;
   roadAddress?: string | null;
@@ -70,8 +72,62 @@ export function composeEventVenueDisplay(row: {
   const road = row.roadAddress?.trim() || row.location?.trim();
   const detail = row.detailAddress?.trim();
   const main = [road, detail].filter(Boolean).join(", ");
-  if (name && main) return `${name} — ${main}`;
-  return name || main || "";
+  let composed = "";
+  if (name && main) composed = `${name} — ${main}`;
+  else composed = name || main || "";
+  if (composed.length <= VENUE_DISPLAY_MAX_LENGTH) return composed;
+  return composed.slice(0, VENUE_DISPLAY_MAX_LENGTH);
+}
+
+function buildVenueLocationPatch(input: {
+  locationName?: string | null;
+  roadAddress?: string | null;
+  jibunAddress?: string | null;
+  detailAddress?: string | null;
+  postalCode?: string | null;
+  location?: string | null;
+}): Pick<
+  Prisma.EventUpdateInput,
+  | "locationName"
+  | "roadAddress"
+  | "jibunAddress"
+  | "detailAddress"
+  | "postalCode"
+  | "location"
+> {
+  const patch: Pick<
+    Prisma.EventUpdateInput,
+    | "locationName"
+    | "roadAddress"
+    | "jibunAddress"
+    | "detailAddress"
+    | "postalCode"
+    | "location"
+  > = {};
+
+  if (input.locationName !== undefined) patch.locationName = input.locationName;
+  if (input.roadAddress !== undefined) patch.roadAddress = input.roadAddress;
+  if (input.jibunAddress !== undefined) patch.jibunAddress = input.jibunAddress;
+  if (input.detailAddress !== undefined) patch.detailAddress = input.detailAddress;
+  if (input.postalCode !== undefined) patch.postalCode = input.postalCode;
+
+  if (
+    input.locationName !== undefined ||
+    input.roadAddress !== undefined ||
+    input.jibunAddress !== undefined ||
+    input.detailAddress !== undefined ||
+    input.postalCode !== undefined
+  ) {
+    patch.location =
+      composeEventVenueDisplay({
+        locationName: input.locationName ?? null,
+        roadAddress: input.roadAddress ?? null,
+        detailAddress: input.detailAddress ?? null,
+        location: input.location ?? null,
+      }).trim() || null;
+  }
+
+  return patch;
 }
 
 function buildDivisionSummary(
@@ -703,19 +759,47 @@ export const eventService = {
     const current = await eventRepository.findOrganizerEventById(input.eventId);
     if (!current) throw new AppError("NOT_FOUND", "대회를 찾을 수 없습니다.");
 
-    const patch: Record<string, unknown> = {};
+    const patch: Prisma.EventUpdateInput = {};
     if (input.title !== undefined) patch.title = input.title.trim();
     if (input.description !== undefined) {
       patch.description = input.description?.trim() || null;
     }
-    if (input.location !== undefined) {
-      patch.location = input.location?.trim() || null;
+
+    const hasVenueInput =
+      input.roadAddress !== undefined ||
+      input.jibunAddress !== undefined ||
+      input.detailAddress !== undefined ||
+      input.postalCode !== undefined ||
+      input.locationName !== undefined;
+
+    if (hasVenueInput) {
+      Object.assign(
+        patch,
+        buildVenueLocationPatch({
+          locationName:
+            input.locationName !== undefined
+              ? input.locationName
+              : current.locationName,
+          roadAddress:
+            input.roadAddress !== undefined
+              ? input.roadAddress
+              : current.roadAddress,
+          jibunAddress:
+            input.jibunAddress !== undefined
+              ? input.jibunAddress
+              : current.jibunAddress,
+          detailAddress:
+            input.detailAddress !== undefined
+              ? input.detailAddress
+              : current.detailAddress,
+          postalCode:
+            input.postalCode !== undefined
+              ? input.postalCode
+              : current.postalCode,
+          location: current.location,
+        }),
+      );
     }
-    if (input.roadAddress !== undefined) patch.roadAddress = input.roadAddress;
-    if (input.jibunAddress !== undefined) patch.jibunAddress = input.jibunAddress;
-    if (input.detailAddress !== undefined) patch.detailAddress = input.detailAddress;
-    if (input.postalCode !== undefined) patch.postalCode = input.postalCode;
-    if (input.locationName !== undefined) patch.locationName = input.locationName;
     if (input.eventDate !== undefined) patch.eventDate = input.eventDate;
     if (input.registrationStartDate !== undefined) {
       patch.registrationStartDate = input.registrationStartDate;
@@ -753,46 +837,11 @@ export const eventService = {
       }
     }
 
-    if (
-      input.location !== undefined ||
-      input.roadAddress !== undefined ||
-      input.jibunAddress !== undefined ||
-      input.detailAddress !== undefined ||
-      input.postalCode !== undefined ||
-      input.locationName !== undefined
-    ) {
-      const merged = {
-        locationName:
-          input.locationName !== undefined
-            ? input.locationName
-            : current.locationName,
-        roadAddress:
-          input.roadAddress !== undefined
-            ? input.roadAddress
-            : current.roadAddress,
-        detailAddress:
-          input.detailAddress !== undefined
-            ? input.detailAddress
-            : current.detailAddress,
-        location:
-          input.location !== undefined ? input.location : current.location,
-      };
-      patch.location =
-        composeEventVenueDisplay({
-          locationName: merged.locationName,
-          roadAddress: merged.roadAddress,
-          detailAddress: merged.detailAddress,
-          location: merged.location,
-        }).trim() || null;
-    }
-
     if (Object.keys(patch).length === 0) return;
 
-    const rs = (patch.registrationStartDate as Date | undefined) ??
-      current.registrationStartDate;
-    const re = (patch.registrationEndDate as Date | undefined) ??
-      current.registrationEndDate;
-    const ed = (patch.eventDate as Date | undefined) ?? current.eventDate;
+    const rs = patch.registrationStartDate ?? current.registrationStartDate;
+    const re = patch.registrationEndDate ?? current.registrationEndDate;
+    const ed = patch.eventDate ?? current.eventDate;
     if (rs > re) {
       throw new AppError("VALIDATION_ERROR", "신청 기간이 올바르지 않습니다.");
     }

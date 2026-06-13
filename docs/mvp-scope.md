@@ -25,6 +25,7 @@
 
 - [x] 주최자: 대회 생성·기본 정보 수정·상태 전이(`draft`→`open` 등, `event.service` / `/organizer/events`).
 - [x] **개최 장소 주소 검색 고정** — `EventAddressInput`: 도로명·우편번호·지번은 Daum 검색 전용 read-only input 표시, 장소명·상세 주소 직접 입력. 공개(`open`) 전 도로명 주소 필수 검증.
+- [x] **기본 정보 저장 안정화** — structured address 필드(`postalCode`, `roadAddress`, `jibunAddress`, `detailAddress`, `locationName`)만 FormData로 전송, `location`은 서버 재계산. validation/Prisma 오류는 form 메시지로 반환.
 - [x] **대회 준비 체크리스트·가이드** — `/organizer/events/[eventId]` 관리 홈 6단계 체크리스트·다음 작업 안내·`EventManagementNav` 운영 순서 정리·생성 후 `?welcome=1` 다음 단계 (`organizer-event-setup.ts`).
 - [x] 주최자: 디비전(EventDivision) 생성·수정·삭제(신청·대진표 연결 시 삭제 제한).
 - [x] 주최자: 참가비·입금 계좌(`EventPaymentSetting` upsert) — **계좌번호는 공개 DTO·공고에 미포함**.

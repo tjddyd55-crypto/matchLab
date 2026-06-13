@@ -1,5 +1,6 @@
 "use server";
 
+import { revalidatePath } from "next/cache";
 import {
   actionFailure,
   actionSuccess,
@@ -9,6 +10,7 @@ import {
 import { requireActorFromMutation } from "@/lib/auth/actor";
 import { PermissionError } from "@/lib/auth/permission-error";
 import { AppError } from "@/lib/errors/app-error";
+import { prismaErrorToActionFailure } from "@/lib/prisma-errors";
 import { eventService } from "@/lib/services/event.service";
 import {
   changeEventStatusSchema,
@@ -34,6 +36,8 @@ function mapCaught<T>(
         e.message,
       );
     }
+    const prismaFailure = prismaErrorToActionFailure(e);
+    if (prismaFailure) return prismaFailure;
     console.error(e);
     return actionFailure(
       "INTERNAL",
@@ -93,7 +97,7 @@ export async function createEventAction(
       organizerId: formReq(formData, "organizerId") || undefined,
       title: formReq(formData, "title"),
       description: formReq(formData, "description") || null,
-      location: formReq(formData, "location") || null,
+      location: null,
       roadAddress: formReq(formData, "roadAddress") || null,
       jibunAddress: formReq(formData, "jibunAddress") || null,
       detailAddress: formReq(formData, "detailAddress") || null,
@@ -147,15 +151,18 @@ export async function updateEventAction(
     const raw: Record<string, unknown> = { eventId };
 
     if (intent === "basic") {
+      if (process.env.NODE_ENV === "development") {
+        console.debug(
+          "[updateEventAction:basic] form keys:",
+          [...formData.keys()].sort().join(", "),
+        );
+      }
+
       const title = formReq(formData, "title");
       if (title) raw.title = title;
       const description = formReq(formData, "description");
       if (formData.has("description")) {
         raw.description = description || null;
-      }
-      const location = formReq(formData, "location");
-      if (formData.has("location")) {
-        raw.location = location || null;
       }
       if (formData.has("roadAddress")) {
         raw.roadAddress = formReq(formData, "roadAddress") || null;
@@ -206,6 +213,7 @@ export async function updateEventAction(
 
     const actor = await requireActorFromMutation();
     await eventService.updateOrganizerEvent(actor, parsed.data);
+    revalidatePath(`/organizer/events/${parsed.data.eventId}`);
     return actionSuccess({ ok: true as const });
   });
 }
