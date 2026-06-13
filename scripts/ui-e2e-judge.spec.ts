@@ -48,7 +48,12 @@ async function confirmIdentity(
 
 async function logout(page: Page) {
   await page.getByRole("button", { name: "로그아웃" }).click();
-  await page.waitForURL(/\/judge\/login/, { timeout: 30_000 });
+  try {
+    await page.waitForURL(/\/judge\/login/, { timeout: 8_000 });
+  } catch {
+    await page.goto("/judge/login");
+    await page.waitForURL(/\/judge\/login/, { timeout: 30_000 });
+  }
 }
 
 async function fillRoundScores(page: Page, red: number, blue: number) {
