@@ -27,14 +27,14 @@ export function OrganizerApplicationsFilterBar({
   }
 
   return (
-    <div className="flex flex-col gap-3 rounded-xl border border-border/70 bg-muted/20 p-4 text-sm md:flex-row md:flex-wrap md:items-end">
+    <div className="flex min-w-0 flex-col gap-3 rounded-xl border border-border/70 bg-muted/20 p-4 text-sm md:flex-row md:flex-wrap md:items-end">
       <div className="grid gap-1">
         <label className="text-muted-foreground text-xs" htmlFor="f-app">
           신청 상태
         </label>
         <select
           id="f-app"
-          className="border-input bg-background h-9 min-w-[140px] rounded-lg border px-2 text-sm"
+          className="border-input bg-background h-9 min-w-0 w-full max-w-full rounded-lg border px-2 text-sm sm:min-w-[140px] sm:w-auto"
           value={filters.applicationStatus}
           onChange={(e) => patch("applicationStatus", e.target.value)}
         >
@@ -51,7 +51,7 @@ export function OrganizerApplicationsFilterBar({
         </label>
         <select
           id="f-pay"
-          className="border-input bg-background h-9 min-w-[140px] rounded-lg border px-2 text-sm"
+          className="border-input bg-background h-9 min-w-0 w-full max-w-full rounded-lg border px-2 text-sm sm:min-w-[140px] sm:w-auto"
           value={filters.paymentStatus}
           onChange={(e) => patch("paymentStatus", e.target.value)}
         >
@@ -69,7 +69,7 @@ export function OrganizerApplicationsFilterBar({
         </label>
         <select
           id="f-div"
-          className="border-input bg-background h-9 min-w-[160px] rounded-lg border px-2 text-sm"
+          className="border-input bg-background h-9 min-w-0 w-full max-w-full rounded-lg border px-2 text-sm sm:min-w-[160px] sm:w-auto"
           value={filters.divisionId}
           onChange={(e) => patch("divisionId", e.target.value)}
         >
@@ -87,7 +87,7 @@ export function OrganizerApplicationsFilterBar({
         </label>
         <select
           id="f-gym"
-          className="border-input bg-background h-9 min-w-[160px] rounded-lg border px-2 text-sm"
+          className="border-input bg-background h-9 min-w-0 w-full max-w-full rounded-lg border px-2 text-sm sm:min-w-[160px] sm:w-auto"
           value={filters.gymId}
           onChange={(e) => patch("gymId", e.target.value)}
         >
@@ -105,7 +105,7 @@ export function OrganizerApplicationsFilterBar({
         </label>
         <select
           id="f-consent"
-          className="border-input bg-background h-9 min-w-[140px] rounded-lg border px-2 text-sm"
+          className="border-input bg-background h-9 min-w-0 w-full max-w-full rounded-lg border px-2 text-sm sm:min-w-[140px] sm:w-auto"
           value={filters.consent}
           onChange={(e) => patch("consent", e.target.value)}
         >

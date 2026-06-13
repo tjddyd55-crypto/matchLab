@@ -1,10 +1,7 @@
 import type { PublicEventDetailDTO } from "@/lib/dto/public";
-import {
-  buildMapSearchQuery,
-  buildMapSearchUrl,
-} from "@/lib/event-public-display";
+import { buildMapSearchQuery } from "@/lib/event-public-display";
 import { PublicEventMapLink } from "@/components/domain/events/public/PublicEventMapLink";
-import { MapPin } from "lucide-react";
+import { PublicEventNaverMapPreview } from "@/components/domain/events/public/PublicEventNaverMapPreview";
 
 export function PublicEventVenueSection({
   event,
@@ -12,11 +9,6 @@ export function PublicEventVenueSection({
   event: PublicEventDetailDTO;
 }) {
   const mapQuery = buildMapSearchQuery({
-    locationName: event.locationName,
-    roadAddress: event.roadAddress,
-    location: event.location,
-  });
-  const mapHref = buildMapSearchUrl({
     locationName: event.locationName,
     roadAddress: event.roadAddress,
     location: event.location,
@@ -31,7 +23,7 @@ export function PublicEventVenueSection({
   const detail = event.detailAddress?.trim();
 
   return (
-    <section className="space-y-4 rounded-xl border p-4 md:p-5">
+    <section className="min-w-0 space-y-4 rounded-xl border p-4 md:p-5">
       <div className="space-y-1">
         <h2 className="text-base font-semibold md:text-lg">오시는 길</h2>
         <p className="text-muted-foreground text-xs md:text-sm">
@@ -39,45 +31,46 @@ export function PublicEventVenueSection({
         </p>
       </div>
 
-      <dl className="space-y-2 text-sm">
+      <dl className="grid min-w-0 gap-3 text-sm sm:grid-cols-2">
         {venueName ? (
-          <div>
+          <div className="min-w-0">
             <dt className="text-muted-foreground text-xs">장소명</dt>
-            <dd className="font-medium">{venueName}</dd>
+            <dd className="font-medium break-words">{venueName}</dd>
           </div>
         ) : null}
         {road ? (
-          <div>
+          <div className="min-w-0 sm:col-span-2">
             <dt className="text-muted-foreground text-xs">도로명 주소</dt>
-            <dd>{road}</dd>
+            <dd className="break-words">{road}</dd>
           </div>
         ) : event.location?.trim() ? (
-          <div>
+          <div className="min-w-0 sm:col-span-2">
             <dt className="text-muted-foreground text-xs">장소</dt>
-            <dd>{event.location}</dd>
+            <dd className="break-words">{event.location}</dd>
           </div>
         ) : null}
         {detail ? (
-          <div>
+          <div className="min-w-0 sm:col-span-2">
             <dt className="text-muted-foreground text-xs">상세 주소</dt>
-            <dd>{detail}</dd>
+            <dd className="break-words">{detail}</dd>
           </div>
         ) : null}
       </dl>
 
-      <div className="bg-muted/30 flex flex-col items-center justify-center gap-3 rounded-lg border border-dashed px-4 py-8 text-center">
-        <MapPin className="text-muted-foreground size-10" aria-hidden />
-        <p className="text-muted-foreground max-w-sm text-xs leading-relaxed">
-          지도는 네이버 지도에서 확인할 수 있습니다. 아래 버튼을 눌러
-          검색·길찾기를 이용해 주세요.
-        </p>
-        {mapHref ? (
-          <PublicEventMapLink
-            locationName={event.locationName}
-            roadAddress={event.roadAddress}
-            location={event.location}
-          />
-        ) : null}
+      <PublicEventNaverMapPreview
+        key={mapQuery ?? "venue"}
+        locationName={event.locationName}
+        roadAddress={event.roadAddress}
+        detailAddress={event.detailAddress}
+        location={event.location}
+      />
+
+      <div className="flex flex-wrap justify-end gap-2">
+        <PublicEventMapLink
+          locationName={event.locationName}
+          roadAddress={event.roadAddress}
+          location={event.location}
+        />
       </div>
     </section>
   );

@@ -33,6 +33,12 @@ function composeLine(parts: {
   return name || base || "";
 }
 
+const inputClass =
+  "border-input bg-background h-9 w-full rounded-md border px-3 text-sm shadow-sm";
+
+const readOnlyInputClass =
+  "border-input bg-muted/40 text-foreground h-9 w-full cursor-default rounded-md border px-3 text-sm shadow-sm read-only:opacity-100";
+
 export function EventAddressInput({
   initial,
   namePrefix = "",
@@ -140,37 +146,48 @@ export function EventAddressInput({
           name={pk("locationName")}
           maxLength={200}
           placeholder="예: 올림픽공원 체조경기장, OO 체육관"
-          className={cn(
-            "border-input bg-background h-9 w-full rounded-md border px-3 text-sm shadow-sm",
-          )}
+          className={inputClass}
+        />
+        <span className="text-muted-foreground text-[11px]">
+          장소명은 직접 입력할 수 있습니다.
+        </span>
+      </label>
+
+      <label className="block space-y-1 text-sm">
+        <span className="text-muted-foreground text-xs">우편번호</span>
+        <input
+          readOnly
+          tabIndex={-1}
+          value={postalCode}
+          placeholder="주소 검색으로 선택"
+          className={readOnlyInputClass}
+          aria-readonly
         />
       </label>
 
-      <div className="space-y-2 rounded-md border bg-background/80 px-3 py-2.5 text-sm">
-        <div className="text-muted-foreground space-y-1 text-xs">
-          <div>
-            <span className="font-medium text-foreground">우편번호</span>{" "}
-            {postalCode || "—"}
-          </div>
-          <div>
-            <span className="font-medium text-foreground">도로명 주소</span>
-          </div>
-        </div>
-        <p
-          className={cn(
-            "text-sm leading-snug",
-            roadAddress ? "text-foreground" : "text-muted-foreground italic",
-          )}
-        >
-          {roadAddress || "주소 검색으로 선택해 주세요."}
-        </p>
-        {jibunAddress ? (
-          <p className="text-muted-foreground text-xs">
-            <span className="font-medium text-foreground">지번</span>{" "}
-            {jibunAddress}
-          </p>
-        ) : null}
-      </div>
+      <label className="block space-y-1 text-sm">
+        <span className="text-muted-foreground text-xs">도로명 주소</span>
+        <input
+          readOnly
+          tabIndex={-1}
+          value={roadAddress}
+          placeholder="주소 검색으로 선택해 주세요."
+          className={readOnlyInputClass}
+          aria-readonly
+        />
+      </label>
+
+      <label className="block space-y-1 text-sm">
+        <span className="text-muted-foreground text-xs">지번 주소</span>
+        <input
+          readOnly
+          tabIndex={-1}
+          value={jibunAddress}
+          placeholder="주소 검색 후 표시됩니다."
+          className={readOnlyInputClass}
+          aria-readonly
+        />
+      </label>
 
       <label className="block space-y-1 text-sm">
         <span className="text-muted-foreground text-xs">상세 주소</span>
@@ -184,10 +201,11 @@ export function EventAddressInput({
           name={pk("detailAddress")}
           maxLength={300}
           placeholder="예: 3층, A동, 101호"
-          className={cn(
-            "border-input bg-background h-9 w-full rounded-md border px-3 text-sm shadow-sm",
-          )}
+          className={inputClass}
         />
+        <span className="text-muted-foreground text-[11px]">
+          상세 주소는 동·호수·층 등을 입력해 주세요.
+        </span>
       </label>
 
       <p className="text-muted-foreground text-[11px] leading-relaxed">

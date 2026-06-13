@@ -16,6 +16,7 @@ export function ApplicationStatusBadgesGroup({
   showPendingPaymentHint,
   onBadgeClick,
   layout = "column",
+  compact = false,
 }: {
   applicationStatus: ApplicationStatus;
   paymentStatus: PaymentStatus;
@@ -24,6 +25,8 @@ export function ApplicationStatusBadgesGroup({
   showPendingPaymentHint?: boolean;
   onBadgeClick?: () => void;
   layout?: "column" | "wrap";
+  /** 목록 등 좁은 영역 — min-width 제거 */
+  compact?: boolean;
 }) {
   const clickable = Boolean(onBadgeClick);
   const badgeBtnClass = cn(
@@ -43,7 +46,7 @@ export function ApplicationStatusBadgesGroup({
   return (
     <div
       className={cn(
-        "min-w-[150px]",
+        compact ? "min-w-0" : "min-w-[150px]",
         layout === "column"
           ? "flex flex-col items-start gap-1.5"
           : "flex flex-wrap items-center gap-1.5",
@@ -59,8 +62,14 @@ export function ApplicationStatusBadgesGroup({
       )}
       {showPendingPaymentHint ? (
         wrap(
-          <Badge variant="outline" className="whitespace-nowrap text-[10px]">
-            입금 미확인 (승인 가능)
+          <Badge
+            variant="outline"
+            className={cn(
+              "text-[10px]",
+              compact ? "max-w-full whitespace-normal" : "whitespace-nowrap",
+            )}
+          >
+            {compact ? "입금 미확인" : "입금 미확인 (승인 가능)"}
           </Badge>,
         )
       ) : null}

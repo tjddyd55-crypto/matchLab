@@ -1,6 +1,6 @@
 "use client";
 
-import { useRef, useState, useTransition } from "react";
+import { useState, useTransition } from "react";
 import { useRouter } from "next/navigation";
 import {
   assignJudgeToMatchAction,
@@ -23,9 +23,9 @@ export function OrganizerJudgeAssignmentSection({
   assignments: JudgeAssignmentVM[];
 }) {
   const router = useRouter();
-  const assignFormRef = useRef<HTMLFormElement>(null);
   const [pending, startTransition] = useTransition();
   const [selectedMatchId, setSelectedMatchId] = useState(matches[0]?.matchId ?? "");
+  const [assignFormKey, setAssignFormKey] = useState(0);
   const [error, setError] = useState<string | null>(null);
   const [warn, setWarn] = useState<string | null>(null);
 
@@ -40,7 +40,7 @@ export function OrganizerJudgeAssignmentSection({
   const selectedMatch = matches.find((m) => m.matchId === selectedMatchId);
 
   return (
-    <div className="flex flex-col gap-4">
+    <div className="flex min-w-0 flex-col gap-4">
       <h2 className="text-lg font-semibold">경기별 심판 배정</h2>
 
       <label className="flex max-w-md flex-col gap-1 text-sm">
@@ -70,7 +70,7 @@ export function OrganizerJudgeAssignmentSection({
       ) : null}
 
       <form
-        ref={assignFormRef}
+        key={assignFormKey}
         className="flex flex-wrap items-end gap-2 rounded-lg border p-4"
         onSubmit={(e) => {
           e.preventDefault();
@@ -85,12 +85,12 @@ export function OrganizerJudgeAssignmentSection({
               setError(res.error.message);
               return;
             }
-            assignFormRef.current?.reset();
+            setAssignFormKey((k) => k + 1);
             router.refresh();
           });
         }}
       >
-        <label className="flex min-w-[140px] flex-col gap-1 text-xs">
+        <label className="flex min-w-0 flex-1 flex-col gap-1 text-xs sm:min-w-[140px] sm:flex-none">
           <span>심판 계정</span>
           <select name="credentialId" required className={inputClass}>
             <option value="">선택</option>
@@ -139,7 +139,7 @@ export function OrganizerJudgeAssignmentSection({
               key={a.id}
               className="flex flex-wrap items-center justify-between gap-2 rounded border px-3 py-2 text-sm"
             >
-              <span>
+              <span className="min-w-0 break-words">
                 {a.judgeOrder}번 · {a.loginId}
                 {a.displayName ? ` (${a.displayName})` : ""}
                 {a.isHeadJudge ? " · 주심" : ""}

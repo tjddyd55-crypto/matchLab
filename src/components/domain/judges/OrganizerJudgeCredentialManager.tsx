@@ -1,6 +1,6 @@
 "use client";
 
-import { useRef, useState, useTransition } from "react";
+import { useState, useTransition } from "react";
 import { useRouter } from "next/navigation";
 import {
   createJudgeCredentialAction,
@@ -9,6 +9,20 @@ import {
 } from "@/features/judges/actions";
 import { Button } from "@/components/ui/button";
 import type { JudgeCredentialListItemVM } from "@/lib/services/judge-credential.service";
+
+type CreateCredentialFormState = {
+  loginId: string;
+  password: string;
+  displayName: string;
+  memo: string;
+};
+
+const EMPTY_CREATE_FORM: CreateCredentialFormState = {
+  loginId: "",
+  password: "",
+  displayName: "",
+  memo: "",
+};
 
 export function OrganizerJudgeCredentialManager({
   eventId,
@@ -20,8 +34,9 @@ export function OrganizerJudgeCredentialManager({
   loginUrl: string;
 }) {
   const router = useRouter();
-  const createFormRef = useRef<HTMLFormElement>(null);
   const [pending, startTransition] = useTransition();
+  const [createForm, setCreateForm] =
+    useState<CreateCredentialFormState>(EMPTY_CREATE_FORM);
   const [message, setMessage] = useState<string | null>(null);
   const [error, setError] = useState<string | null>(null);
   const [createdPassword, setCreatedPassword] = useState<string | null>(null);
@@ -29,11 +44,8 @@ export function OrganizerJudgeCredentialManager({
   const inputClass =
     "border-input bg-background h-9 w-full rounded-md border px-2 text-sm";
 
-  function run(
-    fn: () => Promise<void>,
-  ) {
+  function run(fn: () => Promise<void>) {
     setError(null);
-    setMessage(null);
     startTransition(async () => {
       try {
         await fn();
@@ -44,8 +56,15 @@ export function OrganizerJudgeCredentialManager({
     });
   }
 
+  function patchCreateForm<K extends keyof CreateCredentialFormState>(
+    key: K,
+    value: CreateCredentialFormState[K],
+  ) {
+    setCreateForm((prev) => ({ ...prev, [key]: value }));
+  }
+
   return (
-    <div className="flex flex-col gap-6">
+    <div className="flex min-w-0 flex-col gap-6">
       <div className="flex flex-wrap items-center justify-between gap-2">
         <h2 className="text-lg font-semibold">심판 계정</h2>
         <Button
@@ -60,46 +79,75 @@ export function OrganizerJudgeCredentialManager({
           접속 URL 복사
         </Button>
       </div>
-      <p className="text-muted-foreground text-xs">{loginUrl}</p>
+      <p className="text-muted-foreground break-all text-xs">{loginUrl}</p>
 
       <form
-        ref={createFormRef}
         className="grid gap-3 rounded-lg border p-4 sm:grid-cols-2"
         onSubmit={(e) => {
           e.preventDefault();
-          const fd = new FormData(e.currentTarget);
+          setMessage(null);
+          setCreatedPassword(null);
+
+          const fd = new FormData();
           fd.set("eventId", eventId);
+          fd.set("loginId", createForm.loginId.trim());
+          fd.set("password", createForm.password);
+          fd.set("displayName", createForm.displayName);
+          fd.set("memo", createForm.memo);
+
           run(async () => {
             const res = await createJudgeCredentialAction(fd);
             if (!res.ok) {
               setError(res.error.message);
               return;
             }
+            setCreateForm(EMPTY_CREATE_FORM);
             setCreatedPassword(res.data.plainPassword);
             setMessage(
               `계정 ${res.data.loginId} 생성됨 — 임시 비밀번호: ${res.data.plainPassword}`,
             );
-            createFormRef.current?.reset();
           });
         }}
       >
         <label className="flex flex-col gap-1 text-sm">
           <span className="text-muted-foreground text-xs">로그인 ID</span>
-          <input name="loginId" required className={inputClass} />
+          <input
+            name="loginId"
+            required
+            value={createForm.loginId}
+            onChange={(e) => patchCreateForm("loginId", e.target.value)}
+            className={inputClass}
+          />
         </label>
         <label className="flex flex-col gap-1 text-sm">
           <span className="text-muted-foreground text-xs">
             비밀번호 (비우면 자동 생성)
           </span>
-          <input name="password" type="text" className={inputClass} />
+          <input
+            name="password"
+            type="text"
+            value={createForm.password}
+            onChange={(e) => patchCreateForm("password", e.target.value)}
+            className={inputClass}
+          />
         </label>
         <label className="flex flex-col gap-1 text-sm">
           <span className="text-muted-foreground text-xs">표시 이름</span>
-          <input name="displayName" className={inputClass} />
+          <input
+            name="displayName"
+            value={createForm.displayName}
+            onChange={(e) => patchCreateForm("displayName", e.target.value)}
+            className={inputClass}
+          />
         </label>
         <label className="flex flex-col gap-1 text-sm sm:col-span-2">
           <span className="text-muted-foreground text-xs">메모</span>
-          <input name="memo" className={inputClass} />
+          <input
+            name="memo"
+            value={createForm.memo}
+            onChange={(e) => patchCreateForm("memo", e.target.value)}
+            className={inputClass}
+          />
         </label>
         <div className="sm:col-span-2">
           <Button type="submit" disabled={pending} size="sm">
@@ -123,8 +171,8 @@ export function OrganizerJudgeCredentialManager({
         </p>
       ) : null}
 
-      <div className="overflow-x-auto rounded-lg border">
-        <table className="w-full min-w-[480px] text-left text-sm">
+      <div className="min-w-0 overflow-x-auto rounded-lg border">
+        <table className="w-full min-w-0 text-left text-sm">
           <thead className="bg-muted/50 text-xs">
             <tr>
               <th className="px-3 py-2">ID</th>

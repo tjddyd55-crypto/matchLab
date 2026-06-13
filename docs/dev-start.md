@@ -505,14 +505,34 @@ npm run dev
 1. `organizer` / `123456!!` → `2026 샘플 오픈 대회` 관리 홈.
 2. 좌측 **신청자** 메뉴 → `/organizer/events/{eventId}/applications` 정상 로드.
 3. 신청자 목록·크레딧 안내·필터·상세 Drawer·승인/반려/입금 action 회귀 확인.
-4. PC 폭에서 **페이지 전체 가로 스크롤이 없는지** 확인(2xl 미만은 카드형, 2xl 이상은 고정폭 테이블).
+4. PC 폭(1366/1440/1920)에서 **페이지 전체 가로 스크롤이 없는지** 확인(md+ grid list, 모바일 카드).
 
 **주소·지도·스태프/심판 UX 수동 확인 (schema 변경 없음):**
 
 1. 기본 설정 → **주소 검색**으로 도로명 선택(직접 입력 불가) → 장소명·상세 주소 저장.
 2. 공식 신청서 템플릿 연결 저장 → pending 해제·완료 메시지.
 3. 스태프 링크 생성·심판 계정 생성 → 오류 없이 목록 갱신.
-4. 공개 `/events/{slug}` — **네이버 지도에서 보기** 링크(`map.naver.com/p/search/...`), 행사 안내 **오시는 길** preview card. **NAVER_MAP_CLIENT_ID 없이** 검색 링크+placeholder card만 동작(API 키·SDK 미도입).
+4. 공개 `/events/{slug}` — **네이버 지도에서 보기** 링크, 행사 안내 **오시는 길** + `PublicEventNaverMapPreview`. `NEXT_PUBLIC_NAVER_MAP_NCP_KEY_ID` 없으면 placeholder+링크만(API 키 하드코딩 금지).
+
+### 네이버 지도 (공개 행사 안내)
+
+| 변수 | 용도 |
+|------|------|
+| `NEXT_PUBLIC_NAVER_MAP_NCP_KEY_ID` | 네이버클라우드 Maps JavaScript API Client ID — 행사 안내 탭 지도 미리보기 |
+
+**네이버클라우드 설정 (선택):**
+
+1. [네이버클라우드 콘솔](https://console.ncloud.com/) → Application → Maps → **Web Dynamic Map** 또는 **Maps JavaScript API** 사용 설정
+2. **서비스 URL(도메인)** 등록: `http://localhost:3000`, Railway 배포 도메인, 운영 도메인
+3. `.env`에 `NEXT_PUBLIC_NAVER_MAP_NCP_KEY_ID=<Client ID>` 설정 후 dev 서버 재시작
+4. 미설정 시 공개 페이지는 **placeholder card + 네이버 지도 검색 링크**로 동작(페이지 깨짐 없음)
+
+**수동 확인 순서 (schema 변경 없음):**
+
+1. 심판 관리 → 계정 생성 → 오류 문구 없음·목록 갱신
+2. 신청자 페이지 → 1366px에서 가로 스크롤 없음
+3. 기본 설정 → 주소 검색 → 우편번호/도로명/지번 read-only input 표시
+4. `/events/sample-open-2026?tab=overview` → 오시는 길 지도 영역(API 키 유/무 각각)
 
 **대회 생성 UX 테스트 (schema 변경 없음):**
 

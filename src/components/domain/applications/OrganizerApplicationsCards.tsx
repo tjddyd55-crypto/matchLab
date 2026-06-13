@@ -67,7 +67,7 @@ export function OrganizerApplicationsCards({
   onOpenDetail: (row: OrganizerApplicationRowVM) => void;
 }) {
   return (
-    <div className="flex min-w-0 flex-col gap-3 2xl:hidden">
+    <div className="flex min-w-0 flex-col gap-3 md:hidden">
       {rows.map((row) => (
         <Card key={row.applicationId}>
           <CardHeader className="pb-2">

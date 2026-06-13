@@ -4,11 +4,11 @@ import { useMemo, useState } from "react";
 import type { OrganizerApplicationRowVM } from "@/components/domain/applications/OrganizerApplicationsTable";
 import { OrganizerApplicationDetailDrawer } from "@/components/domain/applications/OrganizerApplicationDetailDrawer";
 import { OrganizerApplicationsCards } from "@/components/domain/applications/OrganizerApplicationsCards";
+import { OrganizerApplicationsList } from "@/components/domain/applications/OrganizerApplicationsList";
 import {
   OrganizerApplicationsFilterBar,
   type OrganizerApplicationFiltersState,
 } from "@/components/domain/applications/OrganizerApplicationsFilterBar";
-import { OrganizerApplicationsTable } from "@/components/domain/applications/OrganizerApplicationsTable";
 
 const DEFAULT_FILTERS: OrganizerApplicationFiltersState = {
   applicationStatus: "all",
@@ -90,7 +90,7 @@ export function OrganizerApplicationsBoard({
         divisionOptions={divisionOptions}
         gymOptions={gymOptions}
       />
-      <OrganizerApplicationsTable rows={filtered} onOpenDetail={openDetail} />
+      <OrganizerApplicationsList rows={filtered} onOpenDetail={openDetail} />
       <OrganizerApplicationsCards rows={filtered} onOpenDetail={openDetail} />
       <OrganizerApplicationDetailDrawer
         eventId={eventId}
