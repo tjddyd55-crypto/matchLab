@@ -23,7 +23,10 @@ export function PublicEventDetailTabs({
   >;
 }) {
   const tabs = PUBLIC_EVENT_TABS.filter(
-    (t) => t.id !== "live" || showLive,
+    (t) =>
+      t.id !== "live" ||
+      showLive ||
+      activeTab === "live",
   );
 
   return (

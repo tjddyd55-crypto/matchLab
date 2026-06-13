@@ -61,8 +61,8 @@ export function PublicEventResultsSection({
       </div>
 
       {results.length === 0 ? (
-        <p className="text-muted-foreground text-sm">
-          아직 공개할 확정 결과가 없습니다.
+        <p className="text-muted-foreground rounded-xl border border-dashed bg-muted/20 px-4 py-8 text-center text-sm">
+          아직 공개된 경기 결과가 없습니다.
         </p>
       ) : (
         <div className="flex w-full flex-col gap-12">

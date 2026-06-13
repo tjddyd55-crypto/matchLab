@@ -43,7 +43,7 @@ export function PublicEventBracketsSection({
 
       {brackets.length === 0 ? (
         <p className="text-muted-foreground rounded-xl border border-dashed bg-muted/20 px-4 py-8 text-center text-sm">
-          대진표 준비 중입니다.
+          아직 공개된 대진표가 없습니다.
         </p>
       ) : (
         <div className="flex w-full flex-col gap-16">

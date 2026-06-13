@@ -7,6 +7,7 @@ import { loadEventManagementNavContext } from "@/lib/event-management-nav-contex
 import { eventService } from "@/lib/services/event.service";
 import { judgeCredentialService } from "@/lib/services/judge-credential.service";
 import { getServerAppBaseUrl } from "@/lib/qr-url";
+import { liveStreamService } from "@/lib/services/live-stream.service";
 import { headers } from "next/headers";
 
 export const dynamic = "force-dynamic";
@@ -34,6 +35,9 @@ export default async function OrganizerEventQrPage({
   ]);
 
   const baseUrl = getServerAppBaseUrl(headersList);
+  const publicLiveStreamCount = detail.publicSlug
+    ? (await liveStreamService.listPublicForEventSlug(detail.publicSlug)).length
+    : 0;
 
   return (
     <EventManagementLayout eventId={nav.eventId} publicSlug={nav.publicSlug}>
@@ -51,6 +55,10 @@ export default async function OrganizerEventQrPage({
         eventStatus={detail.status}
         publicSlug={detail.publicSlug}
         liveStreamingEnabled={detail.liveStreamingEnabled}
+        publicLiveStreamCount={publicLiveStreamCount}
+        spectatorAccessEnabled={detail.spectatorAccessEnabled}
+        spectatorAccessStartAt={detail.spectatorAccessStartAt}
+        spectatorAccessEndAt={detail.spectatorAccessEndAt}
         baseUrl={baseUrl}
         credentials={credentials}
       />

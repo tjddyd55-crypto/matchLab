@@ -1,6 +1,10 @@
 import type { PublicEventTabId } from "@/lib/public-event-tabs";
 import { publicEventTabHref } from "@/lib/public-event-tabs";
 import { EventStatus } from "@/lib/enums";
+import {
+  isSpectatorContentAccessible,
+  toSpectatorAccessFields,
+} from "@/lib/spectator-access";
 
 const PRODUCTION_FALLBACK_URL =
   "https://app-production-79ad.up.railway.app";
@@ -120,4 +124,82 @@ export function isEventPublicForSpectatorQr(
     Boolean(publicSlug?.trim()) &&
     !EXCLUDED_PUBLIC_STATUSES.includes(status)
   );
+}
+
+export type SpectatorQrAvailabilityContext = {
+  status: EventStatus;
+  publicSlug: string | null | undefined;
+  spectatorAccessEnabled: boolean;
+  spectatorAccessStartAt: string | Date | null;
+  spectatorAccessEndAt: string | Date | null;
+  liveStreamingEnabled: boolean;
+  publicLiveStreamCount: number;
+};
+
+/** 대회 안내(overview) QR — slug·공개 상태만 확인 */
+export function isSpectatorOverviewQrEnabled(
+  ctx: SpectatorQrAvailabilityContext,
+): boolean {
+  return isEventPublicForSpectatorQr(ctx.status, ctx.publicSlug);
+}
+
+/** 대진표·결과·라이브 QR — 공개 상태 + 관람 기간 + (live) 스트리밍 조건 */
+export function isSpectatorTabQrEnabled(
+  ctx: SpectatorQrAvailabilityContext,
+  tab: "brackets" | "results" | "live",
+): boolean {
+  if (!isEventPublicForSpectatorQr(ctx.status, ctx.publicSlug)) return false;
+
+  const access = toSpectatorAccessFields(ctx);
+  if (!isSpectatorContentAccessible(access)) return false;
+
+  if (tab === "live") {
+    if (!ctx.liveStreamingEnabled) return false;
+    if (ctx.publicLiveStreamCount <= 0) return false;
+  }
+
+  return true;
+}
+
+export function spectatorTabQrDisabledReason(
+  ctx: SpectatorQrAvailabilityContext,
+  tab: "brackets" | "results" | "live" | "overview",
+): string | undefined {
+  if (!ctx.publicSlug?.trim()) {
+    return "공개 slug가 설정되지 않았습니다. 기본 설정에서 slug를 등록하세요.";
+  }
+  if (!isEventPublicForSpectatorQr(ctx.status, ctx.publicSlug)) {
+    return "작성 중(draft) 또는 취소된 대회는 관람객 QR을 사용할 수 없습니다. 신청 공개(OPEN) 이후 상태에서 활성화됩니다.";
+  }
+  if (tab === "overview") return undefined;
+
+  const access = toSpectatorAccessFields(ctx);
+  if (!isSpectatorContentAccessible(access)) {
+    if (ctx.spectatorAccessEnabled) {
+      const now = new Date();
+      const start = access.spectatorAccessStartAt;
+      const end = access.spectatorAccessEndAt;
+      if (start && now < start) {
+        return "관람 공개 시작 전입니다. 설정한 관람 시작 시간 이후 QR을 사용하세요.";
+      }
+      if (end && now > end) {
+        return "관람 공개 기간이 종료되었습니다.";
+      }
+      if (!start || !end) {
+        return "관람 시간 제한이 켜져 있으나 시작·종료 시각이 설정되지 않았습니다.";
+      }
+    }
+    return "현재 관람 공개 시간이 아닙니다.";
+  }
+
+  if (tab === "live") {
+    if (!ctx.liveStreamingEnabled) {
+      return "이 대회는 라이브 방송을 사용하지 않습니다. 대회 설정에서 라이브를 켠 뒤 QR을 사용하세요.";
+    }
+    if (ctx.publicLiveStreamCount <= 0) {
+      return "공개된 라이브 시청 URL이 없습니다. 라이브 URL을 등록한 뒤 QR을 사용하세요.";
+    }
+  }
+
+  return undefined;
 }

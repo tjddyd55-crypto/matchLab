@@ -14,11 +14,15 @@ export function publicEventTabHref(slug: string, tab: PublicEventTabId): string 
 
 export function parsePublicEventTab(
   raw: string | string[] | undefined,
-  options: { showLive: boolean },
 ): PublicEventTabId {
   const value = Array.isArray(raw) ? raw[0] : raw;
   if (value === "brackets") return "brackets";
   if (value === "results") return "results";
-  if (value === "live" && options.showLive) return "live";
+  if (value === "live") return "live";
   return "overview";
+}
+
+/** 탭 UI 노출용 — liveStreamingEnabled 가 false 이면 live 탭 숨김 */
+export function isPublicLiveTabVisible(liveStreamingEnabled: boolean): boolean {
+  return liveStreamingEnabled;
 }

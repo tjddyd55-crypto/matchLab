@@ -6,9 +6,11 @@ import { cn } from "@/lib/utils";
 export function PublicEventLiveSection({
   eventTitle,
   streams,
+  liveStreamingEnabled = true,
 }: {
   eventTitle: string;
   streams: PublicLiveStreamDTO[];
+  liveStreamingEnabled?: boolean;
 }) {
   return (
     <div className="flex flex-col gap-6">
@@ -19,10 +21,15 @@ export function PublicEventLiveSection({
         <p className="text-muted-foreground mt-1 text-sm">{eventTitle}</p>
       </div>
 
-      {streams.length === 0 ? (
+      {!liveStreamingEnabled ? (
         <EmptyState
-          title="공개된 라이브 링크가 없습니다"
-          description="주최측에서 공개·URL이 등록되면 이 페이지에 표시됩니다. (시연 시드에는 샘플 링크가 포함될 수 있습니다.)"
+          title="이 대회는 라이브 방송을 사용하지 않습니다."
+          description="주최 측에서 라이브 스트리밍을 사용하지 않는 대회입니다."
+        />
+      ) : streams.length === 0 ? (
+        <EmptyState
+          title="라이브 방송 준비 중입니다."
+          description="방송이 시작되면 이 화면에서 시청할 수 있습니다."
         />
       ) : (
         <ul className="flex w-full flex-col gap-4">

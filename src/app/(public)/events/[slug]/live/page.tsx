@@ -15,11 +15,17 @@ export default async function PublicEventLivePage({
   const event = await eventService.getPublicEventBySlug(slug);
   if (!event) notFound();
 
-  const streams = await liveStreamService.listPublicForEventSlug(slug);
+  const streams = event.liveStreamingEnabled
+    ? await liveStreamService.listPublicForEventSlug(slug)
+    : [];
 
   return (
     <PublicEventDetailShell event={event} slug={slug} activeTab="live">
-      <PublicEventLiveSection eventTitle={event.title} streams={streams} />
+      <PublicEventLiveSection
+        eventTitle={event.title}
+        streams={streams}
+        liveStreamingEnabled={event.liveStreamingEnabled}
+      />
     </PublicEventDetailShell>
   );
 }

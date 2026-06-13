@@ -93,7 +93,9 @@ MVP 범위는 `docs/mvp-scope.md`를 기준으로 하며, 본 문서는 **시연
 2. **organizer** — 심판별 QR URL에 `loginId`만 포함, **password/session 미포함** 확인. 인쇄 미리보기·PNG 다운로드·URL 복사.
 3. **심판 A** — 심판별 QR 스캔(또는 공용 QR + 수동 ID) → `/judge/login?eventId=…&loginId=…` 에서 **아이디 prefill·비밀번호 빈칸** → 로그인 → 본인 확인 → 배정 경기 채점.
 4. **spectator** — 관람객 대진표 QR → `/events/{slug}?tab=brackets` 즉시 이동. 결과·라이브 QR도 각 tab 확인.
-5. **organizer** — `draft` 대회에서 관람객 QR **비활성** 안내 확인. 라이브 OFF 시 라이브 QR 비활성.
+5. **organizer** — `draft` 대회에서 관람객 QR **비활성** 확인. 라이브 OFF·공개 stream URL 없음 → live QR 비활성.
+6. **spectator** — 관람 **기간 제한 ON** 대회에서 기간 **전/후** `?tab=brackets` 직접 접속 → 「아직 공개 전」/「공개 기간 종료」 안내. overview(`/events/{slug}`)는 계속 접근 가능.
+7. **spectator** — live OFF 대회 `?tab=live` → 「라이브 방송을 사용하지 않습니다」 안내.
 
 > `JudgeAccessCredential` 본인 확인·`JudgeScorecardChangeLog` 감사 이력 반영 후 **`npm run db:push`** 필요. **`db:seed` 금지.**
 

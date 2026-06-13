@@ -1,7 +1,10 @@
 import { notFound } from "next/navigation";
 import { SpectatorAccessClosed } from "@/components/domain/events/SpectatorAccessClosed";
 import { eventRepository } from "@/lib/repositories/event.repository";
-import { isSpectatorContentAccessible } from "@/lib/spectator-access";
+import {
+  isSpectatorContentAccessible,
+  resolveSpectatorAccessState,
+} from "@/lib/spectator-access";
 import { eventService } from "@/lib/services/event.service";
 
 export default async function PublicEventBracketsLayout({
@@ -19,7 +22,10 @@ export default async function PublicEventBracketsLayout({
   if (!event) notFound();
 
   if (!isSpectatorContentAccessible(policy)) {
-    return <SpectatorAccessClosed slug={slug} title={event.title} />;
+    const state = resolveSpectatorAccessState(policy);
+    return (
+      <SpectatorAccessClosed slug={slug} title={event.title} state={state} />
+    );
   }
 
   return children;

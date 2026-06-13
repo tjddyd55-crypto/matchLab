@@ -10,7 +10,10 @@ import {
   buildEventResultsQrUrl,
   buildJudgeLoginQrUrl,
   buildPublicEventQrUrl,
-  isEventPublicForSpectatorQr,
+  isSpectatorOverviewQrEnabled,
+  isSpectatorTabQrEnabled,
+  spectatorTabQrDisabledReason,
+  type SpectatorQrAvailabilityContext,
 } from "@/lib/qr-url";
 import type { EventStatus } from "@/lib/enums";
 import "./event-qr-print.css";
@@ -23,6 +26,10 @@ export type EventQrPrintBoardProps = {
   eventStatus: EventStatus;
   publicSlug: string | null;
   liveStreamingEnabled: boolean;
+  publicLiveStreamCount: number;
+  spectatorAccessEnabled: boolean;
+  spectatorAccessStartAt: string | null;
+  spectatorAccessEndAt: string | null;
   baseUrl: string;
   credentials: JudgeCredentialListItemVM[];
 };
@@ -53,60 +60,72 @@ export function EventQrPrintBoard({
   eventStatus,
   publicSlug,
   liveStreamingEnabled,
+  publicLiveStreamCount,
+  spectatorAccessEnabled,
+  spectatorAccessStartAt,
+  spectatorAccessEndAt,
   baseUrl,
   credentials,
 }: EventQrPrintBoardProps) {
-  const spectatorEnabled = isEventPublicForSpectatorQr(
-    eventStatus,
-    publicSlug,
-  );
   const slug = publicSlug?.trim() ?? "";
   const formattedDate = formatEventDate(eventDate);
+
+  const spectatorCtx: SpectatorQrAvailabilityContext = {
+    status: eventStatus,
+    publicSlug,
+    spectatorAccessEnabled,
+    spectatorAccessStartAt,
+    spectatorAccessEndAt,
+    liveStreamingEnabled,
+    publicLiveStreamCount,
+  };
+
+  const overviewQrEnabled = isSpectatorOverviewQrEnabled(spectatorCtx);
 
   const judgeCommonUrl = buildJudgeLoginQrUrl(eventId, null, baseUrl);
 
   const spectatorCards = [
     {
       printGroup: "spectator-all" as const,
+      tab: "overview" as const,
       title: "대회 전체",
-      description: "대회 공개 페이지로 바로 이동합니다.",
+      description: "대회 안내·오시는 길을 바로 봅니다.",
       url: buildPublicEventQrUrl(slug, "overview", baseUrl),
+      disabled: !overviewQrEnabled,
     },
     {
       printGroup: "spectator-brackets" as const,
+      tab: "brackets" as const,
       title: "대진표",
       description: "대진표 바로 보기",
       url: buildEventBracketQrUrl(slug, baseUrl),
+      disabled: !isSpectatorTabQrEnabled(spectatorCtx, "brackets"),
     },
     {
       printGroup: "spectator-results" as const,
+      tab: "results" as const,
       title: "결과",
       description: "경기 결과 확인",
       url: buildEventResultsQrUrl(slug, baseUrl),
+      disabled: !isSpectatorTabQrEnabled(spectatorCtx, "results"),
     },
     {
       printGroup: "spectator-live" as const,
+      tab: "live" as const,
       title: "라이브",
       description: "라이브 방송 보기",
       url: buildEventLiveQrUrl(slug, baseUrl),
-      disabled: !liveStreamingEnabled,
-      disabledReason: liveStreamingEnabled
-        ? undefined
-        : "라이브 스트리밍이 비활성화되어 있습니다. 대회 설정에서 켠 뒤 QR을 사용하세요.",
+      disabled: !isSpectatorTabQrEnabled(spectatorCtx, "live"),
     },
     {
       printGroup: "spectator-overview" as const,
+      tab: "overview" as const,
       title: "오시는 길·행사 안내",
       description: "대회 안내 바로 보기",
       url: buildPublicEventQrUrl(slug, "overview", baseUrl),
+      disabled: !overviewQrEnabled,
     },
   ];
-
-  const spectatorDisabledReason = !slug
-    ? "공개 slug가 설정되지 않았습니다. 기본 설정에서 slug를 등록하세요."
-    : !spectatorEnabled
-      ? "작성 중(draft) 또는 취소된 대회는 관람객 QR을 사용할 수 없습니다. 신청 공개(OPEN) 이후 상태에서 활성화됩니다."
-      : undefined;
 
   const printAll = useCallback(() => printPreset("all"), []);
 
@@ -140,7 +159,7 @@ export function EventQrPrintBoard({
             variant="outline"
             size="sm"
             onClick={() => printPreset("spectator-all")}
-            disabled={!spectatorEnabled}
+            disabled={!overviewQrEnabled}
           >
             관람객 QR 모음
           </Button>
@@ -149,7 +168,7 @@ export function EventQrPrintBoard({
             variant="outline"
             size="sm"
             onClick={() => printPreset("spectator-brackets")}
-            disabled={!spectatorEnabled}
+            disabled={!isSpectatorTabQrEnabled(spectatorCtx, "brackets")}
           >
             대진표 QR만
           </Button>
@@ -158,7 +177,7 @@ export function EventQrPrintBoard({
             variant="outline"
             size="sm"
             onClick={() => printPreset("spectator-results")}
-            disabled={!spectatorEnabled}
+            disabled={!isSpectatorTabQrEnabled(spectatorCtx, "results")}
           >
             결과 QR만
           </Button>
@@ -167,7 +186,7 @@ export function EventQrPrintBoard({
             variant="outline"
             size="sm"
             onClick={() => printPreset("spectator-live")}
-            disabled={!spectatorEnabled || !liveStreamingEnabled}
+            disabled={!isSpectatorTabQrEnabled(spectatorCtx, "live")}
           >
             라이브 QR만
           </Button>
@@ -266,12 +285,11 @@ export function EventQrPrintBoard({
               title={card.title}
               description={card.description}
               url={card.url}
-              disabled={!spectatorEnabled || card.disabled}
-              disabledReason={
-                card.disabled
-                  ? card.disabledReason
-                  : spectatorDisabledReason
-              }
+              disabled={card.disabled}
+              disabledReason={spectatorTabQrDisabledReason(
+                spectatorCtx,
+                card.tab,
+              )}
               downloadFileName={`spectator-${card.printGroup}-${slug || eventId}.png`}
             />
           ))}

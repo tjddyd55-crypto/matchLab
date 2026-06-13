@@ -1,25 +1,32 @@
 import Link from "next/link";
 import { buttonVariants } from "@/components/ui/button";
+import {
+  spectatorAccessStateMessage,
+  type SpectatorAccessState,
+} from "@/lib/spectator-access";
 import { cn } from "@/lib/utils";
 
 export function SpectatorAccessClosed({
   slug,
   title,
+  state = "misconfigured",
 }: {
   slug: string;
   title: string;
+  state?: SpectatorAccessState;
 }) {
+  const copy = spectatorAccessStateMessage(state);
+
   return (
     <div className="mx-auto flex min-h-[50vh] w-full max-w-lg flex-col justify-center gap-6 px-4 py-16 text-center">
       <h1 className="font-heading text-2xl font-semibold tracking-tight">
-        공개 시간이 아닙니다
+        {copy.title}
       </h1>
       <p className="text-muted-foreground text-sm leading-relaxed">
-        {title} 관람용 페이지(대진표·라이브·결과)는 주최자가 설정한 시간에만
-        열립니다.
+        {title} — {copy.description}
       </p>
       <p className="text-muted-foreground text-xs">
-        이 페이지는 대회 진행 시간에만 공개됩니다.
+        대회 안내(행사 개요·오시는 길)는 계속 볼 수 있습니다.
       </p>
       <Link
         href={`/events/${slug}`}

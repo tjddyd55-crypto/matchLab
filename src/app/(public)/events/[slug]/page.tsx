@@ -1,6 +1,6 @@
-import type { Metadata } from "next";
 import type { ReactNode } from "react";
 import { notFound } from "next/navigation";
+import { SpectatorAccessClosed } from "@/components/domain/events/SpectatorAccessClosed";
 import { PublicEventBracketsSection } from "@/components/domain/events/public/PublicEventBracketsSection";
 import { PublicEventDetailShell } from "@/components/domain/events/public/PublicEventDetailShell";
 import { PublicEventLiveSection } from "@/components/domain/events/public/PublicEventLiveSection";
@@ -13,11 +13,16 @@ import { liveStreamService } from "@/lib/services/live-stream.service";
 import { resultService } from "@/lib/services/result.service";
 import { parsePublicEventTab } from "@/lib/public-event-tabs";
 import {
+  isRestrictedPublicSpectatorTab,
+  loadPublicSpectatorGuardBySlug,
+} from "@/lib/public-spectator-guard";
+import {
   buildEventPublicUrl,
   buildEventShareDescription,
   buildEventShareTitle,
   resolveEventOgImageForMetadata,
 } from "@/lib/share/event-share";
+import type { Metadata } from "next";
 
 export const dynamic = "force-dynamic";
 
@@ -75,9 +80,22 @@ export default async function PublicEventDetailPage({
   const event = await eventService.getPublicEventBySlug(slug);
   if (!event) notFound();
 
-  const tab = parsePublicEventTab(sp.tab, {
-    showLive: event.liveStreamingEnabled,
-  });
+  const tab = parsePublicEventTab(sp.tab);
+
+  if (isRestrictedPublicSpectatorTab(tab)) {
+    const guard = await loadPublicSpectatorGuardBySlug(slug);
+    if (guard && !guard.accessible) {
+      return (
+        <PublicEventDetailShell event={event} slug={slug} activeTab={tab}>
+          <SpectatorAccessClosed
+            slug={slug}
+            title={event.title}
+            state={guard.state}
+          />
+        </PublicEventDetailShell>
+      );
+    }
+  }
 
   let tabPanel: ReactNode;
 
@@ -112,9 +130,23 @@ export default async function PublicEventDetailPage({
       break;
     }
     case "live": {
+      if (!event.liveStreamingEnabled) {
+        tabPanel = (
+          <PublicEventLiveSection
+            eventTitle={event.title}
+            streams={[]}
+            liveStreamingEnabled={false}
+          />
+        );
+        break;
+      }
       const streams = await liveStreamService.listPublicForEventSlug(slug);
       tabPanel = (
-        <PublicEventLiveSection eventTitle={event.title} streams={streams} />
+        <PublicEventLiveSection
+          eventTitle={event.title}
+          streams={streams}
+          liveStreamingEnabled
+        />
       );
       break;
     }
