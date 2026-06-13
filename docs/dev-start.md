@@ -56,7 +56,8 @@ npm install
 
 | `SUPABASE_APPLICATION_DOCUMENT_BUCKET` | overlay **완료 PDF** (`application-documents/{eventId}/…`, private) |
 
-| `NEXT_PUBLIC_APP_URL` | 링크 생성·OAuth 리다이렉트 베이스 URL |
+| `NEXT_PUBLIC_APP_URL` | 링크 생성·OAuth 리다이렉트·**현장 QR 절대 URL** 베이스 (Railway 배포 시 public domain 필수 권장) |
+| `APP_URL` | (선택) 서버 전용 base URL — `NEXT_PUBLIC_APP_URL` 미설정 시 QR·링크 fallback |
 
 | `DEMO_PASSWORD` | (선택) `npm run setup:demo-users` 시 Supabase Auth 비밀번호. 미설정 시 `1234` — 정책에 따라 거절되면 `123456` 또는 `Demo1234!` 등으로 지정 |
 
@@ -144,6 +145,15 @@ GitHub → Railway 배포가 성공해도 **Postgres는 빈 DB**입니다. `publ
 11. 심판 화면·공개 페이지에 신청서·연락처·**생년월일 전체**·다른 심판 점수 미노출 확인.
 
 **심판 본인 확인·채점 감사 (schema additive, `JudgeAccessCredential` + `JudgeScorecardChangeLog`):**
+
+**현장 QR 출력 (`/organizer/events/{eventId}/qr`, schema 변경 없음):**
+
+1. `organizer` / `123456!!` → 대회 관리 → **QR 출력** (또는 심판 관리·경기 운영·관람 설정의 바로가기).
+2. **심판 공용 QR** — `{base}/judge/login?eventId={eventId}` (비밀번호·세션·secret **미포함**). 스캔 후 대회명·「심판 전용 로그인」 표시 → ID/비밀번호 입력 → 본인 확인 → 배정 경기 채점.
+3. **심판별 QR** — `…&loginId={loginId}` 로 **아이디만 prefill**. 비밀번호 자동 입력·QR만으로 로그인 **금지**.
+4. **관람객 QR** — 공개 slug + `open` 이후 상태에서만 활성. `/events/{slug}`, `?tab=brackets|results|live`, overview(오시는 길). organizer/admin/judge URL **금지**.
+5. **절대 URL** — `src/lib/qr-url.ts`: `NEXT_PUBLIC_APP_URL` → `APP_URL` → 요청 Host → production fallback. Railway 배포 시 **`NEXT_PUBLIC_APP_URL`** 필수 권장.
+6. A4 인쇄 미리보기 — 심판석만 / 심판별 / 관람객 / 전체 등 `@media print` 프리셋 확인. QR PNG 다운로드·URL 복사.
 
 - 본인 확인 필드: `verifiedName`, `birthDate`, `identityConfirmedAt`/`Ip`/`UserAgent` (선택: `phone`, `organization`)
 - 채점 제출 snapshot: `judgeName`(=`judgeNameSnapshot`), `judgeBirthDateSnapshot`, `judgeRoleSnapshot`, `submittedIp`, `submittedUserAgent`

@@ -1,8 +1,10 @@
 import { updateSpectatorAccessAction } from "@/features/events/actions";
 import type { OrganizerEventDetailVM } from "@/lib/services/event.service";
-import { Button } from "@/components/ui/button";
+import { Button, buttonVariants } from "@/components/ui/button";
 import { EventSpectatorQr } from "@/components/domain/events/EventSpectatorQr";
 import { cn } from "@/lib/utils";
+import Link from "next/link";
+import { buildEventBracketQrUrl } from "@/lib/qr-url";
 
 function ToggleHidden({
   name,
@@ -28,15 +30,12 @@ function toLocal(iso: string | null): string {
 
 export function SpectatorSettingsSection({
   detail,
+  baseUrl,
 }: {
   detail: OrganizerEventDetailVM;
+  baseUrl: string;
 }) {
-  const base =
-    process.env.NEXT_PUBLIC_APP_URL?.replace(/\/$/, "") ||
-    "";
-  const bracketUrl = base
-    ? `${base}/events/${detail.publicSlug}/brackets`
-    : `/events/${detail.publicSlug}/brackets`;
+  const bracketUrl = buildEventBracketQrUrl(detail.publicSlug, baseUrl);
 
   return (
     <div className="ring-foreground/10 space-y-4 rounded-xl border bg-card p-4 shadow-sm md:p-6">
@@ -101,7 +100,13 @@ export function SpectatorSettingsSection({
           <code className="bg-muted max-w-[280px] break-all rounded px-2 py-1 text-[11px]">
             {bracketUrl}
           </code>
-          {base ? <EventSpectatorQr url={bracketUrl} /> : null}
+          <EventSpectatorQr url={bracketUrl} />
+          <Link
+            href={`/organizer/events/${detail.id}/qr`}
+            className={cn(buttonVariants({ variant: "outline", size: "sm" }))}
+          >
+            관람객 QR 출력
+          </Link>
         </div>
       </div>
     </div>

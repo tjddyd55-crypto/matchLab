@@ -11,6 +11,8 @@ import { eventStaffAccessService } from "@/lib/services/event-staff-access.servi
 import { matchService } from "@/lib/services/match.service";
 import { judgeScorecardService } from "@/lib/services/judge-scorecard.service";
 import Link from "next/link";
+import { buttonVariants } from "@/components/ui/button";
+import { cn } from "@/lib/utils";
 
 export const dynamic = "force-dynamic";
 
@@ -57,7 +59,14 @@ export default async function OrganizerEventOperationPage({
         title="경기 운영"
         eventTitle={nav.title}
         description="대회 당일 경기 순서와 상태를 관리합니다. 결과 입력은 기존 확정 흐름을 사용하며, 공식 전적은 확정 후에만 반영됩니다."
-      />
+      >
+        <Link
+          href={`/organizer/events/${eventId}/qr`}
+          className={cn(buttonVariants({ variant: "outline", size: "sm" }), "mt-2 inline-flex")}
+        >
+          현장 QR 출력
+        </Link>
+      </EventManagementPageHeader>
 
       <OrganizerOperationStaffLinkBanner
         eventId={eventId}

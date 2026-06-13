@@ -87,6 +87,14 @@ MVP 범위는 `docs/mvp-scope.md`를 기준으로 하며, 본 문서는 **시연
 7. **결과 발표자** — `/judge/results` read-only, 「최종 확정 전 결과는 참고용입니다.」 문구 확인.
 8. **organizer** — `/operation` Drawer 심판 집계와 주심 화면 일치 확인.
 
+### 1.4e 현장 QR 출력·심판/관람객 접속
+
+1. **organizer** — `/organizer/events/{eventId}/qr` (**QR 출력** 메뉴) → 심판 공용 QR·심판별 QR·관람객 QR(대회 전체·대진표·결과·라이브·안내) 표시 확인.
+2. **organizer** — 심판별 QR URL에 `loginId`만 포함, **password/session 미포함** 확인. 인쇄 미리보기·PNG 다운로드·URL 복사.
+3. **심판 A** — 심판별 QR 스캔(또는 공용 QR + 수동 ID) → `/judge/login?eventId=…&loginId=…` 에서 **아이디 prefill·비밀번호 빈칸** → 로그인 → 본인 확인 → 배정 경기 채점.
+4. **spectator** — 관람객 대진표 QR → `/events/{slug}?tab=brackets` 즉시 이동. 결과·라이브 QR도 각 tab 확인.
+5. **organizer** — `draft` 대회에서 관람객 QR **비활성** 안내 확인. 라이브 OFF 시 라이브 QR 비활성.
+
 > `JudgeAccessCredential` 본인 확인·`JudgeScorecardChangeLog` 감사 이력 반영 후 **`npm run db:push`** 필요. **`db:seed` 금지.**
 
 ### 1.4b 스태프 모바일 결과 입력

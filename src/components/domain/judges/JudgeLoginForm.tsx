@@ -5,7 +5,11 @@ import { useRouter } from "next/navigation";
 import { judgeLoginAction } from "@/features/judge/actions";
 import { Button } from "@/components/ui/button";
 
-export function JudgeLoginForm() {
+export function JudgeLoginForm({
+  defaultLoginId = "",
+}: {
+  defaultLoginId?: string;
+}) {
   const router = useRouter();
   const [pending, startTransition] = useTransition();
   const [error, setError] = useState<string | null>(null);
@@ -35,6 +39,7 @@ export function JudgeLoginForm() {
           type="text"
           required
           autoComplete="username"
+          defaultValue={defaultLoginId}
           className="border-input bg-background h-10 rounded-md border px-3 text-sm"
         />
       </label>

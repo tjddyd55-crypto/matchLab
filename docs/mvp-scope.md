@@ -134,6 +134,7 @@
 - [x] 주최자: `/organizer/events` 목록 — **대회 상태**(`open`→「공개」 등)와 **신청 상태**(기간 기준) 배지 분리.
 - [x] 주최자: 체급표 템플릿 편집 — **넓은 레이아웃**(max-width 확대·표·빠른 입력 영역).
 - [x] 주최자: **관람 공개 시간 창**·토큰·공개 대진표 QR 안내(`NEXT_PUBLIC_APP_URL` 기준 링크).
+- [x] **현장 QR 출력** — `/organizer/events/[eventId]/qr`: 심판 로그인 QR(`eventId`·선택 `loginId` prefill만), 심판별 QR, 관람객 QR(공개 `/events/[slug]?tab=…`), A4 인쇄·다운로드. QR에 password/session/secret **미포함** (`src/lib/qr-url.ts`).
 - [x] 주최자: **결과 입력 스태프 링크** 발급·폐기(토큰 URL `/staff/result/[token]/matches`, 로그인 없음).
 - [x] **스태프 모바일 결과 입력 MVP** — `/staff/result/[token]/matches` 카드 목록·요약·필터·Bottom Sheet 결과 입력(`StaffMatchResultForm` → 기존 staff 액션). 민감정보 미노출. 경기 운영 보드에서 링크 복사 안내.
 - [x] **심판 라운드별 채점 MVP** — `JudgeAccessCredential`·`JudgeMatchAssignment`·`JudgeScorecard`·`JudgeRoundScore`(MatchResult와 분리). 주최자 `/organizer/events/[eventId]/judges`에서 계정·배정, 심판 `/judge/login` → 라운드별 홍/청 점수·감점·다운·메모·전송. 운영 Drawer에서 제출 집계·다수결 추천(참고용). **최종 확정은 기존 `confirmMatchResults` 흐름 유지**.

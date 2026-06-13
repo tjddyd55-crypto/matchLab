@@ -25,6 +25,8 @@ import {
   buildEventSetupInputFromDetail,
 } from "@/lib/organizer-event-setup";
 import type { ApplicationFormMode } from "@/lib/application-form/custom-form";
+import { getServerAppBaseUrl } from "@/lib/qr-url";
+import { headers } from "next/headers";
 
 export const dynamic = "force-dynamic";
 
@@ -72,9 +74,7 @@ export default async function OrganizerEventDetailPage({
     resolveOrganizerEventPageError(e);
   }
 
-  const baseUrl =
-    process.env.NEXT_PUBLIC_APP_URL?.replace(/\/$/, "") ??
-    "http://localhost:3000";
+  const baseUrl = getServerAppBaseUrl(await headers());
 
   const linkedTemplate = linkedTemplateId
     ? formTemplates.find((t) => t.id === linkedTemplateId)
@@ -134,7 +134,7 @@ export default async function OrganizerEventDetailPage({
 
       <EventRecordingStreamingSettings event={detail} />
 
-      <SpectatorSettingsSection detail={detail} />
+      <SpectatorSettingsSection detail={detail} baseUrl={baseUrl} />
 
       <EventStaffRecorderLinksSection
         eventId={detail.id}

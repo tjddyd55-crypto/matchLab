@@ -1,0 +1,68 @@
+@media print {
+  @page {
+    margin: 12mm;
+    size: A4 portrait;
+  }
+
+  body[data-event-qr-print] .no-print {
+    display: none !important;
+  }
+
+  body[data-event-qr-print] .event-qr-print-header {
+    display: block !important;
+    margin-bottom: 8mm;
+    page-break-after: avoid;
+  }
+
+  body[data-event-qr-print] .event-qr-board {
+    gap: 0;
+  }
+
+  body[data-event-qr-print] .event-qr-board > section > header {
+    display: none;
+  }
+
+  body[data-event-qr-print] .event-qr-card {
+    break-inside: avoid;
+    page-break-inside: avoid;
+    border: 1px solid #000;
+    box-shadow: none;
+    margin-bottom: 8mm;
+    padding: 6mm;
+  }
+
+  body[data-event-qr-print] .event-qr-image {
+    min-width: 180px;
+    min-height: 180px;
+    width: 220px !important;
+    height: 220px !important;
+  }
+
+  body[data-event-qr-print="judge-common"] .event-qr-card:not([data-print-group="judge-common"]) {
+    display: none !important;
+  }
+
+  body[data-event-qr-print="judge-individual"] .event-qr-card:not([data-print-group="judge-individual"]) {
+    display: none !important;
+  }
+
+  body[data-event-qr-print="spectator-all"] .event-qr-card:not([data-print-group^="spectator-"]) {
+    display: none !important;
+  }
+
+  body[data-event-qr-print="spectator-brackets"] .event-qr-card:not([data-print-group="spectator-brackets"]) {
+    display: none !important;
+  }
+
+  body[data-event-qr-print="spectator-results"] .event-qr-card:not([data-print-group="spectator-results"]) {
+    display: none !important;
+  }
+
+  body[data-event-qr-print="spectator-live"] .event-qr-card:not([data-print-group="spectator-live"]) {
+    display: none !important;
+  }
+
+  body[data-event-qr-print="spectator-overview"] .event-qr-card:not([data-print-group="spectator-overview"]) {
+    display: none !important;
+  }
+}
