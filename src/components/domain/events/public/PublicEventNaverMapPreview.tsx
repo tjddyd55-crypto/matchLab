@@ -6,14 +6,11 @@ import {
   geocodeVenueWithFallback,
   isNaverMapConfigured,
   loadNaverMapsScript,
+  type NaverMapEmbedStatus,
 } from "@/lib/naver-map-client";
 import { cn } from "@/lib/utils";
 
-function MapPlaceholder({
-  hint,
-}: {
-  hint?: string;
-}) {
+function MapPlaceholder({ hint }: { hint?: string }) {
   return (
     <div className="bg-muted/30 flex min-h-[220px] flex-col items-center justify-center gap-3 rounded-lg border border-dashed px-4 py-8 text-center md:min-h-[320px]">
       <MapPin className="text-muted-foreground size-10" aria-hidden />
@@ -23,6 +20,35 @@ function MapPlaceholder({
       </p>
     </div>
   );
+}
+
+function waitForMapContainer(
+  getContainer: () => HTMLDivElement | null,
+): Promise<HTMLDivElement> {
+  return new Promise((resolve, reject) => {
+    const started = Date.now();
+    const tick = () => {
+      const container = getContainer();
+      if (container) {
+        resolve(container);
+        return;
+      }
+      if (Date.now() - started >= 5_000) {
+        reject(new Error("MAP_CONTAINER_MISSING"));
+        return;
+      }
+      window.requestAnimationFrame(tick);
+    };
+    tick();
+  });
+}
+
+function waitForLayout(): Promise<void> {
+  return new Promise((resolve) => {
+    window.requestAnimationFrame(() => {
+      window.requestAnimationFrame(() => resolve());
+    });
+  });
 }
 
 export function PublicEventNaverMapPreview({
@@ -58,6 +84,9 @@ export function PublicEventNaverMapPreview({
   const [embedState, setEmbedState] = useState<"loading" | "ready" | "failed">(
     () => (canEmbedMap ? "loading" : "failed"),
   );
+  const [debugStatus, setDebugStatus] = useState<NaverMapEmbedStatus | "idle">(
+    () => (canEmbedMap ? "script-loading" : "missing-key"),
+  );
 
   useEffect(() => {
     if (!canEmbedMap) return;
@@ -65,13 +94,28 @@ export function PublicEventNaverMapPreview({
     let cancelled = false;
 
     void (async () => {
+      setEmbedState("loading");
+      setDebugStatus("script-loading");
+
       try {
         await loadNaverMapsScript();
-        if (cancelled || !mapContainerRef.current || !window.naver?.maps) {
-          if (!cancelled) setEmbedState("failed");
-          return;
+        if (cancelled) return;
+
+        setDebugStatus("script-loaded");
+        const container = await waitForMapContainer(
+          () => mapContainerRef.current,
+        );
+        if (cancelled) return;
+
+        if (!window.naver?.maps?.Service?.geocode) {
+          setDebugStatus("naver-not-ready");
+          throw new Error("NAVER_MAP_UNAVAILABLE");
         }
 
+        await waitForLayout();
+        if (cancelled) return;
+
+        setDebugStatus("geocode-running");
         const { coords } = await geocodeVenueWithFallback({
           locationName,
           roadAddress,
@@ -80,19 +124,20 @@ export function PublicEventNaverMapPreview({
           location,
         });
 
-        if (cancelled || !mapContainerRef.current) return;
+        if (cancelled) return;
 
         const { LatLng, Map, Marker } = window.naver.maps;
         const center = new LatLng(coords.lat, coords.lng);
 
         if (!mapInstanceRef.current) {
-          mapInstanceRef.current = new Map(mapContainerRef.current, {
+          mapInstanceRef.current = new Map(container, {
             center,
             zoom: 16,
           }) as { setCenter: (center: unknown) => void };
           markerRef.current = new Marker({
             position: center,
             map: mapInstanceRef.current,
+            title: locationName?.trim() || location?.trim() || undefined,
           }) as { setMap: (map: unknown) => void };
         } else {
           mapInstanceRef.current.setCenter(center);
@@ -106,12 +151,22 @@ export function PublicEventNaverMapPreview({
           }
         }
 
-        if (!cancelled) setEmbedState("ready");
+        if (!cancelled) {
+          setEmbedState("ready");
+          setDebugStatus("map-ready");
+        }
       } catch (e) {
         if (process.env.NODE_ENV === "development") {
           console.warn("[naver-map] embed failed", e);
         }
-        if (!cancelled) setEmbedState("failed");
+        if (!cancelled) {
+          setEmbedState("failed");
+          setDebugStatus(
+            e instanceof Error && e.message.includes("GEOCODE")
+              ? "geocode-failed"
+              : "script-failed",
+          );
+        }
       }
     })();
 
@@ -129,8 +184,13 @@ export function PublicEventNaverMapPreview({
 
   if (!hasAddress) return null;
 
-  if (!canEmbedMap || embedState === "failed") {
-    return <MapPlaceholder />;
+  const mapStatusAttr =
+    process.env.NODE_ENV === "development" ? debugStatus : undefined;
+
+  if (!canEmbedMap) {
+    return (
+      <MapPlaceholder hint="지도 API 키가 설정되지 않았습니다. 배포 환경에 NEXT_PUBLIC_NAVER_MAP_NCP_KEY_ID를 추가한 뒤 앱을 다시 빌드·배포해 주세요." />
+    );
   }
 
   return (
@@ -138,15 +198,19 @@ export function PublicEventNaverMapPreview({
       <div
         id={mapId}
         ref={mapContainerRef}
+        data-map-status={mapStatusAttr}
         className={cn(
           "h-[240px] w-full min-w-0 overflow-hidden rounded-lg border md:h-[320px]",
-          embedState === "loading" && "bg-muted/30 animate-pulse",
+          embedState !== "ready" && "bg-muted/30",
         )}
         role="img"
+        aria-hidden={embedState !== "ready"}
         aria-label={
-          [locationName, roadAddress, jibunAddress, detailAddress, location]
-            .filter(Boolean)
-            .join(" ") || "행사 장소 지도"
+          embedState === "ready"
+            ? [locationName, roadAddress, jibunAddress, detailAddress, location]
+                .filter(Boolean)
+                .join(" ") || "행사 장소 지도"
+            : undefined
         }
       />
       {embedState === "loading" ? (
@@ -154,6 +218,11 @@ export function PublicEventNaverMapPreview({
           <span className="text-muted-foreground rounded-md bg-background/80 px-3 py-1 text-xs">
             지도 불러오는 중…
           </span>
+        </div>
+      ) : null}
+      {embedState === "failed" ? (
+        <div className="absolute inset-0">
+          <MapPlaceholder />
         </div>
       ) : null}
     </div>

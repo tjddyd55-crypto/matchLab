@@ -1,5 +1,8 @@
 import type { PublicEventDetailDTO } from "@/lib/dto/public";
-import { buildMapSearchQuery } from "@/lib/event-public-display";
+import {
+  buildMapSearchQuery,
+  resolvePublicVenueFields,
+} from "@/lib/event-public-display";
 import { PublicEventMapLink } from "@/components/domain/events/public/PublicEventMapLink";
 import { PublicEventNaverMapPreview } from "@/components/domain/events/public/PublicEventNaverMapPreview";
 
@@ -8,27 +11,25 @@ export function PublicEventVenueSection({
 }: {
   event: PublicEventDetailDTO;
 }) {
-  const mapQuery = buildMapSearchQuery({
+  const venue = resolvePublicVenueFields({
     locationName: event.locationName,
     roadAddress: event.roadAddress,
     jibunAddress: event.jibunAddress,
+    detailAddress: event.detailAddress,
     location: event.location,
   });
 
-  if (!mapQuery && !event.location?.trim()) {
+  const mapQuery = buildMapSearchQuery(venue);
+
+  if (!mapQuery && !venue.location?.trim()) {
     return null;
   }
 
-  const venueName = event.locationName?.trim();
-  const road = event.roadAddress?.trim();
-  const jibun = event.jibunAddress?.trim();
-  const detail = event.detailAddress?.trim();
-
   const mapLinkProps = {
-    locationName: event.locationName,
-    roadAddress: event.roadAddress,
-    jibunAddress: event.jibunAddress,
-    location: event.location,
+    locationName: venue.locationName,
+    roadAddress: venue.roadAddress,
+    jibunAddress: venue.jibunAddress,
+    location: venue.location,
   };
 
   return (
@@ -41,44 +42,39 @@ export function PublicEventVenueSection({
       </div>
 
       <dl className="grid min-w-0 gap-3 text-sm sm:grid-cols-2">
-        {venueName ? (
+        {venue.locationName ? (
           <div className="min-w-0">
             <dt className="text-muted-foreground text-xs">장소명</dt>
-            <dd className="font-medium break-words">{venueName}</dd>
+            <dd className="font-medium break-words">{venue.locationName}</dd>
           </div>
         ) : null}
-        {road ? (
+        {venue.roadAddress ? (
           <div className="min-w-0 sm:col-span-2">
             <dt className="text-muted-foreground text-xs">도로명 주소</dt>
-            <dd className="break-words">{road}</dd>
-          </div>
-        ) : event.location?.trim() ? (
-          <div className="min-w-0 sm:col-span-2">
-            <dt className="text-muted-foreground text-xs">장소</dt>
-            <dd className="break-words">{event.location}</dd>
+            <dd className="break-words">{venue.roadAddress}</dd>
           </div>
         ) : null}
-        {jibun ? (
+        {venue.jibunAddress ? (
           <div className="min-w-0 sm:col-span-2">
             <dt className="text-muted-foreground text-xs">지번 주소</dt>
-            <dd className="break-words">{jibun}</dd>
+            <dd className="break-words">{venue.jibunAddress}</dd>
           </div>
         ) : null}
-        {detail ? (
+        {venue.detailAddress ? (
           <div className="min-w-0 sm:col-span-2">
             <dt className="text-muted-foreground text-xs">상세 주소</dt>
-            <dd className="break-words">{detail}</dd>
+            <dd className="break-words">{venue.detailAddress}</dd>
           </div>
         ) : null}
       </dl>
 
       <PublicEventNaverMapPreview
         key={mapQuery ?? "venue"}
-        locationName={event.locationName}
-        roadAddress={event.roadAddress}
-        jibunAddress={event.jibunAddress}
-        detailAddress={event.detailAddress}
-        location={event.location}
+        locationName={venue.locationName}
+        roadAddress={venue.roadAddress}
+        jibunAddress={venue.jibunAddress}
+        detailAddress={venue.detailAddress}
+        location={venue.location}
       />
 
       <div className="flex flex-wrap justify-end gap-2">

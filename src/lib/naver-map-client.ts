@@ -3,27 +3,59 @@
  * Client Secret은 사용하지 않습니다.
  */
 
+export type NaverMapEmbedStatus =
+  | "missing-key"
+  | "script-loading"
+  | "script-loaded"
+  | "script-failed"
+  | "naver-not-ready"
+  | "geocode-running"
+  | "geocode-failed"
+  | "no-address"
+  | "map-ready";
+
 const NAVER_MAP_KEY =
   typeof process !== "undefined"
     ? (process.env.NEXT_PUBLIC_NAVER_MAP_NCP_KEY_ID?.trim() ?? "")
     : "";
 
-let scriptLoadPromise: Promise<void> | null = null;
+const NAVER_MAP_CALLBACK = "__matchLabNaverMapsReady";
 
-export function getNaverMapClientId(): string {
-  return NAVER_MAP_KEY;
-}
+let scriptLoadPromise: Promise<void> | null = null;
 
 export function isNaverMapConfigured(): boolean {
   return NAVER_MAP_KEY.length > 0;
+}
+
+function devWarn(status: NaverMapEmbedStatus, detail?: unknown) {
+  if (process.env.NODE_ENV !== "development") return;
+  console.warn(`[naver-map] ${status}`, detail ?? "");
 }
 
 function mapsApiReady(): boolean {
   return Boolean(
     typeof window !== "undefined" &&
       window.naver?.maps?.Map &&
-      window.naver?.maps?.Service,
+      window.naver?.maps?.Service?.geocode,
   );
+}
+
+function waitForGeocoderModule(timeoutMs = 15_000): Promise<void> {
+  const started = Date.now();
+  return new Promise((resolve, reject) => {
+    const tick = () => {
+      if (mapsApiReady()) {
+        resolve();
+        return;
+      }
+      if (Date.now() - started >= timeoutMs) {
+        reject(new Error("NAVER_GEOCODER_TIMEOUT"));
+        return;
+      }
+      window.setTimeout(tick, 50);
+    };
+    tick();
+  });
 }
 
 function waitForMapsApiInit(): Promise<void> {
@@ -33,9 +65,20 @@ function waitForMapsApiInit(): Promise<void> {
       return;
     }
 
-    const naverMaps = window.naver?.maps;
-    if (!naverMaps) {
+    const maps = window.naver?.maps;
+    if (!maps) {
       reject(new Error("NAVER_MAP_UNAVAILABLE"));
+      return;
+    }
+
+    const finish = () => {
+      waitForGeocoderModule()
+        .then(resolve)
+        .catch(reject);
+    };
+
+    if (maps.jsContentLoaded === true) {
+      finish();
       return;
     }
 
@@ -43,10 +86,9 @@ function waitForMapsApiInit(): Promise<void> {
       reject(new Error("NAVER_MAP_INIT_TIMEOUT"));
     }, 15_000);
 
-    naverMaps.onJSContentLoaded = () => {
+    maps.onJSContentLoaded = () => {
       window.clearTimeout(timeout);
-      if (mapsApiReady()) resolve();
-      else reject(new Error("NAVER_MAP_UNAVAILABLE"));
+      finish();
     };
   });
 }
@@ -66,28 +108,25 @@ export function loadNaverMapsScript(): Promise<void> {
 
   if (scriptLoadPromise) return scriptLoadPromise;
 
-  if (typeof window.navermap_authFailure !== "function") {
-    window.navermap_authFailure = () => {
-      if (process.env.NODE_ENV === "development") {
-        console.warn(
-          "[naver-map] Authentication failed — check NCP Client ID and service URL allowlist.",
-        );
-      }
-    };
-  }
+  window.navermap_authFailure ??= () => {
+    devWarn("script-failed", "authentication failed (Client ID or service URL)");
+  };
 
   scriptLoadPromise = new Promise((resolve, reject) => {
-    const existing = document.querySelector<HTMLScriptElement>(
-      'script[data-naver-maps="true"]',
-    );
-
-    const afterScriptLoaded = () => {
+    const finishReady = () => {
       if (mapsApiReady()) {
         resolve();
         return;
       }
-      waitForMapsApiInit().then(resolve).catch(reject);
+      waitForMapsApiInit()
+        .then(() => waitForGeocoderModule())
+        .then(resolve)
+        .catch(reject);
     };
+
+    const existing = document.querySelector<HTMLScriptElement>(
+      'script[data-naver-maps="true"]',
+    );
 
     if (existing) {
       if (mapsApiReady()) {
@@ -95,9 +134,9 @@ export function loadNaverMapsScript(): Promise<void> {
         return;
       }
       if (window.naver?.maps) {
-        waitForMapsApiInit().then(resolve).catch(reject);
+        finishReady();
       } else {
-        existing.addEventListener("load", afterScriptLoaded, { once: true });
+        existing.addEventListener("load", finishReady, { once: true });
         existing.addEventListener(
           "error",
           () => reject(new Error("NAVER_MAP_SCRIPT_ERROR")),
@@ -107,12 +146,19 @@ export function loadNaverMapsScript(): Promise<void> {
       return;
     }
 
+    window[NAVER_MAP_CALLBACK] = () => {
+      delete window[NAVER_MAP_CALLBACK];
+      finishReady();
+    };
+
     const script = document.createElement("script");
-    script.src = `https://oapi.map.naver.com/openapi/v3/maps.js?ncpKeyId=${encodeURIComponent(NAVER_MAP_KEY)}&submodules=geocoder`;
+    script.src = `https://oapi.map.naver.com/openapi/v3/maps.js?ncpKeyId=${encodeURIComponent(NAVER_MAP_KEY)}&submodules=geocoder&callback=${NAVER_MAP_CALLBACK}`;
     script.async = true;
     script.dataset.naverMaps = "true";
-    script.onload = afterScriptLoaded;
-    script.onerror = () => reject(new Error("NAVER_MAP_SCRIPT_ERROR"));
+    script.onerror = () => {
+      delete window[NAVER_MAP_CALLBACK];
+      reject(new Error("NAVER_MAP_SCRIPT_ERROR"));
+    };
     document.head.appendChild(script);
   });
 
@@ -129,37 +175,50 @@ export function geocodeWithNaver(query: string): Promise<NaverMapCoords> {
 
   return new Promise((resolve, reject) => {
     const naver = window.naver;
-    if (!naver?.maps?.Service) {
+    if (!naver?.maps?.Service?.geocode) {
       reject(new Error("NAVER_MAP_UNAVAILABLE"));
       return;
     }
 
     naver.maps.Service.geocode({ query: trimmed }, (status, response) => {
-      const ok = naver.maps.Service.Status.OK;
-      if (status !== ok) {
+      const { Status } = naver.maps.Service;
+      if (status === Status.ERROR) {
         reject(new Error("GEOCODE_FAILED"));
         return;
       }
 
-      const first = response.v2?.addresses?.[0];
-      if (!first) {
+      const totalCount = response.v2?.meta?.totalCount;
+      if (typeof totalCount === "number" && totalCount === 0) {
         reject(new Error("GEOCODE_EMPTY"));
         return;
       }
 
-      const lng = Number(first.x);
-      const lat = Number(first.y);
-      if (!Number.isFinite(lat) || !Number.isFinite(lng)) {
-        reject(new Error("GEOCODE_INVALID"));
-        return;
+      const v2First = response.v2?.addresses?.[0];
+      if (v2First) {
+        const lng = Number(v2First.x);
+        const lat = Number(v2First.y);
+        if (Number.isFinite(lat) && Number.isFinite(lng)) {
+          resolve({ lat, lng });
+          return;
+        }
       }
 
-      resolve({ lat, lng });
+      const legacy = response.result?.items?.[0];
+      if (legacy?.point) {
+        const lng = Number(legacy.point.x);
+        const lat = Number(legacy.point.y);
+        if (Number.isFinite(lat) && Number.isFinite(lng)) {
+          resolve({ lat, lng });
+          return;
+        }
+      }
+
+      reject(new Error("GEOCODE_EMPTY"));
     });
   });
 }
 
-/** geocode 시도 순서 — 도로명 단독을 최우선 */
+/** geocode 시도 순서 — 도로명 단독 최우선 */
 export function buildGeocodeQueries(input: {
   locationName?: string | null;
   roadAddress?: string | null;
@@ -208,9 +267,7 @@ export async function geocodeVenueWithFallback(input: {
       return { coords, query };
     } catch (e) {
       lastError = e;
-      if (process.env.NODE_ENV === "development") {
-        console.warn(`[naver-map] geocode failed for "${query}"`, e);
-      }
+      devWarn("geocode-failed", query);
     }
   }
 
@@ -221,24 +278,38 @@ declare global {
   interface Window {
     naver?: {
       maps: {
+        jsContentLoaded?: boolean;
         Map: new (
-          element: HTMLElement,
+          element: HTMLElement | string,
           options: { center: unknown; zoom: number },
         ) => {
           setCenter: (center: unknown) => void;
+          destroy?: () => void;
         };
         LatLng: new (lat: number, lng: number) => unknown;
-        Marker: new (options: { position: unknown; map: unknown }) => unknown;
+        Marker: new (options: {
+          position: unknown;
+          map: unknown;
+          title?: string;
+        }) => {
+          setMap: (map: unknown | null) => void;
+        };
         onJSContentLoaded?: () => void;
         Service: {
-          Status: { OK: string; ERROR: string };
+          Status: { OK: number; ERROR: number };
           geocode: (
             opts: { query: string },
             cb: (
-              status: string,
+              status: number,
               response: {
-                v2: {
-                  addresses: Array<{ x: string; y: string }>;
+                v2?: {
+                  meta?: { totalCount?: number };
+                  addresses?: Array<{ x: string; y: string }>;
+                };
+                result?: {
+                  items?: Array<{
+                    point?: { x: number; y: number };
+                  }>;
                 };
               },
             ) => void,
@@ -247,5 +318,6 @@ declare global {
       };
     };
     navermap_authFailure?: () => void;
+    [NAVER_MAP_CALLBACK]?: () => void;
   }
 }

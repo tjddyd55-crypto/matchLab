@@ -125,6 +125,70 @@ export function resolvePublicResultsVisibility(input: {
   return "none";
 }
 
+/** 공개 오시는 길 섹션용 — DTO 필드 + legacy location 문자열 정규화 */
+export function resolvePublicVenueFields(input: {
+  locationName?: string | null;
+  roadAddress?: string | null;
+  jibunAddress?: string | null;
+  detailAddress?: string | null;
+  location?: string | null;
+}): {
+  locationName: string | null;
+  roadAddress: string | null;
+  jibunAddress: string | null;
+  detailAddress: string | null;
+  location: string | null;
+} {
+  const name = input.locationName?.trim() || null;
+  const road = input.roadAddress?.trim() || null;
+  const jibun = input.jibunAddress?.trim() || null;
+  const detail = input.detailAddress?.trim() || null;
+  const loc = input.location?.trim() || null;
+
+  if (road || jibun || name) {
+    return {
+      locationName: name,
+      roadAddress: road,
+      jibunAddress: jibun,
+      detailAddress: detail,
+      location: loc,
+    };
+  }
+
+  if (!loc) {
+    return {
+      locationName: null,
+      roadAddress: null,
+      jibunAddress: null,
+      detailAddress: detail,
+      location: null,
+    };
+  }
+
+  const composed = loc.match(/^(.+?)\s*[—–-]\s*(.+)$/);
+  if (composed) {
+    const parsedName = composed[1]?.trim();
+    const parsedMain = composed[2]?.trim();
+    if (parsedName && parsedMain) {
+      return {
+        locationName: parsedName,
+        roadAddress: parsedMain,
+        jibunAddress: null,
+        detailAddress: detail,
+        location: loc,
+      };
+    }
+  }
+
+  return {
+    locationName: loc,
+    roadAddress: null,
+    jibunAddress: null,
+    detailAddress: detail,
+    location: loc,
+  };
+}
+
 /** 네이버 지도 검색용 쿼리 — 사용자 입력은 encodeURIComponent 처리 */
 export function buildMapSearchQuery(input: {
   locationName?: string | null;

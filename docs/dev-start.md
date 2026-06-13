@@ -542,6 +542,19 @@ npm run dev
 3. API key 설정·redeploy 후 실제 지도·marker 표시
 4. API key 제거 local에서 placeholder fallback
 
+**지도 미표시 진단 (6항목 — env 이름이 아닌 동작 기준):**
+
+| # | 확인 항목 | 정상 | fallback만 보일 때 |
+|---|-----------|------|-------------------|
+| 1 | PR #47 이후 main **redeploy** | Railway 최신 커밋(`98dcf0e` 이후 fix 포함) 배포됨 | 구버전 번들 — **Redeploy** |
+| 2 | `NEXT_PUBLIC_*` **build-time** 반영 | 빌드 로그·번들에 key 존재 | env 추가만 하고 rebuild 안 함 → `canEmbedMap=false`, **script 요청 없음** |
+| 3 | naver **script network** | DevTools Network에 `maps.js?ncpKeyId=...&submodules=geocoder` **200** | 요청 없음=키 미번들 / **4xx·authFailure**=Client ID·Web URL 등록 |
+| 4 | **onJSContentLoaded** 대기 | callback 또는 `jsContentLoaded` 후 geocode 호출 | `script.onload` 직후 geocode → geocoder 미준비로 실패 (PR #47 main 버그) |
+| 5 | public DTO **road/jibun** | organizer 주소 저장 후 API 응답에 필드 존재 | `sample-open-2026` seed는 `location`만 — geocode는 장소명(`올림픽공원 체조경기장`)으로 시도 |
+| 6 | **geocode fallback** 순서 | road → road+detail → jibun → name+road → name → location | 앞 쿼리 실패 시 다음 순서 자동 시도; 전부 실패 시 placeholder |
+
+개발 모드에서 지도 컨테이너 `data-map-status` 값으로 단계 확인: `script-loading` → `script-loaded` → `geocode-running` → `map-ready` (실패 시 `geocode-failed` / `script-failed` / `missing-key`).
+
 **대회 생성 UX 테스트 (schema 변경 없음):**
 
 1. `organizer` / `123456!!` → `/organizer/events/new` → 최소 정보로 대회 생성.
