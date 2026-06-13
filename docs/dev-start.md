@@ -524,6 +524,13 @@ npm run dev
 | 상세 주소 | `detailAddress` | `detailAddress` | 직접 입력 |
 | (표시용 location) | — | — | **서버에서 `composeEventVenueDisplay`로 재계산** |
 
+**Zod validator composition 규칙 (module evaluation 500 방지):**
+
+- `superRefine`/`refine`이 붙은 schema에 **`.partial()` 금지** — import 시 `Error: .partial() cannot be used on object schemas containing refinements` 발생
+- **base object schema**(refine 없음) → create는 `base.superRefine(...)`, update는 `base.partial().extend(...).superRefine(...)` 또는 별도 update base object
+- 대상 파일: `src/lib/validators/event.validator.ts`, `src/lib/validators/application-form-template.validator.ts`
+- 배포 전 확인: `npx tsx -e "import '@/lib/validators/event.validator'"` 및 `/organizer/events/{eventId}#setup-basic` 페이지 로드
+
 4. 스태프 링크 생성·심판 계정 생성 → 오류 없이 목록 갱신.
 5. 공개 `/events/{slug}` — **Hero·참가 신청/입금 안내에는 지도 버튼 없음**. 행사 안내 탭 **오시는 길** 섹션에만 지도 embed + 「네이버 지도에서 보기」 1개.
 

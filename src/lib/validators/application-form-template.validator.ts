@@ -116,7 +116,7 @@ export const createApplicationFormTemplateSchema =
   });
 
 export const updateApplicationFormTemplateSchema =
-  createApplicationFormTemplateSchema
+  baseApplicationFormTemplateSchema
     .partial()
     .extend({
       templateId: z.string().min(1),

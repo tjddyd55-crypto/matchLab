@@ -49,91 +49,112 @@ const postalCodeField = z
     return t === "" ? null : t;
   });
 
-export const createEventSchema = z
-  .object({
-    organizerId: cuid.optional(),
-    title: z.string().min(1).max(200),
-    description: z.string().max(8000).optional().nullable(),
-    location: trimmedNullable,
-    roadAddress: trimmedNullable,
-    jibunAddress: trimmedNullable,
-    detailAddress: detailAddressField,
-    postalCode: postalCodeField,
-    locationName: locationNameField,
-    eventDate: dateIn,
-    registrationStartDate: dateIn,
-    registrationEndDate: dateIn,
-    posterUrl: z.string().max(2000).optional().nullable(),
-    photoRecordingEnabled: z.boolean(),
-    videoRecordingEnabled: z.boolean(),
-    liveStreamingEnabled: z.boolean(),
-    streamingNoticeText: z.string().max(4000).optional().nullable(),
-    streamingConsentRequired: z.boolean().optional(),
-  })
-  .superRefine((v, ctx) => {
-    if (v.registrationStartDate > v.registrationEndDate) {
-      ctx.addIssue({
-        code: z.ZodIssueCode.custom,
-        message: "신청 시작일은 신청 마감일보다 이전이어야 합니다.",
-        path: ["registrationStartDate"],
-      });
-    }
-    if (v.registrationEndDate > v.eventDate) {
-      ctx.addIssue({
-        code: z.ZodIssueCode.custom,
-        message: "신청 마감일은 대회 일정 이전(또는 당일)이어야 합니다.",
-        path: ["registrationEndDate"],
-      });
-    }
-  });
+const eventVenueFields = {
+  location: trimmedNullable,
+  roadAddress: trimmedNullable,
+  jibunAddress: trimmedNullable,
+  detailAddress: detailAddressField,
+  postalCode: postalCodeField,
+  locationName: locationNameField,
+};
+
+const eventRecordingFields = {
+  photoRecordingEnabled: z.boolean(),
+  videoRecordingEnabled: z.boolean(),
+  liveStreamingEnabled: z.boolean(),
+  streamingNoticeText: z.string().max(4000).optional().nullable(),
+  streamingConsentRequired: z.boolean().optional(),
+};
+
+/** refine/superRefine 없음 — .partial() 등 composition의 기준 */
+const createEventBaseSchema = z.object({
+  organizerId: cuid.optional(),
+  title: z.string().min(1).max(200),
+  description: z.string().max(8000).optional().nullable(),
+  ...eventVenueFields,
+  eventDate: dateIn,
+  registrationStartDate: dateIn,
+  registrationEndDate: dateIn,
+  posterUrl: z.string().max(2000).optional().nullable(),
+  ...eventRecordingFields,
+});
+
+const updateEventBaseSchema = z.object({
+  eventId: cuid,
+  title: z.string().min(1).max(200).optional(),
+  description: z.string().max(8000).optional().nullable(),
+  ...eventVenueFields,
+  eventDate: dateIn.optional(),
+  registrationStartDate: dateIn.optional(),
+  registrationEndDate: dateIn.optional(),
+  posterUrl: z.string().max(2000).optional().nullable(),
+  photoRecordingEnabled: z.boolean().optional(),
+  videoRecordingEnabled: z.boolean().optional(),
+  liveStreamingEnabled: z.boolean().optional(),
+  streamingNoticeText: z.string().max(4000).optional().nullable(),
+  streamingConsentRequired: z.boolean().optional(),
+});
+
+function refineCreateEventDates(
+  v: {
+    registrationStartDate: Date;
+    registrationEndDate: Date;
+    eventDate: Date;
+  },
+  ctx: z.RefinementCtx,
+): void {
+  if (v.registrationStartDate > v.registrationEndDate) {
+    ctx.addIssue({
+      code: z.ZodIssueCode.custom,
+      message: "신청 시작일은 신청 마감일보다 이전이어야 합니다.",
+      path: ["registrationStartDate"],
+    });
+  }
+  if (v.registrationEndDate > v.eventDate) {
+    ctx.addIssue({
+      code: z.ZodIssueCode.custom,
+      message: "신청 마감일은 대회 일정 이전(또는 당일)이어야 합니다.",
+      path: ["registrationEndDate"],
+    });
+  }
+}
+
+function refineUpdateEventDates(
+  v: {
+    registrationStartDate?: Date;
+    registrationEndDate?: Date;
+    eventDate?: Date;
+  },
+  ctx: z.RefinementCtx,
+): void {
+  const rs = v.registrationStartDate;
+  const re = v.registrationEndDate;
+  const ed = v.eventDate;
+
+  if (rs !== undefined && re !== undefined && rs > re) {
+    ctx.addIssue({
+      code: z.ZodIssueCode.custom,
+      message: "신청 시작일은 신청 마감일보다 이전이어야 합니다.",
+      path: ["registrationStartDate"],
+    });
+  }
+  if (re !== undefined && ed !== undefined && re > ed) {
+    ctx.addIssue({
+      code: z.ZodIssueCode.custom,
+      message: "신청 마감일은 대회 일정 이전(또는 당일)이어야 합니다.",
+      path: ["registrationEndDate"],
+    });
+  }
+}
+
+export const createEventSchema = createEventBaseSchema.superRefine(
+  refineCreateEventDates,
+);
 
 export type CreateEventInput = z.infer<typeof createEventSchema>;
 
-export const updateEventSchema = z
-  .object({
-    eventId: cuid,
-    title: z.string().min(1).max(200).optional(),
-    description: z.string().max(8000).optional().nullable(),
-    location: trimmedNullable,
-    roadAddress: trimmedNullable,
-    jibunAddress: trimmedNullable,
-    detailAddress: detailAddressField,
-    postalCode: postalCodeField,
-    locationName: locationNameField,
-    eventDate: dateIn.optional(),
-    registrationStartDate: dateIn.optional(),
-    registrationEndDate: dateIn.optional(),
-    posterUrl: z.string().max(2000).optional().nullable(),
-    photoRecordingEnabled: z.boolean().optional(),
-    videoRecordingEnabled: z.boolean().optional(),
-    liveStreamingEnabled: z.boolean().optional(),
-    streamingNoticeText: z.string().max(4000).optional().nullable(),
-    streamingConsentRequired: z.boolean().optional(),
-  })
-  .superRefine((v, ctx) => {
-    const hasReg =
-      v.registrationStartDate !== undefined ||
-      v.registrationEndDate !== undefined;
-    const hasEvent = v.eventDate !== undefined;
-    if (!hasReg && !hasEvent) return;
-    const rs = v.registrationStartDate;
-    const re = v.registrationEndDate;
-    const ed = v.eventDate;
-    if (rs !== undefined && re !== undefined && rs > re) {
-      ctx.addIssue({
-        code: z.ZodIssueCode.custom,
-        message: "신청 시작일은 신청 마감일보다 이전이어야 합니다.",
-        path: ["registrationStartDate"],
-      });
-    }
-    if (re !== undefined && ed !== undefined && re > ed) {
-      ctx.addIssue({
-        code: z.ZodIssueCode.custom,
-        message: "신청 마감일은 대회 일정 이전(또는 당일)이어야 합니다.",
-        path: ["registrationEndDate"],
-      });
-    }
-  })
+export const updateEventSchema = updateEventBaseSchema
+  .superRefine(refineUpdateEventDates)
   .superRefine((v, ctx) => {
     const rest = { ...v };
     delete (rest as { eventId?: string }).eventId;
@@ -149,14 +170,7 @@ export const updateEventSchema = z
 
 export type UpdateEventInput = z.infer<typeof updateEventSchema>;
 
-export const changeEventStatusSchema = z.object({
-  eventId: cuid,
-  status: z.nativeEnum(EventStatus),
-});
-
-export type ChangeEventStatusInput = z.infer<typeof changeEventStatusSchema>;
-
-export const createEventDivisionSchema = z.object({
+const createEventDivisionBaseSchema = z.object({
   eventId: cuid,
   sportType: z.string().min(1).max(120),
   ruleType: z.string().max(120).optional().nullable(),
@@ -166,19 +180,22 @@ export const createEventDivisionSchema = z.object({
   skillLevel: z.string().max(120).optional().nullable(),
 });
 
+export const createEventDivisionSchema = createEventDivisionBaseSchema;
+
 export type CreateEventDivisionInput = z.infer<typeof createEventDivisionSchema>;
 
-export const updateEventDivisionSchema = z
-  .object({
-    divisionId: cuid,
-    sportType: z.string().min(1).max(120).optional(),
-    ruleType: z.string().max(120).optional().nullable(),
-    gender: z.string().max(80).optional().nullable(),
-    ageGroup: z.string().max(120).optional().nullable(),
-    weightClass: z.string().max(120).optional().nullable(),
-    skillLevel: z.string().max(120).optional().nullable(),
-  })
-  .superRefine((v, ctx) => {
+const updateEventDivisionBaseSchema = z.object({
+  divisionId: cuid,
+  sportType: z.string().min(1).max(120).optional(),
+  ruleType: z.string().max(120).optional().nullable(),
+  gender: z.string().max(80).optional().nullable(),
+  ageGroup: z.string().max(120).optional().nullable(),
+  weightClass: z.string().max(120).optional().nullable(),
+  skillLevel: z.string().max(120).optional().nullable(),
+});
+
+export const updateEventDivisionSchema = updateEventDivisionBaseSchema.superRefine(
+  (v, ctx) => {
     const touched =
       v.sportType !== undefined ||
       v.ruleType !== undefined ||
@@ -193,9 +210,17 @@ export const updateEventDivisionSchema = z
         path: ["sportType"],
       });
     }
-  });
+  },
+);
 
 export type UpdateEventDivisionInput = z.infer<typeof updateEventDivisionSchema>;
+
+export const changeEventStatusSchema = z.object({
+  eventId: cuid,
+  status: z.nativeEnum(EventStatus),
+});
+
+export type ChangeEventStatusInput = z.infer<typeof changeEventStatusSchema>;
 
 export const deleteEventDivisionSchema = z.object({
   divisionId: cuid,
@@ -218,14 +243,15 @@ export type UpsertEventPaymentSettingInput = z.infer<
   typeof upsertEventPaymentSettingSchema
 >;
 
-export const updateSpectatorAccessSchema = z
-  .object({
-    eventId: cuid,
-    spectatorAccessEnabled: z.boolean(),
-    spectatorAccessStartAt: dateIn.optional().nullable(),
-    spectatorAccessEndAt: dateIn.optional().nullable(),
-  })
-  .superRefine((v, ctx) => {
+const updateSpectatorAccessBaseSchema = z.object({
+  eventId: cuid,
+  spectatorAccessEnabled: z.boolean(),
+  spectatorAccessStartAt: dateIn.optional().nullable(),
+  spectatorAccessEndAt: dateIn.optional().nullable(),
+});
+
+export const updateSpectatorAccessSchema =
+  updateSpectatorAccessBaseSchema.superRefine((v, ctx) => {
     if (!v.spectatorAccessEnabled) return;
     if (!v.spectatorAccessStartAt || !v.spectatorAccessEndAt) {
       ctx.addIssue({
