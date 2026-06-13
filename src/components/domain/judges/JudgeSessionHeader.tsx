@@ -1,6 +1,5 @@
 import Link from "next/link";
-import { judgeLogoutAction } from "@/features/judge/actions";
-import { Button } from "@/components/ui/button";
+import { JudgeLogoutButton } from "@/components/domain/judges/JudgeLogoutButton";
 import type { ResolvedJudgeSession } from "@/lib/services/judge-credential.service";
 import { judgeDefaultRoute } from "@/lib/judge-identity";
 
@@ -42,16 +41,7 @@ export function JudgeSessionHeader({
           </Link>
         </div>
       </div>
-      <form
-        action={async () => {
-          "use server";
-          await judgeLogoutAction();
-        }}
-      >
-        <Button type="submit" variant="outline" size="sm">
-          로그아웃
-        </Button>
-      </form>
+      <JudgeLogoutButton />
     </header>
   );
 }

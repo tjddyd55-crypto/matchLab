@@ -62,6 +62,17 @@ async function upsertCredential(
   return created.id;
 }
 
+/** E2E lock 테스트 등으로 확정·잠긴 경기를 채점 가능 상태로 되돌림 (지정 matchId만). */
+async function unlockE2eMatchForScoring(matchId: string) {
+  await prisma.matchResult.deleteMany({
+    where: { matchId, status: "confirmed" },
+  });
+  await prisma.judgeScorecard.updateMany({
+    where: { matchId, status: "locked" },
+    data: { status: "draft" },
+  });
+}
+
 async function main() {
   const tag = `ui-e2e-6512`;
   const creds = {
@@ -71,6 +82,8 @@ async function main() {
     head: await upsertCredential(EVENT_ID, `${tag}-head`, JudgeCredentialRole.HEAD_JUDGE),
     ann: await upsertCredential(EVENT_ID, `${tag}-ann`, JudgeCredentialRole.ANNOUNCER),
   };
+
+  await unlockE2eMatchForScoring(ASSIGNED_MATCH_ID);
 
   for (const id of [creds.a, creds.b, creds.c]) {
     const existingAssign = await prisma.judgeMatchAssignment.findFirst({
