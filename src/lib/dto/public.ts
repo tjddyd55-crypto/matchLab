@@ -97,6 +97,9 @@ export type PublicEventDetailDTO = {
   hasPublicResults: boolean;
   /** 미매칭(대기) 명단 공개 여부 — 주최자 토글 */
   publicUnmatchedListEnabled: boolean;
+  /** 서버 Geocoding API로 계산 — schema 필드 아님 */
+  venueMapLat?: number | null;
+  venueMapLng?: number | null;
 };
 
 export type PublicFighterCardDTO = {

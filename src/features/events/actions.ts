@@ -12,6 +12,7 @@ import { PermissionError } from "@/lib/auth/permission-error";
 import { AppError } from "@/lib/errors/app-error";
 import { prismaErrorToActionFailure } from "@/lib/prisma-errors";
 import { eventService } from "@/lib/services/event.service";
+import { validationFailureFromZod } from "@/lib/validators/event-form-errors";
 import {
   changeEventStatusSchema,
   createEventDivisionSchema,
@@ -120,11 +121,7 @@ export async function createEventAction(
 
     const parsed = createEventSchema.safeParse(raw);
     if (!parsed.success) {
-      return actionFailure(
-        "VALIDATION_ERROR",
-        "입력값을 확인해 주세요.",
-        parsed.error.flatten(),
-      );
+      return validationFailureFromZod(parsed.error);
     }
 
     const actor = await requireActorFromMutation();
@@ -204,11 +201,7 @@ export async function updateEventAction(
 
     const parsed = updateEventSchema.safeParse(raw);
     if (!parsed.success) {
-      return actionFailure(
-        "VALIDATION_ERROR",
-        "입력값을 확인해 주세요.",
-        parsed.error.flatten(),
-      );
+      return validationFailureFromZod(parsed.error);
     }
 
     const actor = await requireActorFromMutation();

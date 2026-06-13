@@ -32,6 +32,7 @@ import {
   resolvePublicRegistrationStatus,
 } from "@/lib/event-public-display";
 import { AppError } from "@/lib/errors/app-error";
+import { geocodeVenueCoordinate } from "@/lib/naver-geocode.server";
 import { requireOrganizerForEvent, requireRole } from "@/lib/permissions";
 import { prisma } from "@/lib/prisma";
 import type {
@@ -484,11 +485,25 @@ export const eventService = {
       eventRepository.findEventIdsWithPublicResults([event.id]),
     ]);
 
-    return eventService.mapEventToPublicDetailDTO(event, divisions, {
+    const dto = eventService.mapEventToPublicDetailDTO(event, divisions, {
       payment,
       hasPublicBrackets: bracketIds.has(event.id),
       hasPublicResults: resultIds.has(event.id),
     });
+
+    const coords = await geocodeVenueCoordinate({
+      roadAddress: dto.roadAddress,
+      jibunAddress: dto.jibunAddress,
+      locationName: dto.locationName,
+      detailAddress: dto.detailAddress,
+      location: dto.location,
+    });
+
+    return {
+      ...dto,
+      venueMapLat: coords?.lat ?? null,
+      venueMapLng: coords?.lng ?? null,
+    };
   },
 
   mapEventToPublicDetailDTO(

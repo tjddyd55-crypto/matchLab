@@ -11,6 +11,19 @@ import { EventCreateForm } from "@/components/domain/events/EventCreateForm";
 import { EventPosterUpload } from "@/components/domain/events/EventPosterUpload";
 import { Button } from "@/components/ui/button";
 import { cn } from "@/lib/utils";
+import { zodFlattenToFieldErrors } from "@/lib/validators/event-form-errors";
+
+function EventFieldError({
+  errors,
+  field,
+}: {
+  errors: Record<string, string[]>;
+  field: string;
+}) {
+  const msg = errors[field]?.[0];
+  if (!msg) return null;
+  return <p className="text-destructive text-xs">{msg}</p>;
+}
 
 function toDatetimeLocalValue(iso: string): string {
   const d = new Date(iso);
@@ -51,6 +64,11 @@ export function EventForm({
 
   if (!initial) return null;
 
+  const fieldErrors =
+    editState?.ok === false
+      ? zodFlattenToFieldErrors(editState.error.details)
+      : {};
+
   return (
     <div
       id="setup-basic"
@@ -78,7 +96,9 @@ export function EventForm({
             className={cn(
               "border-input bg-background h-9 w-full rounded-md border px-3 text-sm shadow-sm",
             )}
+            aria-invalid={Boolean(fieldErrors.title?.[0])}
           />
+          <EventFieldError errors={fieldErrors} field="title" />
         </label>
         <label className="space-y-1 text-sm md:col-span-2">
           <span className="text-muted-foreground">설명</span>
@@ -111,6 +131,7 @@ export function EventForm({
             locationName: initial.locationName,
             location: initial.location,
           }}
+          fieldErrors={fieldErrors}
         />
         <label className="space-y-1 text-sm">
           <span className="text-muted-foreground">대회 일시</span>
@@ -122,7 +143,9 @@ export function EventForm({
             className={cn(
               "border-input bg-background h-9 w-full rounded-md border px-3 text-sm shadow-sm",
             )}
+            aria-invalid={Boolean(fieldErrors.eventDate?.[0])}
           />
+          <EventFieldError errors={fieldErrors} field="eventDate" />
         </label>
         <label className="space-y-1 text-sm">
           <span className="text-muted-foreground">신청 시작</span>
@@ -134,7 +157,9 @@ export function EventForm({
             className={cn(
               "border-input bg-background h-9 w-full rounded-md border px-3 text-sm shadow-sm",
             )}
+            aria-invalid={Boolean(fieldErrors.registrationStartDate?.[0])}
           />
+          <EventFieldError errors={fieldErrors} field="registrationStartDate" />
         </label>
         <label className="space-y-1 text-sm md:col-span-2">
           <span className="text-muted-foreground">신청 마감</span>
@@ -146,7 +171,9 @@ export function EventForm({
             className={cn(
               "border-input bg-background h-9 w-full rounded-md border px-3 text-sm shadow-sm",
             )}
+            aria-invalid={Boolean(fieldErrors.registrationEndDate?.[0])}
           />
+          <EventFieldError errors={fieldErrors} field="registrationEndDate" />
         </label>
         <div id="setup-poster" className="md:col-span-2 scroll-mt-24 space-y-2">
           <EventPosterUpload

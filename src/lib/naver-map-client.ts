@@ -1,6 +1,6 @@
 /**
  * 네이버 Maps JavaScript API (client) — 공개 행사 안내 지도 embed 전용.
- * Client Secret은 사용하지 않습니다.
+ * 좌표 변환은 서버 Geocoding API에서 처리합니다. Client Secret은 사용하지 않습니다.
  */
 
 export type NaverMapEmbedStatus =
@@ -9,9 +9,7 @@ export type NaverMapEmbedStatus =
   | "script-loaded"
   | "script-failed"
   | "naver-not-ready"
-  | "geocode-running"
-  | "geocode-failed"
-  | "no-address"
+  | "no-coords"
   | "map-ready";
 
 const NAVER_MAP_KEY =
@@ -36,26 +34,9 @@ function mapsApiReady(): boolean {
   return Boolean(
     typeof window !== "undefined" &&
       window.naver?.maps?.Map &&
-      window.naver?.maps?.Service?.geocode,
+      window.naver?.maps?.LatLng &&
+      window.naver?.maps?.Marker,
   );
-}
-
-function waitForGeocoderModule(timeoutMs = 15_000): Promise<void> {
-  const started = Date.now();
-  return new Promise((resolve, reject) => {
-    const tick = () => {
-      if (mapsApiReady()) {
-        resolve();
-        return;
-      }
-      if (Date.now() - started >= timeoutMs) {
-        reject(new Error("NAVER_GEOCODER_TIMEOUT"));
-        return;
-      }
-      window.setTimeout(tick, 50);
-    };
-    tick();
-  });
 }
 
 function waitForMapsApiInit(): Promise<void> {
@@ -72,9 +53,11 @@ function waitForMapsApiInit(): Promise<void> {
     }
 
     const finish = () => {
-      waitForGeocoderModule()
-        .then(resolve)
-        .catch(reject);
+      if (mapsApiReady()) {
+        resolve();
+        return;
+      }
+      reject(new Error("NAVER_MAP_UNAVAILABLE"));
     };
 
     if (maps.jsContentLoaded === true) {
@@ -114,14 +97,7 @@ export function loadNaverMapsScript(): Promise<void> {
 
   scriptLoadPromise = new Promise((resolve, reject) => {
     const finishReady = () => {
-      if (mapsApiReady()) {
-        resolve();
-        return;
-      }
-      waitForMapsApiInit()
-        .then(() => waitForGeocoderModule())
-        .then(resolve)
-        .catch(reject);
+      waitForMapsApiInit().then(resolve).catch(reject);
     };
 
     const existing = document.querySelector<HTMLScriptElement>(
@@ -152,7 +128,7 @@ export function loadNaverMapsScript(): Promise<void> {
     };
 
     const script = document.createElement("script");
-    script.src = `https://oapi.map.naver.com/openapi/v3/maps.js?ncpKeyId=${encodeURIComponent(NAVER_MAP_KEY)}&submodules=geocoder&callback=${NAVER_MAP_CALLBACK}`;
+    script.src = `https://oapi.map.naver.com/openapi/v3/maps.js?ncpKeyId=${encodeURIComponent(NAVER_MAP_KEY)}&callback=${NAVER_MAP_CALLBACK}`;
     script.async = true;
     script.dataset.naverMaps = "true";
     script.onerror = () => {
@@ -166,113 +142,6 @@ export function loadNaverMapsScript(): Promise<void> {
 }
 
 export type NaverMapCoords = { lat: number; lng: number };
-
-export function geocodeWithNaver(query: string): Promise<NaverMapCoords> {
-  const trimmed = query.trim();
-  if (!trimmed) {
-    return Promise.reject(new Error("GEOCODE_EMPTY_QUERY"));
-  }
-
-  return new Promise((resolve, reject) => {
-    const naver = window.naver;
-    if (!naver?.maps?.Service?.geocode) {
-      reject(new Error("NAVER_MAP_UNAVAILABLE"));
-      return;
-    }
-
-    naver.maps.Service.geocode({ query: trimmed }, (status, response) => {
-      const { Status } = naver.maps.Service;
-      if (status === Status.ERROR) {
-        reject(new Error("GEOCODE_FAILED"));
-        return;
-      }
-
-      const totalCount = response.v2?.meta?.totalCount;
-      if (typeof totalCount === "number" && totalCount === 0) {
-        reject(new Error("GEOCODE_EMPTY"));
-        return;
-      }
-
-      const v2First = response.v2?.addresses?.[0];
-      if (v2First) {
-        const lng = Number(v2First.x);
-        const lat = Number(v2First.y);
-        if (Number.isFinite(lat) && Number.isFinite(lng)) {
-          resolve({ lat, lng });
-          return;
-        }
-      }
-
-      const legacy = response.result?.items?.[0];
-      if (legacy?.point) {
-        const lng = Number(legacy.point.x);
-        const lat = Number(legacy.point.y);
-        if (Number.isFinite(lat) && Number.isFinite(lng)) {
-          resolve({ lat, lng });
-          return;
-        }
-      }
-
-      reject(new Error("GEOCODE_EMPTY"));
-    });
-  });
-}
-
-/** geocode 시도 순서 — 도로명 단독 최우선 */
-export function buildGeocodeQueries(input: {
-  locationName?: string | null;
-  roadAddress?: string | null;
-  jibunAddress?: string | null;
-  detailAddress?: string | null;
-  location?: string | null;
-}): string[] {
-  const name = input.locationName?.trim();
-  const road = input.roadAddress?.trim();
-  const jibun = input.jibunAddress?.trim();
-  const detail = input.detailAddress?.trim();
-  const loc = input.location?.trim();
-
-  const queries: string[] = [];
-  const push = (q: string | undefined) => {
-    const t = q?.trim();
-    if (t && !queries.includes(t)) queries.push(t);
-  };
-
-  push(road);
-  if (road && detail) push(`${road} ${detail}`);
-  push(jibun);
-  if (name && road) push(`${name} ${road}`);
-  push(name);
-  push(loc);
-
-  return queries;
-}
-
-export async function geocodeVenueWithFallback(input: {
-  locationName?: string | null;
-  roadAddress?: string | null;
-  jibunAddress?: string | null;
-  detailAddress?: string | null;
-  location?: string | null;
-}): Promise<{ coords: NaverMapCoords; query: string }> {
-  const queries = buildGeocodeQueries(input);
-  if (queries.length === 0) {
-    throw new Error("GEOCODE_NO_ADDRESS");
-  }
-
-  let lastError: unknown;
-  for (const query of queries) {
-    try {
-      const coords = await geocodeWithNaver(query);
-      return { coords, query };
-    } catch (e) {
-      lastError = e;
-      devWarn("geocode-failed", query);
-    }
-  }
-
-  throw lastError instanceof Error ? lastError : new Error("GEOCODE_FAILED");
-}
 
 declare global {
   interface Window {
@@ -295,26 +164,6 @@ declare global {
           setMap: (map: unknown | null) => void;
         };
         onJSContentLoaded?: () => void;
-        Service: {
-          Status: { OK: number; ERROR: number };
-          geocode: (
-            opts: { query: string },
-            cb: (
-              status: number,
-              response: {
-                v2?: {
-                  meta?: { totalCount?: number };
-                  addresses?: Array<{ x: string; y: string }>;
-                };
-                result?: {
-                  items?: Array<{
-                    point?: { x: number; y: number };
-                  }>;
-                };
-              },
-            ) => void,
-          ) => void;
-        };
       };
     };
     navermap_authFailure?: () => void;

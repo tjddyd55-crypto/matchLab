@@ -509,8 +509,8 @@ npm run dev
 
 **주소·지도·스태프/심판 UX 수동 확인 (schema 변경 없음):**
 
-1. 기본 설정 → **주소 검색**으로 도로명 선택(직접 입력 불가) → 장소명·상세 주소 저장 → **기본 정보 저장** 클릭 시 500 없이 성공 메시지.
-2. 저장 후 새로고침 → 우편번호·도로명·지번·상세·장소명 유지 확인.
+1. 기본 설정 → **주소 검색**으로 도로명 선택(직접 입력 불가) → **장소명·주소(도로명)·상세 주소**만 화면에 표시 → **기본 정보 저장** 클릭 시 500 없이 성공 메시지.
+2. 저장 후 새로고침 → `postalCode`/`jibunAddress`는 hidden이지만 DB·payload 유지, 화면에는 장소명·도로명·상세 주소 확인.
 3. 공식 신청서 템플릿 연결 저장 → pending 해제·완료 메시지.
 
 **FormData field name 체크리스트 (기본 정보 저장):**
@@ -518,10 +518,10 @@ npm run dev
 | 화면 라벨 | submit `name` | action 읽기 | 비고 |
 |-----------|---------------|-------------|------|
 | 장소명 | `locationName` | `locationName` | 직접 입력 |
-| 우편번호 | `postalCode` | `postalCode` | hidden |
-| 도로명 주소 | `roadAddress` | `roadAddress` | hidden |
-| 지번 주소 | `jibunAddress` | `jibunAddress` | hidden |
+| 주소(도로명) | `roadAddress` | `roadAddress` | read-only 표시 + hidden submit |
 | 상세 주소 | `detailAddress` | `detailAddress` | 직접 입력 |
+| 우편번호 | `postalCode` | `postalCode` | hidden (화면 미표시) |
+| 지번 주소 | `jibunAddress` | `jibunAddress` | hidden (화면 미표시) |
 | (표시용 location) | — | — | **서버에서 `composeEventVenueDisplay`로 재계산** |
 
 **Zod validator composition 규칙 (module evaluation 500 방지):**
@@ -538,14 +538,16 @@ npm run dev
 
 | 변수 | 용도 |
 |------|------|
-| `NEXT_PUBLIC_NAVER_MAP_NCP_KEY_ID` | **필수(프론트)** 네이버클라우드 Maps JavaScript API **Client ID** |
-| `NAVER_MAP_NCP_KEY_SECRET` | **선택(서버)** Client Secret — `NEXT_PUBLIC_` 금지, 현재 지도 embed 미사용 |
+| `NEXT_PUBLIC_NAVER_MAP_NCP_KEY_ID` | **필수(프론트)** 네이버클라우드 Maps JavaScript API **Client ID** — 지도 embed |
+| `NAVER_MAP_NCP_KEY_SECRET` | **필수(서버 geocode)** Client Secret — `NEXT_PUBLIC_` 금지, `src/lib/naver-geocode.server.ts`에서만 사용 |
+
+**동작:** public event detail 조회 시 서버 Geocoding API로 `venueMapLat`/`venueMapLng` 계산 → 클라이언트는 좌표만 받아 Map/Marker 렌더 (geocoder submodule 미사용).
 
 **네이버클라우드 설정:**
 
 1. [네이버클라우드 콘솔](https://console.ncloud.com/) → Application → Maps → **Dynamic Map** · **Geocoding** 사용 설정
 2. **Web 서비스 URL** 등록: `http://localhost:3000`, `http://127.0.0.1:3000`, Railway production domain, 운영 도메인
-3. Railway Variables에 `NEXT_PUBLIC_NAVER_MAP_NCP_KEY_ID=<Client ID>` 추가 후 **앱 redeploy** (NEXT_PUBLIC은 빌드 시 번들에 포함)
+3. Railway Variables에 `NEXT_PUBLIC_NAVER_MAP_NCP_KEY_ID`와 `NAVER_MAP_NCP_KEY_SECRET` 추가 후 **앱 redeploy** (NEXT_PUBLIC은 빌드 시 번들에 포함)
 4. 로컬 `.env` 변경 후 `npm run dev` 재시작
 5. 미설정·geocode 실패 시 **placeholder + 오시는 길 하단 링크**만 표시(페이지 깨짐 없음)
 
@@ -559,21 +561,21 @@ npm run dev
 
 1. `/events/sample-open-2026` Hero에 지도 버튼 없음
 2. 행사 안내 → 오시는 길에 지도 + 버튼 1개
-3. API key 설정·redeploy 후 실제 지도·marker 표시
-4. API key 제거 local에서 placeholder fallback
+3. API key·secret 설정·redeploy 후 실제 지도·marker 표시 (서버 geocode + client map)
+4. key/secret 제거 local에서 placeholder fallback
 
-**지도 미표시 진단 (6항목 — env 이름이 아닌 동작 기준):**
+**지도 미표시 진단:**
 
 | # | 확인 항목 | 정상 | fallback만 보일 때 |
 |---|-----------|------|-------------------|
-| 1 | PR #47 이후 main **redeploy** | Railway 최신 커밋(`98dcf0e` 이후 fix 포함) 배포됨 | 구버전 번들 — **Redeploy** |
-| 2 | `NEXT_PUBLIC_*` **build-time** 반영 | 빌드 로그·번들에 key 존재 | env 추가만 하고 rebuild 안 함 → `canEmbedMap=false`, **script 요청 없음** |
-| 3 | naver **script network** | DevTools Network에 `maps.js?ncpKeyId=...&submodules=geocoder` **200** | 요청 없음=키 미번들 / **4xx·authFailure**=Client ID·Web URL 등록 |
-| 4 | **onJSContentLoaded** 대기 | callback 또는 `jsContentLoaded` 후 geocode 호출 | `script.onload` 직후 geocode → geocoder 미준비로 실패 (PR #47 main 버그) |
-| 5 | public DTO **road/jibun** | organizer 주소 저장 후 API 응답에 필드 존재 | `sample-open-2026` seed는 `location`만 — geocode는 장소명(`올림픽공원 체조경기장`)으로 시도 |
-| 6 | **geocode fallback** 순서 | road → road+detail → jibun → name+road → name → location | 앞 쿼리 실패 시 다음 순서 자동 시도; 전부 실패 시 placeholder |
+| 1 | Railway **redeploy** | 최신 main 배포됨 | 구버전 번들 — **Redeploy** |
+| 2 | `NEXT_PUBLIC_*` **build-time** | 번들에 Client ID 존재 | env 추가만 하고 rebuild 안 함 |
+| 3 | `NAVER_MAP_NCP_KEY_SECRET` (서버) | Railway Variables에 설정 | geocode 실패 → 좌표 null → placeholder |
+| 4 | naver **script network** | `maps.js?ncpKeyId=...` **200** (geocoder submodule 없음) | 4xx·authFailure=Client ID·Web URL |
+| 5 | public DTO **venueMapLat/Lng** | geocode 성공 시 좌표 포함 | road/jibun/name/location 순 fallback geocode |
+| 6 | **geocode query** 순서 | road → road+detail → jibun → name+road → name → location | 전부 실패 시 placeholder |
 
-개발 모드에서 지도 컨테이너 `data-map-status` 값으로 단계 확인: `script-loading` → `script-loaded` → `geocode-running` → `map-ready` (실패 시 `geocode-failed` / `script-failed` / `missing-key`).
+개발 모드 `data-map-status`: `script-loading` → `script-loaded` → `map-ready` (좌표 없으면 `no-coords`, 실패 시 `script-failed` / `missing-key`).
 
 **대회 생성 UX 테스트 (schema 변경 없음):**
 

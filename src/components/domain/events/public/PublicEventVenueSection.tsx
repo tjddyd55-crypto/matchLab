@@ -19,9 +19,10 @@ export function PublicEventVenueSection({
     location: event.location,
   });
 
+  const displayAddress = venue.roadAddress?.trim() || venue.location?.trim() || null;
   const mapQuery = buildMapSearchQuery(venue);
 
-  if (!mapQuery && !venue.location?.trim()) {
+  if (!mapQuery && !displayAddress && !venue.locationName?.trim()) {
     return null;
   }
 
@@ -31,6 +32,8 @@ export function PublicEventVenueSection({
     jibunAddress: venue.jibunAddress,
     location: venue.location,
   };
+
+  const markerTitle = venue.locationName?.trim() || event.title;
 
   return (
     <section className="min-w-0 space-y-4 rounded-xl border p-4 md:p-5">
@@ -44,20 +47,14 @@ export function PublicEventVenueSection({
       <dl className="grid min-w-0 gap-3 text-sm sm:grid-cols-2">
         {venue.locationName ? (
           <div className="min-w-0">
-            <dt className="text-muted-foreground text-xs">장소명</dt>
+            <dt className="text-muted-foreground text-xs">장소</dt>
             <dd className="font-medium break-words">{venue.locationName}</dd>
           </div>
         ) : null}
-        {venue.roadAddress ? (
+        {displayAddress ? (
           <div className="min-w-0 sm:col-span-2">
-            <dt className="text-muted-foreground text-xs">도로명 주소</dt>
-            <dd className="break-words">{venue.roadAddress}</dd>
-          </div>
-        ) : null}
-        {venue.jibunAddress ? (
-          <div className="min-w-0 sm:col-span-2">
-            <dt className="text-muted-foreground text-xs">지번 주소</dt>
-            <dd className="break-words">{venue.jibunAddress}</dd>
+            <dt className="text-muted-foreground text-xs">주소</dt>
+            <dd className="break-words">{displayAddress}</dd>
           </div>
         ) : null}
         {venue.detailAddress ? (
@@ -69,12 +66,10 @@ export function PublicEventVenueSection({
       </dl>
 
       <PublicEventNaverMapPreview
-        key={mapQuery ?? "venue"}
-        locationName={venue.locationName}
-        roadAddress={venue.roadAddress}
-        jibunAddress={venue.jibunAddress}
-        detailAddress={venue.detailAddress}
-        location={venue.location}
+        key={`${event.venueMapLat ?? "x"}-${event.venueMapLng ?? "y"}`}
+        lat={event.venueMapLat}
+        lng={event.venueMapLng}
+        markerTitle={markerTitle}
       />
 
       <div className="flex flex-wrap justify-end gap-2">

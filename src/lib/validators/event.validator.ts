@@ -3,7 +3,17 @@ import { EventStatus } from "@/generated/prisma";
 
 const cuid = z.string().min(20).max(32);
 
-const dateIn = z.coerce.date();
+const dateIn = z.coerce.date({ message: "날짜 형식이 올바르지 않습니다." });
+
+const eventDateIn = z.coerce.date({ message: "대회 일시를 입력해 주세요." });
+
+const registrationStartDateIn = z.coerce.date({
+  message: "신청 시작일을 입력해 주세요.",
+});
+
+const registrationEndDateIn = z.coerce.date({
+  message: "신청 마감일을 입력해 주세요.",
+});
 
 const trimmedNullable = z
   .string()
@@ -18,7 +28,7 @@ const trimmedNullable = z
 
 const locationNameField = z
   .string()
-  .max(200)
+  .max(200, "장소명이 너무 깁니다.")
   .optional()
   .nullable()
   .transform((s) => {
@@ -29,7 +39,7 @@ const locationNameField = z
 
 const detailAddressField = z
   .string()
-  .max(300)
+  .max(300, "상세 주소가 너무 깁니다.")
   .optional()
   .nullable()
   .transform((s) => {
@@ -69,24 +79,31 @@ const eventRecordingFields = {
 /** refine/superRefine 없음 — .partial() 등 composition의 기준 */
 const createEventBaseSchema = z.object({
   organizerId: cuid.optional(),
-  title: z.string().min(1).max(200),
+  title: z
+    .string()
+    .min(1, "대회명을 입력해 주세요.")
+    .max(200, "대회명이 너무 깁니다."),
   description: z.string().max(8000).optional().nullable(),
   ...eventVenueFields,
-  eventDate: dateIn,
-  registrationStartDate: dateIn,
-  registrationEndDate: dateIn,
+  eventDate: eventDateIn,
+  registrationStartDate: registrationStartDateIn,
+  registrationEndDate: registrationEndDateIn,
   posterUrl: z.string().max(2000).optional().nullable(),
   ...eventRecordingFields,
 });
 
 const updateEventBaseSchema = z.object({
   eventId: cuid,
-  title: z.string().min(1).max(200).optional(),
+  title: z
+    .string()
+    .min(1, "대회명을 입력해 주세요.")
+    .max(200, "대회명이 너무 깁니다.")
+    .optional(),
   description: z.string().max(8000).optional().nullable(),
   ...eventVenueFields,
-  eventDate: dateIn.optional(),
-  registrationStartDate: dateIn.optional(),
-  registrationEndDate: dateIn.optional(),
+  eventDate: eventDateIn.optional(),
+  registrationStartDate: registrationStartDateIn.optional(),
+  registrationEndDate: registrationEndDateIn.optional(),
   posterUrl: z.string().max(2000).optional().nullable(),
   photoRecordingEnabled: z.boolean().optional(),
   videoRecordingEnabled: z.boolean().optional(),

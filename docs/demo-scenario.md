@@ -71,7 +71,8 @@ MVP 범위는 `docs/mvp-scope.md`를 기준으로 하며, 본 문서는 **시연
 4. **organizer** — `/organizer/events/{eventId}/applications` → 페이지 **가로 스크롤 없음**, Drawer·승인/반려/입금 action 확인.
 5. **organizer** — `/organizer/events/{eventId}/judges` → 심판 계정 생성 → `reset` 오류 없이 목록 갱신 확인.
 6. **spectator** — `/events/sample-open-2026` Hero **지도 버튼 없음** 확인.
-7. **spectator** — 행사 안내(`?tab=overview`) **오시는 길**에 도로명 주소 표시 + 지도 preview + 「네이버 지도에서 보기」 1개.
+7. **spectator** — 행사 안내(`?tab=overview`) **오시는 길**에 장소명·도로명 주소·상세 주소 표시 + **서버 geocode 기반** 지도 preview·marker + 「네이버 지도에서 보기」 1개.
+8. **spectator** — API key/secret 미설정 환경에서 오시는 길 **fallback 카드** + 링크 버튼 정상 확인.
 
 ### 1.4b 스태프 모바일 결과 입력
 
@@ -96,7 +97,7 @@ MVP 범위는 `docs/mvp-scope.md`를 기준으로 하며, 본 문서는 **시연
 
 1. **spectator** — `/events/sample-open-2026` Hero·행사 안내 탭에서 **신청 마감 D-day** 뱃지 확인.
 2. **참가비·입금 안내** — 행사 안내 탭 요약·입금 안내 섹션에 참가비·입금 문구 표시. **계좌번호·크레딧·ledger 미노출**.
-3. **지도 링크** — 장소 옆 **네이버 지도에서 보기** 클릭 시 `map.naver.com/p/search/...` 새 탭(`rel=noopener noreferrer`). 행사 안내 탭에 지도 미리보기(API 키 있으면 실제 지도).
+3. **지도 링크** — 장소 옆 **네이버 지도에서 보기** 클릭 시 `map.naver.com/p/search/...` 새 탭(`rel=noopener noreferrer`). 행사 안내 탭 지도 미리보기는 **서버 geocode 좌표 + client Map/Marker** (실패 시 fallback 카드).
 4. **대진표/결과 뱃지** — 탭 위·요약 카드·목록 카드에 「대진표 공개/준비 중」「결과 공개/준비 중/없음」 표시.
 5. PC·모바일(390px)에서 요약 박스·뱃지 줄바꿈 확인.
 

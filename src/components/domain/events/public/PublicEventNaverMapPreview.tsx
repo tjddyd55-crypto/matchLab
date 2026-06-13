@@ -3,7 +3,6 @@
 import { useEffect, useId, useRef, useState } from "react";
 import { MapPin } from "lucide-react";
 import {
-  geocodeVenueWithFallback,
   isNaverMapConfigured,
   loadNaverMapsScript,
   type NaverMapEmbedStatus,
@@ -12,7 +11,7 @@ import { cn } from "@/lib/utils";
 
 function MapPlaceholder({ hint }: { hint?: string }) {
   return (
-    <div className="bg-muted/30 flex min-h-[220px] flex-col items-center justify-center gap-3 rounded-lg border border-dashed px-4 py-8 text-center md:min-h-[320px]">
+    <div className="bg-muted/30 flex min-h-[240px] flex-col items-center justify-center gap-3 rounded-lg border border-dashed px-4 py-8 text-center md:min-h-[320px]">
       <MapPin className="text-muted-foreground size-10" aria-hidden />
       <p className="text-muted-foreground max-w-sm text-xs leading-relaxed">
         {hint ??
@@ -51,19 +50,27 @@ function waitForLayout(): Promise<void> {
   });
 }
 
+function hasValidCoords(
+  lat: number | null | undefined,
+  lng: number | null | undefined,
+): lat is number {
+  return (
+    typeof lat === "number" &&
+    typeof lng === "number" &&
+    Number.isFinite(lat) &&
+    Number.isFinite(lng)
+  );
+}
+
 export function PublicEventNaverMapPreview({
-  locationName,
-  roadAddress,
-  jibunAddress,
-  detailAddress,
-  location,
+  lat,
+  lng,
+  markerTitle,
   className,
 }: {
-  locationName?: string | null;
-  roadAddress?: string | null;
-  jibunAddress?: string | null;
-  detailAddress?: string | null;
-  location?: string | null;
+  lat?: number | null;
+  lng?: number | null;
+  markerTitle?: string | null;
   className?: string;
 }) {
   const mapId = useId().replace(/:/g, "");
@@ -73,25 +80,27 @@ export function PublicEventNaverMapPreview({
   } | null>(null);
   const markerRef = useRef<{ setMap: (map: unknown) => void } | null>(null);
 
-  const hasAddress = Boolean(
-    roadAddress?.trim() ||
-      jibunAddress?.trim() ||
-      locationName?.trim() ||
-      location?.trim(),
-  );
+  const coordsReady = hasValidCoords(lat, lng);
+  const canEmbedMap = coordsReady && isNaverMapConfigured();
 
-  const canEmbedMap = hasAddress && isNaverMapConfigured();
   const [embedState, setEmbedState] = useState<"loading" | "ready" | "failed">(
     () => (canEmbedMap ? "loading" : "failed"),
   );
   const [debugStatus, setDebugStatus] = useState<NaverMapEmbedStatus | "idle">(
-    () => (canEmbedMap ? "script-loading" : "missing-key"),
+    () =>
+      !coordsReady
+        ? "no-coords"
+        : canEmbedMap
+          ? "script-loading"
+          : "missing-key",
   );
 
   useEffect(() => {
-    if (!canEmbedMap) return;
+    if (!canEmbedMap || !coordsReady) return;
 
     let cancelled = false;
+    const mapLat = lat as number;
+    const mapLng = lng as number;
 
     void (async () => {
       setEmbedState("loading");
@@ -107,7 +116,7 @@ export function PublicEventNaverMapPreview({
         );
         if (cancelled) return;
 
-        if (!window.naver?.maps?.Service?.geocode) {
+        if (!window.naver?.maps?.Map) {
           setDebugStatus("naver-not-ready");
           throw new Error("NAVER_MAP_UNAVAILABLE");
         }
@@ -115,19 +124,8 @@ export function PublicEventNaverMapPreview({
         await waitForLayout();
         if (cancelled) return;
 
-        setDebugStatus("geocode-running");
-        const { coords } = await geocodeVenueWithFallback({
-          locationName,
-          roadAddress,
-          jibunAddress,
-          detailAddress,
-          location,
-        });
-
-        if (cancelled) return;
-
         const { LatLng, Map, Marker } = window.naver.maps;
-        const center = new LatLng(coords.lat, coords.lng);
+        const center = new LatLng(mapLat, mapLng);
 
         if (!mapInstanceRef.current) {
           mapInstanceRef.current = new Map(container, {
@@ -137,7 +135,7 @@ export function PublicEventNaverMapPreview({
           markerRef.current = new Marker({
             position: center,
             map: mapInstanceRef.current,
-            title: locationName?.trim() || location?.trim() || undefined,
+            title: markerTitle?.trim() || undefined,
           }) as { setMap: (map: unknown) => void };
         } else {
           mapInstanceRef.current.setCenter(center);
@@ -147,6 +145,7 @@ export function PublicEventNaverMapPreview({
             markerRef.current = new Marker({
               position: center,
               map: mapInstanceRef.current,
+              title: markerTitle?.trim() || undefined,
             }) as { setMap: (map: unknown) => void };
           }
         }
@@ -161,11 +160,7 @@ export function PublicEventNaverMapPreview({
         }
         if (!cancelled) {
           setEmbedState("failed");
-          setDebugStatus(
-            e instanceof Error && e.message.includes("GEOCODE")
-              ? "geocode-failed"
-              : "script-failed",
-          );
+          setDebugStatus("script-failed");
         }
       }
     })();
@@ -173,16 +168,15 @@ export function PublicEventNaverMapPreview({
     return () => {
       cancelled = true;
     };
-  }, [
-    canEmbedMap,
-    locationName,
-    roadAddress,
-    jibunAddress,
-    detailAddress,
-    location,
-  ]);
+  }, [canEmbedMap, coordsReady, lat, lng, markerTitle]);
 
-  if (!hasAddress) return null;
+  if (!coordsReady && !isNaverMapConfigured()) {
+    return <MapPlaceholder />;
+  }
+
+  if (!coordsReady) {
+    return <MapPlaceholder />;
+  }
 
   const mapStatusAttr =
     process.env.NODE_ENV === "development" ? debugStatus : undefined;
@@ -207,9 +201,7 @@ export function PublicEventNaverMapPreview({
         aria-hidden={embedState !== "ready"}
         aria-label={
           embedState === "ready"
-            ? [locationName, roadAddress, jibunAddress, detailAddress, location]
-                .filter(Boolean)
-                .join(" ") || "행사 장소 지도"
+            ? markerTitle?.trim() || "행사 장소 지도"
             : undefined
         }
       />

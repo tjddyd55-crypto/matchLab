@@ -29,6 +29,7 @@ const readOnlyInputClass =
 export function EventAddressInput({
   initial,
   namePrefix = "",
+  fieldErrors,
 }: {
   initial?: {
     postalCode?: string | null;
@@ -40,8 +41,10 @@ export function EventAddressInput({
   };
   /** 폼에 필드명 접두사가 필요하면 지정 */
   namePrefix?: string;
+  fieldErrors?: Record<string, string[]>;
 }) {
   const pk = (k: string) => (namePrefix ? `${namePrefix}${k}` : k);
+  const fieldError = (name: string) => fieldErrors?.[name]?.[0];
 
   const [postalCode, setPostalCode] = useState(initial?.postalCode ?? "");
   const [roadAddress, setRoadAddress] = useState(initial?.roadAddress ?? "");
@@ -57,7 +60,9 @@ export function EventAddressInput({
 
   const openSearch = () => {
     if (typeof window === "undefined" || !window.daum?.Postcode) {
-      window.alert("주소 검색 스크립트를 불러오는 중입니다. 잠시 후 다시 시도해 주세요.");
+      window.alert(
+        "주소 검색 스크립트를 불러오는 중입니다. 잠시 후 다시 시도해 주세요.",
+      );
       return;
     }
     new window.daum.Postcode({
@@ -70,6 +75,8 @@ export function EventAddressInput({
     }).open();
   };
 
+  const roadDisplay = roadAddress;
+
   return (
     <div className="md:col-span-2 space-y-3 rounded-lg border bg-muted/20 p-3">
       <Script
@@ -80,23 +87,12 @@ export function EventAddressInput({
       <input type="hidden" name={pk("jibunAddress")} value={jibunAddress} />
       <input type="hidden" name={pk("roadAddress")} value={roadAddress} />
 
-      <div className="flex flex-wrap items-center justify-between gap-2">
+      <div className="space-y-1">
         <span className="text-sm font-medium">개최 장소</span>
-        <button
-          type="button"
-          className={cn(
-            "border-input bg-background inline-flex h-9 items-center rounded-md border px-3 text-sm shadow-sm hover:bg-muted/50",
-          )}
-          onClick={openSearch}
-        >
-          주소 검색
-        </button>
+        <p className="text-muted-foreground text-[11px] leading-relaxed">
+          주소는 검색으로 선택해 주세요. 상세 주소만 직접 입력해 주세요.
+        </p>
       </div>
-
-      <p className="text-muted-foreground text-[11px] leading-relaxed">
-        주소는 검색으로 선택해 주세요. 장소명과 상세 주소(동·호수·층 등)는 직접
-        입력할 수 있습니다.
-      </p>
 
       <label className="block space-y-1 text-sm">
         <span className="text-muted-foreground text-xs">장소명</span>
@@ -108,47 +104,43 @@ export function EventAddressInput({
           maxLength={200}
           placeholder="예: 올림픽공원 체조경기장, OO 체육관"
           className={inputClass}
+          aria-invalid={Boolean(fieldError("locationName"))}
         />
-        <span className="text-muted-foreground text-[11px]">
-          장소명은 직접 입력할 수 있습니다.
-        </span>
+        {fieldError("locationName") ? (
+          <span className="text-destructive text-xs">
+            {fieldError("locationName")}
+          </span>
+        ) : null}
       </label>
 
-      <label className="block space-y-1 text-sm">
-        <span className="text-muted-foreground text-xs">우편번호</span>
-        <input
-          readOnly
-          tabIndex={-1}
-          value={postalCode}
-          placeholder="주소 검색으로 선택"
-          className={readOnlyInputClass}
-          aria-readonly
-        />
-      </label>
-
-      <label className="block space-y-1 text-sm">
-        <span className="text-muted-foreground text-xs">도로명 주소</span>
-        <input
-          readOnly
-          tabIndex={-1}
-          value={roadAddress}
-          placeholder="주소 검색으로 선택해 주세요."
-          className={readOnlyInputClass}
-          aria-readonly
-        />
-      </label>
-
-      <label className="block space-y-1 text-sm">
-        <span className="text-muted-foreground text-xs">지번 주소</span>
-        <input
-          readOnly
-          tabIndex={-1}
-          value={jibunAddress}
-          placeholder="주소 검색 후 표시됩니다."
-          className={readOnlyInputClass}
-          aria-readonly
-        />
-      </label>
+      <div className="space-y-1 text-sm">
+        <span className="text-muted-foreground text-xs">주소</span>
+        <div className="flex flex-col gap-2 sm:flex-row sm:items-center">
+          <input
+            readOnly
+            tabIndex={-1}
+            value={roadDisplay}
+            placeholder="주소 검색으로 선택해 주세요."
+            className={cn(readOnlyInputClass, "sm:flex-1")}
+            aria-readonly
+            aria-invalid={Boolean(fieldError("roadAddress"))}
+          />
+          <button
+            type="button"
+            className={cn(
+              "border-input bg-background inline-flex h-9 shrink-0 items-center justify-center rounded-md border px-3 text-sm shadow-sm hover:bg-muted/50",
+            )}
+            onClick={openSearch}
+          >
+            주소 검색
+          </button>
+        </div>
+        {fieldError("roadAddress") ? (
+          <span className="text-destructive text-xs">
+            {fieldError("roadAddress")}
+          </span>
+        ) : null}
+      </div>
 
       <label className="block space-y-1 text-sm">
         <span className="text-muted-foreground text-xs">상세 주소</span>
@@ -157,19 +149,16 @@ export function EventAddressInput({
           onChange={(e) => setDetailAddress(e.target.value)}
           name={pk("detailAddress")}
           maxLength={300}
-          placeholder="예: 3층, A동, 101호"
+          placeholder="예: 1층, A동, 체육관 입구"
           className={inputClass}
+          aria-invalid={Boolean(fieldError("detailAddress"))}
         />
-        <span className="text-muted-foreground text-[11px]">
-          상세 주소는 동·호수·층 등을 입력해 주세요.
-        </span>
+        {fieldError("detailAddress") ? (
+          <span className="text-destructive text-xs">
+            {fieldError("detailAddress")}
+          </span>
+        ) : null}
       </label>
-
-      <p className="text-muted-foreground text-[11px] leading-relaxed">
-        저장 시 도로명 주소와 상세 주소가 조합되어 장소 정보로 저장됩니다. 공개
-        전까지 비워 두어도 되며, 신청 공개(OPEN) 전에는 주소 검색으로 선택한
-        도로명 주소가 필요합니다.
-      </p>
     </div>
   );
 }
