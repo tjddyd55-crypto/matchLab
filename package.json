@@ -16,7 +16,9 @@
     "repair:demo-gym": "tsx scripts/repair-gym-fighter-affiliations.ts",
     "seed:demo-fighters": "tsx scripts/seed-demo-fighters.ts",
     "setup:bracket-demo-data": "tsx scripts/setup-bracket-demo-data.ts",
-    "setup:demo-org-gym-fighters": "tsx scripts/setup-demo-org-gym-fighters.ts"
+    "setup:demo-org-gym-fighters": "tsx scripts/setup-demo-org-gym-fighters.ts",
+    "verify:judge-schema": "tsx scripts/verify-judge-schema-after-push.ts",
+    "e2e:judge-identity": "tsx scripts/e2e-judge-identity-smoke.ts"
   },
   "prisma": {
     "seed": "tsx prisma/seed.ts"

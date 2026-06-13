@@ -149,6 +149,19 @@ GitHub → Railway 배포가 성공해도 **Postgres는 빈 DB**입니다. `publ
 - 채점 제출 snapshot: `judgeName`(=`judgeNameSnapshot`), `judgeBirthDateSnapshot`, `judgeRoleSnapshot`, `submittedIp`, `submittedUserAgent`
 - 수정 이력: `JudgeScorecardChangeLog` — `draft_save` / `submit` / `revise`, 이전·신규 점수, `changedByJudgeCredentialId`, IP/UA (hard delete 금지)
 
+**PR #53 Railway schema 반영·검증 (main 머지 전, `db:seed` 금지):**
+
+```bash
+# Railway app Web Service Shell — DATABASE_PUBLIC_URL 이 DATABASE_URL 로 설정된 상태
+npm run db:push
+npm run verify:judge-schema
+npm run e2e:judge-identity
+```
+
+- `verify:judge-schema` — 컬럼·테이블·enum·기존 row count·Prisma P2022 smoke
+- `e2e:judge-identity` — A/B 격리·본인 확인 gate·revised 집계·MatchResult 잠금 (서비스 계층 repository 스모크)
+- 수동 UI E2E: `docs/demo-scenario.md` §1.4d (배포 URL + PR #53 코드 반영 후)
+
 **스태프 모바일 결과 입력 테스트 (schema 변경 없음):**
 
 1. `organizer` 로그인 → `/organizer/events/{eventId}` → **결과 입력 링크 (스태프)** 섹션에서 링크 생성(임시 입력·확정 권한 설정).
