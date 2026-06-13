@@ -23,6 +23,8 @@ export type JudgeAssignmentRow = {
     id: string;
     loginId: string;
     displayName: string | null;
+    verifiedName: string | null;
+    role: import("@/generated/prisma").JudgeCredentialRole;
   } | null;
 };
 
@@ -32,7 +34,13 @@ export const judgeAssignmentRepository = {
       where: { eventId, isActive: true },
       include: {
         credential: {
-          select: { id: true, loginId: true, displayName: true },
+          select: {
+            id: true,
+            loginId: true,
+            displayName: true,
+            verifiedName: true,
+            role: true,
+          },
         },
       },
       orderBy: [{ matchId: "asc" }, { judgeOrder: "asc" }],
@@ -44,7 +52,13 @@ export const judgeAssignmentRepository = {
       where: { matchId, isActive: true },
       include: {
         credential: {
-          select: { id: true, loginId: true, displayName: true },
+          select: {
+            id: true,
+            loginId: true,
+            displayName: true,
+            verifiedName: true,
+            role: true,
+          },
         },
       },
       orderBy: { judgeOrder: "asc" },
@@ -56,7 +70,13 @@ export const judgeAssignmentRepository = {
       where: { credentialId, isActive: true },
       include: {
         credential: {
-          select: { id: true, loginId: true, displayName: true },
+          select: {
+            id: true,
+            loginId: true,
+            displayName: true,
+            verifiedName: true,
+            role: true,
+          },
         },
       },
       orderBy: { judgeOrder: "asc" },
@@ -68,7 +88,13 @@ export const judgeAssignmentRepository = {
       where: { id },
       include: {
         credential: {
-          select: { id: true, loginId: true, displayName: true },
+          select: {
+            id: true,
+            loginId: true,
+            displayName: true,
+            verifiedName: true,
+            role: true,
+          },
         },
       },
     }) as Promise<JudgeAssignmentRow | null>;
@@ -94,7 +120,13 @@ export const judgeAssignmentRepository = {
       },
       include: {
         credential: {
-          select: { id: true, loginId: true, displayName: true },
+          select: {
+            id: true,
+            loginId: true,
+            displayName: true,
+            verifiedName: true,
+            role: true,
+          },
         },
       },
     }) as Promise<JudgeAssignmentRow>;

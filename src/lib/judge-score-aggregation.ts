@@ -2,10 +2,12 @@ import type { JudgeWinnerCorner } from "@/generated/prisma";
 
 export type JudgeScorecardAggregateInput = {
   judgeName: string;
+  roleLabel?: string;
   redTotal: number | null;
   blueTotal: number | null;
   winnerCorner: JudgeWinnerCorner;
   submitted: boolean;
+  submittedAt?: string | null;
 };
 
 export type JudgeMatchAggregationVM = {
@@ -14,10 +16,12 @@ export type JudgeMatchAggregationVM = {
   pendingJudgeNames: string[];
   scorecards: {
     judgeName: string;
+    roleLabel?: string;
     redTotal: number | null;
     blueTotal: number | null;
     winnerCorner: JudgeWinnerCorner;
     submitted: boolean;
+    submittedAt?: string | null;
   }[];
   redVoteCount: number;
   blueVoteCount: number;
@@ -107,10 +111,12 @@ export function aggregateJudgeScorecards(
     pendingJudgeNames,
     scorecards: scorecards.map((s) => ({
       judgeName: s.judgeName,
+      roleLabel: s.roleLabel,
       redTotal: s.redTotal,
       blueTotal: s.blueTotal,
       winnerCorner: s.winnerCorner,
       submitted: s.submitted,
+      submittedAt: s.submittedAt,
     })),
     redVoteCount: redVotes,
     blueVoteCount: blueVotes,

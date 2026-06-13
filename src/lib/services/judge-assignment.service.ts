@@ -33,7 +33,12 @@ export const judgeAssignmentService = {
     const scorecards = await judgeScorecardRepository.listByEvent(eventId);
     const submittedKeys = new Set(
       scorecards
-        .filter((s) => s.status === "submitted" || s.status === "locked")
+        .filter(
+          (s) =>
+            s.status === "submitted" ||
+            s.status === "revised" ||
+            s.status === "locked",
+        )
         .map((s) => `${s.matchId}:${s.credentialId}`),
     );
 
@@ -132,7 +137,9 @@ export const judgeAssignmentService = {
         row.credentialId,
       );
       hadSubmittedScorecard =
-        card?.status === "submitted" || card?.status === "locked";
+        card?.status === "submitted" ||
+        card?.status === "revised" ||
+        card?.status === "locked";
     }
 
     await judgeAssignmentRepository.deactivate(assignmentId);

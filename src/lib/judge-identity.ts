@@ -1,0 +1,43 @@
+import type { JudgeCredentialRole } from "@/generated/prisma";
+
+/** YYYY-MM-DD */
+export function formatBirthDateInput(d: Date): string {
+  return d.toISOString().slice(0, 10);
+}
+
+export function parseBirthDateInput(value: string): Date | null {
+  const trimmed = value.trim();
+  if (!/^\d{4}-\d{2}-\d{2}$/.test(trimmed)) return null;
+  const d = new Date(`${trimmed}T00:00:00.000Z`);
+  if (Number.isNaN(d.getTime())) return null;
+  return d;
+}
+
+/** 공개/집계 화면용 — 1990-05-15 → 1990-**-** */
+export function maskBirthDate(isoDate: string | null | undefined): string | null {
+  if (!isoDate?.trim()) return null;
+  const m = /^(\d{4})-\d{2}-\d{2}$/.exec(isoDate.trim());
+  if (!m) return null;
+  return `${m[1]}-**-**`;
+}
+
+export const JUDGE_ROLE_LABELS: Record<JudgeCredentialRole, string> = {
+  SCORING_JUDGE: "채점 심판",
+  HEAD_JUDGE: "주심/최종 판정",
+  ANNOUNCER: "결과 발표",
+};
+
+export function judgeDefaultRoute(role: JudgeCredentialRole): string {
+  switch (role) {
+    case "HEAD_JUDGE":
+      return "/judge/review";
+    case "ANNOUNCER":
+      return "/judge/results";
+    default:
+      return "/judge/matches";
+  }
+}
+
+export function judgeRoleCanScore(role: JudgeCredentialRole): boolean {
+  return role === "SCORING_JUDGE";
+}

@@ -137,6 +137,9 @@
 - [x] 주최자: **결과 입력 스태프 링크** 발급·폐기(토큰 URL `/staff/result/[token]/matches`, 로그인 없음).
 - [x] **스태프 모바일 결과 입력 MVP** — `/staff/result/[token]/matches` 카드 목록·요약·필터·Bottom Sheet 결과 입력(`StaffMatchResultForm` → 기존 staff 액션). 민감정보 미노출. 경기 운영 보드에서 링크 복사 안내.
 - [x] **심판 라운드별 채점 MVP** — `JudgeAccessCredential`·`JudgeMatchAssignment`·`JudgeScorecard`·`JudgeRoundScore`(MatchResult와 분리). 주최자 `/organizer/events/[eventId]/judges`에서 계정·배정, 심판 `/judge/login` → 라운드별 홍/청 점수·감점·다운·메모·전송. 운영 Drawer에서 제출 집계·다수결 추천(참고용). **최종 확정은 기존 `confirmMatchResults` 흐름 유지**.
+- [x] **심판 본인 확인** — 로그인 후 `/judge/verify`에서 성함·생년월일(YYYY-MM-DD) 확인/입력. `JudgeAccessCredential.verifiedName`·`birthDate`·`identityConfirmedAt`/IP/UA. 본인 확인 전 `/judge/matches`·채점·review·results 접근 차단. 생년월일 공개 페이지·발표 화면 미노출(관리 UI는 마스킹).
+- [x] **심판 역할 분리** — `JudgeCredentialRole`: SCORING_JUDGE(배정 경기 채점) / HEAD_JUDGE(`/judge/review` 집계) / ANNOUNCER(`/judge/results` read-only). SCORING_JUDGE는 배정 경기만 목록·URL 접근.
+- [x] **채점 기록 감사 추적** — 제출 시 `judgeCredentialId`·`judgeNameSnapshot`·`judgeBirthDateSnapshot`·`judgeRoleSnapshot`·`submittedAt`/IP/UA. 수정 시 `JudgeScorecardChangeLog`(이전·신규 점수, `changedByJudgeCredentialId`, IP/UA). hard delete 금지. 경기 최종 확정 전까지 수정 가능(`revised` 상태).
 - [x] **심판 수 정책** — 1~5명 허용, 3·5명 권장. 짝수 심판 동점 시 자동 확정 없음, 주최자/주심 최종 확정.
 - [x] 주최자: **현장 확인·계체** (`/organizer/events/[eventId]/check-in`) — 승인 신청자 대상 `CheckInStatus` / `WeighInStatus` 기록, **선수명·체육관·부문·체급 검색**, 몸무게·메모 저장 피드백, 단계별 액션(현장/계체/출전/대진 처리).
 - [x] 체육관: **현장 상태 조회** (`/gym/events/[eventId]/field-status`, 읽기 전용).

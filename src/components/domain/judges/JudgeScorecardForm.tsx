@@ -1,6 +1,6 @@
 "use client";
 
-import { useMemo, useState, useTransition } from "react";
+import { useMemo, useState } from "react";
 import { useRouter } from "next/navigation";
 import { saveJudgeScorecardAction } from "@/features/judge/actions";
 import { Button } from "@/components/ui/button";
@@ -40,11 +40,17 @@ function parseIntNonNeg(v: string): number {
   return Math.round(n);
 }
 
-export function JudgeScorecardForm({ form }: { form: JudgeScorecardFormVM }) {
+export function JudgeScorecardForm({
+  form,
+  verifiedName,
+}: {
+  form: JudgeScorecardFormVM;
+  verifiedName?: string | null;
+}) {
   const router = useRouter();
-  const [pending, startTransition] = useTransition();
+  const [pending, setPending] = useState(false);
   const [error, setError] = useState<string | null>(null);
-  const [judgeName, setJudgeName] = useState(form.judgeName);
+  const judgeName = verifiedName?.trim() || form.judgeName;
   const [decisionMethod, setDecisionMethod] = useState(
     form.decisionMethod ?? "",
   );
@@ -60,9 +66,10 @@ export function JudgeScorecardForm({ form }: { form: JudgeScorecardFormVM }) {
     );
   }
 
-  function save(submit: boolean) {
+  async function save(submit: boolean) {
     setError(null);
-    startTransition(async () => {
+    setPending(true);
+    try {
       const fd = new FormData();
       fd.set("matchId", form.matchId);
       fd.set("judgeName", judgeName);
@@ -76,8 +83,13 @@ export function JudgeScorecardForm({ form }: { form: JudgeScorecardFormVM }) {
         return;
       }
       router.refresh();
-      if (submit) router.push("/judge/matches");
-    });
+      if (submit) {
+        window.location.assign("/judge/matches");
+        return;
+      }
+    } finally {
+      setPending(false);
+    }
   }
 
   const inputClass =
@@ -111,17 +123,11 @@ export function JudgeScorecardForm({ form }: { form: JudgeScorecardFormVM }) {
         </div>
       </header>
 
-      <label className="flex flex-col gap-1 text-sm">
-        <span className="text-muted-foreground text-xs">심판 이름</span>
-        <input
-          value={judgeName}
-          onChange={(e) => setJudgeName(e.target.value)}
-          disabled={readOnly}
-          required
-          className={inputClass}
-          placeholder="본인 이름을 입력하세요"
-        />
-      </label>
+      <div className="rounded-lg border bg-muted/20 px-3 py-2 text-sm">
+        <p className="text-muted-foreground text-xs">채점 심판 (본인 확인)</p>
+        <p className="font-medium">{judgeName || "—"}</p>
+        <input type="hidden" name="judgeName" value={judgeName} readOnly />
+      </div>
 
       <p className="text-muted-foreground text-xs leading-relaxed">
         10점 감점제 기준입니다. 감점(deductions)은 총점에서 자동 차감됩니다.

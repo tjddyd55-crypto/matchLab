@@ -23,7 +23,7 @@ export function JudgeLoginForm() {
             setError(res.error.message);
             return;
           }
-          router.push("/judge/matches");
+          router.push(res.data.redirectTo);
           router.refresh();
         });
       }}

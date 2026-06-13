@@ -7,7 +7,7 @@ MVP 범위는 `docs/mvp-scope.md`를 기준으로 하며, 본 문서는 **시연
 아래 순서로 로그인을 바꿔 가며 한 바퀴 돌리면, 미팅 때 흐름이 끊기지 않기 쉽다.
 
 1. **`/login` → admin** — `/admin` 개요, 최근 위젯, `/admin/events` … `/admin/audit-logs` 목록까지 훑기.
-2. **`/login` → organizer** — `/organizer` 홈 → **내 대회**에서 시드 대회 상세 진입 → 신청자 관리·대진표·**심판 관리**(`/organizer/events/{eventId}/judges`)·**경기 운영**(`/organizer/events/{eventId}/operation`)·결과·라이브(읽기) 순. 심판 계정 3개 생성 → 경기 1개에 심판 배정 → `/judge/login`으로 채점·전송 → 운영 Drawer **심판 채점 집계** 확인 → **진행 시작 → 경기 종료 → 결과 입력** 후 공개 `/events/{slug}/results` 반영 확인. (선택: 행사 상세에서 **결과 입력 스태프 링크** 발급 후 시크릿 창에서 `/staff/result/…/matches` 확인.)
+2. **`/login` → organizer** — `/organizer` 홈 → **내 대회**에서 시드 대회 상세 진입 → 신청자 관리·대진표·**심판 관리**(`/organizer/events/{eventId}/judges`)·**경기 운영**(`/organizer/events/{eventId}/operation`)·결과·라이브(읽기) 순. 심판 A/B/C(채점 심판) + 주심 1명 + 결과 발표자 1명 생성 → 경기 배정 → **같은 브라우저**에서 A/B/C 각각 `/judge/login` → **`/judge/verify` 성함·생년월일 확인** → 배정 경기 채점·전송 → B/C 격리 확인 → 주심 `/judge/review` 집계 → 발표자 `/judge/results` read-only → 운영 Drawer **심판 채점 집계** 확인 → **진행 시작 → 경기 종료 → 결과 입력** 후 공개 `/events/{slug}/results` 반영 확인. (선택: 행사 상세에서 **결과 입력 스태프 링크** 발급 후 시크릿 창에서 `/staff/result/…/matches` 확인.)
 3. **`/login` → gym** — `/gym` 현장 모드·바로가기 → 선수·초대 링크·대회 신청·신청 내역·전적.
 4. **`/login` → fighter** — `/fighter` 현장 모드 → `/fighter/events`, `/fighter/records`.
 5. **로그아웃 후 spectator** — `/`, `/events`, 시드 슬러그 **`/events/sample-open-2026`** 및 하위 `brackets` / `results` / `live`. 배포 URL 사용 시 **`NEXT_PUBLIC_APP_URL`** 을 Railway 공개 도메인으로 맞춰 QR·절대 링크가 올바른지 확인한다(`docs/deploy-railway.md`).
@@ -69,12 +69,25 @@ MVP 범위는 `docs/mvp-scope.md`를 기준으로 하며, 본 문서는 **시연
 2. **organizer** — 공식 신청서 템플릿 선택 → **템플릿 연결 저장** → 「저장 중…」에서 멈추지 않고 완료 메시지 확인.
 3. **organizer** — 관리 홈 **결과 입력 링크(스태프)** → 새 링크 생성(접속 코드·만료일 유/무) → 목록·복사 버튼 확인.
 4. **organizer** — `/organizer/events/{eventId}/applications` → 페이지 **가로 스크롤 없음**, Drawer·승인/반려/입금 action 확인.
-5. **organizer** — `/organizer/events/{eventId}/judges` → 심판 계정 생성 → `reset` 오류 없이 목록 갱신 확인.
+5. **organizer** — `/organizer/events/{eventId}/judges` → 심판 계정 생성(역할·본인 확인 상태·마스킹 생년월일·배정 경기 수) → `reset` 오류 없이 목록 갱신 확인.
 6. **spectator** — `/events/sample-open-2026` Hero **지도 버튼 없음** 확인.
 7. **spectator** — 행사 안내(`?tab=overview`) **오시는 길**에 장소명·도로명 주소·상세 주소 표시 + **서버 geocode 기반** 지도 preview·marker + 「네이버 지도에서 보기」 1개.
 8. **spectator** — API key/secret 미설정 환경에서 오시는 길 **fallback 카드** + 링크 버튼 정상 확인.
 9. **spectator** — DevTools Elements에서 지도 container `data-map-status="map-ready"` 확인 (실패 시 `data-map-error-reason` 값 확인).
 10. **spectator** — Network `maps.js` status 200 + `window.naver` 존재 + fallback overlay 미표시 확인.
+
+### 1.4d 심판 A/B/C 본인 확인·채점 격리
+
+1. **organizer** — `/organizer/events/{eventId}/judges` → 심판 A/B/C(역할: 채점 심판) 생성 → 경기 1개에 3명 배정(또는 경기별 분산 배정).
+2. **심판 A** — `/judge/login` → 로그인 성공 시 **`/judge/verify`**(본인 확인 전 `/judge/matches` 접근 차단) → 성함·생년월일(YYYY-MM-DD) 입력 → 확인 완료 → `/judge/matches` 배정 경기만 표시.
+3. **심판 A** — 채점 전송 → 로그아웃.
+4. **심판 B** — 동일 브라우저 로그인 → B 본인 확인 → B 배정 경기 채점. **A 점수 미노출·A scorecard 수정 불가** 확인.
+5. **심판 C** — 동일 반복.
+6. **주심** — 역할 HEAD_JUDGE 계정 → `/judge/review` — A/B/C 심판명·제출 시간·홍/청 총점·승자가 **각각 분리** 표시되는지 확인.
+7. **결과 발표자** — `/judge/results` read-only, 「최종 확정 전 결과는 참고용입니다.」 문구 확인.
+8. **organizer** — `/operation` Drawer 심판 집계와 주심 화면 일치 확인.
+
+> `JudgeAccessCredential` 본인 확인·`JudgeScorecardChangeLog` 감사 이력 반영 후 **`npm run db:push`** 필요. **`db:seed` 금지.**
 
 ### 1.4b 스태프 모바일 결과 입력
 
