@@ -7,8 +7,12 @@ export type NaverMapEmbedStatus =
   | "missing-key"
   | "script-loading"
   | "script-loaded"
-  | "script-failed"
+  | "callback-called"
+  | "naver-ready"
+  | "script-load-failed"
   | "naver-not-ready"
+  | "auth-failed-or-domain-not-allowed"
+  | "timeout"
   | "no-coords"
   | "map-ready";
 
@@ -17,9 +21,27 @@ const NAVER_MAP_KEY =
     ? (process.env.NEXT_PUBLIC_NAVER_MAP_NCP_KEY_ID?.trim() ?? "")
     : "";
 
-const NAVER_MAP_CALLBACK = "__matchLabNaverMapsReady";
+/** maps.js callback query — script append 전에 window에 반드시 등록 */
+export const NAVER_MAP_CALLBACK = "__matchLabNaverMapsReady";
+
+const MAPS_SCRIPT_SELECTOR = 'script[data-naver-maps="true"]';
+const NAVER_POLL_INTERVAL_MS = 50;
+const NAVER_READY_TIMEOUT_MS = 15_000;
 
 let scriptLoadPromise: Promise<void> | null = null;
+
+export class NaverMapLoadError extends Error {
+  readonly status: NaverMapEmbedStatus;
+
+  constructor(status: NaverMapEmbedStatus, cause?: unknown) {
+    super(status);
+    this.name = "NaverMapLoadError";
+    this.status = status;
+    if (cause !== undefined) {
+      this.cause = cause;
+    }
+  }
+}
 
 export function isNaverMapConfigured(): boolean {
   return NAVER_MAP_KEY.length > 0;
@@ -39,50 +61,70 @@ function mapsApiReady(): boolean {
   );
 }
 
-function waitForMapsApiInit(): Promise<void> {
+function resetScriptLoadPromise(): void {
+  scriptLoadPromise = null;
+}
+
+function ensureAuthFailureHandler(onAuthFailure: () => void): void {
+  window.navermap_authFailure = () => {
+    devWarn("auth-failed-or-domain-not-allowed");
+    onAuthFailure();
+  };
+}
+
+/**
+ * callback=__matchLabNaverMapsReady 파라미터와 쌍으로 동작합니다.
+ * script append 전에 호출해야 합니다.
+ */
+function registerMapsReadyCallback(onCalled: () => void): void {
+  window.__matchLabNaverMapsReady = () => {
+    devWarn("callback-called");
+    onCalled();
+  };
+}
+
+function pollUntilMapsApiReady(
+  timeoutMs = NAVER_READY_TIMEOUT_MS,
+): Promise<void> {
   return new Promise((resolve, reject) => {
-    if (mapsApiReady()) {
-      resolve();
-      return;
-    }
+    const started = Date.now();
 
-    const maps = window.naver?.maps;
-    if (!maps) {
-      reject(new Error("NAVER_MAP_UNAVAILABLE"));
-      return;
-    }
-
-    const finish = () => {
+    const tick = () => {
       if (mapsApiReady()) {
         resolve();
         return;
       }
-      reject(new Error("NAVER_MAP_UNAVAILABLE"));
+      if (Date.now() - started >= timeoutMs) {
+        reject(new NaverMapLoadError("timeout"));
+        return;
+      }
+      window.setTimeout(tick, NAVER_POLL_INTERVAL_MS);
     };
 
-    if (maps.jsContentLoaded === true) {
-      finish();
-      return;
-    }
-
-    const timeout = window.setTimeout(() => {
-      reject(new Error("NAVER_MAP_INIT_TIMEOUT"));
-    }, 15_000);
-
-    maps.onJSContentLoaded = () => {
-      window.clearTimeout(timeout);
-      finish();
-    };
+    tick();
   });
+}
+
+function waitForMapsAfterCallback(): Promise<void> {
+  return pollUntilMapsApiReady().catch((e) => {
+    if (e instanceof NaverMapLoadError && e.status === "timeout") {
+      throw new NaverMapLoadError("naver-not-ready", e);
+    }
+    throw e;
+  });
+}
+
+function buildMapsScriptUrl(): string {
+  return `https://oapi.map.naver.com/openapi/v3/maps.js?ncpKeyId=${encodeURIComponent(NAVER_MAP_KEY)}&callback=${NAVER_MAP_CALLBACK}`;
 }
 
 export function loadNaverMapsScript(): Promise<void> {
   if (!NAVER_MAP_KEY) {
-    return Promise.reject(new Error("NAVER_MAP_KEY_MISSING"));
+    return Promise.reject(new NaverMapLoadError("missing-key"));
   }
 
   if (typeof window === "undefined") {
-    return Promise.reject(new Error("NAVER_MAP_SSR"));
+    return Promise.reject(new NaverMapLoadError("script-load-failed"));
   }
 
   if (mapsApiReady()) {
@@ -91,60 +133,126 @@ export function loadNaverMapsScript(): Promise<void> {
 
   if (scriptLoadPromise) return scriptLoadPromise;
 
-  window.navermap_authFailure ??= () => {
-    devWarn("script-failed", "authentication failed (Client ID or service URL)");
-  };
-
   scriptLoadPromise = new Promise((resolve, reject) => {
-    const finishReady = () => {
-      waitForMapsApiInit().then(resolve).catch(reject);
+    let settled = false;
+
+    const settleResolve = () => {
+      if (settled) return;
+      settled = true;
+      resolve();
     };
 
+    const settleReject = (status: NaverMapEmbedStatus, cause?: unknown) => {
+      if (settled) return;
+      settled = true;
+      resetScriptLoadPromise();
+      reject(new NaverMapLoadError(status, cause));
+    };
+
+    const onNaverReady = () => {
+      devWarn("naver-ready");
+      settleResolve();
+    };
+
+    const onCallbackCalled = () => {
+      waitForMapsAfterCallback().then(onNaverReady).catch((e) => {
+        if (e instanceof NaverMapLoadError) {
+          settleReject(e.status, e);
+        } else {
+          settleReject("naver-not-ready", e);
+        }
+      });
+    };
+
+    ensureAuthFailureHandler(() => {
+      settleReject("auth-failed-or-domain-not-allowed");
+    });
+
+    // callback 파라미터가 있는 script URL — append 전 반드시 선등록
+    registerMapsReadyCallback(onCallbackCalled);
+
     const existing = document.querySelector<HTMLScriptElement>(
-      'script[data-naver-maps="true"]',
+      MAPS_SCRIPT_SELECTOR,
     );
 
     if (existing) {
       if (mapsApiReady()) {
-        resolve();
+        onNaverReady();
         return;
       }
+
+      // callback은 이미 등록됨 — 기존 script 로드 완료 또는 naver polling
       if (window.naver?.maps) {
-        finishReady();
-      } else {
-        existing.addEventListener("load", finishReady, { once: true });
-        existing.addEventListener(
-          "error",
-          () => reject(new Error("NAVER_MAP_SCRIPT_ERROR")),
-          { once: true },
-        );
+        onCallbackCalled();
+        return;
       }
+
+      existing.addEventListener(
+        "load",
+        () => {
+          devWarn("script-loaded");
+          onCallbackCalled();
+        },
+        { once: true },
+      );
+      existing.addEventListener(
+        "error",
+        () => settleReject("script-load-failed"),
+        { once: true },
+      );
+
+      pollUntilMapsApiReady()
+        .then(onNaverReady)
+        .catch((e) => {
+          if (e instanceof NaverMapLoadError) {
+            settleReject(e.status, e);
+          } else {
+            settleReject("naver-not-ready", e);
+          }
+        });
       return;
     }
 
-    window[NAVER_MAP_CALLBACK] = () => {
-      delete window[NAVER_MAP_CALLBACK];
-      finishReady();
-    };
+    devWarn("script-loading");
 
     const script = document.createElement("script");
-    script.src = `https://oapi.map.naver.com/openapi/v3/maps.js?ncpKeyId=${encodeURIComponent(NAVER_MAP_KEY)}&callback=${NAVER_MAP_CALLBACK}`;
+    script.src = buildMapsScriptUrl();
     script.async = true;
     script.dataset.naverMaps = "true";
-    script.onerror = () => {
-      delete window[NAVER_MAP_CALLBACK];
-      reject(new Error("NAVER_MAP_SCRIPT_ERROR"));
-    };
+    script.addEventListener(
+      "load",
+      () => {
+        devWarn("script-loaded");
+        // callback이 호출되지 않은 경우(드물게) polling fallback
+        if (!mapsApiReady()) {
+          onCallbackCalled();
+        }
+      },
+      { once: true },
+    );
+    script.addEventListener(
+      "error",
+      () => {
+        devWarn("script-load-failed");
+        settleReject("script-load-failed");
+      },
+      { once: true },
+    );
+
     document.head.appendChild(script);
   });
 
-  return scriptLoadPromise;
+  return scriptLoadPromise.catch((e) => {
+    resetScriptLoadPromise();
+    throw e;
+  });
 }
 
 export type NaverMapCoords = { lat: number; lng: number };
 
 declare global {
   interface Window {
+    __matchLabNaverMapsReady?: () => void;
     naver?: {
       maps: {
         jsContentLoaded?: boolean;
@@ -167,6 +275,5 @@ declare global {
       };
     };
     navermap_authFailure?: () => void;
-    [NAVER_MAP_CALLBACK]?: () => void;
   }
 }

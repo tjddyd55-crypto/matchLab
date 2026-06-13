@@ -73,6 +73,8 @@ MVP 범위는 `docs/mvp-scope.md`를 기준으로 하며, 본 문서는 **시연
 6. **spectator** — `/events/sample-open-2026` Hero **지도 버튼 없음** 확인.
 7. **spectator** — 행사 안내(`?tab=overview`) **오시는 길**에 장소명·도로명 주소·상세 주소 표시 + **서버 geocode 기반** 지도 preview·marker + 「네이버 지도에서 보기」 1개.
 8. **spectator** — API key/secret 미설정 환경에서 오시는 길 **fallback 카드** + 링크 버튼 정상 확인.
+9. **spectator** — DevTools Elements에서 지도 container `data-map-status="map-ready"` 확인 (실패 시 `data-map-error-reason` 값 확인).
+10. **spectator** — Network `maps.js` status 200 + `window.naver` 존재 + fallback overlay 미표시 확인.
 
 ### 1.4b 스태프 모바일 결과 입력
 

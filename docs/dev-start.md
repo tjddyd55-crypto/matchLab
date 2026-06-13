@@ -571,11 +571,27 @@ npm run dev
 | 1 | Railway **redeploy** | 최신 main 배포됨 | 구버전 번들 — **Redeploy** |
 | 2 | `NEXT_PUBLIC_*` **build-time** | 번들에 Client ID 존재 | env 추가만 하고 rebuild 안 함 |
 | 3 | `NAVER_MAP_NCP_KEY_SECRET` (서버) | Railway Variables에 설정 | geocode 실패 → 좌표 null → placeholder |
-| 4 | naver **script network** | `maps.js?ncpKeyId=...` **200** (geocoder submodule 없음) | 4xx·authFailure=Client ID·Web URL |
-| 5 | public DTO **venueMapLat/Lng** | geocode 성공 시 좌표 포함 | road/jibun/name/location 순 fallback geocode |
-| 6 | **geocode query** 순서 | road → road+detail → jibun → name+road → name → location | 전부 실패 시 placeholder |
+| 4 | DevTools **Network** `maps.js` | status **200**, `callback=__matchLabNaverMapsReady` | **403/401** → NCP Web 서비스 URL·Client ID / **429** → Dynamic Map·쿼터 |
+| 5 | **Console** `window.__matchLabNaverMapsReady` | script append **전** 함수 등록됨 | callback URL만 있고 함수 없음 → loader 버그(구버전) |
+| 6 | **Console** `window.naver` | callback 후 객체 생성 | 없음 → auth/domain 또는 script-load-failed |
+| 7 | Elements **`data-map-status`** | `map-ready` | `script-load-failed` / `naver-not-ready` / `auth-failed-or-domain-not-allowed` / `timeout` |
+| 8 | public DTO **venueMapLat/Lng** | geocode 성공 시 좌표 포함 | 좌표 없으면 SDK와 무관하게 fallback |
 
-개발 모드 `data-map-status`: `script-loading` → `script-loaded` → `map-ready` (좌표 없으면 `no-coords`, 실패 시 `script-failed` / `missing-key`).
+**Network status 해석:**
+
+- **200** + `window.naver` 없음 → loader/callback 문제 (`naver-map-client.ts` — callback 선등록·polling)
+- **403/401** → 네이버클라우드 콘솔 **Web 서비스 URL**·Client ID (예: `https://app-production-79ad.up.railway.app`, localhost)
+- **429** → Application에서 **Dynamic Map** API 선택 여부·쿼터
+- **ERR_BLOCKED_BY_CLIENT** → 브라우저 확장/광고 차단
+
+**SDK loader (`naver-map-client.ts`):**
+
+1. `maps.js` append **전** `window.__matchLabNaverMapsReady` 등록
+2. callback 호출 후 `window.naver.maps.Map` polling (최대 15s)
+3. singleton promise — 중복 script 삽입·중복 resolve 방지
+4. `navermap_authFailure` → `auth-failed-or-domain-not-allowed`
+
+`data-map-status` 흐름: `script-loading` → `script-loaded` / `callback-called` → `naver-ready` → `map-ready` (실패: `script-load-failed`, `naver-not-ready`, `timeout`, `missing-key`, `no-coords`).
 
 **대회 생성 UX 테스트 (schema 변경 없음):**
 

@@ -26,6 +26,7 @@
 - [x] 주최자: 대회 생성·기본 정보 수정·상태 전이(`draft`→`open` 등, `event.service` / `/organizer/events`).
 - [x] **개최 장소 주소 UI 단순화** — `EventAddressInput`: 화면에는 장소명·주소(도로명 read-only)·상세 주소만 표시. `postalCode`/`jibunAddress`는 hidden 저장. 공개(`open`) 전 도로명 주소 필수 검증.
 - [x] **서버 geocode 기반 지도** — `naver-geocode.server.ts` + public DTO `venueMapLat`/`venueMapLng`. 클라이언트는 Map/Marker만 렌더.
+- [x] **네이버 지도 SDK loader 안정화** — `window.__matchLabNaverMapsReady` callback 선등록, singleton loader, `data-map-status` 진단.
 - [x] **기본 정보 저장 안정화** — structured address 필드(`postalCode`, `roadAddress`, `jibunAddress`, `detailAddress`, `locationName`)만 FormData로 전송, `location`은 서버 재계산. validation/Prisma 오류는 form 메시지로 반환.
 - [x] **validator schema composition 안정화** — refined schema `.partial()` 금지, base/create/update 분리 (`event.validator.ts`, `application-form-template.validator.ts`).
 - [x] **대회 준비 체크리스트·가이드** — `/organizer/events/[eventId]` 관리 홈 6단계 체크리스트·다음 작업 안내·`EventManagementNav` 운영 순서 정리·생성 후 `?welcome=1` 다음 단계 (`organizer-event-setup.ts`).

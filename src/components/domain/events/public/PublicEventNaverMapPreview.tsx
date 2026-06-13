@@ -5,17 +5,20 @@ import { MapPin } from "lucide-react";
 import {
   isNaverMapConfigured,
   loadNaverMapsScript,
+  NaverMapLoadError,
   type NaverMapEmbedStatus,
 } from "@/lib/naver-map-client";
 import { cn } from "@/lib/utils";
+
+const FALLBACK_HINT =
+  "지도는 네이버 지도에서 확인할 수 있습니다. 아래 버튼을 눌러 검색·길찾기를 이용해 주세요.";
 
 function MapPlaceholder({ hint }: { hint?: string }) {
   return (
     <div className="bg-muted/30 flex min-h-[240px] flex-col items-center justify-center gap-3 rounded-lg border border-dashed px-4 py-8 text-center md:min-h-[320px]">
       <MapPin className="text-muted-foreground size-10" aria-hidden />
       <p className="text-muted-foreground max-w-sm text-xs leading-relaxed">
-        {hint ??
-          "지도는 네이버 지도에서 확인할 수 있습니다. 아래 버튼을 눌러 검색·길찾기를 이용해 주세요."}
+        {hint ?? FALLBACK_HINT}
       </p>
     </div>
   );
@@ -33,7 +36,7 @@ function waitForMapContainer(
         return;
       }
       if (Date.now() - started >= 5_000) {
-        reject(new Error("MAP_CONTAINER_MISSING"));
+        reject(new NaverMapLoadError("naver-not-ready"));
         return;
       }
       window.requestAnimationFrame(tick);
@@ -62,6 +65,11 @@ function hasValidCoords(
   );
 }
 
+function resolveLoadFailureStatus(error: unknown): NaverMapEmbedStatus {
+  if (error instanceof NaverMapLoadError) return error.status;
+  return "script-load-failed";
+}
+
 export function PublicEventNaverMapPreview({
   lat,
   lng,
@@ -86,14 +94,10 @@ export function PublicEventNaverMapPreview({
   const [embedState, setEmbedState] = useState<"loading" | "ready" | "failed">(
     () => (canEmbedMap ? "loading" : "failed"),
   );
-  const [debugStatus, setDebugStatus] = useState<NaverMapEmbedStatus | "idle">(
-    () =>
-      !coordsReady
-        ? "no-coords"
-        : canEmbedMap
-          ? "script-loading"
-          : "missing-key",
+  const [mapStatus, setMapStatus] = useState<NaverMapEmbedStatus>(() =>
+    !coordsReady ? "no-coords" : canEmbedMap ? "script-loading" : "missing-key",
   );
+  const [errorReason, setErrorReason] = useState<string | null>(null);
 
   useEffect(() => {
     if (!canEmbedMap || !coordsReady) return;
@@ -104,21 +108,22 @@ export function PublicEventNaverMapPreview({
 
     void (async () => {
       setEmbedState("loading");
-      setDebugStatus("script-loading");
+      setMapStatus("script-loading");
+      setErrorReason(null);
 
       try {
         await loadNaverMapsScript();
         if (cancelled) return;
 
-        setDebugStatus("script-loaded");
+        setMapStatus("naver-ready");
+
         const container = await waitForMapContainer(
           () => mapContainerRef.current,
         );
         if (cancelled) return;
 
         if (!window.naver?.maps?.Map) {
-          setDebugStatus("naver-not-ready");
-          throw new Error("NAVER_MAP_UNAVAILABLE");
+          throw new NaverMapLoadError("naver-not-ready");
         }
 
         await waitForLayout();
@@ -152,15 +157,20 @@ export function PublicEventNaverMapPreview({
 
         if (!cancelled) {
           setEmbedState("ready");
-          setDebugStatus("map-ready");
+          setMapStatus("map-ready");
+          setErrorReason(null);
         }
       } catch (e) {
+        const status = resolveLoadFailureStatus(e);
         if (process.env.NODE_ENV === "development") {
-          console.warn("[naver-map] embed failed", e);
+          console.warn("[naver-map] embed failed", status, e);
+        } else {
+          console.warn("[naver-map] embed failed", status);
         }
         if (!cancelled) {
           setEmbedState("failed");
-          setDebugStatus("script-failed");
+          setMapStatus(status);
+          setErrorReason(status);
         }
       }
     })();
@@ -170,16 +180,9 @@ export function PublicEventNaverMapPreview({
     };
   }, [canEmbedMap, coordsReady, lat, lng, markerTitle]);
 
-  if (!coordsReady && !isNaverMapConfigured()) {
-    return <MapPlaceholder />;
-  }
-
   if (!coordsReady) {
     return <MapPlaceholder />;
   }
-
-  const mapStatusAttr =
-    process.env.NODE_ENV === "development" ? debugStatus : undefined;
 
   if (!canEmbedMap) {
     return (
@@ -187,12 +190,15 @@ export function PublicEventNaverMapPreview({
     );
   }
 
+  const showFallbackOverlay = embedState === "failed";
+
   return (
     <div className={cn("relative min-w-0", className)}>
       <div
         id={mapId}
         ref={mapContainerRef}
-        data-map-status={mapStatusAttr}
+        data-map-status={mapStatus}
+        data-map-error-reason={errorReason ?? undefined}
         className={cn(
           "h-[240px] w-full min-w-0 overflow-hidden rounded-lg border md:h-[320px]",
           embedState !== "ready" && "bg-muted/30",
@@ -212,7 +218,7 @@ export function PublicEventNaverMapPreview({
           </span>
         </div>
       ) : null}
-      {embedState === "failed" ? (
+      {showFallbackOverlay ? (
         <div className="absolute inset-0">
           <MapPlaceholder />
         </div>
