@@ -1,18 +1,21 @@
 "use client";
 
-import { useState } from "react";
-import type { ApplicationStatus, PaymentStatus } from "@/generated/prisma";
+import type {
+  ApplicationCancellationSource,
+  ApplicationStatus,
+  PaymentStatus,
+} from "@/generated/prisma";
 import type {
   ApplicationFormMode,
   CustomFormSnapshot,
 } from "@/lib/application-form/custom-form";
-import { ApplicationStatusBadgesGroup } from "@/components/domain/applications/ApplicationStatusBadgesGroup";
-import { PaymentStatusControl } from "@/components/domain/payments/PaymentStatusControl";
 import {
-  approveApplicationFormAction,
-  rejectApplicationFormAction,
-} from "@/features/applications/actions";
-import { Button } from "@/components/ui/button";
+  OrganizerApplicationStatusBadge,
+  OrganizerPaymentDisplayBadge,
+} from "@/components/domain/applications/OrganizerApplicationDisplayBadge";
+import { OrganizerApplicationRowActions } from "@/components/domain/applications/OrganizerApplicationRowActions";
+import { MATCH_CATEGORY_WITH_WEIGHT_LABEL } from "@/lib/ui-labels/match-category";
+import { Checkbox } from "@/components/ui/checkbox";
 import {
   Table,
   TableBody,
@@ -32,6 +35,7 @@ export type OrganizerApplicationRowVM = {
   divisionId: string;
   divisionLabel: string;
   applicationStatus: ApplicationStatus;
+  cancellationSource: ApplicationCancellationSource | null;
   paymentStatus: PaymentStatus;
   paymentId: string | null;
   depositorName: string | null;
@@ -45,21 +49,17 @@ export type OrganizerApplicationRowVM = {
   applicationFormMode: ApplicationFormMode;
 };
 
-function formatAppliedAt(row: OrganizerApplicationRowVM): string {
-  const raw = row.appliedAt ?? row.createdAt;
-  return new Date(raw).toLocaleDateString("ko-KR", {
-    month: "numeric",
-    day: "numeric",
-    hour: "2-digit",
-    minute: "2-digit",
-  });
-}
-
 export function OrganizerApplicationsTable({
+  eventId,
   rows,
+  selectedIds,
+  onToggleSelect,
   onOpenDetail,
 }: {
+  eventId: string;
   rows: OrganizerApplicationRowVM[];
+  selectedIds: Set<string>;
+  onToggleSelect: (applicationId: string, checked: boolean) => void;
   onOpenDetail: (row: OrganizerApplicationRowVM) => void;
 }) {
   return (
@@ -67,18 +67,27 @@ export function OrganizerApplicationsTable({
       <Table className="w-full table-fixed">
         <TableHeader>
           <TableRow>
-            <TableHead className="w-[14%]">선수</TableHead>
+            <TableHead className="w-[3%]" />
+            <TableHead className="w-[13%]">선수 이름</TableHead>
             <TableHead className="w-[10%]">체육관</TableHead>
-            <TableHead className="w-[22%]">부문/체급</TableHead>
-            <TableHead className="w-[14%]">상태</TableHead>
-            <TableHead className="w-[12%]">입금</TableHead>
-            <TableHead className="w-[10%]">신청일</TableHead>
-            <TableHead className="w-[18%] text-right">액션</TableHead>
+            <TableHead className="w-[20%]">{MATCH_CATEGORY_WITH_WEIGHT_LABEL}</TableHead>
+            <TableHead className="w-[10%]">입금내역</TableHead>
+            <TableHead className="w-[10%]">상태</TableHead>
+            <TableHead className="w-[24%] text-right">상태입력/처리</TableHead>
           </TableRow>
         </TableHeader>
         <TableBody>
           {rows.map((row) => (
             <TableRow key={row.applicationId}>
+              <TableCell className="align-top">
+                <Checkbox
+                  checked={selectedIds.has(row.applicationId)}
+                  onCheckedChange={(v) =>
+                    onToggleSelect(row.applicationId, v === true)
+                  }
+                  aria-label={`${row.fighterName} 선택`}
+                />
+              </TableCell>
               <TableCell className="align-top">
                 <button
                   type="button"
@@ -113,83 +122,30 @@ export function OrganizerApplicationsTable({
                 <span className="line-clamp-2 break-words">{row.divisionLabel}</span>
               </TableCell>
               <TableCell className="align-top">
-                <ApplicationStatusBadgesGroup
-                  applicationStatus={row.applicationStatus}
-                  paymentStatus={row.paymentStatus}
-                  consentSummaryLabel={row.consentSummaryLabel}
-                  consentFilterKey={row.consentFilterKey}
-                  showPendingPaymentHint={
-                    row.applicationStatus === "pending" &&
-                    row.paymentStatus === "unpaid"
-                  }
-                  onBadgeClick={() => onOpenDetail(row)}
-                />
+                <OrganizerPaymentDisplayBadge paymentStatus={row.paymentStatus} />
+                {row.depositorName ? (
+                  <p className="text-muted-foreground mt-0.5 truncate text-[10px]">
+                    {row.depositorName}
+                  </p>
+                ) : null}
               </TableCell>
               <TableCell className="align-top">
-                <PaymentStatusControl
-                  paymentId={row.paymentId}
-                  paymentStatus={row.paymentStatus}
-                  compact
+                <OrganizerApplicationStatusBadge
+                  applicationStatus={row.applicationStatus}
+                  cancellationSource={row.cancellationSource}
                 />
               </TableCell>
-              <TableCell className="text-muted-foreground align-top text-xs whitespace-nowrap">
-                {formatAppliedAt(row)}
-              </TableCell>
               <TableCell className="align-top text-right">
-                <OrganizerRowActions row={row} />
+                <OrganizerApplicationRowActions
+                  eventId={eventId}
+                  row={row}
+                  compact
+                />
               </TableCell>
             </TableRow>
           ))}
         </TableBody>
       </Table>
-    </div>
-  );
-}
-
-function OrganizerRowActions({ row }: { row: OrganizerApplicationRowVM }) {
-  const [showReject, setShowReject] = useState(false);
-
-  return (
-    <div className="flex flex-col items-end gap-1.5">
-      <div className="flex flex-wrap justify-end gap-1">
-        {row.applicationStatus === "pending" ? (
-          <form action={approveApplicationFormAction}>
-            <input type="hidden" name="applicationId" value={row.applicationId} />
-            <Button size="sm" type="submit" variant="default" className="h-7 px-2 text-xs">
-              승인
-            </Button>
-          </form>
-        ) : null}
-        {row.applicationStatus === "pending" ? (
-          <Button
-            size="sm"
-            type="button"
-            variant="outline"
-            className="h-7 px-2 text-xs"
-            onClick={() => setShowReject((v) => !v)}
-          >
-            반려
-          </Button>
-        ) : null}
-      </div>
-      {showReject && row.applicationStatus === "pending" ? (
-        <form
-          action={rejectApplicationFormAction}
-          className="w-full max-w-[12rem] space-y-1.5"
-        >
-          <input type="hidden" name="applicationId" value={row.applicationId} />
-          <textarea
-            name="reason"
-            rows={2}
-            className="border-input bg-background w-full rounded-md border px-2 py-1 text-xs"
-            placeholder="반려 사유 (선택)"
-            maxLength={1000}
-          />
-          <Button size="sm" type="submit" variant="destructive" className="h-7 text-xs">
-            반려 확정
-          </Button>
-        </form>
-      ) : null}
     </div>
   );
 }

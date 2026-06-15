@@ -66,7 +66,7 @@ function rowStatusLabel(
     return { label: "미선택", tone: "outline" };
   }
   if (!rowState.divisionId) {
-    return { label: "부문 선택 필요", tone: "destructive" };
+    return { label: "경기구분 선택 필요", tone: "destructive" };
   }
   return { label: "신청 가능", tone: "default" };
 }
@@ -102,11 +102,11 @@ function DivisionSelect({
         disabled={disabled}
         onChange={(e) => onChange(e.target.value)}
         className="border-input bg-background ring-ring/50 h-10 w-full rounded-lg border px-3 text-sm outline-none focus-visible:ring-2"
-        aria-label={`${fighter.name} 신청 부문`}
+        aria-label={`${fighter.name} 신청 경기구분`}
       >
-        <option value="">부문 선택</option>
+        <option value="">경기구분 선택</option>
         {recommended.length > 0 ? (
-          <optgroup label="추천 부문">
+          <optgroup label="추천 경기구분">
             {recommended.map((d) => (
               <option key={d.id} value={d.id}>
                 {d.label}
@@ -115,7 +115,7 @@ function DivisionSelect({
           </optgroup>
         ) : null}
         {others.length > 0 ? (
-          <optgroup label="전체 부문">
+          <optgroup label="전체 경기구분">
             {others.map((d) => (
               <option key={d.id} value={d.id}>
                 {d.label}

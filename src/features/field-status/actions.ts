@@ -16,6 +16,8 @@ import {
   recordWeighInWeightSchema,
   saveFieldMemoSchema,
   setCheckInStatusSchema,
+  setDisqualificationReasonSchema,
+  setWeighInFailureResolutionSchema,
   setWeighInStatusSchema,
 } from "@/lib/validators/field-status.validator";
 import { BracketMatchOutcomeStyle } from "@/generated/prisma";
@@ -329,4 +331,56 @@ export async function applyFieldBracketOutcomeFormActionVoid(
   formData: FormData,
 ): Promise<void> {
   await applyFieldBracketOutcomeFormAction(formData);
+}
+
+export async function setWeighInFailureResolutionFormAction(
+  formData: FormData,
+): Promise<ActionResult<{ ok: true }>> {
+  return mapCaught(async () => {
+    const actor = await requireActorFromMutation();
+    const parsed = setWeighInFailureResolutionSchema.safeParse({
+      applicationId: formReq(formData, "applicationId"),
+      resolution: formReq(formData, "resolution"),
+      handicapNote: formReq(formData, "handicapNote") || null,
+    });
+    if (!parsed.success) {
+      return actionFailure(
+        "VALIDATION_ERROR",
+        parsed.error.issues[0]?.message ?? "입력값을 확인해 주세요.",
+      );
+    }
+    await fieldStatusService.setWeighInFailureResolution(
+      actor,
+      parsed.data.applicationId,
+      parsed.data.resolution,
+      parsed.data.handicapNote,
+    );
+    await revalidateFieldStatusPaths(parsed.data.applicationId);
+    return actionSuccess({ ok: true });
+  });
+}
+
+export async function setDisqualificationReasonFormAction(
+  formData: FormData,
+): Promise<ActionResult<{ ok: true }>> {
+  return mapCaught(async () => {
+    const actor = await requireActorFromMutation();
+    const parsed = setDisqualificationReasonSchema.safeParse({
+      applicationId: formReq(formData, "applicationId"),
+      reason: formReq(formData, "reason"),
+    });
+    if (!parsed.success) {
+      return actionFailure(
+        "VALIDATION_ERROR",
+        parsed.error.issues[0]?.message ?? "실격 사유를 입력해 주세요.",
+      );
+    }
+    await fieldStatusService.setDisqualificationReason(
+      actor,
+      parsed.data.applicationId,
+      parsed.data.reason,
+    );
+    await revalidateFieldStatusPaths(parsed.data.applicationId);
+    return actionSuccess({ ok: true });
+  });
 }

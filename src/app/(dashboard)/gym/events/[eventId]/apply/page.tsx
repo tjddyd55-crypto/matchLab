@@ -85,7 +85,7 @@ export default async function GymEventApplyPage({
     return (
       <div className="mx-auto flex w-full max-w-5xl flex-col gap-6 px-4 py-8 md:px-6">
         <EmptyState
-          title="신청 가능한 부문이 없습니다"
+          title="신청 가능한 경기구분이 없습니다"
           description="주최자에게 문의해 주세요."
         />
       </div>
@@ -153,7 +153,7 @@ export default async function GymEventApplyPage({
         <div>
           <h2 className="text-lg font-semibold">선수 일괄 신청</h2>
           <p className="text-muted-foreground mt-1 text-sm leading-relaxed">
-            소속 선수 목록에서 신청할 선수를 선택하고, 각 선수별 부문을 지정한
+            소속 선수 목록에서 신청할 선수를 선택하고, 각 선수별 경기구분을 지정한
             뒤 한 번에 저장합니다.
           </p>
         </div>
@@ -173,8 +173,8 @@ export default async function GymEventApplyPage({
         </summary>
         <div className="mt-4 space-y-4">
           <p className="text-muted-foreground text-sm leading-relaxed">
-            부문을 먼저 선택한 뒤 선수 1명을 지정해 개별 신청합니다. 공식 PDF
-            신청서와 별도로 동일한 부문별 신청·입금 흐름을 사용합니다.
+            경기구분을 먼저 선택한 뒤 선수 1명을 지정해 개별 신청합니다. 공식 PDF
+            신청서와 별도로 동일한 경기구분별 신청·입금 흐름을 사용합니다.
           </p>
           <EventApplicationForm
             eventId={form.event.id}

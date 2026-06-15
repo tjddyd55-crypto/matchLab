@@ -7,7 +7,7 @@ export function PublicEventDivisionList({
 }) {
   if (divisions.length === 0) {
     return (
-      <p className="text-muted-foreground text-sm">등록된 부문이 없습니다.</p>
+      <p className="text-muted-foreground text-sm">등록된 경기구분이 없습니다.</p>
     );
   }
 
@@ -61,7 +61,7 @@ export function PublicEventDivisionList({
             <p className="font-medium">{d.sportType}</p>
             <p className="text-muted-foreground">
               {[d.gender, d.ageGroup, d.weightClass].filter(Boolean).join(" · ") ||
-                "부문 정보"}
+                "경기구분 정보"}
             </p>
             <p className="text-muted-foreground text-xs">
               룰 {d.ruleType ?? "—"} · 급수 {d.skillLevel ?? "—"}

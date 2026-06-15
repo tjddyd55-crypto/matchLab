@@ -19,7 +19,7 @@ export default async function OrganizerEventsPage() {
         description={
           <>
             작성 중(draft) 대회는 공개 목록에 표시되지 않습니다. 신청 공개 전
-            부문·입금 계좌를 준비해 주세요.
+            경기구분·입금 계좌를 준비해 주세요.
           </>
         }
       >

@@ -102,7 +102,7 @@ export function OrganizerMatchesBoard({
           </select>
         </label>
         <label className="flex flex-col gap-1">
-          <span className="text-muted-foreground text-xs">부문</span>
+          <span className="text-muted-foreground text-xs">경기구분</span>
           <select
             value={divisionLabel}
             onChange={(e) => setDivisionLabel(e.target.value)}
@@ -159,7 +159,7 @@ export function OrganizerMatchesBoard({
           <thead className="bg-muted/50 border-b text-xs uppercase">
             <tr>
               <th className="px-3 py-2">대진표 그룹</th>
-              <th className="px-3 py-2">부문</th>
+              <th className="px-3 py-2">경기구분</th>
               <th className="px-3 py-2">라운드</th>
               <th className="px-3 py-2">번호</th>
               <th className="px-3 py-2">매트</th>
@@ -224,7 +224,7 @@ export function OrganizerMatchesBoard({
               </span>
             </div>
             <div className="text-muted-foreground text-[11px]">
-              부문 {m.divisionLabel ?? "—"} · 상태 {m.status} · 운영 종료{" "}
+              경기구분 {m.divisionLabel ?? "—"} · 상태 {m.status} · 운영 종료{" "}
               {m.isFinishedOps ? "예" : "아니오"} · 공식{" "}
               {m.hasOfficialResults ? "확정" : "미확정"}
             </div>

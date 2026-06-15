@@ -91,7 +91,7 @@ export function StaffResultEntryBoard({
           type="search"
           value={search}
           onChange={(e) => setSearch(e.target.value)}
-          placeholder="선수명, 체육관, 부문 검색"
+          placeholder="선수명, 체육관, 경기구분 검색"
           className={selectClass}
         />
         <select

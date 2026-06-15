@@ -16,6 +16,7 @@ const organizerApplicationSelect = {
   id: true,
   status: true,
   paymentStatus: true,
+  cancellationSource: true,
   memo: true,
   createdAt: true,
   appliedAt: true,
@@ -279,7 +280,13 @@ export const applicationRepository = {
         fighterId: true,
         status: true,
         paymentStatus: true,
+        cancellationSource: true,
         memo: true,
+        payments: {
+          select: { id: true, paymentStatus: true },
+          take: 1,
+          orderBy: { createdAt: "desc" },
+        },
         event: { select: { organizerId: true, title: true } },
       },
     });
@@ -410,6 +417,23 @@ export const applicationRepository = {
           },
         },
         gym: { select: { id: true, name: true } },
+      },
+    });
+  },
+
+  async listFighterHandicapFieldsForEvent(eventId: string) {
+    return prisma.eventApplication.findMany({
+      where: {
+        eventId,
+        status: ApplicationStatus.approved,
+      },
+      select: {
+        fighterId: true,
+        weighInStatus: true,
+        weighInFailureResolution: true,
+        handicapNote: true,
+        checkInStatus: true,
+        disqualificationReason: true,
       },
     });
   },

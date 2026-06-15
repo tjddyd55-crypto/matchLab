@@ -8,7 +8,7 @@ export type WeighInEvaluation = {
 };
 
 /**
- * 신청 부문의 weightClass 문자열과 실제 몸무게(kg)로 계체 통과 여부를 판정한다.
+ * 신청 경기구분의 weightClass 문자열과 실제 몸무게(kg)로 계체 통과 여부를 판정한다.
  * `-55kg` → 55kg 이하, `+70kg` → 70kg 이상.
  */
 export function evaluateWeighInWeight(
@@ -27,7 +27,7 @@ export function evaluateWeighInWeight(
   if (!label) {
     return {
       passed: false,
-      reason: "신청 부문에 체급 정보가 없어 자동 판정할 수 없습니다.",
+      reason: "신청 경기구분에 체급 정보가 없어 자동 판정할 수 없습니다.",
       indeterminate: true,
     };
   }

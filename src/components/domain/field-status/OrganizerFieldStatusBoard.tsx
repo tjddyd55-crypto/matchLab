@@ -118,7 +118,7 @@ export function OrganizerFieldStatusBoard({
             type="search"
             value={searchQuery}
             onChange={(e) => setSearchQuery(e.target.value)}
-            placeholder="선수명, 체육관, 부문, 체급으로 검색"
+            placeholder="선수명, 체육관, 경기구분, 체급으로 검색"
             className={cn(
               selectClass,
               "h-10 w-full px-3 text-sm md:max-w-md",
@@ -143,7 +143,7 @@ export function OrganizerFieldStatusBoard({
             </select>
           </label>
           <label className="flex flex-col gap-1 text-xs">
-            <span className="text-muted-foreground">부문</span>
+            <span className="text-muted-foreground">경기구분</span>
             <select
               className={selectClass}
               value={divisionFilter}

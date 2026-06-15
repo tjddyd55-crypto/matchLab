@@ -28,7 +28,7 @@ export function OrganizerOperationTableDesktop({
         <thead className="bg-muted/50 border-b text-xs">
           <tr>
             <th className="px-3 py-2 font-medium">순서</th>
-            <th className="px-3 py-2 font-medium">부문/체급</th>
+            <th className="px-3 py-2 font-medium">경기구분/체급</th>
             <th className="px-3 py-2 font-medium">선수 A</th>
             <th className="px-3 py-2 font-medium">선수 B</th>
             <th className="px-3 py-2 font-medium">심판</th>

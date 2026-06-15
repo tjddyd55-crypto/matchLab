@@ -287,6 +287,7 @@ export type OrganizerApplicationListRowDTO = {
   divisionId: string;
   divisionLabel: string;
   applicationStatus: ApplicationStatus;
+  cancellationSource: import("@/generated/prisma").ApplicationCancellationSource | null;
   paymentStatus: PaymentStatus;
   paymentId: string | null;
   depositorName: string | null;
@@ -622,6 +623,7 @@ export const applicationService = {
         divisionId: row.division.id,
         divisionLabel: formatDivisionLabel(row.division),
         applicationStatus: row.status,
+        cancellationSource: row.cancellationSource ?? null,
         paymentStatus: row.paymentStatus,
         paymentId: paymentRow?.id ?? null,
         depositorName: paymentRow?.depositorName ?? null,
@@ -802,7 +804,7 @@ export const applicationService = {
     if (existing) {
       throw new AppError(
         "CONFLICT",
-        "이미 해당 부문에 신청한 선수입니다. (동일 대회·선수·부문 조합은 한 번만 가능합니다.)",
+        "이미 해당 부문에 신청한 선수입니다. (동일 대회·선수·경기구분 조합은 한 번만 가능합니다.)",
       );
     }
 
@@ -932,7 +934,7 @@ export const applicationService = {
           fighterName,
           divisionId: row.divisionId,
           outcome: "skipped",
-          message: "요청 목록에 중복된 선수·부문 조합이 있습니다.",
+          message: "요청 목록에 중복된 선수·경기구분 조합이 있습니다.",
         });
         skippedCount += 1;
         continue;

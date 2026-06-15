@@ -23,7 +23,7 @@ export function OrganizerBracketList({
           <thead className="bg-muted/50 border-b text-xs font-medium uppercase">
             <tr>
               <th className="px-4 py-3">제목</th>
-              <th className="px-4 py-3">부문</th>
+              <th className="px-4 py-3">경기구분</th>
               <th className="px-4 py-3">대진 방식</th>
               <th className="px-4 py-3">상태</th>
               <th className="px-4 py-3">공개</th>
@@ -87,7 +87,7 @@ export function OrganizerBracketList({
               <div>
                 <div className="font-semibold">{b.title}</div>
                 <div className="text-muted-foreground mt-1 text-xs">
-                  {b.divisionLabel ?? "부문 미지정"}
+                  {b.divisionLabel ?? "경기구분 미지정"}
                 </div>
               </div>
               <BracketStatusBadge status={b.status} />

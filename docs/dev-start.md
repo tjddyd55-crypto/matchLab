@@ -304,7 +304,7 @@ npm run repair:demo-gym
 
 1. **PDF 좌표형** — `/admin/application-form-templates`에서 **PDF 신청서** 선택 → PDF 업로드·좌표 편집 → 주최자가 대회에 연결 → 체육관 `GymOfficialApplicationWorkspace` 흐름.
 2. **자체 폼형** — **자체 폼 신청서** 선택 → 폼 빌더로 항목 구성(PDF 불필요) → 주최자 연결 → 체육관 일괄 신청에서 선수별 답변 작성 → 주최자 인쇄용 보기.
-3. **없음** — 템플릿 미연결 또는 템플릿에서 **신청서 없음** 모드 — 부문별 일괄/개별 신청만.
+3. **없음** — 템플릿 미연결 또는 템플릿에서 **신청서 없음** 모드 — 경기구분별 일괄/개별 신청만.
 
 **DB**: 자체 폼 PDF-less 지원을 위해 `ApplicationFormTemplate.originalPdfPath`/`originalPdfFileName`이 optional입니다. Railway 등 배포 DB에는 **`npm run db:push`** 로 스키마 반영이 필요합니다(`db:seed` 금지).
 
@@ -522,10 +522,15 @@ npm run dev
 - **결제**: 신청 생성 시 `EventApplicationPayment` 동시 생성 — 입금 상태 변경은 `payment.service` 가 Payment 행과 `EventApplication.paymentStatus` 를 **동일 트랜잭션**에서 맞춘다(`status-machine.md` §3).
 - **계좌번호**: 공개 Event 상세·Public DTO 에 **`accountNumber` 미포함**. 체육관 로그인 후 신청 완료 화면·내역 다이얼로그에서만 `findEventPaymentSettingFull` 로 노출. 주최자 관리 화면(`/organizer/events/[eventId]`)에서는 입금 설정 폼에만 표시.
 - **주최자 신청 관리**: `/organizer/events/[eventId]/applications` — 승인/반려, 입금 확인·확인 필요·환불·면제(Server Actions → `payment.service`). React Query 도입 시 `docs/query-keys.md` §3.3 키 무효화.
+- **신청자 표시 상태**: UI는 `미승인` / `승인` / `체육관취소` / `주최측취소`, 입금은 `미입금` / `입금완료`. DB `ApplicationStatus`·`cancellationSource` 매핑은 `application-display-status.ts`.
+- **체육관별 일괄처리**: 체육관 필터·그룹 보기·선택 후 `입금확인(승인)` / `주최측취소` / `체육관취소 처리` (`application-organizer-bulk.service`).
+- **현장 계체 실패 정책**: `WeighInFailureResolution` — `proceed_with_handicap`(핸디캡 메모 필수) / `cancel_match`. 핸디캡은 공개·주최자 대진표 카드에 표시(`handicapNote`는 관람 노출 가능 문구만 입력).
+- **경기장·전체순서**: `EventCourt` / `EventCourtDivisionRule` / `BracketMatch.courtId`·`courtOrder`. `/organizer/events/[eventId]/schedule`에서 경기장 CRUD·경기구분 배정·순서 조정.
+- **심판 역할 UI**: 생성 화면 기본 노출 — `채점심판` / `결과발표` / `주심/결과확인`(HEAD_JUDGE 유지). `judge-identity.ts`.
 
 ## 주최자 대회 생성·관리 (MVP)
 
-- **라우트**: `/organizer/events`(목록), `/organizer/events/new`(생성), `/organizer/events/[eventId]`(관리 홈·준비 체크리스트·기본 설정·부문·신청서·참가비), `/organizer/events/[eventId]/operation`(경기 운영 보드).
+- **라우트**: `/organizer/events`(목록), `/organizer/events/new`(생성), `/organizer/events/[eventId]`(관리 홈·준비 체크리스트·기본 설정·경기구분·신청서·참가비), `/organizer/events/[eventId]/operation`(경기 운영 보드).
 - **대회 관리 레이아웃**: `EventManagementLayout` — PC 좌측 sticky 사이드 메뉴(`event-management-nav-items.ts`), 모바일 「대회 메뉴」 접힘·가로 스크롤. 하위 페이지 콘텐츠 폭 `max-w-[96rem]` 통일.
 - **주최자 dashboard 레이아웃**: `organizer/layout.tsx`의 `OrganizerDashboardContent` — 홈·대회·공개 선수·크레딧·체급표 템플릿 등 큰 메뉴 페이지 콘텐츠 시작선·폭 통일. 알림(`/notifications`)은 organizer/admin일 때 동일 폭 적용.
 
@@ -633,11 +638,11 @@ npm run dev
 
 1. `organizer` / `123456!!` → `/organizer/events/new` → 최소 정보로 대회 생성.
 2. 리다이렉트된 관리 홈에서 **다음 작업**·6단계 **준비 체크리스트** 확인.
-3. 부문 생성 전/후 체크리스트 상태 변화, 공개 페이지·신청서·참가비 바로가기 확인.
+3. 경기구분 생성 전/후 체크리스트 상태 변화, 공개 페이지·신청서·참가비 바로가기 확인.
 4. 모바일 폭에서 체크리스트 카드·버튼 전체폭 표시 확인.
 - **레이어**: Server Actions `src/features/events/actions.ts` → `event.service` → `event.repository`(Prisma는 repository만). 페이지(`page.tsx`)는 서비스만 호출.
 - **`publicSlug`**: 대회 생성 시 `allocateUniquePublicSlug`로 고유값 할당. 초안(`draft`) 상태에서는 공개 상세가 `notFound`와 동일하게 동작(저장소에서 `draft`·`cancelled` 제외 조회).
-- **`EventStatus` 전이**: `docs/status-machine.md` 권장 전이만 허용. `draft`→`open` 시 필수 필드·부문·입금 설정 검증. 전이 성공 시 `AuditLog.event_status_changed`.
+- **`EventStatus` 전이**: `docs/status-machine.md` 권장 전이만 허용. `draft`→`open` 시 필수 필드·경기구분·입금 설정 검증. 전이 성공 시 `AuditLog.event_status_changed`.
 - **관리자**: `listOrganizerEvents`에서 전체 대회 목록 조회 가능. 대회 생성 시 폼에 **대상 `organizerId`(cuid)** 입력 필요.
 
 ## 관리자 대시보드 (조회 MVP)
@@ -686,7 +691,7 @@ npm run dev
 - 빠른 입력 파싱: `src/lib/division-template/division-template-parse.ts` (`/` 구분, `-30kg` / `+44kg` / `63.5kg`)
 - **예시는 버튼으로만 불러옴** — 저장 시 자동 적용 없음
 - 대회 적용 중복 키: `sportType` · `gender` · `ageGroup` · `weightClass`
-- **초기화(replace)**: 신청·대진표 연결 부문이 하나라도 있으면 거부
+- **초기화(replace)**: 신청·대진표 연결 경기구분이 하나라도 있으면 거부
 
 ### 공식 신청서 PDF 좌표계 주의
 

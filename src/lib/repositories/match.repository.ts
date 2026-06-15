@@ -142,6 +142,9 @@ export const matchRepository = {
             status: true,
           },
         },
+        court: {
+          select: { id: true, name: true },
+        },
       },
     });
   },
@@ -332,6 +335,20 @@ export const matchRepository = {
     await db(tx).bracketMatch.update({
       where: { id: matchId },
       data: { status },
+    });
+  },
+
+  async updateMatchCourt(
+    matchId: string,
+    data: { courtId: string | null; courtOrder?: number | null },
+    tx?: Prisma.TransactionClient,
+  ): Promise<void> {
+    await db(tx).bracketMatch.update({
+      where: { id: matchId },
+      data: {
+        courtId: data.courtId,
+        courtOrder: data.courtOrder ?? null,
+      },
     });
   },
 

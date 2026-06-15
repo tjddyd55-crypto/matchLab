@@ -74,8 +74,8 @@ export function PublicEventResultsSection({
                   <h3 className="text-xl font-semibold">{bracketTitle}</h3>
                   <p className="text-muted-foreground text-sm">
                     {(divisionLabel ?? "").trim()
-                      ? `부문 ${divisionLabel}`
-                      : "부문 정보 없음"}
+                      ? `경기구분 ${divisionLabel}`
+                      : "경기구분 정보 없음"}
                   </p>
                 </div>
                 <div className="flex w-full flex-col gap-4">

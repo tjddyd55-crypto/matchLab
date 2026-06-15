@@ -127,6 +127,10 @@ export type PublicBracketFighterDTO = {
   profileImageUrl: string | null;
   recordSummary: string;
   divisionName: string | null;
+  /** 계체 실패·경기진행 등 현장 핸디캡 배지 */
+  handicapBadgeLabel?: string | null;
+  /** 관람·대진표에 표시할 핸디캡 안내 문구 */
+  handicapNote?: string | null;
 };
 
 export type PublicBracketMatchDTO = {
@@ -137,6 +141,8 @@ export type PublicBracketMatchDTO = {
   globalMatchOrder: number | null;
   matchNumber: number | null;
   matNumber: number | null;
+  courtName?: string | null;
+  courtOrder?: number | null;
   fighterRed: PublicBracketFighterDTO | null;
   fighterBlue: PublicBracketFighterDTO | null;
   status: BracketMatchStatus;

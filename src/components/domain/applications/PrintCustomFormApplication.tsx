@@ -45,7 +45,7 @@ export function PrintCustomFormApplication({
               <dd>{data.gymName}</dd>
             </div>
             <div>
-              <dt className="text-muted-foreground text-xs">신청 부문</dt>
+              <dt className="text-muted-foreground text-xs">신청 경기구분</dt>
               <dd>{data.divisionLabel}</dd>
             </div>
             <div>

@@ -1,8 +1,13 @@
-import type { CheckInStatus, WeighInStatus } from "@/generated/prisma";
+import type {
+  CheckInStatus,
+  WeighInFailureResolution,
+  WeighInStatus,
+} from "@/generated/prisma";
 
 export type FieldEligibilityInput = {
   checkInStatus: CheckInStatus;
   weighInStatus: WeighInStatus;
+  weighInFailureResolution?: WeighInFailureResolution;
 };
 
 export type FieldEligibility = {
@@ -70,12 +75,26 @@ export function computeFieldEligibility(
   }
 
   if (weighInStatus === "fail" || weighInStatus === "manual_fail") {
+    if (input.weighInFailureResolution === "proceed_with_handicap") {
+      return {
+        isEligibleForBracket: true,
+        eligibilityLabel: "계체 실패 · 경기진행",
+        eligibilityReason: "핸디캡 적용 후 경기 진행",
+      };
+    }
+    if (input.weighInFailureResolution === "cancel_match") {
+      return {
+        isEligibleForBracket: false,
+        eligibilityLabel: "계체 실패 · 경기취소",
+        eligibilityReason: "계체 실패 후 경기가 취소되었습니다.",
+      };
+    }
     return {
       isEligibleForBracket: false,
       eligibilityLabel: "계체 실패",
       eligibilityReason:
         weighInStatus === "manual_fail"
-          ? "주최자가 계체 실패(수동)로 처리했습니다."
+          ? "주최측이 계체 실패(수동)로 처리했습니다."
           : "신청 체급 기준을 충족하지 못했습니다.",
     };
   }

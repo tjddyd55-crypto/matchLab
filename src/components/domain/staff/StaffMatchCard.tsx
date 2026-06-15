@@ -32,7 +32,7 @@ export function StaffMatchCard({
       <div className="flex flex-wrap items-start justify-between gap-3">
         <div className="min-w-0 flex-1">
           <p className="text-muted-foreground text-xs">경기 {match.orderLabel}</p>
-          <p className="font-semibold">{match.divisionLabel ?? "부문 미상"}</p>
+          <p className="font-semibold">{match.divisionLabel ?? "경기구분 미상"}</p>
         </div>
         <StaffMatchStatusBadges match={match} />
       </div>

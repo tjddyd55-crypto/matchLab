@@ -2,6 +2,7 @@ import { z } from "zod";
 import {
   BracketMatchOutcomeStyle,
   CheckInStatus,
+  WeighInFailureResolution,
   WeighInStatus,
 } from "@/generated/prisma";
 
@@ -35,3 +36,14 @@ export const applyFieldBracketOutcomeSchema = z.object({
   confirmOfficial: z.boolean().optional().default(true),
   resultMemo: z.string().max(500).nullable().optional(),
 });
+
+export const setWeighInFailureResolutionSchema =
+  fieldStatusApplicationIdSchema.extend({
+    resolution: z.nativeEnum(WeighInFailureResolution),
+    handicapNote: z.string().max(500).nullable().optional(),
+  });
+
+export const setDisqualificationReasonSchema =
+  fieldStatusApplicationIdSchema.extend({
+    reason: z.string().min(1, "실격 사유를 입력해 주세요.").max(500),
+  });

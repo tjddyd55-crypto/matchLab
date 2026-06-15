@@ -28,7 +28,7 @@ export function OrganizerOperationDetailDrawer({
       open={open}
       onOpenChange={onOpenChange}
       title={title}
-      description={`${match.divisionLabel ?? "부문 미상"} · ${red} vs ${blue}`}
+      description={`${match.divisionLabel ?? "경기구분 미상"} · ${red} vs ${blue}`}
       className="sm:max-w-lg"
     >
       <div className="flex flex-col gap-6">

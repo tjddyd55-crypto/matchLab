@@ -57,7 +57,7 @@ export function getEventManagementNavItems(
     },
     {
       href: `${base}#setup-divisions`,
-      label: "부문·체급",
+      label: "경기구분·체급",
       group: "setup",
       anchorId: "setup-divisions",
     },
@@ -76,6 +76,7 @@ export function getEventManagementNavItems(
     { href: `${base}/applications`, label: "신청자", group: "applications" },
     { href: `${base}/check-in`, label: "현장·계체", group: "applications" },
     { href: `${base}/brackets`, label: "대진표", group: "brackets" },
+    { href: `${base}/schedule`, label: "전체순서", group: "brackets" },
     { href: `${base}/operation`, label: "경기 운영", group: "brackets" },
     { href: `${base}/judges`, label: "심판 관리", group: "brackets" },
     { href: `${base}/qr`, label: "QR 출력", group: "brackets" },

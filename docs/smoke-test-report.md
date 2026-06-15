@@ -218,7 +218,7 @@
 | 경로 | 결과 | 비고 |
 |------|------|------|
 | `/organizer/events` | **OK** | 내 대회 2건 표시 |
-| `/organizer/events/cmpba6v1l000eqcux4kfmg49y` | **OK** | 상세·부문·입금 등 섹션 정상 |
+| `/organizer/events/cmpba6v1l000eqcux4kfmg49y` | **OK** | 상세·경기구분·입금 등 섹션 정상 |
 | `…/applications` | **OK** | |
 | `…/brackets` | **OK** | |
 | `…/matches` | **OK** | |

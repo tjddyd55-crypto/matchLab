@@ -56,7 +56,7 @@
 - [x] 체육관 승인 후 **선수 고유번호(`fighterCode`)** 발급.
 - [x] 중복 후보: 이름+생년월일+성별(+휴대폰) — 500 대신 안내·기존 선수 연결 선택.
 - [x] 대회 신청(`/gym/events/[eventId]/apply`) — 활성 소속 선수만, 0명 시 등록 CTA.
-- [x] **선수 일괄 신청** — 선수 목록·행별 부문 select·공통 동의·`createBulkEventApplicationsAction`(부분 성공/건너뜀/실패 요약).
+- [x] **선수 일괄 신청** — 선수 목록·행별 경기구분 select·공통 동의·`createBulkEventApplicationsAction`(부분 성공/건너뜀/실패 요약).
 
 ### 공식 신청서 PDF (대회 신청 단계)
 
@@ -143,7 +143,7 @@
 - [x] **심판 역할 분리** — `JudgeCredentialRole`: SCORING_JUDGE(배정 경기 채점) / HEAD_JUDGE(`/judge/review` 집계) / ANNOUNCER(`/judge/results` read-only). SCORING_JUDGE는 배정 경기만 목록·URL 접근.
 - [x] **채점 기록 감사 추적** — 제출 시 `judgeCredentialId`·`judgeNameSnapshot`·`judgeBirthDateSnapshot`·`judgeRoleSnapshot`·`submittedAt`/IP/UA. 수정 시 `JudgeScorecardChangeLog`(이전·신규 점수, `changedByJudgeCredentialId`, IP/UA). hard delete 금지. 경기 최종 확정 전까지 수정 가능(`revised` 상태).
 - [x] **심판 수 정책** — 1~5명 허용, 3·5명 권장. 짝수 심판 동점 시 자동 확정 없음, 주최자/주심 최종 확정.
-- [x] 주최자: **현장 확인·계체** (`/organizer/events/[eventId]/check-in`) — 승인 신청자 대상 `CheckInStatus` / `WeighInStatus` 기록, **선수명·체육관·부문·체급 검색**, 몸무게·메모 저장 피드백, 단계별 액션(현장/계체/출전/대진 처리).
+- [x] 주최자: **현장 확인·계체** (`/organizer/events/[eventId]/check-in`) — 승인 신청자 대상 `CheckInStatus` / `WeighInStatus` 기록, **선수명·체육관·경기구분·체급 검색**, 몸무게·메모 저장 피드백, 단계별 액션(현장/계체/출전/대진 처리).
 - [x] 체육관: **현장 상태 조회** (`/gym/events/[eventId]/field-status`, 읽기 전용).
 - [x] 체육관: **신청 현황 조회** (`/gym/events/[eventId]/status`) — 소속 선수만, 신청·입금·신청서·현장·계체·대진·경기·결과 요약, 요약 카드 필터·검색·상세 Drawer(주최자 `fieldMemo`·계체 실측 미노출).
 - [x] 체육관: **자기 선수 경기 확인** — 동일 화면 「우리 체육관 경기」·미배정 선수, 공개 대진표 링크.
@@ -152,12 +152,17 @@
 - [x] **실제 계체 몸무게·현장 메모** — 공개 페이지(`/events/*`) 미노출.
 - [x] **자동 대진 생성** (`/organizer/events/[eventId]/brackets`) — **신청자 기준**(pending·approved)으로 생성. 현장·계체·출전 확정은 생성 조건에서 제외.
 - [x] **경기 순서 관리** — 주최자 대진표·경기 운영·공개 대진표에 `제N경기` 표시, ▲▼·직접 입력 순서 변경(결과 확정 경기 제외).
-- [x] **주최자 UI 용어** — 「브라켓」→「대진표 그룹」/「대진 방식」.
-- [x] **주최자 대진표 편집 UI** — 경기 목록 `MatchListEditor`를 공개 대진표와 동일한 홍코너 VS 청코너 카드형으로 정리. 선수명·체육관·부문 표시, 선수 변경 select·▲▼ 순서 변경·「경기 운영 열기」로 결과 패널 접기. 승인 후보·대진 후보 카드형·요약 경고.
+- [x] **신청자 일괄처리** — 체육관 필터·그룹·선택 일괄 `입금확인(승인)` / 주최측·체육관 취소 (`application-organizer-bulk.service`).
+- [x] **계체 실패 핸디캡** — `WeighInFailureResolution`·`handicapNote`·대진표/공개 카드 표시.
+- [x] **경기장별 대진 운영** — `EventCourt`·경기구분 배정·`BracketMatch.courtId`/`courtOrder`.
+- [x] **전체 경기 순서** — `/organizer/events/[eventId]/schedule` 위/아래·숫자 입력 저장.
+- [x] **UI 용어 통일** — 화면 문구 `부문` → `경기구분`(DB `division` 필드명 유지).
+- [x] **심판 역할 UI** — `채점심판` / `결과발표` 중심 라벨(HEAD_JUDGE 유지).
+- [x] **주최자 대진표 편집 UI** — 경기 목록 `MatchListEditor`를 공개 대진표와 동일한 홍코너 VS 청코너 카드형으로 정리. 선수명·체육관·경기구분 표시, 선수 변경 select·▲▼ 순서 변경·「경기 운영 열기」로 결과 패널 접기. 승인 후보·대진 후보 카드형·요약 경고.
 - [x] **대진표 카드 compact UI** — 편집 카드 높이 축소(중앙 VS만·운영 정보 하단 이동), 홍/청 코너 배경색 대칭 통일, 현장·계체 액션 가로 compact row.
 - [x] **대회 관리 layout 통일** — `EventManagementLayout`·`max-w-[96rem]` container, 좌측 sticky 사이드 메뉴(PC)·접힘 가로 메뉴(모바일), 하위 페이지 콘텐츠 폭·시작선 일관화.
 - [x] **주최자 dashboard content layout 통일** — `OrganizerDashboardContent`·`max-w-[96rem]`로 홈·대회·공개 선수·크레딧·체급표 템플릿·알림(organizer) 콘텐츠 시작선·폭 일관화. 대회 상세는 상위 wrapper + `EventManagementLayout` grid 중첩 padding 방지.
-- [x] **대진표 선수 사진 미노출** — 공개·주최자 대진표 편집(`FighterSlotCard`·`OrganizerMatchEditSlot`)에서 프로필 사진·avatar 제거, 텍스트(선수명·체육관·부문·전적) 중심. 선수 프로필(`/fighter/profile`·`/fighters/[slug]`) 사진 기능은 유지.
+- [x] **대진표 선수 사진 미노출** — 공개·주최자 대진표 편집(`FighterSlotCard`·`OrganizerMatchEditSlot`)에서 프로필 사진·avatar 제거, 텍스트(선수명·체육관·경기구분·전적) 중심. 선수 프로필(`/fighter/profile`·`/fighters/[slug]`) 사진 기능은 유지.
 - [x] **신청자 페이지 서버 오류 수정** — 결제 행(`EventApplicationPayment`)이 없는 신청도 목록에 null-safe 렌더(전체 500 방지), 입금 확인은 결제 행 있을 때만 표시.
 - [x] **신청자 페이지 가로 스크롤 제거** — `OrganizerApplicationsList`(PC grid row) + `OrganizerApplicationsCards`(모바일), compact 입금 action·결제 행 없음 짧은 문구, page-level overflow 방지.
 - [x] **심판 계정 생성 reset 오류 수정** — controlled form state / form key remount, DOM `reset()` 의존 제거.

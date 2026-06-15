@@ -45,9 +45,9 @@ function fighterDivisionBlockReason(
   fighter: FighterRow,
   divisionId: string,
 ): string | null {
-  if (!divisionId) return "부문을 선택해 주세요.";
+  if (!divisionId) return "경기구분을 선택해 주세요.";
   if (fighter.appliedDivisionIds.includes(divisionId)) {
-    return "이미 이 부문에 신청했습니다.";
+    return "이미 이 경기구분에 신청했습니다.";
   }
   return null;
 }

@@ -44,7 +44,7 @@ export function OrganizerBracketEditor({
             </span>
             {detail.divisionLabel ? (
               <span className="text-muted-foreground">
-                부문 {detail.divisionLabel}
+                경기구분 {detail.divisionLabel}
               </span>
             ) : null}
           </div>

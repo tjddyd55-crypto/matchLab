@@ -103,7 +103,7 @@ export function OrganizerOperationBoard({
             type="search"
             value={search}
             onChange={(e) => setSearch(e.target.value)}
-            placeholder="선수명, 체육관명, 부문명"
+            placeholder="선수명, 체육관명, 경기구분명"
             className={cn(selectClass, "w-full")}
           />
         </label>

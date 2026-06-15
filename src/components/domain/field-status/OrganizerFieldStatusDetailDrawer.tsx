@@ -49,7 +49,7 @@ export function OrganizerFieldStatusDetailDrawer({
       <div className="flex flex-col gap-5">
         <dl className="grid gap-4">
           <DetailRow label="체육관">{row.gymName}</DetailRow>
-          <DetailRow label="신청 부문/체급">{row.divisionLabel}</DetailRow>
+          <DetailRow label="신청 경기구분/체급">{row.divisionLabel}</DetailRow>
           <DetailRow label="신청 체급">
             {row.weightClassLabel ?? "—"}
           </DetailRow>

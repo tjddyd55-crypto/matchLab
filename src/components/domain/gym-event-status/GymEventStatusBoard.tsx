@@ -71,12 +71,12 @@ export function GymEventStatusBoard({ data }: { data: GymEventStatusPageDTO }) {
 
       <div className="flex flex-col gap-3 sm:flex-row sm:flex-wrap sm:items-end">
         <label className="flex min-w-[12rem] flex-1 flex-col gap-1 text-xs">
-          <span className="text-muted-foreground">선수명·부문 검색</span>
+          <span className="text-muted-foreground">선수명·경기구분 검색</span>
           <input
             type="search"
             value={search}
             onChange={(e) => setSearch(e.target.value)}
-            placeholder="선수명 또는 부문/체급"
+            placeholder="선수명 또는 경기구분/체급"
             className={cn(selectClass, "w-full")}
           />
         </label>

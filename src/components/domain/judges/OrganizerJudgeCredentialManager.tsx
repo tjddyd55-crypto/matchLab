@@ -8,7 +8,7 @@ import {
   setJudgeCredentialActiveAction,
 } from "@/features/judges/actions";
 import { Button } from "@/components/ui/button";
-import { JUDGE_ROLE_LABELS } from "@/lib/judge-identity";
+import { ORGANIZER_JUDGE_ROLE_OPTIONS } from "@/lib/judge-identity";
 import type { JudgeCredentialListItemVM } from "@/lib/services/judge-credential.service";
 import { JudgeCredentialRole } from "@/generated/prisma";
 
@@ -159,12 +159,18 @@ export function OrganizerJudgeCredentialManager({
             }
             className={inputClass}
           >
-            {Object.entries(JUDGE_ROLE_LABELS).map(([value, label]) => (
-              <option key={value} value={value}>
-                {label}
+            {ORGANIZER_JUDGE_ROLE_OPTIONS.map((opt) => (
+              <option key={opt.value} value={opt.value}>
+                {opt.label}
               </option>
             ))}
           </select>
+          <p className="text-muted-foreground text-[11px]">
+            {
+              ORGANIZER_JUDGE_ROLE_OPTIONS.find((o) => o.value === createForm.role)
+                ?.description
+            }
+          </p>
         </label>
         <label className="flex flex-col gap-1 text-sm sm:col-span-2">
           <span className="text-muted-foreground text-xs">메모</span>

@@ -126,7 +126,7 @@ export function GymOfficialApplicationWorkspace({
       {!batchSubmitted ? (
         <div className="grid gap-3 rounded-lg border bg-muted/20 p-4 sm:grid-cols-2">
           <label className="space-y-1 text-sm">
-            <span className="font-medium">부문</span>
+            <span className="font-medium">경기구분</span>
             <select
               value={divisionId}
               onChange={(e) => setDivisionId(e.target.value)}
@@ -173,7 +173,7 @@ export function GymOfficialApplicationWorkspace({
 
       {documents.length === 0 ? (
         <p className="text-muted-foreground text-sm">
-          아직 생성된 선수별 신청서가 없습니다. 선수와 부문을 선택한 뒤
+          아직 생성된 선수별 신청서가 없습니다. 선수와 경기구분을 선택한 뒤
           「선수별 신청서 생성」을 눌러 주세요.
         </p>
       ) : (

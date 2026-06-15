@@ -37,7 +37,7 @@ export function GymApplicationsCards({
               <span className="font-medium">{row.fighterName}</span>
             </div>
             <div className="flex justify-between gap-2">
-              <span className="text-muted-foreground">부문</span>
+              <span className="text-muted-foreground">경기구분</span>
               <span className="text-right text-xs">{row.divisionLabel}</span>
             </div>
             <ApplicationPaymentSummary

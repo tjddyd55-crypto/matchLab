@@ -26,7 +26,7 @@ export function GymEventCard({ event }: { event: GymDashboardEventItemDTO }) {
             {event.listingBadgeLabel}
           </span>
           <span>
-            주최 {event.organizerName} · 부문 {event.divisionCount}개
+            주최 {event.organizerName} · 경기구분 {event.divisionCount}개
             {!event.hasPaymentSetting ? " · 입금 미설정" : ""}
           </span>
         </CardDescription>

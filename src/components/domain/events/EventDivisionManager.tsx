@@ -40,7 +40,7 @@ function DivisionRowEditor({ d }: { d: Div }) {
         </p>
       ) : null}
       <label className="space-y-1 text-xs">
-        <span className="text-muted-foreground">종목·부문</span>
+        <span className="text-muted-foreground">종목·경기구분</span>
         <input
           name="sportType"
           required
@@ -108,7 +108,7 @@ function DivisionRowEditor({ d }: { d: Div }) {
       </label>
       <div className="flex items-end sm:col-span-2 lg:col-span-3">
         <Button type="submit" size="sm" variant="secondary" disabled={pending}>
-          {pending ? "저장 중…" : "부문 저장"}
+          {pending ? "저장 중…" : "경기구분 저장"}
         </Button>
       </div>
     </form>
@@ -139,7 +139,7 @@ function DivisionDeleteButton({
       onSubmit={(e) => {
         if (
           !window.confirm(
-            "이 부문을 삭제할까요? 신청·대진표가 연결된 부문은 삭제되지 않습니다.",
+            "이 경기구분을 삭제할까요? 신청·대진표가 연결된 경기구분은 삭제되지 않습니다.",
           )
         ) {
           e.preventDefault();
@@ -177,10 +177,10 @@ export function EventDivisionManager({
       className="ring-foreground/10 scroll-mt-24 space-y-4 rounded-xl border bg-card p-4 shadow-sm md:p-6"
     >
       <div className="flex flex-col gap-1 sm:flex-row sm:items-center sm:justify-between">
-        <h2 className="text-lg font-semibold">부문 (디비전)</h2>
+        <h2 className="text-lg font-semibold">경기구분 (디비전)</h2>
         {status === EventStatus.open ? (
           <p className="text-muted-foreground text-xs">
-            신청 공개 중에는 마지막 부문을 삭제할 수 없습니다.
+            신청 공개 중에는 마지막 경기구분을 삭제할 수 없습니다.
           </p>
         ) : null}
       </div>

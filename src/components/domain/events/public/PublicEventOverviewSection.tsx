@@ -80,12 +80,12 @@ export function PublicEventOverviewSection({
       />
 
       <section className="space-y-3 rounded-xl border p-4 md:p-5">
-        <h2 className="text-base font-semibold md:text-lg">체급 · 부문</h2>
+        <h2 className="text-base font-semibold md:text-lg">체급 · 경기구분</h2>
         {event.divisions.length > 0 ? (
           <PublicEventDivisionList divisions={event.divisions} />
         ) : (
           <p className="text-muted-foreground rounded-lg border border-dashed p-4 text-sm">
-            주최자가 부문 정보를 준비 중입니다.
+            주최자가 경기구분 정보를 준비 중입니다.
           </p>
         )}
       </section>

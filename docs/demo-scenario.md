@@ -18,7 +18,7 @@ MVP 범위는 `docs/mvp-scope.md`를 기준으로 하며, 본 문서는 **시연
 1. **admin** — `/admin/application-form-templates/new`에서 **실제 PDF 업로드** → 업로드 직후 좌표는 **비어 있음** → PDF 위 「+ 텍스트」 등으로 필드 박스 추가·드래그·리사이즈 → source 연결 → 저장.
 2. **admin** — (선택) 「고급 설정」에서 fieldsJson 직접 수정 후 「JSON을 화면에 반영」 또는 「예시 좌표 불러오기」(자동 적용 없음).
 3. **organizer** — `/organizer/events/{eventId}`에서 공식 신청서 템플릿 연결 저장.
-4. **gym** — `/gym/events/{eventId}/apply`에서 선수·부문 선택 → 「선수별 신청서 생성」(PDF) 또는 **선수 일괄 신청** + 자체 폼 답변 작성(custom).
+4. **gym** — `/gym/events/{eventId}/apply`에서 선수·경기구분 선택 → 「선수별 신청서 생성」(PDF) 또는 **선수 일괄 신청** + 자체 폼 답변 작성(custom).
 5. **선수** — 「서명 페이지 열기」 또는 `/application-sign/[token]`에서 서명 완료.
 6. **보호자**(미성년·학생) — `/guardian-consent/[id]?scope=application`에서 동의·서명.
 7. **gym** — 문서 상태 `completed` 확인 → (선택) 완료 PDF 생성 대기 → 「신청 묶음 제출」.
@@ -34,12 +34,12 @@ MVP 범위는 `docs/mvp-scope.md`를 기준으로 하며, 본 문서는 **시연
 4. **organizer** — `/organizer/events/{eventId}/applications` → 신청자 상세 Drawer에서 **신청서 답변** 확인 → **인쇄용 보기**(`/applications/{applicationId}/print`) 출력(공개 화면에는 미노출).
 5. **회귀** — PDF 템플릿 생성·좌표 편집·`GymOfficialApplicationWorkspace` 흐름이 기존과 동일한지 확인.
 
-### 1.2 체급표 템플릿 · 부문 생성
+### 1.2 체급표 템플릿 · 경기구분 생성
 
 1. **organizer** — `/organizer/division-templates/new` → 「무에타이 예시 불러오기」→ 일부 체급 수정 → 저장. (편집 화면은 **넓은 레이아웃**·빠른 입력 textarea·부별 표를 확인.)
-2. **organizer** — `/organizer/events/{eventId}` → 「체급표로 부문 생성」→ 템플릿 선택·미리보기 → 「동일 부문 건너뛰기」로 적용.
-3. **spectator** — `/events/{slug}` 공개 상세에서 생성된 부문 목록 확인.
-4. **gym** — `/gym/events/{eventId}/apply`에서 **선수 일괄 신청**(체크·행별 부문 select·공통 동의) 또는 개별 신청으로 부문 신청.
+2. **organizer** — `/organizer/events/{eventId}` → 「체급표로 경기구분 생성」→ 템플릿 선택·미리보기 → 「동일 경기구분 건너뛰기」로 적용.
+3. **spectator** — `/events/{slug}` 공개 상세에서 생성된 경기구분 목록 확인.
+4. **gym** — `/gym/events/{eventId}/apply`에서 **선수 일괄 신청**(체크·행별 경기구분 select·공통 동의) 또는 개별 신청으로 경기구분 신청.
 
 ### 1.3 포스터 · 갤러리 · 공개 공고 UI
 
@@ -56,12 +56,12 @@ MVP 범위는 `docs/mvp-scope.md`를 기준으로 하며, 본 문서는 **시연
 1. **organizer** — `/organizer/events/new`에서 대회명·일시·장소·신청 기간만 입력해 생성.
 2. 생성 후 관리 홈(`/organizer/events/{eventId}?welcome=1`)에서 **다음 작업**·**준비 체크리스트** 확인.
 3. 포스터 없을 때 **권장** 표시 → 포스터 등록 후 완료 확인.
-4. 부문 없을 때 **필요** 표시 → 체급표로 부문 생성 후 완료 확인.
+4. 경기구분 없을 때 **필요** 표시 → 체급표로 경기구분 생성 후 완료 확인.
 5. 신청서·참가비·공개 페이지 링크가 체크리스트에서 바로가기 되는지 확인.
-6. **좌측 대회 관리 메뉴**(PC)에서 관리 홈 → 기본 설정 → 부문 → 신청자 → 현장·계체 → 대진표 순 이동 확인. 모바일은 「대회 메뉴」 접힘·가로 스크롤 확인.
+6. **좌측 대회 관리 메뉴**(PC)에서 관리 홈 → 기본 설정 → 경기구분 → 신청자 → 현장·계체 → 대진표 순 이동 확인. 모바일은 「대회 메뉴」 접힘·가로 스크롤 확인.
 7. 신청자·현장·계체·대진표·경기 운영 등 하위 페이지에서 **오른쪽 콘텐츠 시작선·가로폭**이 동일한지 확인.
 8. **큰 메뉴 간 이동**(홈 → 대회 → 공개 선수 → 크레딧 → 체급표 템플릿 → 알림) 시 오른쪽 content 시작선·최대 폭이 일관적인지 확인.
-9. **공개 대진표**(`/events/sample-open-2026?tab=brackets`) — 홍/청 코너에 **선수 사진 없이** 선수명·체육관·부문·전적 텍스트만 표시되는지 확인. **공개 선수 프로필**(`/fighters/{slug}`)에서는 사진이 기존처럼 표시되는지 확인.
+9. **공개 대진표**(`/events/sample-open-2026?tab=brackets`) — 홍/청 코너에 **선수 사진 없이** 선수명·체육관·경기구분·전적 텍스트만 표시되는지 확인. **공개 선수 프로필**(`/fighters/{slug}`)에서는 사진이 기존처럼 표시되는지 확인.
 
 ### 1.4c 주소·신청자·스태프·심판·지도 UX
 
@@ -99,7 +99,16 @@ MVP 범위는 `docs/mvp-scope.md`를 기준으로 하며, 본 문서는 **시연
 
 > `JudgeAccessCredential` 본인 확인·`JudgeScorecardChangeLog` 감사 이력 반영 후 **`npm run db:push`** 필요. **`db:seed` 금지.**
 
-### 1.4b 스태프 모바일 결과 입력
+### 1.4c 주최측 운영 화면 (신청·계체·경기장)
+
+1. **organizer** — `/organizer/events/{eventId}/applications`: 컬럼 `선수·체육관·경기구분/체급·입금·상태·처리` 확인. `입금확인(승인)` 개별·체육관별 일괄 처리.
+2. **organizer** — `/check-in`: 계체 실패 → `경기진행` + 핸디캡 메모 또는 `경기취소`. 실격 시 사유 필수.
+3. **organizer** — `/brackets`·공개 대진표: 핸디캡 배지·경기장명 표시 확인.
+4. **organizer** — `/schedule`: 경기장 2개 생성, 경기구분 배정, 위/아래·숫자로 순서 저장.
+5. **organizer** — `/judges`: 역할 라벨 `채점심판` / `결과발표` 확인.
+
+> schema additive 변경 후 **`npm run db:push`** 필요. **`db:seed` 금지.**
+
 
 1. **organizer** — `/organizer/events/{eventId}` 또는 **경기 운영** 상단에서 스태프 링크 복사(없으면 행사 상세에서 생성).
 2. **시크릿 창·모바일 폭** — `/staff/result/{token}/matches` 접속(접속 코드 있으면 입력).
@@ -115,7 +124,7 @@ MVP 범위는 `docs/mvp-scope.md`를 기준으로 하며, 본 문서는 **시연
 3. **경기 종료** — 진행 중 경기에서 클릭 → 상태 **종료** 반영.
 4. **결과 입력** — 종료 경기에서 Drawer 열기 → 기존 `OrganizerMatchOpsPanel`로 확정 → 목록 **결과 입력 완료** 반영.
 5. **결과 보기** — 확정된 경기에서 Drawer로 정정·무효 흐름 확인(선택).
-6. **필터·검색** — 예정/결과 미입력 필터, 선수명·체육관·부문 검색 동작 확인.
+6. **필터·검색** — 예정/결과 미입력 필터, 선수명·체육관·경기구분 검색 동작 확인.
 7. **spectator** — `/events/{slug}/results` 공개 결과 페이지에 확정 결과 반영 확인.
 
 ### 1.3a 공개 대회 신뢰 정보
@@ -268,7 +277,7 @@ npm run seed:demo-fighters # FTR-2026-TEST001~020, 데모 체육관 소속
 ## 3. 시연 데이터 설명 (`npm run db:seed` 후)
 
 - **대회**: `2026 샘플 오픈 대회`, 공개 슬러그 **`sample-open-2026`**, 상태 `open`.
-- **부문**: 라이트급(U14 -55kg)·미들급(U16 -60kg) 등 2개.
+- **경기구분**: 라이트급(U14 -55kg)·미들급(U16 -60kg) 등 2개.
 - **입금 설정**: 금액·은행·**테스트용 계좌번호**(실제 계좌 아님) — 공개 상세에는 계좌번호 미포함.
 - **신청**: 승인·대기·입금 상태가 섞인 `EventApplication` 행.
 - **대진표**: `single_elimination`(일부 종료 매치) + `match_list` 공개 대진표 그룹.
@@ -312,7 +321,7 @@ npm run seed:demo-fighters # FTR-2026-TEST001~020, 데모 체육관 소속
 ### 주최자 (`/organizer/...`)
 
 - `/organizer`, `/organizer/events`, `/organizer/events/new`
-- `/organizer/events/{eventId}` — 대회 편집·부문·입금·스트리밍 설정
+- `/organizer/events/{eventId}` — 대회 편집·경기구분·입금·스트리밍 설정
 - `.../applications`, `.../application-batches`, `.../application-documents/[id]/print`, `.../brackets`, `.../operation`(경기 운영), `.../results`, `.../live`
 
 ### 체육관 (`/gym/...`)

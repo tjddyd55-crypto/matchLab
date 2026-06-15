@@ -34,7 +34,7 @@ export function OrganizerOperationCardListMobile({
               <p className="text-muted-foreground text-xs">
                 경기 {row.orderLabel}
               </p>
-              <p className="font-medium">{row.divisionLabel ?? "부문 미상"}</p>
+              <p className="font-medium">{row.divisionLabel ?? "경기구분 미상"}</p>
               <p className="text-muted-foreground text-xs">{row.bracketTitle}</p>
             </div>
             <OrganizerOperationStatusBadges

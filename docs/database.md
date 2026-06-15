@@ -131,7 +131,7 @@ Notification
 ### Organizer / Event
 
 - `Event.publicSlug`: 공개 URL. 제목 기반 ASCII 슬러그 + 충돌 시 랜덤 suffix(`allocateUniquePublicSlug`).
-- `Event.status` 기본값 `draft`. `draft`→`open` 시 제목·일정·장소·신청 기간·부문 1개 이상·`EventPaymentSetting` 존재를 서비스에서 검증.
+- `Event.status` 기본값 `draft`. `draft`→`open` 시 제목·일정·장소·신청 기간·경기구분 1개 이상·`EventPaymentSetting` 존재를 서비스에서 검증.
 - `photoRecordingEnabled`, `videoRecordingEnabled`, `liveStreamingEnabled`, `streamingConsentRequired`, `streamingNoticeText`: 대회 단위 촬영·스트리밍 정책. **`liveStreamingEnabled` 가 true이면 신청 동의(`streamingConsentRequired`) 를 기본적으로 요구**하는 흐름을 권장(생성·수정 서비스에서 플래그에 맞춰 보정).
 - `publicUnmatchedListEnabled` (Boolean, 기본 `false`): 공개 페이지에 **추가 매칭 대기 명단** 표시 여부. 대진표 공개(`Bracket.isPublic`)와 별도 토글.
 
@@ -228,7 +228,7 @@ MVP: 계좌 안내 + 수동 입금 확인. **`EventApplicationPayment` 가 입�
 ### EventApplication (확장)
 
 - `applicationBatchId`, `applicationDocumentId`: 공식 신청서 플로우와 기존 선수별 신청 연결.
-- **현장 확인·계체(MVP)**: 별도 `EventApplicationCheckIn` 테이블 없이 `EventApplication`에 `checkInStatus` / `weighInStatus` / `weighInWeightKg` / `fieldMemo` 를 둔다. 단위는 **선수 × 대회 × 부문 신청 1건**(`@@unique([eventId, fighterId, divisionId])`)과 동일.
+- **현장 확인·계체(MVP)**: 별도 `EventApplicationCheckIn` 테이블 없이 `EventApplication`에 `checkInStatus` / `weighInStatus` / `weighInWeightKg` / `fieldMemo` 를 둔다. 단위는 **선수 × 대회 × 경기구분 신청 1건**(`@@unique([eventId, fighterId, divisionId])`)과 동일.
 - **출전 확정**: DB 컬럼이 아니라 `src/lib/field-eligibility.ts`에서 계산 — `checked_in` + (`pass` \| `manual_pass`).
 - **공개 노출 금지**: `weighInWeightKg`, `checkInStatus`, `weighInStatus`, `fieldMemo` 는 주최자·체육관 대시보드 전용. 공개 DTO(`lib/dto/public`)에는 포함하지 않는다.
 - **TODO(향후)**: 감사 추적(`checkedInAt` / `checkedInByUserId` / `weighedAt` / `weighedByUserId`)·QR 체크인·선수 셀프 조회가 필요하면 `EventApplicationFieldStatus` 등 별도 테이블로 분리 검토.
@@ -236,7 +236,7 @@ MVP: 계좌 안내 + 수동 입금 확인. **`EventApplicationPayment` 가 입�
 ### Bracket / BracketMatch
 
 - **Bracket 단위**로 `type` 선택 — 동일 Event 내 토너먼트·매치리스트 혼합 가능.
-- `fighterRedSnapshot`, `fighterBlueSnapshot`: 사진·체육관명·전적 요약·부문 라벨 등 **표시 전용 JSON**(클라이언트 입력 신뢰 금지 — 서버에서 승인 신청·Fighter 캐시 기준 생성).
+- `fighterRedSnapshot`, `fighterBlueSnapshot`: 사진·체육관명·전적 요약·경기구분 라벨 등 **표시 전용 JSON**(클라이언트 입력 신뢰 금지 — 서버에서 승인 신청·Fighter 캐시 기준 생성).
 - 예시 페이로드(키만 참고):
 
 ```json
@@ -326,7 +326,7 @@ MVP: `watchUrl`, `embedUrl`, 플랫폼 enum. **스트림 키 필드 없음.**
   - 행(`items[]`): `ageGroup`, `gender`, `weightClassName`, `weightLimitText`, `weightLimitKg`, `limitType`, `displayOrder`, `isActive` (+ 레거시 `weightClass` 통합 필드)
   - **EventDivision 매핑**: `sportType`←템플릿, `gender`/`ageGroup`←행, `weightClass`←`weightClassName + weightLimitText`, `ruleType`/`skillLevel` 선택
   - **적용 중복 키**: sportType · gender · ageGroup · weightClass
-  - **초기화(replace)**: 신청·대진표 없는 부문만 삭제 후 재생성
+  - **초기화(replace)**: 신청·대진표 없는 경기구분만 삭제 후 재생성
 - **`EventImage`**: 행사 포스터·갤러리 메타(공개 URL은 Storage 공개 버킷 정책 기준).
 - **`GymEventFeeSetting`**: 체육관별 행사 참가비 안내(선수에게 보여 줄 금액·메모 — 공개 행사 DTO에는 계좌번호 미포함 유지).
 - **`EventStaffAccessLink`**: 결과 입력 스태프 전용 토큰 링크(권한 플래그·선택적 접속 코드·만료).
