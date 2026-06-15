@@ -2,6 +2,7 @@
 
 import { OrganizerOperationActions } from "@/components/domain/operation/OrganizerOperationActions";
 import { OrganizerOperationStatusBadges } from "@/components/domain/operation/OrganizerOperationStatusBadges";
+import { FighterHandicapBadge } from "@/components/domain/shared/FighterHandicapBadge";
 import type { OperationMatchRowVM } from "@/components/domain/operation/operation-match-row";
 import { getOperationMatchPhase } from "@/lib/match-operation-display";
 
@@ -36,6 +37,12 @@ export function OrganizerOperationCardListMobile({
               </p>
               <p className="font-medium">{row.divisionLabel ?? "경기구분 미상"}</p>
               <p className="text-muted-foreground text-xs">{row.bracketTitle}</p>
+              {row.courtName ? (
+                <p className="text-muted-foreground mt-1 text-xs">
+                  {row.courtName}
+                  {row.courtOrder != null ? ` · ${row.courtOrder}경기` : ""}
+                </p>
+              ) : null}
             </div>
             <OrganizerOperationStatusBadges
               phase={getOperationMatchPhase(row)}
@@ -51,6 +58,11 @@ export function OrganizerOperationCardListMobile({
               <p className="text-muted-foreground text-xs">
                 {row.fighterRed?.gymName ?? "—"}
               </p>
+              <FighterHandicapBadge
+                handicap={row.fighterRed?.handicap}
+                compact
+                className="mt-1"
+              />
             </div>
             <div className="rounded-md border px-3 py-2 text-sm">
               <p className="text-muted-foreground text-xs">선수 B</p>
@@ -58,6 +70,11 @@ export function OrganizerOperationCardListMobile({
               <p className="text-muted-foreground text-xs">
                 {row.fighterBlue?.gymName ?? "—"}
               </p>
+              <FighterHandicapBadge
+                handicap={row.fighterBlue?.handicap}
+                compact
+                className="mt-1"
+              />
             </div>
           </div>
 

@@ -7,6 +7,10 @@ import {
 } from "@/generated/prisma";
 import type { ActorContext } from "@/lib/auth/actor-context";
 import { formatDivisionNameLabel } from "@/lib/bracket-snapshot";
+import type { FighterHandicapDisplay } from "@/lib/fighter-handicap-display";
+import {
+  buildFighterHandicapMap,
+} from "@/lib/fighter-handicap-display";
 import { AppError } from "@/lib/errors/app-error";
 import { assertBracketMatchStatusTransition } from "@/lib/match-status-transition";
 import {
@@ -261,6 +265,14 @@ function mapFieldModeRow(
   };
 }
 
+export type OrganizerEventMatchFighterVM = {
+  id: string;
+  fighterCode: string;
+  name: string;
+  gymName: string | null;
+  handicap: FighterHandicapDisplay | null;
+};
+
 export type OrganizerEventMatchListItemVM = {
   eventTitle: string;
   matchId: string;
@@ -273,19 +285,12 @@ export type OrganizerEventMatchListItemVM = {
   globalMatchOrder: number | null;
   matchNumber: number | null;
   matNumber: number | null;
+  courtId: string | null;
+  courtName: string | null;
+  courtOrder: number | null;
   status: import("@/lib/enums").BracketMatchStatus;
-  fighterRed: {
-    id: string;
-    fighterCode: string;
-    name: string;
-    gymName: string | null;
-  } | null;
-  fighterBlue: {
-    id: string;
-    fighterCode: string;
-    name: string;
-    gymName: string | null;
-  } | null;
+  fighterRed: OrganizerEventMatchFighterVM | null;
+  fighterBlue: OrganizerEventMatchFighterVM | null;
   winnerId: string | null;
   loserId: string | null;
   resultType: import("@/lib/enums").BracketMatchOutcomeStyle | null;
@@ -305,6 +310,25 @@ export const matchService = {
     await requireOrganizerForEvent(actor, eventId);
 
     const rows = await matchRepository.listMatchesByEvent(eventId);
+    const handicapRows =
+      await applicationRepository.listFighterHandicapFieldsForEvent(eventId);
+    const handicapMap = buildFighterHandicapMap(handicapRows);
+
+    function mapFighter(
+      f: NonNullable<(typeof rows)[number]["fighterRed"]>,
+    ): OrganizerEventMatchFighterVM {
+      const h = handicapMap.get(f.id);
+      return {
+        id: f.id,
+        fighterCode: f.fighterCode,
+        name: f.name,
+        gymName: f.currentGym?.name ?? null,
+        handicap:
+          h?.badgeLabel != null
+            ? { badgeLabel: h.badgeLabel, note: h.note }
+            : null,
+      };
+    }
 
     return rows.map((m): OrganizerEventMatchListItemVM => {
       const divisionLabel = m.bracket.division
@@ -331,23 +355,12 @@ export const matchService = {
         globalMatchOrder: m.globalMatchOrder,
         matchNumber: m.matchNumber,
         matNumber: m.matNumber,
+        courtId: m.courtId ?? null,
+        courtName: m.court?.name ?? null,
+        courtOrder: m.courtOrder ?? null,
         status: m.status,
-        fighterRed: m.fighterRed
-          ? {
-              id: m.fighterRed.id,
-              fighterCode: m.fighterRed.fighterCode,
-              name: m.fighterRed.name,
-              gymName: m.fighterRed.currentGym?.name ?? null,
-            }
-          : null,
-        fighterBlue: m.fighterBlue
-          ? {
-              id: m.fighterBlue.id,
-              fighterCode: m.fighterBlue.fighterCode,
-              name: m.fighterBlue.name,
-              gymName: m.fighterBlue.currentGym?.name ?? null,
-            }
-          : null,
+        fighterRed: m.fighterRed ? mapFighter(m.fighterRed) : null,
+        fighterBlue: m.fighterBlue ? mapFighter(m.fighterBlue) : null,
         winnerId: m.winnerId,
         loserId: m.loserId,
         resultType: m.resultType,
@@ -565,6 +578,9 @@ export const matchService = {
         globalMatchOrder: m.globalMatchOrder,
         matchNumber: m.matchNumber,
         matNumber: m.matNumber,
+        courtId: m.courtId ?? null,
+        courtName: m.court?.name ?? null,
+        courtOrder: m.courtOrder ?? null,
         status: m.status,
         fighterRed: m.fighterRed
           ? {
@@ -572,6 +588,7 @@ export const matchService = {
               fighterCode: m.fighterRed.fighterCode,
               name: m.fighterRed.name,
               gymName: m.fighterRed.currentGym?.name ?? null,
+              handicap: null,
             }
           : null,
         fighterBlue: m.fighterBlue
@@ -580,6 +597,7 @@ export const matchService = {
               fighterCode: m.fighterBlue.fighterCode,
               name: m.fighterBlue.name,
               gymName: m.fighterBlue.currentGym?.name ?? null,
+              handicap: null,
             }
           : null,
         winnerId: m.winnerId,

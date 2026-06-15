@@ -5,6 +5,20 @@ import { prisma } from "@/lib/prisma";
 
 const db = (tx?: Prisma.TransactionClient) => tx ?? prisma;
 
+const divisionRuleInclude = {
+  division: {
+    select: {
+      id: true,
+      sportType: true,
+      ruleType: true,
+      gender: true,
+      ageGroup: true,
+      weightClass: true,
+      skillLevel: true,
+    },
+  },
+} as const;
+
 export const eventCourtRepository = {
   async listByEvent(eventId: string, tx?: Prisma.TransactionClient) {
     return db(tx).eventCourt.findMany({
@@ -13,19 +27,7 @@ export const eventCourtRepository = {
       include: {
         divisionRules: {
           where: { isActive: true },
-          include: {
-            division: {
-              select: {
-                id: true,
-                sportType: true,
-                ruleType: true,
-                gender: true,
-                ageGroup: true,
-                weightClass: true,
-                skillLevel: true,
-              },
-            },
-          },
+          include: divisionRuleInclude,
           orderBy: { priority: "asc" },
         },
       },
@@ -39,22 +41,17 @@ export const eventCourtRepository = {
       include: {
         divisionRules: {
           where: { isActive: true },
-          include: {
-            division: {
-              select: {
-                id: true,
-                sportType: true,
-                ruleType: true,
-                gender: true,
-                ageGroup: true,
-                weightClass: true,
-                skillLevel: true,
-              },
-            },
-          },
+          include: divisionRuleInclude,
           orderBy: { priority: "asc" },
         },
       },
+    });
+  },
+
+  async listActiveRulesByEvent(eventId: string, tx?: Prisma.TransactionClient) {
+    return db(tx).eventCourtDivisionRule.findMany({
+      where: { eventId, isActive: true },
+      orderBy: { priority: "asc" },
     });
   },
 
@@ -79,43 +76,77 @@ export const eventCourtRepository = {
     return db(tx).eventCourt.update({ where: { id: courtId }, data });
   },
 
-  async upsertDivisionRule(
+  async reorderCourts(
+    eventId: string,
+    orderedCourtIds: string[],
+    tx?: Prisma.TransactionClient,
+  ): Promise<void> {
+    for (let i = 0; i < orderedCourtIds.length; i += 1) {
+      await db(tx).eventCourt.updateMany({
+        where: { id: orderedCourtIds[i], eventId },
+        data: { sortOrder: i },
+      });
+    }
+  },
+
+  async findDuplicateName(
+    eventId: string,
+    name: string,
+    excludeCourtId?: string,
+    tx?: Prisma.TransactionClient,
+  ) {
+    return db(tx).eventCourt.findFirst({
+      where: {
+        eventId,
+        name,
+        isActive: true,
+        ...(excludeCourtId ? { id: { not: excludeCourtId } } : {}),
+      },
+      select: { id: true },
+    });
+  },
+
+  async createDivisionRule(
     data: {
       eventId: string;
       courtId: string;
-      divisionId: string;
+      divisionId?: string | null;
+      weightClassLabel?: string | null;
       priority?: number;
     },
     tx?: Prisma.TransactionClient,
   ) {
-    return db(tx).eventCourtDivisionRule.upsert({
+    const divisionId = data.divisionId ?? null;
+    const weightClassLabel = data.weightClassLabel?.trim() || null;
+
+    const existing = await db(tx).eventCourtDivisionRule.findFirst({
       where: {
-        courtId_divisionId: {
-          courtId: data.courtId,
-          divisionId: data.divisionId,
-        },
+        courtId: data.courtId,
+        divisionId,
+        weightClassLabel,
+        isActive: true,
       },
-      create: {
+    });
+    if (existing) return existing;
+
+    return db(tx).eventCourtDivisionRule.create({
+      data: {
         eventId: data.eventId,
         courtId: data.courtId,
-        divisionId: data.divisionId,
+        divisionId,
+        weightClassLabel,
         priority: data.priority ?? 0,
         isActive: true,
-      },
-      update: {
-        isActive: true,
-        priority: data.priority ?? 0,
       },
     });
   },
 
   async deactivateDivisionRule(
-    courtId: string,
-    divisionId: string,
+    ruleId: string,
     tx?: Prisma.TransactionClient,
   ) {
-    return db(tx).eventCourtDivisionRule.updateMany({
-      where: { courtId, divisionId },
+    return db(tx).eventCourtDivisionRule.update({
+      where: { id: ruleId },
       data: { isActive: false },
     });
   },

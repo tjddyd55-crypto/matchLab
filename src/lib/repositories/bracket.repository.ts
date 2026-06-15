@@ -313,6 +313,8 @@ export const bracketRepository = {
       globalMatchOrder?: number | null;
       matchNumber?: number | null;
       matNumber?: number | null;
+      courtId?: string | null;
+      courtOrder?: number | null;
       fighterRedId?: string | null;
       fighterBlueId?: string | null;
       fighterRedSnapshot?: Prisma.InputJsonValue | null;
@@ -332,6 +334,8 @@ export const bracketRepository = {
         globalMatchOrder: data.globalMatchOrder ?? null,
         matchNumber: data.matchNumber ?? null,
         matNumber: data.matNumber ?? null,
+        courtId: data.courtId ?? null,
+        courtOrder: data.courtOrder ?? null,
         fighterRedId: data.fighterRedId ?? null,
         fighterBlueId: data.fighterBlueId ?? null,
         fighterRedSnapshot: data.fighterRedSnapshot ?? undefined,

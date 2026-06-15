@@ -18,6 +18,12 @@ const REQUIRED_COLUMNS: Record<string, string[]> = {
     "cancellationSource",
   ],
   BracketMatch: ["courtId", "courtOrder"],
+  EventCourtDivisionRule: [
+    "divisionId",
+    "weightClassLabel",
+    "priority",
+    "isActive",
+  ],
 };
 
 const REQUIRED_ENUMS: { type: string; values: string[] }[] = [
@@ -134,6 +140,13 @@ async function main() {
 
   console.log("\n--- Prisma smoke read ---");
   await prisma.eventCourt.findFirst({ select: { id: true, name: true } });
+  await prisma.eventCourtDivisionRule.findFirst({
+    select: {
+      id: true,
+      divisionId: true,
+      weightClassLabel: true,
+    },
+  });
   await prisma.eventApplication.findFirst({
     select: {
       id: true,

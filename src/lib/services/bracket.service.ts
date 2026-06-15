@@ -43,6 +43,7 @@ import { notificationRepository } from "@/lib/repositories/notification.reposito
 import { safeNotify, tryNotify } from "@/lib/notifications/safe-dispatch";
 import { notificationService } from "@/lib/services/notification.service";
 import { fieldStatusService } from "@/lib/services/field-status.service";
+import { eventCourtService } from "@/lib/services/event-court.service";
 import type {
   AssignFighterToMatchInput,
   CreateBracketInput,
@@ -132,10 +133,68 @@ function singleElimRoundLabel(depth: number, r: number): string {
   return `${stage}강`;
 }
 
+type PreservedCourtAssignment = {
+  courtId: string | null;
+  courtOrder: number | null;
+  fighterRedId: string | null;
+  fighterBlueId: string | null;
+  matchOrder: number;
+};
+
+async function resolveSuggestedCourtId(
+  eventId: string,
+  divisionId: string | null,
+  tx?: Prisma.TransactionClient,
+): Promise<string | null> {
+  if (!divisionId) return null;
+  const division = await (tx ?? prisma).eventDivision.findUnique({
+    where: { id: divisionId },
+    select: { id: true, weightClass: true },
+  });
+  if (!division) return null;
+  return eventCourtService.suggestCourtForDivision(eventId, {
+    id: division.id,
+    weightClass: division.weightClass,
+  });
+}
+
+function findPreservedCourtAssignment(
+  previous: PreservedCourtAssignment[],
+  input: {
+    fighterRedId?: string | null;
+    fighterBlueId?: string | null;
+    matchOrder: number;
+  },
+): { courtId: string | null; courtOrder: number | null } | null {
+  const red = input.fighterRedId ?? null;
+  const blue = input.fighterBlueId ?? null;
+
+  const byFighters = previous.find(
+    (m) =>
+      m.courtId &&
+      ((m.fighterRedId === red && m.fighterBlueId === blue) ||
+        (m.fighterRedId === blue && m.fighterBlueId === red)),
+  );
+  if (byFighters) {
+    return { courtId: byFighters.courtId, courtOrder: byFighters.courtOrder };
+  }
+
+  const byOrder = previous.find(
+    (m) => m.courtId && m.matchOrder === input.matchOrder,
+  );
+  if (byOrder) {
+    return { courtId: byOrder.courtId, courtOrder: byOrder.courtOrder };
+  }
+
+  return null;
+}
+
 async function createSingleEliminationTree(
   tx: Prisma.TransactionClient,
   bracketId: string,
   slotCount: number,
+  eventId: string,
+  divisionId: string | null,
 ): Promise<void> {
   const depth = Math.round(Math.log2(slotCount));
   if (2 ** depth !== slotCount) {
@@ -146,6 +205,12 @@ async function createSingleEliminationTree(
   }
 
   let upperRoundMatches: { id: string }[] = [];
+  const suggestedCourtId = await resolveSuggestedCourtId(
+    eventId,
+    divisionId,
+    tx,
+  );
+
   for (let r = depth; r >= 1; r--) {
     const count = 2 ** (depth - r);
     const currentRound: { id: string }[] = [];
@@ -169,6 +234,7 @@ async function createSingleEliminationTree(
           globalMatchOrder: null,
           matchNumber: null,
           matNumber: null,
+          courtId: suggestedCourtId,
           nextMatchId,
           nextMatchSlot,
         },
@@ -350,7 +416,7 @@ export const bracketService = {
     const syncKey = matches
       .map(
         (m) =>
-          `${m.id}:${m.fighterRedId ?? ""}:${m.fighterBlueId ?? ""}:${m.matchOrder}:${m.globalMatchOrder ?? ""}:${m.matNumber ?? ""}:${m.matchNumber ?? ""}:${m.status}:${m.winnerId ?? ""}:${m.resultType ?? ""}:${m.hasOfficialResults ? "1" : "0"}`,
+          `${m.id}:${m.fighterRedId ?? ""}:${m.fighterBlueId ?? ""}:${m.matchOrder}:${m.globalMatchOrder ?? ""}:${m.matNumber ?? ""}:${m.matchNumber ?? ""}:${m.courtId ?? ""}:${m.courtOrder ?? ""}:${m.status}:${m.winnerId ?? ""}:${m.resultType ?? ""}:${m.hasOfficialResults ? "1" : "0"}`,
       )
       .join("|");
 
@@ -569,6 +635,19 @@ export const bracketService = {
     validateMatchListPlacement(input.matches);
 
     await prisma.$transaction(async (tx) => {
+      const existingBracket = await bracketRepository.findBracketWithMatches(
+        input.bracketId,
+        tx,
+      );
+      const previousCourts: PreservedCourtAssignment[] =
+        existingBracket?.matches.map((m) => ({
+          courtId: m.courtId ?? null,
+          courtOrder: m.courtOrder ?? null,
+          fighterRedId: m.fighterRedId,
+          fighterBlueId: m.fighterBlueId,
+          matchOrder: m.matchOrder,
+        })) ?? [];
+
       const beforeCount = await bracketRepository.countMatchesByBracketId(
         input.bracketId,
         tx,
@@ -588,6 +667,12 @@ export const bracketService = {
         beforeData: { previousMatchCount: beforeCount },
         afterData: { matchCount: input.matches.length },
       });
+
+      const suggestedCourtId = await resolveSuggestedCourtId(
+        ctx.eventId,
+        ctx.divisionId,
+        tx,
+      );
 
       for (const row of input.matches) {
         const redFighterId = row.fighterRedId;
@@ -636,6 +721,14 @@ export const bracketService = {
           }
         }
 
+        const preserved = findPreservedCourtAssignment(previousCourts, {
+          fighterRedId: redPlacement?.fighterId ?? null,
+          fighterBlueId: bluePlacement?.fighterId ?? null,
+          matchOrder: row.matchOrder,
+        });
+        const courtId = preserved?.courtId ?? suggestedCourtId;
+        const courtOrder = preserved?.courtOrder ?? null;
+
         const { id: matchId } = await bracketRepository.createBracketMatch(
           {
             bracketId: input.bracketId,
@@ -645,6 +738,8 @@ export const bracketService = {
             globalMatchOrder: row.globalMatchOrder ?? null,
             matchNumber: row.matchNumber ?? null,
             matNumber: row.matNumber ?? null,
+            courtId,
+            courtOrder,
             fighterRedId: redPlacement?.fighterId ?? null,
             fighterBlueId: bluePlacement?.fighterId ?? null,
             fighterRedSnapshot: redPlacement
@@ -713,7 +808,13 @@ export const bracketService = {
         afterData: { slotCount: input.slotCount },
       });
 
-      await createSingleEliminationTree(tx, input.bracketId, input.slotCount);
+      await createSingleEliminationTree(
+        tx,
+        input.bracketId,
+        input.slotCount,
+        ctx.eventId,
+        ctx.divisionId,
+      );
 
       const ev = await notificationRepository.getEventSlugTitle(ctx.eventId, tx);
       const br = await bracketRepository.findBracketById(input.bracketId, tx);

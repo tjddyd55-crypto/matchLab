@@ -35,6 +35,7 @@ export default async function OrganizerEventSchedulePage({
   const divisionOptions = divisions.map((d) => ({
     id: d.id,
     label: formatDivisionNameLabel(d),
+    weightClass: d.weightClass,
   }));
 
   return (

@@ -14,7 +14,9 @@ import type {
 } from "@/lib/services/bracket.service";
 import { ApprovedApplicationPicker } from "@/components/domain/brackets/ApprovedApplicationPicker";
 import { OrganizerMatchOpsPanel } from "@/components/domain/brackets/OrganizerMatchOpsPanel";
+import { MatchCourtControls } from "@/components/domain/courts/MatchCourtControls";
 import { Button } from "@/components/ui/button";
+import type { EventCourtVM } from "@/lib/services/event-court.service";
 import { getBracketDisabledFighterIds } from "@/lib/bracket-match-placement";
 import { cn } from "@/lib/utils";
 import { BracketType } from "@/lib/enums";
@@ -92,8 +94,12 @@ function MatchControls({ m }: { m: OrganizerBracketMatchVM }) {
 }
 
 export function TournamentBracketEditor({
+  eventId,
+  courts,
   detail,
 }: {
+  eventId: string;
+  courts: EventCourtVM[];
   detail: OrganizerBracketDetailVM;
 }) {
   const sortedMatches = [...detail.matches].sort((a, b) => {
@@ -255,6 +261,18 @@ export function TournamentBracketEditor({
                 <tr className="border-b border-border last:border-0 bg-muted/15">
                   <td colSpan={5} className="px-3 py-2">
                     <MatchControls m={m} />
+                    <div className="mt-2">
+                      <MatchCourtControls
+                        inline
+                        eventId={eventId}
+                        bracketId={detail.id}
+                        matchId={m.id}
+                        courts={courts}
+                        courtId={m.courtId}
+                        courtOrder={m.courtOrder}
+                        hasOfficialResults={m.hasOfficialResults}
+                      />
+                    </div>
                   </td>
                 </tr>
                 <tr className="border-b border-border last:border-0 bg-muted/25">
@@ -278,6 +296,12 @@ export function TournamentBracketEditor({
           >
             <div className="text-muted-foreground text-xs">
               {m.roundName ?? `R${m.round ?? "-"}`} · {m.id.slice(-6)}
+              {m.courtName ? (
+                <span className="ml-2 rounded-full bg-muted px-2 py-0.5 font-medium text-foreground">
+                  {m.courtName}
+                  {m.courtOrder != null ? ` · ${m.courtOrder}경기` : ""}
+                </span>
+              ) : null}
             </div>
             <div className="text-muted-foreground text-xs">
               다음:{" "}
@@ -363,6 +387,15 @@ export function TournamentBracketEditor({
               </form>
             </div>
             <MatchControls m={m} />
+            <MatchCourtControls
+              eventId={eventId}
+              bracketId={detail.id}
+              matchId={m.id}
+              courts={courts}
+              courtId={m.courtId}
+              courtOrder={m.courtOrder}
+              hasOfficialResults={m.hasOfficialResults}
+            />
             <OrganizerMatchOpsPanel
               {...tournamentMatchOpsProps(m, detail.type)}
             />

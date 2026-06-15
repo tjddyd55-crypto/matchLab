@@ -648,24 +648,27 @@ model EventCourt {
   @@index([eventId, sortOrder])
 }
 
-/// 경기장별 경기구분(division) 배정 규칙
+/// 경기장별 경기구분(division)·체급 배정 규칙
 model EventCourtDivisionRule {
-  id         String   @id @default(cuid())
-  eventId    String
-  courtId    String
-  divisionId String
-  priority   Int      @default(0)
-  isActive   Boolean  @default(true)
-  createdAt  DateTime @default(now())
-  updatedAt  DateTime @updatedAt
+  id               String   @id @default(cuid())
+  eventId          String
+  courtId          String
+  /// null이면 경기구분 무관(체급 단독 배정)
+  divisionId       String?
+  /// null/빈값이면 해당 경기구분 전체, 값이 있으면 해당 체급만
+  weightClassLabel String?
+  priority         Int      @default(0)
+  isActive         Boolean  @default(true)
+  createdAt        DateTime @default(now())
+  updatedAt        DateTime @updatedAt
 
-  court    EventCourt    @relation(fields: [courtId], references: [id], onDelete: Cascade)
-  division EventDivision @relation(fields: [divisionId], references: [id], onDelete: Cascade)
+  court    EventCourt     @relation(fields: [courtId], references: [id], onDelete: Cascade)
+  division EventDivision? @relation(fields: [divisionId], references: [id], onDelete: SetNull)
 
-  @@unique([courtId, divisionId])
   @@index([eventId])
   @@index([courtId])
   @@index([divisionId])
+  @@index([courtId, divisionId])
 }
 
 /// 신청 단위 입금 UI 필터용 캐시 — 진실 원천은 EventApplicationPayment
