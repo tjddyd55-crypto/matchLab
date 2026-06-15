@@ -1,15 +1,15 @@
 "use client";
 
-import { Fragment, type ReactNode } from "react";
+import { type ReactNode } from "react";
 import { WeighInStatusBadge } from "@/components/domain/field-status/WeighInStatusBadge";
 import { WeighInWeightForm } from "@/components/domain/field-status/FieldStatusApplicationActions";
 import {
   DisqualificationReasonForm,
   WeighInFailureResolutionForm,
 } from "@/components/domain/field-status/WeighInFailureResolutionForm";
+import { FieldStatusPrimaryActions } from "@/components/domain/field-status/FieldStatusPrimaryActions";
 import type { FieldStatusRowDTO } from "@/lib/services/field-status.service";
 import { APPLIED_MATCH_CATEGORY_LABEL } from "@/lib/ui-labels/match-category";
-import { FieldStatusRowActions } from "@/components/domain/field-status/FieldStatusApplicationActions";
 
 function StatusClickWrap({
   onOpenDetail,
@@ -58,6 +58,7 @@ export function OrganizerFieldStatusTable({
                 {APPLIED_MATCH_CATEGORY_LABEL}
               </th>
               <th className="min-w-[7rem] px-3 py-2 font-medium">계체 몸무게</th>
+              <th className="min-w-[10rem] px-3 py-2 font-medium">처리</th>
               <th className="min-w-[6rem] px-3 py-2 font-medium">계체 결과</th>
               <th className="min-w-[10rem] px-3 py-2 font-medium">계체 실패 처리</th>
               <th className="min-w-[10rem] px-3 py-2 font-medium">실격 사유</th>
@@ -65,52 +66,40 @@ export function OrganizerFieldStatusTable({
           </thead>
           <tbody>
             {rows.map((row) => (
-              <Fragment key={row.applicationId}>
-                <tr className="border-t align-top">
-                  <td className="px-3 py-2">
-                    <button
-                      type="button"
-                      className="font-medium underline-offset-2 hover:underline"
-                      onClick={() => onOpenDetail(row)}
-                    >
-                      {row.fighterName}
-                    </button>
-                  </td>
-                  <td className="max-w-[10rem] truncate px-3 py-2 text-xs">
-                    {row.gymName}
-                  </td>
-                  <td className="max-w-[14rem] px-3 py-2 text-xs leading-snug">
-                    <span className="line-clamp-2">{row.divisionLabel}</span>
-                    {row.weightClassLabel ? (
-                      <span
-                        className="text-muted-foreground block text-[10px]"
-                        title={`신청 체급: ${row.weightClassLabel}`}
-                      >
-                        체급 {row.weightClassLabel}
-                      </span>
-                    ) : null}
-                  </td>
-                  <td className="px-3 py-2">
-                    <WeighInWeightForm row={row} />
-                  </td>
-                  <td className="px-3 py-2">
-                    <StatusClickWrap onOpenDetail={() => onOpenDetail(row)}>
-                      <WeighInStatusBadge status={row.weighInStatus} />
-                    </StatusClickWrap>
-                  </td>
-                  <td className="px-3 py-2">
-                    <WeighInFailureResolutionForm row={row} />
-                  </td>
-                  <td className="px-3 py-2">
-                    <DisqualificationReasonForm row={row} />
-                  </td>
-                </tr>
-                <tr className="border-b bg-muted/15">
-                  <td colSpan={7} className="px-3 py-2">
-                    <FieldStatusRowActions row={row} layout="compact" />
-                  </td>
-                </tr>
-              </Fragment>
+              <tr key={row.applicationId} className="border-t align-top">
+                <td className="px-3 py-2">
+                  <button
+                    type="button"
+                    className="font-medium underline-offset-2 hover:underline"
+                    onClick={() => onOpenDetail(row)}
+                  >
+                    {row.fighterName}
+                  </button>
+                </td>
+                <td className="max-w-[10rem] truncate px-3 py-2 text-xs">
+                  {row.gymName}
+                </td>
+                <td className="max-w-[14rem] px-3 py-2 text-xs leading-snug">
+                  <span className="line-clamp-2">{row.divisionLabel}</span>
+                </td>
+                <td className="px-3 py-2">
+                  <WeighInWeightForm row={row} />
+                </td>
+                <td className="px-3 py-2">
+                  <FieldStatusPrimaryActions row={row} />
+                </td>
+                <td className="px-3 py-2">
+                  <StatusClickWrap onOpenDetail={() => onOpenDetail(row)}>
+                    <WeighInStatusBadge status={row.weighInStatus} />
+                  </StatusClickWrap>
+                </td>
+                <td className="px-3 py-2">
+                  <WeighInFailureResolutionForm row={row} />
+                </td>
+                <td className="px-3 py-2">
+                  <DisqualificationReasonForm row={row} />
+                </td>
+              </tr>
             ))}
           </tbody>
         </table>
@@ -138,11 +127,9 @@ export function OrganizerFieldStatusTable({
             </div>
             <div className="mt-2 grid gap-2 border-t pt-2">
               <WeighInWeightForm row={row} />
+              <FieldStatusPrimaryActions row={row} />
               <WeighInFailureResolutionForm row={row} />
               <DisqualificationReasonForm row={row} />
-            </div>
-            <div className="mt-2 border-t pt-2">
-              <FieldStatusRowActions row={row} layout="compact" />
             </div>
           </article>
         ))}

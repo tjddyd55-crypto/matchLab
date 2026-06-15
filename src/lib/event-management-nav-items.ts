@@ -76,7 +76,7 @@ export function getEventManagementNavItems(
     { href: `${base}/applications`, label: "신청자", group: "applications" },
     { href: `${base}/check-in`, label: "현장·계체", group: "applications" },
     { href: `${base}/brackets`, label: "대진표", group: "brackets" },
-    { href: `${base}/schedule`, label: "전체순서", group: "brackets" },
+    { href: `${base}/brackets#event-courts`, label: "전체순서", group: "brackets" },
     { href: `${base}/operation`, label: "경기 운영", group: "brackets" },
     { href: `${base}/judges`, label: "심판 관리", group: "brackets" },
     { href: `${base}/qr`, label: "QR 출력", group: "brackets" },
@@ -129,6 +129,10 @@ export function isEventManagementNavItemActive(
 
   if (item.anchorId) {
     return pathname === base && normalizedHash === item.anchorId;
+  }
+
+  if (item.href === `${base}/brackets#event-courts`) {
+    return pathname === `${base}/brackets` || pathname === `${base}/schedule`;
   }
 
   if (item.href === base) {

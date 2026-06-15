@@ -8,6 +8,7 @@ import { BracketCreateForm } from "@/components/domain/brackets/BracketCreateFor
 import { OrganizerBracketList } from "@/components/domain/brackets/OrganizerBracketList";
 import { BracketPublicationPanel } from "@/components/domain/brackets/BracketPublicationPanel";
 import { UnmatchedBracketCandidatesPanel } from "@/components/domain/brackets/UnmatchedBracketCandidatesPanel";
+import { OrganizerCourtsSection } from "@/components/domain/courts/OrganizerCourtsSection";
 import { EventManagementLayout } from "@/components/domain/events/EventManagementLayout";
 import { EventManagementPageHeader } from "@/components/domain/events/EventManagementPageHeader";
 import { loadEventManagementNavContext } from "@/lib/event-management-nav-context";
@@ -52,6 +53,8 @@ export default async function OrganizerEventBracketsPage({
         publicBracketCount={publicBracketCount}
         totalBracketCount={brackets.length}
       />
+
+      <OrganizerCourtsSection eventId={eventId} />
 
       <AutoBracketGenerationPanel
         eventId={eventId}
