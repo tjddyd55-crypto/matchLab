@@ -12,7 +12,7 @@ export const EXAMPLE_CUSTOM_FORM_MANUAL_FIELDS_JSON = `{
     },
     {
       "id": "division_label",
-      "label": "신청 부문",
+      "label": "신청 경기구분",
       "type": "text",
       "source": "division.weightClass",
       "readonly": true,
@@ -79,7 +79,7 @@ export const EXAMPLE_APPLICATION_FORM_FIELDS_JSON = `[
   },
   {
     "id": "division",
-    "label": "신청부문",
+    "label": "신청 경기구분",
     "page": 1,
     "x": 120,
     "y": 200,

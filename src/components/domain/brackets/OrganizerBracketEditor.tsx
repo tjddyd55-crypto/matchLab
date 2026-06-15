@@ -11,14 +11,17 @@ import { TournamentBracketEditor } from "@/components/domain/brackets/Tournament
 import { Button, buttonVariants } from "@/components/ui/button";
 import { BracketType } from "@/lib/enums";
 import type { OrganizerBracketDetailVM } from "@/lib/services/bracket.service";
+import type { EventCourtVM } from "@/lib/services/event-court.service";
 import { cn } from "@/lib/utils";
 
 export function OrganizerBracketEditor({
   eventId,
   detail,
+  courts,
 }: {
   eventId: string;
   detail: OrganizerBracketDetailVM;
+  courts: EventCourtVM[];
 }) {
   return (
     <div className="flex w-full flex-col gap-8">
@@ -44,7 +47,7 @@ export function OrganizerBracketEditor({
             </span>
             {detail.divisionLabel ? (
               <span className="text-muted-foreground">
-                부문 {detail.divisionLabel}
+                경기구분 {detail.divisionLabel}
               </span>
             ) : null}
           </div>
@@ -74,6 +77,8 @@ export function OrganizerBracketEditor({
       {detail.type === BracketType.match_list ? (
         <MatchListEditor
           key={detail.syncKey}
+          eventId={eventId}
+          courts={courts}
           bracketId={detail.id}
           bracketType={detail.type}
           matches={detail.matches}
@@ -81,7 +86,7 @@ export function OrganizerBracketEditor({
           divisionLabel={detail.divisionLabel ?? detail.title}
         />
       ) : (
-        <TournamentBracketEditor detail={detail} />
+        <TournamentBracketEditor eventId={eventId} courts={courts} detail={detail} />
       )}
     </div>
   );

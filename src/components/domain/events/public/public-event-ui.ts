@@ -20,5 +20,5 @@ export function publicEventDivisionSummary(
   if (event.divisions.length === 0) return undefined;
   const sport =
     event.primarySport ?? event.divisions[0]?.sportType ?? "";
-  return `${event.divisions.length}개 부문${sport ? ` · ${sport}` : ""}`;
+  return `${event.divisions.length}개 경기구분${sport ? ` · ${sport}` : ""}`;
 }

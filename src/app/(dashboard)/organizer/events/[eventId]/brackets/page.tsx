@@ -41,7 +41,7 @@ export default async function OrganizerEventBracketsPage({
       <EventManagementPageHeader
         title="대진표 관리"
         eventTitle={nav.title}
-        description="대진표 그룹은 부문별로 묶인 경기 목록입니다. 같은 대회에서 토너먼트와 경기 목록 방식을 함께 둘 수 있습니다."
+        description="대진표 그룹은 경기구분별로 묶인 경기 목록입니다. 같은 대회에서 토너먼트와 경기 목록 방식을 함께 둘 수 있습니다."
       />
 
       <BracketPublicationPanel

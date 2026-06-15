@@ -29,7 +29,7 @@ export function PublicUnmatchedListSection({
               <th className="px-4 py-3">연령부</th>
               <th className="px-4 py-3">전적</th>
               <th className="px-4 py-3">체급</th>
-              <th className="px-4 py-3">부문</th>
+              <th className="px-4 py-3">경기구분</th>
               <th className="px-4 py-3">선수명</th>
               <th className="px-4 py-3">체육관</th>
               <th className="px-4 py-3">사유</th>
@@ -71,7 +71,7 @@ export function PublicUnmatchedListSection({
             <p className="text-muted-foreground text-sm">{c.gymName}</p>
             <dl className="mt-3 grid grid-cols-2 gap-2 text-xs">
               <div>
-                <dt className="text-muted-foreground">부문</dt>
+                <dt className="text-muted-foreground">경기구분</dt>
                 <dd>{c.divisionLabel}</dd>
               </div>
               <div>

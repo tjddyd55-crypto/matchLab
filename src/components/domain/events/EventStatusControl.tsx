@@ -68,7 +68,7 @@ export function EventStatusControl({
           <p className="font-medium">공개 전 필수</p>
           <ul className="text-muted-foreground mt-1 list-inside list-disc text-xs">
             <li>대회명·일정·장소·신청 기간</li>
-            <li>부문 1개 이상</li>
+            <li>경기구분 1개 이상</li>
             <li>참가비·입금 계좌 설정</li>
           </ul>
         </div>

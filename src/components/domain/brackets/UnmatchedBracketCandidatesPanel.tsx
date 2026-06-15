@@ -39,7 +39,7 @@ export function UnmatchedBracketCandidatesPanel({
               <tr className="border-b text-xs text-muted-foreground">
                 <th className="px-2 py-2 font-medium">선수명</th>
                 <th className="px-2 py-2 font-medium">체육관</th>
-                <th className="px-2 py-2 font-medium">부문/체급</th>
+                <th className="px-2 py-2 font-medium">경기구분/체급</th>
                 <th className="px-2 py-2 font-medium">성별</th>
                 <th className="px-2 py-2 font-medium">연령부</th>
                 <th className="px-2 py-2 font-medium">신청</th>

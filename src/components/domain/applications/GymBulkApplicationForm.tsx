@@ -169,7 +169,7 @@ export function GymBulkApplicationForm(props: GymBulkApplicationFormProps) {
 
       {props.applicationForm.mode === "pdf" ? (
         <p className="text-muted-foreground text-sm leading-relaxed">
-          공식 PDF 신청서가 연결된 대회입니다. 아래 일괄 신청은 부문별 일반
+          공식 PDF 신청서가 연결된 대회입니다. 아래 일괄 신청은 경기구분별 일반
           신청·입금 흐름이며, 공식 신청서 묶음과 별도로 진행됩니다.
         </p>
       ) : props.applicationForm.mode === "custom" ? (
@@ -185,7 +185,7 @@ export function GymBulkApplicationForm(props: GymBulkApplicationFormProps) {
           <p className="font-medium">공식 신청서 템플릿 미연결</p>
           <p className="text-muted-foreground mt-1 leading-relaxed">
             이 대회에는 신청서 템플릿이 연결되지 않았습니다. 아래에서 선수별
-            부문을 선택해 일괄 신청할 수 있습니다.
+            경기구분을 선택해 일괄 신청할 수 있습니다.
           </p>
         </div>
       )}
@@ -197,7 +197,7 @@ export function GymBulkApplicationForm(props: GymBulkApplicationFormProps) {
               <TableHead className="w-10">선택</TableHead>
               <TableHead>선수</TableHead>
               <TableHead>성별/연령/체중</TableHead>
-              <TableHead>신청 부문</TableHead>
+              <TableHead>신청 경기구분</TableHead>
               {requireCustomForm ? (
                 <TableHead>신청서</TableHead>
               ) : null}

@@ -34,7 +34,7 @@ export const APPLICATION_FIELD_SOURCE_GROUPS: ApplicationFieldSourceGroup[] = [
   {
     label: "신청",
     options: [
-      { value: "application.division", label: "신청부문" },
+      { value: "application.division", label: "신청 경기구분" },
       { value: "application.weightClass", label: "체급" },
     ],
   },

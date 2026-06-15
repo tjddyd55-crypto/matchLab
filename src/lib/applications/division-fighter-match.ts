@@ -92,7 +92,7 @@ export function divisionMismatchWarnings(
   const fighterGender = normalizeGender(fighter.gender);
   const divisionGender = normalizeGender(division.gender);
   if (fighterGender && divisionGender && fighterGender !== divisionGender) {
-    warnings.push("선수 성별과 부문 성별이 다릅니다.");
+    warnings.push("선수 성별과 경기구분 성별이 다릅니다.");
   }
 
   const fighterAgeGroup = normalizeAgeGroup(
@@ -107,7 +107,7 @@ export function divisionMismatchWarnings(
   );
   const divisionAgeGroup = normalizeAgeGroup(division.ageGroup);
   if (fighterAgeGroup && divisionAgeGroup && fighterAgeGroup !== divisionAgeGroup) {
-    warnings.push("선수 연령부와 부문 연령부가 다릅니다.");
+    warnings.push("선수 연령부와 경기구분 연령부가 다릅니다.");
   }
 
   return warnings;

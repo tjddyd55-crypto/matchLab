@@ -57,7 +57,7 @@ export function GymApplicationsTable({
           <TableRow>
             <TableHead>대회</TableHead>
             <TableHead>선수</TableHead>
-            <TableHead>부문</TableHead>
+            <TableHead>경기구분</TableHead>
             <TableHead>상태</TableHead>
             <TableHead>신청일</TableHead>
             <TableHead className="text-right">입금 안내</TableHead>

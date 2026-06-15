@@ -205,6 +205,7 @@ export const bracketRepository = {
               },
               select: { id: true, status: true },
             },
+            court: { select: { id: true, name: true } },
           },
         },
       },
@@ -262,6 +263,7 @@ export const bracketRepository = {
       orderBy: { createdAt: "asc" },
       select: {
         id: true,
+        eventId: true,
         title: true,
         type: true,
         status: true,
@@ -285,6 +287,8 @@ export const bracketRepository = {
             globalMatchOrder: true,
             matchNumber: true,
             matNumber: true,
+            courtId: true,
+            courtOrder: true,
             status: true,
             fighterRedSnapshot: true,
             fighterBlueSnapshot: true,
@@ -293,6 +297,7 @@ export const bracketRepository = {
             resultType: true,
             fighterRedId: true,
             fighterBlueId: true,
+            court: { select: { name: true } },
           },
         },
       },
@@ -308,6 +313,8 @@ export const bracketRepository = {
       globalMatchOrder?: number | null;
       matchNumber?: number | null;
       matNumber?: number | null;
+      courtId?: string | null;
+      courtOrder?: number | null;
       fighterRedId?: string | null;
       fighterBlueId?: string | null;
       fighterRedSnapshot?: Prisma.InputJsonValue | null;
@@ -327,6 +334,8 @@ export const bracketRepository = {
         globalMatchOrder: data.globalMatchOrder ?? null,
         matchNumber: data.matchNumber ?? null,
         matNumber: data.matNumber ?? null,
+        courtId: data.courtId ?? null,
+        courtOrder: data.courtOrder ?? null,
         fighterRedId: data.fighterRedId ?? null,
         fighterBlueId: data.fighterBlueId ?? null,
         fighterRedSnapshot: data.fighterRedSnapshot ?? undefined,

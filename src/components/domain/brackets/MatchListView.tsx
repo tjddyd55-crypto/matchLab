@@ -11,7 +11,7 @@ export function MatchListView({ bracket }: { bracket: PublicBracketDetailDTO }) 
         <h2 className="text-xl font-semibold">{bracket.title}</h2>
         <p className="text-muted-foreground mt-1 text-sm">
           경기 목록형 ·{" "}
-          {bracket.divisionLabel ?? "부문 정보 없음"}
+          {bracket.divisionLabel ?? "경기구분 정보 없음"}
         </p>
       </header>
       <div className="flex flex-col gap-4">

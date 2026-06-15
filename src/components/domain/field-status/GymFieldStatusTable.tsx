@@ -19,7 +19,7 @@ export function GymFieldStatusTable({ rows }: { rows: FieldStatusRowDTO[] }) {
         <thead className="bg-muted/40 text-xs">
           <tr>
             <th className="px-3 py-2 font-medium">선수명</th>
-            <th className="px-3 py-2 font-medium">신청 부문</th>
+            <th className="px-3 py-2 font-medium">신청 경기구분</th>
             <th className="px-3 py-2 font-medium">현장 확인</th>
             <th className="px-3 py-2 font-medium">계체 결과</th>
             <th className="px-3 py-2 font-medium">출전 확정</th>

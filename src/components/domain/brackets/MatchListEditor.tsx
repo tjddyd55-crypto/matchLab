@@ -9,6 +9,7 @@ import {
 } from "@/components/domain/brackets/OrganizerMatchEditCard";
 import type { OrganizerApprovedFighterOptionVM } from "@/lib/services/bracket.service";
 import type { OrganizerBracketMatchVM } from "@/lib/services/bracket.service";
+import type { EventCourtVM } from "@/lib/services/event-court.service";
 import { Button } from "@/components/ui/button";
 import { BracketType } from "@/lib/enums";
 import { sortMatchesByOrder } from "@/lib/match-order-display";
@@ -40,12 +41,16 @@ function vmToRows(matches: OrganizerBracketMatchVM[]): MatchListEditorRow[] {
 }
 
 export function MatchListEditor({
+  eventId,
+  courts,
   bracketId,
   bracketType,
   matches,
   options,
   divisionLabel,
 }: {
+  eventId: string;
+  courts: EventCourtVM[];
   bracketId: string;
   bracketType: BracketType;
   matches: OrganizerBracketMatchVM[];
@@ -157,6 +162,9 @@ export function MatchListEditor({
             return (
               <OrganizerMatchEditCard
                 key={r.key}
+                eventId={eventId}
+                bracketId={bracketId}
+                courts={courts}
                 row={r}
                 rowIndex={idx}
                 rows={rows}

@@ -86,6 +86,20 @@ enum WeighInStatus {
   manual_fail
 }
 
+/// 계체 실패 후 주최측 처리
+enum WeighInFailureResolution {
+  pending
+  proceed_with_handicap
+  cancel_match
+}
+
+/// 신청 취소 주체 (status=cancelled/rejected 시 구분)
+enum ApplicationCancellationSource {
+  gym
+  organizer
+  system
+}
+
 enum PaymentStatus {
   unpaid
   pending_check
@@ -516,6 +530,7 @@ model Event {
   judgeCredentials  JudgeAccessCredential[]
   judgeAssignments  JudgeMatchAssignment[]
   judgeScorecards   JudgeScorecard[]
+  courts            EventCourt[]
 
   @@index([organizerId])
   @@index([status])
@@ -610,8 +625,50 @@ model EventDivision {
 
   applications EventApplication[]
   brackets     Bracket[]
+  courtRules   EventCourtDivisionRule[]
 
   @@index([eventId])
+}
+
+/// 대회 경기장(코트) — hard delete 금지, isActive로 비활성
+model EventCourt {
+  id        String   @id @default(cuid())
+  eventId   String
+  name      String
+  sortOrder Int      @default(0)
+  isActive  Boolean  @default(true)
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+
+  event        Event                    @relation(fields: [eventId], references: [id], onDelete: Cascade)
+  divisionRules EventCourtDivisionRule[]
+  matches      BracketMatch[]
+
+  @@index([eventId])
+  @@index([eventId, sortOrder])
+}
+
+/// 경기장별 경기구분(division)·체급 배정 규칙
+model EventCourtDivisionRule {
+  id               String   @id @default(cuid())
+  eventId          String
+  courtId          String
+  /// null이면 경기구분 무관(체급 단독 배정)
+  divisionId       String?
+  /// null/빈값이면 해당 경기구분 전체, 값이 있으면 해당 체급만
+  weightClassLabel String?
+  priority         Int      @default(0)
+  isActive         Boolean  @default(true)
+  createdAt        DateTime @default(now())
+  updatedAt        DateTime @updatedAt
+
+  court    EventCourt     @relation(fields: [courtId], references: [id], onDelete: Cascade)
+  division EventDivision? @relation(fields: [divisionId], references: [id], onDelete: SetNull)
+
+  @@index([eventId])
+  @@index([courtId])
+  @@index([divisionId])
+  @@index([courtId, divisionId])
 }
 
 /// 신청 단위 입금 UI 필터용 캐시 — 진실 원천은 EventApplicationPayment
@@ -636,6 +693,13 @@ model EventApplication {
   checkInStatus              CheckInStatus @default(pending)
   weighInStatus              WeighInStatus @default(pending)
   weighInWeightKg            Float?
+  weighInFailureResolution   WeighInFailureResolution @default(pending)
+  /// 계체 실패 후 경기진행 시 관람·대진표에 표시할 핸디캡 안내 (public 노출 가능 문구만)
+  handicapNote               String?
+  /// 실격 처리 시 사유
+  disqualificationReason     String?
+  /// status가 cancelled/rejected일 때 취소 주체
+  cancellationSource         ApplicationCancellationSource?
   applicationBatchId         String?
   applicationDocumentId      String?            @unique
   /// 참가 승인 시 크레딧 차감 추적
@@ -957,6 +1021,9 @@ model BracketMatch {
   globalMatchOrder Int?
   matchNumber  Int?
   matNumber    Int?
+  courtId      String?
+  /// 경기장 내 표시 순서 (1, 2, 3…)
+  courtOrder   Int?
   fighterRedId String?
   fighterBlueId String?
   fighterRedSnapshot   Json?
@@ -975,6 +1042,7 @@ model BracketMatch {
   updatedAt    DateTime             @updatedAt
 
   bracket Bracket @relation(fields: [bracketId], references: [id], onDelete: Cascade)
+  court   EventCourt? @relation(fields: [courtId], references: [id], onDelete: SetNull)
 
   fighterRed  Fighter? @relation("MatchRed", fields: [fighterRedId], references: [id], onDelete: SetNull)
   fighterBlue Fighter? @relation("MatchBlue", fields: [fighterBlueId], references: [id], onDelete: SetNull)
@@ -994,6 +1062,8 @@ model BracketMatch {
   @@index([bracketId, round, matchOrder])
   @@index([globalMatchOrder])
   @@index([matNumber])
+  @@index([courtId])
+  @@index([courtId, courtOrder])
   @@index([status])
 }
 

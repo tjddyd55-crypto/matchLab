@@ -53,7 +53,7 @@ export function ApplyDivisionTemplatePanel({
     if (
       mode === "replace" &&
       !window.confirm(
-        "기존 부문을 모두 삭제한 뒤 체급표로 다시 생성합니다. 신청·대진표가 있는 부문이 있으면 취소됩니다. 계속할까요?",
+        "기존 경기구분을 모두 삭제한 뒤 체급표로 다시 생성합니다. 신청·대진표가 있는 경기구분이 있으면 취소됩니다. 계속할까요?",
       )
     ) {
       return;
@@ -70,11 +70,11 @@ export function ApplyDivisionTemplatePanel({
         return;
       }
       const parts = [
-        `신규 부문 ${res.data.created}개 생성`,
+        `신규 경기구분 ${res.data.created}개 생성`,
         res.data.skippedDuplicates
-          ? `동일 부문 스킵 ${res.data.skippedDuplicates}건`
+          ? `동일 경기구분 스킵 ${res.data.skippedDuplicates}건`
           : null,
-        res.data.removed ? `기존 부문 ${res.data.removed}개 삭제` : null,
+        res.data.removed ? `기존 경기구분 ${res.data.removed}개 삭제` : null,
       ].filter(Boolean);
       setMessage(parts.join(" · "));
       router.refresh();
@@ -84,11 +84,11 @@ export function ApplyDivisionTemplatePanel({
   return (
     <div className="flex flex-col gap-3 rounded-lg border bg-muted/10 p-4 text-sm">
       <div>
-        <div className="font-medium">체급표로 부문 생성</div>
+        <div className="font-medium">체급표로 경기구분 생성</div>
         <p className="text-muted-foreground mt-1 text-xs leading-relaxed">
-          선택한 체급표 기준으로 대회 부문을 생성합니다.
+          선택한 체급표 기준으로 대회 경기구분을 생성합니다.
           <br />
-          이미 신청자가 있는 부문은 삭제하거나 덮어쓸 수 없습니다.
+          이미 신청자가 있는 경기구분은 삭제하거나 덮어쓸 수 없습니다.
         </p>
       </div>
 
@@ -134,7 +134,7 @@ export function ApplyDivisionTemplatePanel({
             onChange={() => setMode("append_skip")}
           />
           <span>
-            기존 부문에 추가 · 동일 부문 건너뛰기
+            기존 경기구분에 추가 · 동일 경기구분 건너뛰기
             <span className="text-muted-foreground block">
               sportType · gender · ageGroup · weightClass 기준
             </span>
@@ -147,7 +147,7 @@ export function ApplyDivisionTemplatePanel({
             checked={mode === "append_all"}
             onChange={() => setMode("append_all")}
           />
-          <span>기존 부문에 추가 · 동일 부문도 새로 생성</span>
+          <span>기존 경기구분에 추가 · 동일 경기구분도 새로 생성</span>
         </label>
         <label className="flex cursor-pointer items-start gap-2">
           <input
@@ -157,7 +157,7 @@ export function ApplyDivisionTemplatePanel({
             onChange={() => setMode("replace")}
           />
           <span>
-            기존 부문 초기화 후 생성
+            기존 경기구분 초기화 후 생성
             <span className="text-muted-foreground block">
               신청·대진표가 없을 때만 가능
             </span>
@@ -166,7 +166,7 @@ export function ApplyDivisionTemplatePanel({
       </fieldset>
 
       <Button type="button" size="sm" onClick={apply} disabled={pending}>
-        {pending ? "적용 중…" : "이 체급표로 부문 생성"}
+        {pending ? "적용 중…" : "이 체급표로 경기구분 생성"}
       </Button>
 
       {error ? (

@@ -21,12 +21,12 @@ export function EventDivisionForm({ eventId }: { eventId: string }) {
   return (
     <form action={action} className="grid gap-3 rounded-lg border bg-muted/20 p-3 md:grid-cols-2">
       <input type="hidden" name="eventId" value={eventId} />
-      <h3 className="text-sm font-semibold md:col-span-2">부문 추가</h3>
+      <h3 className="text-sm font-semibold md:col-span-2">경기구분 추가</h3>
       {state?.ok === false ? (
         <p className="text-destructive text-sm md:col-span-2">{state.error.message}</p>
       ) : null}
       <label className="space-y-1 text-sm md:col-span-2">
-        <span className="text-muted-foreground">종목·부문명</span>
+        <span className="text-muted-foreground">종목·경기구분명</span>
         <input
           name="sportType"
           required
@@ -89,7 +89,7 @@ export function EventDivisionForm({ eventId }: { eventId: string }) {
       </label>
       <div className="md:col-span-2">
         <Button type="submit" size="sm" disabled={pending}>
-          {pending ? "추가 중…" : "부문 추가"}
+          {pending ? "추가 중…" : "경기구분 추가"}
         </Button>
       </div>
     </form>

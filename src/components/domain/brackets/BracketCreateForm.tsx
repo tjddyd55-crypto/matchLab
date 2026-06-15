@@ -55,7 +55,7 @@ export function BracketCreateForm({
           />
         </label>
         <label className="space-y-1 text-sm">
-          <span className="text-muted-foreground">부문 (선택)</span>
+          <span className="text-muted-foreground">경기구분 (선택)</span>
           <select
             name="divisionId"
             className={cn(
@@ -63,7 +63,7 @@ export function BracketCreateForm({
             )}
             defaultValue=""
           >
-            <option value="">전체 · 부문 미지정</option>
+            <option value="">전체 · 경기구분 미지정</option>
             {divisions.map((d) => (
               <option key={d.id} value={d.id}>
                 {formatDivisionNameLabel(d)}

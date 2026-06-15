@@ -71,6 +71,12 @@ export function BracketMatchCard({
               {match.matNumber}
             </span>
           ) : null}
+          {match.courtName ? (
+            <span className="rounded-full bg-background px-2 py-0.5 text-[11px] font-medium">
+              {match.courtName}
+              {match.courtOrder != null ? ` · ${match.courtOrder}경기` : ""}
+            </span>
+          ) : null}
         </div>
         <span className="rounded-full bg-background px-2 py-0.5 text-[11px] font-medium">
           {statusLabel(match.status)}

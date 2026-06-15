@@ -2,6 +2,7 @@ import "server-only";
 
 import {
   CheckInStatus,
+  WeighInFailureResolution,
   WeighInStatus,
 } from "@/generated/prisma";
 import type { ActorContext } from "@/lib/auth/actor-context";
@@ -54,6 +55,7 @@ function mapRow(row: FieldStatusApplicationRow) {
   const eligibility = computeFieldEligibility({
     checkInStatus: row.checkInStatus,
     weighInStatus: row.weighInStatus,
+    weighInFailureResolution: row.weighInFailureResolution,
   });
 
   return {
@@ -70,6 +72,9 @@ function mapRow(row: FieldStatusApplicationRow) {
     weighInStatus: row.weighInStatus,
     weighInStatusLabel: getWeighInStatusLabel(row.weighInStatus),
     weighInWeightKg: row.weighInWeightKg,
+    weighInFailureResolution: row.weighInFailureResolution,
+    handicapNote: row.handicapNote,
+    disqualificationReason: row.disqualificationReason,
     fieldMemo: row.fieldMemo,
     isEligibleForBracket: eligibility.isEligibleForBracket,
     eligibilityLabel: eligibility.eligibilityLabel,
@@ -448,6 +453,52 @@ export const fieldStatusService = {
     await assertOrganizerApplication(actor, applicationId);
     await fieldStatusRepository.updateFieldStatus(applicationId, {
       fieldMemo: memo?.trim() || null,
+    });
+  },
+
+  async setWeighInFailureResolution(
+    actor: ActorContext,
+    applicationId: string,
+    resolution: import("@/generated/prisma").WeighInFailureResolution,
+    handicapNote?: string | null,
+  ): Promise<void> {
+    const row = await assertOrganizerApplication(actor, applicationId);
+    if (
+      row.weighInStatus !== WeighInStatus.fail &&
+      row.weighInStatus !== WeighInStatus.manual_fail
+    ) {
+      throw new AppError(
+        "CONFLICT",
+        "계체 실패 상태에서만 처리할 수 있습니다.",
+      );
+    }
+    if (
+      resolution === WeighInFailureResolution.proceed_with_handicap &&
+      !handicapNote?.trim()
+    ) {
+      throw new AppError(
+        "VALIDATION_ERROR",
+        "경기진행 시 핸디캡 안내 문구를 입력해 주세요.",
+      );
+    }
+    await fieldStatusRepository.updateFieldStatus(applicationId, {
+      weighInFailureResolution: resolution,
+      handicapNote:
+        resolution === WeighInFailureResolution.proceed_with_handicap
+          ? handicapNote?.trim() ?? null
+          : null,
+    });
+  },
+
+  async setDisqualificationReason(
+    actor: ActorContext,
+    applicationId: string,
+    reason: string,
+  ): Promise<void> {
+    await assertOrganizerApplication(actor, applicationId);
+    await fieldStatusRepository.updateFieldStatus(applicationId, {
+      checkInStatus: CheckInStatus.disqualified,
+      disqualificationReason: reason.trim(),
     });
   },
 };

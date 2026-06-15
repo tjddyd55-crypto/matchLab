@@ -22,10 +22,33 @@ export function maskBirthDate(isoDate: string | null | undefined): string | null
 }
 
 export const JUDGE_ROLE_LABELS: Record<JudgeCredentialRole, string> = {
-  SCORING_JUDGE: "채점 심판",
-  HEAD_JUDGE: "주심/최종 판정",
-  ANNOUNCER: "결과 발표",
+  SCORING_JUDGE: "채점심판",
+  HEAD_JUDGE: "주심/결과확인",
+  ANNOUNCER: "결과발표",
 };
+
+/** 주최측 계정 생성 UI — 기본 노출 역할 */
+export const ORGANIZER_JUDGE_ROLE_OPTIONS: {
+  value: JudgeCredentialRole;
+  label: string;
+  description: string;
+}[] = [
+  {
+    value: "SCORING_JUDGE",
+    label: "채점심판",
+    description: "배정 경기 채점 · 본인 점수만 입력",
+  },
+  {
+    value: "ANNOUNCER",
+    label: "결과발표",
+    description: "채점 결과 확인 · 발표용 read-only",
+  },
+  {
+    value: "HEAD_JUDGE",
+    label: "주심/결과확인",
+    description: "집계 확인 · 내부 운영용",
+  },
+];
 
 export function judgeDefaultRoute(role: JudgeCredentialRole): string {
   switch (role) {

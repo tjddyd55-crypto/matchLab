@@ -54,7 +54,7 @@ export function StaffResultEntrySheet({
           <DialogHeader className="shrink-0 border-b px-4 py-4 text-left">
             <DialogTitle>{title}</DialogTitle>
             <DialogDescription>
-              경기 {match.orderLabel} · {match.divisionLabel ?? "부문 미상"} ·{" "}
+              경기 {match.orderLabel} · {match.divisionLabel ?? "경기구분 미상"} ·{" "}
               {fighterA} vs {fighterB}
             </DialogDescription>
           </DialogHeader>

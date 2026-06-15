@@ -135,7 +135,7 @@ function buildDivisionSummary(
   preview: PublicEventListRecord["divisions"],
   total: number,
 ): string {
-  if (total === 0) return "등록된 부문 없음";
+  if (total === 0) return "등록된 경기구분 없음";
   const maxLabels = Math.min(3, total);
   const labels = preview
     .slice(0, maxLabels)
@@ -146,9 +146,9 @@ function buildDivisionSummary(
   const head = labels.join(" · ");
   const rest = total - labels.length;
   if (rest > 0) {
-    return head ? `${head} 외 ${rest}개 부문` : `${total}개 부문`;
+    return head ? `${head} 외 ${rest}개 경기구분` : `${total}개 경기구분`;
   }
-  return head || `${total}개 부문`;
+  return head || `${total}개 경기구분`;
 }
 
 function mapDivisionRecordToDto(
@@ -203,7 +203,7 @@ async function assertReadyForPublicOpen(eventId: string): Promise<void> {
   if (full.divisions.length === 0) {
     throw new AppError(
       "VALIDATION_ERROR",
-      "공개 전에 최소 1개 부문이 필요합니다.",
+      "공개 전에 최소 1개 경기구분이 필요합니다.",
     );
   }
   if (!full.paymentSetting) {
@@ -411,7 +411,7 @@ export const eventService = {
     await eventRepository.ping();
   },
 
-  /** 주최자 대진표 등 내부 UI — 부문 선택 목록 */
+  /** 주최자 대진표 등 내부 UI — 경기구분 선택 목록 */
   async listOrganizerEventDivisions(
     actor: ActorContext,
     eventId: string,
@@ -954,7 +954,7 @@ export const eventService = {
   ): Promise<void> {
     const eventId = await eventRepository.findDivisionEventId(input.divisionId);
     if (!eventId) {
-      throw new AppError("NOT_FOUND", "부문을 찾을 수 없습니다.");
+      throw new AppError("NOT_FOUND", "경기구분을 찾을 수 없습니다.");
     }
     await requireOrganizerForEvent(actor, eventId);
 
@@ -991,7 +991,7 @@ export const eventService = {
       input.eventId,
     );
     if (!ok) {
-      throw new AppError("NOT_FOUND", "부문을 찾을 수 없습니다.");
+      throw new AppError("NOT_FOUND", "경기구분을 찾을 수 없습니다.");
     }
 
     const event = await eventRepository.findOrganizerEventById(input.eventId);
@@ -1003,7 +1003,7 @@ export const eventService = {
     ) {
       throw new AppError(
         "CONFLICT",
-        "신청 공개 중에는 마지막 부문을 삭제할 수 없습니다.",
+        "신청 공개 중에는 마지막 경기구분을 삭제할 수 없습니다.",
       );
     }
 
@@ -1014,7 +1014,7 @@ export const eventService = {
     if (appCount > 0 || bracketCount > 0) {
       throw new AppError(
         "CONFLICT",
-        "신청 또는 대진표가 연결된 부문은 삭제할 수 없습니다.",
+        "신청 또는 대진표가 연결된 경기구분은 삭제할 수 없습니다.",
       );
     }
 

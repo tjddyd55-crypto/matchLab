@@ -20,6 +20,9 @@ const applicationSelect = {
   checkInStatus: true,
   weighInStatus: true,
   weighInWeightKg: true,
+  weighInFailureResolution: true,
+  handicapNote: true,
+  disqualificationReason: true,
   fieldMemo: true,
   fighterSnapshot: true,
   fighter: {
@@ -91,6 +94,9 @@ export const fieldStatusRepository = {
       checkInStatus?: CheckInStatus;
       weighInStatus?: WeighInStatus;
       weighInWeightKg?: number | null;
+      weighInFailureResolution?: import("@/generated/prisma").WeighInFailureResolution;
+      handicapNote?: string | null;
+      disqualificationReason?: string | null;
       fieldMemo?: string | null;
     },
     tx?: Prisma.TransactionClient,

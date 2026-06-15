@@ -156,14 +156,14 @@ function buildDivisionsStep(input: EventSetupInput): EventSetupStep {
   return {
     id: "divisions",
     order: 3,
-    title: "부문·체급표",
+    title: "경기구분·체급표",
     description: complete
-      ? `${input.divisionCount}개 부문이 준비되었습니다.`
-      : "참가 신청을 받을 부문과 체급을 만들어 주세요.",
+      ? `${input.divisionCount}개 경기구분이 준비되었습니다.`
+      : "참가 신청을 받을 경기구분과 체급을 만들어 주세요.",
     status: complete ? "complete" : "needed",
     statusLabel: complete ? STATUS_LABEL.complete : STATUS_LABEL.needed,
     href: `/organizer/events/${input.eventId}#setup-divisions`,
-    actionLabel: complete ? "부문 관리" : "부문 만들기",
+    actionLabel: complete ? "경기구분 관리" : "경기구분 만들기",
     importance: "required",
   };
 }

@@ -33,7 +33,7 @@ export default async function OrganizerHomePage() {
         <Card className="p-5">
           <h2 className="font-semibold">새 대회</h2>
           <p className="text-muted-foreground mt-2 text-sm">
-            생성 후 draft 상태이며, 부문·입금 설정 후 공개할 수 있습니다.
+            생성 후 draft 상태이며, 경기구분·입금 설정 후 공개할 수 있습니다.
           </p>
           <Link
             href="/organizer/events/new"

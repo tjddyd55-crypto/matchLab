@@ -18,7 +18,7 @@ function SummaryBlock({ summary }: { summary: AutoBracketGenerationSummary }) {
       <ul className="mt-2 space-y-1 text-xs">
         <li>생성 경기: {summary.createdMatches}경기</li>
         <li>미매칭 선수: {summary.unmatchedCount}명</li>
-        <li>처리 부문: {summary.divisionsProcessed}개</li>
+        <li>처리 경기구분: {summary.divisionsProcessed}개</li>
         <li>기존 배치 제외: {summary.excludedAlreadyPlaced}명</li>
         {summary.ineligibleWarningCount > 0 ? (
           <li>현장·계체 미확정 포함: {summary.ineligibleWarningCount}명</li>

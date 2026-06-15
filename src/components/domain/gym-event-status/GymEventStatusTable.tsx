@@ -37,7 +37,7 @@ export function GymEventStatusTable({
         <TableHeader>
           <TableRow>
             <TableHead className="min-w-[8rem]">선수명</TableHead>
-            <TableHead className="min-w-[12rem]">부문/체급</TableHead>
+            <TableHead className="min-w-[12rem]">경기구분/체급</TableHead>
             <TableHead className="min-w-[10rem]">신청·입금</TableHead>
             <TableHead className="min-w-[8rem]">신청서</TableHead>
             <TableHead className="min-w-[8rem]">현장 확인</TableHead>

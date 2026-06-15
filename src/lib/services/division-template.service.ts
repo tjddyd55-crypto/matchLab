@@ -350,7 +350,7 @@ export const divisionTemplateService = {
         if (appCount > 0 || bracketCount > 0) {
           throw new AppError(
             "CONFLICT",
-            "신청자 또는 대진표가 있는 부문이 있어 초기화할 수 없습니다.",
+            "신청자 또는 대진표가 있는 경기구분이 있어 초기화할 수 없습니다.",
           );
         }
       }

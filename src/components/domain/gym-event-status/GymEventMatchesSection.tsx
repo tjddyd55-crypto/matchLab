@@ -60,7 +60,7 @@ export function GymEventMatchesSection({
                 <th className="px-3 py-2 font-medium">선수명</th>
                 <th className="px-3 py-2 font-medium">상대</th>
                 <th className="px-3 py-2 font-medium">상대 체육관</th>
-                <th className="px-3 py-2 font-medium">부문/체급</th>
+                <th className="px-3 py-2 font-medium">경기구분/체급</th>
                 <th className="px-3 py-2 font-medium">경기 순서</th>
                 <th className="px-3 py-2 font-medium">상태</th>
                 <th className="px-3 py-2 font-medium">결과</th>

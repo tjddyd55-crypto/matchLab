@@ -57,7 +57,7 @@ export async function createApplicationDocumentAction(
     if (!parsed.success) {
       return actionFailure(
         "VALIDATION_ERROR",
-        "선수·부문 정보를 확인해 주세요.",
+        "선수·경기구분 정보를 확인해 주세요.",
         parsed.error.flatten(),
       );
     }

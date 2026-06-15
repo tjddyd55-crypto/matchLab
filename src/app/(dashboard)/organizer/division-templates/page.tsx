@@ -66,7 +66,7 @@ export default async function OrganizerDivisionTemplatesPage({
             체급표 템플릿
           </h1>
           <p className="text-muted-foreground max-w-2xl text-sm leading-relaxed">
-            체급표는 대회 부문을 빠르게 생성하기 위한 템플릿입니다. 저장한
+            체급표는 대회 경기구분을 빠르게 생성하기 위한 템플릿입니다. 저장한
             체급표는 대회 상세에서 불러와 EventDivision으로 생성할 수 있습니다.
           </p>
         </div>

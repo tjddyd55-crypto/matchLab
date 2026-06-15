@@ -86,8 +86,8 @@ export function evaluateGymEventApplyEligibility(
   if (input.divisionCount < 1) {
     return {
       canApply: false,
-      registrationStatusLabel: "부문 설정 필요",
-      applyDisabledReason: "주최자가 부문을 설정해야 신청할 수 있습니다.",
+      registrationStatusLabel: "경기구분 설정 필요",
+      applyDisabledReason: "주최자가 경기구분을 설정해야 신청할 수 있습니다.",
     };
   }
 

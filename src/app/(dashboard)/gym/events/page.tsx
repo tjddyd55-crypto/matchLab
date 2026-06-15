@@ -18,7 +18,7 @@ export default async function GymEventsPage() {
           대회 목록
         </h1>
         <p className="text-muted-foreground mt-1 text-sm">
-          공개된 대회를 모두 표시합니다. 신청 가능 여부는 신청 기간·부문·입금
+          공개된 대회를 모두 표시합니다. 신청 가능 여부는 신청 기간·경기구분·입금
           설정·소속 선수에 따라 카드에 안내됩니다.
         </p>
       </div>

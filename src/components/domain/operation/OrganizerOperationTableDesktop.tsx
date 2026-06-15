@@ -2,6 +2,7 @@
 
 import { OrganizerOperationActions } from "@/components/domain/operation/OrganizerOperationActions";
 import { OrganizerOperationStatusBadges } from "@/components/domain/operation/OrganizerOperationStatusBadges";
+import { FighterHandicapBadge } from "@/components/domain/shared/FighterHandicapBadge";
 import type { OperationMatchRowVM } from "@/components/domain/operation/operation-match-row";
 import { getOperationMatchPhase } from "@/lib/match-operation-display";
 
@@ -28,7 +29,8 @@ export function OrganizerOperationTableDesktop({
         <thead className="bg-muted/50 border-b text-xs">
           <tr>
             <th className="px-3 py-2 font-medium">순서</th>
-            <th className="px-3 py-2 font-medium">부문/체급</th>
+            <th className="px-3 py-2 font-medium">경기구분/체급</th>
+            <th className="px-3 py-2 font-medium">경기장</th>
             <th className="px-3 py-2 font-medium">선수 A</th>
             <th className="px-3 py-2 font-medium">선수 B</th>
             <th className="px-3 py-2 font-medium">심판</th>
@@ -45,16 +47,38 @@ export function OrganizerOperationTableDesktop({
                 <div className="text-muted-foreground">{row.bracketTitle}</div>
               </td>
               <td className="px-3 py-3 text-xs">
+                {row.courtName ? (
+                  <>
+                    <div className="font-medium">{row.courtName}</div>
+                    {row.courtOrder != null ? (
+                      <div className="text-muted-foreground">{row.courtOrder}경기</div>
+                    ) : null}
+                  </>
+                ) : (
+                  <span className="text-muted-foreground">미지정</span>
+                )}
+              </td>
+              <td className="px-3 py-3 text-xs">
                 <div className="font-medium">{row.fighterRed?.name ?? "—"}</div>
                 <div className="text-muted-foreground">
                   {row.fighterRed?.gymName ?? "—"}
                 </div>
+                <FighterHandicapBadge
+                  handicap={row.fighterRed?.handicap}
+                  compact
+                  className="mt-1"
+                />
               </td>
               <td className="px-3 py-3 text-xs">
                 <div className="font-medium">{row.fighterBlue?.name ?? "—"}</div>
                 <div className="text-muted-foreground">
                   {row.fighterBlue?.gymName ?? "—"}
                 </div>
+                <FighterHandicapBadge
+                  handicap={row.fighterBlue?.handicap}
+                  compact
+                  className="mt-1"
+                />
               </td>
               <td className="text-muted-foreground px-3 py-3 text-xs">
                 {row.judgeSubmitLabel ?? "—"}

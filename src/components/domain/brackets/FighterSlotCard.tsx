@@ -74,6 +74,16 @@ export function FighterSlotCard({
           {fighter.recordSummary}
         </div>
       ) : null}
+      {fighter.handicapBadgeLabel ? (
+        <span className="mt-0.5 inline-flex w-fit rounded bg-amber-100 px-1.5 py-0.5 text-[10px] font-medium text-amber-900 dark:bg-amber-950 dark:text-amber-200">
+          {fighter.handicapBadgeLabel}
+        </span>
+      ) : null}
+      {fighter.handicapNote ? (
+        <p className="text-[10px] leading-snug text-amber-800 dark:text-amber-300">
+          핸디캡: {fighter.handicapNote}
+        </p>
+      ) : null}
     </div>
   );
 }

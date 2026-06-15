@@ -111,12 +111,12 @@ export function DivisionTemplateEditor({
 
       <section className="space-y-3 rounded-xl border bg-muted/10 p-4">
         <p className="text-muted-foreground text-sm leading-relaxed">
-          체급표는 대회 부문을 빠르게 생성하기 위한 템플릿입니다.
+          체급표는 대회 경기구분을 빠르게 생성하기 위한 템플릿입니다.
           <br />
           주최측 기준에 맞게 초등부, 중등부, 고등부, 대학·일반부와 남성/여성
           체급을 입력해 저장할 수 있습니다.
           <br />
-          저장된 체급표는 대회 생성 또는 수정 시 불러와 부문으로 생성할 수
+          저장된 체급표는 대회 생성 또는 수정 시 불러와 경기구분으로 생성할 수
           있습니다.
         </p>
         <div className="flex flex-wrap gap-2">

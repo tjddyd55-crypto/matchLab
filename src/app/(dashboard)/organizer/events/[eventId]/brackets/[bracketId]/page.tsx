@@ -2,6 +2,7 @@ import { notFound } from "next/navigation";
 import { requireActor } from "@/lib/auth/actor";
 import { requireOrganizerForEventPage } from "@/lib/permissions";
 import { bracketService } from "@/lib/services/bracket.service";
+import { eventCourtService } from "@/lib/services/event-court.service";
 import { OrganizerBracketEditor } from "@/components/domain/brackets/OrganizerBracketEditor";
 import { EventManagementLayout } from "@/components/domain/events/EventManagementLayout";
 import { loadEventManagementNavContext } from "@/lib/event-management-nav-context";
@@ -18,9 +19,10 @@ export default async function OrganizerBracketDetailPage({
 
   await requireOrganizerForEventPage(actor, eventId);
 
-  const [nav, detail] = await Promise.all([
+  const [nav, detail, courts] = await Promise.all([
     loadEventManagementNavContext(eventId),
     bracketService.getOrganizerBracketDetail(actor, bracketId),
+    eventCourtService.listForOrganizer(actor, eventId),
   ]);
 
   if (detail.eventId !== eventId) {
@@ -29,7 +31,7 @@ export default async function OrganizerBracketDetailPage({
 
   return (
     <EventManagementLayout eventId={nav.eventId} publicSlug={nav.publicSlug}>
-      <OrganizerBracketEditor eventId={eventId} detail={detail} />
+      <OrganizerBracketEditor eventId={eventId} detail={detail} courts={courts} />
     </EventManagementLayout>
   );
 }

@@ -1,15 +1,15 @@
 "use client";
 
 import { Fragment, type ReactNode } from "react";
-import { CheckInStatusBadge } from "@/components/domain/field-status/CheckInStatusBadge";
-import { EligibilityBadge } from "@/components/domain/field-status/EligibilityBadge";
-import {
-  FieldMemoForm,
-  FieldStatusRowActions,
-  WeighInWeightForm,
-} from "@/components/domain/field-status/FieldStatusApplicationActions";
 import { WeighInStatusBadge } from "@/components/domain/field-status/WeighInStatusBadge";
+import { WeighInWeightForm } from "@/components/domain/field-status/FieldStatusApplicationActions";
+import {
+  DisqualificationReasonForm,
+  WeighInFailureResolutionForm,
+} from "@/components/domain/field-status/WeighInFailureResolutionForm";
 import type { FieldStatusRowDTO } from "@/lib/services/field-status.service";
+import { APPLIED_MATCH_CATEGORY_LABEL } from "@/lib/ui-labels/match-category";
+import { FieldStatusRowActions } from "@/components/domain/field-status/FieldStatusApplicationActions";
 
 function StatusClickWrap({
   onOpenDetail,
@@ -49,18 +49,18 @@ export function OrganizerFieldStatusTable({
   return (
     <>
       <div className="hidden overflow-x-auto rounded-xl border md:block">
-        <table className="w-full min-w-[64rem] text-left text-sm">
+        <table className="w-full min-w-[56rem] text-left text-sm">
           <thead className="bg-muted/40 text-xs">
             <tr>
               <th className="min-w-[7rem] px-3 py-2 font-medium">선수명</th>
               <th className="min-w-[8rem] px-3 py-2 font-medium">체육관</th>
-              <th className="min-w-[12rem] px-3 py-2 font-medium">신청 부문</th>
-              <th className="min-w-[5rem] px-3 py-2 font-medium">신청 체급</th>
-              <th className="min-w-[6rem] px-3 py-2 font-medium">현장 확인</th>
+              <th className="min-w-[12rem] px-3 py-2 font-medium">
+                {APPLIED_MATCH_CATEGORY_LABEL}
+              </th>
               <th className="min-w-[7rem] px-3 py-2 font-medium">계체 몸무게</th>
               <th className="min-w-[6rem] px-3 py-2 font-medium">계체 결과</th>
-              <th className="min-w-[7rem] px-3 py-2 font-medium">출전 확정</th>
-              <th className="min-w-[10rem] px-3 py-2 font-medium">메모</th>
+              <th className="min-w-[10rem] px-3 py-2 font-medium">계체 실패 처리</th>
+              <th className="min-w-[10rem] px-3 py-2 font-medium">실격 사유</th>
             </tr>
           </thead>
           <tbody>
@@ -81,14 +81,14 @@ export function OrganizerFieldStatusTable({
                   </td>
                   <td className="max-w-[14rem] px-3 py-2 text-xs leading-snug">
                     <span className="line-clamp-2">{row.divisionLabel}</span>
-                  </td>
-                  <td className="px-3 py-2 text-xs">
-                    {row.weightClassLabel ?? "—"}
-                  </td>
-                  <td className="px-3 py-2">
-                    <StatusClickWrap onOpenDetail={() => onOpenDetail(row)}>
-                      <CheckInStatusBadge status={row.checkInStatus} />
-                    </StatusClickWrap>
+                    {row.weightClassLabel ? (
+                      <span
+                        className="text-muted-foreground block text-[10px]"
+                        title={`신청 체급: ${row.weightClassLabel}`}
+                      >
+                        체급 {row.weightClassLabel}
+                      </span>
+                    ) : null}
                   </td>
                   <td className="px-3 py-2">
                     <WeighInWeightForm row={row} />
@@ -99,20 +99,14 @@ export function OrganizerFieldStatusTable({
                     </StatusClickWrap>
                   </td>
                   <td className="px-3 py-2">
-                    <StatusClickWrap onOpenDetail={() => onOpenDetail(row)}>
-                      <EligibilityBadge
-                        label={row.eligibilityLabel}
-                        isEligible={row.isEligibleForBracket}
-                        title={row.eligibilityReason}
-                      />
-                    </StatusClickWrap>
+                    <WeighInFailureResolutionForm row={row} />
                   </td>
                   <td className="px-3 py-2">
-                    <FieldMemoForm row={row} />
+                    <DisqualificationReasonForm row={row} />
                   </td>
                 </tr>
                 <tr className="border-b bg-muted/15">
-                  <td colSpan={9} className="px-3 py-2">
+                  <td colSpan={7} className="px-3 py-2">
                     <FieldStatusRowActions row={row} layout="compact" />
                   </td>
                 </tr>
@@ -140,17 +134,12 @@ export function OrganizerFieldStatusTable({
               </p>
             </button>
             <div className="mt-2 flex flex-wrap gap-1.5">
-              <CheckInStatusBadge status={row.checkInStatus} />
               <WeighInStatusBadge status={row.weighInStatus} />
-              <EligibilityBadge
-                label={row.eligibilityLabel}
-                isEligible={row.isEligibleForBracket}
-                title={row.eligibilityReason}
-              />
             </div>
-            <div className="mt-2 grid grid-cols-2 gap-2 border-t pt-2">
+            <div className="mt-2 grid gap-2 border-t pt-2">
               <WeighInWeightForm row={row} />
-              <FieldMemoForm row={row} />
+              <WeighInFailureResolutionForm row={row} />
+              <DisqualificationReasonForm row={row} />
             </div>
             <div className="mt-2 border-t pt-2">
               <FieldStatusRowActions row={row} layout="compact" />

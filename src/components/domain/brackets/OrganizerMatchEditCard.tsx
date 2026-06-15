@@ -4,6 +4,8 @@ import { useState, type ReactNode } from "react";
 import { OrganizerMatchOpsPanel } from "@/components/domain/brackets/OrganizerMatchOpsPanel";
 import { OrganizerMatchEditSlot } from "@/components/domain/brackets/OrganizerMatchEditSlot";
 import { BracketMatchOrderControls } from "@/components/domain/brackets/BracketMatchOrderControls";
+import { MatchCourtControls } from "@/components/domain/courts/MatchCourtControls";
+import type { EventCourtVM } from "@/lib/services/event-court.service";
 import { Button } from "@/components/ui/button";
 import type { OrganizerApprovedFighterOptionVM } from "@/lib/services/bracket.service";
 import type { OrganizerBracketMatchVM } from "@/lib/services/bracket.service";
@@ -76,6 +78,9 @@ function CompactField({
 }
 
 export function OrganizerMatchEditCard({
+  eventId,
+  bracketId,
+  courts,
   row,
   rowIndex,
   rows,
@@ -86,6 +91,9 @@ export function OrganizerMatchEditCard({
   sortedServerMatches,
   onUpdateRow,
 }: {
+  eventId: string;
+  bracketId: string;
+  courts: EventCourtVM[];
   row: MatchListEditorRow;
   rowIndex: number;
   rows: MatchListEditorRow[];
@@ -116,6 +124,14 @@ export function OrganizerMatchEditCard({
           <span className="text-sm font-bold">{orderLabel}</span>
           {divisionLabel ? (
             <span className="text-muted-foreground text-[11px]">{divisionLabel}</span>
+          ) : null}
+          {serverMatch?.courtName ? (
+            <span className="rounded-full bg-background px-2 py-0.5 text-[10px] font-medium">
+              {serverMatch.courtName}
+              {serverMatch.courtOrder != null
+                ? ` · ${serverMatch.courtOrder}경기`
+                : ""}
+            </span>
           ) : null}
         </div>
         <div className="flex flex-wrap items-center gap-1.5 text-[11px]">
@@ -213,6 +229,19 @@ export function OrganizerMatchEditCard({
               inline
               match={serverMatch}
               allMatches={sortedServerMatches}
+            />
+          ) : null}
+
+          {showOps && serverMatch ? (
+            <MatchCourtControls
+              inline
+              eventId={eventId}
+              bracketId={bracketId}
+              matchId={serverMatch.id}
+              courts={courts}
+              courtId={serverMatch.courtId}
+              courtOrder={serverMatch.courtOrder}
+              hasOfficialResults={serverMatch.hasOfficialResults}
             />
           ) : null}
 

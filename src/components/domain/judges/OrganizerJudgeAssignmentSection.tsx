@@ -63,7 +63,7 @@ export function OrganizerJudgeAssignmentSection({
 
       {selectedMatch ? (
         <p className="text-muted-foreground text-xs">
-          {selectedMatch.divisionLabel ?? "부문 미상"} ·{" "}
+          {selectedMatch.divisionLabel ?? "경기구분 미상"} ·{" "}
           {selectedMatch.fighterRed?.name ?? "미배정"} vs{" "}
           {selectedMatch.fighterBlue?.name ?? "미배정"}
         </p>
