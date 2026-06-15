@@ -1,7 +1,11 @@
-import type { BulkApplicationResult } from "@/lib/services/application-organizer-bulk.service";
+export type BulkApplicationActionResult = {
+  successCount: number;
+  failureCount: number;
+  failures: { applicationId: string; reason: string }[];
+};
 
 export function findBulkApplicationFailureReason(
-  result: BulkApplicationResult,
+  result: BulkApplicationActionResult,
   applicationId?: string,
 ): string | null {
   if (result.failureCount === 0) {
@@ -21,7 +25,7 @@ export function findBulkApplicationFailureReason(
 }
 
 export function formatBulkApplicationResultSummary(
-  result: BulkApplicationResult,
+  result: BulkApplicationActionResult,
 ): string {
   const headline = `성공 ${result.successCount}명 · 실패 ${result.failureCount}명`;
 
