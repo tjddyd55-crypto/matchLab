@@ -3,6 +3,7 @@
 import { useState, useTransition } from "react";
 import { useRouter } from "next/navigation";
 import { Button } from "@/components/ui/button";
+import { formatBulkApplicationResultSummary } from "@/lib/bulk-application-result-feedback";
 import type { BulkApplicationAction } from "@/lib/services/application-organizer-bulk.service";
 import { bulkApplicationActionFormAction } from "@/features/applications/bulk-actions";
 
@@ -48,9 +49,7 @@ export function OrganizerApplicationsBulkToolbar({
         setMessage(res.error.message);
         return;
       }
-      setMessage(
-        `성공 ${res.data.successCount}명 · 실패 ${res.data.failureCount}명`,
-      );
+      setMessage(formatBulkApplicationResultSummary(res.data));
       onClearSelection();
       router.refresh();
     });
@@ -115,7 +114,7 @@ export function OrganizerApplicationsBulkToolbar({
         </div>
       ) : null}
       {message ? (
-        <p className="text-muted-foreground text-xs">{message}</p>
+        <p className="text-muted-foreground whitespace-pre-line text-xs">{message}</p>
       ) : null}
     </div>
   );
