@@ -1,5 +1,6 @@
 import "server-only";
 
+import type { BulkApplicationActionResult } from "@/lib/bulk-application-result-feedback";
 import {
   ApplicationCancellationSource,
   ApplicationStatus,
@@ -17,11 +18,7 @@ export type BulkApplicationAction =
   | "organizer_cancel"
   | "mark_gym_cancelled";
 
-export type BulkApplicationResult = {
-  successCount: number;
-  failureCount: number;
-  failures: { applicationId: string; reason: string }[];
-};
+export type BulkApplicationResult = BulkApplicationActionResult;
 
 export const applicationOrganizerBulkService = {
   async bulkByApplicationIds(
