@@ -8,6 +8,7 @@ import {
   isPaidForOrganizerDisplay,
   resolveOrganizerApplicationDisplayStatus,
 } from "@/lib/application-display-status";
+import { findBulkApplicationFailureReason } from "@/lib/bulk-application-result-feedback";
 import type { BulkApplicationAction } from "@/lib/services/application-organizer-bulk.service";
 import { bulkApplicationActionFormAction } from "@/features/applications/bulk-actions";
 import { Button } from "@/components/ui/button";
@@ -76,6 +77,16 @@ export function OrganizerApplicationRowActions({
         window.alert(res.error.message);
         return;
       }
+
+      const failureReason = findBulkApplicationFailureReason(
+        res.data,
+        row.applicationId,
+      );
+      if (failureReason) {
+        window.alert(failureReason);
+        return;
+      }
+
       router.refresh();
     });
   }
