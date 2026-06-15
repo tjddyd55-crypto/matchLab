@@ -9,6 +9,19 @@ import { Button } from "@/components/ui/button";
 import type { FieldStatusRowDTO } from "@/lib/services/field-status.service";
 import { WeighInFailureResolution } from "@/generated/prisma";
 
+const DISQUALIFICATION_PRESETS = [
+  { value: "withdrawal", label: "신청철회", reason: "신청철회" },
+  { value: "no_show", label: "미출석", reason: "미출석" },
+  { value: "other", label: "기타", reason: "" },
+] as const;
+
+function inferPreset(reason: string | null): string {
+  if (!reason) return "";
+  if (reason === "신청철회") return "withdrawal";
+  if (reason === "미출석") return "no_show";
+  return "other";
+}
+
 export function WeighInFailureResolutionForm({
   row,
 }: {
@@ -122,16 +135,33 @@ export function DisqualificationReasonForm({
   row: FieldStatusRowDTO;
 }) {
   const [pending, startTransition] = useTransition();
+  const [preset, setPreset] = useState(() => inferPreset(row.disqualificationReason));
 
-  if (row.checkInStatus !== "disqualified" && row.checkInStatus !== "pending") {
+  if (row.checkInStatus !== "disqualified") {
     return null;
   }
 
   function handleSubmit(e: FormEvent<HTMLFormElement>) {
     e.preventDefault();
-    const reason = (
-      e.currentTarget.elements.namedItem("reason") as HTMLInputElement
+    const form = e.currentTarget;
+    const selected = (
+      form.elements.namedItem("preset") as HTMLSelectElement
     ).value;
+    const otherReason = (
+      form.elements.namedItem("otherReason") as HTMLInputElement
+    ).value.trim();
+
+    let reason = "";
+    if (selected === "withdrawal") reason = "신청철회";
+    else if (selected === "no_show") reason = "미출석";
+    else {
+      reason = otherReason;
+      if (!reason) {
+        window.alert("기타 사유를 입력해 주세요.");
+        return;
+      }
+    }
+
     startTransition(async () => {
       const fd = new FormData();
       fd.set("applicationId", row.applicationId);
@@ -142,18 +172,40 @@ export function DisqualificationReasonForm({
   }
 
   return (
-    <form onSubmit={handleSubmit} className="flex items-center gap-1">
-      <input
-        name="reason"
-        type="text"
-        defaultValue={row.disqualificationReason ?? ""}
-        placeholder="실격 사유 (필수)"
-        className="border-input bg-background h-7 min-w-0 flex-1 rounded-md border px-2 text-xs"
-        maxLength={500}
+    <form onSubmit={handleSubmit} className="flex min-w-[12rem] flex-col gap-1">
+      <select
+        name="preset"
+        className="border-input bg-background h-7 rounded-md border px-2 text-xs"
+        value={preset}
+        onChange={(e) => setPreset(e.target.value)}
         required
-      />
-      <Button type="submit" size="sm" className="h-7 shrink-0 text-xs" disabled={pending}>
-        저장
+      >
+        <option value="" disabled>
+          사유 선택
+        </option>
+        {DISQUALIFICATION_PRESETS.map((p) => (
+          <option key={p.value} value={p.value}>
+            {p.label}
+          </option>
+        ))}
+      </select>
+      {preset === "other" ? (
+        <input
+          name="otherReason"
+          type="text"
+          defaultValue={
+            inferPreset(row.disqualificationReason) === "other"
+              ? row.disqualificationReason ?? ""
+              : ""
+          }
+          placeholder="기타 사유 입력 (필수)"
+          className="border-input bg-background h-7 rounded-md border px-2 text-xs"
+          maxLength={500}
+          required
+        />
+      ) : null}
+      <Button type="submit" size="sm" className="h-7 w-fit text-xs" disabled={pending}>
+        사유 저장
       </Button>
     </form>
   );

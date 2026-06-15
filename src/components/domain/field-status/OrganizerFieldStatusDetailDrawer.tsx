@@ -5,9 +5,13 @@ import { CheckInStatusBadge } from "@/components/domain/field-status/CheckInStat
 import { EligibilityBadge } from "@/components/domain/field-status/EligibilityBadge";
 import {
   FieldMemoForm,
-  FieldStatusRowActions,
   WeighInWeightForm,
 } from "@/components/domain/field-status/FieldStatusApplicationActions";
+import { FieldStatusPrimaryActions } from "@/components/domain/field-status/FieldStatusPrimaryActions";
+import {
+  DisqualificationReasonForm,
+  WeighInFailureResolutionForm,
+} from "@/components/domain/field-status/WeighInFailureResolutionForm";
 import { FieldStatusBracketPanel } from "@/components/domain/field-status/FieldStatusBracketPanel";
 import { WeighInStatusBadge } from "@/components/domain/field-status/WeighInStatusBadge";
 import { DrawerPanel } from "@/components/ui/drawer-panel";
@@ -88,7 +92,9 @@ export function OrganizerFieldStatusDetailDrawer({
 
         <div className="space-y-2 border-t pt-4">
           <p className="text-sm font-medium">조치</p>
-          <FieldStatusRowActions row={row} />
+          <FieldStatusPrimaryActions row={row} />
+          <WeighInFailureResolutionForm row={row} />
+          <DisqualificationReasonForm row={row} />
         </div>
       </div>
     </DrawerPanel>

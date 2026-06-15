@@ -5,6 +5,7 @@ import { useRouter } from "next/navigation";
 import type { OrganizerApplicationRowVM } from "@/components/domain/applications/OrganizerApplicationsTable";
 import {
   getOrganizerApplicationDisplayStatusLabel,
+  isPaidForOrganizerDisplay,
   resolveOrganizerApplicationDisplayStatus,
 } from "@/lib/application-display-status";
 import type { BulkApplicationAction } from "@/lib/services/application-organizer-bulk.service";
@@ -28,7 +29,10 @@ function canRunAction(
 
   switch (action) {
     case "confirm_payment_approve":
-      return display === "pending";
+      return (
+        display === "pending" ||
+        (display === "approved" && !isPaidForOrganizerDisplay(row.paymentStatus))
+      );
     case "organizer_cancel":
       return display === "pending" || display === "approved";
     case "mark_gym_cancelled":

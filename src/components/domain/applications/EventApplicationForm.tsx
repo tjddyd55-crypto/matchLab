@@ -101,7 +101,7 @@ export function EventApplicationForm(props: EventApplicationFormProps) {
 
       <div className="grid gap-2">
         <label className="text-sm font-medium" htmlFor="divisionId">
-          부문
+          경기구분
         </label>
         <select
           id="divisionId"

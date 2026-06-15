@@ -4,21 +4,11 @@ import { useMemo, useState, useTransition } from "react";
 import { useRouter } from "next/navigation";
 import { saveMatchScheduleFormAction } from "@/features/event-courts/actions";
 import { Button } from "@/components/ui/button";
-import { formatDivisionNameLabel } from "@/lib/bracket-snapshot";
 import type { EventCourtVM } from "@/lib/services/event-court.service";
+import type { ScheduleMatchVM } from "@/lib/organizer-schedule";
 import { MATCH_CATEGORY_LABEL } from "@/lib/ui-labels/match-category";
 
-export type ScheduleMatchVM = {
-  matchId: string;
-  bracketTitle: string;
-  divisionLabel: string | null;
-  fighterRedName: string | null;
-  fighterBlueName: string | null;
-  courtId: string | null;
-  courtOrder: number | null;
-  status: string;
-  hasOfficialResults: boolean;
-};
+export type { ScheduleMatchVM };
 
 export function OrganizerScheduleBoard({
   eventId,
@@ -136,6 +126,11 @@ export function OrganizerScheduleBoard({
       </div>
 
       <div className="overflow-x-auto rounded-xl border">
+        {sorted.length === 0 ? (
+          <p className="text-muted-foreground px-4 py-8 text-center text-sm">
+            이 탭에 표시할 경기가 없습니다.
+          </p>
+        ) : (
         <table className="w-full min-w-[48rem] text-left text-sm">
           <thead className="bg-muted/40 text-xs">
             <tr>
@@ -226,7 +221,14 @@ export function OrganizerScheduleBoard({
             ))}
           </tbody>
         </table>
+        )}
       </div>
+
+      {matches.length === 0 ? (
+        <p className="text-muted-foreground text-sm">
+          정렬할 경기가 없습니다.
+        </p>
+      ) : null}
 
       <div className="flex items-center gap-2">
         <Button type="button" disabled={pending} onClick={save}>
@@ -238,27 +240,4 @@ export function OrganizerScheduleBoard({
       </div>
     </section>
   );
-}
-
-/** 서버에서 match rows → ScheduleMatchVM 변환 */
-export function mapScheduleMatches(
-  rows: Awaited<
-    ReturnType<
-      typeof import("@/lib/repositories/match.repository").matchRepository.listMatchesByEvent
-    >
-  >,
-): ScheduleMatchVM[] {
-  return rows.map((m) => ({
-    matchId: m.id,
-    bracketTitle: m.bracket.title,
-    divisionLabel: m.bracket.division
-      ? formatDivisionNameLabel(m.bracket.division)
-      : null,
-    fighterRedName: m.fighterRed?.name ?? null,
-    fighterBlueName: m.fighterBlue?.name ?? null,
-    courtId: m.courtId ?? null,
-    courtOrder: m.courtOrder ?? null,
-    status: m.status,
-    hasOfficialResults: (m.matchResults?.length ?? 0) >= 2,
-  }));
 }

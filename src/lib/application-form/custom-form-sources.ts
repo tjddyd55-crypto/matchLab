@@ -16,8 +16,8 @@ export const CUSTOM_FORM_SOURCE_OPTIONS: CustomFormSourceOption[] = [
   { value: "event.title", label: "대회명", group: "대회" },
   { value: "division.sportType", label: "경기구분 종목", group: "경기구분" },
   { value: "division.gender", label: "경기구분 성별", group: "경기구분" },
-  { value: "division.ageGroup", label: "부문 연령대", group: "경기구분" },
-  { value: "division.weightClass", label: "부문 체급", group: "경기구분" },
+  { value: "division.ageGroup", label: "경기구분 연령대", group: "경기구분" },
+  { value: "division.weightClass", label: "경기구분 체급", group: "경기구분" },
   { value: "guardian.name", label: "보호자 이름", group: "보호자" },
   { value: "guardian.phone", label: "보호자 연락처", group: "보호자" },
 ];

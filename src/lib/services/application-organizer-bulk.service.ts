@@ -140,14 +140,26 @@ export const applicationOrganizerBulkService = {
     ) {
       throw new AppError("CONFLICT", "취소된 신청은 승인할 수 없습니다.");
     }
-    if (ctx.status === ApplicationStatus.approved) {
-      return;
-    }
+
     const payment = ctx.payments?.[0];
-    if (payment && payment.paymentStatus !== PaymentStatus.paid) {
+    const paymentAlreadyPaid =
+      ctx.paymentStatus === PaymentStatus.paid ||
+      ctx.paymentStatus === PaymentStatus.waived ||
+      payment?.paymentStatus === PaymentStatus.paid ||
+      payment?.paymentStatus === PaymentStatus.waived;
+
+    if (payment && !paymentAlreadyPaid) {
       await paymentService.confirmBankPayment(actor, { paymentId: payment.id });
+    } else if (!paymentAlreadyPaid) {
+      await applicationRepository.updateApplicationPaymentStatusCache(
+        applicationId,
+        PaymentStatus.paid,
+      );
     }
-    await applicationService.approveEventApplication(actor, applicationId);
+
+    if (ctx.status === ApplicationStatus.pending) {
+      await applicationService.approveEventApplication(actor, applicationId);
+    }
   },
 
   async organizerCancel(
