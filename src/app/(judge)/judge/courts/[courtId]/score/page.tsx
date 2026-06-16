@@ -9,6 +9,12 @@ export default async function CourtScoreJudgePage({
   params: Promise<{ courtId: string }>;
 }) {
   const { courtId } = await params;
-  const match = await judgeCourtService.getScoringContext(courtId);
-  return <CourtScoreJudgePanel match={match} />;
+  const ctx = await judgeCourtService.getScoringContext(courtId);
+  return (
+    <CourtScoreJudgePanel
+      court={ctx.court}
+      matches={ctx.matches}
+      ongoingMatchId={ctx.ongoingMatchId}
+    />
+  );
 }

@@ -46,6 +46,14 @@
     display: none !important;
   }
 
+  body[data-event-qr-print="judge-court-score"] .event-qr-card:not([data-print-group="judge-court-score"]) {
+    display: none !important;
+  }
+
+  body[data-event-qr-print="judge-court-head"] .event-qr-card:not([data-print-group="judge-court-head"]) {
+    display: none !important;
+  }
+
   body[data-event-qr-print="spectator-all"] .event-qr-card:not([data-print-group^="spectator-"]) {
     display: none !important;
   }

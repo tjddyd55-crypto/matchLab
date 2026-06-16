@@ -59,7 +59,12 @@ export async function headStartCourtMatchAction(
   formData: FormData,
 ): Promise<ActionResult<{ ok: true }>> {
   return mapCaught(async () => {
-    await judgeCourtService.startCurrentOrNext(formReq(formData, "courtId"));
+    const courtId = formReq(formData, "courtId");
+    const matchId = formReq(formData, "matchId");
+    if (!matchId) {
+      return actionFailure("VALIDATION_ERROR", "시작할 경기를 선택해 주세요.");
+    }
+    await judgeCourtService.startMatch(courtId, matchId);
     return actionSuccess({ ok: true as const });
   });
 }

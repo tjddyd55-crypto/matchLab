@@ -4,14 +4,35 @@ import { useState, useTransition, type FormEvent } from "react";
 import { useRouter } from "next/navigation";
 import { submitCourtScorecardAction } from "@/features/judge-court/actions";
 import { Button } from "@/components/ui/button";
-import type { CourtJudgeMatchVM } from "@/lib/services/judge-court.service";
+import type {
+  CourtJudgeCourtVM,
+  CourtJudgeMatchVM,
+} from "@/lib/services/judge-court.service";
 import { JudgeDecisionMethod } from "@/lib/enums";
+import { CourtJudgeIdentityGate } from "./CourtJudgeIdentityGate";
+import { CourtJudgeRefreshShell } from "./CourtJudgeRefreshShell";
+import {
+  CourtJudgeFightersHeader,
+} from "./CourtJudgeMatchList";
+import {
+  CourtJudgeEmptyNotice,
+  CourtJudgeScreenShell,
+} from "./CourtJudgeScreenShell";
 
-export function CourtScoreJudgePanel({ match }: { match: CourtJudgeMatchVM }) {
+function ScoreForm({
+  match,
+  judgeName,
+  birthDate,
+}: {
+  match: CourtJudgeMatchVM;
+  judgeName: string;
+  birthDate: string;
+}) {
   const router = useRouter();
   const [pending, startTransition] = useTransition();
   const [message, setMessage] = useState<string | null>(null);
   const [error, setError] = useState<string | null>(null);
+  const inputClass = "border-input bg-background h-10 rounded-md border px-3 text-sm";
 
   function onSubmit(e: FormEvent<HTMLFormElement>) {
     e.preventDefault();
@@ -29,56 +50,16 @@ export function CourtScoreJudgePanel({ match }: { match: CourtJudgeMatchVM }) {
     });
   }
 
-  if (!match.matchId || match.status !== "ongoing") {
-    return (
-      <div className="rounded-xl border border-dashed p-6 text-center">
-        <p className="font-medium">{match.courtName}</p>
-        <p className="text-muted-foreground mt-2 text-sm">
-          현재 진행중인 경기가 없습니다.
-        </p>
-      </div>
-    );
-  }
-
-  const inputClass = "border-input bg-background h-10 rounded-md border px-3 text-sm";
-
   return (
-    <form onSubmit={onSubmit} className="mx-auto flex max-w-2xl flex-col gap-5 p-4">
+    <form onSubmit={onSubmit} className="space-y-4 rounded-xl border p-4">
       <input type="hidden" name="courtId" value={match.courtId} />
       <input type="hidden" name="matchId" value={match.matchId} />
+      <input type="hidden" name="judgeName" value={judgeName} />
+      <input type="hidden" name="birthDate" value={birthDate} />
 
-      <header className="rounded-xl border bg-card p-4">
-        <p className="text-muted-foreground text-xs">{match.eventTitle}</p>
-        <h1 className="mt-1 text-xl font-bold">{match.courtName} 채점심판</h1>
-        <p className="text-muted-foreground mt-1 text-sm">
-          {match.divisionLabel ?? "경기구분 미상"}
-          {match.courtOrder != null ? ` · ${match.courtOrder}경기` : ""}
-        </p>
-        <div className="mt-4 grid grid-cols-[1fr_auto_1fr] items-stretch overflow-hidden rounded-lg border">
-          <div className="bg-red-500/5 p-3">
-            <p className="text-xs font-semibold text-red-700">홍코너</p>
-            <p className="text-lg font-bold">{match.fighterRedName}</p>
-          </div>
-          <div className="flex items-center bg-muted/30 px-4 font-black">VS</div>
-          <div className="bg-blue-500/5 p-3 text-right">
-            <p className="text-xs font-semibold text-blue-700">청코너</p>
-            <p className="text-lg font-bold">{match.fighterBlueName}</p>
-          </div>
-        </div>
-      </header>
+      <CourtJudgeFightersHeader match={match} />
 
-      <section className="grid gap-3 rounded-xl border p-4 sm:grid-cols-2">
-        <label className="grid gap-1 text-sm">
-          <span className="text-muted-foreground text-xs">이름</span>
-          <input name="judgeName" required className={inputClass} />
-        </label>
-        <label className="grid gap-1 text-sm">
-          <span className="text-muted-foreground text-xs">생년월일</span>
-          <input name="birthDate" type="date" required className={inputClass} />
-        </label>
-      </section>
-
-      <section className="grid gap-3 rounded-xl border p-4 sm:grid-cols-2">
+      <div className="grid gap-3 sm:grid-cols-2">
         <label className="grid gap-1 text-sm">
           <span className="text-red-700 text-xs">홍 점수</span>
           <input name="redScore" type="number" min={0} max={10} required className={inputClass} />
@@ -91,21 +72,93 @@ export function CourtScoreJudgePanel({ match }: { match: CourtJudgeMatchVM }) {
           <span className="text-muted-foreground text-xs">판정 방식</span>
           <select name="decisionMethod" className={inputClass} defaultValue={JudgeDecisionMethod.decision}>
             {Object.values(JudgeDecisionMethod).map((m) => (
-              <option key={m} value={m}>{m}</option>
+              <option key={m} value={m}>
+                {m}
+              </option>
             ))}
           </select>
         </label>
         <label className="grid gap-1 text-sm sm:col-span-2">
           <span className="text-muted-foreground text-xs">메모</span>
-          <textarea name="memo" rows={3} className="border-input bg-background rounded-md border px-3 py-2 text-sm" />
+          <textarea
+            name="memo"
+            rows={3}
+            className="border-input bg-background rounded-md border px-3 py-2 text-sm"
+          />
         </label>
-      </section>
+      </div>
 
       {error ? <p className="text-sm text-destructive">{error}</p> : null}
       {message ? <p className="text-sm text-emerald-700">{message}</p> : null}
-      <Button type="submit" disabled={pending}>
+      <Button type="submit" disabled={pending} className="w-full sm:w-auto">
         {pending ? "전송 중…" : "채점 전송"}
       </Button>
     </form>
+  );
+}
+
+function ScoreDetail({
+  matches,
+  ongoingMatchId,
+  judgeName,
+  birthDate,
+}: {
+  matches: CourtJudgeMatchVM[];
+  ongoingMatchId: string | null;
+  judgeName: string;
+  birthDate: string;
+}) {
+  if (!ongoingMatchId) {
+    return (
+      <CourtJudgeEmptyNotice>
+        현재 진행중인 경기가 없습니다. 주심판이 경기 시작을 누르면 채점할 수 있습니다.
+      </CourtJudgeEmptyNotice>
+    );
+  }
+
+  const ongoing = matches.find((m) => m.matchId === ongoingMatchId) ?? null;
+  if (!ongoing) {
+    return (
+      <CourtJudgeEmptyNotice>
+        진행중 경기만 채점할 수 있습니다. 리스트에서 파란색으로 강조된 경기를 확인하세요.
+      </CourtJudgeEmptyNotice>
+    );
+  }
+
+  return <ScoreForm match={ongoing} judgeName={judgeName} birthDate={birthDate} />;
+}
+
+export function CourtScoreJudgePanel({
+  court,
+  matches,
+  ongoingMatchId,
+}: {
+  court: CourtJudgeCourtVM;
+  matches: CourtJudgeMatchVM[];
+  ongoingMatchId: string | null;
+}) {
+  return (
+    <CourtJudgeIdentityGate courtId={court.courtId} role="score" roleLabel="채점심판">
+      {(session) => (
+        <CourtJudgeRefreshShell>
+          <CourtJudgeScreenShell
+            court={court}
+            matches={matches}
+            ongoingMatchId={ongoingMatchId}
+            roleLabel="채점심판"
+            mobileDetailFirst
+            selectable={false}
+            detail={() => (
+              <ScoreDetail
+                matches={matches}
+                ongoingMatchId={ongoingMatchId}
+                judgeName={session.judgeName}
+                birthDate={session.birthDate}
+              />
+            )}
+          />
+        </CourtJudgeRefreshShell>
+      )}
+    </CourtJudgeIdentityGate>
   );
 }
