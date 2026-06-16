@@ -80,7 +80,7 @@ export default async function OrganizerEventOperationPage({
             <p className="font-medium">심판 채점</p>
             <p className="text-muted-foreground mt-1 text-xs">
               배정 {totalJudgeAssigned}건 · 제출 {totalJudgeSubmitted}건 ·
-              경기 상세 Drawer에서 집계 확인
+              경기 row에서 결과 입력 패널로 집계 확인
             </p>
           </div>
           <Link

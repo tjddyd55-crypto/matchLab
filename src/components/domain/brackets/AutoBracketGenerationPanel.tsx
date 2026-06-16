@@ -128,13 +128,22 @@ export function AutoBracketGenerationPanel({
   const errorMessage =
     activeState && !activeState.ok ? activeState.error.message : null;
 
+  const effectiveTargetCourtId =
+    autoMatchScope === "court" && (targetCourtId === "all" || !targetCourtId)
+      ? (activeCourts[0]?.id ?? "")
+      : targetCourtId;
+
   function buildHiddenFields(previewOnly: boolean) {
     return (
       <>
         <input type="hidden" name="eventId" value={eventId} />
         <input type="hidden" name="previewOnly" value={previewOnly ? "on" : "off"} />
         <input type="hidden" name="autoMatchScope" value={autoMatchScope} />
-        <input type="hidden" name="targetCourtId" value={targetCourtId} />
+        <input
+          type="hidden"
+          name="targetCourtId"
+          value={effectiveTargetCourtId}
+        />
         <input type="hidden" name="maxMatchesPerCourt" value={maxMatchesPerCourt} />
         <input type="hidden" name="forbidSameGym" value={forbidSameGym ? "on" : "off"} />
         <input type="hidden" name="preserveManualCourts" value="on" />
@@ -159,9 +168,17 @@ export function AutoBracketGenerationPanel({
           <select
             className="border-input bg-background h-9 rounded-md border px-2 text-sm"
             value={autoMatchScope}
-            onChange={(e) =>
-              setAutoMatchScope(e.target.value as "all" | "court")
-            }
+            onChange={(e) => {
+              const nextScope = e.target.value as "all" | "court";
+              setAutoMatchScope(nextScope);
+              if (nextScope === "court") {
+                setTargetCourtId((prev) =>
+                  prev === "all" || !prev
+                    ? (activeCourts[0]?.id ?? "all")
+                    : prev,
+                );
+              }
+            }}
           >
             <option value="all">전체 자동매칭</option>
             <option value="court">특정 경기장만 자동매칭</option>
@@ -176,7 +193,9 @@ export function AutoBracketGenerationPanel({
             onChange={(e) => setTargetCourtId(e.target.value)}
             disabled={activeCourts.length === 0}
           >
-            <option value="all">전체 활성 경기장에 분산</option>
+            {autoMatchScope === "all" ? (
+              <option value="all">전체 활성 경기장에 분산</option>
+            ) : null}
             {activeCourts.map((c, idx) => (
               <option key={c.id} value={c.id}>
                 {formatCourtTabLabel(c, idx)}

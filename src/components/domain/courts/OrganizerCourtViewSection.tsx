@@ -40,7 +40,7 @@ export async function OrganizerCourtViewSection({
       ) : (
         <OrganizerCourtBracketPanel
           eventId={eventId}
-          courts={activeCourts}
+          courts={courts}
           matches={eventMatches}
         />
       )}

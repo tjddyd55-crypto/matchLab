@@ -156,7 +156,7 @@ export function OrganizerCourtBracketPanel({
               <div className="flex flex-wrap items-start justify-between gap-2">
                 <div className="min-w-0 text-sm">
                   <p className="font-medium">
-                    {courtLabelForMatch(m, activeCourts)}
+                    {courtLabelForMatch(m, courts)}
                     {m.courtOrder != null || localOrders[m.matchId] != null
                       ? ` · ${localOrders[m.matchId] ?? m.courtOrder}경기`
                       : ""}
@@ -239,7 +239,7 @@ export function OrganizerCourtBracketPanel({
                   eventId={eventId}
                   bracketId={m.bracketId}
                   matchId={m.matchId}
-                  courts={activeCourts}
+                  courts={courts}
                   courtId={m.courtId}
                   courtOrder={localOrders[m.matchId] ?? m.courtOrder}
                   hasOfficialResults={m.hasOfficialResults}
