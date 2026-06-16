@@ -235,6 +235,7 @@ export async function createMatchListMatchesAction(
 
     const parsed = createMatchListMatchesSchema.safeParse({
       bracketId: formReq(formData, "bracketId"),
+      defaultCourtId: formReq(formData, "defaultCourtId"),
       matches: normalized,
     });
     if (!parsed.success) {
@@ -266,6 +267,7 @@ export async function createSingleEliminationDraftAction(
     const slotNum = Number(slotRaw);
     const parsed = createSingleEliminationDraftSchema.safeParse({
       bracketId: formReq(formData, "bracketId"),
+      courtId: formReq(formData, "courtId"),
       slotCount: slotNum,
     });
     if (!parsed.success) {

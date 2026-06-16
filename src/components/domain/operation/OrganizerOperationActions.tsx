@@ -2,6 +2,9 @@
 
 import { useState, useTransition } from "react";
 import { useRouter } from "next/navigation";
+import { OrganizerMatchOpsPanel } from "@/components/domain/brackets/OrganizerMatchOpsPanel";
+import { OrganizerJudgeAggregationDrawerSection } from "@/components/domain/judges/OrganizerJudgeAggregationDrawerSection";
+import { toMatchOpsProps } from "@/components/domain/operation/operation-match-row";
 import { updateMatchStatusAction } from "@/features/matches/actions";
 import { Button } from "@/components/ui/button";
 import type { ActionResult } from "@/lib/action-result";
@@ -26,24 +29,22 @@ async function runAction(
 
 export function OrganizerOperationActions({
   match,
-  onOpenResult,
-  onOpenView,
   compact,
 }: {
   match: OrganizerEventMatchListItemVM;
-  onOpenResult: () => void;
-  onOpenView: () => void;
   compact?: boolean;
 }) {
   const router = useRouter();
   const [pending, startTransition] = useTransition();
   const [error, setError] = useState<string | null>(null);
+  const [opsOpen, setOpsOpen] = useState(false);
 
   const blocked = match.status === BracketMatchStatus.cancelled;
   const showStart = canStartMatch(match.status);
   const showEnd = canEndMatch(match.status);
   const showResult = canEnterResult(match);
   const showView = canViewResult(match);
+  const showOpsToggle = showResult || showView;
 
   const refresh = () => router.refresh();
 
@@ -112,26 +113,19 @@ export function OrganizerOperationActions({
             경기 종료
           </Button>
         ) : null}
-        {showResult ? (
+        {showOpsToggle ? (
           <Button
             type="button"
             size={compact ? "xs" : "sm"}
             variant="outline"
             disabled={pending}
-            onClick={onOpenResult}
+            onClick={() => setOpsOpen((v) => !v)}
           >
-            결과 입력
-          </Button>
-        ) : null}
-        {showView ? (
-          <Button
-            type="button"
-            size={compact ? "xs" : "sm"}
-            variant="outline"
-            disabled={pending}
-            onClick={onOpenView}
-          >
-            결과 보기
+            {opsOpen
+              ? "결과 패널 닫기"
+              : showResult
+                ? "결과 입력"
+                : "결과 보기"}
           </Button>
         ) : null}
       </div>
@@ -139,6 +133,15 @@ export function OrganizerOperationActions({
         <p className="text-destructive text-xs" role="alert">
           {error}
         </p>
+      ) : null}
+      {opsOpen && showOpsToggle ? (
+        <div className="space-y-3 border-t pt-2">
+          <OrganizerMatchOpsPanel {...toMatchOpsProps(match)} compact />
+          <OrganizerJudgeAggregationDrawerSection
+            matchId={match.matchId}
+            open={opsOpen}
+          />
+        </div>
       ) : null}
     </div>
   );

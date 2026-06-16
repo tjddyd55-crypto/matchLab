@@ -17,13 +17,11 @@ export function OrganizerApplicationsList({
   rows,
   selectedIds,
   onToggleSelect,
-  onOpenDetail,
 }: {
   eventId: string;
   rows: OrganizerApplicationRowVM[];
   selectedIds: Set<string>;
   onToggleSelect: (applicationId: string, checked: boolean) => void;
-  onOpenDetail: (row: OrganizerApplicationRowVM) => void;
 }) {
   return (
     <div className="hidden min-w-0 md:block 2xl:hidden">
@@ -50,11 +48,7 @@ export function OrganizerApplicationsList({
               />
             </div>
 
-            <button
-              type="button"
-              className="flex min-w-0 items-center gap-2 text-left"
-              onClick={() => onOpenDetail(row)}
-            >
+            <div className="flex min-w-0 items-center gap-2">
               <div className="relative size-8 shrink-0 overflow-hidden rounded-md bg-muted">
                 {row.fighterProfileImageUrl ? (
                   // eslint-disable-next-line @next/next/no-img-element
@@ -69,10 +63,10 @@ export function OrganizerApplicationsList({
                   </span>
                 )}
               </div>
-              <span className="min-w-0 truncate font-medium underline-offset-2 hover:underline">
+              <span className="min-w-0 truncate font-medium">
                 {row.fighterName}
               </span>
-            </button>
+            </div>
 
             <div className="min-w-0 truncate text-sm">{row.gymName}</div>
 

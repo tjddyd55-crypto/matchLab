@@ -2,7 +2,6 @@
 
 import { useMemo, useState } from "react";
 import type { OrganizerApplicationRowVM } from "@/components/domain/applications/OrganizerApplicationsTable";
-import { OrganizerApplicationDetailDrawer } from "@/components/domain/applications/OrganizerApplicationDetailDrawer";
 import { OrganizerApplicationsBulkToolbar } from "@/components/domain/applications/OrganizerApplicationsBulkToolbar";
 import { OrganizerApplicationsCards } from "@/components/domain/applications/OrganizerApplicationsCards";
 import { OrganizerApplicationsList } from "@/components/domain/applications/OrganizerApplicationsList";
@@ -32,9 +31,6 @@ export function OrganizerApplicationsBoard({
 }) {
   const [filters, setFilters] =
     useState<OrganizerApplicationFiltersState>(DEFAULT_FILTERS);
-  const [detailRow, setDetailRow] =
-    useState<OrganizerApplicationRowVM | null>(null);
-  const [detailOpen, setDetailOpen] = useState(false);
   const [selectedIds, setSelectedIds] = useState<Set<string>>(new Set());
   const [groupByGym, setGroupByGym] = useState(false);
 
@@ -110,11 +106,6 @@ export function OrganizerApplicationsBoard({
     );
   }, [filtered, groupByGym]);
 
-  function openDetail(row: OrganizerApplicationRowVM) {
-    setDetailRow(row);
-    setDetailOpen(true);
-  }
-
   function toggleSelect(applicationId: string, checked: boolean) {
     setSelectedIds((prev) => {
       const next = new Set(prev);
@@ -137,7 +128,6 @@ export function OrganizerApplicationsBoard({
     eventId,
     selectedIds,
     onToggleSelect: toggleSelect,
-    onOpenDetail: openDetail,
   };
 
   return (
@@ -210,12 +200,6 @@ export function OrganizerApplicationsBoard({
         </>
       ) : null}
 
-      <OrganizerApplicationDetailDrawer
-        eventId={eventId}
-        row={detailRow}
-        open={detailOpen}
-        onOpenChange={setDetailOpen}
-      />
     </div>
   );
 }

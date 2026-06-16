@@ -26,16 +26,22 @@ export function MatchCourtControls({
   inline?: boolean;
 }) {
   const router = useRouter();
+  const activeCourts = courts.filter((c) => c.isActive);
+  const defaultCourtId =
+    courtId ?? (activeCourts.length === 1 ? activeCourts[0]!.id : "");
+
   const [pending, startTransition] = useTransition();
-  const [localCourtId, setLocalCourtId] = useState(courtId ?? "");
+  const [localCourtId, setLocalCourtId] = useState(defaultCourtId);
   const [localOrder, setLocalOrder] = useState(
     courtOrder != null ? String(courtOrder) : "",
   );
   const [message, setMessage] = useState<string | null>(null);
 
-  const activeCourts = courts.filter((c) => c.isActive);
-
   function save() {
+    if (!localCourtId) {
+      setMessage("경기장을 선택해 주세요.");
+      return;
+    }
     setMessage(null);
     const fd = new FormData();
     fd.set("eventId", eventId);
@@ -55,6 +61,14 @@ export function MatchCourtControls({
     });
   }
 
+  if (activeCourts.length === 0) {
+    return (
+      <p className="text-muted-foreground text-[10px]">
+        활성 경기장이 없습니다. 기본설정에서 경기장을 먼저 생성해 주세요.
+      </p>
+    );
+  }
+
   return (
     <div
       className={
@@ -69,8 +83,11 @@ export function MatchCourtControls({
           className="border-input bg-background h-7 rounded-md border px-2 text-[11px]"
           value={localCourtId}
           onChange={(e) => setLocalCourtId(e.target.value)}
+          required
         >
-          <option value="">미지정</option>
+          {activeCourts.length > 1 && !courtId ? (
+            <option value="">경기장 선택</option>
+          ) : null}
           {activeCourts.map((c) => (
             <option key={c.id} value={c.id}>
               {c.name}
@@ -93,7 +110,7 @@ export function MatchCourtControls({
         type="button"
         size="sm"
         className="h-7 text-[11px]"
-        disabled={pending}
+        disabled={pending || !localCourtId}
         onClick={save}
       >
         {pending ? "저장 중…" : "경기장 저장"}

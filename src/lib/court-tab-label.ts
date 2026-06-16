@@ -15,4 +15,4 @@ export function formatCourtTabLabel(
   return `${index + 1}경기장`;
 }
 
-export type CourtTabId = "all" | "unassigned" | string;
+export type CourtTabId = "all" | string;

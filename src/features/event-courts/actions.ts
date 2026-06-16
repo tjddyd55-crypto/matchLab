@@ -160,6 +160,9 @@ export async function setMatchCourtFormAction(
     if (!eventId || !matchId) {
       return actionFailure("VALIDATION_ERROR", "요청 정보가 올바르지 않습니다.");
     }
+    if (!courtId) {
+      return actionFailure("VALIDATION_ERROR", "경기장을 선택해 주세요.");
+    }
     if (courtOrderRaw !== "" && Number.isNaN(courtOrder)) {
       return actionFailure("VALIDATION_ERROR", "경기 순서를 확인해 주세요.");
     }

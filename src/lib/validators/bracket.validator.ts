@@ -64,11 +64,13 @@ const matchListRowSchema = z
 
 export const createMatchListMatchesSchema = z.object({
   bracketId: z.string().min(1),
+  defaultCourtId: z.string().min(1, "경기장을 선택해 주세요."),
   matches: z.array(matchListRowSchema),
 });
 
 export const createSingleEliminationDraftSchema = z.object({
   bracketId: z.string().min(1),
+  courtId: z.string().min(1, "경기장을 선택해 주세요."),
   slotCount: z.union([
     z.literal(4),
     z.literal(8),

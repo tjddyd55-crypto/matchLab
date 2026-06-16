@@ -14,13 +14,11 @@ export function OrganizerApplicationsCards({
   rows,
   selectedIds,
   onToggleSelect,
-  onOpenDetail,
 }: {
   eventId: string;
   rows: OrganizerApplicationRowVM[];
   selectedIds: Set<string>;
   onToggleSelect: (applicationId: string, checked: boolean) => void;
-  onOpenDetail: (row: OrganizerApplicationRowVM) => void;
 }) {
   return (
     <div className="flex min-w-0 flex-col gap-3 md:hidden">
@@ -36,14 +34,10 @@ export function OrganizerApplicationsCards({
                 aria-label={`${row.fighterName} 선택`}
                 className="mt-1"
               />
-              <button
-                type="button"
-                className="min-w-0 flex-1 text-left"
-                onClick={() => onOpenDetail(row)}
-              >
+              <div className="min-w-0 flex-1">
                 <CardTitle className="text-base">{row.fighterName}</CardTitle>
                 <div className="text-muted-foreground text-xs">{row.gymName}</div>
-              </button>
+              </div>
             </div>
           </CardHeader>
           <CardContent className="flex flex-col gap-2 text-sm">

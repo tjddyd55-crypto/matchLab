@@ -144,18 +144,57 @@ type PreservedCourtAssignment = {
 async function resolveSuggestedCourtId(
   eventId: string,
   divisionId: string | null,
+  explicitCourtId: string | null,
   tx?: Prisma.TransactionClient,
-): Promise<string | null> {
-  if (!divisionId) return null;
+): Promise<string> {
+  if (explicitCourtId) return explicitCourtId;
+  if (!divisionId) {
+    throw new AppError(
+      "VALIDATION_ERROR",
+      "경기장을 선택해 주세요.",
+    );
+  }
   const division = await (tx ?? prisma).eventDivision.findUnique({
     where: { id: divisionId },
     select: { id: true, weightClass: true },
   });
-  if (!division) return null;
-  return eventCourtService.suggestCourtForDivision(eventId, {
+  if (!division) {
+    throw new AppError("VALIDATION_ERROR", "경기장을 선택해 주세요.");
+  }
+  const suggested = await eventCourtService.suggestCourtForDivision(eventId, {
     id: division.id,
     weightClass: division.weightClass,
   });
+  if (!suggested) {
+    throw new AppError(
+      "VALIDATION_ERROR",
+      "활성 경기장이 없습니다. 기본설정에서 경기장을 먼저 생성해 주세요.",
+    );
+  }
+  return suggested;
+}
+
+async function nextCourtOrderForCourt(
+  eventId: string,
+  courtId: string,
+  pendingOrders: Map<string, number>,
+  tx?: Prisma.TransactionClient,
+): Promise<number> {
+  const cached = pendingOrders.get(courtId);
+  if (cached != null) {
+    pendingOrders.set(courtId, cached + 1);
+    return cached;
+  }
+  const row = await (tx ?? prisma).bracketMatch.aggregate({
+    where: {
+      courtId,
+      bracket: { eventId },
+    },
+    _max: { courtOrder: true },
+  });
+  const next = (row._max.courtOrder ?? 0) + 1;
+  pendingOrders.set(courtId, next + 1);
+  return next;
 }
 
 function findPreservedCourtAssignment(
@@ -195,6 +234,7 @@ async function createSingleEliminationTree(
   slotCount: number,
   eventId: string,
   divisionId: string | null,
+  courtId: string,
 ): Promise<void> {
   const depth = Math.round(Math.log2(slotCount));
   if (2 ** depth !== slotCount) {
@@ -205,11 +245,7 @@ async function createSingleEliminationTree(
   }
 
   let upperRoundMatches: { id: string }[] = [];
-  const suggestedCourtId = await resolveSuggestedCourtId(
-    eventId,
-    divisionId,
-    tx,
-  );
+  const pendingCourtOrders = new Map<string, number>();
 
   for (let r = depth; r >= 1; r--) {
     const count = 2 ** (depth - r);
@@ -225,6 +261,13 @@ async function createSingleEliminationTree(
             ? NextMatchSlot.red
             : NextMatchSlot.blue;
 
+      const courtOrder = await nextCourtOrderForCourt(
+        eventId,
+        courtId,
+        pendingCourtOrders,
+        tx,
+      );
+
       const { id } = await bracketRepository.createBracketMatch(
         {
           bracketId,
@@ -234,7 +277,8 @@ async function createSingleEliminationTree(
           globalMatchOrder: null,
           matchNumber: null,
           matNumber: null,
-          courtId: suggestedCourtId,
+          courtId,
+          courtOrder,
           nextMatchId,
           nextMatchSlot,
         },
@@ -671,8 +715,10 @@ export const bracketService = {
       const suggestedCourtId = await resolveSuggestedCourtId(
         ctx.eventId,
         ctx.divisionId,
+        input.defaultCourtId,
         tx,
       );
+      const pendingCourtOrders = new Map<string, number>();
 
       for (const row of input.matches) {
         const redFighterId = row.fighterRedId;
@@ -727,7 +773,20 @@ export const bracketService = {
           matchOrder: row.matchOrder,
         });
         const courtId = preserved?.courtId ?? suggestedCourtId;
-        const courtOrder = preserved?.courtOrder ?? null;
+        if (!courtId) {
+          throw new AppError(
+            "VALIDATION_ERROR",
+            "경기장을 선택해 주세요.",
+          );
+        }
+        const courtOrder =
+          preserved?.courtOrder ??
+          (await nextCourtOrderForCourt(
+            ctx.eventId,
+            courtId,
+            pendingCourtOrders,
+            tx,
+          ));
 
         const { id: matchId } = await bracketRepository.createBracketMatch(
           {
@@ -814,6 +873,7 @@ export const bracketService = {
         input.slotCount,
         ctx.eventId,
         ctx.divisionId,
+        input.courtId,
       );
 
       const ev = await notificationRepository.getEventSlugTitle(ctx.eventId, tx);
