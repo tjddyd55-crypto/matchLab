@@ -30,9 +30,13 @@ async function runAction(
 export function OrganizerOperationActions({
   match,
   compact,
+  onOpenResult,
+  onOpenView,
 }: {
   match: OrganizerEventMatchListItemVM;
   compact?: boolean;
+  onOpenResult?: () => void;
+  onOpenView?: () => void;
 }) {
   const router = useRouter();
   const [pending, startTransition] = useTransition();
@@ -45,6 +49,7 @@ export function OrganizerOperationActions({
   const showResult = canEnterResult(match);
   const showView = canViewResult(match);
   const showOpsToggle = showResult || showView;
+  const externalToggle = showResult ? onOpenResult : onOpenView;
 
   const refresh = () => router.refresh();
 
@@ -119,9 +124,11 @@ export function OrganizerOperationActions({
             size={compact ? "xs" : "sm"}
             variant="outline"
             disabled={pending}
-            onClick={() => setOpsOpen((v) => !v)}
+            onClick={() =>
+              externalToggle ? externalToggle() : setOpsOpen((v) => !v)
+            }
           >
-            {opsOpen
+            {opsOpen && !externalToggle
               ? "결과 패널 닫기"
               : showResult
                 ? "결과 입력"
@@ -134,7 +141,7 @@ export function OrganizerOperationActions({
           {error}
         </p>
       ) : null}
-      {opsOpen && showOpsToggle ? (
+      {opsOpen && showOpsToggle && !externalToggle ? (
         <div className="space-y-3 border-t pt-2">
           <OrganizerMatchOpsPanel {...toMatchOpsProps(match)} compact />
           <OrganizerJudgeAggregationInlineSection

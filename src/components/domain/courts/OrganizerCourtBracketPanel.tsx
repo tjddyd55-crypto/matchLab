@@ -10,6 +10,7 @@ import {
   type CourtTabId,
   formatCourtTabLabel,
 } from "@/lib/court-tab-label";
+import { BracketMatchStatus } from "@/lib/enums";
 import type { EventCourtVM } from "@/lib/services/event-court.service";
 import type { OrganizerEventMatchListItemVM } from "@/lib/services/match.service";
 import { MATCH_CATEGORY_LABEL } from "@/lib/ui-labels/match-category";
@@ -39,6 +40,19 @@ function courtLabelForMatch(
   const idx = courts.findIndex((c) => c.id === m.courtId);
   if (idx >= 0) return formatCourtTabLabel(courts[idx]!, idx);
   return m.courtName ?? "경기장";
+}
+
+function matchStatusLabel(status: OrganizerEventMatchListItemVM["status"]) {
+  switch (status) {
+    case BracketMatchStatus.ongoing:
+      return "진행중";
+    case BracketMatchStatus.finished:
+      return "경기종료";
+    case BracketMatchStatus.cancelled:
+      return "경기취소";
+    default:
+      return "대기";
+  }
 }
 
 export function OrganizerCourtBracketPanel({
@@ -151,18 +165,21 @@ export function OrganizerCourtBracketPanel({
           {filtered.map((m, idx) => (
             <article
               key={m.matchId}
-              className="ring-foreground/10 rounded-xl border bg-card p-3 shadow-sm"
+              className="ring-foreground/10 rounded-xl border bg-card p-4 shadow-sm"
             >
               <div className="flex flex-wrap items-start justify-between gap-2">
                 <div className="min-w-0 text-sm">
-                  <p className="font-medium">
+                  <p className="text-muted-foreground text-xs">
                     {courtLabelForMatch(m, courts)}
                     {m.courtOrder != null || localOrders[m.matchId] != null
                       ? ` · ${localOrders[m.matchId] ?? m.courtOrder}경기`
                       : ""}
                   </p>
-                  <p className="text-muted-foreground text-xs">
-                    {m.divisionLabel ?? MATCH_CATEGORY_LABEL} · {m.bracketTitle}
+                  <p className="font-medium">
+                    {m.divisionLabel ?? MATCH_CATEGORY_LABEL}
+                  </p>
+                  <p className="text-muted-foreground truncate text-xs">
+                    {m.bracketTitle}
                   </p>
                 </div>
                 <div className="flex items-center gap-2">
@@ -205,29 +222,46 @@ export function OrganizerCourtBracketPanel({
                       </Button>
                     </>
                   ) : null}
-                  <span className="text-muted-foreground text-xs">{m.status}</span>
+                  <span className="rounded-full border px-2 py-1 text-xs font-medium">
+                    {matchStatusLabel(m.status)}
+                  </span>
                 </div>
               </div>
 
-              <div className="mt-2 grid gap-2 sm:grid-cols-2">
-                <div className="rounded-md border px-2 py-1.5 text-xs">
-                  <p className="text-muted-foreground">홍코너</p>
-                  <p className="font-medium">{m.fighterRed?.name ?? "—"}</p>
+              <div className="mt-3 grid items-stretch gap-3 md:grid-cols-[minmax(0,1fr)_auto_minmax(0,1fr)]">
+                <div className="rounded-md border px-3 py-3 text-sm">
+                  <p className="text-muted-foreground text-xs">선수 A</p>
+                  <p className="mt-1 text-base font-semibold">
+                    {m.fighterRed?.name ?? "-"}
+                  </p>
+                  <p className="text-muted-foreground text-xs">
+                    {m.fighterRed?.gymName ?? "-"}
+                  </p>
                   <FighterHandicapBadge
                     handicap={m.fighterRed?.handicap}
                     cornerLabel="홍코너"
                     compact
-                    className="mt-0.5"
+                    className="mt-1"
                   />
                 </div>
-                <div className="rounded-md border px-2 py-1.5 text-xs">
-                  <p className="text-muted-foreground">청코너</p>
-                  <p className="font-medium">{m.fighterBlue?.name ?? "—"}</p>
+                <div className="flex items-center justify-center">
+                  <span className="rounded-full border bg-muted px-3 py-2 text-xs font-semibold tracking-wide">
+                    VS
+                  </span>
+                </div>
+                <div className="rounded-md border px-3 py-3 text-sm md:text-right">
+                  <p className="text-muted-foreground text-xs">선수 B</p>
+                  <p className="mt-1 text-base font-semibold">
+                    {m.fighterBlue?.name ?? "-"}
+                  </p>
+                  <p className="text-muted-foreground text-xs">
+                    {m.fighterBlue?.gymName ?? "-"}
+                  </p>
                   <FighterHandicapBadge
                     handicap={m.fighterBlue?.handicap}
                     cornerLabel="청코너"
                     compact
-                    className="mt-0.5"
+                    className="mt-1 md:ml-auto"
                   />
                 </div>
               </div>

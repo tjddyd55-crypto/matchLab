@@ -6,6 +6,7 @@ import { requireOrganizerForEventPage, resolveOrganizerEventPageError } from "@/
 import { loadEventManagementNavContext } from "@/lib/event-management-nav-context";
 import { eventService } from "@/lib/services/event.service";
 import { judgeCredentialService } from "@/lib/services/judge-credential.service";
+import { eventCourtService } from "@/lib/services/event-court.service";
 import { getServerAppBaseUrl } from "@/lib/qr-url";
 import { liveStreamService } from "@/lib/services/live-stream.service";
 import { headers } from "next/headers";
@@ -28,9 +29,10 @@ export default async function OrganizerEventQrPage({
     resolveOrganizerEventPageError(e);
   }
 
-  const [nav, credentials, headersList] = await Promise.all([
+  const [nav, credentials, courts, headersList] = await Promise.all([
     loadEventManagementNavContext(eventId),
     judgeCredentialService.listForOrganizer(actor, eventId),
+    eventCourtService.listForOrganizer(actor, eventId),
     headers(),
   ]);
 
@@ -61,6 +63,7 @@ export default async function OrganizerEventQrPage({
         spectatorAccessEndAt={detail.spectatorAccessEndAt}
         baseUrl={baseUrl}
         credentials={credentials}
+        courts={courts.filter((c) => c.isActive)}
       />
     </EventManagementLayout>
   );

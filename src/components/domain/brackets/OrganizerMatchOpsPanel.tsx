@@ -28,11 +28,9 @@ import { cn } from "@/lib/utils";
 
 const STATUS_OPTIONS: { value: BracketMatchStatus; label: string }[] = [
   { value: BracketMatchStatus.waiting, label: "대기" },
-  { value: BracketMatchStatus.called, label: "호출" },
   { value: BracketMatchStatus.ongoing, label: "진행중" },
-  { value: BracketMatchStatus.delayed, label: "지연" },
-  { value: BracketMatchStatus.finished, label: "종료(운영)" },
-  { value: BracketMatchStatus.cancelled, label: "취소" },
+  { value: BracketMatchStatus.finished, label: "경기종료" },
+  { value: BracketMatchStatus.cancelled, label: "경기취소" },
 ];
 
 const OUTCOME_OPTIONS = Object.values(
@@ -109,30 +107,20 @@ export function OrganizerMatchOpsPanel(props: OrganizerMatchOpsPanelProps) {
     });
   };
 
-  const onDraftSubmit = (formData: FormData) => {
+  const onOutcomeSubmit = (formData: FormData) => {
     setError(null);
     formData.set("matchId", props.matchId);
     if (staff) formData.set("staffToken", staff.token);
+    const intent = String(formData.get("intent") ?? "draft");
     startTransition(async () => {
       const err = await runAction(() =>
-        staff
-          ? staffRecordMatchOutcomeDraftAction(formData)
-          : recordMatchOutcomeDraftAction(formData),
-      );
-      setError(err);
-      if (!err) refresh();
-    });
-  };
-
-  const onConfirmSubmit = (formData: FormData) => {
-    setError(null);
-    formData.set("matchId", props.matchId);
-    if (staff) formData.set("staffToken", staff.token);
-    startTransition(async () => {
-      const err = await runAction(() =>
-        staff
-          ? staffConfirmMatchResultsAction(formData)
-          : confirmMatchResultsAction(formData),
+        intent === "confirm"
+          ? staff
+            ? staffConfirmMatchResultsAction(formData)
+            : confirmMatchResultsAction(formData)
+          : staff
+            ? staffRecordMatchOutcomeDraftAction(formData)
+            : recordMatchOutcomeDraftAction(formData),
       );
       setError(err);
       if (!err) refresh();
@@ -221,7 +209,7 @@ export function OrganizerMatchOpsPanel(props: OrganizerMatchOpsPanelProps) {
       </div>
 
       {!staff ? (
-      <form className="space-y-2 border-t pt-2" action={onCancelMatch}>
+      <form className="space-y-2 border-t pt-2 md:grid md:grid-cols-[1fr_auto] md:items-end md:gap-2 md:space-y-0" action={onCancelMatch}>
         <p className="text-muted-foreground font-semibold">경기 취소</p>
         <input
           name="reason"
@@ -241,52 +229,54 @@ export function OrganizerMatchOpsPanel(props: OrganizerMatchOpsPanelProps) {
       ) : null}
 
       {!blocked && canFillOutcome && (!staff || staff.canRecordOutcomeDraft) ? (
-        <form className="space-y-2 border-t pt-2" action={onDraftSubmit}>
+        <form className="space-y-3 border-t pt-2" action={onOutcomeSubmit}>
           <p className="text-muted-foreground font-semibold">
-            결과 임시 입력 (MatchResult 미생성)
+            결과 입력
           </p>
-          <select
-            name="outcomeMode"
-            defaultValue={defaultOutcomeMode}
-            disabled={pending}
-            className="border-input bg-background h-8 rounded-md border px-2"
-          >
-            <option value="win_loss">승패</option>
-            <option value="draw">무승부</option>
-            <option value="no_contest">노콘테스트</option>
-          </select>
-          <select
-            name="winnerId"
-            defaultValue={props.winnerId ?? ""}
-            disabled={pending}
-            className="border-input bg-background h-8 rounded-md border px-2"
-          >
-            <option value="">승자 선택 (승패 모드)</option>
-            {props.fighterRedId ? (
-              <option value={props.fighterRedId}>
-                레드 · {props.fighterRedName}
-              </option>
-            ) : null}
-            {props.fighterBlueId ? (
-              <option value={props.fighterBlueId}>
-                블루 · {props.fighterBlueName}
-              </option>
-            ) : null}
-          </select>
-          <select
-            name="resultType"
-            defaultValue={
-              props.resultType ?? BracketMatchOutcomeStyle.decision
-            }
-            disabled={pending}
-            className="border-input bg-background h-8 max-w-full rounded-md border px-2"
-          >
-            {OUTCOME_OPTIONS.map((o) => (
-              <option key={o} value={o}>
-                {o}
-              </option>
-            ))}
-          </select>
+          <div className="grid gap-2 md:grid-cols-3">
+            <select
+              name="outcomeMode"
+              defaultValue={defaultOutcomeMode}
+              disabled={pending}
+              className="border-input bg-background h-8 rounded-md border px-2"
+            >
+              <option value="win_loss">승패</option>
+              <option value="draw">무승부</option>
+              <option value="no_contest">노콘테스트</option>
+            </select>
+            <select
+              name="winnerId"
+              defaultValue={props.winnerId ?? ""}
+              disabled={pending}
+              className="border-input bg-background h-8 rounded-md border px-2"
+            >
+              <option value="">승자 선택</option>
+              {props.fighterRedId ? (
+                <option value={props.fighterRedId}>
+                  레드 · {props.fighterRedName}
+                </option>
+              ) : null}
+              {props.fighterBlueId ? (
+                <option value={props.fighterBlueId}>
+                  블루 · {props.fighterBlueName}
+                </option>
+              ) : null}
+            </select>
+            <select
+              name="resultType"
+              defaultValue={
+                props.resultType ?? BracketMatchOutcomeStyle.decision
+              }
+              disabled={pending}
+              className="border-input bg-background h-8 max-w-full rounded-md border px-2"
+            >
+              {OUTCOME_OPTIONS.map((o) => (
+                <option key={o} value={o}>
+                  {o}
+                </option>
+              ))}
+            </select>
+          </div>
           <textarea
             name="resultMemo"
             placeholder="메모 (선택)"
@@ -295,79 +285,29 @@ export function OrganizerMatchOpsPanel(props: OrganizerMatchOpsPanelProps) {
             disabled={pending}
             className="border-input bg-background w-full rounded-md border px-2 py-1"
           />
-          <Button type="submit" size="xs" variant="secondary" disabled={pending}>
-            임시 저장
-          </Button>
-        </form>
-      ) : null}
-
-      {!blocked &&
-      canFillOutcome &&
-      !props.hasOfficialResults &&
-      (!staff || staff.canConfirmResult) ? (
-        <form className="space-y-2 border-t pt-2" action={onConfirmSubmit}>
-          <p className="text-muted-foreground font-semibold">
-            결과 확정 (MatchResult 2행 · 전적 반영)
-          </p>
-          <select
-            name="outcomeMode"
-            defaultValue={defaultOutcomeMode}
-            disabled={pending}
-            className="border-input bg-background h-8 rounded-md border px-2"
-          >
-            <option value="win_loss">승패</option>
-            <option value="draw">무승부</option>
-            <option value="no_contest">노콘테스트</option>
-          </select>
-          <select
-            name="winnerId"
-            defaultValue={props.winnerId ?? ""}
-            disabled={pending}
-            className="border-input bg-background h-8 rounded-md border px-2"
-          >
-            <option value="">승자 선택 (승패 모드)</option>
-            {props.fighterRedId ? (
-              <option value={props.fighterRedId}>
-                레드 · {props.fighterRedName}
-              </option>
+          <div className="flex flex-wrap gap-2">
+            <Button
+              type="submit"
+              name="intent"
+              value="draft"
+              size="xs"
+              variant="secondary"
+              disabled={pending}
+            >
+              임시 저장
+            </Button>
+            {!props.hasOfficialResults && (!staff || staff.canConfirmResult) ? (
+              <Button
+                type="submit"
+                name="intent"
+                value="confirm"
+                size="xs"
+                disabled={pending}
+              >
+                확정
+              </Button>
             ) : null}
-            {props.fighterBlueId ? (
-              <option value={props.fighterBlueId}>
-                블루 · {props.fighterBlueName}
-              </option>
-            ) : null}
-          </select>
-          <select
-            name="resultType"
-            defaultValue={
-              props.resultType ?? BracketMatchOutcomeStyle.decision
-            }
-            disabled={pending}
-            className="border-input bg-background h-8 max-w-full rounded-md border px-2"
-          >
-            {OUTCOME_OPTIONS.map((o) => (
-              <option key={o} value={o}>
-                {o}
-              </option>
-            ))}
-          </select>
-          <textarea
-            name="resultMemo"
-            placeholder="메모 (선택)"
-            rows={2}
-            defaultValue={props.resultMemo ?? ""}
-            disabled={pending}
-            className="border-input bg-background w-full rounded-md border px-2 py-1"
-          />
-          <input
-            name="reason"
-            placeholder="확정 사유 (선택)"
-            disabled={pending}
-            className="border-input bg-background h-8 w-full rounded-md border px-2"
-          />
-          <Button type="submit" size="xs" disabled={pending}>
-            확정
-          </Button>
+          </div>
         </form>
       ) : null}
 

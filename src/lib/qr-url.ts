@@ -88,6 +88,20 @@ export function buildJudgeLoginQrUrl(
   return buildAbsoluteUrl(`/judge/login?${params.toString()}`, baseUrl);
 }
 
+export function buildCourtScoreJudgeUrl(
+  courtId: string,
+  baseUrl?: string,
+): string {
+  return buildAbsoluteUrl(`/judge/courts/${courtId}/score`, baseUrl);
+}
+
+export function buildCourtHeadJudgeUrl(
+  courtId: string,
+  baseUrl?: string,
+): string {
+  return buildAbsoluteUrl(`/judge/courts/${courtId}/head`, baseUrl);
+}
+
 export function buildPublicEventQrUrl(
   slug: string,
   tab?: PublicEventTabId,

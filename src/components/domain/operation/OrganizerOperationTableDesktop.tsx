@@ -1,15 +1,23 @@
 "use client";
 
+import { Fragment } from "react";
+import { OrganizerMatchOpsPanel } from "@/components/domain/brackets/OrganizerMatchOpsPanel";
+import { OrganizerJudgeAggregationInlineSection } from "@/components/domain/judges/OrganizerJudgeAggregationInlineSection";
 import { OrganizerOperationActions } from "@/components/domain/operation/OrganizerOperationActions";
 import { OrganizerOperationStatusBadges } from "@/components/domain/operation/OrganizerOperationStatusBadges";
 import { FighterHandicapBadge } from "@/components/domain/shared/FighterHandicapBadge";
 import type { OperationMatchRowVM } from "@/components/domain/operation/operation-match-row";
 import { getOperationMatchPhase } from "@/lib/match-operation-display";
+import { toMatchOpsProps } from "@/components/domain/operation/operation-match-row";
 
 export function OrganizerOperationTableDesktop({
   rows,
+  expandedMatchId,
+  onTogglePanel,
 }: {
   rows: OperationMatchRowVM[];
+  expandedMatchId: string | null;
+  onTogglePanel: (row: OperationMatchRowVM) => void;
 }) {
   if (rows.length === 0) {
     return (
@@ -36,62 +44,87 @@ export function OrganizerOperationTableDesktop({
         </thead>
         <tbody>
           {rows.map((row) => (
-            <tr key={row.matchId} className="border-b align-top">
-              <td className="px-3 py-3 font-mono text-xs">{row.orderLabel}</td>
-              <td className="px-3 py-3 text-xs">
-                <div className="font-medium">{row.divisionLabel ?? "—"}</div>
-                <div className="text-muted-foreground">{row.bracketTitle}</div>
-              </td>
-              <td className="px-3 py-3 text-xs">
-                {row.courtName ? (
-                  <>
-                    <div className="font-medium">{row.courtName}</div>
-                    {row.courtOrder != null ? (
-                      <div className="text-muted-foreground">{row.courtOrder}경기</div>
-                    ) : null}
-                  </>
-                ) : (
-                  <span className="text-muted-foreground">미지정</span>
-                )}
-              </td>
-              <td className="px-3 py-3 text-xs">
-                <div className="font-medium">{row.fighterRed?.name ?? "—"}</div>
-                <div className="text-muted-foreground">
-                  {row.fighterRed?.gymName ?? "—"}
-                </div>
-                <FighterHandicapBadge
-                  handicap={row.fighterRed?.handicap}
-                  cornerLabel="홍코너"
-                  compact
-                  className="mt-1"
-                />
-              </td>
-              <td className="px-3 py-3 text-xs">
-                <div className="font-medium">{row.fighterBlue?.name ?? "—"}</div>
-                <div className="text-muted-foreground">
-                  {row.fighterBlue?.gymName ?? "—"}
-                </div>
-                <FighterHandicapBadge
-                  handicap={row.fighterBlue?.handicap}
-                  cornerLabel="청코너"
-                  compact
-                  className="mt-1"
-                />
-              </td>
-              <td className="text-muted-foreground px-3 py-3 text-xs">
-                {row.judgeSubmitLabel ?? "—"}
-              </td>
-              <td className="px-3 py-3">
-                <OrganizerOperationStatusBadges
-                  phase={getOperationMatchPhase(row)}
-                  phaseLabel={row.phaseLabel}
-                  resultStatusLabel={row.resultStatusLabel}
-                />
-              </td>
-              <td className="px-3 py-3">
-                <OrganizerOperationActions match={row} compact />
-              </td>
-            </tr>
+            <Fragment key={row.matchId}>
+              <tr className="border-b align-top">
+                <td className="px-3 py-3 font-mono text-xs">{row.orderLabel}</td>
+                <td className="px-3 py-3 text-xs">
+                  <div className="font-medium">{row.divisionLabel ?? "—"}</div>
+                  <div className="text-muted-foreground">{row.bracketTitle}</div>
+                </td>
+                <td className="px-3 py-3 text-xs">
+                  {row.courtName ? (
+                    <>
+                      <div className="font-medium">{row.courtName}</div>
+                      {row.courtOrder != null ? (
+                        <div className="text-muted-foreground">
+                          {row.courtOrder}경기
+                        </div>
+                      ) : null}
+                    </>
+                  ) : (
+                    <span className="text-muted-foreground">경기장 이동 필요</span>
+                  )}
+                </td>
+                <td className="px-3 py-3 text-xs">
+                  <div className="font-medium">{row.fighterRed?.name ?? "—"}</div>
+                  <div className="text-muted-foreground">
+                    {row.fighterRed?.gymName ?? "—"}
+                  </div>
+                  <FighterHandicapBadge
+                    handicap={row.fighterRed?.handicap}
+                    cornerLabel="홍코너"
+                    compact
+                    className="mt-1"
+                  />
+                </td>
+                <td className="px-3 py-3 text-xs">
+                  <div className="font-medium">{row.fighterBlue?.name ?? "—"}</div>
+                  <div className="text-muted-foreground">
+                    {row.fighterBlue?.gymName ?? "—"}
+                  </div>
+                  <FighterHandicapBadge
+                    handicap={row.fighterBlue?.handicap}
+                    cornerLabel="청코너"
+                    compact
+                    className="mt-1"
+                  />
+                </td>
+                <td className="text-muted-foreground px-3 py-3 text-xs">
+                  {row.judgeSubmitLabel ?? "—"}
+                </td>
+                <td className="px-3 py-3">
+                  <OrganizerOperationStatusBadges
+                    phase={getOperationMatchPhase(row)}
+                    phaseLabel={row.phaseLabel}
+                    resultStatusLabel={row.resultStatusLabel}
+                  />
+                </td>
+                <td className="px-3 py-3">
+                  <OrganizerOperationActions
+                    match={row}
+                    compact
+                    onOpenResult={() => onTogglePanel(row)}
+                    onOpenView={() => onTogglePanel(row)}
+                  />
+                </td>
+              </tr>
+              {expandedMatchId === row.matchId ? (
+                <tr className="border-b bg-muted/10">
+                  <td colSpan={8} className="px-3 py-3">
+                    <div className="grid gap-3 xl:grid-cols-[minmax(0,2fr)_minmax(20rem,1fr)]">
+                      <OrganizerMatchOpsPanel
+                        {...toMatchOpsProps(row)}
+                        compact
+                      />
+                      <OrganizerJudgeAggregationInlineSection
+                        matchId={row.matchId}
+                        open
+                      />
+                    </div>
+                  </td>
+                </tr>
+              ) : null}
+            </Fragment>
           ))}
         </tbody>
       </table>

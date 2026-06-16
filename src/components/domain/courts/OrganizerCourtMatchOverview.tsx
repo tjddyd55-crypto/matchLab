@@ -7,6 +7,7 @@ import type { EventCourtVM } from "@/lib/services/event-court.service";
 import type { OrganizerEventMatchListItemVM } from "@/lib/services/match.service";
 import { Button } from "@/components/ui/button";
 import { MATCH_CATEGORY_LABEL } from "@/lib/ui-labels/match-category";
+import { BracketMatchStatus } from "@/lib/enums";
 
 type CourtTab = "all" | "unassigned" | string;
 
@@ -20,6 +21,15 @@ function sortMatches(matches: OrganizerEventMatchListItemVM[]) {
     return orderA - orderB;
   });
 }
+
+const STATUS_LABEL: Record<string, string> = {
+  [BracketMatchStatus.waiting]: "대기",
+  [BracketMatchStatus.called]: "대기",
+  [BracketMatchStatus.delayed]: "대기",
+  [BracketMatchStatus.ongoing]: "진행중",
+  [BracketMatchStatus.finished]: "경기종료",
+  [BracketMatchStatus.cancelled]: "경기취소",
+};
 
 export function OrganizerCourtMatchOverview({
   eventId,
@@ -91,9 +101,9 @@ export function OrganizerCourtMatchOverview({
           {filtered.map((m) => (
             <article
               key={m.matchId}
-              className="ring-foreground/10 rounded-xl border bg-card p-3 shadow-sm"
+              className="ring-foreground/10 overflow-hidden rounded-xl border bg-card shadow-sm"
             >
-              <div className="flex flex-wrap items-start justify-between gap-2">
+              <div className="flex flex-wrap items-start justify-between gap-2 border-b bg-muted/30 px-4 py-3">
                 <div className="min-w-0 text-sm">
                   <p className="font-medium">
                     {m.courtName ? (
@@ -109,31 +119,50 @@ export function OrganizerCourtMatchOverview({
                     {m.divisionLabel ?? MATCH_CATEGORY_LABEL} · {m.bracketTitle}
                   </p>
                 </div>
-                <span className="text-muted-foreground text-xs">{m.status}</span>
+                <span className="rounded-full bg-background px-2 py-1 text-xs font-medium">
+                  {STATUS_LABEL[m.status] ?? m.status}
+                </span>
               </div>
 
-              <div className="mt-2 grid gap-2 sm:grid-cols-2">
-                <div className="rounded-md border px-2 py-1.5 text-xs">
-                  <p className="text-muted-foreground">홍코너</p>
-                  <p className="font-medium">{m.fighterRed?.name ?? "—"}</p>
+              <div className="grid gap-0 md:grid-cols-[1fr_auto_1fr]">
+                <div className="min-h-[5rem] border-b px-4 py-3 text-sm md:border-b-0 md:border-r">
+                  <p className="text-xs font-semibold text-red-700 dark:text-red-300">
+                    홍코너
+                  </p>
+                  <p className="mt-1 text-lg font-bold leading-tight">
+                    {m.fighterRed?.name ?? "—"}
+                  </p>
+                  <p className="text-muted-foreground text-xs">
+                    {m.fighterRed?.gymName ?? "소속 미상"}
+                  </p>
                   <FighterHandicapBadge
                     handicap={m.fighterRed?.handicap}
                     compact
-                    className="mt-0.5"
+                    className="mt-2"
                   />
                 </div>
-                <div className="rounded-md border px-2 py-1.5 text-xs">
-                  <p className="text-muted-foreground">청코너</p>
-                  <p className="font-medium">{m.fighterBlue?.name ?? "—"}</p>
+                <div className="flex items-center justify-center bg-muted/20 px-4 py-3">
+                  <span className="text-xl font-black tracking-widest">VS</span>
+                </div>
+                <div className="min-h-[5rem] border-t px-4 py-3 text-sm md:border-l md:border-t-0">
+                  <p className="text-xs font-semibold text-blue-700 dark:text-blue-300">
+                    청코너
+                  </p>
+                  <p className="mt-1 text-lg font-bold leading-tight">
+                    {m.fighterBlue?.name ?? "—"}
+                  </p>
+                  <p className="text-muted-foreground text-xs">
+                    {m.fighterBlue?.gymName ?? "소속 미상"}
+                  </p>
                   <FighterHandicapBadge
                     handicap={m.fighterBlue?.handicap}
                     compact
-                    className="mt-0.5"
+                    className="mt-2"
                   />
                 </div>
               </div>
 
-              <div className="mt-2">
+              <div className="border-t bg-muted/10 px-4 py-3">
                 <MatchCourtControls
                   inline
                   eventId={eventId}

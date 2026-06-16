@@ -140,7 +140,8 @@ function augmentStaffReason(
 
 export type ConfirmMatchResultsPrincipal =
   | { kind: "organizer"; actor: ActorContext }
-  | { kind: "staff"; link: ResolvedStaffRecorderLink };
+  | { kind: "staff"; link: ResolvedStaffRecorderLink }
+  | { kind: "court_head"; eventId: string; courtId: string; label?: string };
 
 function snapshotJson(value: unknown): Prisma.InputJsonValue {
   return JSON.parse(JSON.stringify(value)) as Prisma.InputJsonValue;
@@ -219,7 +220,7 @@ export const resultService = {
       );
       confirmedByUserId = principal.actor.userId;
       changedByStaffLinkId = null;
-    } else {
+    } else if (principal.kind === "staff") {
       if (!principal.link.canConfirmResult) {
         throw new AppError(
           "FORBIDDEN",
@@ -230,6 +231,21 @@ export const resultService = {
       confirmedByUserId = null;
       changedByStaffLinkId = principal.link.id;
       staffLabel = principal.link.label;
+    } else {
+      ctx = await loadMatchResultBracketCtx(input.matchId);
+      if (ctx.eventId !== principal.eventId) {
+        throw new AppError("NOT_FOUND", "경기를 찾을 수 없습니다.");
+      }
+      const courtMatch = await prisma.bracketMatch.findUnique({
+        where: { id: input.matchId },
+        select: { courtId: true },
+      });
+      if (courtMatch?.courtId !== principal.courtId) {
+        throw new AppError("FORBIDDEN", "해당 경기장의 경기만 완료할 수 있습니다.");
+      }
+      confirmedByUserId = null;
+      changedByStaffLinkId = null;
+      staffLabel = principal.label ?? "주심판";
     }
 
     const match = await matchRepository.findMatchWithBracketContext(input.matchId);

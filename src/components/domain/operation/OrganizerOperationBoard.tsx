@@ -6,6 +6,7 @@ import { OrganizerOperationCardListMobile } from "@/components/domain/operation/
 import { OrganizerOperationTableDesktop } from "@/components/domain/operation/OrganizerOperationTableDesktop";
 import {
   toOperationMatchRow,
+  type OperationMatchRowVM,
 } from "@/components/domain/operation/operation-match-row";
 import type { OrganizerEventMatchListItemVM } from "@/lib/services/match.service";
 import {
@@ -18,7 +19,7 @@ import { cn } from "@/lib/utils";
 
 const FILTER_OPTIONS: { value: OperationBoardFilter; label: string }[] = [
   { value: "all", label: "전체" },
-  { value: "scheduled", label: "예정" },
+  { value: "scheduled", label: "대기" },
   { value: "in_progress", label: "진행 중" },
   { value: "completed", label: "완료" },
   { value: "result_pending", label: "결과 미입력" },
@@ -41,6 +42,7 @@ export function OrganizerOperationBoard({
   const [summaryFilter, setSummaryFilter] = useState<OperationBoardFilter>("all");
   const [statusFilter, setStatusFilter] = useState<OperationBoardFilter>("all");
   const [search, setSearch] = useState("");
+  const [expandedMatchId, setExpandedMatchId] = useState<string | null>(null);
 
   const summary = useMemo(() => summarizeOperationBoard(matches), [matches]);
 
@@ -73,6 +75,10 @@ export function OrganizerOperationBoard({
     requestAnimationFrame(() => {
       listRef.current?.scrollIntoView({ behavior: "smooth", block: "start" });
     });
+  }
+
+  function toggleInlinePanel(row: OperationMatchRowVM) {
+    setExpandedMatchId((cur) => (cur === row.matchId ? null : row.matchId));
   }
 
   return (
@@ -119,8 +125,16 @@ export function OrganizerOperationBoard({
           {filteredRows.length}건 표시 (전체 {matches.length}건)
         </p>
 
-        <OrganizerOperationTableDesktop rows={filteredRows} />
-        <OrganizerOperationCardListMobile rows={filteredRows} />
+        <OrganizerOperationTableDesktop
+          rows={filteredRows}
+          expandedMatchId={expandedMatchId}
+          onTogglePanel={toggleInlinePanel}
+        />
+        <OrganizerOperationCardListMobile
+          rows={filteredRows}
+          expandedMatchId={expandedMatchId}
+          onTogglePanel={toggleInlinePanel}
+        />
       </div>
     </div>
   );

@@ -4,7 +4,10 @@ import { useCallback } from "react";
 import { Button } from "@/components/ui/button";
 import { EventQrCard, type EventQrPrintGroup } from "./EventQrCard";
 import type { JudgeCredentialListItemVM } from "@/lib/services/judge-credential.service";
+import type { EventCourtVM } from "@/lib/services/event-court.service";
 import {
+  buildCourtHeadJudgeUrl,
+  buildCourtScoreJudgeUrl,
   buildEventBracketQrUrl,
   buildEventLiveQrUrl,
   buildEventResultsQrUrl,
@@ -32,6 +35,7 @@ export type EventQrPrintBoardProps = {
   spectatorAccessEndAt: string | null;
   baseUrl: string;
   credentials: JudgeCredentialListItemVM[];
+  courts: EventCourtVM[];
 };
 
 function formatEventDate(iso: string | null): string | null {
@@ -66,6 +70,7 @@ export function EventQrPrintBoard({
   spectatorAccessEndAt,
   baseUrl,
   credentials,
+  courts,
 }: EventQrPrintBoardProps) {
   const slug = publicSlug?.trim() ?? "";
   const formattedDate = formatEventDate(eventDate);
@@ -158,6 +163,22 @@ export function EventQrPrintBoard({
             type="button"
             variant="outline"
             size="sm"
+            onClick={() => printPreset("judge-court-score")}
+          >
+            경기장 채점 QR
+          </Button>
+          <Button
+            type="button"
+            variant="outline"
+            size="sm"
+            onClick={() => printPreset("judge-court-head")}
+          >
+            경기장 주심 QR
+          </Button>
+          <Button
+            type="button"
+            variant="outline"
+            size="sm"
             onClick={() => printPreset("spectator-all")}
             disabled={!overviewQrEnabled}
           >
@@ -225,6 +246,41 @@ export function EventQrPrintBoard({
           />
         </div>
       </section>
+
+      {courts.length > 0 ? (
+        <section className="space-y-4">
+          <header className="space-y-1">
+            <h2 className="text-lg font-semibold">경기장별 심판 QR</h2>
+            <p className="text-muted-foreground text-sm">
+              각 경기장에 채점심판용/주심판용 QR을 따로 부착합니다.
+            </p>
+          </header>
+          <div className="grid gap-4 md:grid-cols-2 xl:grid-cols-3">
+            {courts.map((court) => (
+              <EventQrCard
+                key={`${court.id}-score`}
+                printGroup="judge-court-score"
+                title={`${court.name} 채점심판`}
+                description="진행중 경기 채점만 전송합니다."
+                steps="이름·생년월일 확인 → 점수 입력 → 전송"
+                url={buildCourtScoreJudgeUrl(court.id, baseUrl)}
+                downloadFileName={`court-score-${court.name}.png`}
+              />
+            ))}
+            {courts.map((court) => (
+              <EventQrCard
+                key={`${court.id}-head`}
+                printGroup="judge-court-head"
+                title={`${court.name} 주심판`}
+                description="승패 입력, 완료, 다음 경기 시작, 경기취소를 처리합니다."
+                steps="현재 경기 확인 → 채점 열람 → 승패 입력/완료"
+                url={buildCourtHeadJudgeUrl(court.id, baseUrl)}
+                downloadFileName={`court-head-${court.name}.png`}
+              />
+            ))}
+          </div>
+        </section>
+      ) : null}
 
       <section className="space-y-4">
         <header className="space-y-1">

@@ -1,15 +1,24 @@
 "use client";
 
+import { OrganizerMatchOpsPanel } from "@/components/domain/brackets/OrganizerMatchOpsPanel";
+import { OrganizerJudgeAggregationInlineSection } from "@/components/domain/judges/OrganizerJudgeAggregationInlineSection";
 import { OrganizerOperationActions } from "@/components/domain/operation/OrganizerOperationActions";
 import { OrganizerOperationStatusBadges } from "@/components/domain/operation/OrganizerOperationStatusBadges";
 import { FighterHandicapBadge } from "@/components/domain/shared/FighterHandicapBadge";
 import type { OperationMatchRowVM } from "@/components/domain/operation/operation-match-row";
-import { getOperationMatchPhase } from "@/lib/match-operation-display";
+import {
+  getOperationMatchPhase,
+} from "@/lib/match-operation-display";
+import { toMatchOpsProps } from "@/components/domain/operation/operation-match-row";
 
 export function OrganizerOperationCardListMobile({
   rows,
+  expandedMatchId,
+  onTogglePanel,
 }: {
   rows: OperationMatchRowVM[];
+  expandedMatchId: string | null;
+  onTogglePanel: (row: OperationMatchRowVM) => void;
 }) {
   if (rows.length === 0) {
     return (
@@ -38,7 +47,11 @@ export function OrganizerOperationCardListMobile({
                   {row.courtName}
                   {row.courtOrder != null ? ` · ${row.courtOrder}경기` : ""}
                 </p>
-              ) : null}
+              ) : (
+                <p className="text-muted-foreground mt-1 text-xs">
+                  경기장 이동 필요
+                </p>
+              )}
             </div>
             <OrganizerOperationStatusBadges
               phase={getOperationMatchPhase(row)}
@@ -76,7 +89,21 @@ export function OrganizerOperationCardListMobile({
             </div>
           </div>
 
-          <OrganizerOperationActions match={row} />
+          <OrganizerOperationActions
+            match={row}
+            onOpenResult={() => onTogglePanel(row)}
+            onOpenView={() => onTogglePanel(row)}
+          />
+
+          {expandedMatchId === row.matchId ? (
+            <div className="space-y-3 border-t pt-3">
+              <OrganizerMatchOpsPanel {...toMatchOpsProps(row)} />
+              <OrganizerJudgeAggregationInlineSection
+                matchId={row.matchId}
+                open
+              />
+            </div>
+          ) : null}
         </article>
       ))}
     </div>

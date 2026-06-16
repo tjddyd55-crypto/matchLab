@@ -40,15 +40,15 @@ export function getOperationMatchPhase(
 export function operationPhaseLabel(phase: OperationMatchPhase): string {
   switch (phase) {
     case "scheduled":
-      return "예정";
+      return "대기";
     case "in_progress":
       return "진행 중";
     case "finished":
-      return "종료";
+      return "경기종료";
     case "result_done":
       return "결과 입력 완료";
     case "cancelled":
-      return "취소";
+      return "경기취소";
   }
 }
 
@@ -144,7 +144,7 @@ export function getStatusesForStartMatch(
   status: BracketMatchStatus,
 ): BracketMatchStatus[] {
   if (status === BracketMatchStatus.waiting) {
-    return [BracketMatchStatus.called, BracketMatchStatus.ongoing];
+    return [BracketMatchStatus.ongoing];
   }
   if (status === BracketMatchStatus.called) {
     return [BracketMatchStatus.ongoing];

@@ -8,6 +8,8 @@ import { cn } from "@/lib/utils";
 export type EventQrPrintGroup =
   | "judge-common"
   | "judge-individual"
+  | "judge-court-score"
+  | "judge-court-head"
   | "spectator-all"
   | "spectator-brackets"
   | "spectator-results"

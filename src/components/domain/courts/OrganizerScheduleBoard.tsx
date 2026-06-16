@@ -23,7 +23,7 @@ export function OrganizerScheduleBoard({
   const [pending, startTransition] = useTransition();
   const [message, setMessage] = useState<string | null>(null);
   const [activeCourtId, setActiveCourtId] = useState<string | "unassigned" | "all">(
-    courts[0]?.id ?? "unassigned",
+    "all",
   );
   const [localOrders, setLocalOrders] = useState<Record<string, number | null>>(() => {
     const init: Record<string, number | null> = {};

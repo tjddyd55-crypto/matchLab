@@ -3,12 +3,14 @@ import { EventManagementLayout } from "@/components/domain/events/EventManagemen
 import { EventManagementPageHeader } from "@/components/domain/events/EventManagementPageHeader";
 import { OrganizerJudgeAssignmentSection } from "@/components/domain/judges/OrganizerJudgeAssignmentSection";
 import { OrganizerJudgeCredentialManager } from "@/components/domain/judges/OrganizerJudgeCredentialManager";
+import { CourtJudgeLinksPanel } from "@/components/domain/judges/CourtJudgeLinksPanel";
 import { requireActor } from "@/lib/auth/actor";
 import { JUDGE_COUNT_POLICY_LINES } from "@/lib/judge-round-count";
 import { requireOrganizerForEventPage } from "@/lib/permissions";
 import { loadEventManagementNavContext } from "@/lib/event-management-nav-context";
 import { judgeAssignmentService } from "@/lib/services/judge-assignment.service";
 import { judgeCredentialService } from "@/lib/services/judge-credential.service";
+import { eventCourtService } from "@/lib/services/event-court.service";
 import { matchService } from "@/lib/services/match.service";
 import { buildJudgeLoginQrUrl, getServerAppBaseUrl } from "@/lib/qr-url";
 import { headers } from "next/headers";
@@ -26,11 +28,12 @@ export default async function OrganizerEventJudgesPage({
   const { eventId } = await params;
   await requireOrganizerForEventPage(actor, eventId);
 
-  const [nav, credentials, matches, assignments, headersList] = await Promise.all([
+  const [nav, credentials, matches, assignments, courts, headersList] = await Promise.all([
     loadEventManagementNavContext(eventId),
     judgeCredentialService.listForOrganizer(actor, eventId),
     matchService.listOrganizerEventMatches(actor, eventId),
     judgeAssignmentService.listByEventForOrganizer(actor, eventId),
+    eventCourtService.listForOrganizer(actor, eventId),
     headers(),
   ]);
 
@@ -70,6 +73,11 @@ export default async function OrganizerEventJudgesPage({
         eventId={eventId}
         credentials={credentials}
         loginUrl={loginUrl}
+      />
+
+      <CourtJudgeLinksPanel
+        courts={courts.filter((c) => c.isActive)}
+        baseUrl={baseUrl}
       />
 
       <div className="overflow-x-auto">
