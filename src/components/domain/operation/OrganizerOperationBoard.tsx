@@ -3,11 +3,9 @@
 import { useMemo, useRef, useState } from "react";
 import { OperationSummaryCards } from "@/components/domain/operation/OperationSummaryCards";
 import { OrganizerOperationCardListMobile } from "@/components/domain/operation/OrganizerOperationCardListMobile";
-import { OrganizerOperationDetailDrawer } from "@/components/domain/operation/OrganizerOperationDetailDrawer";
 import { OrganizerOperationTableDesktop } from "@/components/domain/operation/OrganizerOperationTableDesktop";
 import {
   toOperationMatchRow,
-  type OperationMatchRowVM,
 } from "@/components/domain/operation/operation-match-row";
 import type { OrganizerEventMatchListItemVM } from "@/lib/services/match.service";
 import {
@@ -43,11 +41,6 @@ export function OrganizerOperationBoard({
   const [summaryFilter, setSummaryFilter] = useState<OperationBoardFilter>("all");
   const [statusFilter, setStatusFilter] = useState<OperationBoardFilter>("all");
   const [search, setSearch] = useState("");
-  const [detailMatch, setDetailMatch] = useState<OperationMatchRowVM | null>(
-    null,
-  );
-  const [detailOpen, setDetailOpen] = useState(false);
-  const [detailMode, setDetailMode] = useState<"result" | "view">("result");
 
   const summary = useMemo(() => summarizeOperationBoard(matches), [matches]);
 
@@ -80,12 +73,6 @@ export function OrganizerOperationBoard({
     requestAnimationFrame(() => {
       listRef.current?.scrollIntoView({ behavior: "smooth", block: "start" });
     });
-  }
-
-  function openDetail(row: OperationMatchRowVM, mode: "result" | "view") {
-    setDetailMatch(row);
-    setDetailMode(mode);
-    setDetailOpen(true);
   }
 
   return (
@@ -132,24 +119,9 @@ export function OrganizerOperationBoard({
           {filteredRows.length}건 표시 (전체 {matches.length}건)
         </p>
 
-        <OrganizerOperationTableDesktop
-          rows={filteredRows}
-          onOpenResult={(row) => openDetail(row, "result")}
-          onOpenView={(row) => openDetail(row, "view")}
-        />
-        <OrganizerOperationCardListMobile
-          rows={filteredRows}
-          onOpenResult={(row) => openDetail(row, "result")}
-          onOpenView={(row) => openDetail(row, "view")}
-        />
+        <OrganizerOperationTableDesktop rows={filteredRows} />
+        <OrganizerOperationCardListMobile rows={filteredRows} />
       </div>
-
-      <OrganizerOperationDetailDrawer
-        match={detailMatch}
-        open={detailOpen}
-        onOpenChange={setDetailOpen}
-        mode={detailMode}
-      />
     </div>
   );
 }

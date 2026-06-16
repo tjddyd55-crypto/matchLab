@@ -54,13 +54,11 @@ export function OrganizerApplicationsTable({
   rows,
   selectedIds,
   onToggleSelect,
-  onOpenDetail,
 }: {
   eventId: string;
   rows: OrganizerApplicationRowVM[];
   selectedIds: Set<string>;
   onToggleSelect: (applicationId: string, checked: boolean) => void;
-  onOpenDetail: (row: OrganizerApplicationRowVM) => void;
 }) {
   return (
     <div className="hidden min-w-0 2xl:block">
@@ -89,11 +87,7 @@ export function OrganizerApplicationsTable({
                 />
               </TableCell>
               <TableCell className="align-top">
-                <button
-                  type="button"
-                  className="flex w-full min-w-0 items-center gap-2 text-left"
-                  onClick={() => onOpenDetail(row)}
-                >
+                <div className="flex w-full min-w-0 items-center gap-2">
                   <div className="relative size-8 shrink-0 overflow-hidden rounded-md bg-muted">
                     {row.fighterProfileImageUrl ? (
                       // eslint-disable-next-line @next/next/no-img-element
@@ -109,11 +103,11 @@ export function OrganizerApplicationsTable({
                     )}
                   </div>
                   <div className="min-w-0">
-                    <div className="truncate text-sm font-medium underline-offset-2 hover:underline">
+                    <div className="truncate text-sm font-medium">
                       {row.fighterName}
                     </div>
                   </div>
-                </button>
+                </div>
               </TableCell>
               <TableCell className="align-top">
                 <div className="truncate text-sm">{row.gymName}</div>

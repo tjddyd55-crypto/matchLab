@@ -8,12 +8,8 @@ import { getOperationMatchPhase } from "@/lib/match-operation-display";
 
 export function OrganizerOperationTableDesktop({
   rows,
-  onOpenResult,
-  onOpenView,
 }: {
   rows: OperationMatchRowVM[];
-  onOpenResult: (row: OperationMatchRowVM) => void;
-  onOpenView: (row: OperationMatchRowVM) => void;
 }) {
   if (rows.length === 0) {
     return (
@@ -93,12 +89,7 @@ export function OrganizerOperationTableDesktop({
                 />
               </td>
               <td className="px-3 py-3">
-                <OrganizerOperationActions
-                  match={row}
-                  compact
-                  onOpenResult={() => onOpenResult(row)}
-                  onOpenView={() => onOpenView(row)}
-                />
+                <OrganizerOperationActions match={row} compact />
               </td>
             </tr>
           ))}

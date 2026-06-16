@@ -17,6 +17,7 @@ import { OrganizerMatchOpsPanel } from "@/components/domain/brackets/OrganizerMa
 import { MatchCourtControls } from "@/components/domain/courts/MatchCourtControls";
 import { Button } from "@/components/ui/button";
 import type { EventCourtVM } from "@/lib/services/event-court.service";
+import { formatCourtTabLabel } from "@/lib/court-tab-label";
 import { getBracketDisabledFighterIds } from "@/lib/bracket-match-placement";
 import { cn } from "@/lib/utils";
 import { BracketType } from "@/lib/enums";
@@ -108,6 +109,8 @@ export function TournamentBracketEditor({
     if (ra !== rb) return ra - rb;
     return a.matchOrder - b.matchOrder;
   });
+  const activeCourts = courts.filter((c) => c.isActive);
+  const defaultCourtId = activeCourts[0]?.id ?? "";
 
   return (
     <div className="space-y-8">
@@ -137,10 +140,42 @@ export function TournamentBracketEditor({
               <option value={16}>16명</option>
             </select>
           </label>
-          <Button type="submit" variant="secondary" size="sm">
+          <label className="space-y-1">
+            <span className="text-muted-foreground text-xs">경기장 (필수)</span>
+            <select
+              name="courtId"
+              defaultValue={defaultCourtId}
+              required
+              disabled={activeCourts.length === 0}
+              className={cn(
+                "border-input bg-background h-9 rounded-md border px-2 text-sm",
+              )}
+            >
+              {activeCourts.length === 0 ? (
+                <option value="">경기장 없음</option>
+              ) : (
+                activeCourts.map((c, idx) => (
+                  <option key={c.id} value={c.id}>
+                    {formatCourtTabLabel(c, idx)}
+                  </option>
+                ))
+              )}
+            </select>
+          </label>
+          <Button
+            type="submit"
+            variant="secondary"
+            size="sm"
+            disabled={activeCourts.length === 0}
+          >
             드래프트 생성
           </Button>
         </form>
+        {activeCourts.length === 0 ? (
+          <p className="text-destructive mt-2 text-xs">
+            활성 경기장이 없습니다. 기본설정에서 경기장을 먼저 생성해 주세요.
+          </p>
+        ) : null}
 
         <form action={resetBracketFormAction} className="mt-3 flex gap-2">
           <input type="hidden" name="bracketId" value={detail.id} />

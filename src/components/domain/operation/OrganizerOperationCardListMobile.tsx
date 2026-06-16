@@ -8,12 +8,8 @@ import { getOperationMatchPhase } from "@/lib/match-operation-display";
 
 export function OrganizerOperationCardListMobile({
   rows,
-  onOpenResult,
-  onOpenView,
 }: {
   rows: OperationMatchRowVM[];
-  onOpenResult: (row: OperationMatchRowVM) => void;
-  onOpenView: (row: OperationMatchRowVM) => void;
 }) {
   if (rows.length === 0) {
     return (
@@ -80,11 +76,7 @@ export function OrganizerOperationCardListMobile({
             </div>
           </div>
 
-          <OrganizerOperationActions
-            match={row}
-            onOpenResult={() => onOpenResult(row)}
-            onOpenView={() => onOpenView(row)}
-          />
+          <OrganizerOperationActions match={row} />
         </article>
       ))}
     </div>

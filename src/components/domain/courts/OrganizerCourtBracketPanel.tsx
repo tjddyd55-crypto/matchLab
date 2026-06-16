@@ -70,14 +70,10 @@ export function OrganizerCourtBracketPanel({
   const filtered = useMemo(() => {
     const sorted = sortMatchesForTab(matches, activeCourts);
     if (activeTab === "all") return sorted;
-    if (activeTab === "unassigned") {
-      return sorted.filter((m) => !m.courtId);
-    }
     return sorted.filter((m) => m.courtId === activeTab);
   }, [matches, activeTab, activeCourts]);
 
-  const canReorder =
-    activeTab !== "all" && activeTab !== "unassigned" && filtered.length > 0;
+  const canReorder = activeTab !== "all" && filtered.length > 0;
 
   function move(matchId: string, direction: -1 | 1) {
     const idx = filtered.findIndex((m) => m.matchId === matchId);
@@ -144,21 +140,11 @@ export function OrganizerCourtBracketPanel({
             {formatCourtTabLabel(c, idx)}
           </Button>
         ))}
-        <Button
-          type="button"
-          size="sm"
-          variant={activeTab === "unassigned" ? "default" : "outline"}
-          onClick={() => setActiveTab("unassigned")}
-        >
-          미지정
-        </Button>
       </div>
 
       {filtered.length === 0 ? (
         <p className="text-muted-foreground rounded-xl border border-dashed px-4 py-6 text-center text-sm">
-          {activeTab === "unassigned"
-            ? "미지정 경기가 없습니다."
-            : "표시할 경기가 없습니다."}
+          표시할 경기가 없습니다.
         </p>
       ) : (
         <div className="flex flex-col gap-3">
@@ -248,6 +234,7 @@ export function OrganizerCourtBracketPanel({
 
               <div className="mt-2">
                 <MatchCourtControls
+                  key={`${m.matchId}:${m.courtId ?? ""}:${m.courtOrder ?? ""}`}
                   inline
                   eventId={eventId}
                   bracketId={m.bracketId}

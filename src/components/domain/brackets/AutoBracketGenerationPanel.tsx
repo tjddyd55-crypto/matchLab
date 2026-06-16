@@ -95,9 +95,7 @@ export function AutoBracketGenerationPanel({
 }) {
   const router = useRouter();
   const activeCourts = courts.filter((c) => c.isActive);
-  const [autoMatchScope, setAutoMatchScope] = useState<
-    "all" | "court" | "unassigned"
-  >("all");
+  const [autoMatchScope, setAutoMatchScope] = useState<"all" | "court">("all");
   const [targetCourtId, setTargetCourtId] = useState<string>("all");
   const [maxMatchesPerCourt, setMaxMatchesPerCourt] = useState<string>("");
   const [forbidSameGym, setForbidSameGym] = useState(true);
@@ -162,14 +160,11 @@ export function AutoBracketGenerationPanel({
             className="border-input bg-background h-9 rounded-md border px-2 text-sm"
             value={autoMatchScope}
             onChange={(e) =>
-              setAutoMatchScope(
-                e.target.value as "all" | "court" | "unassigned",
-              )
+              setAutoMatchScope(e.target.value as "all" | "court")
             }
           >
             <option value="all">전체 자동매칭</option>
             <option value="court">특정 경기장만 자동매칭</option>
-            <option value="unassigned">미지정만 자동매칭</option>
           </select>
         </label>
 
@@ -179,15 +174,20 @@ export function AutoBracketGenerationPanel({
             className="border-input bg-background h-9 rounded-md border px-2 text-sm"
             value={targetCourtId}
             onChange={(e) => setTargetCourtId(e.target.value)}
+            disabled={activeCourts.length === 0}
           >
-            <option value="all">전체</option>
+            <option value="all">전체 활성 경기장에 분산</option>
             {activeCourts.map((c, idx) => (
               <option key={c.id} value={c.id}>
                 {formatCourtTabLabel(c, idx)}
               </option>
             ))}
-            <option value="unassigned">미지정</option>
           </select>
+          {activeCourts.length === 0 ? (
+            <span className="text-destructive text-xs">
+              활성 경기장이 없습니다. 기본설정에서 경기장을 먼저 생성해 주세요.
+            </span>
+          ) : null}
         </label>
 
         <label className="flex flex-col gap-1 text-sm">
@@ -236,13 +236,17 @@ export function AutoBracketGenerationPanel({
       <div className="mt-4 flex flex-wrap gap-2">
         <form action={previewAction}>
           {buildHiddenFields(true)}
-          <Button type="submit" variant="outline" disabled={isPending}>
+          <Button type="submit" variant="outline" disabled={isPending || activeCourts.length === 0}>
             {previewPending ? "미리보기 중…" : "미리보기"}
           </Button>
         </form>
         <form
           action={applyAction}
           onSubmit={(e) => {
+            if (activeCourts.length === 0) {
+              e.preventDefault();
+              return;
+            }
             if (
               resetExisting &&
               !window.confirm(
@@ -254,7 +258,7 @@ export function AutoBracketGenerationPanel({
           }}
         >
           {buildHiddenFields(false)}
-          <Button type="submit" disabled={isPending}>
+          <Button type="submit" disabled={isPending || activeCourts.length === 0}>
             {applyPending ? "적용 중…" : "적용"}
           </Button>
         </form>

@@ -234,6 +234,7 @@ export function OrganizerMatchEditCard({
 
           {showOps && serverMatch ? (
             <MatchCourtControls
+              key={`${serverMatch.id}:${serverMatch.courtId ?? ""}:${serverMatch.courtOrder ?? ""}`}
               inline
               eventId={eventId}
               bracketId={bracketId}

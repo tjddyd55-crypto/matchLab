@@ -1,6 +1,6 @@
 import { z } from "zod";
 
-export const autoMatchScopeSchema = z.enum(["all", "court", "unassigned"]);
+export const autoMatchScopeSchema = z.enum(["all", "court"]);
 
 export const generateAutoBracketMatchesSchema = z.object({
   eventId: z.string().min(1),
@@ -8,7 +8,7 @@ export const generateAutoBracketMatchesSchema = z.object({
   resetExisting: z.boolean().optional().default(false),
   previewOnly: z.boolean().optional().default(false),
   autoMatchScope: autoMatchScopeSchema.optional().default("all"),
-  /** court id, "all"(전체 경기장), "unassigned" */
+  /** court id or "all"(전체 활성 경기장) */
   targetCourtId: z.string().optional(),
   maxMatchesPerCourt: z.coerce.number().int().min(1).optional(),
   forbidSameGym: z.boolean().optional().default(true),

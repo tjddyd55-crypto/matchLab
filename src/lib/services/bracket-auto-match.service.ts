@@ -15,6 +15,7 @@ import {
   type AutoMatchCandidate,
   type UnmatchedReason,
 } from "@/lib/brackets/auto-match";
+import { formatCourtTabLabel } from "@/lib/court-tab-label";
 import { computeFieldEligibility } from "@/lib/field-eligibility";
 import { AppError } from "@/lib/errors/app-error";
 import { requireOrganizerForEvent, requireRole } from "@/lib/permissions";
@@ -26,6 +27,7 @@ import type { PublicUnmatchedCandidateDTO } from "@/lib/dto/public";
 import { bracketRepository,
   type AutoMatchApplicationRow,
 } from "@/lib/repositories/bracket.repository";
+import { eventCourtRepository } from "@/lib/repositories/event-court.repository";
 import { eventRepository } from "@/lib/repositories/event.repository";
 import type { GenerateAutoBracketMatchesInput } from "@/lib/validators/bracket-auto-match.validator";
 
@@ -143,27 +145,92 @@ async function countMatchesPerCourt(
   return map;
 }
 
-function resolveAssignCourtId(
+type CourtAllocation = {
+  courtId: string;
+  courtOrder: number;
+};
+
+type CourtAllocator = {
+  allocate(): CourtAllocation | null;
+};
+
+function resolveTargetCourtIds(
+  activeCourtIds: string[],
   input: GenerateAutoBracketMatchesInput,
-  courtCounts: Map<string, number>,
-): string | null {
-  if (input.autoMatchScope === "unassigned") return null;
-
+): string[] {
   const target = input.targetCourtId?.trim();
-  if (!target || target === "all" || target === "unassigned") {
-    if (input.autoMatchScope === "court") return null;
-    return null;
+  if (input.autoMatchScope === "court") {
+    if (!target || target === "all") return [];
+    return activeCourtIds.includes(target) ? [target] : [];
+  }
+  if (target && target !== "all") {
+    return activeCourtIds.includes(target) ? [target] : [];
+  }
+  return activeCourtIds;
+}
+
+function createCourtAllocator(
+  activeCourtIds: string[],
+  courtCounts: Map<string, number>,
+  input: GenerateAutoBracketMatchesInput,
+): CourtAllocator | null {
+  const targetCourtIds = resolveTargetCourtIds(activeCourtIds, input);
+  if (targetCourtIds.length === 0) return null;
+
+  const nextOrderPerCourt = new Map<string, number>();
+  for (const id of targetCourtIds) {
+    nextOrderPerCourt.set(id, (courtCounts.get(id) ?? 0) + 1);
   }
 
-  const current = courtCounts.get(target) ?? 0;
-  if (
-    input.maxMatchesPerCourt != null &&
-    current >= input.maxMatchesPerCourt
-  ) {
-    return null;
+  let roundRobinIndex = 0;
+
+  return {
+    allocate(): CourtAllocation | null {
+      for (let attempt = 0; attempt < targetCourtIds.length; attempt += 1) {
+        const courtId =
+          targetCourtIds[roundRobinIndex % targetCourtIds.length]!;
+        roundRobinIndex += 1;
+
+        const currentCount = courtCounts.get(courtId) ?? 0;
+        if (
+          input.maxMatchesPerCourt != null &&
+          currentCount >= input.maxMatchesPerCourt
+        ) {
+          continue;
+        }
+
+        const courtOrder = nextOrderPerCourt.get(courtId) ?? 1;
+        nextOrderPerCourt.set(courtId, courtOrder + 1);
+        courtCounts.set(courtId, currentCount + 1);
+        return { courtId, courtOrder };
+      }
+      return null;
+    },
+  };
+}
+
+function pushCourtCapacityUnmatched(
+  pair: {
+    red: AutoMatchCandidate;
+    blue: AutoMatchCandidate;
+  },
+  divisionId: string,
+  appByFighterDivision: Map<string, AutoMatchApplicationRow>,
+  unmatchedDetails: AutoBracketUnmatchedDetail[],
+  unmatchedGymIds: string[],
+) {
+  for (const fighter of [pair.red, pair.blue]) {
+    unmatchedGymIds.push(fighter.gymId);
+    const row = appByFighterDivision.get(`${fighter.fighterId}:${divisionId}`);
+    if (row) {
+      unmatchedDetails.push({
+        fighterName: row.fighter.name,
+        gymName: row.gym.name,
+        divisionLabel: formatDivisionNameLabel(row.division),
+        reasonLabel: REASON_LABELS.court_capacity_full,
+      });
+    }
   }
-  courtCounts.set(target, current + 1);
-  return target;
 }
 
 export const bracketAutoMatchService = {
@@ -377,27 +444,80 @@ export const bracketAutoMatchService = {
     }
 
     const courtCounts = await countMatchesPerCourt(input.eventId);
+    const activeCourts = await eventCourtRepository.listByEvent(input.eventId);
+    const activeCourtIds = activeCourts.map((c) => c.id);
+    const courtLabelById = new Map(
+      activeCourts.map((c, idx) => [c.id, formatCourtTabLabel(c, idx)]),
+    );
+
+    if (activeCourtIds.length === 0 && !input.previewOnly) {
+      throw new AppError(
+        "VALIDATION_ERROR",
+        "활성 경기장이 없습니다. 기본설정에서 경기장을 먼저 생성해 주세요.",
+      );
+    }
+
+    if (
+      input.autoMatchScope === "court" &&
+      (!input.targetCourtId?.trim() || input.targetCourtId === "all")
+    ) {
+      throw new AppError(
+        "VALIDATION_ERROR",
+        "특정 경기장 자동매칭은 대상 경기장을 선택해 주세요.",
+      );
+    }
+
+    const applyAllocator = createCourtAllocator(
+      activeCourtIds,
+      new Map(courtCounts),
+      input,
+    );
+
+    if (!applyAllocator && !input.previewOnly) {
+      throw new AppError(
+        "VALIDATION_ERROR",
+        "배정 가능한 활성 경기장이 없습니다. 경기장 설정을 확인해 주세요.",
+      );
+    }
+
     const courtAssignmentCounts = new Map<string, number>();
     let plannedMatches = 0;
+    let courtSkippedPairs = 0;
+    const previewAllocator = createCourtAllocator(
+      activeCourtIds,
+      new Map(courtCounts),
+      input,
+    );
 
-    for (const [, pairing] of pairingByDivision) {
-      plannedMatches += pairing.pairs.length;
-      for (let i = 0; i < pairing.pairs.length; i += 1) {
-        const assignId = resolveAssignCourtId(input, courtCounts);
-        const label = assignId ?? "미지정";
+    for (const [divisionId, pairing] of pairingByDivision) {
+      for (const pair of pairing.pairs) {
+        const allocation = previewAllocator?.allocate() ?? null;
+        if (!allocation) {
+          courtSkippedPairs += 1;
+          pushCourtCapacityUnmatched(
+            pair,
+            divisionId,
+            appByFighterDivision,
+            unmatchedDetails,
+            unmatchedGymIds,
+          );
+          continue;
+        }
+        plannedMatches += 1;
         courtAssignmentCounts.set(
-          label,
-          (courtAssignmentCounts.get(label) ?? 0) + 1,
+          allocation.courtId,
+          (courtAssignmentCounts.get(allocation.courtId) ?? 0) + 1,
         );
       }
     }
 
+    summary.unmatchedCount += courtSkippedPairs * 2;
     summary.plannedMatches = plannedMatches;
     summary.unmatchedDetails = unmatchedDetails;
     summary.courtAssignments = [...courtAssignmentCounts.entries()].map(
-      ([courtLabel, assignedCount]) => ({
-        courtId: courtLabel === "미지정" ? null : courtLabel,
-        courtLabel,
+      ([courtId, assignedCount]) => ({
+        courtId,
+        courtLabel: courtLabelById.get(courtId) ?? courtId,
         assignedCount,
       }),
     );
@@ -419,6 +539,12 @@ export const bracketAutoMatchService = {
     }
 
     await prisma.$transaction(async (tx) => {
+      const txAllocator = createCourtAllocator(
+        activeCourtIds,
+        new Map(courtCounts),
+        input,
+      )!;
+
       for (const [divisionId, group] of byDivision) {
         const pairing = pairingByDivision.get(divisionId)!;
         if (pairing.pairs.length === 0) continue;
@@ -470,8 +596,6 @@ export const bracketAutoMatchService = {
           )) + 1;
 
         for (const pair of pairing.pairs) {
-          placedFighterIds.push(pair.red.fighterId, pair.blue.fighterId);
-
           const redRow = appByFighterDivision.get(
             `${pair.red.fighterId}:${divisionId}`,
           );
@@ -480,7 +604,20 @@ export const bracketAutoMatchService = {
           );
           if (!redRow || !blueRow) continue;
 
-          const assignCourtId = resolveAssignCourtId(input, courtCounts);
+          const allocation = txAllocator.allocate();
+          if (!allocation) {
+            summary.unmatchedCount += 2;
+            pushCourtCapacityUnmatched(
+              pair,
+              divisionId,
+              appByFighterDivision,
+              unmatchedDetails,
+              unmatchedGymIds,
+            );
+            continue;
+          }
+
+          placedFighterIds.push(pair.red.fighterId, pair.blue.fighterId);
 
           const { id: matchId } = await bracketRepository.createBracketMatch(
             {
@@ -494,7 +631,8 @@ export const bracketAutoMatchService = {
               fighterBlueSnapshot: buildFighterBracketSnapshot(
                 toPlacementRow(blueRow),
               ),
-              courtId: assignCourtId,
+              courtId: allocation.courtId,
+              courtOrder: allocation.courtOrder,
             },
             tx,
           );
@@ -513,7 +651,8 @@ export const bracketAutoMatchService = {
                 matchOrder: nextOrder,
                 autoGenerated: true,
                 sameGymWarning: pair.sameGymWarning,
-                courtId: assignCourtId,
+                courtId: allocation.courtId,
+                courtOrder: allocation.courtOrder,
               },
               reason: pair.sameGymWarning
                 ? "자동 대진 생성(같은 체육관 매칭 — 후보 부족)"

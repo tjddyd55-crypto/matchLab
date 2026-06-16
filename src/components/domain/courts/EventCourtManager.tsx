@@ -1,34 +1,23 @@
 "use client";
 
-import { useMemo, useState, useTransition } from "react";
+import { useState, useTransition } from "react";
 import { useRouter } from "next/navigation";
 import {
   activateEventCourtFormAction,
-  assignCourtRuleFormAction,
   createEventCourtFormAction,
   deactivateEventCourtFormAction,
-  removeCourtRuleFormAction,
   reorderEventCourtsFormAction,
   updateEventCourtNameFormAction,
 } from "@/features/event-courts/actions";
 import { Button } from "@/components/ui/button";
 import type { EventCourtVM } from "@/lib/services/event-court.service";
-import { MATCH_CATEGORY_LABEL } from "@/lib/ui-labels/match-category";
-
-export type EventCourtDivisionOption = {
-  id: string;
-  label: string;
-  weightClass: string | null;
-};
 
 export function EventCourtManager({
   eventId,
   courts: initialCourts,
-  divisionOptions,
 }: {
   eventId: string;
   courts: EventCourtVM[];
-  divisionOptions: EventCourtDivisionOption[];
 }) {
   const router = useRouter();
   const [pending, startTransition] = useTransition();
@@ -37,15 +26,6 @@ export function EventCourtManager({
   const [message, setMessage] = useState<string | null>(null);
   const [editingId, setEditingId] = useState<string | null>(null);
   const [editName, setEditName] = useState("");
-
-  const weightClassOptions = useMemo(() => {
-    const set = new Set<string>();
-    for (const d of divisionOptions) {
-      const w = d.weightClass?.trim();
-      if (w) set.add(w);
-    }
-    return [...set].sort((a, b) => a.localeCompare(b, "ko"));
-  }, [divisionOptions]);
 
   function run(fn: () => Promise<{ ok: boolean; error?: { message: string } }>) {
     setMessage(null);
@@ -82,7 +62,7 @@ export function EventCourtManager({
       <div>
         <h2 className="text-lg font-semibold">경기장 관리</h2>
         <p className="text-muted-foreground text-sm">
-          경기장 추가·이름·순서·{MATCH_CATEGORY_LABEL}/체급 배정. 삭제 대신 비활성 처리합니다.
+          경기장 추가·이름·순서·활성/비활성을 관리합니다. 삭제 대신 비활성 처리합니다.
         </p>
       </div>
 
@@ -275,89 +255,6 @@ export function EventCourtManager({
                     )}
                   </div>
                 </div>
-
-                <div className="mt-2 flex flex-wrap gap-1">
-                  {court.rules.map((rule) => (
-                    <span
-                      key={rule.id}
-                      className="inline-flex items-center gap-1 rounded-full bg-background px-2 py-0.5 text-xs"
-                    >
-                      {rule.displayLabel}
-                      {court.isActive ? (
-                        <button
-                          type="button"
-                          className="text-muted-foreground hover:text-destructive ml-0.5"
-                          disabled={pending}
-                          onClick={() => {
-                            const fd = new FormData();
-                            fd.set("eventId", eventId);
-                            fd.set("ruleId", rule.id);
-                            run(() => removeCourtRuleFormAction(fd));
-                          }}
-                          aria-label="배정 제거"
-                        >
-                          ×
-                        </button>
-                      ) : null}
-                    </span>
-                  ))}
-                </div>
-
-                {court.isActive ? (
-                  <form
-                    className="mt-2 flex flex-wrap items-end gap-2"
-                    onSubmit={(e) => {
-                      e.preventDefault();
-                      const form = e.currentTarget;
-                      const divisionId = (
-                        form.elements.namedItem("divisionId") as HTMLSelectElement
-                      ).value;
-                      const weightClassLabel = (
-                        form.elements.namedItem("weightClassLabel") as HTMLSelectElement
-                      ).value;
-                      const fd = new FormData();
-                      fd.set("eventId", eventId);
-                      fd.set("courtId", court.id);
-                      if (divisionId) fd.set("divisionId", divisionId);
-                      if (weightClassLabel) fd.set("weightClassLabel", weightClassLabel);
-                      run(() => assignCourtRuleFormAction(fd));
-                    }}
-                  >
-                    <label className="flex flex-col gap-0.5 text-xs">
-                      <span className="text-muted-foreground">{MATCH_CATEGORY_LABEL}</span>
-                      <select
-                        name="divisionId"
-                        className="border-input bg-background h-8 rounded-md border px-2 text-xs"
-                        defaultValue=""
-                      >
-                        <option value="">(선택 안 함)</option>
-                        {divisionOptions.map((d) => (
-                          <option key={d.id} value={d.id}>
-                            {d.label}
-                          </option>
-                        ))}
-                      </select>
-                    </label>
-                    <label className="flex flex-col gap-0.5 text-xs">
-                      <span className="text-muted-foreground">체급</span>
-                      <select
-                        name="weightClassLabel"
-                        className="border-input bg-background h-8 rounded-md border px-2 text-xs"
-                        defaultValue=""
-                      >
-                        <option value="">전체 체급</option>
-                        {weightClassOptions.map((w) => (
-                          <option key={w} value={w}>
-                            {w}
-                          </option>
-                        ))}
-                      </select>
-                    </label>
-                    <Button type="submit" size="sm" className="h-8 text-xs" disabled={pending}>
-                      배정
-                    </Button>
-                  </form>
-                ) : null}
               </li>
             );
           })}
