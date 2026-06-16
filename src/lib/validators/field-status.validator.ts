@@ -47,3 +47,5 @@ export const setDisqualificationReasonSchema =
   fieldStatusApplicationIdSchema.extend({
     reason: z.string().min(1, "실격 사유를 입력해 주세요.").max(500),
   });
+
+export const resetFieldStatusInputSchema = fieldStatusApplicationIdSchema;

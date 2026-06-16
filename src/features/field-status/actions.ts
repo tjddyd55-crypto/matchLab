@@ -16,6 +16,7 @@ import {
   recordWeighInWeightSchema,
   saveFieldMemoSchema,
   setCheckInStatusSchema,
+  resetFieldStatusInputSchema,
   setDisqualificationReasonSchema,
   setWeighInFailureResolutionSchema,
   setWeighInStatusSchema,
@@ -379,6 +380,26 @@ export async function setDisqualificationReasonFormAction(
       actor,
       parsed.data.applicationId,
       parsed.data.reason,
+    );
+    await revalidateFieldStatusPaths(parsed.data.applicationId);
+    return actionSuccess({ ok: true });
+  });
+}
+
+export async function resetFieldStatusInputFormAction(
+  formData: FormData,
+): Promise<ActionResult<{ ok: true }>> {
+  return mapCaught(async () => {
+    const actor = await requireActorFromMutation();
+    const parsed = resetFieldStatusInputSchema.safeParse({
+      applicationId: formReq(formData, "applicationId"),
+    });
+    if (!parsed.success) {
+      return actionFailure("VALIDATION_ERROR", "신청 정보가 없습니다.");
+    }
+    await fieldStatusService.resetFieldStatusInput(
+      actor,
+      parsed.data.applicationId,
     );
     await revalidateFieldStatusPaths(parsed.data.applicationId);
     return actionSuccess({ ok: true });

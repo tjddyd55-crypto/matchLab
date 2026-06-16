@@ -216,7 +216,7 @@ export function FieldStatusRowActions({
   );
 }
 
-export function WeighInWeightForm({ row }: { row: FieldStatusRowDTO }) {
+export function WeighInWeightInput({ row }: { row: FieldStatusRowDTO }) {
   const router = useRouter();
   const [weightInput, setWeightInput] = useState(
     row.weighInWeightKg != null ? String(row.weighInWeightKg) : "",
@@ -255,30 +255,27 @@ export function WeighInWeightForm({ row }: { row: FieldStatusRowDTO }) {
 
   return (
     <div className="space-y-1">
-      <div className="flex flex-wrap items-center gap-1.5">
-        <form onSubmit={handleSubmit} className="flex items-center gap-1">
-          <input
-            name="weightKg"
-            type="number"
-            step="0.1"
-            min="0"
-            placeholder="kg"
-            value={weightInput}
-            onChange={(e) => setWeightInput(e.target.value)}
-            className="border-input bg-background h-7 w-16 rounded-md border px-2 text-xs"
-          />
-          <Button
-            type="submit"
-            size="sm"
-            variant="secondary"
-            className="h-7 shrink-0 px-2 text-xs"
-            disabled={pending}
-          >
-            {pending ? "저장 중…" : "저장"}
-          </Button>
-        </form>
-        <WeighInStatusBadge status={row.weighInStatus} />
-      </div>
+      <form onSubmit={handleSubmit} className="flex items-center gap-1">
+        <input
+          name="weightKg"
+          type="number"
+          step="0.1"
+          min="0"
+          placeholder="kg"
+          value={weightInput}
+          onChange={(e) => setWeightInput(e.target.value)}
+          className="border-input bg-background h-7 w-16 rounded-md border px-2 text-xs"
+        />
+        <Button
+          type="submit"
+          size="sm"
+          variant="secondary"
+          className="h-7 shrink-0 px-2 text-xs"
+          disabled={pending}
+        >
+          {pending ? "저장 중…" : "저장"}
+        </Button>
+      </form>
       {isSaved ? (
         <p
           className="text-xs font-medium text-emerald-700 dark:text-emerald-300"
@@ -292,6 +289,18 @@ export function WeighInWeightForm({ row }: { row: FieldStatusRowDTO }) {
           {errorMessage}
         </p>
       ) : null}
+    </div>
+  );
+}
+
+/** @deprecated 목록에서는 WeighInWeightInput + WeighInStatusBadge 분리 사용 */
+export function WeighInWeightForm({ row }: { row: FieldStatusRowDTO }) {
+  return (
+    <div className="space-y-1">
+      <div className="flex flex-wrap items-center gap-1.5">
+        <WeighInWeightInput row={row} />
+        <WeighInStatusBadge status={row.weighInStatus} />
+      </div>
     </div>
   );
 }
