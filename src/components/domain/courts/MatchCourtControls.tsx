@@ -6,6 +6,47 @@ import { setMatchCourtFormAction } from "@/features/event-courts/actions";
 import { Button } from "@/components/ui/button";
 import type { EventCourtVM } from "@/lib/services/event-court.service";
 
+function resolveCourtSelectState(
+  courtId: string | null,
+  courts: EventCourtVM[],
+  activeCourts: EventCourtVM[],
+): {
+  selectValue: string;
+  hint: string | null;
+} {
+  const assigned = courtId ? courts.find((c) => c.id === courtId) : null;
+
+  if (assigned?.isActive) {
+    return { selectValue: assigned.id, hint: null };
+  }
+
+  if (assigned && !assigned.isActive) {
+    return {
+      selectValue: activeCourts.length === 1 ? (activeCourts[0]?.id ?? "") : "",
+      hint: `현재 «${assigned.name}»(비활성)에 배정되어 있습니다. 활성 경기장을 선택해 저장하세요.`,
+    };
+  }
+
+  if (!courtId) {
+    return {
+      selectValue: activeCourts.length === 1 ? (activeCourts[0]?.id ?? "") : "",
+      hint:
+        activeCourts.length > 1
+          ? "경기장 미배정 — 활성 경기장을 선택해 주세요."
+          : null,
+    };
+  }
+
+  return {
+    selectValue: activeCourts.length === 1 ? (activeCourts[0]?.id ?? "") : "",
+    hint: "알 수 없는 경기장 배정입니다. 활성 경기장을 다시 선택해 주세요.",
+  };
+}
+
+function isSelectableValue(value: string, activeCourts: EventCourtVM[]): boolean {
+  return value === "" || activeCourts.some((c) => c.id === value);
+}
+
 export function MatchCourtControls({
   eventId,
   matchId,
@@ -30,30 +71,28 @@ export function MatchCourtControls({
     () => courts.filter((c) => c.isActive),
     [courts],
   );
-  const selectableCourts = useMemo(() => {
-    if (!courtId || activeCourts.some((c) => c.id === courtId)) {
-      return activeCourts;
-    }
-    const current = courts.find((c) => c.id === courtId);
-    return current ? [current, ...activeCourts] : activeCourts;
-  }, [courts, activeCourts, courtId]);
-
-  const defaultCourtId =
-    courtId ?? (activeCourts.length === 1 ? activeCourts[0]!.id : "");
+  const resolved = useMemo(
+    () => resolveCourtSelectState(courtId, courts, activeCourts),
+    [courtId, courts, activeCourts],
+  );
 
   const [pending, startTransition] = useTransition();
-  const [localCourtId, setLocalCourtId] = useState(defaultCourtId);
+  const [localCourtId, setLocalCourtId] = useState(resolved.selectValue);
   const [localOrder, setLocalOrder] = useState(
     courtOrder != null ? String(courtOrder) : "",
   );
   const [message, setMessage] = useState<string | null>(null);
 
+  const selectValue = isSelectableValue(localCourtId, activeCourts)
+    ? localCourtId
+    : resolved.selectValue;
+
   function save() {
-    if (!localCourtId) {
+    if (!selectValue) {
       setMessage("경기장을 선택해 주세요.");
       return;
     }
-    if (!activeCourts.some((c) => c.id === localCourtId)) {
+    if (!activeCourts.some((c) => c.id === selectValue)) {
       setMessage("활성 경기장을 선택해 주세요.");
       return;
     }
@@ -62,7 +101,7 @@ export function MatchCourtControls({
     fd.set("eventId", eventId);
     fd.set("matchId", matchId);
     if (bracketId) fd.set("bracketId", bracketId);
-    fd.set("courtId", localCourtId);
+    fd.set("courtId", selectValue);
     fd.set("courtOrder", localOrder);
 
     startTransition(async () => {
@@ -92,20 +131,25 @@ export function MatchCourtControls({
           : "flex flex-col gap-2 rounded-md border bg-muted/20 p-2"
       }
     >
+      {resolved.hint ? (
+        <p className="text-amber-800 w-full text-[10px] dark:text-amber-200">
+          {resolved.hint}
+        </p>
+      ) : null}
       <label className="flex flex-col gap-0.5 text-xs">
         <span className="text-muted-foreground text-[10px]">경기장</span>
         <select
           className="border-input bg-background h-7 rounded-md border px-2 text-[11px]"
-          value={localCourtId}
+          value={selectValue}
           onChange={(e) => setLocalCourtId(e.target.value)}
           required
         >
-          {activeCourts.length > 1 && !courtId ? (
+          {activeCourts.length > 1 && !selectValue ? (
             <option value="">경기장 선택</option>
           ) : null}
-          {selectableCourts.map((c) => (
-            <option key={c.id} value={c.id} disabled={!c.isActive}>
-              {c.isActive ? c.name : `${c.name} (비활성 — 다른 경기장 선택)`}
+          {activeCourts.map((c) => (
+            <option key={c.id} value={c.id}>
+              {c.name}
             </option>
           ))}
         </select>
@@ -125,7 +169,7 @@ export function MatchCourtControls({
         type="button"
         size="sm"
         className="h-7 text-[11px]"
-        disabled={pending || !localCourtId}
+        disabled={pending || !selectValue}
         onClick={save}
       >
         {pending ? "저장 중…" : "경기장 저장"}

@@ -13,7 +13,7 @@ type Snapshot = {
   error: string | null;
 };
 
-export function OrganizerJudgeAggregationDrawerSection({
+export function OrganizerJudgeAggregationInlineSection({
   matchId,
   open,
 }: {

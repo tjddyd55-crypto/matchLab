@@ -209,6 +209,34 @@ function createCourtAllocator(
   };
 }
 
+function normalizeAutoMatchCourtTarget(
+  input: GenerateAutoBracketMatchesInput,
+  activeCourtIds: string[],
+): GenerateAutoBracketMatchesInput {
+  const target = input.targetCourtId?.trim();
+
+  if (target && target !== "all" && !activeCourtIds.includes(target)) {
+    throw new AppError(
+      "VALIDATION_ERROR",
+      "비활성 또는 존재하지 않는 경기장입니다. 활성 경기장을 선택해 주세요.",
+    );
+  }
+
+  if (input.autoMatchScope !== "court") {
+    return input;
+  }
+
+  if (target && target !== "all" && activeCourtIds.includes(target)) {
+    return input;
+  }
+
+  if (activeCourtIds.length === 1) {
+    return { ...input, targetCourtId: activeCourtIds[0] };
+  }
+
+  return input;
+}
+
 function pushCourtCapacityUnmatched(
   pair: {
     red: AutoMatchCandidate;
@@ -446,11 +474,12 @@ export const bracketAutoMatchService = {
     const courtCounts = await countMatchesPerCourt(input.eventId);
     const activeCourts = await eventCourtRepository.listByEvent(input.eventId);
     const activeCourtIds = activeCourts.map((c) => c.id);
+    const matchInput = normalizeAutoMatchCourtTarget(input, activeCourtIds);
     const courtLabelById = new Map(
       activeCourts.map((c, idx) => [c.id, formatCourtTabLabel(c, idx)]),
     );
 
-    if (activeCourtIds.length === 0 && !input.previewOnly) {
+    if (activeCourtIds.length === 0 && !matchInput.previewOnly) {
       throw new AppError(
         "VALIDATION_ERROR",
         "활성 경기장이 없습니다. 기본설정에서 경기장을 먼저 생성해 주세요.",
@@ -458,8 +487,8 @@ export const bracketAutoMatchService = {
     }
 
     if (
-      input.autoMatchScope === "court" &&
-      (!input.targetCourtId?.trim() || input.targetCourtId === "all")
+      matchInput.autoMatchScope === "court" &&
+      (!matchInput.targetCourtId?.trim() || matchInput.targetCourtId === "all")
     ) {
       throw new AppError(
         "VALIDATION_ERROR",
@@ -470,10 +499,10 @@ export const bracketAutoMatchService = {
     const applyAllocator = createCourtAllocator(
       activeCourtIds,
       new Map(courtCounts),
-      input,
+      matchInput,
     );
 
-    if (!applyAllocator && !input.previewOnly) {
+    if (!applyAllocator && !matchInput.previewOnly) {
       throw new AppError(
         "VALIDATION_ERROR",
         "배정 가능한 활성 경기장이 없습니다. 경기장 설정을 확인해 주세요.",
@@ -486,7 +515,7 @@ export const bracketAutoMatchService = {
     const previewAllocator = createCourtAllocator(
       activeCourtIds,
       new Map(courtCounts),
-      input,
+      matchInput,
     );
 
     for (const [divisionId, pairing] of pairingByDivision) {
@@ -542,7 +571,7 @@ export const bracketAutoMatchService = {
       const txAllocator = createCourtAllocator(
         activeCourtIds,
         new Map(courtCounts),
-        input,
+        matchInput,
       )!;
 
       for (const [divisionId, group] of byDivision) {

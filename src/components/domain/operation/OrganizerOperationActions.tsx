@@ -3,7 +3,7 @@
 import { useState, useTransition } from "react";
 import { useRouter } from "next/navigation";
 import { OrganizerMatchOpsPanel } from "@/components/domain/brackets/OrganizerMatchOpsPanel";
-import { OrganizerJudgeAggregationDrawerSection } from "@/components/domain/judges/OrganizerJudgeAggregationDrawerSection";
+import { OrganizerJudgeAggregationInlineSection } from "@/components/domain/judges/OrganizerJudgeAggregationInlineSection";
 import { toMatchOpsProps } from "@/components/domain/operation/operation-match-row";
 import { updateMatchStatusAction } from "@/features/matches/actions";
 import { Button } from "@/components/ui/button";
@@ -137,7 +137,7 @@ export function OrganizerOperationActions({
       {opsOpen && showOpsToggle ? (
         <div className="space-y-3 border-t pt-2">
           <OrganizerMatchOpsPanel {...toMatchOpsProps(match)} compact />
-          <OrganizerJudgeAggregationDrawerSection
+          <OrganizerJudgeAggregationInlineSection
             matchId={match.matchId}
             open={opsOpen}
           />

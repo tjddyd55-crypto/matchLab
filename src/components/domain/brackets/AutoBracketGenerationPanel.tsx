@@ -133,6 +133,22 @@ export function AutoBracketGenerationPanel({
       ? (activeCourts[0]?.id ?? "")
       : targetCourtId;
 
+  const displayTargetCourtId = (() => {
+    if (autoMatchScope === "all") {
+      return activeCourts.some((c) => c.id === targetCourtId)
+        ? targetCourtId
+        : "all";
+    }
+    if (activeCourts.some((c) => c.id === targetCourtId)) {
+      return targetCourtId;
+    }
+    return activeCourts[0]?.id ?? "";
+  })();
+
+  const courtScopeInvalid =
+    autoMatchScope === "court" &&
+    (activeCourts.length === 0 || !displayTargetCourtId);
+
   function buildHiddenFields(previewOnly: boolean) {
     return (
       <>
@@ -189,7 +205,7 @@ export function AutoBracketGenerationPanel({
           <span className="font-medium">대상 경기장</span>
           <select
             className="border-input bg-background h-9 rounded-md border px-2 text-sm"
-            value={targetCourtId}
+            value={displayTargetCourtId}
             onChange={(e) => setTargetCourtId(e.target.value)}
             disabled={activeCourts.length === 0}
           >
@@ -205,6 +221,10 @@ export function AutoBracketGenerationPanel({
           {activeCourts.length === 0 ? (
             <span className="text-destructive text-xs">
               활성 경기장이 없습니다. 기본설정에서 경기장을 먼저 생성해 주세요.
+            </span>
+          ) : courtScopeInvalid ? (
+            <span className="text-destructive text-xs">
+              특정 경기장 자동매칭은 대상 경기장을 선택해 주세요.
             </span>
           ) : null}
         </label>
@@ -255,14 +275,18 @@ export function AutoBracketGenerationPanel({
       <div className="mt-4 flex flex-wrap gap-2">
         <form action={previewAction}>
           {buildHiddenFields(true)}
-          <Button type="submit" variant="outline" disabled={isPending || activeCourts.length === 0}>
+          <Button
+            type="submit"
+            variant="outline"
+            disabled={isPending || activeCourts.length === 0 || courtScopeInvalid}
+          >
             {previewPending ? "미리보기 중…" : "미리보기"}
           </Button>
         </form>
         <form
           action={applyAction}
           onSubmit={(e) => {
-            if (activeCourts.length === 0) {
+            if (activeCourts.length === 0 || courtScopeInvalid) {
               e.preventDefault();
               return;
             }
@@ -277,7 +301,10 @@ export function AutoBracketGenerationPanel({
           }}
         >
           {buildHiddenFields(false)}
-          <Button type="submit" disabled={isPending || activeCourts.length === 0}>
+          <Button
+            type="submit"
+            disabled={isPending || activeCourts.length === 0 || courtScopeInvalid}
+          >
             {applyPending ? "적용 중…" : "적용"}
           </Button>
         </form>
