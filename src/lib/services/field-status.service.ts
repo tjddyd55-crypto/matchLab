@@ -501,4 +501,63 @@ export const fieldStatusService = {
       disqualificationReason: reason.trim(),
     });
   },
+
+  /** 계체·결과입력 값만 초기화 (신청/선수 정보 유지) */
+  async resetFieldStatusInput(
+    actor: ActorContext,
+    applicationId: string,
+  ): Promise<void> {
+    const row = await assertOrganizerApplication(actor, applicationId);
+
+    const bracketMatches =
+      await bracketRepository.listFighterBracketMatchesInEvent(row.eventId);
+    const assignmentMap = buildFighterBracketAssignmentMap(bracketMatches);
+    const assignments = assignmentMap.get(row.fighterId) ?? [];
+
+    if (assignments.some((a) => a.hasOfficialResult)) {
+      throw new AppError(
+        "CONFLICT",
+        "공식 결과가 확정된 경기가 있어 초기화할 수 없습니다.",
+      );
+    }
+
+    const hadWeighInChange =
+      row.weighInWeightKg != null ||
+      row.weighInStatus !== WeighInStatus.pending ||
+      row.weighInFailureResolution !== WeighInFailureResolution.pending ||
+      row.handicapNote != null ||
+      row.disqualificationReason != null;
+
+    const nextCheckIn =
+      row.checkInStatus === CheckInStatus.disqualified
+        ? CheckInStatus.pending
+        : row.checkInStatus;
+
+    await fieldStatusRepository.updateFieldStatus(applicationId, {
+      weighInWeightKg: null,
+      weighInStatus: WeighInStatus.pending,
+      weighInFailureResolution: WeighInFailureResolution.pending,
+      handicapNote: null,
+      disqualificationReason: null,
+      checkInStatus: nextCheckIn,
+    });
+
+    if (
+      hadWeighInChange &&
+      (row.checkInStatus !== nextCheckIn ||
+        row.weighInStatus !== WeighInStatus.pending)
+    ) {
+      dispatchFieldStatusNotification(
+        applicationId,
+        {
+          checkInStatus: row.checkInStatus,
+          weighInStatus: row.weighInStatus,
+        },
+        {
+          checkInStatus: nextCheckIn,
+          weighInStatus: WeighInStatus.pending,
+        },
+      );
+    }
+  },
 };

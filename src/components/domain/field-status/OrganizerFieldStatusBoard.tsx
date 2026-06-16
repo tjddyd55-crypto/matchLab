@@ -4,7 +4,6 @@ import { useMemo, useRef, useState } from "react";
 import type { FieldStatusRowDTO } from "@/lib/services/field-status.service";
 import { FieldStatusSummaryCards } from "@/components/domain/field-status/FieldStatusSummaryCards";
 import { OrganizerFieldStatusTable } from "@/components/domain/field-status/OrganizerFieldStatusTable";
-import { OrganizerFieldStatusDetailDrawer } from "@/components/domain/field-status/OrganizerFieldStatusDetailDrawer";
 import type { FieldStatusSummaryDTO } from "@/lib/services/field-status.service";
 import {
   checkInSelectValueForFilter,
@@ -28,8 +27,6 @@ export function OrganizerFieldStatusBoard({
   const [summaryFilter, setSummaryFilter] =
     useState<FieldStatusSummaryFilter>("all");
   const [checkInFilter, setCheckInFilter] = useState("all");
-  const [detailRow, setDetailRow] = useState<FieldStatusRowDTO | null>(null);
-  const [detailOpen, setDetailOpen] = useState(false);
 
   const gymOptions = useMemo(() => {
     const map = new Map<string, string>();
@@ -89,11 +86,6 @@ export function OrganizerFieldStatusBoard({
     else if (value === "pending") setSummaryFilter("pending");
     else if (value === "no_show_group") setSummaryFilter("no_show_group");
     else setSummaryFilter("all");
-  }
-
-  function openDetail(row: FieldStatusRowDTO) {
-    setDetailRow(row);
-    setDetailOpen(true);
   }
 
   const emptyMessage =
@@ -177,18 +169,8 @@ export function OrganizerFieldStatusBoard({
       </div>
 
       <div ref={listRef}>
-        <OrganizerFieldStatusTable
-          rows={filtered}
-          emptyMessage={emptyMessage}
-          onOpenDetail={openDetail}
-        />
+        <OrganizerFieldStatusTable rows={filtered} emptyMessage={emptyMessage} />
       </div>
-
-      <OrganizerFieldStatusDetailDrawer
-        row={detailRow}
-        open={detailOpen}
-        onOpenChange={setDetailOpen}
-      />
     </div>
   );
 }
