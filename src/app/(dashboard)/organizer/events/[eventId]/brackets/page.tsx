@@ -3,12 +3,10 @@ import { requireOrganizerForEventPage } from "@/lib/permissions";
 import { bracketService } from "@/lib/services/bracket.service";
 import { eventService } from "@/lib/services/event.service";
 import { BracketPublicationPanel } from "@/components/domain/brackets/BracketPublicationPanel";
-import {
-  OrganizerBracketsTabShell,
-  parseBracketPageTab,
-} from "@/components/domain/brackets/OrganizerBracketsTabShell";
+import { OrganizerBracketsTabShell } from "@/components/domain/brackets/OrganizerBracketsTabShell";
 import { OrganizerBracketsGenerateSection } from "@/components/domain/brackets/OrganizerBracketsGenerateSection";
 import { OrganizerCourtViewSection } from "@/components/domain/courts/OrganizerCourtViewSection";
+import { parseBracketPageTab } from "@/lib/brackets/bracket-page-tab";
 import { EventManagementLayout } from "@/components/domain/events/EventManagementLayout";
 import { EventManagementPageHeader } from "@/components/domain/events/EventManagementPageHeader";
 import { loadEventManagementNavContext } from "@/lib/event-management-nav-context";
