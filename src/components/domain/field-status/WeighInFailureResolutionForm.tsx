@@ -24,7 +24,7 @@ function inferPreset(reason: string | null): string {
   return "other";
 }
 
-function HandicapNoteCard({ note }: { note: string }) {
+export function HandicapNoteCard({ note }: { note: string }) {
   return (
     <div
       className={cn(

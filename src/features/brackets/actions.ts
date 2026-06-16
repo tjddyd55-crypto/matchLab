@@ -588,6 +588,18 @@ export async function generateAutoBracketMatchesAction(
       eventId: formReq(formData, "eventId"),
       eligibleOnly: parseCheckbox(formData, "eligibleOnly"),
       resetExisting: parseCheckbox(formData, "resetExisting"),
+      previewOnly: parseCheckbox(formData, "previewOnly"),
+      autoMatchScope: formReq(formData, "autoMatchScope") || undefined,
+      targetCourtId: formReq(formData, "targetCourtId") || undefined,
+      maxMatchesPerCourt: formReq(formData, "maxMatchesPerCourt")
+        ? Number(formReq(formData, "maxMatchesPerCourt"))
+        : undefined,
+      forbidSameGym: formData.has("forbidSameGym")
+        ? parseCheckbox(formData, "forbidSameGym")
+        : true,
+      preserveManualCourts: formData.has("preserveManualCourts")
+        ? parseCheckbox(formData, "preserveManualCourts")
+        : true,
     });
     if (!parsed.success) {
       return actionFailure(

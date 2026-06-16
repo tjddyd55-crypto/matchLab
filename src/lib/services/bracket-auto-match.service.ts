@@ -23,8 +23,7 @@ import { prisma } from "@/lib/prisma";
 import { notificationRepository } from "@/lib/repositories/notification.repository";
 import { notificationService } from "@/lib/services/notification.service";
 import type { PublicUnmatchedCandidateDTO } from "@/lib/dto/public";
-import {
-  bracketRepository,
+import { bracketRepository,
   type AutoMatchApplicationRow,
 } from "@/lib/repositories/bracket.repository";
 import { eventRepository } from "@/lib/repositories/event.repository";
@@ -34,6 +33,19 @@ export type AutoBracketDivisionSummary = {
   divisionLabel: string;
   createdMatches: number;
   unmatchedCount: number;
+};
+
+export type AutoBracketCourtAssignmentSummary = {
+  courtId: string | null;
+  courtLabel: string;
+  assignedCount: number;
+};
+
+export type AutoBracketUnmatchedDetail = {
+  fighterName: string;
+  gymName: string;
+  divisionLabel: string;
+  reasonLabel: string;
 };
 
 export type AutoBracketGenerationSummary = {
@@ -47,6 +59,10 @@ export type AutoBracketGenerationSummary = {
   resetDeletedMatches: number;
   divisionSummaries: AutoBracketDivisionSummary[];
   messages: string[];
+  previewOnly?: boolean;
+  plannedMatches?: number;
+  courtAssignments?: AutoBracketCourtAssignmentSummary[];
+  unmatchedDetails?: AutoBracketUnmatchedDetail[];
 };
 
 export type UnmatchedBracketCandidateVM = {
@@ -75,6 +91,8 @@ const REASON_LABELS: Record<UnmatchedReason, string> = {
   not_field_eligible: "현장·계체 미완료(대진 생성에는 포함됨)",
   already_placed: "이미 다른 대진에 배치됨",
   missing_division: "division 정보 없음",
+  same_gym_only_remaining: "같은 체육관만 남아 매칭 불가",
+  court_capacity_full: "경기장 최대 경기 수 초과",
 };
 
 function toAutoMatchCandidate(
@@ -105,6 +123,47 @@ function toPlacementRow(row: AutoMatchApplicationRow) {
     division: row.division,
     gym: { name: row.gym.name },
   };
+}
+
+async function countMatchesPerCourt(
+  eventId: string,
+): Promise<Map<string, number>> {
+  const rows = await prisma.bracketMatch.groupBy({
+    by: ["courtId"],
+    where: {
+      bracket: { eventId },
+      courtId: { not: null },
+    },
+    _count: { _all: true },
+  });
+  const map = new Map<string, number>();
+  for (const row of rows) {
+    if (row.courtId) map.set(row.courtId, row._count._all);
+  }
+  return map;
+}
+
+function resolveAssignCourtId(
+  input: GenerateAutoBracketMatchesInput,
+  courtCounts: Map<string, number>,
+): string | null {
+  if (input.autoMatchScope === "unassigned") return null;
+
+  const target = input.targetCourtId?.trim();
+  if (!target || target === "all" || target === "unassigned") {
+    if (input.autoMatchScope === "court") return null;
+    return null;
+  }
+
+  const current = courtCounts.get(target) ?? 0;
+  if (
+    input.maxMatchesPerCourt != null &&
+    current >= input.maxMatchesPerCourt
+  ) {
+    return null;
+  }
+  courtCounts.set(target, current + 1);
+  return target;
 }
 
 export const bracketAutoMatchService = {
@@ -162,7 +221,9 @@ export const bracketAutoMatchService = {
 
     for (const [, group] of unplacedByDivision) {
       const candidates = group.map(toAutoMatchCandidate);
-      const pairing = pairCandidatesWithinDivision(candidates);
+      const pairing = pairCandidatesWithinDivision(candidates, {
+        forbidSameGym: true,
+      });
       for (const u of pairing.unmatched) {
         const row = group.find((g) => g.fighterId === u.fighterId);
         if (!row) continue;
@@ -170,9 +231,7 @@ export const bracketAutoMatchService = {
           checkInStatus: row.checkInStatus,
           weighInStatus: row.weighInStatus,
         });
-        const reason: UnmatchedReason =
-          group.length === 1 ? "no_opponent_in_division" : "odd_count";
-        result.push(mapUnmatchedRow(row, eligibility, reason));
+        result.push(mapUnmatchedRow(row, eligibility, u.reason));
       }
     }
 
@@ -270,34 +329,99 @@ export const bracketAutoMatchService = {
     );
     const placedFighterIds: string[] = [];
     const unmatchedGymIds: string[] = [];
+    const unmatchedDetails: AutoBracketUnmatchedDetail[] = [];
+    const pairingByDivision = new Map<
+      string,
+      ReturnType<typeof pairCandidatesWithinDivision>
+    >();
 
-    await prisma.$transaction(async (tx) => {
-      for (const [divisionId, group] of byDivision) {
-        const pairing = pairCandidatesWithinDivision(group);
-        summary.unmatchedCount += pairing.unmatched.length;
-        for (const u of pairing.unmatched) {
-          unmatchedGymIds.push(u.gymId);
-        }
+    for (const [divisionId, group] of byDivision) {
+      const pairing = pairCandidatesWithinDivision(group, {
+        forbidSameGym: input.forbidSameGym !== false,
+      });
+      pairingByDivision.set(divisionId, pairing);
+      summary.unmatchedCount += pairing.unmatched.length;
+      summary.sameGymPairWarnings += pairing.sameGymPairCount;
 
-        if (pairing.pairs.length === 0) {
-          if (group.length > 0) summary.divisionsProcessed += 1;
-          continue;
-        }
-
+      if (pairing.pairs.length > 0 || group.length > 0) {
         summary.divisionsProcessed += 1;
-        summary.sameGymPairWarnings += pairing.sameGymPairCount;
+      }
 
-        const sampleForLabel = appByFighterDivision.get(
-          `${group[0]!.fighterId}:${divisionId}`,
-        );
-        const divisionLabel = sampleForLabel
-          ? formatDivisionNameLabel(sampleForLabel.division)
-          : divisionId;
+      const sampleForLabel = appByFighterDivision.get(
+        `${group[0]?.fighterId}:${divisionId}`,
+      );
+      const divisionLabel = sampleForLabel
+        ? formatDivisionNameLabel(sampleForLabel.division)
+        : divisionId;
+
+      if (pairing.pairs.length > 0 || pairing.unmatched.length > 0) {
         summary.divisionSummaries.push({
           divisionLabel,
           createdMatches: pairing.pairs.length,
           unmatchedCount: pairing.unmatched.length,
         });
+      }
+
+      for (const u of pairing.unmatched) {
+        unmatchedGymIds.push(u.gymId);
+        const row = appByFighterDivision.get(`${u.fighterId}:${divisionId}`);
+        if (row) {
+          unmatchedDetails.push({
+            fighterName: row.fighter.name,
+            gymName: row.gym.name,
+            divisionLabel: formatDivisionNameLabel(row.division),
+            reasonLabel: REASON_LABELS[u.reason],
+          });
+        }
+      }
+    }
+
+    const courtCounts = await countMatchesPerCourt(input.eventId);
+    const courtAssignmentCounts = new Map<string, number>();
+    let plannedMatches = 0;
+
+    for (const [, pairing] of pairingByDivision) {
+      plannedMatches += pairing.pairs.length;
+      for (let i = 0; i < pairing.pairs.length; i += 1) {
+        const assignId = resolveAssignCourtId(input, courtCounts);
+        const label = assignId ?? "미지정";
+        courtAssignmentCounts.set(
+          label,
+          (courtAssignmentCounts.get(label) ?? 0) + 1,
+        );
+      }
+    }
+
+    summary.plannedMatches = plannedMatches;
+    summary.unmatchedDetails = unmatchedDetails;
+    summary.courtAssignments = [...courtAssignmentCounts.entries()].map(
+      ([courtLabel, assignedCount]) => ({
+        courtId: courtLabel === "미지정" ? null : courtLabel,
+        courtLabel,
+        assignedCount,
+      }),
+    );
+
+    if (input.previewOnly) {
+      summary.previewOnly = true;
+      summary.messages.push(
+        `미리보기: ${plannedMatches}경기 생성 예정 · 미매칭 ${summary.unmatchedCount}명`,
+      );
+      if (input.forbidSameGym !== false) {
+        summary.messages.push("같은 체육관끼리 매칭 금지가 적용됩니다.");
+      }
+      if (input.maxMatchesPerCourt != null) {
+        summary.messages.push(
+          `경기장당 최대 ${input.maxMatchesPerCourt}경기 제한이 적용됩니다.`,
+        );
+      }
+      return summary;
+    }
+
+    await prisma.$transaction(async (tx) => {
+      for (const [divisionId, group] of byDivision) {
+        const pairing = pairingByDivision.get(divisionId)!;
+        if (pairing.pairs.length === 0) continue;
 
         let bracket =
           await bracketRepository.findMatchListBracketByDivision(
@@ -356,6 +480,8 @@ export const bracketAutoMatchService = {
           );
           if (!redRow || !blueRow) continue;
 
+          const assignCourtId = resolveAssignCourtId(input, courtCounts);
+
           const { id: matchId } = await bracketRepository.createBracketMatch(
             {
               bracketId: bracket.id,
@@ -368,6 +494,7 @@ export const bracketAutoMatchService = {
               fighterBlueSnapshot: buildFighterBracketSnapshot(
                 toPlacementRow(blueRow),
               ),
+              courtId: assignCourtId,
             },
             tx,
           );
@@ -386,6 +513,7 @@ export const bracketAutoMatchService = {
                 matchOrder: nextOrder,
                 autoGenerated: true,
                 sameGymWarning: pair.sameGymWarning,
+                courtId: assignCourtId,
               },
               reason: pair.sameGymWarning
                 ? "자동 대진 생성(같은 체육관 매칭 — 후보 부족)"
@@ -416,6 +544,10 @@ export const bracketAutoMatchService = {
     if (summary.sameGymPairWarnings > 0) {
       summary.messages.push(
         `같은 체육관끼리 매칭된 경기가 ${summary.sameGymPairWarnings}건 있습니다.`,
+      );
+    } else if (input.forbidSameGym !== false && summary.unmatchedCount > 0) {
+      summary.messages.push(
+        "같은 체육관만 남은 선수는 매칭하지 않고 미매칭 처리되었습니다.",
       );
     }
     if (summary.ineligibleWarningCount > 0 && !input.eligibleOnly) {
@@ -475,13 +607,13 @@ export const bracketAutoMatchService = {
 
     for (const [, group] of unplacedByDivision) {
       const candidates = group.map(toAutoMatchCandidate);
-      const pairing = pairCandidatesWithinDivision(candidates);
+      const pairing = pairCandidatesWithinDivision(candidates, {
+        forbidSameGym: true,
+      });
       for (const u of pairing.unmatched) {
         const row = group.find((g) => g.fighterId === u.fighterId);
         if (!row) continue;
-        const reason: UnmatchedReason =
-          group.length === 1 ? "no_opponent_in_division" : "odd_count";
-        waitingRows.push({ row, reason });
+        waitingRows.push({ row, reason: u.reason });
       }
     }
 

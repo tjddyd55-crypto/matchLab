@@ -7,6 +7,7 @@ import {
   type FormEvent,
   type ReactNode,
 } from "react";
+import { useRouter } from "next/navigation";
 import {
   checkInActionFormAction,
   markDisqualifiedFormAction,
@@ -20,6 +21,7 @@ import {
   weighInPassFormAction,
 } from "@/features/field-status/actions";
 import { FieldStatusBracketPanel } from "@/components/domain/field-status/FieldStatusBracketPanel";
+import { WeighInStatusBadge } from "@/components/domain/field-status/WeighInStatusBadge";
 import { Button } from "@/components/ui/button";
 import type { FieldStatusRowDTO } from "@/lib/services/field-status.service";
 import { cn } from "@/lib/utils";
@@ -215,15 +217,26 @@ export function FieldStatusRowActions({
 }
 
 export function WeighInWeightForm({ row }: { row: FieldStatusRowDTO }) {
-  const { feedback, setFeedback } = useSaveFeedback();
+  const router = useRouter();
+  const [weightInput, setWeightInput] = useState(
+    row.weighInWeightKg != null ? String(row.weighInWeightKg) : "",
+  );
+  const [savedKg, setSavedKg] = useState<number | null>(row.weighInWeightKg);
+  const [errorMessage, setErrorMessage] = useState<string | null>(null);
   const [pending, startTransition] = useTransition();
+
+  const parsedInput = weightInput.trim() ? Number(weightInput) : null;
+  const isSaved =
+    savedKg != null &&
+    parsedInput != null &&
+    Number.isFinite(parsedInput) &&
+    Math.abs(parsedInput - savedKg) < 0.05;
 
   function handleSubmit(e: FormEvent<HTMLFormElement>) {
     e.preventDefault();
-    const form = e.currentTarget;
-    const weightKg = (form.elements.namedItem("weightKg") as HTMLInputElement)
-      .value;
-    setFeedback({ kind: "pending", message: "저장 중..." });
+    const weightKg = weightInput.trim();
+    if (!weightKg) return;
+    setErrorMessage(null);
 
     startTransition(async () => {
       const fd = new FormData();
@@ -231,42 +244,54 @@ export function WeighInWeightForm({ row }: { row: FieldStatusRowDTO }) {
       fd.set("weightKg", weightKg);
       const result = await recordWeighInWeightFormAction(fd);
       if (result.ok) {
-        setFeedback({
-          kind: "success",
-          message: `${weightKg}kg 저장됨`,
-        });
+        const kg = Number(weightKg);
+        setSavedKg(kg);
+        router.refresh();
       } else {
-        setFeedback({
-          kind: "error",
-          message: result.error.message || "저장 실패. 다시 시도해 주세요.",
-        });
+        setErrorMessage(result.error.message || "저장 실패. 다시 시도해 주세요.");
       }
     });
   }
 
   return (
-    <div className="space-y-0.5">
-      <form onSubmit={handleSubmit} className="flex items-center gap-1">
-        <input
-          name="weightKg"
-          type="number"
-          step="0.1"
-          min="0"
-          placeholder="kg"
-          defaultValue={row.weighInWeightKg ?? ""}
-          className="border-input bg-background h-7 w-16 rounded-md border px-2 text-xs"
-        />
-        <Button
-          type="submit"
-          size="sm"
-          variant="secondary"
-          className="h-7 shrink-0 px-2 text-xs"
-          disabled={pending}
+    <div className="space-y-1">
+      <div className="flex flex-wrap items-center gap-1.5">
+        <form onSubmit={handleSubmit} className="flex items-center gap-1">
+          <input
+            name="weightKg"
+            type="number"
+            step="0.1"
+            min="0"
+            placeholder="kg"
+            value={weightInput}
+            onChange={(e) => setWeightInput(e.target.value)}
+            className="border-input bg-background h-7 w-16 rounded-md border px-2 text-xs"
+          />
+          <Button
+            type="submit"
+            size="sm"
+            variant="secondary"
+            className="h-7 shrink-0 px-2 text-xs"
+            disabled={pending}
+          >
+            {pending ? "저장 중…" : "저장"}
+          </Button>
+        </form>
+        <WeighInStatusBadge status={row.weighInStatus} />
+      </div>
+      {isSaved ? (
+        <p
+          className="text-xs font-medium text-emerald-700 dark:text-emerald-300"
+          role="status"
         >
-          {pending ? "저장 중…" : "저장"}
-        </Button>
-      </form>
-      <SaveFeedbackLine feedback={feedback} />
+          저장됨 · {savedKg}kg
+        </p>
+      ) : null}
+      {errorMessage ? (
+        <p className="text-destructive text-xs" role="alert">
+          {errorMessage}
+        </p>
+      ) : null}
     </div>
   );
 }

@@ -50,7 +50,9 @@ export function OrganizerApplicationsBulkToolbar({
         return;
       }
       setMessage(formatBulkApplicationResultSummary(res.data));
-      onClearSelection();
+      if (res.data.successCount > 0) {
+        onClearSelection();
+      }
       router.refresh();
     });
   }

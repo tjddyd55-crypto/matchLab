@@ -1,7 +1,5 @@
 "use client";
 
-import { type ReactNode } from "react";
-import { WeighInStatusBadge } from "@/components/domain/field-status/WeighInStatusBadge";
 import { WeighInWeightForm } from "@/components/domain/field-status/FieldStatusApplicationActions";
 import {
   DisqualificationReasonForm,
@@ -10,24 +8,6 @@ import {
 import { FieldStatusPrimaryActions } from "@/components/domain/field-status/FieldStatusPrimaryActions";
 import type { FieldStatusRowDTO } from "@/lib/services/field-status.service";
 import { APPLIED_MATCH_CATEGORY_LABEL } from "@/lib/ui-labels/match-category";
-
-function StatusClickWrap({
-  onOpenDetail,
-  children,
-}: {
-  onOpenDetail: () => void;
-  children: ReactNode;
-}) {
-  return (
-    <button
-      type="button"
-      onClick={onOpenDetail}
-      className="cursor-pointer text-left focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring"
-    >
-      {children}
-    </button>
-  );
-}
 
 export function OrganizerFieldStatusTable({
   rows,
@@ -57,10 +37,13 @@ export function OrganizerFieldStatusTable({
               <th className="min-w-[12rem] px-3 py-2 font-medium">
                 {APPLIED_MATCH_CATEGORY_LABEL}
               </th>
-              <th className="min-w-[7rem] px-3 py-2 font-medium">계체 몸무게</th>
-              <th className="min-w-[10rem] px-3 py-2 font-medium">처리</th>
-              <th className="min-w-[6rem] px-3 py-2 font-medium">계체 결과</th>
-              <th className="min-w-[10rem] px-3 py-2 font-medium">계체 실패 처리</th>
+              <th className="min-w-[11rem] px-3 py-2 font-medium">
+                계체 몸무게 · 결과
+              </th>
+              <th className="min-w-[9rem] px-3 py-2 font-medium">계체 처리</th>
+              <th className="min-w-[10rem] px-3 py-2 font-medium">
+                계체 실패 처리
+              </th>
               <th className="min-w-[10rem] px-3 py-2 font-medium">실격 사유</th>
             </tr>
           </thead>
@@ -83,15 +66,13 @@ export function OrganizerFieldStatusTable({
                   <span className="line-clamp-2">{row.divisionLabel}</span>
                 </td>
                 <td className="px-3 py-2">
-                  <WeighInWeightForm row={row} />
+                  <WeighInWeightForm
+                    key={`${row.applicationId}-${row.weighInWeightKg}-${row.weighInStatus}`}
+                    row={row}
+                  />
                 </td>
                 <td className="px-3 py-2">
                   <FieldStatusPrimaryActions row={row} />
-                </td>
-                <td className="px-3 py-2">
-                  <StatusClickWrap onOpenDetail={() => onOpenDetail(row)}>
-                    <WeighInStatusBadge status={row.weighInStatus} />
-                  </StatusClickWrap>
                 </td>
                 <td className="px-3 py-2">
                   <WeighInFailureResolutionForm row={row} />
@@ -122,11 +103,11 @@ export function OrganizerFieldStatusTable({
                 {row.divisionLabel}
               </p>
             </button>
-            <div className="mt-2 flex flex-wrap gap-1.5">
-              <WeighInStatusBadge status={row.weighInStatus} />
-            </div>
             <div className="mt-2 grid gap-2 border-t pt-2">
-              <WeighInWeightForm row={row} />
+              <WeighInWeightForm
+                key={`${row.applicationId}-${row.weighInWeightKg}-${row.weighInStatus}-m`}
+                row={row}
+              />
               <FieldStatusPrimaryActions row={row} />
               <WeighInFailureResolutionForm row={row} />
               <DisqualificationReasonForm row={row} />

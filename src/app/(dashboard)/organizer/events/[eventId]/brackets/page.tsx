@@ -9,6 +9,7 @@ import { OrganizerBracketList } from "@/components/domain/brackets/OrganizerBrac
 import { BracketPublicationPanel } from "@/components/domain/brackets/BracketPublicationPanel";
 import { UnmatchedBracketCandidatesPanel } from "@/components/domain/brackets/UnmatchedBracketCandidatesPanel";
 import { OrganizerCourtsSection } from "@/components/domain/courts/OrganizerCourtsSection";
+import { eventCourtService } from "@/lib/services/event-court.service";
 import { EventManagementLayout } from "@/components/domain/events/EventManagementLayout";
 import { EventManagementPageHeader } from "@/components/domain/events/EventManagementPageHeader";
 import { loadEventManagementNavContext } from "@/lib/event-management-nav-context";
@@ -25,7 +26,7 @@ export default async function OrganizerEventBracketsPage({
 
   await requireOrganizerForEventPage(actor, eventId);
 
-  const [nav, brackets, divisions, unmatchedCandidates, resetCheck, publication] =
+  const [nav, brackets, divisions, unmatchedCandidates, resetCheck, publication, courts] =
     await Promise.all([
       loadEventManagementNavContext(eventId),
       bracketService.listOrganizerEventBrackets(actor, eventId),
@@ -33,6 +34,7 @@ export default async function OrganizerEventBracketsPage({
       bracketAutoMatchService.listUnmatchedCandidatesForEvent(actor, eventId),
       bracketAutoMatchService.canResetBracketSafely(actor, eventId),
       eventService.getEventBracketPublicationSettings(actor, eventId),
+      eventCourtService.listForOrganizer(actor, eventId),
     ]);
 
   const publicBracketCount = brackets.filter((b) => b.isPublic).length;
@@ -58,6 +60,7 @@ export default async function OrganizerEventBracketsPage({
 
       <AutoBracketGenerationPanel
         eventId={eventId}
+        courts={courts}
         canResetSafely={resetCheck.safe}
         matchesWithResults={resetCheck.matchesWithResults}
       />
