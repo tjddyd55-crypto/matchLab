@@ -2,6 +2,7 @@ import { OrganizerDashboardContent } from "@/components/dashboard/OrganizerDashb
 import { AppShell } from "@/components/layout/AppShell";
 import { DashboardShell } from "@/components/layout/DashboardShell";
 import { redirectUnlessDashboardRole, requireActor } from "@/lib/auth/actor";
+import { dashboardRoleFor } from "@/lib/dashboard-navigation";
 
 export default async function OrganizerDashboardLayout({
   children,
@@ -14,7 +15,7 @@ export default async function OrganizerDashboardLayout({
   return (
     <AppShell>
       <DashboardShell
-        role="organizer"
+        role={dashboardRoleFor(actor.role)}
         actorUserId={actor.userId}
         actorEmail={actor.email || ""}
       >

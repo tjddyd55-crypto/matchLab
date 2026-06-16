@@ -212,3 +212,19 @@ export async function deactivateEventCourtFormAction(
     return actionSuccess({ ok: true });
   });
 }
+
+export async function activateEventCourtFormAction(
+  formData: FormData,
+): Promise<ActionResult<{ ok: true }>> {
+  return mapCaught(async () => {
+    const actor = await requireActorFromMutation();
+    const eventId = formReq(formData, "eventId");
+    const courtId = formReq(formData, "courtId");
+    if (!eventId || !courtId) {
+      return actionFailure("VALIDATION_ERROR", "요청 정보가 올바르지 않습니다.");
+    }
+    await eventCourtService.activateCourt(actor, eventId, courtId);
+    revalidateEventPaths(eventId);
+    return actionSuccess({ ok: true });
+  });
+}

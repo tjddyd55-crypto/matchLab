@@ -32,7 +32,7 @@ export function BracketCreateForm({
 
   return (
     <div className="ring-foreground/10 space-y-4 rounded-xl border bg-card p-4 shadow-sm">
-      <h2 className="text-lg font-semibold">대진표 만들기</h2>
+      <h2 className="text-lg font-semibold">대진표 생성</h2>
       <p className="text-muted-foreground text-sm">
         승인된 신청자만 이후 단계에서 배치할 수 있습니다. 대진 방식은 생성 후
         변경할 수 없습니다.
