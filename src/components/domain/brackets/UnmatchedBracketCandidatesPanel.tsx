@@ -21,10 +21,9 @@ export function UnmatchedBracketCandidatesPanel({
   return (
     <section className="ring-foreground/10 rounded-xl border bg-card p-4 shadow-sm">
       <div>
-        <h2 className="text-lg font-semibold">미매칭 / 대기 선수</h2>
+        <h2 className="text-lg font-semibold">미매칭 선수 / 대기선수</h2>
         <p className="text-muted-foreground mt-1 text-sm">
-          자동·수동 대진 배치 후 아직 상대가 없거나 대기 중인 선수입니다. 아래
-          후보 목록에서 수동 배치할 수 있습니다.
+          자동·수동 대진 배치 후 아직 상대가 없거나 대기 중인 선수입니다.
         </p>
       </div>
 

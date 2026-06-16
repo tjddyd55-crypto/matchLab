@@ -3,6 +3,7 @@
 import { useMemo, useState, useTransition } from "react";
 import { useRouter } from "next/navigation";
 import {
+  activateEventCourtFormAction,
   assignCourtRuleFormAction,
   createEventCourtFormAction,
   deactivateEventCourtFormAction,
@@ -158,17 +159,27 @@ export function EventCourtManager({
                       </form>
                     ) : (
                       <>
-                        <p className="font-medium">
-                          {court.name}
-                          {!court.isActive ? (
-                            <span className="text-muted-foreground ml-2 text-xs">
-                              (비활성)
+                        <p className="font-medium">{court.name}</p>
+                        <div className="mt-1 flex flex-wrap items-center gap-2 text-xs">
+                          <span
+                            className={
+                              court.isActive
+                                ? "rounded-full bg-emerald-100 px-2 py-0.5 font-medium text-emerald-800 dark:bg-emerald-950 dark:text-emerald-200"
+                                : "rounded-full bg-muted px-2 py-0.5 font-medium text-muted-foreground"
+                            }
+                          >
+                            {court.isActive ? "활성" : "비활성"}
+                          </span>
+                          {court.isActive ? (
+                            <span className="text-muted-foreground">
+                              표시 순서 {court.sortOrder + 1}
+                            </span>
+                          ) : court.assignedMatchCount > 0 ? (
+                            <span className="text-muted-foreground">
+                              배정 경기 {court.assignedMatchCount}건
                             </span>
                           ) : null}
-                        </p>
-                        <p className="text-muted-foreground text-xs">
-                          표시 순서 {court.sortOrder + 1}
-                        </p>
+                        </div>
                       </>
                     )}
                   </div>
@@ -218,7 +229,17 @@ export function EventCourtManager({
                           className="h-7 px-2 text-xs"
                           disabled={pending}
                           onClick={() => {
-                            if (!window.confirm(`${court.name}을 비활성 처리할까요?`)) return;
+                            const matchNote =
+                              court.assignedMatchCount > 0
+                                ? `\n\n이 경기장에 배정된 경기 ${court.assignedMatchCount}건이 있습니다. 비활성화해도 경기 배정은 유지되며, 대진표 보기 탭에서는 숨겨집니다.`
+                                : "";
+                            if (
+                              !window.confirm(
+                                `${court.name}을 비활성 처리할까요?${matchNote}`,
+                              )
+                            ) {
+                              return;
+                            }
                             const fd = new FormData();
                             fd.set("eventId", eventId);
                             fd.set("courtId", court.id);
@@ -229,7 +250,28 @@ export function EventCourtManager({
                         </Button>
                       </>
                     ) : (
-                      <span className="text-muted-foreground text-xs">비활성 경기장</span>
+                      <Button
+                        type="button"
+                        size="sm"
+                        variant="secondary"
+                        className="h-7 px-2 text-xs"
+                        disabled={pending}
+                        onClick={() => {
+                          if (
+                            !window.confirm(
+                              `${court.name}을 다시 활성화할까요?`,
+                            )
+                          ) {
+                            return;
+                          }
+                          const fd = new FormData();
+                          fd.set("eventId", eventId);
+                          fd.set("courtId", court.id);
+                          run(() => activateEventCourtFormAction(fd));
+                        }}
+                      >
+                        활성화
+                      </Button>
                     )}
                   </div>
                 </div>

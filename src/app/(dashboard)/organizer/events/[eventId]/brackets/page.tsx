@@ -5,6 +5,7 @@ import { eventService } from "@/lib/services/event.service";
 import { BracketPublicationPanel } from "@/components/domain/brackets/BracketPublicationPanel";
 import { OrganizerBracketsTabShell } from "@/components/domain/brackets/OrganizerBracketsTabShell";
 import { OrganizerBracketsGenerateSection } from "@/components/domain/brackets/OrganizerBracketsGenerateSection";
+import { OrganizerCourtManagementSection } from "@/components/domain/courts/OrganizerCourtManagementSection";
 import { OrganizerCourtViewSection } from "@/components/domain/courts/OrganizerCourtViewSection";
 import { parseBracketPageTab } from "@/lib/brackets/bracket-page-tab";
 import { EventManagementLayout } from "@/components/domain/events/EventManagementLayout";
@@ -47,14 +48,17 @@ export default async function OrganizerEventBracketsPage({
         eventId={eventId}
         activeTab={activeTab}
         settings={
-          <BracketPublicationPanel
-            eventId={eventId}
-            publicSlug={publication.publicSlug}
-            publicUnmatchedListEnabled={publication.publicUnmatchedListEnabled}
-            hasPublicBrackets={publicBracketCount > 0}
-            publicBracketCount={publicBracketCount}
-            totalBracketCount={brackets.length}
-          />
+          <div className="flex flex-col gap-8">
+            <BracketPublicationPanel
+              eventId={eventId}
+              publicSlug={publication.publicSlug}
+              publicUnmatchedListEnabled={publication.publicUnmatchedListEnabled}
+              hasPublicBrackets={publicBracketCount > 0}
+              publicBracketCount={publicBracketCount}
+              totalBracketCount={brackets.length}
+            />
+            <OrganizerCourtManagementSection eventId={eventId} />
+          </div>
         }
         generate={<OrganizerBracketsGenerateSection eventId={eventId} />}
         view={<OrganizerCourtViewSection eventId={eventId} />}

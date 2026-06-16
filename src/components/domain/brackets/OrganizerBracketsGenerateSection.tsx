@@ -7,7 +7,6 @@ import { eventService } from "@/lib/services/event.service";
 import { BracketCreateForm } from "@/components/domain/brackets/BracketCreateForm";
 import { OrganizerBracketList } from "@/components/domain/brackets/OrganizerBracketList";
 import { UnmatchedBracketCandidatesPanel } from "@/components/domain/brackets/UnmatchedBracketCandidatesPanel";
-import { OrganizerCourtManagementSection } from "@/components/domain/courts/OrganizerCourtManagementSection";
 import { eventCourtService } from "@/lib/services/event-court.service";
 
 /** 대진표 생성 탭 콘텐츠 */
@@ -37,13 +36,9 @@ export async function OrganizerBracketsGenerateSection({
         matchesWithResults={resetCheck.matchesWithResults}
       />
 
-      <UnmatchedBracketCandidatesPanel candidates={unmatchedCandidates} />
-
       <BracketCreateForm eventId={eventId} divisions={divisions} />
 
-      <OrganizerCourtManagementSection eventId={eventId} />
-
-      <div className="space-y-4">
+      <section className="space-y-4">
         <div>
           <h2 className="text-lg font-semibold">대진표 그룹</h2>
           <p className="text-muted-foreground mt-1 text-sm">
@@ -59,7 +54,9 @@ export async function OrganizerBracketsGenerateSection({
             <OrganizerBracketList eventId={eventId} brackets={brackets} />
           </div>
         )}
-      </div>
+      </section>
+
+      <UnmatchedBracketCandidatesPanel candidates={unmatchedCandidates} />
     </div>
   );
 }

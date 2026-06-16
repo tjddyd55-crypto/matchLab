@@ -791,4 +791,25 @@ export const matchRepository = {
       },
     });
   },
+
+  async countMatchesByCourtForEvent(
+    eventId: string,
+    tx?: Prisma.TransactionClient,
+  ): Promise<Map<string, number>> {
+    const rows = await db(tx).bracketMatch.groupBy({
+      by: ["courtId"],
+      where: {
+        courtId: { not: null },
+        bracket: { eventId },
+      },
+      _count: { id: true },
+    });
+    const map = new Map<string, number>();
+    for (const row of rows) {
+      if (row.courtId) {
+        map.set(row.courtId, row._count.id);
+      }
+    }
+    return map;
+  },
 };

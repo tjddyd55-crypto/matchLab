@@ -25,6 +25,7 @@ export type EventCourtVM = {
   name: string;
   sortOrder: number;
   isActive: boolean;
+  assignedMatchCount: number;
   rules: EventCourtRuleVM[];
   /** @deprecated rules 사용 권장 */
   divisions: { id: string; label: string }[];
@@ -56,7 +57,10 @@ export const eventCourtService = {
     eventId: string,
   ): Promise<EventCourtVM[]> {
     await requireOrganizerForEvent(actor, eventId);
-    const rows = await eventCourtRepository.listAllByEvent(eventId);
+    const [rows, matchCounts] = await Promise.all([
+      eventCourtRepository.listAllByEvent(eventId),
+      matchRepository.countMatchesByCourtForEvent(eventId),
+    ]);
     return rows.map((c) => {
       const rules = c.divisionRules.map(mapRule);
       return {
@@ -64,6 +68,7 @@ export const eventCourtService = {
         name: c.name,
         sortOrder: c.sortOrder,
         isActive: c.isActive,
+        assignedMatchCount: matchCounts.get(c.id) ?? 0,
         rules,
         divisions: rules
           .filter((r) => r.divisionId)
@@ -106,6 +111,7 @@ export const eventCourtService = {
       name: row.name,
       sortOrder: row.sortOrder,
       isActive: row.isActive,
+      assignedMatchCount: 0,
       rules: [],
       divisions: [],
     };
@@ -269,6 +275,30 @@ export const eventCourtService = {
       throw new AppError("NOT_FOUND", "경기장을 찾을 수 없습니다.");
     }
     await eventCourtRepository.update(courtId, { isActive: false });
+  },
+
+  async activateCourt(
+    actor: ActorContext,
+    eventId: string,
+    courtId: string,
+  ): Promise<void> {
+    await requireOrganizerForEvent(actor, eventId);
+    const court = await eventCourtRepository.findById(courtId);
+    if (!court || court.eventId !== eventId) {
+      throw new AppError("NOT_FOUND", "경기장을 찾을 수 없습니다.");
+    }
+    const dup = await eventCourtRepository.findDuplicateName(
+      eventId,
+      court.name,
+      courtId,
+    );
+    if (dup) {
+      throw new AppError(
+        "CONFLICT",
+        "같은 이름의 활성 경기장이 이미 있습니다.",
+      );
+    }
+    await eventCourtRepository.update(courtId, { isActive: true });
   },
 
   async updateMatchSchedule(
