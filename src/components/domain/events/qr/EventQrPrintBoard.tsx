@@ -3,7 +3,6 @@
 import { useCallback } from "react";
 import { Button } from "@/components/ui/button";
 import { EventQrCard, type EventQrPrintGroup } from "./EventQrCard";
-import type { JudgeCredentialListItemVM } from "@/lib/services/judge-credential.service";
 import type { EventCourtVM } from "@/lib/services/event-court.service";
 import {
   buildCourtHeadJudgeUrl,
@@ -11,7 +10,6 @@ import {
   buildEventBracketQrUrl,
   buildEventLiveQrUrl,
   buildEventResultsQrUrl,
-  buildJudgeLoginQrUrl,
   buildPublicEventQrUrl,
   isSpectatorOverviewQrEnabled,
   isSpectatorTabQrEnabled,
@@ -20,6 +18,9 @@ import {
 } from "@/lib/qr-url";
 import type { EventStatus } from "@/lib/enums";
 import "./event-qr-print.css";
+
+/** 레거시 심판 로그인 QR — 코드 유지, 출력 UI에서는 숨김 */
+const SHOW_LEGACY_JUDGE_LOGIN_QR = false;
 
 export type EventQrPrintBoardProps = {
   eventId: string;
@@ -34,7 +35,6 @@ export type EventQrPrintBoardProps = {
   spectatorAccessStartAt: string | null;
   spectatorAccessEndAt: string | null;
   baseUrl: string;
-  credentials: JudgeCredentialListItemVM[];
   courts: EventCourtVM[];
 };
 
@@ -69,7 +69,6 @@ export function EventQrPrintBoard({
   spectatorAccessStartAt,
   spectatorAccessEndAt,
   baseUrl,
-  credentials,
   courts,
 }: EventQrPrintBoardProps) {
   const slug = publicSlug?.trim() ?? "";
@@ -86,8 +85,6 @@ export function EventQrPrintBoard({
   };
 
   const overviewQrEnabled = isSpectatorOverviewQrEnabled(spectatorCtx);
-
-  const judgeCommonUrl = buildJudgeLoginQrUrl(eventId, null, baseUrl);
 
   const spectatorCards = [
     {
@@ -143,22 +140,26 @@ export function EventQrPrintBoard({
           여백을 확인한 뒤 출력하세요.
         </p>
         <div className="flex flex-wrap gap-2">
-          <Button
-            type="button"
-            variant="outline"
-            size="sm"
-            onClick={() => printPreset("judge-common")}
-          >
-            심판석용 QR만
-          </Button>
-          <Button
-            type="button"
-            variant="outline"
-            size="sm"
-            onClick={() => printPreset("judge-individual")}
-          >
-            심판별 QR 모음
-          </Button>
+          {SHOW_LEGACY_JUDGE_LOGIN_QR ? (
+            <>
+              <Button
+                type="button"
+                variant="outline"
+                size="sm"
+                onClick={() => printPreset("judge-common")}
+              >
+                심판석용 QR만
+              </Button>
+              <Button
+                type="button"
+                variant="outline"
+                size="sm"
+                onClick={() => printPreset("judge-individual")}
+              >
+                심판별 QR 모음
+              </Button>
+            </>
+          ) : null}
           <Button
             type="button"
             variant="outline"
@@ -227,32 +228,13 @@ export function EventQrPrintBoard({
         ) : null}
       </div>
 
-      <section className="space-y-4">
-        <header className="space-y-1">
-          <h2 className="text-lg font-semibold">심판 로그인 QR</h2>
-          <p className="text-muted-foreground text-sm">
-            심판석 앞에 부착할 공용 로그인 QR입니다. 비밀번호·세션 토큰은 QR에
-            포함하지 않습니다.
-          </p>
-        </header>
-        <div className="grid gap-4 md:grid-cols-2">
-          <EventQrCard
-            printGroup="judge-common"
-            title="심판 로그인"
-            description="QR을 스캔한 뒤 부여받은 심판 아이디와 비밀번호로 로그인해 주세요."
-            steps="로그인 → 본인 확인 → 배정 경기 선택 → 채점 제출"
-            url={judgeCommonUrl}
-            downloadFileName={`judge-login-${eventId}.png`}
-          />
-        </div>
-      </section>
-
       {courts.length > 0 ? (
         <section className="space-y-4">
           <header className="space-y-1">
             <h2 className="text-lg font-semibold">경기장별 심판 QR</h2>
             <p className="text-muted-foreground text-sm">
-              각 경기장에 채점심판용/주심판용 QR을 따로 부착합니다.
+              각 경기장에 채점심판용/주심판용 QR을 따로 부착합니다. QR 접속 후
+              이름과 생년월일을 입력하세요.
             </p>
           </header>
           <div className="grid gap-4 md:grid-cols-2 xl:grid-cols-3">
@@ -261,8 +243,8 @@ export function EventQrPrintBoard({
                 key={`${court.id}-score`}
                 printGroup="judge-court-score"
                 title={`${court.name} 채점심판`}
-                description="진행중 경기 채점만 전송합니다."
-                steps="이름·생년월일 확인 → 점수 입력 → 전송"
+                description="진행중 경기만 채점합니다."
+                steps="이름·생년월일 입력 → 진행중 경기 확인 → 점수 전송"
                 url={buildCourtScoreJudgeUrl(court.id, baseUrl)}
                 downloadFileName={`court-score-${court.name}.png`}
               />
@@ -272,58 +254,39 @@ export function EventQrPrintBoard({
                 key={`${court.id}-head`}
                 printGroup="judge-court-head"
                 title={`${court.name} 주심판`}
-                description="승패 입력, 완료, 다음 경기 시작, 경기취소를 처리합니다."
-                steps="현재 경기 확인 → 채점 열람 → 승패 입력/완료"
+                description="경기 시작, 승패 입력, 완료, 경기취소를 처리합니다."
+                steps="이름·생년월일 입력 → 경기 시작 → 채점 확인 → 승패 입력/완료"
                 url={buildCourtHeadJudgeUrl(court.id, baseUrl)}
                 downloadFileName={`court-head-${court.name}.png`}
               />
             ))}
           </div>
         </section>
-      ) : null}
+      ) : (
+        <p className="text-muted-foreground rounded-lg border border-dashed p-4 text-sm">
+          활성 경기장이 없습니다. 경기장을 등록한 뒤 경기장별 심판 QR을 출력하세요.
+        </p>
+      )}
 
-      <section className="space-y-4">
-        <header className="space-y-1">
-          <h2 className="text-lg font-semibold">심판별 로그인 QR</h2>
-          <p className="text-muted-foreground text-sm">
-            심판 A/B/C 등 역할별로 나눠 줄 QR입니다. 로그인 ID만 자동 입력하며
-            비밀번호는 직접 입력해야 합니다.
-          </p>
-        </header>
-        {credentials.length === 0 ? (
-          <p className="text-muted-foreground rounded-lg border border-dashed p-4 text-sm">
-            등록된 심판 계정이 없습니다.{" "}
-            <a
-              href={`/organizer/events/${eventId}/judges`}
-              className="text-primary underline"
-            >
-              심판 관리
-            </a>
-            에서 계정을 만든 뒤 QR을 출력하세요.
-          </p>
-        ) : (
-          <div className="grid gap-4 md:grid-cols-2 xl:grid-cols-3">
-            {credentials.map((cred) => (
-              <EventQrCard
-                key={cred.id}
-                printGroup="judge-individual"
-                title={cred.displayName?.trim() || cred.loginId}
-                subtitle={`loginId: ${cred.loginId}`}
-                badge={cred.roleLabel}
-                meta={
-                  cred.identityConfirmed
-                    ? "본인 확인 완료"
-                    : "본인 확인 전"
-                }
-                description="이 QR은 로그인 ID만 자동 입력합니다. 비밀번호는 직접 입력해야 합니다."
-                steps="로그인 → 본인 확인 → 배정 경기 선택 → 채점 제출"
-                url={buildJudgeLoginQrUrl(eventId, cred.loginId, baseUrl)}
-                downloadFileName={`judge-${cred.loginId}.png`}
-              />
-            ))}
-          </div>
-        )}
-      </section>
+      {SHOW_LEGACY_JUDGE_LOGIN_QR ? (
+        <>
+          <section className="space-y-4">
+            <header className="space-y-1">
+              <h2 className="text-lg font-semibold">심판 로그인 QR</h2>
+              <p className="text-muted-foreground text-sm">
+                심판석 앞에 부착할 공용 로그인 QR입니다. 비밀번호·세션 토큰은 QR에
+                포함하지 않습니다.
+              </p>
+            </header>
+          </section>
+
+          <section className="space-y-4">
+            <header className="space-y-1">
+              <h2 className="text-lg font-semibold">심판별 로그인 QR</h2>
+            </header>
+          </section>
+        </>
+      ) : null}
 
       <section className="space-y-4">
         <header className="space-y-1">

@@ -5,7 +5,6 @@ import { requireActor } from "@/lib/auth/actor";
 import { requireOrganizerForEventPage, resolveOrganizerEventPageError } from "@/lib/permissions";
 import { loadEventManagementNavContext } from "@/lib/event-management-nav-context";
 import { eventService } from "@/lib/services/event.service";
-import { judgeCredentialService } from "@/lib/services/judge-credential.service";
 import { eventCourtService } from "@/lib/services/event-court.service";
 import { getServerAppBaseUrl } from "@/lib/qr-url";
 import { liveStreamService } from "@/lib/services/live-stream.service";
@@ -29,9 +28,8 @@ export default async function OrganizerEventQrPage({
     resolveOrganizerEventPageError(e);
   }
 
-  const [nav, credentials, courts, headersList] = await Promise.all([
+  const [nav, courts, headersList] = await Promise.all([
     loadEventManagementNavContext(eventId),
-    judgeCredentialService.listForOrganizer(actor, eventId),
     eventCourtService.listForOrganizer(actor, eventId),
     headers(),
   ]);
@@ -46,7 +44,7 @@ export default async function OrganizerEventQrPage({
       <EventManagementPageHeader
         title="QR 출력"
         eventTitle={detail.title}
-        description="현장 부착용 심판·관람객 QR을 생성하고 인쇄합니다. QR에는 비밀번호·세션·secret을 넣지 않습니다."
+        description="경기장별 채점/주심 QR과 관람객 QR을 생성하고 인쇄합니다. 심판 QR 접속 후 이름과 생년월일을 입력하세요."
       />
 
       <EventQrPrintBoard
@@ -62,7 +60,6 @@ export default async function OrganizerEventQrPage({
         spectatorAccessStartAt={detail.spectatorAccessStartAt}
         spectatorAccessEndAt={detail.spectatorAccessEndAt}
         baseUrl={baseUrl}
-        credentials={credentials}
         courts={courts.filter((c) => c.isActive)}
       />
     </EventManagementLayout>

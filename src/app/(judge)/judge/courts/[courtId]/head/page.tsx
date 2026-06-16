@@ -10,5 +10,12 @@ export default async function CourtHeadJudgePage({
 }) {
   const { courtId } = await params;
   const ctx = await judgeCourtService.getHeadContext(courtId);
-  return <CourtHeadJudgePanel match={ctx.match} scorecards={ctx.scorecards} />;
+  return (
+    <CourtHeadJudgePanel
+      court={ctx.court}
+      matches={ctx.matches}
+      ongoingMatchId={ctx.ongoingMatchId}
+      scorecardsByMatchId={ctx.scorecardsByMatchId}
+    />
+  );
 }

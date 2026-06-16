@@ -1,18 +1,12 @@
 import Link from "next/link";
 import { EventManagementLayout } from "@/components/domain/events/EventManagementLayout";
 import { EventManagementPageHeader } from "@/components/domain/events/EventManagementPageHeader";
-import { OrganizerJudgeAssignmentSection } from "@/components/domain/judges/OrganizerJudgeAssignmentSection";
-import { OrganizerJudgeCredentialManager } from "@/components/domain/judges/OrganizerJudgeCredentialManager";
 import { CourtJudgeLinksPanel } from "@/components/domain/judges/CourtJudgeLinksPanel";
 import { requireActor } from "@/lib/auth/actor";
-import { JUDGE_COUNT_POLICY_LINES } from "@/lib/judge-round-count";
 import { requireOrganizerForEventPage } from "@/lib/permissions";
 import { loadEventManagementNavContext } from "@/lib/event-management-nav-context";
-import { judgeAssignmentService } from "@/lib/services/judge-assignment.service";
-import { judgeCredentialService } from "@/lib/services/judge-credential.service";
 import { eventCourtService } from "@/lib/services/event-court.service";
-import { matchService } from "@/lib/services/match.service";
-import { buildJudgeLoginQrUrl, getServerAppBaseUrl } from "@/lib/qr-url";
+import { getServerAppBaseUrl } from "@/lib/qr-url";
 import { headers } from "next/headers";
 import { buttonVariants } from "@/components/ui/button";
 import { cn } from "@/lib/utils";
@@ -28,24 +22,21 @@ export default async function OrganizerEventJudgesPage({
   const { eventId } = await params;
   await requireOrganizerForEventPage(actor, eventId);
 
-  const [nav, credentials, matches, assignments, courts, headersList] = await Promise.all([
+  const [nav, courts, headersList] = await Promise.all([
     loadEventManagementNavContext(eventId),
-    judgeCredentialService.listForOrganizer(actor, eventId),
-    matchService.listOrganizerEventMatches(actor, eventId),
-    judgeAssignmentService.listByEventForOrganizer(actor, eventId),
     eventCourtService.listForOrganizer(actor, eventId),
     headers(),
   ]);
 
   const baseUrl = getServerAppBaseUrl(headersList);
-  const loginUrl = buildJudgeLoginQrUrl(eventId, null, baseUrl);
+  const activeCourts = courts.filter((c) => c.isActive);
 
   return (
     <EventManagementLayout eventId={nav.eventId} publicSlug={nav.publicSlug}>
       <EventManagementPageHeader
         title="심판 관리"
         eventTitle={nav.title}
-        description="심판 접속 계정을 만들고 경기에 배정합니다. 채점 결과는 최종 결과 확정 전 참고 데이터입니다."
+        description="경기장별 채점/주심 QR을 배포합니다. QR 접속 후 이름과 생년월일을 입력하면 해당 역할 화면으로 이동합니다."
       >
         <div className="mt-2 flex flex-wrap gap-2">
           <Link
@@ -58,36 +49,21 @@ export default async function OrganizerEventJudgesPage({
             href={`/organizer/events/${eventId}/qr`}
             className={cn(buttonVariants({ variant: "outline", size: "sm" }))}
           >
-            심판 로그인 QR 출력
+            심판 QR 출력
           </Link>
         </div>
       </EventManagementPageHeader>
 
-      <ul className="text-muted-foreground list-disc space-y-1 pl-5 text-xs leading-relaxed">
-        {JUDGE_COUNT_POLICY_LINES.map((line) => (
-          <li key={line}>{line}</li>
-        ))}
-      </ul>
+      <section className="rounded-xl border border-primary/25 bg-primary/5 px-4 py-4 text-sm leading-relaxed">
+        <p className="font-medium">현장 심판 운영 안내</p>
+        <ul className="text-muted-foreground mt-2 list-disc space-y-1 pl-5 text-xs">
+          <li>각 경기장에 채점심판 QR과 주심판 QR을 따로 부착하세요.</li>
+          <li>주심판이 경기 시작 → 진행중 강조 → 채점심판 채점 → 주심판 승패 입력/완료 순으로 진행합니다.</li>
+          <li>다음 경기는 주심판이 수동으로 &quot;경기 시작&quot;을 눌러야 합니다.</li>
+        </ul>
+      </section>
 
-      <OrganizerJudgeCredentialManager
-        eventId={eventId}
-        credentials={credentials}
-        loginUrl={loginUrl}
-      />
-
-      <CourtJudgeLinksPanel
-        courts={courts.filter((c) => c.isActive)}
-        baseUrl={baseUrl}
-      />
-
-      <div className="overflow-x-auto">
-        <OrganizerJudgeAssignmentSection
-          eventId={eventId}
-          matches={matches}
-          credentials={credentials}
-          assignments={assignments}
-        />
-      </div>
+      <CourtJudgeLinksPanel courts={activeCourts} baseUrl={baseUrl} eventId={eventId} />
     </EventManagementLayout>
   );
 }
