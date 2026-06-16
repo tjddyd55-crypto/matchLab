@@ -65,6 +65,7 @@ export function OrganizerOperationTableDesktop({
                 </div>
                 <FighterHandicapBadge
                   handicap={row.fighterRed?.handicap}
+                  cornerLabel="홍코너"
                   compact
                   className="mt-1"
                 />
@@ -76,6 +77,7 @@ export function OrganizerOperationTableDesktop({
                 </div>
                 <FighterHandicapBadge
                   handicap={row.fighterBlue?.handicap}
+                  cornerLabel="청코너"
                   compact
                   className="mt-1"
                 />

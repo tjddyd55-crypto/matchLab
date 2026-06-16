@@ -1,4 +1,5 @@
 import type { PublicBracketFighterDTO } from "@/lib/dto/public";
+import { FighterHandicapBadge } from "@/components/domain/shared/FighterHandicapBadge";
 import {
   CORNER_SLOT_STYLES,
   type CornerLabel,
@@ -28,6 +29,14 @@ export function FighterSlotCard({
     style.bg,
     className,
   );
+
+  const handicap =
+    fighter?.handicapBadgeLabel || fighter?.handicapNote
+      ? {
+          badgeLabel: fighter.handicapBadgeLabel ?? null,
+          note: fighter.handicapNote ?? null,
+        }
+      : null;
 
   if (bye && !fighter) {
     return (
@@ -74,16 +83,12 @@ export function FighterSlotCard({
           {fighter.recordSummary}
         </div>
       ) : null}
-      {fighter.handicapBadgeLabel ? (
-        <span className="mt-0.5 inline-flex w-fit rounded bg-amber-100 px-1.5 py-0.5 text-[10px] font-medium text-amber-900 dark:bg-amber-950 dark:text-amber-200">
-          {fighter.handicapBadgeLabel}
-        </span>
-      ) : null}
-      {fighter.handicapNote ? (
-        <p className="text-[10px] leading-snug text-amber-800 dark:text-amber-300">
-          핸디캡: {fighter.handicapNote}
-        </p>
-      ) : null}
+      <FighterHandicapBadge
+        handicap={handicap}
+        cornerLabel={style.label}
+        compact
+        className="mt-0.5"
+      />
     </div>
   );
 }

@@ -84,10 +84,10 @@ export function OrganizerApplicationRowActions({
       );
       if (failureReason) {
         window.alert(failureReason);
-        return;
       }
-
-      router.refresh();
+      if (res.data.successCount > 0) {
+        router.refresh();
+      }
     });
   }
 
