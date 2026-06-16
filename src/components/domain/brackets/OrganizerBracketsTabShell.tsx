@@ -2,25 +2,17 @@
 
 import { usePathname, useRouter } from "next/navigation";
 import type { ReactNode } from "react";
+import {
+  BRACKET_PAGE_TAB_LABELS,
+  BRACKET_PAGE_TABS,
+  type BracketPageTab,
+} from "@/lib/brackets/bracket-page-tab";
 import { cn } from "@/lib/utils";
 
-export type BracketPageTab = "settings" | "generate" | "view";
-
-const TABS: { id: BracketPageTab; label: string }[] = [
-  { id: "settings", label: "기본설정" },
-  { id: "generate", label: "대진표 생성" },
-  { id: "view", label: "대진표 보기" },
-];
-
-export function parseBracketPageTab(
-  value: string | string[] | undefined,
-): BracketPageTab {
-  const raw = Array.isArray(value) ? value[0] : value;
-  if (raw === "settings" || raw === "generate" || raw === "view") {
-    return raw;
-  }
-  return "view";
-}
+const TABS = BRACKET_PAGE_TABS.map((id) => ({
+  id,
+  label: BRACKET_PAGE_TAB_LABELS[id],
+}));
 
 export function OrganizerBracketsTabShell({
   eventId,
