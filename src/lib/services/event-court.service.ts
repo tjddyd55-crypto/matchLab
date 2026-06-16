@@ -51,6 +51,22 @@ function mapRule(
   };
 }
 
+async function requireActiveCourtForEvent(
+  eventId: string,
+  courtId: string,
+): Promise<void> {
+  const court = await eventCourtRepository.findById(courtId);
+  if (!court || court.eventId !== eventId) {
+    throw new AppError("NOT_FOUND", "경기장을 찾을 수 없습니다.");
+  }
+  if (!court.isActive) {
+    throw new AppError(
+      "VALIDATION_ERROR",
+      "비활성 경기장에는 배정할 수 없습니다. 활성 경기장을 선택해 주세요.",
+    );
+  }
+}
+
 export const eventCourtService = {
   async listForOrganizer(
     actor: ActorContext,
@@ -188,15 +204,21 @@ export const eventCourtService = {
   ): Promise<void> {
     await requireOrganizerForEvent(actor, eventId);
     if (courtId) {
-      const court = await eventCourtRepository.findById(courtId);
-      if (!court || court.eventId !== eventId) {
-        throw new AppError("NOT_FOUND", "경기장을 찾을 수 없습니다.");
-      }
+      await requireActiveCourtForEvent(eventId, courtId);
     }
     await matchRepository.updateMatchCourt(matchId, {
       courtId,
       courtOrder: courtOrder ?? null,
     });
+  },
+
+  async ensureActiveCourtForEvent(
+    actor: ActorContext,
+    eventId: string,
+    courtId: string,
+  ): Promise<void> {
+    await requireOrganizerForEvent(actor, eventId);
+    await requireActiveCourtForEvent(eventId, courtId);
   },
 
   async suggestCourtForDivision(

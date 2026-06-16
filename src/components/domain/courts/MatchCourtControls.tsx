@@ -1,6 +1,6 @@
 "use client";
 
-import { useState, useTransition } from "react";
+import { useMemo, useState, useTransition } from "react";
 import { useRouter } from "next/navigation";
 import { setMatchCourtFormAction } from "@/features/event-courts/actions";
 import { Button } from "@/components/ui/button";
@@ -26,7 +26,18 @@ export function MatchCourtControls({
   inline?: boolean;
 }) {
   const router = useRouter();
-  const activeCourts = courts.filter((c) => c.isActive);
+  const activeCourts = useMemo(
+    () => courts.filter((c) => c.isActive),
+    [courts],
+  );
+  const selectableCourts = useMemo(() => {
+    if (!courtId || activeCourts.some((c) => c.id === courtId)) {
+      return activeCourts;
+    }
+    const current = courts.find((c) => c.id === courtId);
+    return current ? [current, ...activeCourts] : activeCourts;
+  }, [courts, activeCourts, courtId]);
+
   const defaultCourtId =
     courtId ?? (activeCourts.length === 1 ? activeCourts[0]!.id : "");
 
@@ -40,6 +51,10 @@ export function MatchCourtControls({
   function save() {
     if (!localCourtId) {
       setMessage("경기장을 선택해 주세요.");
+      return;
+    }
+    if (!activeCourts.some((c) => c.id === localCourtId)) {
+      setMessage("활성 경기장을 선택해 주세요.");
       return;
     }
     setMessage(null);
@@ -88,9 +103,9 @@ export function MatchCourtControls({
           {activeCourts.length > 1 && !courtId ? (
             <option value="">경기장 선택</option>
           ) : null}
-          {activeCourts.map((c) => (
-            <option key={c.id} value={c.id}>
-              {c.name}
+          {selectableCourts.map((c) => (
+            <option key={c.id} value={c.id} disabled={!c.isActive}>
+              {c.isActive ? c.name : `${c.name} (비활성 — 다른 경기장 선택)`}
             </option>
           ))}
         </select>

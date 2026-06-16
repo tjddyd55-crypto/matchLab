@@ -1,6 +1,11 @@
 import { z } from "zod";
 
-export const autoMatchScopeSchema = z.enum(["all", "court"]);
+const legacyScopeValue = z.preprocess(
+  (v) => (v === "unassigned" ? "all" : v),
+  z.enum(["all", "court"]),
+);
+
+export const autoMatchScopeSchema = legacyScopeValue;
 
 export const generateAutoBracketMatchesSchema = z.object({
   eventId: z.string().min(1),
@@ -9,7 +14,10 @@ export const generateAutoBracketMatchesSchema = z.object({
   previewOnly: z.boolean().optional().default(false),
   autoMatchScope: autoMatchScopeSchema.optional().default("all"),
   /** court id or "all"(전체 활성 경기장) */
-  targetCourtId: z.string().optional(),
+  targetCourtId: z.preprocess(
+    (v) => (v === "unassigned" ? "all" : v),
+    z.string().optional(),
+  ),
   maxMatchesPerCourt: z.coerce.number().int().min(1).optional(),
   forbidSameGym: z.boolean().optional().default(true),
   preserveManualCourts: z.boolean().optional().default(true),

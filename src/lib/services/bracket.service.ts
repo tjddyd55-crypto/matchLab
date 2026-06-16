@@ -147,7 +147,19 @@ async function resolveSuggestedCourtId(
   explicitCourtId: string | null,
   tx?: Prisma.TransactionClient,
 ): Promise<string> {
-  if (explicitCourtId) return explicitCourtId;
+  if (explicitCourtId) {
+    const court = await (tx ?? prisma).eventCourt.findUnique({
+      where: { id: explicitCourtId },
+      select: { id: true, eventId: true, isActive: true },
+    });
+    if (!court || court.eventId !== eventId || !court.isActive) {
+      throw new AppError(
+        "VALIDATION_ERROR",
+        "활성 경기장을 선택해 주세요.",
+      );
+    }
+    return explicitCourtId;
+  }
   if (!divisionId) {
     throw new AppError(
       "VALIDATION_ERROR",
@@ -839,6 +851,12 @@ export const bracketService = {
         "토너먼트 드래프트는 single_elimination 브래킷에서만 생성할 수 있습니다.",
       );
     }
+
+    await eventCourtService.ensureActiveCourtForEvent(
+      actor,
+      ctx.eventId,
+      input.courtId,
+    );
 
     await prisma.$transaction(async (tx) => {
       const fighterSnapshotIds =
