@@ -25,10 +25,12 @@ import {
   BracketType,
 } from "@/lib/enums";
 import { cn } from "@/lib/utils";
+import { BoutFormatBadge } from "@/components/domain/shared/BoutFormatBadge";
 
 const STATUS_OPTIONS: { value: BracketMatchStatus; label: string }[] = [
   { value: BracketMatchStatus.waiting, label: "대기" },
-  { value: BracketMatchStatus.ongoing, label: "진행중" },
+  { value: BracketMatchStatus.called, label: "경기준비" },
+  { value: BracketMatchStatus.ongoing, label: "경기진행중" },
   { value: BracketMatchStatus.finished, label: "경기종료" },
   { value: BracketMatchStatus.cancelled, label: "경기취소" },
 ];
@@ -39,6 +41,7 @@ const OUTCOME_OPTIONS = Object.values(
 
 export type OrganizerMatchOpsPanelProps = {
   bracketType: BracketType;
+  bracketIsPublic?: boolean;
   matchId: string;
   status: BracketMatchStatus;
   fighterRedId: string | null;
@@ -164,8 +167,11 @@ export function OrganizerMatchOpsPanel(props: OrganizerMatchOpsPanelProps) {
         props.compact ? "text-[11px]" : "text-xs",
       )}
     >
-      <div className="text-muted-foreground flex flex-wrap gap-2">
-        <span>대진 방식 {props.bracketType}</span>
+      <div className="text-muted-foreground flex flex-wrap items-center gap-2">
+        <BoutFormatBadge
+          bracketType={props.bracketType}
+          bracketIsPublic={props.bracketIsPublic}
+        />
         {props.hasOfficialResults ? (
           <span className="text-emerald-700 dark:text-emerald-400">
             공식 결과 확정됨
@@ -230,10 +236,8 @@ export function OrganizerMatchOpsPanel(props: OrganizerMatchOpsPanelProps) {
 
       {!blocked && canFillOutcome && (!staff || staff.canRecordOutcomeDraft) ? (
         <form className="space-y-3 border-t pt-2" action={onOutcomeSubmit}>
-          <p className="text-muted-foreground font-semibold">
-            결과 입력
-          </p>
-          <div className="grid gap-2 md:grid-cols-3">
+          <p className="text-muted-foreground font-semibold">결과 입력</p>
+          <div className="grid gap-2 lg:grid-cols-4">
             <select
               name="outcomeMode"
               defaultValue={defaultOutcomeMode}
@@ -268,7 +272,7 @@ export function OrganizerMatchOpsPanel(props: OrganizerMatchOpsPanelProps) {
                 props.resultType ?? BracketMatchOutcomeStyle.decision
               }
               disabled={pending}
-              className="border-input bg-background h-8 max-w-full rounded-md border px-2"
+              className="border-input bg-background h-8 max-w-full rounded-md border px-2 lg:col-span-2"
             >
               {OUTCOME_OPTIONS.map((o) => (
                 <option key={o} value={o}>

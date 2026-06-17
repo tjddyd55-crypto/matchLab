@@ -5,7 +5,9 @@ import { useRouter } from "next/navigation";
 import {
   headCancelCourtMatchAction,
   headCompleteCourtMatchAction,
+  headPrepareCourtMatchAction,
   headStartCourtMatchAction,
+  headUpdateMatchOperationalSettingsAction,
 } from "@/features/judge-court/actions";
 import { Button } from "@/components/ui/button";
 import type {
@@ -14,6 +16,7 @@ import type {
   CourtJudgeScorecardVM,
 } from "@/lib/services/judge-court.service";
 import { BracketMatchOutcomeStyle, BracketMatchStatus } from "@/lib/enums";
+import { BoutFormatBadge } from "@/components/domain/shared/BoutFormatBadge";
 import { CourtJudgeIdentityGate } from "./CourtJudgeIdentityGate";
 import { CourtJudgeRefreshShell } from "./CourtJudgeRefreshShell";
 import {
@@ -108,6 +111,13 @@ function HeadMatchDetail({
     });
   }
 
+  function prepareMatch(matchId: string) {
+    const fd = new FormData();
+    fd.set("courtId", match?.courtId ?? "");
+    fd.set("matchId", matchId);
+    run(fd, headPrepareCourtMatchAction);
+  }
+
   function startMatch(matchId: string) {
     const fd = new FormData();
     fd.set("courtId", match?.courtId ?? "");
@@ -125,6 +135,11 @@ function HeadMatchDetail({
     run(new FormData(e.currentTarget), headCancelCourtMatchAction);
   }
 
+  function saveOperationalSettings(e: FormEvent<HTMLFormElement>) {
+    e.preventDefault();
+    run(new FormData(e.currentTarget), headUpdateMatchOperationalSettingsAction);
+  }
+
   if (!match) {
     return (
       <CourtJudgeEmptyNotice>표시할 경기를 리스트에서 선택하세요.</CourtJudgeEmptyNotice>
@@ -133,16 +148,29 @@ function HeadMatchDetail({
 
   const summary = resultSummary(match);
   const isWaiting = match.status === BracketMatchStatus.waiting;
+  const isPreparing = match.status === BracketMatchStatus.called;
   const isOngoing = match.status === BracketMatchStatus.ongoing;
   const isFinished = match.status === BracketMatchStatus.finished;
   const isCancelled = match.status === BracketMatchStatus.cancelled;
+  const canEditOps = isPreparing || isOngoing;
 
   return (
     <div className="space-y-4">
       <section className="overflow-hidden rounded-xl border bg-card">
         <div className="border-b bg-muted/30 px-4 py-3 text-sm">
-          {match.divisionLabel ?? "경기구분 미상"}
-          {match.courtOrder != null ? ` · ${match.courtOrder}경기` : ""}
+          <div className="flex flex-wrap items-center gap-2">
+            <span>
+              {match.divisionLabel ?? "경기구분 미상"}
+              {match.courtOrder != null ? ` · ${match.courtOrder}경기` : ""}
+            </span>
+            <BoutFormatBadge
+              bracketType={match.bracketType}
+              bracketIsPublic={match.bracketIsPublic}
+            />
+            <span className="text-muted-foreground text-xs">
+              {match.operationalSettingsLabel}
+            </span>
+          </div>
         </div>
         <div className="p-4">
           <CourtJudgeFightersHeader match={match} />
@@ -159,26 +187,150 @@ function HeadMatchDetail({
       {isWaiting ? (
         <section className="rounded-xl border p-4">
           <p className="text-muted-foreground text-sm">
-            대기 중인 경기입니다. 준비되면 경기를 시작하세요.
+            대기 중인 경기입니다. 준비되면 경기준비를 시작하세요.
           </p>
           <Button
             type="button"
             className="mt-3"
             disabled={pending || hasOngoing}
-            onClick={() => startMatch(match.matchId)}
+            onClick={() => prepareMatch(match.matchId)}
           >
-            경기 시작
+            경기 준비
           </Button>
           {hasOngoing ? (
             <p className="text-muted-foreground mt-2 text-xs">
-              다른 경기가 진행중이면 새 경기를 시작할 수 없습니다.
+              다른 경기가 진행/준비 중이면 새 경기를 준비할 수 없습니다.
             </p>
           ) : null}
         </section>
       ) : null}
 
+      {isPreparing ? (
+        <section className="space-y-4 rounded-xl border border-primary/30 bg-primary/5 p-4">
+          <p className="text-primary text-sm font-medium">경기준비중</p>
+          <form onSubmit={saveOperationalSettings} className="grid gap-3 md:grid-cols-4">
+            <input type="hidden" name="courtId" value={match.courtId} />
+            <input type="hidden" name="matchId" value={match.matchId} />
+            <label className="grid gap-1 text-sm">
+              <span className="text-muted-foreground text-xs">라운드 수</span>
+              <input
+                name="roundCount"
+                type="number"
+                min={1}
+                max={15}
+                defaultValue={match.roundCount}
+                className={inputClass}
+              />
+            </label>
+            <label className="grid gap-1 text-sm">
+              <span className="text-muted-foreground text-xs">라운드 시간(초)</span>
+              <input
+                name="roundTimeSec"
+                type="number"
+                min={30}
+                max={600}
+                step={30}
+                defaultValue={match.roundTimeSec}
+                className={inputClass}
+              />
+            </label>
+            <label className="grid gap-1 text-sm">
+              <span className="text-muted-foreground text-xs">연장</span>
+              <select
+                name="overtimeEnabled"
+                className={inputClass}
+                defaultValue={match.overtimeEnabled ? "true" : "false"}
+              >
+                <option value="false">없음</option>
+                <option value="true">가능</option>
+              </select>
+            </label>
+            <label className="grid gap-1 text-sm">
+              <span className="text-muted-foreground text-xs">연장 라운드</span>
+              <input
+                name="overtimeRoundCount"
+                type="number"
+                min={0}
+                max={3}
+                defaultValue={match.overtimeRoundCount || 1}
+                className={inputClass}
+              />
+            </label>
+            <div className="md:col-span-4">
+              <Button type="submit" variant="outline" size="sm" disabled={pending}>
+                라운드 설정 저장
+              </Button>
+            </div>
+          </form>
+          <Button
+            type="button"
+            disabled={pending || hasOngoing}
+            onClick={() => startMatch(match.matchId)}
+          >
+            경기 시작
+          </Button>
+        </section>
+      ) : null}
+
       {isOngoing ? (
         <>
+          {canEditOps ? (
+            <form onSubmit={saveOperationalSettings} className="grid gap-3 rounded-xl border p-4 md:grid-cols-4">
+              <input type="hidden" name="courtId" value={match.courtId} />
+              <input type="hidden" name="matchId" value={match.matchId} />
+              <label className="grid gap-1 text-sm">
+                <span className="text-muted-foreground text-xs">라운드 수</span>
+                <input
+                  name="roundCount"
+                  type="number"
+                  min={1}
+                  max={15}
+                  defaultValue={match.roundCount}
+                  className={inputClass}
+                />
+              </label>
+              <label className="grid gap-1 text-sm">
+                <span className="text-muted-foreground text-xs">라운드 시간(초)</span>
+                <input
+                  name="roundTimeSec"
+                  type="number"
+                  min={30}
+                  max={600}
+                  step={30}
+                  defaultValue={match.roundTimeSec}
+                  className={inputClass}
+                />
+              </label>
+              <label className="grid gap-1 text-sm">
+                <span className="text-muted-foreground text-xs">연장</span>
+                <select
+                  name="overtimeEnabled"
+                  className={inputClass}
+                  defaultValue={match.overtimeEnabled ? "true" : "false"}
+                >
+                  <option value="false">없음</option>
+                  <option value="true">가능</option>
+                </select>
+              </label>
+              <label className="grid gap-1 text-sm">
+                <span className="text-muted-foreground text-xs">연장 라운드</span>
+                <input
+                  name="overtimeRoundCount"
+                  type="number"
+                  min={0}
+                  max={3}
+                  defaultValue={match.overtimeRoundCount || 1}
+                  className={inputClass}
+                />
+              </label>
+              <div className="md:col-span-4">
+                <Button type="submit" variant="outline" size="sm" disabled={pending}>
+                  라운드 설정 저장
+                </Button>
+              </div>
+            </form>
+          ) : null}
+
           <section className="rounded-xl border p-4">
             <h2 className="font-semibold">채점심판 전송 결과</h2>
             <ScorecardsTable scorecards={scorecards} />
@@ -229,6 +381,7 @@ function HeadMatchDetail({
               name="resultMemo"
               rows={2}
               placeholder="메모"
+              defaultValue={match.displayResultMemo}
               className="border-input bg-background rounded-md border px-2 py-2 text-sm md:col-span-3"
             />
             <div className="md:col-span-3">

@@ -1,26 +1,25 @@
 import type { BracketType } from "@/lib/enums";
+import { resolveBoutFormatKind, boutFormatLabel } from "@/lib/bout-format";
 import { cn } from "@/lib/utils";
-
-const LABELS: Record<BracketType, string> = {
-  single_elimination: "토너먼트",
-  match_list: "경기 목록",
-};
 
 export function BracketTypeBadge({
   type,
+  isPublic,
   className,
 }: {
   type: BracketType;
+  isPublic?: boolean;
   className?: string;
 }) {
+  const label = boutFormatLabel(resolveBoutFormatKind({ bracketType: type, bracketIsPublic: isPublic }));
   return (
     <span
       className={cn(
-        "bg-muted text-muted-foreground inline-flex rounded-md px-2 py-0.5 text-xs font-medium",
+        "inline-flex rounded-md border border-primary/25 bg-primary/5 px-2 py-0.5 text-xs font-medium text-primary",
         className,
       )}
     >
-      {LABELS[type]}
+      {label}
     </span>
   );
 }

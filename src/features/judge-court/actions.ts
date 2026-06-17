@@ -55,6 +55,43 @@ export async function submitCourtScorecardAction(
   });
 }
 
+export async function headPrepareCourtMatchAction(
+  formData: FormData,
+): Promise<ActionResult<{ ok: true }>> {
+  return mapCaught(async () => {
+    const courtId = formReq(formData, "courtId");
+    const matchId = formReq(formData, "matchId");
+    if (!matchId) {
+      return actionFailure("VALIDATION_ERROR", "경기를 선택해 주세요.");
+    }
+    await judgeCourtService.prepareMatch(courtId, matchId);
+    return actionSuccess({ ok: true as const });
+  });
+}
+
+export async function headUpdateMatchOperationalSettingsAction(
+  formData: FormData,
+): Promise<ActionResult<{ ok: true }>> {
+  return mapCaught(async () => {
+    const courtId = formReq(formData, "courtId");
+    const matchId = formReq(formData, "matchId");
+    const roundCount = Number(formReq(formData, "roundCount"));
+    const roundTimeSec = Number(formReq(formData, "roundTimeSec"));
+    const overtimeEnabled = formReq(formData, "overtimeEnabled") === "true";
+    const overtimeRoundCount = Number(formReq(formData, "overtimeRoundCount"));
+    if (!matchId || !Number.isFinite(roundCount) || !Number.isFinite(roundTimeSec)) {
+      return actionFailure("VALIDATION_ERROR", "라운드 설정을 확인해 주세요.");
+    }
+    await judgeCourtService.updateOperationalSettings(courtId, matchId, {
+      roundCount,
+      roundTimeSec,
+      overtimeEnabled,
+      overtimeRoundCount,
+    });
+    return actionSuccess({ ok: true as const });
+  });
+}
+
 export async function headStartCourtMatchAction(
   formData: FormData,
 ): Promise<ActionResult<{ ok: true }>> {

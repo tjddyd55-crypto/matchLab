@@ -279,6 +279,7 @@ export type OrganizerEventMatchListItemVM = {
   bracketId: string;
   bracketTitle: string;
   bracketType: BracketType;
+  bracketIsPublic: boolean;
   divisionLabel: string | null;
   roundName: string | null;
   matchOrder: number;
@@ -349,6 +350,7 @@ export const matchService = {
         bracketId: m.bracketId,
         bracketTitle: m.bracket.title,
         bracketType: m.bracket.type,
+        bracketIsPublic: m.bracket.isPublic,
         divisionLabel,
         roundName: m.roundName,
         matchOrder: m.matchOrder,
@@ -572,6 +574,7 @@ export const matchService = {
         bracketId: m.bracketId,
         bracketTitle: m.bracket.title,
         bracketType: m.bracket.type,
+        bracketIsPublic: m.bracket.isPublic,
         divisionLabel,
         roundName: m.roundName,
         matchOrder: m.matchOrder,

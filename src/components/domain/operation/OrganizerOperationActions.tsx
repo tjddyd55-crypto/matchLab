@@ -12,9 +12,10 @@ import { BracketMatchStatus } from "@/lib/enums";
 import {
   canEndMatch,
   canEnterResult,
+  canPrepareMatch,
   canStartMatch,
   canViewResult,
-  getStatusesForStartMatch,
+  getNextStatusForOperationStart,
 } from "@/lib/match-operation-display";
 import type { OrganizerEventMatchListItemVM } from "@/lib/services/match.service";
 import { cn } from "@/lib/utils";
@@ -44,6 +45,7 @@ export function OrganizerOperationActions({
   const [opsOpen, setOpsOpen] = useState(false);
 
   const blocked = match.status === BracketMatchStatus.cancelled;
+  const showPrepare = canPrepareMatch(match.status);
   const showStart = canStartMatch(match.status);
   const showEnd = canEndMatch(match.status);
   const showResult = canEnterResult(match);
@@ -65,24 +67,10 @@ export function OrganizerOperationActions({
     });
   };
 
-  const handleStart = () => {
-    const steps = getStatusesForStartMatch(match.status);
-    if (steps.length === 0) return;
-
-    setError(null);
-    startTransition(async () => {
-      for (const status of steps) {
-        const fd = new FormData();
-        fd.set("matchId", match.matchId);
-        fd.set("status", status);
-        const err = await runAction(() => updateMatchStatusAction(fd));
-        if (err) {
-          setError(err);
-          return;
-        }
-      }
-      refresh();
-    });
+  const handleAdvance = () => {
+    const next = getNextStatusForOperationStart(match.status);
+    if (!next) return;
+    runStatusUpdate(next);
   };
 
   const handleEnd = () => runStatusUpdate(BracketMatchStatus.finished);
@@ -96,15 +84,26 @@ export function OrganizerOperationActions({
   return (
     <div className={cn("space-y-2", compact ? "text-xs" : "text-sm")}>
       <div className="flex flex-wrap gap-2">
-        {showStart ? (
+        {showPrepare ? (
+          <Button
+            type="button"
+            size={compact ? "xs" : "sm"}
+            variant="outline"
+            disabled={pending}
+            onClick={handleAdvance}
+          >
+            경기 준비
+          </Button>
+        ) : null}
+        {showStart && !showPrepare ? (
           <Button
             type="button"
             size={compact ? "xs" : "sm"}
             variant="default"
             disabled={pending}
-            onClick={handleStart}
+            onClick={handleAdvance}
           >
-            진행 시작
+            경기 시작
           </Button>
         ) : null}
         {showEnd ? (

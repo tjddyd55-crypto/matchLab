@@ -9,6 +9,8 @@ function statusLabel(status: CourtJudgeMatchVM["status"]): string {
   switch (status) {
     case BracketMatchStatus.waiting:
       return "대기";
+    case BracketMatchStatus.called:
+      return "경기준비";
     case BracketMatchStatus.ongoing:
       return "진행중";
     case BracketMatchStatus.finished:
@@ -40,6 +42,9 @@ function MatchStatusBadge({ match }: { match: CourtJudgeMatchVM }) {
         진행중 · 현재 경기
       </Badge>
     );
+  }
+  if (match.status === BracketMatchStatus.called) {
+    return <Badge className="border-primary bg-primary/10 text-primary">경기준비</Badge>;
   }
   if (match.status === BracketMatchStatus.finished) {
     return <Badge variant="secondary">경기종료</Badge>;
@@ -139,6 +144,8 @@ export function CourtJudgeMatchList({
               className={cn(
                 "w-full rounded-xl border p-3 text-left transition-colors",
                 isOngoing && "border-primary bg-primary/5 ring-1 ring-primary/30",
+                !isOngoing && match.status === BracketMatchStatus.called &&
+                  "border-primary/40 bg-primary/5",
                 !isOngoing && match.status === BracketMatchStatus.finished &&
                   "border-emerald-200/80 bg-emerald-50/40 dark:bg-emerald-950/20",
                 !isOngoing && match.status === BracketMatchStatus.cancelled &&

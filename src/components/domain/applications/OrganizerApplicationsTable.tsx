@@ -66,8 +66,8 @@ export function OrganizerApplicationsTable({
         <TableHeader>
           <TableRow>
             <TableHead className="w-[3%]" />
-            <TableHead className="w-[13%]">선수 이름</TableHead>
             <TableHead className="w-[10%]">체육관</TableHead>
+            <TableHead className="w-[13%]">선수 이름</TableHead>
             <TableHead className="w-[20%]">{MATCH_CATEGORY_WITH_WEIGHT_LABEL}</TableHead>
             <TableHead className="w-[10%]">입금내역</TableHead>
             <TableHead className="w-[10%]">상태</TableHead>
@@ -85,6 +85,9 @@ export function OrganizerApplicationsTable({
                   }
                   aria-label={`${row.fighterName} 선택`}
                 />
+              </TableCell>
+              <TableCell className="align-top">
+                <div className="truncate text-sm">{row.gymName}</div>
               </TableCell>
               <TableCell className="align-top">
                 <div className="flex w-full min-w-0 items-center gap-2">
@@ -108,9 +111,6 @@ export function OrganizerApplicationsTable({
                     </div>
                   </div>
                 </div>
-              </TableCell>
-              <TableCell className="align-top">
-                <div className="truncate text-sm">{row.gymName}</div>
               </TableCell>
               <TableCell className="text-muted-foreground align-top text-xs leading-snug">
                 <span className="line-clamp-2 break-words">{row.divisionLabel}</span>

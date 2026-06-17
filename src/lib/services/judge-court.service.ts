@@ -19,7 +19,15 @@ import { hashJudgePassword } from "@/lib/judge-password";
 import { readRequestClientMeta } from "@/lib/judge-request-meta";
 import { defaultRoundCountForSport } from "@/lib/judge-round-count";
 import { parseBirthDateInput, formatBirthDateInput } from "@/lib/judge-identity";
+import {
+  encodeMatchOperationalSettings,
+  parseMatchOperationalSettings,
+  type MatchOperationalSettings,
+  formatOperationalSettingsLabel,
+} from "@/lib/match-operational-settings";
 import { outcomeStylePublicLabel } from "@/lib/match-result-snapshot";
+import { assertBracketMatchStatusTransition } from "@/lib/match-status-transition";
+import { BracketType } from "@/lib/enums";
 import { prisma } from "@/lib/prisma";
 import { judgeCredentialRepository } from "@/lib/repositories/judge-credential.repository";
 import { judgeScorecardRepository } from "@/lib/repositories/judge-scorecard.repository";
@@ -43,7 +51,14 @@ export type CourtJudgeMatchVM = {
   fighterBlueName: string;
   fighterBlueGymName: string | null;
   status: BracketMatchStatus;
+  bracketType: BracketType;
+  bracketIsPublic: boolean;
   roundCount: number;
+  roundTimeSec: number;
+  overtimeEnabled: boolean;
+  overtimeRoundCount: number;
+  operationalSettingsLabel: string;
+  displayResultMemo: string;
   winnerId: string | null;
   loserId: string | null;
   winnerName: string | null;
@@ -99,7 +114,10 @@ const matchInclude = {
   winner: { select: { name: true } },
   loser: { select: { name: true } },
   bracket: {
-    include: {
+    select: {
+      title: true,
+      type: true,
+      isPublic: true,
       division: {
         select: {
           sportType: true,
@@ -144,6 +162,13 @@ function toCourtJudgeMatchVM(
   court: { id: string; name: string; event: { id: string; title: string } },
   match: CourtMatchRow,
 ): CourtJudgeMatchVM {
+  const ops = parseMatchOperationalSettings(match.resultMemo);
+  const defaultRounds = defaultRoundCountForSport(match.bracket.division?.sportType ?? null);
+  const settings: MatchOperationalSettings = {
+    ...ops.settings,
+    roundCount: ops.settings.roundCount || defaultRounds,
+  };
+
   return {
     eventId: court.event.id,
     eventTitle: court.event.title,
@@ -156,6 +181,8 @@ function toCourtJudgeMatchVM(
       ? formatDivisionNameLabel(match.bracket.division)
       : null,
     bracketTitle: match.bracket.title,
+    bracketType: match.bracket.type,
+    bracketIsPublic: match.bracket.isPublic,
     fighterRedId: match.fighterRedId,
     fighterRedName: fighterName(match.fighterRed, match.fighterRedSnapshot),
     fighterRedGymName: fighterGymName(match.fighterRed, match.fighterRedSnapshot),
@@ -163,7 +190,12 @@ function toCourtJudgeMatchVM(
     fighterBlueName: fighterName(match.fighterBlue, match.fighterBlueSnapshot),
     fighterBlueGymName: fighterGymName(match.fighterBlue, match.fighterBlueSnapshot),
     status: match.status,
-    roundCount: defaultRoundCountForSport(match.bracket.division?.sportType ?? null),
+    roundCount: settings.roundCount,
+    roundTimeSec: settings.roundTimeSec,
+    overtimeEnabled: settings.overtimeEnabled,
+    overtimeRoundCount: settings.overtimeRoundCount,
+    operationalSettingsLabel: formatOperationalSettingsLabel(settings),
+    displayResultMemo: ops.displayMemo,
     winnerId: match.winnerId,
     loserId: match.loserId,
     winnerName: match.winner?.name ?? null,
@@ -216,6 +248,27 @@ async function findOngoingCourtMatch(courtId: string) {
     orderBy: [{ courtOrder: "asc" }, { globalMatchOrder: "asc" }, { matchOrder: "asc" }],
     include: matchInclude,
   });
+}
+
+async function findPreparingCourtMatch(courtId: string) {
+  return prisma.bracketMatch.findFirst({
+    where: { courtId, status: BracketMatchStatus.called },
+    orderBy: [{ courtOrder: "asc" }, { globalMatchOrder: "asc" }, { matchOrder: "asc" }],
+    include: matchInclude,
+  });
+}
+
+async function assertCourtHasNoActiveMatch(courtId: string) {
+  const [ongoing, preparing] = await Promise.all([
+    findOngoingCourtMatch(courtId),
+    findPreparingCourtMatch(courtId),
+  ]);
+  if (ongoing) {
+    throw new AppError("CONFLICT", "이미 진행중인 경기가 있습니다.");
+  }
+  if (preparing) {
+    throw new AppError("CONFLICT", "이미 경기준비 중인 경기가 있습니다.");
+  }
 }
 
 async function mapScorecards(matchIds: string[]): Promise<Record<string, CourtJudgeScorecardVM[]>> {
@@ -359,6 +412,27 @@ export const judgeCourtService = {
     });
   },
 
+  async prepareMatch(courtId: string, matchId: string): Promise<void> {
+    const court = await findCourt(courtId);
+    await assertCourtHasNoActiveMatch(courtId);
+    const target = await prisma.bracketMatch.findFirst({
+      where: {
+        id: matchId,
+        courtId: court.id,
+        status: BracketMatchStatus.waiting,
+        bracket: { eventId: court.event.id },
+      },
+    });
+    if (!target) {
+      throw new AppError("NOT_FOUND", "경기준비할 수 있는 대기 경기가 아닙니다.");
+    }
+    assertBracketMatchStatusTransition(target.status, BracketMatchStatus.called);
+    await prisma.bracketMatch.update({
+      where: { id: target.id },
+      data: { status: BracketMatchStatus.called },
+    });
+  },
+
   async startMatch(courtId: string, matchId: string): Promise<void> {
     const court = await findCourt(courtId);
     const ongoing = await findOngoingCourtMatch(courtId);
@@ -369,16 +443,49 @@ export const judgeCourtService = {
       where: {
         id: matchId,
         courtId: court.id,
-        status: BracketMatchStatus.waiting,
+        status: BracketMatchStatus.called,
         bracket: { eventId: court.event.id },
       },
     });
     if (!target) {
-      throw new AppError("NOT_FOUND", "시작할 수 있는 대기 경기가 아닙니다.");
+      throw new AppError("NOT_FOUND", "시작할 수 있는 경기준비 경기가 아닙니다.");
     }
+    assertBracketMatchStatusTransition(target.status, BracketMatchStatus.ongoing);
     await prisma.bracketMatch.update({
       where: { id: target.id },
       data: { status: BracketMatchStatus.ongoing, startedAt: new Date() },
+    });
+  },
+
+  async updateOperationalSettings(
+    courtId: string,
+    matchId: string,
+    settings: MatchOperationalSettings,
+  ): Promise<void> {
+    const court = await findCourt(courtId);
+    const match = await prisma.bracketMatch.findFirst({
+      where: {
+        id: matchId,
+        courtId: court.id,
+        bracket: { eventId: court.event.id },
+      },
+      select: { id: true, resultMemo: true, status: true },
+    });
+    if (!match) {
+      throw new AppError("NOT_FOUND", "경기를 찾을 수 없습니다.");
+    }
+    if (
+      match.status !== BracketMatchStatus.called &&
+      match.status !== BracketMatchStatus.ongoing
+    ) {
+      throw new AppError("CONFLICT", "경기준비/진행중 경기만 라운드 설정을 변경할 수 있습니다.");
+    }
+    const { displayMemo } = parseMatchOperationalSettings(match.resultMemo);
+    await prisma.bracketMatch.update({
+      where: { id: match.id },
+      data: {
+        resultMemo: encodeMatchOperationalSettings(settings, displayMemo),
+      },
     });
   },
 
