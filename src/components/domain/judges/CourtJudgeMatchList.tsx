@@ -1,8 +1,12 @@
 "use client";
 
 import { Badge } from "@/components/ui/badge";
+import { BoutFormatBadge, PublicSparringUnderVsBadge } from "@/components/domain/shared/BoutFormatBadge";
 import { cn } from "@/lib/utils";
-import type { CourtJudgeMatchVM } from "@/lib/services/judge-court.service";
+import type {
+  CourtJudgeMatchVM,
+  CourtMatchScoreSummaryVM,
+} from "@/lib/services/judge-court.service";
 import { BracketMatchStatus } from "@/lib/enums";
 
 function statusLabel(status: CourtJudgeMatchVM["status"]): string {
@@ -22,15 +26,24 @@ function statusLabel(status: CourtJudgeMatchVM["status"]): string {
   }
 }
 
+function winnerCornerLabel(match: CourtJudgeMatchVM): string | null {
+  if (match.status !== BracketMatchStatus.finished || !match.winnerId) return null;
+  if (match.winnerId === match.fighterRedId) return "레드 승";
+  if (match.winnerId === match.fighterBlueId) return "블루 승";
+  return null;
+}
+
 function resultSummary(match: CourtJudgeMatchVM): string | null {
   if (match.status === BracketMatchStatus.finished) {
+    const corner = winnerCornerLabel(match);
     const winner = match.winnerName ?? "—";
     const loser = match.loserName ?? "—";
     const style = match.resultTypeLabel ? ` · ${match.resultTypeLabel}` : "";
-    return `${winner} 승 / ${loser} 패${style}`;
+    const cornerPart = corner ? `${corner} · ` : "";
+    return `${cornerPart}${winner} 승 / ${loser} 패${style}`;
   }
   if (match.status === BracketMatchStatus.cancelled) {
-    return match.resultMemo?.trim() || "취소됨";
+    return match.displayResultMemo?.trim() || match.resultMemo?.trim() || "취소됨";
   }
   return null;
 }
@@ -39,7 +52,7 @@ function MatchStatusBadge({ match }: { match: CourtJudgeMatchVM }) {
   if (match.status === BracketMatchStatus.ongoing) {
     return (
       <Badge className="bg-primary text-primary-foreground">
-        진행중 · 현재 경기
+        현재 경기 · 진행중
       </Badge>
     );
   }
@@ -58,9 +71,11 @@ function MatchStatusBadge({ match }: { match: CourtJudgeMatchVM }) {
 function MatchRowContent({
   match,
   compact,
+  scoreSummary,
 }: {
   match: CourtJudgeMatchVM;
   compact?: boolean;
+  scoreSummary?: CourtMatchScoreSummaryVM | null;
 }) {
   const summary = resultSummary(match);
   const orderLabel =
@@ -71,6 +86,10 @@ function MatchRowContent({
       <div className="flex flex-wrap items-center gap-2">
         <span className="text-muted-foreground text-xs font-medium">{orderLabel}</span>
         <MatchStatusBadge match={match} />
+        <BoutFormatBadge
+          bracketType={match.bracketType}
+          bracketIsPublic={match.bracketIsPublic}
+        />
       </div>
       <p className={cn("mt-1 font-semibold", compact ? "text-sm" : "text-base")}>
         <span className={match.winnerId === match.fighterRedId ? "text-emerald-700" : undefined}>
@@ -81,6 +100,10 @@ function MatchRowContent({
           {match.fighterBlueName}
         </span>
       </p>
+      <PublicSparringUnderVsBadge
+        bracketType={match.bracketType}
+        bracketIsPublic={match.bracketIsPublic}
+      />
       <p className="text-muted-foreground mt-1 text-xs">
         {[match.fighterRedGymName, match.fighterBlueGymName]
           .filter(Boolean)
@@ -88,7 +111,11 @@ function MatchRowContent({
       </p>
       <p className="text-muted-foreground mt-1 text-xs">
         {match.divisionLabel ?? "경기구분 미상"}
+        {match.operationalSettingsLabel ? ` · ${match.operationalSettingsLabel}` : ""}
       </p>
+      {match.displayResultMemo ? (
+        <p className="text-muted-foreground mt-1 text-xs">메모: {match.displayResultMemo}</p>
+      ) : null}
       {summary ? (
         <p
           className={cn(
@@ -103,6 +130,9 @@ function MatchRowContent({
           {summary}
         </p>
       ) : null}
+      {scoreSummary ? (
+        <p className="text-muted-foreground mt-1 text-xs">{scoreSummary.label}</p>
+      ) : null}
     </>
   );
 }
@@ -113,12 +143,14 @@ export function CourtJudgeMatchList({
   ongoingMatchId,
   onSelect,
   selectable = false,
+  scoreSummariesByMatchId,
 }: {
   matches: CourtJudgeMatchVM[];
   selectedMatchId?: string | null;
   ongoingMatchId?: string | null;
   onSelect?: (matchId: string) => void;
   selectable?: boolean;
+  scoreSummariesByMatchId?: Record<string, CourtMatchScoreSummaryVM>;
 }) {
   if (matches.length === 0) {
     return (
@@ -158,7 +190,11 @@ export function CourtJudgeMatchList({
                 !interactive && "cursor-default",
               )}
             >
-              <MatchRowContent match={match} compact />
+              <MatchRowContent
+                match={match}
+                compact
+                scoreSummary={scoreSummariesByMatchId?.[match.matchId]}
+              />
             </button>
           </li>
         );
@@ -169,8 +205,10 @@ export function CourtJudgeMatchList({
 
 export function CourtJudgeCurrentMatchCard({
   match,
+  scoreSummary,
 }: {
   match: CourtJudgeMatchVM;
+  scoreSummary?: CourtMatchScoreSummaryVM | null;
 }) {
   return (
     <section className="rounded-xl border border-primary bg-primary/5 p-4 ring-1 ring-primary/30">
@@ -178,7 +216,7 @@ export function CourtJudgeCurrentMatchCard({
         <p className="text-primary text-xs font-semibold">현재 경기</p>
         <MatchStatusBadge match={match} />
       </div>
-      <MatchRowContent match={match} />
+      <MatchRowContent match={match} scoreSummary={scoreSummary} />
     </section>
   );
 }
@@ -187,7 +225,7 @@ export function CourtJudgeFightersHeader({ match }: { match: CourtJudgeMatchVM }
   return (
     <div className="grid grid-cols-[1fr_auto_1fr] items-stretch overflow-hidden rounded-lg border">
       <div className="bg-red-500/5 p-3">
-        <p className="text-xs font-semibold text-red-700">홍코너</p>
+        <p className="text-xs font-semibold text-red-700">레드</p>
         <p
           className={cn(
             "text-lg font-bold",
@@ -198,9 +236,15 @@ export function CourtJudgeFightersHeader({ match }: { match: CourtJudgeMatchVM }
         </p>
         <p className="text-muted-foreground text-xs">{match.fighterRedGymName ?? "—"}</p>
       </div>
-      <div className="flex items-center bg-muted/30 px-4 font-black">VS</div>
+      <div className="flex flex-col items-center justify-center bg-muted/30 px-4">
+        <span className="font-black">VS</span>
+        <PublicSparringUnderVsBadge
+          bracketType={match.bracketType}
+          bracketIsPublic={match.bracketIsPublic}
+        />
+      </div>
       <div className="bg-blue-500/5 p-3 text-right">
-        <p className="text-xs font-semibold text-blue-700">청코너</p>
+        <p className="text-xs font-semibold text-blue-700">블루</p>
         <p
           className={cn(
             "text-lg font-bold",

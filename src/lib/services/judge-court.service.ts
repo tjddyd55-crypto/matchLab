@@ -19,6 +19,7 @@ import { hashJudgePassword } from "@/lib/judge-password";
 import { readRequestClientMeta } from "@/lib/judge-request-meta";
 import { defaultRoundCountForSport } from "@/lib/judge-round-count";
 import { parseBirthDateInput, formatBirthDateInput } from "@/lib/judge-identity";
+import { effectiveScoringRoundCountFromOps } from "@/lib/court-judge-rounds";
 import {
   encodeMatchOperationalSettings,
   parseMatchOperationalSettings,
@@ -68,14 +69,28 @@ export type CourtJudgeMatchVM = {
   resultMemo: string | null;
 };
 
+export type CourtJudgeScorecardRoundVM = {
+  roundNumber: number;
+  redScore: number | null;
+  blueScore: number | null;
+};
+
 export type CourtJudgeScorecardVM = {
+  scorecardId: string;
   judgeName: string;
+  judgeBirthDateSnapshot: string | null;
   redTotal: number | null;
   blueTotal: number | null;
   winnerCorner: JudgeWinnerCorner;
   decisionMethod: JudgeDecisionMethod | null;
   memo: string | null;
   submittedAt: string | null;
+  rounds: CourtJudgeScorecardRoundVM[];
+};
+
+export type CourtMatchScoreSummaryVM = {
+  submittedCount: number;
+  label: string;
 };
 
 export type CourtJudgeCourtVM = {
@@ -89,6 +104,7 @@ export type CourtJudgeScoringContext = {
   court: CourtJudgeCourtVM;
   matches: CourtJudgeMatchVM[];
   ongoingMatchId: string | null;
+  scoreSummariesByMatchId: Record<string, CourtMatchScoreSummaryVM>;
 };
 
 export type CourtJudgeHeadContext = {
@@ -96,6 +112,20 @@ export type CourtJudgeHeadContext = {
   matches: CourtJudgeMatchVM[];
   ongoingMatchId: string | null;
   scorecardsByMatchId: Record<string, CourtJudgeScorecardVM[]>;
+  scoreSummariesByMatchId: Record<string, CourtMatchScoreSummaryVM>;
+};
+
+export type CourtJudgeMyScorecardVM = {
+  scorecardId: string;
+  status: JudgeScorecardStatus;
+  redTotal: number | null;
+  blueTotal: number | null;
+  winnerCorner: JudgeWinnerCorner;
+  decisionMethod: JudgeDecisionMethod | null;
+  memo: string | null;
+  submittedAt: string | null;
+  rounds: CourtJudgeScorecardRoundVM[];
+  isLocked: boolean;
 };
 
 const matchInclude = {
@@ -271,6 +301,47 @@ async function assertCourtHasNoActiveMatch(courtId: string) {
   }
 }
 
+function toScorecardVM(s: Awaited<ReturnType<typeof judgeScorecardRepository.listByMatch>>[number]): CourtJudgeScorecardVM {
+  return {
+    scorecardId: s.id,
+    judgeName: s.judgeName,
+    judgeBirthDateSnapshot: s.judgeBirthDateSnapshot,
+    redTotal: s.redTotal,
+    blueTotal: s.blueTotal,
+    winnerCorner: s.winnerCorner,
+    decisionMethod: s.decisionMethod,
+    memo: s.memo,
+    submittedAt: s.submittedAt?.toISOString() ?? null,
+    rounds: s.rounds.map((r) => ({
+      roundNumber: r.roundNumber,
+      redScore: r.redScore,
+      blueScore: r.blueScore,
+    })),
+  };
+}
+
+function isSubmittedScorecardStatus(status: JudgeScorecardStatus): boolean {
+  return (
+    status === JudgeScorecardStatus.submitted ||
+    status === JudgeScorecardStatus.revised ||
+    status === JudgeScorecardStatus.locked
+  );
+}
+
+function summarizeScorecards(cards: CourtJudgeScorecardVM[]): CourtMatchScoreSummaryVM | null {
+  if (cards.length === 0) return null;
+  let redVotes = 0;
+  let blueVotes = 0;
+  for (const card of cards) {
+    if (card.winnerCorner === "red") redVotes += 1;
+    else if (card.winnerCorner === "blue") blueVotes += 1;
+  }
+  return {
+    submittedCount: cards.length,
+    label: `채점 ${cards.length}건 · 홍 ${redVotes} · 청 ${blueVotes}`,
+  };
+}
+
 async function mapScorecards(matchIds: string[]): Promise<Record<string, CourtJudgeScorecardVM[]>> {
   if (matchIds.length === 0) return {};
   const grouped = await Promise.all(
@@ -278,26 +349,55 @@ async function mapScorecards(matchIds: string[]): Promise<Record<string, CourtJu
       const scorecards = await judgeScorecardRepository.listByMatch(matchId);
       return [
         matchId,
-        scorecards
-          .filter(
-            (s) =>
-              s.status === JudgeScorecardStatus.submitted ||
-              s.status === JudgeScorecardStatus.revised ||
-              s.status === JudgeScorecardStatus.locked,
-          )
-          .map((s) => ({
-            judgeName: s.judgeName,
-            redTotal: s.redTotal,
-            blueTotal: s.blueTotal,
-            winnerCorner: s.winnerCorner,
-            decisionMethod: s.decisionMethod,
-            memo: s.memo,
-            submittedAt: s.submittedAt?.toISOString() ?? null,
-          })),
+        scorecards.filter((s) => isSubmittedScorecardStatus(s.status)).map(toScorecardVM),
       ] as const;
     }),
   );
   return Object.fromEntries(grouped);
+}
+
+function buildScoreSummaries(
+  scorecardsByMatchId: Record<string, CourtJudgeScorecardVM[]>,
+): Record<string, CourtMatchScoreSummaryVM> {
+  const out: Record<string, CourtMatchScoreSummaryVM> = {};
+  for (const [matchId, cards] of Object.entries(scorecardsByMatchId)) {
+    const summary = summarizeScorecards(cards);
+    if (summary) out[matchId] = summary;
+  }
+  return out;
+}
+
+async function resolveCredentialForOpenJudge(
+  court: Awaited<ReturnType<typeof findCourt>>,
+  judgeName: string,
+  birthDate: string,
+) {
+  const birth = parseBirthDateInput(birthDate);
+  if (!birth) {
+    throw new AppError("VALIDATION_ERROR", "생년월일 형식이 올바르지 않습니다.");
+  }
+  const trimmedName = judgeName.trim();
+  if (!trimmedName) {
+    throw new AppError("VALIDATION_ERROR", "이름을 입력해 주세요.");
+  }
+  const birthSnapshot = formatBirthDateInput(birth);
+  const loginId = `court-${court.id}-${normalizeKey(trimmedName)}-${birthSnapshot.replace(/-/g, "")}`;
+  let credential = await judgeCredentialRepository.findByLoginId(loginId);
+  if (!credential) {
+    credential = await judgeCredentialRepository.create({
+      eventId: court.event.id,
+      loginId,
+      passwordHash: hashJudgePassword(randomUUID()),
+      displayName: trimmedName,
+      role: JudgeCredentialRole.SCORING_JUDGE,
+      memo: `경기장 채점 링크 자동 생성: ${court.name}`,
+    });
+    await judgeCredentialRepository.confirmIdentity(credential.id, {
+      verifiedName: trimmedName,
+      birthDate: birth,
+    });
+  }
+  return { credential, birthSnapshot, judgeName: trimmedName };
 }
 
 export const judgeCourtService = {
@@ -311,10 +411,19 @@ export const judgeCourtService = {
     const court = await findCourt(courtId);
     const rows = await listCourtMatchRows(courtId);
     const ongoing = rows.find((m) => m.status === BracketMatchStatus.ongoing);
+    const summaryMatchIds = rows
+      .filter(
+        (m) =>
+          m.status === BracketMatchStatus.ongoing ||
+          m.status === BracketMatchStatus.finished,
+      )
+      .map((m) => m.id);
+    const scorecardsByMatchId = await mapScorecards(summaryMatchIds);
     return {
       court: toCourtVM(court),
       matches: rows.map((match) => toCourtJudgeMatchVM(court, match)),
       ongoingMatchId: ongoing?.id ?? null,
+      scoreSummariesByMatchId: buildScoreSummaries(scorecardsByMatchId),
     };
   },
 
@@ -323,12 +432,57 @@ export const judgeCourtService = {
     const rows = await listCourtMatchRows(courtId);
     const ongoing = rows.find((m) => m.status === BracketMatchStatus.ongoing);
     const ongoingId = ongoing?.id ?? null;
-    const scorecardMatchIds = ongoingId ? [ongoingId] : [];
+    const scorecardMatchIds = rows
+      .filter(
+        (m) =>
+          m.status === BracketMatchStatus.ongoing ||
+          m.status === BracketMatchStatus.finished,
+      )
+      .map((m) => m.id);
+    const scorecardsByMatchId = await mapScorecards(scorecardMatchIds);
     return {
       court: toCourtVM(court),
       matches: rows.map((match) => toCourtJudgeMatchVM(court, match)),
       ongoingMatchId: ongoingId,
-      scorecardsByMatchId: await mapScorecards(scorecardMatchIds),
+      scorecardsByMatchId,
+      scoreSummariesByMatchId: buildScoreSummaries(scorecardsByMatchId),
+    };
+  },
+
+  async getMyScorecard(input: {
+    courtId: string;
+    matchId: string;
+    judgeName: string;
+    birthDate: string;
+  }): Promise<CourtJudgeMyScorecardVM | null> {
+    const court = await findCourt(input.courtId);
+    const { credential } = await resolveCredentialForOpenJudge(
+      court,
+      input.judgeName,
+      input.birthDate,
+    );
+    const card = await judgeScorecardRepository.findByMatchAndCredential(
+      input.matchId,
+      credential.id,
+    );
+    if (!card || !isSubmittedScorecardStatus(card.status)) {
+      return null;
+    }
+    return {
+      scorecardId: card.id,
+      status: card.status,
+      redTotal: card.redTotal,
+      blueTotal: card.blueTotal,
+      winnerCorner: card.winnerCorner,
+      decisionMethod: card.decisionMethod,
+      memo: card.memo,
+      submittedAt: card.submittedAt?.toISOString() ?? null,
+      rounds: card.rounds.map((r) => ({
+        roundNumber: r.roundNumber,
+        redScore: r.redScore,
+        blueScore: r.blueScore,
+      })),
+      isLocked: card.status === JudgeScorecardStatus.locked,
     };
   },
 
@@ -337,8 +491,11 @@ export const judgeCourtService = {
     matchId: string;
     judgeName: string;
     birthDate: string;
-    redScore: number;
-    blueScore: number;
+    rounds: {
+      roundNumber: number;
+      redScore: number;
+      blueScore: number;
+    }[];
     decisionMethod?: JudgeDecisionMethod | null;
     memo?: string | null;
   }): Promise<void> {
@@ -347,48 +504,56 @@ export const judgeCourtService = {
     if (!match || match.id !== input.matchId) {
       throw new AppError("CONFLICT", "현재 진행중인 경기가 아닙니다.");
     }
-    const birth = parseBirthDateInput(input.birthDate);
-    if (!birth) {
-      throw new AppError("VALIDATION_ERROR", "생년월일 형식이 올바르지 않습니다.");
-    }
-    const judgeName = input.judgeName.trim();
-    if (!judgeName) {
-      throw new AppError("VALIDATION_ERROR", "이름을 입력해 주세요.");
+    if (input.rounds.length === 0) {
+      throw new AppError("VALIDATION_ERROR", "라운드 점수를 입력해 주세요.");
     }
 
-    const birthSnapshot = formatBirthDateInput(birth);
-    const loginId = `court-${court.id}-${normalizeKey(judgeName)}-${birthSnapshot.replace(/-/g, "")}`;
-    let credential = await judgeCredentialRepository.findByLoginId(loginId);
-    if (!credential) {
-      credential = await judgeCredentialRepository.create({
-        eventId: court.event.id,
-        loginId,
-        passwordHash: hashJudgePassword(randomUUID()),
-        displayName: judgeName,
-        role: JudgeCredentialRole.SCORING_JUDGE,
-        memo: `경기장 채점 링크 자동 생성: ${court.name}`,
-      });
-      await judgeCredentialRepository.confirmIdentity(credential.id, {
-        verifiedName: judgeName,
-        birthDate: birth,
-      });
+    const { credential, birthSnapshot, judgeName } = await resolveCredentialForOpenJudge(
+      court,
+      input.judgeName,
+      input.birthDate,
+    );
+
+    const existing = await judgeScorecardRepository.findByMatchAndCredential(
+      match.id,
+      credential.id,
+    );
+    if (existing?.status === JudgeScorecardStatus.locked) {
+      throw new AppError("CONFLICT", "종료된 경기 채점은 수정할 수 없습니다.");
     }
 
-    const rounds = [
-      {
-        roundNumber: 1,
-        redScore: input.redScore,
-        blueScore: input.blueScore,
-        redKnockdowns: 0,
-        blueKnockdowns: 0,
-        redDeductions: 0,
-        blueDeductions: 0,
-        warningMemo: null,
-        roundMemo: input.memo?.trim() || null,
-      },
-    ];
+    const ops = parseMatchOperationalSettings(match.resultMemo);
+    const expectedRounds = effectiveScoringRoundCountFromOps({
+      ...ops.settings,
+      roundCount: ops.settings.roundCount || defaultRoundCountForSport(match.bracket.division?.sportType ?? null),
+    });
+    if (input.rounds.length !== expectedRounds) {
+      throw new AppError(
+        "VALIDATION_ERROR",
+        `라운드 수가 일치하지 않습니다. (${expectedRounds}라운드)`,
+      );
+    }
+
+    const rounds = input.rounds.map((r) => ({
+      roundNumber: r.roundNumber,
+      redScore: r.redScore,
+      blueScore: r.blueScore,
+      redKnockdowns: 0,
+      blueKnockdowns: 0,
+      redDeductions: 0,
+      blueDeductions: 0,
+      warningMemo: null,
+      roundMemo: null,
+    }));
     const totals = computeScorecardTotals(rounds);
     const meta = await readRequestClientMeta();
+
+    const nextStatus =
+      existing?.status === JudgeScorecardStatus.submitted ||
+      existing?.status === JudgeScorecardStatus.revised
+        ? JudgeScorecardStatus.revised
+        : JudgeScorecardStatus.submitted;
+
     await judgeScorecardRepository.upsertDraft({
       eventId: court.event.id,
       matchId: match.id,
@@ -398,8 +563,8 @@ export const judgeCourtService = {
       judgeRoleSnapshot: JudgeCredentialRole.SCORING_JUDGE,
       cornerRedFighterId: match.fighterRedId,
       cornerBlueFighterId: match.fighterBlueId,
-      roundCount: 1,
-      status: JudgeScorecardStatus.submitted,
+      roundCount: rounds.length,
+      status: nextStatus,
       redTotal: totals.redTotal,
       blueTotal: totals.blueTotal,
       winnerCorner: totals.winnerCorner,
@@ -485,6 +650,36 @@ export const judgeCourtService = {
       where: { id: match.id },
       data: {
         resultMemo: encodeMatchOperationalSettings(settings, displayMemo),
+      },
+    });
+  },
+
+  async addOvertimeRound(courtId: string, matchId: string): Promise<void> {
+    const court = await findCourt(courtId);
+    const match = await prisma.bracketMatch.findFirst({
+      where: {
+        id: matchId,
+        courtId: court.id,
+        bracket: { eventId: court.event.id },
+      },
+      select: { id: true, resultMemo: true, status: true },
+    });
+    if (!match) {
+      throw new AppError("NOT_FOUND", "경기를 찾을 수 없습니다.");
+    }
+    if (match.status !== BracketMatchStatus.ongoing) {
+      throw new AppError("CONFLICT", "진행중 경기만 연장 라운드를 추가할 수 있습니다.");
+    }
+    const { settings, displayMemo } = parseMatchOperationalSettings(match.resultMemo);
+    const next: MatchOperationalSettings = {
+      ...settings,
+      overtimeEnabled: true,
+      overtimeRoundCount: Math.min(3, (settings.overtimeRoundCount || 0) + 1),
+    };
+    await prisma.bracketMatch.update({
+      where: { id: match.id },
+      data: {
+        resultMemo: encodeMatchOperationalSettings(next, displayMemo),
       },
     });
   },
