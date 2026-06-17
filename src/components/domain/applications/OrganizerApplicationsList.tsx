@@ -10,7 +10,7 @@ import { MATCH_CATEGORY_WITH_WEIGHT_LABEL } from "@/lib/ui-labels/match-category
 import { Checkbox } from "@/components/ui/checkbox";
 
 const LIST_GRID_CLASS =
-  "grid min-w-0 gap-x-3 gap-y-2 py-3 text-sm [grid-template-columns:2rem_minmax(0,1.2fr)_minmax(0,0.8fr)_minmax(0,1fr)_minmax(0,0.6fr)_minmax(0,0.6fr)_minmax(0,0.9fr)] max-xl:[grid-template-columns:2rem_minmax(0,1fr)_minmax(0,0.8fr)_minmax(0,1fr)_minmax(0,0.7fr)_minmax(0,0.7fr)] max-xl:[&_.col-actions]:col-span-2";
+  "grid min-w-0 gap-x-3 gap-y-2 py-3 text-sm [grid-template-columns:2rem_minmax(0,0.9fr)_minmax(0,1.1fr)_minmax(0,1fr)_minmax(0,0.6fr)_minmax(0,0.6fr)_minmax(0,0.9fr)] max-xl:[grid-template-columns:2rem_minmax(0,0.8fr)_minmax(0,1fr)_minmax(0,1fr)_minmax(0,0.7fr)_minmax(0,0.7fr)] max-xl:[&_.col-actions]:col-span-2";
 
 export function OrganizerApplicationsList({
   eventId,
@@ -25,10 +25,10 @@ export function OrganizerApplicationsList({
 }) {
   return (
     <div className="hidden min-w-0 md:block 2xl:hidden">
-      <div className="text-muted-foreground hidden border-b px-1 pb-2 text-xs font-medium xl:grid xl:gap-x-3 xl:[grid-template-columns:2rem_minmax(0,1.2fr)_minmax(0,0.8fr)_minmax(0,1fr)_minmax(0,0.6fr)_minmax(0,0.6fr)_minmax(0,0.9fr)]">
+      <div className="text-muted-foreground hidden border-b px-1 pb-2 text-xs font-medium xl:grid xl:gap-x-3 xl:[grid-template-columns:2rem_minmax(0,0.9fr)_minmax(0,1.1fr)_minmax(0,1fr)_minmax(0,0.6fr)_minmax(0,0.6fr)_minmax(0,0.9fr)]">
         <span />
-        <span>선수 이름</span>
         <span>체육관</span>
+        <span>선수 이름</span>
         <span>{MATCH_CATEGORY_WITH_WEIGHT_LABEL}</span>
         <span>입금내역</span>
         <span>상태</span>
@@ -47,6 +47,8 @@ export function OrganizerApplicationsList({
                 aria-label={`${row.fighterName} 선택`}
               />
             </div>
+
+            <div className="min-w-0 truncate text-sm">{row.gymName}</div>
 
             <div className="flex min-w-0 items-center gap-2">
               <div className="relative size-8 shrink-0 overflow-hidden rounded-md bg-muted">
@@ -67,8 +69,6 @@ export function OrganizerApplicationsList({
                 {row.fighterName}
               </span>
             </div>
-
-            <div className="min-w-0 truncate text-sm">{row.gymName}</div>
 
             <div
               className="text-muted-foreground min-w-0 text-xs leading-snug"

@@ -541,6 +541,38 @@ export const judgeScorecardService = {
     }));
   },
 
+  async listSubmittedBriefByEvent(
+    actor: ActorContext,
+    eventId: string,
+  ): Promise<
+    Record<string, { judgeName: string; winnerCorner: string }[]>
+  > {
+    requireRole(actor, ["organizer", "admin"]);
+    await requireOrganizerForEvent(actor, eventId);
+
+    const scorecards = await judgeScorecardRepository.listByEvent(eventId);
+    const byMatch: Record<string, { judgeName: string; winnerCorner: string }[]> =
+      {};
+
+    for (const s of scorecards) {
+      if (
+        s.status !== "submitted" &&
+        s.status !== "revised" &&
+        s.status !== "locked"
+      ) {
+        continue;
+      }
+      const list = byMatch[s.matchId] ?? [];
+      list.push({
+        judgeName: s.judgeName,
+        winnerCorner: s.winnerCorner,
+      });
+      byMatch[s.matchId] = list;
+    }
+
+    return byMatch;
+  },
+
   async listEventMatchesForHeadJudge(
     session: ResolvedJudgeSession,
   ): Promise<

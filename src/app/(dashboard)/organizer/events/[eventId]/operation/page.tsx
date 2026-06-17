@@ -26,11 +26,13 @@ export default async function OrganizerEventOperationPage({
 
   await requireOrganizerForEventPage(actor, eventId);
 
-  const [nav, matches, staffRecorderLinks, judgeSummaries] = await Promise.all([
+  const [nav, matches, staffRecorderLinks, judgeSummaries, judgeBriefByMatch] =
+    await Promise.all([
     loadEventManagementNavContext(eventId),
     matchService.listOrganizerEventMatches(actor, eventId),
     eventStaffAccessService.listLinksForOrganizer(actor, eventId),
     judgeScorecardService.getEventJudgeSummary(actor, eventId),
+    judgeScorecardService.listSubmittedBriefByEvent(actor, eventId),
   ]);
 
   const judgeSummaryByMatch = new Map(
@@ -95,6 +97,7 @@ export default async function OrganizerEventOperationPage({
       <OrganizerOperationBoard
         matches={matches}
         judgeSummaryByMatch={Object.fromEntries(judgeSummaryByMatch)}
+        judgeBriefByMatch={judgeBriefByMatch}
       />
     </EventManagementLayout>
   );

@@ -20,7 +20,8 @@ import { cn } from "@/lib/utils";
 const FILTER_OPTIONS: { value: OperationBoardFilter; label: string }[] = [
   { value: "all", label: "전체" },
   { value: "scheduled", label: "대기" },
-  { value: "in_progress", label: "진행 중" },
+  { value: "preparing", label: "경기준비" },
+  { value: "in_progress", label: "경기진행중" },
   { value: "completed", label: "완료" },
   { value: "result_pending", label: "결과 미입력" },
   { value: "result_done", label: "결과 입력 완료" },
@@ -34,9 +35,11 @@ export type JudgeMatchSummaryVM = {
 export function OrganizerOperationBoard({
   matches,
   judgeSummaryByMatch,
+  judgeBriefByMatch = {},
 }: {
   matches: OrganizerEventMatchListItemVM[];
   judgeSummaryByMatch?: Record<string, JudgeMatchSummaryVM>;
+  judgeBriefByMatch?: Record<string, { judgeName: string; winnerCorner: string }[]>;
 }) {
   const listRef = useRef<HTMLDivElement>(null);
   const [summaryFilter, setSummaryFilter] = useState<OperationBoardFilter>("all");
@@ -129,6 +132,7 @@ export function OrganizerOperationBoard({
           rows={filteredRows}
           expandedMatchId={expandedMatchId}
           onTogglePanel={toggleInlinePanel}
+          judgeBriefByMatch={judgeBriefByMatch}
         />
         <OrganizerOperationCardListMobile
           rows={filteredRows}

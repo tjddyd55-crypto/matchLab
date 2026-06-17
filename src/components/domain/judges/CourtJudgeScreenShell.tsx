@@ -2,7 +2,11 @@
 
 import { useMemo, useState } from "react";
 import { cn } from "@/lib/utils";
-import type { CourtJudgeCourtVM, CourtJudgeMatchVM } from "@/lib/services/judge-court.service";
+import type {
+  CourtJudgeCourtVM,
+  CourtJudgeMatchVM,
+  CourtMatchScoreSummaryVM,
+} from "@/lib/services/judge-court.service";
 import {
   CourtJudgeCurrentMatchCard,
   CourtJudgeMatchList,
@@ -18,6 +22,7 @@ export function CourtJudgeScreenShell({
   selectable = true,
   selectedMatchId: controlledSelectedMatchId,
   onSelectedMatchIdChange,
+  scoreSummariesByMatchId,
 }: {
   court: CourtJudgeCourtVM;
   matches: CourtJudgeMatchVM[];
@@ -28,6 +33,7 @@ export function CourtJudgeScreenShell({
   selectable?: boolean;
   selectedMatchId?: string | null;
   onSelectedMatchIdChange?: (matchId: string) => void;
+  scoreSummariesByMatchId?: Record<string, CourtMatchScoreSummaryVM>;
 }) {
   const defaultSelectedId =
     ongoingMatchId ??
@@ -61,6 +67,7 @@ export function CourtJudgeScreenShell({
         ongoingMatchId={ongoingMatchId}
         selectable={selectable}
         onSelect={selectable ? setSelectedMatchId : undefined}
+        scoreSummariesByMatchId={scoreSummariesByMatchId}
       />
     </section>
   );
@@ -94,13 +101,21 @@ export function CourtJudgeScreenShell({
       <div className="space-y-4 lg:hidden">
         {mobileDetailFirst && ongoingMatch ? (
           <>
-            <CourtJudgeCurrentMatchCard match={ongoingMatch} />
+            <CourtJudgeCurrentMatchCard
+              match={ongoingMatch}
+              scoreSummary={scoreSummariesByMatchId?.[ongoingMatch.matchId]}
+            />
             {detail(selectedMatch)}
             {list}
           </>
         ) : (
           <>
-            {ongoingMatch ? <CourtJudgeCurrentMatchCard match={ongoingMatch} /> : null}
+            {ongoingMatch ? (
+              <CourtJudgeCurrentMatchCard
+                match={ongoingMatch}
+                scoreSummary={scoreSummariesByMatchId?.[ongoingMatch.matchId]}
+              />
+            ) : null}
             {detailPanel}
             {list}
           </>

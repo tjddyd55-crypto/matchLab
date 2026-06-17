@@ -19,7 +19,7 @@ export function OrganizerOperationStatusBadges({
     <div className={cn("flex flex-wrap items-center gap-2", className)}>
       <Badge
         variant={
-          phase === "in_progress"
+          phase === "in_progress" || phase === "preparing"
             ? "default"
             : phase === "result_done"
               ? "secondary"

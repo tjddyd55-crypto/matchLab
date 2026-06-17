@@ -82,7 +82,7 @@ export function BracketCreateForm({
             defaultValue={BracketType.single_elimination}
           >
             <option value={BracketType.single_elimination}>토너먼트</option>
-            <option value={BracketType.match_list}>경기 목록</option>
+            <option value={BracketType.match_list}>원매치</option>
           </select>
         </label>
         <div className="md:col-span-2">

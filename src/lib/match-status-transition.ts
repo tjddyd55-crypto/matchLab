@@ -19,6 +19,7 @@ export function assertBracketMatchStatusTransition(
 
   const allowed: Record<BracketMatchStatus, Set<BracketMatchStatus>> = {
     [BracketMatchStatus.waiting]: new Set([
+      BracketMatchStatus.called,
       BracketMatchStatus.ongoing,
       BracketMatchStatus.finished,
       BracketMatchStatus.cancelled,

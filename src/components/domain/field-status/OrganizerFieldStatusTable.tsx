@@ -14,6 +14,15 @@ import { WeighInStatusBadge } from "@/components/domain/field-status/WeighInStat
 import type { FieldStatusRowDTO } from "@/lib/services/field-status.service";
 import { APPLIED_MATCH_CATEGORY_LABEL } from "@/lib/ui-labels/match-category";
 
+function HandicapNotice({ note }: { note: string | null }) {
+  if (!note?.trim()) return null;
+  return (
+    <div className="mt-2 rounded-md border border-amber-500/40 bg-amber-500/10 px-2 py-1.5 text-xs text-amber-900">
+      핸디캡: {note}
+    </div>
+  );
+}
+
 export function OrganizerFieldStatusTable({
   rows,
   emptyMessage = "표시할 승인 신청자가 없습니다.",
@@ -35,13 +44,12 @@ export function OrganizerFieldStatusTable({
         <table className="w-full min-w-[72rem] text-left text-sm">
           <thead className="bg-muted/40 text-xs">
             <tr>
-              <th className="min-w-[7rem] px-3 py-2 font-medium">선수명</th>
+              <th className="min-w-[9rem] px-3 py-2 font-medium">선수 / 계체결과</th>
               <th className="min-w-[8rem] px-3 py-2 font-medium">체육관</th>
               <th className="min-w-[12rem] px-3 py-2 font-medium">
                 {APPLIED_MATCH_CATEGORY_LABEL}
               </th>
               <th className="min-w-[8rem] px-3 py-2 font-medium">계체 몸무게</th>
-              <th className="min-w-[7rem] px-3 py-2 font-medium">계체 결과</th>
               <th className="min-w-[9rem] px-3 py-2 font-medium">실격 처리</th>
               <th className="min-w-[10rem] px-3 py-2 font-medium">결과입력</th>
               <th className="min-w-[10rem] px-3 py-2 font-medium">실격 사유</th>
@@ -52,7 +60,13 @@ export function OrganizerFieldStatusTable({
           <tbody>
             {rows.map((row) => (
               <tr key={row.applicationId} className="border-t align-top">
-                <td className="px-3 py-2 font-medium">{row.fighterName}</td>
+                <td className="px-3 py-2">
+                  <p className="font-medium">{row.fighterName}</p>
+                  <div className="mt-1">
+                    <WeighInStatusBadge status={row.weighInStatus} />
+                  </div>
+                  <HandicapNotice note={row.handicapNote} />
+                </td>
                 <td className="max-w-[10rem] truncate px-3 py-2 text-xs">
                   {row.gymName}
                 </td>
@@ -64,9 +78,6 @@ export function OrganizerFieldStatusTable({
                     key={`${row.applicationId}-${row.weighInWeightKg}`}
                     row={row}
                   />
-                </td>
-                <td className="px-3 py-2">
-                  <WeighInStatusBadge status={row.weighInStatus} />
                 </td>
                 <td className="px-3 py-2">
                   <FieldStatusPrimaryActions row={row} />
@@ -93,11 +104,15 @@ export function OrganizerFieldStatusTable({
         {rows.map((row) => (
           <article
             key={row.applicationId}
-            className="ring-foreground/10 rounded-xl border bg-card p-3 shadow-sm"
+            className="rounded-xl border bg-card p-3 shadow-sm"
           >
-            <h3 className="font-medium">{row.fighterName}</h3>
             <p className="text-muted-foreground text-xs">{row.gymName}</p>
-            <p className="text-muted-foreground mt-0.5 line-clamp-2 text-xs">
+            <h3 className="font-medium">{row.fighterName}</h3>
+            <div className="mt-1">
+              <WeighInStatusBadge status={row.weighInStatus} />
+            </div>
+            <HandicapNotice note={row.handicapNote} />
+            <p className="text-muted-foreground mt-2 line-clamp-2 text-xs">
               {row.divisionLabel}
             </p>
             <div className="mt-2 grid gap-2 border-t pt-2">
@@ -109,12 +124,6 @@ export function OrganizerFieldStatusTable({
                   key={`${row.applicationId}-${row.weighInWeightKg}-m`}
                   row={row}
                 />
-              </div>
-              <div>
-                <p className="text-muted-foreground mb-1 text-[10px] font-medium">
-                  계체 결과
-                </p>
-                <WeighInStatusBadge status={row.weighInStatus} />
               </div>
               <div>
                 <p className="text-muted-foreground mb-1 text-[10px] font-medium">

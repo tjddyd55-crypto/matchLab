@@ -20,6 +20,7 @@ const DEFAULT_FILTERS: OrganizerApplicationFiltersState = {
   divisionId: "all",
   gymId: "all",
   consent: "all",
+  fighterName: "",
 };
 
 export function OrganizerApplicationsBoard({
@@ -72,6 +73,10 @@ export function OrganizerApplicationsBoard({
         return false;
       }
       if (filters.consent !== "all" && r.consentFilterKey !== filters.consent) {
+        return false;
+      }
+      const nameQuery = filters.fighterName.trim().toLowerCase();
+      if (nameQuery && !r.fighterName.toLowerCase().includes(nameQuery)) {
         return false;
       }
       return true;

@@ -32,11 +32,15 @@ export function toOperationMatchRow(
   };
 }
 
+import { parseMatchOperationalSettings } from "@/lib/match-operational-settings";
+
 export function toMatchOpsProps(
   row: OrganizerEventMatchListItemVM,
 ): OrganizerMatchOpsPanelProps {
+  const { displayMemo } = parseMatchOperationalSettings(row.resultMemo);
   return {
     bracketType: row.bracketType,
+    bracketIsPublic: row.bracketIsPublic,
     matchId: row.matchId,
     status: row.status,
     fighterRedId: row.fighterRed?.id ?? null,
@@ -46,6 +50,6 @@ export function toMatchOpsProps(
     hasOfficialResults: row.hasOfficialResults,
     winnerId: row.winnerId,
     resultType: row.resultType,
-    resultMemo: row.resultMemo,
+    resultMemo: displayMemo || null,
   };
 }

@@ -9,6 +9,7 @@ export type OrganizerApplicationFiltersState = {
   divisionId: string;
   gymId: string;
   consent: string;
+  fighterName: string;
 };
 
 export function OrganizerApplicationsFilterBar({
@@ -30,7 +31,20 @@ export function OrganizerApplicationsFilterBar({
   }
 
   return (
-    <div className="flex min-w-0 flex-col gap-3 rounded-xl border border-border/70 bg-muted/20 p-4 text-sm md:flex-row md:flex-wrap md:items-end">
+    <div className="flex min-w-0 flex-col gap-3 rounded-xl border border-primary/20 bg-muted/20 p-4 text-sm md:flex-row md:flex-wrap md:items-end">
+      <div className="grid min-w-[12rem] flex-1 gap-1 md:min-w-[16rem]">
+        <label className="text-muted-foreground text-xs" htmlFor="f-fighter">
+          선수이름 검색
+        </label>
+        <input
+          id="f-fighter"
+          type="search"
+          placeholder="선수 이름"
+          className="border-input bg-background h-9 w-full rounded-lg border px-3 text-sm"
+          value={filters.fighterName}
+          onChange={(e) => patch("fighterName", e.target.value)}
+        />
+      </div>
       <div className="grid gap-1">
         <label className="text-muted-foreground text-xs" htmlFor="f-app">
           상태

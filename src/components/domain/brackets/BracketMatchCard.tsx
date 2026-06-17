@@ -6,6 +6,8 @@ import { formatMatchOrderFormal } from "@/lib/match-order-display";
 import { outcomeStylePublicLabel } from "@/lib/match-result-snapshot";
 
 import { FighterSlotCard } from "@/components/domain/brackets/FighterSlotCard";
+import { PublicSparringUnderVsBadge } from "@/components/domain/shared/BoutFormatBadge";
+import { BoutFormatBadge } from "@/components/domain/shared/BoutFormatBadge";
 
 function statusLabel(s: BracketMatchStatus): string {
   switch (s) {
@@ -31,12 +33,16 @@ export function BracketMatchCard({
   divisionLabel,
   matPrefix,
   className,
+  bracketType,
+  bracketIsPublic,
 }: {
   match: PublicBracketMatchDTO;
   divisionLabel?: string | null;
   /** 예: "경기 #3" 앞에 붙는 매트 라벨 */
   matPrefix?: string | null;
   className?: string;
+  bracketType?: string;
+  bracketIsPublic?: boolean;
 }) {
   const blueIsBye =
     Boolean(match.fighterRed) && match.fighterBlue === null;
@@ -64,6 +70,9 @@ export function BracketMatchCard({
           <span className="text-sm font-bold">{matchNoLabel}</span>
           {divisionLabel ? (
             <span className="text-muted-foreground">{divisionLabel}</span>
+          ) : null}
+          {bracketType ? (
+            <BoutFormatBadge bracketType={bracketType} bracketIsPublic={bracketIsPublic} />
           ) : null}
           {matPrefix != null && match.matNumber != null ? (
             <span className="text-muted-foreground">
@@ -94,6 +103,12 @@ export function BracketMatchCard({
         />
         <div className="bg-muted/30 text-muted-foreground flex flex-col items-center justify-center px-3 py-2 md:min-w-[3rem] md:py-0">
           <span className="text-lg font-black tracking-widest">VS</span>
+          {bracketType ? (
+            <PublicSparringUnderVsBadge
+              bracketType={bracketType}
+              bracketIsPublic={bracketIsPublic}
+            />
+          ) : null}
         </div>
         <FighterSlotCard
           cornerLabel="청코너"

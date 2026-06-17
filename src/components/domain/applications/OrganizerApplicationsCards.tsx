@@ -35,8 +35,8 @@ export function OrganizerApplicationsCards({
                 className="mt-1"
               />
               <div className="min-w-0 flex-1">
-                <CardTitle className="text-base">{row.fighterName}</CardTitle>
                 <div className="text-muted-foreground text-xs">{row.gymName}</div>
+                <CardTitle className="text-base">{row.fighterName}</CardTitle>
               </div>
             </div>
           </CardHeader>

@@ -44,7 +44,7 @@ export function OperationSummaryCards({
   onFilterChange: (filter: OperationBoardFilter) => void;
 }) {
   return (
-    <div className="grid gap-3 sm:grid-cols-2 lg:grid-cols-4">
+    <div className="grid gap-3 sm:grid-cols-2 lg:grid-cols-5">
       <StatCard
         label="전체 경기"
         value={summary.total}
@@ -53,21 +53,28 @@ export function OperationSummaryCards({
         onSelect={onFilterChange}
       />
       <StatCard
-        label="예정 경기"
+        label="대기"
         value={summary.scheduled}
         filter="scheduled"
         activeFilter={activeFilter}
         onSelect={onFilterChange}
       />
       <StatCard
-        label="진행 중 경기"
+        label="경기준비"
+        value={summary.preparing}
+        filter="preparing"
+        activeFilter={activeFilter}
+        onSelect={onFilterChange}
+      />
+      <StatCard
+        label="경기진행중"
         value={summary.inProgress}
         filter="in_progress"
         activeFilter={activeFilter}
         onSelect={onFilterChange}
       />
       <StatCard
-        label="완료 경기"
+        label="완료"
         value={summary.completed}
         filter="completed"
         activeFilter={activeFilter}

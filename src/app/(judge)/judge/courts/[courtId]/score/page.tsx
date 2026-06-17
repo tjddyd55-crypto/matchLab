@@ -15,6 +15,7 @@ export default async function CourtScoreJudgePage({
       court={ctx.court}
       matches={ctx.matches}
       ongoingMatchId={ctx.ongoingMatchId}
+      scoreSummariesByMatchId={ctx.scoreSummariesByMatchId}
     />
   );
 }

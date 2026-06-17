@@ -4,6 +4,8 @@ import { useMemo, useState, useTransition } from "react";
 import { useRouter } from "next/navigation";
 import { MatchCourtControls } from "@/components/domain/courts/MatchCourtControls";
 import { FighterHandicapBadge } from "@/components/domain/shared/FighterHandicapBadge";
+import { BoutFormatBadge, PublicSparringUnderVsBadge } from "@/components/domain/shared/BoutFormatBadge";
+import { parseMatchOperationalSettings, formatOperationalSettingsLabel } from "@/lib/match-operational-settings";
 import { saveMatchScheduleFormAction } from "@/features/event-courts/actions";
 import { Button } from "@/components/ui/button";
 import {
@@ -44,8 +46,10 @@ function courtLabelForMatch(
 
 function matchStatusLabel(status: OrganizerEventMatchListItemVM["status"]) {
   switch (status) {
+    case BracketMatchStatus.called:
+      return "경기준비";
     case BracketMatchStatus.ongoing:
-      return "진행중";
+      return "경기진행중";
     case BracketMatchStatus.finished:
       return "경기종료";
     case BracketMatchStatus.cancelled:
@@ -162,10 +166,12 @@ export function OrganizerCourtBracketPanel({
         </p>
       ) : (
         <div className="flex flex-col gap-3">
-          {filtered.map((m, idx) => (
+          {filtered.map((m, idx) => {
+            const ops = parseMatchOperationalSettings(m.resultMemo).settings;
+            return (
             <article
               key={m.matchId}
-              className="ring-foreground/10 rounded-xl border bg-card p-4 shadow-sm"
+              className="rounded-xl border bg-card p-4 shadow-sm ring-1 ring-primary/10"
             >
               <div className="flex flex-wrap items-start justify-between gap-2">
                 <div className="min-w-0 text-sm">
@@ -178,9 +184,15 @@ export function OrganizerCourtBracketPanel({
                   <p className="font-medium">
                     {m.divisionLabel ?? MATCH_CATEGORY_LABEL}
                   </p>
-                  <p className="text-muted-foreground truncate text-xs">
-                    {m.bracketTitle}
-                  </p>
+                  <div className="mt-1 flex flex-wrap gap-1">
+                    <BoutFormatBadge
+                      bracketType={m.bracketType}
+                      bracketIsPublic={m.bracketIsPublic}
+                    />
+                    <span className="text-muted-foreground rounded-full border px-2 py-0.5 text-[11px]">
+                      {formatOperationalSettingsLabel(ops)}
+                    </span>
+                  </div>
                 </div>
                 <div className="flex items-center gap-2">
                   {canReorder ? (
@@ -244,10 +256,14 @@ export function OrganizerCourtBracketPanel({
                     className="mt-1"
                   />
                 </div>
-                <div className="flex items-center justify-center">
-                  <span className="rounded-full border bg-muted px-3 py-2 text-xs font-semibold tracking-wide">
+                <div className="flex flex-col items-center justify-center">
+                  <span className="rounded-full border border-primary/30 bg-primary/5 px-3 py-2 text-xs font-semibold tracking-wide text-primary">
                     VS
                   </span>
+                  <PublicSparringUnderVsBadge
+                    bracketType={m.bracketType}
+                    bracketIsPublic={m.bracketIsPublic}
+                  />
                 </div>
                 <div className="rounded-md border px-3 py-3 text-sm md:text-right">
                   <p className="text-muted-foreground text-xs">선수 B</p>
@@ -280,7 +296,8 @@ export function OrganizerCourtBracketPanel({
                 />
               </div>
             </article>
-          ))}
+            );
+          })}
         </div>
       )}
 
