@@ -44,13 +44,13 @@ export function OrganizerFieldStatusTable({
         <table className="w-full min-w-[72rem] text-left text-sm">
           <thead className="bg-muted/40 text-xs">
             <tr>
-              <th className="min-w-[9rem] px-3 py-2 font-medium">선수 / 계체결과</th>
               <th className="min-w-[8rem] px-3 py-2 font-medium">체육관</th>
+              <th className="min-w-[9rem] px-3 py-2 font-medium">선수명</th>
               <th className="min-w-[12rem] px-3 py-2 font-medium">
                 {APPLIED_MATCH_CATEGORY_LABEL}
               </th>
               <th className="min-w-[8rem] px-3 py-2 font-medium">계체 몸무게</th>
-              <th className="min-w-[9rem] px-3 py-2 font-medium">실격 처리</th>
+              <th className="min-w-[9rem] px-3 py-2 font-medium">진행여부</th>
               <th className="min-w-[10rem] px-3 py-2 font-medium">결과입력</th>
               <th className="min-w-[10rem] px-3 py-2 font-medium">실격 사유</th>
               <th className="min-w-[10rem] px-3 py-2 font-medium">최종결과</th>
@@ -60,15 +60,15 @@ export function OrganizerFieldStatusTable({
           <tbody>
             {rows.map((row) => (
               <tr key={row.applicationId} className="border-t align-top">
+                <td className="max-w-[10rem] truncate px-3 py-2 text-xs font-medium">
+                  {row.gymName}
+                </td>
                 <td className="px-3 py-2">
                   <p className="font-medium">{row.fighterName}</p>
                   <div className="mt-1">
                     <WeighInStatusBadge status={row.weighInStatus} />
                   </div>
                   <HandicapNotice note={row.handicapNote} />
-                </td>
-                <td className="max-w-[10rem] truncate px-3 py-2 text-xs">
-                  {row.gymName}
                 </td>
                 <td className="max-w-[14rem] px-3 py-2 text-xs leading-snug">
                   <span className="line-clamp-2">{row.divisionLabel}</span>
@@ -106,7 +106,7 @@ export function OrganizerFieldStatusTable({
             key={row.applicationId}
             className="rounded-xl border bg-card p-3 shadow-sm"
           >
-            <p className="text-muted-foreground text-xs">{row.gymName}</p>
+            <p className="text-muted-foreground text-xs font-medium">{row.gymName}</p>
             <h3 className="font-medium">{row.fighterName}</h3>
             <div className="mt-1">
               <WeighInStatusBadge status={row.weighInStatus} />
@@ -127,7 +127,7 @@ export function OrganizerFieldStatusTable({
               </div>
               <div>
                 <p className="text-muted-foreground mb-1 text-[10px] font-medium">
-                  실격 처리
+                  진행여부
                 </p>
                 <FieldStatusPrimaryActions row={row} />
               </div>

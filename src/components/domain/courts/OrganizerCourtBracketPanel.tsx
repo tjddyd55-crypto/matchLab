@@ -188,6 +188,8 @@ export function OrganizerCourtBracketPanel({
                     <BoutFormatBadge
                       bracketType={m.bracketType}
                       bracketIsPublic={m.bracketIsPublic}
+                      matchIsPublicSparring={m.matchIsPublicSparring}
+                      resultMemo={m.resultMemo}
                     />
                     <span className="text-muted-foreground rounded-full border px-2 py-0.5 text-[11px]">
                       {formatOperationalSettingsLabel(ops)}
@@ -263,6 +265,8 @@ export function OrganizerCourtBracketPanel({
                   <PublicSparringUnderVsBadge
                     bracketType={m.bracketType}
                     bracketIsPublic={m.bracketIsPublic}
+                    matchIsPublicSparring={m.matchIsPublicSparring}
+                    resultMemo={m.resultMemo}
                   />
                 </div>
                 <div className="rounded-md border px-3 py-3 text-sm md:text-right">

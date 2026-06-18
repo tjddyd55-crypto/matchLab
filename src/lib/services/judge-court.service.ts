@@ -20,6 +20,7 @@ import { readRequestClientMeta } from "@/lib/judge-request-meta";
 import { defaultRoundCountForSport } from "@/lib/judge-round-count";
 import { parseBirthDateInput, formatBirthDateInput } from "@/lib/judge-identity";
 import { effectiveScoringRoundCountFromOps } from "@/lib/court-judge-rounds";
+import { resolveMatchIsPublicSparring } from "@/lib/match-bout-settings";
 import {
   encodeMatchOperationalSettings,
   parseMatchOperationalSettings,
@@ -54,6 +55,7 @@ export type CourtJudgeMatchVM = {
   status: BracketMatchStatus;
   bracketType: BracketType;
   bracketIsPublic: boolean;
+  matchIsPublicSparring: boolean;
   roundCount: number;
   roundTimeSec: number;
   overtimeEnabled: boolean;
@@ -213,6 +215,11 @@ function toCourtJudgeMatchVM(
     bracketTitle: match.bracket.title,
     bracketType: match.bracket.type,
     bracketIsPublic: match.bracket.isPublic,
+    matchIsPublicSparring: resolveMatchIsPublicSparring({
+      bracketType: match.bracket.type,
+      bracketIsPublic: match.bracket.isPublic,
+      resultMemo: match.resultMemo,
+    }),
     fighterRedId: match.fighterRedId,
     fighterRedName: fighterName(match.fighterRed, match.fighterRedSnapshot),
     fighterRedGymName: fighterGymName(match.fighterRed, match.fighterRedSnapshot),

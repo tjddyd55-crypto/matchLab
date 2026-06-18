@@ -138,6 +138,7 @@ export function OrganizerOperationBoard({
           rows={filteredRows}
           expandedMatchId={expandedMatchId}
           onTogglePanel={toggleInlinePanel}
+          judgeBriefByMatch={judgeBriefByMatch}
         />
       </div>
     </div>

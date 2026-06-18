@@ -81,6 +81,7 @@ export function OrganizerBracketEditor({
           courts={courts}
           bracketId={detail.id}
           bracketType={detail.type}
+          bracketIsPublic={detail.isPublic}
           matches={detail.matches}
           options={detail.approvedFighterOptions}
           divisionLabel={detail.divisionLabel ?? detail.title}

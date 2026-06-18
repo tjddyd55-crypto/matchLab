@@ -3,7 +3,8 @@
 import { Fragment } from "react";
 import { OperationJudgeBriefCell } from "@/components/domain/operation/OperationJudgeBriefCell";
 import { BoutFormatBadge } from "@/components/domain/shared/BoutFormatBadge";
-import { parseMatchOperationalSettings } from "@/lib/match-operational-settings";
+import { parseMatchOperationalSettings, formatOperationalSettingsLabel } from "@/lib/match-operational-settings";
+import { extractDisplayResultMemo } from "@/lib/match-result-memo";
 import { OrganizerMatchOpsPanel } from "@/components/domain/brackets/OrganizerMatchOpsPanel";
 import { OrganizerJudgeAggregationInlineSection } from "@/components/domain/judges/OrganizerJudgeAggregationInlineSection";
 import { OrganizerOperationActions } from "@/components/domain/operation/OrganizerOperationActions";
@@ -50,7 +51,8 @@ export function OrganizerOperationTableDesktop({
         </thead>
         <tbody>
           {rows.map((row) => {
-            const displayMemo = parseMatchOperationalSettings(row.resultMemo).displayMemo;
+            const ops = parseMatchOperationalSettings(row.resultMemo);
+            const displayMemo = extractDisplayResultMemo(row.resultMemo);
             return (
             <Fragment key={row.matchId}>
               <tr className="border-b align-top">
@@ -73,7 +75,12 @@ export function OrganizerOperationTableDesktop({
                     <BoutFormatBadge
                       bracketType={row.bracketType}
                       bracketIsPublic={row.bracketIsPublic}
+                      matchIsPublicSparring={row.matchIsPublicSparring}
+                      resultMemo={row.resultMemo}
                     />
+                    <span className="text-muted-foreground rounded-full border px-2 py-0.5 text-[10px]">
+                      {formatOperationalSettingsLabel(ops.settings)}
+                    </span>
                   </div>
                   <div className="text-muted-foreground mt-1">{row.bracketTitle}</div>
                 </td>

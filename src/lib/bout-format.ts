@@ -1,15 +1,25 @@
 import { BracketType } from "@/lib/enums";
+import { resolveMatchIsPublicSparring } from "@/lib/match-bout-settings";
 
 export type BoutFormatKind = "tournament" | "one_match" | "public_sparring";
 
 export function resolveBoutFormatKind(input: {
   bracketType: BracketType | string;
   bracketIsPublic?: boolean | null;
+  matchIsPublicSparring?: boolean | null;
+  resultMemo?: string | null;
 }): BoutFormatKind {
   if (input.bracketType === BracketType.single_elimination) {
     return "tournament";
   }
-  if (input.bracketIsPublic) return "public_sparring";
+  const isPublic =
+    input.matchIsPublicSparring ??
+    resolveMatchIsPublicSparring({
+      bracketType: input.bracketType,
+      bracketIsPublic: input.bracketIsPublic,
+      resultMemo: input.resultMemo,
+    });
+  if (isPublic) return "public_sparring";
   return "one_match";
 }
 

@@ -31,6 +31,11 @@ import {
   type FighterHandicapMapEntry,
 } from "@/lib/fighter-handicap-display";
 import { AppError } from "@/lib/errors/app-error";
+import { resolveMatchIsPublicSparring } from "@/lib/match-bout-settings";
+import {
+  formatOperationalSettingsLabel,
+  parseMatchOperationalSettings,
+} from "@/lib/match-operational-settings";
 import { requireOrganizerForEvent, requireRole } from "@/lib/permissions";
 import { prisma } from "@/lib/prisma";
 import {
@@ -1361,7 +1366,9 @@ export const bracketService = {
         ? formatDivisionNameLabel(b.division)
         : null;
 
-      const matches: PublicBracketMatchDTO[] = b.matches.map((m) => ({
+      const matches: PublicBracketMatchDTO[] = b.matches.map((m) => {
+        const ops = parseMatchOperationalSettings(m.resultMemo);
+        return {
         id: m.id,
         round: m.round,
         roundName: m.roundName,
@@ -1377,7 +1384,14 @@ export const bracketService = {
         winnerId: m.winnerId,
         loserId: m.loserId,
         resultType: m.resultType,
-      }));
+        matchIsPublicSparring: resolveMatchIsPublicSparring({
+          bracketType: b.type,
+          bracketIsPublic: true,
+          resultMemo: m.resultMemo,
+        }),
+        operationalSettingsLabel: formatOperationalSettingsLabel(ops.settings),
+      };
+      });
 
       return {
         id: b.id,

@@ -2,7 +2,6 @@ import { requireActor } from "@/lib/auth/actor";
 import { requireOrganizerForEventPage } from "@/lib/permissions";
 import { applicationService } from "@/lib/services/application.service";
 import { OrganizerApplicationsBoard } from "@/components/domain/applications/OrganizerApplicationsBoard";
-import { OrganizerApplicationsSummaryCards } from "@/components/domain/applications/OrganizerApplicationsSummaryCards";
 import { EventManagementLayout } from "@/components/domain/events/EventManagementLayout";
 import { EventManagementPageHeader } from "@/components/domain/events/EventManagementPageHeader";
 import { loadEventManagementNavContext } from "@/lib/event-management-nav-context";
@@ -31,8 +30,6 @@ export default async function OrganizerEventApplicationsPage({
         eventTitle={nav.title}
         description="입금 상태는 결제 행을 진실 원천으로 두며, 목록의 입금 상태는 동기화된 캐시입니다."
       />
-
-      <OrganizerApplicationsSummaryCards rows={rows} />
 
       <OrganizerApplicationsBoard eventId={eventId} rows={rows} />
     </EventManagementLayout>

@@ -50,25 +50,7 @@ export function OrganizerApplicationsList({
 
             <div className="min-w-0 truncate text-sm">{row.gymName}</div>
 
-            <div className="flex min-w-0 items-center gap-2">
-              <div className="relative size-8 shrink-0 overflow-hidden rounded-md bg-muted">
-                {row.fighterProfileImageUrl ? (
-                  // eslint-disable-next-line @next/next/no-img-element
-                  <img
-                    src={row.fighterProfileImageUrl}
-                    alt=""
-                    className="size-full object-cover"
-                  />
-                ) : (
-                  <span className="flex size-full items-center justify-center text-[10px] font-semibold">
-                    {row.fighterName.slice(0, 1)}
-                  </span>
-                )}
-              </div>
-              <span className="min-w-0 truncate font-medium">
-                {row.fighterName}
-              </span>
-            </div>
+            <div className="min-w-0 truncate font-medium">{row.fighterName}</div>
 
             <div
               className="text-muted-foreground min-w-0 text-xs leading-snug"

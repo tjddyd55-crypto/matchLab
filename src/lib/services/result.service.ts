@@ -26,6 +26,7 @@ import {
   matchRecordStatusKo,
   outcomeStylePublicLabel,
 } from "@/lib/match-result-snapshot";
+import { mergeDisplayResultMemo } from "@/lib/match-result-memo";
 import {
   requireGymOwner,
   requireOrganizerForEvent,
@@ -388,7 +389,7 @@ export const resultService = {
           winnerId,
           loserId,
           resultType: input.resultType,
-          resultMemo: input.resultMemo ?? null,
+          resultMemo: mergeDisplayResultMemo(match.resultMemo, input.resultMemo),
         },
         tx,
       );
@@ -698,7 +699,7 @@ export const resultService = {
           winnerId,
           loserId,
           resultType: input.resultType,
-          resultMemo: input.resultMemo ?? null,
+          resultMemo: mergeDisplayResultMemo(match.resultMemo, input.resultMemo),
         },
         tx,
       );

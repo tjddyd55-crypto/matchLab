@@ -90,27 +90,7 @@ export function OrganizerApplicationsTable({
                 <div className="truncate text-sm">{row.gymName}</div>
               </TableCell>
               <TableCell className="align-top">
-                <div className="flex w-full min-w-0 items-center gap-2">
-                  <div className="relative size-8 shrink-0 overflow-hidden rounded-md bg-muted">
-                    {row.fighterProfileImageUrl ? (
-                      // eslint-disable-next-line @next/next/no-img-element
-                      <img
-                        src={row.fighterProfileImageUrl}
-                        alt=""
-                        className="size-full object-cover"
-                      />
-                    ) : (
-                      <span className="flex size-full items-center justify-center text-[10px] font-semibold">
-                        {row.fighterName.slice(0, 1)}
-                      </span>
-                    )}
-                  </div>
-                  <div className="min-w-0">
-                    <div className="truncate text-sm font-medium">
-                      {row.fighterName}
-                    </div>
-                  </div>
-                </div>
+                <div className="truncate text-sm font-medium">{row.fighterName}</div>
               </TableCell>
               <TableCell className="text-muted-foreground align-top text-xs leading-snug">
                 <span className="line-clamp-2 break-words">{row.divisionLabel}</span>

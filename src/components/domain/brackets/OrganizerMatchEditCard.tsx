@@ -1,6 +1,7 @@
 "use client";
 
 import { useState, type ReactNode } from "react";
+import { MatchBoutFormatToggle } from "@/components/domain/brackets/MatchBoutFormatToggle";
 import { OrganizerMatchOpsPanel } from "@/components/domain/brackets/OrganizerMatchOpsPanel";
 import { OrganizerMatchEditSlot } from "@/components/domain/brackets/OrganizerMatchEditSlot";
 import { BracketMatchOrderControls } from "@/components/domain/brackets/BracketMatchOrderControls";
@@ -87,6 +88,7 @@ export function OrganizerMatchEditCard({
   options,
   serverMatch,
   bracketType,
+  bracketIsPublic,
   divisionLabel,
   sortedServerMatches,
   onUpdateRow,
@@ -100,6 +102,7 @@ export function OrganizerMatchEditCard({
   options: OrganizerApprovedFighterOptionVM[];
   serverMatch: OrganizerBracketMatchVM | undefined;
   bracketType: BracketType;
+  bracketIsPublic?: boolean;
   divisionLabel?: string | null;
   sortedServerMatches: OrganizerBracketMatchVM[];
   onUpdateRow: (index: number, patch: Partial<MatchListEditorRow>) => void;
@@ -168,6 +171,15 @@ export function OrganizerMatchEditCard({
 
         <div className="bg-muted/30 text-muted-foreground flex flex-col items-center justify-center border-b px-3 py-2 md:border-b-0 md:py-0">
           <span className="text-lg font-black tracking-widest">VS</span>
+          {showOps && serverMatch ? (
+            <MatchBoutFormatToggle
+              matchId={serverMatch.id}
+              bracketType={bracketType}
+              bracketIsPublic={bracketIsPublic}
+              resultMemo={serverMatch.resultMemo}
+              disabled={editLocked}
+            />
+          ) : null}
         </div>
 
         <OrganizerMatchEditSlot
