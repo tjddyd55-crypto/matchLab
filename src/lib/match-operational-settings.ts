@@ -32,7 +32,7 @@ export function parseMatchOperationalSettings(
 
   const lines = raw.split("\n");
   const opsLine = lines.find((l) => l.startsWith(OPS_PREFIX));
-  const displayMemo = lines.filter((l) => !l.startsWith(OPS_PREFIX)).join("\n").trim();
+  const displayMemo = lines.filter((l) => !l.startsWith(OPS_PREFIX) && !l.startsWith("@matchon_bout:")).join("\n").trim();
 
   if (!opsLine) {
     return { settings: { ...DEFAULT_MATCH_OPERATIONAL_SETTINGS }, displayMemo };

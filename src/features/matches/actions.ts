@@ -128,3 +128,18 @@ export async function cancelMatchAction(
     return actionSuccess({ ok: true as const });
   });
 }
+
+export async function updateMatchBoutSettingsAction(
+  formData: FormData,
+): Promise<ActionResult<{ ok: true }>> {
+  return mapCaught(async () => {
+    const matchId = formReq(formData, "matchId");
+    const isPublicSparring = formReq(formData, "isPublicSparring") === "true";
+    if (!matchId) {
+      return actionFailure("VALIDATION_ERROR", "경기를 선택해 주세요.");
+    }
+    const actor = await requireActorFromMutation();
+    await matchService.updateMatchBoutSettings(actor, matchId, isPublicSparring);
+    return actionSuccess({ ok: true as const });
+  });
+}

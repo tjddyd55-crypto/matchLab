@@ -1,6 +1,9 @@
 "use client";
 
 import { OrganizerMatchOpsPanel } from "@/components/domain/brackets/OrganizerMatchOpsPanel";
+import { OperationJudgeBriefCell } from "@/components/domain/operation/OperationJudgeBriefCell";
+import { BoutFormatBadge } from "@/components/domain/shared/BoutFormatBadge";
+import { formatOperationalSettingsLabel, parseMatchOperationalSettings } from "@/lib/match-operational-settings";
 import { OrganizerJudgeAggregationInlineSection } from "@/components/domain/judges/OrganizerJudgeAggregationInlineSection";
 import { OrganizerOperationActions } from "@/components/domain/operation/OrganizerOperationActions";
 import { OrganizerOperationStatusBadges } from "@/components/domain/operation/OrganizerOperationStatusBadges";
@@ -15,10 +18,12 @@ export function OrganizerOperationCardListMobile({
   rows,
   expandedMatchId,
   onTogglePanel,
+  judgeBriefByMatch = {},
 }: {
   rows: OperationMatchRowVM[];
   expandedMatchId: string | null;
   onTogglePanel: (row: OperationMatchRowVM) => void;
+  judgeBriefByMatch?: Record<string, { judgeName: string; winnerCorner: string }[]>;
 }) {
   if (rows.length === 0) {
     return (
@@ -41,6 +46,19 @@ export function OrganizerOperationCardListMobile({
                 경기 {row.orderLabel}
               </p>
               <p className="font-medium">{row.divisionLabel ?? "경기구분 미상"}</p>
+              <div className="mt-1 flex flex-wrap gap-1">
+                <BoutFormatBadge
+                  bracketType={row.bracketType}
+                  bracketIsPublic={row.bracketIsPublic}
+                  matchIsPublicSparring={row.matchIsPublicSparring}
+                  resultMemo={row.resultMemo}
+                />
+                <span className="text-muted-foreground rounded-full border px-2 py-0.5 text-[10px]">
+                  {formatOperationalSettingsLabel(
+                    parseMatchOperationalSettings(row.resultMemo).settings,
+                  )}
+                </span>
+              </div>
               <p className="text-muted-foreground text-xs">{row.bracketTitle}</p>
               {row.courtName ? (
                 <p className="text-muted-foreground mt-1 text-xs">
@@ -88,6 +106,11 @@ export function OrganizerOperationCardListMobile({
               />
             </div>
           </div>
+
+          <OperationJudgeBriefCell
+            matchId={row.matchId}
+            items={judgeBriefByMatch[row.matchId] ?? []}
+          />
 
           <OrganizerOperationActions
             match={row}

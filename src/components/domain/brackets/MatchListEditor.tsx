@@ -46,6 +46,7 @@ export function MatchListEditor({
   courts,
   bracketId,
   bracketType,
+  bracketIsPublic,
   matches,
   options,
   divisionLabel,
@@ -54,6 +55,7 @@ export function MatchListEditor({
   courts: EventCourtVM[];
   bracketId: string;
   bracketType: BracketType;
+  bracketIsPublic?: boolean;
   matches: OrganizerBracketMatchVM[];
   options: OrganizerApprovedFighterOptionVM[];
   divisionLabel?: string | null;
@@ -206,6 +208,7 @@ export function MatchListEditor({
                 options={options}
                 serverMatch={serverMatch}
                 bracketType={bracketType}
+                bracketIsPublic={bracketIsPublic}
                 divisionLabel={divisionLabel}
                 sortedServerMatches={sortedServerMatches}
                 onUpdateRow={updateRow}

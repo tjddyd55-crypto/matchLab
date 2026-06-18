@@ -12,6 +12,7 @@ import {
 import { OrganizerApplicationsTable } from "@/components/domain/applications/OrganizerApplicationsTable";
 import { resolveOrganizerApplicationDisplayStatus } from "@/lib/application-display-status";
 import { isPaidForOrganizerDisplay } from "@/lib/application-display-status";
+import { OrganizerApplicationsGymSummaryTable } from "@/components/domain/applications/OrganizerApplicationsGymSummaryTable";
 import { Button } from "@/components/ui/button";
 
 const DEFAULT_FILTERS: OrganizerApplicationFiltersState = {
@@ -137,6 +138,14 @@ export function OrganizerApplicationsBoard({
 
   return (
     <div className="flex min-w-0 flex-col gap-6 overflow-x-hidden">
+      <OrganizerApplicationsGymSummaryTable
+        rows={rows}
+        selectedGymId={filters.gymId === "all" ? null : filters.gymId}
+        onSelectGym={(gymId) =>
+          setFilters((prev) => ({ ...prev, gymId: gymId ?? "all" }))
+        }
+      />
+
       <OrganizerApplicationsFilterBar
         filters={filters}
         onChange={setFilters}

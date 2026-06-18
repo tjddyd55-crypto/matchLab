@@ -51,7 +51,14 @@ export function TournamentBracketView({
             </h3>
             <div className="flex flex-col gap-3">
               {col.matches.map((m) => (
-                <BracketMatchCard key={m.id} match={m} matPrefix="매트 " />
+                <BracketMatchCard
+                  key={m.id}
+                  match={m}
+                  matPrefix="매트 "
+                  bracketType={bracket.type}
+                  bracketIsPublic={m.matchIsPublicSparring}
+                  operationalSettingsLabel={m.operationalSettingsLabel}
+                />
               ))}
             </div>
           </div>

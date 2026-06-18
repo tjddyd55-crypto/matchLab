@@ -295,6 +295,7 @@ export const bracketRepository = {
             winnerId: true,
             loserId: true,
             resultType: true,
+            resultMemo: true,
             fighterRedId: true,
             fighterBlueId: true,
             court: { select: { name: true } },

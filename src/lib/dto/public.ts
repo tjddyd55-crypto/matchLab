@@ -149,6 +149,8 @@ export type PublicBracketMatchDTO = {
   winnerId: string | null;
   loserId: string | null;
   resultType: BracketMatchOutcomeStyle | null;
+  matchIsPublicSparring?: boolean;
+  operationalSettingsLabel?: string | null;
 };
 
 export type PublicBracketDetailDTO = {

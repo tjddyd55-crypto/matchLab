@@ -21,6 +21,10 @@ export function MatchListView({ bracket }: { bracket: PublicBracketDetailDTO }) 
             match={m}
             divisionLabel={bracket.divisionLabel}
             matPrefix="매트 "
+            bracketType={bracket.type}
+            bracketIsPublic={m.matchIsPublicSparring}
+            resultMemo={null}
+            operationalSettingsLabel={m.operationalSettingsLabel}
           />
         ))}
       </div>

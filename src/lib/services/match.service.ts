@@ -13,6 +13,8 @@ import {
 } from "@/lib/fighter-handicap-display";
 import { AppError } from "@/lib/errors/app-error";
 import { assertBracketMatchStatusTransition } from "@/lib/match-status-transition";
+import { resolveMatchIsPublicSparring } from "@/lib/match-bout-settings";
+import { mergeDisplayResultMemo, updateMatchBoutInResultMemo } from "@/lib/match-result-memo";
 import {
   requireGymOwner,
   requireOrganizerForEvent,
@@ -280,6 +282,7 @@ export type OrganizerEventMatchListItemVM = {
   bracketTitle: string;
   bracketType: BracketType;
   bracketIsPublic: boolean;
+  matchIsPublicSparring: boolean;
   divisionLabel: string | null;
   roundName: string | null;
   matchOrder: number;
@@ -351,6 +354,11 @@ export const matchService = {
         bracketTitle: m.bracket.title,
         bracketType: m.bracket.type,
         bracketIsPublic: m.bracket.isPublic,
+        matchIsPublicSparring: resolveMatchIsPublicSparring({
+          bracketType: m.bracket.type,
+          bracketIsPublic: m.bracket.isPublic,
+          resultMemo: m.resultMemo,
+        }),
         divisionLabel,
         roundName: m.roundName,
         matchOrder: m.matchOrder,
@@ -462,7 +470,7 @@ export const matchService = {
           winnerId,
           loserId,
           resultType: input.resultType,
-          resultMemo: input.resultMemo ?? null,
+          resultMemo: mergeDisplayResultMemo(row.resultMemo, input.resultMemo),
         },
         tx,
       );
@@ -575,6 +583,11 @@ export const matchService = {
         bracketTitle: m.bracket.title,
         bracketType: m.bracket.type,
         bracketIsPublic: m.bracket.isPublic,
+        matchIsPublicSparring: resolveMatchIsPublicSparring({
+          bracketType: m.bracket.type,
+          bracketIsPublic: m.bracket.isPublic,
+          resultMemo: m.resultMemo,
+        }),
         divisionLabel,
         roundName: m.roundName,
         matchOrder: m.matchOrder,
@@ -714,7 +727,7 @@ export const matchService = {
           winnerId,
           loserId,
           resultType: input.resultType,
-          resultMemo: input.resultMemo ?? null,
+          resultMemo: mergeDisplayResultMemo(row.resultMemo, input.resultMemo),
         },
         tx,
       );
@@ -760,6 +773,40 @@ export const matchService = {
         input.matchId,
         "경기 결과 초안이 갱신되었습니다.",
       );
+    });
+  },
+
+  async updateMatchBoutSettings(
+    actor: ActorContext,
+    matchId: string,
+    isPublicSparring: boolean,
+  ): Promise<void> {
+    const ctx = await ensureMatchOrganizer(actor, matchId);
+    const row = await matchRepository.findMatchWithBracketContext(matchId);
+    if (!row) {
+      throw new AppError("NOT_FOUND", "경기를 찾을 수 없습니다.");
+    }
+    if (row.bracket.type === BracketType.single_elimination) {
+      throw new AppError("VALIDATION_ERROR", "토너먼트 경기는 공개스파링을 지정할 수 없습니다.");
+    }
+    const nextMemo = updateMatchBoutInResultMemo(row.resultMemo, isPublicSparring);
+    await prisma.$transaction(async (tx) => {
+      await matchRepository.updateMatchOutcomeDraft(
+        matchId,
+        { resultMemo: nextMemo },
+        tx,
+      );
+      await appendBracketChangeLog(tx, {
+        eventId: ctx.eventId,
+        bracketId: ctx.bracketId,
+        matchId,
+        changedByUserId: actor.userId,
+        bracketType: ctx.bracketType,
+        changeType: BracketChangeType.match_status_changed,
+        beforeData: { isPublicSparring: !isPublicSparring },
+        afterData: { isPublicSparring },
+        reason: isPublicSparring ? "경기 공개스파링 지정" : "경기 공개스파링 해제",
+      });
     });
   },
 

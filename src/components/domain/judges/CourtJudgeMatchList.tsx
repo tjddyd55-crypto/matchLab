@@ -89,6 +89,7 @@ function MatchRowContent({
         <BoutFormatBadge
           bracketType={match.bracketType}
           bracketIsPublic={match.bracketIsPublic}
+          matchIsPublicSparring={match.matchIsPublicSparring}
         />
       </div>
       <p className={cn("mt-1 font-semibold", compact ? "text-sm" : "text-base")}>
@@ -241,6 +242,7 @@ export function CourtJudgeFightersHeader({ match }: { match: CourtJudgeMatchVM }
         <PublicSparringUnderVsBadge
           bracketType={match.bracketType}
           bracketIsPublic={match.bracketIsPublic}
+          matchIsPublicSparring={match.matchIsPublicSparring}
         />
       </div>
       <div className="bg-blue-500/5 p-3 text-right">

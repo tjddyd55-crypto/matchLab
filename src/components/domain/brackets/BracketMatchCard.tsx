@@ -6,8 +6,8 @@ import { formatMatchOrderFormal } from "@/lib/match-order-display";
 import { outcomeStylePublicLabel } from "@/lib/match-result-snapshot";
 
 import { FighterSlotCard } from "@/components/domain/brackets/FighterSlotCard";
-import { PublicSparringUnderVsBadge } from "@/components/domain/shared/BoutFormatBadge";
-import { BoutFormatBadge } from "@/components/domain/shared/BoutFormatBadge";
+import { BoutFormatBadge, PublicSparringUnderVsBadge } from "@/components/domain/shared/BoutFormatBadge";
+import { resolveBoutFormatKind } from "@/lib/bout-format";
 
 function statusLabel(s: BracketMatchStatus): string {
   switch (s) {
@@ -35,6 +35,8 @@ export function BracketMatchCard({
   className,
   bracketType,
   bracketIsPublic,
+  resultMemo,
+  operationalSettingsLabel,
 }: {
   match: PublicBracketMatchDTO;
   divisionLabel?: string | null;
@@ -43,6 +45,8 @@ export function BracketMatchCard({
   className?: string;
   bracketType?: string;
   bracketIsPublic?: boolean;
+  resultMemo?: string | null;
+  operationalSettingsLabel?: string | null;
 }) {
   const blueIsBye =
     Boolean(match.fighterRed) && match.fighterBlue === null;
@@ -55,6 +59,14 @@ export function BracketMatchCard({
     match.winnerId &&
     match.fighterBlue?.fighterId &&
     match.winnerId === match.fighterBlue.fighterId;
+
+  const isPublicSparring =
+    match.matchIsPublicSparring ??
+    resolveBoutFormatKind({
+      bracketType: bracketType ?? "match_list",
+      bracketIsPublic,
+      resultMemo,
+    }) === "public_sparring";
 
   const matchNoLabel = formatMatchOrderFormal(match);
 
@@ -72,7 +84,15 @@ export function BracketMatchCard({
             <span className="text-muted-foreground">{divisionLabel}</span>
           ) : null}
           {bracketType ? (
-            <BoutFormatBadge bracketType={bracketType} bracketIsPublic={bracketIsPublic} />
+            <BoutFormatBadge
+              bracketType={bracketType}
+              bracketIsPublic={isPublicSparring}
+            />
+          ) : null}
+          {operationalSettingsLabel ?? match.operationalSettingsLabel ? (
+            <span className="text-muted-foreground rounded-full border px-2 py-0.5 text-[10px]">
+              {operationalSettingsLabel ?? match.operationalSettingsLabel}
+            </span>
           ) : null}
           {matPrefix != null && match.matNumber != null ? (
             <span className="text-muted-foreground">
@@ -106,7 +126,7 @@ export function BracketMatchCard({
           {bracketType ? (
             <PublicSparringUnderVsBadge
               bracketType={bracketType}
-              bracketIsPublic={bracketIsPublic}
+              bracketIsPublic={isPublicSparring}
             />
           ) : null}
         </div>
