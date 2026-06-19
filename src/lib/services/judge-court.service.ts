@@ -35,6 +35,27 @@ import { judgeCredentialRepository } from "@/lib/repositories/judge-credential.r
 import { judgeScorecardRepository } from "@/lib/repositories/judge-scorecard.repository";
 import { resultService } from "@/lib/services/result.service";
 import type { ConfirmMatchResultsInput } from "@/lib/validators/result.validator";
+import {
+  deriveCourtJudgeScene,
+  type CourtJudgeScene,
+} from "@/lib/court-judge-page-state";
+
+export type CourtJudgePageLoadResult =
+  | { kind: "invalid_court" }
+  | {
+      kind: "inactive_court";
+      eventTitle: string | null;
+      courtName: string | null;
+    }
+  | {
+      kind: "ok";
+      court: CourtJudgeCourtVM;
+      matches: CourtJudgeMatchVM[];
+      ongoingMatchId: string | null;
+      scene: CourtJudgeScene;
+      scoreSummariesByMatchId: Record<string, CourtMatchScoreSummaryVM>;
+      scorecardsByMatchId: Record<string, CourtJudgeScorecardVM[]>;
+    };
 
 export type CourtJudgeMatchVM = {
   eventId: string;
@@ -256,6 +277,43 @@ function toCourtVM(court: {
   };
 }
 
+async function resolveCourtForPage(courtId: string): Promise<
+  | { kind: "invalid" }
+  | {
+      kind: "inactive";
+      court: {
+        name: string;
+        event: { title: string };
+      };
+    }
+  | {
+      kind: "active";
+      court: Awaited<ReturnType<typeof prisma.eventCourt.findUnique>> & {
+        event: { id: string; title: string };
+      };
+    }
+> {
+  const trimmedId = courtId?.trim();
+  if (!trimmedId) return { kind: "invalid" };
+
+  const court = await prisma.eventCourt.findUnique({
+    where: { id: trimmedId },
+    include: { event: { select: { id: true, title: true } } },
+  });
+
+  if (!court) return { kind: "invalid" };
+  if (!court.isActive) {
+    return {
+      kind: "inactive",
+      court: {
+        name: court.name,
+        event: { title: court.event.title },
+      },
+    };
+  }
+  return { kind: "active", court };
+}
+
 async function findCourt(courtId: string) {
   const court = await prisma.eventCourt.findUnique({
     where: { id: courtId },
@@ -407,7 +465,117 @@ async function resolveCredentialForOpenJudge(
   return { credential, birthSnapshot, judgeName: trimmedName };
 }
 
+function safeToCourtJudgeMatchVM(
+  court: { id: string; name: string; event: { id: string; title: string } },
+  match: CourtMatchRow,
+): CourtJudgeMatchVM | null {
+  try {
+    return toCourtJudgeMatchVM(court, match);
+  } catch (error) {
+    console.error("Failed to map court judge match", { matchId: match.id, error });
+    return null;
+  }
+}
+
+function mapCourtMatchRows(
+  court: { id: string; name: string; event: { id: string; title: string } },
+  rows: CourtMatchRow[],
+): CourtJudgeMatchVM[] {
+  return rows
+    .map((match) => safeToCourtJudgeMatchVM(court, match))
+    .filter((m): m is CourtJudgeMatchVM => m != null);
+}
+
+async function buildPageContext(
+  court: { id: string; name: string; event: { id: string; title: string } },
+): Promise<{
+  court: CourtJudgeCourtVM;
+  matches: CourtJudgeMatchVM[];
+  ongoingMatchId: string | null;
+  scene: CourtJudgeScene;
+  scoreSummariesByMatchId: Record<string, CourtMatchScoreSummaryVM>;
+  scorecardsByMatchId: Record<string, CourtJudgeScorecardVM[]>;
+}> {
+  const rows = await listCourtMatchRows(court.id);
+  const matches = mapCourtMatchRows(court, rows);
+  const ongoing = matches.find((m) => m.status === BracketMatchStatus.ongoing);
+  const ongoingMatchId = ongoing?.matchId ?? null;
+  const scene = deriveCourtJudgeScene(matches, ongoingMatchId);
+
+  const scorecardMatchIds = matches
+    .filter(
+      (m) =>
+        m.status === BracketMatchStatus.ongoing ||
+        m.status === BracketMatchStatus.finished,
+    )
+    .map((m) => m.matchId);
+
+  let scorecardsByMatchId: Record<string, CourtJudgeScorecardVM[]> = {};
+  try {
+    scorecardsByMatchId = await mapScorecards(scorecardMatchIds);
+  } catch (error) {
+    console.error("Failed to load scorecards for court judge page", {
+      courtId: court.id,
+      error,
+    });
+  }
+
+  return {
+    court: toCourtVM(court),
+    matches,
+    ongoingMatchId,
+    scene,
+    scoreSummariesByMatchId: buildScoreSummaries(scorecardsByMatchId),
+    scorecardsByMatchId,
+  };
+}
+
+async function loadCourtJudgePage(courtId: string): Promise<CourtJudgePageLoadResult> {
+  const resolved = await resolveCourtForPage(courtId);
+  if (resolved.kind === "invalid") {
+    return { kind: "invalid_court" };
+  }
+  if (resolved.kind === "inactive") {
+    return {
+      kind: "inactive_court",
+      eventTitle: resolved.court.event.title,
+      courtName: resolved.court.name,
+    };
+  }
+
+  try {
+    const ctx = await buildPageContext(resolved.court);
+    return { kind: "ok", ...ctx };
+  } catch (error) {
+    console.error("Failed to build court judge page context", { courtId, error });
+    return {
+      kind: "ok",
+      court: toCourtVM(resolved.court),
+      matches: [],
+      ongoingMatchId: null,
+      scene: "no_matches",
+      scoreSummariesByMatchId: {},
+      scorecardsByMatchId: {},
+    };
+  }
+}
+
+export async function loadScoringPage(
+  courtId: string,
+): Promise<CourtJudgePageLoadResult> {
+  return loadCourtJudgePage(courtId);
+}
+
+export async function loadHeadPage(
+  courtId: string,
+): Promise<CourtJudgePageLoadResult> {
+  return loadCourtJudgePage(courtId);
+}
+
 export const judgeCourtService = {
+  loadScoringPage,
+  loadHeadPage,
+
   async listCourtMatches(courtId: string): Promise<CourtJudgeMatchVM[]> {
     const court = await findCourt(courtId);
     const rows = await listCourtMatchRows(courtId);
@@ -415,44 +583,29 @@ export const judgeCourtService = {
   },
 
   async getScoringContext(courtId: string): Promise<CourtJudgeScoringContext> {
-    const court = await findCourt(courtId);
-    const rows = await listCourtMatchRows(courtId);
-    const ongoing = rows.find((m) => m.status === BracketMatchStatus.ongoing);
-    const summaryMatchIds = rows
-      .filter(
-        (m) =>
-          m.status === BracketMatchStatus.ongoing ||
-          m.status === BracketMatchStatus.finished,
-      )
-      .map((m) => m.id);
-    const scorecardsByMatchId = await mapScorecards(summaryMatchIds);
+    const loaded = await loadCourtJudgePage(courtId);
+    if (loaded.kind !== "ok") {
+      throw new AppError("NOT_FOUND", "경기장을 찾을 수 없거나 사용할 수 없습니다.");
+    }
     return {
-      court: toCourtVM(court),
-      matches: rows.map((match) => toCourtJudgeMatchVM(court, match)),
-      ongoingMatchId: ongoing?.id ?? null,
-      scoreSummariesByMatchId: buildScoreSummaries(scorecardsByMatchId),
+      court: loaded.court,
+      matches: loaded.matches,
+      ongoingMatchId: loaded.ongoingMatchId,
+      scoreSummariesByMatchId: loaded.scoreSummariesByMatchId,
     };
   },
 
   async getHeadContext(courtId: string): Promise<CourtJudgeHeadContext> {
-    const court = await findCourt(courtId);
-    const rows = await listCourtMatchRows(courtId);
-    const ongoing = rows.find((m) => m.status === BracketMatchStatus.ongoing);
-    const ongoingId = ongoing?.id ?? null;
-    const scorecardMatchIds = rows
-      .filter(
-        (m) =>
-          m.status === BracketMatchStatus.ongoing ||
-          m.status === BracketMatchStatus.finished,
-      )
-      .map((m) => m.id);
-    const scorecardsByMatchId = await mapScorecards(scorecardMatchIds);
+    const loaded = await loadCourtJudgePage(courtId);
+    if (loaded.kind !== "ok") {
+      throw new AppError("NOT_FOUND", "경기장을 찾을 수 없거나 사용할 수 없습니다.");
+    }
     return {
-      court: toCourtVM(court),
-      matches: rows.map((match) => toCourtJudgeMatchVM(court, match)),
-      ongoingMatchId: ongoingId,
-      scorecardsByMatchId,
-      scoreSummariesByMatchId: buildScoreSummaries(scorecardsByMatchId),
+      court: loaded.court,
+      matches: loaded.matches,
+      ongoingMatchId: loaded.ongoingMatchId,
+      scorecardsByMatchId: loaded.scorecardsByMatchId,
+      scoreSummariesByMatchId: loaded.scoreSummariesByMatchId,
     };
   },
 

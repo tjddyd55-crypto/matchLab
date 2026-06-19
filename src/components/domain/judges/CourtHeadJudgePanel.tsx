@@ -18,18 +18,17 @@ import type {
   CourtMatchScoreSummaryVM,
 } from "@/lib/services/judge-court.service";
 import { BracketMatchOutcomeStyle, BracketMatchStatus } from "@/lib/enums";
+import type { CourtJudgeScene } from "@/lib/court-judge-page-state";
 import { BoutFormatBadge } from "@/components/domain/shared/BoutFormatBadge";
-import { CourtJudgeIdentityGate } from "./CourtJudgeIdentityGate";
 import { CourtJudgeRefreshShell } from "./CourtJudgeRefreshShell";
 import { CourtJudgeScorecardInlineList } from "./CourtJudgeScorecardDetail";
 import {
   CourtJudgeFightersHeader,
   resultSummary,
 } from "./CourtJudgeMatchList";
-import {
-  CourtJudgeEmptyNotice,
-  CourtJudgeScreenShell,
-} from "./CourtJudgeScreenShell";
+import { CourtJudgeEmptyState } from "./CourtJudgeEmptyState";
+import { CourtJudgeSceneBanner } from "./CourtJudgeSceneBanner";
+import { CourtJudgeScreenShell } from "./CourtJudgeScreenShell";
 
 function HeadMatchDetail({
   match,
@@ -100,7 +99,11 @@ function HeadMatchDetail({
 
   if (!match) {
     return (
-      <CourtJudgeEmptyNotice>표시할 경기를 리스트에서 선택하세요.</CourtJudgeEmptyNotice>
+      <CourtJudgeEmptyState
+        scene="no_matches"
+        matches={[]}
+        role="head"
+      />
     );
   }
 
@@ -207,6 +210,17 @@ function HeadMatchDetail({
           <CourtJudgeFightersHeader match={match} />
         </div>
       </section>
+
+      {isCancelled ? (
+        <section className="rounded-xl border border-destructive/35 bg-destructive/5 p-4">
+          <p className="font-semibold text-destructive">경기가 취소되었습니다.</p>
+          {match.displayResultMemo ? (
+            <p className="text-muted-foreground mt-2 text-sm">
+              취소 사유: {match.displayResultMemo}
+            </p>
+          ) : null}
+        </section>
+      ) : null}
 
       {isFinished || isCancelled ? (
         <section className="rounded-xl border p-4">
@@ -345,12 +359,14 @@ export function CourtHeadJudgePanel({
   ongoingMatchId,
   scorecardsByMatchId,
   scoreSummariesByMatchId,
+  scene,
 }: {
   court: CourtJudgeCourtVM;
   matches: CourtJudgeMatchVM[];
   ongoingMatchId: string | null;
   scorecardsByMatchId: Record<string, CourtJudgeScorecardVM[]>;
   scoreSummariesByMatchId: Record<string, CourtMatchScoreSummaryVM>;
+  scene: CourtJudgeScene;
 }) {
   const defaultSelectedId = useMemo(
     () =>
@@ -379,34 +395,43 @@ export function CourtHeadJudgePanel({
         ? (scorecardsByMatchId[selectedMatch.matchId] ?? [])
         : [];
 
+  function renderDetail(selected: CourtJudgeMatchVM | null) {
+    if (matches.length === 0) {
+      return <CourtJudgeEmptyState scene="no_matches" matches={matches} role="head" />;
+    }
+
+    if (scene !== "active" && !selected) {
+      return (
+        <CourtJudgeEmptyState scene={scene} matches={matches} role="head" />
+      );
+    }
+
+    return (
+      <div className="space-y-4">
+        {scene !== "active" ? (
+          <CourtJudgeSceneBanner scene={scene} role="head" />
+        ) : null}
+        <HeadMatchDetail
+          match={selected}
+          ongoingMatchId={ongoingMatchId}
+          scorecards={scorecards}
+        />
+      </div>
+    );
+  }
+
   return (
-    <CourtJudgeIdentityGate
-      courtId={court.courtId}
-      role="head"
-      roleLabel="주심판"
-      eventTitle={court.eventTitle}
-      courtName={court.courtName}
-    >
-      {() => (
-        <CourtJudgeRefreshShell>
-          <CourtJudgeScreenShell
-            court={court}
-            matches={matches}
-            ongoingMatchId={ongoingMatchId}
-            roleLabel="주심판"
-            selectedMatchId={activeSelectedMatchId}
-            onSelectedMatchIdChange={setSelectedMatchId}
-            scoreSummariesByMatchId={scoreSummariesByMatchId}
-            detail={(selected) => (
-              <HeadMatchDetail
-                match={selected}
-                ongoingMatchId={ongoingMatchId}
-                scorecards={scorecards}
-              />
-            )}
-          />
-        </CourtJudgeRefreshShell>
-      )}
-    </CourtJudgeIdentityGate>
+    <CourtJudgeRefreshShell>
+      <CourtJudgeScreenShell
+        court={court}
+        matches={matches}
+        ongoingMatchId={ongoingMatchId}
+        roleLabel="주심판"
+        selectedMatchId={activeSelectedMatchId}
+        onSelectedMatchIdChange={setSelectedMatchId}
+        scoreSummariesByMatchId={scoreSummariesByMatchId}
+        detail={(selected) => renderDetail(selected)}
+      />
+    </CourtJudgeRefreshShell>
   );
 }
