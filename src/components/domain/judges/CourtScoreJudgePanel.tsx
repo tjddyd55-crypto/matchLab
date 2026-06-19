@@ -15,14 +15,14 @@ import type {
   CourtJudgeMyScorecardVM,
   CourtMatchScoreSummaryVM,
 } from "@/lib/services/judge-court.service";
+import { matchRequiresScoreJudge } from "@/lib/court-judge-page-state";
+import type { CourtJudgeScene } from "@/lib/court-judge-page-state";
 import { JudgeDecisionMethod } from "@/lib/enums";
-import { CourtJudgeIdentityGate } from "./CourtJudgeIdentityGate";
 import { CourtJudgeRefreshShell } from "./CourtJudgeRefreshShell";
 import { CourtJudgeFightersHeader } from "./CourtJudgeMatchList";
-import {
-  CourtJudgeEmptyNotice,
-  CourtJudgeScreenShell,
-} from "./CourtJudgeScreenShell";
+import { CourtJudgeEmptyState } from "./CourtJudgeEmptyState";
+import { CourtJudgeScoreNotRequiredNotice } from "./CourtJudgeSceneBanner";
+import { CourtJudgeScreenShell } from "./CourtJudgeScreenShell";
 
 type RoundState = { roundNumber: number; redScore: string; blueScore: string };
 
@@ -271,29 +271,43 @@ function ScoreForm({
 function ScoreDetail({
   matches,
   ongoingMatchId,
+  scene,
   judgeName,
   birthDate,
 }: {
   matches: CourtJudgeMatchVM[];
   ongoingMatchId: string | null;
+  scene: CourtJudgeScene;
   judgeName: string;
   birthDate: string;
 }) {
-  if (!ongoingMatchId) {
+  if (scene !== "active" || !ongoingMatchId) {
     return (
-      <CourtJudgeEmptyNotice>
-        <p>현재 진행중인 경기가 없습니다.</p>
-        <p className="mt-2">주심판이 경기 시작을 누르면 채점할 수 있습니다.</p>
-      </CourtJudgeEmptyNotice>
+      <CourtJudgeEmptyState
+        scene={scene === "active" ? "no_ongoing_match" : scene}
+        matches={matches}
+        role="score"
+      />
     );
   }
 
   const ongoing = matches.find((m) => m.matchId === ongoingMatchId) ?? null;
   if (!ongoing) {
     return (
-      <CourtJudgeEmptyNotice>
-        진행중 경기만 채점할 수 있습니다. 리스트에서 파란색으로 강조된 경기를 확인하세요.
-      </CourtJudgeEmptyNotice>
+      <CourtJudgeEmptyState
+        scene="no_ongoing_match"
+        matches={matches}
+        role="score"
+      />
+    );
+  }
+
+  if (!matchRequiresScoreJudge(ongoing)) {
+    return (
+      <div className="space-y-4">
+        <CourtJudgeScoreNotRequiredNotice />
+        <CourtJudgeEmptyState scene="no_ongoing_match" matches={matches} role="score" />
+      </div>
     );
   }
 
@@ -312,41 +326,38 @@ export function CourtScoreJudgePanel({
   matches,
   ongoingMatchId,
   scoreSummariesByMatchId,
+  scene,
+  judgeName,
+  birthDate,
 }: {
   court: CourtJudgeCourtVM;
   matches: CourtJudgeMatchVM[];
   ongoingMatchId: string | null;
   scoreSummariesByMatchId: Record<string, CourtMatchScoreSummaryVM>;
+  scene: CourtJudgeScene;
+  judgeName: string;
+  birthDate: string;
 }) {
   return (
-    <CourtJudgeIdentityGate
-      courtId={court.courtId}
-      role="score"
-      roleLabel="채점심판"
-      eventTitle={court.eventTitle}
-      courtName={court.courtName}
-    >
-      {(session) => (
-        <CourtJudgeRefreshShell>
-          <CourtJudgeScreenShell
-            court={court}
+    <CourtJudgeRefreshShell>
+      <CourtJudgeScreenShell
+        court={court}
+        matches={matches}
+        ongoingMatchId={ongoingMatchId}
+        roleLabel="채점심판"
+        mobileDetailFirst
+        selectable={false}
+        scoreSummariesByMatchId={scoreSummariesByMatchId}
+        detail={() => (
+          <ScoreDetail
             matches={matches}
             ongoingMatchId={ongoingMatchId}
-            roleLabel="채점심판"
-            mobileDetailFirst
-            selectable={false}
-            scoreSummariesByMatchId={scoreSummariesByMatchId}
-            detail={() => (
-              <ScoreDetail
-                matches={matches}
-                ongoingMatchId={ongoingMatchId}
-                judgeName={session.judgeName}
-                birthDate={session.birthDate}
-              />
-            )}
+            scene={scene}
+            judgeName={judgeName}
+            birthDate={birthDate}
           />
-        </CourtJudgeRefreshShell>
-      )}
-    </CourtJudgeIdentityGate>
+        )}
+      />
+    </CourtJudgeRefreshShell>
   );
 }
