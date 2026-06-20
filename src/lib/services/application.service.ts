@@ -362,7 +362,7 @@ export type EventApplicationFighterRowDTO = {
 
 export type ApplyToEventSuccessDTO = {
   applicationId: string;
-  paymentInstruction: BankPaymentInstructionDTO;
+  paymentInstruction: BankPaymentInstructionDTO | null;
 };
 
 export type BulkApplyItemResultDTO = {
@@ -814,14 +814,9 @@ export const applicationService = {
     const paymentSetting = await eventRepository.findEventPaymentSettingFull(
       input.eventId,
     );
-    if (!paymentSetting) {
-      throw new AppError(
-        "NOT_FOUND",
-        "참가비 입금 정보가 설정되지 않았습니다. 주최자에게 문의해 주세요.",
-      );
-    }
 
     const appliedAt = new Date();
+    const feeAmount = paymentSetting?.feeAmount ?? 0;
 
     const { applicationId } = await createGymEventApplication({
       eventId: input.eventId,
@@ -833,7 +828,7 @@ export const applicationService = {
       streamingAgreementRequired,
       appliedByUserId: actor.userId,
       appliedAt,
-      feeAmount: paymentSetting.feeAmount,
+      feeAmount,
       applicationProfileImageUrl: input.applicationProfileImageUrl,
       memo: input.memo,
     });
@@ -848,16 +843,18 @@ export const applicationService = {
 
     return {
       applicationId,
-      paymentInstruction: {
-        feeAmount: paymentSetting.feeAmount,
-        bankName: paymentSetting.bankName,
-        accountNumber: paymentSetting.accountNumber,
-        accountHolder: paymentSetting.accountHolder,
-        depositorRule: paymentSetting.depositorRule,
-        paymentDueDate: paymentSetting.paymentDueDate
-          ? toIso(paymentSetting.paymentDueDate)
-          : null,
-      },
+      paymentInstruction: paymentSetting
+        ? {
+            feeAmount: paymentSetting.feeAmount,
+            bankName: paymentSetting.bankName,
+            accountNumber: paymentSetting.accountNumber,
+            accountHolder: paymentSetting.accountHolder,
+            depositorRule: paymentSetting.depositorRule,
+            paymentDueDate: paymentSetting.paymentDueDate
+              ? toIso(paymentSetting.paymentDueDate)
+              : null,
+          }
+        : null,
     };
   },
 
@@ -886,12 +883,7 @@ export const applicationService = {
     const paymentSetting = await eventRepository.findEventPaymentSettingFull(
       input.eventId,
     );
-    if (!paymentSetting) {
-      throw new AppError(
-        "NOT_FOUND",
-        "참가비 입금 정보가 설정되지 않았습니다. 주최자에게 문의해 주세요.",
-      );
-    }
+    const feeAmount = paymentSetting?.feeAmount ?? 0;
 
     const gymMeta = await registrationRepository.findGymNameById(gymId);
     const gymDisplayName = gymMeta?.name ?? "체육관";
@@ -1047,7 +1039,7 @@ export const applicationService = {
           streamingAgreementRequired,
           appliedByUserId: actor.userId,
           appliedAt,
-          feeAmount: paymentSetting.feeAmount,
+          feeAmount,
           memo: input.memo,
           customFormSnapshot,
         });
@@ -1092,7 +1084,7 @@ export const applicationService = {
       failedCount,
       items,
       paymentInstruction:
-        createdCount > 0
+        createdCount > 0 && paymentSetting
           ? {
               feeAmount: paymentSetting.feeAmount,
               bankName: paymentSetting.bankName,

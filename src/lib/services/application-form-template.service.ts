@@ -67,11 +67,7 @@ function normalizeTemplatePayload(
   };
 }
 
-function assertAdmin(actor: ActorContext): void {
-  requireRole(actor, ["admin"]);
-}
-
-function assertTemplateAccess(
+function assertTemplateReadAccess(
   actor: ActorContext,
   templateOrganizerId: string | null,
 ): void {
@@ -82,10 +78,28 @@ function assertTemplateAccess(
   if (templateOrganizerId && templateOrganizerId !== actor.organizerId) {
     throw new AppError("FORBIDDEN", "이 템플릿에 접근할 수 없습니다.");
   }
-  if (!templateOrganizerId) {
-    throw new AppError("FORBIDDEN", "전체 공용 템플릿은 관리자만 수정할 수 있습니다.");
+}
+
+function assertTemplateWriteAccess(
+  actor: ActorContext,
+  templateOrganizerId: string | null,
+): void {
+  if (actor.role === "admin") return;
+  if (!actor.organizerId) {
+    throw new AppError("FORBIDDEN", "주최자 프로필이 없습니다.");
+  }
+  if (!templateOrganizerId || templateOrganizerId !== actor.organizerId) {
+    throw new AppError(
+      "FORBIDDEN",
+      "본인이 만든 템플릿만 수정할 수 있습니다.",
+    );
   }
 }
+
+export type ApplicationFormTemplateEditorContext = {
+  audience: "admin" | "organizer";
+  basePath: string;
+};
 
 export type ApplicationFormTemplateListItemVM = {
   id: string;
@@ -144,10 +158,13 @@ export const applicationFormTemplateService = {
         throw new AppError("FORBIDDEN", "주최자 프로필이 없습니다.");
       }
       const rows = await applicationFormTemplateRepository.list({
-        organizerId: actor.organizerId,
-        activeOnly: options?.activeOnly ?? true,
+        activeOnly: options?.activeOnly,
       });
-      return rows.map(toListItem);
+      return rows
+        .filter(
+          (r) => !r.organizerId || r.organizerId === actor.organizerId,
+        )
+        .map(toListItem);
     }
     const rows = await applicationFormTemplateRepository.list({
       organizerId: options?.organizerId,
@@ -165,7 +182,7 @@ export const applicationFormTemplateService = {
     if (!row) {
       throw new AppError("NOT_FOUND", "신청서 템플릿을 찾을 수 없습니다.");
     }
-    assertTemplateAccess(actor, row.organizerId);
+    assertTemplateReadAccess(actor, row.organizerId);
     return {
       ...toListItem({ ...row, organizer: null }),
       originalPdfPath: row.originalPdfPath,
@@ -180,10 +197,24 @@ export const applicationFormTemplateService = {
     actor: ActorContext,
     input: CreateApplicationFormTemplateInput,
   ): Promise<{ templateId: string }> {
-    assertAdmin(actor);
+    requireRole(actor, ["admin", "organizer"]);
     const normalized = normalizeTemplatePayload(input);
+
+    let organizerId: string | null = null;
+    let createdByAdminUserId: string | null = null;
+
+    if (actor.role === "admin") {
+      organizerId = input.organizerId?.trim() || null;
+      createdByAdminUserId = actor.userId;
+    } else {
+      if (!actor.organizerId) {
+        throw new AppError("FORBIDDEN", "주최자 프로필이 없습니다.");
+      }
+      organizerId = actor.organizerId;
+    }
+
     const created = await applicationFormTemplateRepository.create({
-      organizerId: input.organizerId ?? null,
+      organizerId,
       title: input.title,
       description: input.description ?? null,
       originalPdfPath: normalized.originalPdfPath ?? null,
@@ -193,7 +224,7 @@ export const applicationFormTemplateService = {
       manualFieldsJson: normalized.manualFieldsJson ?? null,
       consentMappingJson: input.consentMappingJson ?? null,
       isActive: input.isActive ?? true,
-      createdByAdminUserId: actor.userId,
+      createdByAdminUserId,
     });
     return { templateId: created.id };
   },
@@ -202,18 +233,26 @@ export const applicationFormTemplateService = {
     actor: ActorContext,
     input: UpdateApplicationFormTemplateInput,
   ): Promise<void> {
-    assertAdmin(actor);
+    requireRole(actor, ["admin", "organizer"]);
     const existing = await applicationFormTemplateRepository.findById(
       input.templateId,
     );
     if (!existing) {
       throw new AppError("NOT_FOUND", "신청서 템플릿을 찾을 수 없습니다.");
     }
+    assertTemplateWriteAccess(actor, existing.organizerId);
+
     const normalized = input.templateFormMode
       ? normalizeTemplatePayload(input as CreateApplicationFormTemplateInput)
       : null;
+
+    const nextOrganizerId =
+      actor.role === "admin"
+        ? input.organizerId
+        : existing.organizerId;
+
     await applicationFormTemplateRepository.update(input.templateId, {
-      organizerId: input.organizerId,
+      organizerId: nextOrganizerId,
       title: input.title,
       description: input.description,
       ...(normalized
@@ -237,6 +276,63 @@ export const applicationFormTemplateService = {
       consentMappingJson: input.consentMappingJson as Prisma.InputJsonValue | null | undefined,
       isActive: input.isActive,
     });
+  },
+
+  async archiveTemplate(
+    actor: ActorContext,
+    templateId: string,
+  ): Promise<void> {
+    requireRole(actor, ["admin", "organizer"]);
+    const existing = await applicationFormTemplateRepository.findById(templateId);
+    if (!existing) {
+      throw new AppError("NOT_FOUND", "신청서 템플릿을 찾을 수 없습니다.");
+    }
+    assertTemplateWriteAccess(actor, existing.organizerId);
+    await applicationFormTemplateRepository.update(templateId, {
+      isActive: false,
+    });
+  },
+
+  async duplicateTemplate(
+    actor: ActorContext,
+    sourceTemplateId: string,
+    title?: string | null,
+  ): Promise<{ templateId: string }> {
+    requireRole(actor, ["admin", "organizer"]);
+    const source = await applicationFormTemplateRepository.findById(
+      sourceTemplateId,
+    );
+    if (!source) {
+      throw new AppError("NOT_FOUND", "원본 템플릿을 찾을 수 없습니다.");
+    }
+    assertTemplateReadAccess(actor, source.organizerId);
+
+    let organizerId: string | null = source.organizerId;
+    let createdByAdminUserId: string | null = null;
+
+    if (actor.role === "organizer") {
+      if (!actor.organizerId) {
+        throw new AppError("FORBIDDEN", "주최자 프로필이 없습니다.");
+      }
+      organizerId = actor.organizerId;
+    } else {
+      createdByAdminUserId = actor.userId;
+    }
+
+    const created = await applicationFormTemplateRepository.create({
+      organizerId,
+      title: title?.trim() || `${source.title} (복사)`,
+      description: source.description,
+      originalPdfPath: source.originalPdfPath,
+      originalPdfFileName: source.originalPdfFileName,
+      fieldsJson: source.fieldsJson as Prisma.InputJsonValue,
+      repeatGroupsJson: source.repeatGroupsJson as Prisma.InputJsonValue,
+      manualFieldsJson: source.manualFieldsJson as Prisma.InputJsonValue | null,
+      consentMappingJson: source.consentMappingJson as Prisma.InputJsonValue | null,
+      isActive: true,
+      createdByAdminUserId,
+    });
+    return { templateId: created.id };
   },
 
   async linkTemplateToEvent(

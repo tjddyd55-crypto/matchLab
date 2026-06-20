@@ -4,6 +4,7 @@ import Link from "next/link";
 import { useEffect, useMemo, useState } from "react";
 import { useRouter } from "next/navigation";
 import type { ApplicationFormTemplateDetailVM } from "@/lib/services/application-form-template.service";
+import type { ApplicationFormTemplateEditorContext } from "@/lib/services/application-form-template.service";
 import {
   createApplicationFormTemplateAction,
   updateApplicationFormTemplateAction,
@@ -103,9 +104,11 @@ async function fetchPdfBytesFromViewUrl(viewUrl: string): Promise<ArrayBuffer> {
 export function ApplicationFormTemplateEditor({
   mode,
   initial,
+  editorContext = { audience: "admin", basePath: "/admin/application-form-templates" },
 }: {
   mode: "create" | "edit";
   initial?: ApplicationFormTemplateDetailVM;
+  editorContext?: ApplicationFormTemplateEditorContext;
 }) {
   const router = useRouter();
   const showDevAdvanced = isTemplateEditorDevMode();
@@ -379,7 +382,7 @@ export function ApplicationFormTemplateEditor({
     }
 
     if (mode === "create" && "templateId" in res.data) {
-      router.push(`/admin/application-form-templates/${res.data.templateId}`);
+      router.push(`${editorContext.basePath}/${res.data.templateId}`);
       router.refresh();
       return;
     }

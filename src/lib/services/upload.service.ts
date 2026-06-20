@@ -384,7 +384,7 @@ export async function createApplicationFormTemplatePdfUploadUrl(
   actor: ActorContext,
   input: { templateId?: string; mimeType: string },
 ): Promise<{ uploadUrl: string; path: string; expiresIn: number }> {
-  requireRole(actor, ["admin"]);
+  requireRole(actor, ["admin", "organizer"]);
   const mimeType = input.mimeType.trim();
   if (!ALLOWED_APPLICATION_FORM_PDF_MIME.has(mimeType)) {
     throw new AppError(

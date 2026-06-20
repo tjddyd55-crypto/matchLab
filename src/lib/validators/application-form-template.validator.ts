@@ -172,3 +172,12 @@ export const linkEventApplicationFormTemplateSchema = z.object({
 export type LinkEventApplicationFormTemplateInput = z.infer<
   typeof linkEventApplicationFormTemplateSchema
 >;
+
+export const duplicateApplicationFormTemplateSchema = z.object({
+  sourceTemplateId: z.string().min(1),
+  title: z.string().max(200).optional().nullable(),
+});
+
+export const archiveApplicationFormTemplateSchema = z.object({
+  templateId: z.string().min(1),
+});

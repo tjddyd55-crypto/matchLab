@@ -63,7 +63,7 @@ export const applicationPdfAccessService = {
     path: string,
     fileName: string,
   ): Promise<{ viewUrl: string; expiresIn: number; fileName: string }> {
-    requireRole(actor, ["admin"]);
+    requireRole(actor, ["admin", "organizer"]);
     assertTemplatePdfPath(path);
     const { signedUrl, expiresIn } = await createApplicationFormPdfDownloadSignedUrl(
       { path },

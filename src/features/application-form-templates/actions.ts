@@ -13,7 +13,9 @@ import { PermissionError } from "@/lib/auth/permission-error";
 import { AppError } from "@/lib/errors/app-error";
 import { applicationFormTemplateService } from "@/lib/services/application-form-template.service";
 import {
+  archiveApplicationFormTemplateSchema,
   createApplicationFormTemplateSchema,
+  duplicateApplicationFormTemplateSchema,
   linkEventApplicationFormTemplateSchema,
   updateApplicationFormTemplateSchema,
   pdfFieldSchema,
@@ -108,6 +110,8 @@ export async function createApplicationFormTemplateAction(
       actor,
       parsed.data,
     );
+    revalidatePath("/admin/application-form-templates");
+    revalidatePath("/organizer/application-form-templates");
     return actionSuccess(result);
   });
 }
@@ -157,6 +161,8 @@ export async function updateApplicationFormTemplateAction(
     }
 
     await applicationFormTemplateService.updateTemplate(actor, parsed.data);
+    revalidatePath("/admin/application-form-templates");
+    revalidatePath("/organizer/application-form-templates");
     return actionSuccess({ ok: true as const });
   });
 }
@@ -187,6 +193,68 @@ export async function linkEventApplicationFormTemplateAction(
 
     await applicationFormTemplateService.linkTemplateToEvent(actor, parsed.data);
     revalidatePath(`/organizer/events/${parsed.data.eventId}`);
+    return actionSuccess({ ok: true as const });
+  });
+}
+
+export async function duplicateApplicationFormTemplateAction(
+  arg1: unknown,
+  arg2?: FormData,
+): Promise<ActionResult<{ templateId: string }>> {
+  const formData = resolveFormData(arg1, arg2);
+  if (!formData) {
+    return actionFailure("VALIDATION_ERROR", "요청 본문이 올바르지 않습니다.");
+  }
+
+  return mapCaught(async () => {
+    const actor = await requireActorFromMutation();
+    const parsed = duplicateApplicationFormTemplateSchema.safeParse({
+      sourceTemplateId: formReq(formData, "sourceTemplateId"),
+      title: formReq(formData, "title") || null,
+    });
+    if (!parsed.success) {
+      return actionFailure(
+        "VALIDATION_ERROR",
+        "요청 값을 확인해 주세요.",
+        parsed.error.flatten(),
+      );
+    }
+    const result = await applicationFormTemplateService.duplicateTemplate(
+      actor,
+      parsed.data.sourceTemplateId,
+      parsed.data.title,
+    );
+    revalidatePath("/organizer/application-form-templates");
+    revalidatePath("/admin/application-form-templates");
+    return actionSuccess(result);
+  });
+}
+
+export async function archiveApplicationFormTemplateAction(
+  arg1: unknown,
+  arg2?: FormData,
+): Promise<ActionResult<{ ok: true }>> {
+  const formData = resolveFormData(arg1, arg2);
+  if (!formData) {
+    return actionFailure("VALIDATION_ERROR", "요청 본문이 올바르지 않습니다.");
+  }
+
+  return mapCaught(async () => {
+    const actor = await requireActorFromMutation();
+    const parsed = archiveApplicationFormTemplateSchema.safeParse({
+      templateId: formReq(formData, "templateId"),
+    });
+    if (!parsed.success) {
+      return actionFailure(
+        "VALIDATION_ERROR",
+        "요청 값을 확인해 주세요.",
+        parsed.error.flatten(),
+      );
+    }
+    await applicationFormTemplateService.archiveTemplate(
+      actor,
+      parsed.data.templateId,
+    );
     return actionSuccess({ ok: true as const });
   });
 }

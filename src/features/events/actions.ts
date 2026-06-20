@@ -347,13 +347,16 @@ export async function upsertEventPaymentSettingAction(
     return actionFailure("VALIDATION_ERROR", "요청 본문이 올바르지 않습니다.");
   }
   return mapCaught(async () => {
+    const feeEnabled =
+      formData.get("feeEnabled") === "true" ||
+      formData.get("feeEnabled") === "on";
     const feeRaw = formReq(formData, "feeAmount");
-    const feeAmount = Number(feeRaw);
     const paymentDueDate = optDateTimeOrNull(formData, "paymentDueDate");
 
     const raw = {
       eventId: formReq(formData, "eventId"),
-      feeAmount,
+      feeEnabled,
+      feeAmount: feeRaw === "" ? undefined : Number(feeRaw),
       bankName: formReq(formData, "bankName"),
       accountNumber: formReq(formData, "accountNumber"),
       accountHolder: formReq(formData, "accountHolder"),
