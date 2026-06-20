@@ -4,6 +4,7 @@ import { useState, useTransition } from "react";
 import { useRouter } from "next/navigation";
 import { resetFieldStatusInputFormAction } from "@/features/field-status/actions";
 import { Button } from "@/components/ui/button";
+import { canResetFieldStatusInput } from "@/lib/field-final-result";
 import type { FieldStatusRowDTO } from "@/lib/services/field-status.service";
 
 export function FieldStatusResetButton({ row }: { row: FieldStatusRowDTO }) {
@@ -11,15 +12,10 @@ export function FieldStatusResetButton({ row }: { row: FieldStatusRowDTO }) {
   const [pending, startTransition] = useTransition();
   const [error, setError] = useState<string | null>(null);
 
-  const hasOfficialResult = row.bracketAssignments.some(
-    (a) => a.hasOfficialResult,
-  );
+  const canReset = canResetFieldStatusInput(row);
 
   function handleReset() {
-    if (hasOfficialResult) {
-      window.alert(
-        "공식 결과가 확정된 경기가 있어 초기화할 수 없습니다.",
-      );
+    if (!canReset) {
       return;
     }
 
@@ -46,17 +42,17 @@ export function FieldStatusResetButton({ row }: { row: FieldStatusRowDTO }) {
   }
 
   return (
-    <div className="flex flex-col gap-1">
+    <div className="flex w-fit flex-col items-start gap-1">
       <Button
         type="button"
         size="sm"
         variant="outline"
-        className="h-7 text-xs"
-        disabled={pending || hasOfficialResult}
+        className="h-7 w-fit px-3 py-1.5 text-xs"
+        disabled={pending || !canReset}
         onClick={handleReset}
         title={
-          hasOfficialResult
-            ? "공식 결과 확정 경기가 있어 초기화할 수 없습니다."
+          !canReset
+            ? "초기화할 계체·현장 입력이 없습니다."
             : undefined
         }
       >

@@ -254,7 +254,7 @@ export function WeighInWeightInput({ row }: { row: FieldStatusRowDTO }) {
   }
 
   return (
-    <div className="space-y-1">
+    <div className="flex min-w-0 flex-col justify-center gap-1">
       <form onSubmit={handleSubmit} className="flex items-center gap-1">
         <input
           name="weightKg"

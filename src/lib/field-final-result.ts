@@ -1,4 +1,8 @@
-import { WeighInFailureResolution, WeighInStatus } from "@/generated/prisma";
+import {
+  CheckInStatus,
+  WeighInFailureResolution,
+  WeighInStatus,
+} from "@/generated/prisma";
 import type { FieldStatusRowDTO } from "@/lib/services/field-status.service";
 
 export type FieldFinalResultDisplay = {
@@ -71,4 +75,30 @@ export function computeFieldFinalResult(
   }
 
   return { label: "미입력" };
+}
+
+/** 계체·현장 입력이 하나라도 있으면 초기화 가능 (완전 미입력만 비활성) */
+export function canResetFieldStatusInput(row: FieldStatusRowDTO): boolean {
+  if (row.checkInStatus !== CheckInStatus.pending) {
+    return true;
+  }
+  if (row.weighInWeightKg != null) {
+    return true;
+  }
+  if (row.weighInStatus !== WeighInStatus.pending) {
+    return true;
+  }
+  if (row.weighInFailureResolution !== WeighInFailureResolution.pending) {
+    return true;
+  }
+  if (row.handicapNote?.trim()) {
+    return true;
+  }
+  if (row.disqualificationReason?.trim()) {
+    return true;
+  }
+  if (row.fieldMemo?.trim()) {
+    return true;
+  }
+  return computeFieldFinalResult(row).label !== "미입력";
 }

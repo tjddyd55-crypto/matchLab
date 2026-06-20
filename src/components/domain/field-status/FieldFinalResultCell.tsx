@@ -9,7 +9,7 @@ export function FieldFinalResultCell({ row }: { row: FieldStatusRowDTO }) {
   const isUnset = result.label === "미입력";
 
   return (
-    <div className="min-w-0 space-y-1">
+    <div className="flex min-w-0 items-center">
       <p
         className={cn(
           "text-xs font-medium leading-snug",

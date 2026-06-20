@@ -509,29 +509,23 @@ export const fieldStatusService = {
   ): Promise<void> {
     const row = await assertOrganizerApplication(actor, applicationId);
 
-    const bracketMatches =
-      await bracketRepository.listFighterBracketMatchesInEvent(row.eventId);
-    const assignmentMap = buildFighterBracketAssignmentMap(bracketMatches);
-    const assignments = assignmentMap.get(row.fighterId) ?? [];
-
-    if (assignments.some((a) => a.hasOfficialResult)) {
-      throw new AppError(
-        "CONFLICT",
-        "공식 결과가 확정된 경기가 있어 초기화할 수 없습니다.",
-      );
-    }
-
-    const hadWeighInChange =
+    const hadFieldInput =
+      row.checkInStatus !== CheckInStatus.pending ||
       row.weighInWeightKg != null ||
       row.weighInStatus !== WeighInStatus.pending ||
       row.weighInFailureResolution !== WeighInFailureResolution.pending ||
       row.handicapNote != null ||
-      row.disqualificationReason != null;
+      row.disqualificationReason != null ||
+      row.fieldMemo != null;
 
-    const nextCheckIn =
-      row.checkInStatus === CheckInStatus.disqualified
-        ? CheckInStatus.pending
-        : row.checkInStatus;
+    if (!hadFieldInput) {
+      throw new AppError(
+        "VALIDATION_ERROR",
+        "초기화할 계체·현장 입력이 없습니다.",
+      );
+    }
+
+    const nextCheckIn = CheckInStatus.pending;
 
     await fieldStatusRepository.updateFieldStatus(applicationId, {
       weighInWeightKg: null,
@@ -540,12 +534,12 @@ export const fieldStatusService = {
       handicapNote: null,
       disqualificationReason: null,
       checkInStatus: nextCheckIn,
+      fieldMemo: null,
     });
 
     if (
-      hadWeighInChange &&
-      (row.checkInStatus !== nextCheckIn ||
-        row.weighInStatus !== WeighInStatus.pending)
+      row.checkInStatus !== nextCheckIn ||
+      row.weighInStatus !== WeighInStatus.pending
     ) {
       dispatchFieldStatusNotification(
         applicationId,
