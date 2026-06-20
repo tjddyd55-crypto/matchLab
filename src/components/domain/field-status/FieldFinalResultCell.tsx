@@ -18,11 +18,6 @@ export function FieldFinalResultCell({ row }: { row: FieldStatusRowDTO }) {
       >
         {result.label}
       </p>
-      {result.handicapLabel ? (
-        <p className="text-[11px] leading-snug text-amber-800 dark:text-amber-200">
-          {result.handicapLabel}
-        </p>
-      ) : null}
     </div>
   );
 }
