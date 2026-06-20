@@ -25,7 +25,7 @@ export function FighterSlotCard({
     };
 
   const baseClass = cn(
-    "flex flex-1 flex-col justify-center gap-0.5 px-3 py-2",
+    "flex flex-1 flex-col items-center justify-center gap-1 px-3 py-3 text-center",
     style.bg,
     className,
   );
@@ -73,11 +73,6 @@ export function FighterSlotCard({
       <div className="text-muted-foreground truncate text-xs">
         {fighter.gymName ?? "소속 미상"}
       </div>
-      {fighter.divisionName ? (
-        <div className="text-muted-foreground truncate text-[11px]">
-          {fighter.divisionName}
-        </div>
-      ) : null}
       {fighter.recordSummary ? (
         <div className="text-muted-foreground text-[11px]">
           {fighter.recordSummary}
@@ -87,7 +82,7 @@ export function FighterSlotCard({
         handicap={handicap}
         cornerLabel={style.label}
         compact
-        className="mt-0.5"
+        className="mt-0.5 items-center"
       />
     </div>
   );

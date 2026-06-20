@@ -13,9 +13,15 @@ import {
   formatCourtTabLabel,
 } from "@/lib/court-tab-label";
 import { BracketMatchStatus } from "@/lib/enums";
+import { resolveBoutFormatKind } from "@/lib/bout-format";
+import { CORNER_SLOT_STYLES } from "@/lib/corner-slot-styles";
 import type { EventCourtVM } from "@/lib/services/event-court.service";
-import type { OrganizerEventMatchListItemVM } from "@/lib/services/match.service";
+import type {
+  OrganizerEventMatchListItemVM,
+  OrganizerEventMatchFighterVM,
+} from "@/lib/services/match.service";
 import { MATCH_CATEGORY_LABEL } from "@/lib/ui-labels/match-category";
+import { cn } from "@/lib/utils";
 
 function sortMatchesForTab(
   matches: OrganizerEventMatchListItemVM[],
@@ -57,6 +63,45 @@ function matchStatusLabel(status: OrganizerEventMatchListItemVM["status"]) {
     default:
       return "대기";
   }
+}
+
+function matchOrderLabel(m: OrganizerEventMatchListItemVM, courtOrder: number | null) {
+  if (courtOrder != null) return `제${courtOrder}경기`;
+  if (m.matchNumber != null) return `제${m.matchNumber}경기`;
+  if (m.globalMatchOrder != null) return `제${m.globalMatchOrder + 1}경기`;
+  return `제${m.matchOrder + 1}경기`;
+}
+
+function OrganizerFighterSlot({
+  corner,
+  name,
+  gymName,
+  handicap,
+}: {
+  corner: "홍코너" | "청코너";
+  name: string;
+  gymName: string | null;
+  handicap: OrganizerEventMatchFighterVM["handicap"];
+}) {
+  const style = CORNER_SLOT_STYLES[corner];
+  return (
+    <div
+      className={cn(
+        "flex min-h-[5.5rem] flex-col items-center justify-center gap-1 rounded-md border px-3 py-3 text-center text-sm",
+        style.bg,
+      )}
+    >
+      <p className={cn("text-[11px] font-semibold", style.accent)}>{corner}</p>
+      <p className="text-base font-semibold leading-tight">{name}</p>
+      <p className="text-muted-foreground text-xs">{gymName ?? "-"}</p>
+      <FighterHandicapBadge
+        handicap={handicap}
+        cornerLabel={corner}
+        compact
+        className="mt-0.5 items-center"
+      />
+    </div>
+  );
 }
 
 export function OrganizerCourtBracketPanel({
@@ -168,35 +213,46 @@ export function OrganizerCourtBracketPanel({
         <div className="flex flex-col gap-3">
           {filtered.map((m, idx) => {
             const ops = parseMatchOperationalSettings(m.resultMemo).settings;
+            const order = localOrders[m.matchId] ?? m.courtOrder;
+            const formatKind = resolveBoutFormatKind({
+              bracketType: m.bracketType,
+              bracketIsPublic: m.bracketIsPublic,
+              matchIsPublicSparring: m.matchIsPublicSparring,
+              resultMemo: m.resultMemo,
+            });
             return (
             <article
               key={m.matchId}
-              className="rounded-xl border bg-card p-4 shadow-sm ring-1 ring-primary/10"
+              className="overflow-hidden rounded-xl border bg-card shadow-sm ring-1 ring-primary/10"
             >
-              <div className="flex flex-wrap items-start justify-between gap-2">
-                <div className="min-w-0 text-sm">
-                  <p className="text-muted-foreground text-xs">
-                    {courtLabelForMatch(m, courts)}
-                    {m.courtOrder != null || localOrders[m.matchId] != null
-                      ? ` · ${localOrders[m.matchId] ?? m.courtOrder}경기`
-                      : ""}
-                  </p>
-                  <p className="font-medium">
-                    {m.divisionLabel ?? MATCH_CATEGORY_LABEL}
-                  </p>
-                  <div className="mt-1 flex flex-wrap gap-1">
-                    <BoutFormatBadge
-                      bracketType={m.bracketType}
-                      bracketIsPublic={m.bracketIsPublic}
-                      matchIsPublicSparring={m.matchIsPublicSparring}
-                      resultMemo={m.resultMemo}
-                    />
-                    <span className="text-muted-foreground rounded-full border px-2 py-0.5 text-[11px]">
+              <div className="flex flex-wrap items-start justify-between gap-2 border-b bg-muted/30 px-3 py-2">
+                <div className="min-w-0 flex-1">
+                  <div className="flex flex-wrap items-center gap-2 text-xs">
+                    <span className="text-sm font-bold">
+                      {matchOrderLabel(m, order)}
+                    </span>
+                    <span className="text-muted-foreground">
+                      {m.divisionLabel ?? MATCH_CATEGORY_LABEL}
+                    </span>
+                    {formatKind !== "public_sparring" ? (
+                      <BoutFormatBadge
+                        bracketType={m.bracketType}
+                        bracketIsPublic={m.bracketIsPublic}
+                        matchIsPublicSparring={m.matchIsPublicSparring}
+                        resultMemo={m.resultMemo}
+                      />
+                    ) : null}
+                    <span className="text-muted-foreground rounded-full border px-2 py-0.5 text-[10px]">
                       {formatOperationalSettingsLabel(ops)}
                     </span>
                   </div>
+                  <p className="text-muted-foreground mt-1 text-[11px]">
+                    {courtLabelForMatch(m, courts)}
+                    {order != null ? ` · ${order}경기` : ""}
+                    {m.roundName ? ` · ${m.roundName}` : ""}
+                  </p>
                 </div>
-                <div className="flex items-center gap-2">
+                <div className="flex shrink-0 items-center gap-2">
                   {canReorder ? (
                     <>
                       <input
@@ -236,30 +292,21 @@ export function OrganizerCourtBracketPanel({
                       </Button>
                     </>
                   ) : null}
-                  <span className="rounded-full border px-2 py-1 text-xs font-medium">
+                  <span className="rounded-full bg-background px-2 py-0.5 text-[11px] font-medium">
                     {matchStatusLabel(m.status)}
                   </span>
                 </div>
               </div>
 
-              <div className="mt-3 grid items-stretch gap-3 md:grid-cols-[minmax(0,1fr)_auto_minmax(0,1fr)]">
-                <div className="rounded-md border px-3 py-3 text-sm">
-                  <p className="text-muted-foreground text-xs">선수 A</p>
-                  <p className="mt-1 text-base font-semibold">
-                    {m.fighterRed?.name ?? "-"}
-                  </p>
-                  <p className="text-muted-foreground text-xs">
-                    {m.fighterRed?.gymName ?? "-"}
-                  </p>
-                  <FighterHandicapBadge
-                    handicap={m.fighterRed?.handicap}
-                    cornerLabel="홍코너"
-                    compact
-                    className="mt-1"
-                  />
-                </div>
-                <div className="flex flex-col items-center justify-center">
-                  <span className="rounded-full border border-primary/30 bg-primary/5 px-3 py-2 text-xs font-semibold tracking-wide text-primary">
+              <div className="grid grid-cols-1 md:grid-cols-[minmax(0,1fr)_auto_minmax(0,1fr)] md:items-center">
+                <OrganizerFighterSlot
+                  corner="홍코너"
+                  name={m.fighterRed?.name ?? "-"}
+                  gymName={m.fighterRed?.gymName ?? null}
+                  handicap={m.fighterRed?.handicap ?? null}
+                />
+                <div className="bg-muted/20 flex flex-col items-center justify-center px-4 py-3 md:min-w-[4.5rem] md:py-4">
+                  <span className="text-lg font-black tracking-widest text-muted-foreground">
                     VS
                   </span>
                   <PublicSparringUnderVsBadge
@@ -269,24 +316,15 @@ export function OrganizerCourtBracketPanel({
                     resultMemo={m.resultMemo}
                   />
                 </div>
-                <div className="rounded-md border px-3 py-3 text-sm md:text-right">
-                  <p className="text-muted-foreground text-xs">선수 B</p>
-                  <p className="mt-1 text-base font-semibold">
-                    {m.fighterBlue?.name ?? "-"}
-                  </p>
-                  <p className="text-muted-foreground text-xs">
-                    {m.fighterBlue?.gymName ?? "-"}
-                  </p>
-                  <FighterHandicapBadge
-                    handicap={m.fighterBlue?.handicap}
-                    cornerLabel="청코너"
-                    compact
-                    className="mt-1 md:ml-auto"
-                  />
-                </div>
+                <OrganizerFighterSlot
+                  corner="청코너"
+                  name={m.fighterBlue?.name ?? "-"}
+                  gymName={m.fighterBlue?.gymName ?? null}
+                  handicap={m.fighterBlue?.handicap ?? null}
+                />
               </div>
 
-              <div className="mt-2">
+              <div className="border-t px-3 py-2">
                 <MatchCourtControls
                   key={`${m.matchId}:${m.courtId ?? ""}:${m.courtOrder ?? ""}`}
                   inline
