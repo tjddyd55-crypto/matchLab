@@ -39,7 +39,7 @@ export default async function EditApplicationFormTemplatePage({
         ← 템플릿 목록
       </Link>
       <h1 className="font-heading text-2xl font-semibold tracking-tight">
-        템플릿 편집
+        신청서 템플릿 수정
       </h1>
       <p className="text-muted-foreground text-sm">{template.title}</p>
       <ApplicationFormTemplateEditor mode="edit" initial={template} />

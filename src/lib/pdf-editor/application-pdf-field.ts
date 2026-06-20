@@ -72,7 +72,7 @@ export function createDefaultField(input: {
   };
 }
 
-function defaultSourceForType(type: ApplicationPdfFieldType): string {
+export function defaultSourceForType(type: ApplicationPdfFieldType): string {
   switch (type) {
     case "signature":
       return "athlete.signatureImage";

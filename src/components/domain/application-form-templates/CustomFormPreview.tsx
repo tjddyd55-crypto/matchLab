@@ -25,7 +25,7 @@ export function CustomFormPreview({
         className,
       )}
     >
-      <p className="text-xs font-medium text-muted-foreground">미리보기 (저장 전)</p>
+      <p className="text-xs font-medium text-muted-foreground">미리보기</p>
       {fields.map((field) => (
         <PreviewField key={field.id} field={field} />
       ))}

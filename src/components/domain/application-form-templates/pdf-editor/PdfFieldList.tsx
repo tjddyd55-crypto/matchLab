@@ -39,10 +39,7 @@ export function PdfFieldList({
           >
             <div className="font-medium">{f.label}</div>
             <div className="text-muted-foreground mt-0.5">
-              p{f.page} · {APPLICATION_PDF_FIELD_TYPE_LABELS[f.type]}
-            </div>
-            <div className="text-muted-foreground mt-0.5 truncate">
-              {f.source}
+              {f.page}페이지 · {APPLICATION_PDF_FIELD_TYPE_LABELS[f.type]}
             </div>
           </button>
         </li>

@@ -97,6 +97,7 @@ export function PdfCoordinateEditor({
       <aside className="w-full shrink-0 lg:w-[280px]">
         <PdfFieldInspector
           field={selectedField}
+          existingIds={existingIds}
           onChange={(patch) => {
             if (!selectedFieldId) return;
             if (patch.id && patch.id !== selectedFieldId) {
