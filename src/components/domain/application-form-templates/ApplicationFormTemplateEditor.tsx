@@ -600,7 +600,7 @@ export function ApplicationFormTemplateEditor({
           {pending ? "저장 중…" : mode === "create" ? "저장" : "변경 저장"}
         </Button>
         <Link
-          href="/admin/application-form-templates"
+          href={editorContext.basePath}
           className={buttonVariants({ variant: "outline" })}
         >
           취소

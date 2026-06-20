@@ -255,6 +255,8 @@ export async function archiveApplicationFormTemplateAction(
       actor,
       parsed.data.templateId,
     );
+    revalidatePath("/organizer/application-form-templates");
+    revalidatePath("/admin/application-form-templates");
     return actionSuccess({ ok: true as const });
   });
 }

@@ -1,5 +1,6 @@
 import Link from "next/link";
 import type { ApplicationFormTemplateListItemVM } from "@/lib/services/application-form-template.service";
+import { ApplicationFormTemplateArchiveButton } from "@/components/domain/application-form-templates/ApplicationFormTemplateArchiveButton";
 import { buttonVariants } from "@/components/ui/button";
 import { cn } from "@/lib/utils";
 
@@ -44,14 +45,21 @@ export function ApplicationFormTemplateListTable({
               <td className="px-4 py-3">
                 <div className="flex flex-wrap gap-2">
                   {canEditAll || t.organizerId ? (
-                    <Link
-                      href={`${editPathPrefix}/${t.id}`}
-                      className={cn(
-                        buttonVariants({ variant: "outline", size: "sm" }),
-                      )}
-                    >
-                      편집
-                    </Link>
+                    <>
+                      <Link
+                        href={`${editPathPrefix}/${t.id}`}
+                        className={cn(
+                          buttonVariants({ variant: "outline", size: "sm" }),
+                        )}
+                      >
+                        편집
+                      </Link>
+                      <ApplicationFormTemplateArchiveButton
+                        templateId={t.id}
+                        title={t.title}
+                        isActive={t.isActive}
+                      />
+                    </>
                   ) : (
                     <Link
                       href={`${editPathPrefix}/new?copyFrom=${t.id}`}
