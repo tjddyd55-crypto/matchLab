@@ -41,7 +41,7 @@ export function OrganizerFieldStatusTable({
             <col className="w-[10%]" />
           </colgroup>
           <thead className="bg-muted/40 text-xs">
-            <tr>
+            <tr className="align-middle">
               <th className="px-2 py-2 font-medium">체육관</th>
               <th className="px-2 py-2 font-medium">선수명</th>
               <th className="px-2 py-2 font-medium">
@@ -56,47 +56,59 @@ export function OrganizerFieldStatusTable({
           </thead>
           <tbody>
             {rows.map((row) => (
-              <tr key={row.applicationId} className="border-t align-top">
-                <td className="min-w-0 px-2 py-2 text-xs font-medium">
-                  <span
-                    className="line-clamp-2 break-words whitespace-normal leading-snug"
-                    title={row.gymName}
-                  >
-                    {row.gymName}
-                  </span>
+              <tr key={row.applicationId} className="border-t align-middle">
+                <td className="min-w-0 px-2 py-2 align-middle text-xs font-medium">
+                  <div className="flex min-h-0 items-center">
+                    <span
+                      className="line-clamp-2 break-words whitespace-normal leading-snug"
+                      title={row.gymName}
+                    >
+                      {row.gymName}
+                    </span>
+                  </div>
                 </td>
-                <td className="min-w-0 px-2 py-2">
-                  <p className="break-words font-medium leading-snug">
-                    {row.fighterName}
-                  </p>
-                  <div className="mt-1">
+                <td className="min-w-0 px-2 py-2 align-middle">
+                  <div className="flex min-h-0 flex-col justify-center gap-1">
+                    <p className="break-words font-medium leading-snug">
+                      {row.fighterName}
+                    </p>
                     <WeighInStatusBadge status={row.weighInStatus} />
                   </div>
                 </td>
-                <td className="min-w-0 px-2 py-2 text-xs leading-snug">
-                  <span
-                    className="line-clamp-2 break-words whitespace-normal"
-                    title={row.divisionLabel}
-                  >
-                    {row.divisionLabel}
-                  </span>
+                <td className="min-w-0 px-2 py-2 align-middle text-xs leading-snug">
+                  <div className="flex min-h-0 items-center">
+                    <span
+                      className="line-clamp-2 break-words whitespace-normal"
+                      title={row.divisionLabel}
+                    >
+                      {row.divisionLabel}
+                    </span>
+                  </div>
                 </td>
-                <td className="min-w-0 px-2 py-2">
-                  <WeighInWeightInput
-                    key={`${row.applicationId}-${row.weighInWeightKg}`}
-                    row={row}
-                  />
+                <td className="min-w-0 px-2 py-2 align-middle">
+                  <div className="flex min-h-0 items-center">
+                    <WeighInWeightInput
+                      key={`${row.applicationId}-${row.weighInWeightKg}`}
+                      row={row}
+                    />
+                  </div>
                 </td>
-                <td className="min-w-0 px-2 py-2">
-                  <WeighInFailureResolutionForm row={row} compact />
+                <td className="min-w-0 px-2 py-2 align-middle">
+                  <div className="flex min-h-0 items-center">
+                    <WeighInFailureResolutionForm row={row} compact />
+                  </div>
                 </td>
-                <td className="min-w-0 px-2 py-2">
-                  <DisqualificationReasonForm row={row} compact />
+                <td className="min-w-0 px-2 py-2 align-middle">
+                  <div className="flex min-h-0 items-center">
+                    <DisqualificationReasonForm row={row} compact />
+                  </div>
                 </td>
-                <td className="min-w-0 px-2 py-2">
-                  <FieldFinalResultCell row={row} />
+                <td className="min-w-0 px-2 py-2 align-middle">
+                  <div className="flex min-h-0 items-center">
+                    <FieldFinalResultCell row={row} />
+                  </div>
                 </td>
-                <td className="min-w-0 px-2 py-2">
+                <td className="min-w-0 px-2 py-2 align-middle">
                   <FieldStatusResetButton row={row} />
                 </td>
               </tr>
@@ -152,7 +164,9 @@ export function OrganizerFieldStatusTable({
                 </p>
                 <FieldFinalResultCell row={row} />
               </div>
-              <FieldStatusResetButton row={row} />
+              <div className="flex justify-start">
+                <FieldStatusResetButton row={row} />
+              </div>
             </div>
           </article>
         ))}
