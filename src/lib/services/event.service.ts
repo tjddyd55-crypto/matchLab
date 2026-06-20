@@ -206,12 +206,6 @@ async function assertReadyForPublicOpen(eventId: string): Promise<void> {
       "공개 전에 최소 1개 경기구분이 필요합니다.",
     );
   }
-  if (!full.paymentSetting) {
-    throw new AppError(
-      "VALIDATION_ERROR",
-      "공개 전에 참가비·입금 계좌 설정이 필요합니다.",
-    );
-  }
   if (full.registrationStartDate > full.registrationEndDate) {
     throw new AppError("VALIDATION_ERROR", "신청 기간이 올바르지 않습니다.");
   }
@@ -1026,12 +1020,16 @@ export const eventService = {
     input: UpsertEventPaymentSettingInput,
   ): Promise<void> {
     await requireOrganizerForEvent(actor, input.eventId);
+    if (!input.feeEnabled) {
+      await eventRepository.deleteEventPaymentSetting(input.eventId);
+      return;
+    }
     await eventRepository.upsertEventPaymentSetting({
       eventId: input.eventId,
-      feeAmount: input.feeAmount,
-      bankName: input.bankName.trim(),
-      accountNumber: input.accountNumber.trim(),
-      accountHolder: input.accountHolder.trim(),
+      feeAmount: input.feeAmount!,
+      bankName: input.bankName!.trim(),
+      accountNumber: input.accountNumber!.trim(),
+      accountHolder: input.accountHolder!.trim(),
       depositorRule: input.depositorRule?.trim() || null,
       paymentDueDate: input.paymentDueDate ?? null,
     });

@@ -2,6 +2,7 @@ import Link from "next/link";
 import { requireActor } from "@/lib/auth/actor";
 import { AppError } from "@/lib/errors/app-error";
 import { applicationFormTemplateService } from "@/lib/services/application-form-template.service";
+import { ApplicationFormTemplateListTable } from "@/components/domain/application-form-templates/ApplicationFormTemplateListTable";
 import { EmptyState } from "@/components/shared/EmptyState";
 import { buttonVariants } from "@/components/ui/button";
 import { cn } from "@/lib/utils";
@@ -54,7 +55,11 @@ export default async function AdminApplicationFormTemplatesPage() {
           }
         />
       ) : (
-        <TemplateTable templates={templates} />
+        <ApplicationFormTemplateListTable
+          templates={templates}
+          editPathPrefix="/admin/application-form-templates"
+          canEditAll
+        />
       )}
     </div>
   );
@@ -70,56 +75,6 @@ function PageTitle() {
         PDF 좌표형·자체 폼형 신청서 템플릿을 관리합니다. 대회 상세에서 템플릿을
         연결하면 체육관 신청 흐름이 활성화됩니다.
       </p>
-    </div>
-  );
-}
-
-function TemplateTable({
-  templates,
-}: {
-  templates: Awaited<
-    ReturnType<typeof applicationFormTemplateService.listTemplates>
-  >;
-}) {
-  return (
-    <div className="overflow-x-auto rounded-lg border">
-      <table className="w-full text-sm">
-        <thead className="bg-muted/50 text-left">
-          <tr>
-            <th className="px-4 py-3 font-medium">제목</th>
-            <th className="px-4 py-3 font-medium">방식</th>
-            <th className="px-4 py-3 font-medium">PDF 파일명</th>
-            <th className="px-4 py-3 font-medium">주최자</th>
-            <th className="px-4 py-3 font-medium">필드</th>
-            <th className="px-4 py-3 font-medium">상태</th>
-            <th className="px-4 py-3 font-medium">수정</th>
-          </tr>
-        </thead>
-        <tbody>
-          {templates.map((t) => (
-            <tr key={t.id} className="border-t">
-              <td className="px-4 py-3 font-medium">{t.title}</td>
-              <td className="px-4 py-3">{t.formModeLabel}</td>
-              <td className="text-muted-foreground px-4 py-3 font-mono text-xs">
-                {t.originalPdfFileName ?? "—"}
-              </td>
-              <td className="text-muted-foreground px-4 py-3">
-                {t.organizerName ?? "전체 공용"}
-              </td>
-              <td className="px-4 py-3">{t.fieldCount}</td>
-              <td className="px-4 py-3">{t.isActive ? "활성" : "비활성"}</td>
-              <td className="px-4 py-3">
-                <Link
-                  href={`/admin/application-form-templates/${t.id}`}
-                  className={cn(buttonVariants({ variant: "outline", size: "sm" }))}
-                >
-                  편집
-                </Link>
-              </td>
-            </tr>
-          ))}
-        </tbody>
-      </table>
     </div>
   );
 }

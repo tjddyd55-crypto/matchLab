@@ -1,12 +1,19 @@
 "use client";
 
-import { useActionState, useEffect } from "react";
+import Link from "next/link";
+import { useActionState, useEffect, useMemo, useState } from "react";
 import { useRouter } from "next/navigation";
 import type { ApplicationFormTemplateListItemVM } from "@/lib/services/application-form-template.service";
 import { linkEventApplicationFormTemplateAction } from "@/features/application-form-templates/actions";
 import type { ActionResult } from "@/lib/action-result";
 import { Button } from "@/components/ui/button";
 import { cn } from "@/lib/utils";
+
+function splitTemplates(templates: ApplicationFormTemplateListItemVM[]) {
+  const global = templates.filter((t) => !t.organizerId);
+  const mine = templates.filter((t) => t.organizerId);
+  return { global, mine };
+}
 
 export function EventApplicationFormTemplateSection({
   eventId,
@@ -18,6 +25,9 @@ export function EventApplicationFormTemplateSection({
   templates: ApplicationFormTemplateListItemVM[];
 }) {
   const router = useRouter();
+  const [selectedId, setSelectedId] = useState(linkedTemplateId ?? "");
+  const { global, mine } = useMemo(() => splitTemplates(templates), [templates]);
+
   const [saveState, saveAction, savePending] = useActionState(
     linkEventApplicationFormTemplateAction,
     null as ActionResult<{ ok: true }> | null,
@@ -30,6 +40,7 @@ export function EventApplicationFormTemplateSection({
   }, [saveState, router]);
 
   const linked = templates.find((t) => t.id === linkedTemplateId) ?? null;
+  const selectedGlobal = global.find((t) => t.id === selectedId);
 
   return (
     <section
@@ -38,39 +49,56 @@ export function EventApplicationFormTemplateSection({
     >
       <h2 className="text-lg font-semibold">공식 신청서 템플릿</h2>
       <p className="text-muted-foreground text-sm leading-relaxed">
-        체육관 공식 신청(PDF) 흐름에 사용할 템플릿을 연결합니다. 초기에는
-        운영팀(관리자)이 주최측 PDF 좌표를 세팅합니다. 주최자는 템플릿을
-        선택·연결만 할 수 있습니다.
+        신청서가 필요 없으면 연결 해제를 선택하세요. 공용 템플릿과 내가 만든
+        템플릿 중 하나를 대회에 연결할 수 있습니다.
       </p>
 
       {linked ? (
         <div className="rounded-md border bg-muted/30 px-3 py-2 text-sm">
           <p className="font-medium">연결됨: {linked.title}</p>
           <p className="text-muted-foreground text-xs">
-            방식: {linked.formModeLabel}
+            {linked.organizerId ? "내 템플릿" : "공용 템플릿"} · 방식:{" "}
+            {linked.formModeLabel}
             {linked.originalPdfFileName
               ? ` · PDF: ${linked.originalPdfFileName}`
               : ""}{" "}
             · 필드 {linked.fieldCount}개
-            {linked.description ? ` · ${linked.description}` : ""}
           </p>
         </div>
       ) : (
-        <p className="rounded-md border border-amber-500/40 bg-amber-500/10 px-3 py-2 text-sm">
-          연결된 템플릿이 없습니다. 관리자에게 공식 신청서 템플릿 세팅을
-          요청하세요.
+        <p className="text-muted-foreground rounded-md border border-dashed px-3 py-2 text-sm">
+          연결된 템플릿이 없습니다. (신청서 없음)
         </p>
       )}
 
-      {templates.length === 0 ? (
-        <p className="text-muted-foreground text-sm">
-          선택 가능한 활성 템플릿이 없습니다. 관리자가{" "}
-          <code className="rounded bg-muted px-1 text-xs">
-            /admin/application-form-templates
-          </code>
-          에서 템플릿을 먼저 등록해야 합니다.
-        </p>
-      ) : null}
+      <div className="flex flex-wrap gap-2">
+        <Link
+          href="/organizer/application-form-templates/new"
+          className={cn(
+            "inline-flex h-8 items-center rounded-md border px-3 text-xs font-medium hover:bg-muted",
+          )}
+        >
+          새 신청서 템플릿 만들기
+        </Link>
+        {selectedGlobal ? (
+          <Link
+            href={`/organizer/application-form-templates/new?copyFrom=${selectedGlobal.id}`}
+            className={cn(
+              "inline-flex h-8 items-center rounded-md border px-3 text-xs font-medium hover:bg-muted",
+            )}
+          >
+            선택한 공용 템플릿 복사
+          </Link>
+        ) : null}
+        <Link
+          href="/organizer/application-form-templates"
+          className={cn(
+            "inline-flex h-8 items-center rounded-md border px-3 text-xs font-medium hover:bg-muted",
+          )}
+        >
+          템플릿 관리
+        </Link>
+      </div>
 
       {saveState?.ok === false ? (
         <p className="text-destructive text-sm" role="alert">
@@ -89,23 +117,36 @@ export function EventApplicationFormTemplateSection({
           <span className="font-medium">신청서 템플릿</span>
           <select
             name="applicationFormTemplateId"
-            defaultValue={linkedTemplateId ?? ""}
-            key={linkedTemplateId ?? "none"}
+            value={selectedId}
+            onChange={(e) => setSelectedId(e.target.value)}
             className={cn(
               "border-input bg-background h-9 w-full rounded-md border px-3 text-sm shadow-sm",
             )}
           >
-            <option value="">연결 해제</option>
-            {templates.map((t) => (
-              <option key={t.id} value={t.id}>
-                {t.title}
-                {t.organizerName ? ` (${t.organizerName})` : ""}
-                {!t.isActive ? " [비활성]" : ""}
-              </option>
-            ))}
+            <option value="">신청서 없음 (연결 해제)</option>
+            {global.length > 0 ? (
+              <optgroup label="공용 템플릿">
+                {global.map((t) => (
+                  <option key={t.id} value={t.id}>
+                    {t.title} · {t.formModeLabel}
+                    {!t.isActive ? " [비활성]" : ""}
+                  </option>
+                ))}
+              </optgroup>
+            ) : null}
+            {mine.length > 0 ? (
+              <optgroup label="내 템플릿">
+                {mine.map((t) => (
+                  <option key={t.id} value={t.id}>
+                    {t.title} · {t.formModeLabel}
+                    {!t.isActive ? " [비활성]" : ""}
+                  </option>
+                ))}
+              </optgroup>
+            ) : null}
           </select>
         </label>
-        <Button type="submit" disabled={savePending || templates.length === 0}>
+        <Button type="submit" disabled={savePending}>
           {savePending ? "저장 중…" : "템플릿 연결 저장"}
         </Button>
       </form>

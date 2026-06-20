@@ -306,6 +306,15 @@ export const eventRepository = {
     });
   },
 
+  async deleteEventPaymentSetting(
+    eventId: string,
+    tx?: Prisma.TransactionClient,
+  ): Promise<void> {
+    await db(tx).eventPaymentSetting.deleteMany({
+      where: { eventId },
+    });
+  },
+
   async upsertEventPaymentSetting(
     data: {
       eventId: string;

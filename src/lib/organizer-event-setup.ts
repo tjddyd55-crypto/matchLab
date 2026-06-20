@@ -212,7 +212,7 @@ function buildPaymentStep(input: EventSetupInput): EventSetupStep {
     title: "참가비·입금 안내",
     description: complete
       ? "참가비와 입금 계좌 안내가 등록되었습니다."
-      : "참가비와 입금 계좌를 입력하면 체육관 신청 안내가 수월해집니다.",
+      : "참가비를 받는 대회만 입력하세요. 받지 않는 대회는 '없음'으로 두면 됩니다.",
     status: complete ? "complete" : "recommended",
     statusLabel: complete ? STATUS_LABEL.complete : STATUS_LABEL.recommended,
     href: `/organizer/events/${input.eventId}#setup-payment`,

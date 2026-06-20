@@ -38,7 +38,7 @@ type ApplySuccess = {
     accountHolder: string;
     depositorRule: string | null;
     paymentDueDate: string | null;
-  };
+  } | null;
 };
 
 function fighterDivisionBlockReason(
@@ -82,10 +82,13 @@ export function EventApplicationForm(props: EventApplicationFormProps) {
     return (
       <div className="grid gap-6">
         <div className="rounded-xl border border-emerald-600/40 bg-emerald-950/10 px-4 py-3 text-sm">
-          신청이 접수되었습니다. 아래 계좌로 참가비를 입금해 주세요.
-          {/* TODO: Event 단위 GuardianConsent 레코드 분리 시 동의 연계 마이그레이션 */}
+          {state.data.paymentInstruction
+            ? "신청이 접수되었습니다. 아래 계좌로 참가비를 입금해 주세요."
+            : "신청이 접수되었습니다."}
         </div>
-        <PaymentInstructionCard {...state.data.paymentInstruction} />
+        {state.data.paymentInstruction ? (
+          <PaymentInstructionCard {...state.data.paymentInstruction} />
+        ) : null}
       </div>
     );
   }

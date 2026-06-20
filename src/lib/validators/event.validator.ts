@@ -246,15 +246,48 @@ export const deleteEventDivisionSchema = z.object({
 
 export type DeleteEventDivisionInput = z.infer<typeof deleteEventDivisionSchema>;
 
-export const upsertEventPaymentSettingSchema = z.object({
-  eventId: cuid,
-  feeAmount: z.coerce.number().int().min(0).max(100_000_000),
-  bankName: z.string().min(1).max(120),
-  accountNumber: z.string().min(1).max(80),
-  accountHolder: z.string().min(1).max(120),
-  depositorRule: z.string().max(500).optional().nullable(),
-  paymentDueDate: dateIn.optional().nullable(),
-});
+export const upsertEventPaymentSettingSchema = z
+  .object({
+    eventId: cuid,
+    feeEnabled: z.boolean(),
+    feeAmount: z.coerce.number().int().min(0).max(100_000_000).optional(),
+    bankName: z.string().max(120).optional(),
+    accountNumber: z.string().max(80).optional(),
+    accountHolder: z.string().max(120).optional(),
+    depositorRule: z.string().max(500).optional().nullable(),
+    paymentDueDate: dateIn.optional().nullable(),
+  })
+  .superRefine((v, ctx) => {
+    if (!v.feeEnabled) return;
+    if (v.feeAmount == null || Number.isNaN(v.feeAmount)) {
+      ctx.addIssue({
+        code: z.ZodIssueCode.custom,
+        message: "참가비 금액을 입력해 주세요.",
+        path: ["feeAmount"],
+      });
+    }
+    if (!v.bankName?.trim()) {
+      ctx.addIssue({
+        code: z.ZodIssueCode.custom,
+        message: "은행명을 입력해 주세요.",
+        path: ["bankName"],
+      });
+    }
+    if (!v.accountNumber?.trim()) {
+      ctx.addIssue({
+        code: z.ZodIssueCode.custom,
+        message: "계좌번호를 입력해 주세요.",
+        path: ["accountNumber"],
+      });
+    }
+    if (!v.accountHolder?.trim()) {
+      ctx.addIssue({
+        code: z.ZodIssueCode.custom,
+        message: "예금주를 입력해 주세요.",
+        path: ["accountHolder"],
+      });
+    }
+  });
 
 export type UpsertEventPaymentSettingInput = z.infer<
   typeof upsertEventPaymentSettingSchema
