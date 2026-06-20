@@ -168,7 +168,7 @@ export function OrganizerFieldStatusBoard({
         </div>
       </div>
 
-      <div ref={listRef}>
+      <div ref={listRef} className="min-w-0">
         <OrganizerFieldStatusTable rows={filtered} emptyMessage={emptyMessage} />
       </div>
     </div>
