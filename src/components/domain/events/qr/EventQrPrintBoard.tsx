@@ -11,6 +11,7 @@ import {
   buildEventLiveQrUrl,
   buildEventResultsQrUrl,
   buildPublicEventQrUrl,
+  buildSpectatorWatchUnifiedQrUrl,
   isSpectatorOverviewQrEnabled,
   isSpectatorTabQrEnabled,
   spectatorTabQrDisabledReason,
@@ -90,8 +91,16 @@ export function EventQrPrintBoard({
     {
       printGroup: "spectator-all" as const,
       tab: "overview" as const,
-      title: "대회 전체",
-      description: "대회 안내·오시는 길을 바로 봅니다.",
+      title: "관람 통합",
+      description: "대진표·결과·라이브를 한 화면에서 봅니다.",
+      url: buildSpectatorWatchUnifiedQrUrl(slug, baseUrl),
+      disabled: !isSpectatorTabQrEnabled(spectatorCtx, "brackets"),
+    },
+    {
+      printGroup: "spectator-overview" as const,
+      tab: "overview" as const,
+      title: "대회 안내",
+      description: "대회 공고·오시는 길을 바로 봅니다.",
       url: buildPublicEventQrUrl(slug, "overview", baseUrl),
       disabled: !overviewQrEnabled,
     },
@@ -118,14 +127,6 @@ export function EventQrPrintBoard({
       description: "라이브 방송 보기",
       url: buildEventLiveQrUrl(slug, baseUrl),
       disabled: !isSpectatorTabQrEnabled(spectatorCtx, "live"),
-    },
-    {
-      printGroup: "spectator-overview" as const,
-      tab: "overview" as const,
-      title: "오시는 길·행사 안내",
-      description: "대회 안내 바로 보기",
-      url: buildPublicEventQrUrl(slug, "overview", baseUrl),
-      disabled: !overviewQrEnabled,
     },
   ];
 

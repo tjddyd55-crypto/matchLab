@@ -467,6 +467,7 @@ async function revalidateBracketPublicPaths(eventId: string): Promise<void> {
   if (settings?.publicSlug) {
     revalidatePath(`/events/${settings.publicSlug}/brackets`);
     revalidatePath(`/events/${settings.publicSlug}`);
+    revalidatePath(`/events/${settings.publicSlug}/watch`);
   }
 }
 

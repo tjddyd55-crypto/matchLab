@@ -1,5 +1,7 @@
 import type { PublicEventTabId } from "@/lib/public-event-tabs";
 import { publicEventTabHref } from "@/lib/public-event-tabs";
+import type { SpectatorWatchTabId } from "@/lib/public-event-watch";
+import { spectatorWatchHref } from "@/lib/public-event-watch";
 import { EventStatus } from "@/lib/enums";
 import {
   isSpectatorContentAccessible,
@@ -108,26 +110,47 @@ export function buildPublicEventQrUrl(
   baseUrl?: string,
 ): string {
   if (!slug.trim()) return buildAbsoluteUrl("/events", baseUrl);
-  const path = tab ? publicEventTabHref(slug.trim(), tab) : publicEventTabHref(slug.trim(), "overview");
+  const path = tab
+    ? publicEventTabHref(slug.trim(), tab)
+    : publicEventTabHref(slug.trim(), "overview");
   return buildAbsoluteUrl(path, baseUrl);
+}
+
+/** 관람객 전용 watch 페이지 — QR·현장 관람용 */
+export function buildSpectatorWatchQrUrl(
+  slug: string,
+  tab: SpectatorWatchTabId = "brackets",
+  baseUrl?: string,
+): string {
+  if (!slug.trim()) return buildAbsoluteUrl("/events", baseUrl);
+  return buildAbsoluteUrl(spectatorWatchHref(slug.trim(), tab), baseUrl);
 }
 
 export function buildEventBracketQrUrl(
   slug: string,
   baseUrl?: string,
 ): string {
-  return buildPublicEventQrUrl(slug, "brackets", baseUrl);
+  return buildSpectatorWatchQrUrl(slug, "brackets", baseUrl);
 }
 
 export function buildEventResultsQrUrl(
   slug: string,
   baseUrl?: string,
 ): string {
-  return buildPublicEventQrUrl(slug, "results", baseUrl);
+  return buildSpectatorWatchQrUrl(slug, "results", baseUrl);
 }
 
 export function buildEventLiveQrUrl(slug: string, baseUrl?: string): string {
-  return buildPublicEventQrUrl(slug, "live", baseUrl);
+  return buildSpectatorWatchQrUrl(slug, "live", baseUrl);
+}
+
+/** 관람객 통합 QR — watch 페이지 기본(대진표) 탭 */
+export function buildSpectatorWatchUnifiedQrUrl(
+  slug: string,
+  baseUrl?: string,
+): string {
+  if (!slug.trim()) return buildAbsoluteUrl("/events", baseUrl);
+  return buildAbsoluteUrl(`/events/${slug.trim()}/watch`, baseUrl);
 }
 
 export function isEventPublicForSpectatorQr(
