@@ -54,6 +54,7 @@ export function TournamentBracketView({
                 <BracketMatchCard
                   key={m.id}
                   match={m}
+                  divisionLabel={bracket.divisionLabel}
                   matPrefix="매트 "
                   bracketType={bracket.type}
                   bracketIsPublic={m.matchIsPublicSparring}
