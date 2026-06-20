@@ -1,5 +1,6 @@
 "use client";
 
+import Link from "next/link";
 import { useEffect, useMemo, useState } from "react";
 import { useRouter } from "next/navigation";
 import type { ApplicationFormTemplateDetailVM } from "@/lib/services/application-form-template.service";
@@ -31,7 +32,8 @@ import {
   type ApplicationFormMode,
   type CustomFormFieldDefinition,
 } from "@/lib/application-form/custom-form";
-import { Button } from "@/components/ui/button";
+import { isTemplateEditorDevMode } from "@/lib/application-form/template-editor-flags";
+import { Button, buttonVariants } from "@/components/ui/button";
 import { cn } from "@/lib/utils";
 
 const FORM_MODE_OPTIONS: {
@@ -42,17 +44,17 @@ const FORM_MODE_OPTIONS: {
   {
     value: "pdf",
     title: "PDF 신청서",
-    description: "공식 PDF 업로드 후 좌표로 필드를 배치합니다.",
+    description: "공식 PDF를 업로드하고 입력 영역을 배치합니다.",
   },
   {
     value: "custom",
     title: "자체 폼 신청서",
-    description: "PDF 없이 화면에서 항목을 구성합니다.",
+    description: "화면에서 항목을 추가해 신청서를 만듭니다.",
   },
   {
     value: "none",
-    title: "신청서 없음",
-    description: "PDF·자체 폼 항목 없이 템플릿 껍데기만 저장합니다.",
+    title: "신청 없음",
+    description: "신청서 항목 없이 템플릿만 저장합니다.",
   },
 ];
 
@@ -106,6 +108,7 @@ export function ApplicationFormTemplateEditor({
   initial?: ApplicationFormTemplateDetailVM;
 }) {
   const router = useRouter();
+  const showDevAdvanced = isTemplateEditorDevMode();
   const [pending, setPending] = useState(false);
   const [error, setError] = useState<string | null>(null);
   const [info, setInfo] = useState<string | null>(null);
@@ -126,7 +129,7 @@ export function ApplicationFormTemplateEditor({
 
   const [title, setTitle] = useState(initial?.title ?? "");
   const [description, setDescription] = useState(initial?.description ?? "");
-  const [organizerId, setOrganizerId] = useState(initial?.organizerId ?? "");
+  const [organizerId] = useState(initial?.organizerId ?? "");
   const [originalPdfPath, setOriginalPdfPath] = useState(
     initial?.originalPdfPath ?? "",
   );
@@ -173,6 +176,14 @@ export function ApplicationFormTemplateEditor({
     );
   }, [customFields, templateFormMode]);
 
+  const preservedRepeatGroupsJson = initial?.repeatGroupsJson
+    ? stringifyJson(initial.repeatGroupsJson, "[]")
+    : "[]";
+
+  const preservedConsentMappingJson = initial?.consentMappingJson
+    ? stringifyJson(initial.consentMappingJson, "{}")
+    : "";
+
   useEffect(() => {
     if (templateFormMode !== "pdf" || !originalPdfPath || pdfBytes) return;
     let cancelled = false;
@@ -207,7 +218,7 @@ export function ApplicationFormTemplateEditor({
   function handleFormModeChange(next: ApplicationFormMode) {
     if (next === templateFormMode) return;
     const confirmed = window.confirm(
-      "신청서 방식을 변경해도 기존 편집 데이터는 화면에 유지됩니다. 저장 시 선택한 방식의 데이터만 반영됩니다. 계속할까요?",
+      "신청서 방식을 변경해도 기존 편집 내용은 화면에 유지됩니다. 저장 시 선택한 방식만 반영됩니다. 계속할까요?",
     );
     if (!confirmed) return;
     setTemplateFormMode(next);
@@ -274,13 +285,13 @@ export function ApplicationFormTemplateEditor({
     setCustomFormError(null);
 
     if (!title.trim()) {
-      setError("템플릿명을 입력해 주세요.");
+      setError("신청서 이름을 입력해 주세요.");
       return;
     }
 
     if (templateFormMode === "pdf") {
       if (!originalPdfPath.trim() || !originalPdfFileName.trim()) {
-        setError("PDF 신청서는 공식 PDF 파일 업로드를 해 주세요.");
+        setError("PDF 신청서는 PDF 파일을 업로드해 주세요.");
         return;
       }
       const fieldValidation = validateFields(fields);
@@ -299,19 +310,26 @@ export function ApplicationFormTemplateEditor({
       }
     }
 
-    try {
-      parseJsonArray(repeatGroupsJson, "repeatGroupsJson");
-      if (templateFormMode !== "custom") {
-        parseOptionalJson(manualFieldsJson, "manualFieldsJson");
+    if (showDevAdvanced) {
+      try {
+        parseJsonArray(repeatGroupsJson, "repeatGroupsJson");
+        if (templateFormMode !== "custom") {
+          parseOptionalJson(manualFieldsJson, "manualFieldsJson");
+        }
+        parseOptionalJson(consentMappingJson, "consentMappingJson");
+      } catch (err) {
+        setError(err instanceof Error ? err.message : "JSON 형식을 확인해 주세요.");
+        return;
       }
-      parseOptionalJson(consentMappingJson, "consentMappingJson");
-    } catch (err) {
-      setError(err instanceof Error ? err.message : "JSON 형식을 확인해 주세요.");
-      return;
     }
 
     setPending(true);
     setError(null);
+
+    const repeatForSave = showDevAdvanced ? repeatGroupsJson : preservedRepeatGroupsJson;
+    const consentForSave = showDevAdvanced
+      ? consentMappingJson
+      : preservedConsentMappingJson;
 
     const fd = new FormData();
     if (mode === "edit" && initial) {
@@ -326,13 +344,13 @@ export function ApplicationFormTemplateEditor({
       fd.set("originalPdfPath", originalPdfPath);
       fd.set("originalPdfFileName", originalPdfFileName);
       fd.set("fieldsJson", fieldsJsonForSave);
-      fd.set("repeatGroupsJson", repeatGroupsJson || "[]");
+      fd.set("repeatGroupsJson", repeatForSave || "[]");
       fd.set("manualFieldsJson", "");
     } else if (templateFormMode === "custom") {
       fd.set("originalPdfPath", "");
       fd.set("originalPdfFileName", "");
       fd.set("fieldsJson", "[]");
-      fd.set("repeatGroupsJson", repeatGroupsJson || "[]");
+      fd.set("repeatGroupsJson", repeatForSave || "[]");
       fd.set("manualFieldsJson", manualFieldsForSave);
     } else {
       fd.set("originalPdfPath", "");
@@ -342,7 +360,7 @@ export function ApplicationFormTemplateEditor({
       fd.set("manualFieldsJson", "");
     }
 
-    fd.set("consentMappingJson", consentMappingJson);
+    fd.set("consentMappingJson", consentForSave);
     if (isActive) fd.set("isActive", "on");
 
     const res =
@@ -357,9 +375,7 @@ export function ApplicationFormTemplateEditor({
     }
 
     if (templateFormMode === "pdf" && fields.length === 0) {
-      setInfo(
-        "좌표가 아직 없습니다. 이후 템플릿 상세에서 좌표를 추가할 수 있습니다.",
-      );
+      setInfo("PDF는 저장되었습니다. 이후 좌표 영역을 추가할 수 있습니다.");
     }
 
     if (mode === "create" && "templateId" in res.data) {
@@ -383,22 +399,35 @@ export function ApplicationFormTemplateEditor({
         </p>
       ) : null}
 
-      <section className="grid gap-4 md:grid-cols-2">
-        <FormField label="템플릿명" value={title} onChange={setTitle} required />
-        <FormField
-          label="주최자 ID (비우면 전체 공용)"
-          value={organizerId}
-          onChange={setOrganizerId}
-        />
-        <label className="block space-y-1 text-sm md:col-span-2">
-          <span className="font-medium">설명 (선택)</span>
-          <textarea
-            value={description}
-            onChange={(e) => setDescription(e.target.value)}
-            rows={2}
-            className={fieldClass}
+      <section className="space-y-4 rounded-xl border bg-card p-4 md:p-6">
+        <h2 className="text-sm font-semibold">기본 정보</h2>
+        <div className="grid gap-4">
+          <FormField
+            label="신청서 이름"
+            value={title}
+            onChange={setTitle}
+            required
+            mono={false}
           />
-        </label>
+          <label className="block space-y-1 text-sm">
+            <span className="font-medium">설명 (선택)</span>
+            <textarea
+              value={description}
+              onChange={(e) => setDescription(e.target.value)}
+              rows={2}
+              placeholder="신청서에 대한 간단한 설명"
+              className={inputClass}
+            />
+          </label>
+          <label className="flex items-center gap-2 text-sm">
+            <input
+              type="checkbox"
+              checked={isActive}
+              onChange={(e) => setIsActive(e.target.checked)}
+            />
+            사용함 (비활성 시 대회에 연결할 수 없습니다)
+          </label>
+        </div>
       </section>
 
       <section className="space-y-3">
@@ -445,11 +474,9 @@ export function ApplicationFormTemplateEditor({
           {originalPdfPath ? (
             <section className="space-y-3 rounded-xl border p-4">
               <div>
-                <h2 className="text-sm font-semibold">PDF 좌표 편집</h2>
+                <h2 className="text-sm font-semibold">PDF 입력 영역 배치</h2>
                 <p className="text-muted-foreground mt-1 text-xs leading-relaxed">
-                  PDF 위에서 직접 좌표 영역을 추가하세요.
-                  <br />
-                  테스트용 좌표는 필요할 때만 고급 설정에서 불러올 수 있습니다.
+                  PDF 위에서 드래그해 입력·서명·체크 영역을 추가하세요.
                 </p>
               </div>
               {pdfBytes ? (
@@ -481,98 +508,101 @@ export function ApplicationFormTemplateEditor({
         </p>
       ) : null}
 
-      <details
-        className="rounded-lg border p-4"
-        onToggle={(e) => {
-          if (e.currentTarget.open && templateFormMode === "pdf") {
-            syncAdvancedJsonFromFields();
-          }
-        }}
-      >
-        <summary className="cursor-pointer text-sm font-medium">고급 설정 (JSON)</summary>
-        <div className="mt-4 space-y-6">
-          {jsonError ? (
-            <p className="text-destructive text-xs" role="alert">
-              {jsonError}
-            </p>
-          ) : null}
+      {showDevAdvanced ? (
+        <details
+          className="rounded-lg border border-dashed p-4"
+          onToggle={(e) => {
+            if (e.currentTarget.open && templateFormMode === "pdf") {
+              syncAdvancedJsonFromFields();
+            }
+          }}
+        >
+          <summary className="cursor-pointer text-sm font-medium text-muted-foreground">
+            개발자 고급 설정 (JSON)
+          </summary>
+          <div className="mt-4 space-y-6">
+            {jsonError ? (
+              <p className="text-destructive text-xs" role="alert">
+                {jsonError}
+              </p>
+            ) : null}
 
-          {templateFormMode === "pdf" ? (
-            <div className="space-y-2">
-              <div className="flex flex-wrap items-center justify-between gap-2">
-                <h3 className="text-sm font-medium">fieldsJson 직접 편집</h3>
-                <Button
-                  type="button"
-                  variant="ghost"
-                  size="sm"
-                  className="text-xs"
-                  onClick={loadExampleFieldsJson}
-                >
-                  예시 좌표 불러오기
+            {templateFormMode === "pdf" ? (
+              <div className="space-y-2">
+                <div className="flex flex-wrap items-center justify-between gap-2">
+                  <h3 className="text-sm font-medium">fieldsJson</h3>
+                  <Button
+                    type="button"
+                    variant="ghost"
+                    size="sm"
+                    className="text-xs"
+                    onClick={loadExampleFieldsJson}
+                  >
+                    예시 좌표 불러오기
+                  </Button>
+                </div>
+                <textarea
+                  value={fieldsJsonText}
+                  onChange={(e) => setFieldsJsonText(e.target.value)}
+                  rows={12}
+                  spellCheck={false}
+                  className={devTextareaClass}
+                />
+                <Button type="button" variant="secondary" size="sm" onClick={applyJsonToFields}>
+                  JSON을 화면에 반영
                 </Button>
               </div>
-              <textarea
-                value={fieldsJsonText}
-                onChange={(e) => setFieldsJsonText(e.target.value)}
-                rows={12}
-                spellCheck={false}
-                className={fieldClass}
-              />
-              <Button type="button" variant="secondary" size="sm" onClick={applyJsonToFields}>
-                JSON을 화면에 반영
-              </Button>
-            </div>
-          ) : null}
+            ) : null}
 
-          {templateFormMode === "pdf" ? (
-            <JsonArea
-              label="repeatGroupsJson"
-              value={repeatGroupsJson}
-              onChange={setRepeatGroupsJson}
-              rows={4}
-            />
-          ) : null}
-
-          {templateFormMode === "custom" ? (
-            <div className="grid gap-2">
+            {templateFormMode === "pdf" ? (
               <JsonArea
-                label="manualFieldsJson (자체 폼 — 디버그용)"
-                value={
-                  manualFieldsJson.trim() ? manualFieldsJson : manualFieldsForSave
-                }
-                onChange={setManualFieldsJson}
+                label="repeatGroupsJson"
+                value={repeatGroupsJson}
+                onChange={setRepeatGroupsJson}
+                rows={4}
               />
-              <Button
-                type="button"
-                variant="secondary"
-                size="sm"
-                onClick={applyManualJsonToBuilder}
-              >
-                JSON을 화면에 반영
-              </Button>
-            </div>
-          ) : null}
+            ) : null}
 
-          <JsonArea
-            label="consentMappingJson (선택)"
-            value={consentMappingJson}
-            onChange={setConsentMappingJson}
-          />
-        </div>
-      </details>
+            {templateFormMode === "custom" ? (
+              <div className="grid gap-2">
+                <JsonArea
+                  label="manualFieldsJson"
+                  value={
+                    manualFieldsJson.trim() ? manualFieldsJson : manualFieldsForSave
+                  }
+                  onChange={setManualFieldsJson}
+                />
+                <Button
+                  type="button"
+                  variant="secondary"
+                  size="sm"
+                  onClick={applyManualJsonToBuilder}
+                >
+                  JSON을 화면에 반영
+                </Button>
+              </div>
+            ) : null}
 
-      <label className="flex items-center gap-2 text-sm">
-        <input
-          type="checkbox"
-          checked={isActive}
-          onChange={(e) => setIsActive(e.target.checked)}
-        />
-        활성 템플릿
-      </label>
+            <JsonArea
+              label="consentMappingJson"
+              value={consentMappingJson}
+              onChange={setConsentMappingJson}
+            />
+          </div>
+        </details>
+      ) : null}
 
-      <Button type="submit" disabled={pending}>
-        {pending ? "저장 중…" : mode === "create" ? "템플릿 생성" : "변경 저장"}
-      </Button>
+      <div className="flex flex-wrap gap-2">
+        <Button type="submit" disabled={pending}>
+          {pending ? "저장 중…" : mode === "create" ? "저장" : "변경 저장"}
+        </Button>
+        <Link
+          href="/admin/application-form-templates"
+          className={buttonVariants({ variant: "outline" })}
+        >
+          취소
+        </Link>
+      </div>
     </form>
   );
 }
@@ -585,20 +615,24 @@ function parseJsonArray(raw: string, label: string): unknown {
   }
 }
 
-const fieldClass = cn(
-  "border-input bg-background w-full rounded-md border px-3 py-2 text-sm shadow-sm font-mono",
+const inputClass = cn(
+  "border-input bg-background w-full rounded-md border px-3 py-2 text-sm shadow-sm",
 );
+
+const devTextareaClass = cn(inputClass, "font-mono text-xs");
 
 function FormField({
   label,
   value,
   onChange,
   required,
+  mono = false,
 }: {
   label: string;
   value: string;
   onChange: (v: string) => void;
   required?: boolean;
+  mono?: boolean;
 }) {
   return (
     <label className="block space-y-1 text-sm">
@@ -607,7 +641,7 @@ function FormField({
         required={required}
         value={value}
         onChange={(e) => onChange(e.target.value)}
-        className={fieldClass}
+        className={cn(inputClass, mono && "font-mono text-xs")}
       />
     </label>
   );
@@ -632,7 +666,7 @@ function JsonArea({
         onChange={(e) => onChange(e.target.value)}
         rows={rows}
         spellCheck={false}
-        className={fieldClass}
+        className={devTextareaClass}
       />
     </label>
   );

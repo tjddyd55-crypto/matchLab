@@ -267,17 +267,46 @@ export function buildCustomFormSnapshot(
 
 const FIELD_ID_PATTERN = /^[a-z][a-z0-9_]*$/;
 
+const KOREAN_LABEL_ID_HINTS: ReadonlyArray<[string, string]> = [
+  ["보호자 연락처", "guardianPhone"],
+  ["보호자 이름", "guardianName"],
+  ["보호자", "guardian"],
+  ["연락처", "phone"],
+  ["전화번호", "phone"],
+  ["휴대폰", "phone"],
+  ["선수명", "name"],
+  ["이름", "name"],
+  ["생년월일", "birthDate"],
+  ["체중", "weight"],
+  ["체육관", "gymName"],
+  ["소속", "gymName"],
+  ["주소", "address"],
+  ["이메일", "email"],
+  ["동의", "consent"],
+];
+
+function labelToIdBase(label: string): string {
+  const trimmed = label.trim();
+  for (const [hint, id] of KOREAN_LABEL_ID_HINTS) {
+    if (trimmed === hint || trimmed.includes(hint)) return id;
+  }
+  const ascii = trimmed
+    .toLowerCase()
+    .replace(/[^a-z0-9]+/g, "_")
+    .replace(/^_+|_+$/g, "")
+    .replace(/^[0-9]+/, "");
+  if (ascii && FIELD_ID_PATTERN.test(ascii)) return ascii;
+  if (ascii) {
+    const prefixed = `field_${ascii}`.slice(0, 48);
+    return FIELD_ID_PATTERN.test(prefixed) ? prefixed : "field";
+  }
+  return "field";
+}
+
 export function suggestFieldId(label: string, existingIds: Set<string>): string {
-  const base =
-    label
-      .trim()
-      .toLowerCase()
-      .replace(/[^a-z0-9]+/g, "_")
-      .replace(/^_+|_+$/g, "")
-      .replace(/^[0-9]+/, "") || "field";
-  const normalized = FIELD_ID_PATTERN.test(base) ? base : `field_${base}`;
+  const normalized = labelToIdBase(label);
   let id = normalized;
-  let n = 1;
+  let n = 2;
   while (existingIds.has(id)) {
     id = `${normalized}_${n++}`;
   }
