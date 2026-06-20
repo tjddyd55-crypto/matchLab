@@ -264,7 +264,7 @@ export function WeighInWeightInput({ row }: { row: FieldStatusRowDTO }) {
           placeholder="kg"
           value={weightInput}
           onChange={(e) => setWeightInput(e.target.value)}
-          className="border-input bg-background h-7 w-16 rounded-md border px-2 text-xs"
+          className="border-input bg-background h-7 w-[4.5rem] shrink-0 rounded-md border px-2 text-xs"
         />
         <Button
           type="submit"

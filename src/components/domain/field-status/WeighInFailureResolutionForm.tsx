@@ -50,8 +50,10 @@ function SavedDisqualificationReason({ reason }: { reason: string }) {
 
 export function WeighInFailureResolutionForm({
   row,
+  compact = false,
 }: {
   row: FieldStatusRowDTO;
+  compact?: boolean;
 }) {
   const router = useRouter();
   const [showHandicap, setShowHandicap] = useState(false);
@@ -88,7 +90,10 @@ export function WeighInFailureResolutionForm({
   if (showHandicap) {
     return (
       <form
-        className="flex min-w-[12rem] flex-col gap-1.5"
+        className={cn(
+          "flex w-full min-w-0 max-w-full flex-col gap-1.5",
+          !compact && "min-w-[12rem]",
+        )}
         onSubmit={(e: FormEvent<HTMLFormElement>) => {
           e.preventDefault();
           const note = (
@@ -130,7 +135,12 @@ export function WeighInFailureResolutionForm({
   }
 
   return (
-    <div className="flex min-w-[12rem] flex-col gap-1.5">
+    <div
+      className={cn(
+        "flex w-full min-w-0 max-w-full flex-col gap-1.5",
+        !compact && "min-w-[12rem]",
+      )}
+    >
       <div className="flex flex-wrap gap-1">
         <Button
           type="button"
@@ -168,8 +178,10 @@ export function WeighInFailureResolutionForm({
 
 export function DisqualificationReasonForm({
   row,
+  compact = false,
 }: {
   row: FieldStatusRowDTO;
+  compact?: boolean;
 }) {
   const router = useRouter();
   const [pending, startTransition] = useTransition();
@@ -220,11 +232,14 @@ export function DisqualificationReasonForm({
     <form
       key={`${row.applicationId}-${row.disqualificationReason ?? "none"}`}
       onSubmit={handleSubmit}
-      className="flex min-w-[12rem] flex-col gap-1.5"
+      className={cn(
+        "flex w-full min-w-0 max-w-full flex-col gap-1.5",
+        !compact && "min-w-[12rem]",
+      )}
     >
       <select
         name="preset"
-        className="border-input bg-background h-7 rounded-md border px-2 text-xs"
+        className="border-input bg-background h-7 w-full max-w-full rounded-md border px-2 text-xs"
         value={preset}
         onChange={(e) => setPreset(e.target.value)}
         required
@@ -245,7 +260,7 @@ export function DisqualificationReasonForm({
           value={otherReason}
           onChange={(e) => setOtherReason(e.target.value)}
           placeholder="기타 사유 입력 (필수)"
-          className="border-input bg-background h-7 rounded-md border px-2 text-xs"
+          className="border-input bg-background h-7 w-full max-w-full rounded-md border px-2 text-xs"
           maxLength={500}
           required
         />
