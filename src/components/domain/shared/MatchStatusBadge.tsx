@@ -5,8 +5,8 @@ import {
   getMatchStatusBadgeVariant,
   getMatchStatusDotClassName,
   getMatchStatusLabel,
-  matchStatusBadgeSizeClasses,
 } from "@/lib/ui/match-status-ui";
+import { statusBadgeSizeClasses } from "@/lib/ui/status-badge-ui";
 import { cn } from "@/lib/utils";
 
 const BRACKET_STATUS_SET = new Set<string>(Object.values(BracketMatchStatus));
@@ -17,7 +17,7 @@ function isBracketMatchStatus(
   return BRACKET_STATUS_SET.has(status);
 }
 
-export type MatchStatusBadgeSize = keyof typeof matchStatusBadgeSizeClasses;
+export type MatchStatusBadgeSize = keyof typeof statusBadgeSizeClasses;
 
 export function MatchStatusBadge({
   status,
@@ -42,7 +42,7 @@ export function MatchStatusBadge({
   return (
     <Badge
       variant={getMatchStatusBadgeVariant(status)}
-      className={cn(matchStatusBadgeSizeClasses[size], className)}
+      className={cn(statusBadgeSizeClasses[size], className)}
     >
       {showDot ? (
         <span

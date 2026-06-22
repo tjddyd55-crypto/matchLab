@@ -1,7 +1,13 @@
-import type { VariantProps } from "class-variance-authority";
-import type { badgeVariants } from "@/components/ui/badge";
 import { BracketMatchStatus } from "@/lib/enums";
 import type { OperationMatchPhase } from "@/lib/match-operation-display";
+import { type StatusBadgeVariant } from "@/lib/ui/status-badge-ui";
+
+export type { StatusBadgeVariant } from "@/lib/ui/status-badge-ui";
+export {
+  statusBadgeSizeClasses,
+  matchStatusBadgeSizeClasses,
+  matchStatusBadgeTypography,
+} from "@/lib/ui/status-badge-ui";
 
 /** 화면용 경기 상태 톤 (semantic) */
 export type MatchStatusTone =
@@ -12,9 +18,8 @@ export type MatchStatusTone =
   | "cancelled"
   | "unknown";
 
-export type MatchStatusBadgeVariant = NonNullable<
-  VariantProps<typeof badgeVariants>["variant"]
->;
+/** @deprecated StatusBadgeVariant 사용 */
+export type MatchStatusBadgeVariant = StatusBadgeVariant;
 
 export type MatchStatusUiToken = {
   label: string;
@@ -172,12 +177,3 @@ export const BRACKET_MATCH_STATUS_LABELS = Object.fromEntries(
     getBracketMatchStatusLabel(s),
   ]),
 ) as Record<BracketMatchStatus, string>;
-
-export const matchStatusBadgeSizeClasses = {
-  sm: "h-auto min-h-5 shrink-0 px-2 py-0.5 text-[11px] font-semibold",
-  md: "h-auto min-h-6 shrink-0 px-3 py-1 text-xs font-semibold sm:text-sm",
-  lg: "h-auto min-h-7 shrink-0 px-3.5 py-1.5 text-sm font-semibold sm:text-base",
-} as const;
-
-/** @deprecated matchStatusBadgeSizeClasses.md 사용 */
-export const matchStatusBadgeTypography = matchStatusBadgeSizeClasses.md;

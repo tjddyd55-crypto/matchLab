@@ -35,10 +35,10 @@ export function OrganizerFieldStatusTable({
             <col className="w-[10%]" />
             <col className="w-[17%]" />
             <col className="w-[10%]" />
-            <col className="w-[18%]" />
+            <col className="w-[17%]" />
             <col className="w-[14%]" />
-            <col className="w-[13%]" />
-            <col className="w-[10%]" />
+            <col className="w-[18%]" />
+            <col className="w-[6%]" />
           </colgroup>
           <thead className="bg-muted/40 text-xs">
             <tr className="align-middle">
@@ -50,7 +50,7 @@ export function OrganizerFieldStatusTable({
               <th className="px-2 py-2 font-medium">계체 몸무게</th>
               <th className="px-2 py-2 font-medium">진행여부</th>
               <th className="px-2 py-2 font-medium">실격 사유</th>
-              <th className="px-2 py-2 font-medium">최종결과</th>
+              <th className="px-2 py-2 font-medium">경기결과</th>
               <th className="px-2 py-2 font-medium">초기화</th>
             </tr>
           </thead>
@@ -160,7 +160,7 @@ export function OrganizerFieldStatusTable({
               </div>
               <div className="min-w-0">
                 <p className="text-muted-foreground mb-1 text-[10px] font-medium">
-                  최종결과
+                  경기결과
                 </p>
                 <FieldFinalResultCell row={row} />
               </div>

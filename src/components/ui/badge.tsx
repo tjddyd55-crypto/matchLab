@@ -32,6 +32,50 @@ const badgeVariants = cva(
           "border-rose-400 bg-rose-600 text-white dark:border-rose-800 dark:bg-rose-800 dark:text-rose-50",
         matchUnknown:
           "border-border bg-muted text-muted-foreground",
+        /** 경기결과/현장결과 SSOT — src/lib/ui/field-status-ui.ts */
+        resultPending:
+          "border-slate-200 bg-slate-100 text-slate-700 dark:border-slate-700 dark:bg-slate-800/60 dark:text-slate-300",
+        resultPassed:
+          "border-emerald-400 bg-emerald-600 text-white dark:border-emerald-700 dark:bg-emerald-700 dark:text-emerald-50",
+        resultFailedContinue:
+          "border-amber-300 bg-amber-50 text-amber-950 dark:border-amber-700 dark:bg-amber-950/50 dark:text-amber-100",
+        resultFailedHandicap:
+          "border-amber-400 bg-amber-100 font-semibold text-amber-950 dark:border-amber-600 dark:bg-amber-900/60 dark:text-amber-50",
+        resultFailedCancelled:
+          "border-rose-400 bg-rose-600 text-white dark:border-rose-800 dark:bg-rose-800 dark:text-rose-50",
+        resultDisqualified:
+          "border-rose-500 bg-rose-700 text-white dark:border-rose-800 dark:bg-rose-900 dark:text-rose-50",
+        resultConfirmed:
+          "border-primary bg-primary font-semibold text-primary-foreground",
+        resultUnknown:
+          "border-border bg-muted text-muted-foreground",
+        /** 신청/입금 SSOT — src/lib/ui/application-status-ui.ts */
+        applicationApproved:
+          "border-emerald-400 bg-emerald-600 text-white dark:border-emerald-700 dark:bg-emerald-700 dark:text-emerald-50",
+        applicationPending:
+          "border-slate-200 bg-slate-100 text-slate-800 dark:border-slate-700 dark:bg-slate-800/60 dark:text-slate-200",
+        applicationCancelled:
+          "border-rose-400 bg-rose-600 text-white dark:border-rose-800 dark:bg-rose-800 dark:text-rose-50",
+        paymentPaid:
+          "border-primary bg-primary font-semibold text-primary-foreground",
+        paymentUnpaid:
+          "border-amber-300 bg-amber-50 text-amber-950 dark:border-amber-700 dark:bg-amber-950/50 dark:text-amber-100",
+        /** 대전방식 SSOT — src/lib/ui/bout-format-ui.ts */
+        boutTournament:
+          "border-indigo-200 bg-indigo-50 text-indigo-900 dark:border-indigo-800 dark:bg-indigo-950/50 dark:text-indigo-100",
+        boutOneMatch:
+          "border-violet-200 bg-violet-50 text-violet-900 dark:border-violet-800 dark:bg-violet-950/50 dark:text-violet-100",
+        boutPublicSparring:
+          "border-primary bg-primary/10 font-semibold text-primary dark:bg-primary/20",
+        /** 계체 SSOT — src/lib/ui/field-status-ui.ts */
+        weighPending:
+          "border-slate-200 bg-slate-100 text-slate-800 dark:border-slate-700 dark:bg-slate-800/60 dark:text-slate-200",
+        weighPassed:
+          "border-emerald-400 bg-emerald-600 text-white dark:border-emerald-700 dark:bg-emerald-700 dark:text-emerald-50",
+        weighFailed:
+          "border-amber-300 bg-amber-50 text-amber-950 dark:border-amber-700 dark:bg-amber-950/50 dark:text-amber-100",
+        weighDisqualified:
+          "border-rose-400 bg-rose-600 text-white dark:border-rose-800 dark:bg-rose-800 dark:text-rose-50",
         /** @deprecated matchOngoing 사용 */
         matchInProgress:
           "border-primary bg-primary font-semibold text-primary-foreground",

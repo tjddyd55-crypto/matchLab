@@ -1,38 +1,45 @@
 import type { BoutFormatKind } from "@/lib/bout-format";
+import type { StatusBadgeVariant } from "@/lib/ui/status-badge-ui";
 
 export type BoutFormatUiToken = {
   label: string;
-  badgeClassName: string;
-  vsBadgeClassName: string;
+  badgeVariant: StatusBadgeVariant;
+  vsBadgeVariant: StatusBadgeVariant;
 };
 
-/** 대전방식 배지 색상 SSOT */
+/** 대전방식 pill 배지 SSOT */
 export const boutFormatUiTokens: Record<BoutFormatKind, BoutFormatUiToken> = {
   tournament: {
     label: "토너먼트",
-    badgeClassName:
-      "border-indigo-200 bg-indigo-50 text-indigo-900 dark:border-indigo-800 dark:bg-indigo-950/50 dark:text-indigo-100",
-    vsBadgeClassName: "",
+    badgeVariant: "boutTournament",
+    vsBadgeVariant: "boutTournament",
   },
   one_match: {
     label: "원매치",
-    badgeClassName:
-      "border-violet-200 bg-violet-50 text-violet-900 dark:border-violet-800 dark:bg-violet-950/50 dark:text-violet-100",
-    vsBadgeClassName: "",
+    badgeVariant: "boutOneMatch",
+    vsBadgeVariant: "boutOneMatch",
   },
   public_sparring: {
     label: "공개스파링",
-    badgeClassName:
-      "border-primary bg-primary/10 font-semibold text-primary dark:bg-primary/20",
-    vsBadgeClassName:
-      "bg-primary text-primary-foreground mt-1 inline-flex rounded-full px-3 py-1 font-bold tracking-wide",
+    badgeVariant: "boutPublicSparring",
+    vsBadgeVariant: "boutPublicSparring",
   },
 };
 
-export function getBoutFormatBadgeClassName(kind: BoutFormatKind): string {
-  return boutFormatUiTokens[kind].badgeClassName;
+export function getBoutFormatBadgeVariant(kind: BoutFormatKind): StatusBadgeVariant {
+  return boutFormatUiTokens[kind].badgeVariant;
 }
 
+export function getPublicSparringVsBadgeVariant(): StatusBadgeVariant {
+  return boutFormatUiTokens.public_sparring.vsBadgeVariant;
+}
+
+/** @deprecated getBoutFormatBadgeVariant 사용 */
+export function getBoutFormatBadgeClassName(): string {
+  return "";
+}
+
+/** @deprecated Badge variant 사용 — getPublicSparringVsBadgeVariant */
 export function getPublicSparringVsBadgeClassName(): string {
-  return boutFormatUiTokens.public_sparring.vsBadgeClassName;
+  return "mt-1 inline-flex font-bold tracking-wide";
 }

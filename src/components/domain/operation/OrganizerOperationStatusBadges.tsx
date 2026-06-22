@@ -2,10 +2,8 @@
 
 import { Badge } from "@/components/ui/badge";
 import type { OperationMatchPhase } from "@/lib/match-operation-display";
-import {
-  matchStatusBadgeSizeClasses,
-  operationPhaseBadgeVariant,
-} from "@/lib/ui/match-status-ui";
+import { statusBadgeSizeClasses } from "@/lib/ui/status-badge-ui";
+import { operationPhaseBadgeVariant } from "@/lib/ui/match-status-ui";
 import { cn } from "@/lib/utils";
 
 export function OrganizerOperationStatusBadges({
@@ -23,12 +21,12 @@ export function OrganizerOperationStatusBadges({
     <div className={cn("flex flex-wrap items-center gap-2", className)}>
       <Badge
         variant={operationPhaseBadgeVariant(phase)}
-        className={matchStatusBadgeSizeClasses.md}
+        className={statusBadgeSizeClasses.md}
       >
         {phaseLabel}
       </Badge>
       {phase !== "cancelled" ? (
-        <Badge variant="outline" className={matchStatusBadgeSizeClasses.md}>
+        <Badge variant="resultPending" className={statusBadgeSizeClasses.md}>
           {resultStatusLabel}
         </Badge>
       ) : null}
