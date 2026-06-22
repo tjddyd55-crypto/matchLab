@@ -12,6 +12,7 @@ import {
   type CourtTabId,
   formatCourtTabLabel,
 } from "@/lib/court-tab-label";
+import { sortMatchesByCourtSchedule } from "@/lib/court-match-order";
 import { BracketMatchStatus } from "@/lib/enums";
 import { resolveBoutFormatKind } from "@/lib/bout-format";
 import { CORNER_SLOT_STYLES } from "@/lib/corner-slot-styles";
@@ -27,17 +28,12 @@ function sortMatchesForTab(
   matches: OrganizerEventMatchListItemVM[],
   courts: EventCourtVM[],
 ) {
-  const courtOrder = new Map(
-    courts.filter((c) => c.isActive).map((c, i) => [c.id, i]),
+  return sortMatchesByCourtSchedule(
+    matches.map((m) => ({ ...m, matchId: m.matchId })),
+    courts
+      .filter((c) => c.isActive)
+      .map((c) => ({ id: c.id, sortOrder: c.sortOrder })),
   );
-  return [...matches].sort((a, b) => {
-    const ca = a.courtId ? courtOrder.get(a.courtId) ?? 999 : 9999;
-    const cb = b.courtId ? courtOrder.get(b.courtId) ?? 999 : 9999;
-    if (ca !== cb) return ca - cb;
-    const oa = a.courtOrder ?? a.matchOrder ?? 9999;
-    const ob = b.courtOrder ?? b.matchOrder ?? 9999;
-    return oa - ob;
-  });
 }
 
 function courtLabelForMatch(
@@ -122,12 +118,19 @@ export function OrganizerCourtBracketPanel({
   const [pending, startTransition] = useTransition();
   const [message, setMessage] = useState<string | null>(null);
 
-  const [localOrders, setLocalOrders] = useState<Record<string, number | null>>(
-    () => {
-      const init: Record<string, number | null> = {};
-      for (const m of matches) init[m.matchId] = m.courtOrder;
-      return init;
-    },
+  const [orderOverrides, setOrderOverrides] = useState<
+    Record<string, number | null>
+  >({});
+
+  const serverOrders = useMemo(() => {
+    const init: Record<string, number | null> = {};
+    for (const m of matches) init[m.matchId] = m.courtOrder;
+    return init;
+  }, [matches]);
+
+  const localOrders = useMemo(
+    () => ({ ...serverOrders, ...orderOverrides }),
+    [serverOrders, orderOverrides],
   );
 
   const filtered = useMemo(() => {
@@ -142,23 +145,48 @@ export function OrganizerCourtBracketPanel({
     const idx = filtered.findIndex((m) => m.matchId === matchId);
     const swapIdx = idx + direction;
     if (idx < 0 || swapIdx < 0 || swapIdx >= filtered.length) return;
-    const a = filtered[idx]!;
-    const b = filtered[swapIdx]!;
-    const orderA = localOrders[a.matchId] ?? idx + 1;
-    const orderB = localOrders[b.matchId] ?? swapIdx + 1;
-    setLocalOrders((prev) => ({
-      ...prev,
-      [a.matchId]: orderB,
-      [b.matchId]: orderA,
-    }));
+
+    const reordered = [...filtered];
+    const [removed] = reordered.splice(idx, 1);
+    reordered.splice(swapIdx, 0, removed!);
+
+    setOrderOverrides((prev) => {
+      const next = { ...prev };
+      reordered.forEach((m, i) => {
+        next[m.matchId] = i + 1;
+      });
+      return next;
+    });
   }
 
   function saveOrder() {
-    const updates = matches.map((m) => ({
-      matchId: m.matchId,
-      courtId: m.courtId ?? null,
-      courtOrder: localOrders[m.matchId] ?? m.courtOrder ?? null,
-    }));
+    const courtId = activeTab === "all" ? null : activeTab;
+    const courtMatches = courtId
+      ? matches.filter((m) => m.courtId === courtId)
+      : [];
+
+    const sortedCourtMatches =
+      courtId && courtMatches.length > 0
+        ? [...courtMatches].sort((a, b) => {
+            const oa = localOrders[a.matchId] ?? a.courtOrder ?? 9999;
+            const ob = localOrders[b.matchId] ?? b.courtOrder ?? 9999;
+            if (oa !== ob) return oa - ob;
+            return a.matchId.localeCompare(b.matchId);
+          })
+        : [];
+
+    const updates =
+      courtId && sortedCourtMatches.length > 0
+        ? sortedCourtMatches.map((m, idx) => ({
+            matchId: m.matchId,
+            courtId,
+            courtOrder: idx + 1,
+          }))
+        : matches.map((m) => ({
+            matchId: m.matchId,
+            courtId: m.courtId ?? null,
+            courtOrder: localOrders[m.matchId] ?? m.courtOrder ?? null,
+          }));
     const fd = new FormData();
     fd.set("eventId", eventId);
     fd.set("updates", JSON.stringify(updates));
@@ -169,6 +197,7 @@ export function OrganizerCourtBracketPanel({
         return;
       }
       setMessage("순서가 저장되었습니다.");
+      setOrderOverrides({});
       router.refresh();
     });
   }
@@ -262,7 +291,7 @@ export function OrganizerCourtBracketPanel({
                         className="border-input bg-background h-7 w-14 rounded-md border px-1 text-xs"
                         value={localOrders[m.matchId] ?? ""}
                         onChange={(e) =>
-                          setLocalOrders((prev) => ({
+                          setOrderOverrides((prev) => ({
                             ...prev,
                             [m.matchId]: e.target.value
                               ? Number(e.target.value)

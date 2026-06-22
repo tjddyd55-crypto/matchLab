@@ -5,7 +5,6 @@ import type {
 import { PublicBracketRealtimeBridge } from "@/components/domain/brackets/PublicBracketRealtimeBridge";
 import { SpectatorMatchCard } from "@/components/domain/events/spectator/SpectatorMatchCard";
 import { SpectatorWatchEmptyState } from "@/components/domain/events/spectator/SpectatorWatchEmptyState";
-import { sortMatchesByOrder } from "@/lib/match-order-display";
 
 export function SpectatorBracketTab({
   eventId,
@@ -36,7 +35,7 @@ export function SpectatorBracketTab({
         bracketIds={bracketIds}
       />
       {brackets.map((bracket) => {
-        const sorted = sortMatchesByOrder(bracket.matches);
+        const sorted = bracket.matches;
         return (
           <section key={bracket.id} className="space-y-3">
             <div>

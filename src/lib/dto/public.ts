@@ -142,6 +142,7 @@ export type PublicBracketMatchDTO = {
   matchNumber: number | null;
   matNumber: number | null;
   courtName?: string | null;
+  courtId?: string | null;
   courtOrder?: number | null;
   fighterRed: PublicBracketFighterDTO | null;
   fighterBlue: PublicBracketFighterDTO | null;

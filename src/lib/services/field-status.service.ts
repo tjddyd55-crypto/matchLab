@@ -463,15 +463,20 @@ export const fieldStatusService = {
     handicapNote?: string | null,
   ): Promise<void> {
     const row = await assertOrganizerApplication(actor, applicationId);
+    const isFailed =
+      row.weighInStatus === WeighInStatus.fail ||
+      row.weighInStatus === WeighInStatus.manual_fail;
+
     if (
-      row.weighInStatus !== WeighInStatus.fail &&
-      row.weighInStatus !== WeighInStatus.manual_fail
+      !isFailed &&
+      resolution === WeighInFailureResolution.pending
     ) {
       throw new AppError(
         "CONFLICT",
         "계체 실패 상태에서만 처리할 수 있습니다.",
       );
     }
+
     if (
       resolution === WeighInFailureResolution.proceed_with_handicap &&
       !handicapNote?.trim()
@@ -481,7 +486,9 @@ export const fieldStatusService = {
         "경기진행 시 핸디캡 안내 문구를 입력해 주세요.",
       );
     }
+
     await fieldStatusRepository.updateFieldStatus(applicationId, {
+      ...(isFailed ? {} : { weighInStatus: WeighInStatus.manual_fail }),
       weighInFailureResolution: resolution,
       handicapNote:
         resolution === WeighInFailureResolution.proceed_with_handicap
