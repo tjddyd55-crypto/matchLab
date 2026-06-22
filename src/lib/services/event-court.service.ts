@@ -6,8 +6,14 @@ import {
   formatCourtRuleLabel,
   resolveCourtIdFromRules,
 } from "@/lib/court-assignment";
+import {
+  computeCourtOrderUpdates,
+  renumberAllCourtOrders,
+  type CourtScheduleMatch,
+} from "@/lib/court-match-order";
 import { AppError } from "@/lib/errors/app-error";
 import { requireOrganizerForEvent } from "@/lib/permissions";
+import { prisma } from "@/lib/prisma";
 import { eventCourtRepository } from "@/lib/repositories/event-court.repository";
 import { eventRepository } from "@/lib/repositories/event.repository";
 import { matchRepository } from "@/lib/repositories/match.repository";
@@ -203,12 +209,54 @@ export const eventCourtService = {
     courtOrder?: number | null,
   ): Promise<void> {
     await requireOrganizerForEvent(actor, eventId);
-    if (courtId) {
-      await requireActiveCourtForEvent(eventId, courtId);
+
+    const allRows = await matchRepository.listMatchesByEvent(eventId);
+    const allMatches: CourtScheduleMatch[] = allRows.map((m) => ({
+      matchId: m.id,
+      courtId: m.courtId,
+      courtOrder: m.courtOrder,
+    }));
+
+    if (!courtId) {
+      const moving = allMatches.find((m) => m.matchId === matchId);
+      if (!moving) {
+        throw new AppError("NOT_FOUND", "경기를 찾을 수 없습니다.");
+      }
+      const merged = allMatches.map((m) =>
+        m.matchId === matchId
+          ? { ...m, courtId: null, courtOrder: null }
+          : m,
+      );
+      const updates = renumberAllCourtOrders(merged);
+      await prisma.$transaction(async (tx) => {
+        for (const u of updates) {
+          await matchRepository.updateMatchCourt(
+            u.matchId,
+            { courtId: u.courtId, courtOrder: u.courtOrder },
+            tx,
+          );
+        }
+      });
+      return;
     }
-    await matchRepository.updateMatchCourt(matchId, {
-      courtId,
-      courtOrder: courtOrder ?? null,
+
+    await requireActiveCourtForEvent(eventId, courtId);
+
+    const updates = computeCourtOrderUpdates({
+      allMatches,
+      movingMatchId: matchId,
+      targetCourtId: courtId,
+      targetPosition: courtOrder,
+    });
+
+    await prisma.$transaction(async (tx) => {
+      for (const u of updates) {
+        await matchRepository.updateMatchCourt(
+          u.matchId,
+          { courtId: u.courtId, courtOrder: u.courtOrder },
+          tx,
+        );
+      }
     });
   },
 
@@ -329,17 +377,37 @@ export const eventCourtService = {
     updates: { matchId: string; courtId: string | null; courtOrder: number | null }[],
   ): Promise<void> {
     await requireOrganizerForEvent(actor, eventId);
+
+    const allRows = await matchRepository.listMatchesByEvent(eventId);
+    const state = new Map<string, CourtScheduleMatch>(
+      allRows.map((m) => [
+        m.id,
+        { matchId: m.id, courtId: m.courtId, courtOrder: m.courtOrder },
+      ]),
+    );
+
     for (const u of updates) {
+      if (!state.has(u.matchId)) continue;
       if (u.courtId) {
-        const court = await eventCourtRepository.findById(u.courtId);
-        if (!court || court.eventId !== eventId || !court.isActive) {
-          throw new AppError("NOT_FOUND", "경기장을 찾을 수 없습니다.");
-        }
+        await requireActiveCourtForEvent(eventId, u.courtId);
       }
-      await matchRepository.updateMatchCourt(u.matchId, {
+      state.set(u.matchId, {
+        matchId: u.matchId,
         courtId: u.courtId,
         courtOrder: u.courtOrder,
       });
     }
+
+    const finalUpdates = renumberAllCourtOrders(Array.from(state.values()));
+
+    await prisma.$transaction(async (tx) => {
+      for (const u of finalUpdates) {
+        await matchRepository.updateMatchCourt(
+          u.matchId,
+          { courtId: u.courtId, courtOrder: u.courtOrder },
+          tx,
+        );
+      }
+    });
   },
 };

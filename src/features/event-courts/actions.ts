@@ -36,6 +36,7 @@ function revalidateEventPaths(eventId: string, bracketId?: string) {
   revalidatePath(`/organizer/events/${eventId}/schedule`);
   revalidatePath(`/organizer/events/${eventId}/brackets`);
   revalidatePath(`/organizer/events/${eventId}/operation`);
+  revalidatePath(`/organizer/events/${eventId}/check-in`);
   if (bracketId) {
     revalidatePath(`/organizer/events/${eventId}/brackets/${bracketId}`);
   }

@@ -50,14 +50,7 @@ export function OrganizerOperationBoard({
   const summary = useMemo(() => summarizeOperationBoard(matches), [matches]);
 
   const sortedRows = useMemo(() => {
-    return [...matches]
-      .sort((a, b) => {
-        const ga = a.globalMatchOrder ?? a.matchOrder;
-        const gb = b.globalMatchOrder ?? b.matchOrder;
-        if (ga !== gb) return ga - gb;
-        return a.matchOrder - b.matchOrder;
-      })
-      .map((m) => toOperationMatchRow(m, judgeSummaryByMatch?.[m.matchId]));
+    return matches.map((m) => toOperationMatchRow(m, judgeSummaryByMatch?.[m.matchId]));
   }, [matches, judgeSummaryByMatch]);
 
   const activeFilter = statusFilter !== "all" ? statusFilter : summaryFilter;

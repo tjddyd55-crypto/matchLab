@@ -11,6 +11,7 @@ import type { FighterHandicapDisplay } from "@/lib/fighter-handicap-display";
 import {
   buildFighterHandicapMap,
 } from "@/lib/fighter-handicap-display";
+import { sortMatchesByCourtSchedule } from "@/lib/court-match-order";
 import { AppError } from "@/lib/errors/app-error";
 import { assertBracketMatchStatusTransition } from "@/lib/match-status-transition";
 import { resolveMatchIsPublicSparring } from "@/lib/match-bout-settings";
@@ -22,6 +23,7 @@ import {
 } from "@/lib/permissions";
 import { prisma } from "@/lib/prisma";
 import { applicationRepository } from "@/lib/repositories/application.repository";
+import { eventCourtRepository } from "@/lib/repositories/event-court.repository";
 import {
   bracketRepository,
 } from "@/lib/repositories/bracket.repository";
@@ -313,9 +315,11 @@ export const matchService = {
     requireRole(actor, ["organizer", "admin"]);
     await requireOrganizerForEvent(actor, eventId);
 
-    const rows = await matchRepository.listMatchesByEvent(eventId);
-    const handicapRows =
-      await applicationRepository.listFighterHandicapFieldsForEvent(eventId);
+    const [rows, handicapRows, courts] = await Promise.all([
+      matchRepository.listMatchesByEvent(eventId),
+      applicationRepository.listFighterHandicapFieldsForEvent(eventId),
+      eventCourtRepository.listAllByEvent(eventId),
+    ]);
     const handicapMap = buildFighterHandicapMap(handicapRows);
 
     function mapFighter(
@@ -334,7 +338,7 @@ export const matchService = {
       };
     }
 
-    return rows.map((m): OrganizerEventMatchListItemVM => {
+    const mapped = rows.map((m): OrganizerEventMatchListItemVM => {
       const divisionLabel = m.bracket.division
         ? formatDivisionNameLabel(m.bracket.division)
         : null;
@@ -379,6 +383,11 @@ export const matchService = {
         hasOfficialResults,
       };
     });
+
+    return sortMatchesByCourtSchedule(
+      mapped.map((m) => ({ ...m, matchId: m.matchId })),
+      courts.map((c) => ({ id: c.id, sortOrder: c.sortOrder })),
+    );
   },
 
   async updateMatchStatus(

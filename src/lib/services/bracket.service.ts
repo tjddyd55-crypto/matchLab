@@ -43,6 +43,8 @@ import {
   type BracketOwnershipContext,
 } from "@/lib/repositories/bracket.repository";
 import { applicationRepository } from "@/lib/repositories/application.repository";
+import { eventCourtRepository } from "@/lib/repositories/event-court.repository";
+import { sortMatchesByCourtSchedule } from "@/lib/court-match-order";
 import { eventRepository } from "@/lib/repositories/event.repository";
 import { notificationRepository } from "@/lib/repositories/notification.repository";
 import { safeNotify, tryNotify } from "@/lib/notifications/safe-dispatch";
@@ -1361,6 +1363,10 @@ export const bracketService = {
       : [];
     const handicapMap = buildFighterHandicapMap(handicapRows);
 
+    const courts = eventId
+      ? await eventCourtRepository.listAllByEvent(eventId)
+      : [];
+
     return rows.map((b): PublicBracketDetailDTO => {
       const divisionLabel = b.division
         ? formatDivisionNameLabel(b.division)
@@ -1377,6 +1383,7 @@ export const bracketService = {
         matchNumber: m.matchNumber,
         matNumber: m.matNumber,
         courtName: m.court?.name ?? null,
+        courtId: m.courtId ?? null,
         courtOrder: m.courtOrder ?? null,
         fighterRed: snapshotToPublic(m.fighterRedSnapshot, handicapMap),
         fighterBlue: snapshotToPublic(m.fighterBlueSnapshot, handicapMap),
@@ -1393,13 +1400,23 @@ export const bracketService = {
       };
       });
 
+      const sortedMatches = sortMatchesByCourtSchedule(
+        matches.map((m) => ({
+          ...m,
+          matchId: m.id,
+          courtId: m.courtId ?? null,
+          courtOrder: m.courtOrder ?? null,
+        })),
+        courts.map((c) => ({ id: c.id, sortOrder: c.sortOrder })),
+      );
+
       return {
         id: b.id,
         title: b.title,
         type: b.type,
         status: b.status,
         divisionLabel,
-        matches,
+        matches: sortedMatches,
       };
     });
   },

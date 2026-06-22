@@ -8,6 +8,7 @@ import type { FieldStatusRowDTO } from "@/lib/services/field-status.service";
 export type FieldFinalResultDisplay = {
   label: string;
   handicapLabel?: string;
+  reasonLabel?: string;
 };
 
 function isWeighInPassed(status: WeighInStatus): boolean {
@@ -33,16 +34,18 @@ export function computeFieldFinalResult(
 ): FieldFinalResultDisplay {
   if (row.checkInStatus === "disqualified") {
     const reason = row.disqualificationReason?.trim();
+    let label = "실격";
     if (reason === "신청철회") {
-      return { label: "실격 · 신청철회" };
+      label = "실격 · 신청철회";
+    } else if (reason === "미출석") {
+      label = "실격 · 미출석";
+    } else if (reason) {
+      label = "실격 · 기타";
     }
-    if (reason === "미출석") {
-      return { label: "실격 · 미출석" };
-    }
-    if (reason) {
-      return { label: "실격 · 기타 사유" };
-    }
-    return { label: "실격" };
+    return {
+      label,
+      reasonLabel: reason ? `사유: ${reason}` : undefined,
+    };
   }
 
   if (isWeighInPassed(row.weighInStatus)) {

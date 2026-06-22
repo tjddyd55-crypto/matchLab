@@ -40,14 +40,6 @@ export function HandicapNoteCard({ note }: { note: string }) {
   );
 }
 
-function SavedDisqualificationReason({ reason }: { reason: string }) {
-  return (
-    <p className="text-muted-foreground text-[11px] leading-snug">
-      저장된 사유: <span className="text-foreground font-medium">{reason}</span>
-    </p>
-  );
-}
-
 export function WeighInFailureResolutionForm({
   row,
   compact = false,
@@ -62,11 +54,9 @@ export function WeighInFailureResolutionForm({
   const isFailed =
     row.weighInStatus === "fail" || row.weighInStatus === "manual_fail";
 
-  if (!isFailed) return null;
-
   const savedHandicap =
-    row.weighInFailureResolution === WeighInFailureResolution.proceed_with_handicap &&
-    row.handicapNote;
+    row.weighInFailureResolution ===
+      WeighInFailureResolution.proceed_with_handicap && row.handicapNote;
 
   function run(
     resolution: WeighInFailureResolution,
@@ -159,11 +149,10 @@ export function WeighInFailureResolutionForm({
           className="h-7 text-xs"
           disabled={pending}
           onClick={() => {
-            if (
-              window.confirm(
-                `${row.fighterName} 선수의 계체 실패를 경기취소로 처리할까요?`,
-              )
-            ) {
+            const message = isFailed
+              ? `${row.fighterName} 선수의 계체 실패를 경기취소로 처리할까요?`
+              : `${row.fighterName} 선수를 경기취소 처리할까요?`;
+            if (window.confirm(message)) {
               run(WeighInFailureResolution.cancel_match);
             }
           }}
@@ -193,10 +182,6 @@ export function DisqualificationReasonForm({
       ? row.disqualificationReason ?? ""
       : "",
   );
-
-  if (row.checkInStatus !== "disqualified") {
-    return null;
-  }
 
   function handleSubmit(e: FormEvent<HTMLFormElement>) {
     e.preventDefault();
@@ -244,9 +229,7 @@ export function DisqualificationReasonForm({
         onChange={(e) => setPreset(e.target.value)}
         required
       >
-        <option value="" disabled>
-          사유 선택
-        </option>
+        <option value="">사유 선택</option>
         {DISQUALIFICATION_PRESETS.map((p) => (
           <option key={p.value} value={p.value}>
             {p.label}
@@ -268,9 +251,6 @@ export function DisqualificationReasonForm({
       <Button type="submit" size="sm" className="h-7 w-fit text-xs" disabled={pending}>
         사유 저장
       </Button>
-      {row.disqualificationReason ? (
-        <SavedDisqualificationReason reason={row.disqualificationReason} />
-      ) : null}
     </form>
   );
 }
