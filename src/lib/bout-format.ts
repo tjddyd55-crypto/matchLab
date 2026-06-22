@@ -1,6 +1,5 @@
 import { BracketType } from "@/lib/enums";
 import { resolveMatchIsPublicSparring } from "@/lib/match-bout-settings";
-import { getBoutFormatBadgeClassName } from "@/lib/ui/bout-format-ui";
 
 export type BoutFormatKind = "tournament" | "one_match" | "public_sparring";
 
@@ -35,6 +34,7 @@ export function boutFormatLabel(kind: BoutFormatKind): string {
   }
 }
 
-export function boutFormatBadgeClass(kind: BoutFormatKind): string {
-  return getBoutFormatBadgeClassName(kind);
+/** @deprecated BoutFormatBadge + getBoutFormatBadgeVariant 사용 */
+export function boutFormatBadgeClass(): string {
+  return "";
 }

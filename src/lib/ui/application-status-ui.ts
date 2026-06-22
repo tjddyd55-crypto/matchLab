@@ -1,4 +1,4 @@
-import type { MatchStatusBadgeVariant } from "@/lib/ui/match-status-ui";
+import type { StatusBadgeVariant } from "@/lib/ui/status-badge-ui";
 
 export type ApplicationPaymentTone =
   | "paid"
@@ -10,37 +10,37 @@ export type ApplicationPaymentTone =
 
 export type ApplicationStatusUiToken = {
   label: string;
-  badgeVariant: MatchStatusBadgeVariant;
+  badgeVariant: StatusBadgeVariant;
 };
 
-/** 신청·입금 상태 배지 SSOT */
+/** 신청·입금 상태 pill 배지 SSOT */
 export const applicationStatusUiTokens: Record<
   ApplicationPaymentTone,
   ApplicationStatusUiToken
 > = {
   paid: {
     label: "입금완료",
-    badgeVariant: "matchOngoing",
+    badgeVariant: "paymentPaid",
   },
   unpaid: {
     label: "미입금",
-    badgeVariant: "matchReady",
+    badgeVariant: "paymentUnpaid",
   },
   approved: {
     label: "승인",
-    badgeVariant: "matchFinished",
+    badgeVariant: "applicationApproved",
   },
   pending: {
     label: "미승인",
-    badgeVariant: "matchWaiting",
+    badgeVariant: "applicationPending",
   },
   cancelled_by_gym: {
     label: "체육관취소",
-    badgeVariant: "matchCancelled",
+    badgeVariant: "applicationCancelled",
   },
   cancelled_by_organizer: {
     label: "주최측취소",
-    badgeVariant: "matchCancelled",
+    badgeVariant: "applicationCancelled",
   },
 };
 
@@ -63,7 +63,11 @@ export function resolveApplicationPaymentTone(
 
 export function getApplicationStatusBadgeVariant(
   status: string,
-): MatchStatusBadgeVariant {
+): StatusBadgeVariant {
   return applicationStatusUiTokens[resolveApplicationPaymentTone(status)]
     .badgeVariant;
+}
+
+export function getApplicationStatusLabel(status: string): string {
+  return applicationStatusUiTokens[resolveApplicationPaymentTone(status)].label;
 }

@@ -1,6 +1,11 @@
-import { resolveBoutFormatKind, boutFormatLabel, boutFormatBadgeClass } from "@/lib/bout-format";
+import { resolveBoutFormatKind, boutFormatLabel } from "@/lib/bout-format";
+import { Badge } from "@/components/ui/badge";
 import { bracketCardTextTokens } from "@/lib/ui/bracket-card-tokens";
-import { getPublicSparringVsBadgeClassName } from "@/lib/ui/bout-format-ui";
+import {
+  getBoutFormatBadgeVariant,
+  getPublicSparringVsBadgeVariant,
+} from "@/lib/ui/bout-format-ui";
+import { statusBadgeSizeClasses } from "@/lib/ui/status-badge-ui";
 import type { BracketType } from "@/lib/enums";
 import { cn } from "@/lib/utils";
 
@@ -26,17 +31,17 @@ export function BoutFormatBadge({
     resultMemo,
   });
   return (
-    <span
+    <Badge
+      variant={getBoutFormatBadgeVariant(kind)}
       className={cn(
-        "inline-flex rounded-full border px-2.5 py-0.5 font-medium",
+        statusBadgeSizeClasses.sm,
         bracketCardTextTokens.formatBadge,
-        boutFormatBadgeClass(kind),
         prominent && kind === "public_sparring" && "px-3 py-1",
         className,
       )}
     >
       {boutFormatLabel(kind)}
-    </span>
+    </Badge>
   );
 }
 
@@ -59,10 +64,15 @@ export function PublicSparringUnderVsBadge({
   });
   if (kind !== "public_sparring") return null;
   return (
-    <span
-      className={cn(getPublicSparringVsBadgeClassName(), bracketCardTextTokens.formatBadge)}
+    <Badge
+      variant={getPublicSparringVsBadgeVariant()}
+      className={cn(
+        "mt-1 font-bold tracking-wide",
+        statusBadgeSizeClasses.sm,
+        bracketCardTextTokens.formatBadge,
+      )}
     >
       공개스파링
-    </span>
+    </Badge>
   );
 }
