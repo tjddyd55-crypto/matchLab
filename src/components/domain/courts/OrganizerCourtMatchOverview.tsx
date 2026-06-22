@@ -3,11 +3,11 @@
 import { useMemo, useState } from "react";
 import { MatchCourtControls } from "@/components/domain/courts/MatchCourtControls";
 import { FighterHandicapBadge } from "@/components/domain/shared/FighterHandicapBadge";
+import { MatchStatusBadge } from "@/components/domain/shared/MatchStatusBadge";
 import type { EventCourtVM } from "@/lib/services/event-court.service";
 import type { OrganizerEventMatchListItemVM } from "@/lib/services/match.service";
 import { Button } from "@/components/ui/button";
 import { MATCH_CATEGORY_LABEL } from "@/lib/ui-labels/match-category";
-import { BracketMatchStatus } from "@/lib/enums";
 
 type CourtTab = "all" | "unassigned" | string;
 
@@ -21,15 +21,6 @@ function sortMatches(matches: OrganizerEventMatchListItemVM[]) {
     return orderA - orderB;
   });
 }
-
-const STATUS_LABEL: Record<string, string> = {
-  [BracketMatchStatus.waiting]: "대기",
-  [BracketMatchStatus.called]: "대기",
-  [BracketMatchStatus.delayed]: "대기",
-  [BracketMatchStatus.ongoing]: "진행중",
-  [BracketMatchStatus.finished]: "경기종료",
-  [BracketMatchStatus.cancelled]: "경기취소",
-};
 
 export function OrganizerCourtMatchOverview({
   eventId,
@@ -119,9 +110,7 @@ export function OrganizerCourtMatchOverview({
                     {m.divisionLabel ?? MATCH_CATEGORY_LABEL} · {m.bracketTitle}
                   </p>
                 </div>
-                <span className="rounded-full bg-background px-2 py-1 text-xs font-medium">
-                  {STATUS_LABEL[m.status] ?? m.status}
-                </span>
+                <MatchStatusBadge status={m.status} size="md" />
               </div>
 
               <div className="grid gap-0 md:grid-cols-[1fr_auto_1fr]">

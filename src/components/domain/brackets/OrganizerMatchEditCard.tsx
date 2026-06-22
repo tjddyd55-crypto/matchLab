@@ -8,30 +8,15 @@ import { BracketMatchOrderControls } from "@/components/domain/brackets/BracketM
 import { MatchCourtControls } from "@/components/domain/courts/MatchCourtControls";
 import type { EventCourtVM } from "@/lib/services/event-court.service";
 import { Button } from "@/components/ui/button";
+import { MatchStatusBadge } from "@/components/domain/shared/MatchStatusBadge";
+import { bracketCardTypography } from "@/lib/bracket-card-typography";
 import type { OrganizerApprovedFighterOptionVM } from "@/lib/services/bracket.service";
 import type { OrganizerBracketMatchVM } from "@/lib/services/bracket.service";
-import { BracketType, type BracketMatchStatus } from "@/lib/enums";
+import { BracketType } from "@/lib/enums";
 import { formatMatchOrderFormal } from "@/lib/match-order-display";
 import { cornerSlotInGridClass } from "@/lib/corner-slot-styles";
+import { cn } from "@/lib/utils";
 import { getMatchListDisabledFighterIds } from "@/lib/bracket-match-placement";
-function statusLabel(s: BracketMatchStatus): string {
-  switch (s) {
-    case "waiting":
-      return "대기";
-    case "called":
-      return "호출";
-    case "ongoing":
-      return "진행중";
-    case "finished":
-      return "종료";
-    case "delayed":
-      return "지연";
-    case "cancelled":
-      return "취소";
-    default:
-      return s;
-  }
-}
 
 export type MatchListEditorRow = {
   key: string;
@@ -124,12 +109,17 @@ export function OrganizerMatchEditCard({
     <article className="ring-foreground/10 overflow-hidden rounded-xl border bg-card shadow-sm">
       <header className="flex flex-wrap items-center justify-between gap-2 border-b bg-muted/30 px-3 py-1.5">
         <div className="flex flex-wrap items-center gap-2">
-          <span className="text-sm font-bold">{orderLabel}</span>
+          <span className={bracketCardTypography.matchNumber}>{orderLabel}</span>
           {divisionLabel ? (
-            <span className="text-muted-foreground text-[11px]">{divisionLabel}</span>
+            <span className={bracketCardTypography.division}>{divisionLabel}</span>
           ) : null}
           {serverMatch?.courtName ? (
-            <span className="rounded-full bg-background px-2 py-0.5 text-[10px] font-medium">
+            <span
+              className={cn(
+                bracketCardTypography.opsPill,
+                "bg-background font-medium",
+              )}
+            >
               {serverMatch.courtName}
               {serverMatch.courtOrder != null
                 ? ` · ${serverMatch.courtOrder}경기`
@@ -137,11 +127,9 @@ export function OrganizerMatchEditCard({
             </span>
           ) : null}
         </div>
-        <div className="flex flex-wrap items-center gap-1.5 text-[11px]">
+        <div className="flex flex-wrap items-center gap-1.5">
           {serverMatch ? (
-            <span className="rounded-full bg-background px-2 py-0.5 font-medium">
-              {statusLabel(serverMatch.status)}
-            </span>
+            <MatchStatusBadge status={serverMatch.status} size="md" />
           ) : (
             <span className="text-muted-foreground rounded-full bg-background px-2 py-0.5">
               미저장

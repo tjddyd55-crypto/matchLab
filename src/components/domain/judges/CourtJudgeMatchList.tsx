@@ -1,30 +1,18 @@
 "use client";
 
-import { Badge } from "@/components/ui/badge";
 import { BoutFormatBadge, PublicSparringUnderVsBadge } from "@/components/domain/shared/BoutFormatBadge";
+import { MatchStatusBadge as SharedMatchStatusBadge } from "@/components/domain/shared/MatchStatusBadge";
+import {
+  getCornerLabelClassName,
+  getCornerSlotBg,
+} from "@/lib/ui/corner-ui-tokens";
 import { cn } from "@/lib/utils";
 import type {
   CourtJudgeMatchVM,
   CourtMatchScoreSummaryVM,
 } from "@/lib/services/judge-court.service";
 import { BracketMatchStatus } from "@/lib/enums";
-
-function statusLabel(status: CourtJudgeMatchVM["status"]): string {
-  switch (status) {
-    case BracketMatchStatus.waiting:
-      return "대기";
-    case BracketMatchStatus.called:
-      return "경기준비";
-    case BracketMatchStatus.ongoing:
-      return "진행중";
-    case BracketMatchStatus.finished:
-      return "경기종료";
-    case BracketMatchStatus.cancelled:
-      return "경기취소";
-    default:
-      return String(status);
-  }
-}
+import { bracketMatchStatusLabel } from "@/lib/match-status-display";
 
 function winnerCornerLabel(match: CourtJudgeMatchVM): string | null {
   if (match.status !== BracketMatchStatus.finished || !match.winnerId) return null;
@@ -48,24 +36,17 @@ function resultSummary(match: CourtJudgeMatchVM): string | null {
   return null;
 }
 
-function MatchStatusBadge({ match }: { match: CourtJudgeMatchVM }) {
+function JudgeMatchStatusBadge({ match }: { match: CourtJudgeMatchVM }) {
   if (match.status === BracketMatchStatus.ongoing) {
     return (
-      <Badge className="bg-primary text-primary-foreground">
-        현재 경기 · 진행중
-      </Badge>
+      <SharedMatchStatusBadge
+        status={match.status}
+        label="현재 경기 · 진행중"
+        size="md"
+      />
     );
   }
-  if (match.status === BracketMatchStatus.called) {
-    return <Badge className="border-primary bg-primary/10 text-primary">경기준비</Badge>;
-  }
-  if (match.status === BracketMatchStatus.finished) {
-    return <Badge variant="secondary">경기종료</Badge>;
-  }
-  if (match.status === BracketMatchStatus.cancelled) {
-    return <Badge variant="destructive">경기취소</Badge>;
-  }
-  return <Badge variant="outline">대기</Badge>;
+  return <SharedMatchStatusBadge status={match.status} size="md" />;
 }
 
 function MatchRowContent({
@@ -85,7 +66,7 @@ function MatchRowContent({
     <>
       <div className="flex flex-wrap items-center gap-2">
         <span className="text-muted-foreground text-xs font-medium">{orderLabel}</span>
-        <MatchStatusBadge match={match} />
+        <JudgeMatchStatusBadge match={match} />
         <BoutFormatBadge
           bracketType={match.bracketType}
           bracketIsPublic={match.bracketIsPublic}
@@ -215,7 +196,7 @@ export function CourtJudgeCurrentMatchCard({
     <section className="rounded-xl border border-primary bg-primary/5 p-4 ring-1 ring-primary/30">
       <div className="mb-2 flex items-center justify-between gap-2">
         <p className="text-primary text-xs font-semibold">현재 경기</p>
-        <MatchStatusBadge match={match} />
+        <JudgeMatchStatusBadge match={match} />
       </div>
       <MatchRowContent match={match} scoreSummary={scoreSummary} />
     </section>
@@ -225,8 +206,8 @@ export function CourtJudgeCurrentMatchCard({
 export function CourtJudgeFightersHeader({ match }: { match: CourtJudgeMatchVM }) {
   return (
     <div className="grid grid-cols-[1fr_auto_1fr] items-stretch overflow-hidden rounded-lg border">
-      <div className="bg-red-500/5 p-3">
-        <p className="text-xs font-semibold text-red-700">레드</p>
+      <div className={cn(getCornerSlotBg("홍코너"), "p-3")}>
+        <p className={cn("text-xs font-semibold", getCornerLabelClassName("홍코너"))}>레드</p>
         <p
           className={cn(
             "text-lg font-bold",
@@ -245,8 +226,8 @@ export function CourtJudgeFightersHeader({ match }: { match: CourtJudgeMatchVM }
           matchIsPublicSparring={match.matchIsPublicSparring}
         />
       </div>
-      <div className="bg-blue-500/5 p-3 text-right">
-        <p className="text-xs font-semibold text-blue-700">블루</p>
+      <div className={cn(getCornerSlotBg("청코너"), "p-3 text-right")}>
+        <p className={cn("text-xs font-semibold", getCornerLabelClassName("청코너"))}>블루</p>
         <p
           className={cn(
             "text-lg font-bold",
@@ -261,4 +242,4 @@ export function CourtJudgeFightersHeader({ match }: { match: CourtJudgeMatchVM }
   );
 }
 
-export { statusLabel, resultSummary };
+export { bracketMatchStatusLabel as statusLabel, resultSummary };

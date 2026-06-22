@@ -1,12 +1,11 @@
 import type { PublicBracketMatchDTO } from "@/lib/dto/public";
 import { resolveBoutFormatKind, boutFormatLabel } from "@/lib/bout-format";
+import { bracketCardTypography } from "@/lib/bracket-card-typography";
 import { formatMatchOrderFormal } from "@/lib/match-order-display";
 import { cn } from "@/lib/utils";
 import { PublicSparringUnderVsBadge } from "@/components/domain/shared/BoutFormatBadge";
-import {
-  spectatorMatchStatusBadgeClass,
-  spectatorMatchStatusLabel,
-} from "@/components/domain/events/spectator/spectator-status-labels";
+import { MatchStatusBadge } from "@/components/domain/shared/MatchStatusBadge";
+import { getCornerCardClassName, getCornerLabelClassName } from "@/lib/ui/corner-ui-tokens";
 
 export function SpectatorMatchCard({
   match,
@@ -33,8 +32,15 @@ export function SpectatorMatchCard({
     <article className="overflow-hidden rounded-2xl border bg-card shadow-sm">
       <div className="flex items-start justify-between gap-2 border-b bg-muted/20 px-4 py-3">
         <div className="min-w-0 space-y-1">
-          <p className="text-base font-bold">{formatMatchOrderFormal(match)}</p>
-          <div className="text-muted-foreground flex flex-wrap gap-x-2 gap-y-1 text-xs">
+          <p className={bracketCardTypography.matchNumber}>
+            {formatMatchOrderFormal(match)}
+          </p>
+          <div
+            className={cn(
+              bracketCardTypography.meta,
+              "flex flex-wrap gap-x-2 gap-y-1",
+            )}
+          >
             {match.courtName ? <span>{match.courtName}</span> : null}
             {match.matNumber != null ? <span>매트 {match.matNumber}</span> : null}
             {divisionLabel ? <span>{divisionLabel}</span> : null}
@@ -42,44 +48,41 @@ export function SpectatorMatchCard({
             {match.roundName ? <span>{match.roundName}</span> : null}
           </div>
         </div>
-        <span
-          className={cn(
-            "shrink-0 rounded-full border px-2.5 py-1 text-[11px] font-semibold",
-            spectatorMatchStatusBadgeClass(match.status),
-          )}
-        >
-          {spectatorMatchStatusLabel(match.status)}
-        </span>
+        <MatchStatusBadge status={match.status} size="md" />
       </div>
 
       <div className="space-y-3 px-4 py-4">
-        <div className="rounded-xl border bg-red-50/60 px-3 py-3 dark:bg-red-950/20">
-          <p className="text-muted-foreground text-[10px] font-semibold tracking-wide">
+        <div className={cn("rounded-xl border px-3 py-3", getCornerCardClassName("홍코너"))}>
+          <p className={cn(bracketCardTypography.spectatorCornerLabel, getCornerLabelClassName("홍코너"))}>
             홍코너
           </p>
-          <p className="mt-1 text-base font-semibold leading-snug">{redName}</p>
+          <p className={cn("mt-1", bracketCardTypography.spectatorFighterName)}>
+            {redName}
+          </p>
           {match.fighterRed?.gymName ? (
-            <p className="text-muted-foreground mt-0.5 text-xs">
+            <p className={cn("mt-0.5", bracketCardTypography.spectatorGym)}>
               {match.fighterRed.gymName}
             </p>
           ) : null}
         </div>
 
         <div className="flex flex-col items-center gap-1 py-1">
-          <span className="text-lg font-black tracking-widest text-primary">VS</span>
+          <span className={bracketCardTypography.vsAccent}>VS</span>
           <PublicSparringUnderVsBadge
             bracketType={bracketType}
             bracketIsPublic={formatKind === "public_sparring"}
           />
         </div>
 
-        <div className="rounded-xl border bg-blue-50/60 px-3 py-3 dark:bg-blue-950/20">
-          <p className="text-muted-foreground text-[10px] font-semibold tracking-wide">
+        <div className={cn("rounded-xl border px-3 py-3", getCornerCardClassName("청코너"))}>
+          <p className={cn(bracketCardTypography.spectatorCornerLabel, getCornerLabelClassName("청코너"))}>
             청코너
           </p>
-          <p className="mt-1 text-base font-semibold leading-snug">{blueName}</p>
+          <p className={cn("mt-1", bracketCardTypography.spectatorFighterName)}>
+            {blueName}
+          </p>
           {match.fighterBlue?.gymName ? (
-            <p className="text-muted-foreground mt-0.5 text-xs">
+            <p className={cn("mt-0.5", bracketCardTypography.spectatorGym)}>
               {match.fighterBlue.gymName}
             </p>
           ) : null}
