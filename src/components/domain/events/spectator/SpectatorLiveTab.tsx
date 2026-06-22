@@ -5,8 +5,8 @@ import type { PublicLiveStreamDTO } from "@/lib/dto/public";
 import { buttonVariants } from "@/components/ui/button";
 import { SpectatorWatchEmptyState } from "@/components/domain/events/spectator/SpectatorWatchEmptyState";
 import {
+  spectatorLiveStatusBadgeClass,
   spectatorLiveStatusLabel,
-  spectatorMatchStatusBadgeClass,
 } from "@/components/domain/events/spectator/spectator-status-labels";
 import { cn } from "@/lib/utils";
 
@@ -35,10 +35,8 @@ function LiveStreamCard({ stream }: { stream: PublicLiveStreamDTO }) {
         <div className="flex flex-wrap items-center gap-2 text-xs">
           <span
             className={cn(
-              "rounded-full border px-2.5 py-1 font-semibold",
-              stream.status === "live"
-                ? spectatorMatchStatusBadgeClass("ongoing")
-                : "bg-muted text-muted-foreground border-border",
+              "rounded-full border",
+              spectatorLiveStatusBadgeClass(stream.status),
             )}
           >
             {spectatorLiveStatusLabel(stream.status)}

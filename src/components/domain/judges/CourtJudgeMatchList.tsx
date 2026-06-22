@@ -1,30 +1,14 @@
 "use client";
 
-import { Badge } from "@/components/ui/badge";
 import { BoutFormatBadge, PublicSparringUnderVsBadge } from "@/components/domain/shared/BoutFormatBadge";
+import { BracketMatchStatusBadge } from "@/components/domain/shared/BracketMatchStatusBadge";
 import { cn } from "@/lib/utils";
 import type {
   CourtJudgeMatchVM,
   CourtMatchScoreSummaryVM,
 } from "@/lib/services/judge-court.service";
 import { BracketMatchStatus } from "@/lib/enums";
-
-function statusLabel(status: CourtJudgeMatchVM["status"]): string {
-  switch (status) {
-    case BracketMatchStatus.waiting:
-      return "대기";
-    case BracketMatchStatus.called:
-      return "경기준비";
-    case BracketMatchStatus.ongoing:
-      return "진행중";
-    case BracketMatchStatus.finished:
-      return "경기종료";
-    case BracketMatchStatus.cancelled:
-      return "경기취소";
-    default:
-      return String(status);
-  }
-}
+import { bracketMatchStatusLabel } from "@/lib/match-status-display";
 
 function winnerCornerLabel(match: CourtJudgeMatchVM): string | null {
   if (match.status !== BracketMatchStatus.finished || !match.winnerId) return null;
@@ -51,21 +35,13 @@ function resultSummary(match: CourtJudgeMatchVM): string | null {
 function MatchStatusBadge({ match }: { match: CourtJudgeMatchVM }) {
   if (match.status === BracketMatchStatus.ongoing) {
     return (
-      <Badge className="bg-primary text-primary-foreground">
-        현재 경기 · 진행중
-      </Badge>
+      <BracketMatchStatusBadge
+        status={match.status}
+        label="현재 경기 · 진행중"
+      />
     );
   }
-  if (match.status === BracketMatchStatus.called) {
-    return <Badge className="border-primary bg-primary/10 text-primary">경기준비</Badge>;
-  }
-  if (match.status === BracketMatchStatus.finished) {
-    return <Badge variant="secondary">경기종료</Badge>;
-  }
-  if (match.status === BracketMatchStatus.cancelled) {
-    return <Badge variant="destructive">경기취소</Badge>;
-  }
-  return <Badge variant="outline">대기</Badge>;
+  return <BracketMatchStatusBadge status={match.status} />;
 }
 
 function MatchRowContent({
@@ -261,4 +237,4 @@ export function CourtJudgeFightersHeader({ match }: { match: CourtJudgeMatchVM }
   );
 }
 
-export { statusLabel, resultSummary };
+export { bracketMatchStatusLabel as statusLabel, resultSummary };

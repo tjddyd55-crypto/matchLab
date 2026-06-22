@@ -14,6 +14,7 @@ import {
   getWeighInStatusLabel,
 } from "@/lib/field-eligibility";
 import { outcomeStylePublicLabel } from "@/lib/match-result-snapshot";
+import { bracketMatchStatusLabel } from "@/lib/match-status-display";
 import { requireRole } from "@/lib/permissions";
 import { applicationRepository } from "@/lib/repositories/application.repository";
 import { bracketRepository } from "@/lib/repositories/bracket.repository";
@@ -96,25 +97,6 @@ function fighterPaymentDisplayLabel(status: PaymentStatus): string {
       return "환불 처리";
     default:
       return "체육관/주최자 확인 중";
-  }
-}
-
-function bracketMatchStatusLabel(status: BracketMatchStatus): string {
-  switch (status) {
-    case "waiting":
-      return "대기";
-    case "called":
-      return "호명";
-    case "ongoing":
-      return "진행 중";
-    case "finished":
-      return "종료";
-    case "delayed":
-      return "지연";
-    case "cancelled":
-      return "취소";
-    default:
-      return String(status);
   }
 }
 

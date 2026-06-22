@@ -21,6 +21,7 @@ import {
   getWeighInStatusLabel,
 } from "@/lib/field-eligibility";
 import { outcomeStylePublicLabel } from "@/lib/match-result-snapshot";
+import { bracketMatchStatusLabel } from "@/lib/match-status-display";
 import { requireGymOwner, requireRole } from "@/lib/permissions";
 import { applicationDocumentRepository } from "@/lib/repositories/application-document.repository";
 import { applicationRepository } from "@/lib/repositories/application.repository";
@@ -136,25 +137,6 @@ function formatDivisionLabel(d: {
   ]
     .filter((x): x is string => Boolean(x?.trim()))
     .join(" · ");
-}
-
-function bracketMatchStatusLabel(status: BracketMatchStatus): string {
-  switch (status) {
-    case "waiting":
-      return "대기";
-    case "called":
-      return "호명";
-    case "ongoing":
-      return "진행 중";
-    case "finished":
-      return "종료";
-    case "delayed":
-      return "지연";
-    case "cancelled":
-      return "취소";
-    default:
-      return String(status);
-  }
 }
 
 function resolveApplicationFormStatus(

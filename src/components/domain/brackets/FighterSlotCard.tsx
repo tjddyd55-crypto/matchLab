@@ -1,5 +1,6 @@
 import type { PublicBracketFighterDTO } from "@/lib/dto/public";
 import { FighterHandicapBadge } from "@/components/domain/shared/FighterHandicapBadge";
+import { bracketCardTypography } from "@/lib/bracket-card-typography";
 import {
   CORNER_SLOT_STYLES,
   type CornerLabel,
@@ -41,10 +42,10 @@ export function FighterSlotCard({
   if (bye && !fighter) {
     return (
       <div className={cn(baseClass, "min-h-[3.5rem]")}>
-        <span className={cn("text-[11px] font-semibold", style.accent)}>
+        <span className={cn(bracketCardTypography.fighterCorner, style.accent)}>
           {style.label}
         </span>
-        <span className="text-muted-foreground text-sm font-medium">
+        <span className={cn(bracketCardTypography.fighterName, "text-muted-foreground font-medium")}>
           BYE · 부전승
         </span>
       </div>
@@ -54,27 +55,29 @@ export function FighterSlotCard({
   if (!fighter) {
     return (
       <div className={cn(baseClass, "min-h-[3.5rem]")}>
-        <span className={cn("text-[11px] font-semibold", style.accent)}>
+        <span className={cn(bracketCardTypography.fighterCorner, style.accent)}>
           {style.label}
         </span>
-        <span className="text-muted-foreground text-sm">미배정</span>
+        <span className={cn(bracketCardTypography.fighterName, "text-muted-foreground font-normal")}>
+          미배정
+        </span>
       </div>
     );
   }
 
   return (
     <div className={cn(baseClass, "min-h-[3.5rem]")}>
-      <span className={cn("text-[11px] font-semibold", style.accent)}>
+      <span className={cn(bracketCardTypography.fighterCorner, style.accent)}>
         {style.label}
       </span>
-      <div className="truncate text-base font-bold leading-tight">
+      <div className={cn("truncate", bracketCardTypography.fighterName)}>
         {fighter.name}
       </div>
-      <div className="text-muted-foreground truncate text-xs">
+      <div className={cn("truncate", bracketCardTypography.fighterGym)}>
         {fighter.gymName ?? "소속 미상"}
       </div>
       {fighter.recordSummary ? (
-        <div className="text-muted-foreground text-[11px]">
+        <div className={bracketCardTypography.fighterRecord}>
           {fighter.recordSummary}
         </div>
       ) : null}

@@ -1,4 +1,5 @@
 import { resolveBoutFormatKind, boutFormatLabel, boutFormatBadgeClass } from "@/lib/bout-format";
+import { bracketCardTypography } from "@/lib/bracket-card-typography";
 import type { BracketType } from "@/lib/enums";
 import { cn } from "@/lib/utils";
 
@@ -26,9 +27,10 @@ export function BoutFormatBadge({
   return (
     <span
       className={cn(
-        "inline-flex rounded-full border px-2 py-0.5 text-[11px] font-medium",
+        "inline-flex rounded-full border px-2.5 py-0.5 font-medium",
+        bracketCardTypography.formatBadge,
         boutFormatBadgeClass(kind),
-        prominent && kind === "public_sparring" && "text-sm px-3 py-1",
+        prominent && kind === "public_sparring" && "px-3 py-1",
         className,
       )}
     >
@@ -56,7 +58,12 @@ export function PublicSparringUnderVsBadge({
   });
   if (kind !== "public_sparring") return null;
   return (
-    <span className="bg-primary text-primary-foreground mt-1 inline-flex rounded-full px-3 py-1 text-xs font-bold tracking-wide">
+    <span
+      className={cn(
+        "bg-primary text-primary-foreground mt-1 inline-flex rounded-full px-3 py-1 font-bold tracking-wide",
+        bracketCardTypography.formatBadge,
+      )}
+    >
       공개스파링
     </span>
   );

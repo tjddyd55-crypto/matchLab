@@ -1,6 +1,6 @@
 import type { PublicBracketMatchDTO } from "@/lib/dto/public";
-import type { BracketMatchStatus } from "@/lib/enums";
 import { cornerSlotInGridClass } from "@/lib/corner-slot-styles";
+import { bracketCardTypography } from "@/lib/bracket-card-typography";
 import { cn } from "@/lib/utils";
 import { formatMatchOrderFormal } from "@/lib/match-order-display";
 import { outcomeStylePublicLabel } from "@/lib/match-result-snapshot";
@@ -8,25 +8,7 @@ import { resolveBoutFormatKind } from "@/lib/bout-format";
 
 import { FighterSlotCard } from "@/components/domain/brackets/FighterSlotCard";
 import { BoutFormatBadge, PublicSparringUnderVsBadge } from "@/components/domain/shared/BoutFormatBadge";
-
-function statusLabel(s: BracketMatchStatus): string {
-  switch (s) {
-    case "waiting":
-      return "대기";
-    case "called":
-      return "호출됨";
-    case "ongoing":
-      return "진행중";
-    case "finished":
-      return "종료";
-    case "delayed":
-      return "지연";
-    case "cancelled":
-      return "취소";
-    default:
-      return s;
-  }
-}
+import { BracketMatchStatusBadge } from "@/components/domain/shared/BracketMatchStatusBadge";
 
 export function BracketMatchCard({
   match,
@@ -87,26 +69,42 @@ export function BracketMatchCard({
         className,
       )}
     >
-      <div className="flex flex-wrap items-center justify-between gap-2 border-b bg-muted/30 px-3 py-2 text-xs">
+      <div
+        className={cn(
+          "flex flex-wrap items-center justify-between gap-2 border-b bg-muted/30 px-3 py-2",
+          bracketCardTypography.headerRow,
+        )}
+      >
         <div className="flex min-w-0 flex-col gap-1">
           <div className="flex flex-wrap items-center gap-2">
-            <span className="text-sm font-bold">{matchNoLabel}</span>
+            <span className={bracketCardTypography.matchNumber}>{matchNoLabel}</span>
             {divisionLabel ? (
-              <span className="text-muted-foreground">{divisionLabel}</span>
+              <span className={bracketCardTypography.division}>{divisionLabel}</span>
             ) : null}
             {bracketType && formatKind && formatKind !== "public_sparring" ? (
               <BoutFormatBadge
                 bracketType={bracketType}
                 bracketIsPublic={isPublicSparring}
+                className={bracketCardTypography.formatBadge}
               />
             ) : null}
             {opsLabel ? (
-              <span className="text-muted-foreground rounded-full border px-2 py-0.5 text-[10px]">
+              <span
+                className={cn(
+                  bracketCardTypography.opsPill,
+                  "text-muted-foreground",
+                )}
+              >
                 {opsLabel}
               </span>
             ) : null}
           </div>
-          <div className="text-muted-foreground flex flex-wrap items-center gap-2 text-[11px]">
+          <div
+            className={cn(
+              bracketCardTypography.meta,
+              "flex flex-wrap items-center gap-2",
+            )}
+          >
             {matPrefix != null && match.matNumber != null ? (
               <span>
                 {matPrefix}
@@ -122,9 +120,7 @@ export function BracketMatchCard({
             {match.roundName ? <span>{match.roundName}</span> : null}
           </div>
         </div>
-        <span className="shrink-0 rounded-full bg-background px-2 py-0.5 text-[11px] font-medium">
-          {statusLabel(match.status)}
-        </span>
+        <BracketMatchStatusBadge status={match.status} />
       </div>
 
       <div className="grid grid-cols-1 md:grid-cols-[minmax(0,1fr)_auto_minmax(0,1fr)] md:items-center">
@@ -137,7 +133,7 @@ export function BracketMatchCard({
           )}
         />
         <div className="bg-muted/20 text-muted-foreground flex flex-col items-center justify-center px-4 py-3 md:min-w-[4.5rem] md:py-4">
-          <span className="text-lg font-black tracking-widest">VS</span>
+          <span className={bracketCardTypography.vs}>VS</span>
           {bracketType ? (
             <PublicSparringUnderVsBadge
               bracketType={bracketType}
@@ -157,7 +153,7 @@ export function BracketMatchCard({
       </div>
 
       {match.resultType ? (
-        <p className="text-muted-foreground border-t px-3 py-1.5 text-center text-[11px]">
+        <p className={cn(bracketCardTypography.resultFooter, "border-t px-3 py-1.5 text-center")}>
           결과:{" "}
           <span className="text-foreground font-medium">
             {outcomeStylePublicLabel(match.resultType)}

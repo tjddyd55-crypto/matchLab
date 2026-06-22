@@ -19,6 +19,19 @@ const badgeVariants = cva(
         ghost:
           "hover:bg-muted hover:text-muted-foreground dark:hover:bg-muted/50",
         link: "text-primary underline-offset-4 hover:underline",
+        /** 경기상태 SSOT — match-status-display.ts 와 쌍 */
+        matchWaiting:
+          "border-border bg-muted text-muted-foreground dark:bg-muted/80",
+        matchReady:
+          "border-sky-300 bg-sky-50 text-sky-900 dark:border-sky-700 dark:bg-sky-950/60 dark:text-sky-100",
+        matchInProgress:
+          "border-primary/50 bg-primary/15 font-semibold text-primary dark:border-primary/40 dark:bg-primary/25",
+        matchFinished:
+          "border-emerald-300 bg-emerald-50 text-emerald-900 dark:border-emerald-800 dark:bg-emerald-950/50 dark:text-emerald-100",
+        matchCancelled:
+          "border-destructive/30 bg-destructive/10 text-destructive dark:border-destructive/40 dark:bg-destructive/20",
+        matchDelayed:
+          "border-amber-300 bg-amber-50 text-amber-900 dark:border-amber-800 dark:bg-amber-950/50 dark:text-amber-100",
       },
     },
     defaultVariants: {

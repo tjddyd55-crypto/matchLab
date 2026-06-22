@@ -13,7 +13,8 @@ import {
   formatCourtTabLabel,
 } from "@/lib/court-tab-label";
 import { sortMatchesByCourtSchedule } from "@/lib/court-match-order";
-import { BracketMatchStatus } from "@/lib/enums";
+import { BracketMatchStatusBadge } from "@/components/domain/shared/BracketMatchStatusBadge";
+import { bracketCardTypography } from "@/lib/bracket-card-typography";
 import { resolveBoutFormatKind } from "@/lib/bout-format";
 import { CORNER_SLOT_STYLES } from "@/lib/corner-slot-styles";
 import type { EventCourtVM } from "@/lib/services/event-court.service";
@@ -46,21 +47,6 @@ function courtLabelForMatch(
   return m.courtName ?? "경기장";
 }
 
-function matchStatusLabel(status: OrganizerEventMatchListItemVM["status"]) {
-  switch (status) {
-    case BracketMatchStatus.called:
-      return "경기준비";
-    case BracketMatchStatus.ongoing:
-      return "경기진행중";
-    case BracketMatchStatus.finished:
-      return "경기종료";
-    case BracketMatchStatus.cancelled:
-      return "경기취소";
-    default:
-      return "대기";
-  }
-}
-
 function matchOrderLabel(m: OrganizerEventMatchListItemVM, courtOrder: number | null) {
   if (courtOrder != null) return `제${courtOrder}경기`;
   if (m.matchNumber != null) return `제${m.matchNumber}경기`;
@@ -87,9 +73,9 @@ function OrganizerFighterSlot({
         style.bg,
       )}
     >
-      <p className={cn("text-[11px] font-semibold", style.accent)}>{corner}</p>
-      <p className="text-base font-semibold leading-tight">{name}</p>
-      <p className="text-muted-foreground text-xs">{gymName ?? "-"}</p>
+      <p className={cn(bracketCardTypography.fighterCorner, style.accent)}>{corner}</p>
+      <p className={bracketCardTypography.fighterName}>{name}</p>
+      <p className={bracketCardTypography.fighterGym}>{gymName ?? "-"}</p>
       <FighterHandicapBadge
         handicap={handicap}
         cornerLabel={corner}
@@ -256,11 +242,11 @@ export function OrganizerCourtBracketPanel({
             >
               <div className="flex flex-wrap items-start justify-between gap-2 border-b bg-muted/30 px-3 py-2">
                 <div className="min-w-0 flex-1">
-                  <div className="flex flex-wrap items-center gap-2 text-xs">
-                    <span className="text-sm font-bold">
+                  <div className={cn("flex flex-wrap items-center gap-2", bracketCardTypography.headerRow)}>
+                    <span className={bracketCardTypography.matchNumber}>
                       {matchOrderLabel(m, order)}
                     </span>
-                    <span className="text-muted-foreground">
+                    <span className={bracketCardTypography.division}>
                       {m.divisionLabel ?? MATCH_CATEGORY_LABEL}
                     </span>
                     {formatKind !== "public_sparring" ? (
@@ -269,13 +255,19 @@ export function OrganizerCourtBracketPanel({
                         bracketIsPublic={m.bracketIsPublic}
                         matchIsPublicSparring={m.matchIsPublicSparring}
                         resultMemo={m.resultMemo}
+                        className={bracketCardTypography.formatBadge}
                       />
                     ) : null}
-                    <span className="text-muted-foreground rounded-full border px-2 py-0.5 text-[10px]">
+                    <span
+                      className={cn(
+                        bracketCardTypography.opsPill,
+                        "text-muted-foreground",
+                      )}
+                    >
                       {formatOperationalSettingsLabel(ops)}
                     </span>
                   </div>
-                  <p className="text-muted-foreground mt-1 text-[11px]">
+                  <p className={cn(bracketCardTypography.meta, "mt-1")}>
                     {courtLabelForMatch(m, courts)}
                     {order != null ? ` · ${order}경기` : ""}
                     {m.roundName ? ` · ${m.roundName}` : ""}
@@ -321,9 +313,7 @@ export function OrganizerCourtBracketPanel({
                       </Button>
                     </>
                   ) : null}
-                  <span className="rounded-full bg-background px-2 py-0.5 text-[11px] font-medium">
-                    {matchStatusLabel(m.status)}
-                  </span>
+                  <BracketMatchStatusBadge status={m.status} />
                 </div>
               </div>
 
@@ -335,9 +325,7 @@ export function OrganizerCourtBracketPanel({
                   handicap={m.fighterRed?.handicap ?? null}
                 />
                 <div className="bg-muted/20 flex flex-col items-center justify-center px-4 py-3 md:min-w-[4.5rem] md:py-4">
-                  <span className="text-lg font-black tracking-widest text-muted-foreground">
-                    VS
-                  </span>
+                  <span className={bracketCardTypography.vs}>VS</span>
                   <PublicSparringUnderVsBadge
                     bracketType={m.bracketType}
                     bracketIsPublic={m.bracketIsPublic}
