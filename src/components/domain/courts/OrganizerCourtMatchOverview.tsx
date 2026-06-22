@@ -3,7 +3,7 @@
 import { useMemo, useState } from "react";
 import { MatchCourtControls } from "@/components/domain/courts/MatchCourtControls";
 import { FighterHandicapBadge } from "@/components/domain/shared/FighterHandicapBadge";
-import { BracketMatchStatusBadge } from "@/components/domain/shared/BracketMatchStatusBadge";
+import { MatchStatusBadge } from "@/components/domain/shared/MatchStatusBadge";
 import type { EventCourtVM } from "@/lib/services/event-court.service";
 import type { OrganizerEventMatchListItemVM } from "@/lib/services/match.service";
 import { Button } from "@/components/ui/button";
@@ -110,7 +110,7 @@ export function OrganizerCourtMatchOverview({
                     {m.divisionLabel ?? MATCH_CATEGORY_LABEL} · {m.bracketTitle}
                   </p>
                 </div>
-                <BracketMatchStatusBadge status={m.status} />
+                <MatchStatusBadge status={m.status} size="md" />
               </div>
 
               <div className="grid gap-0 md:grid-cols-[1fr_auto_1fr]">

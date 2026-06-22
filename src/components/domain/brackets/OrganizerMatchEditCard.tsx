@@ -8,7 +8,7 @@ import { BracketMatchOrderControls } from "@/components/domain/brackets/BracketM
 import { MatchCourtControls } from "@/components/domain/courts/MatchCourtControls";
 import type { EventCourtVM } from "@/lib/services/event-court.service";
 import { Button } from "@/components/ui/button";
-import { BracketMatchStatusBadge } from "@/components/domain/shared/BracketMatchStatusBadge";
+import { MatchStatusBadge } from "@/components/domain/shared/MatchStatusBadge";
 import { bracketCardTypography } from "@/lib/bracket-card-typography";
 import type { OrganizerApprovedFighterOptionVM } from "@/lib/services/bracket.service";
 import type { OrganizerBracketMatchVM } from "@/lib/services/bracket.service";
@@ -129,7 +129,7 @@ export function OrganizerMatchEditCard({
         </div>
         <div className="flex flex-wrap items-center gap-1.5">
           {serverMatch ? (
-            <BracketMatchStatusBadge status={serverMatch.status} />
+            <MatchStatusBadge status={serverMatch.status} size="md" />
           ) : (
             <span className="text-muted-foreground rounded-full bg-background px-2 py-0.5">
               미저장

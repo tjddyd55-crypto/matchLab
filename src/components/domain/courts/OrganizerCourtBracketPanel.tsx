@@ -13,7 +13,7 @@ import {
   formatCourtTabLabel,
 } from "@/lib/court-tab-label";
 import { sortMatchesByCourtSchedule } from "@/lib/court-match-order";
-import { BracketMatchStatusBadge } from "@/components/domain/shared/BracketMatchStatusBadge";
+import { MatchStatusBadge } from "@/components/domain/shared/MatchStatusBadge";
 import { bracketCardTypography } from "@/lib/bracket-card-typography";
 import { resolveBoutFormatKind } from "@/lib/bout-format";
 import { CORNER_SLOT_STYLES } from "@/lib/corner-slot-styles";
@@ -313,7 +313,7 @@ export function OrganizerCourtBracketPanel({
                       </Button>
                     </>
                   ) : null}
-                  <BracketMatchStatusBadge status={m.status} />
+                  <MatchStatusBadge status={m.status} size="md" />
                 </div>
               </div>
 

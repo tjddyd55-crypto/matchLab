@@ -1,7 +1,11 @@
 "use client";
 
 import { BoutFormatBadge, PublicSparringUnderVsBadge } from "@/components/domain/shared/BoutFormatBadge";
-import { BracketMatchStatusBadge } from "@/components/domain/shared/BracketMatchStatusBadge";
+import { MatchStatusBadge as SharedMatchStatusBadge } from "@/components/domain/shared/MatchStatusBadge";
+import {
+  getCornerLabelClassName,
+  getCornerSlotBg,
+} from "@/lib/ui/corner-ui-tokens";
 import { cn } from "@/lib/utils";
 import type {
   CourtJudgeMatchVM,
@@ -32,16 +36,17 @@ function resultSummary(match: CourtJudgeMatchVM): string | null {
   return null;
 }
 
-function MatchStatusBadge({ match }: { match: CourtJudgeMatchVM }) {
+function JudgeMatchStatusBadge({ match }: { match: CourtJudgeMatchVM }) {
   if (match.status === BracketMatchStatus.ongoing) {
     return (
-      <BracketMatchStatusBadge
+      <SharedMatchStatusBadge
         status={match.status}
         label="현재 경기 · 진행중"
+        size="md"
       />
     );
   }
-  return <BracketMatchStatusBadge status={match.status} />;
+  return <SharedMatchStatusBadge status={match.status} size="md" />;
 }
 
 function MatchRowContent({
@@ -61,7 +66,7 @@ function MatchRowContent({
     <>
       <div className="flex flex-wrap items-center gap-2">
         <span className="text-muted-foreground text-xs font-medium">{orderLabel}</span>
-        <MatchStatusBadge match={match} />
+        <JudgeMatchStatusBadge match={match} />
         <BoutFormatBadge
           bracketType={match.bracketType}
           bracketIsPublic={match.bracketIsPublic}
@@ -191,7 +196,7 @@ export function CourtJudgeCurrentMatchCard({
     <section className="rounded-xl border border-primary bg-primary/5 p-4 ring-1 ring-primary/30">
       <div className="mb-2 flex items-center justify-between gap-2">
         <p className="text-primary text-xs font-semibold">현재 경기</p>
-        <MatchStatusBadge match={match} />
+        <JudgeMatchStatusBadge match={match} />
       </div>
       <MatchRowContent match={match} scoreSummary={scoreSummary} />
     </section>
@@ -201,8 +206,8 @@ export function CourtJudgeCurrentMatchCard({
 export function CourtJudgeFightersHeader({ match }: { match: CourtJudgeMatchVM }) {
   return (
     <div className="grid grid-cols-[1fr_auto_1fr] items-stretch overflow-hidden rounded-lg border">
-      <div className="bg-red-500/5 p-3">
-        <p className="text-xs font-semibold text-red-700">레드</p>
+      <div className={cn(getCornerSlotBg("홍코너"), "p-3")}>
+        <p className={cn("text-xs font-semibold", getCornerLabelClassName("홍코너"))}>레드</p>
         <p
           className={cn(
             "text-lg font-bold",
@@ -221,8 +226,8 @@ export function CourtJudgeFightersHeader({ match }: { match: CourtJudgeMatchVM }
           matchIsPublicSparring={match.matchIsPublicSparring}
         />
       </div>
-      <div className="bg-blue-500/5 p-3 text-right">
-        <p className="text-xs font-semibold text-blue-700">블루</p>
+      <div className={cn(getCornerSlotBg("청코너"), "p-3 text-right")}>
+        <p className={cn("text-xs font-semibold", getCornerLabelClassName("청코너"))}>블루</p>
         <p
           className={cn(
             "text-lg font-bold",

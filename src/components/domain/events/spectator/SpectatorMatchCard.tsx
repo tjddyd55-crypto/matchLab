@@ -4,7 +4,8 @@ import { bracketCardTypography } from "@/lib/bracket-card-typography";
 import { formatMatchOrderFormal } from "@/lib/match-order-display";
 import { cn } from "@/lib/utils";
 import { PublicSparringUnderVsBadge } from "@/components/domain/shared/BoutFormatBadge";
-import { BracketMatchStatusBadge } from "@/components/domain/shared/BracketMatchStatusBadge";
+import { MatchStatusBadge } from "@/components/domain/shared/MatchStatusBadge";
+import { getCornerCardClassName, getCornerLabelClassName } from "@/lib/ui/corner-ui-tokens";
 
 export function SpectatorMatchCard({
   match,
@@ -47,12 +48,14 @@ export function SpectatorMatchCard({
             {match.roundName ? <span>{match.roundName}</span> : null}
           </div>
         </div>
-        <BracketMatchStatusBadge status={match.status} />
+        <MatchStatusBadge status={match.status} size="md" />
       </div>
 
       <div className="space-y-3 px-4 py-4">
-        <div className="rounded-xl border bg-red-50/60 px-3 py-3 dark:bg-red-950/20">
-          <p className={bracketCardTypography.spectatorCornerLabel}>홍코너</p>
+        <div className={cn("rounded-xl border px-3 py-3", getCornerCardClassName("홍코너"))}>
+          <p className={cn(bracketCardTypography.spectatorCornerLabel, getCornerLabelClassName("홍코너"))}>
+            홍코너
+          </p>
           <p className={cn("mt-1", bracketCardTypography.spectatorFighterName)}>
             {redName}
           </p>
@@ -71,8 +74,10 @@ export function SpectatorMatchCard({
           />
         </div>
 
-        <div className="rounded-xl border bg-blue-50/60 px-3 py-3 dark:bg-blue-950/20">
-          <p className={bracketCardTypography.spectatorCornerLabel}>청코너</p>
+        <div className={cn("rounded-xl border px-3 py-3", getCornerCardClassName("청코너"))}>
+          <p className={cn(bracketCardTypography.spectatorCornerLabel, getCornerLabelClassName("청코너"))}>
+            청코너
+          </p>
           <p className={cn("mt-1", bracketCardTypography.spectatorFighterName)}>
             {blueName}
           </p>

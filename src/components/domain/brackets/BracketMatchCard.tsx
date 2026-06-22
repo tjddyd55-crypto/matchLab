@@ -8,7 +8,7 @@ import { resolveBoutFormatKind } from "@/lib/bout-format";
 
 import { FighterSlotCard } from "@/components/domain/brackets/FighterSlotCard";
 import { BoutFormatBadge, PublicSparringUnderVsBadge } from "@/components/domain/shared/BoutFormatBadge";
-import { BracketMatchStatusBadge } from "@/components/domain/shared/BracketMatchStatusBadge";
+import { MatchStatusBadge } from "@/components/domain/shared/MatchStatusBadge";
 
 export function BracketMatchCard({
   match,
@@ -120,7 +120,7 @@ export function BracketMatchCard({
             {match.roundName ? <span>{match.roundName}</span> : null}
           </div>
         </div>
-        <BracketMatchStatusBadge status={match.status} />
+        <MatchStatusBadge status={match.status} size="md" />
       </div>
 
       <div className="grid grid-cols-1 md:grid-cols-[minmax(0,1fr)_auto_minmax(0,1fr)] md:items-center">

@@ -3,9 +3,9 @@
 import { Badge } from "@/components/ui/badge";
 import { getOperationMatchPhase } from "@/lib/match-operation-display";
 import {
-  matchStatusBadgeTypography,
+  matchStatusBadgeSizeClasses,
   operationPhaseBadgeVariant,
-} from "@/lib/match-status-display";
+} from "@/lib/ui/match-status-ui";
 import type { StaffEventMatchListItemVM } from "@/lib/staff-match-display";
 import { cn } from "@/lib/utils";
 
@@ -22,7 +22,7 @@ export function StaffMatchStatusBadges({
     <div className={cn("flex flex-wrap items-center gap-2", className)}>
       <Badge
         variant={operationPhaseBadgeVariant(phase)}
-        className={matchStatusBadgeTypography}
+        className={matchStatusBadgeSizeClasses.md}
       >
         {match.phaseLabel}
       </Badge>
@@ -35,7 +35,7 @@ export function StaffMatchStatusBadges({
               ? "matchCancelled"
               : "outline"
         }
-        className={matchStatusBadgeTypography}
+        className={matchStatusBadgeSizeClasses.md}
       >
         {match.resultDisplayLabel}
       </Badge>
