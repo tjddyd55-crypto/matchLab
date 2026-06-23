@@ -7,6 +7,12 @@ import type { ActionResult } from "@/lib/action-result";
 import { formatCourtTabLabel } from "@/lib/court-tab-label";
 import type { AutoBracketGenerationSummary } from "@/lib/services/bracket-auto-match.service";
 import type { EventCourtVM } from "@/lib/services/event-court.service";
+import {
+  MATCH_ROUND_COUNT_OPTIONS,
+  MATCH_ROUND_TIME_SEC_OPTIONS,
+  formatRoundCountLabel,
+  formatRoundTimeLabel,
+} from "@/lib/match-operational-settings-options";
 import { Button } from "@/components/ui/button";
 
 type GenResult = ActionResult<AutoBracketGenerationSummary>;
@@ -100,6 +106,11 @@ export function AutoBracketGenerationPanel({
   const [maxMatchesPerCourt, setMaxMatchesPerCourt] = useState<string>("");
   const [forbidSameGym, setForbidSameGym] = useState(true);
   const [resetExisting, setResetExisting] = useState(false);
+  const [autoBoutFormat, setAutoBoutFormat] = useState<"tournament" | "one_match">(
+    "one_match",
+  );
+  const [defaultRoundCount, setDefaultRoundCount] = useState("1");
+  const [defaultRoundTimeSec, setDefaultRoundTimeSec] = useState("180");
 
   const [previewState, previewAction, previewPending] = useActionState(
     generateAutoBracketMatchesAction,
@@ -164,6 +175,9 @@ export function AutoBracketGenerationPanel({
         <input type="hidden" name="forbidSameGym" value={forbidSameGym ? "on" : "off"} />
         <input type="hidden" name="preserveManualCourts" value="on" />
         <input type="hidden" name="resetExisting" value={resetExisting ? "on" : "off"} />
+        <input type="hidden" name="autoBoutFormat" value={autoBoutFormat} />
+        <input type="hidden" name="defaultRoundCount" value={defaultRoundCount} />
+        <input type="hidden" name="defaultRoundTimeSec" value={defaultRoundTimeSec} />
       </>
     );
   }
@@ -248,6 +262,50 @@ export function AutoBracketGenerationPanel({
             onChange={(e) => setForbidSameGym(e.target.checked)}
           />
           <span>같은 체육관끼리 매칭 금지 (기본 ON)</span>
+        </label>
+
+        <label className="flex flex-col gap-1 text-sm">
+          <span className="font-medium">대진 방식</span>
+          <select
+            className="border-input bg-background h-9 rounded-md border px-2 text-sm"
+            value={autoBoutFormat}
+            onChange={(e) =>
+              setAutoBoutFormat(e.target.value as "tournament" | "one_match")
+            }
+          >
+            <option value="one_match">원매치</option>
+            <option value="tournament">토너먼트</option>
+          </select>
+        </label>
+
+        <label className="flex flex-col gap-1 text-sm">
+          <span className="font-medium">라운드 수</span>
+          <select
+            className="border-input bg-background h-9 rounded-md border px-2 text-sm"
+            value={defaultRoundCount}
+            onChange={(e) => setDefaultRoundCount(e.target.value)}
+          >
+            {MATCH_ROUND_COUNT_OPTIONS.map((n) => (
+              <option key={n} value={n}>
+                {formatRoundCountLabel(n)}
+              </option>
+            ))}
+          </select>
+        </label>
+
+        <label className="flex flex-col gap-1 text-sm">
+          <span className="font-medium">라운드 시간</span>
+          <select
+            className="border-input bg-background h-9 rounded-md border px-2 text-sm"
+            value={defaultRoundTimeSec}
+            onChange={(e) => setDefaultRoundTimeSec(e.target.value)}
+          >
+            {MATCH_ROUND_TIME_SEC_OPTIONS.map((sec) => (
+              <option key={sec} value={sec}>
+                {formatRoundTimeLabel(sec)}
+              </option>
+            ))}
+          </select>
         </label>
       </div>
 

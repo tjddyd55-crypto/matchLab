@@ -5,7 +5,9 @@ import { useRouter } from "next/navigation";
 import { updateMatchBoutSettingsAction } from "@/features/matches/actions";
 import { BracketType } from "@/lib/enums";
 import { resolveMatchIsPublicSparring } from "@/lib/match-bout-settings";
+import { resolveBoutFormatKind } from "@/lib/bout-format";
 import { BoutFormatBadge } from "@/components/domain/shared/BoutFormatBadge";
+import { cn } from "@/lib/utils";
 
 export function MatchBoutFormatToggle({
   matchId,
@@ -28,6 +30,11 @@ export function MatchBoutFormatToggle({
     resultMemo,
   });
   const canToggle = bracketType !== BracketType.single_elimination && !disabled;
+  const kind = resolveBoutFormatKind({
+    bracketType,
+    bracketIsPublic,
+    resultMemo,
+  });
 
   function toggle() {
     if (!canToggle) return;
@@ -36,7 +43,11 @@ export function MatchBoutFormatToggle({
       fd.set("matchId", matchId);
       fd.set("isPublicSparring", isPublic ? "false" : "true");
       const res = await updateMatchBoutSettingsAction(fd);
-      if (res.ok) router.refresh();
+      if (!res.ok) {
+        window.alert(res.error.message);
+        return;
+      }
+      router.refresh();
     });
   }
 
@@ -55,17 +66,22 @@ export function MatchBoutFormatToggle({
       type="button"
       disabled={pending}
       onClick={toggle}
-      className="inline-flex items-center gap-1"
-      title="클릭하여 경기 대전방식 변경"
+      className={cn(
+        "inline-flex rounded-full transition-shadow",
+        "hover:ring-2 hover:ring-primary/40 focus-visible:ring-2 focus-visible:ring-primary/50",
+        pending && "opacity-70",
+      )}
+      title={
+        kind === "public_sparring"
+          ? "클릭하여 원매치로 되돌리기"
+          : "클릭하여 공개스파링으로 변경"
+      }
     >
       <BoutFormatBadge
         bracketType={bracketType}
         bracketIsPublic={bracketIsPublic}
         resultMemo={resultMemo}
       />
-      <span className="text-muted-foreground text-[10px] underline">
-        {pending ? "저장…" : "변경"}
-      </span>
     </button>
   );
 }

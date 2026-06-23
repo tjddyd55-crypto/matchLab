@@ -17,6 +17,11 @@ import { assertBracketMatchStatusTransition } from "@/lib/match-status-transitio
 import { resolveMatchIsPublicSparring } from "@/lib/match-bout-settings";
 import { mergeDisplayResultMemo, updateMatchBoutInResultMemo } from "@/lib/match-result-memo";
 import {
+  encodeMatchOperationalSettings,
+  parseMatchOperationalSettings,
+  type MatchOperationalSettings,
+} from "@/lib/match-operational-settings";
+import {
   requireGymOwner,
   requireOrganizerForEvent,
   requireRole,
@@ -815,6 +820,46 @@ export const matchService = {
         beforeData: { isPublicSparring: !isPublicSparring },
         afterData: { isPublicSparring },
         reason: isPublicSparring ? "경기 공개스파링 지정" : "경기 공개스파링 해제",
+      });
+    });
+  },
+
+  async updateMatchOperationalSettings(
+    actor: ActorContext,
+    matchId: string,
+    patch: Pick<MatchOperationalSettings, "roundCount" | "roundTimeSec">,
+  ): Promise<void> {
+    const ctx = await ensureMatchOrganizer(actor, matchId);
+    const row = await matchRepository.findMatchWithBracketContext(matchId);
+    if (!row) {
+      throw new AppError("NOT_FOUND", "경기를 찾을 수 없습니다.");
+    }
+    const { settings, displayMemo } = parseMatchOperationalSettings(
+      row.resultMemo,
+    );
+    const nextMemo = encodeMatchOperationalSettings(
+      {
+        ...settings,
+        roundCount: patch.roundCount ?? settings.roundCount,
+        roundTimeSec: patch.roundTimeSec ?? settings.roundTimeSec,
+      },
+      displayMemo,
+    );
+    await prisma.$transaction(async (tx) => {
+      await matchRepository.updateMatchOutcomeDraft(
+        matchId,
+        { resultMemo: nextMemo },
+        tx,
+      );
+      await appendBracketChangeLog(tx, {
+        eventId: ctx.eventId,
+        bracketId: ctx.bracketId,
+        matchId,
+        changedByUserId: actor.userId,
+        bracketType: ctx.bracketType,
+        changeType: BracketChangeType.match_status_changed,
+        afterData: patch,
+        reason: "경기 라운드·시간 설정 변경",
       });
     });
   },

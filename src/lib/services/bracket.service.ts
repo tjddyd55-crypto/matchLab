@@ -967,10 +967,51 @@ export const bracketService = {
           tx,
         );
       if (elsewhere > 0) {
-        throw new AppError(
-          "CONFLICT",
-          "이 선수는 이미 이 대진표의 다른 경기에 배치되어 있습니다.",
-        );
+        if (input.moveFromOtherMatch) {
+          const prev = await bracketRepository.findFighterAssignmentInBracketExcluding(
+            input.bracketId,
+            input.fighterId,
+            input.matchId,
+            tx,
+          );
+          if (prev) {
+            if (prev.slot === "red") {
+              await bracketRepository.updateBracketMatch(
+                prev.matchId,
+                {
+                  fighterRedId: null,
+                  fighterRedSnapshot: Prisma.JsonNull,
+                },
+                tx,
+              );
+            } else {
+              await bracketRepository.updateBracketMatch(
+                prev.matchId,
+                {
+                  fighterBlueId: null,
+                  fighterBlueSnapshot: Prisma.JsonNull,
+                },
+                tx,
+              );
+            }
+            await appendChangeLog(tx, {
+              eventId: ctx.eventId,
+              bracketId: input.bracketId,
+              matchId: prev.matchId,
+              changedByUserId: actor.userId,
+              bracketType: ctx.type,
+              changeType: BracketChangeType.fighter_removed,
+              beforeData: { slot: prev.slot, fighterId: input.fighterId },
+              afterData: { slot: prev.slot, fighterId: null },
+              reason: "다른 경기에서 선수 이동",
+            });
+          }
+        } else {
+          throw new AppError(
+            "CONFLICT",
+            "이 선수는 이미 이 대진표의 다른 경기에 배치되어 있습니다.",
+          );
+        }
       }
 
       const snap = buildFighterBracketSnapshot(row);
@@ -1298,6 +1339,66 @@ export const bracketService = {
           ),
         );
       }
+    });
+  },
+
+  async addEmptyBracketMatch(
+    actor: ActorContext,
+    input: { bracketId: string; defaultCourtId?: string },
+  ): Promise<{ matchId: string }> {
+    const ctx = await ensureBracketOrganizer(actor, input.bracketId);
+    if (ctx.type !== BracketType.match_list) {
+      throw new AppError(
+        "VALIDATION_ERROR",
+        "경기 목록 대진표에서만 빈 경기를 추가할 수 있습니다.",
+      );
+    }
+
+    return prisma.$transaction(async (tx) => {
+      const nextOrder =
+        (await bracketRepository.getMaxMatchOrderForBracket(
+          input.bracketId,
+          tx,
+        )) + 1;
+      const courtId = await resolveSuggestedCourtId(
+        ctx.eventId,
+        ctx.divisionId,
+        input.defaultCourtId ?? null,
+        tx,
+      );
+      if (!courtId) {
+        throw new AppError("VALIDATION_ERROR", "경기장을 선택해 주세요.");
+      }
+      const pendingCourtOrders = new Map<string, number>();
+      const courtOrder = await nextCourtOrderForCourt(
+        ctx.eventId,
+        courtId,
+        pendingCourtOrders,
+        tx,
+      );
+
+      const { id } = await bracketRepository.createBracketMatch(
+        {
+          bracketId: input.bracketId,
+          matchOrder: nextOrder,
+          courtId,
+          courtOrder,
+        },
+        tx,
+      );
+
+      await appendChangeLog(tx, {
+        eventId: ctx.eventId,
+        bracketId: input.bracketId,
+        matchId: id,
+        changedByUserId: actor.userId,
+        bracketType: ctx.type,
+        changeType: BracketChangeType.bracket_created,
+        afterData: { matchOrder: nextOrder, courtId, courtOrder },
+        reason: "빈 경기 추가",
+      });
+
+      return { matchId: id };
     });
   },
 

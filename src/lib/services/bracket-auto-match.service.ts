@@ -18,6 +18,7 @@ import {
 import { formatCourtTabLabel } from "@/lib/court-tab-label";
 import { computeFieldEligibility } from "@/lib/field-eligibility";
 import { AppError } from "@/lib/errors/app-error";
+import { encodeMatchOperationalSettings } from "@/lib/match-operational-settings";
 import { requireOrganizerForEvent, requireRole } from "@/lib/permissions";
 import { safeNotify } from "@/lib/notifications/safe-dispatch";
 import { prisma } from "@/lib/prisma";
@@ -274,6 +275,29 @@ export const bracketAutoMatchService = {
       safe: matchesWithResults === 0,
       matchesWithResults,
     };
+  },
+
+  async resetEventBrackets(
+    actor: ActorContext,
+    eventId: string,
+  ): Promise<{ deletedMatches: number }> {
+    requireRole(actor, ["organizer", "admin"]);
+    await requireOrganizerForEvent(actor, eventId);
+
+    const resetCheck = await bracketAutoMatchService.canResetBracketSafely(
+      actor,
+      eventId,
+    );
+    if (!resetCheck.safe) {
+      throw new AppError(
+        "CONFLICT",
+        "이미 진행/종료된 경기가 있어 대진표를 초기화할 수 없습니다.",
+      );
+    }
+
+    const deletedMatches =
+      await bracketRepository.deleteAllEventBracketMatches(eventId);
+    return { deletedMatches };
   },
 
   async listUnmatchedCandidatesForEvent(
@@ -579,9 +603,12 @@ export const bracketAutoMatchService = {
         if (pairing.pairs.length === 0) continue;
 
         let bracket =
-          await bracketRepository.findMatchListBracketByDivision(
+          await bracketRepository.findBracketByDivisionAndType(
             input.eventId,
             divisionId,
+            input.autoBoutFormat === "tournament"
+              ? BracketType.single_elimination
+              : BracketType.match_list,
             tx,
           );
 
@@ -592,12 +619,16 @@ export const bracketAutoMatchService = {
           const divisionLabel = sampleRow
             ? formatDivisionNameLabel(sampleRow.division)
             : divisionId;
+          const bracketType =
+            input.autoBoutFormat === "tournament"
+              ? BracketType.single_elimination
+              : BracketType.match_list;
           const { id } = await bracketRepository.createBracket(
             {
               eventId: input.eventId,
               divisionId,
               title: `자동 생성 · ${divisionLabel}`,
-              type: BracketType.match_list,
+              type: bracketType,
             },
             tx,
           );
@@ -648,6 +679,13 @@ export const bracketAutoMatchService = {
 
           placedFighterIds.push(pair.red.fighterId, pair.blue.fighterId);
 
+          const opsMemo = encodeMatchOperationalSettings({
+            roundCount: input.defaultRoundCount ?? 1,
+            roundTimeSec: input.defaultRoundTimeSec ?? 180,
+            overtimeEnabled: false,
+            overtimeRoundCount: 0,
+          });
+
           const { id: matchId } = await bracketRepository.createBracketMatch(
             {
               bracketId: bracket.id,
@@ -662,6 +700,7 @@ export const bracketAutoMatchService = {
               ),
               courtId: allocation.courtId,
               courtOrder: allocation.courtOrder,
+              resultMemo: opsMemo,
             },
             tx,
           );

@@ -84,6 +84,16 @@ export const assignFighterToMatchSchema = z.object({
   fighterId: z.string().min(1),
   slot: z.enum(["red", "blue"]),
   reason: z.string().max(500).optional(),
+  moveFromOtherMatch: z.boolean().optional().default(false),
+});
+
+export const addEmptyBracketMatchSchema = z.object({
+  bracketId: z.string().min(1),
+  defaultCourtId: z.string().min(1).optional(),
+});
+
+export const resetEventBracketsSchema = z.object({
+  eventId: z.string().min(1),
 });
 
 export const updateMatchOrderAndMatSchema = z

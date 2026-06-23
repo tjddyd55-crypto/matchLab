@@ -1,6 +1,7 @@
 import { requireActor } from "@/lib/auth/actor";
 import { requireOrganizerForEventPage } from "@/lib/permissions";
 import { AutoBracketGenerationPanel } from "@/components/domain/brackets/AutoBracketGenerationPanel";
+import { BracketResetPanel } from "@/components/domain/brackets/BracketResetPanel";
 import { bracketAutoMatchService } from "@/lib/services/bracket-auto-match.service";
 import { bracketService } from "@/lib/services/bracket.service";
 import { eventService } from "@/lib/services/event.service";
@@ -29,6 +30,12 @@ export async function OrganizerBracketsGenerateSection({
 
   return (
     <div className="flex flex-col gap-8">
+      <BracketResetPanel
+        eventId={eventId}
+        canResetSafely={resetCheck.safe}
+        matchesWithResults={resetCheck.matchesWithResults}
+      />
+
       <AutoBracketGenerationPanel
         eventId={eventId}
         courts={courts}
