@@ -1,5 +1,3 @@
-import type { ApprovedApplicationForBracketRow } from "@/lib/repositories/bracket.repository";
-
 /** 브래킷 매치 JSON 스냅샷에 저장되는 공개 가능 필드 집합. */
 export type BracketFighterSnapshotPayload = {
   fighterId: string;
@@ -9,6 +7,27 @@ export type BracketFighterSnapshotPayload = {
   profileImageUrl: string | null;
   recordSummary: string;
   divisionName: string | null;
+};
+
+export type BracketFighterSnapshotSource = {
+  fighter: {
+    id: string;
+    fighterCode: string;
+    name: string;
+    profileImageUrl: string | null;
+    recordWin: number;
+    recordLoss: number;
+    recordDraw: number;
+  };
+  division: {
+    sportType: string | null;
+    ruleType: string | null;
+    gender: string | null;
+    ageGroup: string | null;
+    weightClass: string | null;
+    skillLevel: string | null;
+  };
+  gym: { name: string };
 };
 
 export function formatDivisionNameLabel(d: {
@@ -39,7 +58,7 @@ export function formatRecordSummary(f: {
 }
 
 export function buildFighterBracketSnapshot(
-  row: ApprovedApplicationForBracketRow,
+  row: BracketFighterSnapshotSource,
 ): BracketFighterSnapshotPayload {
   return {
     fighterId: row.fighter.id,

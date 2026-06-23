@@ -14,6 +14,7 @@ import {
   buildFighterPickerOptionStates,
   fighterNeedsMoveConfirm,
 } from "@/lib/bracket-fighter-picker";
+import { getPlacedFighterSlotWarning } from "@/lib/bracket-assignability";
 import { CORNER_SLOT_STYLES } from "@/lib/corner-slot-styles";
 import { cn } from "@/lib/utils";
 
@@ -21,7 +22,12 @@ function resolveFighterDisplay(
   fighterId: string,
   snapshot: BracketFighterSnapshotPayload | null | undefined,
   options: OrganizerApprovedFighterOptionVM[],
-): { name: string; gymName: string; statusLabel?: string } {
+): {
+  name: string;
+  gymName: string;
+  statusLabel?: string;
+  statusIsWarning?: boolean;
+} {
   if (snapshot) {
     return {
       name: snapshot.name,
@@ -31,12 +37,15 @@ function resolveFighterDisplay(
   const opt = options.find((o) => o.fighterId === fighterId);
   if (opt) {
     const [name] = opt.label.split(" · ");
+    const slotWarning = getPlacedFighterSlotWarning({
+      isAssignable: opt.isAssignableForBracket,
+      disabledReason: opt.assignabilityDisabledReason,
+    });
     return {
       name: name ?? opt.label,
       gymName: opt.label.split(" · ")[1] ?? "소속 미상",
-      statusLabel: opt.isEligibleForBracket
-        ? undefined
-        : opt.eligibilityLabel,
+      statusLabel: slotWarning ?? opt.assignabilityWarningReason,
+      statusIsWarning: !slotWarning && Boolean(opt.assignabilityWarningReason),
     };
   }
   return { name: "선수 미정", gymName: "—" };
@@ -144,7 +153,15 @@ export function OrganizerMatchEditSlot({
             {display.gymName}
           </div>
           {display.statusLabel ? (
-            <div className="text-amber-800 truncate text-[11px] dark:text-amber-200">
+            <div
+              className={cn(
+                "truncate text-[11px]",
+                display.statusIsWarning
+                  ? "text-amber-800 dark:text-amber-200"
+                  : "text-destructive font-medium",
+              )}
+              role={display.statusIsWarning ? undefined : "alert"}
+            >
               {display.statusLabel}
             </div>
           ) : null}

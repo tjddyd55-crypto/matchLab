@@ -12,7 +12,10 @@ export type AutoMatchCandidate = {
   gymName: string;
   fighterName: string;
   appliedAt: Date;
+  /** 출전 확정(현장·계체 완료) */
   isEligibleForBracket: boolean;
+  /** 대진 배치 가능 */
+  isAssignableForBracket: boolean;
 };
 
 export type AutoMatchPair = {

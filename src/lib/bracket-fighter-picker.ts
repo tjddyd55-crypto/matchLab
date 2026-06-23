@@ -5,6 +5,7 @@ export type FighterPickerOptionState = {
   fighterId: string;
   selectable: boolean;
   reason?: string;
+  warningReason?: string;
   statusHint?: string;
 };
 
@@ -28,15 +29,21 @@ export function buildFighterPickerOptionStates(input: {
     const states: string[] = [];
     let selectable = true;
     let reason: string | undefined;
+    let warningReason: string | undefined;
 
     if (opt.fighterId === oppositeId) {
       selectable = false;
-      reason = `이미 이 경기 ${slot === "red" ? "청코너" : "홍코너"}에 배정됨`;
+      reason = "같은 경기 반대 코너에 이미 배정되어 있습니다.";
     }
 
-    if (!opt.isEligibleForBracket) {
+    if (!opt.isAssignableForBracket) {
       selectable = false;
-      reason = reason ?? (opt.eligibilityReason || opt.eligibilityLabel);
+      reason =
+        reason ??
+        opt.assignabilityDisabledReason ??
+        opt.assignabilityLabel;
+    } else if (opt.assignabilityWarningReason) {
+      warningReason = opt.assignabilityWarningReason;
     }
 
     const other = findFighterPlacement(matches, opt.fighterId, matchId);
@@ -53,6 +60,7 @@ export function buildFighterPickerOptionStates(input: {
       fighterId: opt.fighterId,
       selectable: selectable || opt.fighterId === currentFighterId,
       reason,
+      warningReason,
       statusHint: states.length > 0 ? states.join(" · ") : undefined,
     });
   }

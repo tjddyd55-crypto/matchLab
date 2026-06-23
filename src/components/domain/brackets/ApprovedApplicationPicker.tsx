@@ -39,21 +39,32 @@ export function ApprovedApplicationPicker({
         const disabledByLegacy = disabledOptionIds?.has(o.fighterId);
         const selectable =
           state?.selectable ??
-          (!disabledByLegacy && o.isEligibleForBracket);
+          (!disabledByLegacy && o.isAssignableForBracket);
         const reason = state?.reason;
+        const warningReason = state?.warningReason ?? o.assignabilityWarningReason;
         const hint = state?.statusHint;
         const labelParts = [o.label.split(" · ")[0]];
         if (hint) labelParts.push(`(${hint})`);
+        if (warningReason && selectable) {
+          labelParts.push(`— ${warningReason}`);
+        }
         if (!selectable && reason) labelParts.push(`— ${reason}`);
+        const title = !selectable ? reason : warningReason;
         return (
           <option
             key={o.fighterId}
             value={o.fighterId}
             disabled={!selectable && o.fighterId !== value}
-            title={reason}
-            className={!selectable ? "text-muted-foreground" : undefined}
+            title={title}
+            className={
+              !selectable
+                ? "text-muted-foreground"
+                : warningReason
+                  ? "text-amber-900 dark:text-amber-100"
+                  : undefined
+            }
           >
-            {!selectable ? "⊘ " : ""}
+            {!selectable ? "⊘ " : warningReason ? "⚠ " : ""}
             {labelParts.join(" ")}
           </option>
         );

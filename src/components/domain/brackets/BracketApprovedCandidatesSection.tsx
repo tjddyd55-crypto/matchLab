@@ -58,7 +58,7 @@ function parseCandidateName(label: string): { name: string; gymName: string } {
 }
 
 function hasIssue(option: OrganizerApprovedFighterOptionVM): boolean {
-  return !option.isEligibleForBracket;
+  return !option.isAssignableForBracket;
 }
 
 export function BracketApprovedCandidatesSection({
@@ -77,9 +77,9 @@ export function BracketApprovedCandidatesSection({
   );
   const placementMap = useMemo(() => buildPlacementMap(matches), [matches]);
 
-  const ineligiblePlacedCount = useMemo(() => {
+  const unassignablePlacedCount = useMemo(() => {
     return options.filter(
-      (o) => placedIds.has(o.fighterId) && !o.isEligibleForBracket,
+      (o) => placedIds.has(o.fighterId) && !o.isAssignableForBracket,
     ).length;
   }, [options, placedIds]);
 
@@ -100,8 +100,9 @@ export function BracketApprovedCandidatesSection({
         <div>
           <h2 className="text-lg font-semibold">승인된 신청 선수 (대진 후보)</h2>
           <p className="text-muted-foreground mt-1 max-w-2xl text-sm">
-            승인된 신청자는 모두 후보로 조회됩니다. 출전 확정 전 선수는
-            경고로 표시되며, 이미 대진표에 배치된 선수는 자동 삭제되지 않습니다.
+            승인된 신청자는 모두 후보로 조회됩니다. 현장확인 전·계체 전 선수는
+            대진 배치가 가능하며 경고로 표시됩니다. 실격·경기취소 등 출전 불가
+            선수는 배치할 수 없습니다.
           </p>
         </div>
         <div className="flex flex-wrap gap-2">
@@ -124,15 +125,15 @@ export function BracketApprovedCandidatesSection({
         </div>
       </div>
 
-      {ineligiblePlacedCount > 0 ? (
-        <div className="mt-4 rounded-md border border-amber-500/50 bg-amber-500/10 px-3 py-2.5 text-sm">
-          <p className="font-medium text-amber-950 dark:text-amber-100">
-            대진표에 배치된 선수 중 현장 확인이 끝나지 않은 선수가{" "}
-            {ineligiblePlacedCount}명 있습니다.
+      {unassignablePlacedCount > 0 ? (
+        <div className="mt-4 rounded-md border border-destructive/50 bg-destructive/10 px-3 py-2.5 text-sm">
+          <p className="font-medium text-destructive">
+            대진표에 배치된 선수 중 출전 불가 상태인 선수가{" "}
+            {unassignablePlacedCount}명 있습니다.
           </p>
-          <p className="text-amber-900/90 mt-1 text-xs dark:text-amber-100/90">
-            현장·계체 결과는 경기 당일 패 처리 또는 진행 여부에 반영할 수
-            있습니다.
+          <p className="text-muted-foreground mt-1 text-xs">
+            실격·경기취소 등 출전 불가 선수는 슬롯을 비우거나 다른 선수로
+            교체해 주세요.
           </p>
         </div>
       ) : null}
@@ -148,7 +149,11 @@ export function BracketApprovedCandidatesSection({
               key={o.applicationId}
               className={cn(
                 "flex flex-col gap-2 rounded-lg border bg-muted/20 p-3 text-sm",
-                !o.isEligibleForBracket && "border-amber-500/40",
+                !o.isAssignableForBracket
+                  ? "border-destructive/40"
+                  : !o.isEligibleForBracket
+                    ? "border-amber-500/40"
+                    : undefined,
               )}
             >
               <div className="flex items-start justify-between gap-2">
@@ -163,9 +168,13 @@ export function BracketApprovedCandidatesSection({
                 </div>
                 <div className="flex shrink-0 flex-wrap justify-end gap-1">
                   <EligibilityBadge
-                    label={o.eligibilityLabel}
-                    isEligible={o.isEligibleForBracket}
-                    title={o.eligibilityReason}
+                    label={o.assignabilityLabel}
+                    isEligible={o.isAssignableForBracket}
+                    title={
+                      o.assignabilityDisabledReason ??
+                      o.assignabilityWarningReason ??
+                      o.eligibilityReason
+                    }
                   />
                   {isPlaced ? (
                     <StatusBadge variant="default" label="대진 배정됨" />
