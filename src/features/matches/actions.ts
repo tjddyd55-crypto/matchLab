@@ -143,3 +143,22 @@ export async function updateMatchBoutSettingsAction(
     return actionSuccess({ ok: true as const });
   });
 }
+
+export async function updateMatchOperationalSettingsAction(
+  formData: FormData,
+): Promise<ActionResult<{ ok: true }>> {
+  return mapCaught(async () => {
+    const matchId = formReq(formData, "matchId");
+    const roundCount = Number(formReq(formData, "roundCount"));
+    const roundTimeSec = Number(formReq(formData, "roundTimeSec"));
+    if (!matchId || !Number.isFinite(roundCount) || !Number.isFinite(roundTimeSec)) {
+      return actionFailure("VALIDATION_ERROR", "라운드·시간 설정을 확인해 주세요.");
+    }
+    const actor = await requireActorFromMutation();
+    await matchService.updateMatchOperationalSettings(actor, matchId, {
+      roundCount,
+      roundTimeSec,
+    });
+    return actionSuccess({ ok: true as const });
+  });
+}

@@ -323,6 +323,7 @@ export const bracketRepository = {
       nextMatchId?: string | null;
       nextMatchSlot?: NextMatchSlot | null;
       status?: BracketMatchStatus;
+      resultMemo?: string | null;
     },
     tx?: Prisma.TransactionClient,
   ): Promise<{ id: string }> {
@@ -344,6 +345,7 @@ export const bracketRepository = {
         nextMatchId: data.nextMatchId ?? null,
         nextMatchSlot: data.nextMatchSlot ?? null,
         status: data.status ?? BracketMatchStatus.waiting,
+        resultMemo: data.resultMemo ?? null,
       },
       select: { id: true },
     });
@@ -584,6 +586,31 @@ export const bracketRepository = {
     });
   },
 
+  async findFighterAssignmentInBracketExcluding(
+    bracketId: string,
+    fighterId: string,
+    excludeMatchId: string,
+    tx?: Prisma.TransactionClient,
+  ): Promise<{ matchId: string; slot: "red" | "blue" } | null> {
+    const row = await db(tx).bracketMatch.findFirst({
+      where: {
+        bracketId,
+        id: { not: excludeMatchId },
+        status: { not: BracketMatchStatus.cancelled },
+        OR: [{ fighterRedId: fighterId }, { fighterBlueId: fighterId }],
+      },
+      select: { id: true, fighterRedId: true, fighterBlueId: true },
+    });
+    if (!row) return null;
+    if (row.fighterRedId === fighterId) {
+      return { matchId: row.id, slot: "red" };
+    }
+    if (row.fighterBlueId === fighterId) {
+      return { matchId: row.id, slot: "blue" };
+    }
+    return null;
+  },
+
   async listBracketMatchesForOrder(
     bracketId: string,
     tx?: Prisma.TransactionClient,
@@ -716,6 +743,19 @@ export const bracketRepository = {
         divisionId,
         type: BracketType.match_list,
       },
+      orderBy: { createdAt: "asc" },
+      select: { id: true, title: true },
+    });
+  },
+
+  async findBracketByDivisionAndType(
+    eventId: string,
+    divisionId: string,
+    type: BracketType,
+    tx?: Prisma.TransactionClient,
+  ) {
+    return db(tx).bracket.findFirst({
+      where: { eventId, divisionId, type },
       orderBy: { createdAt: "asc" },
       select: { id: true, title: true },
     });

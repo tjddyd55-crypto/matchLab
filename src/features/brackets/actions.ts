@@ -17,6 +17,7 @@ import { eventService } from "@/lib/services/event.service";
 import { isPrismaUniqueViolation } from "@/lib/prisma-errors";
 import {
   assignFighterToMatchSchema,
+  addEmptyBracketMatchSchema,
   createBracketSchema,
   createMatchListMatchesSchema,
   createSingleEliminationDraftSchema,
@@ -25,6 +26,7 @@ import {
   eventBracketPublicationSchema,
   reorderBracketMatchSchema,
   resetBracketSchema,
+  resetEventBracketsSchema,
   setPublicUnmatchedListSchema,
   unpublishBracketSchema,
   updateMatchOrderAndMatSchema,
@@ -298,6 +300,7 @@ export async function assignFighterToMatchAction(
       fighterId: formReq(formData, "fighterId"),
       slot: formReq(formData, "slot"),
       reason: formReq(formData, "reason") || undefined,
+      moveFromOtherMatch: parseCheckbox(formData, "moveFromOtherMatch"),
     });
     if (!parsed.success) {
       return actionFailure(
@@ -416,6 +419,52 @@ export async function resetBracketAction(
     const actor = await requireActorFromMutation();
     await bracketService.resetBracket(actor, parsed.data);
     return actionSuccess({ ok: true as const });
+  });
+}
+
+export async function resetEventBracketsAction(
+  arg1: unknown,
+  arg2?: FormData,
+): Promise<ActionResult<{ deletedMatches: number }>> {
+  const formData = resolveFormData(arg1, arg2);
+  if (!formData) {
+    return actionFailure("VALIDATION_ERROR", "요청 본문이 올바르지 않습니다.");
+  }
+  return mapCaught(async () => {
+    const parsed = resetEventBracketsSchema.safeParse({
+      eventId: formReq(formData, "eventId"),
+    });
+    if (!parsed.success) {
+      return actionFailure("VALIDATION_ERROR", "행사 정보가 올바르지 않습니다.");
+    }
+    const actor = await requireActorFromMutation();
+    const result = await bracketAutoMatchService.resetEventBrackets(
+      actor,
+      parsed.data.eventId,
+    );
+    return actionSuccess(result);
+  });
+}
+
+export async function addEmptyBracketMatchAction(
+  arg1: unknown,
+  arg2?: FormData,
+): Promise<ActionResult<{ matchId: string }>> {
+  const formData = resolveFormData(arg1, arg2);
+  if (!formData) {
+    return actionFailure("VALIDATION_ERROR", "요청 본문이 올바르지 않습니다.");
+  }
+  return mapCaught(async () => {
+    const parsed = addEmptyBracketMatchSchema.safeParse({
+      bracketId: formReq(formData, "bracketId"),
+      defaultCourtId: formReq(formData, "defaultCourtId") || undefined,
+    });
+    if (!parsed.success) {
+      return actionFailure("VALIDATION_ERROR", "경기 추가 입력값을 확인해 주세요.");
+    }
+    const actor = await requireActorFromMutation();
+    const result = await bracketService.addEmptyBracketMatch(actor, parsed.data);
+    return actionSuccess(result);
   });
 }
 
@@ -603,6 +652,16 @@ export async function generateAutoBracketMatchesAction(
       preserveManualCourts: formData.has("preserveManualCourts")
         ? parseCheckbox(formData, "preserveManualCourts")
         : true,
+      autoBoutFormat:
+        formReq(formData, "autoBoutFormat") === "tournament"
+          ? "tournament"
+          : "one_match",
+      defaultRoundCount: formReq(formData, "defaultRoundCount")
+        ? Number(formReq(formData, "defaultRoundCount"))
+        : 1,
+      defaultRoundTimeSec: formReq(formData, "defaultRoundTimeSec")
+        ? Number(formReq(formData, "defaultRoundTimeSec"))
+        : 180,
     });
     if (!parsed.success) {
       return actionFailure(

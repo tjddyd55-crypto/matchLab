@@ -15,7 +15,7 @@ export const DEFAULT_MATCH_OPERATIONAL_SETTINGS: MatchOperationalSettings = {
 };
 
 function clampRoundCount(n: number): number {
-  return Math.max(1, Math.min(15, Math.round(n)));
+  return Math.max(1, Math.min(12, Math.round(n)));
 }
 
 function clampRoundTimeSec(n: number): number {

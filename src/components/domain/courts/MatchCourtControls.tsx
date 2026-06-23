@@ -56,6 +56,8 @@ export function MatchCourtControls({
   courtOrder,
   hasOfficialResults = false,
   inline = false,
+  immediate = false,
+  hideCourtOrder = false,
 }: {
   eventId: string;
   matchId: string;
@@ -65,6 +67,8 @@ export function MatchCourtControls({
   courtOrder: number | null;
   hasOfficialResults?: boolean;
   inline?: boolean;
+  immediate?: boolean;
+  hideCourtOrder?: boolean;
 }) {
   const router = useRouter();
   const activeCourts = useMemo(
@@ -87,12 +91,14 @@ export function MatchCourtControls({
     ? localCourtId
     : resolved.selectValue;
 
-  function save() {
-    if (!selectValue) {
+  function save(nextCourtId?: string, nextOrder?: string) {
+    const court = nextCourtId ?? selectValue;
+    const order = nextOrder ?? localOrder;
+    if (!court) {
       setMessage("경기장을 선택해 주세요.");
       return;
     }
-    if (!activeCourts.some((c) => c.id === selectValue)) {
+    if (!activeCourts.some((c) => c.id === court)) {
       setMessage("활성 경기장을 선택해 주세요.");
       return;
     }
@@ -101,8 +107,8 @@ export function MatchCourtControls({
     fd.set("eventId", eventId);
     fd.set("matchId", matchId);
     if (bracketId) fd.set("bracketId", bracketId);
-    fd.set("courtId", selectValue);
-    fd.set("courtOrder", localOrder);
+    fd.set("courtId", court);
+    fd.set("courtOrder", order);
 
     startTransition(async () => {
       const res = await setMatchCourtFormAction(fd);
@@ -110,9 +116,16 @@ export function MatchCourtControls({
         setMessage(res.error.message);
         return;
       }
-      setMessage("저장됨");
+      setMessage(immediate ? null : "저장됨");
       router.refresh();
     });
+  }
+
+  function handleCourtChange(value: string) {
+    setLocalCourtId(value);
+    if (immediate) {
+      save(value, localOrder);
+    }
   }
 
   if (activeCourts.length === 0) {
@@ -139,9 +152,9 @@ export function MatchCourtControls({
       <label className="flex flex-col gap-0.5 text-xs">
         <span className="text-muted-foreground text-[10px]">경기장</span>
         <select
-          className="border-input bg-background h-7 rounded-md border px-2 text-[11px]"
+          className="border-input bg-background h-8 w-full rounded-md border px-2 text-xs"
           value={selectValue}
-          onChange={(e) => setLocalCourtId(e.target.value)}
+          onChange={(e) => handleCourtChange(e.target.value)}
           required
         >
           {activeCourts.length > 1 && !selectValue ? (
@@ -154,26 +167,32 @@ export function MatchCourtControls({
           ))}
         </select>
       </label>
-      <label className="flex flex-col gap-0.5 text-xs">
-        <span className="text-muted-foreground text-[10px]">경기장 순서</span>
-        <input
-          type="number"
-          min={1}
-          className="border-input bg-background h-7 w-16 rounded-md border px-2 text-[11px]"
-          value={localOrder}
-          onChange={(e) => setLocalOrder(e.target.value)}
-          placeholder="—"
-        />
-      </label>
-      <Button
-        type="button"
-        size="sm"
-        className="h-7 text-[11px]"
-        disabled={pending || !selectValue}
-        onClick={save}
-      >
-        {pending ? "저장 중…" : "경기장 저장"}
-      </Button>
+      {!hideCourtOrder ? (
+        <label className="flex flex-col gap-0.5 text-xs">
+          <span className="text-muted-foreground text-[10px]">경기장 순서</span>
+          <input
+            type="number"
+            min={1}
+            className="border-input bg-background h-7 w-16 rounded-md border px-2 text-[11px]"
+            value={localOrder}
+            onChange={(e) => setLocalOrder(e.target.value)}
+            placeholder="—"
+          />
+        </label>
+      ) : null}
+      {!immediate ? (
+        <Button
+          type="button"
+          size="sm"
+          className="h-7 text-[11px]"
+          disabled={pending || !selectValue}
+          onClick={() => save()}
+        >
+          {pending ? "저장 중…" : "경기장 저장"}
+        </Button>
+      ) : pending ? (
+        <p className="text-muted-foreground text-[10px]">저장 중…</p>
+      ) : null}
       {hasOfficialResults ? (
         <p className="text-amber-800 text-[10px] dark:text-amber-200">
           결과 확정 경기 — 경기장만 변경됩니다.

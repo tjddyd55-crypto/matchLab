@@ -1,4 +1,5 @@
 import type { OrganizerApprovedFighterOptionVM } from "@/lib/services/bracket.service";
+import type { FighterPickerOptionState } from "@/lib/bracket-fighter-picker";
 import { cn } from "@/lib/utils";
 
 export function ApprovedApplicationPicker({
@@ -6,17 +7,19 @@ export function ApprovedApplicationPicker({
   value,
   onChange,
   options,
+  optionStates,
   disabledOptionIds,
   placeholder,
   required,
   disabled,
   className,
 }: {
-  /** 비제어 폼 제출용 — `onChange` 가 없을 때만 전달한다. */
   name?: string;
   value: string;
   onChange?: (fighterId: string) => void;
   options: OrganizerApprovedFighterOptionVM[];
+  optionStates?: Map<string, FighterPickerOptionState>;
+  /** @deprecated optionStates 사용 */
   disabledOptionIds?: ReadonlySet<string>;
   placeholder?: string;
   required?: boolean;
@@ -30,17 +33,31 @@ export function ApprovedApplicationPicker({
 
   const optionNodes = (
     <>
-      <option value="">{placeholder ?? "선수 선택"}</option>
-      {options.map((o) => (
-        <option
-          key={o.fighterId}
-          value={o.fighterId}
-          disabled={disabledOptionIds?.has(o.fighterId)}
-        >
-          {o.isEligibleForBracket ? "" : "⚠ "}
-          {o.label} ({o.divisionLabel}) — {o.eligibilityLabel}
-        </option>
-      ))}
+      <option value="">{placeholder ?? "빈 슬롯"}</option>
+      {options.map((o) => {
+        const state = optionStates?.get(o.fighterId);
+        const disabledByLegacy = disabledOptionIds?.has(o.fighterId);
+        const selectable =
+          state?.selectable ??
+          (!disabledByLegacy && o.isEligibleForBracket);
+        const reason = state?.reason;
+        const hint = state?.statusHint;
+        const labelParts = [o.label.split(" · ")[0]];
+        if (hint) labelParts.push(`(${hint})`);
+        if (!selectable && reason) labelParts.push(`— ${reason}`);
+        return (
+          <option
+            key={o.fighterId}
+            value={o.fighterId}
+            disabled={!selectable && o.fighterId !== value}
+            title={reason}
+            className={!selectable ? "text-muted-foreground" : undefined}
+          >
+            {!selectable ? "⊘ " : ""}
+            {labelParts.join(" ")}
+          </option>
+        );
+      })}
     </>
   );
 
