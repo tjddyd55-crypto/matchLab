@@ -38,10 +38,20 @@ import {
   type CustomFormFieldDefinition,
   type CustomFormSnapshot,
 } from "@/lib/application-form/custom-form";
+import {
+  buildOrganizerManualAgreementExtras,
+  buildOrganizerManualCustomFormAnswers,
+  readOrganizerManualEntryFromAgreementSnapshot,
+} from "@/lib/application-form/organizer-manual-entry";
 import { formatFighterGenderLabel } from "@/lib/applications/division-fighter-match";
+import { toUtcDateOnly } from "@/lib/date-only";
+import { normalizeGymFighterPhone } from "@/lib/gym-fighter-management";
 import { publicAgeGroupFromBirthDate } from "@/lib/public-fighter/age-group";
 import type { ApplyToEventInput } from "@/lib/validators/application.validator";
 import type { BulkApplyToEventInput } from "@/lib/validators/bulk-application.validator";
+import type { OrganizerManualApplicationInput } from "@/lib/validators/organizer-manual-application.validator";
+import { gymRepository } from "@/lib/repositories/gym.repository";
+import { fighterService } from "@/lib/services/fighter.service";
 
 /** 신청 동의 스냅샷 버전 — 문구·정책 변경 시 함께 올릴 것. */
 const APPLICATION_AGREEMENT_SNAPSHOT_VERSION = "v1";
@@ -137,11 +147,17 @@ type GymApplicationCreateContext = {
   applicationProfileImageUrl?: string | null;
   memo?: string | null;
   customFormSnapshot?: CustomFormSnapshot | null;
+  organizerManualEntry?: {
+    manualCreatedByUserId: string;
+  };
+  initialApplicationStatus?: ApplicationStatus;
+  initialPaymentStatus?: PaymentStatus;
 };
 
 async function createGymEventApplication(
   ctx: GymApplicationCreateContext,
-): Promise<{ applicationId: string }> {
+  tx?: Prisma.TransactionClient,
+): Promise<{ applicationId: string; paymentId: string }> {
   const profileUrl =
     ctx.applicationProfileImageUrl?.trim() ||
     ctx.fighter.profileImageUrl ||
@@ -172,11 +188,19 @@ async function createGymEventApplication(
     agreedAt: ctx.appliedAt.toISOString(),
     appliedByUserId: ctx.appliedByUserId,
   };
+  if (ctx.organizerManualEntry) {
+    Object.assign(
+      applicationAgreementSnapshot,
+      buildOrganizerManualAgreementExtras(
+        ctx.organizerManualEntry.manualCreatedByUserId,
+      ),
+    );
+  }
   if (ctx.customFormSnapshot) {
     applicationAgreementSnapshot.customForm = ctx.customFormSnapshot;
   }
 
-  return prisma.$transaction(async (tx) =>
+  const persist = async (client: Prisma.TransactionClient) =>
     applicationRepository.createEventApplicationWithPayment(
       {
         eventId: ctx.eventId,
@@ -192,10 +216,16 @@ async function createGymEventApplication(
         applicationProfileImageUrl: profileUrl,
         memo: ctx.memo?.trim() || null,
         feeAmount: ctx.feeAmount,
+        initialApplicationStatus: ctx.initialApplicationStatus,
+        initialPaymentStatus: ctx.initialPaymentStatus,
       },
-      tx,
-    ),
-  );
+      client,
+    );
+
+  if (tx) {
+    return persist(tx);
+  }
+  return prisma.$transaction(persist);
 }
 
 function readSnapshotName(snapshot: unknown): string {
@@ -304,6 +334,14 @@ export type OrganizerApplicationListRowDTO = {
     | "other";
   customFormSnapshot: CustomFormSnapshot | null;
   applicationFormMode: ApplicationFormMode;
+  isOrganizerManualEntry: boolean;
+};
+
+export type OrganizerManualRegistrationOptionsDTO = {
+  divisions: EventApplicationDivisionRowDTO[];
+  gyms: { id: string; name: string }[];
+  feeAmount: number;
+  applicationFormMode: ApplicationFormMode;
 };
 
 export type EventApplicationFormConfigDTO = {
@@ -372,6 +410,13 @@ export type BulkApplyItemResultDTO = {
   outcome: "created" | "skipped" | "failed";
   message?: string;
   applicationId?: string;
+};
+
+export type CreateOrganizerManualApplicationResultDTO = {
+  applicationId: string;
+  fighterId: string;
+  fighterName: string;
+  gymName: string;
 };
 
 export type BulkApplyToEventSuccessDTO = {
@@ -637,6 +682,10 @@ export const applicationService = {
           row.applicationAgreementSnapshot,
         ),
         applicationFormMode,
+        isOrganizerManualEntry:
+          readOrganizerManualEntryFromAgreementSnapshot(
+            row.applicationAgreementSnapshot,
+          ) != null,
       });
     }
 
@@ -1223,5 +1272,304 @@ export const applicationService = {
     }
 
     // TODO: 승인 이후 취소·환불 조합 플로우는 별도 정의 (`ApplicationStatus.cancelled` 등).
+  },
+
+  async getOrganizerManualRegistrationOptions(
+    actor: ActorContext,
+    eventId: string,
+  ): Promise<OrganizerManualRegistrationOptionsDTO> {
+    requireRole(actor, ["organizer", "admin"]);
+    await requireOrganizerForEvent(actor, eventId);
+
+    const event =
+      await eventRepository.findEventWithDivisionsForApplication(eventId);
+    if (!event) {
+      throw new AppError("NOT_FOUND", "대회를 찾을 수 없습니다.");
+    }
+
+    const applicationFormMode = resolveApplicationFormMode(
+      event.applicationFormTemplate
+        ? {
+            templateId: event.applicationFormTemplateId,
+            fieldsJson: event.applicationFormTemplate.fieldsJson,
+            manualFieldsJson: event.applicationFormTemplate.manualFieldsJson,
+          }
+        : null,
+    );
+
+    const paymentSetting =
+      await eventRepository.findEventPaymentSettingFull(eventId);
+    const gyms = await gymRepository.listActiveGymsForPicker();
+
+    return {
+      divisions: event.divisions.map((d) => ({
+        id: d.id,
+        label: formatDivisionLabel(d),
+        sportType: d.sportType,
+        ruleType: d.ruleType,
+        gender: d.gender,
+        ageGroup: d.ageGroup,
+        weightClass: d.weightClass,
+        skillLevel: d.skillLevel,
+      })),
+      gyms,
+      feeAmount: paymentSetting?.feeAmount ?? 0,
+      applicationFormMode,
+    };
+  },
+
+  async createOrganizerManualApplication(
+    actor: ActorContext,
+    input: OrganizerManualApplicationInput,
+  ): Promise<CreateOrganizerManualApplicationResultDTO> {
+    requireRole(actor, ["organizer", "admin"]);
+    await requireOrganizerForEvent(actor, input.eventId);
+
+    const event =
+      await eventRepository.findEventWithDivisionsForApplication(input.eventId);
+    if (!event) {
+      throw new AppError("NOT_FOUND", "대회를 찾을 수 없습니다.");
+    }
+
+    const division = event.divisions.find((d) => d.id === input.divisionId);
+    if (!division) {
+      throw new AppError("NOT_FOUND", "유효하지 않은 경기구분/체급입니다.");
+    }
+
+    const phone = normalizeGymFighterPhone(input.phone) || "-";
+    const birthDate = toUtcDateOnly(input.birthDate);
+
+    const duplicates =
+      await fighterRepository.findIdentityDuplicateCandidates({
+        name: input.fighterName,
+        birthDate,
+        gender: input.gender,
+        phone: phone !== "-" ? phone : undefined,
+      });
+
+    if (duplicates.length > 0 && !input.confirmDuplicate) {
+      throw new AppError(
+        "CONFLICT",
+        "동일한 선수가 이미 등록되어 있을 수 있습니다. 확인 후 다시 등록해 주세요.",
+        {
+          duplicateCandidates: duplicates.map((d) => ({
+            id: d.id,
+            fighterCode: d.fighterCode,
+            name: d.name,
+          })),
+        },
+      );
+    }
+
+    const streamingAgreementRequired =
+      event.liveStreamingEnabled || event.streamingConsentRequired;
+
+    const manualConfig = parseManualFieldsConfig(
+      event.applicationFormTemplate?.manualFieldsJson,
+    );
+    const applicationFormMode = resolveApplicationFormMode(
+      event.applicationFormTemplate
+        ? {
+            templateId: event.applicationFormTemplateId,
+            fieldsJson: event.applicationFormTemplate.fieldsJson,
+            manualFieldsJson: event.applicationFormTemplate.manualFieldsJson,
+          }
+        : null,
+    );
+
+    const paymentSetting = await eventRepository.findEventPaymentSettingFull(
+      input.eventId,
+    );
+    const feeAmount = paymentSetting?.feeAmount ?? 0;
+    const appliedAt = new Date();
+
+    const memoParts = ["[주최자 직접 등록]"];
+    if (input.memo?.trim()) {
+      memoParts.push(input.memo.trim());
+    }
+
+    const result = await prisma.$transaction(async (tx) => {
+      let gym: { id: string; name: string };
+      if (input.gymMode === "existing") {
+        const row = await gymRepository.findActiveGymById(input.gymId!, tx);
+        if (!row) {
+          throw new AppError("VALIDATION_ERROR", "체육관을 찾을 수 없습니다.");
+        }
+        gym = row;
+      } else {
+        const created = await gymRepository.findOrCreateGymForOrganizerManualEntry(
+          input.gymName!,
+          tx,
+        );
+        gym = { id: created.id, name: created.name };
+      }
+
+      let fighter: {
+        id: string;
+        fighterCode: string;
+        name: string;
+        profileImageUrl: string | null;
+        recordWin: number;
+        recordLoss: number;
+        recordDraw: number;
+      };
+
+      if (input.linkFighterId && input.confirmDuplicate) {
+        const linked = await fighterRepository.findFighterById(
+          input.linkFighterId,
+        );
+        if (!linked) {
+          throw new AppError("NOT_FOUND", "연결할 선수를 찾을 수 없습니다.");
+        }
+        await fighterRepository.linkExistingFighterToGym(tx, {
+          fighterId: linked.id,
+          gymId: gym.id,
+          gymInternalMemo: null,
+        });
+        await fighterRepository.updateFighterProfile(tx, linked.id, {
+          name: input.fighterName.trim(),
+          birthDate,
+          gender: input.gender,
+          phone,
+          guardianName: input.guardianName ?? null,
+          guardianPhone: input.guardianPhone ?? null,
+          status: FighterStatus.active,
+        });
+        fighter = linked;
+      } else {
+        const fighterCode = await fighterService.generateFighterCode(tx);
+        const created = await fighterRepository.createFighterWithGymHistory(
+          tx,
+          {
+            fighterCode,
+            name: input.fighterName.trim(),
+            birthDate,
+            gender: input.gender,
+            phone,
+            guardianName: input.guardianName ?? null,
+            guardianPhone: input.guardianPhone ?? null,
+            currentGymId: gym.id,
+          },
+        );
+        const full = await fighterRepository.findFighterById(created.id);
+        if (!full) {
+          throw new AppError("INTERNAL", "선수 생성 후 조회에 실패했습니다.");
+        }
+        fighter = full;
+      }
+
+      const existing = await applicationRepository.findExistingApplication(
+        input.eventId,
+        fighter.id,
+        input.divisionId,
+        tx,
+      );
+      if (existing) {
+        throw new AppError(
+          "CONFLICT",
+          "이미 해당 부문에 신청한 선수입니다. (동일 대회·선수·경기구분 조합은 한 번만 가능합니다.)",
+        );
+      }
+
+      let customFormSnapshot: CustomFormSnapshot | null = null;
+      if (
+        applicationFormMode === "custom" &&
+        manualConfig.fields.length > 0 &&
+        event.applicationFormTemplate
+      ) {
+        const answers = buildOrganizerManualCustomFormAnswers(
+          manualConfig.fields,
+        );
+        const validationError = validateCustomFormAnswers(
+          manualConfig.fields,
+          answers,
+        );
+        if (validationError) {
+          throw new AppError("VALIDATION_ERROR", validationError);
+        }
+        customFormSnapshot = buildCustomFormSnapshot(
+          manualConfig.fields,
+          answers,
+          {
+            eventTitle: event.title,
+            gymName: gym.name,
+            divisionLabel: formatDivisionLabel(division),
+            division,
+            fighter: {
+              name: fighter.name,
+              gender: input.gender,
+              birthDate,
+              weightKg: null,
+              primarySport: null,
+              guardianName: input.guardianName ?? null,
+              guardianPhone: input.guardianPhone ?? null,
+            },
+          },
+          {
+            templateId: event.applicationFormTemplate.id,
+            templateTitle: event.applicationFormTemplate.title,
+            capturedAt: appliedAt.toISOString(),
+          },
+        );
+      }
+
+      const { applicationId } = await createGymEventApplication(
+        {
+          eventId: input.eventId,
+          divisionId: input.divisionId,
+          gymId: gym.id,
+          gymDisplayName: gym.name,
+          fighter,
+          agreements: {
+            rulesAgreed: true,
+            privacyAgreed: true,
+            resultDisclosureAgreed: true,
+            photoVideoAgreed: true,
+            streamingAgreed: streamingAgreementRequired ? true : undefined,
+          },
+          streamingAgreementRequired,
+          appliedByUserId: actor.userId,
+          appliedAt,
+          feeAmount,
+          memo: memoParts.join("\n"),
+          customFormSnapshot,
+          organizerManualEntry: {
+            manualCreatedByUserId: actor.userId,
+          },
+          initialApplicationStatus: input.applicationStatus,
+          initialPaymentStatus: input.paymentStatus,
+        },
+        tx,
+      );
+
+      if (input.applicationStatus === ApplicationStatus.approved) {
+        await creditService.debitParticipantFee(
+          {
+            organizerId: event.organizerId,
+            eventId: input.eventId,
+            eventApplicationId: applicationId,
+            actor,
+          },
+          tx,
+        );
+      }
+
+      return {
+        applicationId,
+        fighterId: fighter.id,
+        fighterName: fighter.name,
+        gymName: gym.name,
+      };
+    });
+
+    safeNotify(`application-manual-created:${result.applicationId}`, () =>
+      notificationService.notifyApplicationSubmitted({
+        eventId: input.eventId,
+        eventTitle: event.title,
+        count: 1,
+      }),
+    );
+
+    return result;
   },
 };

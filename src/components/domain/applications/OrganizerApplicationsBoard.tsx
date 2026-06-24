@@ -13,6 +13,8 @@ import { OrganizerApplicationsTable } from "@/components/domain/applications/Org
 import { resolveOrganizerApplicationDisplayStatus } from "@/lib/application-display-status";
 import { isPaidForOrganizerDisplay } from "@/lib/application-display-status";
 import { OrganizerApplicationsGymSummaryTable } from "@/components/domain/applications/OrganizerApplicationsGymSummaryTable";
+import { OrganizerManualApplicationPanel } from "@/components/domain/applications/OrganizerManualApplicationPanel";
+import type { OrganizerManualRegistrationOptionsDTO } from "@/lib/services/application.service";
 import { Button } from "@/components/ui/button";
 
 const DEFAULT_FILTERS: OrganizerApplicationFiltersState = {
@@ -27,9 +29,11 @@ const DEFAULT_FILTERS: OrganizerApplicationFiltersState = {
 export function OrganizerApplicationsBoard({
   eventId,
   rows,
+  manualRegistrationOptions,
 }: {
   eventId: string;
   rows: OrganizerApplicationRowVM[];
+  manualRegistrationOptions: OrganizerManualRegistrationOptionsDTO;
 }) {
   const [filters, setFilters] =
     useState<OrganizerApplicationFiltersState>(DEFAULT_FILTERS);
@@ -138,6 +142,11 @@ export function OrganizerApplicationsBoard({
 
   return (
     <div className="flex min-w-0 flex-col gap-6 overflow-x-hidden">
+      <OrganizerManualApplicationPanel
+        eventId={eventId}
+        options={manualRegistrationOptions}
+      />
+
       <OrganizerApplicationsGymSummaryTable
         rows={rows}
         selectedGymId={filters.gymId === "all" ? null : filters.gymId}
