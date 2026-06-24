@@ -201,10 +201,15 @@ export const applicationRepository = {
       applicationProfileImageUrl?: string | null;
       memo?: string | null;
       feeAmount: number;
+      initialApplicationStatus?: ApplicationStatus;
+      initialPaymentStatus?: PaymentStatus;
     },
     tx?: Prisma.TransactionClient,
   ): Promise<{ applicationId: string; paymentId: string }> {
     const client = db(tx);
+    const applicationStatus =
+      data.initialApplicationStatus ?? ApplicationStatus.pending;
+    const paymentStatus = data.initialPaymentStatus ?? PaymentStatus.unpaid;
     const app = await client.eventApplication.create({
       data: {
         eventId: data.eventId,
@@ -218,8 +223,8 @@ export const applicationRepository = {
         appliedAt: data.appliedAt,
         applicationProfileImageUrl: data.applicationProfileImageUrl ?? null,
         memo: data.memo ?? null,
-        status: ApplicationStatus.pending,
-        paymentStatus: PaymentStatus.unpaid,
+        status: applicationStatus,
+        paymentStatus,
       },
       select: { id: true },
     });
@@ -229,7 +234,7 @@ export const applicationRepository = {
         eventApplicationId: app.id,
         amount: data.feeAmount,
         paymentMethod: "bank_transfer",
-        paymentStatus: PaymentStatus.unpaid,
+        paymentStatus,
       },
       select: { id: true },
     });

@@ -5,6 +5,7 @@ import {
   OrganizerPaymentDisplayBadge,
 } from "@/components/domain/applications/OrganizerApplicationDisplayBadge";
 import { OrganizerApplicationRowActions } from "@/components/domain/applications/OrganizerApplicationRowActions";
+import { OrganizerManualEntryHint } from "@/components/domain/applications/OrganizerManualEntryHint";
 import type { OrganizerApplicationRowVM } from "@/components/domain/applications/OrganizerApplicationsTable";
 import { MATCH_CATEGORY_WITH_WEIGHT_LABEL } from "@/lib/ui-labels/match-category";
 import { Checkbox } from "@/components/ui/checkbox";
@@ -50,7 +51,10 @@ export function OrganizerApplicationsList({
 
             <div className="min-w-0 truncate text-sm">{row.gymName}</div>
 
-            <div className="min-w-0 truncate font-medium">{row.fighterName}</div>
+            <div className="min-w-0 truncate font-medium">
+              {row.fighterName}
+              <OrganizerManualEntryHint show={row.isOrganizerManualEntry} />
+            </div>
 
             <div
               className="text-muted-foreground min-w-0 text-xs leading-snug"

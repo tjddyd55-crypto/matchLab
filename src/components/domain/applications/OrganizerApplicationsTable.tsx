@@ -14,6 +14,7 @@ import {
   OrganizerPaymentDisplayBadge,
 } from "@/components/domain/applications/OrganizerApplicationDisplayBadge";
 import { OrganizerApplicationRowActions } from "@/components/domain/applications/OrganizerApplicationRowActions";
+import { OrganizerManualEntryHint } from "@/components/domain/applications/OrganizerManualEntryHint";
 import { MATCH_CATEGORY_WITH_WEIGHT_LABEL } from "@/lib/ui-labels/match-category";
 import { Checkbox } from "@/components/ui/checkbox";
 import {
@@ -47,6 +48,7 @@ export type OrganizerApplicationRowVM = {
   consentFilterKey: string;
   customFormSnapshot: CustomFormSnapshot | null;
   applicationFormMode: ApplicationFormMode;
+  isOrganizerManualEntry: boolean;
 };
 
 export function OrganizerApplicationsTable({
@@ -91,6 +93,7 @@ export function OrganizerApplicationsTable({
               </TableCell>
               <TableCell className="align-top">
                 <div className="truncate text-sm font-medium">{row.fighterName}</div>
+                <OrganizerManualEntryHint show={row.isOrganizerManualEntry} />
               </TableCell>
               <TableCell className="text-muted-foreground align-top text-xs leading-snug">
                 <span className="line-clamp-2 break-words">{row.divisionLabel}</span>

@@ -1,5 +1,6 @@
 "use server";
 
+import { revalidatePath } from "next/cache";
 import {
   actionFailure,
   actionSuccess,
@@ -19,7 +20,12 @@ import {
 import type {
   ApplyToEventSuccessDTO,
   BulkApplyToEventSuccessDTO,
+  CreateOrganizerManualApplicationResultDTO,
 } from "@/lib/services/application.service";
+import {
+  organizerManualApplicationSchema,
+} from "@/lib/validators/organizer-manual-application.validator";
+import { ApplicationStatus, PaymentStatus } from "@/generated/prisma";
 import {
   bulkApplyToEventSchema,
   type BulkApplyToEventInput,
@@ -211,4 +217,61 @@ export async function rejectApplicationFormAction(
   formData: FormData,
 ): Promise<void> {
   await rejectApplicationAction(formData);
+}
+
+function parseCheckboxOn(formData: FormData, key: string): boolean {
+  const v = formData.get(key);
+  return v === "on" || v === "true" || v === "1";
+}
+
+export async function createOrganizerManualApplicationAction(
+  formData: FormData,
+): Promise<ActionResult<CreateOrganizerManualApplicationResultDTO>> {
+  return mapCaught(async () => {
+    const gymModeRaw = formReq(formData, "gymMode");
+    const gymMode =
+      gymModeRaw === "manual" || gymModeRaw === "existing"
+        ? gymModeRaw
+        : "existing";
+
+    const raw = {
+      eventId: formReq(formData, "eventId"),
+      divisionId: formReq(formData, "divisionId"),
+      gymMode,
+      gymId: formReq(formData, "gymId") || undefined,
+      gymName: formReq(formData, "gymName") || undefined,
+      fighterName: formReq(formData, "fighterName"),
+      gender: formReq(formData, "gender"),
+      birthDate: formReq(formData, "birthDate"),
+      phone: formReq(formData, "phone") || undefined,
+      guardianName: formReq(formData, "guardianName") || undefined,
+      guardianPhone: formReq(formData, "guardianPhone") || undefined,
+      applicationStatus:
+        formReq(formData, "applicationStatus") || ApplicationStatus.approved,
+      paymentStatus:
+        formReq(formData, "paymentStatus") || PaymentStatus.paid,
+      memo: formReq(formData, "memo") || undefined,
+      confirmDuplicate: parseCheckboxOn(formData, "confirmDuplicate"),
+      linkFighterId: formReq(formData, "linkFighterId") || undefined,
+    };
+
+    const parsed = organizerManualApplicationSchema.safeParse(raw);
+    if (!parsed.success) {
+      return actionFailure(
+        "VALIDATION_ERROR",
+        parsed.error.issues[0]?.message ?? "입력값을 확인해 주세요.",
+      );
+    }
+
+    const actor = await requireActorFromMutation();
+    const result = await applicationService.createOrganizerManualApplication(
+      actor,
+      parsed.data,
+    );
+
+    revalidatePath(`/organizer/events/${parsed.data.eventId}/applications`);
+    revalidatePath(`/organizer/events/${parsed.data.eventId}/check-in`);
+
+    return actionSuccess(result);
+  });
 }

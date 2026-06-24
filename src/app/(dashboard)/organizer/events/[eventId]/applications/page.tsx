@@ -18,9 +18,10 @@ export default async function OrganizerEventApplicationsPage({
 
   await requireOrganizerForEventPage(actor, eventId);
 
-  const [nav, rows] = await Promise.all([
+  const [nav, rows, manualRegistrationOptions] = await Promise.all([
     loadEventManagementNavContext(eventId),
     applicationService.listOrganizerEventApplications(actor, eventId),
+    applicationService.getOrganizerManualRegistrationOptions(actor, eventId),
   ]);
 
   return (
@@ -31,7 +32,11 @@ export default async function OrganizerEventApplicationsPage({
         description="입금 상태는 결제 행을 진실 원천으로 두며, 목록의 입금 상태는 동기화된 캐시입니다."
       />
 
-      <OrganizerApplicationsBoard eventId={eventId} rows={rows} />
+      <OrganizerApplicationsBoard
+        eventId={eventId}
+        rows={rows}
+        manualRegistrationOptions={manualRegistrationOptions}
+      />
     </EventManagementLayout>
   );
 }
