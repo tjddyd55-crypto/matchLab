@@ -13,7 +13,9 @@ import {
   FighterStatus,
   MatchRecordStatus,
   NextMatchSlot,
+  WeighInFailureResolution,
   WeighInStatus,
+  type ApplicationCancellationSource,
 } from "@/generated/prisma";
 import { prisma } from "@/lib/prisma";
 
@@ -45,6 +47,12 @@ export type ApprovedApplicationForBracketRow = {
   id: string;
   fighterId: string;
   divisionId: string;
+  status: ApplicationStatus;
+  checkInStatus: CheckInStatus;
+  weighInStatus: WeighInStatus;
+  weighInFailureResolution: WeighInFailureResolution;
+  cancellationSource: ApplicationCancellationSource | null;
+  weighInWeightKg: number | null;
   fighter: {
     id: string;
     fighterCode: string;
@@ -73,6 +81,9 @@ export type AutoMatchApplicationRow = {
   status: ApplicationStatus;
   checkInStatus: CheckInStatus;
   weighInStatus: WeighInStatus;
+  weighInFailureResolution: WeighInFailureResolution;
+  cancellationSource: ApplicationCancellationSource | null;
+  weighInWeightKg: number | null;
   appliedAt: Date | null;
   createdAt: Date;
   fighter: {
@@ -436,6 +447,12 @@ export const bracketRepository = {
         id: true,
         fighterId: true,
         divisionId: true,
+        status: true,
+        checkInStatus: true,
+        weighInStatus: true,
+        weighInFailureResolution: true,
+        cancellationSource: true,
+        weighInWeightKg: true,
         fighter: {
           select: {
             id: true,
@@ -479,6 +496,12 @@ export const bracketRepository = {
         id: true,
         fighterId: true,
         divisionId: true,
+        status: true,
+        checkInStatus: true,
+        weighInStatus: true,
+        weighInFailureResolution: true,
+        cancellationSource: true,
+        weighInWeightKg: true,
         fighter: {
           select: {
             id: true,
@@ -796,6 +819,9 @@ export const bracketRepository = {
         status: true,
         checkInStatus: true,
         weighInStatus: true,
+        weighInFailureResolution: true,
+        cancellationSource: true,
+        weighInWeightKg: true,
         appliedAt: true,
         createdAt: true,
         fighter: {

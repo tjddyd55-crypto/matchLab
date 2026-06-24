@@ -16,6 +16,8 @@ import {
   parseBracketFighterSnapshot,
   type BracketFighterSnapshotPayload,
 } from "@/lib/bracket-snapshot";
+import { computeBracketAssignability } from "@/lib/bracket-assignability";
+import { computeFieldEligibility } from "@/lib/field-eligibility";
 import { validateMatchListPlacement } from "@/lib/bracket-match-placement";
 import {
   buildOrderSwapPatches,
@@ -371,9 +373,15 @@ export type OrganizerApprovedFighterOptionVM = {
   fighterId: string;
   label: string;
   divisionLabel: string;
+  /** 출전 확정 여부 (현장·계체 완료) */
   isEligibleForBracket: boolean;
   eligibilityLabel: string;
   eligibilityReason: string;
+  /** 대진 배치 가능 여부 */
+  isAssignableForBracket: boolean;
+  assignabilityLabel: string;
+  assignabilityDisabledReason?: string;
+  assignabilityWarningReason?: string;
 };
 
 export type OrganizerBracketDetailVM = {
@@ -438,16 +446,40 @@ export const bracketService = {
     const approvedFighterOptions: OrganizerApprovedFighterOptionVM[] =
       approved.map((a) => {
         const field = fieldStatusMap.get(a.fighter.id);
+        const fieldEligibility = field
+          ? computeFieldEligibility({
+              checkInStatus: field.checkInStatus,
+              weighInStatus: field.weighInStatus,
+              weighInFailureResolution: field.weighInFailureResolution,
+            })
+          : null;
+        const assignability = field
+          ? computeBracketAssignability({
+              checkInStatus: field.checkInStatus,
+              weighInStatus: field.weighInStatus,
+              weighInFailureResolution: field.weighInFailureResolution,
+              applicationStatus: "approved",
+              weighInWeightKg: field.weighInWeightKg,
+            })
+          : computeBracketAssignability({
+              checkInStatus: "pending",
+              weighInStatus: "pending",
+              applicationStatus: "approved",
+            });
         return {
           applicationId: a.id,
           fighterId: a.fighter.id,
           label: `${a.fighter.name} · ${a.gym.name}`,
           divisionLabel: formatDivisionNameLabel(a.division),
-          isEligibleForBracket: field?.isEligibleForBracket ?? false,
-          eligibilityLabel: field?.eligibilityLabel ?? "현장 미확인",
+          isEligibleForBracket: fieldEligibility?.isEligibleForBracket ?? false,
+          eligibilityLabel: fieldEligibility?.eligibilityLabel ?? "현장 미확인",
           eligibilityReason:
-            field?.eligibilityReason ??
+            fieldEligibility?.eligibilityReason ??
             "현장 확인·계체 상태가 아직 기록되지 않았습니다.",
+          isAssignableForBracket: assignability.isAssignable,
+          assignabilityLabel: assignability.label,
+          assignabilityDisabledReason: assignability.disabledReason,
+          assignabilityWarningReason: assignability.warningReason,
         };
       });
 
@@ -956,6 +988,22 @@ export const bracketService = {
         throw new AppError(
           "VALIDATION_ERROR",
           "승인된 신청 선수만 배치할 수 있습니다.",
+        );
+      }
+
+      const assignability = computeBracketAssignability({
+        checkInStatus: row.checkInStatus,
+        weighInStatus: row.weighInStatus,
+        weighInFailureResolution: row.weighInFailureResolution,
+        applicationStatus: row.status,
+        cancellationSource: row.cancellationSource,
+        weighInWeightKg: row.weighInWeightKg,
+      });
+      if (!assignability.isAssignable) {
+        throw new AppError(
+          "VALIDATION_ERROR",
+          assignability.disabledReason ??
+            "출전 불가 상태의 선수는 대진에 배치할 수 없습니다.",
         );
       }
 

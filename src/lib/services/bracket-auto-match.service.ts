@@ -16,6 +16,7 @@ import {
   type UnmatchedReason,
 } from "@/lib/brackets/auto-match";
 import { formatCourtTabLabel } from "@/lib/court-tab-label";
+import { computeBracketAssignability } from "@/lib/bracket-assignability";
 import { computeFieldEligibility } from "@/lib/field-eligibility";
 import { AppError } from "@/lib/errors/app-error";
 import { encodeMatchOperationalSettings } from "@/lib/match-operational-settings";
@@ -91,7 +92,7 @@ export type CanResetBracketSafelyResult = {
 const REASON_LABELS: Record<UnmatchedReason, string> = {
   odd_count: "홀수 인원으로 남음",
   no_opponent_in_division: "같은 division 내 상대 없음",
-  not_field_eligible: "현장·계체 미완료(대진 생성에는 포함됨)",
+  not_field_eligible: "출전 확정 전(대진 생성에는 포함됨)",
   already_placed: "이미 다른 대진에 배치됨",
   missing_division: "division 정보 없음",
   same_gym_only_remaining: "같은 체육관만 남아 매칭 불가",
@@ -104,6 +105,15 @@ function toAutoMatchCandidate(
   const eligibility = computeFieldEligibility({
     checkInStatus: row.checkInStatus,
     weighInStatus: row.weighInStatus,
+    weighInFailureResolution: row.weighInFailureResolution,
+  });
+  const assignability = computeBracketAssignability({
+    checkInStatus: row.checkInStatus,
+    weighInStatus: row.weighInStatus,
+    weighInFailureResolution: row.weighInFailureResolution,
+    applicationStatus: row.status,
+    cancellationSource: row.cancellationSource,
+    weighInWeightKg: row.weighInWeightKg,
   });
   return {
     applicationId: row.id,
@@ -114,6 +124,7 @@ function toAutoMatchCandidate(
     fighterName: row.fighter.name,
     appliedAt: row.appliedAt ?? row.createdAt,
     isEligibleForBracket: eligibility.isEligibleForBracket,
+    isAssignableForBracket: assignability.isAssignable,
   };
 }
 
@@ -318,9 +329,22 @@ export const bracketAutoMatchService = {
     const result: UnmatchedBracketCandidateVM[] = [];
 
     for (const row of applications) {
+      const assignability = computeBracketAssignability({
+        checkInStatus: row.checkInStatus,
+        weighInStatus: row.weighInStatus,
+        weighInFailureResolution: row.weighInFailureResolution,
+        applicationStatus: row.status,
+        cancellationSource: row.cancellationSource,
+        weighInWeightKg: row.weighInWeightKg,
+      });
+      if (!assignability.isAssignable) {
+        continue;
+      }
+
       const eligibility = computeFieldEligibility({
         checkInStatus: row.checkInStatus,
         weighInStatus: row.weighInStatus,
+        weighInFailureResolution: row.weighInFailureResolution,
       });
 
       if (!row.divisionId) {
@@ -419,6 +443,10 @@ export const bracketAutoMatchService = {
         continue;
       }
       const candidate = toAutoMatchCandidate(row);
+      if (!candidate.isAssignableForBracket) {
+        summary.ineligibleWarningCount += 1;
+        continue;
+      }
       if (input.eligibleOnly && !candidate.isEligibleForBracket) {
         summary.ineligibleWarningCount += 1;
         continue;
@@ -806,6 +834,16 @@ export const bracketAutoMatchService = {
     for (const row of applications) {
       if (!row.divisionId) continue;
       if (placedIds.has(row.fighterId)) continue;
+
+      const assignability = computeBracketAssignability({
+        checkInStatus: row.checkInStatus,
+        weighInStatus: row.weighInStatus,
+        weighInFailureResolution: row.weighInFailureResolution,
+        applicationStatus: row.status,
+        cancellationSource: row.cancellationSource,
+        weighInWeightKg: row.weighInWeightKg,
+      });
+      if (!assignability.isAssignable) continue;
 
       const list = unplacedByDivision.get(row.divisionId) ?? [];
       list.push(row);
