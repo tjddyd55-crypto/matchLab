@@ -76,6 +76,7 @@ export function OrganizerManualApplicationPanel({
       }
       resetDuplicateState();
       setOpen(false);
+      setError(null);
       router.refresh();
     });
   }
