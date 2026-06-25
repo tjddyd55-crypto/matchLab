@@ -81,6 +81,21 @@
   --sidebar-accent-foreground: oklch(0.205 0 0);
   --sidebar-border: oklch(0.922 0 0);
   --sidebar-ring: oklch(0.708 0 0);
+  --division-gender-male-bg: oklch(0.97 0.02 252);
+  --division-gender-male-border: oklch(0.88 0.06 252);
+  --division-gender-male-text: oklch(0.45 0.18 252);
+  --division-gender-male-accent: oklch(0.52 0.19 252);
+  --division-gender-female-bg: oklch(0.97 0.025 12);
+  --division-gender-female-border: oklch(0.88 0.06 12);
+  --division-gender-female-text: oklch(0.48 0.2 12);
+  --division-gender-female-accent: oklch(0.55 0.22 12);
+  --division-gender-unknown-bg: oklch(0.97 0.005 264);
+  --division-gender-unknown-border: oklch(0.88 0.01 264);
+  --division-gender-unknown-text: oklch(0.45 0.02 264);
+  --division-gender-unknown-accent: oklch(0.556 0 0);
+  --division-gender-column-divider: oklch(0.85 0.02 264);
+  --division-row-hover-bg: oklch(0.97 0.005 264 / 70%);
+  --division-section-divider: var(--border);
 }
 
 .dark {
@@ -115,6 +130,21 @@
   --sidebar-accent-foreground: oklch(0.985 0 0);
   --sidebar-border: oklch(1 0 0 / 10%);
   --sidebar-ring: oklch(0.556 0 0);
+  --division-gender-male-bg: oklch(0.24 0.04 252);
+  --division-gender-male-border: oklch(0.35 0.08 252);
+  --division-gender-male-text: oklch(0.78 0.1 252);
+  --division-gender-male-accent: oklch(0.62 0.16 252);
+  --division-gender-female-bg: oklch(0.24 0.04 12);
+  --division-gender-female-border: oklch(0.36 0.08 12);
+  --division-gender-female-text: oklch(0.8 0.1 12);
+  --division-gender-female-accent: oklch(0.65 0.18 12);
+  --division-gender-unknown-bg: oklch(0.24 0.01 264);
+  --division-gender-unknown-border: oklch(0.35 0.015 264);
+  --division-gender-unknown-text: oklch(0.75 0.02 264);
+  --division-gender-unknown-accent: oklch(0.556 0 0);
+  --division-gender-column-divider: oklch(0.4 0.02 264);
+  --division-row-hover-bg: oklch(0.28 0.01 264 / 60%);
+  --division-section-divider: var(--border);
 }
 
 @layer base {
