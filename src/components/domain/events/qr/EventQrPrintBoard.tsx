@@ -3,10 +3,8 @@
 import { useCallback } from "react";
 import { Button } from "@/components/ui/button";
 import { EventQrCard, type EventQrPrintGroup } from "./EventQrCard";
-import type { EventCourtVM } from "@/lib/services/event-court.service";
+import type { CourtJudgeQrLinkVM } from "@/lib/qr-url";
 import {
-  buildCourtHeadJudgeUrl,
-  buildCourtScoreJudgeUrl,
   buildEventBracketQrUrl,
   buildEventLiveQrUrl,
   buildEventResultsQrUrl,
@@ -36,7 +34,7 @@ export type EventQrPrintBoardProps = {
   spectatorAccessStartAt: string | null;
   spectatorAccessEndAt: string | null;
   baseUrl: string;
-  courts: EventCourtVM[];
+  courts: CourtJudgeQrLinkVM[];
 };
 
 function formatEventDate(iso: string | null): string | null {
@@ -138,7 +136,7 @@ export function EventQrPrintBoard({
         <h2 className="text-sm font-semibold">인쇄 옵션</h2>
         <p className="text-muted-foreground text-xs leading-relaxed">
           현장 부착용 A4 인쇄입니다. 브라우저 인쇄 미리보기에서 QR 크기와
-          여백을 확인한 뒤 출력하세요.
+          여백을 확인한 뒤 출력하세요. 경기장 정보 변경 시 QR을 다시 출력하세요.
         </p>
         <div className="flex flex-wrap gap-2">
           {SHOW_LEGACY_JUDGE_LOGIN_QR ? (
@@ -246,7 +244,7 @@ export function EventQrPrintBoard({
                 title={`${court.name} 채점심판`}
                 description="진행중 경기만 채점합니다."
                 steps="이름·생년월일 입력 → 진행중 경기 확인 → 점수 전송"
-                url={buildCourtScoreJudgeUrl(court.id, baseUrl)}
+                url={court.scoreEntryUrl}
                 downloadFileName={`court-score-${court.name}.png`}
               />
             ))}
@@ -257,7 +255,7 @@ export function EventQrPrintBoard({
                 title={`${court.name} 주심판`}
                 description="경기 시작, 승패 입력, 완료, 경기취소를 처리합니다."
                 steps="이름·생년월일 입력 → 경기 시작 → 채점 확인 → 승패 입력/완료"
-                url={buildCourtHeadJudgeUrl(court.id, baseUrl)}
+                url={court.headEntryUrl}
                 downloadFileName={`court-head-${court.name}.png`}
               />
             ))}

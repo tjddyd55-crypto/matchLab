@@ -1,6 +1,8 @@
 import { CourtJudgeIdentityGate } from "@/components/domain/judges/CourtJudgeIdentityGate";
 import { CourtJudgeUnavailableState } from "@/components/domain/judges/CourtJudgeUnavailableState";
 import { CourtScoreJudgePanel } from "@/components/domain/judges/CourtScoreJudgePanel";
+import { JudgeQrEntryError } from "@/components/domain/judges/JudgeQrEntryError";
+import { assertCourtJudgeEntryAccess } from "@/lib/court-judge-entry-session";
 import { loadScoringPage } from "@/lib/services/judge-court.service";
 
 type Props = {
@@ -9,6 +11,11 @@ type Props = {
 
 export default async function CourtScoreJudgePage({ params }: Props) {
   const { courtId } = await params;
+  const access = await assertCourtJudgeEntryAccess(courtId, "score");
+  if (!access.ok) {
+    return <JudgeQrEntryError reason="missing_token" qrType="court" />;
+  }
+
   const load = await loadScoringPage(courtId);
 
   if (load.kind === "invalid_court") {
