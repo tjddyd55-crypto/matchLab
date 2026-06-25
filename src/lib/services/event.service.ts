@@ -15,6 +15,10 @@ import {
   evaluateGymEventApplyEligibility,
   gymListingBadgeLabel,
 } from "@/lib/gym-event-apply";
+import {
+  normalizeEventDivisionWeightInput,
+  resolveEventDivisionWeightFields,
+} from "@/lib/event-division-fields";
 import { fighterRepository } from "@/lib/repositories/fighter.repository";
 import {
   type PublicEventDetailRecord,
@@ -139,9 +143,12 @@ function buildDivisionSummary(
   const maxLabels = Math.min(3, total);
   const labels = preview
     .slice(0, maxLabels)
-    .map((d) =>
-      [d.sportType, d.weightClass ?? d.ageGroup].filter(Boolean).join(" · "),
-    )
+    .map((d) => {
+      const weight = resolveEventDivisionWeightFields(d);
+      return [d.sportType, d.ageGroup, weight.weightClass]
+        .filter(Boolean)
+        .join(" · ");
+    })
     .filter(Boolean);
   const head = labels.join(" · ");
   const rest = total - labels.length;
@@ -154,13 +161,14 @@ function buildDivisionSummary(
 function mapDivisionRecordToDto(
   row: PublicEventDivisionRecord,
 ): PublicEventDivisionDTO {
+  const weight = resolveEventDivisionWeightFields(row);
   return {
     id: row.id,
     sportType: row.sportType,
     ruleType: row.ruleType,
     gender: row.gender,
     ageGroup: row.ageGroup,
-    weightClass: row.weightClass,
+    weightClass: weight.weightClass,
     skillLevel: row.skillLevel,
   };
 }
@@ -268,6 +276,8 @@ export type OrganizerEventDivisionVM = {
   gender: string | null;
   ageGroup: string | null;
   weightClass: string | null;
+  weightClassName: string | null;
+  weightLimitText: string | null;
   skillLevel: string | null;
 };
 
@@ -340,15 +350,20 @@ function mapOrganizerEventDetail(
     streamingNoticeText: row.streamingNoticeText,
     streamingConsentRequired: row.streamingConsentRequired,
     applicationCount: row._count.applications,
-    divisions: row.divisions.map((d) => ({
-      id: d.id,
-      sportType: d.sportType,
-      ruleType: d.ruleType,
-      gender: d.gender,
-      ageGroup: d.ageGroup,
-      weightClass: d.weightClass,
-      skillLevel: d.skillLevel,
-    })),
+    divisions: row.divisions.map((d) => {
+      const weight = resolveEventDivisionWeightFields(d);
+      return {
+        id: d.id,
+        sportType: d.sportType,
+        ruleType: d.ruleType,
+        gender: d.gender,
+        ageGroup: d.ageGroup,
+        weightClass: weight.weightClass,
+        weightClassName: weight.weightClassName,
+        weightLimitText: weight.weightLimitText,
+        skillLevel: d.skillLevel,
+      };
+    }),
     paymentSetting: payment
       ? {
           feeAmount: payment.feeAmount,
@@ -930,13 +945,16 @@ export const eventService = {
     input: CreateEventDivisionInput,
   ): Promise<{ divisionId: string }> {
     await requireOrganizerForEvent(actor, input.eventId);
+    const weight = normalizeEventDivisionWeightInput(input);
     const div = await eventRepository.createEventDivision({
       event: { connect: { id: input.eventId } },
       sportType: input.sportType.trim(),
       ruleType: input.ruleType?.trim() || null,
       gender: input.gender?.trim() || null,
       ageGroup: input.ageGroup?.trim() || null,
-      weightClass: input.weightClass?.trim() || null,
+      weightClass: weight.weightClass,
+      weightClassName: weight.weightClassName,
+      weightLimitText: weight.weightLimitText,
       skillLevel: input.skillLevel?.trim() || null,
     });
     return { divisionId: div.id };
@@ -965,8 +983,34 @@ export const eventService = {
     if (input.ageGroup !== undefined) {
       data.ageGroup = input.ageGroup?.trim() || null;
     }
-    if (input.weightClass !== undefined) {
-      data.weightClass = input.weightClass?.trim() || null;
+    const weightTouched =
+      input.weightClass !== undefined ||
+      input.weightClassName !== undefined ||
+      input.weightLimitText !== undefined;
+    if (weightTouched) {
+      const existing = await eventRepository.findEventDivisionById(
+        input.divisionId,
+      );
+      if (!existing) {
+        throw new AppError("NOT_FOUND", "경기구분을 찾을 수 없습니다.");
+      }
+      const weight = normalizeEventDivisionWeightInput({
+        weightClass:
+          input.weightClass !== undefined
+            ? input.weightClass
+            : existing.weightClass,
+        weightClassName:
+          input.weightClassName !== undefined
+            ? input.weightClassName
+            : existing.weightClassName,
+        weightLimitText:
+          input.weightLimitText !== undefined
+            ? input.weightLimitText
+            : existing.weightLimitText,
+      });
+      data.weightClass = weight.weightClass;
+      data.weightClassName = weight.weightClassName;
+      data.weightLimitText = weight.weightLimitText;
     }
     if (input.skillLevel !== undefined) {
       data.skillLevel = input.skillLevel?.trim() || null;

@@ -530,6 +530,15 @@ export const eventRepository = {
     return row?.eventId ?? null;
   },
 
+  async findEventDivisionById(
+    divisionId: string,
+    tx?: Prisma.TransactionClient,
+  ) {
+    return db(tx).eventDivision.findUnique({
+      where: { id: divisionId },
+    });
+  },
+
   async findEventWithDivisionsForApplication(eventId: string) {
     return prisma.event.findUnique({
       where: { id: eventId },

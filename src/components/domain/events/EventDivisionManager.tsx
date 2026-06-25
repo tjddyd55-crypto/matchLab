@@ -15,10 +15,15 @@ import type {
 } from "@/lib/services/division-template.service";
 import { ApplyDivisionTemplatePanel } from "@/components/domain/division-templates/ApplyDivisionTemplatePanel";
 import { EventDivisionForm } from "@/components/domain/events/EventDivisionForm";
+import { DIVISION_TEMPLATE_GENDERS } from "@/lib/division-template/division-template-constants";
 import { Button } from "@/components/ui/button";
 import { cn } from "@/lib/utils";
 
 type Div = OrganizerEventDetailVM["divisions"][number];
+
+const inputClass = cn(
+  "border-input bg-background h-9 w-full rounded-md border px-2 text-sm shadow-sm",
+);
 
 function DivisionRowEditor({ d }: { d: Div }) {
   const router = useRouter();
@@ -46,9 +51,7 @@ function DivisionRowEditor({ d }: { d: Div }) {
           required
           defaultValue={d.sportType}
           maxLength={120}
-          className={cn(
-            "border-input bg-background h-9 w-full rounded-md border px-2 text-sm shadow-sm",
-          )}
+          className={inputClass}
         />
       </label>
       <label className="space-y-1 text-xs">
@@ -57,42 +60,50 @@ function DivisionRowEditor({ d }: { d: Div }) {
           name="ruleType"
           defaultValue={d.ruleType ?? ""}
           maxLength={120}
-          className={cn(
-            "border-input bg-background h-9 w-full rounded-md border px-2 text-sm shadow-sm",
-          )}
+          className={inputClass}
         />
       </label>
       <label className="space-y-1 text-xs">
-        <span className="text-muted-foreground">성별</span>
-        <input
-          name="gender"
-          defaultValue={d.gender ?? ""}
-          maxLength={80}
-          className={cn(
-            "border-input bg-background h-9 w-full rounded-md border px-2 text-sm shadow-sm",
-          )}
-        />
-      </label>
-      <label className="space-y-1 text-xs">
-        <span className="text-muted-foreground">연령</span>
+        <span className="text-muted-foreground">연령부</span>
         <input
           name="ageGroup"
           defaultValue={d.ageGroup ?? ""}
           maxLength={120}
-          className={cn(
-            "border-input bg-background h-9 w-full rounded-md border px-2 text-sm shadow-sm",
-          )}
+          className={inputClass}
         />
       </label>
       <label className="space-y-1 text-xs">
-        <span className="text-muted-foreground">체급</span>
+        <span className="text-muted-foreground">성별</span>
+        <select
+          name="gender"
+          defaultValue={d.gender ?? ""}
+          className={inputClass}
+        >
+          <option value="">—</option>
+          {DIVISION_TEMPLATE_GENDERS.map((gender) => (
+            <option key={gender} value={gender}>
+              {gender === "male" ? "남성" : "여성"}
+            </option>
+          ))}
+        </select>
+      </label>
+      <label className="space-y-1 text-xs">
+        <span className="text-muted-foreground">체급명</span>
         <input
-          name="weightClass"
-          defaultValue={d.weightClass ?? ""}
+          name="weightClassName"
+          defaultValue={d.weightClassName ?? ""}
           maxLength={120}
-          className={cn(
-            "border-input bg-background h-9 w-full rounded-md border px-2 text-sm shadow-sm",
-          )}
+          className={inputClass}
+        />
+      </label>
+      <label className="space-y-1 text-xs">
+        <span className="text-muted-foreground">체중 기준</span>
+        <input
+          name="weightLimitText"
+          defaultValue={d.weightLimitText ?? ""}
+          maxLength={40}
+          placeholder="-30kg"
+          className={cn(inputClass, "font-mono")}
         />
       </label>
       <label className="space-y-1 text-xs">
@@ -101,9 +112,7 @@ function DivisionRowEditor({ d }: { d: Div }) {
           name="skillLevel"
           defaultValue={d.skillLevel ?? ""}
           maxLength={120}
-          className={cn(
-            "border-input bg-background h-9 w-full rounded-md border px-2 text-sm shadow-sm",
-          )}
+          className={inputClass}
         />
       </label>
       <div className="flex items-end sm:col-span-2 lg:col-span-3">

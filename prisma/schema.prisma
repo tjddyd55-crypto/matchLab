@@ -610,14 +610,16 @@ model EventStaffAccessLink {
 }
 
 model EventDivision {
-  id           String   @id @default(cuid())
-  eventId      String
-  sportType    String
-  ruleType     String?
-  gender       String?
-  ageGroup     String?
-  weightClass  String?
-  skillLevel   String?
+  id               String   @id @default(cuid())
+  eventId          String
+  sportType        String
+  ruleType         String?
+  gender           String?
+  ageGroup         String?
+  weightClass      String?
+  weightClassName  String?
+  weightLimitText  String?
+  skillLevel       String?
   createdAt    DateTime @default(now())
   updatedAt    DateTime @updatedAt
 

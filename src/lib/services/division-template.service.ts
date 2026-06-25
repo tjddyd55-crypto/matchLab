@@ -18,6 +18,7 @@ import {
   buildWeightClassDisplay,
   itemToEventDivisionRow,
   normalizeEventDivisionKey,
+  normalizeTemplateItemWeight,
   sortTemplateItems,
 } from "@/lib/division-template/division-template-row";
 
@@ -100,19 +101,13 @@ function parseTemplateItemsFromJson(
       typeof o.weightLimitText === "string" ? o.weightLimitText : null;
     const legacyWeightClass =
       typeof o.weightClass === "string" ? o.weightClass : null;
-    const weightClass =
-      legacyWeightClass?.trim() ||
-      [weightClassName, weightLimitText].filter(Boolean).join(" ").trim() ||
-      null;
 
-    if (!weightClass && o.isActive !== false) continue;
-
-    out.push({
+    const normalized = normalizeTemplateItemWeight({
       sportType,
       ruleType: typeof o.ruleType === "string" ? o.ruleType : null,
       gender: typeof o.gender === "string" ? o.gender : null,
       ageGroup: typeof o.ageGroup === "string" ? o.ageGroup : null,
-      weightClass,
+      weightClass: legacyWeightClass,
       weightClassName,
       weightLimitText,
       weightLimitKg:
@@ -132,6 +127,10 @@ function parseTemplateItemsFromJson(
       isActive: o.isActive === false ? false : true,
       skillLevel: typeof o.skillLevel === "string" ? o.skillLevel : null,
     });
+
+    if (!normalized.weightClass && normalized.isActive !== false) continue;
+
+    out.push(normalized);
   }
 
   return sortTemplateItems(out);
@@ -393,6 +392,8 @@ export const divisionTemplateService = {
         gender: normalized.gender?.trim() || null,
         ageGroup: normalized.ageGroup?.trim() || null,
         weightClass: normalized.weightClass?.trim() || null,
+        weightClassName: normalized.weightClassName?.trim() || null,
+        weightLimitText: normalized.weightLimitText?.trim() || null,
         skillLevel: normalized.skillLevel?.trim() || null,
       });
       created += 1;

@@ -194,6 +194,8 @@ const createEventDivisionBaseSchema = z.object({
   gender: z.string().max(80).optional().nullable(),
   ageGroup: z.string().max(120).optional().nullable(),
   weightClass: z.string().max(120).optional().nullable(),
+  weightClassName: z.string().max(120).optional().nullable(),
+  weightLimitText: z.string().max(40).optional().nullable(),
   skillLevel: z.string().max(120).optional().nullable(),
 });
 
@@ -208,6 +210,8 @@ const updateEventDivisionBaseSchema = z.object({
   gender: z.string().max(80).optional().nullable(),
   ageGroup: z.string().max(120).optional().nullable(),
   weightClass: z.string().max(120).optional().nullable(),
+  weightClassName: z.string().max(120).optional().nullable(),
+  weightLimitText: z.string().max(40).optional().nullable(),
   skillLevel: z.string().max(120).optional().nullable(),
 });
 
@@ -219,6 +223,8 @@ export const updateEventDivisionSchema = updateEventDivisionBaseSchema.superRefi
       v.gender !== undefined ||
       v.ageGroup !== undefined ||
       v.weightClass !== undefined ||
+      v.weightClassName !== undefined ||
+      v.weightLimitText !== undefined ||
       v.skillLevel !== undefined;
     if (!touched) {
       ctx.addIssue({

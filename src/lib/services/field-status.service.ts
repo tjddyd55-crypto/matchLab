@@ -28,6 +28,7 @@ import { eventRepository } from "@/lib/repositories/event.repository";
 import { safeNotify } from "@/lib/notifications/safe-dispatch";
 import { notificationService } from "@/lib/services/notification.service";
 import { evaluateWeighInWeight } from "@/lib/weigh-in-eval";
+import { resolveWeighInWeightLabel } from "@/lib/event-division-fields";
 import {
   buildFighterBracketAssignmentMap,
   type FieldStatusBracketAssignmentVM,
@@ -66,7 +67,7 @@ function mapRow(row: FieldStatusApplicationRow) {
     gymName: row.gym.name,
     divisionId: row.divisionId,
     divisionLabel: formatDivisionNameLabel(row.division),
-    weightClassLabel: row.division.weightClass,
+    weightClassLabel: resolveWeighInWeightLabel(row.division),
     checkInStatus: row.checkInStatus,
     checkInStatusLabel: getCheckInStatusLabel(row.checkInStatus),
     weighInStatus: row.weighInStatus,
@@ -411,7 +412,7 @@ export const fieldStatusService = {
 
     const evaluation = evaluateWeighInWeight(
       weightKg,
-      row.division.weightClass,
+      resolveWeighInWeightLabel(row.division),
     );
 
     let weighInStatus: WeighInStatus | undefined;
