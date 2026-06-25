@@ -16,6 +16,11 @@ import {
   parseBracketFighterSnapshot,
   type BracketFighterSnapshotPayload,
 } from "@/lib/bracket-snapshot";
+import {
+  formatBracketTitleForDisplay,
+  toEventDivisionDisplayInput,
+  type EventDivisionDisplayInput,
+} from "@/lib/event-division-fields";
 import { computeBracketAssignability } from "@/lib/bracket-assignability";
 import { computeFieldEligibility } from "@/lib/field-eligibility";
 import { validateMatchListPlacement } from "@/lib/bracket-match-placement";
@@ -334,10 +339,12 @@ function snapshotToPublic(
 export type OrganizerBracketListItemVM = {
   id: string;
   title: string;
+  displayTitle: string;
   type: BracketType;
   status: BracketStatus;
   isPublic: boolean;
   divisionId: string | null;
+  division: EventDivisionDisplayInput | null;
   divisionLabel: string | null;
   matchCount: number;
 };
@@ -388,10 +395,12 @@ export type OrganizerBracketDetailVM = {
   id: string;
   eventId: string;
   title: string;
+  displayTitle: string;
   type: BracketType;
   status: BracketStatus;
   isPublic: boolean;
   divisionId: string | null;
+  division: EventDivisionDisplayInput | null;
   divisionLabel: string | null;
   matches: OrganizerBracketMatchVM[];
   approvedFighterOptions: OrganizerApprovedFighterOptionVM[];
@@ -407,18 +416,21 @@ export const bracketService = {
     requireRole(actor, ["organizer", "admin"]);
     await requireOrganizerForEvent(actor, eventId);
     const rows = await bracketRepository.listBracketsByEvent(eventId);
-    return rows.map((r) => ({
-      id: r.id,
-      title: r.title,
-      type: r.type,
-      status: r.status,
-      isPublic: r.isPublic,
-      divisionId: r.divisionId,
-      divisionLabel: r.division
-        ? formatDivisionNameLabel(r.division)
-        : null,
-      matchCount: r._count.matches,
-    }));
+    return rows.map((r) => {
+      const division = toEventDivisionDisplayInput(r.division);
+      return {
+        id: r.id,
+        title: r.title,
+        displayTitle: formatBracketTitleForDisplay(r.title, division),
+        type: r.type,
+        status: r.status,
+        isPublic: r.isPublic,
+        divisionId: r.divisionId,
+        division,
+        divisionLabel: division ? formatDivisionNameLabel(division) : null,
+        matchCount: r._count.matches,
+      };
+    });
   },
 
   async getOrganizerBracketDetail(
@@ -515,17 +527,19 @@ export const bracketService = {
       )
       .join("|");
 
+    const division = toEventDivisionDisplayInput(full.division);
+
     return {
       id: full.id,
       eventId: full.eventId,
       title: full.title,
+      displayTitle: formatBracketTitleForDisplay(full.title, division),
       type: full.type,
       status: full.status,
       isPublic: full.isPublic,
       divisionId: full.divisionId,
-      divisionLabel: full.division
-        ? formatDivisionNameLabel(full.division)
-        : null,
+      division,
+      divisionLabel: division ? formatDivisionNameLabel(division) : null,
       matches,
       approvedFighterOptions,
       syncKey,
@@ -1517,8 +1531,9 @@ export const bracketService = {
       : [];
 
     return rows.map((b): PublicBracketDetailDTO => {
-      const divisionLabel = b.division
-        ? formatDivisionNameLabel(b.division)
+      const division = toEventDivisionDisplayInput(b.division);
+      const divisionLabel = division
+        ? formatDivisionNameLabel(division)
         : null;
 
       const matches: PublicBracketMatchDTO[] = b.matches.map((m) => {
@@ -1562,8 +1577,10 @@ export const bracketService = {
       return {
         id: b.id,
         title: b.title,
+        displayTitle: formatBracketTitleForDisplay(b.title, division),
         type: b.type,
         status: b.status,
+        division,
         divisionLabel,
         matches: sortedMatches,
       };

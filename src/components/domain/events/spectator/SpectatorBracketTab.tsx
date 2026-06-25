@@ -3,6 +3,7 @@ import type {
   PublicUnmatchedCandidateDTO,
 } from "@/lib/dto/public";
 import { PublicBracketRealtimeBridge } from "@/components/domain/brackets/PublicBracketRealtimeBridge";
+import { DivisionInfoChips } from "@/components/domain/shared/DivisionInfoChips";
 import { SpectatorMatchCard } from "@/components/domain/events/spectator/SpectatorMatchCard";
 import { SpectatorWatchEmptyState } from "@/components/domain/events/spectator/SpectatorWatchEmptyState";
 
@@ -38,12 +39,10 @@ export function SpectatorBracketTab({
         const sorted = bracket.matches;
         return (
           <section key={bracket.id} className="space-y-3">
-            <div>
-              <h2 className="text-base font-semibold">{bracket.title}</h2>
-              {bracket.divisionLabel ? (
-                <p className="text-muted-foreground text-sm">
-                  {bracket.divisionLabel}
-                </p>
+            <div className="space-y-2">
+              <h2 className="text-base font-semibold">{bracket.displayTitle}</h2>
+              {bracket.division ? (
+                <DivisionInfoChips division={bracket.division} />
               ) : null}
             </div>
             <div className="flex flex-col gap-4">
@@ -51,7 +50,7 @@ export function SpectatorBracketTab({
                 <SpectatorMatchCard
                   key={match.id}
                   match={match}
-                  divisionLabel={bracket.divisionLabel}
+                  division={bracket.division}
                   bracketType={bracket.type}
                   bracketIsPublic={match.matchIsPublicSparring}
                 />

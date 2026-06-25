@@ -8,6 +8,7 @@ import type {
   LiveStreamStatus,
   MatchRecordOutcome,
 } from "@/lib/enums";
+import type { EventDivisionDisplayInput } from "@/lib/event-division-fields";
 import type { OrganizerRegistrationStatus } from "@/lib/event-organizer-status";
 
 /**
@@ -157,8 +158,10 @@ export type PublicBracketMatchDTO = {
 export type PublicBracketDetailDTO = {
   id: string;
   title: string;
+  displayTitle: string;
   type: BracketType;
   status: BracketStatus;
+  division: EventDivisionDisplayInput | null;
   divisionLabel: string | null;
   matches: PublicBracketMatchDTO[];
 };

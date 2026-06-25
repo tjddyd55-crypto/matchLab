@@ -88,3 +88,15 @@ export function getDivisionGenderUiToken(
 ): DivisionGenderUiToken {
   return divisionGenderUiTokens[resolveDivisionGenderTone(gender)];
 }
+
+export const divisionGenderChipClassNames: Record<DivisionGenderTone, string> =
+  {
+    male: "border border-[var(--division-gender-male-border)] bg-[var(--division-gender-male-bg)] text-[var(--division-gender-male-text)]",
+    female:
+      "border border-[var(--division-gender-female-border)] bg-[var(--division-gender-female-bg)] text-[var(--division-gender-female-text)]",
+    unknown:
+      "border border-[var(--division-gender-unknown-border)] bg-[var(--division-gender-unknown-bg)] text-[var(--division-gender-unknown-text)]",
+  };
+
+export const divisionNeutralChipClassName =
+  "border border-border bg-muted/50 text-foreground";

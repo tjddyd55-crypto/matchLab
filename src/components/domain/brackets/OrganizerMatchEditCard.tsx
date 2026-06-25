@@ -5,8 +5,10 @@ import { OrganizerMatchEditSlot } from "@/components/domain/brackets/OrganizerMa
 import { MatchEditCenterSettings } from "@/components/domain/brackets/MatchEditCenterSettings";
 import { OrganizerMatchOpsPanel } from "@/components/domain/brackets/OrganizerMatchOpsPanel";
 import { MatchStatusBadge } from "@/components/domain/shared/MatchStatusBadge";
+import { MatchDivisionHeader } from "@/components/domain/shared/MatchDivisionHeader";
 import { Button } from "@/components/ui/button";
 import { bracketCardTypography } from "@/lib/bracket-card-typography";
+import type { EventDivisionDisplayInput } from "@/lib/event-division-fields";
 import type { OrganizerApprovedFighterOptionVM } from "@/lib/services/bracket.service";
 import type { OrganizerBracketMatchVM } from "@/lib/services/bracket.service";
 import type { EventCourtVM } from "@/lib/services/event-court.service";
@@ -43,7 +45,8 @@ export function OrganizerMatchEditCard({
   options,
   bracketType,
   bracketIsPublic,
-  divisionLabel,
+  division,
+  compactDivision = true,
 }: {
   eventId: string;
   bracketId: string;
@@ -53,7 +56,8 @@ export function OrganizerMatchEditCard({
   options: OrganizerApprovedFighterOptionVM[];
   bracketType: BracketType;
   bracketIsPublic?: boolean;
-  divisionLabel?: string | null;
+  division?: EventDivisionDisplayInput | null;
+  compactDivision?: boolean;
 }) {
   const [opsOpen, setOpsOpen] = useState(false);
   const editLocked = Boolean(match.hasOfficialResults);
@@ -62,12 +66,12 @@ export function OrganizerMatchEditCard({
   return (
     <article className="ring-foreground/10 overflow-hidden rounded-xl border bg-card shadow-sm">
       <header className="flex flex-wrap items-center justify-between gap-2 border-b bg-muted/30 px-3 py-1.5">
-        <div className="flex flex-wrap items-center gap-2">
-          <span className={bracketCardTypography.matchNumber}>{orderLabel}</span>
-          {divisionLabel ? (
-            <span className={bracketCardTypography.division}>{divisionLabel}</span>
-          ) : null}
-        </div>
+        <MatchDivisionHeader
+          matchNumberLabel={orderLabel}
+          division={division}
+          compact={compactDivision}
+          showSportRule={false}
+        />
         <div className="flex flex-wrap items-center gap-1.5">
           <MatchStatusBadge status={match.status} size="md" />
           {match.hasOfficialResults ? (

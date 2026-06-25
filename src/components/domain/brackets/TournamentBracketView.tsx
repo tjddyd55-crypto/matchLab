@@ -4,6 +4,7 @@ import type {
 } from "@/lib/dto/public";
 
 import { BracketMatchCard } from "@/components/domain/brackets/BracketMatchCard";
+import { DivisionInfoChips } from "@/components/domain/shared/DivisionInfoChips";
 
 function groupMatchesByRound(matches: PublicBracketMatchDTO[]) {
   const map = new Map<number, PublicBracketMatchDTO[]>();
@@ -32,12 +33,13 @@ export function TournamentBracketView({
 
   return (
     <section className="space-y-4">
-      <header>
-        <h2 className="text-xl font-semibold">{bracket.title}</h2>
-        <p className="text-muted-foreground mt-1 text-sm">
-          토너먼트형 ·{" "}
-          {bracket.divisionLabel ?? "경기구분 정보 없음"}
-        </p>
+      <header className="space-y-2">
+        <h2 className="text-xl font-semibold">{bracket.displayTitle}</h2>
+        {bracket.division ? (
+          <DivisionInfoChips division={bracket.division} />
+        ) : (
+          <p className="text-muted-foreground text-sm">경기구분 정보 없음</p>
+        )}
       </header>
 
       <div className="flex gap-4 overflow-x-auto pb-3 md:gap-6">
@@ -54,11 +56,12 @@ export function TournamentBracketView({
                 <BracketMatchCard
                   key={m.id}
                   match={m}
-                  divisionLabel={bracket.divisionLabel}
+                  division={bracket.division}
                   matPrefix="매트 "
                   bracketType={bracket.type}
                   bracketIsPublic={m.matchIsPublicSparring}
                   operationalSettingsLabel={m.operationalSettingsLabel}
+                  compactDivision
                 />
               ))}
             </div>
