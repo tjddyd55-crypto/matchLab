@@ -12,20 +12,25 @@ import { Button } from "@/components/ui/button";
 import { cn } from "@/lib/utils";
 
 const inputClass = cn(
-  "border-input bg-background h-9 w-full rounded-md border px-3 text-sm shadow-sm",
+  "border-input bg-background h-8 w-full rounded-md border px-2 text-sm shadow-sm",
 );
+
+const listAddGridClass =
+  "grid grid-cols-1 gap-2 sm:grid-cols-2 md:grid-cols-[minmax(0,1.1fr)_minmax(0,0.9fr)_minmax(0,0.75fr)_minmax(0,0.65fr)_minmax(0,0.65fr)_auto] md:items-center md:gap-2";
 
 export function EventDivisionForm({
   eventId,
   defaultAgeGroup,
   defaultGender,
   compact = false,
+  listVariant = false,
   sectionLabel,
 }: {
   eventId: string;
   defaultAgeGroup?: string;
   defaultGender?: DivisionTemplateGender;
   compact?: boolean;
+  listVariant?: boolean;
   sectionLabel?: string;
 }) {
   const router = useRouter();
@@ -41,6 +46,70 @@ export function EventDivisionForm({
   const title =
     sectionLabel ??
     (compact ? "체급 추가" : "경기구분 추가");
+
+  if (compact && listVariant) {
+    return (
+      <form
+        action={action}
+        className="mt-3 space-y-2 border-t border-dashed border-border/50 pt-3"
+      >
+        <input type="hidden" name="eventId" value={eventId} />
+        {defaultAgeGroup ? (
+          <input type="hidden" name="ageGroup" value={defaultAgeGroup} />
+        ) : null}
+        {defaultGender ? (
+          <input type="hidden" name="gender" value={defaultGender} />
+        ) : null}
+        <p className="text-muted-foreground text-xs font-medium">{title}</p>
+        {state?.ok === false ? (
+          <p className="text-destructive text-xs">{state.error.message}</p>
+        ) : null}
+        <div className={listAddGridClass}>
+          <input
+            name="sportType"
+            required
+            maxLength={120}
+            aria-label="종목·경기구분"
+            placeholder="종목·경기구분"
+            className={inputClass}
+          />
+          <input
+            name="weightClassName"
+            maxLength={120}
+            aria-label="체급명"
+            placeholder="체급명"
+            className={inputClass}
+          />
+          <input
+            name="weightLimitText"
+            maxLength={40}
+            aria-label="체중 기준"
+            placeholder="-30kg"
+            className={cn(inputClass, "font-mono")}
+          />
+          <input
+            name="ruleType"
+            maxLength={120}
+            aria-label="룰"
+            placeholder="룰"
+            className={inputClass}
+          />
+          <input
+            name="skillLevel"
+            maxLength={120}
+            aria-label="실력"
+            placeholder="실력"
+            className={inputClass}
+          />
+          <div className="flex justify-end sm:col-span-2 md:col-span-1">
+            <Button type="submit" size="sm" disabled={pending}>
+              {pending ? "추가 중…" : "체급 추가"}
+            </Button>
+          </div>
+        </div>
+      </form>
+    );
+  }
 
   return (
     <form
