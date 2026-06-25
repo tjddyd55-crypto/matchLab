@@ -30,8 +30,29 @@ import { cn } from "@/lib/utils";
 type Div = OrganizerEventDetailVM["divisions"][number];
 
 const inputClass = cn(
-  "border-input bg-background h-9 w-full rounded-md border px-2 text-sm shadow-sm",
+  "border-input bg-background h-8 w-full rounded-md border px-2 text-sm shadow-sm",
 );
+
+const listRowGridClass =
+  "grid grid-cols-1 gap-2 sm:grid-cols-2 md:grid-cols-[minmax(0,1.1fr)_minmax(0,0.9fr)_minmax(0,0.75fr)_minmax(0,0.65fr)_minmax(0,0.65fr)_auto] md:items-center md:gap-2";
+
+function DivisionListHeader() {
+  return (
+    <div
+      className={cn(
+        listRowGridClass,
+        "text-muted-foreground mb-1 hidden border-b border-border/50 pb-2 text-xs font-medium md:grid",
+      )}
+    >
+      <span>종목·경기구분</span>
+      <span>체급명</span>
+      <span>체중 기준</span>
+      <span>룰</span>
+      <span>실력</span>
+      <span className="text-right">동작</span>
+    </div>
+  );
+}
 
 function DivisionRowEditor({ d }: { d: Div }) {
   const router = useRouter();
@@ -111,9 +132,11 @@ function DivisionRowEditor({ d }: { d: Div }) {
 function DivisionDeleteButton({
   eventId,
   divisionId,
+  compact = false,
 }: {
   eventId: string;
   divisionId: string;
+  compact?: boolean;
 }) {
   const router = useRouter();
   const [state, action, pending] = useActionState(
@@ -144,7 +167,13 @@ function DivisionDeleteButton({
       {state?.ok === false ? (
         <p className="text-destructive mb-1 text-xs">{state.error.message}</p>
       ) : null}
-      <Button type="submit" size="sm" variant="outline" disabled={pending}>
+      <Button
+        type="submit"
+        size="sm"
+        variant="outline"
+        disabled={pending}
+        className={compact ? "h-8" : undefined}
+      >
         삭제
       </Button>
     </form>
@@ -154,16 +183,104 @@ function DivisionDeleteButton({
 function DivisionWeightRow({
   division,
   eventId,
+  layout = "list",
 }: {
   division: EventDivisionGroupItem;
   eventId: string;
+  layout?: "stack" | "list";
 }) {
-  return (
-    <div className="flex flex-col gap-2 rounded-lg border bg-background/80 p-3">
-      <div className="min-w-0 flex-1">
-        <DivisionRowEditor d={division} />
+  const router = useRouter();
+  const [state, action, pending] = useActionState(
+    updateEventDivisionAction,
+    null as ActionResult<{ ok: true }> | null,
+  );
+
+  useEffect(() => {
+    if (state?.ok === true) router.refresh();
+  }, [state, router]);
+
+  if (layout === "list") {
+    const formId = `division-edit-${division.id}`;
+
+    return (
+      <div
+        className={cn(
+          listRowGridClass,
+          "group border-b border-border/40 px-0.5 py-2 transition-colors last:border-b-0 hover:bg-muted/30",
+        )}
+      >
+        <form id={formId} action={action} className="contents">
+          <input type="hidden" name="divisionId" value={division.id} />
+          <input type="hidden" name="ageGroup" value={division.ageGroup ?? ""} />
+          <input type="hidden" name="gender" value={division.gender ?? ""} />
+          {state?.ok === false ? (
+            <p className="text-destructive col-span-full text-xs">{state.error.message}</p>
+          ) : null}
+          <input
+            name="sportType"
+            required
+            defaultValue={division.sportType}
+            maxLength={120}
+            aria-label="종목·경기구분"
+            className={inputClass}
+          />
+          <input
+            name="weightClassName"
+            defaultValue={division.weightClassName ?? ""}
+            maxLength={120}
+            aria-label="체급명"
+            placeholder="체급명"
+            className={inputClass}
+          />
+          <input
+            name="weightLimitText"
+            defaultValue={division.weightLimitText ?? ""}
+            maxLength={40}
+            aria-label="체중 기준"
+            placeholder="-30kg"
+            className={cn(inputClass, "font-mono")}
+          />
+          <input
+            name="ruleType"
+            defaultValue={division.ruleType ?? ""}
+            maxLength={120}
+            aria-label="룰"
+            placeholder="룰"
+            className={inputClass}
+          />
+          <input
+            name="skillLevel"
+            defaultValue={division.skillLevel ?? ""}
+            maxLength={120}
+            aria-label="실력"
+            placeholder="실력"
+            className={inputClass}
+          />
+        </form>
+        <div className="flex justify-end gap-1">
+          <Button
+            type="submit"
+            form={formId}
+            size="sm"
+            variant="secondary"
+            disabled={pending}
+          >
+            {pending ? "…" : "저장"}
+          </Button>
+          <DivisionDeleteButton
+            eventId={eventId}
+            divisionId={division.id}
+            compact
+          />
+        </div>
       </div>
-      <div className="flex justify-end border-t pt-2">
+    );
+  }
+
+  return (
+    <div className="space-y-2 border-b border-border/40 py-3 last:border-b-0">
+      <DivisionRowEditor d={division} />
+      <div className="flex justify-end">
         <DivisionDeleteButton eventId={eventId} divisionId={division.id} />
       </div>
     </div>
@@ -187,28 +304,34 @@ function GenderDivisionSection({
     ageGroup === "(연령부 미지정)" ? undefined : ageGroup;
 
   return (
-    <div className="space-y-3 rounded-lg border bg-muted/15 p-3">
-      <h4 className="text-sm font-semibold">{title}</h4>
-      <div className="space-y-2">
-        {divisions.length === 0 ? (
-          <p className="text-muted-foreground rounded-md border border-dashed bg-muted/10 px-3 py-4 text-center text-xs">
-            등록된 체급이 없습니다.
-          </p>
-        ) : (
-          divisions.map((division) => (
+    <div className="space-y-3">
+      <div>
+        <h4 className="text-sm font-semibold">{title}</h4>
+        <div className="mt-2 h-px bg-border/50" />
+      </div>
+
+      {divisions.length === 0 ? (
+        <p className="text-muted-foreground py-2 text-xs">등록된 체급이 없습니다.</p>
+      ) : (
+        <div>
+          <DivisionListHeader />
+          {divisions.map((division) => (
             <DivisionWeightRow
               key={division.id}
               division={division}
               eventId={eventId}
+              layout="list"
             />
-          ))
-        )}
-      </div>
+          ))}
+        </div>
+      )}
+
       <EventDivisionForm
         eventId={eventId}
         defaultAgeGroup={defaultAgeGroup}
         defaultGender={gender ?? undefined}
         compact
+        listVariant
         sectionLabel={
           gender
             ? `${ageGroup} · ${DIVISION_TEMPLATE_GENDER_LABELS[gender]} 체급 추가`
@@ -229,16 +352,18 @@ function UnknownGenderSection({
   if (divisions.length === 0) return null;
 
   return (
-    <div className="space-y-3 rounded-lg border border-dashed bg-muted/10 p-3">
-      <h4 className="text-sm font-medium text-muted-foreground">
-        성별 미지정
-      </h4>
+    <div className="space-y-3 border-t border-dashed border-border/50 pt-4">
+      <div>
+        <h4 className="text-muted-foreground text-sm font-medium">성별 미지정</h4>
+        <div className="mt-2 h-px bg-border/40" />
+      </div>
       <div className="space-y-2">
         {divisions.map((division) => (
           <DivisionWeightRow
             key={division.id}
             division={division}
             eventId={eventId}
+            layout="stack"
           />
         ))}
       </div>
@@ -246,7 +371,7 @@ function UnknownGenderSection({
   );
 }
 
-function AgeGroupDivisionCard({
+function AgeGroupDivisionSection({
   group,
   eventId,
 }: {
@@ -254,35 +379,36 @@ function AgeGroupDivisionCard({
   eventId: string;
 }) {
   return (
-    <section className="space-y-4 rounded-xl border bg-card p-4 shadow-sm md:p-5">
+    <section className="space-y-5 border-b border-border/50 pb-8 last:border-b-0 last:pb-0">
       <div className="space-y-1">
-        <h3 className="text-lg font-semibold">{group.ageGroup}</h3>
+        <h3 className="text-lg font-semibold tracking-tight">{group.ageGroup}</h3>
         <p className="text-muted-foreground text-xs">
           남성/여성 체급을 연령부 단위로 관리합니다.
         </p>
       </div>
 
-      <div className="grid gap-4 xl:grid-cols-2">
-        <GenderDivisionSection
-          title="남성"
-          gender="male"
-          ageGroup={group.ageGroup}
-          divisions={group.male}
-          eventId={eventId}
-        />
-        <GenderDivisionSection
-          title="여성"
-          gender="female"
-          ageGroup={group.ageGroup}
-          divisions={group.female}
-          eventId={eventId}
-        />
+      <div className="grid gap-6 xl:grid-cols-2 xl:gap-8 xl:divide-x xl:divide-border/40">
+        <div className="xl:pr-6">
+          <GenderDivisionSection
+            title="남성"
+            gender="male"
+            ageGroup={group.ageGroup}
+            divisions={group.male}
+            eventId={eventId}
+          />
+        </div>
+        <div className="xl:pl-6">
+          <GenderDivisionSection
+            title="여성"
+            gender="female"
+            ageGroup={group.ageGroup}
+            divisions={group.female}
+            eventId={eventId}
+          />
+        </div>
       </div>
 
-      <UnknownGenderSection
-        divisions={group.unknown}
-        eventId={eventId}
-      />
+      <UnknownGenderSection divisions={group.unknown} eventId={eventId} />
     </section>
   );
 }
@@ -325,9 +451,9 @@ export function EventDivisionManager({
           불러오세요.
         </p>
       ) : (
-        <div className="space-y-6">
+        <div className="space-y-10">
           {groupedDivisions.map((group) => (
-            <AgeGroupDivisionCard
+            <AgeGroupDivisionSection
               key={group.ageGroup}
               group={group}
               eventId={eventId}
