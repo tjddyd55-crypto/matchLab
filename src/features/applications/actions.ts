@@ -27,6 +27,11 @@ import {
 } from "@/lib/validators/organizer-manual-application.validator";
 import { ApplicationStatus, PaymentStatus } from "@/generated/prisma";
 import {
+  logManualApplicationCreate,
+  logManualApplicationCreateError,
+  maskPhoneLast4,
+} from "@/lib/applications/manual-application-create-log";
+import {
   bulkApplyToEventSchema,
   type BulkApplyToEventInput,
 } from "@/lib/validators/bulk-application.validator";
@@ -255,8 +260,19 @@ export async function createOrganizerManualApplicationAction(
       linkFighterId: formReq(formData, "linkFighterId") || undefined,
     };
 
+    logManualApplicationCreate("action_received", {
+      eventId: raw.eventId,
+      divisionId: raw.divisionId,
+      gymMode: raw.gymMode,
+      phoneLast4: maskPhoneLast4(raw.phone),
+    });
+
     const parsed = organizerManualApplicationSchema.safeParse(raw);
     if (!parsed.success) {
+      logManualApplicationCreateError("action_validation_failed", {
+        eventId: raw.eventId,
+        message: parsed.error.issues[0]?.message,
+      });
       return actionFailure(
         "VALIDATION_ERROR",
         parsed.error.issues[0]?.message ?? "입력값을 확인해 주세요.",
@@ -271,6 +287,13 @@ export async function createOrganizerManualApplicationAction(
 
     revalidatePath(`/organizer/events/${parsed.data.eventId}/applications`);
     revalidatePath(`/organizer/events/${parsed.data.eventId}/check-in`);
+
+    logManualApplicationCreate("action_success", {
+      eventId: parsed.data.eventId,
+      applicationId: result.applicationId,
+      fighterId: result.fighterId,
+      gymId: result.gymId,
+    });
 
     return actionSuccess(result);
   });

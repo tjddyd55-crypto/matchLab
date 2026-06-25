@@ -44,6 +44,11 @@ import {
   readOrganizerManualEntryFromAgreementSnapshot,
 } from "@/lib/application-form/organizer-manual-entry";
 import { formatFighterGenderLabel } from "@/lib/applications/division-fighter-match";
+import {
+  logManualApplicationCreate,
+  logManualApplicationCreateError,
+  maskPhoneLast4,
+} from "@/lib/applications/manual-application-create-log";
 import { toUtcDateOnly } from "@/lib/date-only";
 import { normalizeGymFighterPhone } from "@/lib/gym-fighter-management";
 import { publicAgeGroupFromBirthDate } from "@/lib/public-fighter/age-group";
@@ -153,6 +158,54 @@ type GymApplicationCreateContext = {
   initialApplicationStatus?: ApplicationStatus;
   initialPaymentStatus?: PaymentStatus;
 };
+
+type FighterForManualApplication = {
+  id: string;
+  fighterCode: string;
+  name: string;
+  profileImageUrl: string | null;
+  recordWin: number;
+  recordLoss: number;
+  recordDraw: number;
+};
+
+function buildFighterForManualApplication(input: {
+  id: string;
+  fighterCode: string;
+  name: string;
+}): FighterForManualApplication {
+  return {
+    id: input.id,
+    fighterCode: input.fighterCode,
+    name: input.name,
+    profileImageUrl: null,
+    recordWin: 0,
+    recordLoss: 0,
+    recordDraw: 0,
+  };
+}
+
+async function assertNoDuplicateManualApplication(input: {
+  eventId: string;
+  divisionId: string;
+  fighterIds: string[];
+  tx?: Prisma.TransactionClient;
+}): Promise<void> {
+  for (const fighterId of input.fighterIds) {
+    const existing = await applicationRepository.findExistingApplication(
+      input.eventId,
+      fighterId,
+      input.divisionId,
+      input.tx,
+    );
+    if (existing) {
+      throw new AppError(
+        "CONFLICT",
+        "이미 등록된 선수입니다. 동일 대회·부문 신청이 존재합니다.",
+      );
+    }
+  }
+}
 
 async function createGymEventApplication(
   ctx: GymApplicationCreateContext,
@@ -415,6 +468,7 @@ export type BulkApplyItemResultDTO = {
 export type CreateOrganizerManualApplicationResultDTO = {
   applicationId: string;
   fighterId: string;
+  gymId: string;
   fighterName: string;
   gymName: string;
 };
@@ -1322,254 +1376,323 @@ export const applicationService = {
     actor: ActorContext,
     input: OrganizerManualApplicationInput,
   ): Promise<CreateOrganizerManualApplicationResultDTO> {
-    requireRole(actor, ["organizer", "admin"]);
-    await requireOrganizerForEvent(actor, input.eventId);
+    const logBase = {
+      eventId: input.eventId,
+      divisionId: input.divisionId,
+      gymMode: input.gymMode,
+      phoneLast4: maskPhoneLast4(input.phone),
+    };
 
-    const event =
-      await eventRepository.findEventWithDivisionsForApplication(input.eventId);
-    if (!event) {
-      throw new AppError("NOT_FOUND", "대회를 찾을 수 없습니다.");
-    }
+    logManualApplicationCreate("start", logBase);
 
-    const division = event.divisions.find((d) => d.id === input.divisionId);
-    if (!division) {
-      throw new AppError("NOT_FOUND", "유효하지 않은 경기구분/체급입니다.");
-    }
+    try {
+      requireRole(actor, ["organizer", "admin"]);
+      await requireOrganizerForEvent(actor, input.eventId);
+      logManualApplicationCreate("auth_checked", logBase);
 
-    const phone = normalizeGymFighterPhone(input.phone) || "-";
-    const birthDate = toUtcDateOnly(input.birthDate);
-
-    const duplicates =
-      await fighterRepository.findIdentityDuplicateCandidates({
-        name: input.fighterName,
-        birthDate,
-        gender: input.gender,
-        phone: phone !== "-" ? phone : undefined,
-      });
-
-    if (duplicates.length > 0 && !input.confirmDuplicate) {
-      throw new AppError(
-        "CONFLICT",
-        "동일한 선수가 이미 등록되어 있을 수 있습니다. 확인 후 다시 등록해 주세요.",
-        {
-          duplicateCandidates: duplicates.map((d) => ({
-            id: d.id,
-            fighterCode: d.fighterCode,
-            name: d.name,
-          })),
-        },
-      );
-    }
-
-    const streamingAgreementRequired =
-      event.liveStreamingEnabled || event.streamingConsentRequired;
-
-    const manualConfig = parseManualFieldsConfig(
-      event.applicationFormTemplate?.manualFieldsJson,
-    );
-    const applicationFormMode = resolveApplicationFormMode(
-      event.applicationFormTemplate
-        ? {
-            templateId: event.applicationFormTemplateId,
-            fieldsJson: event.applicationFormTemplate.fieldsJson,
-            manualFieldsJson: event.applicationFormTemplate.manualFieldsJson,
-          }
-        : null,
-    );
-
-    const paymentSetting = await eventRepository.findEventPaymentSettingFull(
-      input.eventId,
-    );
-    const feeAmount = paymentSetting?.feeAmount ?? 0;
-    const appliedAt = new Date();
-
-    const memoParts = ["[주최자 직접 등록]"];
-    if (input.memo?.trim()) {
-      memoParts.push(input.memo.trim());
-    }
-
-    const result = await prisma.$transaction(async (tx) => {
-      let gym: { id: string; name: string };
-      if (input.gymMode === "existing") {
-        const row = await gymRepository.findActiveGymById(input.gymId!, tx);
-        if (!row) {
-          throw new AppError("VALIDATION_ERROR", "체육관을 찾을 수 없습니다.");
-        }
-        gym = row;
-      } else {
-        const created = await gymRepository.findOrCreateGymForOrganizerManualEntry(
-          input.gymName!,
-          tx,
-        );
-        gym = { id: created.id, name: created.name };
+      const event =
+        await eventRepository.findEventWithDivisionsForApplication(input.eventId);
+      if (!event) {
+        throw new AppError("NOT_FOUND", "대회를 찾을 수 없습니다.");
       }
 
-      let fighter: {
-        id: string;
-        fighterCode: string;
-        name: string;
-        profileImageUrl: string | null;
-        recordWin: number;
-        recordLoss: number;
-        recordDraw: number;
-      };
+      const division = event.divisions.find((d) => d.id === input.divisionId);
+      if (!division) {
+        throw new AppError("NOT_FOUND", "유효하지 않은 경기구분/체급입니다.");
+      }
+      logManualApplicationCreate("division_resolved", {
+        ...logBase,
+        divisionLabel: formatDivisionLabel(division),
+      });
 
-      if (input.linkFighterId && input.confirmDuplicate) {
-        const linked = await fighterRepository.findFighterById(
-          input.linkFighterId,
-        );
-        if (!linked) {
-          throw new AppError("NOT_FOUND", "연결할 선수를 찾을 수 없습니다.");
-        }
-        await fighterRepository.linkExistingFighterToGym(tx, {
-          fighterId: linked.id,
-          gymId: gym.id,
-          gymInternalMemo: null,
-        });
-        await fighterRepository.updateFighterProfile(tx, linked.id, {
-          name: input.fighterName.trim(),
+      const phone = normalizeGymFighterPhone(input.phone) || "-";
+      const birthDate = toUtcDateOnly(input.birthDate);
+
+      const duplicates =
+        await fighterRepository.findIdentityDuplicateCandidates({
+          name: input.fighterName,
           birthDate,
           gender: input.gender,
-          phone,
-          guardianName: input.guardianName ?? null,
-          guardianPhone: input.guardianPhone ?? null,
-          status: FighterStatus.active,
+          phone: phone !== "-" ? phone : undefined,
         });
-        fighter = linked;
-      } else {
-        const fighterCode = await fighterService.generateFighterCode(tx);
-        const created = await fighterRepository.createFighterWithGymHistory(
-          tx,
+
+      if (duplicates.length > 0 && !input.confirmDuplicate) {
+        throw new AppError(
+          "CONFLICT",
+          "동일한 선수가 이미 등록되어 있을 수 있습니다. 확인 후 다시 등록해 주세요.",
           {
-            fighterCode,
+            duplicateCandidates: duplicates.map((d) => ({
+              id: d.id,
+              fighterCode: d.fighterCode,
+              name: d.name,
+            })),
+          },
+        );
+      }
+
+      if (input.confirmDuplicate && duplicates.length > 0) {
+        const fighterIdsToCheck = input.linkFighterId
+          ? [input.linkFighterId]
+          : duplicates.map((d) => d.id);
+        await assertNoDuplicateManualApplication({
+          eventId: input.eventId,
+          divisionId: input.divisionId,
+          fighterIds: fighterIdsToCheck,
+        });
+      }
+
+      logManualApplicationCreate("duplicate_checked", {
+        ...logBase,
+        duplicateCount: duplicates.length,
+        confirmDuplicate: input.confirmDuplicate,
+        linkFighterId: input.linkFighterId ?? null,
+      });
+
+      const streamingAgreementRequired =
+        event.liveStreamingEnabled || event.streamingConsentRequired;
+
+      const manualConfig = parseManualFieldsConfig(
+        event.applicationFormTemplate?.manualFieldsJson,
+      );
+      const applicationFormMode = resolveApplicationFormMode(
+        event.applicationFormTemplate
+          ? {
+              templateId: event.applicationFormTemplateId,
+              fieldsJson: event.applicationFormTemplate.fieldsJson,
+              manualFieldsJson: event.applicationFormTemplate.manualFieldsJson,
+            }
+          : null,
+      );
+
+      const paymentSetting = await eventRepository.findEventPaymentSettingFull(
+        input.eventId,
+      );
+      const feeAmount = paymentSetting?.feeAmount ?? 0;
+      const appliedAt = new Date();
+
+      const memoParts = ["[주최자 직접 등록]"];
+      if (input.memo?.trim()) {
+        memoParts.push(input.memo.trim());
+      }
+
+      const result = await prisma.$transaction(async (tx) => {
+        let gym: { id: string; name: string };
+        if (input.gymMode === "existing") {
+          const row = await gymRepository.findActiveGymById(input.gymId!, tx);
+          if (!row) {
+            throw new AppError("VALIDATION_ERROR", "체육관을 찾을 수 없습니다.");
+          }
+          gym = row;
+        } else {
+          const created = await gymRepository.findOrCreateGymForOrganizerManualEntry(
+            input.gymName!,
+            tx,
+          );
+          gym = { id: created.id, name: created.name };
+        }
+        logManualApplicationCreate("gym_resolved", {
+          ...logBase,
+          gymId: gym.id,
+          gymCreated: input.gymMode === "manual",
+        });
+
+        let fighter: FighterForManualApplication;
+
+        if (input.linkFighterId && input.confirmDuplicate) {
+          const linked = await fighterRepository.findFighterById(
+            input.linkFighterId,
+            tx,
+          );
+          if (!linked) {
+            throw new AppError("NOT_FOUND", "연결할 선수를 찾을 수 없습니다.");
+          }
+          await fighterRepository.linkExistingFighterToGym(tx, {
+            fighterId: linked.id,
+            gymId: gym.id,
+            gymInternalMemo: null,
+          });
+          await fighterRepository.updateFighterProfile(tx, linked.id, {
             name: input.fighterName.trim(),
             birthDate,
             gender: input.gender,
             phone,
             guardianName: input.guardianName ?? null,
             guardianPhone: input.guardianPhone ?? null,
-            currentGymId: gym.id,
-          },
-        );
-        const full = await fighterRepository.findFighterById(created.id);
-        if (!full) {
-          throw new AppError("INTERNAL", "선수 생성 후 조회에 실패했습니다.");
-        }
-        fighter = full;
-      }
-
-      const existing = await applicationRepository.findExistingApplication(
-        input.eventId,
-        fighter.id,
-        input.divisionId,
-        tx,
-      );
-      if (existing) {
-        throw new AppError(
-          "CONFLICT",
-          "이미 해당 부문에 신청한 선수입니다. (동일 대회·선수·경기구분 조합은 한 번만 가능합니다.)",
-        );
-      }
-
-      let customFormSnapshot: CustomFormSnapshot | null = null;
-      if (
-        applicationFormMode === "custom" &&
-        manualConfig.fields.length > 0 &&
-        event.applicationFormTemplate
-      ) {
-        const answers = buildOrganizerManualCustomFormAnswers(
-          manualConfig.fields,
-        );
-        const validationError = validateCustomFormAnswers(
-          manualConfig.fields,
-          answers,
-        );
-        if (validationError) {
-          throw new AppError("VALIDATION_ERROR", validationError);
-        }
-        customFormSnapshot = buildCustomFormSnapshot(
-          manualConfig.fields,
-          answers,
-          {
-            eventTitle: event.title,
-            gymName: gym.name,
-            divisionLabel: formatDivisionLabel(division),
-            division,
-            fighter: {
-              name: fighter.name,
-              gender: input.gender,
+            status: FighterStatus.active,
+          });
+          fighter = {
+            id: linked.id,
+            fighterCode: linked.fighterCode,
+            name: input.fighterName.trim(),
+            profileImageUrl: linked.profileImageUrl,
+            recordWin: linked.recordWin,
+            recordLoss: linked.recordLoss,
+            recordDraw: linked.recordDraw,
+          };
+          logManualApplicationCreate("fighter_reused", {
+            ...logBase,
+            fighterId: fighter.id,
+          });
+        } else {
+          const fighterCode = await fighterService.generateFighterCode(tx);
+          const created = await fighterRepository.createFighterWithGymHistory(
+            tx,
+            {
+              fighterCode,
+              name: input.fighterName.trim(),
               birthDate,
-              weightKg: null,
-              primarySport: null,
+              gender: input.gender,
+              phone,
               guardianName: input.guardianName ?? null,
               guardianPhone: input.guardianPhone ?? null,
+              currentGymId: gym.id,
             },
-          },
-          {
-            templateId: event.applicationFormTemplate.id,
-            templateTitle: event.applicationFormTemplate.title,
-            capturedAt: appliedAt.toISOString(),
-          },
-        );
-      }
+          );
+          fighter = buildFighterForManualApplication({
+            id: created.id,
+            fighterCode: created.fighterCode,
+            name: input.fighterName.trim(),
+          });
+          logManualApplicationCreate("fighter_created", {
+            ...logBase,
+            fighterId: fighter.id,
+          });
+        }
 
-      const { applicationId } = await createGymEventApplication(
-        {
+        await assertNoDuplicateManualApplication({
           eventId: input.eventId,
           divisionId: input.divisionId,
-          gymId: gym.id,
-          gymDisplayName: gym.name,
-          fighter,
-          agreements: {
-            rulesAgreed: true,
-            privacyAgreed: true,
-            resultDisclosureAgreed: true,
-            photoVideoAgreed: true,
-            streamingAgreed: streamingAgreementRequired ? true : undefined,
-          },
-          streamingAgreementRequired,
-          appliedByUserId: actor.userId,
-          appliedAt,
-          feeAmount,
-          memo: memoParts.join("\n"),
-          customFormSnapshot,
-          organizerManualEntry: {
-            manualCreatedByUserId: actor.userId,
-          },
-          initialApplicationStatus: input.applicationStatus,
-          initialPaymentStatus: input.paymentStatus,
-        },
-        tx,
-      );
+          fighterIds: [fighter.id],
+          tx,
+        });
 
-      if (input.applicationStatus === ApplicationStatus.approved) {
-        await creditService.debitParticipantFee(
+        let customFormSnapshot: CustomFormSnapshot | null = null;
+        if (
+          applicationFormMode === "custom" &&
+          manualConfig.fields.length > 0 &&
+          event.applicationFormTemplate
+        ) {
+          const answers = buildOrganizerManualCustomFormAnswers(
+            manualConfig.fields,
+          );
+          const validationError = validateCustomFormAnswers(
+            manualConfig.fields,
+            answers,
+          );
+          if (validationError) {
+            throw new AppError("VALIDATION_ERROR", validationError);
+          }
+          customFormSnapshot = buildCustomFormSnapshot(
+            manualConfig.fields,
+            answers,
+            {
+              eventTitle: event.title,
+              gymName: gym.name,
+              divisionLabel: formatDivisionLabel(division),
+              division,
+              fighter: {
+                name: fighter.name,
+                gender: input.gender,
+                birthDate,
+                weightKg: null,
+                primarySport: null,
+                guardianName: input.guardianName ?? null,
+                guardianPhone: input.guardianPhone ?? null,
+              },
+            },
+            {
+              templateId: event.applicationFormTemplate.id,
+              templateTitle: event.applicationFormTemplate.title,
+              capturedAt: appliedAt.toISOString(),
+            },
+          );
+        }
+
+        const { applicationId } = await createGymEventApplication(
           {
-            organizerId: event.organizerId,
             eventId: input.eventId,
-            eventApplicationId: applicationId,
-            actor,
+            divisionId: input.divisionId,
+            gymId: gym.id,
+            gymDisplayName: gym.name,
+            fighter,
+            agreements: {
+              rulesAgreed: true,
+              privacyAgreed: true,
+              resultDisclosureAgreed: true,
+              photoVideoAgreed: true,
+              streamingAgreed: streamingAgreementRequired ? true : undefined,
+            },
+            streamingAgreementRequired,
+            appliedByUserId: actor.userId,
+            appliedAt,
+            feeAmount,
+            memo: memoParts.join("\n"),
+            customFormSnapshot,
+            organizerManualEntry: {
+              manualCreatedByUserId: actor.userId,
+            },
+            initialApplicationStatus: input.applicationStatus,
+            initialPaymentStatus: input.paymentStatus,
           },
           tx,
         );
-      }
 
-      return {
-        applicationId,
-        fighterId: fighter.id,
-        fighterName: fighter.name,
-        gymName: gym.name,
-      };
-    });
+        logManualApplicationCreate("application_created", {
+          ...logBase,
+          applicationId,
+          fighterId: fighter.id,
+          gymId: gym.id,
+        });
 
-    safeNotify(`application-manual-created:${result.applicationId}`, () =>
-      notificationService.notifyApplicationSubmitted({
-        eventId: input.eventId,
-        eventTitle: event.title,
-        count: 1,
-      }),
-    );
+        if (input.applicationStatus === ApplicationStatus.approved) {
+          await creditService.debitParticipantFee(
+            {
+              organizerId: event.organizerId,
+              eventId: input.eventId,
+              eventApplicationId: applicationId,
+              actor,
+            },
+            tx,
+          );
+        }
 
-    return result;
+        return {
+          applicationId,
+          fighterId: fighter.id,
+          gymId: gym.id,
+          fighterName: fighter.name,
+          gymName: gym.name,
+        };
+      });
+
+      logManualApplicationCreate("success", {
+        ...logBase,
+        applicationId: result.applicationId,
+        fighterId: result.fighterId,
+        gymId: result.gymId,
+      });
+
+      safeNotify(`application-manual-created:${result.applicationId}`, () =>
+        notificationService.notifyApplicationSubmitted({
+          eventId: input.eventId,
+          eventTitle: event.title,
+          count: 1,
+        }),
+      );
+
+      return result;
+    } catch (error) {
+      logManualApplicationCreateError("failed", {
+        ...logBase,
+        errorName: error instanceof Error ? error.name : "UnknownError",
+        errorMessage:
+          error instanceof AppError
+            ? error.message
+            : error instanceof Error
+              ? error.message
+              : "unknown",
+      });
+      throw error;
+    }
   },
 };
