@@ -24,6 +24,14 @@ import {
   type AgeGroupDivisionGroup,
   type EventDivisionGroupItem,
 } from "@/lib/event-division-grouping";
+import {
+  divisionAgeGroupSectionClass,
+  divisionGenderColumnDividerClass,
+  divisionGenderUiTokens,
+  divisionListHeaderBaseClass,
+  divisionListRowBaseClass,
+  type DivisionGenderTone,
+} from "@/lib/ui/division-gender-ui";
 import { Button } from "@/components/ui/button";
 import { cn } from "@/lib/utils";
 
@@ -33,17 +41,11 @@ const inputClass = cn(
   "border-input bg-background h-8 w-full rounded-md border px-2 text-sm shadow-sm",
 );
 
-const listRowGridClass =
-  "grid grid-cols-1 gap-2 sm:grid-cols-2 md:grid-cols-[minmax(0,1.1fr)_minmax(0,0.9fr)_minmax(0,0.75fr)_minmax(0,0.65fr)_minmax(0,0.65fr)_auto] md:items-center md:gap-2";
+function DivisionListHeader({ tone }: { tone: DivisionGenderTone }) {
+  const token = divisionGenderUiTokens[tone];
 
-function DivisionListHeader() {
   return (
-    <div
-      className={cn(
-        listRowGridClass,
-        "text-muted-foreground mb-1 hidden border-b border-border/50 pb-2 text-xs font-medium md:grid",
-      )}
-    >
+    <div className={cn(divisionListHeaderBaseClass, token.listHeaderClassName)}>
       <span>종목·경기구분</span>
       <span>체급명</span>
       <span>체중 기준</span>
@@ -203,12 +205,7 @@ function DivisionWeightRow({
     const formId = `division-edit-${division.id}`;
 
     return (
-      <div
-        className={cn(
-          listRowGridClass,
-          "group border-b border-border/40 px-0.5 py-2 transition-colors last:border-b-0 hover:bg-muted/30",
-        )}
-      >
+      <div className={divisionListRowBaseClass}>
         <form id={formId} action={action} className="contents">
           <input type="hidden" name="divisionId" value={division.id} />
           <input type="hidden" name="ageGroup" value={division.ageGroup ?? ""} />
@@ -278,7 +275,7 @@ function DivisionWeightRow({
   }
 
   return (
-    <div className="space-y-2 border-b border-border/40 py-3 last:border-b-0">
+    <div className="space-y-2 border-b border-[var(--division-section-divider)] py-3 last:border-b-0">
       <DivisionRowEditor d={division} />
       <div className="flex justify-end">
         <DivisionDeleteButton eventId={eventId} divisionId={division.id} />
@@ -288,56 +285,67 @@ function DivisionWeightRow({
 }
 
 function GenderDivisionSection({
-  title,
+  tone,
   gender,
   ageGroup,
   divisions,
   eventId,
+  className,
 }: {
-  title: string;
+  tone: DivisionGenderTone;
   gender: DivisionTemplateGender | null;
   ageGroup: string;
   divisions: EventDivisionGroupItem[];
   eventId: string;
+  className?: string;
 }) {
+  const token = divisionGenderUiTokens[tone];
   const defaultAgeGroup =
     ageGroup === "(연령부 미지정)" ? undefined : ageGroup;
+  const genderLabel = gender
+    ? DIVISION_TEMPLATE_GENDER_LABELS[gender]
+    : token.label;
 
   return (
-    <div className="space-y-3">
-      <div>
-        <h4 className="text-sm font-semibold">{title}</h4>
-        <div className="mt-2 h-px bg-border/50" />
+    <div className={cn(token.columnClassName, "space-y-0", className)}>
+      <div className={token.headerClassName}>
+        <span className={token.headerAccentClassName} aria-hidden />
+        <h4>{genderLabel}</h4>
       </div>
 
-      {divisions.length === 0 ? (
-        <p className="text-muted-foreground py-2 text-xs">등록된 체급이 없습니다.</p>
-      ) : (
-        <div>
-          <DivisionListHeader />
-          {divisions.map((division) => (
-            <DivisionWeightRow
-              key={division.id}
-              division={division}
-              eventId={eventId}
-              layout="list"
-            />
-          ))}
-        </div>
-      )}
+      <div className="px-1 pb-1 pt-2">
+        {divisions.length === 0 ? (
+          <p className="text-muted-foreground py-2 text-xs">
+            등록된 체급이 없습니다.
+          </p>
+        ) : (
+          <div>
+            <DivisionListHeader tone={tone} />
+            {divisions.map((division) => (
+              <DivisionWeightRow
+                key={division.id}
+                division={division}
+                eventId={eventId}
+                layout="list"
+              />
+            ))}
+          </div>
+        )}
 
-      <EventDivisionForm
-        eventId={eventId}
-        defaultAgeGroup={defaultAgeGroup}
-        defaultGender={gender ?? undefined}
-        compact
-        listVariant
-        sectionLabel={
-          gender
-            ? `${ageGroup} · ${DIVISION_TEMPLATE_GENDER_LABELS[gender]} 체급 추가`
-            : `${ageGroup} · 체급 추가`
-        }
-      />
+        <EventDivisionForm
+          eventId={eventId}
+          defaultAgeGroup={defaultAgeGroup}
+          defaultGender={gender ?? undefined}
+          compact
+          listVariant
+          genderTone={tone}
+          sectionLabel={
+            gender
+              ? `${ageGroup} · ${DIVISION_TEMPLATE_GENDER_LABELS[gender]} 체급 추가`
+              : `${ageGroup} · 체급 추가`
+          }
+        />
+      </div>
     </div>
   );
 }
@@ -351,13 +359,21 @@ function UnknownGenderSection({
 }) {
   if (divisions.length === 0) return null;
 
+  const token = divisionGenderUiTokens.unknown;
+
   return (
-    <div className="space-y-3 border-t border-dashed border-border/50 pt-4">
-      <div>
-        <h4 className="text-muted-foreground text-sm font-medium">성별 미지정</h4>
-        <div className="mt-2 h-px bg-border/40" />
+    <div
+      className={cn(
+        token.columnClassName,
+        "mt-6 space-y-0 border-t border-dashed border-[var(--division-section-divider)] pt-6",
+      )}
+    >
+      <div className={token.headerClassName}>
+        <span className={token.headerAccentClassName} aria-hidden />
+        <h4>{token.label}</h4>
       </div>
-      <div className="space-y-2">
+
+      <div className="space-y-2 px-1 pb-1 pt-2">
         {divisions.map((division) => (
           <DivisionWeightRow
             key={division.id}
@@ -379,33 +395,35 @@ function AgeGroupDivisionSection({
   eventId: string;
 }) {
   return (
-    <section className="space-y-5 border-b border-border/50 pb-8 last:border-b-0 last:pb-0">
-      <div className="space-y-1">
+    <section className={divisionAgeGroupSectionClass}>
+      <div className="space-y-1 border-b border-[var(--division-section-divider)] pb-4">
         <h3 className="text-lg font-semibold tracking-tight">{group.ageGroup}</h3>
         <p className="text-muted-foreground text-xs">
           남성/여성 체급을 연령부 단위로 관리합니다.
         </p>
       </div>
 
-      <div className="grid gap-6 xl:grid-cols-2 xl:gap-8 xl:divide-x xl:divide-border/40">
-        <div className="xl:pr-6">
-          <GenderDivisionSection
-            title="남성"
-            gender="male"
-            ageGroup={group.ageGroup}
-            divisions={group.male}
-            eventId={eventId}
-          />
-        </div>
-        <div className="xl:pl-6">
-          <GenderDivisionSection
-            title="여성"
-            gender="female"
-            ageGroup={group.ageGroup}
-            divisions={group.female}
-            eventId={eventId}
-          />
-        </div>
+      <div className="grid gap-6 xl:grid-cols-[minmax(0,1fr)_auto_minmax(0,1fr)] xl:gap-0">
+        <GenderDivisionSection
+          tone="male"
+          gender="male"
+          ageGroup={group.ageGroup}
+          divisions={group.male}
+          eventId={eventId}
+        />
+        <div
+          className={divisionGenderColumnDividerClass}
+          role="separator"
+          aria-orientation="vertical"
+        />
+        <GenderDivisionSection
+          tone="female"
+          gender="female"
+          ageGroup={group.ageGroup}
+          divisions={group.female}
+          eventId={eventId}
+          className="border-t border-[var(--division-section-divider)] pt-6 xl:border-t-0 xl:pt-0"
+        />
       </div>
 
       <UnknownGenderSection divisions={group.unknown} eventId={eventId} />
@@ -434,7 +452,7 @@ export function EventDivisionManager({
   return (
     <section
       id="setup-divisions"
-      className="ring-foreground/10 scroll-mt-24 space-y-4 rounded-xl border bg-card p-4 shadow-sm md:p-6"
+      className="ring-foreground/10 scroll-mt-24 space-y-6 rounded-xl border bg-card p-4 shadow-sm md:p-6"
     >
       <div className="flex flex-col gap-1 sm:flex-row sm:items-center sm:justify-between">
         <h2 className="text-lg font-semibold">경기구분 (디비전)</h2>
@@ -445,23 +463,6 @@ export function EventDivisionManager({
         ) : null}
       </div>
 
-      {divisions.length === 0 ? (
-        <p className="text-muted-foreground rounded-lg border border-dashed bg-muted/10 px-4 py-6 text-center text-sm">
-          등록된 경기구분이 없습니다. 아래에서 추가하거나 체급표 템플릿을
-          불러오세요.
-        </p>
-      ) : (
-        <div className="space-y-10">
-          {groupedDivisions.map((group) => (
-            <AgeGroupDivisionSection
-              key={group.ageGroup}
-              group={group}
-              eventId={eventId}
-            />
-          ))}
-        </div>
-      )}
-
       <ApplyDivisionTemplatePanel
         eventId={eventId}
         templates={templates.map((t) => ({
@@ -471,6 +472,25 @@ export function EventDivisionManager({
         }))}
         templateDetails={templateDetails}
       />
+
+      <div className="space-y-4 border-t border-[var(--division-section-divider)] pt-6">
+        {divisions.length === 0 ? (
+          <p className="text-muted-foreground rounded-lg border border-dashed bg-muted/10 px-4 py-6 text-center text-sm">
+            등록된 경기구분이 없습니다. 위에서 체급표 템플릿을 불러오거나
+            아래에서 직접 추가하세요.
+          </p>
+        ) : (
+          <div className="space-y-10">
+            {groupedDivisions.map((group) => (
+              <AgeGroupDivisionSection
+                key={group.ageGroup}
+                group={group}
+                eventId={eventId}
+              />
+            ))}
+          </div>
+        )}
+      </div>
 
       {divisions.length === 0 ? (
         <EventDivisionForm eventId={eventId} />

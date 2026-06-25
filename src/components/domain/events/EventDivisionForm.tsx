@@ -8,6 +8,11 @@ import {
   DIVISION_TEMPLATE_GENDERS,
   type DivisionTemplateGender,
 } from "@/lib/division-template/division-template-constants";
+import {
+  divisionGenderUiTokens,
+  divisionListRowGridClass,
+  type DivisionGenderTone,
+} from "@/lib/ui/division-gender-ui";
 import { Button } from "@/components/ui/button";
 import { cn } from "@/lib/utils";
 
@@ -15,8 +20,7 @@ const inputClass = cn(
   "border-input bg-background h-8 w-full rounded-md border px-2 text-sm shadow-sm",
 );
 
-const listAddGridClass =
-  "grid grid-cols-1 gap-2 sm:grid-cols-2 md:grid-cols-[minmax(0,1.1fr)_minmax(0,0.9fr)_minmax(0,0.75fr)_minmax(0,0.65fr)_minmax(0,0.65fr)_auto] md:items-center md:gap-2";
+const listAddGridClass = divisionListRowGridClass;
 
 export function EventDivisionForm({
   eventId,
@@ -25,6 +29,7 @@ export function EventDivisionForm({
   compact = false,
   listVariant = false,
   sectionLabel,
+  genderTone,
 }: {
   eventId: string;
   defaultAgeGroup?: string;
@@ -32,6 +37,7 @@ export function EventDivisionForm({
   compact?: boolean;
   listVariant?: boolean;
   sectionLabel?: string;
+  genderTone?: DivisionGenderTone;
 }) {
   const router = useRouter();
   const [state, action, pending] = useActionState(
@@ -48,10 +54,17 @@ export function EventDivisionForm({
     (compact ? "체급 추가" : "경기구분 추가");
 
   if (compact && listVariant) {
+    const addRowToken = genderTone
+      ? divisionGenderUiTokens[genderTone]
+      : null;
+
     return (
       <form
         action={action}
-        className="mt-3 space-y-2 border-t border-dashed border-border/50 pt-3"
+        className={cn(
+          "mt-3 space-y-2 border-t border-dashed pt-3",
+          addRowToken?.addRowBorderClassName ?? "border-border/50",
+        )}
       >
         <input type="hidden" name="eventId" value={eventId} />
         {defaultAgeGroup ? (
