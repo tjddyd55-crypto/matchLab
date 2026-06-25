@@ -7,6 +7,7 @@ import { requireOrganizerForEventPage } from "@/lib/permissions";
 import { loadEventManagementNavContext } from "@/lib/event-management-nav-context";
 import { eventCourtService } from "@/lib/services/event-court.service";
 import { getServerAppBaseUrl } from "@/lib/qr-url";
+import { buildCourtJudgeQrLinks } from "@/lib/services/judge-qr-entry.service";
 import { headers } from "next/headers";
 import { buttonVariants } from "@/components/ui/button";
 import { cn } from "@/lib/utils";
@@ -30,6 +31,7 @@ export default async function OrganizerEventJudgesPage({
 
   const baseUrl = getServerAppBaseUrl(headersList);
   const activeCourts = courts.filter((c) => c.isActive);
+  const courtQrLinks = buildCourtJudgeQrLinks(eventId, activeCourts, baseUrl);
 
   return (
     <EventManagementLayout eventId={nav.eventId} publicSlug={nav.publicSlug}>
@@ -60,10 +62,11 @@ export default async function OrganizerEventJudgesPage({
           <li>각 경기장에 채점심판 QR과 주심판 QR을 따로 부착하세요.</li>
           <li>주심판이 경기 시작 → 진행중 강조 → 채점심판 채점 → 주심판 승패 입력/완료 순으로 진행합니다.</li>
           <li>다음 경기는 주심판이 수동으로 &quot;경기 시작&quot;을 눌러야 합니다.</li>
+          <li>경기장 정보 변경 시 QR을 다시 출력하세요. 기존 QR은 만료될 수 있습니다.</li>
         </ul>
       </section>
 
-      <CourtJudgeLinksPanel courts={activeCourts} baseUrl={baseUrl} eventId={eventId} />
+      <CourtJudgeLinksPanel courts={courtQrLinks} eventId={eventId} />
     </EventManagementLayout>
   );
 }

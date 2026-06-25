@@ -7,8 +7,10 @@ import { Button } from "@/components/ui/button";
 
 export function JudgeLoginForm({
   defaultLoginId = "",
+  callbackUrl,
 }: {
   defaultLoginId?: string;
+  callbackUrl?: string;
 }) {
   const router = useRouter();
   const [pending, startTransition] = useTransition();
@@ -43,6 +45,9 @@ export function JudgeLoginForm({
           className="border-input bg-background h-10 rounded-md border px-3 text-sm"
         />
       </label>
+      {callbackUrl ? (
+        <input type="hidden" name="callbackUrl" value={callbackUrl} />
+      ) : null}
       <label className="flex flex-col gap-1 text-sm">
         <span className="text-muted-foreground text-xs">비밀번호</span>
         <input

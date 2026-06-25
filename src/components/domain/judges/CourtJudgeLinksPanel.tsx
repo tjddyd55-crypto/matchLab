@@ -3,16 +3,13 @@
 import { useState } from "react";
 import Link from "next/link";
 import { Button } from "@/components/ui/button";
-import type { EventCourtVM } from "@/lib/services/event-court.service";
-import { buildCourtHeadJudgeUrl, buildCourtScoreJudgeUrl } from "@/lib/qr-url";
+import type { CourtJudgeQrLinkVM } from "@/lib/qr-url";
 
 export function CourtJudgeLinksPanel({
   courts,
-  baseUrl,
   eventId,
 }: {
-  courts: EventCourtVM[];
-  baseUrl: string;
+  courts: CourtJudgeQrLinkVM[];
   eventId?: string;
 }) {
   const [copied, setCopied] = useState<string | null>(null);
@@ -41,47 +38,44 @@ export function CourtJudgeLinksPanel({
         <h2 className="text-lg font-semibold">경기장별 심판 QR · URL</h2>
         <p className="text-muted-foreground mt-1 text-sm">
           QR 접속 후 이름과 생년월일을 입력하세요. 채점심판은 진행중 경기만 채점하고,
-          주심판은 경기 시작·승패 입력·완료·취소를 처리합니다.
+          주심판은 경기 시작·승패 입력·완료·취소를 처리합니다. QR 출력 화면에서 최신 QR을
+          사용하세요.
         </p>
       </div>
       <div className="grid gap-3 md:grid-cols-2">
-        {courts.map((court) => {
-          const scoreUrl = buildCourtScoreJudgeUrl(court.id, baseUrl);
-          const headUrl = buildCourtHeadJudgeUrl(court.id, baseUrl);
-          return (
-            <article key={court.id} className="space-y-3 rounded-lg border p-3">
-              <h3 className="font-medium">{court.name}</h3>
-              <div className="grid gap-2 text-xs">
-                <div className="rounded-md bg-muted/40 p-2">
-                  <p className="font-medium">채점심판</p>
-                  <code className="mt-1 block break-all">{scoreUrl}</code>
-                  <Button
-                    type="button"
-                    size="sm"
-                    variant="outline"
-                    className="mt-2"
-                    onClick={() => void copy(`${court.id}-score`, scoreUrl)}
-                  >
-                    {copied === `${court.id}-score` ? "복사됨" : "URL 복사"}
-                  </Button>
-                </div>
-                <div className="rounded-md bg-muted/40 p-2">
-                  <p className="font-medium">주심판</p>
-                  <code className="mt-1 block break-all">{headUrl}</code>
-                  <Button
-                    type="button"
-                    size="sm"
-                    variant="outline"
-                    className="mt-2"
-                    onClick={() => void copy(`${court.id}-head`, headUrl)}
-                  >
-                    {copied === `${court.id}-head` ? "복사됨" : "URL 복사"}
-                  </Button>
-                </div>
+        {courts.map((court) => (
+          <article key={court.id} className="space-y-3 rounded-lg border p-3">
+            <h3 className="font-medium">{court.name}</h3>
+            <div className="grid gap-2 text-xs">
+              <div className="rounded-md bg-muted/40 p-2">
+                <p className="font-medium">채점심판</p>
+                <code className="mt-1 block break-all">{court.scoreEntryUrl}</code>
+                <Button
+                  type="button"
+                  size="sm"
+                  variant="outline"
+                  className="mt-2"
+                  onClick={() => void copy(`${court.id}-score`, court.scoreEntryUrl)}
+                >
+                  {copied === `${court.id}-score` ? "복사됨" : "URL 복사"}
+                </Button>
               </div>
-            </article>
-          );
-        })}
+              <div className="rounded-md bg-muted/40 p-2">
+                <p className="font-medium">주심판</p>
+                <code className="mt-1 block break-all">{court.headEntryUrl}</code>
+                <Button
+                  type="button"
+                  size="sm"
+                  variant="outline"
+                  className="mt-2"
+                  onClick={() => void copy(`${court.id}-head`, court.headEntryUrl)}
+                >
+                  {copied === `${court.id}-head` ? "복사됨" : "URL 복사"}
+                </Button>
+              </div>
+            </div>
+          </article>
+        ))}
       </div>
     </section>
   );

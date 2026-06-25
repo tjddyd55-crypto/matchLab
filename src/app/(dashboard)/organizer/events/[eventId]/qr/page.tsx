@@ -7,6 +7,7 @@ import { loadEventManagementNavContext } from "@/lib/event-management-nav-contex
 import { eventService } from "@/lib/services/event.service";
 import { eventCourtService } from "@/lib/services/event-court.service";
 import { getServerAppBaseUrl } from "@/lib/qr-url";
+import { buildCourtJudgeQrLinks } from "@/lib/services/judge-qr-entry.service";
 import { liveStreamService } from "@/lib/services/live-stream.service";
 import { headers } from "next/headers";
 
@@ -35,6 +36,8 @@ export default async function OrganizerEventQrPage({
   ]);
 
   const baseUrl = getServerAppBaseUrl(headersList);
+  const activeCourts = courts.filter((c) => c.isActive);
+  const courtQrLinks = buildCourtJudgeQrLinks(eventId, activeCourts, baseUrl);
   const publicLiveStreamCount = detail.publicSlug
     ? (await liveStreamService.listPublicForEventSlug(detail.publicSlug)).length
     : 0;
@@ -60,7 +63,7 @@ export default async function OrganizerEventQrPage({
         spectatorAccessStartAt={detail.spectatorAccessStartAt}
         spectatorAccessEndAt={detail.spectatorAccessEndAt}
         baseUrl={baseUrl}
-        courts={courts.filter((c) => c.isActive)}
+        courts={courtQrLinks}
       />
     </EventManagementLayout>
   );

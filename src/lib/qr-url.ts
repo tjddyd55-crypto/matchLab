@@ -90,18 +90,36 @@ export function buildJudgeLoginQrUrl(
   return buildAbsoluteUrl(`/judge/login?${params.toString()}`, baseUrl);
 }
 
-export function buildCourtScoreJudgeUrl(
-  courtId: string,
+export type CourtJudgeEntryTarget = "score" | "head";
+
+export type CourtJudgeQrLinkVM = {
+  id: string;
+  name: string;
+  scoreEntryUrl: string;
+  headEntryUrl: string;
+};
+
+/** 서버에서 judge-qr-entry.service.buildCourtJudgeEntryPath 로 path 생성 후 호출 */
+export function buildCourtJudgeEntryUrl(
+  entryPath: string,
   baseUrl?: string,
 ): string {
-  return buildAbsoluteUrl(`/judge/courts/${courtId}/score`, baseUrl);
+  const normalizedPath = entryPath.startsWith("/") ? entryPath : `/${entryPath}`;
+  return buildAbsoluteUrl(normalizedPath, baseUrl);
+}
+
+export function buildCourtScoreJudgeUrl(
+  entryPath: string,
+  baseUrl?: string,
+): string {
+  return buildCourtJudgeEntryUrl(entryPath, baseUrl);
 }
 
 export function buildCourtHeadJudgeUrl(
-  courtId: string,
+  entryPath: string,
   baseUrl?: string,
 ): string {
-  return buildAbsoluteUrl(`/judge/courts/${courtId}/head`, baseUrl);
+  return buildCourtJudgeEntryUrl(entryPath, baseUrl);
 }
 
 export function buildPublicEventQrUrl(

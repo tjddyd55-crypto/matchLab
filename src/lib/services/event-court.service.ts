@@ -31,6 +31,7 @@ export type EventCourtVM = {
   name: string;
   sortOrder: number;
   isActive: boolean;
+  updatedAt: string;
   assignedMatchCount: number;
   rules: EventCourtRuleVM[];
   /** @deprecated rules 사용 권장 */
@@ -90,6 +91,7 @@ export const eventCourtService = {
         name: c.name,
         sortOrder: c.sortOrder,
         isActive: c.isActive,
+        updatedAt: c.updatedAt.toISOString(),
         assignedMatchCount: matchCounts.get(c.id) ?? 0,
         rules,
         divisions: rules
@@ -133,6 +135,7 @@ export const eventCourtService = {
       name: row.name,
       sortOrder: row.sortOrder,
       isActive: row.isActive,
+      updatedAt: row.updatedAt.toISOString(),
       assignedMatchCount: 0,
       rules: [],
       divisions: [],
