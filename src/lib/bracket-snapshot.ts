@@ -1,4 +1,9 @@
 /** 브래킷 매치 JSON 스냅샷에 저장되는 공개 가능 필드 집합. */
+import {
+  formatDivisionGenderLabel,
+  resolveEventDivisionWeightFields,
+} from "@/lib/event-division-fields";
+
 export type BracketFighterSnapshotPayload = {
   fighterId: string;
   fighterCode: string;
@@ -25,6 +30,8 @@ export type BracketFighterSnapshotSource = {
     gender: string | null;
     ageGroup: string | null;
     weightClass: string | null;
+    weightClassName?: string | null;
+    weightLimitText?: string | null;
     skillLevel: string | null;
   };
   gym: { name: string };
@@ -36,13 +43,18 @@ export function formatDivisionNameLabel(d: {
   gender: string | null;
   ageGroup: string | null;
   weightClass: string | null;
+  weightClassName?: string | null;
+  weightLimitText?: string | null;
   skillLevel: string | null;
 }): string {
+  const weight = resolveEventDivisionWeightFields(d);
+  const genderLabel = formatDivisionGenderLabel(d.gender);
   return [
     d.sportType,
     d.ruleType,
-    d.weightClass ?? d.ageGroup,
-    d.gender,
+    d.ageGroup,
+    genderLabel,
+    weight.weightClass,
     d.skillLevel,
   ]
     .filter((x): x is string => Boolean(x?.trim()))

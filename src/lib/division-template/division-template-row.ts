@@ -3,6 +3,7 @@ import {
   DIVISION_TEMPLATE_SPORT_LABELS,
   type DivisionTemplateSportType,
 } from "@/lib/division-template/division-template-constants";
+import { parseSingleWeightEntry } from "@/lib/division-template/division-template-parse";
 
 export type EventDivisionFromTemplateRow = {
   sportType: string;
@@ -10,6 +11,8 @@ export type EventDivisionFromTemplateRow = {
   gender: string | null;
   ageGroup: string | null;
   weightClass: string | null;
+  weightClassName: string | null;
+  weightLimitText: string | null;
   skillLevel: string | null;
 };
 
@@ -36,13 +39,62 @@ export function resolveTemplateSportTypeLabel(
   return DIVISION_TEMPLATE_SPORT_LABELS[key] ?? sportType.trim();
 }
 
+/** 템플릿 항목의 체급명·체중 기준·표시 문자열을 동기화한다. */
+export function normalizeTemplateItemWeight(
+  item: DivisionTemplateItemInput,
+): DivisionTemplateItemInput {
+  const name = item.weightClassName?.trim() ?? "";
+  const limit = item.weightLimitText?.trim() ?? "";
+
+  if (name || limit) {
+    const weightClass = [name, limit].filter(Boolean).join(" ").trim() || null;
+    return {
+      ...item,
+      weightClassName: name || null,
+      weightLimitText: limit || null,
+      weightClass,
+    };
+  }
+
+  const legacy = item.weightClass?.trim();
+  if (!legacy) {
+    return {
+      ...item,
+      weightClassName: item.weightClassName?.trim() || null,
+      weightLimitText: item.weightLimitText?.trim() || null,
+      weightClass: null,
+    };
+  }
+
+  const parsed = parseSingleWeightEntry(legacy);
+  const parsedName = parsed.weightClassName?.trim() ?? "";
+  const parsedLimit = parsed.weightLimitText?.trim() ?? "";
+
+  if (parsedLimit) {
+    const weightClass =
+      [parsedName, parsedLimit].filter(Boolean).join(" ").trim() || legacy;
+    return {
+      ...item,
+      weightClassName: parsedName || null,
+      weightLimitText: parsedLimit,
+      weightLimitKg: parsed.weightLimitKg ?? item.weightLimitKg ?? null,
+      limitType: parsed.limitType ?? item.limitType ?? null,
+      weightClass,
+    };
+  }
+
+  return {
+    ...item,
+    weightClassName: parsedName || legacy,
+    weightLimitText: null,
+    weightClass: legacy,
+  };
+}
+
 export function buildWeightClassDisplay(
   item: DivisionTemplateItemInput,
 ): string {
-  if (item.weightClass?.trim()) return item.weightClass.trim();
-  const name = item.weightClassName?.trim() ?? "";
-  const limit = item.weightLimitText?.trim() ?? "";
-  return [name, limit].filter(Boolean).join(" ").trim();
+  return normalizeTemplateItemWeight(item).weightClass?.trim() ?? "";
 }
 
 export function itemToEventDivisionRow(
@@ -55,16 +107,19 @@ export function itemToEventDivisionRow(
     templateSportType?.trim() || item.sportType?.trim() || "";
   if (!sportType) return null;
 
-  const weightClass = buildWeightClassDisplay(item);
+  const normalized = normalizeTemplateItemWeight(item);
+  const weightClass = normalized.weightClass?.trim() ?? "";
   if (!weightClass) return null;
 
   return {
     sportType,
-    ruleType: item.ruleType?.trim() || null,
-    gender: item.gender?.trim() || null,
-    ageGroup: item.ageGroup?.trim() || null,
+    ruleType: normalized.ruleType?.trim() || null,
+    gender: normalized.gender?.trim() || null,
+    ageGroup: normalized.ageGroup?.trim() || null,
     weightClass,
-    skillLevel: item.skillLevel?.trim() || null,
+    weightClassName: normalized.weightClassName?.trim() || null,
+    weightLimitText: normalized.weightLimitText?.trim() || null,
+    skillLevel: normalized.skillLevel?.trim() || null,
   };
 }
 
@@ -94,12 +149,14 @@ export function sanitizeTemplateItems(
 ): DivisionTemplateItemInput[] {
   const sportFallback = templateSportType?.trim() || "";
   return rows
-    .map((row, idx) => ({
-      ...row,
-      sportType: row.sportType?.trim() || sportFallback,
-      displayOrder: row.displayOrder ?? idx,
-      isActive: row.isActive !== false,
-    }))
+    .map((row, idx) =>
+      normalizeTemplateItemWeight({
+        ...row,
+        sportType: row.sportType?.trim() || sportFallback,
+        displayOrder: row.displayOrder ?? idx,
+        isActive: row.isActive !== false,
+      }),
+    )
     .filter((row) => {
       if (row.isActive === false) return true;
       return Boolean(row.sportType?.trim() && buildWeightClassDisplay(row));

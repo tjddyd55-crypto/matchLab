@@ -252,7 +252,8 @@ export async function createEventDivisionAction(
       ruleType: formReq(formData, "ruleType") || null,
       gender: formReq(formData, "gender") || null,
       ageGroup: formReq(formData, "ageGroup") || null,
-      weightClass: formReq(formData, "weightClass") || null,
+      weightClassName: formReq(formData, "weightClassName") || null,
+      weightLimitText: formReq(formData, "weightLimitText") || null,
       skillLevel: formReq(formData, "skillLevel") || null,
     });
     if (!parsed.success) {
@@ -291,8 +292,11 @@ export async function updateEventDivisionAction(
     if (formData.has("ageGroup")) {
       raw.ageGroup = formReq(formData, "ageGroup") || null;
     }
-    if (formData.has("weightClass")) {
-      raw.weightClass = formReq(formData, "weightClass") || null;
+    if (formData.has("weightClassName")) {
+      raw.weightClassName = formReq(formData, "weightClassName") || null;
+    }
+    if (formData.has("weightLimitText")) {
+      raw.weightLimitText = formReq(formData, "weightLimitText") || null;
     }
     if (formData.has("skillLevel")) {
       raw.skillLevel = formReq(formData, "skillLevel") || null;
