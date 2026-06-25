@@ -1,3 +1,4 @@
+import type { ReactNode } from "react";
 import type { PublicBracketMatchDTO } from "@/lib/dto/public";
 import { cornerSlotInGridClass } from "@/lib/corner-slot-styles";
 import { bracketCardTypography } from "@/lib/bracket-card-typography";
@@ -5,13 +6,16 @@ import { cn } from "@/lib/utils";
 import { formatMatchOrderFormal } from "@/lib/match-order-display";
 import { outcomeStylePublicLabel } from "@/lib/match-result-snapshot";
 import { resolveBoutFormatKind } from "@/lib/bout-format";
+import type { EventDivisionDisplayInput } from "@/lib/event-division-fields";
 
 import { FighterSlotCard } from "@/components/domain/brackets/FighterSlotCard";
 import { BoutFormatBadge, PublicSparringUnderVsBadge } from "@/components/domain/shared/BoutFormatBadge";
+import { MatchDivisionHeader } from "@/components/domain/shared/MatchDivisionHeader";
 import { MatchStatusBadge } from "@/components/domain/shared/MatchStatusBadge";
 
 export function BracketMatchCard({
   match,
+  division,
   divisionLabel,
   matPrefix,
   className,
@@ -19,16 +23,18 @@ export function BracketMatchCard({
   bracketIsPublic,
   resultMemo,
   operationalSettingsLabel,
+  compactDivision = false,
 }: {
   match: PublicBracketMatchDTO;
+  division?: EventDivisionDisplayInput | null;
   divisionLabel?: string | null;
-  /** 예: "경기 #3" 앞에 붙는 매트 라벨 */
   matPrefix?: string | null;
   className?: string;
   bracketType?: string;
   bracketIsPublic?: boolean;
   resultMemo?: string | null;
   operationalSettingsLabel?: string | null;
+  compactDivision?: boolean;
 }) {
   const blueIsBye =
     Boolean(match.fighterRed) && match.fighterBlue === null;
@@ -62,6 +68,46 @@ export function BracketMatchCard({
   const matchNoLabel = formatMatchOrderFormal(match);
   const opsLabel = operationalSettingsLabel ?? match.operationalSettingsLabel;
 
+  const trailing: ReactNode = (
+    <>
+      {bracketType && formatKind && formatKind !== "public_sparring" ? (
+        <BoutFormatBadge
+          bracketType={bracketType}
+          bracketIsPublic={isPublicSparring}
+          className={bracketCardTypography.formatBadge}
+        />
+      ) : null}
+      {opsLabel ? (
+        <span
+          className={cn(
+            bracketCardTypography.opsPill,
+            "text-muted-foreground",
+          )}
+        >
+          {opsLabel}
+        </span>
+      ) : null}
+    </>
+  );
+
+  const meta: ReactNode = (
+    <>
+      {matPrefix != null && match.matNumber != null ? (
+        <span>
+          {matPrefix}
+          {match.matNumber}
+        </span>
+      ) : null}
+      {match.courtName ? (
+        <span>
+          {match.courtName}
+          {match.courtOrder != null ? ` · ${match.courtOrder}경기` : ""}
+        </span>
+      ) : null}
+      {match.roundName ? <span>{match.roundName}</span> : null}
+    </>
+  );
+
   return (
     <div
       className={cn(
@@ -69,57 +115,38 @@ export function BracketMatchCard({
         className,
       )}
     >
-      <div
-        className={cn(
-          "flex flex-wrap items-center justify-between gap-2 border-b bg-muted/30 px-3 py-2",
-          bracketCardTypography.headerRow,
+      <div className="flex flex-wrap items-center justify-between gap-2 border-b bg-muted/30 px-3 py-2">
+        {division ? (
+          <MatchDivisionHeader
+            matchNumberLabel={matchNoLabel}
+            division={division}
+            compact={compactDivision}
+            trailing={trailing}
+            meta={meta}
+          />
+        ) : (
+          <div className="flex min-w-0 flex-col gap-1">
+            <div className="flex flex-wrap items-center gap-2">
+              <span className={bracketCardTypography.matchNumber}>
+                {matchNoLabel}
+              </span>
+              {divisionLabel ? (
+                <span className={bracketCardTypography.division}>
+                  {divisionLabel}
+                </span>
+              ) : null}
+              {trailing}
+            </div>
+            <div
+              className={cn(
+                bracketCardTypography.meta,
+                "flex flex-wrap items-center gap-2",
+              )}
+            >
+              {meta}
+            </div>
+          </div>
         )}
-      >
-        <div className="flex min-w-0 flex-col gap-1">
-          <div className="flex flex-wrap items-center gap-2">
-            <span className={bracketCardTypography.matchNumber}>{matchNoLabel}</span>
-            {divisionLabel ? (
-              <span className={bracketCardTypography.division}>{divisionLabel}</span>
-            ) : null}
-            {bracketType && formatKind && formatKind !== "public_sparring" ? (
-              <BoutFormatBadge
-                bracketType={bracketType}
-                bracketIsPublic={isPublicSparring}
-                className={bracketCardTypography.formatBadge}
-              />
-            ) : null}
-            {opsLabel ? (
-              <span
-                className={cn(
-                  bracketCardTypography.opsPill,
-                  "text-muted-foreground",
-                )}
-              >
-                {opsLabel}
-              </span>
-            ) : null}
-          </div>
-          <div
-            className={cn(
-              bracketCardTypography.meta,
-              "flex flex-wrap items-center gap-2",
-            )}
-          >
-            {matPrefix != null && match.matNumber != null ? (
-              <span>
-                {matPrefix}
-                {match.matNumber}
-              </span>
-            ) : null}
-            {match.courtName ? (
-              <span>
-                {match.courtName}
-                {match.courtOrder != null ? ` · ${match.courtOrder}경기` : ""}
-              </span>
-            ) : null}
-            {match.roundName ? <span>{match.roundName}</span> : null}
-          </div>
-        </div>
         <MatchStatusBadge status={match.status} size="md" />
       </div>
 

@@ -3,17 +3,21 @@ import { resolveBoutFormatKind, boutFormatLabel } from "@/lib/bout-format";
 import { bracketCardTypography } from "@/lib/bracket-card-typography";
 import { formatMatchOrderFormal } from "@/lib/match-order-display";
 import { cn } from "@/lib/utils";
+import type { EventDivisionDisplayInput } from "@/lib/event-division-fields";
 import { PublicSparringUnderVsBadge } from "@/components/domain/shared/BoutFormatBadge";
+import { MatchDivisionHeader } from "@/components/domain/shared/MatchDivisionHeader";
 import { MatchStatusBadge } from "@/components/domain/shared/MatchStatusBadge";
 import { getCornerCardClassName, getCornerLabelClassName } from "@/lib/ui/corner-ui-tokens";
 
 export function SpectatorMatchCard({
   match,
+  division,
   divisionLabel,
   bracketType,
   bracketIsPublic,
 }: {
   match: PublicBracketMatchDTO;
+  division?: EventDivisionDisplayInput | null;
   divisionLabel?: string | null;
   bracketType: string;
   bracketIsPublic?: boolean;
@@ -28,26 +32,49 @@ export function SpectatorMatchCard({
   const blueName =
     match.fighterBlue?.name ?? (match.fighterRed && !match.fighterBlue ? "부전승" : "—");
 
+  const trailing = (
+    <>
+      <span>{boutFormatLabel(formatKind)}</span>
+      {match.roundName ? <span>{match.roundName}</span> : null}
+    </>
+  );
+
+  const meta = (
+    <>
+      {match.courtName ? <span>{match.courtName}</span> : null}
+      {match.matNumber != null ? <span>매트 {match.matNumber}</span> : null}
+    </>
+  );
+
   return (
     <article className="overflow-hidden rounded-2xl border bg-card shadow-sm">
       <div className="flex items-start justify-between gap-2 border-b bg-muted/20 px-4 py-3">
-        <div className="min-w-0 space-y-1">
-          <p className={bracketCardTypography.matchNumber}>
-            {formatMatchOrderFormal(match)}
-          </p>
-          <div
-            className={cn(
-              bracketCardTypography.meta,
-              "flex flex-wrap gap-x-2 gap-y-1",
-            )}
-          >
-            {match.courtName ? <span>{match.courtName}</span> : null}
-            {match.matNumber != null ? <span>매트 {match.matNumber}</span> : null}
-            {divisionLabel ? <span>{divisionLabel}</span> : null}
-            <span>{boutFormatLabel(formatKind)}</span>
-            {match.roundName ? <span>{match.roundName}</span> : null}
+        {division ? (
+          <MatchDivisionHeader
+            matchNumberLabel={formatMatchOrderFormal(match)}
+            division={division}
+            compact
+            showSportRule={false}
+            trailing={trailing}
+            meta={meta}
+          />
+        ) : (
+          <div className="min-w-0 space-y-1">
+            <p className={bracketCardTypography.matchNumber}>
+              {formatMatchOrderFormal(match)}
+            </p>
+            <div
+              className={cn(
+                bracketCardTypography.meta,
+                "flex flex-wrap gap-x-2 gap-y-1",
+              )}
+            >
+              {meta}
+              {divisionLabel ? <span>{divisionLabel}</span> : null}
+              {trailing}
+            </div>
           </div>
-        </div>
+        )}
         <MatchStatusBadge status={match.status} size="md" />
       </div>
 

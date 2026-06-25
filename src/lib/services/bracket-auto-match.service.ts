@@ -10,6 +10,11 @@ import {
   formatDivisionNameLabel,
 } from "@/lib/bracket-snapshot";
 import {
+  formatAutoBracketGroupTitle,
+  toEventDivisionDisplayInput,
+  type EventDivisionDisplayInput,
+} from "@/lib/event-division-fields";
+import {
   groupCandidatesByDivision,
   pairCandidatesWithinDivision,
   type AutoMatchCandidate,
@@ -74,6 +79,7 @@ export type UnmatchedBracketCandidateVM = {
   fighterId: string;
   fighterName: string;
   gymName: string;
+  division: EventDivisionDisplayInput;
   divisionLabel: string;
   gender: string | null;
   ageGroup: string | null;
@@ -644,9 +650,9 @@ export const bracketAutoMatchService = {
           const sampleRow = appByFighterDivision.get(
             `${group[0]!.fighterId}:${divisionId}`,
           );
-          const divisionLabel = sampleRow
-            ? formatDivisionNameLabel(sampleRow.division)
-            : divisionId;
+          const autoTitle = sampleRow
+            ? formatAutoBracketGroupTitle(sampleRow.division)
+            : `자동 생성 · ${divisionId}`;
           const bracketType =
             input.autoBoutFormat === "tournament"
               ? BracketType.single_elimination
@@ -655,12 +661,12 @@ export const bracketAutoMatchService = {
             {
               eventId: input.eventId,
               divisionId,
-              title: `자동 생성 · ${divisionLabel}`,
+              title: autoTitle,
               type: bracketType,
             },
             tx,
           );
-          bracket = { id, title: `자동 생성 · ${divisionLabel}` };
+          bracket = { id, title: autoTitle };
           summary.createdBrackets += 1;
 
           await bracketRepository.createBracketChangeLog(
@@ -892,11 +898,13 @@ function mapUnmatchedRow(
   eligibility: ReturnType<typeof computeFieldEligibility>,
   reason: UnmatchedReason,
 ): UnmatchedBracketCandidateVM {
+  const division = toEventDivisionDisplayInput(row.division)!;
   return {
     applicationId: row.id,
     fighterId: row.fighterId,
     fighterName: row.fighter.name,
     gymName: row.gym.name,
+    division,
     divisionLabel: formatDivisionNameLabel(row.division),
     gender: row.division.gender ?? row.fighter.gender,
     ageGroup: row.division.ageGroup,

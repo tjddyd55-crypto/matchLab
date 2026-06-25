@@ -3,6 +3,7 @@ import {
   publishBracketFormAction,
   unpublishBracketFormAction,
 } from "@/features/brackets/actions";
+import { DivisionInfoChips } from "@/components/domain/shared/DivisionInfoChips";
 import { Button, buttonVariants } from "@/components/ui/button";
 import { BracketStatusBadge } from "@/components/domain/brackets/BracketStatusBadge";
 import { BracketTypeBadge } from "@/components/domain/brackets/BracketTypeBadge";
@@ -34,9 +35,13 @@ export function OrganizerBracketList({
           <tbody>
             {brackets.map((b) => (
               <tr key={b.id} className="border-b last:border-0">
-                <td className="px-4 py-3 font-medium">{b.title}</td>
-                <td className="text-muted-foreground px-4 py-3">
-                  {b.divisionLabel ?? "—"}
+                <td className="px-4 py-3 font-medium">{b.displayTitle}</td>
+                <td className="px-4 py-3">
+                  {b.division ? (
+                    <DivisionInfoChips division={b.division} />
+                  ) : (
+                    <span className="text-muted-foreground">—</span>
+                  )}
                 </td>
                 <td className="px-4 py-3">
                   <BracketTypeBadge type={b.type} />
@@ -84,11 +89,15 @@ export function OrganizerBracketList({
             className="ring-foreground/10 space-y-3 rounded-xl border bg-card p-4 shadow-sm"
           >
             <div className="flex flex-wrap items-start justify-between gap-2">
-              <div>
-                <div className="font-semibold">{b.title}</div>
-                <div className="text-muted-foreground mt-1 text-xs">
-                  {b.divisionLabel ?? "경기구분 미지정"}
-                </div>
+              <div className="min-w-0 space-y-2">
+                <div className="font-semibold">{b.displayTitle}</div>
+                {b.division ? (
+                  <DivisionInfoChips division={b.division} />
+                ) : (
+                  <div className="text-muted-foreground text-xs">
+                    경기구분 미지정
+                  </div>
+                )}
               </div>
               <BracketStatusBadge status={b.status} />
             </div>

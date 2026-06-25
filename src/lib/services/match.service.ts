@@ -7,6 +7,10 @@ import {
 } from "@/generated/prisma";
 import type { ActorContext } from "@/lib/auth/actor-context";
 import { formatDivisionNameLabel } from "@/lib/bracket-snapshot";
+import {
+  toEventDivisionDisplayInput,
+  type EventDivisionDisplayInput,
+} from "@/lib/event-division-fields";
 import type { FighterHandicapDisplay } from "@/lib/fighter-handicap-display";
 import {
   buildFighterHandicapMap,
@@ -290,6 +294,7 @@ export type OrganizerEventMatchListItemVM = {
   bracketType: BracketType;
   bracketIsPublic: boolean;
   matchIsPublicSparring: boolean;
+  division: EventDivisionDisplayInput | null;
   divisionLabel: string | null;
   roundName: string | null;
   matchOrder: number;
@@ -344,8 +349,9 @@ export const matchService = {
     }
 
     const mapped = rows.map((m): OrganizerEventMatchListItemVM => {
-      const divisionLabel = m.bracket.division
-        ? formatDivisionNameLabel(m.bracket.division)
+      const division = toEventDivisionDisplayInput(m.bracket.division);
+      const divisionLabel = division
+        ? formatDivisionNameLabel(division)
         : null;
 
       const results = m.matchResults ?? [];
@@ -368,6 +374,7 @@ export const matchService = {
           bracketIsPublic: m.bracket.isPublic,
           resultMemo: m.resultMemo,
         }),
+        division,
         divisionLabel,
         roundName: m.roundName,
         matchOrder: m.matchOrder,
@@ -576,8 +583,9 @@ export const matchService = {
     const rows = await matchRepository.listMatchesByEvent(link.eventId);
 
     return rows.map((m) => {
-      const divisionLabel = m.bracket.division
-        ? formatDivisionNameLabel(m.bracket.division)
+      const division = toEventDivisionDisplayInput(m.bracket.division);
+      const divisionLabel = division
+        ? formatDivisionNameLabel(division)
         : null;
 
       const results = m.matchResults ?? [];
@@ -602,6 +610,7 @@ export const matchService = {
           bracketIsPublic: m.bracket.isPublic,
           resultMemo: m.resultMemo,
         }),
+        division,
         divisionLabel,
         roundName: m.roundName,
         matchOrder: m.matchOrder,

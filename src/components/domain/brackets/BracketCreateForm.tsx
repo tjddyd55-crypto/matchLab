@@ -5,7 +5,7 @@ import { useRouter } from "next/navigation";
 import { createBracketAction } from "@/features/brackets/actions";
 import type { PublicEventDivisionDTO } from "@/lib/dto/public";
 import { BracketType } from "@/lib/enums";
-import { formatDivisionNameLabel } from "@/lib/bracket-snapshot";
+import { formatDivisionCompactLine } from "@/lib/event-division-fields";
 import { Button } from "@/components/ui/button";
 import { cn } from "@/lib/utils";
 
@@ -66,7 +66,7 @@ export function BracketCreateForm({
             <option value="">전체 · 경기구분 미지정</option>
             {divisions.map((d) => (
               <option key={d.id} value={d.id}>
-                {formatDivisionNameLabel(d)}
+                {formatDivisionCompactLine(d)}
               </option>
             ))}
           </select>

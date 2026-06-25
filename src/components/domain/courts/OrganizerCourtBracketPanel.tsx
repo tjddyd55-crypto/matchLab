@@ -5,6 +5,7 @@ import { useRouter } from "next/navigation";
 import { MatchCourtControls } from "@/components/domain/courts/MatchCourtControls";
 import { FighterHandicapBadge } from "@/components/domain/shared/FighterHandicapBadge";
 import { BoutFormatBadge, PublicSparringUnderVsBadge } from "@/components/domain/shared/BoutFormatBadge";
+import { MatchDivisionHeader } from "@/components/domain/shared/MatchDivisionHeader";
 import { parseMatchOperationalSettings, formatOperationalSettingsLabel } from "@/lib/match-operational-settings";
 import { saveMatchScheduleFormAction } from "@/features/event-courts/actions";
 import { Button } from "@/components/ui/button";
@@ -242,36 +243,78 @@ export function OrganizerCourtBracketPanel({
             >
               <div className="flex flex-wrap items-start justify-between gap-2 border-b bg-muted/30 px-3 py-2">
                 <div className="min-w-0 flex-1">
-                  <div className={cn("flex flex-wrap items-center gap-2", bracketCardTypography.headerRow)}>
-                    <span className={bracketCardTypography.matchNumber}>
-                      {matchOrderLabel(m, order)}
-                    </span>
-                    <span className={bracketCardTypography.division}>
-                      {m.divisionLabel ?? MATCH_CATEGORY_LABEL}
-                    </span>
-                    {formatKind !== "public_sparring" ? (
-                      <BoutFormatBadge
-                        bracketType={m.bracketType}
-                        bracketIsPublic={m.bracketIsPublic}
-                        matchIsPublicSparring={m.matchIsPublicSparring}
-                        resultMemo={m.resultMemo}
-                        className={bracketCardTypography.formatBadge}
-                      />
-                    ) : null}
-                    <span
-                      className={cn(
-                        bracketCardTypography.opsPill,
-                        "text-muted-foreground",
-                      )}
-                    >
-                      {formatOperationalSettingsLabel(ops)}
-                    </span>
-                  </div>
-                  <p className={cn(bracketCardTypography.meta, "mt-1")}>
-                    {courtLabelForMatch(m, courts)}
-                    {order != null ? ` · ${order}경기` : ""}
-                    {m.roundName ? ` · ${m.roundName}` : ""}
-                  </p>
+                  {m.division ? (
+                    <MatchDivisionHeader
+                      matchNumberLabel={matchOrderLabel(m, order)}
+                      division={m.division}
+                      trailing={
+                        <>
+                          {formatKind !== "public_sparring" ? (
+                            <BoutFormatBadge
+                              bracketType={m.bracketType}
+                              bracketIsPublic={m.bracketIsPublic}
+                              matchIsPublicSparring={m.matchIsPublicSparring}
+                              resultMemo={m.resultMemo}
+                              className={bracketCardTypography.formatBadge}
+                            />
+                          ) : null}
+                          <span
+                            className={cn(
+                              bracketCardTypography.opsPill,
+                              "text-muted-foreground",
+                            )}
+                          >
+                            {formatOperationalSettingsLabel(ops)}
+                          </span>
+                        </>
+                      }
+                      meta={
+                        <>
+                          {courtLabelForMatch(m, courts)}
+                          {order != null ? ` · ${order}경기` : ""}
+                          {m.roundName ? ` · ${m.roundName}` : ""}
+                        </>
+                      }
+                    />
+                  ) : (
+                    <>
+                      <div
+                        className={cn(
+                          "flex flex-wrap items-center gap-2",
+                          bracketCardTypography.headerRow,
+                        )}
+                      >
+                        <span className={bracketCardTypography.matchNumber}>
+                          {matchOrderLabel(m, order)}
+                        </span>
+                        <span className={bracketCardTypography.division}>
+                          {m.divisionLabel ?? MATCH_CATEGORY_LABEL}
+                        </span>
+                        {formatKind !== "public_sparring" ? (
+                          <BoutFormatBadge
+                            bracketType={m.bracketType}
+                            bracketIsPublic={m.bracketIsPublic}
+                            matchIsPublicSparring={m.matchIsPublicSparring}
+                            resultMemo={m.resultMemo}
+                            className={bracketCardTypography.formatBadge}
+                          />
+                        ) : null}
+                        <span
+                          className={cn(
+                            bracketCardTypography.opsPill,
+                            "text-muted-foreground",
+                          )}
+                        >
+                          {formatOperationalSettingsLabel(ops)}
+                        </span>
+                      </div>
+                      <p className={cn(bracketCardTypography.meta, "mt-1")}>
+                        {courtLabelForMatch(m, courts)}
+                        {order != null ? ` · ${order}경기` : ""}
+                        {m.roundName ? ` · ${m.roundName}` : ""}
+                      </p>
+                    </>
+                  )}
                 </div>
                 <div className="flex shrink-0 items-center gap-2">
                   {canReorder ? (

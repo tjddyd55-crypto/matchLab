@@ -8,6 +8,7 @@ import type { OrganizerApprovedFighterOptionVM } from "@/lib/services/bracket.se
 import type { OrganizerBracketMatchVM } from "@/lib/services/bracket.service";
 import type { EventCourtVM } from "@/lib/services/event-court.service";
 import { formatCourtTabLabel } from "@/lib/court-tab-label";
+import type { EventDivisionDisplayInput } from "@/lib/event-division-fields";
 import { Button } from "@/components/ui/button";
 import { BracketType } from "@/lib/enums";
 import { sortMatchesByOrder } from "@/lib/match-order-display";
@@ -20,7 +21,7 @@ export function MatchListEditor({
   bracketIsPublic,
   matches,
   options,
-  divisionLabel,
+  division,
 }: {
   eventId: string;
   courts: EventCourtVM[];
@@ -29,7 +30,7 @@ export function MatchListEditor({
   bracketIsPublic?: boolean;
   matches: OrganizerBracketMatchVM[];
   options: OrganizerApprovedFighterOptionVM[];
-  divisionLabel?: string | null;
+  division?: EventDivisionDisplayInput | null;
 }) {
   const router = useRouter();
   const [pending, startTransition] = useTransition();
@@ -130,7 +131,8 @@ export function MatchListEditor({
               options={options}
               bracketType={bracketType}
               bracketIsPublic={bracketIsPublic}
-              divisionLabel={divisionLabel}
+              division={division}
+              compactDivision
             />
           ))}
         </div>
