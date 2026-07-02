@@ -1,4 +1,5 @@
 import type { PublicEventDetailDTO } from "@/lib/dto/public";
+import { BrandLogo } from "@/components/common/BrandLogo";
 import {
   spectatorWatchTabLabel,
   type SpectatorWatchTabId,
@@ -29,7 +30,7 @@ export function SpectatorWatchHeader({
 
   return (
     <header className="space-y-3 border-b bg-background px-4 pb-4 pt-5">
-      <p className="text-primary text-sm font-black tracking-[0.2em]">MATCHON</p>
+      <BrandLogo size="sm" showText />
       <div>
         <h1 className="text-xl font-bold leading-snug">{event.title}</h1>
         <p className="text-muted-foreground mt-1 text-sm">

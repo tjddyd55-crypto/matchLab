@@ -6,7 +6,9 @@ import {
 } from "@/lib/event-public-display";
 import { getAppBaseUrl } from "@/lib/app-url";
 
-const SITE_NAME = "MatchLab";
+import { BRAND_NAME } from "@/lib/brand";
+
+const SITE_NAME = BRAND_NAME;
 
 export function buildEventPublicUrl(
   event: Pick<PublicEventDetailDTO, "publicSlug">,

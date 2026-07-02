@@ -1,6 +1,7 @@
 "use client";
 
 import { useCallback } from "react";
+import { BrandLogo } from "@/components/common/BrandLogo";
 import { Button } from "@/components/ui/button";
 import { EventQrCard, type EventQrPrintGroup } from "./EventQrCard";
 import type { CourtJudgeQrLinkVM } from "@/lib/qr-url";
@@ -218,6 +219,7 @@ export function EventQrPrintBoard({
       </section>
 
       <div className="event-qr-print-header hidden print:block">
+        <BrandLogo size="sm" showText className="mb-3" />
         <h1 className="text-xl font-bold">{eventTitle}</h1>
         {formattedDate ? (
           <p className="text-sm">{formattedDate}</p>

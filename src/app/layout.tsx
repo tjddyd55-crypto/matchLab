@@ -1,6 +1,7 @@
 import type { Metadata } from "next";
 import { Geist, Geist_Mono } from "next/font/google";
 import { AppProviders } from "@/app/providers";
+import { BRAND_DESCRIPTION, BRAND_NAME } from "@/lib/brand";
 import "./globals.css";
 
 const geistSans = Geist({
@@ -14,8 +15,28 @@ const geistMono = Geist_Mono({
 });
 
 export const metadata: Metadata = {
-  title: "격투기 대회 운영 플랫폼",
-  description: "대회 공고, 신청, 대진표, 결과 및 전적 관리 MVP",
+  applicationName: BRAND_NAME,
+  title: {
+    default: BRAND_NAME,
+    template: `%s | ${BRAND_NAME}`,
+  },
+  description: BRAND_DESCRIPTION,
+  manifest: "/manifest.webmanifest",
+  icons: {
+    icon: [
+      { url: "/favicon.ico", sizes: "any" },
+      { url: "/icon.png", sizes: "32x32", type: "image/png" },
+      { url: "/icons/icon-192.png", sizes: "192x192", type: "image/png" },
+      { url: "/icons/icon-512.png", sizes: "512x512", type: "image/png" },
+    ],
+    apple: [{ url: "/apple-touch-icon.png", sizes: "180x180", type: "image/png" }],
+    shortcut: ["/favicon.ico"],
+  },
+  openGraph: {
+    siteName: BRAND_NAME,
+    locale: "ko_KR",
+    type: "website",
+  },
 };
 
 export default function RootLayout({
