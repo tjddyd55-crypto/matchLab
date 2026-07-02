@@ -1,4 +1,5 @@
 import Link from "next/link";
+import { BrandLogo } from "@/components/common/BrandLogo";
 import { JudgeLogoutButton } from "@/components/domain/judges/JudgeLogoutButton";
 import type { ResolvedJudgeSession } from "@/lib/services/judge-credential.service";
 import { judgeDefaultRoute } from "@/lib/judge-identity";
@@ -12,7 +13,9 @@ export function JudgeSessionHeader({
 
   return (
     <header className="flex flex-wrap items-start justify-between gap-3 border-b pb-4">
-      <div className="space-y-1 text-sm">
+      <div className="space-y-3">
+        <BrandLogo size="sm" showText />
+        <div className="space-y-1 text-sm">
         <p className="font-medium">
           현재 로그인: {name} / {session.roleLabel}
         </p>
@@ -39,6 +42,7 @@ export function JudgeSessionHeader({
           <Link href="/judge/verify" className="underline">
             본인 정보
           </Link>
+        </div>
         </div>
       </div>
       <JudgeLogoutButton />

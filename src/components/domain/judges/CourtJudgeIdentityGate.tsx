@@ -1,6 +1,7 @@
 "use client";
 
 import { useSyncExternalStore, useState, type FormEvent } from "react";
+import { BrandLogo } from "@/components/common/BrandLogo";
 import { Button } from "@/components/ui/button";
 import {
   clearCourtJudgeSession,
@@ -63,7 +64,7 @@ export function CourtJudgeIdentityGate({
     return (
       <div className="mx-auto flex min-h-[60vh] max-w-md flex-col justify-center gap-5 p-4">
         <header className="space-y-3 text-center">
-          <p className="text-primary text-2xl font-black tracking-tight">MATCHON</p>
+          <BrandLogo size="md" showText className="justify-center" />
           <div className="space-y-1">
             <p className="text-muted-foreground text-sm">{eventTitle}</p>
             <p className="text-lg font-semibold">{courtName}</p>

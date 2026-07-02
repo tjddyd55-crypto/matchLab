@@ -1,4 +1,5 @@
 import Link from "next/link";
+import { BrandLogo } from "@/components/common/BrandLogo";
 import type { DashboardRole } from "@/components/layout/DashboardShell";
 import { cn } from "@/lib/utils";
 
@@ -42,6 +43,19 @@ const navByRole: Record<DashboardRole, NavItem[]> = {
   ],
 };
 
+function dashboardHomePath(role: DashboardRole): string {
+  switch (role) {
+    case "organizer":
+      return "/organizer";
+    case "gym":
+      return "/gym";
+    case "fighter":
+      return "/fighter";
+    case "admin":
+      return "/admin";
+  }
+}
+
 export function Sidebar({
   role,
   className,
@@ -50,8 +64,12 @@ export function Sidebar({
   className?: string;
 }) {
   const items = navByRole[role];
+
   return (
     <aside className={cn("flex flex-col gap-1 p-3", className)}>
+      <div className="mb-3 px-2">
+        <BrandLogo href={dashboardHomePath(role)} size="sm" showText />
+      </div>
       <nav className="flex flex-col gap-1 text-sm">
         {items.map((item) => (
           <Link

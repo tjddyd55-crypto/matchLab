@@ -1,6 +1,7 @@
 "use client";
 
 import { useRouter } from "next/navigation";
+import { BrandLogo } from "@/components/common/BrandLogo";
 import { Button } from "@/components/ui/button";
 import { cn } from "@/lib/utils";
 
@@ -48,7 +49,7 @@ export function CourtJudgeUnavailableState({
   return (
     <div className="mx-auto flex min-h-[70vh] max-w-md flex-col justify-center gap-6 p-6">
       <header className="space-y-3 text-center">
-        <p className="text-primary text-2xl font-black tracking-tight">MATCHON</p>
+        <BrandLogo size="md" showText className="justify-center" />
         {eventTitle ? (
           <p className="text-muted-foreground text-sm">{eventTitle}</p>
         ) : null}

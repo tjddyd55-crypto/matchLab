@@ -1,6 +1,7 @@
 "use client";
 
 import { useMemo, useState } from "react";
+import { BrandLogo } from "@/components/common/BrandLogo";
 import { cn } from "@/lib/utils";
 import type {
   CourtJudgeCourtVM,
@@ -86,6 +87,9 @@ export function CourtJudgeScreenShell({
 
   return (
     <div className="mx-auto max-w-6xl p-4">
+      <div className="mb-4 flex justify-center md:justify-start">
+        <BrandLogo size="sm" showText />
+      </div>
       <header className="mb-4 rounded-xl border bg-card p-4 lg:hidden">
         <p className="text-muted-foreground text-xs">{court.eventTitle}</p>
         <h1 className="mt-1 text-xl font-bold">

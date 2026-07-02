@@ -1,5 +1,6 @@
 import { redirect } from "next/navigation";
 import { LoginForm } from "@/components/domain/auth/LoginForm";
+import { BRAND_NAME } from "@/lib/brand";
 import {
   dashboardPathForRole,
   getCurrentActor,
@@ -16,7 +17,7 @@ export default async function LoginPage() {
   return (
     <div className="space-y-6">
       <div className="space-y-1 text-center">
-        <h1 className="text-xl font-semibold tracking-tight">로그인</h1>
+        <h1 className="text-xl font-semibold tracking-tight">{BRAND_NAME} 로그인</h1>
         <p className="text-muted-foreground text-sm">
           Supabase Auth 계정으로 로그인합니다. DB{" "}
           <code className="rounded bg-muted px-1 py-0.5 text-xs">User.authUserId</code>{" "}

@@ -1,4 +1,5 @@
 import Link from "next/link";
+import { BrandLogo } from "@/components/common/BrandLogo";
 import { PUBLIC_CONTENT_CONTAINER_CLASS } from "@/components/domain/events/public/public-event-layout";
 import { buttonVariants } from "@/components/ui/button";
 import { cn } from "@/lib/utils";
@@ -13,9 +14,7 @@ export function PublicHomeHeroDesktop() {
         )}
       >
         <div className="max-w-3xl space-y-5">
-          <p className="text-primary text-sm font-semibold tracking-wide">
-            MatchLab
-          </p>
+          <BrandLogo size="md" showText priority />
           <h1 className="font-heading text-4xl font-semibold tracking-tight lg:text-5xl">
             대회 공고 · 신청 · 현장 정보
           </h1>

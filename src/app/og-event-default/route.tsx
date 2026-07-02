@@ -1,4 +1,5 @@
 import { ImageResponse } from "next/og";
+import { BRAND_NAME } from "@/lib/brand";
 
 export const runtime = "edge";
 
@@ -11,7 +12,7 @@ function truncateText(text: string, maxLength: number): string {
 export async function GET(request: Request) {
   const { searchParams } = new URL(request.url);
   const title = truncateText(
-    searchParams.get("title")?.trim() || "MatchLab 대회 공고",
+    searchParams.get("title")?.trim() || `${BRAND_NAME} 대회 공고`,
     48,
   );
   const date = truncateText(searchParams.get("date")?.trim() || "", 32);
@@ -52,7 +53,7 @@ export async function GET(request: Request) {
               background: "#38bdf8",
             }}
           />
-          MatchLab
+          {BRAND_NAME}
         </div>
 
         <div style={{ display: "flex", flexDirection: "column", gap: 20 }}>

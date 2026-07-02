@@ -22,6 +22,7 @@ import {
   buildEventShareTitle,
   resolveEventOgImageForMetadata,
 } from "@/lib/share/event-share";
+import { BRAND_NAME } from "@/lib/brand";
 import type { Metadata } from "next";
 
 export const dynamic = "force-dynamic";
@@ -50,7 +51,7 @@ export async function generateMetadata({
       description,
       url,
       type: "website",
-      siteName: "MatchLab",
+      siteName: BRAND_NAME,
       locale: "ko_KR",
       images: [
         {

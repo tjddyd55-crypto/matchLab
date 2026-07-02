@@ -1,5 +1,6 @@
 import { JudgeLoginForm } from "@/components/domain/judges/JudgeLoginForm";
 import { JudgeQrEntryError } from "@/components/domain/judges/JudgeQrEntryError";
+import { BrandLogo } from "@/components/common/BrandLogo";
 import { JUDGE_COUNT_POLICY_LINES } from "@/lib/judge-round-count";
 import { judgeDefaultRoute } from "@/lib/judge-identity";
 import { judgeCredentialService } from "@/lib/services/judge-credential.service";
@@ -52,6 +53,7 @@ export default async function JudgeLoginPage({
 
   return (
     <div className="mx-auto flex w-full max-w-md flex-col gap-6 px-4 py-8">
+      <BrandLogo size="md" showText className="justify-center" />
       <header className="space-y-2">
         <p className="text-primary text-xs font-medium tracking-wide uppercase">
           심판 전용 로그인

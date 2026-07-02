@@ -1,4 +1,5 @@
 import Link from "next/link";
+import { BrandLogo } from "@/components/common/BrandLogo";
 import { PUBLIC_CONTENT_CONTAINER_CLASS } from "@/components/domain/events/public/public-event-layout";
 import type { DashboardRole } from "@/components/layout/DashboardShell";
 import { cn } from "@/lib/utils";
@@ -24,9 +25,7 @@ export function Header(props: HeaderProps) {
             "flex items-center justify-between gap-4",
           )}
         >
-          <Link href="/" className="font-semibold tracking-tight">
-            대회 플랫폼
-          </Link>
+          <BrandLogo href="/" size="md" showText />
           <nav className="flex items-center gap-3 text-sm">
             <Link href="/events" className="text-muted-foreground hover:text-foreground">
               대회 목록
@@ -50,13 +49,29 @@ export function Header(props: HeaderProps) {
   return (
     <header className="border-b bg-background px-4 py-3">
       <div className="flex flex-wrap items-center justify-between gap-3">
-        <div className="flex min-w-0 flex-col gap-0.5">
+        <div className="flex min-w-0 items-center gap-3">
+          <BrandLogo
+            href={
+              props.role === "organizer"
+                ? "/organizer"
+                : props.role === "gym"
+                  ? "/gym"
+                  : props.role === "fighter"
+                    ? "/fighter"
+                    : "/admin"
+            }
+            size="sm"
+            showText
+            className="shrink-0"
+          />
+          <div className="flex min-w-0 flex-col gap-0.5">
           <span className="text-sm font-medium text-muted-foreground">
             {titles[props.role]} 대시보드
           </span>
           <span className="text-muted-foreground truncate text-xs">
             {props.actorEmail}
           </span>
+          </div>
         </div>
         <div className="flex flex-wrap items-center gap-2">
           <NotificationBell userId={props.actorUserId} />
