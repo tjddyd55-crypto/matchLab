@@ -7,6 +7,8 @@ import {
 import { OrganizerApplicationRowActions } from "@/components/domain/applications/OrganizerApplicationRowActions";
 import { OrganizerManualEntryHint } from "@/components/domain/applications/OrganizerManualEntryHint";
 import type { OrganizerApplicationRowVM } from "@/components/domain/applications/OrganizerApplicationsTable";
+import { DivisionInfoChips } from "@/components/domain/shared/DivisionInfoChips";
+import { DivisionGenderBadge } from "@/components/domain/shared/DivisionGenderBadge";
 import { Checkbox } from "@/components/ui/checkbox";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 
@@ -37,15 +39,16 @@ export function OrganizerApplicationsCards({
               />
               <div className="min-w-0 flex-1">
                 <div className="text-muted-foreground text-xs">{row.gymName}</div>
-                <CardTitle className="text-base">{row.fighterName}</CardTitle>
+                <div className="flex min-w-0 items-center gap-1.5">
+                  <CardTitle className="text-base">{row.fighterName}</CardTitle>
+                  <DivisionGenderBadge gender={row.division.gender} short />
+                </div>
                 <OrganizerManualEntryHint show={row.isOrganizerManualEntry} />
               </div>
             </div>
           </CardHeader>
           <CardContent className="flex flex-col gap-2 text-sm">
-            <div className="text-muted-foreground line-clamp-2 text-xs">
-              {row.divisionLabel}
-            </div>
+            <DivisionInfoChips division={row.division} className="text-xs" />
             <div className="flex flex-wrap gap-2">
               <OrganizerPaymentDisplayBadge paymentStatus={row.paymentStatus} />
               <OrganizerApplicationStatusBadge

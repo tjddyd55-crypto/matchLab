@@ -8,6 +8,7 @@ import {
 import { FieldFinalResultCell } from "@/components/domain/field-status/FieldFinalResultCell";
 import { FieldStatusResetButton } from "@/components/domain/field-status/FieldStatusResetButton";
 import { WeighInStatusBadge } from "@/components/domain/field-status/WeighInStatusBadge";
+import { DivisionInfoChips } from "@/components/domain/shared/DivisionInfoChips";
 import type { FieldStatusRowDTO } from "@/lib/services/field-status.service";
 import { APPLIED_MATCH_CATEGORY_LABEL } from "@/lib/ui-labels/match-category";
 
@@ -76,13 +77,8 @@ export function OrganizerFieldStatusTable({
                   </div>
                 </td>
                 <td className="min-w-0 px-2 py-2 align-middle text-xs leading-snug">
-                  <div className="flex min-h-0 items-center">
-                    <span
-                      className="line-clamp-2 break-words whitespace-normal"
-                      title={row.divisionLabel}
-                    >
-                      {row.divisionLabel}
-                    </span>
+                  <div className="flex min-h-0 items-center" title={row.divisionLabel}>
+                    <DivisionInfoChips division={row.division} className="text-xs" />
                   </div>
                 </td>
                 <td className="min-w-0 px-2 py-2 align-middle">
@@ -130,12 +126,9 @@ export function OrganizerFieldStatusTable({
             <div className="mt-1">
               <WeighInStatusBadge status={row.weighInStatus} />
             </div>
-            <p
-              className="text-muted-foreground mt-2 line-clamp-2 break-words text-xs"
-              title={row.divisionLabel}
-            >
-              {row.divisionLabel}
-            </p>
+            <div className="mt-2" title={row.divisionLabel}>
+              <DivisionInfoChips division={row.division} className="text-xs" />
+            </div>
             <div className="mt-2 grid min-w-0 gap-2 border-t pt-2">
               <div className="min-w-0">
                 <p className="text-muted-foreground mb-1 text-[10px] font-medium">

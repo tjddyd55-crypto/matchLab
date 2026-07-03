@@ -5,8 +5,10 @@ import { OperationJudgeBriefCell } from "@/components/domain/operation/Operation
 import { BoutFormatBadge } from "@/components/domain/shared/BoutFormatBadge";
 import { formatOperationalSettingsLabel, parseMatchOperationalSettings } from "@/lib/match-operational-settings";
 import { OrganizerJudgeAggregationInlineSection } from "@/components/domain/judges/OrganizerJudgeAggregationInlineSection";
+import { MatchFinalResultSummary } from "@/components/domain/operation/MatchFinalResultSummary";
 import { OrganizerOperationActions } from "@/components/domain/operation/OrganizerOperationActions";
 import { OrganizerOperationStatusBadges } from "@/components/domain/operation/OrganizerOperationStatusBadges";
+import { DivisionInfoChips } from "@/components/domain/shared/DivisionInfoChips";
 import { FighterHandicapBadge } from "@/components/domain/shared/FighterHandicapBadge";
 import type { OperationMatchRowVM } from "@/components/domain/operation/operation-match-row";
 import {
@@ -45,7 +47,11 @@ export function OrganizerOperationCardListMobile({
               <p className="text-muted-foreground text-xs">
                 경기 {row.orderLabel}
               </p>
-              <p className="font-medium">{row.divisionLabel ?? "경기구분 미상"}</p>
+              {row.division ? (
+                <DivisionInfoChips division={row.division} className="text-xs" />
+              ) : (
+                <p className="font-medium">{row.divisionLabel ?? "경기구분 미상"}</p>
+              )}
               <div className="mt-1 flex flex-wrap gap-1">
                 <BoutFormatBadge
                   bracketType={row.bracketType}
@@ -119,12 +125,25 @@ export function OrganizerOperationCardListMobile({
           />
 
           {expandedMatchId === row.matchId ? (
-            <div className="space-y-3 border-t pt-3">
-              <OrganizerMatchOpsPanel {...toMatchOpsProps(row)} />
+            <div className="space-y-4 border-t pt-3">
               <OrganizerJudgeAggregationInlineSection
                 matchId={row.matchId}
                 open
               />
+              <MatchFinalResultSummary
+                status={row.status}
+                winnerId={row.winnerId}
+                resultType={row.resultType}
+                hasOfficialResults={row.hasOfficialResults}
+                fighterRedId={row.fighterRed?.id ?? null}
+                fighterBlueId={row.fighterBlue?.id ?? null}
+                fighterRedName={row.fighterRed?.name ?? "미배정"}
+                fighterBlueName={row.fighterBlue?.name ?? "미배정"}
+              />
+              <section className="border-t pt-4">
+                <h3 className="mb-3 text-sm font-semibold">주심 입력</h3>
+                <OrganizerMatchOpsPanel {...toMatchOpsProps(row)} />
+              </section>
             </div>
           ) : null}
         </article>

@@ -15,6 +15,9 @@ import {
 } from "@/components/domain/applications/OrganizerApplicationDisplayBadge";
 import { OrganizerApplicationRowActions } from "@/components/domain/applications/OrganizerApplicationRowActions";
 import { OrganizerManualEntryHint } from "@/components/domain/applications/OrganizerManualEntryHint";
+import { DivisionInfoChips } from "@/components/domain/shared/DivisionInfoChips";
+import { DivisionGenderBadge } from "@/components/domain/shared/DivisionGenderBadge";
+import type { EventDivisionDisplayInput } from "@/lib/event-division-fields";
 import { MATCH_CATEGORY_WITH_WEIGHT_LABEL } from "@/lib/ui-labels/match-category";
 import { Checkbox } from "@/components/ui/checkbox";
 import {
@@ -35,6 +38,7 @@ export type OrganizerApplicationRowVM = {
   gymName: string;
   divisionId: string;
   divisionLabel: string;
+  division: EventDivisionDisplayInput;
   applicationStatus: ApplicationStatus;
   cancellationSource: ApplicationCancellationSource | null;
   paymentStatus: PaymentStatus;
@@ -92,11 +96,16 @@ export function OrganizerApplicationsTable({
                 <div className="truncate text-sm">{row.gymName}</div>
               </TableCell>
               <TableCell className="align-top">
-                <div className="truncate text-sm font-medium">{row.fighterName}</div>
+                <div className="flex min-w-0 items-center gap-1.5">
+                  <span className="truncate text-sm font-medium">
+                    {row.fighterName}
+                  </span>
+                  <DivisionGenderBadge gender={row.division.gender} short />
+                </div>
                 <OrganizerManualEntryHint show={row.isOrganizerManualEntry} />
               </TableCell>
-              <TableCell className="text-muted-foreground align-top text-xs leading-snug">
-                <span className="line-clamp-2 break-words">{row.divisionLabel}</span>
+              <TableCell className="align-top">
+                <DivisionInfoChips division={row.division} className="text-xs" />
               </TableCell>
               <TableCell className="align-top">
                 <OrganizerPaymentDisplayBadge paymentStatus={row.paymentStatus} />

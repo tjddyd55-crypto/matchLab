@@ -380,6 +380,10 @@ export type OrganizerApprovedFighterOptionVM = {
   fighterId: string;
   label: string;
   divisionLabel: string;
+  /** 표시용 division 필드 — 공통 칩 helper 입력. */
+  division: EventDivisionDisplayInput;
+  fighterName: string;
+  gymName: string;
   /** 출전 확정 여부 (현장·계체 완료) */
   isEligibleForBracket: boolean;
   eligibilityLabel: string;
@@ -483,6 +487,18 @@ export const bracketService = {
           fighterId: a.fighter.id,
           label: `${a.fighter.name} · ${a.gym.name}`,
           divisionLabel: formatDivisionNameLabel(a.division),
+          division: {
+            sportType: a.division.sportType,
+            ruleType: a.division.ruleType,
+            gender: a.division.gender,
+            ageGroup: a.division.ageGroup,
+            weightClass: a.division.weightClass,
+            weightClassName: null,
+            weightLimitText: null,
+            skillLevel: a.division.skillLevel,
+          },
+          fighterName: a.fighter.name,
+          gymName: a.gym.name,
           isEligibleForBracket: fieldEligibility?.isEligibleForBracket ?? false,
           eligibilityLabel: fieldEligibility?.eligibilityLabel ?? "현장 미확인",
           eligibilityReason:

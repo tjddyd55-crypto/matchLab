@@ -45,6 +45,8 @@ const applicationSelect = {
       gender: true,
       ageGroup: true,
       weightClass: true,
+      weightClassName: true,
+      weightLimitText: true,
       skillLevel: true,
     },
   },

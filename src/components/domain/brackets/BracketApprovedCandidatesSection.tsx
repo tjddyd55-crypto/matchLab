@@ -1,31 +1,20 @@
 "use client";
 
-import { useMemo, useState } from "react";
+import { useMemo } from "react";
 import type {
   OrganizerApprovedFighterOptionVM,
   OrganizerBracketMatchVM,
 } from "@/lib/services/bracket.service";
 import { EligibilityBadge } from "@/components/domain/field-status/EligibilityBadge";
-import { Button } from "@/components/ui/button";
+import { DivisionInfoChips } from "@/components/domain/shared/DivisionInfoChips";
 import { formatMatchOrderFormal } from "@/lib/match-order-display";
-import { StatusBadge } from "@/components/shared/StatusBadge";
 import { cn } from "@/lib/utils";
 
 type PlacementInfo = {
   matchLabel: string;
+  corner: "홍코너" | "청코너";
   opponentName: string;
 };
-
-function collectPlacedFighterIds(
-  matches: OrganizerBracketMatchVM[],
-): Set<string> {
-  const ids = new Set<string>();
-  for (const m of matches) {
-    if (m.fighterRedId) ids.add(m.fighterRedId);
-    if (m.fighterBlueId) ids.add(m.fighterBlueId);
-  }
-  return ids;
-}
 
 function buildPlacementMap(
   matches: OrganizerBracketMatchVM[],
@@ -36,12 +25,14 @@ function buildPlacementMap(
     if (m.fighterRedId) {
       map.set(m.fighterRedId, {
         matchLabel,
+        corner: "홍코너",
         opponentName: m.fighterBlueSnapshot?.name ?? "미배정",
       });
     }
     if (m.fighterBlueId) {
       map.set(m.fighterBlueId, {
         matchLabel,
+        corner: "청코너",
         opponentName: m.fighterRedSnapshot?.name ?? "미배정",
       });
     }
@@ -49,16 +40,134 @@ function buildPlacementMap(
   return map;
 }
 
-function parseCandidateName(label: string): { name: string; gymName: string } {
-  const parts = label.split(" · ");
-  if (parts.length >= 2) {
-    return { name: parts[0]!, gymName: parts.slice(1).join(" · ") };
-  }
-  return { name: label, gymName: "—" };
+type CandidateGroup = "assigned" | "unassignable" | "unassigned";
+
+/**
+ * 후보 분류 우선순위:
+ * 1) 배치 불가(실격·취소·미출석 등) → 참여 불가
+ * 2) 대진에 이미 배정됨 → 배정된 선수
+ * 3) 그 외(출전 가능·미배정) → 미배정 선수
+ * 배치 가능 여부는 bracket.service의 computeBracketAssignability(SSOT) 결과를 그대로 사용한다.
+ */
+function classifyCandidate(
+  option: OrganizerApprovedFighterOptionVM,
+  isPlaced: boolean,
+): CandidateGroup {
+  if (!option.isAssignableForBracket) return "unassignable";
+  if (isPlaced) return "assigned";
+  return "unassigned";
 }
 
-function hasIssue(option: OrganizerApprovedFighterOptionVM): boolean {
-  return !option.isAssignableForBracket;
+function CandidateCard({
+  option,
+  placement,
+  isPlaced,
+  group,
+}: {
+  option: OrganizerApprovedFighterOptionVM;
+  placement: PlacementInfo | undefined;
+  isPlaced: boolean;
+  group: CandidateGroup;
+}) {
+  return (
+    <li
+      className={cn(
+        "flex flex-col gap-2 rounded-lg border bg-muted/20 p-3 text-sm",
+        group === "unassignable"
+          ? "border-destructive/40"
+          : group === "unassigned" && !option.isEligibleForBracket
+            ? "border-amber-500/40"
+            : undefined,
+      )}
+    >
+      <div className="flex items-start justify-between gap-2">
+        <div className="min-w-0">
+          <div className="truncate font-semibold">{option.fighterName}</div>
+          <div className="text-muted-foreground truncate text-xs">
+            {option.gymName}
+          </div>
+          <div className="mt-1">
+            <DivisionInfoChips division={option.division} className="text-xs" />
+          </div>
+        </div>
+        <div className="flex shrink-0 flex-wrap justify-end gap-1">
+          <EligibilityBadge
+            label={option.assignabilityLabel}
+            isEligible={option.isAssignableForBracket}
+            title={
+              option.assignabilityDisabledReason ??
+              option.assignabilityWarningReason ??
+              option.eligibilityReason
+            }
+          />
+        </div>
+      </div>
+
+      <div className="text-muted-foreground border-t pt-2 text-xs">
+        {group === "unassignable" ? (
+          <p className="leading-snug">
+            <span className="font-medium text-destructive">
+              {option.assignabilityDisabledReason ?? "대진 배치 불가"}
+            </span>
+            {isPlaced && placement ? (
+              <span className="text-amber-700 dark:text-amber-300">
+                {" · "}
+                {placement.matchLabel} 배정됨 — 슬롯을 비우거나 교체해 주세요.
+              </span>
+            ) : null}
+          </p>
+        ) : placement ? (
+          <p>
+            <span className="text-foreground font-medium">
+              {placement.matchLabel} {placement.corner}
+            </span>
+            {" · "}상대 {placement.opponentName}
+          </p>
+        ) : (
+          <p className="font-medium text-amber-800 dark:text-amber-200">
+            대진 대기
+          </p>
+        )}
+      </div>
+    </li>
+  );
+}
+
+function CandidateColumn({
+  title,
+  count,
+  accentClassName,
+  emptyMessage,
+  children,
+}: {
+  title: string;
+  count: number;
+  accentClassName?: string;
+  emptyMessage: string;
+  children: React.ReactNode;
+}) {
+  return (
+    <div className="min-w-0 space-y-2">
+      <h3 className="flex items-center gap-2 text-sm font-semibold">
+        <span>{title}</span>
+        <span
+          className={cn(
+            "inline-flex h-5 min-w-5 items-center justify-center rounded-full px-1.5 text-xs font-medium",
+            accentClassName ?? "bg-muted text-muted-foreground",
+          )}
+        >
+          {count}
+        </span>
+      </h3>
+      {count > 0 ? (
+        <ul className="grid gap-2">{children}</ul>
+      ) : (
+        <p className="text-muted-foreground rounded-lg border border-dashed px-3 py-4 text-center text-xs">
+          {emptyMessage}
+        </p>
+      )}
+    </div>
+  );
 }
 
 export function BracketApprovedCandidatesSection({
@@ -68,61 +177,34 @@ export function BracketApprovedCandidatesSection({
   options: OrganizerApprovedFighterOptionVM[];
   matches: OrganizerBracketMatchVM[];
 }) {
-  const [eligibleOnly, setEligibleOnly] = useState(false);
-  const [issuesOnly, setIssuesOnly] = useState(false);
-
-  const placedIds = useMemo(
-    () => collectPlacedFighterIds(matches),
-    [matches],
-  );
   const placementMap = useMemo(() => buildPlacementMap(matches), [matches]);
+  const placedIds = useMemo(() => new Set(placementMap.keys()), [placementMap]);
 
-  const unassignablePlacedCount = useMemo(() => {
-    return options.filter(
-      (o) => placedIds.has(o.fighterId) && !o.isAssignableForBracket,
-    ).length;
+  const grouped = useMemo(() => {
+    const assigned: OrganizerApprovedFighterOptionVM[] = [];
+    const unassignable: OrganizerApprovedFighterOptionVM[] = [];
+    const unassigned: OrganizerApprovedFighterOptionVM[] = [];
+    for (const o of options) {
+      const group = classifyCandidate(o, placedIds.has(o.fighterId));
+      if (group === "assigned") assigned.push(o);
+      else if (group === "unassignable") unassignable.push(o);
+      else unassigned.push(o);
+    }
+    return { assigned, unassignable, unassigned };
   }, [options, placedIds]);
 
-  const visible = useMemo(() => {
-    let list = options;
-    if (eligibleOnly) {
-      list = list.filter((o) => o.isEligibleForBracket);
-    }
-    if (issuesOnly) {
-      list = list.filter((o) => hasIssue(o));
-    }
-    return list;
-  }, [options, eligibleOnly, issuesOnly]);
+  const unassignablePlacedCount = grouped.unassignable.filter((o) =>
+    placedIds.has(o.fighterId),
+  ).length;
 
   return (
     <section className="ring-foreground/10 rounded-xl border bg-card p-4 shadow-sm">
-      <div className="flex flex-wrap items-start justify-between gap-3">
-        <div>
-          <h2 className="text-lg font-semibold">승인된 신청 선수 (대진 후보)</h2>
-          <p className="text-muted-foreground mt-1 max-w-2xl text-sm">
-            승인된 신청자는 모두 후보로 조회됩니다. 현장확인 전·계체 전 선수는
-            대진 배치가 가능하며 경고로 표시됩니다. 실격·경기취소 등 출전 불가
-            선수는 배치할 수 없습니다.
-          </p>
-        </div>
-        <div className="flex flex-wrap gap-2">
-          <Button
-            type="button"
-            variant={eligibleOnly ? "default" : "outline"}
-            size="sm"
-            onClick={() => setEligibleOnly((v) => !v)}
-          >
-            {eligibleOnly ? "출전 확정만 ✓" : "출전 확정만 보기"}
-          </Button>
-          <Button
-            type="button"
-            variant={issuesOnly ? "default" : "outline"}
-            size="sm"
-            onClick={() => setIssuesOnly((v) => !v)}
-          >
-            {issuesOnly ? "문제 선수만 ✓" : "문제 있는 선수만 보기"}
-          </Button>
-        </div>
+      <div>
+        <h2 className="text-lg font-semibold">승인된 신청 선수 (대진 후보)</h2>
+        <p className="text-muted-foreground mt-1 max-w-2xl text-sm">
+          승인된 신청자를 배정된 선수 · 참여 불가 선수 · 미배정 선수로 나누어
+          표시합니다. 실격·경기취소 등 출전 불가 선수는 배치할 수 없습니다.
+        </p>
       </div>
 
       {unassignablePlacedCount > 0 ? (
@@ -132,85 +214,64 @@ export function BracketApprovedCandidatesSection({
             {unassignablePlacedCount}명 있습니다.
           </p>
           <p className="text-muted-foreground mt-1 text-xs">
-            실격·경기취소 등 출전 불가 선수는 슬롯을 비우거나 다른 선수로
+            아래 참여 불가 선수 영역에서 확인 후 슬롯을 비우거나 다른 선수로
             교체해 주세요.
           </p>
         </div>
       ) : null}
 
-      <ul className="mt-4 grid gap-3 md:grid-cols-2">
-        {visible.map((o) => {
-          const { name, gymName } = parseCandidateName(o.label);
-          const placement = placementMap.get(o.fighterId);
-          const isPlaced = placedIds.has(o.fighterId);
-
-          return (
-            <li
+      <div className="mt-4 grid gap-5 lg:grid-cols-3">
+        <CandidateColumn
+          title="배정된 선수"
+          count={grouped.assigned.length}
+          accentClassName="bg-primary/10 text-primary"
+          emptyMessage="대진에 배정된 선수가 없습니다."
+        >
+          {grouped.assigned.map((o) => (
+            <CandidateCard
               key={o.applicationId}
-              className={cn(
-                "flex flex-col gap-2 rounded-lg border bg-muted/20 p-3 text-sm",
-                !o.isAssignableForBracket
-                  ? "border-destructive/40"
-                  : !o.isEligibleForBracket
-                    ? "border-amber-500/40"
-                    : undefined,
-              )}
-            >
-              <div className="flex items-start justify-between gap-2">
-                <div className="min-w-0">
-                  <div className="truncate font-semibold">{name}</div>
-                  <div className="text-muted-foreground truncate text-xs">
-                    {gymName}
-                  </div>
-                  <div className="text-muted-foreground mt-0.5 text-xs">
-                    {o.divisionLabel}
-                  </div>
-                </div>
-                <div className="flex shrink-0 flex-wrap justify-end gap-1">
-                  <EligibilityBadge
-                    label={o.assignabilityLabel}
-                    isEligible={o.isAssignableForBracket}
-                    title={
-                      o.assignabilityDisabledReason ??
-                      o.assignabilityWarningReason ??
-                      o.eligibilityReason
-                    }
-                  />
-                  {isPlaced ? (
-                    <StatusBadge variant="default" label="대진 배정됨" />
-                  ) : (
-                    <StatusBadge variant="outline" label="대진 미배정" />
-                  )}
-                </div>
-              </div>
+              option={o}
+              placement={placementMap.get(o.fighterId)}
+              isPlaced
+              group="assigned"
+            />
+          ))}
+        </CandidateColumn>
 
-              <div className="text-muted-foreground border-t pt-2 text-xs">
-                {placement ? (
-                  <p>
-                    <span className="text-foreground font-medium">
-                      {placement.matchLabel} 배정
-                    </span>
-                    {" · "}상대 {placement.opponentName}
-                  </p>
-                ) : (
-                  <p className="font-medium text-amber-800 dark:text-amber-200">
-                    대진 대기
-                  </p>
-                )}
-              </div>
-            </li>
-          );
-        })}
-      </ul>
-      {visible.length === 0 ? (
-        <p className="text-muted-foreground mt-3 text-sm">
-          {issuesOnly
-            ? "문제가 있는 후보 선수가 없습니다."
-            : eligibleOnly
-              ? "출전 확정된 후보 선수가 없습니다."
-              : "표시할 후보 선수가 없습니다."}
-        </p>
-      ) : null}
+        <CandidateColumn
+          title="참여 불가 선수"
+          count={grouped.unassignable.length}
+          accentClassName="bg-destructive/10 text-destructive"
+          emptyMessage="참여 불가 선수가 없습니다."
+        >
+          {grouped.unassignable.map((o) => (
+            <CandidateCard
+              key={o.applicationId}
+              option={o}
+              placement={placementMap.get(o.fighterId)}
+              isPlaced={placedIds.has(o.fighterId)}
+              group="unassignable"
+            />
+          ))}
+        </CandidateColumn>
+
+        <CandidateColumn
+          title="미배정 선수"
+          count={grouped.unassigned.length}
+          accentClassName="bg-amber-500/15 text-amber-700 dark:text-amber-300"
+          emptyMessage="미배정 선수가 없습니다."
+        >
+          {grouped.unassigned.map((o) => (
+            <CandidateCard
+              key={o.applicationId}
+              option={o}
+              placement={undefined}
+              isPlaced={false}
+              group="unassigned"
+            />
+          ))}
+        </CandidateColumn>
+      </div>
     </section>
   );
 }

@@ -11,6 +11,13 @@ import type { FieldStatusRowDTO } from "@/lib/services/field-status.service";
 import { WeighInFailureResolution } from "@/generated/prisma";
 import { cn } from "@/lib/utils";
 
+/**
+ * 계체 실패 처리 폼.
+ * - "경기진행": 핸디캡 적용 후 경기 진행을 허용(proceed_with_handicap). 별도 메모 없이 상태만 저장한다.
+ * - "경기취소": cancel_match. 대진 후보/경기운영에서 배치 불가로 처리된다.
+ * 출전 가능 판단은 computeFieldEligibility / computeBracketAssignability(SSOT)가 담당한다.
+ */
+
 const DISQUALIFICATION_PRESETS = [
   { value: "withdrawal", label: "신청철회", reason: "신청철회" },
   { value: "no_show", label: "미출석", reason: "미출석" },
@@ -24,22 +31,6 @@ function inferPreset(reason: string | null): string {
   return "other";
 }
 
-export function HandicapNoteCard({ note }: { note: string }) {
-  return (
-    <div
-      className={cn(
-        "w-full rounded-md border px-2.5 py-2 text-xs",
-        "border-amber-300 bg-amber-50 text-amber-950",
-        "dark:border-amber-800 dark:bg-amber-950/80 dark:text-amber-100",
-      )}
-      role="status"
-    >
-      <p className="font-semibold">핸디캡 안내</p>
-      <p className="mt-1 whitespace-pre-wrap leading-relaxed">{note}</p>
-    </div>
-  );
-}
-
 export function WeighInFailureResolutionForm({
   row,
   compact = false,
@@ -48,119 +39,64 @@ export function WeighInFailureResolutionForm({
   compact?: boolean;
 }) {
   const router = useRouter();
-  const [showHandicap, setShowHandicap] = useState(false);
   const [pending, startTransition] = useTransition();
 
   const isFailed =
     row.weighInStatus === "fail" || row.weighInStatus === "manual_fail";
+  const resolution = row.weighInFailureResolution;
 
-  const savedHandicap =
-    row.weighInFailureResolution ===
-      WeighInFailureResolution.proceed_with_handicap && row.handicapNote;
-
-  function run(
-    resolution: WeighInFailureResolution,
-    handicapNote?: string,
-  ) {
+  function run(resolution: WeighInFailureResolution) {
     startTransition(async () => {
       const fd = new FormData();
       fd.set("applicationId", row.applicationId);
       fd.set("resolution", resolution);
-      if (handicapNote) fd.set("handicapNote", handicapNote);
       const res = await setWeighInFailureResolutionFormAction(fd);
       if (!res.ok) {
         window.alert(res.error.message);
         return;
       }
-      setShowHandicap(false);
       router.refresh();
     });
-  }
-
-  if (showHandicap) {
-    return (
-      <form
-        className={cn(
-          "flex w-full min-w-0 max-w-full flex-col gap-1.5",
-          !compact && "min-w-[12rem]",
-        )}
-        onSubmit={(e: FormEvent<HTMLFormElement>) => {
-          e.preventDefault();
-          const note = (
-            e.currentTarget.elements.namedItem("handicapNote") as HTMLTextAreaElement
-          ).value.trim();
-          if (!note) {
-            window.alert("핸디캡 안내를 입력해 주세요.");
-            return;
-          }
-          run(WeighInFailureResolution.proceed_with_handicap, note);
-        }}
-      >
-        <textarea
-          name="handicapNote"
-          rows={2}
-          defaultValue={row.handicapNote ?? ""}
-          placeholder="핸디캡 안내 (관람·대진표에 표시됩니다)"
-          className="border-input bg-background w-full rounded-md border px-2 py-1 text-xs"
-          maxLength={500}
-          required
-        />
-        <div className="flex gap-1">
-          <Button type="submit" size="sm" className="h-7 text-xs" disabled={pending}>
-            경기진행 저장
-          </Button>
-          <Button
-            type="button"
-            size="sm"
-            variant="outline"
-            className="h-7 text-xs"
-            disabled={pending}
-            onClick={() => setShowHandicap(false)}
-          >
-            취소
-          </Button>
-        </div>
-      </form>
-    );
   }
 
   return (
     <div
       className={cn(
-        "flex w-full min-w-0 max-w-full flex-col gap-1.5",
+        "flex w-full min-w-0 max-w-full flex-wrap gap-1",
         !compact && "min-w-[12rem]",
       )}
     >
-      <div className="flex flex-wrap gap-1">
-        <Button
-          type="button"
-          size="sm"
-          variant="secondary"
-          className="h-7 text-xs"
-          disabled={pending}
-          onClick={() => setShowHandicap(true)}
-        >
-          경기진행
-        </Button>
-        <Button
-          type="button"
-          size="sm"
-          variant="destructive"
-          className="h-7 text-xs"
-          disabled={pending}
-          onClick={() => {
-            const message = isFailed
-              ? `${row.fighterName} 선수의 계체 실패를 경기취소로 처리할까요?`
-              : `${row.fighterName} 선수를 경기취소 처리할까요?`;
-            if (window.confirm(message)) {
-              run(WeighInFailureResolution.cancel_match);
-            }
-          }}
-        >
-          경기취소
-        </Button>
-      </div>
-      {savedHandicap ? <HandicapNoteCard note={row.handicapNote!} /> : null}
+      <Button
+        type="button"
+        size="sm"
+        variant={
+          resolution === WeighInFailureResolution.proceed_with_handicap
+            ? "default"
+            : "secondary"
+        }
+        className="h-7 text-xs"
+        disabled={pending}
+        onClick={() => run(WeighInFailureResolution.proceed_with_handicap)}
+      >
+        경기진행
+      </Button>
+      <Button
+        type="button"
+        size="sm"
+        variant="destructive"
+        className="h-7 text-xs"
+        disabled={pending}
+        onClick={() => {
+          const message = isFailed
+            ? `${row.fighterName} 선수의 계체 실패를 경기취소로 처리할까요?`
+            : `${row.fighterName} 선수를 경기취소 처리할까요?`;
+          if (window.confirm(message)) {
+            run(WeighInFailureResolution.cancel_match);
+          }
+        }}
+      >
+        경기취소
+      </Button>
     </div>
   );
 }

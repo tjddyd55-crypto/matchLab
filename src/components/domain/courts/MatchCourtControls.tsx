@@ -58,6 +58,7 @@ export function MatchCourtControls({
   inline = false,
   immediate = false,
   hideCourtOrder = false,
+  unwrapped = false,
 }: {
   eventId: string;
   matchId: string;
@@ -69,6 +70,8 @@ export function MatchCourtControls({
   inline?: boolean;
   immediate?: boolean;
   hideCourtOrder?: boolean;
+  /** true면 wrapper 없이 경기장 라벨을 부모 grid의 셀로 직접 렌더한다(immediate 전용). */
+  unwrapped?: boolean;
 }) {
   const router = useRouter();
   const activeCourts = useMemo(
@@ -133,6 +136,48 @@ export function MatchCourtControls({
       <p className="text-muted-foreground text-[10px]">
         활성 경기장이 없습니다. 기본설정에서 경기장을 먼저 생성해 주세요.
       </p>
+    );
+  }
+
+  if (unwrapped) {
+    return (
+      <>
+        <label className="flex min-w-0 flex-col gap-0.5 text-xs">
+          <span className="text-muted-foreground text-[10px] font-medium">
+            경기장
+          </span>
+          <select
+            className="border-input bg-background h-8 w-full rounded-md border px-2 text-xs"
+            value={selectValue}
+            onChange={(e) => handleCourtChange(e.target.value)}
+            required
+          >
+            {activeCourts.length > 1 && !selectValue ? (
+              <option value="">경기장 선택</option>
+            ) : null}
+            {activeCourts.map((c) => (
+              <option key={c.id} value={c.id}>
+                {c.name}
+              </option>
+            ))}
+          </select>
+        </label>
+        {resolved.hint ? (
+          <p className="text-amber-800 col-span-full text-[10px] dark:text-amber-200">
+            {resolved.hint}
+          </p>
+        ) : null}
+        {hasOfficialResults ? (
+          <p className="text-amber-800 col-span-full text-[10px] dark:text-amber-200">
+            결과 확정 경기 — 경기장만 변경됩니다.
+          </p>
+        ) : null}
+        {message ? (
+          <p className="text-muted-foreground col-span-full text-[10px]">
+            {message}
+          </p>
+        ) : null}
+      </>
     );
   }
 

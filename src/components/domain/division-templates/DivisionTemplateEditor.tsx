@@ -4,12 +4,6 @@ import { useMemo, useState } from "react";
 import { useRouter } from "next/navigation";
 import type { DivisionTemplateDetailVM } from "@/lib/services/division-template.service";
 import type { DivisionTemplateItemInput } from "@/lib/validators/division-template.validator";
-import {
-  DIVISION_TEMPLATE_SPORT_LABELS,
-  DIVISION_TEMPLATE_SPORT_TYPES,
-  type DivisionTemplateSportType,
-} from "@/lib/division-template/division-template-constants";
-import { getDivisionTemplateExampleBundle } from "@/lib/division-template/division-template-examples";
 import { sanitizeTemplateItems } from "@/lib/division-template/division-template-row";
 import {
   DivisionTemplatePreview,
@@ -37,9 +31,7 @@ export function DivisionTemplateEditor({
 }) {
   const router = useRouter();
   const [title, setTitle] = useState(initial?.title ?? "");
-  const [sportType, setSportType] = useState(
-    initial?.sportType ?? "muaythai",
-  );
+  const [sportType, setSportType] = useState(initial?.sportType ?? "");
   const [description, setDescription] = useState(initial?.description ?? "");
   const [isActive, setIsActive] = useState(initial?.isActive ?? true);
   const [items, setItems] = useState<DivisionTemplateItemInput[]>(
@@ -57,14 +49,6 @@ export function DivisionTemplateEditor({
       ),
     [items, sportType],
   );
-
-  function loadExample(sport: Exclude<DivisionTemplateSportType, "custom">) {
-    const bundle = getDivisionTemplateExampleBundle(sport);
-    setTitle(bundle.title);
-    setSportType(bundle.sportType);
-    setDescription(bundle.description);
-    setItems(bundle.items);
-  }
 
   async function onSubmit(e: React.FormEvent) {
     e.preventDefault();
@@ -109,29 +93,16 @@ export function DivisionTemplateEditor({
         </p>
       ) : null}
 
-      <section className="space-y-3 rounded-xl border bg-muted/10 p-4">
+      <section className="rounded-xl border bg-muted/10 p-4">
         <p className="text-muted-foreground text-sm leading-relaxed">
           체급표는 대회 경기구분을 빠르게 생성하기 위한 템플릿입니다.
           <br />
-          주최측 기준에 맞게 초등부, 중등부, 고등부, 대학·일반부와 남성/여성
-          체급을 입력해 저장할 수 있습니다.
+          &ldquo;묶음 생성&rdquo;으로 원하는 연령부/부문 블럭을 만들고, 각
+          블럭에 남성/여성 체급을 입력해 저장하세요.
           <br />
           저장된 체급표는 대회 생성 또는 수정 시 불러와 경기구분으로 생성할 수
           있습니다.
         </p>
-        <div className="flex flex-wrap gap-2">
-          {(["muaythai", "kickboxing", "boxing"] as const).map((sport) => (
-            <Button
-              key={sport}
-              type="button"
-              variant="outline"
-              size="sm"
-              onClick={() => loadExample(sport)}
-            >
-              {DIVISION_TEMPLATE_SPORT_LABELS[sport]} 예시 불러오기
-            </Button>
-          ))}
-        </div>
       </section>
 
       <section className="grid gap-4 md:grid-cols-2">
@@ -147,17 +118,13 @@ export function DivisionTemplateEditor({
         </label>
         <label className="block space-y-1 text-sm">
           <span className="font-medium">종목</span>
-          <select
+          <input
             className={fieldClass}
             value={sportType}
             onChange={(e) => setSportType(e.target.value)}
-          >
-            {DIVISION_TEMPLATE_SPORT_TYPES.map((s) => (
-              <option key={s} value={s}>
-                {DIVISION_TEMPLATE_SPORT_LABELS[s]}
-              </option>
-            ))}
-          </select>
+            placeholder="킥복싱"
+            maxLength={120}
+          />
         </label>
         <label className="flex items-center gap-2 self-end text-sm">
           <input
