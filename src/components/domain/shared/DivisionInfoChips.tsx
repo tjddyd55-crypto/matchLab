@@ -47,7 +47,7 @@ export function DivisionInfoChips({
   division,
   compact = false,
   showSportRule = true,
-  showSkill = true,
+  showSkill = false,
   className,
   trailing,
 }: {

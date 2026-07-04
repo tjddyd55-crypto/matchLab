@@ -11,9 +11,9 @@ import { cn } from "@/lib/utils";
 export function MatchDivisionHeader({
   matchNumberLabel,
   division,
-  compact = false,
+  compact = true,
   showSportRule,
-  showSkill = true,
+  showSkill = false,
   trailing,
   meta,
   className,

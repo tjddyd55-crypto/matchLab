@@ -8,7 +8,7 @@ import {
 import { FieldFinalResultCell } from "@/components/domain/field-status/FieldFinalResultCell";
 import { FieldStatusResetButton } from "@/components/domain/field-status/FieldStatusResetButton";
 import { WeighInStatusBadge } from "@/components/domain/field-status/WeighInStatusBadge";
-import { DivisionInfoChips } from "@/components/domain/shared/DivisionInfoChips";
+import { DivisionCompactDisplay } from "@/components/domain/shared/DivisionCompactDisplay";
 import type { FieldStatusRowDTO } from "@/lib/services/field-status.service";
 import { APPLIED_MATCH_CATEGORY_LABEL } from "@/lib/ui-labels/match-category";
 
@@ -78,7 +78,11 @@ export function OrganizerFieldStatusTable({
                 </td>
                 <td className="min-w-0 px-2 py-2 align-middle text-xs leading-snug">
                   <div className="flex min-h-0 items-center" title={row.divisionLabel}>
-                    <DivisionInfoChips division={row.division} className="text-xs" />
+                    <DivisionCompactDisplay
+                      division={row.division}
+                      mainClassName="text-xs"
+                      secondaryClassName="text-[11px]"
+                    />
                   </div>
                 </td>
                 <td className="min-w-0 px-2 py-2 align-middle">
@@ -127,7 +131,11 @@ export function OrganizerFieldStatusTable({
               <WeighInStatusBadge status={row.weighInStatus} />
             </div>
             <div className="mt-2" title={row.divisionLabel}>
-              <DivisionInfoChips division={row.division} className="text-xs" />
+              <DivisionCompactDisplay
+                division={row.division}
+                mainClassName="text-xs"
+                secondaryClassName="text-[11px]"
+              />
             </div>
             <div className="mt-2 grid min-w-0 gap-2 border-t pt-2">
               <div className="min-w-0">

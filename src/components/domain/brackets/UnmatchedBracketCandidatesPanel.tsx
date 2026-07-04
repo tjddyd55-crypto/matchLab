@@ -1,7 +1,7 @@
 "use client";
 
 import type { UnmatchedBracketCandidateVM } from "@/lib/services/bracket-auto-match.service";
-import { DivisionInfoChips } from "@/components/domain/shared/DivisionInfoChips";
+import { DivisionCompactDisplay } from "@/components/domain/shared/DivisionCompactDisplay";
 import { EligibilityBadge } from "@/components/domain/field-status/EligibilityBadge";
 
 const WAITING_REASONS = new Set([
@@ -53,7 +53,11 @@ export function UnmatchedBracketCandidatesPanel({
                   <td className="px-2 py-2 font-medium">{c.fighterName}</td>
                   <td className="px-2 py-2">{c.gymName}</td>
                   <td className="px-2 py-2">
-                    <DivisionInfoChips division={c.division} compact />
+                    <DivisionCompactDisplay
+                      division={c.division}
+                      mainClassName="text-xs"
+                      secondaryClassName="text-[11px]"
+                    />
                   </td>
                   <td className="px-2 py-2">{c.gender ?? "—"}</td>
                   <td className="px-2 py-2">{c.ageGroup ?? "—"}</td>
@@ -83,11 +87,11 @@ export function UnmatchedBracketCandidatesPanel({
             {placed.map((c) => (
               <li key={c.applicationId}>
                 {c.fighterName} · {c.gymName} —{" "}
-                <DivisionInfoChips
+                <DivisionCompactDisplay
                   division={c.division}
-                  compact
-                  showSportRule={false}
-                  className="inline-flex"
+                  mainClassName="inline text-xs"
+                  secondaryClassName="inline text-[11px]"
+                  className="inline-flex flex-row flex-wrap items-baseline gap-x-1"
                 />
               </li>
             ))}

@@ -68,11 +68,9 @@ export function computeFieldFinalResult(
 
   if (isWeighInFailed(row.weighInStatus)) {
     if (tone === "failed_handicap") {
-      const note = row.handicapNote?.trim();
       return {
         tone,
         label: getFieldFinalResultBaseLabel("failed_handicap"),
-        handicapLabel: note ? `핸디캡: ${note}` : undefined,
       };
     }
     if (tone === "failed_cancelled") {

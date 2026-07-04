@@ -5,7 +5,6 @@ import { useRouter } from "next/navigation";
 import { MatchCourtControls } from "@/components/domain/courts/MatchCourtControls";
 import { FighterHandicapBadge } from "@/components/domain/shared/FighterHandicapBadge";
 import { BoutFormatBadge, PublicSparringUnderVsBadge } from "@/components/domain/shared/BoutFormatBadge";
-import { MatchDivisionHeader } from "@/components/domain/shared/MatchDivisionHeader";
 import { parseMatchOperationalSettings, formatOperationalSettingsLabel } from "@/lib/match-operational-settings";
 import { saveMatchScheduleFormAction } from "@/features/event-courts/actions";
 import { Button } from "@/components/ui/button";
@@ -24,6 +23,10 @@ import type {
   OrganizerEventMatchFighterVM,
 } from "@/lib/services/match.service";
 import { MATCH_CATEGORY_LABEL } from "@/lib/ui-labels/match-category";
+import {
+  formatDivisionMainLabel,
+  formatDivisionSecondaryLabel,
+} from "@/lib/event-division-fields";
 import { cn } from "@/lib/utils";
 
 function sortMatchesForTab(
@@ -38,21 +41,18 @@ function sortMatchesForTab(
   );
 }
 
-function courtLabelForMatch(
-  m: OrganizerEventMatchListItemVM,
-  courts: EventCourtVM[],
-): string {
-  if (!m.courtId) return "미지정";
-  const idx = courts.findIndex((c) => c.id === m.courtId);
-  if (idx >= 0) return formatCourtTabLabel(courts[idx]!, idx);
-  return m.courtName ?? "경기장";
-}
 
 function matchOrderLabel(m: OrganizerEventMatchListItemVM, courtOrder: number | null) {
   if (courtOrder != null) return `제${courtOrder}경기`;
   if (m.matchNumber != null) return `제${m.matchNumber}경기`;
   if (m.globalMatchOrder != null) return `제${m.globalMatchOrder + 1}경기`;
   return `제${m.matchOrder + 1}경기`;
+}
+
+function resolveFighterDisplayName(name: string | undefined | null): string {
+  const trimmed = name?.trim();
+  if (!trimmed || trimmed === "-") return "빈 슬롯";
+  return trimmed;
 }
 
 function OrganizerFighterSlot({
@@ -67,22 +67,38 @@ function OrganizerFighterSlot({
   handicap: OrganizerEventMatchFighterVM["handicap"];
 }) {
   const style = CORNER_SLOT_STYLES[corner];
+  const displayName = resolveFighterDisplayName(name);
+  const empty = displayName === "빈 슬롯";
   return (
     <div
       className={cn(
-        "flex min-h-[5.5rem] flex-col items-center justify-center gap-1 rounded-md border px-3 py-3 text-center text-sm",
+        "flex min-h-[4.5rem] flex-col items-center justify-center gap-0.5 rounded-md border px-3 py-2 text-center text-sm",
         style.bg,
+        empty && "text-muted-foreground",
       )}
     >
-      <p className={cn(bracketCardTypography.fighterCorner, style.accent)}>{corner}</p>
-      <p className={bracketCardTypography.fighterName}>{name}</p>
-      <p className={bracketCardTypography.fighterGym}>{gymName ?? "-"}</p>
-      <FighterHandicapBadge
-        handicap={handicap}
-        cornerLabel={corner}
-        compact
-        className="mt-0.5 items-center"
-      />
+      <p className={cn(bracketCardTypography.fighterCorner, style.accent)}>
+        {corner}
+      </p>
+      <p
+        className={cn(
+          bracketCardTypography.fighterName,
+          empty && "font-normal",
+        )}
+      >
+        {displayName}
+      </p>
+      {gymName?.trim() ? (
+        <p className={bracketCardTypography.fighterGym}>{gymName}</p>
+      ) : null}
+      {!empty ? (
+        <FighterHandicapBadge
+          handicap={handicap}
+          cornerLabel={corner}
+          compact
+          className="mt-0.5 items-center"
+        />
+      ) : null}
     </div>
   );
 }
@@ -126,21 +142,46 @@ export function OrganizerCourtBracketPanel({
     return sorted.filter((m) => m.courtId === activeTab);
   }, [matches, activeTab, activeCourts]);
 
-  const canReorder = activeTab !== "all" && filtered.length > 0;
+  const canReorderOnTab = activeTab !== "all" && filtered.length > 0;
+
+  function reorderCourtIdForMatch(
+    m: OrganizerEventMatchListItemVM,
+  ): string | null {
+    if (activeTab !== "all") return activeTab;
+    return m.courtId;
+  }
+
+  function courtMatchesForReorder(
+    m: OrganizerEventMatchListItemVM,
+  ): OrganizerEventMatchListItemVM[] {
+    const courtId = reorderCourtIdForMatch(m);
+    if (!courtId) return [];
+    return filtered.filter((x) => x.courtId === courtId);
+  }
+
+  function canShowReorderControls(m: OrganizerEventMatchListItemVM): boolean {
+    const courtId = reorderCourtIdForMatch(m);
+    if (!courtId) return false;
+    return courtMatchesForReorder(m).length > 1;
+  }
 
   /**
    * 위/아래 화살표 — 인접 경기와 순서를 교체하고 즉시 저장한다.
-   * 기존 courtOrder 저장 액션(saveMatchScheduleFormAction)을 재사용하며,
-   * 실패 시 기존 순서를 유지하고 오류를 안내한다.
+   * 전체 탭에서도 경기장이 배정된 경우 같은 경기장 내 순서 변경을 허용한다.
    */
   function moveAndSave(matchId: string, direction: -1 | 1) {
-    if (activeTab === "all" || pending) return;
-    const courtId = activeTab;
-    const idx = filtered.findIndex((m) => m.matchId === matchId);
-    const swapIdx = idx + direction;
-    if (idx < 0 || swapIdx < 0 || swapIdx >= filtered.length) return;
+    if (pending) return;
+    const match = filtered.find((m) => m.matchId === matchId);
+    if (!match) return;
+    const courtId = reorderCourtIdForMatch(match);
+    if (!courtId) return;
 
-    const reordered = [...filtered];
+    const courtMatches = courtMatchesForReorder(match);
+    const idx = courtMatches.findIndex((m) => m.matchId === matchId);
+    const swapIdx = idx + direction;
+    if (idx < 0 || swapIdx < 0 || swapIdx >= courtMatches.length) return;
+
+    const reordered = [...courtMatches];
     const [removed] = reordered.splice(idx, 1);
     reordered.splice(swapIdx, 0, removed!);
 
@@ -245,7 +286,7 @@ export function OrganizerCourtBracketPanel({
         </p>
       ) : (
         <div className="flex flex-col gap-3">
-          {filtered.map((m, idx) => {
+          {filtered.map((m) => {
             const ops = parseMatchOperationalSettings(m.resultMemo).settings;
             const order = localOrders[m.matchId] ?? m.courtOrder;
             const formatKind = resolveBoutFormatKind({
@@ -254,168 +295,163 @@ export function OrganizerCourtBracketPanel({
               matchIsPublicSparring: m.matchIsPublicSparring,
               resultMemo: m.resultMemo,
             });
+            const courtMatches = courtMatchesForReorder(m);
+            const courtIdx = courtMatches.findIndex(
+              (x) => x.matchId === m.matchId,
+            );
+            const showReorder = canShowReorderControls(m);
+            const mainLabel = m.division
+              ? formatDivisionMainLabel(m.division)
+              : (m.divisionLabel ?? MATCH_CATEGORY_LABEL);
+            const secondaryLabel = m.division
+              ? formatDivisionSecondaryLabel(m.division)
+              : null;
+
             return (
             <article
               key={m.matchId}
               className="overflow-hidden rounded-xl border bg-card shadow-sm ring-1 ring-primary/10"
             >
-              <div className="flex flex-wrap items-start justify-between gap-2 border-b bg-muted/30 px-3 py-2">
+              <div className="flex items-start justify-between gap-2 border-b bg-muted/30 px-3 py-2">
                 <div className="min-w-0 flex-1">
-                  {m.division ? (
-                    <MatchDivisionHeader
-                      matchNumberLabel={matchOrderLabel(m, order)}
-                      division={m.division}
-                      trailing={
-                        <>
-                          {formatKind !== "public_sparring" ? (
-                            <BoutFormatBadge
-                              bracketType={m.bracketType}
-                              bracketIsPublic={m.bracketIsPublic}
-                              matchIsPublicSparring={m.matchIsPublicSparring}
-                              resultMemo={m.resultMemo}
-                              className={bracketCardTypography.formatBadge}
-                            />
-                          ) : null}
-                          <span
-                            className={cn(
-                              bracketCardTypography.opsPill,
-                              "text-muted-foreground",
-                            )}
-                          >
-                            {formatOperationalSettingsLabel(ops)}
-                          </span>
-                        </>
-                      }
-                      meta={
-                        <>
-                          {courtLabelForMatch(m, courts)}
-                          {order != null ? ` · ${order}경기` : ""}
-                          {m.roundName ? ` · ${m.roundName}` : ""}
-                        </>
-                      }
-                    />
-                  ) : (
-                    <>
-                      <div
-                        className={cn(
-                          "flex flex-wrap items-center gap-2",
-                          bracketCardTypography.headerRow,
-                        )}
-                      >
-                        <span className={bracketCardTypography.matchNumber}>
-                          {matchOrderLabel(m, order)}
-                        </span>
-                        <span className={bracketCardTypography.division}>
-                          {m.divisionLabel ?? MATCH_CATEGORY_LABEL}
-                        </span>
-                        {formatKind !== "public_sparring" ? (
-                          <BoutFormatBadge
-                            bracketType={m.bracketType}
-                            bracketIsPublic={m.bracketIsPublic}
-                            matchIsPublicSparring={m.matchIsPublicSparring}
-                            resultMemo={m.resultMemo}
-                            className={bracketCardTypography.formatBadge}
-                          />
-                        ) : null}
-                        <span
-                          className={cn(
-                            bracketCardTypography.opsPill,
-                            "text-muted-foreground",
-                          )}
-                        >
-                          {formatOperationalSettingsLabel(ops)}
-                        </span>
-                      </div>
-                      <p className={cn(bracketCardTypography.meta, "mt-1")}>
-                        {courtLabelForMatch(m, courts)}
-                        {order != null ? ` · ${order}경기` : ""}
-                        {m.roundName ? ` · ${m.roundName}` : ""}
-                      </p>
-                    </>
-                  )}
-                </div>
-                <div className="flex shrink-0 items-center gap-2">
-                  {canReorder ? (
-                    <>
-                      <input
-                        type="number"
-                        min={1}
-                        aria-label="경기 순서"
-                        className="border-input bg-background h-7 w-14 rounded-md border px-1 text-xs"
-                        value={localOrders[m.matchId] ?? ""}
-                        onChange={(e) =>
-                          setOrderOverrides((prev) => ({
-                            ...prev,
-                            [m.matchId]: e.target.value
-                              ? Number(e.target.value)
-                              : null,
-                          }))
-                        }
-                      />
-                      <Button
-                        type="button"
-                        size="sm"
-                        variant="outline"
-                        className="h-7 px-2 text-xs"
-                        aria-label="위로 이동"
-                        disabled={idx === 0 || pending}
-                        onClick={() => moveAndSave(m.matchId, -1)}
-                      >
-                        ↑
-                      </Button>
-                      <Button
-                        type="button"
-                        size="sm"
-                        variant="outline"
-                        className="h-7 px-2 text-xs"
-                        aria-label="아래로 이동"
-                        disabled={idx === filtered.length - 1 || pending}
-                        onClick={() => moveAndSave(m.matchId, 1)}
-                      >
-                        ↓
-                      </Button>
-                    </>
+                  <p
+                    className={cn(
+                      bracketCardTypography.headerRow,
+                      "flex flex-wrap items-baseline gap-x-2 gap-y-0.5",
+                    )}
+                  >
+                    <span className={bracketCardTypography.matchNumber}>
+                      {matchOrderLabel(m, order)}
+                    </span>
+                    <span className={bracketCardTypography.division}>
+                      {mainLabel}
+                    </span>
+                    {order != null ? (
+                      <span className="text-muted-foreground text-xs">
+                        {order}경기
+                      </span>
+                    ) : null}
+                  </p>
+                  {secondaryLabel ? (
+                    <p
+                      className={cn(
+                        bracketCardTypography.meta,
+                        "text-muted-foreground mt-0.5",
+                      )}
+                    >
+                      {secondaryLabel}
+                    </p>
                   ) : null}
-                  <MatchStatusBadge status={m.status} size="md" />
                 </div>
+                <MatchStatusBadge status={m.status} size="md" />
               </div>
 
               <div className="grid grid-cols-1 md:grid-cols-[minmax(0,1fr)_auto_minmax(0,1fr)] md:items-center">
                 <OrganizerFighterSlot
                   corner="홍코너"
-                  name={m.fighterRed?.name ?? "-"}
+                  name={m.fighterRed?.name ?? ""}
                   gymName={m.fighterRed?.gymName ?? null}
                   handicap={m.fighterRed?.handicap ?? null}
                 />
-                <div className="bg-muted/20 flex flex-col items-center justify-center px-4 py-3 md:min-w-[4.5rem] md:py-4">
+                <div className="bg-muted/20 flex flex-col items-center justify-center px-4 py-2 md:min-w-[4.5rem] md:py-3">
                   <span className={bracketCardTypography.vs}>VS</span>
-                  <PublicSparringUnderVsBadge
-                    bracketType={m.bracketType}
-                    bracketIsPublic={m.bracketIsPublic}
-                    matchIsPublicSparring={m.matchIsPublicSparring}
-                    resultMemo={m.resultMemo}
-                  />
+                  <div className="mt-1 flex flex-wrap items-center justify-center gap-1">
+                    {formatKind !== "public_sparring" ? (
+                      <BoutFormatBadge
+                        bracketType={m.bracketType}
+                        bracketIsPublic={m.bracketIsPublic}
+                        matchIsPublicSparring={m.matchIsPublicSparring}
+                        resultMemo={m.resultMemo}
+                        className={bracketCardTypography.formatBadge}
+                      />
+                    ) : null}
+                    <PublicSparringUnderVsBadge
+                      bracketType={m.bracketType}
+                      bracketIsPublic={m.bracketIsPublic}
+                      matchIsPublicSparring={m.matchIsPublicSparring}
+                      resultMemo={m.resultMemo}
+                    />
+                  </div>
                 </div>
                 <OrganizerFighterSlot
                   corner="청코너"
-                  name={m.fighterBlue?.name ?? "-"}
+                  name={m.fighterBlue?.name ?? ""}
                   gymName={m.fighterBlue?.gymName ?? null}
                   handicap={m.fighterBlue?.handicap ?? null}
                 />
               </div>
 
-              <div className="border-t px-3 py-2">
-                <MatchCourtControls
-                  key={`${m.matchId}:${m.courtId ?? ""}:${m.courtOrder ?? ""}`}
-                  inline
-                  eventId={eventId}
-                  bracketId={m.bracketId}
-                  matchId={m.matchId}
-                  courts={courts}
-                  courtId={m.courtId}
-                  courtOrder={localOrders[m.matchId] ?? m.courtOrder}
-                  hasOfficialResults={m.hasOfficialResults}
-                />
+              <div className="flex justify-center border-t bg-muted/10 px-3 py-1.5">
+                <span
+                  className={cn(
+                    bracketCardTypography.opsPill,
+                    "text-muted-foreground",
+                  )}
+                >
+                  {formatOperationalSettingsLabel(ops)}
+                </span>
+              </div>
+
+              <div className="flex flex-wrap items-center justify-between gap-2 border-t px-3 py-2">
+                <div className="min-w-0 flex-1">
+                  <MatchCourtControls
+                    key={`${m.matchId}:${m.courtId ?? ""}:${m.courtOrder ?? ""}`}
+                    inline
+                    hideCourtOrder
+                    eventId={eventId}
+                    bracketId={m.bracketId}
+                    matchId={m.matchId}
+                    courts={courts}
+                    courtId={m.courtId}
+                    courtOrder={localOrders[m.matchId] ?? m.courtOrder}
+                    hasOfficialResults={m.hasOfficialResults}
+                  />
+                </div>
+                {showReorder ? (
+                  <div className="flex shrink-0 items-center gap-1">
+                    <input
+                      type="number"
+                      min={1}
+                      aria-label="경기 순서"
+                      className="border-input bg-background h-8 w-14 rounded-md border px-1 text-xs"
+                      value={localOrders[m.matchId] ?? ""}
+                      onChange={(e) =>
+                        setOrderOverrides((prev) => ({
+                          ...prev,
+                          [m.matchId]: e.target.value
+                            ? Number(e.target.value)
+                            : null,
+                        }))
+                      }
+                    />
+                    <Button
+                      type="button"
+                      size="sm"
+                      variant="outline"
+                      className="h-8 w-8 shrink-0 p-0 text-base font-bold disabled:opacity-40"
+                      aria-label="위로 이동"
+                      disabled={courtIdx <= 0 || pending}
+                      onClick={() => moveAndSave(m.matchId, -1)}
+                    >
+                      ↑
+                    </Button>
+                    <Button
+                      type="button"
+                      size="sm"
+                      variant="outline"
+                      className="h-8 w-8 shrink-0 p-0 text-base font-bold disabled:opacity-40"
+                      aria-label="아래로 이동"
+                      disabled={
+                        courtIdx < 0 ||
+                        courtIdx >= courtMatches.length - 1 ||
+                        pending
+                      }
+                      onClick={() => moveAndSave(m.matchId, 1)}
+                    >
+                      ↓
+                    </Button>
+                  </div>
+                ) : null}
               </div>
             </article>
             );
@@ -425,7 +461,7 @@ export function OrganizerCourtBracketPanel({
 
       {showOrderSection && matches.length > 0 ? (
         <div className="flex flex-wrap items-center gap-2 border-t pt-3">
-          {canReorder ? (
+          {canReorderOnTab ? (
             <Button type="button" disabled={pending} onClick={saveOrder}>
               {pending ? "저장 중…" : "이 경기장 순서 저장"}
             </Button>

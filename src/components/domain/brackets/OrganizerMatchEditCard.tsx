@@ -1,12 +1,9 @@
 "use client";
 
-import { useState } from "react";
 import { OrganizerMatchEditSlot } from "@/components/domain/brackets/OrganizerMatchEditSlot";
 import { MatchEditCenterSettings } from "@/components/domain/brackets/MatchEditCenterSettings";
-import { OrganizerMatchOpsPanel } from "@/components/domain/brackets/OrganizerMatchOpsPanel";
 import { MatchStatusBadge } from "@/components/domain/shared/MatchStatusBadge";
 import { MatchDivisionHeader } from "@/components/domain/shared/MatchDivisionHeader";
-import { Button } from "@/components/ui/button";
 import { bracketCardTypography } from "@/lib/bracket-card-typography";
 import type { EventDivisionDisplayInput } from "@/lib/event-division-fields";
 import type { OrganizerApprovedFighterOptionVM } from "@/lib/services/bracket.service";
@@ -15,26 +12,6 @@ import type { EventCourtVM } from "@/lib/services/event-court.service";
 import { BracketType } from "@/lib/enums";
 import { formatMatchOrderFormal } from "@/lib/match-order-display";
 import { cornerSlotInGridClass } from "@/lib/corner-slot-styles";
-
-function matchListOpsProps(
-  m: OrganizerBracketMatchVM,
-  bracketType: BracketType,
-) {
-  return {
-    bracketType,
-    matchId: m.id,
-    status: m.status,
-    fighterRedId: m.fighterRedId,
-    fighterBlueId: m.fighterBlueId,
-    fighterRedName: m.fighterRedSnapshot?.name ?? "미배정",
-    fighterBlueName: m.fighterBlueSnapshot?.name ?? "미배정",
-    hasOfficialResults: m.hasOfficialResults,
-    winnerId: m.winnerId,
-    resultType: m.resultType,
-    resultMemo: m.resultMemo,
-    compact: true as const,
-  };
-}
 
 export function OrganizerMatchEditCard({
   eventId,
@@ -59,7 +36,6 @@ export function OrganizerMatchEditCard({
   division?: EventDivisionDisplayInput | null;
   compactDivision?: boolean;
 }) {
-  const [opsOpen, setOpsOpen] = useState(false);
   const editLocked = Boolean(match.hasOfficialResults);
   const orderLabel = formatMatchOrderFormal(match);
 
@@ -123,29 +99,11 @@ export function OrganizerMatchEditCard({
         />
       </div>
 
-      <footer className="border-t bg-muted/10 px-3 py-2">
-        <Button
-          type="button"
-          variant="outline"
-          size="sm"
-          className="h-7 text-xs"
-          onClick={() => setOpsOpen((v) => !v)}
-        >
-          {opsOpen ? "경기 운영 닫기" : "경기 운영 열기"}
-        </Button>
-        {opsOpen ? (
-          <div className="pt-2">
-            <OrganizerMatchOpsPanel
-              {...matchListOpsProps(match, bracketType)}
-            />
-          </div>
-        ) : null}
-        {editLocked ? (
-          <p className="text-amber-800 mt-2 text-[11px] dark:text-amber-200">
-            공식 결과가 확정된 경기는 선수·라운드 변경이 제한됩니다.
-          </p>
-        ) : null}
-      </footer>
+      {editLocked ? (
+        <p className="text-amber-800 border-t bg-muted/10 px-3 py-2 text-[11px] dark:text-amber-200">
+          공식 결과가 확정된 경기는 선수·라운드 변경이 제한됩니다.
+        </p>
+      ) : null}
     </article>
   );
 }

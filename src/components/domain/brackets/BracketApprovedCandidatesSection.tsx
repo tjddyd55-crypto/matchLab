@@ -6,7 +6,7 @@ import type {
   OrganizerBracketMatchVM,
 } from "@/lib/services/bracket.service";
 import { EligibilityBadge } from "@/components/domain/field-status/EligibilityBadge";
-import { DivisionInfoChips } from "@/components/domain/shared/DivisionInfoChips";
+import { DivisionCompactDisplay } from "@/components/domain/shared/DivisionCompactDisplay";
 import { formatMatchOrderFormal } from "@/lib/match-order-display";
 import { cn } from "@/lib/utils";
 
@@ -87,7 +87,11 @@ function CandidateCard({
             {option.gymName}
           </div>
           <div className="mt-1">
-            <DivisionInfoChips division={option.division} className="text-xs" />
+            <DivisionCompactDisplay
+              division={option.division}
+              mainClassName="text-xs"
+              secondaryClassName="text-[11px]"
+            />
           </div>
         </div>
         <div className="flex shrink-0 flex-wrap justify-end gap-1">
@@ -147,8 +151,8 @@ function CandidateColumn({
   children: React.ReactNode;
 }) {
   return (
-    <div className="min-w-0 space-y-2">
-      <h3 className="flex items-center gap-2 text-sm font-semibold">
+    <div className="min-w-0 space-y-2.5">
+      <h3 className="flex items-center gap-2 border-b pb-2 text-sm font-semibold">
         <span>{title}</span>
         <span
           className={cn(
@@ -220,7 +224,7 @@ export function BracketApprovedCandidatesSection({
         </div>
       ) : null}
 
-      <div className="mt-4 grid gap-5 lg:grid-cols-3">
+      <div className="mt-4 grid gap-4 lg:grid-cols-3 lg:gap-5">
         <CandidateColumn
           title="배정된 선수"
           count={grouped.assigned.length}

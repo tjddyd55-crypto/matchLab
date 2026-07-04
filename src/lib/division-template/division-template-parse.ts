@@ -15,6 +15,36 @@ export type ParsedQuickWeightRow = {
 const WEIGHT_ENTRY_RE =
   /^(.+?)\s*([+-]?\d+(?:\.\d+)?)\s*kg\s*$/i;
 
+/**
+ * 체중 기준 입력값을 표시용 문자열로 보정한다.
+ * 54 → -54kg, -54 → -54kg, 54kg → 54kg, -54kg → -54kg
+ */
+export function normalizeWeightLimitInput(raw: string): string {
+  const text = raw.trim();
+  if (!text) return "";
+
+  if (/kg\s*$/i.test(text)) {
+    const numMatch = text.match(/^([+-]?\d+(?:\.\d+)?)\s*kg\s*$/i);
+    if (numMatch) {
+      const num = numMatch[1]!;
+      if (num.startsWith("+")) return `+${num.slice(1)}kg`;
+      if (num.startsWith("-")) return `${num}kg`;
+      return `-${num}kg`;
+    }
+    return text.replace(/\s*kg\s*$/i, "kg");
+  }
+
+  const bare = text.match(/^([+-]?\d+(?:\.\d+)?)$/);
+  if (bare) {
+    const num = bare[1]!;
+    if (num.startsWith("+")) return `+${num.slice(1)}kg`;
+    if (num.startsWith("-")) return `${num}kg`;
+    return `-${num}kg`;
+  }
+
+  return text;
+}
+
 export function parseSingleWeightEntry(raw: string): ParsedQuickWeightRow {
   const text = raw.trim();
   if (!text) {

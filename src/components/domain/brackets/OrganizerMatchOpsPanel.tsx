@@ -3,7 +3,6 @@
 import { useMemo, useState, useTransition } from "react";
 import { useRouter } from "next/navigation";
 import {
-  cancelMatchAction,
   recordMatchOutcomeDraftAction,
   updateMatchStatusAction,
 } from "@/features/matches/actions";
@@ -26,6 +25,7 @@ import {
 } from "@/lib/enums";
 import { cn } from "@/lib/utils";
 import { BoutFormatBadge } from "@/components/domain/shared/BoutFormatBadge";
+import { WinnerCornerPicker } from "@/components/domain/brackets/WinnerCornerPicker";
 import { outcomeStylePublicLabel } from "@/lib/match-result-snapshot";
 
 const STATUS_OPTIONS: { value: BracketMatchStatus; label: string }[] = [
@@ -92,6 +92,7 @@ export function OrganizerMatchOpsPanel(props: OrganizerMatchOpsPanelProps) {
     return "win_loss";
   }, [props.resultType]);
 
+  const [outcomeMode, setOutcomeMode] = useState(defaultOutcomeMode);
   const refresh = () => router.refresh();
 
   const onStatus = (status: BracketMatchStatus) => {
@@ -151,36 +152,28 @@ export function OrganizerMatchOpsPanel(props: OrganizerMatchOpsPanelProps) {
     });
   };
 
-  const onCancelMatch = (formData: FormData) => {
-    setError(null);
-    formData.set("matchId", props.matchId);
-    startTransition(async () => {
-      const err = await runAction(() => cancelMatchAction(formData));
-      setError(err);
-      if (!err) refresh();
-    });
-  };
-
   return (
     <div
       className={cn(
-        "bg-muted/15 space-y-3 rounded-lg border p-3 text-xs",
+        "bg-muted/15 space-y-2.5 rounded-lg border p-3 text-xs",
         props.compact ? "text-[11px]" : "text-xs",
       )}
     >
-      <div className="text-muted-foreground flex flex-wrap items-center gap-2">
-        <BoutFormatBadge
-          bracketType={props.bracketType}
-          bracketIsPublic={props.bracketIsPublic}
-        />
-        {props.hasOfficialResults ? (
-          <span className="text-emerald-700 dark:text-emerald-400">
-            공식 결과 확정됨
-          </span>
-        ) : (
-          <span>공식 결과 미확정</span>
-        )}
-      </div>
+      {!props.compact ? (
+        <div className="text-muted-foreground flex flex-wrap items-center gap-2">
+          <BoutFormatBadge
+            bracketType={props.bracketType}
+            bracketIsPublic={props.bracketIsPublic}
+          />
+          {props.hasOfficialResults ? (
+            <span className="text-emerald-700 dark:text-emerald-400">
+              공식 결과 확정됨
+            </span>
+          ) : (
+            <span>공식 결과 미확정</span>
+          )}
+        </div>
+      ) : null}
 
       {staff ? (
         <p className="rounded-md border border-amber-500/40 bg-amber-500/10 px-2 py-1.5 text-[11px] leading-snug text-amber-900 dark:text-amber-100">
@@ -215,73 +208,58 @@ export function OrganizerMatchOpsPanel(props: OrganizerMatchOpsPanelProps) {
         </div>
       </div>
 
-      {!staff ? (
-      <form className="space-y-2 border-t pt-2 md:grid md:grid-cols-[1fr_auto] md:items-end md:gap-2 md:space-y-0" action={onCancelMatch}>
-        <p className="text-muted-foreground font-semibold">경기 취소</p>
-        <input
-          name="reason"
-          placeholder="사유 (선택)"
-          disabled={pending || blocked}
-          className="border-input bg-background h-8 w-full rounded-md border px-2"
-        />
-        <Button
-          type="submit"
-          variant="destructive"
-          size="xs"
-          disabled={pending || blocked}
-        >
-          매치 취소
-        </Button>
-      </form>
-      ) : null}
-
       {!blocked && canFillOutcome && (!staff || staff.canRecordOutcomeDraft) ? (
-        <form className="space-y-3 border-t pt-2" action={onOutcomeSubmit}>
-          <p className="text-muted-foreground font-semibold">결과 입력</p>
-          <div className="grid gap-2 lg:grid-cols-4">
-            <select
-              name="outcomeMode"
-              defaultValue={defaultOutcomeMode}
-              disabled={pending}
-              className="border-input bg-background h-8 rounded-md border px-2"
-            >
-              <option value="win_loss">승패</option>
-              <option value="draw">무승부</option>
-              <option value="no_contest">노콘테스트</option>
-            </select>
-            <select
-              name="winnerId"
-              defaultValue={props.winnerId ?? ""}
-              disabled={pending}
-              className="border-input bg-background h-8 rounded-md border px-2"
-            >
-              <option value="">승자 선택</option>
-              {props.fighterRedId ? (
-                <option value={props.fighterRedId}>
-                  홍코너 · {props.fighterRedName}
-                </option>
-              ) : null}
-              {props.fighterBlueId ? (
-                <option value={props.fighterBlueId}>
-                  청코너 · {props.fighterBlueName}
-                </option>
-              ) : null}
-            </select>
-            <select
-              name="resultType"
-              defaultValue={
-                props.resultType ?? BracketMatchOutcomeStyle.decision
-              }
-              disabled={pending}
-              className="border-input bg-background h-8 max-w-full rounded-md border px-2 lg:col-span-2"
-            >
-              {OUTCOME_OPTIONS.map((o) => (
-                <option key={o} value={o}>
-                  {outcomeStylePublicLabel(o)}
-                </option>
-              ))}
-            </select>
+        <form className="space-y-2 border-t pt-2" action={onOutcomeSubmit}>
+          <div className="grid gap-2 sm:grid-cols-2">
+            <label className="space-y-1">
+              <span className="text-muted-foreground text-[11px] font-semibold">
+                승패
+              </span>
+              <select
+                name="outcomeMode"
+                value={outcomeMode}
+                onChange={(e) => setOutcomeMode(e.target.value)}
+                disabled={pending}
+                className="border-input bg-background h-8 w-full rounded-md border px-2"
+              >
+                <option value="win_loss">승패</option>
+                <option value="draw">무승부</option>
+                <option value="no_contest">노콘테스트</option>
+              </select>
+            </label>
+            <label className="space-y-1">
+              <span className="text-muted-foreground text-[11px] font-semibold">
+                결과 방식
+              </span>
+              <select
+                name="resultType"
+                defaultValue={
+                  props.resultType ?? BracketMatchOutcomeStyle.decision
+                }
+                disabled={pending}
+                className="border-input bg-background h-8 w-full rounded-md border px-2"
+              >
+                {OUTCOME_OPTIONS.map((o) => (
+                  <option key={o} value={o}>
+                    {outcomeStylePublicLabel(o)}
+                  </option>
+                ))}
+              </select>
+            </label>
           </div>
+          {outcomeMode === "win_loss" ? (
+            <WinnerCornerPicker
+              key={`draft-${props.winnerId ?? "none"}`}
+              fighterRedId={props.fighterRedId}
+              fighterBlueId={props.fighterBlueId}
+              fighterRedName={props.fighterRedName}
+              fighterBlueName={props.fighterBlueName}
+              defaultWinnerId={props.winnerId}
+              disabled={pending}
+            />
+          ) : (
+            <input type="hidden" name="winnerId" value="" />
+          )}
           <textarea
             name="resultMemo"
             placeholder="메모 (선택)"
@@ -322,48 +300,41 @@ export function OrganizerMatchOpsPanel(props: OrganizerMatchOpsPanelProps) {
             <p className="text-muted-foreground font-semibold">
               결과 정정 (로그 필수)
             </p>
-            <select
-              name="outcomeMode"
-              defaultValue={defaultOutcomeMode}
+            <div className="grid gap-2 sm:grid-cols-2">
+              <select
+                name="outcomeMode"
+                defaultValue={defaultOutcomeMode}
+                disabled={pending}
+                className="border-input bg-background h-8 rounded-md border px-2"
+              >
+                <option value="win_loss">승패</option>
+                <option value="draw">무승부</option>
+                <option value="no_contest">노콘테스트</option>
+              </select>
+              <select
+                name="resultType"
+                defaultValue={
+                  props.resultType ?? BracketMatchOutcomeStyle.decision
+                }
+                disabled={pending}
+                className="border-input bg-background h-8 rounded-md border px-2"
+              >
+                {OUTCOME_OPTIONS.map((o) => (
+                  <option key={o} value={o}>
+                    {outcomeStylePublicLabel(o)}
+                  </option>
+                ))}
+              </select>
+            </div>
+            <WinnerCornerPicker
+              key={`correct-${props.winnerId ?? "none"}`}
+              fighterRedId={props.fighterRedId}
+              fighterBlueId={props.fighterBlueId}
+              fighterRedName={props.fighterRedName}
+              fighterBlueName={props.fighterBlueName}
+              defaultWinnerId={props.winnerId}
               disabled={pending}
-              className="border-input bg-background h-8 rounded-md border px-2"
-            >
-              <option value="win_loss">승패</option>
-              <option value="draw">무승부</option>
-              <option value="no_contest">노콘테스트</option>
-            </select>
-            <select
-              name="winnerId"
-              defaultValue={props.winnerId ?? ""}
-              disabled={pending}
-              className="border-input bg-background h-8 rounded-md border px-2"
-            >
-              <option value="">승자 선택</option>
-              {props.fighterRedId ? (
-                <option value={props.fighterRedId}>
-                  홍코너 · {props.fighterRedName}
-                </option>
-              ) : null}
-              {props.fighterBlueId ? (
-                <option value={props.fighterBlueId}>
-                  청코너 · {props.fighterBlueName}
-                </option>
-              ) : null}
-            </select>
-            <select
-              name="resultType"
-              defaultValue={
-                props.resultType ?? BracketMatchOutcomeStyle.decision
-              }
-              disabled={pending}
-              className="border-input bg-background h-8 max-w-full rounded-md border px-2"
-            >
-              {OUTCOME_OPTIONS.map((o) => (
-                <option key={o} value={o}>
-                  {outcomeStylePublicLabel(o)}
-                </option>
-              ))}
-            </select>
+            />
             <textarea
               name="resultMemo"
               placeholder="메모 (선택)"
@@ -402,15 +373,15 @@ export function OrganizerMatchOpsPanel(props: OrganizerMatchOpsPanelProps) {
         </>
       ) : null}
 
-      {props.bracketType === BracketType.single_elimination ? (
+      {!props.compact && props.bracketType === BracketType.single_elimination ? (
         <p className="text-muted-foreground border-t pt-2 text-[11px]">
           단판: 결과 확정 시 승자가 다음 매치 슬롯으로 배치됩니다.
         </p>
-      ) : (
+      ) : !props.compact ? (
         <p className="text-muted-foreground border-t pt-2 text-[11px]">
           경기 목록형: 다음 라운드 자동 배치 없음.
         </p>
-      )}
+      ) : null}
     </div>
   );
 }
