@@ -45,6 +45,7 @@ import {
 } from "@/lib/application-form/organizer-manual-entry";
 import { formatFighterGenderLabel } from "@/lib/applications/division-fighter-match";
 import type { EventDivisionDisplayInput } from "@/lib/event-division-fields";
+import { formatDivisionSearchLabel } from "@/lib/event-division-fields";
 import {
   logManualApplicationCreate,
   logManualApplicationCreateError,
@@ -66,23 +67,8 @@ function toIso(d: Date): string {
   return d.toISOString();
 }
 
-function formatDivisionLabel(d: {
-  sportType: string | null;
-  ruleType: string | null;
-  gender: string | null;
-  ageGroup: string | null;
-  weightClass: string | null;
-  skillLevel: string | null;
-}): string {
-  return [
-    d.sportType,
-    d.ruleType,
-    d.weightClass ?? d.ageGroup,
-    d.gender,
-    d.skillLevel,
-  ]
-    .filter((x): x is string => Boolean(x?.trim()))
-    .join(" · ");
+function formatDivisionLabel(d: EventDivisionDisplayInput): string {
+  return formatDivisionSearchLabel(d);
 }
 
 function formatRecordSummary(row: {

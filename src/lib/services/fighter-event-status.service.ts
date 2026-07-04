@@ -7,6 +7,10 @@ import type {
 } from "@/generated/prisma";
 import type { ActorContext } from "@/lib/auth/actor-context";
 import { formatDivisionNameLabel } from "@/lib/bracket-snapshot";
+import {
+  formatDivisionSearchLabel,
+  type EventDivisionDisplayInput,
+} from "@/lib/event-division-fields";
 import { AppError } from "@/lib/errors/app-error";
 import {
   computeFieldEligibility,
@@ -68,23 +72,8 @@ export type FighterEventsPageDTO = {
   matches: FighterMatchRowDTO[];
 };
 
-function formatDivisionLabel(d: {
-  sportType: string | null;
-  ruleType: string | null;
-  gender: string | null;
-  ageGroup: string | null;
-  weightClass: string | null;
-  skillLevel: string | null;
-}): string {
-  return [
-    d.sportType,
-    d.ruleType,
-    d.weightClass ?? d.ageGroup,
-    d.gender,
-    d.skillLevel,
-  ]
-    .filter((x): x is string => Boolean(x?.trim()))
-    .join(" · ");
+function formatDivisionLabel(d: EventDivisionDisplayInput): string {
+  return formatDivisionSearchLabel(d);
 }
 
 function fighterPaymentDisplayLabel(status: PaymentStatus): string {

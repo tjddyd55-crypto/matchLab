@@ -12,15 +12,17 @@ import {
   normalizeTemplateItemWeight,
 } from "@/lib/division-template/division-template-row";
 import { normalizeWeightLimitInput } from "@/lib/division-template/division-template-parse";
+import {
+  formatDivisionMainLabel,
+  formatDivisionSportTitle,
+} from "@/lib/event-division-fields";
 import { Button } from "@/components/ui/button";
 
 /**
  * 블럭 생성형 체급표 에디터.
  *
  * 데이터 모델은 기존과 동일한 flat `DivisionTemplateItemInput[]`을 유지한다.
- * 화면에서는 `ageGroup`(묶음 이름) 기준으로 묶어 "블럭"으로 보여주되,
- * 빈 블럭/빈 행도 UI에 유지되어야 하므로 블럭 구조를 내부 상태(SSOT)로 관리하고
- * 변경 시마다 flat items로 평탄화해 부모에 전달한다.
+ * 종목은 페이지 상단 `sportType`만 사용하고, 체급 row에는 묶음·성별·체급명·체중만 입력한다.
  */
 
 type WeightRow = {
@@ -29,20 +31,11 @@ type WeightRow = {
   weightLimitText: string;
 };
 
-type GenderSectionMeta = {
-  sportType: string;
-};
-
 type GroupBlock = {
   id: string;
   ageGroup: string;
-  sectionMeta: Record<DivisionTemplateGender, GenderSectionMeta>;
   rows: Record<DivisionTemplateGender, WeightRow[]>;
 };
-
-function emptySectionMeta(fallbackSport = ""): GenderSectionMeta {
-  return { sportType: fallbackSport };
-}
 
 function newId(): string {
   if (typeof crypto !== "undefined" && "randomUUID" in crypto) {
@@ -59,23 +52,16 @@ function bucketGender(gender: string | null | undefined): DivisionTemplateGender
   return gender?.trim() === "female" ? "female" : "male";
 }
 
-function emptyBlock(fallbackSport = ""): GroupBlock {
+function emptyBlock(): GroupBlock {
   return {
     id: newId(),
     ageGroup: "",
-    sectionMeta: {
-      male: emptySectionMeta(fallbackSport),
-      female: emptySectionMeta(fallbackSport),
-    },
     rows: { male: [], female: [] },
   };
 }
 
 /** 저장된 flat items를 묶음(ageGroup) 순서대로 블럭 구조로 복원한다. */
-function deriveBlocks(
-  items: DivisionTemplateItemInput[],
-  fallbackSport: string,
-): GroupBlock[] {
+function deriveBlocks(items: DivisionTemplateItemInput[]): GroupBlock[] {
   const blocks: GroupBlock[] = [];
   const byAgeGroup = new Map<string, GroupBlock>();
 
@@ -84,18 +70,13 @@ function deriveBlocks(
     const ageGroup = item.ageGroup?.trim() ?? "";
     let block = byAgeGroup.get(ageGroup);
     if (!block) {
-      block = emptyBlock(fallbackSport);
+      block = emptyBlock();
       block.ageGroup = ageGroup;
       byAgeGroup.set(ageGroup, block);
       blocks.push(block);
     }
 
     const gender = bucketGender(item.gender);
-    const meta = block.sectionMeta[gender];
-    if (!meta.sportType && item.sportType?.trim()) {
-      meta.sportType = item.sportType.trim();
-    }
-
     const normalized = normalizeTemplateItemWeight(item);
     block.rows[gender].push({
       id: newId(),
@@ -113,12 +94,10 @@ function flattenBlocks(
   templateSportType: string,
 ): DivisionTemplateItemInput[] {
   const items: DivisionTemplateItemInput[] = [];
+  const sportType = templateSportType.trim();
+
   blocks.forEach((block) => {
     DIVISION_TEMPLATE_GENDERS.forEach((gender) => {
-      const meta = block.sectionMeta[gender];
-      const sportType =
-        meta.sportType.trim() || templateSportType.trim() || "";
-
       block.rows[gender].forEach((row, idx) => {
         const base: DivisionTemplateItemInput = {
           sportType,
@@ -143,14 +122,10 @@ function flattenBlocks(
 
 function GenderColumn({
   gender,
-  sectionMeta,
-  onSectionMetaChange,
   rows,
   onRowsChange,
 }: {
   gender: DivisionTemplateGender;
-  sectionMeta: GenderSectionMeta;
-  onSectionMetaChange: (next: GenderSectionMeta) => void;
   rows: WeightRow[];
   onRowsChange: (next: WeightRow[]) => void;
 }) {
@@ -165,17 +140,6 @@ function GenderColumn({
       <h4 className="text-sm font-medium">
         {DIVISION_TEMPLATE_GENDER_LABELS[gender]}
       </h4>
-      <label className="block space-y-1 text-xs">
-        <span className="text-muted-foreground">종목·경기구분</span>
-        <input
-          className="border-input bg-background h-8 w-full rounded border px-2"
-          value={sectionMeta.sportType}
-          placeholder="킥복싱 · 아마"
-          onChange={(e) =>
-            onSectionMetaChange({ ...sectionMeta, sportType: e.target.value })
-          }
-        />
-      </label>
       <table className="w-full border-collapse text-left text-xs">
         <thead>
           <tr className="text-muted-foreground border-b">
@@ -253,9 +217,7 @@ export function WeightClassRowsEditor({
   items: DivisionTemplateItemInput[];
   onChange: (next: DivisionTemplateItemInput[]) => void;
 }) {
-  const [blocks, setBlocks] = useState<GroupBlock[]>(() =>
-    deriveBlocks(items, sportType),
-  );
+  const [blocks, setBlocks] = useState<GroupBlock[]>(() => deriveBlocks(items));
   const focusBlockId = useRef<string | null>(null);
 
   const commit = useCallback(
@@ -267,7 +229,7 @@ export function WeightClassRowsEditor({
   );
 
   const addBlock = () => {
-    const block = emptyBlock(sportType);
+    const block = emptyBlock();
     focusBlockId.current = block.id;
     commit([...blocks, block]);
   };
@@ -277,22 +239,6 @@ export function WeightClassRowsEditor({
 
   const updateBlock = (id: string, patch: Partial<GroupBlock>) =>
     commit(blocks.map((b) => (b.id === id ? { ...b, ...patch } : b)));
-
-  const updateSectionMeta = (
-    blockId: string,
-    gender: DivisionTemplateGender,
-    next: GenderSectionMeta,
-  ) =>
-    commit(
-      blocks.map((b) =>
-        b.id === blockId
-          ? {
-              ...b,
-              sectionMeta: { ...b.sectionMeta, [gender]: next },
-            }
-          : b,
-      ),
-    );
 
   const updateRows = (
     blockId: string,
@@ -356,10 +302,6 @@ export function WeightClassRowsEditor({
                 <GenderColumn
                   key={gender}
                   gender={gender}
-                  sectionMeta={block.sectionMeta[gender]}
-                  onSectionMetaChange={(next) =>
-                    updateSectionMeta(block.id, gender, next)
-                  }
                   rows={block.rows[gender]}
                   onRowsChange={(next) => updateRows(block.id, gender, next)}
                 />
@@ -375,7 +317,7 @@ export function WeightClassRowsEditor({
   );
 }
 
-/** 저장 전 미리보기 — 묶음(ageGroup) 순서대로 동적 렌더링. */
+/** 저장 전 미리보기 — 묶음(ageGroup) 순서대로 SSOT compact 라벨로 렌더링. */
 export function DivisionTemplatePreview({
   items,
   sportType,
@@ -390,6 +332,7 @@ export function DivisionTemplatePreview({
     );
   }
 
+  const sportTitle = formatDivisionSportTitle({ sportType });
   const ageGroups: string[] = [];
   for (const item of active) {
     const ag = item.ageGroup?.trim() ?? "";
@@ -398,6 +341,9 @@ export function DivisionTemplatePreview({
 
   return (
     <div className="space-y-4">
+      {sportTitle ? (
+        <p className="text-muted-foreground text-xs font-medium">{sportTitle}</p>
+      ) : null}
       {ageGroups.map((ageGroup) => {
         const ageRows = active.filter(
           (i) => (i.ageGroup?.trim() ?? "") === ageGroup,
@@ -411,17 +357,26 @@ export function DivisionTemplatePreview({
               {DIVISION_TEMPLATE_GENDERS.map((gender) => {
                 const genderRows = ageRows.filter((i) => i.gender === gender);
                 if (genderRows.length === 0) return null;
-                const sportRule = genderRows[0]?.sportType?.trim();
                 return (
                   <div key={gender}>
                     <p className="text-muted-foreground mb-1 text-xs font-medium">
                       {DIVISION_TEMPLATE_GENDER_LABELS[gender]}
-                      {sportRule ? ` · ${sportRule}` : ""}
                     </p>
                     <ul className="space-y-0.5 text-xs">
                       {genderRows.map((row, idx) => (
-                        <li key={idx} className="font-mono">
-                          {buildWeightClassDisplay(row) || "—"}
+                        <li key={idx}>
+                          {formatDivisionMainLabel({
+                            sportType: row.sportType ?? null,
+                            ruleType: row.ruleType ?? null,
+                            gender: row.gender ?? null,
+                            ageGroup: row.ageGroup ?? null,
+                            weightClass: row.weightClass ?? null,
+                            weightClassName: row.weightClassName ?? null,
+                            weightLimitText: row.weightLimitText ?? null,
+                            skillLevel: row.skillLevel ?? null,
+                          }) ||
+                            buildWeightClassDisplay(row) ||
+                            "—"}
                         </li>
                       ))}
                     </ul>
@@ -432,11 +387,6 @@ export function DivisionTemplatePreview({
           </div>
         );
       })}
-      {sportType ? (
-        <p className="text-muted-foreground text-xs">
-          템플릿 기본 종목: {sportType}
-        </p>
-      ) : null}
     </div>
   );
 }

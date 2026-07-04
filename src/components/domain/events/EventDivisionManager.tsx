@@ -24,6 +24,8 @@ import {
   type AgeGroupDivisionGroup,
   type EventDivisionGroupItem,
 } from "@/lib/event-division-grouping";
+import { normalizeWeightLimitInput } from "@/lib/division-template/division-template-parse";
+import { formatDivisionSportTitle } from "@/lib/event-division-fields";
 import {
   divisionAgeGroupSectionClass,
   divisionGenderColumnDividerClass,
@@ -41,12 +43,16 @@ const inputClass = cn(
   "border-input bg-background h-8 w-full rounded-md border px-2 text-sm shadow-sm",
 );
 
+function resolveAgeGroupSportType(group: AgeGroupDivisionGroup): string {
+  const all = [...group.male, ...group.female, ...group.unknown];
+  return all.find((d) => d.sportType?.trim())?.sportType?.trim() ?? "";
+}
+
 function DivisionListHeader({ tone }: { tone: DivisionGenderTone }) {
   const token = divisionGenderUiTokens[tone];
 
   return (
     <div className={cn(divisionListHeaderBaseClass, token.listHeaderClassName)}>
-      <span>종목·경기구분</span>
       <span>체급명</span>
       <span>체중 기준</span>
       <span className="text-right">동작</span>
@@ -74,16 +80,7 @@ function DivisionRowEditor({ d }: { d: Div }) {
         <p className="text-destructive text-xs">{state.error.message}</p>
       ) : null}
       <div className="grid gap-2 sm:grid-cols-2">
-        <label className="space-y-1 text-xs sm:col-span-2">
-          <span className="text-muted-foreground">종목·경기구분</span>
-          <input
-            name="sportType"
-            required
-            defaultValue={d.sportType}
-            maxLength={120}
-            className={inputClass}
-          />
-        </label>
+        <input type="hidden" name="sportType" value={d.sportType ?? ""} />
         <input type="hidden" name="ruleType" value={d.ruleType ?? ""} />
         <input type="hidden" name="skillLevel" value={d.skillLevel ?? ""} />
         <label className="space-y-1 text-xs">
@@ -101,8 +98,14 @@ function DivisionRowEditor({ d }: { d: Div }) {
             name="weightLimitText"
             defaultValue={d.weightLimitText ?? ""}
             maxLength={40}
-            placeholder="-30kg"
+            placeholder="54"
             className={cn(inputClass, "font-mono")}
+            onBlur={(e) => {
+              const normalized = normalizeWeightLimitInput(e.target.value);
+              if (normalized !== e.target.value) {
+                e.target.value = normalized;
+              }
+            }}
           />
         </label>
       </div>
@@ -195,14 +198,7 @@ function DivisionWeightRow({
           {state?.ok === false ? (
             <p className="text-destructive col-span-full text-xs">{state.error.message}</p>
           ) : null}
-          <input
-            name="sportType"
-            required
-            defaultValue={division.sportType}
-            maxLength={120}
-            aria-label="종목·경기구분"
-            className={inputClass}
-          />
+          <input type="hidden" name="sportType" value={division.sportType ?? ""} />
           <input
             name="weightClassName"
             defaultValue={division.weightClassName ?? ""}
@@ -216,8 +212,14 @@ function DivisionWeightRow({
             defaultValue={division.weightLimitText ?? ""}
             maxLength={40}
             aria-label="체중 기준"
-            placeholder="-30kg"
+            placeholder="54"
             className={cn(inputClass, "font-mono")}
+            onBlur={(e) => {
+              const normalized = normalizeWeightLimitInput(e.target.value);
+              if (normalized !== e.target.value) {
+                e.target.value = normalized;
+              }
+            }}
           />
           <input type="hidden" name="ruleType" value={division.ruleType ?? ""} />
           <input
@@ -262,6 +264,7 @@ function GenderDivisionSection({
   ageGroup,
   divisions,
   eventId,
+  defaultSportType,
   className,
 }: {
   tone: DivisionGenderTone;
@@ -269,6 +272,7 @@ function GenderDivisionSection({
   ageGroup: string;
   divisions: EventDivisionGroupItem[];
   eventId: string;
+  defaultSportType: string;
   className?: string;
 }) {
   const token = divisionGenderUiTokens[tone];
@@ -308,6 +312,7 @@ function GenderDivisionSection({
           eventId={eventId}
           defaultAgeGroup={defaultAgeGroup}
           defaultGender={gender ?? undefined}
+          defaultSportType={defaultSportType}
           compact
           listVariant
           genderTone={tone}
@@ -366,10 +371,16 @@ function AgeGroupDivisionSection({
   group: AgeGroupDivisionGroup;
   eventId: string;
 }) {
+  const defaultSportType = resolveAgeGroupSportType(group);
+  const sportTitle = formatDivisionSportTitle({ sportType: defaultSportType });
+
   return (
     <section className={divisionAgeGroupSectionClass}>
       <div className="space-y-1 border-b border-[var(--division-section-divider)] pb-4">
         <h3 className="text-lg font-semibold tracking-tight">{group.ageGroup}</h3>
+        {sportTitle ? (
+          <p className="text-muted-foreground text-xs">{sportTitle}</p>
+        ) : null}
         <p className="text-muted-foreground text-xs">
           남성/여성 체급을 연령부 단위로 관리합니다.
         </p>
@@ -382,6 +393,7 @@ function AgeGroupDivisionSection({
           ageGroup={group.ageGroup}
           divisions={group.male}
           eventId={eventId}
+          defaultSportType={defaultSportType}
         />
         <div
           className={divisionGenderColumnDividerClass}
@@ -394,6 +406,7 @@ function AgeGroupDivisionSection({
           ageGroup={group.ageGroup}
           divisions={group.female}
           eventId={eventId}
+          defaultSportType={defaultSportType}
           className="border-t border-[var(--division-section-divider)] pt-6 xl:border-t-0 xl:pt-0"
         />
       </div>

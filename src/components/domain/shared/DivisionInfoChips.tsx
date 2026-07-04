@@ -83,8 +83,8 @@ export function DivisionInfoChips({
         ) : null}
         {trailing}
       </div>
-      {showSportRule && !compact && parts.sportRuleLabel ? (
-        <p className="text-muted-foreground text-xs">{parts.sportRuleLabel}</p>
+      {showSportRule && !compact && parts.sportTitle ? (
+        <p className="text-muted-foreground text-xs">{parts.sportTitle}</p>
       ) : null}
     </div>
   );

@@ -18,6 +18,7 @@ import {
 import {
   normalizeEventDivisionWeightInput,
   resolveEventDivisionWeightFields,
+  formatDivisionMainLabel,
 } from "@/lib/event-division-fields";
 import { fighterRepository } from "@/lib/repositories/fighter.repository";
 import {
@@ -143,12 +144,7 @@ function buildDivisionSummary(
   const maxLabels = Math.min(3, total);
   const labels = preview
     .slice(0, maxLabels)
-    .map((d) => {
-      const weight = resolveEventDivisionWeightFields(d);
-      return [d.sportType, d.ageGroup, weight.weightClass]
-        .filter(Boolean)
-        .join(" · ");
-    })
+    .map((d) => formatDivisionMainLabel(d))
     .filter(Boolean);
   const head = labels.join(" · ");
   const rest = total - labels.length;

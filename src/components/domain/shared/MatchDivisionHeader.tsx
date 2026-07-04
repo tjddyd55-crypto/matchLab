@@ -4,7 +4,7 @@ import { bracketCardTypography } from "@/lib/bracket-card-typography";
 import {
   type EventDivisionDisplayInput,
   formatDivisionCompactLine,
-  formatDivisionSportRuleLabel,
+  formatDivisionSportTitle,
 } from "@/lib/event-division-fields";
 import { cn } from "@/lib/utils";
 
@@ -28,9 +28,7 @@ export function MatchDivisionHeader({
   className?: string;
 }) {
   const sportRuleVisible = showSportRule ?? !compact;
-  const sportRuleLabel = division
-    ? formatDivisionSportRuleLabel(division)
-    : null;
+  const sportTitle = division ? formatDivisionSportTitle(division) : null;
 
   return (
     <div className={cn("flex min-w-0 flex-col gap-1", className)}>
@@ -58,9 +56,9 @@ export function MatchDivisionHeader({
         ) : null}
         {trailing}
       </div>
-      {division && sportRuleVisible && sportRuleLabel ? (
+      {division && sportRuleVisible && sportTitle ? (
         <p className={cn(bracketCardTypography.meta, "text-muted-foreground")}>
-          {sportRuleLabel}
+          {sportTitle}
         </p>
       ) : null}
       {meta ? (

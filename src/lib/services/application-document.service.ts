@@ -24,6 +24,10 @@ import {
   CONSENT_DOCUMENT_VERSION,
 } from "@/lib/services/consent.service";
 import type { CreateApplicationDocumentInput } from "@/lib/validators/application-document.validator";
+import {
+  formatDivisionSearchLabel,
+  type EventDivisionDisplayInput,
+} from "@/lib/event-division-fields";
 
 export const APPLICATION_DOCUMENT_ATHLETE_TITLE =
   "대회 참가 신청서 — 선수 본인 확인";
@@ -40,23 +44,8 @@ function formatRecordSummary(row: {
   return `${row.recordWin}승 ${row.recordLoss}패 ${row.recordDraw}무`;
 }
 
-function formatDivisionLabel(d: {
-  sportType: string | null;
-  ruleType: string | null;
-  gender: string | null;
-  ageGroup: string | null;
-  weightClass: string | null;
-  skillLevel: string | null;
-}): string {
-  return [
-    d.sportType,
-    d.ruleType,
-    d.weightClass ?? d.ageGroup,
-    d.gender,
-    d.skillLevel,
-  ]
-    .filter((x): x is string => Boolean(x?.trim()))
-    .join(" · ");
+function formatDivisionLabel(d: EventDivisionDisplayInput): string {
+  return formatDivisionSearchLabel(d);
 }
 
 async function assertGym(actor: ActorContext): Promise<string> {
