@@ -57,7 +57,7 @@ export const divisionGenderUiTokens: Record<
 };
 
 export const divisionListRowGridClass =
-  "grid grid-cols-1 gap-2 sm:grid-cols-2 md:grid-cols-[minmax(0,1.1fr)_minmax(0,0.9fr)_minmax(0,0.75fr)_auto] md:items-center md:gap-2";
+  "grid grid-cols-1 gap-2 sm:grid-cols-2 md:grid-cols-[minmax(0,1fr)_minmax(0,0.75fr)_auto] md:items-center md:gap-2";
 
 export const divisionListHeaderBaseClass = cn(
   divisionListRowGridClass,

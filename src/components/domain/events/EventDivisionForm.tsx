@@ -4,6 +4,7 @@ import { useActionState, useEffect } from "react";
 import { useRouter } from "next/navigation";
 import { createEventDivisionAction } from "@/features/events/actions";
 import type { ActionResult } from "@/lib/action-result";
+import { normalizeWeightLimitInput } from "@/lib/division-template/division-template-parse";
 import {
   DIVISION_TEMPLATE_GENDERS,
   type DivisionTemplateGender,
@@ -26,6 +27,7 @@ export function EventDivisionForm({
   eventId,
   defaultAgeGroup,
   defaultGender,
+  defaultSportType,
   compact = false,
   listVariant = false,
   sectionLabel,
@@ -34,6 +36,7 @@ export function EventDivisionForm({
   eventId: string;
   defaultAgeGroup?: string;
   defaultGender?: DivisionTemplateGender;
+  defaultSportType?: string;
   compact?: boolean;
   listVariant?: boolean;
   sectionLabel?: string;
@@ -73,19 +76,16 @@ export function EventDivisionForm({
         {defaultGender ? (
           <input type="hidden" name="gender" value={defaultGender} />
         ) : null}
+        <input
+          type="hidden"
+          name="sportType"
+          value={defaultSportType ?? ""}
+        />
         <p className="text-muted-foreground text-xs font-medium">{title}</p>
         {state?.ok === false ? (
           <p className="text-destructive text-xs">{state.error.message}</p>
         ) : null}
         <div className={listAddGridClass}>
-          <input
-            name="sportType"
-            required
-            maxLength={120}
-            aria-label="종목·경기구분"
-            placeholder="종목·경기구분"
-            className={inputClass}
-          />
           <input
             name="weightClassName"
             maxLength={120}
@@ -97,8 +97,14 @@ export function EventDivisionForm({
             name="weightLimitText"
             maxLength={40}
             aria-label="체중 기준"
-            placeholder="-30kg"
+            placeholder="54"
             className={cn(inputClass, "font-mono")}
+            onBlur={(e) => {
+              const normalized = normalizeWeightLimitInput(e.target.value);
+              if (normalized !== e.target.value) {
+                e.target.value = normalized;
+              }
+            }}
           />
           <div className="flex justify-end sm:col-span-2 md:col-span-1">
             <Button type="submit" size="sm" disabled={pending}>
@@ -144,18 +150,19 @@ export function EventDivisionForm({
           compact ? "text-xs md:col-span-2" : "text-sm md:col-span-2",
         )}
       >
-        <span className="text-muted-foreground">종목·경기구분명</span>
+        <span className="text-muted-foreground">종목</span>
         <input
           name="sportType"
           required
           maxLength={120}
+          defaultValue={defaultSportType ?? ""}
           className={inputClass}
-          placeholder="예: 킥복싱 무에타이"
+          placeholder="예: 킥복싱"
         />
       </label>
       {!defaultAgeGroup ? (
         <label className={cn("space-y-1", compact ? "text-xs" : "text-sm")}>
-          <span className="text-muted-foreground">연령부</span>
+          <span className="text-muted-foreground">묶음 이름</span>
           <input
             name="ageGroup"
             maxLength={120}
@@ -192,7 +199,13 @@ export function EventDivisionForm({
           name="weightLimitText"
           maxLength={40}
           className={cn(inputClass, "font-mono")}
-          placeholder="-30kg"
+          placeholder="54"
+          onBlur={(e) => {
+            const normalized = normalizeWeightLimitInput(e.target.value);
+            if (normalized !== e.target.value) {
+              e.target.value = normalized;
+            }
+          }}
         />
       </label>
       <div className="md:col-span-2">

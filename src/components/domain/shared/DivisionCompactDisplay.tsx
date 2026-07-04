@@ -6,7 +6,7 @@ import {
 } from "@/lib/event-division-fields";
 import { cn } from "@/lib/utils";
 
-/** 경기구분 SSOT — 메인(연령부·성별·체급) + 보조(종목·경기구분) 2줄 표시 */
+/** 경기구분 SSOT — 메인(묶음·성별·체급) + 보조(종목) 2줄 표시 */
 export function DivisionCompactDisplay({
   division,
   className,
