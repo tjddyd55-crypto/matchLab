@@ -48,14 +48,9 @@ export type PublicEventListItemDTO = {
   hasPublicResults: boolean;
 };
 
-export type PublicEventDivisionDTO = {
+export type PublicEventDivisionDTO = EventDivisionDisplayInput & {
   id: string;
   sportType: string;
-  ruleType: string | null;
-  gender: string | null;
-  ageGroup: string | null;
-  weightClass: string | null;
-  skillLevel: string | null;
 };
 
 export type PublicEventGalleryImageDTO = {

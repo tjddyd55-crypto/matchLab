@@ -17,6 +17,7 @@ import {
   type BracketFighterSnapshotPayload,
 } from "@/lib/bracket-snapshot";
 import {
+  formatAutoBracketGroupTitle,
   formatBracketTitleForDisplay,
   toEventDivisionDisplayInput,
   type EventDivisionDisplayInput,
@@ -487,16 +488,7 @@ export const bracketService = {
           fighterId: a.fighter.id,
           label: `${a.fighter.name} · ${a.gym.name}`,
           divisionLabel: formatDivisionNameLabel(a.division),
-          division: {
-            sportType: a.division.sportType,
-            ruleType: a.division.ruleType,
-            gender: a.division.gender,
-            ageGroup: a.division.ageGroup,
-            weightClass: a.division.weightClass,
-            weightClassName: null,
-            weightLimitText: null,
-            skillLevel: a.division.skillLevel,
-          },
+          division: toEventDivisionDisplayInput(a.division)!,
           fighterName: a.fighter.name,
           gymName: a.gym.name,
           isEligibleForBracket: fieldEligibility?.isEligibleForBracket ?? false,
@@ -569,25 +561,40 @@ export const bracketService = {
     requireRole(actor, ["organizer", "admin"]);
     await requireOrganizerForEvent(actor, input.eventId);
 
-    if (input.divisionId) {
-      const ok = await eventRepository.findDivisionBelongsToEvent(
-        input.divisionId,
-        input.eventId,
+    if (!input.divisionId) {
+      throw new AppError(
+        "VALIDATION_ERROR",
+        "경기구분을 선택해 주세요.",
       );
-      if (!ok) {
-        throw new AppError(
-          "VALIDATION_ERROR",
-          "선택한 경기구분이 이 대회에 속하지 않습니다.",
-        );
-      }
     }
+
+    const ok = await eventRepository.findDivisionBelongsToEvent(
+      input.divisionId,
+      input.eventId,
+    );
+    if (!ok) {
+      throw new AppError(
+        "VALIDATION_ERROR",
+        "선택한 경기구분이 이 대회에 속하지 않습니다.",
+      );
+    }
+
+    const divisionRow = await eventRepository.findEventDivisionById(
+      input.divisionId,
+    );
+    if (!divisionRow) {
+      throw new AppError("NOT_FOUND", "경기구분을 찾을 수 없습니다.");
+    }
+
+    const divisionInput = toEventDivisionDisplayInput(divisionRow)!;
+    const title = formatAutoBracketGroupTitle(divisionInput);
 
     const bracketId = await prisma.$transaction(async (tx) => {
       const { id } = await bracketRepository.createBracket(
         {
           eventId: input.eventId,
-          divisionId: input.divisionId ?? null,
-          title: input.title,
+          divisionId: input.divisionId,
+          title,
           type: input.type,
         },
         tx,
@@ -600,8 +607,8 @@ export const bracketService = {
         bracketType: input.type,
         changeType: BracketChangeType.bracket_created,
         afterData: {
-          title: input.title,
-          divisionId: input.divisionId ?? null,
+          title,
+          divisionId: input.divisionId,
           type: input.type,
         },
       });

@@ -17,6 +17,18 @@ export type EventDivisionWeightInput = {
 
 const INSIGNIFICANT_WEIGHT_CLASS_NAMES = new Set(["-", "–", "—", "−"]);
 
+/** Prisma EventDivision select — 표시용 split weight 필드 포함 */
+export const EVENT_DIVISION_DISPLAY_SELECT = {
+  sportType: true,
+  ruleType: true,
+  gender: true,
+  ageGroup: true,
+  weightClass: true,
+  weightClassName: true,
+  weightLimitText: true,
+  skillLevel: true,
+} as const;
+
 /** 체급명 placeholder(단독 `-` 등)는 표시·조합에서 제외한다. */
 function isInsignificantWeightClassName(
   name: string | null | undefined,
@@ -55,7 +67,7 @@ export function resolveDivisionWeightLabel(
     : fields.weightClassName;
 
   if (name && limit) {
-    return `${name} ${limit}`;
+    return `${name} · ${limit}`;
   }
   if (limit) return limit;
   if (name) return name;

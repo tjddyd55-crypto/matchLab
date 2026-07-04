@@ -3,7 +3,7 @@ import type {
   PublicUnmatchedCandidateDTO,
 } from "@/lib/dto/public";
 import { PublicBracketRealtimeBridge } from "@/components/domain/brackets/PublicBracketRealtimeBridge";
-import { DivisionInfoChips } from "@/components/domain/shared/DivisionInfoChips";
+import { BracketGroupHeader } from "@/components/domain/brackets/BracketGroupHeader";
 import { SpectatorMatchCard } from "@/components/domain/events/spectator/SpectatorMatchCard";
 import { SpectatorWatchEmptyState } from "@/components/domain/events/spectator/SpectatorWatchEmptyState";
 
@@ -40,10 +40,11 @@ export function SpectatorBracketTab({
         return (
           <section key={bracket.id} className="space-y-3">
             <div className="space-y-2">
-              <h2 className="text-base font-semibold">{bracket.displayTitle}</h2>
-              {bracket.division ? (
-                <DivisionInfoChips division={bracket.division} />
-              ) : null}
+              <BracketGroupHeader
+                division={bracket.division}
+                fallbackTitle={bracket.displayTitle}
+                titleClassName="text-base font-semibold"
+              />
             </div>
             <div className="flex flex-col gap-4">
               {sorted.map((match) => (

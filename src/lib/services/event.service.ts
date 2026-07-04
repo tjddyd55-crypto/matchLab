@@ -165,6 +165,8 @@ function mapDivisionRecordToDto(
     gender: row.gender,
     ageGroup: row.ageGroup,
     weightClass: weight.weightClass,
+    weightClassName: weight.weightClassName,
+    weightLimitText: weight.weightLimitText,
     skillLevel: row.skillLevel,
   };
 }

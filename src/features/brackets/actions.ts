@@ -121,8 +121,7 @@ export async function createBracketAction(
   return mapCaught(async () => {
     const parsed = createBracketSchema.safeParse({
       eventId: formReq(formData, "eventId"),
-      divisionId: formReq(formData, "divisionId") || undefined,
-      title: formReq(formData, "title"),
+      divisionId: formReq(formData, "divisionId"),
       type: formReq(formData, "type"),
     });
     if (!parsed.success) {

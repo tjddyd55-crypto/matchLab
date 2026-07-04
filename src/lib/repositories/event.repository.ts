@@ -8,6 +8,7 @@ import {
   MatchRecordStatus,
 } from "@/generated/prisma";
 import { prisma } from "@/lib/prisma";
+import { EVENT_DIVISION_DISPLAY_SELECT } from "@/lib/event-division-fields";
 
 function db(tx?: Prisma.TransactionClient) {
   return tx ?? prisma;
@@ -29,12 +30,7 @@ async function loadEventOrganizerId(
 }
 
 const divisionPreviewSelect = {
-  sportType: true,
-  ruleType: true,
-  gender: true,
-  ageGroup: true,
-  weightClass: true,
-  skillLevel: true,
+  ...EVENT_DIVISION_DISPLAY_SELECT,
 } as const;
 
 const listSelect = {
@@ -115,6 +111,8 @@ export type PublicEventDivisionRecord = Prisma.EventDivisionGetPayload<{
     gender: true;
     ageGroup: true;
     weightClass: true;
+    weightClassName: true;
+    weightLimitText: true;
     skillLevel: true;
   };
 }>;
@@ -437,12 +435,7 @@ export const eventRepository = {
       orderBy: { createdAt: "asc" },
       select: {
         id: true,
-        sportType: true,
-        ruleType: true,
-        gender: true,
-        ageGroup: true,
-        weightClass: true,
-        skillLevel: true,
+        ...EVENT_DIVISION_DISPLAY_SELECT,
       },
     });
   },
@@ -569,12 +562,7 @@ export const eventRepository = {
           orderBy: { createdAt: "asc" },
           select: {
             id: true,
-            sportType: true,
-            ruleType: true,
-            gender: true,
-            ageGroup: true,
-            weightClass: true,
-            skillLevel: true,
+            ...EVENT_DIVISION_DISPLAY_SELECT,
           },
         },
       },

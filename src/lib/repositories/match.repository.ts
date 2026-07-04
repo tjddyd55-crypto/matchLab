@@ -10,6 +10,7 @@ import {
   Prisma as PrismaNs,
 } from "@/generated/prisma";
 import { prisma } from "@/lib/prisma";
+import { EVENT_DIVISION_DISPLAY_SELECT } from "@/lib/event-division-fields";
 
 function db(tx?: Prisma.TransactionClient) {
   return tx ?? prisma;
@@ -84,12 +85,7 @@ export const matchRepository = {
             division: {
               select: {
                 id: true,
-                sportType: true,
-                ruleType: true,
-                gender: true,
-                ageGroup: true,
-                weightClass: true,
-                skillLevel: true,
+                ...EVENT_DIVISION_DISPLAY_SELECT,
               },
             },
           },
@@ -165,12 +161,7 @@ export const matchRepository = {
             division: {
               select: {
                 id: true,
-                sportType: true,
-                ruleType: true,
-                gender: true,
-                ageGroup: true,
-                weightClass: true,
-                skillLevel: true,
+                ...EVENT_DIVISION_DISPLAY_SELECT,
               },
             },
           },
@@ -226,12 +217,7 @@ export const matchRepository = {
             division: {
               select: {
                 id: true,
-                sportType: true,
-                ruleType: true,
-                gender: true,
-                ageGroup: true,
-                weightClass: true,
-                skillLevel: true,
+                ...EVENT_DIVISION_DISPLAY_SELECT,
               },
             },
           },
@@ -284,12 +270,7 @@ export const matchRepository = {
             division: {
               select: {
                 id: true,
-                sportType: true,
-                ruleType: true,
-                gender: true,
-                ageGroup: true,
-                weightClass: true,
-                skillLevel: true,
+                ...EVENT_DIVISION_DISPLAY_SELECT,
               },
             },
           },
@@ -503,12 +484,7 @@ export const matchRepository = {
             division: {
               select: {
                 id: true,
-                sportType: true,
-                ruleType: true,
-                gender: true,
-                ageGroup: true,
-                weightClass: true,
-                skillLevel: true,
+                ...EVENT_DIVISION_DISPLAY_SELECT,
               },
             },
           },
@@ -575,12 +551,7 @@ export const matchRepository = {
             division: {
               select: {
                 id: true,
-                sportType: true,
-                ruleType: true,
-                gender: true,
-                ageGroup: true,
-                weightClass: true,
-                skillLevel: true,
+                ...EVENT_DIVISION_DISPLAY_SELECT,
               },
             },
           },
@@ -658,12 +629,7 @@ export const matchRepository = {
             division: {
               select: {
                 id: true,
-                sportType: true,
-                ruleType: true,
-                gender: true,
-                ageGroup: true,
-                weightClass: true,
-                skillLevel: true,
+                ...EVENT_DIVISION_DISPLAY_SELECT,
               },
             },
           },
@@ -751,12 +717,7 @@ export const matchRepository = {
             division: {
               select: {
                 id: true,
-                sportType: true,
-                ruleType: true,
-                gender: true,
-                ageGroup: true,
-                weightClass: true,
-                skillLevel: true,
+                ...EVENT_DIVISION_DISPLAY_SELECT,
               },
             },
           },

@@ -18,6 +18,7 @@ import {
   type ApplicationCancellationSource,
 } from "@/generated/prisma";
 import { prisma } from "@/lib/prisma";
+import { EVENT_DIVISION_DISPLAY_SELECT } from "@/lib/event-division-fields";
 
 function db(tx?: Prisma.TransactionClient) {
   return tx ?? prisma;
@@ -68,6 +69,8 @@ export type ApprovedApplicationForBracketRow = {
     gender: string | null;
     ageGroup: string | null;
     weightClass: string | null;
+    weightClassName: string | null;
+    weightLimitText: string | null;
     skillLevel: string | null;
   };
   gym: { name: string };
@@ -104,6 +107,8 @@ export type AutoMatchApplicationRow = {
     gender: string | null;
     ageGroup: string | null;
     weightClass: string | null;
+    weightClassName: string | null;
+    weightLimitText: string | null;
     skillLevel: string | null;
   };
   gym: { id: string; name: string };
@@ -151,12 +156,7 @@ export const bracketRepository = {
         division: {
           select: {
             id: true,
-            sportType: true,
-            ruleType: true,
-            gender: true,
-            ageGroup: true,
-            weightClass: true,
-            skillLevel: true,
+            ...EVENT_DIVISION_DISPLAY_SELECT,
           },
         },
         _count: { select: { matches: true } },
@@ -172,12 +172,7 @@ export const bracketRepository = {
         division: {
           select: {
             id: true,
-            sportType: true,
-            ruleType: true,
-            gender: true,
-            ageGroup: true,
-            weightClass: true,
-            skillLevel: true,
+            ...EVENT_DIVISION_DISPLAY_SELECT,
           },
         },
         matches: {
@@ -235,14 +230,7 @@ export const bracketRepository = {
         isPublic: true,
         divisionId: true,
         division: {
-          select: {
-            sportType: true,
-            ruleType: true,
-            gender: true,
-            ageGroup: true,
-            weightClass: true,
-            skillLevel: true,
-          },
+          select: EVENT_DIVISION_DISPLAY_SELECT,
         },
         _count: { select: { matches: true } },
       },
@@ -279,14 +267,7 @@ export const bracketRepository = {
         type: true,
         status: true,
         division: {
-          select: {
-            sportType: true,
-            ruleType: true,
-            gender: true,
-            ageGroup: true,
-            weightClass: true,
-            skillLevel: true,
-          },
+          select: EVENT_DIVISION_DISPLAY_SELECT,
         },
         matches: {
           orderBy: [{ round: "asc" }, { matchOrder: "asc" }],
@@ -465,14 +446,7 @@ export const bracketRepository = {
           },
         },
         division: {
-          select: {
-            sportType: true,
-            ruleType: true,
-            gender: true,
-            ageGroup: true,
-            weightClass: true,
-            skillLevel: true,
-          },
+          select: EVENT_DIVISION_DISPLAY_SELECT,
         },
         gym: { select: { name: true } },
       },
@@ -514,14 +488,7 @@ export const bracketRepository = {
           },
         },
         division: {
-          select: {
-            sportType: true,
-            ruleType: true,
-            gender: true,
-            ageGroup: true,
-            weightClass: true,
-            skillLevel: true,
-          },
+          select: EVENT_DIVISION_DISPLAY_SELECT,
         },
         gym: { select: { name: true } },
       },
@@ -840,12 +807,7 @@ export const bracketRepository = {
         division: {
           select: {
             id: true,
-            sportType: true,
-            ruleType: true,
-            gender: true,
-            ageGroup: true,
-            weightClass: true,
-            skillLevel: true,
+            ...EVENT_DIVISION_DISPLAY_SELECT,
           },
         },
         gym: { select: { id: true, name: true } },
@@ -898,14 +860,7 @@ export const bracketRepository = {
         bracket: {
           select: {
             division: {
-              select: {
-                sportType: true,
-                ruleType: true,
-                gender: true,
-                ageGroup: true,
-                weightClass: true,
-                skillLevel: true,
-              },
+              select: EVENT_DIVISION_DISPLAY_SELECT,
             },
           },
         },
