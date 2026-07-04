@@ -15,7 +15,7 @@ import {
   type BracketCandidateGroup,
   type BracketFighterPlacementMeta,
 } from "@/lib/bracket-fighter-compact-display";
-import { formatMatchOrderFormal } from "@/lib/match-order-display";
+import { formatMatchOrderShort } from "@/lib/match-order-display";
 import { cn } from "@/lib/utils";
 
 function buildPlacementMap(
@@ -23,7 +23,7 @@ function buildPlacementMap(
 ): Map<string, BracketFighterPlacementMeta> {
   const map = new Map<string, BracketFighterPlacementMeta>();
   for (const m of matches) {
-    const matchLabel = formatMatchOrderFormal(m);
+    const matchLabel = formatMatchOrderShort(m);
     if (m.fighterRedId) {
       map.set(m.fighterRedId, {
         matchLabel,
@@ -74,7 +74,7 @@ function CandidateCard({
   return (
     <li
       className={cn(
-        "rounded-lg border bg-muted/20 px-2.5 py-2",
+        "rounded-lg border bg-muted/20 px-2 py-1.5",
         group === "unassignable"
           ? "border-destructive/40"
           : group === "unassigned" && !option.isEligibleForBracket

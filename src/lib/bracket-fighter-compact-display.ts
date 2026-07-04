@@ -89,7 +89,6 @@ export function resolveSlotFighterDisplay(option: OrganizerApprovedFighterOption
   statusBadge: ReturnType<typeof resolveCandidateStatusBadge>;
   metaLine?: string;
 } {
-  const [name, gymFromLabel] = option.label.split(" · ");
   const statusBadge = resolveCandidateStatusBadge(option);
   let metaLine: string | undefined;
   if (option.isAssignableForBracket) {
@@ -102,8 +101,8 @@ export function resolveSlotFighterDisplay(option: OrganizerApprovedFighterOption
   }
 
   return {
-    fighterName: name ?? option.fighterName,
-    gymName: gymFromLabel ?? option.gymName,
+    fighterName: option.fighterName,
+    gymName: option.gymName,
     statusBadge,
     metaLine,
   };
