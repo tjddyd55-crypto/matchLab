@@ -1,6 +1,6 @@
 "use client";
 
-import { useMemo, useState, useTransition } from "react";
+import { useState, useTransition } from "react";
 import { useRouter } from "next/navigation";
 import {
   recordMatchOutcomeDraftAction,
@@ -40,6 +40,14 @@ const OUTCOME_OPTIONS = Object.values(
   BracketMatchOutcomeStyle,
 ) as BracketMatchOutcomeStyle[];
 
+type OutcomeMode = "win_loss" | "draw" | "no_contest";
+
+function resolveOutcomeMode(resultType: BracketMatchOutcomeStyle): OutcomeMode {
+  if (resultType === BracketMatchOutcomeStyle.draw) return "draw";
+  if (resultType === BracketMatchOutcomeStyle.no_contest) return "no_contest";
+  return "win_loss";
+}
+
 export type OrganizerMatchOpsPanelProps = {
   bracketType: BracketType;
   bracketIsPublic?: boolean;
@@ -71,28 +79,131 @@ async function runAction(
   return res.error.message;
 }
 
+function MatchOutcomeEntryFields({
+  resultType,
+  onResultTypeChange,
+  pending,
+  fighterRedId,
+  fighterBlueId,
+  fighterRedName,
+  fighterBlueName,
+  defaultWinnerId,
+  defaultMemo,
+  winnerPickerKey,
+  showCorrectionReason = false,
+}: {
+  resultType: BracketMatchOutcomeStyle;
+  onResultTypeChange: (next: BracketMatchOutcomeStyle) => void;
+  pending: boolean;
+  fighterRedId: string | null;
+  fighterBlueId: string | null;
+  fighterRedName: string;
+  fighterBlueName: string;
+  defaultWinnerId?: string | null;
+  defaultMemo?: string | null;
+  winnerPickerKey: string;
+  showCorrectionReason?: boolean;
+}) {
+  const outcomeMode = resolveOutcomeMode(resultType);
+
+  return (
+    <>
+      <input type="hidden" name="outcomeMode" value={outcomeMode} />
+      <label className="block space-y-1">
+        <span className="text-muted-foreground text-[11px] font-semibold">
+          결과 방식
+        </span>
+        <select
+          name="resultType"
+          value={resultType}
+          disabled={pending}
+          onChange={(e) =>
+            onResultTypeChange(e.target.value as BracketMatchOutcomeStyle)
+          }
+          className="border-input bg-background h-8 w-full rounded-md border px-2"
+        >
+          {OUTCOME_OPTIONS.map((o) => (
+            <option key={o} value={o}>
+              {outcomeStylePublicLabel(o)}
+            </option>
+          ))}
+        </select>
+      </label>
+      {outcomeMode === "win_loss" ? (
+        <WinnerCornerPicker
+          key={winnerPickerKey}
+          fighterRedId={fighterRedId}
+          fighterBlueId={fighterBlueId}
+          fighterRedName={fighterRedName}
+          fighterBlueName={fighterBlueName}
+          defaultWinnerId={defaultWinnerId}
+          disabled={pending}
+        />
+      ) : (
+        <input type="hidden" name="winnerId" value="" />
+      )}
+      <label className="block space-y-1">
+        <span className="text-muted-foreground text-[11px] font-semibold">
+          메모
+        </span>
+        <textarea
+          name="resultMemo"
+          placeholder="메모 (선택)"
+          rows={2}
+          defaultValue={defaultMemo ?? ""}
+          disabled={pending}
+          className="border-input bg-background w-full rounded-md border px-2 py-1"
+        />
+      </label>
+      {showCorrectionReason ? (
+        <label className="block space-y-1">
+          <span className="text-muted-foreground text-[11px] font-semibold">
+            정정 사유
+          </span>
+          <input
+            name="reason"
+            placeholder="정정 사유 (필수)"
+            required
+            disabled={pending}
+            className="border-input bg-background h-8 w-full rounded-md border px-2"
+          />
+        </label>
+      ) : null}
+    </>
+  );
+}
+
 export function OrganizerMatchOpsPanel(props: OrganizerMatchOpsPanelProps) {
+  const resetKey = [
+    props.matchId,
+    props.hasOfficialResults,
+    props.winnerId ?? "",
+    props.resultType ?? "",
+    props.resultMemo ?? "",
+  ].join(":");
+
+  return <OrganizerMatchOpsPanelBody key={resetKey} {...props} />;
+}
+
+function OrganizerMatchOpsPanelBody(props: OrganizerMatchOpsPanelProps) {
   const router = useRouter();
   const [pending, startTransition] = useTransition();
   const [error, setError] = useState<string | null>(null);
+  const [editingCorrect, setEditingCorrect] = useState(false);
+  const [showVoidForm, setShowVoidForm] = useState(false);
+  const [resultType, setResultType] = useState(
+    props.resultType ?? BracketMatchOutcomeStyle.decision,
+  );
   const staff = props.staffAccess;
 
   const canFillOutcome = Boolean(props.fighterRedId && props.fighterBlueId);
   const blocked = props.status === BracketMatchStatus.cancelled;
+  const canRecordOutcome =
+    !blocked &&
+    canFillOutcome &&
+    !props.hasOfficialResults &&
+    (!staff || staff.canRecordOutcomeDraft);
 
-  const defaultOutcomeMode = useMemo(() => {
-    if (
-      props.resultType === BracketMatchOutcomeStyle.draw ||
-      props.resultType === BracketMatchOutcomeStyle.no_contest
-    ) {
-      return props.resultType === BracketMatchOutcomeStyle.draw
-        ? "draw"
-        : "no_contest";
-    }
-    return "win_loss";
-  }, [props.resultType]);
-
-  const [outcomeMode, setOutcomeMode] = useState(defaultOutcomeMode);
   const refresh = () => router.refresh();
 
   const onStatus = (status: BracketMatchStatus) => {
@@ -138,7 +249,10 @@ export function OrganizerMatchOpsPanel(props: OrganizerMatchOpsPanelProps) {
     startTransition(async () => {
       const err = await runAction(() => correctMatchResultAction(formData));
       setError(err);
-      if (!err) refresh();
+      if (!err) {
+        setEditingCorrect(false);
+        refresh();
+      }
     });
   };
 
@@ -148,7 +262,10 @@ export function OrganizerMatchOpsPanel(props: OrganizerMatchOpsPanelProps) {
     startTransition(async () => {
       const err = await runAction(() => voidMatchResultsAction(formData));
       setError(err);
-      if (!err) refresh();
+      if (!err) {
+        setShowVoidForm(false);
+        refresh();
+      }
     });
   };
 
@@ -208,65 +325,19 @@ export function OrganizerMatchOpsPanel(props: OrganizerMatchOpsPanelProps) {
         </div>
       </div>
 
-      {!blocked && canFillOutcome && (!staff || staff.canRecordOutcomeDraft) ? (
+      {canRecordOutcome ? (
         <form className="space-y-2 border-t pt-2" action={onOutcomeSubmit}>
-          <div className="grid gap-2 sm:grid-cols-2">
-            <label className="space-y-1">
-              <span className="text-muted-foreground text-[11px] font-semibold">
-                승패
-              </span>
-              <select
-                name="outcomeMode"
-                value={outcomeMode}
-                onChange={(e) => setOutcomeMode(e.target.value)}
-                disabled={pending}
-                className="border-input bg-background h-8 w-full rounded-md border px-2"
-              >
-                <option value="win_loss">승패</option>
-                <option value="draw">무승부</option>
-                <option value="no_contest">노콘테스트</option>
-              </select>
-            </label>
-            <label className="space-y-1">
-              <span className="text-muted-foreground text-[11px] font-semibold">
-                결과 방식
-              </span>
-              <select
-                name="resultType"
-                defaultValue={
-                  props.resultType ?? BracketMatchOutcomeStyle.decision
-                }
-                disabled={pending}
-                className="border-input bg-background h-8 w-full rounded-md border px-2"
-              >
-                {OUTCOME_OPTIONS.map((o) => (
-                  <option key={o} value={o}>
-                    {outcomeStylePublicLabel(o)}
-                  </option>
-                ))}
-              </select>
-            </label>
-          </div>
-          {outcomeMode === "win_loss" ? (
-            <WinnerCornerPicker
-              key={`draft-${props.winnerId ?? "none"}`}
-              fighterRedId={props.fighterRedId}
-              fighterBlueId={props.fighterBlueId}
-              fighterRedName={props.fighterRedName}
-              fighterBlueName={props.fighterBlueName}
-              defaultWinnerId={props.winnerId}
-              disabled={pending}
-            />
-          ) : (
-            <input type="hidden" name="winnerId" value="" />
-          )}
-          <textarea
-            name="resultMemo"
-            placeholder="메모 (선택)"
-            rows={2}
-            defaultValue={props.resultMemo ?? ""}
-            disabled={pending}
-            className="border-input bg-background w-full rounded-md border px-2 py-1"
+          <MatchOutcomeEntryFields
+            resultType={resultType}
+            onResultTypeChange={setResultType}
+            pending={pending}
+            fighterRedId={props.fighterRedId}
+            fighterBlueId={props.fighterBlueId}
+            fighterRedName={props.fighterRedName}
+            fighterBlueName={props.fighterBlueName}
+            defaultWinnerId={props.winnerId}
+            defaultMemo={props.resultMemo}
+            winnerPickerKey={`entry-${props.matchId}-${props.winnerId ?? "none"}`}
           />
           <div className="flex flex-wrap gap-2">
             <Button
@@ -279,7 +350,7 @@ export function OrganizerMatchOpsPanel(props: OrganizerMatchOpsPanelProps) {
             >
               임시 저장
             </Button>
-            {!props.hasOfficialResults && (!staff || staff.canConfirmResult) ? (
+            {!staff || staff.canConfirmResult ? (
               <Button
                 type="submit"
                 name="intent"
@@ -295,82 +366,112 @@ export function OrganizerMatchOpsPanel(props: OrganizerMatchOpsPanelProps) {
       ) : null}
 
       {!staff && !blocked && props.hasOfficialResults ? (
-        <>
-          <form className="space-y-2 border-t pt-2" action={onCorrectSubmit}>
-            <p className="text-muted-foreground font-semibold">
-              결과 정정 (로그 필수)
-            </p>
-            <div className="grid gap-2 sm:grid-cols-2">
-              <select
-                name="outcomeMode"
-                defaultValue={defaultOutcomeMode}
+        <div className="space-y-2 border-t pt-2">
+          {!editingCorrect ? (
+            <div className="space-y-2">
+              <p className="text-muted-foreground text-[11px] leading-snug">
+                결과가 확정되었습니다. 수정이 필요할 때만 정정 폼을 엽니다.
+              </p>
+              <Button
+                type="button"
+                size="xs"
+                variant="outline"
                 disabled={pending}
-                className="border-input bg-background h-8 rounded-md border px-2"
+                onClick={() => setEditingCorrect(true)}
               >
-                <option value="win_loss">승패</option>
-                <option value="draw">무승부</option>
-                <option value="no_contest">노콘테스트</option>
-              </select>
-              <select
-                name="resultType"
-                defaultValue={
-                  props.resultType ?? BracketMatchOutcomeStyle.decision
-                }
-                disabled={pending}
-                className="border-input bg-background h-8 rounded-md border px-2"
-              >
-                {OUTCOME_OPTIONS.map((o) => (
-                  <option key={o} value={o}>
-                    {outcomeStylePublicLabel(o)}
-                  </option>
-                ))}
-              </select>
+                결과 수정
+              </Button>
             </div>
-            <WinnerCornerPicker
-              key={`correct-${props.winnerId ?? "none"}`}
-              fighterRedId={props.fighterRedId}
-              fighterBlueId={props.fighterBlueId}
-              fighterRedName={props.fighterRedName}
-              fighterBlueName={props.fighterBlueName}
-              defaultWinnerId={props.winnerId}
-              disabled={pending}
-            />
-            <textarea
-              name="resultMemo"
-              placeholder="메모 (선택)"
-              rows={2}
-              defaultValue={props.resultMemo ?? ""}
-              disabled={pending}
-              className="border-input bg-background w-full rounded-md border px-2 py-1"
-            />
-            <input
-              name="reason"
-              placeholder="정정 사유 (필수)"
-              required
-              disabled={pending}
-              className="border-input bg-background h-8 w-full rounded-md border px-2"
-            />
-            <Button type="submit" size="xs" variant="secondary" disabled={pending}>
-              정정 반영
-            </Button>
-          </form>
+          ) : (
+            <form className="space-y-2" action={onCorrectSubmit}>
+              <p className="text-muted-foreground font-semibold">
+                결과 정정 (로그 필수)
+              </p>
+              <MatchOutcomeEntryFields
+                resultType={resultType}
+                onResultTypeChange={setResultType}
+                pending={pending}
+                fighterRedId={props.fighterRedId}
+                fighterBlueId={props.fighterBlueId}
+                fighterRedName={props.fighterRedName}
+                fighterBlueName={props.fighterBlueName}
+                defaultWinnerId={props.winnerId}
+                defaultMemo={props.resultMemo}
+                winnerPickerKey={`correct-${props.matchId}-${props.winnerId ?? "none"}`}
+                showCorrectionReason
+              />
+              <div className="flex flex-wrap gap-2">
+                <Button
+                  type="submit"
+                  size="xs"
+                  variant="secondary"
+                  disabled={pending}
+                >
+                  정정 반영
+                </Button>
+                <Button
+                  type="button"
+                  size="xs"
+                  variant="ghost"
+                  disabled={pending}
+                  onClick={() => {
+                    setEditingCorrect(false);
+                    setResultType(
+                      props.resultType ?? BracketMatchOutcomeStyle.decision,
+                    );
+                  }}
+                >
+                  취소
+                </Button>
+              </div>
+            </form>
+          )}
 
-          <form className="space-y-2 border-t pt-2" action={onVoidSubmit}>
-            <p className="text-muted-foreground font-semibold">
-              공식 결과 무효 (Bracket 결과 필드 초기화 · 로그)
-            </p>
-            <input
-              name="reason"
-              placeholder="무효 사유 (필수)"
-              required
-              disabled={pending}
-              className="border-input bg-background h-8 w-full rounded-md border px-2"
-            />
-            <Button type="submit" variant="destructive" size="xs" disabled={pending}>
-              무효
+          {!showVoidForm ? (
+            <Button
+              type="button"
+              size="xs"
+              variant="outline"
+              className="text-destructive border-destructive/40 hover:bg-destructive/10"
+              disabled={pending || editingCorrect}
+              onClick={() => setShowVoidForm(true)}
+            >
+              공식 결과 무효 처리
             </Button>
-          </form>
-        </>
+          ) : (
+            <form className="space-y-2 rounded-md border border-destructive/30 bg-destructive/5 p-2" action={onVoidSubmit}>
+              <p className="text-destructive text-[11px] font-semibold">
+                공식 결과 무효 (Bracket 결과 필드 초기화 · 로그)
+              </p>
+              <input
+                name="reason"
+                placeholder="무효 사유 (필수)"
+                required
+                disabled={pending}
+                className="border-input bg-background h-8 w-full rounded-md border px-2"
+              />
+              <div className="flex flex-wrap gap-2">
+                <Button
+                  type="submit"
+                  variant="destructive"
+                  size="xs"
+                  disabled={pending}
+                >
+                  무효
+                </Button>
+                <Button
+                  type="button"
+                  size="xs"
+                  variant="ghost"
+                  disabled={pending}
+                  onClick={() => setShowVoidForm(false)}
+                >
+                  취소
+                </Button>
+              </div>
+            </form>
+          )}
+        </div>
       ) : null}
 
       {!props.compact && props.bracketType === BracketType.single_elimination ? (
