@@ -4,7 +4,12 @@ import { useMemo, useRef, useState } from "react";
 import type { FieldStatusRowDTO } from "@/lib/services/field-status.service";
 import { FieldStatusSummaryCards } from "@/components/domain/field-status/FieldStatusSummaryCards";
 import { OrganizerFieldStatusTable } from "@/components/domain/field-status/OrganizerFieldStatusTable";
+import { DivisionSportSectionHeader } from "@/components/domain/shared/DivisionSportSectionHeader";
 import type { FieldStatusSummaryDTO } from "@/lib/services/field-status.service";
+import {
+  groupItemsByDivisionSport,
+  resolveSingleSportSectionTitle,
+} from "@/lib/division-sport-grouping";
 import {
   checkInSelectValueForFilter,
   matchesFieldStatusSearchQuery,
@@ -64,6 +69,18 @@ export function OrganizerFieldStatusBoard({
       return true;
     });
   }, [rows, searchQuery, gymFilter, divisionFilter, checkInFilter, summaryFilter]);
+
+  const sportGroups = useMemo(
+    () => groupItemsByDivisionSport(filtered, (r) => r.division),
+    [filtered],
+  );
+
+  const singleSportTitle = useMemo(
+    () => resolveSingleSportSectionTitle(filtered.map((r) => r.division)),
+    [filtered],
+  );
+
+  const showSportSections = sportGroups.length > 1;
 
   const selectClass =
     "border-input bg-background h-9 rounded-md border px-2 text-sm shadow-sm";
@@ -168,8 +185,31 @@ export function OrganizerFieldStatusBoard({
         </div>
       </div>
 
-      <div ref={listRef} className="min-w-0">
-        <OrganizerFieldStatusTable rows={filtered} emptyMessage={emptyMessage} />
+      <div ref={listRef} className="min-w-0 flex flex-col gap-6">
+        {showSportSections
+          ? sportGroups.map((group) => (
+              <section key={group.sportTitle} className="flex flex-col gap-3">
+                <DivisionSportSectionHeader title={group.sportTitle} />
+                <OrganizerFieldStatusTable
+                  rows={group.items}
+                  emptyMessage={emptyMessage}
+                />
+              </section>
+            ))
+          : (
+              <>
+                {singleSportTitle ? (
+                  <DivisionSportSectionHeader
+                    title={singleSportTitle}
+                    className="mb-1"
+                  />
+                ) : null}
+                <OrganizerFieldStatusTable
+                  rows={filtered}
+                  emptyMessage={emptyMessage}
+                />
+              </>
+            )}
       </div>
     </div>
   );

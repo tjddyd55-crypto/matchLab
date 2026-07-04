@@ -25,7 +25,6 @@ import type {
 import { MATCH_CATEGORY_LABEL } from "@/lib/ui-labels/match-category";
 import {
   formatDivisionMainLabel,
-  formatDivisionSecondaryLabel,
 } from "@/lib/event-division-fields";
 import { cn } from "@/lib/utils";
 
@@ -303,9 +302,6 @@ export function OrganizerCourtBracketPanel({
             const mainLabel = m.division
               ? formatDivisionMainLabel(m.division)
               : (m.divisionLabel ?? MATCH_CATEGORY_LABEL);
-            const secondaryLabel = m.division
-              ? formatDivisionSecondaryLabel(m.division)
-              : null;
 
             return (
             <article
@@ -332,16 +328,6 @@ export function OrganizerCourtBracketPanel({
                       </span>
                     ) : null}
                   </p>
-                  {secondaryLabel ? (
-                    <p
-                      className={cn(
-                        bracketCardTypography.meta,
-                        "text-muted-foreground mt-0.5",
-                      )}
-                    >
-                      {secondaryLabel}
-                    </p>
-                  ) : null}
                 </div>
                 <MatchStatusBadge status={m.status} size="md" />
               </div>

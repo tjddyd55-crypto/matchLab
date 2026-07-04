@@ -230,7 +230,7 @@ export function formatDivisionCompactLine(
 /**
  * 사용자 노출 메인 라벨 — 연령부 · 성별 · 체급명/체중 기준.
  * 신청자 목록·현장계체·대진 후보 등 목록형 화면 공용.
- * sport/rule/skill은 제외하고 보조 라벨(formatDivisionSecondaryLabel)로 분리 표시한다.
+ * sport/rule/skill은 row에 포함하지 않는다. 종목은 섹션 헤더(formatDivisionSportTitle) 전용.
  */
 export function formatDivisionMainLabel(
   division: EventDivisionDisplayInput,
@@ -241,11 +241,14 @@ export function formatDivisionMainLabel(
     .join(" · ");
 }
 
-/** 보조 라벨 — 종목만. rule/skill은 UI에서 표시하지 않는다. */
+/**
+ * row 보조 라인용 — 기본 UI에서는 사용하지 않는다.
+ * 종목은 formatDivisionSportTitle + 섹션 헤더로만 표시.
+ */
 export function formatDivisionSecondaryLabel(
   division: EventDivisionDisplayInput,
 ): string | null {
-  return resolveDivisionDisplayParts(division).sportTitle;
+  return formatDivisionSportTitle(division);
 }
 
 /** formatDivisionMainLabel 별칭 — 묶음 · 성별 · 체급명 · 체중 기준 */

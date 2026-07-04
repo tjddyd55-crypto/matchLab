@@ -46,7 +46,7 @@ function GenderChip({
 export function DivisionInfoChips({
   division,
   compact = false,
-  showSportRule = true,
+  showSportRule = false,
   showSkill = false,
   className,
   trailing,
