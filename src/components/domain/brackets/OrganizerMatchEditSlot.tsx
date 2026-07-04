@@ -7,6 +7,11 @@ import {
   removeFighterFromMatchAction,
 } from "@/features/brackets/actions";
 import { ApprovedApplicationPicker } from "@/components/domain/brackets/ApprovedApplicationPicker";
+import {
+  BracketFighterCompactBadge,
+  BracketFighterCompactCard,
+} from "@/components/domain/brackets/BracketFighterCompactCard";
+import { resolveSlotFighterDisplay } from "@/lib/bracket-fighter-compact-display";
 import type { OrganizerApprovedFighterOptionVM } from "@/lib/services/bracket.service";
 import type { OrganizerBracketMatchVM } from "@/lib/services/bracket.service";
 import type { BracketFighterSnapshotPayload } from "@/lib/bracket-snapshot";
@@ -14,7 +19,6 @@ import {
   buildFighterPickerOptionStates,
   fighterNeedsMoveConfirm,
 } from "@/lib/bracket-fighter-picker";
-import { getPlacedFighterSlotWarning } from "@/lib/bracket-assignability";
 import { CORNER_SLOT_STYLES } from "@/lib/corner-slot-styles";
 import { cn } from "@/lib/utils";
 
@@ -22,33 +26,22 @@ function resolveFighterDisplay(
   fighterId: string,
   snapshot: BracketFighterSnapshotPayload | null | undefined,
   options: OrganizerApprovedFighterOptionVM[],
-): {
-  name: string;
-  gymName: string;
-  statusLabel?: string;
-  statusIsWarning?: boolean;
-} {
+) {
   if (snapshot) {
     return {
-      name: snapshot.name,
+      fighterName: snapshot.name,
       gymName: snapshot.gymName ?? "소속 미상",
+      statusBadge: undefined as
+        | ReturnType<typeof resolveSlotFighterDisplay>["statusBadge"]
+        | undefined,
+      metaLine: undefined as string | undefined,
     };
   }
   const opt = options.find((o) => o.fighterId === fighterId);
   if (opt) {
-    const [name] = opt.label.split(" · ");
-    const slotWarning = getPlacedFighterSlotWarning({
-      isAssignable: opt.isAssignableForBracket,
-      disabledReason: opt.assignabilityDisabledReason,
-    });
-    return {
-      name: name ?? opt.label,
-      gymName: opt.label.split(" · ")[1] ?? "소속 미상",
-      statusLabel: slotWarning ?? opt.assignabilityWarningReason,
-      statusIsWarning: !slotWarning && Boolean(opt.assignabilityWarningReason),
-    };
+    return resolveSlotFighterDisplay(opt);
   }
-  return { name: "선수 미정", gymName: "—" };
+  return null;
 }
 
 export function OrganizerMatchEditSlot({
@@ -138,47 +131,58 @@ export function OrganizerMatchEditSlot({
     });
   }
 
+  const statusBadges =
+    display?.statusBadge &&
+    display.statusBadge.label !== "대진 가능" ? (
+      <BracketFighterCompactBadge
+        label={display.statusBadge.label}
+        variant={display.statusBadge.variant}
+        title={display.statusBadge.title}
+      />
+    ) : null;
+
   return (
-    <div className={cn("flex flex-1 flex-col px-3 py-2", style.bg, className)}>
-      <span className={cn("text-[11px] font-semibold", style.accent)}>
+    <div className={cn("flex flex-1 flex-col px-2.5 py-2", style.bg, className)}>
+      <span className={cn("text-[11px] font-semibold leading-none", style.accent)}>
         {cornerLabel}
       </span>
 
       {display ? (
-        <div className="mt-1 min-w-0 space-y-0.5">
-          <div className="truncate text-base font-bold leading-tight md:text-lg">
-            {display.name}
-          </div>
-          <div className="text-muted-foreground truncate text-xs md:text-sm">
-            {display.gymName}
-          </div>
-          {display.statusLabel ? (
-            <div
-              className={cn(
-                "truncate text-[11px]",
-                display.statusIsWarning
-                  ? "text-amber-800 dark:text-amber-200"
-                  : "text-destructive font-medium",
-              )}
-              role={display.statusIsWarning ? undefined : "alert"}
-            >
-              {display.statusLabel}
-            </div>
-          ) : null}
-        </div>
+        <BracketFighterCompactCard
+          className="mt-1"
+          fighterName={display.fighterName}
+          gymName={display.gymName}
+          metaLine={display.metaLine}
+          statusBadges={statusBadges}
+        >
+          <ApprovedApplicationPicker
+            value={fighterId}
+            onChange={handleChange}
+            options={options}
+            optionStates={optionStates}
+            disabled={editDisabled || pending}
+            placeholder="빈 슬롯"
+            className="mt-1.5 h-8 max-w-none text-xs"
+          />
+        </BracketFighterCompactCard>
       ) : (
-        <p className="text-muted-foreground mt-1 text-sm">선수 미정</p>
+        <BracketFighterCompactCard
+          className="mt-1"
+          empty
+          emptyLabel="선수 미정"
+        >
+          <ApprovedApplicationPicker
+            value={fighterId}
+            onChange={handleChange}
+            options={options}
+            optionStates={optionStates}
+            disabled={editDisabled || pending}
+            placeholder="빈 슬롯"
+            className="mt-1.5 h-8 max-w-none text-xs"
+          />
+        </BracketFighterCompactCard>
       )}
 
-      <ApprovedApplicationPicker
-        value={fighterId}
-        onChange={handleChange}
-        options={options}
-        optionStates={optionStates}
-        disabled={editDisabled || pending}
-        placeholder="빈 슬롯"
-        className="mt-2 max-w-none text-xs"
-      />
       {pending ? (
         <p className="text-muted-foreground mt-1 text-[10px]">저장 중…</p>
       ) : null}
