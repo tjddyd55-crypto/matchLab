@@ -10,8 +10,13 @@ import {
   type OrganizerApplicationFiltersState,
 } from "@/components/domain/applications/OrganizerApplicationsFilterBar";
 import { OrganizerApplicationsTable } from "@/components/domain/applications/OrganizerApplicationsTable";
+import { DivisionSportSectionHeader } from "@/components/domain/shared/DivisionSportSectionHeader";
 import { resolveOrganizerApplicationDisplayStatus } from "@/lib/application-display-status";
 import { isPaidForOrganizerDisplay } from "@/lib/application-display-status";
+import {
+  groupItemsByDivisionSport,
+  resolveSingleSportSectionTitle,
+} from "@/lib/division-sport-grouping";
 import { OrganizerApplicationsGymSummaryTable } from "@/components/domain/applications/OrganizerApplicationsGymSummaryTable";
 import { OrganizerManualApplicationPanel } from "@/components/domain/applications/OrganizerManualApplicationPanel";
 import type { OrganizerManualRegistrationOptionsDTO } from "@/lib/services/application.service";
@@ -134,11 +139,31 @@ export function OrganizerApplicationsBoard({
     setSelectedIds(new Set());
   }
 
+  const sportGroups = useMemo(() => {
+    if (groupByGym) return null;
+    return groupItemsByDivisionSport(filtered, (r) => r.division);
+  }, [filtered, groupByGym]);
+
+  const singleSportTitle = useMemo(
+    () => resolveSingleSportSectionTitle(filtered.map((r) => r.division)),
+    [filtered],
+  );
+
   const listProps = {
     eventId,
     selectedIds,
     onToggleSelect: toggleSelect,
   };
+
+  function renderApplicationViews(applicationRows: OrganizerApplicationRowVM[]) {
+    return (
+      <>
+        <OrganizerApplicationsTable rows={applicationRows} {...listProps} />
+        <OrganizerApplicationsList rows={applicationRows} {...listProps} />
+        <OrganizerApplicationsCards rows={applicationRows} {...listProps} />
+      </>
+    );
+  }
 
   return (
     <div className="flex min-w-0 flex-col gap-6 overflow-x-hidden">
@@ -191,6 +216,10 @@ export function OrganizerApplicationsBoard({
         onClearSelection={clearSelection}
       />
 
+      {groupByGym && singleSportTitle ? (
+        <DivisionSportSectionHeader title={singleSportTitle} className="mb-1" />
+      ) : null}
+
       {groupByGym && groupedRows
         ? groupedRows.map((group) => (
             <section key={group.gymName} className="flex flex-col gap-3">
@@ -208,20 +237,19 @@ export function OrganizerApplicationsBoard({
                   이 체육관 전체 선택
                 </Button>
               </div>
-              <OrganizerApplicationsTable rows={group.rows} {...listProps} />
-              <OrganizerApplicationsList rows={group.rows} {...listProps} />
-              <OrganizerApplicationsCards rows={group.rows} {...listProps} />
+              {renderApplicationViews(group.rows)}
             </section>
           ))
         : null}
 
-      {!groupByGym ? (
-        <>
-          <OrganizerApplicationsTable rows={filtered} {...listProps} />
-          <OrganizerApplicationsList rows={filtered} {...listProps} />
-          <OrganizerApplicationsCards rows={filtered} {...listProps} />
-        </>
-      ) : null}
+      {!groupByGym && sportGroups
+        ? sportGroups.map((group) => (
+            <section key={group.sportTitle} className="flex flex-col gap-3">
+              <DivisionSportSectionHeader title={group.sportTitle} />
+              {renderApplicationViews(group.items)}
+            </section>
+          ))
+        : null}
 
     </div>
   );

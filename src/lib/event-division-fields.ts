@@ -1,4 +1,4 @@
-import { parseSingleWeightEntry } from "@/lib/division-template/division-template-parse";
+import { parseSingleWeightEntry, normalizeWeightLimitInput } from "@/lib/division-template/division-template-parse";
 import { DIVISION_TEMPLATE_GENDER_LABELS } from "@/lib/division-template/division-template-constants";
 import type { DivisionGenderTone } from "@/lib/ui/division-gender-ui";
 import { resolveDivisionGenderTone } from "@/lib/ui/division-gender-ui";
@@ -15,12 +15,60 @@ export type EventDivisionWeightInput = {
   weightLimitText?: string | null;
 };
 
+const INSIGNIFICANT_WEIGHT_CLASS_NAMES = new Set(["-", "–", "—", "−"]);
+
+/** 체급명 placeholder(단독 `-` 등)는 표시·조합에서 제외한다. */
+function isInsignificantWeightClassName(
+  name: string | null | undefined,
+): boolean {
+  const trimmed = name?.trim();
+  if (!trimmed) return true;
+  return INSIGNIFICANT_WEIGHT_CLASS_NAMES.has(trimmed);
+}
+
+/**
+ * 표시용 체중 기준 — 60 / 60kg / -60 / -60kg → -60kg, 중복 하이픈 제거.
+ */
+export function normalizeWeightLimitDisplayText(
+  raw: string | null | undefined,
+): string | null {
+  const trimmed = raw?.trim();
+  if (!trimmed) return null;
+
+  let normalized = normalizeWeightLimitInput(trimmed);
+  if (!normalized) return null;
+
+  // legacy/저장 오류: "- -60kg", "-  -60kg" → "-60kg"
+  normalized = normalized.replace(/^-\s*-\s*/, "-");
+
+  return normalized;
+}
+
+/** 체급명 + 체중 기준 표시 SSOT — chip/compact label의 체중 구간. */
+export function resolveDivisionWeightLabel(
+  division: EventDivisionWeightInput,
+): string | null {
+  const fields = resolveEventDivisionWeightFields(division);
+  const limit = fields.weightLimitText;
+  const name = isInsignificantWeightClassName(fields.weightClassName)
+    ? null
+    : fields.weightClassName;
+
+  if (name && limit) {
+    return `${name} ${limit}`;
+  }
+  if (limit) return limit;
+  if (name) return name;
+  return fields.weightClass;
+}
+
 /** 체급명·체중 기준·표시용 weightClass를 일관되게 해석한다. */
 export function resolveEventDivisionWeightFields(
   division: EventDivisionWeightInput,
 ): EventDivisionWeightFields {
-  const name = division.weightClassName?.trim() || null;
-  const limit = division.weightLimitText?.trim() || null;
+  const rawName = division.weightClassName?.trim() || null;
+  const name = isInsignificantWeightClassName(rawName) ? null : rawName;
+  const limit = normalizeWeightLimitDisplayText(division.weightLimitText);
 
   if (name || limit) {
     const weightClass = [name, limit].filter(Boolean).join(" ").trim() || null;
@@ -33,8 +81,10 @@ export function resolveEventDivisionWeightFields(
   }
 
   const parsed = parseSingleWeightEntry(legacy);
-  const parsedName = parsed.weightClassName?.trim() || null;
-  const parsedLimit = parsed.weightLimitText?.trim() || null;
+  const parsedName = isInsignificantWeightClassName(parsed.weightClassName)
+    ? null
+    : parsed.weightClassName?.trim() || null;
+  const parsedLimit = normalizeWeightLimitDisplayText(parsed.weightLimitText);
 
   if (parsedLimit) {
     const weightClass =
@@ -43,6 +93,16 @@ export function resolveEventDivisionWeightFields(
       weightClassName: parsedName,
       weightLimitText: parsedLimit,
       weightClass,
+    };
+  }
+
+  // legacy 전체가 "-60kg" 형태인 경우 parseSingleWeightEntry가 name="-"로 오인할 수 있음
+  const legacyLimit = normalizeWeightLimitDisplayText(legacy);
+  if (legacyLimit && /^-\d/.test(legacyLimit)) {
+    return {
+      weightClassName: null,
+      weightLimitText: legacyLimit,
+      weightClass: legacyLimit,
     };
   }
 
@@ -123,13 +183,7 @@ const AUTO_BRACKET_TITLE_PREFIX = "자동 생성 · ";
 export function formatDivisionWeightChipLabel(
   division: EventDivisionWeightInput,
 ): string | null {
-  const fields = resolveEventDivisionWeightFields(division);
-  if (fields.weightClassName && fields.weightLimitText) {
-    return `${fields.weightClassName} ${fields.weightLimitText}`;
-  }
-  if (fields.weightClassName) return fields.weightClassName;
-  if (fields.weightLimitText) return fields.weightLimitText;
-  return fields.weightClass;
+  return resolveDivisionWeightLabel(division);
 }
 
 /** 종목만 반환 — rule/skill은 UI에 표시하지 않는다. */
@@ -176,7 +230,7 @@ export function formatDivisionCompactLine(
 /**
  * 사용자 노출 메인 라벨 — 연령부 · 성별 · 체급명/체중 기준.
  * 신청자 목록·현장계체·대진 후보 등 목록형 화면 공용.
- * sport/rule/skill은 제외하고 보조 라벨(formatDivisionSecondaryLabel)로 분리 표시한다.
+ * sport/rule/skill은 row에 포함하지 않는다. 종목은 섹션 헤더(formatDivisionSportTitle) 전용.
  */
 export function formatDivisionMainLabel(
   division: EventDivisionDisplayInput,
@@ -187,11 +241,14 @@ export function formatDivisionMainLabel(
     .join(" · ");
 }
 
-/** 보조 라벨 — 종목만. rule/skill은 UI에서 표시하지 않는다. */
+/**
+ * row 보조 라인용 — 기본 UI에서는 사용하지 않는다.
+ * 종목은 formatDivisionSportTitle + 섹션 헤더로만 표시.
+ */
 export function formatDivisionSecondaryLabel(
   division: EventDivisionDisplayInput,
 ): string | null {
-  return resolveDivisionDisplayParts(division).sportTitle;
+  return formatDivisionSportTitle(division);
 }
 
 /** formatDivisionMainLabel 별칭 — 묶음 · 성별 · 체급명 · 체중 기준 */
@@ -245,11 +302,5 @@ export function formatBracketTitleForDisplay(
 export function resolveWeighInWeightLabel(
   division: EventDivisionWeightInput,
 ): string | null {
-  const fields = resolveEventDivisionWeightFields(division);
-  if (fields.weightLimitText) {
-    return fields.weightClassName
-      ? `${fields.weightClassName} ${fields.weightLimitText}`
-      : fields.weightLimitText;
-  }
-  return fields.weightClass;
+  return resolveDivisionWeightLabel(division);
 }

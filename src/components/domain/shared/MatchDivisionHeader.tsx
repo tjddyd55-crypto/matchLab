@@ -27,7 +27,7 @@ export function MatchDivisionHeader({
   meta?: ReactNode;
   className?: string;
 }) {
-  const sportRuleVisible = showSportRule ?? !compact;
+  const sportRuleVisible = showSportRule === true;
   const sportTitle = division ? formatDivisionSportTitle(division) : null;
 
   return (
