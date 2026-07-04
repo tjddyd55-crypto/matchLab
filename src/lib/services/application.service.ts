@@ -44,6 +44,7 @@ import {
   readOrganizerManualEntryFromAgreementSnapshot,
 } from "@/lib/application-form/organizer-manual-entry";
 import { formatFighterGenderLabel } from "@/lib/applications/division-fighter-match";
+import type { EventDivisionDisplayInput } from "@/lib/event-division-fields";
 import {
   logManualApplicationCreate,
   logManualApplicationCreateError,
@@ -369,6 +370,8 @@ export type OrganizerApplicationListRowDTO = {
   gymName: string;
   divisionId: string;
   divisionLabel: string;
+  /** 표시용 division 필드 — 공통 칩/라벨 helper 입력. */
+  division: EventDivisionDisplayInput;
   applicationStatus: ApplicationStatus;
   cancellationSource: import("@/generated/prisma").ApplicationCancellationSource | null;
   paymentStatus: PaymentStatus;
@@ -721,6 +724,16 @@ export const applicationService = {
         gymName,
         divisionId: row.division.id,
         divisionLabel: formatDivisionLabel(row.division),
+        division: {
+          sportType: row.division.sportType,
+          ruleType: row.division.ruleType,
+          gender: row.division.gender,
+          ageGroup: row.division.ageGroup,
+          weightClass: row.division.weightClass,
+          weightClassName: row.division.weightClassName ?? null,
+          weightLimitText: row.division.weightLimitText ?? null,
+          skillLevel: row.division.skillLevel,
+        },
         applicationStatus: row.status,
         cancellationSource: row.cancellationSource ?? null,
         paymentStatus: row.paymentStatus,

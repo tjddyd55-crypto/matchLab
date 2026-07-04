@@ -128,7 +128,14 @@ export function OrganizerCourtBracketPanel({
 
   const canReorder = activeTab !== "all" && filtered.length > 0;
 
-  function move(matchId: string, direction: -1 | 1) {
+  /**
+   * 위/아래 화살표 — 인접 경기와 순서를 교체하고 즉시 저장한다.
+   * 기존 courtOrder 저장 액션(saveMatchScheduleFormAction)을 재사용하며,
+   * 실패 시 기존 순서를 유지하고 오류를 안내한다.
+   */
+  function moveAndSave(matchId: string, direction: -1 | 1) {
+    if (activeTab === "all" || pending) return;
+    const courtId = activeTab;
     const idx = filtered.findIndex((m) => m.matchId === matchId);
     const swapIdx = idx + direction;
     if (idx < 0 || swapIdx < 0 || swapIdx >= filtered.length) return;
@@ -137,12 +144,23 @@ export function OrganizerCourtBracketPanel({
     const [removed] = reordered.splice(idx, 1);
     reordered.splice(swapIdx, 0, removed!);
 
-    setOrderOverrides((prev) => {
-      const next = { ...prev };
-      reordered.forEach((m, i) => {
-        next[m.matchId] = i + 1;
-      });
-      return next;
+    const updates = reordered.map((m, i) => ({
+      matchId: m.matchId,
+      courtId,
+      courtOrder: i + 1,
+    }));
+    const fd = new FormData();
+    fd.set("eventId", eventId);
+    fd.set("updates", JSON.stringify(updates));
+    startTransition(async () => {
+      const res = await saveMatchScheduleFormAction(fd);
+      if (!res.ok) {
+        setMessage(res.error.message);
+        return;
+      }
+      setMessage("순서가 저장되었습니다.");
+      setOrderOverrides({});
+      router.refresh();
     });
   }
 
@@ -339,8 +357,9 @@ export function OrganizerCourtBracketPanel({
                         size="sm"
                         variant="outline"
                         className="h-7 px-2 text-xs"
-                        disabled={idx === 0}
-                        onClick={() => move(m.matchId, -1)}
+                        aria-label="위로 이동"
+                        disabled={idx === 0 || pending}
+                        onClick={() => moveAndSave(m.matchId, -1)}
                       >
                         ↑
                       </Button>
@@ -349,8 +368,9 @@ export function OrganizerCourtBracketPanel({
                         size="sm"
                         variant="outline"
                         className="h-7 px-2 text-xs"
-                        disabled={idx === filtered.length - 1}
-                        onClick={() => move(m.matchId, 1)}
+                        aria-label="아래로 이동"
+                        disabled={idx === filtered.length - 1 || pending}
+                        onClick={() => moveAndSave(m.matchId, 1)}
                       >
                         ↓
                       </Button>

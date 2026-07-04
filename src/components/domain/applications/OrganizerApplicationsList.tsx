@@ -7,6 +7,8 @@ import {
 import { OrganizerApplicationRowActions } from "@/components/domain/applications/OrganizerApplicationRowActions";
 import { OrganizerManualEntryHint } from "@/components/domain/applications/OrganizerManualEntryHint";
 import type { OrganizerApplicationRowVM } from "@/components/domain/applications/OrganizerApplicationsTable";
+import { DivisionInfoChips } from "@/components/domain/shared/DivisionInfoChips";
+import { DivisionGenderBadge } from "@/components/domain/shared/DivisionGenderBadge";
 import { MATCH_CATEGORY_WITH_WEIGHT_LABEL } from "@/lib/ui-labels/match-category";
 import { Checkbox } from "@/components/ui/checkbox";
 
@@ -51,16 +53,16 @@ export function OrganizerApplicationsList({
 
             <div className="min-w-0 truncate text-sm">{row.gymName}</div>
 
-            <div className="min-w-0 truncate font-medium">
-              {row.fighterName}
+            <div className="min-w-0 font-medium">
+              <div className="flex min-w-0 items-center gap-1.5">
+                <span className="truncate">{row.fighterName}</span>
+                <DivisionGenderBadge gender={row.division.gender} short />
+              </div>
               <OrganizerManualEntryHint show={row.isOrganizerManualEntry} />
             </div>
 
-            <div
-              className="text-muted-foreground min-w-0 text-xs leading-snug"
-              title={row.divisionLabel}
-            >
-              <span className="line-clamp-2 break-words">{row.divisionLabel}</span>
+            <div className="min-w-0" title={row.divisionLabel}>
+              <DivisionInfoChips division={row.division} className="text-xs" />
             </div>
 
             <div className="min-w-0">

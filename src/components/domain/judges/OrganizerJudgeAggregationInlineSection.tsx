@@ -54,17 +54,21 @@ export function OrganizerJudgeAggregationInlineSection({
 
   return (
     <section className="border-t pt-4">
-      <h3 className="mb-3 text-sm font-semibold">심판 채점 집계</h3>
+      <h3 className="mb-3 text-sm font-semibold">심판 채점 결과</h3>
       {loading ? (
         <p className="text-muted-foreground text-sm">불러오는 중…</p>
       ) : snapshot.error ? (
         <p className="text-destructive text-sm">{snapshot.error}</p>
-      ) : snapshot.aggregation ? (
+      ) : snapshot.aggregation && snapshot.scorecards.length > 0 ? (
         <JudgeMatchAggregationPanel
           aggregation={snapshot.aggregation}
           scorecards={snapshot.scorecards}
         />
-      ) : null}
+      ) : (
+        <p className="text-muted-foreground rounded-lg border border-dashed px-3 py-4 text-center text-sm">
+          채점 제출 없음
+        </p>
+      )}
     </section>
   );
 }

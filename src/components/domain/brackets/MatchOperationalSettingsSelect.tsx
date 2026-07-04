@@ -20,11 +20,14 @@ export function MatchOperationalSettingsSelect({
   resultMemo,
   disabled = false,
   className,
+  unwrapped = false,
 }: {
   matchId: string;
   resultMemo?: string | null;
   disabled?: boolean;
   className?: string;
+  /** true면 wrapper 없이 라운드·시간 라벨을 부모 grid의 셀로 직접 렌더한다. */
+  unwrapped?: boolean;
 }) {
   const router = useRouter();
   const [pending, startTransition] = useTransition();
@@ -52,10 +55,12 @@ export function MatchOperationalSettingsSelect({
   const selectClass =
     "border-input bg-background h-8 w-full rounded-md border px-2 text-xs";
 
-  return (
-    <div className={cn("grid w-full gap-2 sm:grid-cols-2", className)}>
-      <label className="flex flex-col gap-1 text-xs">
-        <span className="text-muted-foreground font-medium">라운드</span>
+  const fields = (
+    <>
+      <label className="flex min-w-0 flex-col gap-0.5 text-xs">
+        <span className="text-muted-foreground text-[10px] font-medium">
+          라운드
+        </span>
         <select
           className={selectClass}
           value={roundCount}
@@ -69,8 +74,8 @@ export function MatchOperationalSettingsSelect({
           ))}
         </select>
       </label>
-      <label className="flex flex-col gap-1 text-xs">
-        <span className="text-muted-foreground font-medium">시간</span>
+      <label className="flex min-w-0 flex-col gap-0.5 text-xs">
+        <span className="text-muted-foreground text-[10px] font-medium">시간</span>
         <select
           className={selectClass}
           value={roundTimeSec}
@@ -87,6 +92,16 @@ export function MatchOperationalSettingsSelect({
       {pending ? (
         <p className="text-muted-foreground col-span-full text-[10px]">저장 중…</p>
       ) : null}
+    </>
+  );
+
+  if (unwrapped) {
+    return fields;
+  }
+
+  return (
+    <div className={cn("grid w-full gap-2 sm:grid-cols-2", className)}>
+      {fields}
     </div>
   );
 }

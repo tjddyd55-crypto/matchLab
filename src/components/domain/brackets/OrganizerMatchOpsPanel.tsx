@@ -26,6 +26,7 @@ import {
 } from "@/lib/enums";
 import { cn } from "@/lib/utils";
 import { BoutFormatBadge } from "@/components/domain/shared/BoutFormatBadge";
+import { outcomeStylePublicLabel } from "@/lib/match-result-snapshot";
 
 const STATUS_OPTIONS: { value: BracketMatchStatus; label: string }[] = [
   { value: BracketMatchStatus.waiting, label: "대기" },
@@ -257,12 +258,12 @@ export function OrganizerMatchOpsPanel(props: OrganizerMatchOpsPanelProps) {
               <option value="">승자 선택</option>
               {props.fighterRedId ? (
                 <option value={props.fighterRedId}>
-                  레드 · {props.fighterRedName}
+                  홍코너 · {props.fighterRedName}
                 </option>
               ) : null}
               {props.fighterBlueId ? (
                 <option value={props.fighterBlueId}>
-                  블루 · {props.fighterBlueName}
+                  청코너 · {props.fighterBlueName}
                 </option>
               ) : null}
             </select>
@@ -276,7 +277,7 @@ export function OrganizerMatchOpsPanel(props: OrganizerMatchOpsPanelProps) {
             >
               {OUTCOME_OPTIONS.map((o) => (
                 <option key={o} value={o}>
-                  {o}
+                  {outcomeStylePublicLabel(o)}
                 </option>
               ))}
             </select>
@@ -340,12 +341,12 @@ export function OrganizerMatchOpsPanel(props: OrganizerMatchOpsPanelProps) {
               <option value="">승자 선택</option>
               {props.fighterRedId ? (
                 <option value={props.fighterRedId}>
-                  레드 · {props.fighterRedName}
+                  홍코너 · {props.fighterRedName}
                 </option>
               ) : null}
               {props.fighterBlueId ? (
                 <option value={props.fighterBlueId}>
-                  블루 · {props.fighterBlueName}
+                  청코너 · {props.fighterBlueName}
                 </option>
               ) : null}
             </select>
@@ -359,7 +360,7 @@ export function OrganizerMatchOpsPanel(props: OrganizerMatchOpsPanelProps) {
             >
               {OUTCOME_OPTIONS.map((o) => (
                 <option key={o} value={o}>
-                  {o}
+                  {outcomeStylePublicLabel(o)}
                 </option>
               ))}
             </select>

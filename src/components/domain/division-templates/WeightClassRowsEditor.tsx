@@ -1,212 +1,187 @@
 "use client";
 
-import { useState } from "react";
+import { useCallback, useRef, useState } from "react";
 import type { DivisionTemplateItemInput } from "@/lib/validators/division-template.validator";
 import {
-  DIVISION_TEMPLATE_AGE_GROUPS,
   DIVISION_TEMPLATE_GENDER_LABELS,
   DIVISION_TEMPLATE_GENDERS,
-  type DivisionTemplateAgeGroup,
   type DivisionTemplateGender,
 } from "@/lib/division-template/division-template-constants";
-import { parseQuickWeightClassInput } from "@/lib/division-template/division-template-parse";
-import { buildWeightClassDisplay } from "@/lib/division-template/division-template-row";
+import {
+  buildWeightClassDisplay,
+  normalizeTemplateItemWeight,
+} from "@/lib/division-template/division-template-row";
 import { Button } from "@/components/ui/button";
 
-function rowsFor(
-  items: DivisionTemplateItemInput[],
-  ageGroup: string,
-  gender: DivisionTemplateGender,
-) {
-  return items.filter(
-    (i) => i.ageGroup === ageGroup && i.gender === gender && i.isActive !== false,
-  );
+/**
+ * 블럭 생성형 체급표 에디터.
+ *
+ * 데이터 모델은 기존과 동일한 flat `DivisionTemplateItemInput[]`을 유지한다.
+ * 화면에서는 `ageGroup`(묶음 이름) 기준으로 묶어 "블럭"으로 보여주되,
+ * 빈 블럭/빈 행도 UI에 유지되어야 하므로 블럭 구조를 내부 상태(SSOT)로 관리하고
+ * 변경 시마다 flat items로 평탄화해 부모에 전달한다.
+ *
+ * 향후 변경 지점:
+ * - 성별 구분이 늘어나면 GENDERS 상수와 GroupBlock 필드를 확장한다.
+ * - 행 필드(실력/룰 등)가 필요하면 WeightRow와 flatten 로직에 추가한다.
+ */
+
+type WeightRow = {
+  id: string;
+  weightClassName: string;
+  weightLimitText: string;
+};
+
+type GroupBlock = {
+  id: string;
+  ageGroup: string;
+  rows: Record<DivisionTemplateGender, WeightRow[]>;
+};
+
+function newId(): string {
+  if (typeof crypto !== "undefined" && "randomUUID" in crypto) {
+    return crypto.randomUUID();
+  }
+  return `id-${Math.random().toString(36).slice(2)}`;
 }
 
-function replaceSectionRows(
-  items: DivisionTemplateItemInput[],
-  ageGroup: string,
-  gender: DivisionTemplateGender,
-  nextSectionRows: DivisionTemplateItemInput[],
-): DivisionTemplateItemInput[] {
-  const others = items.filter(
-    (i) => !(i.ageGroup === ageGroup && i.gender === gender),
-  );
-  return [...others, ...nextSectionRows];
+function emptyRow(): WeightRow {
+  return { id: newId(), weightClassName: "", weightLimitText: "" };
 }
 
-function GenderSection({
-  sportType,
-  ageGroup,
-  gender,
-  rows,
-  onChange,
-}: {
-  sportType: string;
-  ageGroup: DivisionTemplateAgeGroup;
-  gender: DivisionTemplateGender;
-  rows: DivisionTemplateItemInput[];
-  onChange: (next: DivisionTemplateItemInput[]) => void;
-}) {
-  const [quickText, setQuickText] = useState("");
+function bucketGender(gender: string | null | undefined): DivisionTemplateGender {
+  return gender?.trim() === "female" ? "female" : "male";
+}
 
-  const updateRow = (idx: number, patch: Partial<DivisionTemplateItemInput>) => {
-    const next = rows.map((r, i) => (i === idx ? { ...r, ...patch } : r));
-    onChange(next);
-  };
+/** 저장된 flat items를 묶음(ageGroup) 순서대로 블럭 구조로 복원한다. */
+function deriveBlocks(items: DivisionTemplateItemInput[]): GroupBlock[] {
+  const blocks: GroupBlock[] = [];
+  const byAgeGroup = new Map<string, GroupBlock>();
 
-  const removeRow = (idx: number) => {
-    onChange(rows.filter((_, i) => i !== idx));
-  };
-
-  const duplicateRow = (idx: number) => {
-    const src = rows[idx];
-    if (!src) return;
-    const dup: DivisionTemplateItemInput = {
-      ...src,
-      weightClassName: `${src.weightClassName ?? ""} (복제)`,
-      weightClass: buildWeightClassDisplay({
-        ...src,
-        weightClassName: `${src.weightClassName ?? ""} (복제)`,
-      }),
-      displayOrder: (src.displayOrder ?? 0) + 1,
-    };
-    onChange([...rows.slice(0, idx + 1), dup, ...rows.slice(idx + 1)]);
-  };
-
-  const addEmptyRow = () => {
-    onChange([
-      ...rows,
-      {
-        sportType,
-        ruleType: null,
-        gender,
-        ageGroup,
-        weightClassName: "",
-        weightLimitText: null,
-        weightLimitKg: null,
-        limitType: null,
-        weightClass: null,
-        skillLevel: null,
-        displayOrder: rows.length,
-        isActive: true,
-      },
-    ]);
-  };
-
-  function applyQuickInput() {
-    if (!quickText.trim()) return;
-    const parsed = parseQuickWeightClassInput(quickText, {
-      sportType,
-      ageGroup,
-      gender,
-      startOrder: rows.length,
+  for (const item of items) {
+    if (item.isActive === false) continue;
+    const ageGroup = item.ageGroup?.trim() ?? "";
+    let block = byAgeGroup.get(ageGroup);
+    if (!block) {
+      block = { id: newId(), ageGroup, rows: { male: [], female: [] } };
+      byAgeGroup.set(ageGroup, block);
+      blocks.push(block);
+    }
+    const normalized = normalizeTemplateItemWeight(item);
+    block.rows[bucketGender(item.gender)].push({
+      id: newId(),
+      weightClassName: normalized.weightClassName?.trim() ?? "",
+      weightLimitText: normalized.weightLimitText?.trim() ?? "",
     });
-    onChange([...rows, ...parsed]);
-    setQuickText("");
   }
 
+  return blocks;
+}
+
+/** 블럭 구조를 저장용 flat items로 평탄화한다. (빈 행은 sanitize 단계에서 제거) */
+function flattenBlocks(
+  blocks: GroupBlock[],
+  sportType: string,
+): DivisionTemplateItemInput[] {
+  const items: DivisionTemplateItemInput[] = [];
+  blocks.forEach((block) => {
+    DIVISION_TEMPLATE_GENDERS.forEach((gender) => {
+      block.rows[gender].forEach((row, idx) => {
+        const base: DivisionTemplateItemInput = {
+          sportType,
+          ruleType: null,
+          gender,
+          ageGroup: block.ageGroup.trim() || null,
+          weightClassName: row.weightClassName.trim() || null,
+          weightLimitText: row.weightLimitText.trim() || null,
+          weightLimitKg: null,
+          limitType: null,
+          weightClass: null,
+          skillLevel: null,
+          displayOrder: idx,
+          isActive: true,
+        };
+        items.push({ ...base, weightClass: buildWeightClassDisplay(base) });
+      });
+    });
+  });
+  return items;
+}
+
+function GenderColumn({
+  gender,
+  rows,
+  onRowsChange,
+}: {
+  gender: DivisionTemplateGender;
+  rows: WeightRow[];
+  onRowsChange: (next: WeightRow[]) => void;
+}) {
+  const updateRow = (id: string, patch: Partial<WeightRow>) =>
+    onRowsChange(rows.map((r) => (r.id === id ? { ...r, ...patch } : r)));
+  const removeRow = (id: string) =>
+    onRowsChange(rows.filter((r) => r.id !== id));
+  const addRow = () => onRowsChange([...rows, emptyRow()]);
+
   return (
-    <div className="space-y-3 rounded-lg border bg-muted/10 p-3">
+    <div className="space-y-2 rounded-lg border bg-muted/10 p-3">
       <h4 className="text-sm font-medium">
         {DIVISION_TEMPLATE_GENDER_LABELS[gender]}
       </h4>
-      <div className="space-y-2">
-        <label className="block space-y-1 text-xs">
-          <span className="text-muted-foreground">빠른 입력 (/ 로 구분)</span>
-          <textarea
-            value={quickText}
-            onChange={(e) => setQuickText(e.target.value)}
-            rows={2}
-            placeholder="핀급 -30kg / 라이트플라이급 -32kg / 플라이급 -34kg"
-            className="border-input bg-background w-full rounded-md border px-2 py-1.5 text-xs"
-          />
-        </label>
-        <Button type="button" size="sm" variant="secondary" onClick={applyQuickInput}>
-          빠른 입력 반영
-        </Button>
-      </div>
-      <div className="overflow-x-auto">
-        <table className="w-full min-w-[480px] border-collapse text-left text-xs">
-          <thead>
-            <tr className="border-b bg-muted/40">
-              <th className="px-2 py-2 font-medium">체급명</th>
-              <th className="px-2 py-2 font-medium">체중 기준</th>
-              <th className="w-[120px] px-2 py-2 font-medium">동작</th>
+      <table className="w-full border-collapse text-left text-xs">
+        <thead>
+          <tr className="text-muted-foreground border-b">
+            <th className="px-1 py-1.5 font-medium">체급명</th>
+            <th className="px-1 py-1.5 font-medium">체중 기준</th>
+            <th className="w-12 px-1 py-1.5 font-medium">동작</th>
+          </tr>
+        </thead>
+        <tbody>
+          {rows.length === 0 ? (
+            <tr>
+              <td colSpan={3} className="text-muted-foreground px-1 py-2">
+                체급 행이 없습니다.
+              </td>
             </tr>
-          </thead>
-          <tbody>
-            {rows.length === 0 ? (
-              <tr>
-                <td colSpan={3} className="text-muted-foreground px-2 py-3">
-                  체급이 없습니다. 빠른 입력 또는 행 추가를 사용하세요.
+          ) : (
+            rows.map((row) => (
+              <tr key={row.id} className="border-b last:border-0">
+                <td className="px-1 py-1">
+                  <input
+                    className="border-input bg-background h-8 w-full rounded border px-2"
+                    value={row.weightClassName}
+                    placeholder="라이트급"
+                    onChange={(e) =>
+                      updateRow(row.id, { weightClassName: e.target.value })
+                    }
+                  />
+                </td>
+                <td className="px-1 py-1">
+                  <input
+                    className="border-input bg-background h-8 w-full rounded border px-2 font-mono"
+                    value={row.weightLimitText}
+                    placeholder="-54kg"
+                    onChange={(e) =>
+                      updateRow(row.id, { weightLimitText: e.target.value })
+                    }
+                  />
+                </td>
+                <td className="px-1 py-1">
+                  <Button
+                    type="button"
+                    variant="outline"
+                    size="xs"
+                    onClick={() => removeRow(row.id)}
+                  >
+                    삭제
+                  </Button>
                 </td>
               </tr>
-            ) : (
-              rows.map((row, idx) => (
-                <tr key={`${ageGroup}-${gender}-${idx}`} className="border-b">
-                  <td className="px-2 py-1">
-                    <input
-                      className="border-input bg-background h-8 w-full rounded border px-2"
-                      value={row.weightClassName ?? ""}
-                      onChange={(e) => {
-                        const weightClassName = e.target.value;
-                        updateRow(idx, {
-                          weightClassName,
-                          weightClass: buildWeightClassDisplay({
-                            ...row,
-                            weightClassName,
-                          }),
-                        });
-                      }}
-                    />
-                  </td>
-                  <td className="px-2 py-1">
-                    <input
-                      className="border-input bg-background h-8 w-full rounded border px-2 font-mono"
-                      value={row.weightLimitText ?? ""}
-                      placeholder="-30kg"
-                      onChange={(e) => {
-                        const weightLimitText = e.target.value || null;
-                        updateRow(idx, {
-                          weightLimitText,
-                          weightClass: buildWeightClassDisplay({
-                            ...row,
-                            weightLimitText,
-                          }),
-                        });
-                      }}
-                    />
-                  </td>
-                  <td className="px-2 py-1">
-                    <div className="flex gap-1">
-                      <Button
-                        type="button"
-                        variant="outline"
-                        size="sm"
-                        className="h-8 px-2"
-                        onClick={() => duplicateRow(idx)}
-                      >
-                        복제
-                      </Button>
-                      <Button
-                        type="button"
-                        variant="outline"
-                        size="sm"
-                        className="h-8 px-2"
-                        onClick={() => removeRow(idx)}
-                      >
-                        삭제
-                      </Button>
-                    </div>
-                  </td>
-                </tr>
-              ))
-            )}
-          </tbody>
-        </table>
-      </div>
-      <Button type="button" variant="outline" size="sm" onClick={addEmptyRow}>
+            ))
+          )}
+        </tbody>
+      </table>
+      <Button type="button" variant="outline" size="sm" onClick={addRow}>
         + 체급 행 추가
       </Button>
     </div>
@@ -222,31 +197,111 @@ export function WeightClassRowsEditor({
   items: DivisionTemplateItemInput[];
   onChange: (next: DivisionTemplateItemInput[]) => void;
 }) {
+  const [blocks, setBlocks] = useState<GroupBlock[]>(() => deriveBlocks(items));
+  const focusBlockId = useRef<string | null>(null);
+
+  const commit = useCallback(
+    (next: GroupBlock[]) => {
+      setBlocks(next);
+      onChange(flattenBlocks(next, sportType));
+    },
+    [onChange, sportType],
+  );
+
+  const addBlock = () => {
+    const block: GroupBlock = {
+      id: newId(),
+      ageGroup: "",
+      rows: { male: [], female: [] },
+    };
+    focusBlockId.current = block.id;
+    commit([...blocks, block]);
+  };
+
+  const removeBlock = (id: string) =>
+    commit(blocks.filter((b) => b.id !== id));
+
+  const updateBlock = (id: string, patch: Partial<GroupBlock>) =>
+    commit(blocks.map((b) => (b.id === id ? { ...b, ...patch } : b)));
+
+  const updateRows = (
+    blockId: string,
+    gender: DivisionTemplateGender,
+    next: WeightRow[],
+  ) =>
+    commit(
+      blocks.map((b) =>
+        b.id === blockId
+          ? { ...b, rows: { ...b.rows, [gender]: next } }
+          : b,
+      ),
+    );
+
+  const nameInputRef = useCallback((node: HTMLInputElement | null) => {
+    if (node && node.dataset.blockId === focusBlockId.current) {
+      node.focus();
+      focusBlockId.current = null;
+    }
+  }, []);
+
   return (
-    <div className="space-y-6">
-      {DIVISION_TEMPLATE_AGE_GROUPS.map((ageGroup) => (
-        <section key={ageGroup} className="space-y-3">
-          <h3 className="text-base font-semibold">{ageGroup}</h3>
-          <div className="grid gap-6 xl:grid-cols-2">
-            {DIVISION_TEMPLATE_GENDERS.map((gender) => (
-              <GenderSection
-                key={`${ageGroup}-${gender}`}
-                sportType={sportType}
-                ageGroup={ageGroup}
-                gender={gender}
-                rows={rowsFor(items, ageGroup, gender)}
-                onChange={(sectionRows) =>
-                  onChange(replaceSectionRows(items, ageGroup, gender, sectionRows))
-                }
-              />
-            ))}
-          </div>
-        </section>
-      ))}
+    <div className="space-y-4">
+      {blocks.length === 0 ? (
+        <div className="rounded-xl border border-dashed bg-muted/10 p-8 text-center">
+          <p className="text-muted-foreground text-sm">
+            아직 묶음이 없습니다. 묶음을 생성해 체급을 입력하세요.
+          </p>
+        </div>
+      ) : (
+        blocks.map((block) => (
+          <section
+            key={block.id}
+            className="space-y-3 rounded-xl border p-4"
+          >
+            <div className="flex items-end gap-2">
+              <label className="block flex-1 space-y-1 text-sm">
+                <span className="text-muted-foreground text-xs">묶음 이름</span>
+                <input
+                  ref={nameInputRef}
+                  data-block-id={block.id}
+                  className="border-input bg-background h-9 w-full rounded-md border px-3 text-sm"
+                  value={block.ageGroup}
+                  placeholder="초등부"
+                  onChange={(e) =>
+                    updateBlock(block.id, { ageGroup: e.target.value })
+                  }
+                />
+              </label>
+              <Button
+                type="button"
+                variant="outline"
+                size="sm"
+                onClick={() => removeBlock(block.id)}
+              >
+                블럭 삭제
+              </Button>
+            </div>
+            <div className="grid gap-3 xl:grid-cols-2">
+              {DIVISION_TEMPLATE_GENDERS.map((gender) => (
+                <GenderColumn
+                  key={gender}
+                  gender={gender}
+                  rows={block.rows[gender]}
+                  onRowsChange={(next) => updateRows(block.id, gender, next)}
+                />
+              ))}
+            </div>
+          </section>
+        ))
+      )}
+      <Button type="button" variant="secondary" onClick={addBlock}>
+        + 묶음 생성
+      </Button>
     </div>
   );
 }
 
+/** 저장 전 미리보기 — 묶음(ageGroup) 순서대로 동적 렌더링. */
 export function DivisionTemplatePreview({
   items,
   sportType,
@@ -261,14 +316,23 @@ export function DivisionTemplatePreview({
     );
   }
 
+  const ageGroups: string[] = [];
+  for (const item of active) {
+    const ag = item.ageGroup?.trim() ?? "";
+    if (!ageGroups.includes(ag)) ageGroups.push(ag);
+  }
+
   return (
     <div className="space-y-4">
-      {DIVISION_TEMPLATE_AGE_GROUPS.map((ageGroup) => {
-        const ageRows = active.filter((i) => i.ageGroup === ageGroup);
-        if (ageRows.length === 0) return null;
+      {ageGroups.map((ageGroup) => {
+        const ageRows = active.filter(
+          (i) => (i.ageGroup?.trim() ?? "") === ageGroup,
+        );
         return (
-          <div key={ageGroup} className="rounded-lg border p-3">
-            <h4 className="mb-2 text-sm font-semibold">{ageGroup}</h4>
+          <div key={ageGroup || "__none__"} className="rounded-lg border p-3">
+            <h4 className="mb-2 text-sm font-semibold">
+              {ageGroup || "묶음 미지정"}
+            </h4>
             <div className="grid gap-3 sm:grid-cols-2">
               {DIVISION_TEMPLATE_GENDERS.map((gender) => {
                 const genderRows = ageRows.filter((i) => i.gender === gender);

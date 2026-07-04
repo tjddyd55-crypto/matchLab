@@ -7,8 +7,10 @@ import { parseMatchOperationalSettings, formatOperationalSettingsLabel } from "@
 import { extractDisplayResultMemo } from "@/lib/match-result-memo";
 import { OrganizerMatchOpsPanel } from "@/components/domain/brackets/OrganizerMatchOpsPanel";
 import { OrganizerJudgeAggregationInlineSection } from "@/components/domain/judges/OrganizerJudgeAggregationInlineSection";
+import { MatchFinalResultSummary } from "@/components/domain/operation/MatchFinalResultSummary";
 import { OrganizerOperationActions } from "@/components/domain/operation/OrganizerOperationActions";
 import { OrganizerOperationStatusBadges } from "@/components/domain/operation/OrganizerOperationStatusBadges";
+import { DivisionInfoChips } from "@/components/domain/shared/DivisionInfoChips";
 import { FighterHandicapBadge } from "@/components/domain/shared/FighterHandicapBadge";
 import type { OperationMatchRowVM } from "@/components/domain/operation/operation-match-row";
 import { getOperationMatchPhase } from "@/lib/match-operation-display";
@@ -70,7 +72,11 @@ export function OrganizerOperationTableDesktop({
                   )}
                 </td>
                 <td className="px-3 py-3 text-xs">
-                  <div className="font-medium">{row.divisionLabel ?? "—"}</div>
+                  {row.division ? (
+                    <DivisionInfoChips division={row.division} className="text-xs" />
+                  ) : (
+                    <div className="font-medium">{row.divisionLabel ?? "—"}</div>
+                  )}
                   <div className="mt-1 flex flex-wrap gap-1">
                     <BoutFormatBadge
                       bracketType={row.bracketType}
@@ -132,15 +138,29 @@ export function OrganizerOperationTableDesktop({
               {expandedMatchId === row.matchId ? (
                 <tr className="border-b bg-muted/10">
                   <td colSpan={9} className="px-3 py-3">
-                    <div className="grid gap-3 xl:grid-cols-[minmax(0,2fr)_minmax(20rem,1fr)]">
-                      <OrganizerMatchOpsPanel
-                        {...toMatchOpsProps(row)}
-                        compact
-                      />
+                    {/* 결과입력 3열: 심판 채점 결과 · 최종 결과 · 주심 입력 */}
+                    <div className="grid gap-4 xl:grid-cols-[minmax(0,1fr)_minmax(0,0.8fr)_minmax(0,1.3fr)]">
                       <OrganizerJudgeAggregationInlineSection
                         matchId={row.matchId}
                         open
                       />
+                      <MatchFinalResultSummary
+                        status={row.status}
+                        winnerId={row.winnerId}
+                        resultType={row.resultType}
+                        hasOfficialResults={row.hasOfficialResults}
+                        fighterRedId={row.fighterRed?.id ?? null}
+                        fighterBlueId={row.fighterBlue?.id ?? null}
+                        fighterRedName={row.fighterRed?.name ?? "미배정"}
+                        fighterBlueName={row.fighterBlue?.name ?? "미배정"}
+                      />
+                      <section className="border-t pt-4 xl:border-l xl:border-t-0 xl:pl-4 xl:pt-0">
+                        <h3 className="mb-3 text-sm font-semibold">주심 입력</h3>
+                        <OrganizerMatchOpsPanel
+                          {...toMatchOpsProps(row)}
+                          compact
+                        />
+                      </section>
                     </div>
                   </td>
                 </tr>
