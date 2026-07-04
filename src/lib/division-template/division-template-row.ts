@@ -3,7 +3,7 @@ import {
   DIVISION_TEMPLATE_SPORT_LABELS,
   type DivisionTemplateSportType,
 } from "@/lib/division-template/division-template-constants";
-import { parseSingleWeightEntry } from "@/lib/division-template/division-template-parse";
+import { parseSingleWeightEntry, normalizeWeightLimitInput } from "@/lib/division-template/division-template-parse";
 
 export type EventDivisionFromTemplateRow = {
   sportType: string;
@@ -44,7 +44,9 @@ export function normalizeTemplateItemWeight(
   item: DivisionTemplateItemInput,
 ): DivisionTemplateItemInput {
   const name = item.weightClassName?.trim() ?? "";
-  const limit = item.weightLimitText?.trim() ?? "";
+  const limit = item.weightLimitText?.trim()
+    ? normalizeWeightLimitInput(item.weightLimitText)
+    : "";
 
   if (name || limit) {
     const weightClass = [name, limit].filter(Boolean).join(" ").trim() || null;

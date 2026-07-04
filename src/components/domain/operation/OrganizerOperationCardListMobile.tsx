@@ -2,13 +2,11 @@
 
 import { OrganizerMatchOpsPanel } from "@/components/domain/brackets/OrganizerMatchOpsPanel";
 import { OperationJudgeBriefCell } from "@/components/domain/operation/OperationJudgeBriefCell";
-import { BoutFormatBadge } from "@/components/domain/shared/BoutFormatBadge";
-import { formatOperationalSettingsLabel, parseMatchOperationalSettings } from "@/lib/match-operational-settings";
-import { OrganizerJudgeAggregationInlineSection } from "@/components/domain/judges/OrganizerJudgeAggregationInlineSection";
 import { MatchFinalResultSummary } from "@/components/domain/operation/MatchFinalResultSummary";
 import { OrganizerOperationActions } from "@/components/domain/operation/OrganizerOperationActions";
 import { OrganizerOperationStatusBadges } from "@/components/domain/operation/OrganizerOperationStatusBadges";
-import { DivisionInfoChips } from "@/components/domain/shared/DivisionInfoChips";
+import { OrganizerJudgeAggregationInlineSection } from "@/components/domain/judges/OrganizerJudgeAggregationInlineSection";
+import { DivisionCompactDisplay } from "@/components/domain/shared/DivisionCompactDisplay";
 import { FighterHandicapBadge } from "@/components/domain/shared/FighterHandicapBadge";
 import type { OperationMatchRowVM } from "@/components/domain/operation/operation-match-row";
 import {
@@ -48,24 +46,14 @@ export function OrganizerOperationCardListMobile({
                 경기 {row.orderLabel}
               </p>
               {row.division ? (
-                <DivisionInfoChips division={row.division} className="text-xs" />
+                <DivisionCompactDisplay
+                  division={row.division}
+                  mainClassName="text-xs"
+                  secondaryClassName="text-[11px]"
+                />
               ) : (
                 <p className="font-medium">{row.divisionLabel ?? "경기구분 미상"}</p>
               )}
-              <div className="mt-1 flex flex-wrap gap-1">
-                <BoutFormatBadge
-                  bracketType={row.bracketType}
-                  bracketIsPublic={row.bracketIsPublic}
-                  matchIsPublicSparring={row.matchIsPublicSparring}
-                  resultMemo={row.resultMemo}
-                />
-                <span className="text-muted-foreground rounded-full border px-2 py-0.5 text-[10px]">
-                  {formatOperationalSettingsLabel(
-                    parseMatchOperationalSettings(row.resultMemo).settings,
-                  )}
-                </span>
-              </div>
-              <p className="text-muted-foreground text-xs">{row.bracketTitle}</p>
               {row.courtName ? (
                 <p className="text-muted-foreground mt-1 text-xs">
                   {row.courtName}
@@ -88,6 +76,11 @@ export function OrganizerOperationCardListMobile({
             <div className="rounded-md border px-3 py-2 text-sm">
               <p className="text-muted-foreground text-xs">선수 A</p>
               <p className="font-medium">{row.fighterRed?.name ?? "—"}</p>
+              {row.winnerId && row.winnerId === row.fighterRed?.id ? (
+                <span className="text-destructive text-[11px] font-semibold">
+                  승
+                </span>
+              ) : null}
               <p className="text-muted-foreground text-xs">
                 {row.fighterRed?.gymName ?? "—"}
               </p>
@@ -101,6 +94,11 @@ export function OrganizerOperationCardListMobile({
             <div className="rounded-md border px-3 py-2 text-sm">
               <p className="text-muted-foreground text-xs">선수 B</p>
               <p className="font-medium">{row.fighterBlue?.name ?? "—"}</p>
+              {row.winnerId && row.winnerId === row.fighterBlue?.id ? (
+                <span className="text-primary text-[11px] font-semibold">
+                  승
+                </span>
+              ) : null}
               <p className="text-muted-foreground text-xs">
                 {row.fighterBlue?.gymName ?? "—"}
               </p>
@@ -125,7 +123,7 @@ export function OrganizerOperationCardListMobile({
           />
 
           {expandedMatchId === row.matchId ? (
-            <div className="space-y-4 border-t pt-3">
+            <div className="space-y-3 border-t pt-3">
               <OrganizerJudgeAggregationInlineSection
                 matchId={row.matchId}
                 open
@@ -140,8 +138,8 @@ export function OrganizerOperationCardListMobile({
                 fighterRedName={row.fighterRed?.name ?? "미배정"}
                 fighterBlueName={row.fighterBlue?.name ?? "미배정"}
               />
-              <section className="border-t pt-4">
-                <h3 className="mb-3 text-sm font-semibold">주심 입력</h3>
+              <section className="border-t pt-3">
+                <h3 className="mb-2 text-sm font-semibold">주심 입력</h3>
                 <OrganizerMatchOpsPanel {...toMatchOpsProps(row)} />
               </section>
             </div>

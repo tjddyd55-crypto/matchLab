@@ -100,20 +100,6 @@ export function EventDivisionForm({
             placeholder="-30kg"
             className={cn(inputClass, "font-mono")}
           />
-          <input
-            name="ruleType"
-            maxLength={120}
-            aria-label="룰"
-            placeholder="룰"
-            className={inputClass}
-          />
-          <input
-            name="skillLevel"
-            maxLength={120}
-            aria-label="실력"
-            placeholder="실력"
-            className={inputClass}
-          />
           <div className="flex justify-end sm:col-span-2 md:col-span-1">
             <Button type="submit" size="sm" disabled={pending}>
               {pending ? "추가 중…" : "체급 추가"}
@@ -167,10 +153,6 @@ export function EventDivisionForm({
           placeholder="예: 킥복싱 무에타이"
         />
       </label>
-      <label className={cn("space-y-1", compact ? "text-xs" : "text-sm")}>
-        <span className="text-muted-foreground">룰</span>
-        <input name="ruleType" maxLength={120} className={inputClass} />
-      </label>
       {!defaultAgeGroup ? (
         <label className={cn("space-y-1", compact ? "text-xs" : "text-sm")}>
           <span className="text-muted-foreground">연령부</span>
@@ -212,15 +194,6 @@ export function EventDivisionForm({
           className={cn(inputClass, "font-mono")}
           placeholder="-30kg"
         />
-      </label>
-      <label
-        className={cn(
-          "space-y-1",
-          compact ? "text-xs md:col-span-2" : "text-sm md:col-span-2",
-        )}
-      >
-        <span className="text-muted-foreground">실력</span>
-        <input name="skillLevel" maxLength={120} className={inputClass} />
       </label>
       <div className="md:col-span-2">
         <Button type="submit" size="sm" disabled={pending}>

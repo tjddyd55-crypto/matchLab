@@ -7,7 +7,7 @@ import {
 import { OrganizerApplicationRowActions } from "@/components/domain/applications/OrganizerApplicationRowActions";
 import { OrganizerManualEntryHint } from "@/components/domain/applications/OrganizerManualEntryHint";
 import type { OrganizerApplicationRowVM } from "@/components/domain/applications/OrganizerApplicationsTable";
-import { DivisionInfoChips } from "@/components/domain/shared/DivisionInfoChips";
+import { DivisionCompactDisplay } from "@/components/domain/shared/DivisionCompactDisplay";
 import { DivisionGenderBadge } from "@/components/domain/shared/DivisionGenderBadge";
 import { MATCH_CATEGORY_WITH_WEIGHT_LABEL } from "@/lib/ui-labels/match-category";
 import { Checkbox } from "@/components/ui/checkbox";
@@ -62,7 +62,11 @@ export function OrganizerApplicationsList({
             </div>
 
             <div className="min-w-0" title={row.divisionLabel}>
-              <DivisionInfoChips division={row.division} className="text-xs" />
+              <DivisionCompactDisplay
+                division={row.division}
+                mainClassName="text-xs"
+                secondaryClassName="text-[11px]"
+              />
             </div>
 
             <div className="min-w-0">

@@ -2,15 +2,13 @@
 
 import { Fragment } from "react";
 import { OperationJudgeBriefCell } from "@/components/domain/operation/OperationJudgeBriefCell";
-import { BoutFormatBadge } from "@/components/domain/shared/BoutFormatBadge";
-import { parseMatchOperationalSettings, formatOperationalSettingsLabel } from "@/lib/match-operational-settings";
 import { extractDisplayResultMemo } from "@/lib/match-result-memo";
 import { OrganizerMatchOpsPanel } from "@/components/domain/brackets/OrganizerMatchOpsPanel";
 import { OrganizerJudgeAggregationInlineSection } from "@/components/domain/judges/OrganizerJudgeAggregationInlineSection";
 import { MatchFinalResultSummary } from "@/components/domain/operation/MatchFinalResultSummary";
 import { OrganizerOperationActions } from "@/components/domain/operation/OrganizerOperationActions";
 import { OrganizerOperationStatusBadges } from "@/components/domain/operation/OrganizerOperationStatusBadges";
-import { DivisionInfoChips } from "@/components/domain/shared/DivisionInfoChips";
+import { DivisionCompactDisplay } from "@/components/domain/shared/DivisionCompactDisplay";
 import { FighterHandicapBadge } from "@/components/domain/shared/FighterHandicapBadge";
 import type { OperationMatchRowVM } from "@/components/domain/operation/operation-match-row";
 import { getOperationMatchPhase } from "@/lib/match-operation-display";
@@ -53,7 +51,6 @@ export function OrganizerOperationTableDesktop({
         </thead>
         <tbody>
           {rows.map((row) => {
-            const ops = parseMatchOperationalSettings(row.resultMemo);
             const displayMemo = extractDisplayResultMemo(row.resultMemo);
             return (
             <Fragment key={row.matchId}>
@@ -73,25 +70,22 @@ export function OrganizerOperationTableDesktop({
                 </td>
                 <td className="px-3 py-3 text-xs">
                   {row.division ? (
-                    <DivisionInfoChips division={row.division} className="text-xs" />
+                    <DivisionCompactDisplay
+                      division={row.division}
+                      mainClassName="text-xs"
+                      secondaryClassName="text-[11px]"
+                    />
                   ) : (
                     <div className="font-medium">{row.divisionLabel ?? "—"}</div>
                   )}
-                  <div className="mt-1 flex flex-wrap gap-1">
-                    <BoutFormatBadge
-                      bracketType={row.bracketType}
-                      bracketIsPublic={row.bracketIsPublic}
-                      matchIsPublicSparring={row.matchIsPublicSparring}
-                      resultMemo={row.resultMemo}
-                    />
-                    <span className="text-muted-foreground rounded-full border px-2 py-0.5 text-[10px]">
-                      {formatOperationalSettingsLabel(ops.settings)}
-                    </span>
-                  </div>
-                  <div className="text-muted-foreground mt-1">{row.bracketTitle}</div>
                 </td>
                 <td className="px-3 py-3 text-xs">
                   <div className="font-medium">{row.fighterRed?.name ?? "—"}</div>
+                  {row.winnerId && row.winnerId === row.fighterRed?.id ? (
+                    <span className="text-destructive text-[11px] font-semibold">
+                      승
+                    </span>
+                  ) : null}
                   <div className="text-muted-foreground">{row.fighterRed?.gymName ?? "—"}</div>
                   <FighterHandicapBadge
                     handicap={row.fighterRed?.handicap}
@@ -102,6 +96,11 @@ export function OrganizerOperationTableDesktop({
                 </td>
                 <td className="px-3 py-3 text-xs">
                   <div className="font-medium">{row.fighterBlue?.name ?? "—"}</div>
+                  {row.winnerId && row.winnerId === row.fighterBlue?.id ? (
+                    <span className="text-primary text-[11px] font-semibold">
+                      승
+                    </span>
+                  ) : null}
                   <div className="text-muted-foreground">{row.fighterBlue?.gymName ?? "—"}</div>
                   <FighterHandicapBadge
                     handicap={row.fighterBlue?.handicap}
@@ -139,7 +138,7 @@ export function OrganizerOperationTableDesktop({
                 <tr className="border-b bg-muted/10">
                   <td colSpan={9} className="px-3 py-3">
                     {/* 결과입력 3열: 심판 채점 결과 · 최종 결과 · 주심 입력 */}
-                    <div className="grid gap-4 xl:grid-cols-[minmax(0,1fr)_minmax(0,0.8fr)_minmax(0,1.3fr)]">
+                    <div className="grid gap-3 xl:grid-cols-[minmax(0,1fr)_minmax(0,0.75fr)_minmax(0,1.1fr)]">
                       <OrganizerJudgeAggregationInlineSection
                         matchId={row.matchId}
                         open
@@ -154,8 +153,8 @@ export function OrganizerOperationTableDesktop({
                         fighterRedName={row.fighterRed?.name ?? "미배정"}
                         fighterBlueName={row.fighterBlue?.name ?? "미배정"}
                       />
-                      <section className="border-t pt-4 xl:border-l xl:border-t-0 xl:pl-4 xl:pt-0">
-                        <h3 className="mb-3 text-sm font-semibold">주심 입력</h3>
+                      <section className="border-t pt-3 xl:border-l xl:border-t-0 xl:pl-3 xl:pt-0">
+                        <h3 className="mb-2 text-sm font-semibold">주심 입력</h3>
                         <OrganizerMatchOpsPanel
                           {...toMatchOpsProps(row)}
                           compact

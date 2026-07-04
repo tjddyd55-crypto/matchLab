@@ -49,8 +49,6 @@ function DivisionListHeader({ tone }: { tone: DivisionGenderTone }) {
       <span>종목·경기구분</span>
       <span>체급명</span>
       <span>체중 기준</span>
-      <span>룰</span>
-      <span>실력</span>
       <span className="text-right">동작</span>
     </div>
   );
@@ -86,24 +84,8 @@ function DivisionRowEditor({ d }: { d: Div }) {
             className={inputClass}
           />
         </label>
-        <label className="space-y-1 text-xs">
-          <span className="text-muted-foreground">룰</span>
-          <input
-            name="ruleType"
-            defaultValue={d.ruleType ?? ""}
-            maxLength={120}
-            className={inputClass}
-          />
-        </label>
-        <label className="space-y-1 text-xs">
-          <span className="text-muted-foreground">실력</span>
-          <input
-            name="skillLevel"
-            defaultValue={d.skillLevel ?? ""}
-            maxLength={120}
-            className={inputClass}
-          />
-        </label>
+        <input type="hidden" name="ruleType" value={d.ruleType ?? ""} />
+        <input type="hidden" name="skillLevel" value={d.skillLevel ?? ""} />
         <label className="space-y-1 text-xs">
           <span className="text-muted-foreground">체급명</span>
           <input
@@ -237,21 +219,11 @@ function DivisionWeightRow({
             placeholder="-30kg"
             className={cn(inputClass, "font-mono")}
           />
+          <input type="hidden" name="ruleType" value={division.ruleType ?? ""} />
           <input
-            name="ruleType"
-            defaultValue={division.ruleType ?? ""}
-            maxLength={120}
-            aria-label="룰"
-            placeholder="룰"
-            className={inputClass}
-          />
-          <input
+            type="hidden"
             name="skillLevel"
-            defaultValue={division.skillLevel ?? ""}
-            maxLength={120}
-            aria-label="실력"
-            placeholder="실력"
-            className={inputClass}
+            value={division.skillLevel ?? ""}
           />
         </form>
         <div className="flex justify-end gap-1">

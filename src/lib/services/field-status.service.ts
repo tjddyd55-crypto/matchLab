@@ -488,22 +488,12 @@ export const fieldStatusService = {
       );
     }
 
-    if (
-      resolution === WeighInFailureResolution.proceed_with_handicap &&
-      !handicapNote?.trim()
-    ) {
-      throw new AppError(
-        "VALIDATION_ERROR",
-        "경기진행 시 핸디캡 안내 문구를 입력해 주세요.",
-      );
-    }
-
     await fieldStatusRepository.updateFieldStatus(applicationId, {
       ...(isFailed ? {} : { weighInStatus: WeighInStatus.manual_fail }),
       weighInFailureResolution: resolution,
       handicapNote:
         resolution === WeighInFailureResolution.proceed_with_handicap
-          ? handicapNote?.trim() ?? null
+          ? handicapNote?.trim() || null
           : null,
     });
   },

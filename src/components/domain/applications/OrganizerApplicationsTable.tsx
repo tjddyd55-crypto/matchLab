@@ -15,7 +15,7 @@ import {
 } from "@/components/domain/applications/OrganizerApplicationDisplayBadge";
 import { OrganizerApplicationRowActions } from "@/components/domain/applications/OrganizerApplicationRowActions";
 import { OrganizerManualEntryHint } from "@/components/domain/applications/OrganizerManualEntryHint";
-import { DivisionInfoChips } from "@/components/domain/shared/DivisionInfoChips";
+import { DivisionCompactDisplay } from "@/components/domain/shared/DivisionCompactDisplay";
 import { DivisionGenderBadge } from "@/components/domain/shared/DivisionGenderBadge";
 import type { EventDivisionDisplayInput } from "@/lib/event-division-fields";
 import { MATCH_CATEGORY_WITH_WEIGHT_LABEL } from "@/lib/ui-labels/match-category";
@@ -105,7 +105,11 @@ export function OrganizerApplicationsTable({
                 <OrganizerManualEntryHint show={row.isOrganizerManualEntry} />
               </TableCell>
               <TableCell className="align-top">
-                <DivisionInfoChips division={row.division} className="text-xs" />
+                <DivisionCompactDisplay
+                  division={row.division}
+                  mainClassName="text-xs"
+                  secondaryClassName="text-[11px]"
+                />
               </TableCell>
               <TableCell className="align-top">
                 <OrganizerPaymentDisplayBadge paymentStatus={row.paymentStatus} />

@@ -8,7 +8,7 @@ import { BracketStatusBadge } from "@/components/domain/brackets/BracketStatusBa
 import { BracketTypeBadge } from "@/components/domain/brackets/BracketTypeBadge";
 import { MatchListEditor } from "@/components/domain/brackets/MatchListEditor";
 import { TournamentBracketEditor } from "@/components/domain/brackets/TournamentBracketEditor";
-import { DivisionInfoChips } from "@/components/domain/shared/DivisionInfoChips";
+import { DivisionCompactDisplay } from "@/components/domain/shared/DivisionCompactDisplay";
 import { Button, buttonVariants } from "@/components/ui/button";
 import { BracketType } from "@/lib/enums";
 import type { OrganizerBracketDetailVM } from "@/lib/services/bracket.service";
@@ -48,7 +48,7 @@ export function OrganizerBracketEditor({
             </span>
           </div>
           {detail.division ? (
-            <DivisionInfoChips division={detail.division} />
+            <DivisionCompactDisplay division={detail.division} />
           ) : null}
         </div>
         <div className="flex flex-wrap gap-2">
