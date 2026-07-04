@@ -37,9 +37,16 @@ export function OrganizerBracketEditor({
           >
             ← 대진표 그룹
           </Link>
-          <h1 className="font-heading text-2xl font-semibold tracking-tight">
-            {detail.displayTitle}
-          </h1>
+          {detail.division ? (
+            <DivisionCompactDisplay
+              division={detail.division}
+              mainClassName="font-heading text-2xl font-semibold tracking-tight"
+            />
+          ) : (
+            <h1 className="font-heading text-2xl font-semibold tracking-tight">
+              {detail.displayTitle}
+            </h1>
+          )}
           <div className="flex flex-wrap items-center gap-2 text-sm">
             <BracketTypeBadge type={detail.type} />
             <BracketStatusBadge status={detail.status} />
@@ -47,9 +54,6 @@ export function OrganizerBracketEditor({
               공개 {detail.isPublic ? "예" : "아니오"}
             </span>
           </div>
-          {detail.division ? (
-            <DivisionCompactDisplay division={detail.division} />
-          ) : null}
         </div>
         <div className="flex flex-wrap gap-2">
           {!detail.isPublic ? (

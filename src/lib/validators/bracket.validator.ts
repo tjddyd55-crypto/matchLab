@@ -1,15 +1,9 @@
 import { BracketType } from "@/generated/prisma";
 import { z } from "zod";
 
-const optionalId = z
-  .string()
-  .optional()
-  .transform((s) => (s && s.trim() !== "" ? s.trim() : undefined));
-
 export const createBracketSchema = z.object({
   eventId: z.string().min(1),
-  divisionId: optionalId,
-  title: z.string().min(1).max(200),
+  divisionId: z.string().min(1, "경기구분을 선택해 주세요."),
   type: z.nativeEnum(BracketType),
 });
 
