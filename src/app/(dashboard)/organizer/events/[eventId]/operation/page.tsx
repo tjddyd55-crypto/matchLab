@@ -8,6 +8,7 @@ import { getAppBaseUrl } from "@/lib/app-url";
 import { requireOrganizerForEventPage } from "@/lib/permissions";
 import { loadEventManagementNavContext } from "@/lib/event-management-nav-context";
 import { eventStaffAccessService } from "@/lib/services/event-staff-access.service";
+import { eventCourtService } from "@/lib/services/event-court.service";
 import { matchService } from "@/lib/services/match.service";
 import { judgeScorecardService } from "@/lib/services/judge-scorecard.service";
 import Link from "next/link";
@@ -26,10 +27,11 @@ export default async function OrganizerEventOperationPage({
 
   await requireOrganizerForEventPage(actor, eventId);
 
-  const [nav, matches, staffRecorderLinks, judgeSummaries, judgeBriefByMatch] =
+  const [nav, matches, courts, staffRecorderLinks, judgeSummaries, judgeBriefByMatch] =
     await Promise.all([
     loadEventManagementNavContext(eventId),
     matchService.listOrganizerEventMatches(actor, eventId),
+    eventCourtService.listForOrganizer(actor, eventId),
     eventStaffAccessService.listLinksForOrganizer(actor, eventId),
     judgeScorecardService.getEventJudgeSummary(actor, eventId),
     judgeScorecardService.listSubmittedBriefByEvent(actor, eventId),
@@ -96,6 +98,7 @@ export default async function OrganizerEventOperationPage({
 
       <OrganizerOperationBoard
         matches={matches}
+        courts={courts}
         judgeSummaryByMatch={Object.fromEntries(judgeSummaryByMatch)}
         judgeBriefByMatch={judgeBriefByMatch}
       />
