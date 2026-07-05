@@ -34,8 +34,6 @@ import type {
   OrganizerEventMatchListItemVM,
   OrganizerEventMatchFighterVM,
 } from "@/lib/services/match.service";
-import { MATCH_CATEGORY_LABEL } from "@/lib/ui-labels/match-category";
-import { formatDivisionMainLabel } from "@/lib/event-division-fields";
 import { formatMatchOrderShort } from "@/lib/match-order-display";
 import { cn } from "@/lib/utils";
 
@@ -288,15 +286,11 @@ export function OrganizerCourtBracketPanel({
               (x) => x.matchId === m.matchId,
             );
             const showReorder = canShowReorderControls(m);
-            const mainLabel = m.division
-              ? formatDivisionMainLabel(m.division)
-              : (m.divisionLabel ?? MATCH_CATEGORY_LABEL);
 
             return (
               <BracketMatchCompactRow
                 key={m.matchId}
                 matchOrderLabel={resolveCourtMatchOrderLabel(m, order)}
-                divisionHint={activeTab === "all" ? mainLabel : undefined}
                 statusArea={<MatchStatusBadge status={m.status} size="sm" />}
                 redSlot={
                   <CourtBracketFighterCell

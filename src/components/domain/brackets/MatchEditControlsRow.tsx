@@ -1,6 +1,7 @@
 "use client";
 
 import { MatchBoutFormatToggle } from "@/components/domain/brackets/MatchBoutFormatToggle";
+import { BracketMatchControlsRow } from "@/components/domain/brackets/BracketMatchCompactRow";
 import { MatchOperationalSettingsSelect } from "@/components/domain/brackets/MatchOperationalSettingsSelect";
 import { MatchCourtControls } from "@/components/domain/courts/MatchCourtControls";
 import type { EventCourtVM } from "@/lib/services/event-court.service";
@@ -22,28 +23,32 @@ export function MatchEditControlsRow({
   editLocked?: boolean;
 }) {
   return (
-    <div className="flex flex-wrap items-center gap-2">
-      <MatchCourtControls
-        eventId={eventId}
-        bracketId={bracketId}
-        matchId={match.id}
-        courts={courts}
-        courtId={match.courtId}
-        courtOrder={match.courtOrder}
-        hasOfficialResults={match.hasOfficialResults}
-        inline
-        hideCourtOrder
-        hideLabels
-        compactRow
-      />
-      <MatchOperationalSettingsSelect
-        matchId={match.id}
-        resultMemo={match.resultMemo}
-        disabled={editLocked}
-        hideLabels
-        inline
-      />
-    </div>
+    <BracketMatchControlsRow
+      left={
+        <MatchCourtControls
+          eventId={eventId}
+          bracketId={bracketId}
+          matchId={match.id}
+          courts={courts}
+          courtId={match.courtId}
+          courtOrder={match.courtOrder}
+          hasOfficialResults={match.hasOfficialResults}
+          inline
+          hideCourtOrder
+          hideLabels
+          compactRow
+        />
+      }
+      center={
+        <MatchOperationalSettingsSelect
+          matchId={match.id}
+          resultMemo={match.resultMemo}
+          disabled={editLocked}
+          hideLabels
+          inline
+        />
+      }
+    />
   );
 }
 

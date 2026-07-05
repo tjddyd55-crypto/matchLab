@@ -2,16 +2,14 @@
 
 import { OrganizerMatchOpsPanel } from "@/components/domain/brackets/OrganizerMatchOpsPanel";
 import { OperationJudgeBriefCell } from "@/components/domain/operation/OperationJudgeBriefCell";
+import { OperationMatchFighterMatchup } from "@/components/domain/operation/OperationMatchFighterMatchup";
 import { MatchFinalResultSummary } from "@/components/domain/operation/MatchFinalResultSummary";
 import { OrganizerOperationActions } from "@/components/domain/operation/OrganizerOperationActions";
 import { OrganizerOperationStatusBadges } from "@/components/domain/operation/OrganizerOperationStatusBadges";
 import { OrganizerJudgeAggregationInlineSection } from "@/components/domain/judges/OrganizerJudgeAggregationInlineSection";
 import { DivisionCompactDisplay } from "@/components/domain/shared/DivisionCompactDisplay";
-import { FighterHandicapBadge } from "@/components/domain/shared/FighterHandicapBadge";
 import type { OperationMatchRowVM } from "@/components/domain/operation/operation-match-row";
-import {
-  getOperationMatchPhase,
-} from "@/lib/match-operation-display";
+import { getOperationMatchPhase } from "@/lib/match-operation-display";
 import { toMatchOpsProps } from "@/components/domain/operation/operation-match-row";
 
 export function OrganizerOperationCardListMobile({
@@ -72,44 +70,12 @@ export function OrganizerOperationCardListMobile({
             />
           </div>
 
-          <div className="grid gap-2 sm:grid-cols-2">
-            <div className="rounded-md border px-3 py-2 text-sm">
-              <p className="text-muted-foreground text-xs">선수 A</p>
-              <p className="font-medium">{row.fighterRed?.name ?? "—"}</p>
-              {row.winnerId && row.winnerId === row.fighterRed?.id ? (
-                <span className="text-destructive text-[11px] font-semibold">
-                  승
-                </span>
-              ) : null}
-              <p className="text-muted-foreground text-xs">
-                {row.fighterRed?.gymName ?? "—"}
-              </p>
-              <FighterHandicapBadge
-                handicap={row.fighterRed?.handicap}
-                cornerLabel="홍코너"
-                compact
-                className="mt-1"
-              />
-            </div>
-            <div className="rounded-md border px-3 py-2 text-sm">
-              <p className="text-muted-foreground text-xs">선수 B</p>
-              <p className="font-medium">{row.fighterBlue?.name ?? "—"}</p>
-              {row.winnerId && row.winnerId === row.fighterBlue?.id ? (
-                <span className="text-primary text-[11px] font-semibold">
-                  승
-                </span>
-              ) : null}
-              <p className="text-muted-foreground text-xs">
-                {row.fighterBlue?.gymName ?? "—"}
-              </p>
-              <FighterHandicapBadge
-                handicap={row.fighterBlue?.handicap}
-                cornerLabel="청코너"
-                compact
-                className="mt-1"
-              />
-            </div>
-          </div>
+          <OperationMatchFighterMatchup
+            fighterRed={row.fighterRed}
+            fighterBlue={row.fighterBlue}
+            winnerId={row.winnerId}
+            className="w-full min-w-0"
+          />
 
           <OperationJudgeBriefCell
             matchId={row.matchId}

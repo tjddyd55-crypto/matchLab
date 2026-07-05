@@ -264,13 +264,13 @@ export function WeighInWeightInput({ row }: { row: FieldStatusRowDTO }) {
           placeholder="kg"
           value={weightInput}
           onChange={(e) => setWeightInput(e.target.value)}
-          className="border-input bg-background h-7 w-[4.5rem] shrink-0 rounded-md border px-2 text-xs"
+          className="border-input bg-background h-8 w-[4.5rem] shrink-0 rounded-md border px-2 text-xs"
         />
         <Button
           type="submit"
           size="sm"
           variant="secondary"
-          className="h-7 shrink-0 px-2 text-xs"
+          className="h-8 shrink-0 px-2 text-xs"
           disabled={pending}
         >
           {pending ? "저장 중…" : "저장"}
