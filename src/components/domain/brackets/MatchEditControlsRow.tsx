@@ -40,13 +40,15 @@ export function MatchEditControlsRow({
         />
       }
       center={
-        <MatchOperationalSettingsSelect
-          matchId={match.id}
-          resultMemo={match.resultMemo}
-          disabled={editLocked}
-          hideLabels
-          inline
-        />
+        <div className="bg-muted/50 inline-flex items-center rounded-md px-1 py-0.5">
+          <MatchOperationalSettingsSelect
+            matchId={match.id}
+            resultMemo={match.resultMemo}
+            disabled={editLocked}
+            hideLabels
+            inline
+          />
+        </div>
       }
     />
   );

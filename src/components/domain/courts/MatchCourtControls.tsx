@@ -150,7 +150,7 @@ export function MatchCourtControls({
       <select
         className={cn(
           "border-input bg-background h-8 rounded-md border px-2 text-xs",
-          compactRow ? "min-w-[7rem] flex-1" : "w-full",
+          compactRow ? "min-w-[7rem] shrink-0" : "w-full",
           className,
         )}
         aria-label="경기장"
@@ -207,7 +207,7 @@ export function MatchCourtControls({
       className={cn(
         inline
           ? compactRow
-            ? "flex flex-wrap items-center gap-2"
+            ? "flex flex-nowrap items-center justify-start gap-2"
             : "flex flex-wrap items-end gap-2"
           : "flex flex-col gap-2 rounded-md border bg-muted/20 p-2",
       )}
@@ -223,7 +223,7 @@ export function MatchCourtControls({
         <label
           className={cn(
             "flex flex-col gap-0.5 text-xs",
-            compactRow && "min-w-[7rem] flex-1",
+            compactRow && "min-w-[7rem] shrink-0",
           )}
         >
           <span className="text-muted-foreground text-[10px]">경기장</span>

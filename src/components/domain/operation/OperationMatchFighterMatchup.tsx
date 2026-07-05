@@ -24,15 +24,16 @@ function OperationFighterCell({
   const empty = !fighter?.name?.trim() || fighter.name === "-";
 
   const identityClassName = cn(
-    "min-w-0 flex-1 text-xs",
+    "min-w-0 text-xs",
     identityMode === "full" && "whitespace-nowrap",
-    identityMode === "wrap" && "line-clamp-2 break-words leading-snug",
+    identityMode === "wrap" && "line-clamp-2 break-words leading-snug text-center",
+    identityMode === "truncate" && "flex-1",
   );
 
   return (
     <div
       className={cn(
-        "flex min-h-[2.5rem] min-w-0 items-center rounded-md border px-2 py-1",
+        "flex min-h-[2.5rem] min-w-0 items-center justify-center rounded-md border px-2 py-1 text-center",
         style.bg,
         isWinner && "ring-2 ring-inset ring-emerald-600/70",
       )}
@@ -40,7 +41,7 @@ function OperationFighterCell({
       {empty ? (
         <BracketFighterInlineIdentity fallbackText="미배정" className="text-xs" />
       ) : (
-        <div className="flex min-w-0 flex-1 items-center gap-1">
+        <div className="flex min-w-0 max-w-full items-center justify-center gap-1">
           <BracketFighterInlineIdentity
             fighterName={fighter?.name}
             gymName={fighter?.gymName}
@@ -78,7 +79,7 @@ export function OperationMatchFighterMatchup({
       className={cn(
         "grid w-full items-stretch gap-1.5",
         identityMode === "full"
-          ? "min-w-[22rem] grid-cols-[minmax(0,1fr)_2.5rem_minmax(0,1fr)]"
+          ? "min-w-[24rem] grid-cols-[minmax(0,1fr)_2.5rem_minmax(0,1fr)]"
           : "min-w-0 grid-cols-[minmax(0,1fr)_2.25rem_minmax(0,1fr)]",
         className,
       )}

@@ -4,7 +4,7 @@ export const bracketMatchRowGridClass =
 
 /** Bracket control row — 좌: 경기장 / 중: 라운드·시간 / 우: 순서 */
 export const bracketMatchControlsGridClass =
-  "grid grid-cols-1 items-center gap-2 md:grid-cols-[minmax(0,1fr)_minmax(7rem,auto)_minmax(0,1fr)]";
+  "grid grid-cols-1 items-center gap-2 md:grid-cols-[minmax(0,1fr)_auto_minmax(0,1fr)]";
 
 export const matchGridCellCenterClass =
   "flex min-h-[2.75rem] min-w-0 items-center justify-center";
