@@ -14,6 +14,11 @@ import {
   fieldStatusTextCellClass,
   nowrapTruncateClass,
 } from "@/lib/ui/match-grid-layout";
+import {
+  listTableHeaderCellCenterClass,
+  listTableHeaderCellStartClass,
+  listTableHeaderRowClass,
+} from "@/lib/ui/list-table-styles";
 import { APPLIED_MATCH_CATEGORY_LABEL } from "@/lib/ui-labels/match-category";
 
 export function OrganizerFieldStatusTable({
@@ -45,18 +50,18 @@ export function OrganizerFieldStatusTable({
             <col className="w-[17%]" />
             <col className="w-[6%]" />
           </colgroup>
-          <thead className="bg-muted/40 text-xs">
-            <tr className="align-middle">
-              <th className="px-2 py-2 text-left font-medium">체육관</th>
-              <th className="px-2 py-2 text-left font-medium">선수명</th>
-              <th className="px-2 py-2 text-left font-medium">
+          <thead className={listTableHeaderRowClass}>
+            <tr>
+              <th className={listTableHeaderCellStartClass}>체육관</th>
+              <th className={listTableHeaderCellStartClass}>선수명</th>
+              <th className={listTableHeaderCellStartClass}>
                 {APPLIED_MATCH_CATEGORY_LABEL}
               </th>
-              <th className="px-2 py-2 text-center font-medium">계체 몸무게</th>
-              <th className="px-2 py-2 text-center font-medium">진행여부</th>
-              <th className="px-2 py-2 text-center font-medium">실격 사유</th>
-              <th className="px-2 py-2 text-center font-medium">경기결과</th>
-              <th className="px-2 py-2 text-center font-medium">초기화</th>
+              <th className={listTableHeaderCellCenterClass}>계체 몸무게</th>
+              <th className={listTableHeaderCellCenterClass}>진행여부</th>
+              <th className={listTableHeaderCellCenterClass}>실격 사유</th>
+              <th className={listTableHeaderCellCenterClass}>경기결과</th>
+              <th className={listTableHeaderCellCenterClass}>초기화</th>
             </tr>
           </thead>
           <tbody>
