@@ -153,6 +153,7 @@ export function OrganizerMatchEditSlot({
 
       {display ? (
         <BracketFighterCompactCard
+          centerIdentity={hideCornerLabel}
           className={hideCornerLabel ? undefined : "mt-1"}
           fighterName={display.fighterName}
           gymName={display.gymName}
@@ -171,6 +172,7 @@ export function OrganizerMatchEditSlot({
         </BracketFighterCompactCard>
       ) : (
         <BracketFighterCompactCard
+          centerIdentity={hideCornerLabel}
           className={hideCornerLabel ? undefined : "mt-1"}
           empty
           emptyLabel="선수 미정"

@@ -40,21 +40,19 @@ export function OrganizerOperationTableDesktop({
 
   return (
     <div className="hidden overflow-x-auto rounded-xl border md:block">
-      <table className="w-full min-w-[1280px] table-fixed text-sm">
+      <table className="w-full min-w-[1200px] table-fixed text-sm">
         <colgroup>
-          <col className="w-[4%]" />
-          <col className="w-[7%]" />
-          <col className="w-[13%]" />
-          <col className="w-[42%]" />
+          <col className="w-[5%]" />
+          <col className="w-[14%]" />
+          <col className="w-[48%]" />
           <col className="w-[11%]" />
           <col className="w-[7%]" />
           <col className="w-[7%]" />
-          <col className="w-[9%]" />
+          <col className="w-[8%]" />
         </colgroup>
         <thead className="bg-muted/50 border-b text-xs">
           <tr className="align-middle">
             <th className="px-2 py-2 text-center font-medium">순서</th>
-            <th className="px-2 py-2 text-left font-medium">경기장</th>
             <th className="px-2 py-2 text-left font-medium">경기구분/체급</th>
             <th className="px-2 py-2 text-center font-medium">대진</th>
             <th className="px-2 py-2 text-center font-medium">경기 상태</th>
@@ -74,24 +72,6 @@ export function OrganizerOperationTableDesktop({
                     <span className="font-mono text-xs whitespace-nowrap">
                       {row.orderLabel}
                     </span>
-                  </div>
-                </td>
-                <td className="px-2 py-2 align-middle text-xs">
-                  <div className={tableCellStartClass}>
-                    {row.courtName ? (
-                      <div className="min-w-0">
-                        <div className={`font-medium ${nowrapTruncateClass}`} title={row.courtName}>
-                          {row.courtName}
-                        </div>
-                        {row.courtOrder != null ? (
-                          <div className="text-muted-foreground whitespace-nowrap">
-                            {row.courtOrder}경기
-                          </div>
-                        ) : null}
-                      </div>
-                    ) : (
-                      <span className="text-muted-foreground">미지정</span>
-                    )}
                   </div>
                 </td>
                 <td className="px-2 py-2 align-middle text-xs">
@@ -161,7 +141,7 @@ export function OrganizerOperationTableDesktop({
               </tr>
               {expandedMatchId === row.matchId ? (
                 <tr className="border-b bg-muted/10">
-                  <td colSpan={8} className="px-3 py-3">
+                  <td colSpan={7} className="px-3 py-3">
                     <div className="grid gap-3 xl:grid-cols-[minmax(0,1fr)_minmax(0,0.75fr)_minmax(0,1.1fr)]">
                       <OrganizerJudgeAggregationInlineSection
                         matchId={row.matchId}

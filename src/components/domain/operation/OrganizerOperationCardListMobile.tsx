@@ -52,16 +52,6 @@ export function OrganizerOperationCardListMobile({
               ) : (
                 <p className="font-medium">{row.divisionLabel ?? "경기구분 미상"}</p>
               )}
-              {row.courtName ? (
-                <p className="text-muted-foreground mt-1 text-xs">
-                  {row.courtName}
-                  {row.courtOrder != null ? ` · ${row.courtOrder}경기` : ""}
-                </p>
-              ) : (
-                <p className="text-muted-foreground mt-1 text-xs">
-                  경기장 이동 필요
-                </p>
-              )}
             </div>
             <OrganizerOperationStatusBadges
               phase={getOperationMatchPhase(row)}

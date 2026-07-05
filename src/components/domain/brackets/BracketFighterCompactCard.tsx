@@ -40,6 +40,7 @@ export function BracketFighterCompactCard({
   metaLine,
   empty = false,
   emptyLabel = "선수 미정",
+  centerIdentity = false,
   className,
   children,
 }: {
@@ -49,12 +50,20 @@ export function BracketFighterCompactCard({
   metaLine?: string;
   empty?: boolean;
   emptyLabel?: string;
+  /** 선수명 영역 가로·세로 중앙 정렬 (대진표 보기 row) */
+  centerIdentity?: boolean;
   className?: string;
   children?: ReactNode;
 }) {
   if (empty) {
     return (
-      <div className={cn("min-w-0 space-y-1", className)}>
+      <div
+        className={cn(
+          "min-w-0 space-y-1",
+          centerIdentity && "flex flex-col items-center text-center",
+          className,
+        )}
+      >
         <BracketFighterInlineIdentity fallbackText={emptyLabel} />
         {children}
       </div>
@@ -62,22 +71,41 @@ export function BracketFighterCompactCard({
   }
 
   return (
-    <div className={cn("min-w-0 space-y-0.5", className)}>
-      <div className="flex min-w-0 items-center gap-1.5">
+    <div
+      className={cn(
+        "min-w-0 space-y-0.5",
+        centerIdentity && "text-center",
+        className,
+      )}
+    >
+      <div
+        className={cn(
+          "flex min-w-0 items-center gap-1.5",
+          centerIdentity ? "justify-center" : "",
+        )}
+      >
         <BracketFighterInlineIdentity
           fighterName={fighterName}
           gymName={gymName}
-          className="min-w-0 flex-1"
+          className={cn("min-w-0", !centerIdentity && "flex-1")}
         />
         {statusBadges ? (
-          <div className="flex shrink-0 flex-wrap justify-end gap-1">
+          <div
+            className={cn(
+              "flex shrink-0 flex-wrap gap-1",
+              centerIdentity ? "justify-center" : "justify-end",
+            )}
+          >
             {statusBadges}
           </div>
         ) : null}
       </div>
       {metaLine ? (
         <p
-          className="text-muted-foreground truncate text-[10px] leading-none whitespace-nowrap"
+          className={cn(
+            "text-muted-foreground truncate text-[10px] leading-none whitespace-nowrap",
+            centerIdentity && "text-center",
+          )}
           title={metaLine}
         >
           {metaLine}

@@ -3,7 +3,6 @@ import {
   bracketMatchControlsGridClass,
   bracketMatchRowGridClass,
   matchGridCellCenterClass,
-  matchGridCellStartClass,
 } from "@/lib/ui/match-grid-layout";
 import { cn } from "@/lib/utils";
 
@@ -27,9 +26,9 @@ export function BracketMatchColumnHeader({
       )}
     >
       <span className="text-center">경기</span>
-      <span className="text-left">홍코너</span>
+      <span className="text-center">홍코너</span>
       <span className="text-center">{centerLabel ?? ""}</span>
-      <span className="text-left">청코너</span>
+      <span className="text-center">청코너</span>
       <span className="text-center">{statusLabel}</span>
     </div>
   );
@@ -79,11 +78,11 @@ export function BracketMatchCompactRow({
           </span>
         </div>
 
-        <div className={matchGridCellStartClass}>{redSlot}</div>
+        <div className={matchGridCellCenterClass}>{redSlot}</div>
 
         <div className={matchGridCellCenterClass}>{center}</div>
 
-        <div className={matchGridCellStartClass}>{blueSlot}</div>
+        <div className={matchGridCellCenterClass}>{blueSlot}</div>
 
         <div className={matchGridCellCenterClass}>{statusArea}</div>
       </div>
@@ -111,16 +110,18 @@ export function BracketMatchControlsRow({
 }) {
   return (
     <div className={cn(bracketMatchControlsGridClass, className)}>
-      <div className="flex min-w-0 flex-wrap items-center justify-start gap-2">
+      <div className="flex min-w-0 flex-wrap items-center justify-start justify-self-start gap-2">
         {left}
       </div>
       {center ? (
-        <div className="flex min-w-0 items-center justify-center whitespace-nowrap">
+        <div className="flex min-w-0 items-center justify-center justify-self-center px-1 whitespace-nowrap">
           {center}
         </div>
       ) : null}
       {right ? (
-        <div className="flex items-center justify-end gap-1">{right}</div>
+        <div className="flex items-center justify-end justify-self-end gap-1">
+          {right}
+        </div>
       ) : null}
     </div>
   );
