@@ -74,6 +74,7 @@ export function OrganizerOperationCardListMobile({
             fighterRed={row.fighterRed}
             fighterBlue={row.fighterBlue}
             winnerId={row.winnerId}
+            identityMode="wrap"
             className="w-full min-w-0"
           />
 

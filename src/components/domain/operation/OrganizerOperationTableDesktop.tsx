@@ -40,16 +40,16 @@ export function OrganizerOperationTableDesktop({
 
   return (
     <div className="hidden overflow-x-auto rounded-xl border md:block">
-      <table className="w-full min-w-[1080px] table-fixed text-sm">
+      <table className="w-full min-w-[1280px] table-fixed text-sm">
         <colgroup>
-          <col className="w-[5%]" />
-          <col className="w-[10%]" />
-          <col className="w-[14%]" />
-          <col className="w-[28%]" />
-          <col className="w-[12%]" />
-          <col className="w-[10%]" />
+          <col className="w-[4%]" />
+          <col className="w-[7%]" />
+          <col className="w-[13%]" />
+          <col className="w-[42%]" />
+          <col className="w-[11%]" />
+          <col className="w-[7%]" />
+          <col className="w-[7%]" />
           <col className="w-[9%]" />
-          <col className="w-[12%]" />
         </colgroup>
         <thead className="bg-muted/50 border-b text-xs">
           <tr className="align-middle">
@@ -110,14 +110,13 @@ export function OrganizerOperationTableDesktop({
                   </div>
                 </td>
                 <td className="px-2 py-2 align-middle">
-                  <div className={tableCellCenterClass}>
-                    <OperationMatchFighterMatchup
-                      fighterRed={row.fighterRed}
-                      fighterBlue={row.fighterBlue}
-                      winnerId={row.winnerId}
-                      className="mx-auto"
-                    />
-                  </div>
+                  <OperationMatchFighterMatchup
+                    fighterRed={row.fighterRed}
+                    fighterBlue={row.fighterBlue}
+                    winnerId={row.winnerId}
+                    identityMode="full"
+                    className="w-full"
+                  />
                 </td>
                 <td className="px-2 py-2 align-middle">
                   <div className={tableCellCenterClass}>
@@ -125,6 +124,8 @@ export function OrganizerOperationTableDesktop({
                       phase={getOperationMatchPhase(row)}
                       phaseLabel={row.phaseLabel}
                       resultStatusLabel={row.resultStatusLabel}
+                      stacked
+                      size="sm"
                       className="justify-center"
                     />
                   </div>

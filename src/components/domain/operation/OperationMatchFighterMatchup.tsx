@@ -13,13 +13,21 @@ function OperationFighterCell({
   corner,
   fighter,
   isWinner,
+  identityMode,
 }: {
   corner: "홍코너" | "청코너";
   fighter?: OperationFighter | null;
   isWinner?: boolean;
+  identityMode: "truncate" | "full" | "wrap";
 }) {
   const style = CORNER_SLOT_STYLES[corner];
   const empty = !fighter?.name?.trim() || fighter.name === "-";
+
+  const identityClassName = cn(
+    "min-w-0 flex-1 text-xs",
+    identityMode === "full" && "whitespace-nowrap",
+    identityMode === "wrap" && "line-clamp-2 break-words leading-snug",
+  );
 
   return (
     <div
@@ -32,11 +40,12 @@ function OperationFighterCell({
       {empty ? (
         <BracketFighterInlineIdentity fallbackText="미배정" className="text-xs" />
       ) : (
-        <div className="flex min-w-0 flex-1 items-center justify-between gap-1">
+        <div className="flex min-w-0 flex-1 items-center gap-1">
           <BracketFighterInlineIdentity
             fighterName={fighter?.name}
             gymName={fighter?.gymName}
-            className="min-w-0 flex-1 text-xs"
+            truncate={identityMode === "truncate"}
+            className={identityClassName}
           />
           {isWinner ? (
             <span className="bg-emerald-600/15 text-emerald-800 dark:text-emerald-300 inline-flex shrink-0 rounded-full px-1.5 py-0.5 text-[10px] font-bold leading-none whitespace-nowrap">
@@ -55,32 +64,45 @@ export function OperationMatchFighterMatchup({
   fighterBlue,
   winnerId,
   className,
+  identityMode = "truncate",
 }: {
   fighterRed?: OperationFighter | null;
   fighterBlue?: OperationFighter | null;
   winnerId?: string | null;
   className?: string;
+  /** operation: PC 전체 표시 / wrap: 모바일 2줄 허용 / truncate: 기본 */
+  identityMode?: "truncate" | "full" | "wrap";
 }) {
   return (
     <div
       className={cn(
-        "grid w-full min-w-[16rem] grid-cols-[minmax(0,1fr)_2.25rem_minmax(0,1fr)] items-center gap-1",
+        "grid w-full items-stretch gap-1.5",
+        identityMode === "full"
+          ? "min-w-[22rem] grid-cols-[minmax(0,1fr)_2.5rem_minmax(0,1fr)]"
+          : "min-w-0 grid-cols-[minmax(0,1fr)_2.25rem_minmax(0,1fr)]",
         className,
       )}
     >
       <OperationFighterCell
         corner="홍코너"
         fighter={fighterRed}
+        identityMode={identityMode}
         isWinner={Boolean(winnerId && fighterRed?.id && winnerId === fighterRed.id)}
       />
-      <div className="flex items-center justify-center">
-        <span className={cn(bracketCardTypography.vs, "text-xs leading-none whitespace-nowrap")}>
+      <div className="flex shrink-0 items-center justify-center self-stretch">
+        <span
+          className={cn(
+            bracketCardTypography.vs,
+            "text-xs leading-none whitespace-nowrap",
+          )}
+        >
           VS
         </span>
       </div>
       <OperationFighterCell
         corner="청코너"
         fighter={fighterBlue}
+        identityMode={identityMode}
         isWinner={Boolean(winnerId && fighterBlue?.id && winnerId === fighterBlue.id)}
       />
     </div>

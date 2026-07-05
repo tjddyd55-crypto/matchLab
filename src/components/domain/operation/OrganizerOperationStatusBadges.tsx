@@ -11,22 +11,32 @@ export function OrganizerOperationStatusBadges({
   resultStatusLabel,
   phase,
   className,
+  stacked = false,
+  size = "md",
 }: {
   phaseLabel: string;
   resultStatusLabel: string;
   phase: OperationMatchPhase;
   className?: string;
+  stacked?: boolean;
+  size?: keyof typeof statusBadgeSizeClasses;
 }) {
+  const sizeClass = cn(statusBadgeSizeClasses[size], "whitespace-nowrap");
+
   return (
-    <div className={cn("flex flex-nowrap items-center justify-center gap-2", className)}>
-      <Badge
-        variant={operationPhaseBadgeVariant(phase)}
-        className={statusBadgeSizeClasses.md}
-      >
+    <div
+      className={cn(
+        stacked
+          ? "flex flex-col items-center justify-center gap-1"
+          : "flex flex-nowrap items-center justify-center gap-2",
+        className,
+      )}
+    >
+      <Badge variant={operationPhaseBadgeVariant(phase)} className={sizeClass}>
         {phaseLabel}
       </Badge>
       {phase !== "cancelled" ? (
-        <Badge variant="resultPending" className={statusBadgeSizeClasses.md}>
+        <Badge variant="resultPending" className={sizeClass}>
           {resultStatusLabel}
         </Badge>
       ) : null}

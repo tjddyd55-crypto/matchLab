@@ -1,6 +1,7 @@
 "use client";
 
 import { useMemo, useRef, useState } from "react";
+import { OperationCourtTabBar } from "@/components/domain/operation/OperationCourtTabBar";
 import { OperationSummaryCards } from "@/components/domain/operation/OperationSummaryCards";
 import { OrganizerOperationCardListMobile } from "@/components/domain/operation/OrganizerOperationCardListMobile";
 import { OrganizerOperationTableDesktop } from "@/components/domain/operation/OrganizerOperationTableDesktop";
@@ -8,6 +9,8 @@ import {
   toOperationMatchRow,
   type OperationMatchRowVM,
 } from "@/components/domain/operation/operation-match-row";
+import type { CourtTabId } from "@/lib/court-tab-label";
+import type { EventCourtVM } from "@/lib/services/event-court.service";
 import type { OrganizerEventMatchListItemVM } from "@/lib/services/match.service";
 import {
   matchesOperationBoardFilter,
@@ -32,16 +35,24 @@ export type JudgeMatchSummaryVM = {
   submittedCount: number;
 };
 
+function matchesCourtTab(row: OperationMatchRowVM, courtTab: CourtTabId): boolean {
+  if (courtTab === "all") return true;
+  return row.courtId === courtTab;
+}
+
 export function OrganizerOperationBoard({
   matches,
+  courts,
   judgeSummaryByMatch,
   judgeBriefByMatch = {},
 }: {
   matches: OrganizerEventMatchListItemVM[];
+  courts: EventCourtVM[];
   judgeSummaryByMatch?: Record<string, JudgeMatchSummaryVM>;
   judgeBriefByMatch?: Record<string, { judgeName: string; winnerCorner: string }[]>;
 }) {
   const listRef = useRef<HTMLDivElement>(null);
+  const [courtTab, setCourtTab] = useState<CourtTabId>("all");
   const [summaryFilter, setSummaryFilter] = useState<OperationBoardFilter>("all");
   const [statusFilter, setStatusFilter] = useState<OperationBoardFilter>("all");
   const [search, setSearch] = useState("");
@@ -57,10 +68,12 @@ export function OrganizerOperationBoard({
 
   const filteredRows = useMemo(() => {
     return sortedRows.filter((row) => {
+      if (!matchesCourtTab(row, courtTab)) return false;
+      if (!matchesOperationSearchQuery(row, search)) return false;
       if (!matchesOperationBoardFilter(row, activeFilter)) return false;
-      return matchesOperationSearchQuery(row, search);
+      return true;
     });
-  }, [sortedRows, activeFilter, search]);
+  }, [sortedRows, courtTab, search, activeFilter]);
 
   const selectClass =
     "border-input bg-background h-9 rounded-md border px-2 text-sm shadow-sm";
@@ -83,6 +96,12 @@ export function OrganizerOperationBoard({
         summary={summary}
         activeFilter={summaryFilter}
         onFilterChange={handleSummaryFilterChange}
+      />
+
+      <OperationCourtTabBar
+        courts={courts}
+        activeTab={courtTab}
+        onTabChange={setCourtTab}
       />
 
       <div className="flex flex-col gap-3 sm:flex-row sm:flex-wrap sm:items-end">
