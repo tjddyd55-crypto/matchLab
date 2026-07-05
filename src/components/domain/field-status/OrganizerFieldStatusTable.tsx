@@ -7,10 +7,11 @@ import {
 } from "@/components/domain/field-status/WeighInFailureResolutionForm";
 import { FieldFinalResultCell } from "@/components/domain/field-status/FieldFinalResultCell";
 import { FieldStatusResetButton } from "@/components/domain/field-status/FieldStatusResetButton";
-import { WeighInStatusBadge } from "@/components/domain/field-status/WeighInStatusBadge";
 import { DivisionCompactDisplay } from "@/components/domain/shared/DivisionCompactDisplay";
 import type { FieldStatusRowDTO } from "@/lib/services/field-status.service";
 import { APPLIED_MATCH_CATEGORY_LABEL } from "@/lib/ui-labels/match-category";
+
+const fieldStatusCellClass = "flex min-h-[2.5rem] min-w-0 items-center";
 
 export function OrganizerFieldStatusTable({
   rows,
@@ -59,7 +60,7 @@ export function OrganizerFieldStatusTable({
             {rows.map((row) => (
               <tr key={row.applicationId} className="border-t align-middle">
                 <td className="min-w-0 px-2 py-2 align-middle text-xs font-medium">
-                  <div className="flex min-h-0 items-center">
+                  <div className={fieldStatusCellClass}>
                     <span
                       className="line-clamp-2 break-words whitespace-normal leading-snug"
                       title={row.gymName}
@@ -69,15 +70,14 @@ export function OrganizerFieldStatusTable({
                   </div>
                 </td>
                 <td className="min-w-0 px-2 py-2 align-middle">
-                  <div className="flex min-h-0 flex-col justify-center gap-1">
+                  <div className={fieldStatusCellClass}>
                     <p className="break-words font-medium leading-snug">
                       {row.fighterName}
                     </p>
-                    <WeighInStatusBadge status={row.weighInStatus} />
                   </div>
                 </td>
                 <td className="min-w-0 px-2 py-2 align-middle text-xs leading-snug">
-                  <div className="flex min-h-0 items-center" title={row.divisionLabel}>
+                  <div className={fieldStatusCellClass} title={row.divisionLabel}>
                     <DivisionCompactDisplay
                       division={row.division}
                       mainClassName="text-xs"
@@ -86,7 +86,7 @@ export function OrganizerFieldStatusTable({
                   </div>
                 </td>
                 <td className="min-w-0 px-2 py-2 align-middle">
-                  <div className="flex min-h-0 items-center">
+                  <div className={fieldStatusCellClass}>
                     <WeighInWeightInput
                       key={`${row.applicationId}-${row.weighInWeightKg}`}
                       row={row}
@@ -94,22 +94,24 @@ export function OrganizerFieldStatusTable({
                   </div>
                 </td>
                 <td className="min-w-0 px-2 py-2 align-middle">
-                  <div className="flex min-h-0 items-center">
+                  <div className={fieldStatusCellClass}>
                     <WeighInFailureResolutionForm row={row} compact />
                   </div>
                 </td>
                 <td className="min-w-0 px-2 py-2 align-middle">
-                  <div className="flex min-h-0 items-center">
+                  <div className={fieldStatusCellClass}>
                     <DisqualificationReasonForm row={row} compact />
                   </div>
                 </td>
                 <td className="min-w-0 px-2 py-2 align-middle">
-                  <div className="flex min-h-0 items-center">
+                  <div className={fieldStatusCellClass}>
                     <FieldFinalResultCell row={row} />
                   </div>
                 </td>
                 <td className="min-w-0 px-2 py-2 align-middle">
-                  <FieldStatusResetButton row={row} />
+                  <div className={fieldStatusCellClass}>
+                    <FieldStatusResetButton row={row} />
+                  </div>
                 </td>
               </tr>
             ))}
@@ -127,9 +129,6 @@ export function OrganizerFieldStatusTable({
               {row.gymName}
             </p>
             <h3 className="break-words font-medium">{row.fighterName}</h3>
-            <div className="mt-1">
-              <WeighInStatusBadge status={row.weighInStatus} />
-            </div>
             <div className="mt-2" title={row.divisionLabel}>
               <DivisionCompactDisplay
                 division={row.division}

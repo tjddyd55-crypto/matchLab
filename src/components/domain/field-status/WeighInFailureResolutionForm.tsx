@@ -74,7 +74,7 @@ export function WeighInFailureResolutionForm({
             ? "default"
             : "secondary"
         }
-        className="h-7 text-xs"
+        className="h-8 text-xs"
         disabled={pending}
         onClick={() => run(WeighInFailureResolution.proceed_with_handicap)}
       >
@@ -84,7 +84,7 @@ export function WeighInFailureResolutionForm({
         type="button"
         size="sm"
         variant="destructive"
-        className="h-7 text-xs"
+        className="h-8 text-xs"
         disabled={pending}
         onClick={() => {
           const message = isFailed
@@ -160,7 +160,7 @@ export function DisqualificationReasonForm({
     >
       <select
         name="preset"
-        className="border-input bg-background h-7 w-full max-w-full rounded-md border px-2 text-xs"
+        className="border-input bg-background h-8 w-full max-w-full rounded-md border px-2 text-xs"
         value={preset}
         onChange={(e) => setPreset(e.target.value)}
         required
@@ -179,12 +179,12 @@ export function DisqualificationReasonForm({
           value={otherReason}
           onChange={(e) => setOtherReason(e.target.value)}
           placeholder="기타 사유 입력 (필수)"
-          className="border-input bg-background h-7 w-full max-w-full rounded-md border px-2 text-xs"
+          className="border-input bg-background h-8 w-full max-w-full rounded-md border px-2 text-xs"
           maxLength={500}
           required
         />
       ) : null}
-      <Button type="submit" size="sm" className="h-7 w-fit text-xs" disabled={pending}>
+      <Button type="submit" size="sm" className="h-8 w-fit text-xs" disabled={pending}>
         사유 저장
       </Button>
     </form>

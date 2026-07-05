@@ -1,16 +1,18 @@
 import type { ReactNode } from "react";
 import { cn } from "@/lib/utils";
 
-/** 경기 row 공통 grid — 경기번호 | 홍 | 중앙 | 청 */
+/** 경기 row 공통 5열 grid — 경기번호 | 홍 | 중앙 | 청 | 상태 */
 export const bracketMatchRowGridClass =
-  "grid grid-cols-1 gap-1.5 md:grid-cols-[2.75rem_minmax(0,1fr)_5rem_minmax(0,1fr)] md:items-center md:gap-x-2";
+  "grid grid-cols-1 gap-1.5 md:grid-cols-[2.75rem_minmax(0,1fr)_5rem_minmax(0,1fr)_5.5rem] md:items-stretch md:gap-x-2";
 
 export function BracketMatchColumnHeader({
   className,
   centerLabel,
+  statusLabel = "상태",
 }: {
   className?: string;
   centerLabel?: string;
+  statusLabel?: string;
 }) {
   return (
     <div
@@ -24,6 +26,7 @@ export function BracketMatchColumnHeader({
       <span>홍코너</span>
       <span className="text-center">{centerLabel ?? ""}</span>
       <span>청코너</span>
+      <span className="text-center">{statusLabel}</span>
     </div>
   );
 }
@@ -63,20 +66,23 @@ export function BracketMatchCompactRow({
       ) : null}
 
       <div className={cn(bracketMatchRowGridClass, "px-2 py-1.5")}>
-        <div className="flex flex-col items-start justify-center gap-0.5 md:items-center md:text-center">
+        <div className="flex min-h-[2.75rem] items-center md:justify-center">
           <span className="text-xs font-bold tabular-nums leading-none">
             {matchOrderLabel}
           </span>
-          {statusArea}
         </div>
 
         <div className="flex min-h-[2.75rem] min-w-0 items-center">{redSlot}</div>
 
-        <div className="flex min-h-[2.75rem] items-center justify-center self-center">
+        <div className="flex min-h-[2.75rem] items-center justify-center">
           {center}
         </div>
 
         <div className="flex min-h-[2.75rem] min-w-0 items-center">{blueSlot}</div>
+
+        <div className="flex min-h-[2.75rem] items-center justify-start md:justify-center">
+          {statusArea}
+        </div>
       </div>
 
       {controls ? (
