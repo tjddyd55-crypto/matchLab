@@ -87,7 +87,6 @@ export function OrganizerBracketEditor({
           bracketIsPublic={detail.isPublic}
           matches={detail.matches}
           options={detail.approvedFighterOptions}
-          division={detail.division}
         />
       ) : (
         <TournamentBracketEditor eventId={eventId} courts={courts} detail={detail} />

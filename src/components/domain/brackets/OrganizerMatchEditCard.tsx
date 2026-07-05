@@ -1,17 +1,22 @@
 "use client";
 
 import { OrganizerMatchEditSlot } from "@/components/domain/brackets/OrganizerMatchEditSlot";
-import { MatchEditCenterSettings } from "@/components/domain/brackets/MatchEditCenterSettings";
+import {
+  BracketMatchCompactRow,
+} from "@/components/domain/brackets/BracketMatchCompactRow";
+import { BracketMatchCenterCell } from "@/components/domain/brackets/BracketMatchCenterCell";
+import {
+  MatchEditCenterBadges,
+  MatchEditControlsRow,
+} from "@/components/domain/brackets/MatchEditControlsRow";
 import { MatchStatusBadge } from "@/components/domain/shared/MatchStatusBadge";
-import { MatchDivisionHeader } from "@/components/domain/shared/MatchDivisionHeader";
-import { bracketCardTypography } from "@/lib/bracket-card-typography";
-import type { EventDivisionDisplayInput } from "@/lib/event-division-fields";
 import type { OrganizerApprovedFighterOptionVM } from "@/lib/services/bracket.service";
 import type { OrganizerBracketMatchVM } from "@/lib/services/bracket.service";
 import type { EventCourtVM } from "@/lib/services/event-court.service";
 import { BracketType } from "@/lib/enums";
-import { formatMatchOrderFormal } from "@/lib/match-order-display";
-import { cornerSlotInGridClass } from "@/lib/corner-slot-styles";
+import { formatMatchOrderShort } from "@/lib/match-order-display";
+import { CORNER_SLOT_STYLES } from "@/lib/corner-slot-styles";
+import { cn } from "@/lib/utils";
 
 export function OrganizerMatchEditCard({
   eventId,
@@ -22,8 +27,6 @@ export function OrganizerMatchEditCard({
   options,
   bracketType,
   bracketIsPublic,
-  division,
-  compactDivision = true,
 }: {
   eventId: string;
   bracketId: string;
@@ -33,32 +36,24 @@ export function OrganizerMatchEditCard({
   options: OrganizerApprovedFighterOptionVM[];
   bracketType: BracketType;
   bracketIsPublic?: boolean;
-  division?: EventDivisionDisplayInput | null;
-  compactDivision?: boolean;
 }) {
   const editLocked = Boolean(match.hasOfficialResults);
-  const orderLabel = formatMatchOrderFormal(match);
+  const orderLabel = formatMatchOrderShort(match);
 
   return (
-    <article className="ring-foreground/10 overflow-hidden rounded-xl border bg-card shadow-sm">
-      <header className="flex flex-wrap items-center justify-between gap-2 border-b bg-muted/30 px-3 py-1.5">
-        <MatchDivisionHeader
-          matchNumberLabel={orderLabel}
-          division={division}
-          compact={compactDivision}
-          showSportRule={false}
-        />
-        <div className="flex flex-wrap items-center gap-1.5">
-          <MatchStatusBadge status={match.status} size="md" />
+    <BracketMatchCompactRow
+      matchOrderLabel={orderLabel}
+      statusArea={
+        <div className="flex flex-col items-start gap-0.5 md:items-center">
+          <MatchStatusBadge status={match.status} size="sm" />
           {match.hasOfficialResults ? (
-            <span className="text-emerald-700 dark:text-emerald-400 text-xs font-medium">
+            <span className="text-emerald-700 dark:text-emerald-400 text-[10px] font-medium leading-none">
               결과 확정
             </span>
           ) : null}
         </div>
-      </header>
-
-      <div className="grid gap-0 md:grid-cols-[1fr_auto_1fr] md:items-stretch">
+      }
+      redSlot={
         <OrganizerMatchEditSlot
           bracketId={bracketId}
           matchId={match.id}
@@ -69,22 +64,26 @@ export function OrganizerMatchEditCard({
           options={options}
           matches={matches}
           editDisabled={editLocked}
-          className={cornerSlotInGridClass("홍코너", "border-b md:border-b-0")}
+          hideCornerLabel
+          className={cn(
+            CORNER_SLOT_STYLES["홍코너"].bg,
+            "rounded-md border px-2 py-1.5",
+          )}
         />
-
-        <div className="bg-muted/30 text-muted-foreground flex flex-col items-center justify-center border-b px-2 md:border-b-0">
-          <span className={bracketCardTypography.vs}>VS</span>
-          <MatchEditCenterSettings
-            eventId={eventId}
-            bracketId={bracketId}
-            courts={courts}
-            match={match}
-            bracketType={bracketType}
-            bracketIsPublic={bracketIsPublic}
-            editLocked={editLocked}
-          />
-        </div>
-
+      }
+      center={
+        <BracketMatchCenterCell
+          badges={
+            <MatchEditCenterBadges
+              match={match}
+              bracketType={bracketType}
+              bracketIsPublic={bracketIsPublic}
+              editLocked={editLocked}
+            />
+          }
+        />
+      }
+      blueSlot={
         <OrganizerMatchEditSlot
           bracketId={bracketId}
           matchId={match.id}
@@ -95,15 +94,29 @@ export function OrganizerMatchEditCard({
           options={options}
           matches={matches}
           editDisabled={editLocked}
-          className={cornerSlotInGridClass("청코너")}
+          hideCornerLabel
+          className={cn(
+            CORNER_SLOT_STYLES["청코너"].bg,
+            "rounded-md border px-2 py-1.5",
+          )}
         />
-      </div>
-
-      {editLocked ? (
-        <p className="text-amber-800 border-t bg-muted/10 px-3 py-2 text-[11px] dark:text-amber-200">
-          공식 결과가 확정된 경기는 선수·라운드 변경이 제한됩니다.
-        </p>
-      ) : null}
-    </article>
+      }
+      controls={
+        <MatchEditControlsRow
+          eventId={eventId}
+          bracketId={bracketId}
+          courts={courts}
+          match={match}
+          editLocked={editLocked}
+        />
+      }
+      footer={
+        editLocked ? (
+          <p className="text-amber-800 border-t bg-muted/10 px-2 py-1.5 text-[11px] dark:text-amber-200">
+            공식 결과가 확정된 경기는 선수·라운드 변경이 제한됩니다.
+          </p>
+        ) : null
+      }
+    />
   );
 }

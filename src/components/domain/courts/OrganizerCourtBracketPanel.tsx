@@ -2,10 +2,23 @@
 
 import { useMemo, useState, useTransition } from "react";
 import { useRouter } from "next/navigation";
+import {
+  BracketMatchColumnHeader,
+  BracketMatchCompactRow,
+  BracketMatchControlsRow,
+} from "@/components/domain/brackets/BracketMatchCompactRow";
+import { BracketMatchCenterCell } from "@/components/domain/brackets/BracketMatchCenterCell";
+import { BracketFighterCompactCard } from "@/components/domain/brackets/BracketFighterCompactCard";
 import { MatchCourtControls } from "@/components/domain/courts/MatchCourtControls";
 import { FighterHandicapBadge } from "@/components/domain/shared/FighterHandicapBadge";
-import { BoutFormatBadge, PublicSparringUnderVsBadge } from "@/components/domain/shared/BoutFormatBadge";
-import { parseMatchOperationalSettings, formatOperationalSettingsLabel } from "@/lib/match-operational-settings";
+import {
+  BoutFormatBadge,
+  PublicSparringUnderVsBadge,
+} from "@/components/domain/shared/BoutFormatBadge";
+import {
+  parseMatchOperationalSettings,
+  formatOperationalSettingsLabel,
+} from "@/lib/match-operational-settings";
 import { saveMatchScheduleFormAction } from "@/features/event-courts/actions";
 import { Button } from "@/components/ui/button";
 import {
@@ -14,7 +27,6 @@ import {
 } from "@/lib/court-tab-label";
 import { sortMatchesByCourtSchedule } from "@/lib/court-match-order";
 import { MatchStatusBadge } from "@/components/domain/shared/MatchStatusBadge";
-import { bracketCardTypography } from "@/lib/bracket-card-typography";
 import { resolveBoutFormatKind } from "@/lib/bout-format";
 import { CORNER_SLOT_STYLES } from "@/lib/corner-slot-styles";
 import type { EventCourtVM } from "@/lib/services/event-court.service";
@@ -23,9 +35,8 @@ import type {
   OrganizerEventMatchFighterVM,
 } from "@/lib/services/match.service";
 import { MATCH_CATEGORY_LABEL } from "@/lib/ui-labels/match-category";
-import {
-  formatDivisionMainLabel,
-} from "@/lib/event-division-fields";
+import { formatDivisionMainLabel } from "@/lib/event-division-fields";
+import { formatMatchOrderShort } from "@/lib/match-order-display";
 import { cn } from "@/lib/utils";
 
 function sortMatchesForTab(
@@ -40,21 +51,15 @@ function sortMatchesForTab(
   );
 }
 
-
-function matchOrderLabel(m: OrganizerEventMatchListItemVM, courtOrder: number | null) {
-  if (courtOrder != null) return `제${courtOrder}경기`;
-  if (m.matchNumber != null) return `제${m.matchNumber}경기`;
-  if (m.globalMatchOrder != null) return `제${m.globalMatchOrder + 1}경기`;
-  return `제${m.matchOrder + 1}경기`;
+function resolveCourtMatchOrderLabel(
+  m: OrganizerEventMatchListItemVM,
+  courtOrder: number | null,
+): string {
+  if (courtOrder != null) return `${courtOrder}경기`;
+  return formatMatchOrderShort(m);
 }
 
-function resolveFighterDisplayName(name: string | undefined | null): string {
-  const trimmed = name?.trim();
-  if (!trimmed || trimmed === "-") return "빈 슬롯";
-  return trimmed;
-}
-
-function OrganizerFighterSlot({
+function CourtBracketFighterCell({
   corner,
   name,
   gymName,
@@ -66,38 +71,25 @@ function OrganizerFighterSlot({
   handicap: OrganizerEventMatchFighterVM["handicap"];
 }) {
   const style = CORNER_SLOT_STYLES[corner];
-  const displayName = resolveFighterDisplayName(name);
-  const empty = displayName === "빈 슬롯";
+  const empty = !name?.trim() || name === "-";
+
   return (
-    <div
-      className={cn(
-        "flex min-h-[4.5rem] flex-col items-center justify-center gap-0.5 rounded-md border px-3 py-2 text-center text-sm",
-        style.bg,
-        empty && "text-muted-foreground",
-      )}
-    >
-      <p className={cn(bracketCardTypography.fighterCorner, style.accent)}>
-        {corner}
-      </p>
-      <p
-        className={cn(
-          bracketCardTypography.fighterName,
-          empty && "font-normal",
-        )}
+    <div className={cn("rounded-md border px-2 py-1.5", style.bg)}>
+      <BracketFighterCompactCard
+        empty={empty}
+        emptyLabel="빈 슬롯"
+        fighterName={empty ? undefined : name}
+        gymName={empty ? undefined : (gymName ?? undefined)}
       >
-        {displayName}
-      </p>
-      {gymName?.trim() ? (
-        <p className={bracketCardTypography.fighterGym}>{gymName}</p>
-      ) : null}
-      {!empty ? (
-        <FighterHandicapBadge
-          handicap={handicap}
-          cornerLabel={corner}
-          compact
-          className="mt-0.5 items-center"
-        />
-      ) : null}
+        {!empty ? (
+          <FighterHandicapBadge
+            handicap={handicap}
+            cornerLabel={corner}
+            compact
+            className="mt-0.5"
+          />
+        ) : null}
+      </BracketFighterCompactCard>
     </div>
   );
 }
@@ -164,10 +156,6 @@ export function OrganizerCourtBracketPanel({
     return courtMatchesForReorder(m).length > 1;
   }
 
-  /**
-   * 위/아래 화살표 — 인접 경기와 순서를 교체하고 즉시 저장한다.
-   * 전체 탭에서도 경기장이 배정된 경우 같은 경기장 내 순서 변경을 허용한다.
-   */
   function moveAndSave(matchId: string, direction: -1 | 1) {
     if (pending) return;
     const match = filtered.find((m) => m.matchId === matchId);
@@ -284,7 +272,8 @@ export function OrganizerCourtBracketPanel({
           표시할 경기가 없습니다.
         </p>
       ) : (
-        <div className="flex flex-col gap-3">
+        <div className="flex flex-col gap-2">
+          <BracketMatchColumnHeader />
           {filtered.map((m) => {
             const ops = parseMatchOperationalSettings(m.resultMemo).settings;
             const order = localOrders[m.matchId] ?? m.courtOrder;
@@ -304,142 +293,122 @@ export function OrganizerCourtBracketPanel({
               : (m.divisionLabel ?? MATCH_CATEGORY_LABEL);
 
             return (
-            <article
-              key={m.matchId}
-              className="overflow-hidden rounded-xl border bg-card shadow-sm ring-1 ring-primary/10"
-            >
-              <div className="flex items-start justify-between gap-2 border-b bg-muted/30 px-3 py-2">
-                <div className="min-w-0 flex-1">
-                  <p
-                    className={cn(
-                      bracketCardTypography.headerRow,
-                      "flex flex-wrap items-baseline gap-x-2 gap-y-0.5",
-                    )}
-                  >
-                    <span className={bracketCardTypography.matchNumber}>
-                      {matchOrderLabel(m, order)}
-                    </span>
-                    <span className={bracketCardTypography.division}>
-                      {mainLabel}
-                    </span>
-                    {order != null ? (
-                      <span className="text-muted-foreground text-xs">
-                        {order}경기
-                      </span>
-                    ) : null}
-                  </p>
-                </div>
-                <MatchStatusBadge status={m.status} size="md" />
-              </div>
-
-              <div className="grid grid-cols-1 md:grid-cols-[minmax(0,1fr)_auto_minmax(0,1fr)] md:items-center">
-                <OrganizerFighterSlot
-                  corner="홍코너"
-                  name={m.fighterRed?.name ?? ""}
-                  gymName={m.fighterRed?.gymName ?? null}
-                  handicap={m.fighterRed?.handicap ?? null}
-                />
-                <div className="bg-muted/20 flex flex-col items-center justify-center px-4 py-2 md:min-w-[4.5rem] md:py-3">
-                  <span className={bracketCardTypography.vs}>VS</span>
-                  <div className="mt-1 flex flex-wrap items-center justify-center gap-1">
-                    {formatKind !== "public_sparring" ? (
-                      <BoutFormatBadge
-                        bracketType={m.bracketType}
-                        bracketIsPublic={m.bracketIsPublic}
-                        matchIsPublicSparring={m.matchIsPublicSparring}
-                        resultMemo={m.resultMemo}
-                        className={bracketCardTypography.formatBadge}
-                      />
-                    ) : null}
-                    <PublicSparringUnderVsBadge
-                      bracketType={m.bracketType}
-                      bracketIsPublic={m.bracketIsPublic}
-                      matchIsPublicSparring={m.matchIsPublicSparring}
-                      resultMemo={m.resultMemo}
-                    />
-                  </div>
-                </div>
-                <OrganizerFighterSlot
-                  corner="청코너"
-                  name={m.fighterBlue?.name ?? ""}
-                  gymName={m.fighterBlue?.gymName ?? null}
-                  handicap={m.fighterBlue?.handicap ?? null}
-                />
-              </div>
-
-              <div className="flex justify-center border-t bg-muted/10 px-3 py-1.5">
-                <span
-                  className={cn(
-                    bracketCardTypography.opsPill,
-                    "text-muted-foreground",
-                  )}
-                >
-                  {formatOperationalSettingsLabel(ops)}
-                </span>
-              </div>
-
-              <div className="flex flex-wrap items-center justify-between gap-2 border-t px-3 py-2">
-                <div className="min-w-0 flex-1">
-                  <MatchCourtControls
-                    key={`${m.matchId}:${m.courtId ?? ""}:${m.courtOrder ?? ""}`}
-                    inline
-                    hideCourtOrder
-                    eventId={eventId}
-                    bracketId={m.bracketId}
-                    matchId={m.matchId}
-                    courts={courts}
-                    courtId={m.courtId}
-                    courtOrder={localOrders[m.matchId] ?? m.courtOrder}
-                    hasOfficialResults={m.hasOfficialResults}
+              <BracketMatchCompactRow
+                key={m.matchId}
+                matchOrderLabel={resolveCourtMatchOrderLabel(m, order)}
+                divisionHint={activeTab === "all" ? mainLabel : undefined}
+                statusArea={<MatchStatusBadge status={m.status} size="sm" />}
+                redSlot={
+                  <CourtBracketFighterCell
+                    corner="홍코너"
+                    name={m.fighterRed?.name ?? ""}
+                    gymName={m.fighterRed?.gymName ?? null}
+                    handicap={m.fighterRed?.handicap ?? null}
                   />
-                </div>
-                {showReorder ? (
-                  <div className="flex shrink-0 items-center gap-1">
-                    <input
-                      type="number"
-                      min={1}
-                      aria-label="경기 순서"
-                      className="border-input bg-background h-8 w-14 rounded-md border px-1 text-xs"
-                      value={localOrders[m.matchId] ?? ""}
-                      onChange={(e) =>
-                        setOrderOverrides((prev) => ({
-                          ...prev,
-                          [m.matchId]: e.target.value
-                            ? Number(e.target.value)
-                            : null,
-                        }))
-                      }
-                    />
-                    <Button
-                      type="button"
-                      size="sm"
-                      variant="outline"
-                      className="h-8 w-8 shrink-0 p-0 text-base font-bold disabled:opacity-40"
-                      aria-label="위로 이동"
-                      disabled={courtIdx <= 0 || pending}
-                      onClick={() => moveAndSave(m.matchId, -1)}
-                    >
-                      ↑
-                    </Button>
-                    <Button
-                      type="button"
-                      size="sm"
-                      variant="outline"
-                      className="h-8 w-8 shrink-0 p-0 text-base font-bold disabled:opacity-40"
-                      aria-label="아래로 이동"
-                      disabled={
-                        courtIdx < 0 ||
-                        courtIdx >= courtMatches.length - 1 ||
-                        pending
-                      }
-                      onClick={() => moveAndSave(m.matchId, 1)}
-                    >
-                      ↓
-                    </Button>
-                  </div>
-                ) : null}
-              </div>
-            </article>
+                }
+                center={
+                  <BracketMatchCenterCell
+                    badges={
+                      <>
+                        {formatKind !== "public_sparring" ? (
+                          <BoutFormatBadge
+                            bracketType={m.bracketType}
+                            bracketIsPublic={m.bracketIsPublic}
+                            matchIsPublicSparring={m.matchIsPublicSparring}
+                            resultMemo={m.resultMemo}
+                          />
+                        ) : null}
+                        <PublicSparringUnderVsBadge
+                          bracketType={m.bracketType}
+                          bracketIsPublic={m.bracketIsPublic}
+                          matchIsPublicSparring={m.matchIsPublicSparring}
+                          resultMemo={m.resultMemo}
+                        />
+                      </>
+                    }
+                  />
+                }
+                blueSlot={
+                  <CourtBracketFighterCell
+                    corner="청코너"
+                    name={m.fighterBlue?.name ?? ""}
+                    gymName={m.fighterBlue?.gymName ?? null}
+                    handicap={m.fighterBlue?.handicap ?? null}
+                  />
+                }
+                controls={
+                  <BracketMatchControlsRow
+                    left={
+                      <MatchCourtControls
+                        key={`${m.matchId}:${m.courtId ?? ""}:${m.courtOrder ?? ""}`}
+                        inline
+                        hideCourtOrder
+                        hideLabels
+                        compactRow
+                        eventId={eventId}
+                        bracketId={m.bracketId}
+                        matchId={m.matchId}
+                        courts={courts}
+                        courtId={m.courtId}
+                        courtOrder={localOrders[m.matchId] ?? m.courtOrder}
+                        hasOfficialResults={m.hasOfficialResults}
+                      />
+                    }
+                    center={
+                      <span className="text-muted-foreground text-xs tabular-nums">
+                        {formatOperationalSettingsLabel(ops)}
+                      </span>
+                    }
+                    right={
+                      showReorder ? (
+                        <>
+                          <input
+                            type="number"
+                            min={1}
+                            aria-label="경기 순서"
+                            className="border-input bg-background h-8 w-14 rounded-md border px-1 text-xs"
+                            value={localOrders[m.matchId] ?? ""}
+                            onChange={(e) =>
+                              setOrderOverrides((prev) => ({
+                                ...prev,
+                                [m.matchId]: e.target.value
+                                  ? Number(e.target.value)
+                                  : null,
+                              }))
+                            }
+                          />
+                          <Button
+                            type="button"
+                            size="sm"
+                            variant="outline"
+                            className="h-8 w-8 shrink-0 p-0 text-base font-bold disabled:opacity-40"
+                            aria-label="위로 이동"
+                            disabled={courtIdx <= 0 || pending}
+                            onClick={() => moveAndSave(m.matchId, -1)}
+                          >
+                            ↑
+                          </Button>
+                          <Button
+                            type="button"
+                            size="sm"
+                            variant="outline"
+                            className="h-8 w-8 shrink-0 p-0 text-base font-bold disabled:opacity-40"
+                            aria-label="아래로 이동"
+                            disabled={
+                              courtIdx < 0 ||
+                              courtIdx >= courtMatches.length - 1 ||
+                              pending
+                            }
+                            onClick={() => moveAndSave(m.matchId, 1)}
+                          >
+                            ↓
+                          </Button>
+                        </>
+                      ) : null
+                    }
+                  />
+                }
+              />
             );
           })}
         </div>

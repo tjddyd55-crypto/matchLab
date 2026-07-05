@@ -15,12 +15,88 @@ import {
 } from "@/lib/match-operational-settings";
 import { cn } from "@/lib/utils";
 
+function RoundSelect({
+  value,
+  disabled,
+  onChange,
+  hideLabels,
+}: {
+  value: number;
+  disabled: boolean;
+  onChange: (value: number) => void;
+  hideLabels?: boolean;
+}) {
+  const select = (
+    <select
+      className="border-input bg-background h-8 min-w-[4.25rem] rounded-md border px-2 text-xs"
+      aria-label="라운드"
+      value={value}
+      disabled={disabled}
+      onChange={(e) => onChange(Number(e.target.value))}
+    >
+      {MATCH_ROUND_COUNT_OPTIONS.map((n) => (
+        <option key={n} value={n}>
+          {formatRoundCountLabel(n)}
+        </option>
+      ))}
+    </select>
+  );
+
+  if (hideLabels) return select;
+
+  return (
+    <label className="flex min-w-0 flex-col gap-0.5 text-xs">
+      <span className="text-muted-foreground text-[10px] font-medium">라운드</span>
+      {select}
+    </label>
+  );
+}
+
+function TimeSelect({
+  value,
+  disabled,
+  onChange,
+  hideLabels,
+}: {
+  value: number;
+  disabled: boolean;
+  onChange: (value: number) => void;
+  hideLabels?: boolean;
+}) {
+  const select = (
+    <select
+      className="border-input bg-background h-8 min-w-[4.25rem] rounded-md border px-2 text-xs"
+      aria-label="시간"
+      value={value}
+      disabled={disabled}
+      onChange={(e) => onChange(Number(e.target.value))}
+    >
+      {MATCH_ROUND_TIME_SEC_OPTIONS.map((sec) => (
+        <option key={sec} value={sec}>
+          {formatRoundTimeLabel(sec)}
+        </option>
+      ))}
+    </select>
+  );
+
+  if (hideLabels) return select;
+
+  return (
+    <label className="flex min-w-0 flex-col gap-0.5 text-xs">
+      <span className="text-muted-foreground text-[10px] font-medium">시간</span>
+      {select}
+    </label>
+  );
+}
+
 export function MatchOperationalSettingsSelect({
   matchId,
   resultMemo,
   disabled = false,
   className,
   unwrapped = false,
+  hideLabels = false,
+  inline = false,
 }: {
   matchId: string;
   resultMemo?: string | null;
@@ -28,6 +104,8 @@ export function MatchOperationalSettingsSelect({
   className?: string;
   /** true면 wrapper 없이 라운드·시간 라벨을 부모 grid의 셀로 직접 렌더한다. */
   unwrapped?: boolean;
+  hideLabels?: boolean;
+  inline?: boolean;
 }) {
   const router = useRouter();
   const [pending, startTransition] = useTransition();
@@ -52,44 +130,21 @@ export function MatchOperationalSettingsSelect({
     });
   }
 
-  const selectClass =
-    "border-input bg-background h-8 w-full rounded-md border px-2 text-xs";
-
   const fields = (
     <>
-      <label className="flex min-w-0 flex-col gap-0.5 text-xs">
-        <span className="text-muted-foreground text-[10px] font-medium">
-          라운드
-        </span>
-        <select
-          className={selectClass}
-          value={roundCount}
-          disabled={disabled || pending}
-          onChange={(e) => save({ roundCount: Number(e.target.value) })}
-        >
-          {MATCH_ROUND_COUNT_OPTIONS.map((n) => (
-            <option key={n} value={n}>
-              {formatRoundCountLabel(n)}
-            </option>
-          ))}
-        </select>
-      </label>
-      <label className="flex min-w-0 flex-col gap-0.5 text-xs">
-        <span className="text-muted-foreground text-[10px] font-medium">시간</span>
-        <select
-          className={selectClass}
-          value={roundTimeSec}
-          disabled={disabled || pending}
-          onChange={(e) => save({ roundTimeSec: Number(e.target.value) })}
-        >
-          {MATCH_ROUND_TIME_SEC_OPTIONS.map((sec) => (
-            <option key={sec} value={sec}>
-              {formatRoundTimeLabel(sec)}
-            </option>
-          ))}
-        </select>
-      </label>
-      {pending ? (
+      <RoundSelect
+        value={roundCount}
+        disabled={disabled || pending}
+        hideLabels={hideLabels}
+        onChange={(value) => save({ roundCount: value })}
+      />
+      <TimeSelect
+        value={roundTimeSec}
+        disabled={disabled || pending}
+        hideLabels={hideLabels}
+        onChange={(value) => save({ roundTimeSec: value })}
+      />
+      {pending && !hideLabels ? (
         <p className="text-muted-foreground col-span-full text-[10px]">저장 중…</p>
       ) : null}
     </>
@@ -100,7 +155,14 @@ export function MatchOperationalSettingsSelect({
   }
 
   return (
-    <div className={cn("grid w-full gap-2 sm:grid-cols-2", className)}>
+    <div
+      className={cn(
+        inline
+          ? "flex flex-wrap items-center gap-2"
+          : "grid w-full gap-2 sm:grid-cols-2",
+        className,
+      )}
+    >
       {fields}
     </div>
   );

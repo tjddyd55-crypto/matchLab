@@ -54,6 +54,7 @@ export function OrganizerMatchEditSlot({
   options,
   matches,
   editDisabled,
+  hideCornerLabel = false,
   className,
 }: {
   bracketId: string;
@@ -65,6 +66,7 @@ export function OrganizerMatchEditSlot({
   options: OrganizerApprovedFighterOptionVM[];
   matches: OrganizerBracketMatchVM[];
   editDisabled?: boolean;
+  hideCornerLabel?: boolean;
   className?: string;
 }) {
   const router = useRouter();
@@ -142,14 +144,16 @@ export function OrganizerMatchEditSlot({
     ) : null;
 
   return (
-    <div className={cn("flex flex-1 flex-col px-2.5 py-2", style.bg, className)}>
-      <span className={cn("text-[11px] font-semibold leading-none", style.accent)}>
-        {cornerLabel}
-      </span>
+    <div className={cn("flex min-w-0 flex-col", className)}>
+      {hideCornerLabel ? null : (
+        <span className={cn("text-[11px] font-semibold leading-none", style.accent)}>
+          {cornerLabel}
+        </span>
+      )}
 
       {display ? (
         <BracketFighterCompactCard
-          className="mt-1"
+          className={hideCornerLabel ? undefined : "mt-1"}
           fighterName={display.fighterName}
           gymName={display.gymName}
           metaLine={display.metaLine}
@@ -162,12 +166,12 @@ export function OrganizerMatchEditSlot({
             optionStates={optionStates}
             disabled={editDisabled || pending}
             placeholder="빈 슬롯"
-            className="mt-1.5 h-8 max-w-none text-xs"
+            className="mt-1 h-8 max-w-none text-xs"
           />
         </BracketFighterCompactCard>
       ) : (
         <BracketFighterCompactCard
-          className="mt-1"
+          className={hideCornerLabel ? undefined : "mt-1"}
           empty
           emptyLabel="선수 미정"
         >
@@ -178,7 +182,7 @@ export function OrganizerMatchEditSlot({
             optionStates={optionStates}
             disabled={editDisabled || pending}
             placeholder="빈 슬롯"
-            className="mt-1.5 h-8 max-w-none text-xs"
+            className="mt-1 h-8 max-w-none text-xs"
           />
         </BracketFighterCompactCard>
       )}

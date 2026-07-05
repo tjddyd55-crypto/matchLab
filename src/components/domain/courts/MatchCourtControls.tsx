@@ -5,6 +5,7 @@ import { useRouter } from "next/navigation";
 import { setMatchCourtFormAction } from "@/features/event-courts/actions";
 import { Button } from "@/components/ui/button";
 import type { EventCourtVM } from "@/lib/services/event-court.service";
+import { cn } from "@/lib/utils";
 
 function resolveCourtSelectState(
   courtId: string | null,
@@ -59,6 +60,8 @@ export function MatchCourtControls({
   immediate = false,
   hideCourtOrder = false,
   unwrapped = false,
+  hideLabels = false,
+  compactRow = false,
 }: {
   eventId: string;
   matchId: string;
@@ -72,6 +75,9 @@ export function MatchCourtControls({
   hideCourtOrder?: boolean;
   /** true면 wrapper 없이 경기장 라벨을 부모 grid의 셀로 직접 렌더한다(immediate 전용). */
   unwrapped?: boolean;
+  /** compact control row — 경기장 label 숨김, select+버튼 h-8 */
+  hideLabels?: boolean;
+  compactRow?: boolean;
 }) {
   const router = useRouter();
   const activeCourts = useMemo(
@@ -139,29 +145,44 @@ export function MatchCourtControls({
     );
   }
 
+  function renderCourtSelect(className?: string) {
+    return (
+      <select
+        className={cn(
+          "border-input bg-background h-8 rounded-md border px-2 text-xs",
+          compactRow ? "min-w-[7rem] flex-1" : "w-full",
+          className,
+        )}
+        aria-label="경기장"
+        value={selectValue}
+        onChange={(e) => handleCourtChange(e.target.value)}
+        required
+      >
+        {activeCourts.length > 1 && !selectValue ? (
+          <option value="">경기장 선택</option>
+        ) : null}
+        {activeCourts.map((c) => (
+          <option key={c.id} value={c.id}>
+            {c.name}
+          </option>
+        ))}
+      </select>
+    );
+  }
+
   if (unwrapped) {
     return (
       <>
-        <label className="flex min-w-0 flex-col gap-0.5 text-xs">
-          <span className="text-muted-foreground text-[10px] font-medium">
-            경기장
-          </span>
-          <select
-            className="border-input bg-background h-8 w-full rounded-md border px-2 text-xs"
-            value={selectValue}
-            onChange={(e) => handleCourtChange(e.target.value)}
-            required
-          >
-            {activeCourts.length > 1 && !selectValue ? (
-              <option value="">경기장 선택</option>
-            ) : null}
-            {activeCourts.map((c) => (
-              <option key={c.id} value={c.id}>
-                {c.name}
-              </option>
-            ))}
-          </select>
-        </label>
+        {hideLabels ? (
+          renderCourtSelect()
+        ) : (
+          <label className="flex min-w-0 flex-col gap-0.5 text-xs">
+            <span className="text-muted-foreground text-[10px] font-medium">
+              경기장
+            </span>
+            {renderCourtSelect()}
+          </label>
+        )}
         {resolved.hint ? (
           <p className="text-amber-800 col-span-full text-[10px] dark:text-amber-200">
             {resolved.hint}
@@ -183,35 +204,32 @@ export function MatchCourtControls({
 
   return (
     <div
-      className={
+      className={cn(
         inline
-          ? "flex flex-wrap items-end gap-2"
-          : "flex flex-col gap-2 rounded-md border bg-muted/20 p-2"
-      }
+          ? compactRow
+            ? "flex flex-wrap items-center gap-2"
+            : "flex flex-wrap items-end gap-2"
+          : "flex flex-col gap-2 rounded-md border bg-muted/20 p-2",
+      )}
     >
-      {resolved.hint ? (
+      {resolved.hint && !compactRow ? (
         <p className="text-amber-800 w-full text-[10px] dark:text-amber-200">
           {resolved.hint}
         </p>
       ) : null}
-      <label className="flex flex-col gap-0.5 text-xs">
-        <span className="text-muted-foreground text-[10px]">경기장</span>
-        <select
-          className="border-input bg-background h-8 w-full rounded-md border px-2 text-xs"
-          value={selectValue}
-          onChange={(e) => handleCourtChange(e.target.value)}
-          required
+      {hideLabels ? (
+        renderCourtSelect()
+      ) : (
+        <label
+          className={cn(
+            "flex flex-col gap-0.5 text-xs",
+            compactRow && "min-w-[7rem] flex-1",
+          )}
         >
-          {activeCourts.length > 1 && !selectValue ? (
-            <option value="">경기장 선택</option>
-          ) : null}
-          {activeCourts.map((c) => (
-            <option key={c.id} value={c.id}>
-              {c.name}
-            </option>
-          ))}
-        </select>
-      </label>
+          <span className="text-muted-foreground text-[10px]">경기장</span>
+          {renderCourtSelect()}
+        </label>
+      )}
       {!hideCourtOrder ? (
         <label className="flex flex-col gap-0.5 text-xs">
           <span className="text-muted-foreground text-[10px]">경기장 순서</span>
@@ -229,16 +247,18 @@ export function MatchCourtControls({
         <Button
           type="button"
           size="sm"
-          className="h-7 text-[11px]"
+          className={cn(
+            compactRow ? "h-8 shrink-0 px-3 text-xs" : "h-7 text-[11px]",
+          )}
           disabled={pending || !selectValue}
           onClick={() => save()}
         >
-          {pending ? "저장 중…" : "경기장 저장"}
+          {pending ? "저장 중…" : compactRow ? "저장" : "경기장 저장"}
         </Button>
       ) : pending ? (
         <p className="text-muted-foreground text-[10px]">저장 중…</p>
       ) : null}
-      {hasOfficialResults ? (
+      {hasOfficialResults && !compactRow ? (
         <p className="text-amber-800 text-[10px] dark:text-amber-200">
           결과 확정 경기 — 경기장만 변경됩니다.
         </p>

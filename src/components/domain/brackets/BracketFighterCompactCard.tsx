@@ -1,4 +1,5 @@
 import type { ReactNode } from "react";
+import { BracketFighterInlineIdentity } from "@/components/domain/brackets/BracketFighterInlineIdentity";
 import { cn } from "@/lib/utils";
 
 export type BracketFighterCompactBadgeVariant =
@@ -31,7 +32,7 @@ export function BracketFighterCompactBadge({
   );
 }
 
-/** 대진표 후보·경기 편집 슬롯 공용 — 선수명/체육관 중심 compact 표시 */
+/** 대진표 후보·경기 편집 슬롯 공용 — 체육관 · 선수명 한 줄 compact */
 export function BracketFighterCompactCard({
   fighterName,
   gymName,
@@ -53,26 +54,21 @@ export function BracketFighterCompactCard({
 }) {
   if (empty) {
     return (
-      <div className={cn("min-w-0 space-y-1.5", className)}>
-        <p className="text-muted-foreground text-sm leading-tight">
-          {emptyLabel}
-        </p>
+      <div className={cn("min-w-0 space-y-1", className)}>
+        <BracketFighterInlineIdentity fallbackText={emptyLabel} />
         {children}
       </div>
     );
   }
 
   return (
-    <div className={cn("min-w-0 space-y-1", className)}>
-      <div className="flex items-start justify-between gap-2">
-        <div className="min-w-0">
-          <p className="truncate text-sm font-semibold leading-tight">
-            {fighterName}
-          </p>
-          <p className="text-muted-foreground truncate text-xs leading-tight">
-            {gymName}
-          </p>
-        </div>
+    <div className={cn("min-w-0 space-y-0.5", className)}>
+      <div className="flex min-w-0 items-center gap-1.5">
+        <BracketFighterInlineIdentity
+          fighterName={fighterName}
+          gymName={gymName}
+          className="min-w-0 flex-1"
+        />
         {statusBadges ? (
           <div className="flex shrink-0 flex-wrap justify-end gap-1">
             {statusBadges}
@@ -80,7 +76,10 @@ export function BracketFighterCompactCard({
         ) : null}
       </div>
       {metaLine ? (
-        <p className="text-muted-foreground truncate text-xs leading-tight">
+        <p
+          className="text-muted-foreground truncate text-[11px] leading-tight"
+          title={metaLine}
+        >
           {metaLine}
         </p>
       ) : null}

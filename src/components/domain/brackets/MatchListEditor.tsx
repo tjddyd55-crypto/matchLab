@@ -4,11 +4,11 @@ import { useMemo, useState, useTransition } from "react";
 import { useRouter } from "next/navigation";
 import { addEmptyBracketMatchAction } from "@/features/brackets/actions";
 import { OrganizerMatchEditCard } from "@/components/domain/brackets/OrganizerMatchEditCard";
+import { BracketMatchColumnHeader } from "@/components/domain/brackets/BracketMatchCompactRow";
 import type { OrganizerApprovedFighterOptionVM } from "@/lib/services/bracket.service";
 import type { OrganizerBracketMatchVM } from "@/lib/services/bracket.service";
 import type { EventCourtVM } from "@/lib/services/event-court.service";
 import { formatCourtTabLabel } from "@/lib/court-tab-label";
-import type { EventDivisionDisplayInput } from "@/lib/event-division-fields";
 import { Button } from "@/components/ui/button";
 import { BracketType } from "@/lib/enums";
 import { sortMatchesByOrder } from "@/lib/match-order-display";
@@ -21,7 +21,6 @@ export function MatchListEditor({
   bracketIsPublic,
   matches,
   options,
-  division,
 }: {
   eventId: string;
   courts: EventCourtVM[];
@@ -30,7 +29,6 @@ export function MatchListEditor({
   bracketIsPublic?: boolean;
   matches: OrganizerBracketMatchVM[];
   options: OrganizerApprovedFighterOptionVM[];
-  division?: EventDivisionDisplayInput | null;
 }) {
   const router = useRouter();
   const [pending, startTransition] = useTransition();
@@ -119,7 +117,8 @@ export function MatchListEditor({
           등록된 경기가 없습니다. 경기 추가 또는 자동매칭을 사용하세요.
         </p>
       ) : (
-        <div className="flex flex-col gap-3">
+        <div className="flex flex-col gap-2">
+          <BracketMatchColumnHeader />
           {sortedMatches.map((m) => (
             <OrganizerMatchEditCard
               key={m.id}
@@ -131,8 +130,6 @@ export function MatchListEditor({
               options={options}
               bracketType={bracketType}
               bracketIsPublic={bracketIsPublic}
-              division={division}
-              compactDivision
             />
           ))}
         </div>

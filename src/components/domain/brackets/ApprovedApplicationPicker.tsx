@@ -1,5 +1,6 @@
 import type { OrganizerApprovedFighterOptionVM } from "@/lib/services/bracket.service";
 import type { FighterPickerOptionState } from "@/lib/bracket-fighter-picker";
+import { formatFighterInlineIdentity } from "@/components/domain/brackets/BracketFighterInlineIdentity";
 import { cn } from "@/lib/utils";
 
 export function ApprovedApplicationPicker({
@@ -43,7 +44,9 @@ export function ApprovedApplicationPicker({
         const reason = state?.reason;
         const warningReason = state?.warningReason ?? o.assignabilityWarningReason;
         const hint = state?.statusHint;
-        const labelParts = [o.label.split(" · ")[0]];
+        const labelParts = [
+          formatFighterInlineIdentity(o.gymName, o.fighterName) || o.label,
+        ];
         if (hint) labelParts.push(`(${hint})`);
         if (warningReason && selectable) {
           labelParts.push(`— ${warningReason}`);
