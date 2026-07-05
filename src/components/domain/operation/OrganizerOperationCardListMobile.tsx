@@ -11,6 +11,7 @@ import { DivisionCompactDisplay } from "@/components/domain/shared/DivisionCompa
 import type { OperationMatchRowVM } from "@/components/domain/operation/operation-match-row";
 import { getOperationMatchPhase } from "@/lib/match-operation-display";
 import { toMatchOpsProps } from "@/components/domain/operation/operation-match-row";
+import { operationExpandedMobileCardClass } from "@/lib/ui/list-table-styles";
 
 export function OrganizerOperationCardListMobile({
   rows,
@@ -33,10 +34,13 @@ export function OrganizerOperationCardListMobile({
 
   return (
     <div className="flex flex-col gap-4 md:hidden">
-      {rows.map((row) => (
+      {rows.map((row) => {
+        const isExpanded = expandedMatchId === row.matchId;
+
+        return (
         <article
           key={row.matchId}
-          className="ring-foreground/10 space-y-3 rounded-xl border bg-card p-4 shadow-sm"
+          className={operationExpandedMobileCardClass(isExpanded)}
         >
           <div className="flex flex-wrap items-start justify-between gap-2">
             <div>
@@ -79,8 +83,8 @@ export function OrganizerOperationCardListMobile({
             onOpenView={() => onTogglePanel(row)}
           />
 
-          {expandedMatchId === row.matchId ? (
-            <div className="space-y-3 border-t pt-3">
+          {isExpanded ? (
+            <div className="space-y-3 border-t border-primary/20 pt-3">
               <OrganizerJudgeAggregationInlineSection
                 matchId={row.matchId}
                 open
@@ -102,7 +106,8 @@ export function OrganizerOperationCardListMobile({
             </div>
           ) : null}
         </article>
-      ))}
+        );
+      })}
     </div>
   );
 }

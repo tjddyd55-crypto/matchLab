@@ -1,9 +1,7 @@
 "use client";
 
-import { Fragment } from "react";
 import { OperationJudgeBriefCell } from "@/components/domain/operation/OperationJudgeBriefCell";
-import { OperationMatchFighterMatchup } from "@/components/domain/operation/OperationMatchFighterMatchup";
-import { extractDisplayResultMemo } from "@/lib/match-result-memo";
+import { OperationMatchFighterMatchup } from "@/components/domain/operation/OperationMatchFighterMatchup";import { extractDisplayResultMemo } from "@/lib/match-result-memo";
 import { OrganizerMatchOpsPanel } from "@/components/domain/brackets/OrganizerMatchOpsPanel";
 import { OrganizerJudgeAggregationInlineSection } from "@/components/domain/judges/OrganizerJudgeAggregationInlineSection";
 import { MatchFinalResultSummary } from "@/components/domain/operation/MatchFinalResultSummary";
@@ -13,6 +11,13 @@ import { DivisionCompactDisplay } from "@/components/domain/shared/DivisionCompa
 import type { OperationMatchRowVM } from "@/components/domain/operation/operation-match-row";
 import { getOperationMatchPhase } from "@/lib/match-operation-display";
 import { toMatchOpsProps } from "@/components/domain/operation/operation-match-row";
+import {
+  listTableHeaderCellCenterClass,
+  listTableHeaderCellStartClass,
+  listTableHeaderRowClass,
+  operationExpandedDetailRowClass,
+  operationExpandedSummaryRowClass,
+} from "@/lib/ui/list-table-styles";
 import {
   nowrapTruncateClass,
   tableCellCenterClass,
@@ -50,23 +55,24 @@ export function OrganizerOperationTableDesktop({
           <col className="w-[7%]" />
           <col className="w-[8%]" />
         </colgroup>
-        <thead className="bg-muted/50 border-b text-xs">
-          <tr className="align-middle">
-            <th className="px-2 py-2 text-center font-medium">순서</th>
-            <th className="px-2 py-2 text-left font-medium">경기구분/체급</th>
-            <th className="px-2 py-2 text-center font-medium">대진</th>
-            <th className="px-2 py-2 text-center font-medium">경기 상태</th>
-            <th className="px-2 py-2 text-center font-medium">심판 결과</th>
-            <th className="px-2 py-2 text-center font-medium">메모</th>
-            <th className="px-2 py-2 text-center font-medium">액션</th>
+        <thead className={listTableHeaderRowClass}>
+          <tr>
+            <th className={listTableHeaderCellCenterClass}>순서</th>
+            <th className={listTableHeaderCellStartClass}>경기구분/체급</th>
+            <th className={listTableHeaderCellCenterClass}>대진</th>
+            <th className={listTableHeaderCellCenterClass}>경기 상태</th>
+            <th className={listTableHeaderCellCenterClass}>심판 결과</th>
+            <th className={listTableHeaderCellCenterClass}>메모</th>
+            <th className={listTableHeaderCellCenterClass}>액션</th>
           </tr>
         </thead>
-        <tbody>
-          {rows.map((row) => {
-            const displayMemo = extractDisplayResultMemo(row.resultMemo);
-            return (
-            <Fragment key={row.matchId}>
-              <tr className="border-b align-middle">
+        {rows.map((row) => {
+          const displayMemo = extractDisplayResultMemo(row.resultMemo);
+          const isExpanded = expandedMatchId === row.matchId;
+
+          return (
+            <tbody key={row.matchId}>
+              <tr className={operationExpandedSummaryRowClass(isExpanded)}>
                 <td className="px-2 py-2 align-middle">
                   <div className={tableCellCenterClass}>
                     <span className="font-mono text-xs whitespace-nowrap">
@@ -139,8 +145,8 @@ export function OrganizerOperationTableDesktop({
                   </div>
                 </td>
               </tr>
-              {expandedMatchId === row.matchId ? (
-                <tr className="border-b bg-muted/10">
+              {isExpanded ? (
+                <tr className={operationExpandedDetailRowClass}>
                   <td colSpan={7} className="px-3 py-3">
                     <div className="grid gap-3 xl:grid-cols-[minmax(0,1fr)_minmax(0,0.75fr)_minmax(0,1.1fr)]">
                       <OrganizerJudgeAggregationInlineSection
@@ -168,10 +174,9 @@ export function OrganizerOperationTableDesktop({
                   </td>
                 </tr>
               ) : null}
-            </Fragment>
-            );
-          })}
-        </tbody>
+            </tbody>
+          );
+        })}
       </table>
     </div>
   );

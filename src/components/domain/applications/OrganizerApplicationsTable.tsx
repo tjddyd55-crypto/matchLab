@@ -19,6 +19,12 @@ import { DivisionCompactDisplay } from "@/components/domain/shared/DivisionCompa
 import { DivisionGenderBadge } from "@/components/domain/shared/DivisionGenderBadge";
 import type { EventDivisionDisplayInput } from "@/lib/event-division-fields";
 import { MATCH_CATEGORY_WITH_WEIGHT_LABEL } from "@/lib/ui-labels/match-category";
+import { cn } from "@/lib/utils";
+import {
+  listTableHeaderCellCenterClass,
+  listTableHeaderCellStartClass,
+  listTableHeaderRowClass,
+} from "@/lib/ui/list-table-styles";
 import { Checkbox } from "@/components/ui/checkbox";
 import {
   Table,
@@ -69,15 +75,27 @@ export function OrganizerApplicationsTable({
   return (
     <div className="hidden min-w-0 2xl:block">
       <Table className="w-full table-fixed">
-        <TableHeader>
-          <TableRow>
-            <TableHead className="w-[3%]" />
-            <TableHead className="w-[10%]">체육관</TableHead>
-            <TableHead className="w-[13%]">선수 이름</TableHead>
-            <TableHead className="w-[20%]">{MATCH_CATEGORY_WITH_WEIGHT_LABEL}</TableHead>
-            <TableHead className="w-[10%]">입금내역</TableHead>
-            <TableHead className="w-[10%]">상태</TableHead>
-            <TableHead className="w-[24%] text-right">상태입력/처리</TableHead>
+        <TableHeader className={listTableHeaderRowClass}>
+          <TableRow className="border-b hover:bg-transparent">
+            <TableHead className={cn(listTableHeaderCellCenterClass, "w-[3%]")} />
+            <TableHead className={cn(listTableHeaderCellStartClass, "w-[10%]")}>
+              체육관
+            </TableHead>
+            <TableHead className={cn(listTableHeaderCellStartClass, "w-[13%]")}>
+              선수명
+            </TableHead>
+            <TableHead className={cn(listTableHeaderCellStartClass, "w-[20%]")}>
+              {MATCH_CATEGORY_WITH_WEIGHT_LABEL}
+            </TableHead>
+            <TableHead className={cn(listTableHeaderCellCenterClass, "w-[10%]")}>
+              입금내역
+            </TableHead>
+            <TableHead className={cn(listTableHeaderCellCenterClass, "w-[10%]")}>
+              상태
+            </TableHead>
+            <TableHead className={cn(listTableHeaderCellCenterClass, "w-[24%]")}>
+              상태입력/처리
+            </TableHead>
           </TableRow>
         </TableHeader>
         <TableBody>
@@ -111,7 +129,7 @@ export function OrganizerApplicationsTable({
                   secondaryClassName="text-[11px]"
                 />
               </TableCell>
-              <TableCell className="align-top">
+              <TableCell className="align-top text-center">
                 <OrganizerPaymentDisplayBadge paymentStatus={row.paymentStatus} />
                 {row.depositorName ? (
                   <p className="text-muted-foreground mt-0.5 truncate text-[10px]">
@@ -119,18 +137,20 @@ export function OrganizerApplicationsTable({
                   </p>
                 ) : null}
               </TableCell>
-              <TableCell className="align-top">
+              <TableCell className="align-top text-center">
                 <OrganizerApplicationStatusBadge
                   applicationStatus={row.applicationStatus}
                   cancellationSource={row.cancellationSource}
                 />
               </TableCell>
-              <TableCell className="align-top text-right">
-                <OrganizerApplicationRowActions
-                  eventId={eventId}
-                  row={row}
-                  compact
-                />
+              <TableCell className="align-top text-center">
+                <div className="flex justify-center">
+                  <OrganizerApplicationRowActions
+                    eventId={eventId}
+                    row={row}
+                    compact
+                  />
+                </div>
               </TableCell>
             </TableRow>
           ))}
