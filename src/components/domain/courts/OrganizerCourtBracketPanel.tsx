@@ -5,6 +5,7 @@ import { useRouter } from "next/navigation";
 import {
   BracketMatchColumnHeader,
   BracketMatchCompactRow,
+  BracketMatchControlsRow,
 } from "@/components/domain/brackets/BracketMatchCompactRow";
 import { BracketMatchCenterCell } from "@/components/domain/brackets/BracketMatchCenterCell";
 import { BracketFighterCompactCard } from "@/components/domain/brackets/BracketFighterCompactCard";
@@ -336,8 +337,8 @@ export function OrganizerCourtBracketPanel({
                   />
                 }
                 controls={
-                  <div className="flex flex-wrap items-center gap-2">
-                    <div className="flex min-w-0 flex-1 flex-wrap items-center gap-2">
+                  <BracketMatchControlsRow
+                    left={
                       <MatchCourtControls
                         key={`${m.matchId}:${m.courtId ?? ""}:${m.courtOrder ?? ""}`}
                         inline
@@ -352,58 +353,60 @@ export function OrganizerCourtBracketPanel({
                         courtOrder={localOrders[m.matchId] ?? m.courtOrder}
                         hasOfficialResults={m.hasOfficialResults}
                       />
-                    </div>
-                    <div className="flex shrink-0 items-center justify-center px-1">
+                    }
+                    center={
                       <span className="text-muted-foreground text-xs tabular-nums">
                         {formatOperationalSettingsLabel(ops)}
                       </span>
-                    </div>
-                    {showReorder ? (
-                      <div className="flex shrink-0 items-center gap-1">
-                        <input
-                          type="number"
-                          min={1}
-                          aria-label="경기 순서"
-                          className="border-input bg-background h-8 w-14 rounded-md border px-1 text-xs"
-                          value={localOrders[m.matchId] ?? ""}
-                          onChange={(e) =>
-                            setOrderOverrides((prev) => ({
-                              ...prev,
-                              [m.matchId]: e.target.value
-                                ? Number(e.target.value)
-                                : null,
-                            }))
-                          }
-                        />
-                        <Button
-                          type="button"
-                          size="sm"
-                          variant="outline"
-                          className="h-8 w-8 shrink-0 p-0 text-base font-bold disabled:opacity-40"
-                          aria-label="위로 이동"
-                          disabled={courtIdx <= 0 || pending}
-                          onClick={() => moveAndSave(m.matchId, -1)}
-                        >
-                          ↑
-                        </Button>
-                        <Button
-                          type="button"
-                          size="sm"
-                          variant="outline"
-                          className="h-8 w-8 shrink-0 p-0 text-base font-bold disabled:opacity-40"
-                          aria-label="아래로 이동"
-                          disabled={
-                            courtIdx < 0 ||
-                            courtIdx >= courtMatches.length - 1 ||
-                            pending
-                          }
-                          onClick={() => moveAndSave(m.matchId, 1)}
-                        >
-                          ↓
-                        </Button>
-                      </div>
-                    ) : null}
-                  </div>
+                    }
+                    right={
+                      showReorder ? (
+                        <>
+                          <input
+                            type="number"
+                            min={1}
+                            aria-label="경기 순서"
+                            className="border-input bg-background h-8 w-14 rounded-md border px-1 text-xs"
+                            value={localOrders[m.matchId] ?? ""}
+                            onChange={(e) =>
+                              setOrderOverrides((prev) => ({
+                                ...prev,
+                                [m.matchId]: e.target.value
+                                  ? Number(e.target.value)
+                                  : null,
+                              }))
+                            }
+                          />
+                          <Button
+                            type="button"
+                            size="sm"
+                            variant="outline"
+                            className="h-8 w-8 shrink-0 p-0 text-base font-bold disabled:opacity-40"
+                            aria-label="위로 이동"
+                            disabled={courtIdx <= 0 || pending}
+                            onClick={() => moveAndSave(m.matchId, -1)}
+                          >
+                            ↑
+                          </Button>
+                          <Button
+                            type="button"
+                            size="sm"
+                            variant="outline"
+                            className="h-8 w-8 shrink-0 p-0 text-base font-bold disabled:opacity-40"
+                            aria-label="아래로 이동"
+                            disabled={
+                              courtIdx < 0 ||
+                              courtIdx >= courtMatches.length - 1 ||
+                              pending
+                            }
+                            onClick={() => moveAndSave(m.matchId, 1)}
+                          >
+                            ↓
+                          </Button>
+                        </>
+                      ) : null
+                    }
+                  />
                 }
               />
             );

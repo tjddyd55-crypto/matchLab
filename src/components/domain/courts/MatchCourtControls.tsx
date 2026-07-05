@@ -145,34 +145,44 @@ export function MatchCourtControls({
     );
   }
 
+  function renderCourtSelect(className?: string) {
+    return (
+      <select
+        className={cn(
+          "border-input bg-background h-8 rounded-md border px-2 text-xs",
+          compactRow ? "min-w-[7rem] flex-1" : "w-full",
+          className,
+        )}
+        aria-label="경기장"
+        value={selectValue}
+        onChange={(e) => handleCourtChange(e.target.value)}
+        required
+      >
+        {activeCourts.length > 1 && !selectValue ? (
+          <option value="">경기장 선택</option>
+        ) : null}
+        {activeCourts.map((c) => (
+          <option key={c.id} value={c.id}>
+            {c.name}
+          </option>
+        ))}
+      </select>
+    );
+  }
+
   if (unwrapped) {
     return (
       <>
-        <label className="flex min-w-0 flex-col gap-0.5 text-xs">
-          {hideLabels ? null : (
+        {hideLabels ? (
+          renderCourtSelect()
+        ) : (
+          <label className="flex min-w-0 flex-col gap-0.5 text-xs">
             <span className="text-muted-foreground text-[10px] font-medium">
               경기장
             </span>
-          )}
-          <select
-            className={cn(
-              "border-input bg-background w-full rounded-md border px-2 text-xs",
-              compactRow ? "h-8" : "h-8",
-            )}
-            value={selectValue}
-            onChange={(e) => handleCourtChange(e.target.value)}
-            required
-          >
-            {activeCourts.length > 1 && !selectValue ? (
-              <option value="">경기장 선택</option>
-            ) : null}
-            {activeCourts.map((c) => (
-              <option key={c.id} value={c.id}>
-                {c.name}
-              </option>
-            ))}
-          </select>
-        </label>
+            {renderCourtSelect()}
+          </label>
+        )}
         {resolved.hint ? (
           <p className="text-amber-800 col-span-full text-[10px] dark:text-amber-200">
             {resolved.hint}
@@ -202,39 +212,24 @@ export function MatchCourtControls({
           : "flex flex-col gap-2 rounded-md border bg-muted/20 p-2",
       )}
     >
-      {resolved.hint ? (
+      {resolved.hint && !compactRow ? (
         <p className="text-amber-800 w-full text-[10px] dark:text-amber-200">
           {resolved.hint}
         </p>
       ) : null}
-      <label
-        className={cn(
-          "flex flex-col gap-0.5 text-xs",
-          compactRow && "min-w-[7rem] flex-1",
-        )}
-      >
-        {hideLabels ? null : (
-          <span className="text-muted-foreground text-[10px]">경기장</span>
-        )}
-        <select
+      {hideLabels ? (
+        renderCourtSelect()
+      ) : (
+        <label
           className={cn(
-            "border-input bg-background w-full rounded-md border px-2 text-xs",
-            compactRow ? "h-8" : "h-8",
+            "flex flex-col gap-0.5 text-xs",
+            compactRow && "min-w-[7rem] flex-1",
           )}
-          value={selectValue}
-          onChange={(e) => handleCourtChange(e.target.value)}
-          required
         >
-          {activeCourts.length > 1 && !selectValue ? (
-            <option value="">경기장 선택</option>
-          ) : null}
-          {activeCourts.map((c) => (
-            <option key={c.id} value={c.id}>
-              {c.name}
-            </option>
-          ))}
-        </select>
-      </label>
+          <span className="text-muted-foreground text-[10px]">경기장</span>
+          {renderCourtSelect()}
+        </label>
+      )}
       {!hideCourtOrder ? (
         <label className="flex flex-col gap-0.5 text-xs">
           <span className="text-muted-foreground text-[10px]">경기장 순서</span>
@@ -263,7 +258,7 @@ export function MatchCourtControls({
       ) : pending ? (
         <p className="text-muted-foreground text-[10px]">저장 중…</p>
       ) : null}
-      {hasOfficialResults ? (
+      {hasOfficialResults && !compactRow ? (
         <p className="text-amber-800 text-[10px] dark:text-amber-200">
           결과 확정 경기 — 경기장만 변경됩니다.
         </p>

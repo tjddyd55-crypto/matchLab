@@ -3,7 +3,7 @@ import { cn } from "@/lib/utils";
 
 /** 경기 row 공통 grid — 경기번호 | 홍 | 중앙 | 청 */
 export const bracketMatchRowGridClass =
-  "grid grid-cols-1 gap-2 md:grid-cols-[3.25rem_minmax(0,1fr)_5.75rem_minmax(0,1fr)] md:items-stretch md:gap-x-2";
+  "grid grid-cols-1 gap-1.5 md:grid-cols-[2.75rem_minmax(0,1fr)_5rem_minmax(0,1fr)] md:items-center md:gap-x-2";
 
 export function BracketMatchColumnHeader({
   className,
@@ -16,14 +16,14 @@ export function BracketMatchColumnHeader({
     <div
       className={cn(
         bracketMatchRowGridClass,
-        "text-muted-foreground mb-1 hidden px-2 text-[10px] font-medium uppercase tracking-wide md:grid",
+        "text-muted-foreground mb-0.5 hidden px-2 text-[10px] font-medium uppercase tracking-wide md:grid",
         className,
       )}
     >
       <span className="text-center">경기</span>
       <span>홍코너</span>
       <span className="text-center">{centerLabel ?? ""}</span>
-      <span className="text-right md:text-left">청코너</span>
+      <span>청코너</span>
     </div>
   );
 }
@@ -62,28 +62,60 @@ export function BracketMatchCompactRow({
         </p>
       ) : null}
 
-      <div className={cn(bracketMatchRowGridClass, "px-2 py-2")}>
-        <div className="flex min-h-[2.5rem] flex-col items-start justify-center gap-1 md:items-center md:text-center">
+      <div className={cn(bracketMatchRowGridClass, "px-2 py-1.5")}>
+        <div className="flex flex-col items-start justify-center gap-0.5 md:items-center md:text-center">
           <span className="text-xs font-bold tabular-nums leading-none">
             {matchOrderLabel}
           </span>
           {statusArea}
         </div>
 
-        <div className="min-w-0">{redSlot}</div>
+        <div className="flex min-h-[2.75rem] min-w-0 items-center">{redSlot}</div>
 
-        <div className="border-border/60 flex min-h-[2.5rem] items-center justify-center border-y py-1 md:border-y-0 md:py-0">
+        <div className="flex min-h-[2.75rem] items-center justify-center self-center">
           {center}
         </div>
 
-        <div className="min-w-0">{blueSlot}</div>
+        <div className="flex min-h-[2.75rem] min-w-0 items-center">{blueSlot}</div>
       </div>
 
       {controls ? (
-        <div className="border-t bg-muted/10 px-2 py-1.5">{controls}</div>
+        <div className="border-t bg-muted/10 px-2 py-1">{controls}</div>
       ) : null}
 
       {footer}
     </article>
+  );
+}
+
+/** 하단 control row — 좌: 경기장 / 중: 라운드·시간 / 우: 순서 */
+export function BracketMatchControlsRow({
+  left,
+  center,
+  right,
+  className,
+}: {
+  left: ReactNode;
+  center?: ReactNode;
+  right?: ReactNode;
+  className?: string;
+}) {
+  return (
+    <div
+      className={cn(
+        "grid grid-cols-1 items-center gap-2 md:grid-cols-[minmax(0,1fr)_auto_auto]",
+        className,
+      )}
+    >
+      <div className="flex min-w-0 flex-wrap items-center gap-2">{left}</div>
+      {center ? (
+        <div className="flex shrink-0 items-center justify-center">{center}</div>
+      ) : null}
+      {right ? (
+        <div className="flex shrink-0 items-center justify-end gap-1">
+          {right}
+        </div>
+      ) : null}
+    </div>
   );
 }

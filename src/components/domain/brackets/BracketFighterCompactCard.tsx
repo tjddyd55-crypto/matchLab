@@ -63,7 +63,7 @@ export function BracketFighterCompactCard({
 
   return (
     <div className={cn("min-w-0 space-y-0.5", className)}>
-      <div className="flex items-start justify-between gap-1.5">
+      <div className="flex min-w-0 items-center gap-1.5">
         <BracketFighterInlineIdentity
           fighterName={fighterName}
           gymName={gymName}
@@ -76,7 +76,10 @@ export function BracketFighterCompactCard({
         ) : null}
       </div>
       {metaLine ? (
-        <p className="text-muted-foreground truncate text-[11px] leading-tight">
+        <p
+          className="text-muted-foreground truncate text-[11px] leading-tight"
+          title={metaLine}
+        >
           {metaLine}
         </p>
       ) : null}

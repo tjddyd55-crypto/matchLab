@@ -29,15 +29,16 @@ export function BracketFighterInlineIdentity({
   const text = formatFighterInlineIdentity(gymName, fighterName);
 
   return (
-    <p
+    <span
       className={cn(
-        "text-sm font-semibold leading-tight",
-        truncate && "truncate",
+        "block text-sm font-semibold leading-tight",
+        truncate && "truncate whitespace-nowrap",
         !text && "text-muted-foreground font-normal",
         className,
       )}
+      title={text || fallbackText}
     >
       {text || fallbackText}
-    </p>
+    </span>
   );
 }

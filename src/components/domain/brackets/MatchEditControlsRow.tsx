@@ -23,30 +23,26 @@ export function MatchEditControlsRow({
 }) {
   return (
     <div className="flex flex-wrap items-center gap-2">
-      <div className="flex min-w-0 flex-1 flex-wrap items-center gap-2">
-        <MatchCourtControls
-          eventId={eventId}
-          bracketId={bracketId}
-          matchId={match.id}
-          courts={courts}
-          courtId={match.courtId}
-          courtOrder={match.courtOrder}
-          hasOfficialResults={match.hasOfficialResults}
-          inline
-          hideCourtOrder
-          hideLabels
-          compactRow
-        />
-      </div>
-      <div className="flex flex-wrap items-center gap-2">
-        <MatchOperationalSettingsSelect
-          matchId={match.id}
-          resultMemo={match.resultMemo}
-          disabled={editLocked}
-          hideLabels
-          inline
-        />
-      </div>
+      <MatchCourtControls
+        eventId={eventId}
+        bracketId={bracketId}
+        matchId={match.id}
+        courts={courts}
+        courtId={match.courtId}
+        courtOrder={match.courtOrder}
+        hasOfficialResults={match.hasOfficialResults}
+        inline
+        hideCourtOrder
+        hideLabels
+        compactRow
+      />
+      <MatchOperationalSettingsSelect
+        matchId={match.id}
+        resultMemo={match.resultMemo}
+        disabled={editLocked}
+        hideLabels
+        inline
+      />
     </div>
   );
 }
