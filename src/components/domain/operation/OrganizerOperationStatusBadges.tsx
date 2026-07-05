@@ -18,7 +18,7 @@ export function OrganizerOperationStatusBadges({
   className?: string;
 }) {
   return (
-    <div className={cn("flex flex-wrap items-center gap-2", className)}>
+    <div className={cn("flex flex-nowrap items-center justify-center gap-2", className)}>
       <Badge
         variant={operationPhaseBadgeVariant(phase)}
         className={statusBadgeSizeClasses.md}

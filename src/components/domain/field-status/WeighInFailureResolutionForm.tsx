@@ -63,7 +63,7 @@ export function WeighInFailureResolutionForm({
     <div
       className={cn(
         "flex w-full min-w-0 max-w-full flex-wrap gap-1",
-        !compact && "min-w-[12rem]",
+        compact ? "justify-center" : "min-w-[12rem]",
       )}
     >
       <Button
@@ -155,7 +155,7 @@ export function DisqualificationReasonForm({
       onSubmit={handleSubmit}
       className={cn(
         "flex w-full min-w-0 max-w-full flex-col gap-1.5",
-        !compact && "min-w-[12rem]",
+        compact ? "items-center" : "min-w-[12rem]",
       )}
     >
       <select

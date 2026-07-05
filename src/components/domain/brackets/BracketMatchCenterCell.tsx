@@ -21,11 +21,16 @@ export function BracketMatchCenterCell({
         className,
       )}
     >
-      <span className={cn(bracketCardTypography.vs, "leading-none")}>
+      <span
+        className={cn(
+          bracketCardTypography.vs,
+          "leading-none whitespace-nowrap",
+        )}
+      >
         {vsLabel}
       </span>
       {badges ? (
-        <div className="flex flex-wrap items-center justify-center gap-0.5">
+        <div className="flex max-w-full flex-nowrap items-center justify-center gap-0.5 overflow-hidden">
           {badges}
         </div>
       ) : null}
@@ -33,8 +38,9 @@ export function BracketMatchCenterCell({
         <span
           className={cn(
             bracketCardTypography.opsPill,
-            "text-muted-foreground leading-none",
+            "text-muted-foreground truncate leading-none whitespace-nowrap",
           )}
+          title={metaLine}
         >
           {metaLine}
         </span>

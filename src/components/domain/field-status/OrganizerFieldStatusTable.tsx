@@ -9,9 +9,12 @@ import { FieldFinalResultCell } from "@/components/domain/field-status/FieldFina
 import { FieldStatusResetButton } from "@/components/domain/field-status/FieldStatusResetButton";
 import { DivisionCompactDisplay } from "@/components/domain/shared/DivisionCompactDisplay";
 import type { FieldStatusRowDTO } from "@/lib/services/field-status.service";
+import {
+  fieldStatusCenterCellClass,
+  fieldStatusTextCellClass,
+  nowrapTruncateClass,
+} from "@/lib/ui/match-grid-layout";
 import { APPLIED_MATCH_CATEGORY_LABEL } from "@/lib/ui-labels/match-category";
-
-const fieldStatusCellClass = "flex min-h-[2.5rem] min-w-0 items-center";
 
 export function OrganizerFieldStatusTable({
   rows,
@@ -33,36 +36,36 @@ export function OrganizerFieldStatusTable({
       <div className="hidden w-full min-w-0 rounded-xl border md:block">
         <table className="w-full table-fixed text-left text-sm">
           <colgroup>
-            <col className="w-[8%]" />
-            <col className="w-[10%]" />
-            <col className="w-[17%]" />
-            <col className="w-[10%]" />
-            <col className="w-[17%]" />
-            <col className="w-[14%]" />
+            <col className="w-[9%]" />
+            <col className="w-[11%]" />
             <col className="w-[18%]" />
+            <col className="w-[11%]" />
+            <col className="w-[14%]" />
+            <col className="w-[14%]" />
+            <col className="w-[17%]" />
             <col className="w-[6%]" />
           </colgroup>
           <thead className="bg-muted/40 text-xs">
             <tr className="align-middle">
-              <th className="px-2 py-2 font-medium">체육관</th>
-              <th className="px-2 py-2 font-medium">선수명</th>
-              <th className="px-2 py-2 font-medium">
+              <th className="px-2 py-2 text-left font-medium">체육관</th>
+              <th className="px-2 py-2 text-left font-medium">선수명</th>
+              <th className="px-2 py-2 text-left font-medium">
                 {APPLIED_MATCH_CATEGORY_LABEL}
               </th>
-              <th className="px-2 py-2 font-medium">계체 몸무게</th>
-              <th className="px-2 py-2 font-medium">진행여부</th>
-              <th className="px-2 py-2 font-medium">실격 사유</th>
-              <th className="px-2 py-2 font-medium">경기결과</th>
-              <th className="px-2 py-2 font-medium">초기화</th>
+              <th className="px-2 py-2 text-center font-medium">계체 몸무게</th>
+              <th className="px-2 py-2 text-center font-medium">진행여부</th>
+              <th className="px-2 py-2 text-center font-medium">실격 사유</th>
+              <th className="px-2 py-2 text-center font-medium">경기결과</th>
+              <th className="px-2 py-2 text-center font-medium">초기화</th>
             </tr>
           </thead>
           <tbody>
             {rows.map((row) => (
               <tr key={row.applicationId} className="border-t align-middle">
                 <td className="min-w-0 px-2 py-2 align-middle text-xs font-medium">
-                  <div className={fieldStatusCellClass}>
+                  <div className={fieldStatusTextCellClass}>
                     <span
-                      className="line-clamp-2 break-words whitespace-normal leading-snug"
+                      className={nowrapTruncateClass}
                       title={row.gymName}
                     >
                       {row.gymName}
@@ -70,23 +73,26 @@ export function OrganizerFieldStatusTable({
                   </div>
                 </td>
                 <td className="min-w-0 px-2 py-2 align-middle">
-                  <div className={fieldStatusCellClass}>
-                    <p className="break-words font-medium leading-snug">
+                  <div className={fieldStatusTextCellClass}>
+                    <p
+                      className={`font-medium leading-snug ${nowrapTruncateClass}`}
+                      title={row.fighterName}
+                    >
                       {row.fighterName}
                     </p>
                   </div>
                 </td>
                 <td className="min-w-0 px-2 py-2 align-middle text-xs leading-snug">
-                  <div className={fieldStatusCellClass} title={row.divisionLabel}>
+                  <div className={fieldStatusTextCellClass} title={row.divisionLabel}>
                     <DivisionCompactDisplay
                       division={row.division}
-                      mainClassName="text-xs"
+                      mainClassName={`text-xs ${nowrapTruncateClass}`}
                       secondaryClassName="text-[11px]"
                     />
                   </div>
                 </td>
                 <td className="min-w-0 px-2 py-2 align-middle">
-                  <div className={fieldStatusCellClass}>
+                  <div className={fieldStatusCenterCellClass}>
                     <WeighInWeightInput
                       key={`${row.applicationId}-${row.weighInWeightKg}`}
                       row={row}
@@ -94,22 +100,22 @@ export function OrganizerFieldStatusTable({
                   </div>
                 </td>
                 <td className="min-w-0 px-2 py-2 align-middle">
-                  <div className={fieldStatusCellClass}>
+                  <div className={fieldStatusCenterCellClass}>
                     <WeighInFailureResolutionForm row={row} compact />
                   </div>
                 </td>
                 <td className="min-w-0 px-2 py-2 align-middle">
-                  <div className={fieldStatusCellClass}>
+                  <div className={fieldStatusCenterCellClass}>
                     <DisqualificationReasonForm row={row} compact />
                   </div>
                 </td>
                 <td className="min-w-0 px-2 py-2 align-middle">
-                  <div className={fieldStatusCellClass}>
+                  <div className={fieldStatusCenterCellClass}>
                     <FieldFinalResultCell row={row} />
                   </div>
                 </td>
                 <td className="min-w-0 px-2 py-2 align-middle">
-                  <div className={fieldStatusCellClass}>
+                  <div className={fieldStatusCenterCellClass}>
                     <FieldStatusResetButton row={row} />
                   </div>
                 </td>
@@ -125,10 +131,10 @@ export function OrganizerFieldStatusTable({
             key={row.applicationId}
             className="min-w-0 rounded-xl border bg-card p-3 shadow-sm"
           >
-            <p className="text-muted-foreground break-words text-xs font-medium">
+            <p className="text-muted-foreground truncate text-xs font-medium">
               {row.gymName}
             </p>
-            <h3 className="break-words font-medium">{row.fighterName}</h3>
+            <h3 className="truncate font-medium">{row.fighterName}</h3>
             <div className="mt-2" title={row.divisionLabel}>
               <DivisionCompactDisplay
                 division={row.division}

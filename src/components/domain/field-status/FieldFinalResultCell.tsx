@@ -23,7 +23,7 @@ export function FieldFinalResultBadge({
   return (
     <Badge
       variant={getFieldFinalResultBadgeVariant(result.tone)}
-      className={statusBadgeSizeClasses[size]}
+      className={`${statusBadgeSizeClasses[size]} whitespace-nowrap`}
     >
       {result.label}
     </Badge>
@@ -34,13 +34,6 @@ function isWeighInFailed(status: WeighInStatus): boolean {
   return status === WeighInStatus.fail || status === WeighInStatus.manual_fail;
 }
 
-/**
- * 계체실패 흐름 배지 묶음.
- * - 미결정: [계체실패]
- * - 경기진행 허용: [계체실패] [경기진행] [핸디캡]
- * - 경기취소: [계체실패] [경기취소]
- * 핸디캡 메모(텍스트)는 표시하지 않는다.
- */
 function WeighInFailurePills({
   resolution,
   size = "sm",
@@ -50,22 +43,31 @@ function WeighInFailurePills({
 }) {
   const sizeClass = statusBadgeSizeClasses[size];
   return (
-    <div className="flex min-w-0 flex-wrap items-center gap-1">
-      <Badge variant="weighFailed" className={sizeClass}>
+    <div className="flex min-w-0 flex-nowrap items-center justify-center gap-1">
+      <Badge variant="weighFailed" className={`${sizeClass} whitespace-nowrap`}>
         계체실패
       </Badge>
       {resolution === WeighInFailureResolution.proceed_with_handicap ? (
         <>
-          <Badge variant="resultFailedContinue" className={sizeClass}>
+          <Badge
+            variant="resultFailedContinue"
+            className={`${sizeClass} whitespace-nowrap`}
+          >
             경기진행
           </Badge>
-          <Badge variant="resultFailedHandicap" className={sizeClass}>
+          <Badge
+            variant="resultFailedHandicap"
+            className={`${sizeClass} whitespace-nowrap`}
+          >
             핸디캡
           </Badge>
         </>
       ) : null}
       {resolution === WeighInFailureResolution.cancel_match ? (
-        <Badge variant="resultFailedCancelled" className={sizeClass}>
+        <Badge
+          variant="resultFailedCancelled"
+          className={`${sizeClass} whitespace-nowrap`}
+        >
           경기취소
         </Badge>
       ) : null}
@@ -79,7 +81,7 @@ export function FieldFinalResultCell({ row }: { row: FieldStatusRowDTO }) {
     isWeighInFailed(row.weighInStatus)
   ) {
     return (
-      <div className="min-w-0">
+      <div className="flex w-full min-w-0 justify-center">
         <WeighInFailurePills resolution={row.weighInFailureResolution} />
       </div>
     );
@@ -88,10 +90,13 @@ export function FieldFinalResultCell({ row }: { row: FieldStatusRowDTO }) {
   const result = computeFieldFinalResult(row);
 
   return (
-    <div className="min-w-0 space-y-1">
+    <div className="flex w-full min-w-0 flex-col items-center justify-center gap-0.5">
       <FieldFinalResultBadge row={row} />
       {result.reasonLabel ? (
-        <p className="text-muted-foreground text-[11px] leading-snug">
+        <p
+          className="text-muted-foreground max-w-full truncate text-[10px] leading-none whitespace-nowrap"
+          title={result.reasonLabel}
+        >
           {result.reasonLabel}
         </p>
       ) : null}

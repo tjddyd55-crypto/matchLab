@@ -254,8 +254,11 @@ export function WeighInWeightInput({ row }: { row: FieldStatusRowDTO }) {
   }
 
   return (
-    <div className="flex min-w-0 flex-col justify-center gap-1">
-      <form onSubmit={handleSubmit} className="flex items-center gap-1">
+    <div className="flex w-full min-w-0 flex-col items-center justify-center gap-0.5">
+      <form
+        onSubmit={handleSubmit}
+        className="flex items-center justify-center gap-1"
+      >
         <input
           name="weightKg"
           type="number"
@@ -278,7 +281,7 @@ export function WeighInWeightInput({ row }: { row: FieldStatusRowDTO }) {
       </form>
       {isSaved ? (
         <p
-          className="text-xs font-medium text-emerald-700 dark:text-emerald-300"
+          className="text-[10px] font-medium whitespace-nowrap text-emerald-700 dark:text-emerald-300"
           role="status"
         >
           저장됨 · {savedKg}kg

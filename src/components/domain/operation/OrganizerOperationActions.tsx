@@ -83,7 +83,7 @@ export function OrganizerOperationActions({
 
   return (
     <div className={cn("space-y-2", compact ? "text-xs" : "text-sm")}>
-      <div className="flex flex-wrap gap-2">
+      <div className={cn("flex flex-wrap gap-2", compact && "justify-center")}>
         {showPrepare ? (
           <Button
             type="button"

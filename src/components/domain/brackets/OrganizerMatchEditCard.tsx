@@ -44,10 +44,10 @@ export function OrganizerMatchEditCard({
     <BracketMatchCompactRow
       matchOrderLabel={orderLabel}
       statusArea={
-        <div className="flex flex-col items-start gap-0.5 md:items-center">
+        <div className="flex flex-col items-center gap-0.5">
           <MatchStatusBadge status={match.status} size="sm" />
           {match.hasOfficialResults ? (
-            <span className="text-emerald-700 dark:text-emerald-400 text-[10px] font-medium leading-none">
+            <span className="text-emerald-700 dark:text-emerald-400 text-[10px] font-medium leading-none whitespace-nowrap">
               결과 확정
             </span>
           ) : null}

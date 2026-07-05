@@ -42,12 +42,12 @@ export function FieldStatusResetButton({ row }: { row: FieldStatusRowDTO }) {
   }
 
   return (
-    <div className="flex w-fit flex-col items-start gap-1">
+    <div className="flex w-full flex-col items-center gap-1">
       <Button
         type="button"
         size="xs"
         variant="outline"
-        className="h-7 w-fit px-2 text-xs"
+        className="h-8 w-fit px-2 text-xs"
         disabled={pending || !canReset}
         onClick={handleReset}
         title={

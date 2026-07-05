@@ -72,7 +72,7 @@ function CourtBracketFighterCell({
   const empty = !name?.trim() || name === "-";
 
   return (
-    <div className={cn("rounded-md border px-2 py-1.5", style.bg)}>
+    <div className={cn("w-full min-w-0 rounded-md border px-2 py-1.5", style.bg)}>
       <BracketFighterCompactCard
         empty={empty}
         emptyLabel="빈 슬롯"
@@ -349,7 +349,7 @@ export function OrganizerCourtBracketPanel({
                       />
                     }
                     center={
-                      <span className="text-muted-foreground text-xs tabular-nums">
+                      <span className="text-muted-foreground text-xs tabular-nums whitespace-nowrap">
                         {formatOperationalSettingsLabel(ops)}
                       </span>
                     }

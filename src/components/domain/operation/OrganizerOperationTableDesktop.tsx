@@ -13,6 +13,11 @@ import { DivisionCompactDisplay } from "@/components/domain/shared/DivisionCompa
 import type { OperationMatchRowVM } from "@/components/domain/operation/operation-match-row";
 import { getOperationMatchPhase } from "@/lib/match-operation-display";
 import { toMatchOpsProps } from "@/components/domain/operation/operation-match-row";
+import {
+  nowrapTruncateClass,
+  tableCellCenterClass,
+  tableCellStartClass,
+} from "@/lib/ui/match-grid-layout";
 
 export function OrganizerOperationTableDesktop({
   rows,
@@ -35,17 +40,27 @@ export function OrganizerOperationTableDesktop({
 
   return (
     <div className="hidden overflow-x-auto rounded-xl border md:block">
-      <table className="w-full min-w-[1050px] text-left text-sm">
+      <table className="w-full min-w-[1080px] table-fixed text-sm">
+        <colgroup>
+          <col className="w-[5%]" />
+          <col className="w-[10%]" />
+          <col className="w-[14%]" />
+          <col className="w-[28%]" />
+          <col className="w-[12%]" />
+          <col className="w-[10%]" />
+          <col className="w-[9%]" />
+          <col className="w-[12%]" />
+        </colgroup>
         <thead className="bg-muted/50 border-b text-xs">
-          <tr>
-            <th className="px-3 py-2 font-medium">순서</th>
-            <th className="px-3 py-2 font-medium">경기장</th>
-            <th className="px-3 py-2 font-medium">경기구분/체급</th>
-            <th className="px-3 py-2 font-medium">대진</th>
-            <th className="px-3 py-2 font-medium">경기 상태</th>
-            <th className="px-3 py-2 font-medium">심판 결과</th>
-            <th className="px-3 py-2 font-medium">메모</th>
-            <th className="px-3 py-2 font-medium">액션</th>
+          <tr className="align-middle">
+            <th className="px-2 py-2 text-center font-medium">순서</th>
+            <th className="px-2 py-2 text-left font-medium">경기장</th>
+            <th className="px-2 py-2 text-left font-medium">경기구분/체급</th>
+            <th className="px-2 py-2 text-center font-medium">대진</th>
+            <th className="px-2 py-2 text-center font-medium">경기 상태</th>
+            <th className="px-2 py-2 text-center font-medium">심판 결과</th>
+            <th className="px-2 py-2 text-center font-medium">메모</th>
+            <th className="px-2 py-2 text-center font-medium">액션</th>
           </tr>
         </thead>
         <tbody>
@@ -54,62 +69,93 @@ export function OrganizerOperationTableDesktop({
             return (
             <Fragment key={row.matchId}>
               <tr className="border-b align-middle">
-                <td className="px-3 py-3 align-middle font-mono text-xs">
-                  {row.orderLabel}
+                <td className="px-2 py-2 align-middle">
+                  <div className={tableCellCenterClass}>
+                    <span className="font-mono text-xs whitespace-nowrap">
+                      {row.orderLabel}
+                    </span>
+                  </div>
                 </td>
-                <td className="px-3 py-3 align-middle text-xs">
-                  {row.courtName ? (
-                    <>
-                      <div className="font-medium">{row.courtName}</div>
-                      {row.courtOrder != null ? (
-                        <div className="text-muted-foreground">{row.courtOrder}경기</div>
-                      ) : null}
-                    </>
-                  ) : (
-                    <span className="text-muted-foreground">미지정</span>
-                  )}
+                <td className="px-2 py-2 align-middle text-xs">
+                  <div className={tableCellStartClass}>
+                    {row.courtName ? (
+                      <div className="min-w-0">
+                        <div className={`font-medium ${nowrapTruncateClass}`} title={row.courtName}>
+                          {row.courtName}
+                        </div>
+                        {row.courtOrder != null ? (
+                          <div className="text-muted-foreground whitespace-nowrap">
+                            {row.courtOrder}경기
+                          </div>
+                        ) : null}
+                      </div>
+                    ) : (
+                      <span className="text-muted-foreground">미지정</span>
+                    )}
+                  </div>
                 </td>
-                <td className="px-3 py-3 align-middle text-xs">
-                  {row.division ? (
-                    <DivisionCompactDisplay
-                      division={row.division}
-                      mainClassName="text-xs"
-                      secondaryClassName="text-[11px]"
+                <td className="px-2 py-2 align-middle text-xs">
+                  <div className={tableCellStartClass}>
+                    {row.division ? (
+                      <DivisionCompactDisplay
+                        division={row.division}
+                        mainClassName={`text-xs ${nowrapTruncateClass}`}
+                        secondaryClassName="text-[11px]"
+                      />
+                    ) : (
+                      <div className={`font-medium ${nowrapTruncateClass}`}>
+                        {row.divisionLabel ?? "—"}
+                      </div>
+                    )}
+                  </div>
+                </td>
+                <td className="px-2 py-2 align-middle">
+                  <div className={tableCellCenterClass}>
+                    <OperationMatchFighterMatchup
+                      fighterRed={row.fighterRed}
+                      fighterBlue={row.fighterBlue}
+                      winnerId={row.winnerId}
+                      className="mx-auto"
                     />
-                  ) : (
-                    <div className="font-medium">{row.divisionLabel ?? "—"}</div>
-                  )}
+                  </div>
                 </td>
-                <td className="px-3 py-3 align-middle">
-                  <OperationMatchFighterMatchup
-                    fighterRed={row.fighterRed}
-                    fighterBlue={row.fighterBlue}
-                    winnerId={row.winnerId}
-                  />
+                <td className="px-2 py-2 align-middle">
+                  <div className={tableCellCenterClass}>
+                    <OrganizerOperationStatusBadges
+                      phase={getOperationMatchPhase(row)}
+                      phaseLabel={row.phaseLabel}
+                      resultStatusLabel={row.resultStatusLabel}
+                      className="justify-center"
+                    />
+                  </div>
                 </td>
-                <td className="px-3 py-3 align-middle">
-                  <OrganizerOperationStatusBadges
-                    phase={getOperationMatchPhase(row)}
-                    phaseLabel={row.phaseLabel}
-                    resultStatusLabel={row.resultStatusLabel}
-                  />
+                <td className="px-2 py-2 align-middle text-xs">
+                  <div className={tableCellCenterClass}>
+                    <OperationJudgeBriefCell
+                      matchId={row.matchId}
+                      items={judgeBriefByMatch[row.matchId] ?? []}
+                    />
+                  </div>
                 </td>
-                <td className="px-3 py-3 align-middle text-xs">
-                  <OperationJudgeBriefCell
-                    matchId={row.matchId}
-                    items={judgeBriefByMatch[row.matchId] ?? []}
-                  />
+                <td className="px-2 py-2 align-middle text-xs">
+                  <div className={tableCellCenterClass}>
+                    <span
+                      className={`text-muted-foreground block max-w-full ${nowrapTruncateClass}`}
+                      title={displayMemo || undefined}
+                    >
+                      {displayMemo || "—"}
+                    </span>
+                  </div>
                 </td>
-                <td className="text-muted-foreground max-w-[10rem] px-3 py-3 align-middle text-xs">
-                  {displayMemo || "—"}
-                </td>
-                <td className="px-3 py-3 align-middle">
-                  <OrganizerOperationActions
-                    match={row}
-                    compact
-                    onOpenResult={() => onTogglePanel(row)}
-                    onOpenView={() => onTogglePanel(row)}
-                  />
+                <td className="px-2 py-2 align-middle">
+                  <div className={tableCellCenterClass}>
+                    <OrganizerOperationActions
+                      match={row}
+                      compact
+                      onOpenResult={() => onTogglePanel(row)}
+                      onOpenView={() => onTogglePanel(row)}
+                    />
+                  </div>
                 </td>
               </tr>
               {expandedMatchId === row.matchId ? (

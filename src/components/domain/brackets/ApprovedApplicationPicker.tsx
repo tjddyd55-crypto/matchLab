@@ -1,6 +1,10 @@
 import type { OrganizerApprovedFighterOptionVM } from "@/lib/services/bracket.service";
 import type { FighterPickerOptionState } from "@/lib/bracket-fighter-picker";
 import { formatFighterInlineIdentity } from "@/components/domain/brackets/BracketFighterInlineIdentity";
+import {
+  nowrapTruncateClass,
+  shortenAssignabilityReason,
+} from "@/lib/ui/match-grid-layout";
 import { cn } from "@/lib/utils";
 
 export function ApprovedApplicationPicker({
@@ -28,7 +32,8 @@ export function ApprovedApplicationPicker({
   className?: string;
 }) {
   const selectClass = cn(
-    "border-input bg-background h-9 w-full max-w-xs rounded-md border px-2 text-sm shadow-sm",
+    "border-input bg-background h-8 w-full min-w-0 max-w-full rounded-md border px-2 text-xs shadow-sm",
+    nowrapTruncateClass,
     className,
   );
 
@@ -44,21 +49,23 @@ export function ApprovedApplicationPicker({
         const reason = state?.reason;
         const warningReason = state?.warningReason ?? o.assignabilityWarningReason;
         const hint = state?.statusHint;
-        const labelParts = [
-          formatFighterInlineIdentity(o.gymName, o.fighterName) || o.label,
-        ];
+        const identity =
+          formatFighterInlineIdentity(o.gymName, o.fighterName) || o.label;
+        const labelParts = [identity];
         if (hint) labelParts.push(`(${hint})`);
-        if (warningReason && selectable) {
-          labelParts.push(`— ${warningReason}`);
+        const shortWarning = shortenAssignabilityReason(warningReason);
+        const shortReason = shortenAssignabilityReason(reason);
+        if (shortWarning && selectable) {
+          labelParts.push(`— ${shortWarning}`);
         }
-        if (!selectable && reason) labelParts.push(`— ${reason}`);
-        const title = !selectable ? reason : warningReason;
+        if (!selectable && shortReason) labelParts.push(`— ${shortReason}`);
+        const title = !selectable ? reason : warningReason ?? reason;
         return (
           <option
             key={o.fighterId}
             value={o.fighterId}
             disabled={!selectable && o.fighterId !== value}
-            title={title}
+            title={title ?? undefined}
             className={
               !selectable
                 ? "text-muted-foreground"

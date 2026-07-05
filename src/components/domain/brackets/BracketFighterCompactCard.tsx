@@ -77,7 +77,7 @@ export function BracketFighterCompactCard({
       </div>
       {metaLine ? (
         <p
-          className="text-muted-foreground truncate text-[11px] leading-tight"
+          className="text-muted-foreground truncate text-[10px] leading-none whitespace-nowrap"
           title={metaLine}
         >
           {metaLine}
