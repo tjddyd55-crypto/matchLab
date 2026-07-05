@@ -158,7 +158,7 @@ export function MatchOperationalSettingsSelect({
     <div
       className={cn(
         inline
-          ? "flex flex-wrap items-center gap-2"
+          ? "flex flex-wrap items-center justify-center gap-2"
           : "grid w-full gap-2 sm:grid-cols-2",
         className,
       )}

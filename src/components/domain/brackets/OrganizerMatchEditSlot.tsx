@@ -144,7 +144,7 @@ export function OrganizerMatchEditSlot({
     ) : null;
 
   return (
-    <div className={cn("flex min-w-0 flex-col", className)}>
+    <div className={cn("flex w-full min-w-0 flex-col", className)}>
       {hideCornerLabel ? null : (
         <span className={cn("text-[11px] font-semibold leading-none", style.accent)}>
           {cornerLabel}
@@ -166,7 +166,7 @@ export function OrganizerMatchEditSlot({
             optionStates={optionStates}
             disabled={editDisabled || pending}
             placeholder="빈 슬롯"
-            className="mt-1 h-8 max-w-none text-xs"
+            className="mt-1 h-8 w-full min-w-0 max-w-none text-xs"
           />
         </BracketFighterCompactCard>
       ) : (
@@ -182,7 +182,7 @@ export function OrganizerMatchEditSlot({
             optionStates={optionStates}
             disabled={editDisabled || pending}
             placeholder="빈 슬롯"
-            className="mt-1 h-8 max-w-none text-xs"
+            className="mt-1 h-8 w-full min-w-0 max-w-none text-xs"
           />
         </BracketFighterCompactCard>
       )}

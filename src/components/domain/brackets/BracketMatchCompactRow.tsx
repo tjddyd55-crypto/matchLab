@@ -1,9 +1,13 @@
 import type { ReactNode } from "react";
+import {
+  bracketMatchControlsGridClass,
+  bracketMatchRowGridClass,
+  matchGridCellCenterClass,
+  matchGridCellStartClass,
+} from "@/lib/ui/match-grid-layout";
 import { cn } from "@/lib/utils";
 
-/** 경기 row 공통 5열 grid — 경기번호 | 홍 | 중앙 | 청 | 상태 */
-export const bracketMatchRowGridClass =
-  "grid grid-cols-1 gap-1.5 md:grid-cols-[2.75rem_minmax(0,1fr)_5rem_minmax(0,1fr)_5.5rem] md:items-stretch md:gap-x-2";
+export { bracketMatchRowGridClass } from "@/lib/ui/match-grid-layout";
 
 export function BracketMatchColumnHeader({
   className,
@@ -23,9 +27,9 @@ export function BracketMatchColumnHeader({
       )}
     >
       <span className="text-center">경기</span>
-      <span>홍코너</span>
+      <span className="text-left">홍코너</span>
       <span className="text-center">{centerLabel ?? ""}</span>
-      <span>청코너</span>
+      <span className="text-left">청코너</span>
       <span className="text-center">{statusLabel}</span>
     </div>
   );
@@ -60,29 +64,28 @@ export function BracketMatchCompactRow({
       )}
     >
       {divisionHint ? (
-        <p className="text-muted-foreground border-b bg-muted/20 px-2 py-0.5 text-[10px] leading-tight">
+        <p
+          className="text-muted-foreground truncate border-b bg-muted/20 px-2 py-0.5 text-[10px] leading-tight whitespace-nowrap"
+          title={divisionHint}
+        >
           {divisionHint}
         </p>
       ) : null}
 
       <div className={cn(bracketMatchRowGridClass, "px-2 py-1.5")}>
-        <div className="flex min-h-[2.75rem] items-center md:justify-center">
-          <span className="text-xs font-bold tabular-nums leading-none">
+        <div className={matchGridCellCenterClass}>
+          <span className="text-xs font-bold tabular-nums leading-none whitespace-nowrap">
             {matchOrderLabel}
           </span>
         </div>
 
-        <div className="flex min-h-[2.75rem] min-w-0 items-center">{redSlot}</div>
+        <div className={matchGridCellStartClass}>{redSlot}</div>
 
-        <div className="flex min-h-[2.75rem] items-center justify-center">
-          {center}
-        </div>
+        <div className={matchGridCellCenterClass}>{center}</div>
 
-        <div className="flex min-h-[2.75rem] min-w-0 items-center">{blueSlot}</div>
+        <div className={matchGridCellStartClass}>{blueSlot}</div>
 
-        <div className="flex min-h-[2.75rem] items-center justify-start md:justify-center">
-          {statusArea}
-        </div>
+        <div className={matchGridCellCenterClass}>{statusArea}</div>
       </div>
 
       {controls ? (
@@ -107,20 +110,17 @@ export function BracketMatchControlsRow({
   className?: string;
 }) {
   return (
-    <div
-      className={cn(
-        "grid grid-cols-1 items-center gap-2 md:grid-cols-[minmax(0,1fr)_auto_auto]",
-        className,
-      )}
-    >
-      <div className="flex min-w-0 flex-wrap items-center gap-2">{left}</div>
+    <div className={cn(bracketMatchControlsGridClass, className)}>
+      <div className="flex min-w-0 flex-wrap items-center justify-start gap-2">
+        {left}
+      </div>
       {center ? (
-        <div className="flex shrink-0 items-center justify-center">{center}</div>
+        <div className="flex min-w-0 items-center justify-center whitespace-nowrap">
+          {center}
+        </div>
       ) : null}
       {right ? (
-        <div className="flex shrink-0 items-center justify-end gap-1">
-          {right}
-        </div>
+        <div className="flex items-center justify-end gap-1">{right}</div>
       ) : null}
     </div>
   );

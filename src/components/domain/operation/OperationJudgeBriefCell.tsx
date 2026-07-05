@@ -22,12 +22,16 @@ export function OperationJudgeBriefCell({
   const [open, setOpen] = useState(false);
 
   if (items.length === 0) {
-    return <span className="text-muted-foreground text-xs">—</span>;
+    return (
+      <span className="text-muted-foreground block text-center text-xs whitespace-nowrap">
+        —
+      </span>
+    );
   }
 
   return (
-    <div className="space-y-1">
-      <div className="flex flex-wrap gap-1">
+    <div className="flex flex-col items-center gap-1">
+      <div className="flex flex-wrap justify-center gap-1">
         {items.map((item, idx) => (
           <button
             key={`${item.judgeName}-${idx}`}
