@@ -1,5 +1,5 @@
 import { NextRequest, NextResponse } from "next/server";
-import { setCourtJudgeEntryCookie } from "@/lib/court-judge-entry-session";
+import { setCourtJudgeEntryCookieOnResponse } from "@/lib/court-judge-entry-session";
 import { getServerAppBaseUrl } from "@/lib/qr-url";
 import { validateCourtJudgeEntry } from "@/lib/services/judge-qr-entry.service";
 
@@ -37,11 +37,12 @@ export async function GET(request: NextRequest) {
     return NextResponse.redirect(errorUrl);
   }
 
-  await setCourtJudgeEntryCookie({
+  const response = NextResponse.redirect(
+    toAbsoluteRedirectUrl(request, result.redirectTo),
+  );
+  return setCourtJudgeEntryCookieOnResponse(response, {
     eventId: result.eventId,
     courtId: result.courtId,
     target: result.target,
   });
-
-  return NextResponse.redirect(toAbsoluteRedirectUrl(request, result.redirectTo));
 }
