@@ -1,6 +1,7 @@
 import "server-only";
 
 import { cookies } from "next/headers";
+import type { NextResponse } from "next/server";
 import { COURT_JUDGE_ENTRY_COOKIE } from "@/lib/constants/court-judge-entry";
 import {
   createJudgeSessionToken,
@@ -32,25 +33,56 @@ function decodeSessionToken(token: string): CourtJudgeEntrySession | null {
   };
 }
 
-export async function setCourtJudgeEntryCookie(
+const DEFAULT_ENTRY_COOKIE_TTL_MS = 1000 * 60 * 60 * 12;
+
+function createCourtJudgeEntryCookieToken(
   input: Omit<CourtJudgeEntrySession, "exp">,
-  ttlMs = 1000 * 60 * 60 * 12,
-): Promise<void> {
-  const token = createJudgeSessionToken(
+  ttlMs: number,
+): string {
+  return createJudgeSessionToken(
     {
       credentialId: `${input.courtId}:${input.target}`,
       eventId: input.eventId,
     },
     ttlMs,
   );
-  const cookieStore = await cookies();
-  cookieStore.set(COURT_JUDGE_ENTRY_COOKIE, token, {
+}
+
+function courtJudgeEntryCookieOptions(ttlMs: number) {
+  return {
     httpOnly: true,
     secure: process.env.NODE_ENV === "production",
-    sameSite: "lax",
+    sameSite: "lax" as const,
     path: "/",
     maxAge: Math.floor(ttlMs / 1000),
-  });
+  };
+}
+
+export function setCourtJudgeEntryCookieOnResponse(
+  response: NextResponse,
+  input: Omit<CourtJudgeEntrySession, "exp">,
+  ttlMs = DEFAULT_ENTRY_COOKIE_TTL_MS,
+): NextResponse {
+  const token = createCourtJudgeEntryCookieToken(input, ttlMs);
+  response.cookies.set(
+    COURT_JUDGE_ENTRY_COOKIE,
+    token,
+    courtJudgeEntryCookieOptions(ttlMs),
+  );
+  return response;
+}
+
+export async function setCourtJudgeEntryCookie(
+  input: Omit<CourtJudgeEntrySession, "exp">,
+  ttlMs = DEFAULT_ENTRY_COOKIE_TTL_MS,
+): Promise<void> {
+  const token = createCourtJudgeEntryCookieToken(input, ttlMs);
+  const cookieStore = await cookies();
+  cookieStore.set(
+    COURT_JUDGE_ENTRY_COOKIE,
+    token,
+    courtJudgeEntryCookieOptions(ttlMs),
+  );
 }
 
 export async function readCourtJudgeEntrySession(): Promise<CourtJudgeEntrySession | null> {
