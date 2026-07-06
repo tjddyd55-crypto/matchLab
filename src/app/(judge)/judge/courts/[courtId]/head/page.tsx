@@ -1,5 +1,4 @@
-import { CourtHeadJudgePanel } from "@/components/domain/judges/CourtHeadJudgePanel";
-import { CourtJudgeIdentityGate } from "@/components/domain/judges/CourtJudgeIdentityGate";
+import { CourtHeadJudgeScreen } from "@/components/domain/judges/CourtHeadJudgeScreen";
 import { CourtJudgeUnavailableState } from "@/components/domain/judges/CourtJudgeUnavailableState";
 import { JudgeQrEntryError } from "@/components/domain/judges/JudgeQrEntryError";
 import { assertCourtJudgeEntryAccess } from "@/lib/court-judge-entry-session";
@@ -45,23 +44,13 @@ export default async function CourtHeadJudgePage({ params }: Props) {
   } = load;
 
   return (
-    <CourtJudgeIdentityGate
-      courtId={court.courtId}
-      role="head"
-      roleLabel="주심판"
-      eventTitle={court.eventTitle}
-      courtName={court.courtName}
-    >
-      {() => (
-        <CourtHeadJudgePanel
-          court={court}
-          matches={matches}
-          ongoingMatchId={ongoingMatchId}
-          scorecardsByMatchId={scorecardsByMatchId}
-          scoreSummariesByMatchId={scoreSummariesByMatchId}
-          scene={scene}
-        />
-      )}
-    </CourtJudgeIdentityGate>
+    <CourtHeadJudgeScreen
+      court={court}
+      matches={matches}
+      ongoingMatchId={ongoingMatchId}
+      scene={scene}
+      scorecardsByMatchId={scorecardsByMatchId}
+      scoreSummariesByMatchId={scoreSummariesByMatchId}
+    />
   );
 }

@@ -1,6 +1,5 @@
-import { CourtJudgeIdentityGate } from "@/components/domain/judges/CourtJudgeIdentityGate";
 import { CourtJudgeUnavailableState } from "@/components/domain/judges/CourtJudgeUnavailableState";
-import { CourtScoreJudgePanel } from "@/components/domain/judges/CourtScoreJudgePanel";
+import { CourtScoreJudgeScreen } from "@/components/domain/judges/CourtScoreJudgeScreen";
 import { JudgeQrEntryError } from "@/components/domain/judges/JudgeQrEntryError";
 import { assertCourtJudgeEntryAccess } from "@/lib/court-judge-entry-session";
 import { loadScoringPage } from "@/lib/services/judge-court.service";
@@ -35,33 +34,15 @@ export default async function CourtScoreJudgePage({ params }: Props) {
     );
   }
 
-  const {
-    court,
-    matches,
-    ongoingMatchId,
-    scene,
-    scoreSummariesByMatchId,
-  } = load;
+  const { court, matches, ongoingMatchId, scene, scoreSummariesByMatchId } = load;
 
   return (
-    <CourtJudgeIdentityGate
-      courtId={court.courtId}
-      role="score"
-      roleLabel="채점심판"
-      eventTitle={court.eventTitle}
-      courtName={court.courtName}
-    >
-      {(session) => (
-        <CourtScoreJudgePanel
-          court={court}
-          matches={matches}
-          ongoingMatchId={ongoingMatchId}
-          scoreSummariesByMatchId={scoreSummariesByMatchId}
-          scene={scene}
-          judgeName={session.judgeName}
-          birthDate={session.birthDate}
-        />
-      )}
-    </CourtJudgeIdentityGate>
+    <CourtScoreJudgeScreen
+      court={court}
+      matches={matches}
+      ongoingMatchId={ongoingMatchId}
+      scene={scene}
+      scoreSummariesByMatchId={scoreSummariesByMatchId}
+    />
   );
 }
