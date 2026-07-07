@@ -137,7 +137,8 @@ export function EventQrPrintBoard({
         <h2 className="text-sm font-semibold">인쇄 옵션</h2>
         <p className="text-muted-foreground text-xs leading-relaxed">
           현장 부착용 A4 인쇄입니다. 브라우저 인쇄 미리보기에서 QR 크기와
-          여백을 확인한 뒤 출력하세요. 경기장 정보 변경 시 QR을 다시 출력하세요.
+          여백을 확인한 뒤 출력하세요. 경기장 심판 QR은 이름·순서 변경 후에도
+          계속 사용할 수 있습니다.
         </p>
         <div className="flex flex-wrap gap-2">
           {SHOW_LEGACY_JUDGE_LOGIN_QR ? (
