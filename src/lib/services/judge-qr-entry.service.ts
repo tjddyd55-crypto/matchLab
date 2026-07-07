@@ -9,8 +9,7 @@ import {
 import {
   createCourtJudgeEntryToken,
   parseCourtJudgeEntryToken,
-  tokensMatch,
-  toCourtRevision,
+  STABLE_COURT_REVISION,
   type CourtJudgeEntryTarget,
 } from "@/lib/judge-qr-entry-token";
 
@@ -74,7 +73,8 @@ export function judgeQrEntryUserMessage(
     case "token_mismatch":
       return {
         title: "입장할 수 없습니다.",
-        description: "만료되었거나 재발급된 QR입니다. 운영자에게 최신 QR을 요청해 주세요.",
+        description:
+          "QR 서명을 확인할 수 없습니다. 운영자에게 QR을 다시 확인해 주세요.",
       };
     case "court_disabled":
       return {
@@ -187,7 +187,7 @@ export async function validateCourtJudgeEntry(
 
   const court = await prisma.eventCourt.findUnique({
     where: { id: courtId },
-    select: { id: true, eventId: true, isActive: true, updatedAt: true },
+    select: { id: true, eventId: true, isActive: true },
   });
   if (!court || court.eventId !== eventId) {
     logError("court lookup", "missing_court", ctx);
@@ -200,17 +200,6 @@ export async function validateCourtJudgeEntry(
     return { ok: false, reason: "court_disabled" };
   }
 
-  const expectedToken = createCourtJudgeEntryToken({
-    eventId,
-    courtId,
-    target,
-    courtRevision: toCourtRevision(court.updatedAt),
-  });
-
-  if (!tokensMatch(expectedToken, token)) {
-    logError("token compare", "token_mismatch", ctx);
-    return { ok: false, reason: "token_mismatch" };
-  }
   logInfo("token compare", ctx);
 
   logInfo("success", ctx);
@@ -265,14 +254,14 @@ export async function validateJudgeLoginEntry(
 export function buildCourtJudgeEntryPath(
   eventId: string,
   courtId: string,
-  courtUpdatedAt: string | Date,
+  _courtUpdatedAt: string | Date,
   target: CourtJudgeEntryTarget,
 ): string {
   const token = createCourtJudgeEntryToken({
     eventId: eventId.trim(),
     courtId: courtId.trim(),
     target,
-    courtRevision: toCourtRevision(courtUpdatedAt),
+    courtRevision: STABLE_COURT_REVISION,
   });
   const params = new URLSearchParams({
     eventId: eventId.trim(),

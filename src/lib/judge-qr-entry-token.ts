@@ -8,8 +8,12 @@ export type CourtJudgeEntryPayload = {
   eventId: string;
   courtId: string;
   target: CourtJudgeEntryTarget;
+  /** URL 호환용 메타. DB updatedAt과 대조하지 않음. */
   courtRevision: string;
 };
+
+/** 신규 QR 생성 시 사용. 경기장 이름·순서 변경으로 QR이 바뀌지 않게 한다. */
+export const STABLE_COURT_REVISION = "0";
 
 function entrySecret(): string {
   const secret =
