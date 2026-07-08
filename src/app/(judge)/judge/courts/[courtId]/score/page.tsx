@@ -32,6 +32,14 @@ export default async function CourtScoreJudgePage({ params, searchParams }: Prop
   const load = await loadScoringPage(courtId);
 
   if (load.kind === "invalid_court") {
+    console.error("[judge-court-page] invalid_court_after_access", {
+      courtId,
+      expectedTarget: "score",
+      accessSource: access.source,
+      eventId: access.eventId,
+      hasQueryToken: Boolean(sp.token),
+      queryTarget: sp.target,
+    });
     return (
       <CourtJudgeUnavailableState variant="invalid_court" roleLabel="채점심판" />
     );
