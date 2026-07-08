@@ -14,12 +14,12 @@ const COPY: Record<
   { title: string; lines: string[]; badge: string; badgeClass: string }
 > = {
   invalid_court: {
-    title: "입장할 수 없습니다.",
+    title: "경기장을 찾을 수 없습니다.",
     lines: [
-      "유효하지 않은 경기장 QR입니다.",
-      "운영자에게 QR을 다시 확인해 주세요.",
+      "QR 인증은 통과했지만 경기장 정보를 불러오지 못했습니다.",
+      "운영자에게 경기장 설정을 확인해 달라고 요청해 주세요.",
     ],
-    badge: "QR 오류",
+    badge: "경기장 오류",
     badgeClass: "border-destructive/40 bg-destructive/10 text-destructive",
   },
   inactive_court: {
