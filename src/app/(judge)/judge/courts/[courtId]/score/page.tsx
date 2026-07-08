@@ -1,18 +1,32 @@
 import { CourtJudgeUnavailableState } from "@/components/domain/judges/CourtJudgeUnavailableState";
 import { CourtScoreJudgeScreen } from "@/components/domain/judges/CourtScoreJudgeScreen";
 import { JudgeQrEntryError } from "@/components/domain/judges/JudgeQrEntryError";
-import { assertCourtJudgeEntryAccess } from "@/lib/court-judge-entry-session";
+import { resolveCourtJudgeEntryAccess } from "@/lib/court-judge-entry-access";
 import { loadScoringPage } from "@/lib/services/judge-court.service";
 
 type Props = {
   params: Promise<{ courtId: string }>;
+  searchParams: Promise<{
+    eventId?: string;
+    token?: string;
+    target?: string;
+  }>;
 };
 
-export default async function CourtScoreJudgePage({ params }: Props) {
+export default async function CourtScoreJudgePage({ params, searchParams }: Props) {
   const { courtId } = await params;
-  const access = await assertCourtJudgeEntryAccess(courtId, "score");
+  const sp = await searchParams;
+  const access = await resolveCourtJudgeEntryAccess({
+    courtId,
+    expectedTarget: "score",
+    searchParams: {
+      eventId: sp.eventId,
+      token: sp.token,
+      target: sp.target,
+    },
+  });
   if (!access.ok) {
-    return <JudgeQrEntryError reason="missing_token" qrType="court" />;
+    return <JudgeQrEntryError reason={access.reason} qrType="court" />;
   }
 
   const load = await loadScoringPage(courtId);

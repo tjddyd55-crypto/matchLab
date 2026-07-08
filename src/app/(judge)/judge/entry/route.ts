@@ -37,8 +37,16 @@ export async function GET(request: NextRequest) {
     return NextResponse.redirect(errorUrl);
   }
 
+  const token = sp.get("token")?.trim() ?? "";
+  const redirectParams = new URLSearchParams({
+    eventId: result.eventId,
+    token,
+    target: result.target,
+  });
+  const redirectPath = `${result.redirectTo}?${redirectParams.toString()}`;
+
   const response = NextResponse.redirect(
-    toAbsoluteRedirectUrl(request, result.redirectTo),
+    toAbsoluteRedirectUrl(request, redirectPath),
   );
   return setCourtJudgeEntryCookieOnResponse(response, {
     eventId: result.eventId,
