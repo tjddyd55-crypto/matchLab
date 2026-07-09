@@ -7,7 +7,9 @@ import {
   parseMatchOperationalSettings,
 } from "@/lib/match-operational-settings";
 
-const SYSTEM_PREFIXES = ["@matchon_ops:", "@matchon_bout:"];
+function isSystemMemoLine(line: string): boolean {
+  return line.trimStart().startsWith("@matchon_");
+}
 
 /** 사용자 메모만 추출 (운영/대전방식 JSON 라인 제외) */
 export function extractDisplayResultMemo(
@@ -17,9 +19,15 @@ export function extractDisplayResultMemo(
   if (!raw) return "";
   return raw
     .split("\n")
-    .filter((line) => !SYSTEM_PREFIXES.some((prefix) => line.startsWith(prefix)))
+    .filter((line) => !isSystemMemoLine(line))
     .join("\n")
     .trim();
+}
+
+/** 심판 화면용 메모 — 시스템 메타 제거 후 비어 있으면 null */
+export function sanitizeJudgeVisibleMemo(raw?: string | null): string | null {
+  const cleaned = extractDisplayResultMemo(raw);
+  return cleaned.length > 0 ? cleaned : null;
 }
 
 /** 표시용 메모 저장 시 운영/대전방식 설정 라인은 유지 */

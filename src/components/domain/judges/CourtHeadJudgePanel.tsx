@@ -19,6 +19,8 @@ import type {
 } from "@/lib/services/judge-court.service";
 import { BracketMatchOutcomeStyle, BracketMatchStatus } from "@/lib/enums";
 import type { CourtJudgeScene } from "@/lib/court-judge-page-state";
+import { resolveHeadActionMatchId } from "@/lib/court-judge-page-state";
+import { sanitizeJudgeVisibleMemo } from "@/lib/match-result-memo";
 import { BoutFormatBadge } from "@/components/domain/shared/BoutFormatBadge";
 import { CourtJudgeRefreshShell } from "./CourtJudgeRefreshShell";
 import { CourtJudgeScorecardInlineList } from "./CourtJudgeScorecardDetail";
@@ -108,6 +110,7 @@ function HeadMatchDetail({
   }
 
   const summary = resultSummary(match);
+  const cancelledMemo = sanitizeJudgeVisibleMemo(match.displayResultMemo);
   const isWaiting = match.status === BracketMatchStatus.waiting;
   const isPreparing = match.status === BracketMatchStatus.called;
   const isOngoing = match.status === BracketMatchStatus.ongoing;
@@ -212,19 +215,22 @@ function HeadMatchDetail({
       </section>
 
       {isCancelled ? (
-        <section className="rounded-xl border border-destructive/35 bg-destructive/5 p-4">
-          <p className="font-semibold text-destructive">경기가 취소되었습니다.</p>
-          {match.displayResultMemo ? (
-            <p className="text-muted-foreground mt-2 text-sm">
-              취소 사유: {match.displayResultMemo}
-            </p>
+        <section className="rounded-xl border border-border/70 bg-muted/20 p-4">
+          <div className="flex flex-wrap items-center gap-2">
+            <span className="rounded-full border border-muted-foreground/30 px-2 py-0.5 text-[11px] font-medium text-muted-foreground">
+              취소
+            </span>
+            <p className="text-sm font-medium">경기가 취소되었습니다.</p>
+          </div>
+          {cancelledMemo ? (
+            <p className="text-muted-foreground mt-2 text-sm">취소 사유: {cancelledMemo}</p>
           ) : null}
         </section>
       ) : null}
 
-      {isFinished || isCancelled ? (
-        <section className="rounded-xl border p-4">
-          <h2 className="font-semibold">경기 결과</h2>
+      {isFinished ? (
+        <section className="rounded-xl border border-border/70 bg-muted/20 p-4">
+          <h2 className="text-sm font-semibold">경기 결과</h2>
           <p className="text-muted-foreground mt-2 text-sm">{summary ?? "—"}</p>
         </section>
       ) : null}
@@ -321,7 +327,7 @@ function HeadMatchDetail({
               name="resultMemo"
               rows={2}
               placeholder="메모"
-              defaultValue={match.displayResultMemo}
+              defaultValue={sanitizeJudgeVisibleMemo(match.displayResultMemo) ?? ""}
               className="border-input bg-background rounded-md border px-2 py-2 text-sm md:col-span-3"
             />
             <div className="md:col-span-3">
@@ -368,51 +374,49 @@ export function CourtHeadJudgePanel({
   scoreSummariesByMatchId: Record<string, CourtMatchScoreSummaryVM>;
   scene: CourtJudgeScene;
 }) {
-  const defaultSelectedId = useMemo(
-    () =>
-      ongoingMatchId ??
-      matches.find((m) => m.status === BracketMatchStatus.waiting)?.matchId ??
-      matches[0]?.matchId ??
-      null,
-    [matches, ongoingMatchId],
+  const [selectedMatchId, setSelectedMatchId] = useState<string | null>(null);
+
+  const actionMatchId = useMemo(
+    () => resolveHeadActionMatchId(matches, ongoingMatchId, selectedMatchId),
+    [matches, ongoingMatchId, selectedMatchId],
   );
 
-  const [selectedMatchId, setSelectedMatchId] = useState<string | null>(defaultSelectedId);
-
-  const activeSelectedMatchId = useMemo(() => {
-    if (ongoingMatchId) return ongoingMatchId;
-    if (selectedMatchId && matches.some((m) => m.matchId === selectedMatchId)) {
-      return selectedMatchId;
-    }
-    return defaultSelectedId;
-  }, [ongoingMatchId, selectedMatchId, matches, defaultSelectedId]);
-
-  const selectedMatch = matches.find((m) => m.matchId === activeSelectedMatchId) ?? null;
+  const actionMatch = matches.find((m) => m.matchId === actionMatchId) ?? null;
   const scorecards =
-    selectedMatch?.status === BracketMatchStatus.ongoing
-      ? (scorecardsByMatchId[selectedMatch.matchId] ?? [])
-      : selectedMatch?.status === BracketMatchStatus.finished
-        ? (scorecardsByMatchId[selectedMatch.matchId] ?? [])
-        : [];
+    actionMatch?.status === BracketMatchStatus.ongoing ||
+    actionMatch?.status === BracketMatchStatus.finished
+      ? (scorecardsByMatchId[actionMatch.matchId] ?? [])
+      : [];
 
-  function renderDetail(selected: CourtJudgeMatchVM | null) {
+  function renderMain() {
     if (matches.length === 0) {
       return <CourtJudgeEmptyState scene="no_matches" matches={matches} role="head" />;
     }
 
-    if (scene !== "active" && !selected) {
+    if (scene !== "active" && !actionMatch) {
+      return <CourtJudgeEmptyState scene={scene} matches={matches} role="head" />;
+    }
+
+    if (!actionMatch) {
       return (
-        <CourtJudgeEmptyState scene={scene} matches={matches} role="head" />
+        <div className="space-y-4">
+          {scene !== "active" ? <CourtJudgeSceneBanner scene={scene} role="head" /> : null}
+          <CourtJudgeEmptyState
+            scene={scene === "active" ? "no_ongoing_match" : scene}
+            matches={matches}
+            role="head"
+          />
+        </div>
       );
     }
 
     return (
       <div className="space-y-4">
-        {scene !== "active" ? (
+        {scene !== "active" && !ongoingMatchId ? (
           <CourtJudgeSceneBanner scene={scene} role="head" />
         ) : null}
         <HeadMatchDetail
-          match={selected}
+          match={actionMatch}
           ongoingMatchId={ongoingMatchId}
           scorecards={scorecards}
         />
@@ -427,11 +431,14 @@ export function CourtHeadJudgePanel({
         matches={matches}
         ongoingMatchId={ongoingMatchId}
         roleLabel="주심판"
-        selectedMatchId={activeSelectedMatchId}
-        onSelectedMatchIdChange={setSelectedMatchId}
+        queueTitle="경기 대기열"
+        queueSelectable
+        selectedMatchId={actionMatchId ?? selectedMatchId}
+        onSelectMatch={setSelectedMatchId}
         scoreSummariesByMatchId={scoreSummariesByMatchId}
-        detail={(selected) => renderDetail(selected)}
-      />
+      >
+        {renderMain()}
+      </CourtJudgeScreenShell>
     </CourtJudgeRefreshShell>
   );
 }

@@ -40,3 +40,35 @@ export function matchRequiresScoreJudge(match: CourtJudgeMatchVM): boolean {
   if (match.status === BracketMatchStatus.cancelled) return false;
   return true;
 }
+
+const HEAD_ACTION_STATUSES = new Set<BracketMatchStatus>([
+  BracketMatchStatus.waiting,
+  BracketMatchStatus.called,
+  BracketMatchStatus.ongoing,
+]);
+
+export function isHeadActionableMatch(match: CourtJudgeMatchVM): boolean {
+  return HEAD_ACTION_STATUSES.has(match.status);
+}
+
+/** 주심판 메인 영역 — 진행/준비/대기 경기만. 종료·취소는 리스트에서만 확인 */
+export function resolveHeadActionMatchId(
+  matches: CourtJudgeMatchVM[],
+  ongoingMatchId: string | null,
+  selectedMatchId: string | null,
+): string | null {
+  if (ongoingMatchId) return ongoingMatchId;
+
+  const selected = selectedMatchId
+    ? matches.find((m) => m.matchId === selectedMatchId)
+    : null;
+  if (selected && isHeadActionableMatch(selected)) {
+    return selected.matchId;
+  }
+
+  const preparing = matches.find((m) => m.status === BracketMatchStatus.called);
+  if (preparing) return preparing.matchId;
+
+  const waiting = matches.find((m) => m.status === BracketMatchStatus.waiting);
+  return waiting?.matchId ?? null;
+}
