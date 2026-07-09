@@ -27,19 +27,24 @@ function bannerForScene(
     case "no_ongoing_match":
       if (role === "score") {
         return {
-          title: "현재 진행중인 경기가 없습니다.",
-          lines: ["주심판이 경기 시작을 누르면 채점할 수 있습니다."],
+          title: "현재 채점할 경기가 없습니다.",
+          lines: ["주심판이 경기를 시작하면 채점할 수 있습니다."],
           badge: "대기",
           className: "border-primary/25 bg-primary/5 text-foreground",
         };
       }
-      return null;
+      return {
+        title: "현재 진행할 경기가 없습니다.",
+        lines: ["대기 중인 경기를 아래 목록에서 선택하거나 경기 준비를 시작하세요."],
+        badge: "대기",
+        className: "border-primary/25 bg-primary/5 text-foreground",
+      };
     case "all_finished":
       return {
         title: "이 경기장의 모든 경기가 종료되었습니다.",
-        lines: ["아래 리스트에서 종료 경기와 결과를 확인할 수 있습니다."],
+        lines: ["아래 목록에서 종료·취소 경기를 확인할 수 있습니다."],
         badge: "경기종료",
-        className: "border-emerald-500/30 bg-emerald-50/80 text-emerald-950 dark:bg-emerald-950/30 dark:text-emerald-100",
+        className: "border-emerald-500/20 bg-emerald-50/50 text-emerald-950 dark:bg-emerald-950/20 dark:text-emerald-100",
       };
     case "no_waiting_match":
       if (role === "head") {

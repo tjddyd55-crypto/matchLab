@@ -13,12 +13,20 @@ import type {
 } from "@/lib/services/judge-court.service";
 import { BracketMatchStatus } from "@/lib/enums";
 import { bracketMatchStatusLabel } from "@/lib/match-status-display";
+import { sanitizeJudgeVisibleMemo } from "@/lib/match-result-memo";
 
 function winnerCornerLabel(match: CourtJudgeMatchVM): string | null {
   if (match.status !== BracketMatchStatus.finished || !match.winnerId) return null;
   if (match.winnerId === match.fighterRedId) return "레드 승";
   if (match.winnerId === match.fighterBlueId) return "블루 승";
   return null;
+}
+
+function judgeVisibleMemo(match: CourtJudgeMatchVM): string | null {
+  return (
+    sanitizeJudgeVisibleMemo(match.displayResultMemo) ??
+    sanitizeJudgeVisibleMemo(match.resultMemo)
+  );
 }
 
 function resultSummary(match: CourtJudgeMatchVM): string | null {
@@ -31,49 +39,87 @@ function resultSummary(match: CourtJudgeMatchVM): string | null {
     return `${cornerPart}${winner} 승 / ${loser} 패${style}`;
   }
   if (match.status === BracketMatchStatus.cancelled) {
-    return match.displayResultMemo?.trim() || match.resultMemo?.trim() || "취소됨";
+    return judgeVisibleMemo(match) ?? "취소됨";
   }
   return null;
 }
 
-function JudgeMatchStatusBadge({ match }: { match: CourtJudgeMatchVM }) {
+function JudgeMatchStatusBadge({
+  match,
+  size = "md",
+}: {
+  match: CourtJudgeMatchVM;
+  size?: "sm" | "md";
+}) {
   if (match.status === BracketMatchStatus.ongoing) {
     return (
       <SharedMatchStatusBadge
         status={match.status}
-        label="현재 경기 · 진행중"
-        size="md"
+        label="진행중"
+        size={size}
       />
     );
   }
-  return <SharedMatchStatusBadge status={match.status} size="md" />;
+  return <SharedMatchStatusBadge status={match.status} size={size} />;
 }
 
 function MatchRowContent({
   match,
-  compact,
+  variant = "default",
   scoreSummary,
 }: {
   match: CourtJudgeMatchVM;
-  compact?: boolean;
+  variant?: "default" | "queue" | "current";
   scoreSummary?: CourtMatchScoreSummaryVM | null;
 }) {
   const summary = resultSummary(match);
+  const visibleMemo = judgeVisibleMemo(match);
   const orderLabel =
     match.courtOrder != null ? `${match.courtOrder}경기` : `#${match.matchNumber ?? "?"}`;
+  const isTerminal =
+    match.status === BracketMatchStatus.finished ||
+    match.status === BracketMatchStatus.cancelled;
+
+  if (variant === "queue") {
+    return (
+      <>
+        <div className="flex min-w-0 flex-1 items-center gap-2">
+          <span className="text-muted-foreground shrink-0 text-xs font-medium">{orderLabel}</span>
+          <JudgeMatchStatusBadge match={match} size="sm" />
+          <p className="min-w-0 truncate text-sm font-medium">
+            {match.fighterRedName}
+            <span className="text-muted-foreground mx-1 font-normal">vs</span>
+            {match.fighterBlueName}
+          </p>
+        </div>
+        <p className="text-muted-foreground mt-1 truncate text-[11px]">
+          {[match.divisionLabel, match.operationalSettingsLabel].filter(Boolean).join(" · ") ||
+            "경기구분 미상"}
+        </p>
+        {summary && isTerminal ? (
+          <p className="text-muted-foreground mt-1 truncate text-[11px]">{summary}</p>
+        ) : null}
+        {scoreSummary ? (
+          <p className="text-muted-foreground mt-0.5 truncate text-[11px]">{scoreSummary.label}</p>
+        ) : null}
+      </>
+    );
+  }
 
   return (
     <>
       <div className="flex flex-wrap items-center gap-2">
         <span className="text-muted-foreground text-xs font-medium">{orderLabel}</span>
         <JudgeMatchStatusBadge match={match} />
-        <BoutFormatBadge
-          bracketType={match.bracketType}
-          bracketIsPublic={match.bracketIsPublic}
-          matchIsPublicSparring={match.matchIsPublicSparring}
-        />
+        {variant === "current" ? null : (
+          <BoutFormatBadge
+            bracketType={match.bracketType}
+            bracketIsPublic={match.bracketIsPublic}
+            matchIsPublicSparring={match.matchIsPublicSparring}
+          />
+        )}
       </div>
-      <p className={cn("mt-1 font-semibold", compact ? "text-sm" : "text-base")}>
+      <p className={cn("mt-1 font-semibold", variant === "current" ? "text-base" : "text-sm")}>
         <span className={match.winnerId === match.fighterRedId ? "text-emerald-700" : undefined}>
           {match.fighterRedName}
         </span>
@@ -82,10 +128,13 @@ function MatchRowContent({
           {match.fighterBlueName}
         </span>
       </p>
-      <PublicSparringUnderVsBadge
-        bracketType={match.bracketType}
-        bracketIsPublic={match.bracketIsPublic}
-      />
+      {variant === "current" ? (
+        <PublicSparringUnderVsBadge
+          bracketType={match.bracketType}
+          bracketIsPublic={match.bracketIsPublic}
+          matchIsPublicSparring={match.matchIsPublicSparring}
+        />
+      ) : null}
       <p className="text-muted-foreground mt-1 text-xs">
         {[match.fighterRedGymName, match.fighterBlueGymName]
           .filter(Boolean)
@@ -95,27 +144,40 @@ function MatchRowContent({
         {match.divisionLabel ?? "경기구분 미상"}
         {match.operationalSettingsLabel ? ` · ${match.operationalSettingsLabel}` : ""}
       </p>
-      {match.displayResultMemo ? (
-        <p className="text-muted-foreground mt-1 text-xs">메모: {match.displayResultMemo}</p>
+      {visibleMemo && !isTerminal ? (
+        <p className="text-muted-foreground mt-1 text-xs">메모: {visibleMemo}</p>
       ) : null}
       {summary ? (
-        <p
-          className={cn(
-            "mt-2 text-xs",
-            match.status === BracketMatchStatus.finished
-              ? "text-emerald-800"
-              : match.status === BracketMatchStatus.cancelled
-                ? "text-destructive"
-                : "text-muted-foreground",
-          )}
-        >
-          {summary}
-        </p>
+        <p className="text-muted-foreground mt-2 text-xs">{summary}</p>
       ) : null}
       {scoreSummary ? (
         <p className="text-muted-foreground mt-1 text-xs">{scoreSummary.label}</p>
       ) : null}
     </>
+  );
+}
+
+function queueRowClassName(match: CourtJudgeMatchVM, opts: {
+  isOngoing: boolean;
+  isSelected: boolean;
+  interactive: boolean;
+}) {
+  const { isOngoing, isSelected, interactive } = opts;
+  const isFinished = match.status === BracketMatchStatus.finished;
+  const isCancelled = match.status === BracketMatchStatus.cancelled;
+  const isWaiting = match.status === BracketMatchStatus.waiting;
+  const isCalled = match.status === BracketMatchStatus.called;
+
+  return cn(
+    "w-full rounded-lg border px-3 py-2 text-left transition-colors",
+    isOngoing && "border-primary bg-primary/5 ring-1 ring-primary/25",
+    !isOngoing && isCalled && "border-primary/35 bg-primary/[0.03]",
+    !isOngoing && isWaiting && "border-border bg-card",
+    !isOngoing && isFinished && "border-border/60 bg-muted/20 opacity-80",
+    !isOngoing && isCancelled && "border-border/60 bg-muted/10 opacity-75",
+    interactive && !isSelected && "hover:bg-muted/30",
+    interactive && isSelected && !isOngoing && "ring-1 ring-primary/30",
+    !interactive && "cursor-default",
   );
 }
 
@@ -126,6 +188,7 @@ export function CourtJudgeMatchList({
   onSelect,
   selectable = false,
   scoreSummariesByMatchId,
+  variant = "default",
 }: {
   matches: CourtJudgeMatchVM[];
   selectedMatchId?: string | null;
@@ -133,6 +196,7 @@ export function CourtJudgeMatchList({
   onSelect?: (matchId: string) => void;
   selectable?: boolean;
   scoreSummariesByMatchId?: Record<string, CourtMatchScoreSummaryVM>;
+  variant?: "default" | "queue";
 }) {
   if (matches.length === 0) {
     return (
@@ -143,7 +207,7 @@ export function CourtJudgeMatchList({
   }
 
   return (
-    <ul className="space-y-2">
+    <ul className={cn(variant === "queue" ? "space-y-1.5" : "space-y-2")}>
       {matches.map((match) => {
         const isOngoing = match.matchId === ongoingMatchId;
         const isSelected = match.matchId === selectedMatchId;
@@ -155,26 +219,30 @@ export function CourtJudgeMatchList({
               type="button"
               disabled={!interactive}
               onClick={() => onSelect?.(match.matchId)}
-              className={cn(
-                "w-full rounded-xl border p-3 text-left transition-colors",
-                isOngoing && "border-primary bg-primary/5 ring-1 ring-primary/30",
-                !isOngoing && match.status === BracketMatchStatus.called &&
-                  "border-primary/40 bg-primary/5",
-                !isOngoing && match.status === BracketMatchStatus.finished &&
-                  "border-emerald-200/80 bg-emerald-50/40 dark:bg-emerald-950/20",
-                !isOngoing && match.status === BracketMatchStatus.cancelled &&
-                  "border-destructive/30 bg-destructive/5",
-                !isOngoing &&
-                  match.status === BracketMatchStatus.waiting &&
-                  "border-border bg-card",
-                interactive && !isSelected && "hover:bg-muted/40",
-                interactive && isSelected && !isOngoing && "ring-1 ring-primary/40",
-                !interactive && "cursor-default",
-              )}
+              className={
+                variant === "queue"
+                  ? queueRowClassName(match, { isOngoing, isSelected, interactive: Boolean(interactive) })
+                  : cn(
+                      "w-full rounded-xl border p-3 text-left transition-colors",
+                      isOngoing && "border-primary bg-primary/5 ring-1 ring-primary/30",
+                      !isOngoing && match.status === BracketMatchStatus.called &&
+                        "border-primary/40 bg-primary/5",
+                      !isOngoing && match.status === BracketMatchStatus.finished &&
+                        "border-border/60 bg-muted/20 opacity-80",
+                      !isOngoing && match.status === BracketMatchStatus.cancelled &&
+                        "border-border/60 bg-muted/10 opacity-75",
+                      !isOngoing &&
+                        match.status === BracketMatchStatus.waiting &&
+                        "border-border bg-card",
+                      interactive && !isSelected && "hover:bg-muted/40",
+                      interactive && isSelected && !isOngoing && "ring-1 ring-primary/40",
+                      !interactive && "cursor-default",
+                    )
+              }
             >
               <MatchRowContent
                 match={match}
-                compact
+                variant={variant === "queue" ? "queue" : "default"}
                 scoreSummary={scoreSummariesByMatchId?.[match.matchId]}
               />
             </button>
@@ -193,12 +261,12 @@ export function CourtJudgeCurrentMatchCard({
   scoreSummary?: CourtMatchScoreSummaryVM | null;
 }) {
   return (
-    <section className="rounded-xl border border-primary bg-primary/5 p-4 ring-1 ring-primary/30">
+    <section className="rounded-xl border border-primary bg-primary/5 p-4 ring-1 ring-primary/25">
       <div className="mb-2 flex items-center justify-between gap-2">
         <p className="text-primary text-xs font-semibold">현재 경기</p>
         <JudgeMatchStatusBadge match={match} />
       </div>
-      <MatchRowContent match={match} scoreSummary={scoreSummary} />
+      <MatchRowContent match={match} variant="current" scoreSummary={scoreSummary} />
     </section>
   );
 }

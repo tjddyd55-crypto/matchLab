@@ -1,6 +1,5 @@
 import type { CourtJudgeMatchVM } from "@/lib/services/judge-court.service";
 import type { CourtJudgeScene } from "@/lib/court-judge-page-state";
-import { CourtJudgeMatchList } from "@/components/domain/judges/CourtJudgeMatchList";
 import { CourtJudgeSceneBanner } from "@/components/domain/judges/CourtJudgeSceneBanner";
 
 type Props = {
@@ -19,12 +18,9 @@ export function CourtJudgeEmptyState({
     return null;
   }
 
-  return (
-    <div className="space-y-4">
-      <CourtJudgeSceneBanner scene={scene} role={role} />
-      {matches.length > 0 ? (
-        <CourtJudgeMatchList matches={matches} ongoingMatchId={null} selectable={false} />
-      ) : null}
-    </div>
-  );
+  if (matches.length === 0 && scene === "no_matches") {
+    return <CourtJudgeSceneBanner scene={scene} role={role} />;
+  }
+
+  return <CourtJudgeSceneBanner scene={scene} role={role} />;
 }

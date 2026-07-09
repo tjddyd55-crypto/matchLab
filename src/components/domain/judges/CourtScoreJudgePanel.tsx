@@ -19,7 +19,9 @@ import { matchRequiresScoreJudge } from "@/lib/court-judge-page-state";
 import type { CourtJudgeScene } from "@/lib/court-judge-page-state";
 import { JudgeDecisionMethod } from "@/lib/enums";
 import { CourtJudgeRefreshShell } from "./CourtJudgeRefreshShell";
-import { CourtJudgeFightersHeader } from "./CourtJudgeMatchList";
+import {
+  CourtJudgeCurrentMatchCard,
+} from "./CourtJudgeMatchList";
 import { CourtJudgeEmptyState } from "./CourtJudgeEmptyState";
 import { CourtJudgeScoreNotRequiredNotice } from "./CourtJudgeSceneBanner";
 import { CourtJudgeScreenShell } from "./CourtJudgeScreenShell";
@@ -174,8 +176,6 @@ function ScoreForm({
         <span className="text-muted-foreground">{match.operationalSettingsLabel}</span>
       </div>
 
-      <CourtJudgeFightersHeader match={match} />
-
       {loadingMine ? (
         <p className="text-muted-foreground text-sm">제출 상태 확인 중…</p>
       ) : myScorecard ? (
@@ -305,19 +305,22 @@ function ScoreDetail({
   if (!matchRequiresScoreJudge(ongoing)) {
     return (
       <div className="space-y-4">
+        <CourtJudgeCurrentMatchCard match={ongoing} />
         <CourtJudgeScoreNotRequiredNotice />
-        <CourtJudgeEmptyState scene="no_ongoing_match" matches={matches} role="score" />
       </div>
     );
   }
 
   return (
-    <ScoreForm
-      key={`${ongoing.matchId}-${effectiveScoringRoundCount(ongoing)}`}
-      match={ongoing}
-      judgeName={judgeName}
-      birthDate={birthDate}
-    />
+    <div className="space-y-4">
+      <CourtJudgeCurrentMatchCard match={ongoing} />
+      <ScoreForm
+        key={`${ongoing.matchId}-${effectiveScoringRoundCount(ongoing)}`}
+        match={ongoing}
+        judgeName={judgeName}
+        birthDate={birthDate}
+      />
+    </div>
   );
 }
 
@@ -345,19 +348,17 @@ export function CourtScoreJudgePanel({
         matches={matches}
         ongoingMatchId={ongoingMatchId}
         roleLabel="채점심판"
-        mobileDetailFirst
-        selectable={false}
+        queueTitle="경기 대기열"
         scoreSummariesByMatchId={scoreSummariesByMatchId}
-        detail={() => (
-          <ScoreDetail
-            matches={matches}
-            ongoingMatchId={ongoingMatchId}
-            scene={scene}
-            judgeName={judgeName}
-            birthDate={birthDate}
-          />
-        )}
-      />
+      >
+        <ScoreDetail
+          matches={matches}
+          ongoingMatchId={ongoingMatchId}
+          scene={scene}
+          judgeName={judgeName}
+          birthDate={birthDate}
+        />
+      </CourtJudgeScreenShell>
     </CourtJudgeRefreshShell>
   );
 }
