@@ -20,7 +20,7 @@ import type {
 import { BracketMatchOutcomeStyle, BracketMatchStatus } from "@/lib/enums";
 import type { CourtJudgeScene } from "@/lib/court-judge-page-state";
 import { sanitizeJudgeVisibleMemo } from "@/lib/match-result-memo";
-import { BoutFormatBadge } from "@/components/domain/shared/BoutFormatBadge";
+import { CourtJudgeMatchLabels } from "./CourtJudgeMatchLabels";
 import { CourtJudgeRefreshShell } from "./CourtJudgeRefreshShell";
 import { CourtJudgeScorecardInlineList } from "./CourtJudgeScorecardDetail";
 import {
@@ -195,17 +195,13 @@ function HeadMatchDetail({
       <section className="overflow-hidden rounded-xl border bg-card">
         <div className="border-b bg-muted/30 px-4 py-3 text-sm">
           <div className="flex flex-wrap items-center gap-2">
-            <span>
+            <span className="font-medium">
+              {match.courtOrder != null ? `${match.courtOrder}경기 · ` : ""}
               {match.divisionLabel ?? "경기구분 미상"}
-              {match.courtOrder != null ? ` · ${match.courtOrder}경기` : ""}
             </span>
-            <BoutFormatBadge
-              bracketType={match.bracketType}
-              bracketIsPublic={match.bracketIsPublic}
-            />
-            <span className="text-muted-foreground text-xs">
-              {match.operationalSettingsLabel}
-            </span>
+          </div>
+          <div className="mt-2">
+            <CourtJudgeMatchLabels match={match} showDivision={false} />
           </div>
         </div>
         <div className="p-4">

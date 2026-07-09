@@ -74,12 +74,18 @@ function MatchInfoHeader({ match }: { match: CourtJudgeMatchVM }) {
     <section className="overflow-hidden rounded-xl border bg-card">
       <div className="border-b bg-muted/30 px-4 py-3 text-sm">
         <div className="flex flex-wrap items-center gap-2">
-          <span className="text-muted-foreground text-xs">{orderLabel}</span>
-          <span>{match.divisionLabel ?? "경기구분 미상"}</span>
+          <span className="font-medium">
+            {orderLabel}
+            {" · "}
+            {match.divisionLabel ?? "경기구분 미상"}
+          </span>
+        </div>
+        <div className="mt-2 flex flex-wrap items-center gap-2">
           <BoutFormatBadge
             bracketType={match.bracketType}
             bracketIsPublic={match.bracketIsPublic}
             matchIsPublicSparring={match.matchIsPublicSparring}
+            resultMemo={match.resultMemo}
           />
           <span className="text-muted-foreground text-xs">{match.operationalSettingsLabel}</span>
         </div>
