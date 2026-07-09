@@ -1,6 +1,6 @@
 "use client";
 
-import { useSyncExternalStore, useState, type FormEvent } from "react";
+import { useEffect, useState, type FormEvent } from "react";
 import { BrandLogo } from "@/components/common/BrandLogo";
 import { Button } from "@/components/ui/button";
 import {
@@ -8,11 +8,8 @@ import {
   readCourtJudgeSession,
   writeCourtJudgeSession,
   type CourtJudgeRole,
+  type CourtJudgeSession,
 } from "@/lib/court-judge-session";
-
-function subscribeNoop() {
-  return () => {};
-}
 
 export function CourtJudgeIdentityGate({
   courtId,
@@ -27,17 +24,21 @@ export function CourtJudgeIdentityGate({
   roleLabel: string;
   eventTitle: string;
   courtName: string;
-  children: (session: { judgeName: string; birthDate: string }) => React.ReactNode;
+  children: (session: CourtJudgeSession) => React.ReactNode;
 }) {
-  const storedSession = useSyncExternalStore(
-    subscribeNoop,
-    () => readCourtJudgeSession(courtId, role),
-    () => null,
-  );
-  const [session, setSession] = useState(storedSession);
+  const loadKey = `${courtId}:${role}`;
+  const [session, setSession] = useState<CourtJudgeSession | null>(null);
+  const [loadedKey, setLoadedKey] = useState<string | null>(null);
+  const hydrated = loadedKey === loadKey;
   const [error, setError] = useState<string | null>(null);
 
-  const activeSession = session ?? storedSession;
+  useEffect(() => {
+    // localStorage는 클라이언트 전용이라 mount 후 1회 복원한다.
+    /* eslint-disable react-hooks/set-state-in-effect -- client-only session hydration */
+    setSession(readCourtJudgeSession(courtId, role));
+    setLoadedKey(loadKey);
+    /* eslint-enable react-hooks/set-state-in-effect */
+  }, [courtId, role, loadKey]);
 
   function onSubmit(e: FormEvent<HTMLFormElement>) {
     e.preventDefault();
@@ -59,7 +60,16 @@ export function CourtJudgeIdentityGate({
     setError(null);
   }
 
-  if (!activeSession) {
+  if (!hydrated) {
+    return (
+      <div className="mx-auto flex min-h-[60vh] max-w-md flex-col items-center justify-center gap-3 p-4 text-center">
+        <BrandLogo size="md" showText className="justify-center" />
+        <p className="text-muted-foreground text-sm">입장 정보를 확인 중…</p>
+      </div>
+    );
+  }
+
+  if (!session) {
     const inputClass = "border-input bg-background h-11 w-full rounded-md border px-3 text-base";
     return (
       <div className="mx-auto flex min-h-[60vh] max-w-md flex-col justify-center gap-5 p-4">
@@ -99,13 +109,13 @@ export function CourtJudgeIdentityGate({
     <div className="space-y-3">
       <div className="mx-auto flex max-w-6xl items-center justify-between gap-2 px-4 pt-4">
         <p className="text-muted-foreground text-xs">
-          {activeSession.judgeName} · {roleLabel}
+          {session.judgeName} · {roleLabel}
         </p>
         <Button type="button" variant="outline" size="sm" onClick={switchIdentity}>
           정보 변경
         </Button>
       </div>
-      {children(activeSession)}
+      {children(session)}
     </div>
   );
 }
