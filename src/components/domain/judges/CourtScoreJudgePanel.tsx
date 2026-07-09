@@ -16,15 +16,17 @@ import type {
   CourtMatchScoreSummaryVM,
 } from "@/lib/services/judge-court.service";
 import { matchRequiresScoreJudge } from "@/lib/court-judge-page-state";
-import type { CourtJudgeScene } from "@/lib/court-judge-page-state";
+import { BracketMatchStatus } from "@/lib/enums";
 import { JudgeDecisionMethod } from "@/lib/enums";
+import { sanitizeJudgeVisibleMemo } from "@/lib/match-result-memo";
 import { CourtJudgeRefreshShell } from "./CourtJudgeRefreshShell";
 import {
-  CourtJudgeCurrentMatchCard,
+  CourtJudgeFightersHeader,
+  resultSummary,
 } from "./CourtJudgeMatchList";
 import { CourtJudgeEmptyState } from "./CourtJudgeEmptyState";
 import { CourtJudgeScoreNotRequiredNotice } from "./CourtJudgeSceneBanner";
-import { CourtJudgeScreenShell } from "./CourtJudgeScreenShell";
+import { CourtJudgeEmptyNotice, CourtJudgeScreenShell } from "./CourtJudgeScreenShell";
 
 type RoundState = { roundNumber: number; redScore: string; blueScore: string };
 
@@ -61,6 +63,31 @@ function SubmittedSummary({ scorecard }: { scorecard: CourtJudgeMyScorecardVM })
         ))}
       </ul>
     </div>
+  );
+}
+
+function MatchInfoHeader({ match }: { match: CourtJudgeMatchVM }) {
+  const orderLabel =
+    match.courtOrder != null ? `${match.courtOrder}경기` : `#${match.matchNumber ?? "?"}`;
+
+  return (
+    <section className="overflow-hidden rounded-xl border bg-card">
+      <div className="border-b bg-muted/30 px-4 py-3 text-sm">
+        <div className="flex flex-wrap items-center gap-2">
+          <span className="text-muted-foreground text-xs">{orderLabel}</span>
+          <span>{match.divisionLabel ?? "경기구분 미상"}</span>
+          <BoutFormatBadge
+            bracketType={match.bracketType}
+            bracketIsPublic={match.bracketIsPublic}
+            matchIsPublicSparring={match.matchIsPublicSparring}
+          />
+          <span className="text-muted-foreground text-xs">{match.operationalSettingsLabel}</span>
+        </div>
+      </div>
+      <div className="p-4">
+        <CourtJudgeFightersHeader match={match} />
+      </div>
+    </section>
   );
 }
 
@@ -168,13 +195,7 @@ function ScoreForm({
 
   return (
     <form onSubmit={onSubmit} className="space-y-4 rounded-xl border p-4">
-      <div className="flex flex-wrap items-center gap-2 text-xs">
-        <BoutFormatBadge
-          bracketType={match.bracketType}
-          bracketIsPublic={match.bracketIsPublic}
-        />
-        <span className="text-muted-foreground">{match.operationalSettingsLabel}</span>
-      </div>
+      <p className="text-primary text-sm font-semibold">현재 채점할 경기</p>
 
       {loadingMine ? (
         <p className="text-muted-foreground text-sm">제출 상태 확인 중…</p>
@@ -268,60 +289,166 @@ function ScoreForm({
   );
 }
 
-function ScoreDetail({
-  matches,
-  ongoingMatchId,
-  scene,
+function FinishedScoreDetail({
+  match,
   judgeName,
   birthDate,
+  scoreSummary,
 }: {
-  matches: CourtJudgeMatchVM[];
-  ongoingMatchId: string | null;
-  scene: CourtJudgeScene;
+  match: CourtJudgeMatchVM;
   judgeName: string;
   birthDate: string;
+  scoreSummary?: CourtMatchScoreSummaryVM | null;
 }) {
-  if (scene !== "active" || !ongoingMatchId) {
+  const [loading, setLoading] = useState(true);
+  const [myScorecard, setMyScorecard] = useState<CourtJudgeMyScorecardVM | null>(null);
+  const summary = resultSummary(match);
+
+  useEffect(() => {
+    let cancelled = false;
+    const fd = new FormData();
+    fd.set("courtId", match.courtId);
+    fd.set("matchId", match.matchId);
+    fd.set("judgeName", judgeName);
+    fd.set("birthDate", birthDate);
+    void getMyCourtScorecardAction(fd).then((res) => {
+      if (cancelled) return;
+      setMyScorecard(res.ok ? res.data.scorecard : null);
+      setLoading(false);
+    });
+    return () => {
+      cancelled = true;
+    };
+  }, [match.courtId, match.matchId, judgeName, birthDate]);
+
+  const canResubmit = myScorecard && !myScorecard.isLocked;
+
+  return (
+    <div className="space-y-4">
+      <section className="rounded-xl border border-border/70 bg-muted/20 p-4">
+        <h2 className="text-sm font-semibold">이미 종료된 경기입니다</h2>
+        <p className="text-muted-foreground mt-1 text-xs">
+          결과와 제출 상태를 확인할 수 있습니다.
+        </p>
+        <p className="text-muted-foreground mt-3 text-sm">{summary ?? "—"}</p>
+        {scoreSummary ? (
+          <p className="text-muted-foreground mt-2 text-xs">{scoreSummary.label}</p>
+        ) : null}
+      </section>
+
+      {loading ? (
+        <p className="text-muted-foreground text-sm">제출 상태 확인 중…</p>
+      ) : myScorecard ? (
+        <SubmittedSummary scorecard={myScorecard} />
+      ) : (
+        <CourtJudgeEmptyNotice>제출한 채점표가 없습니다.</CourtJudgeEmptyNotice>
+      )}
+
+      {canResubmit ? (
+        <ScoreForm
+          key={`${match.matchId}-resubmit-${effectiveScoringRoundCount(match)}`}
+          match={match}
+          judgeName={judgeName}
+          birthDate={birthDate}
+        />
+      ) : null}
+    </div>
+  );
+}
+
+function ScoreDetail({
+  match,
+  matches,
+  judgeName,
+  birthDate,
+  scoreSummary,
+}: {
+  match: CourtJudgeMatchVM | null;
+  matches: CourtJudgeMatchVM[];
+  judgeName: string;
+  birthDate: string;
+  scoreSummary?: CourtMatchScoreSummaryVM | null;
+}) {
+  if (matches.length === 0) {
+    return <CourtJudgeEmptyState scene="no_matches" matches={matches} role="score" />;
+  }
+
+  if (!match) {
     return (
-      <CourtJudgeEmptyState
-        scene={scene === "active" ? "no_ongoing_match" : scene}
-        matches={matches}
-        role="score"
-      />
+      <CourtJudgeEmptyNotice>경기 리스트에서 경기를 선택해 주세요.</CourtJudgeEmptyNotice>
     );
   }
 
-  const ongoing = matches.find((m) => m.matchId === ongoingMatchId) ?? null;
-  if (!ongoing) {
-    return (
-      <CourtJudgeEmptyState
-        scene="no_ongoing_match"
-        matches={matches}
-        role="score"
-      />
-    );
-  }
-
-  if (!matchRequiresScoreJudge(ongoing)) {
+  if (match.status === BracketMatchStatus.cancelled) {
+    const reason = sanitizeJudgeVisibleMemo(match.displayResultMemo);
     return (
       <div className="space-y-4">
-        <CourtJudgeCurrentMatchCard match={ongoing} />
-        <CourtJudgeScoreNotRequiredNotice />
+        <MatchInfoHeader match={match} />
+        <section className="rounded-xl border border-border/70 bg-muted/20 p-4">
+          <div className="flex flex-wrap items-center gap-2">
+            <span className="rounded-full border border-muted-foreground/30 px-2 py-0.5 text-[11px] font-medium text-muted-foreground">
+              취소
+            </span>
+            <p className="text-sm font-medium">취소된 경기입니다.</p>
+          </div>
+          {reason ? (
+            <p className="text-muted-foreground mt-2 text-sm">취소 사유: {reason}</p>
+          ) : null}
+        </section>
       </div>
     );
   }
 
-  return (
-    <div className="space-y-4">
-      <CourtJudgeCurrentMatchCard match={ongoing} />
-      <ScoreForm
-        key={`${ongoing.matchId}-${effectiveScoringRoundCount(ongoing)}`}
-        match={ongoing}
-        judgeName={judgeName}
-        birthDate={birthDate}
-      />
-    </div>
-  );
+  if (match.status === BracketMatchStatus.finished) {
+    return (
+      <div className="space-y-4">
+        <MatchInfoHeader match={match} />
+        <FinishedScoreDetail
+          match={match}
+          judgeName={judgeName}
+          birthDate={birthDate}
+          scoreSummary={scoreSummary}
+        />
+      </div>
+    );
+  }
+
+  if (
+    match.status === BracketMatchStatus.waiting ||
+    match.status === BracketMatchStatus.called
+  ) {
+    return (
+      <div className="space-y-4">
+        <MatchInfoHeader match={match} />
+        <section className="rounded-xl border p-4">
+          <p className="font-medium">아직 채점할 수 없습니다</p>
+          <p className="text-muted-foreground mt-2 text-sm">
+            아직 시작 전입니다. 주심판이 경기를 시작하면 채점할 수 있습니다.
+          </p>
+        </section>
+      </div>
+    );
+  }
+
+  if (match.status === BracketMatchStatus.ongoing) {
+    return (
+      <div className="space-y-4">
+        <MatchInfoHeader match={match} />
+        {!matchRequiresScoreJudge(match) ? (
+          <CourtJudgeScoreNotRequiredNotice />
+        ) : (
+          <ScoreForm
+            key={`${match.matchId}-${effectiveScoringRoundCount(match)}`}
+            match={match}
+            judgeName={judgeName}
+            birthDate={birthDate}
+          />
+        )}
+      </div>
+    );
+  }
+
+  return null;
 }
 
 export function CourtScoreJudgePanel({
@@ -329,7 +456,6 @@ export function CourtScoreJudgePanel({
   matches,
   ongoingMatchId,
   scoreSummariesByMatchId,
-  scene,
   judgeName,
   birthDate,
 }: {
@@ -337,7 +463,7 @@ export function CourtScoreJudgePanel({
   matches: CourtJudgeMatchVM[];
   ongoingMatchId: string | null;
   scoreSummariesByMatchId: Record<string, CourtMatchScoreSummaryVM>;
-  scene: CourtJudgeScene;
+  scene: import("@/lib/court-judge-page-state").CourtJudgeScene;
   judgeName: string;
   birthDate: string;
 }) {
@@ -348,17 +474,19 @@ export function CourtScoreJudgePanel({
         matches={matches}
         ongoingMatchId={ongoingMatchId}
         roleLabel="채점심판"
-        queueTitle="경기 대기열"
         scoreSummariesByMatchId={scoreSummariesByMatchId}
-      >
-        <ScoreDetail
-          matches={matches}
-          ongoingMatchId={ongoingMatchId}
-          scene={scene}
-          judgeName={judgeName}
-          birthDate={birthDate}
-        />
-      </CourtJudgeScreenShell>
+        detail={(selected) => (
+          <ScoreDetail
+            match={selected}
+            matches={matches}
+            judgeName={judgeName}
+            birthDate={birthDate}
+            scoreSummary={
+              selected ? scoreSummariesByMatchId[selected.matchId] : undefined
+            }
+          />
+        )}
+      />
     </CourtJudgeRefreshShell>
   );
 }

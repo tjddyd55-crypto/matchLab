@@ -170,13 +170,14 @@ function queueRowClassName(match: CourtJudgeMatchVM, opts: {
 
   return cn(
     "w-full rounded-lg border px-3 py-2 text-left transition-colors",
-    isOngoing && "border-primary bg-primary/5 ring-1 ring-primary/25",
+    isOngoing && "border-primary bg-primary/5",
     !isOngoing && isCalled && "border-primary/35 bg-primary/[0.03]",
     !isOngoing && isWaiting && "border-border bg-card",
     !isOngoing && isFinished && "border-border/60 bg-muted/20 opacity-80",
     !isOngoing && isCancelled && "border-border/60 bg-muted/10 opacity-75",
+    isOngoing && "ring-1 ring-primary/30",
+    interactive && isSelected && "ring-2 ring-primary/45 border-primary/50",
     interactive && !isSelected && "hover:bg-muted/30",
-    interactive && isSelected && !isOngoing && "ring-1 ring-primary/30",
     !interactive && "cursor-default",
   );
 }
