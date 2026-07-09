@@ -9,10 +9,10 @@ import {
   type BracketMatchOutcomeStyle,
   type JudgeWinnerCorner,
 } from "@/generated/prisma";
+import { parseBracketFighterSnapshot } from "@/lib/bracket-snapshot";
 import {
-  formatDivisionNameLabel,
-  parseBracketFighterSnapshot,
-} from "@/lib/bracket-snapshot";
+  formatDivisionLabel,
+} from "@/lib/division-display";
 import { AppError } from "@/lib/errors/app-error";
 import { computeScorecardTotals } from "@/lib/judge-score-aggregation";
 import { hashJudgePassword } from "@/lib/judge-password";
@@ -178,6 +178,8 @@ const matchInclude = {
           gender: true,
           ageGroup: true,
           weightClass: true,
+          weightClassName: true,
+          weightLimitText: true,
           skillLevel: true,
         },
       },
@@ -231,7 +233,7 @@ function toCourtJudgeMatchVM(
     matchNumber: match.matchNumber,
     courtOrder: match.courtOrder,
     divisionLabel: match.bracket.division
-      ? formatDivisionNameLabel(match.bracket.division)
+      ? formatDivisionLabel(match.bracket.division)
       : null,
     bracketTitle: match.bracket.title,
     bracketType: match.bracket.type,

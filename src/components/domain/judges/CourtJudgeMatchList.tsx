@@ -1,6 +1,6 @@
 "use client";
 
-import { BoutFormatBadge, PublicSparringUnderVsBadge } from "@/components/domain/shared/BoutFormatBadge";
+import { PublicSparringUnderVsBadge } from "@/components/domain/shared/BoutFormatBadge";
 import { MatchStatusBadge as SharedMatchStatusBadge } from "@/components/domain/shared/MatchStatusBadge";
 import {
   getCornerLabelClassName,
@@ -14,6 +14,7 @@ import type {
 import { BracketMatchStatus } from "@/lib/enums";
 import { bracketMatchStatusLabel } from "@/lib/match-status-display";
 import { sanitizeJudgeVisibleMemo } from "@/lib/match-result-memo";
+import { CourtJudgeMatchLabels } from "./CourtJudgeMatchLabels";
 
 function winnerCornerLabel(match: CourtJudgeMatchVM): string | null {
   if (match.status !== BracketMatchStatus.finished || !match.winnerId) return null;
@@ -92,10 +93,7 @@ function MatchRowContent({
             {match.fighterBlueName}
           </p>
         </div>
-        <p className="text-muted-foreground mt-1 truncate text-[11px]">
-          {[match.divisionLabel, match.operationalSettingsLabel].filter(Boolean).join(" · ") ||
-            "경기구분 미상"}
-        </p>
+        <CourtJudgeMatchLabels match={match} compact className="mt-1" />
         {summary && isTerminal ? (
           <p className="text-muted-foreground mt-1 truncate text-[11px]">{summary}</p>
         ) : null}
@@ -111,13 +109,6 @@ function MatchRowContent({
       <div className="flex flex-wrap items-center gap-2">
         <span className="text-muted-foreground text-xs font-medium">{orderLabel}</span>
         <JudgeMatchStatusBadge match={match} />
-        {variant === "current" ? null : (
-          <BoutFormatBadge
-            bracketType={match.bracketType}
-            bracketIsPublic={match.bracketIsPublic}
-            matchIsPublicSparring={match.matchIsPublicSparring}
-          />
-        )}
       </div>
       <p className={cn("mt-1 font-semibold", variant === "current" ? "text-base" : "text-sm")}>
         <span className={match.winnerId === match.fighterRedId ? "text-emerald-700" : undefined}>
@@ -140,10 +131,7 @@ function MatchRowContent({
           .filter(Boolean)
           .join(" · ") || "체육관 미상"}
       </p>
-      <p className="text-muted-foreground mt-1 text-xs">
-        {match.divisionLabel ?? "경기구분 미상"}
-        {match.operationalSettingsLabel ? ` · ${match.operationalSettingsLabel}` : ""}
-      </p>
+      <CourtJudgeMatchLabels match={match} compact />
       {visibleMemo && !isTerminal ? (
         <p className="text-muted-foreground mt-1 text-xs">메모: {visibleMemo}</p>
       ) : null}
