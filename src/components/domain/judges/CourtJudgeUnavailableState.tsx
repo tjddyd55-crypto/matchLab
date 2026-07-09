@@ -7,7 +7,8 @@ import { cn } from "@/lib/utils";
 
 export type CourtJudgeUnavailableVariant =
   | "invalid_court"
-  | "inactive_court";
+  | "inactive_court"
+  | "client_error";
 
 const COPY: Record<
   CourtJudgeUnavailableVariant,
@@ -28,6 +29,15 @@ const COPY: Record<
     badge: "비활성",
     badgeClass: "border-muted-foreground/30 bg-muted text-muted-foreground",
   },
+  client_error: {
+    title: "화면을 불러오지 못했습니다.",
+    lines: [
+      "심판 화면을 표시하는 중 오류가 발생했습니다.",
+      "새로고침 후에도 반복되면 운영자에게 문의해 주세요.",
+    ],
+    badge: "화면 오류",
+    badgeClass: "border-amber-500/40 bg-amber-500/10 text-amber-700 dark:text-amber-300",
+  },
 };
 
 export function CourtJudgeUnavailableState({
@@ -36,12 +46,14 @@ export function CourtJudgeUnavailableState({
   eventTitle,
   courtName,
   onRefresh,
+  refreshLabel = "새로고침",
 }: {
   variant: CourtJudgeUnavailableVariant;
   roleLabel: string;
   eventTitle?: string | null;
   courtName?: string | null;
   onRefresh?: () => void;
+  refreshLabel?: string;
 }) {
   const router = useRouter();
   const copy = COPY[variant];
@@ -80,7 +92,7 @@ export function CourtJudgeUnavailableState({
           variant="outline"
           onClick={() => (onRefresh ? onRefresh() : router.refresh())}
         >
-          새로고침
+          {refreshLabel}
         </Button>
         <Button type="button" variant="ghost" onClick={() => router.back()}>
           뒤로가기
