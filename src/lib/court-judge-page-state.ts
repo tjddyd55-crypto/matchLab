@@ -41,6 +41,24 @@ export function matchRequiresScoreJudge(match: CourtJudgeMatchVM): boolean {
   return true;
 }
 
+/** 리스트 기본 선택: 진행중 → 대기/준비 → 첫 경기 */
+export function resolveDefaultSelectedMatchId(
+  matches: CourtJudgeMatchVM[],
+  ongoingMatchId: string | null,
+): string | null {
+  if (ongoingMatchId) return ongoingMatchId;
+
+  const nextActive = matches.find(
+    (m) =>
+      m.status === BracketMatchStatus.ongoing ||
+      m.status === BracketMatchStatus.called ||
+      m.status === BracketMatchStatus.waiting,
+  );
+  if (nextActive) return nextActive.matchId;
+
+  return matches[0]?.matchId ?? null;
+}
+
 const HEAD_ACTION_STATUSES = new Set<BracketMatchStatus>([
   BracketMatchStatus.waiting,
   BracketMatchStatus.called,

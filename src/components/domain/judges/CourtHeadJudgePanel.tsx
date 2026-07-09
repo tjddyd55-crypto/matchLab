@@ -1,6 +1,6 @@
 "use client";
 
-import { useMemo, useState, useTransition, type FormEvent } from "react";
+import { useState, useTransition, type FormEvent } from "react";
 import { useRouter } from "next/navigation";
 import {
   headAddOvertimeRoundAction,
@@ -19,7 +19,6 @@ import type {
 } from "@/lib/services/judge-court.service";
 import { BracketMatchOutcomeStyle, BracketMatchStatus } from "@/lib/enums";
 import type { CourtJudgeScene } from "@/lib/court-judge-page-state";
-import { resolveHeadActionMatchId } from "@/lib/court-judge-page-state";
 import { sanitizeJudgeVisibleMemo } from "@/lib/match-result-memo";
 import { BoutFormatBadge } from "@/components/domain/shared/BoutFormatBadge";
 import { CourtJudgeRefreshShell } from "./CourtJudgeRefreshShell";
@@ -30,7 +29,7 @@ import {
 } from "./CourtJudgeMatchList";
 import { CourtJudgeEmptyState } from "./CourtJudgeEmptyState";
 import { CourtJudgeSceneBanner } from "./CourtJudgeSceneBanner";
-import { CourtJudgeScreenShell } from "./CourtJudgeScreenShell";
+import { CourtJudgeScreenShell, CourtJudgeEmptyNotice } from "./CourtJudgeScreenShell";
 
 function HeadMatchDetail({
   match,
@@ -374,41 +373,22 @@ export function CourtHeadJudgePanel({
   scoreSummariesByMatchId: Record<string, CourtMatchScoreSummaryVM>;
   scene: CourtJudgeScene;
 }) {
-  const [selectedMatchId, setSelectedMatchId] = useState<string | null>(null);
-
-  const actionMatchId = useMemo(
-    () => resolveHeadActionMatchId(matches, ongoingMatchId, selectedMatchId),
-    [matches, ongoingMatchId, selectedMatchId],
-  );
-
-  const actionMatch = matches.find((m) => m.matchId === actionMatchId) ?? null;
-  const scorecards =
-    actionMatch?.status === BracketMatchStatus.ongoing ||
-    actionMatch?.status === BracketMatchStatus.finished
-      ? (scorecardsByMatchId[actionMatch.matchId] ?? [])
-      : [];
-
-  function renderMain() {
+  function renderDetail(selected: CourtJudgeMatchVM | null) {
     if (matches.length === 0) {
       return <CourtJudgeEmptyState scene="no_matches" matches={matches} role="head" />;
     }
 
-    if (scene !== "active" && !actionMatch) {
-      return <CourtJudgeEmptyState scene={scene} matches={matches} role="head" />;
-    }
-
-    if (!actionMatch) {
+    if (!selected) {
       return (
-        <div className="space-y-4">
-          {scene !== "active" ? <CourtJudgeSceneBanner scene={scene} role="head" /> : null}
-          <CourtJudgeEmptyState
-            scene={scene === "active" ? "no_ongoing_match" : scene}
-            matches={matches}
-            role="head"
-          />
-        </div>
+        <CourtJudgeEmptyNotice>경기 리스트에서 경기를 선택해 주세요.</CourtJudgeEmptyNotice>
       );
     }
+
+    const scorecards =
+      selected.status === BracketMatchStatus.ongoing ||
+      selected.status === BracketMatchStatus.finished
+        ? (scorecardsByMatchId[selected.matchId] ?? [])
+        : [];
 
     return (
       <div className="space-y-4">
@@ -416,7 +396,7 @@ export function CourtHeadJudgePanel({
           <CourtJudgeSceneBanner scene={scene} role="head" />
         ) : null}
         <HeadMatchDetail
-          match={actionMatch}
+          match={selected}
           ongoingMatchId={ongoingMatchId}
           scorecards={scorecards}
         />
@@ -431,14 +411,9 @@ export function CourtHeadJudgePanel({
         matches={matches}
         ongoingMatchId={ongoingMatchId}
         roleLabel="주심판"
-        queueTitle="경기 대기열"
-        queueSelectable
-        selectedMatchId={actionMatchId ?? selectedMatchId}
-        onSelectMatch={setSelectedMatchId}
         scoreSummariesByMatchId={scoreSummariesByMatchId}
-      >
-        {renderMain()}
-      </CourtJudgeScreenShell>
+        detail={(selected) => renderDetail(selected)}
+      />
     </CourtJudgeRefreshShell>
   );
 }
