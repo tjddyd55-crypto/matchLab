@@ -1,6 +1,21 @@
+import type { CourtTabId } from "@/lib/court-tab-label";
+import {
+  type CourtSortRef,
+  sortMatchesByCourtSchedule,
+} from "@/lib/court-match-order";
 import { BracketMatchStatus } from "@/lib/enums";
 import { formatMatchOrderShort } from "@/lib/match-order-display";
 import type { OrganizerEventMatchListItemVM } from "@/lib/services/match.service";
+
+export type OperationOrderFields = Pick<
+  OrganizerEventMatchListItemVM,
+  | "matchId"
+  | "courtId"
+  | "courtOrder"
+  | "matchNumber"
+  | "globalMatchOrder"
+  | "matchOrder"
+>;
 
 export type OperationBoardFilter =
   | "all"
@@ -148,6 +163,54 @@ export function formatOperationMatchOrder(
     "matchNumber" | "globalMatchOrder" | "matchOrder"
   >,
 ): string {
+  return formatMatchOrderShort(match);
+}
+
+function compareOperationOrderTieBreak(
+  a: OperationOrderFields,
+  b: OperationOrderFields,
+): number {
+  const keyA =
+    a.matchNumber ?? a.globalMatchOrder ?? a.matchOrder ?? Number.MAX_SAFE_INTEGER;
+  const keyB =
+    b.matchNumber ?? b.globalMatchOrder ?? b.matchOrder ?? Number.MAX_SAFE_INTEGER;
+  if (keyA !== keyB) return keyA - keyB;
+  return a.matchId.localeCompare(b.matchId);
+}
+
+function compareSingleCourtOperationRows(
+  a: OperationOrderFields,
+  b: OperationOrderFields,
+): number {
+  const orderA = a.courtOrder ?? Number.MAX_SAFE_INTEGER;
+  const orderB = b.courtOrder ?? Number.MAX_SAFE_INTEGER;
+  if (orderA !== orderB) return orderA - orderB;
+  return compareOperationOrderTieBreak(a, b);
+}
+
+/** 경기 운영 화면 — courtTab 기준 정렬 */
+export function sortOperationMatchRows<T extends OperationOrderFields>(
+  rows: T[],
+  courtTab: CourtTabId,
+  courts: CourtSortRef[],
+): T[] {
+  if (courtTab !== "all") {
+    return [...rows].sort(compareSingleCourtOperationRows);
+  }
+  return sortMatchesByCourtSchedule(rows, courts);
+}
+
+/**
+ * 경기 운영 화면 순서 라벨.
+ * 경기장 탭: courtOrder. 전체 탭: 기존 matchNumber/globalMatchOrder fallback.
+ */
+export function formatOperationOrderLabel(
+  match: OperationOrderFields,
+  courtTab: CourtTabId,
+): string {
+  if (courtTab !== "all" && match.courtOrder != null) {
+    return `${match.courtOrder}경기`;
+  }
   return formatMatchOrderShort(match);
 }
 
