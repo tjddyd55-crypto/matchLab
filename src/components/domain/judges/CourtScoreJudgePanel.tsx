@@ -30,6 +30,12 @@ import { CourtJudgeEmptyNotice, CourtJudgeScreenShell } from "./CourtJudgeScreen
 
 type RoundState = { roundNumber: number; redScore: string; blueScore: string };
 
+function normalizeScoreInput(value: string): number {
+  const trimmed = value.trim();
+  if (!trimmed) return 0;
+  return Number(trimmed);
+}
+
 function buildInitialRounds(count: number, existing?: CourtJudgeMyScorecardVM | null): RoundState[] {
   return Array.from({ length: count }, (_, index) => {
     const roundNumber = index + 1;
@@ -173,8 +179,8 @@ function ScoreForm({
         JSON.stringify(
           rounds.map((round) => ({
             roundNumber: round.roundNumber,
-            redScore: Number(round.redScore),
-            blueScore: Number(round.blueScore),
+            redScore: normalizeScoreInput(round.redScore),
+            blueScore: normalizeScoreInput(round.blueScore),
           })),
         ),
       );
@@ -210,6 +216,7 @@ function ScoreForm({
       ) : null}
 
       <div className="space-y-3">
+        <p className="text-muted-foreground text-xs">0점은 비워두면 됩니다.</p>
         {rounds.map((round) => (
           <fieldset
             key={round.roundNumber}
@@ -227,7 +234,7 @@ function ScoreForm({
                   type="number"
                   min={0}
                   max={10}
-                  required
+                  placeholder="0"
                   className={inputClass}
                   value={round.redScore}
                   onChange={(e) =>
@@ -241,7 +248,7 @@ function ScoreForm({
                   type="number"
                   min={0}
                   max={10}
-                  required
+                  placeholder="0"
                   className={inputClass}
                   value={round.blueScore}
                   onChange={(e) =>
