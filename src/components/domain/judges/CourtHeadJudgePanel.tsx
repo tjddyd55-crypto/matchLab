@@ -239,16 +239,11 @@ function HeadMatchDetail({
             type="button"
             size="lg"
             className="mt-3 w-full sm:w-auto"
-            disabled={pending || hasOngoing}
+            disabled={pending}
             onClick={() => prepareMatch(match.matchId)}
           >
             경기 준비
           </Button>
-          {hasOngoing ? (
-            <p className="text-muted-foreground mt-2 text-xs">
-              다른 경기가 진행/준비 중이면 새 경기를 준비할 수 없습니다.
-            </p>
-          ) : null}
         </section>
       ) : null}
 
@@ -265,6 +260,11 @@ function HeadMatchDetail({
           >
             경기 시작
           </Button>
+          {hasOngoing ? (
+            <p className="text-muted-foreground text-xs">
+              이미 진행 중인 경기가 있습니다. 먼저 현재 경기를 완료해 주세요.
+            </p>
+          ) : null}
         </section>
       ) : null}
 

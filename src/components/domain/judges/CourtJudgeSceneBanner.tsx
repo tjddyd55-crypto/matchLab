@@ -34,8 +34,8 @@ function bannerForScene(
         };
       }
       return {
-        title: "현재 진행할 경기가 없습니다.",
-        lines: ["대기 중인 경기를 아래 목록에서 선택하거나 경기 준비를 시작하세요."],
+        title: "현재 진행중인 경기가 없습니다.",
+        lines: ["준비 중인 경기 목록에서 경기 시작을 눌러 진행하세요."],
         badge: "대기",
         className: "border-primary/25 bg-primary/5 text-foreground",
       };
