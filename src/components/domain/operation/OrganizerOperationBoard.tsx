@@ -13,8 +13,10 @@ import type { CourtTabId } from "@/lib/court-tab-label";
 import type { EventCourtVM } from "@/lib/services/event-court.service";
 import type { OrganizerEventMatchListItemVM } from "@/lib/services/match.service";
 import {
+  formatOperationOrderLabel,
   matchesOperationBoardFilter,
   matchesOperationSearchQuery,
+  sortOperationMatchRows,
   summarizeOperationBoard,
   type OperationBoardFilter,
 } from "@/lib/match-operation-display";
@@ -60,20 +62,25 @@ export function OrganizerOperationBoard({
 
   const summary = useMemo(() => summarizeOperationBoard(matches), [matches]);
 
-  const sortedRows = useMemo(() => {
+  const baseRows = useMemo(() => {
     return matches.map((m) => toOperationMatchRow(m, judgeSummaryByMatch?.[m.matchId]));
   }, [matches, judgeSummaryByMatch]);
 
   const activeFilter = statusFilter !== "all" ? statusFilter : summaryFilter;
 
   const filteredRows = useMemo(() => {
-    return sortedRows.filter((row) => {
+    const filtered = baseRows.filter((row) => {
       if (!matchesCourtTab(row, courtTab)) return false;
       if (!matchesOperationSearchQuery(row, search)) return false;
       if (!matchesOperationBoardFilter(row, activeFilter)) return false;
       return true;
     });
-  }, [sortedRows, courtTab, search, activeFilter]);
+
+    return sortOperationMatchRows(filtered, courtTab, courts).map((row) => ({
+      ...row,
+      orderLabel: formatOperationOrderLabel(row, courtTab),
+    }));
+  }, [baseRows, courtTab, courts, search, activeFilter]);
 
   const selectClass =
     "border-input bg-background h-9 rounded-md border px-2 text-sm shadow-sm";
