@@ -347,27 +347,6 @@ async function findOngoingCourtMatch(courtId: string) {
   });
 }
 
-async function findPreparingCourtMatch(courtId: string) {
-  return prisma.bracketMatch.findFirst({
-    where: { courtId, status: BracketMatchStatus.called },
-    orderBy: [{ courtOrder: "asc" }, { globalMatchOrder: "asc" }, { matchOrder: "asc" }],
-    include: matchInclude,
-  });
-}
-
-async function assertCourtHasNoActiveMatch(courtId: string) {
-  const [ongoing, preparing] = await Promise.all([
-    findOngoingCourtMatch(courtId),
-    findPreparingCourtMatch(courtId),
-  ]);
-  if (ongoing) {
-    throw new AppError("CONFLICT", "이미 진행중인 경기가 있습니다.");
-  }
-  if (preparing) {
-    throw new AppError("CONFLICT", "이미 경기준비 중인 경기가 있습니다.");
-  }
-}
-
 function toScorecardVM(s: Awaited<ReturnType<typeof judgeScorecardRepository.listByMatch>>[number]): CourtJudgeScorecardVM {
   return {
     scorecardId: s.id,
@@ -741,7 +720,6 @@ export const judgeCourtService = {
 
   async prepareMatch(courtId: string, matchId: string): Promise<void> {
     const court = await findCourt(courtId);
-    await assertCourtHasNoActiveMatch(courtId);
     const target = await prisma.bracketMatch.findFirst({
       where: {
         id: matchId,
@@ -764,7 +742,10 @@ export const judgeCourtService = {
     const court = await findCourt(courtId);
     const ongoing = await findOngoingCourtMatch(courtId);
     if (ongoing) {
-      throw new AppError("CONFLICT", "이미 진행중인 경기가 있습니다.");
+      throw new AppError(
+        "CONFLICT",
+        "이미 진행 중인 경기가 있습니다. 먼저 현재 경기를 완료해 주세요.",
+      );
     }
     const target = await prisma.bracketMatch.findFirst({
       where: {
