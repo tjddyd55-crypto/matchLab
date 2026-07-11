@@ -1,6 +1,6 @@
 "use client";
 
-import { useEffect, useMemo, useState } from "react";
+import { useCallback, useEffect, useMemo, useRef, useState } from "react";
 import { BrandLogo } from "@/components/common/BrandLogo";
 import { cn } from "@/lib/utils";
 import { resolveDefaultSelectedMatchId } from "@/lib/court-judge-page-state";
@@ -10,6 +10,8 @@ import type {
   CourtMatchScoreSummaryVM,
 } from "@/lib/services/judge-court.service";
 import { CourtJudgeMatchList } from "./CourtJudgeMatchList";
+
+const LG_BREAKPOINT_PX = 1024;
 
 export function CourtJudgeScreenShell({
   court,
@@ -40,9 +42,22 @@ export function CourtJudgeScreenShell({
   );
 
   const [internalSelectedId, setInternalSelectedId] = useState<string | null>(defaultSelectedId);
+  const detailRef = useRef<HTMLElement>(null);
 
   const selectedMatchId = controlledSelectedMatchId ?? internalSelectedId;
   const setSelectedMatchId = onSelectedMatchIdChange ?? setInternalSelectedId;
+
+  const handleSelectMatch = useCallback(
+    (matchId: string) => {
+      setSelectedMatchId(matchId);
+      if (typeof window !== "undefined" && window.innerWidth < LG_BREAKPOINT_PX) {
+        requestAnimationFrame(() => {
+          detailRef.current?.scrollIntoView({ behavior: "smooth", block: "start" });
+        });
+      }
+    },
+    [setSelectedMatchId],
+  );
 
   useEffect(() => {
     if (ongoingMatchId) {
@@ -62,8 +77,11 @@ export function CourtJudgeScreenShell({
   );
 
   const list = (
-    <section aria-label={listTitle} className="space-y-2">
-      <h2 className="text-muted-foreground text-xs font-semibold tracking-wide uppercase">
+    <section
+      aria-label={listTitle}
+      className="flex min-h-0 flex-col space-y-2 lg:max-h-[calc(100vh-180px)] lg:overflow-y-auto lg:pr-1"
+    >
+      <h2 className="text-muted-foreground shrink-0 text-xs font-semibold tracking-wide uppercase">
         {listTitle}
       </h2>
       <CourtJudgeMatchList
@@ -72,14 +90,18 @@ export function CourtJudgeScreenShell({
         selectedMatchId={selectedMatchId}
         ongoingMatchId={ongoingMatchId}
         selectable={selectable}
-        onSelect={selectable ? setSelectedMatchId : undefined}
+        onSelect={selectable ? handleSelectMatch : undefined}
         scoreSummariesByMatchId={scoreSummariesByMatchId}
       />
     </section>
   );
 
   const detailPanel = (
-    <section aria-label="선택 경기 상세" className="min-w-0 space-y-4">
+    <section
+      ref={detailRef}
+      aria-label="선택 경기 상세"
+      className="min-w-0 space-y-4 lg:sticky lg:top-24 lg:max-h-[calc(100vh-140px)] lg:self-start lg:overflow-y-auto"
+    >
       {detail(selectedMatch)}
     </section>
   );
@@ -100,7 +122,7 @@ export function CourtJudgeScreenShell({
         detail(null)
       ) : (
         <>
-          <div className="hidden gap-5 lg:grid lg:grid-cols-[minmax(20rem,22rem)_minmax(0,1fr)]">
+          <div className="hidden min-h-0 gap-6 lg:grid lg:grid-cols-[20rem_1fr]">
             {list}
             {detailPanel}
           </div>
