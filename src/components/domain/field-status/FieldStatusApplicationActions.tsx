@@ -3,6 +3,7 @@
 import {
   useEffect,
   useState,
+  useSyncExternalStore,
   useTransition,
   type FormEvent,
   type ReactNode,
@@ -26,6 +27,19 @@ import { FeedbackMessage } from "@/components/shared/FeedbackMessage";
 import { Button } from "@/components/ui/button";
 import type { FieldStatusRowDTO } from "@/lib/services/field-status.service";
 import { cn } from "@/lib/utils";
+
+function formatSavedWeightKg(kg: number): string {
+  const rounded = Math.round(kg * 10) / 10;
+  return Number.isInteger(rounded) ? String(rounded) : rounded.toFixed(1);
+}
+
+function useHydrated(): boolean {
+  return useSyncExternalStore(
+    () => () => {},
+    () => true,
+    () => false,
+  );
+}
 
 type SaveFeedback = {
   kind: "success" | "error" | "pending";
@@ -229,6 +243,7 @@ export function WeighInWeightInput({
   touchFriendly?: boolean;
 }) {
   const router = useRouter();
+  const hydrated = useHydrated();
   const [weightInput, setWeightInput] = useState(
     row.weighInWeightKg != null ? String(row.weighInWeightKg) : "",
   );
@@ -299,9 +314,9 @@ export function WeighInWeightInput({
           {pending ? "저장 중…" : "저장"}
         </Button>
       </form>
-      {isSaved ? (
+      {hydrated && isSaved && savedKg != null ? (
         <FeedbackMessage tone="success" className="text-xs">
-          저장됨 · {savedKg}kg
+          저장됨 · {formatSavedWeightKg(savedKg)}kg
         </FeedbackMessage>
       ) : null}
       {errorMessage ? (
