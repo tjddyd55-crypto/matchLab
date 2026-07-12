@@ -4,7 +4,7 @@ import { useCallback } from "react";
 import { BrandLogo } from "@/components/common/BrandLogo";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
-import { EventQrCard, type EventQrPrintGroup } from "./EventQrCard";
+import { EventQrCard } from "./EventQrCard";
 import type { CourtJudgeQrLinkVM } from "@/lib/qr-url";
 import {
   buildEventBracketQrUrl,
@@ -18,6 +18,7 @@ import {
   type SpectatorQrAvailabilityContext,
 } from "@/lib/qr-url";
 import type { EventStatus } from "@/lib/enums";
+import { formatPublicDateTime } from "@/lib/date-display";
 import { triggerEventQrPrint } from "@/components/domain/judges/judge-qr-ui";
 import { formatCourtTabLabel } from "@/lib/court-tab-label";
 import "./event-qr-print.css";
@@ -41,20 +42,6 @@ export type EventQrPrintBoardProps = {
   courts: CourtJudgeQrLinkVM[];
 };
 
-function formatEventDate(iso: string | null): string | null {
-  if (!iso) return null;
-  const d = new Date(iso);
-  if (Number.isNaN(d.getTime())) return null;
-  return d.toLocaleString("ko-KR", {
-    dateStyle: "medium",
-    timeStyle: "short",
-  });
-}
-
-function printPreset(preset: EventQrPrintGroup | "all") {
-  triggerEventQrPrint(preset);
-}
-
 export function EventQrPrintBoard({
   eventId,
   eventTitle,
@@ -71,7 +58,7 @@ export function EventQrPrintBoard({
   courts,
 }: EventQrPrintBoardProps) {
   const slug = publicSlug?.trim() ?? "";
-  const formattedDate = formatEventDate(eventDate);
+  const formattedDate = eventDate ? formatPublicDateTime(eventDate) : null;
 
   const spectatorCtx: SpectatorQrAvailabilityContext = {
     status: eventStatus,
@@ -128,7 +115,7 @@ export function EventQrPrintBoard({
     },
   ];
 
-  const printAll = useCallback(() => printPreset("all"), []);
+  const printAll = useCallback(() => triggerEventQrPrint("all"), []);
 
   return (
     <div className="event-qr-board space-y-8">
@@ -171,7 +158,7 @@ export function EventQrPrintBoard({
                 variant="outline"
                 size="field"
                 className="w-full sm:w-auto"
-                onClick={() => printPreset("judge-common")}
+                onClick={() => triggerEventQrPrint("judge-common")}
               >
                 심판석용 QR만
               </Button>
@@ -180,7 +167,7 @@ export function EventQrPrintBoard({
                 variant="outline"
                 size="field"
                 className="w-full sm:w-auto"
-                onClick={() => printPreset("judge-individual")}
+                onClick={() => triggerEventQrPrint("judge-individual")}
               >
                 심판별 QR 모음
               </Button>
@@ -191,7 +178,7 @@ export function EventQrPrintBoard({
             variant="outline"
             size="field"
             className="w-full sm:w-auto"
-            onClick={() => printPreset("judge-court-score")}
+            onClick={() => triggerEventQrPrint("judge-court-score")}
           >
             경기장 채점 QR
           </Button>
@@ -200,7 +187,7 @@ export function EventQrPrintBoard({
             variant="outline"
             size="field"
             className="w-full sm:w-auto"
-            onClick={() => printPreset("judge-court-head")}
+            onClick={() => triggerEventQrPrint("judge-court-head")}
           >
             경기장 주심 QR
           </Button>
@@ -209,7 +196,7 @@ export function EventQrPrintBoard({
             variant="outline"
             size="field"
             className="w-full sm:w-auto"
-            onClick={() => printPreset("spectator-all")}
+            onClick={() => triggerEventQrPrint("spectator-all")}
             disabled={!overviewQrEnabled}
           >
             관람객 QR 모음
@@ -219,7 +206,7 @@ export function EventQrPrintBoard({
             variant="outline"
             size="field"
             className="w-full sm:w-auto"
-            onClick={() => printPreset("spectator-brackets")}
+            onClick={() => triggerEventQrPrint("spectator-brackets")}
             disabled={!isSpectatorTabQrEnabled(spectatorCtx, "brackets")}
           >
             대진표 QR만
@@ -229,7 +216,7 @@ export function EventQrPrintBoard({
             variant="outline"
             size="field"
             className="w-full sm:w-auto"
-            onClick={() => printPreset("spectator-results")}
+            onClick={() => triggerEventQrPrint("spectator-results")}
             disabled={!isSpectatorTabQrEnabled(spectatorCtx, "results")}
           >
             결과 QR만
@@ -239,7 +226,7 @@ export function EventQrPrintBoard({
             variant="outline"
             size="field"
             className="w-full sm:w-auto"
-            onClick={() => printPreset("spectator-live")}
+            onClick={() => triggerEventQrPrint("spectator-live")}
             disabled={!isSpectatorTabQrEnabled(spectatorCtx, "live")}
           >
             라이브 QR만
