@@ -18,6 +18,7 @@ import {
   TableHeader,
   TableRow,
 } from "@/components/ui/table";
+import { formatPublicDate, formatPublicDateTime } from "@/lib/date-display";
 import { Button } from "@/components/ui/button";
 
 export type GymApplicationListItemVM = {
@@ -69,8 +70,7 @@ export function GymApplicationsTable({
               <TableCell className="max-w-[220px]">
                 <div className="font-medium">{row.eventTitle}</div>
                 <div className="text-muted-foreground text-xs">
-                  접수 마감{" "}
-                  {new Date(row.registrationEndDate).toLocaleDateString("ko-KR")}
+                  접수 마감 {formatPublicDate(row.registrationEndDate)}
                 </div>
               </TableCell>
               <TableCell>{row.fighterName}</TableCell>
@@ -96,8 +96,8 @@ export function GymApplicationsTable({
               </TableCell>
               <TableCell className="text-muted-foreground text-xs whitespace-nowrap">
                 {row.appliedAt
-                  ? new Date(row.appliedAt).toLocaleString("ko-KR")
-                  : new Date(row.createdAt).toLocaleString("ko-KR")}
+                  ? formatPublicDateTime(row.appliedAt)
+                  : formatPublicDateTime(row.createdAt)}
               </TableCell>
               <TableCell className="text-right">
                 {row.paymentInstruction ? (

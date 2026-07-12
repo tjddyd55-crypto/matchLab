@@ -8,6 +8,7 @@ import { OrganizerApplicationRowActions } from "@/components/domain/applications
 import { OrganizerManualEntryHint } from "@/components/domain/applications/OrganizerManualEntryHint";
 import { OrganizerApplicationsEmptyState } from "@/components/domain/applications/OrganizerApplicationsEmptyState";
 import type { OrganizerApplicationRowVM } from "@/components/domain/applications/OrganizerApplicationsTable";
+import { formatPublicDateTime } from "@/lib/date-display";
 import { DivisionCompactDisplay } from "@/components/domain/shared/DivisionCompactDisplay";
 import { DivisionGenderBadge } from "@/components/domain/shared/DivisionGenderBadge";
 import { Checkbox } from "@/components/ui/checkbox";
@@ -84,11 +85,7 @@ export function OrganizerApplicationsCards({
             ) : null}
             {row.appliedAt ? (
               <p className="text-muted-foreground text-xs">
-                신청일{" "}
-                {new Date(row.appliedAt).toLocaleString("ko-KR", {
-                  dateStyle: "medium",
-                  timeStyle: "short",
-                })}
+                신청일 {formatPublicDateTime(row.appliedAt)}
               </p>
             ) : null}
             <OrganizerApplicationRowActions

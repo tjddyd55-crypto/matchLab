@@ -12,6 +12,7 @@ import {
   DialogTitle,
   DialogTrigger,
 } from "@/components/ui/dialog";
+import { formatPublicDate, formatPublicDateTime } from "@/lib/date-display";
 
 export function GymApplicationsCards({
   items,
@@ -27,8 +28,7 @@ export function GymApplicationsCards({
               {row.eventTitle}
             </CardTitle>
             <div className="text-muted-foreground text-xs">
-              접수 마감{" "}
-              {new Date(row.registrationEndDate).toLocaleDateString("ko-KR")}
+              접수 마감 {formatPublicDate(row.registrationEndDate)}
             </div>
           </CardHeader>
           <CardContent className="flex flex-col gap-3 text-sm">
@@ -47,8 +47,8 @@ export function GymApplicationsCards({
             <div className="text-muted-foreground text-xs">
               신청{" "}
               {row.appliedAt
-                ? new Date(row.appliedAt).toLocaleString("ko-KR")
-                : new Date(row.createdAt).toLocaleString("ko-KR")}
+                ? formatPublicDateTime(row.appliedAt)
+                : formatPublicDateTime(row.createdAt)}
             </div>
             {row.paymentInstruction ? (
               <Dialog>
