@@ -34,7 +34,7 @@ import {
   formatPublicFeeAmount,
   primarySportFromDivisions,
   resolveEventCoverImageUrl,
-  resolvePublicRegistrationStatus,
+  buildPublicRegistrationDisplay,
 } from "@/lib/event-public-display";
 import { AppError } from "@/lib/errors/app-error";
 import { geocodeVenueCoordinate } from "@/lib/naver-geocode.server";
@@ -450,6 +450,11 @@ export const eventService = {
     const totalDivisions = row._count.divisions;
     const registrationStartDate = toIso(row.registrationStartDate);
     const registrationEndDate = toIso(row.registrationEndDate);
+    const registrationDisplay = buildPublicRegistrationDisplay({
+      status: row.status,
+      registrationStartDate,
+      registrationEndDate,
+    });
     return {
       id: row.id,
       publicSlug: row.publicSlug,
@@ -464,11 +469,9 @@ export const eventService = {
         posterUrl: row.posterUrl,
         galleryImageUrl: row.images[0]?.imageUrl ?? null,
       }),
-      registrationStatus: resolvePublicRegistrationStatus({
-        status: row.status,
-        registrationStartDate,
-        registrationEndDate,
-      }),
+      registrationStatus: registrationDisplay.registrationStatus,
+      registrationDeadlineLabel: registrationDisplay.registrationDeadlineLabel,
+      registrationDeadlinePhase: registrationDisplay.registrationDeadlinePhase,
       primarySport: primarySportFromDivisions(row.divisions),
       liveStreamingEnabled: row.liveStreamingEnabled,
       divisionSummary: buildDivisionSummary(row.divisions, totalDivisions),
@@ -541,6 +544,11 @@ export const eventService = {
 
     const registrationStartDate = toIso(event.registrationStartDate);
     const registrationEndDate = toIso(event.registrationEndDate);
+    const registrationDisplay = buildPublicRegistrationDisplay({
+      status: event.status,
+      registrationStartDate,
+      registrationEndDate,
+    });
     const galleryImages = mapGalleryRows(event.images);
 
     return {
@@ -568,11 +576,9 @@ export const eventService = {
         posterUrl: event.posterUrl,
         galleryImageUrl: galleryImages[0]?.imageUrl ?? null,
       }),
-      registrationStatus: resolvePublicRegistrationStatus({
-        status: event.status,
-        registrationStartDate,
-        registrationEndDate,
-      }),
+      registrationStatus: registrationDisplay.registrationStatus,
+      registrationDeadlineLabel: registrationDisplay.registrationDeadlineLabel,
+      registrationDeadlinePhase: registrationDisplay.registrationDeadlinePhase,
       primarySport: primarySportFromDivisions(divisions),
       galleryImages,
       photoRecordingEnabled: event.photoRecordingEnabled,

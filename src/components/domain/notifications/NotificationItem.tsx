@@ -1,6 +1,7 @@
 "use client";
 
 import Link from "next/link";
+import { formatPublicDateTime } from "@/lib/date-display";
 import type { NotificationListItemDTO } from "@/lib/services/notification.service";
 import { cn } from "@/lib/utils";
 
@@ -23,7 +24,7 @@ export function NotificationItem({
       <span className="font-medium">{item.title}</span>
       <span className="text-muted-foreground text-xs leading-snug">{item.content}</span>
       <span className="text-muted-foreground text-[11px]">
-        {new Date(item.createdAt).toLocaleString()}
+        {formatPublicDateTime(item.createdAt)}
       </span>
     </div>
   );

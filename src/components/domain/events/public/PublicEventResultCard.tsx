@@ -6,6 +6,7 @@ import {
   CardHeader,
 } from "@/components/ui/card";
 import type { PublicMatchResultDTO } from "@/lib/dto/public";
+import { formatPublicDateTime } from "@/lib/date-display";
 import { MatchRecordOutcome } from "@/lib/enums";
 import { cn } from "@/lib/utils";
 
@@ -49,7 +50,7 @@ export function PublicEventResultCard({ result }: { result: PublicMatchResultDTO
         <div className="text-muted-foreground flex flex-wrap gap-2 text-xs">
           <span>경기 #{result.matchNumber ?? result.matchId.slice(-6)}</span>
           {result.matNumber != null ? <span>매트 {result.matNumber}</span> : null}
-          <span>{new Date(result.matchDate).toLocaleString("ko-KR")}</span>
+          <span>{formatPublicDateTime(result.matchDate)}</span>
         </div>
         <MatchonStatusBadge
           status={outcomeMatchonStatus(result.result)}

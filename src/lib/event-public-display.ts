@@ -64,7 +64,6 @@ export type PublicEventDeadlineInput = Pick<
   | "registrationStatus"
   | "registrationStartDate"
   | "registrationEndDate"
-  | "eventDate"
 >;
 
 export function resolvePublicEventDeadlineLabel(
@@ -277,6 +276,37 @@ export function resolvePublicRegistrationStatus(input: {
     registrationEndDate: input.registrationEndDate,
     now: input.now,
   });
+}
+
+/** 신청 상태·D-day 배지를 동일한 `now` 기준으로 계산 (hydration 안전) */
+export function buildPublicRegistrationDisplay(input: {
+  status: EventStatus;
+  registrationStartDate: string;
+  registrationEndDate: string;
+  now?: Date;
+}): {
+  registrationStatus: OrganizerRegistrationStatus;
+  registrationDeadlineLabel: string;
+  registrationDeadlinePhase: PublicEventDeadlinePhase;
+} {
+  const now = input.now ?? new Date();
+  const registrationStatus = resolveOrganizerRegistrationStatus({
+    status: input.status,
+    registrationStartDate: input.registrationStartDate,
+    registrationEndDate: input.registrationEndDate,
+    now,
+  });
+  const deadlineInput: PublicEventDeadlineInput = {
+    status: input.status,
+    registrationStatus,
+    registrationStartDate: input.registrationStartDate,
+    registrationEndDate: input.registrationEndDate,
+  };
+  return {
+    registrationStatus,
+    registrationDeadlineLabel: resolvePublicEventDeadlineLabel(deadlineInput, now),
+    registrationDeadlinePhase: resolvePublicEventDeadlinePhase(deadlineInput),
+  };
 }
 
 /** 공개 표시용 URL만 허용 (http/https). storage path 원문은 사용하지 않음. */

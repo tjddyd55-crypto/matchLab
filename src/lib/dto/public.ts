@@ -10,6 +10,7 @@ import type {
 } from "@/lib/enums";
 import type { EventDivisionDisplayInput } from "@/lib/event-division-fields";
 import type { OrganizerRegistrationStatus } from "@/lib/event-organizer-status";
+import type { PublicEventDeadlinePhase } from "@/lib/event-public-display";
 
 /**
  * 공개 API·페이지 전용 DTO.
@@ -39,6 +40,9 @@ export type PublicEventListItemDTO = {
   /** 포스터 없을 때 갤러리 첫 장(공개 URL만) */
   coverImageUrl: string | null;
   registrationStatus: OrganizerRegistrationStatus;
+  /** SSR 시점 기준 D-day 문구 — 클라이언트 재계산 방지 */
+  registrationDeadlineLabel: string;
+  registrationDeadlinePhase: PublicEventDeadlinePhase;
   primarySport: string | null;
   liveStreamingEnabled: boolean;
   /** 부문 요약 문구 (예: 라벨 나열 · 외 N개) */
@@ -77,6 +81,9 @@ export type PublicEventDetailDTO = {
   posterUrl: string | null;
   coverImageUrl: string | null;
   registrationStatus: OrganizerRegistrationStatus;
+  /** SSR 시점 기준 D-day 문구 — 클라이언트 재계산 방지 */
+  registrationDeadlineLabel: string;
+  registrationDeadlinePhase: PublicEventDeadlinePhase;
   primarySport: string | null;
   galleryImages: PublicEventGalleryImageDTO[];
   photoRecordingEnabled: boolean;
