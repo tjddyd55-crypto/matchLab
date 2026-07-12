@@ -3,7 +3,9 @@
 import { useActionState, useEffect } from "react";
 import { useRouter } from "next/navigation";
 import { changeFighterPasswordAction } from "@/features/auth/change-password-actions";
+import { FeedbackMessage } from "@/components/shared/FeedbackMessage";
 import { Button } from "@/components/ui/button";
+import { fighterDashboardFieldInputClass } from "@/lib/ui/fighter-dashboard-ui";
 
 export function ChangePasswordForm() {
   const router = useRouter();
@@ -21,41 +23,41 @@ export function ChangePasswordForm() {
 
   return (
     <form action={formAction} className="space-y-4">
-      <label className="block space-y-1 text-sm">
+      <label className="block space-y-1.5 text-sm">
         <span className="font-medium">현재 비밀번호</span>
         <input
           name="currentPassword"
           type="password"
           required
-          className="border-input h-9 w-full rounded-md border px-3 text-sm"
+          className={fighterDashboardFieldInputClass}
         />
       </label>
-      <label className="block space-y-1 text-sm">
+      <label className="block space-y-1.5 text-sm">
         <span className="font-medium">새 비밀번호</span>
         <input
           name="newPassword"
           type="password"
           required
           minLength={6}
-          className="border-input h-9 w-full rounded-md border px-3 text-sm"
+          className={fighterDashboardFieldInputClass}
         />
       </label>
-      <label className="block space-y-1 text-sm">
+      <label className="block space-y-1.5 text-sm">
         <span className="font-medium">새 비밀번호 확인</span>
         <input
           name="newPasswordConfirm"
           type="password"
           required
           minLength={6}
-          className="border-input h-9 w-full rounded-md border px-3 text-sm"
+          className={fighterDashboardFieldInputClass}
         />
       </label>
       {state?.ok === false ? (
-        <p className="text-destructive text-sm" role="alert">
+        <FeedbackMessage tone="error" role="alert">
           {state.error.message}
-        </p>
+        </FeedbackMessage>
       ) : null}
-      <Button type="submit" className="w-full" disabled={pending}>
+      <Button type="submit" size="field" className="w-full" disabled={pending}>
         {pending ? "저장 중…" : "비밀번호 변경"}
       </Button>
     </form>

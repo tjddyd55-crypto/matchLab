@@ -14,6 +14,7 @@ import {
   type PublicEventCardProps,
 } from "@/components/domain/events/public/public-event-ui";
 import { buttonVariants } from "@/components/ui/button";
+import { Card, CardContent } from "@/components/ui/card";
 import { cn } from "@/lib/utils";
 
 export function PublicEventCardDesktop({
@@ -22,11 +23,13 @@ export function PublicEventCardDesktop({
   priorityImage,
 }: PublicEventCardProps) {
   const href = publicEventHref(event.publicSlug);
+  const ctaVariant =
+    event.registrationStatus === "open" ? "default" : "outline";
 
   return (
-    <article
+    <Card
       className={cn(
-        "group hidden flex-col overflow-hidden rounded-xl border bg-card shadow-sm transition-shadow hover:shadow-lg md:flex",
+        "group hidden h-full gap-0 overflow-hidden py-0 transition-shadow hover:shadow-md md:flex",
         className,
       )}
     >
@@ -43,10 +46,11 @@ export function PublicEventCardDesktop({
         />
       </Link>
 
-      <div
+      <CardContent
         className={cn(
           "flex min-h-0 flex-1 flex-col gap-2.5 text-left",
           PUBLIC_EVENT_CARD_BODY_PADDING_CLASS,
+          "pt-4",
         )}
       >
         <div className="mb-1 flex flex-wrap items-center gap-1.5">
@@ -91,12 +95,15 @@ export function PublicEventCardDesktop({
         <div className="mt-auto shrink-0 pt-2">
           <Link
             href={href}
-            className={cn(buttonVariants({ variant: "default", size: "sm" }))}
+            className={cn(
+              buttonVariants({ variant: ctaVariant, size: "field" }),
+              "w-full",
+            )}
           >
             {publicEventCtaLabel(event)}
           </Link>
         </div>
-      </div>
-    </article>
+      </CardContent>
+    </Card>
   );
 }

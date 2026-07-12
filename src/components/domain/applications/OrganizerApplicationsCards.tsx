@@ -6,6 +6,7 @@ import {
 } from "@/components/domain/applications/OrganizerApplicationDisplayBadge";
 import { OrganizerApplicationRowActions } from "@/components/domain/applications/OrganizerApplicationRowActions";
 import { OrganizerManualEntryHint } from "@/components/domain/applications/OrganizerManualEntryHint";
+import { OrganizerApplicationsEmptyState } from "@/components/domain/applications/OrganizerApplicationsEmptyState";
 import type { OrganizerApplicationRowVM } from "@/components/domain/applications/OrganizerApplicationsTable";
 import { DivisionCompactDisplay } from "@/components/domain/shared/DivisionCompactDisplay";
 import { DivisionGenderBadge } from "@/components/domain/shared/DivisionGenderBadge";
@@ -17,17 +18,27 @@ export function OrganizerApplicationsCards({
   rows,
   selectedIds,
   onToggleSelect,
+  emptyMessage = "아직 신청자가 없습니다.",
 }: {
   eventId: string;
   rows: OrganizerApplicationRowVM[];
   selectedIds: Set<string>;
   onToggleSelect: (applicationId: string, checked: boolean) => void;
+  emptyMessage?: string;
 }) {
+  if (rows.length === 0) {
+    return (
+      <div className="md:hidden">
+        <OrganizerApplicationsEmptyState message={emptyMessage} />
+      </div>
+    );
+  }
+
   return (
     <div className="flex min-w-0 flex-col gap-3 md:hidden">
       {rows.map((row) => (
-        <Card key={row.applicationId}>
-          <CardHeader className="pb-2">
+        <Card key={row.applicationId} variant="interactive" className="py-4">
+          <CardHeader className="space-y-2 px-4 py-0">
             <div className="flex items-start gap-2">
               <Checkbox
                 checked={selectedIds.has(row.applicationId)}
@@ -38,34 +49,53 @@ export function OrganizerApplicationsCards({
                 className="mt-1"
               />
               <div className="min-w-0 flex-1">
-                <div className="text-muted-foreground text-xs">{row.gymName}</div>
+                <p className="text-muted-foreground truncate text-xs font-medium">
+                  {row.gymName}
+                </p>
                 <div className="flex min-w-0 items-center gap-1.5">
-                  <CardTitle className="text-base">{row.fighterName}</CardTitle>
+                  <CardTitle className="truncate text-base leading-snug">
+                    {row.fighterName}
+                  </CardTitle>
                   <DivisionGenderBadge gender={row.division.gender} short />
                 </div>
                 <OrganizerManualEntryHint show={row.isOrganizerManualEntry} />
               </div>
             </div>
-          </CardHeader>
-          <CardContent className="flex flex-col gap-2 text-sm">
-            <DivisionCompactDisplay
-              division={row.division}
-              mainClassName="text-xs"
-              secondaryClassName="text-[11px]"
-            />
-            <div className="flex flex-wrap gap-2">
+            <div className="flex flex-wrap gap-1.5 pl-8">
               <OrganizerPaymentDisplayBadge paymentStatus={row.paymentStatus} />
               <OrganizerApplicationStatusBadge
                 applicationStatus={row.applicationStatus}
                 cancellationSource={row.cancellationSource}
               />
             </div>
+          </CardHeader>
+          <CardContent className="flex flex-col gap-3 px-4 pt-2 text-sm">
+            <div title={row.divisionLabel}>
+              <DivisionCompactDisplay
+                division={row.division}
+                mainClassName="text-xs"
+                secondaryClassName="text-[11px]"
+              />
+            </div>
             {row.depositorName ? (
-              <div className="text-muted-foreground text-xs">
+              <p className="text-muted-foreground text-xs">
                 입금자명 {row.depositorName}
-              </div>
+              </p>
             ) : null}
-            <OrganizerApplicationRowActions eventId={eventId} row={row} />
+            {row.appliedAt ? (
+              <p className="text-muted-foreground text-xs">
+                신청일{" "}
+                {new Date(row.appliedAt).toLocaleString("ko-KR", {
+                  dateStyle: "medium",
+                  timeStyle: "short",
+                })}
+              </p>
+            ) : null}
+            <OrganizerApplicationRowActions
+              eventId={eventId}
+              row={row}
+              touchFriendly
+            />
           </CardContent>
         </Card>
       ))}

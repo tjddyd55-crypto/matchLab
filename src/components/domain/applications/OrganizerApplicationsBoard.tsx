@@ -1,6 +1,6 @@
 "use client";
 
-import { useMemo, useState } from "react";
+import { useMemo, useRef, useState } from "react";
 import type { OrganizerApplicationRowVM } from "@/components/domain/applications/OrganizerApplicationsTable";
 import { OrganizerApplicationsBulkToolbar } from "@/components/domain/applications/OrganizerApplicationsBulkToolbar";
 import { OrganizerApplicationsCards } from "@/components/domain/applications/OrganizerApplicationsCards";
@@ -10,6 +10,7 @@ import {
   type OrganizerApplicationFiltersState,
 } from "@/components/domain/applications/OrganizerApplicationsFilterBar";
 import { OrganizerApplicationsTable } from "@/components/domain/applications/OrganizerApplicationsTable";
+import { OrganizerApplicationsSummaryCards } from "@/components/domain/applications/OrganizerApplicationsSummaryCards";
 import { DivisionSportSectionHeader } from "@/components/domain/shared/DivisionSportSectionHeader";
 import { resolveOrganizerApplicationDisplayStatus } from "@/lib/application-display-status";
 import { isPaidForOrganizerDisplay } from "@/lib/application-display-status";
@@ -20,6 +21,13 @@ import {
 import { OrganizerApplicationsGymSummaryTable } from "@/components/domain/applications/OrganizerApplicationsGymSummaryTable";
 import { OrganizerManualApplicationPanel } from "@/components/domain/applications/OrganizerManualApplicationPanel";
 import type { OrganizerManualRegistrationOptionsDTO } from "@/lib/services/application.service";
+import { MatchonTabs } from "@/components/shared/MatchonTabs";
+import {
+  inferSummaryFilter,
+  QUICK_APPLICATION_FILTER_TABS,
+  summaryFilterToFilters,
+  type OrganizerApplicationSummaryFilter,
+} from "@/components/domain/applications/organizer-application-filters";
 import { Button } from "@/components/ui/button";
 
 const DEFAULT_FILTERS: OrganizerApplicationFiltersState = {
@@ -40,10 +48,13 @@ export function OrganizerApplicationsBoard({
   rows: OrganizerApplicationRowVM[];
   manualRegistrationOptions: OrganizerManualRegistrationOptionsDTO;
 }) {
+  const listRef = useRef<HTMLDivElement>(null);
   const [filters, setFilters] =
     useState<OrganizerApplicationFiltersState>(DEFAULT_FILTERS);
   const [selectedIds, setSelectedIds] = useState<Set<string>>(new Set());
   const [groupByGym, setGroupByGym] = useState(false);
+
+  const summaryFilter = useMemo(() => inferSummaryFilter(filters), [filters]);
 
   const divisionOptions = useMemo(() => {
     const map = new Map<string, string>();
@@ -121,6 +132,28 @@ export function OrganizerApplicationsBoard({
     );
   }, [filtered, groupByGym]);
 
+  const sportGroups = useMemo(() => {
+    if (groupByGym) return null;
+    return groupItemsByDivisionSport(filtered, (r) => r.division);
+  }, [filtered, groupByGym]);
+
+  const singleSportTitle = useMemo(
+    () => resolveSingleSportSectionTitle(filtered.map((r) => r.division)),
+    [filtered],
+  );
+
+  const emptyMessage =
+    rows.length === 0
+      ? "아직 신청자가 없습니다."
+      : filters.fighterName.trim() ||
+          filters.displayStatus !== "all" ||
+          filters.paymentDisplay !== "all" ||
+          filters.divisionId !== "all" ||
+          filters.gymId !== "all" ||
+          filters.consent !== "all"
+        ? "조건에 맞는 신청자가 없습니다."
+        : "아직 신청자가 없습니다.";
+
   function toggleSelect(applicationId: string, checked: boolean) {
     setSelectedIds((prev) => {
       const next = new Set(prev);
@@ -139,20 +172,19 @@ export function OrganizerApplicationsBoard({
     setSelectedIds(new Set());
   }
 
-  const sportGroups = useMemo(() => {
-    if (groupByGym) return null;
-    return groupItemsByDivisionSport(filtered, (r) => r.division);
-  }, [filtered, groupByGym]);
-
-  const singleSportTitle = useMemo(
-    () => resolveSingleSportSectionTitle(filtered.map((r) => r.division)),
-    [filtered],
-  );
+  function handleSummaryFilterChange(filter: OrganizerApplicationSummaryFilter) {
+    const patch = summaryFilterToFilters(filter);
+    setFilters((prev) => ({ ...prev, ...patch }));
+    requestAnimationFrame(() => {
+      listRef.current?.scrollIntoView({ behavior: "smooth", block: "start" });
+    });
+  }
 
   const listProps = {
     eventId,
     selectedIds,
     onToggleSelect: toggleSelect,
+    emptyMessage,
   };
 
   function renderApplicationViews(applicationRows: OrganizerApplicationRowVM[]) {
@@ -171,6 +203,21 @@ export function OrganizerApplicationsBoard({
         eventId={eventId}
         options={manualRegistrationOptions}
       />
+
+      <OrganizerApplicationsSummaryCards
+        rows={rows}
+        activeFilter={summaryFilter}
+        onFilterChange={handleSummaryFilterChange}
+      />
+
+      <div className="space-y-3">
+        <p className="text-muted-foreground text-xs font-medium">빠른 상태 필터</p>
+        <MatchonTabs
+          items={QUICK_APPLICATION_FILTER_TABS}
+          activeId={summaryFilter}
+          onChange={handleSummaryFilterChange}
+        />
+      </div>
 
       <OrganizerApplicationsGymSummaryTable
         rows={rows}
@@ -220,37 +267,42 @@ export function OrganizerApplicationsBoard({
         <DivisionSportSectionHeader title={singleSportTitle} className="mb-1" />
       ) : null}
 
-      {groupByGym && groupedRows
-        ? groupedRows.map((group) => (
-            <section key={group.gymName} className="flex flex-col gap-3">
-              <div className="flex flex-wrap items-center justify-between gap-2">
-                <h3 className="text-sm font-semibold">{group.gymName}</h3>
-                <Button
-                  type="button"
-                  size="sm"
-                  variant="outline"
-                  onClick={() => {
-                    const gymId = group.rows[0]?.gymId;
-                    if (gymId) selectAllInGym(gymId);
-                  }}
-                >
-                  이 체육관 전체 선택
-                </Button>
-              </div>
-              {renderApplicationViews(group.rows)}
-            </section>
-          ))
-        : null}
+      <div ref={listRef} className="min-w-0 flex flex-col gap-6">
+        {groupByGym && groupedRows
+          ? groupedRows.length > 0
+            ? groupedRows.map((group) => (
+                <section key={group.gymName} className="flex flex-col gap-3">
+                  <div className="flex flex-wrap items-center justify-between gap-2">
+                    <h3 className="text-sm font-semibold">{group.gymName}</h3>
+                    <Button
+                      type="button"
+                      size="sm"
+                      variant="outline"
+                      onClick={() => {
+                        const gymId = group.rows[0]?.gymId;
+                        if (gymId) selectAllInGym(gymId);
+                      }}
+                    >
+                      이 체육관 전체 선택
+                    </Button>
+                  </div>
+                  {renderApplicationViews(group.rows)}
+                </section>
+              ))
+            : renderApplicationViews(filtered)
+          : null}
 
-      {!groupByGym && sportGroups
-        ? sportGroups.map((group) => (
-            <section key={group.sportTitle} className="flex flex-col gap-3">
-              <DivisionSportSectionHeader title={group.sportTitle} />
-              {renderApplicationViews(group.items)}
-            </section>
-          ))
-        : null}
-
+        {!groupByGym && sportGroups
+          ? sportGroups.length > 0
+            ? sportGroups.map((group) => (
+                <section key={group.sportTitle} className="flex flex-col gap-3">
+                  <DivisionSportSectionHeader title={group.sportTitle} />
+                  {renderApplicationViews(group.items)}
+                </section>
+              ))
+            : renderApplicationViews(filtered)
+          : null}
+      </div>
     </div>
   );
 }

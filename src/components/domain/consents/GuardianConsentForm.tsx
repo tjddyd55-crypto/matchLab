@@ -13,7 +13,17 @@ import {
 } from "@/components/domain/consents/ConsentAgreementChecklist";
 import { ConsentSignatureSection } from "@/components/domain/consents/ConsentSignatureSection";
 import type { SignaturePadHandle } from "@/components/shared/SignaturePad";
+import { FeedbackMessage } from "@/components/shared/FeedbackMessage";
+import { MatchonStatusBadge } from "@/components/shared/MatchonStatusBadge";
 import { Button, buttonVariants } from "@/components/ui/button";
+import {
+  Card,
+  CardContent,
+  CardDescription,
+  CardHeader,
+  CardTitle,
+} from "@/components/ui/card";
+import { publicApplicationFieldInputClass } from "@/lib/ui/public-application-ui";
 import { cn } from "@/lib/utils";
 
 /** `upload.service.ts` 의 {@link CONSENT_SIGNATURE_MAX_BYTES} 와 동기화 */
@@ -55,23 +65,27 @@ export function GuardianConsentForm({
 
   if (completed) {
     return (
-      <div
-        className="ring-foreground/10 space-y-3 rounded-xl bg-card p-6 ring-1"
-        role="status"
-      >
-        <p className="font-medium">보호자 동의가 완료되었습니다.</p>
-        <p className="text-muted-foreground text-sm leading-relaxed">
-          {scope === "application"
-            ? "대회 신청서 작성이 계속 진행됩니다. 체육관에서 최종 제출을 확인해 주세요."
-            : "체육관에서 등록 요청을 검토한 뒤 선수 승인 절차가 진행됩니다."}
-        </p>
-        <Link
-          href="/"
-          className={cn(buttonVariants({ variant: "outline", size: "sm" }))}
-        >
-          홈으로
-        </Link>
-      </div>
+      <Card variant="success">
+        <CardHeader>
+          <div className="flex flex-wrap items-center justify-between gap-2">
+            <CardTitle>보호자 동의가 완료되었습니다</CardTitle>
+            <MatchonStatusBadge status="signature_completed" label="동의완료" size="sm" />
+          </div>
+          <CardDescription>
+            {scope === "application"
+              ? "대회 신청서 작성이 계속 진행됩니다. 체육관에서 최종 제출을 확인해 주세요."
+              : "체육관에서 등록 요청을 검토한 뒤 선수 승인 절차가 진행됩니다."}
+          </CardDescription>
+        </CardHeader>
+        <CardContent>
+          <Link
+            href="/"
+            className={cn(buttonVariants({ variant: "outline", size: "field" }), "w-full sm:w-auto")}
+          >
+            홈으로
+          </Link>
+        </CardContent>
+      </Card>
     );
   }
 
@@ -195,80 +209,92 @@ export function GuardianConsentForm({
   }
 
   return (
-    <form onSubmit={(e) => void handleSubmit(e)} className="space-y-8">
-      <header className="space-y-2">
-        <p className="text-muted-foreground text-sm">
-          체육관: <span className="text-foreground">{initial.gymDisplayLabel}</span>
-        </p>
-        <p className="text-muted-foreground text-sm">
-          선수:{" "}
-          <span className="text-foreground font-medium">
-            {initial.fighterName}
-          </span>
-        </p>
-        <p className="text-muted-foreground text-sm">
+    <form onSubmit={(e) => void handleSubmit(e)} className="space-y-6">
+      <Card>
+        <CardHeader>
+          <div className="flex flex-wrap items-start justify-between gap-2">
+            <CardTitle className="text-base">신청 정보</CardTitle>
+            <MatchonStatusBadge status="signature_pending" label="동의대기" size="sm" />
+          </div>
+          <CardDescription>
+            체육관: {initial.gymDisplayLabel} · 선수: {initial.fighterName}
+          </CardDescription>
+        </CardHeader>
+        <CardContent className="text-muted-foreground text-sm">
           보호자(등록 시 입력): {initial.guardianNameMasked} · 연락처{" "}
           {initial.guardianPhoneMasked}
-        </p>
-      </header>
+        </CardContent>
+      </Card>
 
       <GuardianConsentDocument
         documentTitle={initial.documentTitle}
         documentVersion={initial.documentVersion}
       />
 
-      <div className="grid gap-4 sm:grid-cols-2">
-        <label className="space-y-1 text-sm">
-          <span className="font-medium">보호자 이름 (확인)</span>
-          <input
-            required
-            value={guardianName}
-            onChange={(e) => setGuardianName(e.target.value)}
-            className={cn(
-              "border-input bg-background h-9 w-full rounded-md border px-3 text-sm shadow-sm",
-            )}
-          />
-        </label>
-        <label className="space-y-1 text-sm">
-          <span className="font-medium">보호자 휴대폰</span>
-          <input
-            required
-            type="tel"
-            value={guardianPhone}
-            onChange={(e) => setGuardianPhone(e.target.value)}
-            className={cn(
-              "border-input bg-background h-9 w-full rounded-md border px-3 text-sm shadow-sm",
-            )}
-          />
-        </label>
-        <label className="space-y-1 text-sm sm:col-span-2">
-          <span className="font-medium">선수와의 관계</span>
-          <input
-            required
-            value={relationship}
-            onChange={(e) => setRelationship(e.target.value)}
-            placeholder="예: 부, 모, 조부 등"
-            className={cn(
-              "border-input bg-background h-9 w-full rounded-md border px-3 text-sm shadow-sm",
-            )}
-          />
-        </label>
-      </div>
+      <Card>
+        <CardHeader>
+          <CardTitle className="text-base">보호자 정보 확인</CardTitle>
+          <CardDescription>등록 시 입력한 정보와 일치하는지 확인해 주세요.</CardDescription>
+        </CardHeader>
+        <CardContent className="grid gap-4 sm:grid-cols-2">
+          <label className="space-y-1.5 text-sm">
+            <span className="font-medium">보호자 이름 (확인)</span>
+            <input
+              required
+              value={guardianName}
+              onChange={(e) => setGuardianName(e.target.value)}
+              className={publicApplicationFieldInputClass}
+            />
+          </label>
+          <label className="space-y-1.5 text-sm">
+            <span className="font-medium">보호자 휴대폰</span>
+            <input
+              required
+              type="tel"
+              value={guardianPhone}
+              onChange={(e) => setGuardianPhone(e.target.value)}
+              className={publicApplicationFieldInputClass}
+            />
+          </label>
+          <label className="space-y-1.5 text-sm sm:col-span-2">
+            <span className="font-medium">선수와의 관계</span>
+            <input
+              required
+              value={relationship}
+              onChange={(e) => setRelationship(e.target.value)}
+              placeholder="예: 부, 모, 조부 등"
+              className={publicApplicationFieldInputClass}
+            />
+          </label>
+        </CardContent>
+      </Card>
 
-      <ConsentAgreementChecklist value={agreements} onChange={setAgreements} />
+      <Card>
+        <CardHeader>
+          <CardTitle className="text-base">필수 동의</CardTitle>
+        </CardHeader>
+        <CardContent>
+          <ConsentAgreementChecklist value={agreements} onChange={setAgreements} />
+        </CardContent>
+      </Card>
 
-      <ConsentSignatureSection padRef={padRef} />
+      <Card>
+        <CardHeader>
+          <CardTitle className="text-base">서명</CardTitle>
+          <CardDescription>보호자 본인 서명을 입력해 주세요.</CardDescription>
+        </CardHeader>
+        <CardContent>
+          <ConsentSignatureSection padRef={padRef} />
+        </CardContent>
+      </Card>
 
       {error ? (
-        <div
-          className="rounded-lg border border-destructive/40 bg-destructive/10 px-4 py-3 text-sm text-destructive"
-          role="alert"
-        >
+        <FeedbackMessage tone="error" role="alert">
           {error}
-        </div>
+        </FeedbackMessage>
       ) : null}
 
-      <Button type="submit" disabled={pending} className="w-full sm:w-auto">
+      <Button type="submit" size="field" disabled={pending} className="w-full">
         {pending ? "제출 중…" : "동의 및 서명 제출"}
       </Button>
     </form>

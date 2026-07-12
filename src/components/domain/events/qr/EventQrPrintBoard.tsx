@@ -3,6 +3,7 @@
 import { useCallback } from "react";
 import { BrandLogo } from "@/components/common/BrandLogo";
 import { Button } from "@/components/ui/button";
+import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { EventQrCard, type EventQrPrintGroup } from "./EventQrCard";
 import type { CourtJudgeQrLinkVM } from "@/lib/qr-url";
 import {
@@ -17,6 +18,8 @@ import {
   type SpectatorQrAvailabilityContext,
 } from "@/lib/qr-url";
 import type { EventStatus } from "@/lib/enums";
+import { triggerEventQrPrint } from "@/components/domain/judges/judge-qr-ui";
+import { formatCourtTabLabel } from "@/lib/court-tab-label";
 import "./event-qr-print.css";
 
 /** 레거시 심판 로그인 QR — 코드 유지, 출력 UI에서는 숨김 */
@@ -49,11 +52,7 @@ function formatEventDate(iso: string | null): string | null {
 }
 
 function printPreset(preset: EventQrPrintGroup | "all") {
-  document.body.dataset.eventQrPrint = preset;
-  window.print();
-  window.setTimeout(() => {
-    delete document.body.dataset.eventQrPrint;
-  }, 500);
+  triggerEventQrPrint(preset);
 }
 
 export function EventQrPrintBoard({
@@ -133,20 +132,45 @@ export function EventQrPrintBoard({
 
   return (
     <div className="event-qr-board space-y-8">
-      <section className="no-print space-y-3 rounded-lg border bg-muted/30 p-4">
-        <h2 className="text-sm font-semibold">인쇄 옵션</h2>
+      <div className="grid gap-3 sm:grid-cols-2 xl:grid-cols-4">
+        <Card variant="interactive" className="px-4 py-3">
+          <p className="text-muted-foreground text-xs">경기장 수</p>
+          <p className="mt-1 text-2xl font-semibold tabular-nums">{courts.length}</p>
+        </Card>
+        <Card variant="default" className="px-4 py-3">
+          <p className="text-muted-foreground text-xs">채점심판 QR</p>
+          <p className="mt-1 text-2xl font-semibold tabular-nums">{courts.length}</p>
+        </Card>
+        <Card variant="default" className="px-4 py-3">
+          <p className="text-muted-foreground text-xs">주심판 QR</p>
+          <p className="mt-1 text-2xl font-semibold tabular-nums">{courts.length}</p>
+        </Card>
+        <Card variant="success" className="px-4 py-3">
+          <p className="text-muted-foreground text-xs">QR 준비 상태</p>
+          <p className="mt-1 text-sm font-semibold">
+            {courts.length > 0 ? "인쇄 가능" : "경기장 등록 필요"}
+          </p>
+        </Card>
+      </div>
+
+      <Card variant="default" className="no-print py-4">
+        <CardHeader className="px-4 py-0">
+          <CardTitle className="text-sm font-semibold">인쇄 옵션</CardTitle>
+        </CardHeader>
+        <CardContent className="space-y-3 px-4 pt-3">
         <p className="text-muted-foreground text-xs leading-relaxed">
           현장 부착용 A4 인쇄입니다. 브라우저 인쇄 미리보기에서 QR 크기와
           여백을 확인한 뒤 출력하세요. 경기장 심판 QR은 이름·순서 변경 후에도
           계속 사용할 수 있습니다.
         </p>
-        <div className="flex flex-wrap gap-2">
+        <div className="flex flex-col gap-2 sm:flex-row sm:flex-wrap">
           {SHOW_LEGACY_JUDGE_LOGIN_QR ? (
             <>
               <Button
                 type="button"
                 variant="outline"
-                size="sm"
+                size="field"
+                className="w-full sm:w-auto"
                 onClick={() => printPreset("judge-common")}
               >
                 심판석용 QR만
@@ -154,7 +178,8 @@ export function EventQrPrintBoard({
               <Button
                 type="button"
                 variant="outline"
-                size="sm"
+                size="field"
+                className="w-full sm:w-auto"
                 onClick={() => printPreset("judge-individual")}
               >
                 심판별 QR 모음
@@ -164,7 +189,8 @@ export function EventQrPrintBoard({
           <Button
             type="button"
             variant="outline"
-            size="sm"
+            size="field"
+            className="w-full sm:w-auto"
             onClick={() => printPreset("judge-court-score")}
           >
             경기장 채점 QR
@@ -172,7 +198,8 @@ export function EventQrPrintBoard({
           <Button
             type="button"
             variant="outline"
-            size="sm"
+            size="field"
+            className="w-full sm:w-auto"
             onClick={() => printPreset("judge-court-head")}
           >
             경기장 주심 QR
@@ -180,7 +207,8 @@ export function EventQrPrintBoard({
           <Button
             type="button"
             variant="outline"
-            size="sm"
+            size="field"
+            className="w-full sm:w-auto"
             onClick={() => printPreset("spectator-all")}
             disabled={!overviewQrEnabled}
           >
@@ -189,7 +217,8 @@ export function EventQrPrintBoard({
           <Button
             type="button"
             variant="outline"
-            size="sm"
+            size="field"
+            className="w-full sm:w-auto"
             onClick={() => printPreset("spectator-brackets")}
             disabled={!isSpectatorTabQrEnabled(spectatorCtx, "brackets")}
           >
@@ -198,7 +227,8 @@ export function EventQrPrintBoard({
           <Button
             type="button"
             variant="outline"
-            size="sm"
+            size="field"
+            className="w-full sm:w-auto"
             onClick={() => printPreset("spectator-results")}
             disabled={!isSpectatorTabQrEnabled(spectatorCtx, "results")}
           >
@@ -207,17 +237,24 @@ export function EventQrPrintBoard({
           <Button
             type="button"
             variant="outline"
-            size="sm"
+            size="field"
+            className="w-full sm:w-auto"
             onClick={() => printPreset("spectator-live")}
             disabled={!isSpectatorTabQrEnabled(spectatorCtx, "live")}
           >
             라이브 QR만
           </Button>
-          <Button type="button" size="sm" onClick={printAll}>
+          <Button
+            type="button"
+            size="field"
+            className="w-full sm:w-auto"
+            onClick={printAll}
+          >
             전체 QR 인쇄
           </Button>
         </div>
-      </section>
+        </CardContent>
+      </Card>
 
       <div className="event-qr-print-header hidden print:block">
         <BrandLogo size="sm" showText className="mb-3" />
@@ -239,28 +276,36 @@ export function EventQrPrintBoard({
               이름과 생년월일을 입력하세요.
             </p>
           </header>
-          <div className="grid gap-4 md:grid-cols-2 xl:grid-cols-3">
-            {courts.map((court) => (
-              <EventQrCard
-                key={`${court.id}-score`}
-                printGroup="judge-court-score"
-                title={`${court.name} 채점심판`}
-                description="진행중 경기만 채점합니다."
-                steps="이름·생년월일 입력 → 진행중 경기 확인 → 점수 전송"
-                url={court.scoreEntryUrl}
-                downloadFileName={`court-score-${court.name}.png`}
-              />
-            ))}
-            {courts.map((court) => (
-              <EventQrCard
-                key={`${court.id}-head`}
-                printGroup="judge-court-head"
-                title={`${court.name} 주심판`}
-                description="경기 시작, 승패 입력, 완료, 경기취소를 처리합니다."
-                steps="이름·생년월일 입력 → 경기 시작 → 채점 확인 → 승패 입력/완료"
-                url={court.headEntryUrl}
-                downloadFileName={`court-head-${court.name}.png`}
-              />
+          <div className="grid gap-4 xl:grid-cols-2">
+            {courts.map((court, index) => (
+              <Card key={court.id} variant="default" className="py-4">
+                <CardHeader className="px-4 py-0">
+                  <CardTitle className="text-base">
+                    {formatCourtTabLabel(court, index)}
+                  </CardTitle>
+                  {court.name.trim() !== formatCourtTabLabel(court, index) ? (
+                    <p className="text-muted-foreground text-xs">{court.name}</p>
+                  ) : null}
+                </CardHeader>
+                <CardContent className="grid gap-4 px-4 pt-3 md:grid-cols-2">
+                  <EventQrCard
+                    printGroup="judge-court-score"
+                    title={`채점심판`}
+                    description="진행중 경기만 채점합니다."
+                    steps="이름·생년월일 입력 → 진행중 경기 확인 → 점수 전송"
+                    url={court.scoreEntryUrl}
+                    downloadFileName={`court-score-${court.name}.png`}
+                  />
+                  <EventQrCard
+                    printGroup="judge-court-head"
+                    title={`주심판`}
+                    description="경기 시작, 승패 입력, 완료, 경기취소를 처리합니다."
+                    steps="이름·생년월일 입력 → 경기 시작 → 채점 확인 → 승패 입력/완료"
+                    url={court.headEntryUrl}
+                    downloadFileName={`court-head-${court.name}.png`}
+                  />
+                </CardContent>
+              </Card>
             ))}
           </div>
         </section>

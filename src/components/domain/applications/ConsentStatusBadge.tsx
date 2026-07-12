@@ -1,4 +1,5 @@
-import { StatusBadge } from "@/components/shared/StatusBadge";
+import { MatchonStatusBadge } from "@/components/shared/MatchonStatusBadge";
+import { resolveConsentFilterMatchonStatus } from "@/lib/ui/application-ui";
 import { cn } from "@/lib/utils";
 
 export function ConsentStatusBadge({
@@ -10,17 +11,11 @@ export function ConsentStatusBadge({
   filterKey: string;
   className?: string;
 }) {
-  const variant =
-    filterKey === "completed" || filterKey === "not_required"
-      ? "default"
-      : filterKey === "missing"
-        ? "destructive"
-        : "secondary";
-
   return (
-    <StatusBadge
-      variant={variant}
+    <MatchonStatusBadge
+      status={resolveConsentFilterMatchonStatus(filterKey)}
       label={label}
+      size="sm"
       className={cn("whitespace-nowrap", className)}
     />
   );

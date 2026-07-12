@@ -1,6 +1,9 @@
 import { AdminFightersTable } from "@/components/domain/admin/AdminFightersTable";
+import { AdminPageHeader } from "@/components/domain/admin/AdminPageHeader";
+import { Card, CardContent } from "@/components/ui/card";
 import { requireActor } from "@/lib/auth/actor";
 import { adminService } from "@/lib/services/admin.service";
+import { adminPageContainerClass, adminPageStackClass } from "@/lib/ui/admin-ui";
 
 export const dynamic = "force-dynamic";
 
@@ -9,14 +12,18 @@ export default async function AdminFightersPage() {
   const rows = await adminService.listAdminFighters(actor);
 
   return (
-    <div className="mx-auto flex w-full max-w-7xl flex-col gap-6 px-4 py-8 md:px-6">
-      <div>
-        <h1 className="font-heading text-2xl font-semibold tracking-tight">전체 선수</h1>
-        <p className="text-muted-foreground mt-1 text-sm">
-          연락처·생년월일·보호자 정보는 표시하지 않습니다.
-        </p>
+    <div className={adminPageContainerClass}>
+      <div className={adminPageStackClass}>
+        <AdminPageHeader
+          title="전체 선수"
+          description="연락처·생년월일·보호자 정보는 표시하지 않습니다."
+        />
+        <Card>
+          <CardContent className="pt-4">
+            <AdminFightersTable rows={rows} />
+          </CardContent>
+        </Card>
       </div>
-      <AdminFightersTable rows={rows} />
     </div>
   );
 }

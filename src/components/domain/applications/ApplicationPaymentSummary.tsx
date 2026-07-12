@@ -1,6 +1,11 @@
-import { ApplicationStatusBadge } from "@/components/domain/applications/ApplicationStatusBadge";
-import { PaymentStatusBadge } from "@/components/domain/payments/PaymentStatusBadge";
 import type { ApplicationStatus, PaymentStatus } from "@/generated/prisma";
+import { MatchonStatusBadge } from "@/components/shared/MatchonStatusBadge";
+import {
+  getGymApplicationStatusLabel,
+  resolveGymApplicationStatusMatchonStatus,
+  resolvePaymentDisplayMatchonStatus,
+} from "@/lib/ui/public-application-ui";
+import { getMatchonStatusLabel } from "@/lib/ui/matchon-status";
 
 export function ApplicationPaymentSummary({
   applicationStatus,
@@ -10,9 +15,19 @@ export function ApplicationPaymentSummary({
   paymentStatus: PaymentStatus;
 }) {
   return (
-    <div className="flex flex-wrap items-center gap-1">
-      <ApplicationStatusBadge status={applicationStatus} />
-      <PaymentStatusBadge status={paymentStatus} />
+    <div className="flex flex-wrap items-center gap-1.5">
+      <MatchonStatusBadge
+        status={resolveGymApplicationStatusMatchonStatus(applicationStatus)}
+        label={getGymApplicationStatusLabel(applicationStatus)}
+        size="sm"
+      />
+      <MatchonStatusBadge
+        status={resolvePaymentDisplayMatchonStatus(paymentStatus)}
+        label={getMatchonStatusLabel(
+          resolvePaymentDisplayMatchonStatus(paymentStatus),
+        )}
+        size="sm"
+      />
     </div>
   );
 }

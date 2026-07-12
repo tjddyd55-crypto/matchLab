@@ -1,4 +1,11 @@
 import type { PublicUnmatchedCandidateDTO } from "@/lib/dto/public";
+import {
+  Card,
+  CardContent,
+  CardDescription,
+  CardHeader,
+  CardTitle,
+} from "@/components/ui/card";
 
 export function PublicUnmatchedListSection({
   candidates,
@@ -11,14 +18,14 @@ export function PublicUnmatchedListSection({
 
   return (
     <section className="space-y-4">
-      <header>
-        <h2 className="font-heading text-xl font-semibold tracking-tight md:text-2xl">
-          추가 매칭 대기 명단
-        </h2>
-        <p className="text-muted-foreground mt-1 text-sm">
-          자동 대진 생성 후 아직 상대가 배정되지 않은 신청자입니다.
-        </p>
-      </header>
+      <Card variant="muted" className="py-4">
+        <CardHeader>
+          <CardTitle className="text-xl md:text-2xl">추가 매칭 대기 명단</CardTitle>
+          <CardDescription>
+            자동 대진 생성 후 아직 상대가 배정되지 않은 신청자입니다.
+          </CardDescription>
+        </CardHeader>
+      </Card>
 
       <div className="hidden overflow-x-auto rounded-xl border md:block">
         <table className="w-full min-w-[720px] text-left text-sm">
@@ -55,39 +62,38 @@ export function PublicUnmatchedListSection({
         </table>
       </div>
 
-      <div className="flex flex-col gap-3 md:hidden">
+      <div className="grid grid-cols-1 gap-3 md:hidden">
         {candidates.map((c) => (
-          <div
-            key={`${c.order}-${c.fighterName}-m`}
-            className="ring-foreground/10 rounded-xl border bg-card p-4 shadow-sm"
-          >
-            <div className="flex items-start justify-between gap-2">
-              <span className="text-muted-foreground text-xs">#{c.order}</span>
-              <span className="text-xs text-amber-800 dark:text-amber-200">
-                {c.reasonLabel}
-              </span>
-            </div>
-            <p className="mt-2 text-lg font-semibold">{c.fighterName}</p>
-            <p className="text-muted-foreground text-sm">{c.gymName}</p>
-            <dl className="mt-3 grid grid-cols-2 gap-2 text-xs">
-              <div>
-                <dt className="text-muted-foreground">경기구분</dt>
-                <dd>{c.divisionLabel}</dd>
+          <Card key={`${c.order}-${c.fighterName}-m`}>
+            <CardContent className="pt-4">
+              <div className="flex items-start justify-between gap-2">
+                <span className="text-muted-foreground text-xs">#{c.order}</span>
+                <span className="text-xs text-amber-800 dark:text-amber-200">
+                  {c.reasonLabel}
+                </span>
               </div>
-              <div>
-                <dt className="text-muted-foreground">체급</dt>
-                <dd>{c.weightClass ?? "—"}</dd>
-              </div>
-              <div>
-                <dt className="text-muted-foreground">연령부</dt>
-                <dd>{c.ageGroup ?? "—"}</dd>
-              </div>
-              <div>
-                <dt className="text-muted-foreground">전적</dt>
-                <dd>{c.recordSummary}</dd>
-              </div>
-            </dl>
-          </div>
+              <p className="mt-2 text-lg font-semibold">{c.fighterName}</p>
+              <p className="text-muted-foreground text-sm">{c.gymName}</p>
+              <dl className="mt-3 grid grid-cols-2 gap-2 text-xs">
+                <div>
+                  <dt className="text-muted-foreground">경기구분</dt>
+                  <dd>{c.divisionLabel}</dd>
+                </div>
+                <div>
+                  <dt className="text-muted-foreground">체급</dt>
+                  <dd>{c.weightClass ?? "—"}</dd>
+                </div>
+                <div>
+                  <dt className="text-muted-foreground">연령부</dt>
+                  <dd>{c.ageGroup ?? "—"}</dd>
+                </div>
+                <div>
+                  <dt className="text-muted-foreground">전적</dt>
+                  <dd>{c.recordSummary}</dd>
+                </div>
+              </dl>
+            </CardContent>
+          </Card>
         ))}
       </div>
     </section>

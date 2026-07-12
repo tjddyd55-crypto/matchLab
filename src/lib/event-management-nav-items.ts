@@ -82,6 +82,7 @@ export function getEventManagementNavItems(
       group: "brackets",
     },
     { href: `${base}/operation`, label: "경기 운영", group: "brackets" },
+    { href: `${base}/field-status`, label: "경기장 현황", group: "brackets" },
     { href: `${base}/judges`, label: "심판 관리", group: "brackets" },
     { href: `${base}/qr`, label: "QR 출력", group: "brackets" },
     { href: `${base}/results`, label: "결과", group: "brackets" },

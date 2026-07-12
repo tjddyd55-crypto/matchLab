@@ -7,11 +7,13 @@ import {
   updateMatchOrderAndMatAction,
 } from "@/features/brackets/actions";
 import { Button } from "@/components/ui/button";
+import { FeedbackMessage } from "@/components/shared/FeedbackMessage";
 import type { OrganizerBracketMatchVM } from "@/lib/services/bracket.service";
 import {
   formatMatchOrderShort,
   sortMatchesByOrder,
 } from "@/lib/match-order-display";
+import { organizerBracketFieldInputClass } from "@/lib/ui/organizer-bracket-ui";
 import { cn } from "@/lib/utils";
 
 export function BracketMatchOrderControls({
@@ -114,22 +116,18 @@ export function BracketMatchOrderControls({
           defaultValue={
             match.globalMatchOrder ?? match.matchNumber ?? match.matchOrder
           }
-          className="border-input bg-background h-6 w-14 rounded-md border px-1 text-[11px]"
+          className={cn(organizerBracketFieldInputClass, "h-8 w-14 text-[11px]")}
           onBlur={(e) => saveDirectOrder(e.target.value)}
           disabled={match.hasOfficialResults || pending}
           title="순서 직접 입력"
         />
         {feedback ? (
-          <span
-            className={cn(
-              "text-[10px] font-medium",
-              feedback.type === "success"
-                ? "text-emerald-700 dark:text-emerald-400"
-                : "text-destructive",
-            )}
+          <FeedbackMessage
+            tone={feedback.type === "success" ? "success" : "error"}
+            className="text-[10px]"
           >
             {feedback.message}
-          </span>
+          </FeedbackMessage>
         ) : null}
         {match.hasOfficialResults ? (
           <span className="text-muted-foreground text-[10px]">순서 변경 불가</span>
@@ -176,7 +174,7 @@ export function BracketMatchOrderControls({
             defaultValue={
               match.globalMatchOrder ?? match.matchNumber ?? match.matchOrder
             }
-            className="border-input bg-background h-7 w-16 rounded-md border px-1 text-xs"
+            className={cn(organizerBracketFieldInputClass, "h-8 w-16 text-xs")}
             onBlur={(e) => saveDirectOrder(e.target.value)}
             disabled={match.hasOfficialResults || pending}
           />
@@ -184,16 +182,12 @@ export function BracketMatchOrderControls({
         </div>
       </div>
       {feedback ? (
-        <p
-          className={cn(
-            "text-[11px] font-medium",
-            feedback.type === "success"
-              ? "text-emerald-700 dark:text-emerald-400"
-              : "text-destructive",
-          )}
+        <FeedbackMessage
+          tone={feedback.type === "success" ? "success" : "error"}
+          className="text-[11px]"
         >
           {feedback.message}
-        </p>
+        </FeedbackMessage>
       ) : null}
       {match.hasOfficialResults ? (
         <p className="text-muted-foreground text-[10px]">

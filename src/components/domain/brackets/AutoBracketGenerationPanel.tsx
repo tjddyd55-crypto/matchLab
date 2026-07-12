@@ -4,6 +4,8 @@ import { useActionState, useEffect, useState } from "react";
 import { useRouter } from "next/navigation";
 import { generateAutoBracketMatchesAction } from "@/features/brackets/actions";
 import type { ActionResult } from "@/lib/action-result";
+import { FeedbackMessage } from "@/components/shared/FeedbackMessage";
+import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { formatCourtTabLabel } from "@/lib/court-tab-label";
 import type { AutoBracketGenerationSummary } from "@/lib/services/bracket-auto-match.service";
 import type { EventCourtVM } from "@/lib/services/event-court.service";
@@ -25,17 +27,11 @@ function SummaryBlock({
   preview?: boolean;
 }) {
   return (
-    <div
-      className={
-        preview
-          ? "mt-4 rounded-md border border-sky-500/40 bg-sky-500/10 px-3 py-3 text-sm"
-          : "mt-4 rounded-md border border-emerald-500/40 bg-emerald-500/10 px-3 py-3 text-sm"
-      }
-    >
-      <p className="font-medium">
+    <FeedbackMessage tone={preview ? "info" : "success"}>
+      <span className="font-semibold">
         {preview ? "자동매칭 미리보기" : "자동 대진 생성 완료"}
-      </p>
-      <ul className="mt-2 space-y-1 text-xs">
+      </span>
+      <ul className="mt-2 space-y-1 text-xs font-normal">
         <li>
           {preview ? "생성 예정" : "생성"} 경기:{" "}
           {preview
@@ -84,7 +80,7 @@ function SummaryBlock({
           ))}
         </ul>
       ) : null}
-    </div>
+    </FeedbackMessage>
   );
 }
 
@@ -183,14 +179,15 @@ export function AutoBracketGenerationPanel({
   }
 
   return (
-    <section className="ring-foreground/10 rounded-xl border bg-card p-4 shadow-sm">
-      <div>
-        <h2 className="text-lg font-semibold">자동매칭</h2>
-        <p className="text-muted-foreground mt-1 text-sm">
+    <Card variant="default" className="py-4">
+      <CardHeader className="px-4 pb-2">
+        <CardTitle className="text-lg">자동매칭</CardTitle>
+        <p className="text-muted-foreground mt-1 text-sm font-normal">
           미리보기로 결과를 확인한 뒤 적용하세요. 같은 체육관끼리 매칭 금지가
           기본 적용됩니다.
         </p>
-      </div>
+      </CardHeader>
+      <CardContent className="px-4">
 
       <div className="mt-4 grid gap-4 sm:grid-cols-2">
         <label className="flex flex-col gap-1 text-sm">
@@ -361,6 +358,7 @@ export function AutoBracketGenerationPanel({
           {buildHiddenFields(false)}
           <Button
             type="submit"
+            size="field"
             disabled={isPending || activeCourts.length === 0 || courtScopeInvalid}
           >
             {applyPending ? "적용 중…" : "적용"}
@@ -369,13 +367,14 @@ export function AutoBracketGenerationPanel({
       </div>
 
       {errorMessage ? (
-        <div className="mt-4 rounded-md border border-destructive/40 bg-destructive/10 px-3 py-2 text-sm text-destructive">
+        <FeedbackMessage tone="error" role="alert" className="mt-4">
           {errorMessage}
-        </div>
+        </FeedbackMessage>
       ) : null}
 
       {previewSummary ? <SummaryBlock summary={previewSummary} preview /> : null}
       {applySummary ? <SummaryBlock summary={applySummary} /> : null}
-    </section>
+      </CardContent>
+    </Card>
   );
 }

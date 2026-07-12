@@ -10,6 +10,7 @@ import type {
   EventApplicationFormConfigDTO,
 } from "@/lib/services/application.service";
 import type { CustomFormFieldDefinition } from "@/lib/application-form/custom-form";
+import type { MatchonStatus } from "@/lib/ui/matchon-status";
 import { ApplicationAgreementChecklist } from "@/components/domain/applications/ApplicationAgreementChecklist";
 import {
   GymBulkApplicationCard,
@@ -21,8 +22,16 @@ import {
   GymCustomFormFields,
   isCustomFormComplete,
 } from "@/components/domain/applications/GymCustomFormFields";
+import { FeedbackMessage } from "@/components/shared/FeedbackMessage";
+import { MatchonStatusBadge } from "@/components/shared/MatchonStatusBadge";
 import { Button } from "@/components/ui/button";
-import { Badge } from "@/components/ui/badge";
+import {
+  Card,
+  CardContent,
+  CardDescription,
+  CardHeader,
+  CardTitle,
+} from "@/components/ui/card";
 import {
   Table,
   TableBody,
@@ -30,6 +39,7 @@ import {
   TableHeader,
   TableRow,
 } from "@/components/ui/table";
+import { publicApplicationFieldTextareaClass } from "@/lib/ui/public-application-ui";
 
 type GymBulkApplicationFormProps = {
   eventId: string;
@@ -88,13 +98,13 @@ function customFormStatusLabel(
   fields: CustomFormFieldDefinition[],
   answers: Record<string, unknown>,
   checked: boolean,
-): { label: string; tone: "default" | "secondary" | "outline" | "destructive" } {
-  if (!checked) return { label: "—", tone: "outline" };
-  if (fields.length === 0) return { label: "불필요", tone: "secondary" };
+): { label: string; status: MatchonStatus } {
+  if (!checked) return { label: "—", status: "waiting" };
+  if (fields.length === 0) return { label: "불필요", status: "application_completed" };
   if (isCustomFormComplete(fields, answers)) {
-    return { label: "작성 완료", tone: "default" };
+    return { label: "작성 완료", status: "application_completed" };
   }
-  return { label: "작성 필요", tone: "destructive" };
+  return { label: "작성 필요", status: "application_pending" };
 }
 
 export function GymBulkApplicationForm(props: GymBulkApplicationFormProps) {
@@ -168,29 +178,41 @@ export function GymBulkApplicationForm(props: GymBulkApplicationFormProps) {
       <input type="hidden" name="applicationsJson" value={applicationsJson} />
 
       {props.applicationForm.mode === "pdf" ? (
-        <p className="text-muted-foreground text-sm leading-relaxed">
+        <FeedbackMessage tone="info">
           공식 PDF 신청서가 연결된 대회입니다. 아래 일괄 신청은 경기구분별 일반
           신청·입금 흐름이며, 공식 신청서 묶음과 별도로 진행됩니다.
-        </p>
+        </FeedbackMessage>
       ) : props.applicationForm.mode === "custom" ? (
-        <div className="rounded-xl border border-primary/30 bg-primary/5 p-4 text-sm">
-          <p className="font-medium">자체 폼형 신청서 연결됨</p>
-          <p className="text-muted-foreground mt-1 leading-relaxed">
-            {props.applicationForm.templateTitle ?? "신청서"} — 선택한 선수마다
-            아래 항목을 작성한 뒤 일괄 신청해 주세요.
-          </p>
-        </div>
+        <Card variant="muted">
+          <CardHeader>
+            <CardTitle className="text-base">자체 폼형 신청서 연결됨</CardTitle>
+            <CardDescription>
+              {props.applicationForm.templateTitle ?? "신청서"} — 선택한 선수마다
+              아래 항목을 작성한 뒤 일괄 신청해 주세요.
+            </CardDescription>
+          </CardHeader>
+        </Card>
       ) : (
-        <div className="rounded-xl border border-dashed p-4 text-sm">
-          <p className="font-medium">공식 신청서 템플릿 미연결</p>
-          <p className="text-muted-foreground mt-1 leading-relaxed">
-            이 대회에는 신청서 템플릿이 연결되지 않았습니다. 아래에서 선수별
-            경기구분을 선택해 일괄 신청할 수 있습니다.
-          </p>
-        </div>
+        <Card variant="muted">
+          <CardHeader>
+            <CardTitle className="text-base">공식 신청서 템플릿 미연결</CardTitle>
+            <CardDescription>
+              이 대회에는 신청서 템플릿이 연결되지 않았습니다. 아래에서 선수별
+              경기구분을 선택해 일괄 신청할 수 있습니다.
+            </CardDescription>
+          </CardHeader>
+        </Card>
       )}
 
-      <div className="hidden md:block">
+      <Card>
+        <CardHeader>
+          <CardTitle className="text-base">선수 선택 및 경기구분</CardTitle>
+          <CardDescription>
+            신청할 선수를 선택하고 경기구분을 지정해 주세요.
+          </CardDescription>
+        </CardHeader>
+        <CardContent className="space-y-4 p-0 sm:p-0">
+      <div className="hidden md:block px-4 pb-4">
         <Table>
           <TableHeader>
             <TableRow>
@@ -226,7 +248,11 @@ export function GymBulkApplicationForm(props: GymBulkApplicationFormProps) {
                   }
                   formStatus={
                     requireCustomForm ? (
-                      <Badge variant={formStatus.tone}>{formStatus.label}</Badge>
+                      <MatchonStatusBadge
+                        status={formStatus.status}
+                        label={formStatus.label}
+                        size="sm"
+                      />
                     ) : undefined
                   }
                 />
@@ -236,7 +262,7 @@ export function GymBulkApplicationForm(props: GymBulkApplicationFormProps) {
         </Table>
       </div>
 
-      <div className="grid gap-3 md:hidden">
+      <div className="grid gap-3 px-4 pb-4 md:hidden">
         {props.fighters.map((fighter) => {
           const rowState = rowStates[fighter.id]!;
           const formStatus = customFormStatusLabel(
@@ -256,23 +282,32 @@ export function GymBulkApplicationForm(props: GymBulkApplicationFormProps) {
               }
               formStatus={
                 requireCustomForm ? (
-                  <Badge variant={formStatus.tone}>{formStatus.label}</Badge>
+                  <MatchonStatusBadge
+                    status={formStatus.status}
+                    label={formStatus.label}
+                    size="sm"
+                  />
                 ) : undefined
               }
             />
           );
         })}
       </div>
+        </CardContent>
+      </Card>
 
       {requireCustomForm && customFields.length > 0 && selectedRows.length > 0 ? (
-        <section className="space-y-4">
-          <h3 className="text-sm font-semibold">선택 선수 신청서 작성</h3>
+        <Card>
+          <CardHeader>
+            <CardTitle className="text-base">선택 선수 신청서 작성</CardTitle>
+          </CardHeader>
+          <CardContent className="space-y-4">
           {selectedRows.map((fighter) => {
             const rowState = rowStates[fighter.id]!;
             return (
               <details
                 key={fighter.id}
-                className="rounded-xl border border-border/70 bg-card p-4"
+                className="rounded-xl border border-border/70 bg-muted/20 p-4"
                 open={selectedRows.length <= 3}
               >
                 <summary className="cursor-pointer text-sm font-medium">
@@ -290,10 +325,16 @@ export function GymBulkApplicationForm(props: GymBulkApplicationFormProps) {
               </details>
             );
           })}
-        </section>
+          </CardContent>
+        </Card>
       ) : null}
 
-      <div className="sticky bottom-0 z-10 -mx-4 border-t border-border/80 bg-background/95 px-4 py-4 backdrop-blur md:static md:mx-0 md:border-0 md:bg-transparent md:px-0 md:py-0 md:backdrop-blur-none">
+      <Card>
+        <CardHeader>
+          <CardTitle className="text-base">동의 및 제출</CardTitle>
+        </CardHeader>
+        <CardContent className="space-y-4">
+      <div className="md:static">
         <ApplicationAgreementChecklist
           streamingAgreementRequired={props.streamingAgreementRequired}
           streamingNoticeText={props.streamingNoticeText}
@@ -308,17 +349,24 @@ export function GymBulkApplicationForm(props: GymBulkApplicationFormProps) {
             name="memo"
             rows={2}
             maxLength={2000}
-            className="border-input bg-background min-h-[72px] w-full rounded-lg border px-3 py-2 text-sm outline-none focus-visible:ring-2 focus-visible:ring-ring"
+            className={publicApplicationFieldTextareaClass}
             placeholder="주최자에게 전달할 참고 사항"
           />
         </div>
 
         {state && !state.ok ? (
-          <p className="text-destructive mt-3 text-sm">{state.error.message}</p>
+          <FeedbackMessage tone="error" role="alert" className="mt-3">
+            {state.error.message}
+          </FeedbackMessage>
         ) : null}
 
-        <div className="mt-4 flex flex-wrap items-center gap-3">
-          <Button type="submit" disabled={selectedCount === 0 || isPending}>
+        <div className="mt-4 flex flex-col gap-3 sm:flex-row sm:flex-wrap sm:items-center">
+          <Button
+            type="submit"
+            size="field"
+            className="w-full sm:w-auto"
+            disabled={selectedCount === 0 || isPending}
+          >
             {isPending
               ? "신청 처리 중…"
               : `선택 선수 일괄 신청 (${selectedCount}명)`}
@@ -329,6 +377,8 @@ export function GymBulkApplicationForm(props: GymBulkApplicationFormProps) {
           </p>
         </div>
       </div>
+        </CardContent>
+      </Card>
     </form>
   );
 }

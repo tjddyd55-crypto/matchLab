@@ -1,3 +1,11 @@
+import {
+  Card,
+  CardContent,
+  CardDescription,
+  CardHeader,
+  CardTitle,
+} from "@/components/ui/card";
+
 export function GuardianConsentDocument({
   documentTitle,
   documentVersion,
@@ -6,12 +14,12 @@ export function GuardianConsentDocument({
   documentVersion: string;
 }) {
   return (
-    <section className="ring-foreground/10 space-y-4 rounded-xl bg-card p-5 text-sm leading-relaxed ring-1">
-      <header className="space-y-1 border-b pb-3">
-        <h2 className="font-heading text-lg font-semibold">{documentTitle}</h2>
-        <p className="text-muted-foreground text-xs">문서 버전 {documentVersion}</p>
-      </header>
-      <div className="space-y-3">
+    <Card>
+      <CardHeader className="border-b">
+        <CardTitle>{documentTitle}</CardTitle>
+        <CardDescription>문서 버전 {documentVersion}</CardDescription>
+      </CardHeader>
+      <CardContent className="space-y-3 text-sm leading-relaxed">
         <p>
           본 동의는 선수 등록 및 향후 대회 참가 과정에서 필요한 보호자 확인 절차입니다.
           구체적인 대회 단위 조건은 추후 대회 신청 단계에서 별도 안내될 수 있습니다.
@@ -38,7 +46,7 @@ export function GuardianConsentDocument({
             동의가 필요할 수 있습니다.
           </li>
         </ol>
-      </div>
-    </section>
+      </CardContent>
+    </Card>
   );
 }

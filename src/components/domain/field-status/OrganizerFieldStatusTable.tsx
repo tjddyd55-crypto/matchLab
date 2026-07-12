@@ -7,8 +7,13 @@ import {
 } from "@/components/domain/field-status/WeighInFailureResolutionForm";
 import { FieldFinalResultCell } from "@/components/domain/field-status/FieldFinalResultCell";
 import { FieldStatusResetButton } from "@/components/domain/field-status/FieldStatusResetButton";
+import { FieldStatusEmptyState } from "@/components/domain/field-status/FieldStatusEmptyState";
+import { CheckInStatusBadge } from "@/components/domain/field-status/CheckInStatusBadge";
+import { WeighInStatusBadge } from "@/components/domain/field-status/WeighInStatusBadge";
+import { EligibilityBadge } from "@/components/domain/field-status/EligibilityBadge";
 import { DivisionCompactDisplay } from "@/components/domain/shared/DivisionCompactDisplay";
 import type { FieldStatusRowDTO } from "@/lib/services/field-status.service";
+import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import {
   fieldStatusCenterCellClass,
   fieldStatusTextCellClass,
@@ -29,11 +34,7 @@ export function OrganizerFieldStatusTable({
   emptyMessage?: string;
 }) {
   if (rows.length === 0) {
-    return (
-      <p className="text-muted-foreground rounded-xl border border-dashed px-4 py-8 text-center text-sm">
-        {emptyMessage}
-      </p>
-    );
+    return <FieldStatusEmptyState message={emptyMessage} />;
   }
 
   return (
@@ -132,54 +133,65 @@ export function OrganizerFieldStatusTable({
 
       <div className="flex min-w-0 flex-col gap-3 md:hidden">
         {rows.map((row) => (
-          <article
-            key={row.applicationId}
-            className="min-w-0 rounded-xl border bg-card p-3 shadow-sm"
-          >
-            <p className="text-muted-foreground truncate text-xs font-medium">
-              {row.gymName}
-            </p>
-            <h3 className="truncate font-medium">{row.fighterName}</h3>
-            <div className="mt-2" title={row.divisionLabel}>
-              <DivisionCompactDisplay
-                division={row.division}
-                mainClassName="text-xs"
-                secondaryClassName="text-[11px]"
-              />
-            </div>
-            <div className="mt-2 grid min-w-0 gap-2 border-t pt-2">
-              <div className="min-w-0">
-                <p className="text-muted-foreground mb-1 text-[10px] font-medium">
+          <Card key={row.applicationId} variant="interactive" className="py-4">
+            <CardHeader className="space-y-2 px-4 py-0">
+              <p className="text-muted-foreground truncate text-xs font-medium">
+                {row.gymName}
+              </p>
+              <CardTitle className="truncate text-base leading-snug">
+                {row.fighterName}
+              </CardTitle>
+              <div className="flex flex-wrap gap-1.5">
+                <CheckInStatusBadge status={row.checkInStatus} />
+                <WeighInStatusBadge status={row.weighInStatus} />
+                <EligibilityBadge
+                  label={row.eligibilityLabel}
+                  isEligible={row.isEligibleForBracket}
+                  title={row.eligibilityReason}
+                />
+              </div>
+              <div title={row.divisionLabel}>
+                <DivisionCompactDisplay
+                  division={row.division}
+                  mainClassName="text-xs"
+                  secondaryClassName="text-[11px]"
+                />
+              </div>
+            </CardHeader>
+            <CardContent className="grid min-w-0 gap-3 px-4 pt-2">
+              <div className="min-w-0 border-t pt-3">
+                <p className="text-muted-foreground mb-2 text-[11px] font-medium">
                   계체 몸무게
                 </p>
                 <WeighInWeightInput
                   key={`${row.applicationId}-${row.weighInWeightKg}-m`}
                   row={row}
+                  touchFriendly
                 />
               </div>
               <div className="min-w-0">
-                <p className="text-muted-foreground mb-1 text-[10px] font-medium">
+                <p className="text-muted-foreground mb-2 text-[11px] font-medium">
                   진행여부
                 </p>
-                <WeighInFailureResolutionForm row={row} compact />
+                <WeighInFailureResolutionForm row={row} compact touchFriendly />
               </div>
               <div className="min-w-0">
-                <p className="text-muted-foreground mb-1 text-[10px] font-medium">
+                <p className="text-muted-foreground mb-2 text-[11px] font-medium">
                   실격 사유
                 </p>
-                <DisqualificationReasonForm row={row} compact />
+                <DisqualificationReasonForm row={row} compact touchFriendly />
               </div>
               <div className="min-w-0">
-                <p className="text-muted-foreground mb-1 text-[10px] font-medium">
+                <p className="text-muted-foreground mb-2 text-[11px] font-medium">
                   경기결과
                 </p>
                 <FieldFinalResultCell row={row} />
               </div>
-              <div className="flex justify-start">
-                <FieldStatusResetButton row={row} />
+              <div className="flex justify-start border-t pt-2">
+                <FieldStatusResetButton row={row} touchFriendly />
               </div>
-            </div>
-          </article>
+            </CardContent>
+          </Card>
         ))}
       </div>
     </>

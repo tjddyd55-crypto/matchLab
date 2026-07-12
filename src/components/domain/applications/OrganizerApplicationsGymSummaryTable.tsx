@@ -5,6 +5,8 @@ import {
   isPaidForOrganizerDisplay,
   resolveOrganizerApplicationDisplayStatus,
 } from "@/lib/application-display-status";
+import { OrganizerApplicationsEmptyState } from "@/components/domain/applications/OrganizerApplicationsEmptyState";
+import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { cn } from "@/lib/utils";
 
 export type GymApplicationSummary = {
@@ -70,20 +72,19 @@ export function OrganizerApplicationsGymSummaryTable({
 
   if (summaries.length === 0) {
     return (
-      <section className="rounded-xl border border-dashed p-6 text-center text-sm text-muted-foreground">
-        신청 데이터가 없습니다.
-      </section>
+      <OrganizerApplicationsEmptyState message="신청 데이터가 없습니다." />
     );
   }
 
   return (
-    <section className="overflow-x-auto rounded-xl border bg-card">
-      <div className="border-b px-4 py-3">
-        <h2 className="text-sm font-semibold">체육관별 현황</h2>
-        <p className="text-muted-foreground mt-1 text-xs">
+    <Card variant="default" className="overflow-hidden py-0">
+      <CardHeader className="border-b px-4 py-3">
+        <CardTitle className="text-sm font-semibold">체육관별 현황</CardTitle>
+        <p className="text-muted-foreground mt-1 text-xs font-normal">
           체육관을 클릭하면 해당 체육관 선수만 필터됩니다.
         </p>
-      </div>
+      </CardHeader>
+      <CardContent className="overflow-x-auto p-0">
       <table className="w-full min-w-[52rem] text-left text-sm">
         <thead className="bg-muted/40 text-xs">
           <tr>
@@ -125,7 +126,8 @@ export function OrganizerApplicationsGymSummaryTable({
           })}
         </tbody>
       </table>
-    </section>
+      </CardContent>
+    </Card>
   );
 }
 

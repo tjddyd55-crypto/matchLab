@@ -15,6 +15,7 @@ export function DrawerPanel({
   onOpenChange,
   title,
   description,
+  headerExtra,
   children,
   className,
 }: {
@@ -22,6 +23,7 @@ export function DrawerPanel({
   onOpenChange: (open: boolean) => void;
   title: string;
   description?: string;
+  headerExtra?: React.ReactNode;
   children: React.ReactNode;
   className?: string;
 }) {
@@ -35,14 +37,21 @@ export function DrawerPanel({
           className,
         )}
       >
-        <div className="flex h-full flex-col overflow-hidden">
+        <div className="flex h-full min-w-0 flex-col overflow-hidden">
           <DialogHeader className="shrink-0 border-b px-4 py-4">
-            <DialogTitle>{title}</DialogTitle>
+            <DialogTitle className="break-words pr-8">{title}</DialogTitle>
             {description ? (
-              <DialogDescription>{description}</DialogDescription>
+              <DialogDescription className="break-words">
+                {description}
+              </DialogDescription>
+            ) : null}
+            {headerExtra ? (
+              <div className="mt-2 flex flex-wrap gap-1.5">{headerExtra}</div>
             ) : null}
           </DialogHeader>
-          <div className="flex-1 overflow-y-auto px-4 py-4">{children}</div>
+          <div className="min-w-0 flex-1 overflow-y-auto overscroll-contain px-4 py-4">
+            {children}
+          </div>
         </div>
       </DialogContent>
     </Dialog>

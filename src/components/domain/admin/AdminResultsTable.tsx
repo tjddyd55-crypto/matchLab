@@ -1,5 +1,27 @@
 import type { AdminMatchResultListItemDTO } from "@/lib/dto/admin";
+import { AdminListEmptyState } from "@/components/domain/admin/AdminListEmptyState";
 import { formatAdminDateTime } from "@/components/domain/admin/admin-format";
+import { MatchonStatusBadge } from "@/components/shared/MatchonStatusBadge";
+import {
+  Card,
+  CardContent,
+  CardHeader,
+  CardTitle,
+} from "@/components/ui/card";
+import {
+  Table,
+  TableBody,
+  TableCell,
+  TableHead,
+  TableHeader,
+  TableRow,
+} from "@/components/ui/table";
+import {
+  adminDesktopTableClass,
+  adminMobileListClass,
+  getAdminMatchRecordStatusLabel,
+  resolveAdminMatchRecordStatusMatchon,
+} from "@/lib/ui/admin-ui";
 
 function outcomeKo(r: AdminMatchResultListItemDTO): string {
   switch (r.result) {
@@ -16,68 +38,100 @@ function outcomeKo(r: AdminMatchResultListItemDTO): string {
   }
 }
 
-export function AdminResultsTable({ rows }: { rows: AdminMatchResultListItemDTO[] }) {
+export function AdminResultsTable({
+  rows,
+}: {
+  rows: AdminMatchResultListItemDTO[];
+}) {
   if (rows.length === 0) {
-    return <p className="text-muted-foreground text-sm">결과 데이터가 없습니다.</p>;
+    return (
+      <AdminListEmptyState
+        title="결과 데이터가 없습니다"
+        description="등록된 경기 결과가 없습니다."
+      />
+    );
   }
+
   return (
-    <div className="space-y-3">
-      <div className="hidden overflow-x-auto md:block">
-        <table className="w-full min-w-[720px] text-left text-sm">
-          <thead>
-            <tr className="text-muted-foreground border-b text-xs">
-              <th className="py-2 pr-2">대회</th>
-              <th className="py-2 pr-2">선수</th>
-              <th className="py-2 pr-2">상대</th>
-              <th className="py-2 pr-2">기록</th>
-              <th className="py-2 pr-2">방식</th>
-              <th className="py-2 pr-2">상태</th>
-              <th className="py-2">확정</th>
-            </tr>
-          </thead>
-          <tbody>
+    <>
+      <div className={adminDesktopTableClass}>
+        <Table className="min-w-[720px]">
+          <TableHeader>
+            <TableRow>
+              <TableHead>대회</TableHead>
+              <TableHead>선수</TableHead>
+              <TableHead>상대</TableHead>
+              <TableHead>기록</TableHead>
+              <TableHead>방식</TableHead>
+              <TableHead>상태</TableHead>
+              <TableHead>확정</TableHead>
+            </TableRow>
+          </TableHeader>
+          <TableBody>
             {rows.map((r) => (
-              <tr key={r.id} className="border-t">
-                <td className="py-2 pr-2 font-medium">{r.eventTitle}</td>
-                <td className="py-2 pr-2">
+              <TableRow key={r.id}>
+                <TableCell className="font-medium break-words">{r.eventTitle}</TableCell>
+                <TableCell className="break-words">
                   {r.fighterName}{" "}
-                  <span className="text-muted-foreground text-xs">({r.fighterCode})</span>
-                </td>
-                <td className="text-muted-foreground py-2 pr-2">
+                  <span className="text-muted-foreground text-xs">
+                    ({r.fighterCode})
+                  </span>
+                </TableCell>
+                <TableCell className="text-muted-foreground break-words">
                   {r.opponentName
                     ? `${r.opponentName} (${r.opponentCode ?? ""})`
                     : "—"}
-                </td>
-                <td className="py-2 pr-2">{outcomeKo(r)}</td>
-                <td className="text-muted-foreground py-2 pr-2 text-xs">
+                </TableCell>
+                <TableCell>{outcomeKo(r)}</TableCell>
+                <TableCell className="text-muted-foreground text-xs">
                   {r.resultType ?? "—"}
-                </td>
-                <td className="py-2 pr-2 text-xs">{r.status}</td>
-                <td className="text-muted-foreground py-2 whitespace-nowrap text-xs">
+                </TableCell>
+                <TableCell>
+                  <MatchonStatusBadge
+                    status={resolveAdminMatchRecordStatusMatchon(r.status)}
+                    label={getAdminMatchRecordStatusLabel(r.status)}
+                    size="sm"
+                  />
+                </TableCell>
+                <TableCell className="text-muted-foreground whitespace-nowrap text-xs">
                   {r.confirmedAt ? formatAdminDateTime(r.confirmedAt) : "—"}
-                </td>
-              </tr>
+                </TableCell>
+              </TableRow>
             ))}
-          </tbody>
-        </table>
+          </TableBody>
+        </Table>
       </div>
-      <ul className="space-y-2 md:hidden">
+      <ul className={adminMobileListClass}>
         {rows.map((r) => (
-          <li key={r.id} className="rounded-lg border bg-card p-3 text-sm">
-            <p className="font-medium">{r.eventTitle}</p>
-            <p className="mt-1">
-              {r.fighterName} ({r.fighterCode}) vs{" "}
-              {r.opponentName ?? "—"}
-            </p>
-            <p className="text-muted-foreground mt-1 text-xs">
-              {outcomeKo(r)} · {r.resultType ?? "—"} · {r.status}
-            </p>
-            <p className="text-muted-foreground text-xs">
-              확정: {r.confirmedAt ? formatAdminDateTime(r.confirmedAt) : "—"}
-            </p>
+          <li key={r.id}>
+            <Card className="gap-0 overflow-hidden py-0">
+              <CardHeader className="border-b bg-muted/15 pb-3">
+                <div className="flex flex-wrap items-start justify-between gap-2">
+                  <CardTitle className="line-clamp-2 text-base leading-snug">
+                    {r.eventTitle}
+                  </CardTitle>
+                  <MatchonStatusBadge
+                    status={resolveAdminMatchRecordStatusMatchon(r.status)}
+                    label={getAdminMatchRecordStatusLabel(r.status)}
+                    size="sm"
+                  />
+                </div>
+              </CardHeader>
+              <CardContent className="pt-3 text-xs">
+                <p className="break-words">
+                  {r.fighterName} ({r.fighterCode}) vs {r.opponentName ?? "—"}
+                </p>
+                <p className="text-muted-foreground mt-1">
+                  {outcomeKo(r)} · {r.resultType ?? "—"}
+                </p>
+                <p className="text-muted-foreground mt-1">
+                  확정: {r.confirmedAt ? formatAdminDateTime(r.confirmedAt) : "—"}
+                </p>
+              </CardContent>
+            </Card>
           </li>
         ))}
       </ul>
-    </div>
+    </>
   );
 }

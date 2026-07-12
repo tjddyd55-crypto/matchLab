@@ -1,4 +1,5 @@
 import type { ReactNode } from "react";
+import { MatchonEmptyState } from "@/components/shared/MatchonEmptyState";
 
 export function EmptyState({
   title,
@@ -10,12 +11,10 @@ export function EmptyState({
   action?: ReactNode;
 }) {
   return (
-    <div className="flex flex-col items-center justify-center gap-2 rounded-lg border border-dashed p-10 text-center">
-      <h3 className="text-lg font-medium">{title}</h3>
-      {description ? (
-        <p className="text-muted-foreground max-w-sm text-sm">{description}</p>
-      ) : null}
-      {action}
-    </div>
+    <MatchonEmptyState
+      title={title}
+      description={description}
+      action={action}
+    />
   );
 }

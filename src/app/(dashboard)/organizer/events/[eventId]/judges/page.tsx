@@ -43,13 +43,13 @@ export default async function OrganizerEventJudgesPage({
         <div className="mt-2 flex flex-wrap gap-2">
           <Link
             href={`/organizer/events/${eventId}/operation`}
-            className="text-primary text-sm underline"
+            className={cn(buttonVariants({ variant: "outline", size: "field" }), "inline-flex")}
           >
-            경기 운영 보드로 이동
+            경기 운영 보드
           </Link>
           <Link
             href={`/organizer/events/${eventId}/qr`}
-            className={cn(buttonVariants({ variant: "outline", size: "sm" }))}
+            className={cn(buttonVariants({ variant: "default", size: "field" }), "inline-flex")}
           >
             심판 QR 출력
           </Link>
@@ -66,7 +66,11 @@ export default async function OrganizerEventJudgesPage({
         </ul>
       </section>
 
-      <CourtJudgeLinksPanel courts={courtQrLinks} eventId={eventId} />
+      <CourtJudgeLinksPanel
+        courts={courts}
+        courtQrLinks={courtQrLinks}
+        eventId={eventId}
+      />
     </EventManagementLayout>
   );
 }

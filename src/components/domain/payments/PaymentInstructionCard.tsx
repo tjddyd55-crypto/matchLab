@@ -23,7 +23,7 @@ export function PaymentInstructionCard(props: PaymentInstructionCardProps) {
     : "별도 안내";
 
   return (
-    <Card className="border-emerald-600/30 bg-emerald-950/10">
+    <Card variant="success">
       <CardHeader>
         <CardTitle className="text-lg">참가비 입금 안내</CardTitle>
         <CardDescription>

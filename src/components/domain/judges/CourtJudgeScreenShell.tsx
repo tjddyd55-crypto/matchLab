@@ -2,7 +2,11 @@
 
 import { useCallback, useEffect, useMemo, useRef, useState } from "react";
 import { BrandLogo } from "@/components/common/BrandLogo";
+import { MatchonStatusBadge } from "@/components/shared/MatchonStatusBadge";
+import { FeedbackMessage } from "@/components/shared/FeedbackMessage";
+import { Card, CardContent } from "@/components/ui/card";
 import { cn } from "@/lib/utils";
+import { resolveJudgeRoleMatchonStatus } from "@/lib/ui/judge-ui";
 import { resolveDefaultSelectedMatchId } from "@/lib/court-judge-page-state";
 import type {
   CourtJudgeCourtVM,
@@ -108,15 +112,22 @@ export function CourtJudgeScreenShell({
 
   return (
     <div className="mx-auto max-w-6xl p-4">
-      <header className="mb-5 flex items-start justify-between gap-3 rounded-xl border bg-card px-4 py-3">
-        <div className="min-w-0 space-y-0.5">
-          <p className="text-muted-foreground truncate text-xs">{court.eventTitle}</p>
-          <h1 className="truncate text-lg font-bold">
-            {court.courtName} · {roleLabel}
-          </h1>
-        </div>
-        <BrandLogo size="sm" showText={false} className="shrink-0" />
-      </header>
+      <Card variant="default" className="mb-5 py-3">
+        <CardContent className="flex items-start justify-between gap-3 px-4">
+          <div className="min-w-0 space-y-1">
+            <p className="text-muted-foreground truncate text-xs">{court.eventTitle}</p>
+            <h1 className="truncate text-lg font-bold">{court.courtName}</h1>
+            <MatchonStatusBadge
+              status={resolveJudgeRoleMatchonStatus(
+                roleLabel === "주심판" ? "head" : "score",
+              )}
+              label={roleLabel}
+              size="sm"
+            />
+          </div>
+          <BrandLogo size="sm" showText={false} className="shrink-0" />
+        </CardContent>
+      </Card>
 
       {matches.length === 0 ? (
         detail(null)
@@ -144,13 +155,10 @@ export function CourtJudgeEmptyNotice({
   className?: string;
 }) {
   return (
-    <div
-      className={cn(
-        "rounded-xl border border-dashed p-6 text-center text-sm text-muted-foreground",
-        className,
-      )}
-    >
-      {children}
-    </div>
+    <Card variant="muted" className={cn("py-4", className)}>
+      <CardContent className="px-4">
+        <FeedbackMessage tone="info">{children}</FeedbackMessage>
+      </CardContent>
+    </Card>
   );
 }

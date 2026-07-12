@@ -1,16 +1,14 @@
 import type { WeighInStatus } from "@/generated/prisma";
-import { Badge } from "@/components/ui/badge";
+import { MatchonStatusBadge } from "@/components/shared/MatchonStatusBadge";
 import { getWeighInStatusLabel } from "@/lib/field-eligibility";
-import { getWeighInStatusBadgeVariant } from "@/lib/ui/field-status-ui";
-import { statusBadgeSizeClasses } from "@/lib/ui/status-badge-ui";
+import { resolveWeighInMatchonStatus } from "@/lib/ui/field-status-ui";
 
 export function WeighInStatusBadge({ status }: { status: WeighInStatus }) {
   return (
-    <Badge
-      variant={getWeighInStatusBadgeVariant(status)}
-      className={statusBadgeSizeClasses.sm}
-    >
-      {getWeighInStatusLabel(status)}
-    </Badge>
+    <MatchonStatusBadge
+      status={resolveWeighInMatchonStatus(status)}
+      label={getWeighInStatusLabel(status)}
+      size="sm"
+    />
   );
 }

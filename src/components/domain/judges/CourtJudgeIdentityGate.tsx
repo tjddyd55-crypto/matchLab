@@ -2,7 +2,10 @@
 
 import { useEffect, useState, type FormEvent } from "react";
 import { BrandLogo } from "@/components/common/BrandLogo";
+import { MatchonStatusBadge } from "@/components/shared/MatchonStatusBadge";
+import { FeedbackMessage } from "@/components/shared/FeedbackMessage";
 import { Button } from "@/components/ui/button";
+import { Card, CardContent } from "@/components/ui/card";
 import {
   clearCourtJudgeSession,
   readCourtJudgeSession,
@@ -10,6 +13,11 @@ import {
   type CourtJudgeRole,
   type CourtJudgeSession,
 } from "@/lib/court-judge-session";
+import {
+  getJudgeRoleLabel,
+  judgeFieldInputClass,
+  resolveJudgeRoleMatchonStatus,
+} from "@/lib/ui/judge-ui";
 
 export function CourtJudgeIdentityGate({
   courtId,
@@ -33,7 +41,6 @@ export function CourtJudgeIdentityGate({
   const [error, setError] = useState<string | null>(null);
 
   useEffect(() => {
-    // localStorage는 클라이언트 전용이라 mount 후 1회 복원한다.
     /* eslint-disable react-hooks/set-state-in-effect -- client-only session hydration */
     setSession(readCourtJudgeSession(courtId, role));
     setLoadedKey(loadKey);
@@ -70,47 +77,75 @@ export function CourtJudgeIdentityGate({
   }
 
   if (!session) {
-    const inputClass = "border-input bg-background h-11 w-full rounded-md border px-3 text-base";
     return (
       <div className="mx-auto flex min-h-[60vh] max-w-md flex-col justify-center gap-5 p-4">
         <header className="space-y-3 text-center">
           <BrandLogo size="md" showText className="justify-center" />
-          <div className="space-y-1">
+          <div className="space-y-2">
             <p className="text-muted-foreground text-sm">{eventTitle}</p>
             <p className="text-lg font-semibold">{courtName}</p>
-            <p className="text-primary text-sm font-medium">{roleLabel} 입장</p>
+            <MatchonStatusBadge
+              status={resolveJudgeRoleMatchonStatus(role)}
+              label={roleLabel}
+              size="sm"
+            />
+            <p className="text-base font-semibold">{roleLabel} 입장</p>
           </div>
         </header>
-        <form onSubmit={onSubmit} className="space-y-3 rounded-xl border bg-card p-4">
-          <label className="grid gap-1 text-sm">
-            <span className="text-muted-foreground text-xs">이름</span>
-            <input name="judgeName" required autoComplete="name" className={inputClass} />
-          </label>
-          <label className="grid gap-1 text-sm">
-            <span className="text-muted-foreground text-xs">생년월일</span>
-            <input
-              name="birthDate"
-              type="date"
-              required
-              autoComplete="bday"
-              className={inputClass}
-            />
-          </label>
-          {error ? <p className="text-sm text-destructive">{error}</p> : null}
-          <Button type="submit" size="lg" className="w-full">
-            입장하기
-          </Button>
-        </form>
+        <Card variant="default" className="py-4">
+          <CardContent className="space-y-3 px-4">
+            <form onSubmit={onSubmit} className="space-y-3">
+              <label className="grid gap-1 text-sm">
+                <span className="text-muted-foreground text-xs font-medium">이름</span>
+                <input
+                  name="judgeName"
+                  required
+                  autoComplete="name"
+                  className={judgeFieldInputClass}
+                />
+              </label>
+              <label className="grid gap-1 text-sm">
+                <span className="text-muted-foreground text-xs font-medium">생년월일</span>
+                <input
+                  name="birthDate"
+                  type="date"
+                  required
+                  autoComplete="bday"
+                  className={judgeFieldInputClass}
+                />
+              </label>
+              {error ? (
+                <FeedbackMessage tone="error" role="alert">
+                  {error}
+                </FeedbackMessage>
+              ) : null}
+              <Button type="submit" size="field" className="w-full">
+                입장하기
+              </Button>
+            </form>
+            <p className="text-muted-foreground text-xs leading-relaxed">
+              입장 후 이 기기에서 이름과 생년월일이 저장됩니다. 다른 심판이 사용할 때는
+              「정보 변경」으로 다시 입력할 수 있습니다.
+            </p>
+          </CardContent>
+        </Card>
       </div>
     );
   }
 
   return (
     <div className="space-y-3">
-      <div className="mx-auto flex max-w-6xl items-center justify-between gap-2 px-4 pt-4">
-        <p className="text-muted-foreground text-xs">
-          {session.judgeName} · {roleLabel}
-        </p>
+      <div className="mx-auto flex max-w-6xl flex-wrap items-center justify-between gap-2 px-4 pt-4">
+        <div className="flex flex-wrap items-center gap-2">
+          <p className="text-muted-foreground text-xs">
+            {session.judgeName} · {getJudgeRoleLabel(role)}
+          </p>
+          <MatchonStatusBadge
+            status={resolveJudgeRoleMatchonStatus(role)}
+            label={roleLabel}
+            size="sm"
+          />
+        </div>
         <Button type="button" variant="outline" size="sm" onClick={switchIdentity}>
           정보 변경
         </Button>

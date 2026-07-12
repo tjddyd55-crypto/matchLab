@@ -11,6 +11,7 @@ import {
   BracketFighterCompactBadge,
   BracketFighterCompactCard,
 } from "@/components/domain/brackets/BracketFighterCompactCard";
+import { FeedbackMessage } from "@/components/shared/FeedbackMessage";
 import { resolveSlotFighterDisplay } from "@/lib/bracket-fighter-compact-display";
 import type { OrganizerApprovedFighterOptionVM } from "@/lib/services/bracket.service";
 import type { OrganizerBracketMatchVM } from "@/lib/services/bracket.service";
@@ -193,9 +194,9 @@ export function OrganizerMatchEditSlot({
         <p className="text-muted-foreground mt-1 text-[10px]">저장 중…</p>
       ) : null}
       {error ? (
-        <p className="text-destructive mt-1 text-[10px]" role="alert">
+        <FeedbackMessage tone="error" role="alert" className="mt-1 text-[10px]">
           {error}
-        </p>
+        </FeedbackMessage>
       ) : null}
     </div>
   );

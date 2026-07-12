@@ -1,6 +1,7 @@
 "use client";
 
 import Link from "next/link";
+import dynamic from "next/dynamic";
 import { useEffect, useMemo, useState } from "react";
 import { useRouter } from "next/navigation";
 import type { ApplicationFormTemplateDetailVM } from "@/lib/services/application-form-template.service";
@@ -19,7 +20,6 @@ import {
 } from "@/lib/constants/application-form-template-examples";
 import { ApplicationFormTemplatePdfUpload } from "@/components/domain/application-form-templates/ApplicationFormTemplatePdfUpload";
 import { CustomFormBuilder } from "@/components/domain/application-form-templates/CustomFormBuilder";
-import { PdfCoordinateEditor } from "@/components/domain/application-form-templates/pdf-editor/PdfCoordinateEditor";
 import {
   fieldsToJsonValue,
   parseApplicationPdfFields,
@@ -36,6 +36,19 @@ import {
 import { isTemplateEditorDevMode } from "@/lib/application-form/template-editor-flags";
 import { Button, buttonVariants } from "@/components/ui/button";
 import { cn } from "@/lib/utils";
+
+const PdfCoordinateEditor = dynamic(
+  () =>
+    import("@/components/domain/application-form-templates/pdf-editor/PdfCoordinateEditor").then(
+      (m) => m.PdfCoordinateEditor,
+    ),
+  {
+    ssr: false,
+    loading: () => (
+      <p className="text-sm text-muted-foreground">PDF 편집기를 불러오는 중입니다.</p>
+    ),
+  },
+);
 
 const FORM_MODE_OPTIONS: {
   value: ApplicationFormMode;

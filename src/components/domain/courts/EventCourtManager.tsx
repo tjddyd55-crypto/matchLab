@@ -10,7 +10,12 @@ import {
   updateEventCourtNameFormAction,
 } from "@/features/event-courts/actions";
 import { Button } from "@/components/ui/button";
+import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
+import { FeedbackMessage } from "@/components/shared/FeedbackMessage";
+import { MatchonStatusBadge } from "@/components/shared/MatchonStatusBadge";
+import { BracketsEmptyState } from "@/components/domain/brackets/BracketsEmptyState";
 import type { EventCourtVM } from "@/lib/services/event-court.service";
+import { cn } from "@/lib/utils";
 
 export function EventCourtManager({
   eventId,
@@ -23,18 +28,22 @@ export function EventCourtManager({
   const [pending, startTransition] = useTransition();
   const [courts, setCourts] = useState(initialCourts);
   const [newName, setNewName] = useState("");
-  const [message, setMessage] = useState<string | null>(null);
+  const [feedback, setFeedback] = useState<{
+    tone: "success" | "error";
+    message: string;
+  } | null>(null);
   const [editingId, setEditingId] = useState<string | null>(null);
   const [editName, setEditName] = useState("");
 
   function run(fn: () => Promise<{ ok: boolean; error?: { message: string } }>) {
-    setMessage(null);
+    setFeedback(null);
     startTransition(async () => {
       const res = await fn();
       if (!res.ok) {
-        setMessage(res.error?.message ?? "처리 실패");
+        setFeedback({ tone: "error", message: res.error?.message ?? "처리 실패" });
         return;
       }
+      setFeedback({ tone: "success", message: "저장되었습니다." });
       router.refresh();
     });
   }
@@ -58,13 +67,14 @@ export function EventCourtManager({
   }
 
   return (
-    <section className="ring-foreground/10 flex flex-col gap-4 rounded-xl border p-4">
-      <div>
-        <h2 className="text-lg font-semibold">경기장 관리</h2>
-        <p className="text-muted-foreground text-sm">
+    <Card variant="default" className="py-4">
+      <CardHeader className="px-4 pb-2">
+        <CardTitle className="text-lg">경기장 관리</CardTitle>
+        <p className="text-muted-foreground mt-1 text-sm font-normal">
           경기장 추가·이름·순서·활성/비활성을 관리합니다. 삭제 대신 비활성 처리합니다.
         </p>
-      </div>
+      </CardHeader>
+      <CardContent className="flex flex-col gap-4 px-4">
 
       <form
         className="flex flex-wrap gap-2"
@@ -80,16 +90,18 @@ export function EventCourtManager({
           value={newName}
           onChange={(e) => setNewName(e.target.value)}
           placeholder="경기장 이름 (예: 1번 경기장)"
-          className="border-input bg-background h-9 min-w-[12rem] flex-1 rounded-md border px-2 text-sm"
+          className={cn(
+            "border-input bg-background h-11 min-w-[12rem] flex-1 rounded-md border px-3 text-sm shadow-sm focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring",
+          )}
           maxLength={100}
         />
-        <Button type="submit" size="sm" disabled={pending || !newName.trim()}>
+        <Button type="submit" size="field" disabled={pending || !newName.trim()}>
           경기장 추가
         </Button>
       </form>
 
       {courts.length === 0 ? (
-        <p className="text-muted-foreground text-sm">등록된 경기장이 없습니다.</p>
+        <BracketsEmptyState message="등록된 경기장이 없습니다." />
       ) : (
         <ul className="flex flex-col gap-3">
           {courts.map((court) => {
@@ -141,15 +153,11 @@ export function EventCourtManager({
                       <>
                         <p className="font-medium">{court.name}</p>
                         <div className="mt-1 flex flex-wrap items-center gap-2 text-xs">
-                          <span
-                            className={
-                              court.isActive
-                                ? "rounded-full bg-emerald-100 px-2 py-0.5 font-medium text-emerald-800 dark:bg-emerald-950 dark:text-emerald-200"
-                                : "rounded-full bg-muted px-2 py-0.5 font-medium text-muted-foreground"
-                            }
-                          >
-                            {court.isActive ? "활성" : "비활성"}
-                          </span>
+                          <MatchonStatusBadge
+                            status={court.isActive ? "active" : "inactive"}
+                            label={court.isActive ? "활성" : "비활성"}
+                            size="sm"
+                          />
                           {court.isActive ? (
                             <span className="text-muted-foreground">
                               표시 순서 {court.sortOrder + 1}
@@ -261,7 +269,12 @@ export function EventCourtManager({
         </ul>
       )}
 
-      {message ? <p className="text-destructive text-xs">{message}</p> : null}
-    </section>
+      {feedback ? (
+        <FeedbackMessage tone={feedback.tone} role={feedback.tone === "error" ? "alert" : "status"}>
+          {feedback.message}
+        </FeedbackMessage>
+      ) : null}
+      </CardContent>
+    </Card>
   );
 }

@@ -1,49 +1,98 @@
 import type { AdminGymListItemDTO } from "@/lib/dto/admin";
+import { AdminListEmptyState } from "@/components/domain/admin/AdminListEmptyState";
 import { formatAdminDateTime } from "@/components/domain/admin/admin-format";
+import { MatchonStatusBadge } from "@/components/shared/MatchonStatusBadge";
+import {
+  Card,
+  CardContent,
+  CardHeader,
+  CardTitle,
+} from "@/components/ui/card";
+import {
+  Table,
+  TableBody,
+  TableCell,
+  TableHead,
+  TableHeader,
+  TableRow,
+} from "@/components/ui/table";
+import {
+  adminDesktopTableClass,
+  adminMobileListClass,
+  getAdminGymStatusLabel,
+  resolveAdminGymStatusMatchon,
+} from "@/lib/ui/admin-ui";
 
 export function AdminGymsTable({ rows }: { rows: AdminGymListItemDTO[] }) {
   if (rows.length === 0) {
-    return <p className="text-muted-foreground text-sm">체육관 데이터가 없습니다.</p>;
+    return (
+      <AdminListEmptyState
+        title="체육관 데이터가 없습니다"
+        description="등록된 체육관이 없습니다."
+      />
+    );
   }
+
   return (
-    <div className="space-y-3">
-      <div className="hidden overflow-x-auto md:block">
-        <table className="w-full min-w-[520px] text-left text-sm">
-          <thead>
-            <tr className="text-muted-foreground border-b text-xs">
-              <th className="py-2 pr-2">이름</th>
-              <th className="py-2 pr-2">상태</th>
-              <th className="py-2 pr-2">선수</th>
-              <th className="py-2 pr-2">신청</th>
-              <th className="py-2">등록</th>
-            </tr>
-          </thead>
-          <tbody>
+    <>
+      <div className={adminDesktopTableClass}>
+        <Table className="min-w-[520px]">
+          <TableHeader>
+            <TableRow>
+              <TableHead>이름</TableHead>
+              <TableHead>상태</TableHead>
+              <TableHead>선수</TableHead>
+              <TableHead>신청</TableHead>
+              <TableHead>등록</TableHead>
+            </TableRow>
+          </TableHeader>
+          <TableBody>
             {rows.map((g) => (
-              <tr key={g.id} className="border-t">
-                <td className="py-2 pr-2 font-medium">{g.name}</td>
-                <td className="py-2 pr-2 text-xs">{g.status}</td>
-                <td className="py-2 pr-2 tabular-nums">{g.fighterCount}</td>
-                <td className="py-2 pr-2 tabular-nums">{g.applicationCount}</td>
-                <td className="text-muted-foreground py-2 whitespace-nowrap text-xs">
+              <TableRow key={g.id}>
+                <TableCell className="font-medium break-words">{g.name}</TableCell>
+                <TableCell>
+                  <MatchonStatusBadge
+                    status={resolveAdminGymStatusMatchon(g.status)}
+                    label={getAdminGymStatusLabel(g.status)}
+                    size="sm"
+                  />
+                </TableCell>
+                <TableCell className="tabular-nums">{g.fighterCount}</TableCell>
+                <TableCell className="tabular-nums">{g.applicationCount}</TableCell>
+                <TableCell className="text-muted-foreground whitespace-nowrap text-xs">
                   {formatAdminDateTime(g.createdAt)}
-                </td>
-              </tr>
+                </TableCell>
+              </TableRow>
             ))}
-          </tbody>
-        </table>
+          </TableBody>
+        </Table>
       </div>
-      <ul className="space-y-2 md:hidden">
+      <ul className={adminMobileListClass}>
         {rows.map((g) => (
-          <li key={g.id} className="rounded-lg border bg-card p-3 text-sm">
-            <p className="font-medium">{g.name}</p>
-            <p className="text-muted-foreground mt-1 text-xs">
-              {g.status} · 선수 {g.fighterCount} · 신청 {g.applicationCount}
-            </p>
-            <p className="text-muted-foreground text-xs">{formatAdminDateTime(g.createdAt)}</p>
+          <li key={g.id}>
+            <Card className="gap-0 overflow-hidden py-0">
+              <CardHeader className="border-b bg-muted/15 pb-3">
+                <div className="flex flex-wrap items-start justify-between gap-2">
+                  <CardTitle className="text-base break-words">{g.name}</CardTitle>
+                  <MatchonStatusBadge
+                    status={resolveAdminGymStatusMatchon(g.status)}
+                    label={getAdminGymStatusLabel(g.status)}
+                    size="sm"
+                  />
+                </div>
+              </CardHeader>
+              <CardContent className="pt-3 text-xs">
+                <p className="text-muted-foreground">
+                  선수 {g.fighterCount} · 신청 {g.applicationCount}
+                </p>
+                <p className="text-muted-foreground mt-1">
+                  {formatAdminDateTime(g.createdAt)}
+                </p>
+              </CardContent>
+            </Card>
           </li>
         ))}
       </ul>
-    </div>
+    </>
   );
 }

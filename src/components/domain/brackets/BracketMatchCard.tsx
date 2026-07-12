@@ -11,7 +11,13 @@ import type { EventDivisionDisplayInput } from "@/lib/event-division-fields";
 import { FighterSlotCard } from "@/components/domain/brackets/FighterSlotCard";
 import { BoutFormatBadge, PublicSparringUnderVsBadge } from "@/components/domain/shared/BoutFormatBadge";
 import { MatchDivisionHeader } from "@/components/domain/shared/MatchDivisionHeader";
-import { MatchStatusBadge } from "@/components/domain/shared/MatchStatusBadge";
+import { MatchonStatusBadge } from "@/components/shared/MatchonStatusBadge";
+import { Card } from "@/components/ui/card";
+import { BracketMatchStatus } from "@/lib/enums";
+import {
+  getBracketMatchMatchonLabel,
+  resolveBracketMatchMatchonStatus,
+} from "@/lib/ui/bracket-match-ui";
 
 export function BracketMatchCard({
   match,
@@ -109,12 +115,7 @@ export function BracketMatchCard({
   );
 
   return (
-    <div
-      className={cn(
-        "ring-foreground/10 overflow-hidden rounded-xl border bg-card shadow-sm",
-        className,
-      )}
-    >
+    <Card className={cn("gap-0 overflow-hidden p-0 py-0", className)}>
       <div className="flex flex-wrap items-center justify-between gap-2 border-b bg-muted/30 px-3 py-2">
         {division ? (
           <MatchDivisionHeader
@@ -147,7 +148,11 @@ export function BracketMatchCard({
             </div>
           </div>
         )}
-        <MatchStatusBadge status={match.status} size="md" />
+        <MatchonStatusBadge
+          status={resolveBracketMatchMatchonStatus(match.status as BracketMatchStatus)}
+          label={getBracketMatchMatchonLabel(match.status as BracketMatchStatus)}
+          size="md"
+        />
       </div>
 
       <div className="grid grid-cols-1 md:grid-cols-[minmax(0,1fr)_auto_minmax(0,1fr)] md:items-center">
@@ -187,6 +192,6 @@ export function BracketMatchCard({
           </span>
         </p>
       ) : null}
-    </div>
+    </Card>
   );
 }

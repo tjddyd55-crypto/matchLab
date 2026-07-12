@@ -4,7 +4,9 @@ import { useMemo, useState, useTransition } from "react";
 import { useRouter } from "next/navigation";
 import { setMatchCourtFormAction } from "@/features/event-courts/actions";
 import { Button } from "@/components/ui/button";
+import { FeedbackMessage } from "@/components/shared/FeedbackMessage";
 import type { EventCourtVM } from "@/lib/services/event-court.service";
+import { organizerBracketFieldInputClass, organizerBracketFieldSelectClass } from "@/lib/ui/organizer-bracket-ui";
 import { cn } from "@/lib/utils";
 
 function resolveCourtSelectState(
@@ -149,7 +151,7 @@ export function MatchCourtControls({
     return (
       <select
         className={cn(
-          "border-input bg-background h-8 rounded-md border px-2 text-xs",
+          organizerBracketFieldSelectClass,
           compactRow ? "min-w-[7rem] shrink-0" : "w-full",
           className,
         )}
@@ -194,9 +196,12 @@ export function MatchCourtControls({
           </p>
         ) : null}
         {message ? (
-          <p className="text-muted-foreground col-span-full text-[10px]">
+          <FeedbackMessage
+            tone={message === "저장됨" ? "success" : "error"}
+            className="col-span-full text-[10px]"
+          >
             {message}
-          </p>
+          </FeedbackMessage>
         ) : null}
       </>
     );
@@ -236,7 +241,7 @@ export function MatchCourtControls({
           <input
             type="number"
             min={1}
-            className="border-input bg-background h-7 w-16 rounded-md border px-2 text-[11px]"
+            className={cn(organizerBracketFieldInputClass, "h-8 w-16 text-[11px]")}
             value={localOrder}
             onChange={(e) => setLocalOrder(e.target.value)}
             placeholder="—"
@@ -264,7 +269,12 @@ export function MatchCourtControls({
         </p>
       ) : null}
       {message ? (
-        <p className="text-muted-foreground text-[10px]">{message}</p>
+        <FeedbackMessage
+          tone={message === "저장됨" ? "success" : "error"}
+          className="text-[10px]"
+        >
+          {message}
+        </FeedbackMessage>
       ) : null}
     </div>
   );

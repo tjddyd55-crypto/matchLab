@@ -3,6 +3,7 @@ import { requireOrganizerForEventPage } from "@/lib/permissions";
 import { eventCourtService } from "@/lib/services/event-court.service";
 import { matchService } from "@/lib/services/match.service";
 import { OrganizerCourtBracketPanel } from "@/components/domain/courts/OrganizerCourtBracketPanel";
+import { BracketsEmptyState } from "@/components/domain/brackets/BracketsEmptyState";
 
 /** 대진표 보기 탭 — 경기장별 대진·순서 조정 */
 export async function OrganizerCourtViewSection({
@@ -30,13 +31,9 @@ export async function OrganizerCourtViewSection({
       </div>
 
       {activeCourts.length === 0 ? (
-        <p className="text-muted-foreground rounded-xl border border-dashed px-4 py-6 text-center text-sm">
-          경기장을 먼저 추가하세요. 대진표 생성 탭에서 경기장을 만들 수 있습니다.
-        </p>
+        <BracketsEmptyState message="경기장을 먼저 추가하세요. 대진표 생성 탭에서 경기장을 만들 수 있습니다." />
       ) : eventMatches.length === 0 ? (
-        <p className="text-muted-foreground rounded-xl border border-dashed px-4 py-6 text-center text-sm">
-          표시할 경기가 없습니다. 대진표 생성 탭에서 경기를 만든 뒤 순서를 지정할 수 있습니다.
-        </p>
+        <BracketsEmptyState message="아직 생성된 대진표가 없습니다. 대진표 생성 탭에서 경기를 만든 뒤 순서를 지정할 수 있습니다." />
       ) : (
         <OrganizerCourtBracketPanel
           eventId={eventId}

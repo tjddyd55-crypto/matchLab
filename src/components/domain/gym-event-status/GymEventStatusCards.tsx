@@ -6,9 +6,17 @@ import { EligibilityBadge } from "@/components/domain/field-status/EligibilityBa
 import { WeighInStatusBadge } from "@/components/domain/field-status/WeighInStatusBadge";
 import { PaymentStatusBadge } from "@/components/shared/PaymentStatusBadge";
 import { StatusBadge } from "@/components/shared/StatusBadge";
-import { Button } from "@/components/ui/button";
-import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
+import { buttonVariants } from "@/components/ui/button";
+import {
+  Card,
+  CardContent,
+  CardFooter,
+  CardHeader,
+  CardTitle,
+} from "@/components/ui/card";
 import type { GymEventApplicationStatusRowDTO } from "@/lib/services/gym-event-status.service";
+import { matchonCardStackClass } from "@/lib/ui/matchon-layout";
+import { cn } from "@/lib/utils";
 
 export function GymEventStatusCards({
   rows,
@@ -17,24 +25,22 @@ export function GymEventStatusCards({
   rows: GymEventApplicationStatusRowDTO[];
   onOpenDetail: (row: GymEventApplicationStatusRowDTO) => void;
 }) {
-  if (rows.length === 0) {
-    return (
-      <p className="text-muted-foreground text-sm lg:hidden">
-        조건에 맞는 신청이 없습니다.
-      </p>
-    );
-  }
+  if (rows.length === 0) return null;
 
   return (
-    <ul className="flex flex-col gap-3 lg:hidden">
+    <ul className={cn("flex flex-col lg:hidden", matchonCardStackClass)}>
       {rows.map((row) => (
         <li key={row.applicationId}>
-          <Card>
-            <CardHeader className="pb-2">
-              <CardTitle className="text-base">{row.fighterName}</CardTitle>
-              <p className="text-muted-foreground text-xs">{row.divisionLabel}</p>
+          <Card className="gap-0 overflow-hidden py-0">
+            <CardHeader className="border-b bg-muted/15 pb-3">
+              <CardTitle className="line-clamp-2 break-words text-base leading-snug">
+                {row.fighterName}
+              </CardTitle>
+              <p className="text-muted-foreground line-clamp-2 text-xs leading-relaxed">
+                {row.divisionLabel}
+              </p>
             </CardHeader>
-            <CardContent className="flex flex-col gap-3">
+            <CardContent className="space-y-3 pt-4">
               <div className="flex flex-wrap gap-2">
                 <ApplicationStatusBadge status={row.applicationStatus} />
                 <PaymentStatusBadge status={row.paymentStatus} />
@@ -53,7 +59,7 @@ export function GymEventStatusCards({
                 />
               </div>
               {row.bracketGenerated ? (
-                <p className="text-muted-foreground text-xs">
+                <p className="text-muted-foreground text-xs leading-relaxed">
                   대진: {row.bracketAssigned ? "배정됨" : "미배정"}
                   {row.matchSummary ? ` · ${row.matchSummary}` : ""}
                   {row.resultSummary ? ` · ${row.resultSummary}` : ""}
@@ -61,16 +67,19 @@ export function GymEventStatusCards({
               ) : (
                 <p className="text-muted-foreground text-xs">대진 미생성</p>
               )}
-              <Button
+            </CardContent>
+            <CardFooter className="border-t bg-muted/10 pt-3">
+              <button
                 type="button"
-                variant="outline"
-                size="sm"
-                className="w-full"
+                className={cn(
+                  buttonVariants({ variant: "outline", size: "field" }),
+                  "w-full",
+                )}
                 onClick={() => onOpenDetail(row)}
               >
                 상세 보기
-              </Button>
-            </CardContent>
+              </button>
+            </CardFooter>
           </Card>
         </li>
       ))}

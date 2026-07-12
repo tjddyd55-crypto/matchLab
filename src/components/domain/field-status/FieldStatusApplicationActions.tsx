@@ -22,6 +22,7 @@ import {
 } from "@/features/field-status/actions";
 import { FieldStatusBracketPanel } from "@/components/domain/field-status/FieldStatusBracketPanel";
 import { WeighInStatusBadge } from "@/components/domain/field-status/WeighInStatusBadge";
+import { FeedbackMessage } from "@/components/shared/FeedbackMessage";
 import { Button } from "@/components/ui/button";
 import type { FieldStatusRowDTO } from "@/lib/services/field-status.service";
 import { cn } from "@/lib/utils";
@@ -45,18 +46,20 @@ function useSaveFeedback(timeoutMs = 2500) {
 
 function SaveFeedbackLine({ feedback }: { feedback: SaveFeedback }) {
   if (!feedback) return null;
+  if (feedback.kind === "pending") {
+    return (
+      <p className="text-muted-foreground text-xs" role="status">
+        {feedback.message}
+      </p>
+    );
+  }
   return (
-    <p
-      className={cn(
-        "text-xs",
-        feedback.kind === "success" && "text-emerald-700 dark:text-emerald-300",
-        feedback.kind === "error" && "text-destructive",
-        feedback.kind === "pending" && "text-muted-foreground",
-      )}
-      role="status"
+    <FeedbackMessage
+      tone={feedback.kind === "success" ? "success" : "error"}
+      role={feedback.kind === "error" ? "alert" : "status"}
     >
       {feedback.message}
-    </p>
+    </FeedbackMessage>
   );
 }
 
@@ -96,22 +99,24 @@ function ActionButton({
   onClick,
   disabled,
   confirmMessage,
+  touchFriendly = false,
 }: {
   label: string;
   variant?: "outline" | "secondary" | "destructive" | "default";
   onClick: () => void | Promise<void>;
   disabled?: boolean;
   confirmMessage?: string;
+  touchFriendly?: boolean;
 }) {
   const [pending, startTransition] = useTransition();
 
   return (
     <Button
       type="button"
-      size="sm"
+      size={touchFriendly ? "field" : "sm"}
       variant={variant}
       disabled={disabled || pending}
-      className="h-7 text-xs"
+      className={touchFriendly ? "w-full sm:w-auto" : "h-7 text-xs"}
       onClick={() => {
         startTransition(async () => {
           if (confirmMessage && !window.confirm(confirmMessage)) return;
@@ -216,7 +221,13 @@ export function FieldStatusRowActions({
   );
 }
 
-export function WeighInWeightInput({ row }: { row: FieldStatusRowDTO }) {
+export function WeighInWeightInput({
+  row,
+  touchFriendly = false,
+}: {
+  row: FieldStatusRowDTO;
+  touchFriendly?: boolean;
+}) {
   const router = useRouter();
   const [weightInput, setWeightInput] = useState(
     row.weighInWeightKg != null ? String(row.weighInWeightKg) : "",
@@ -257,7 +268,10 @@ export function WeighInWeightInput({ row }: { row: FieldStatusRowDTO }) {
     <div className="flex w-full min-w-0 flex-col items-center justify-center gap-0.5">
       <form
         onSubmit={handleSubmit}
-        className="flex items-center justify-center gap-1"
+        className={cn(
+          "flex items-center justify-center gap-2",
+          touchFriendly && "w-full flex-col sm:flex-row",
+        )}
       >
         <input
           name="weightKg"
@@ -267,30 +281,33 @@ export function WeighInWeightInput({ row }: { row: FieldStatusRowDTO }) {
           placeholder="kg"
           value={weightInput}
           onChange={(e) => setWeightInput(e.target.value)}
-          className="border-input bg-background h-8 w-[4.5rem] shrink-0 rounded-md border px-2 text-xs"
+          className={cn(
+            "border-input bg-background shrink-0 rounded-md border px-2 text-xs focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring",
+            touchFriendly ? "h-11 w-full text-sm sm:w-[5.5rem]" : "h-8 w-[4.5rem]",
+          )}
         />
         <Button
           type="submit"
-          size="sm"
-          variant="secondary"
-          className="h-8 shrink-0 px-2 text-xs"
+          size={touchFriendly ? "field" : "sm"}
+          variant="default"
+          className={cn(
+            "shrink-0",
+            touchFriendly ? "w-full sm:w-auto" : "h-8 px-2 text-xs",
+          )}
           disabled={pending}
         >
           {pending ? "저장 중…" : "저장"}
         </Button>
       </form>
       {isSaved ? (
-        <p
-          className="text-[10px] font-medium whitespace-nowrap text-emerald-700 dark:text-emerald-300"
-          role="status"
-        >
+        <FeedbackMessage tone="success" className="text-xs">
           저장됨 · {savedKg}kg
-        </p>
+        </FeedbackMessage>
       ) : null}
       {errorMessage ? (
-        <p className="text-destructive text-xs" role="alert">
+        <FeedbackMessage tone="error" role="alert">
           {errorMessage}
-        </p>
+        </FeedbackMessage>
       ) : null}
     </div>
   );

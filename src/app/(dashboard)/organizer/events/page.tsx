@@ -23,12 +23,15 @@ export default async function OrganizerEventsPage() {
           </>
         }
       >
-        <Link href="/organizer/events/new" className={cn(buttonVariants({ size: "lg" }))}>
+        <Link
+          href="/organizer/events/new"
+          className={cn(buttonVariants({ size: "field" }))}
+        >
           대회 만들기
         </Link>
       </OrganizerDashboardPageHeader>
 
-      <div className="overflow-x-auto">
+      <div className="px-4 pb-8 md:px-6">
         <OrganizerEventList
           rows={rows}
           showOrganizerColumn={actor.role === "admin"}

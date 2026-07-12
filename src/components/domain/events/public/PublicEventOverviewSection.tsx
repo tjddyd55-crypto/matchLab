@@ -5,6 +5,13 @@ import { RecordingStreamingNotice } from "@/components/domain/events/RecordingSt
 import { EventApplicationCta } from "@/components/domain/events/EventApplicationCta";
 import { PublicEventVenueSection } from "@/components/domain/events/public/PublicEventVenueSection";
 import { PublicEventInfoSummaryCard } from "@/components/domain/events/public/PublicEventInfoSummaryCard";
+import { FeedbackMessage } from "@/components/shared/FeedbackMessage";
+import {
+  Card,
+  CardContent,
+  CardHeader,
+  CardTitle,
+} from "@/components/ui/card";
 
 export function PublicEventOverviewSection({
   event,
@@ -19,16 +26,20 @@ export function PublicEventOverviewSection({
 
       <PublicEventVenueSection event={event} />
 
-      <section className="space-y-3 rounded-xl border p-4 md:p-5">
-        <h2 className="text-base font-semibold md:text-lg">대회 개요</h2>
-        {event.description ? (
-          <div className="text-muted-foreground whitespace-pre-wrap text-sm leading-relaxed">
-            {event.description}
-          </div>
-        ) : (
-          <p className="text-muted-foreground text-sm">등록된 소개가 없습니다.</p>
-        )}
-      </section>
+      <Card>
+        <CardHeader>
+          <CardTitle className="text-base md:text-lg">대회 개요</CardTitle>
+        </CardHeader>
+        <CardContent>
+          {event.description ? (
+            <div className="text-muted-foreground whitespace-pre-wrap text-sm leading-relaxed">
+              {event.description}
+            </div>
+          ) : (
+            <p className="text-muted-foreground text-sm">등록된 소개가 없습니다.</p>
+          )}
+        </CardContent>
+      </Card>
 
       {event.posterUrl && event.galleryImages.length > 0 ? (
         <section className="space-y-3">
@@ -41,35 +52,40 @@ export function PublicEventOverviewSection({
         <PublicEventGallery images={event.galleryImages} />
       ) : null}
 
-      <section className="hidden space-y-4 rounded-xl border p-5 md:block">
-        <h2 className="text-lg font-semibold">참가 신청 · 입금 안내</h2>
-        <ul className="text-muted-foreground space-y-2 text-sm leading-relaxed">
-          {paymentLines.map((line) => (
-            <li key={line}>{line}</li>
-          ))}
-        </ul>
-        <EventApplicationCta
-          eventStatus={event.status}
-          registrationStatus={event.registrationStatus}
-        />
-      </section>
+      <Card className="hidden md:block">
+        <CardHeader>
+          <CardTitle className="text-lg">참가 신청 · 입금 안내</CardTitle>
+        </CardHeader>
+        <CardContent className="space-y-4">
+          <ul className="text-muted-foreground space-y-2 text-sm leading-relaxed">
+            {paymentLines.map((line) => (
+              <li key={line}>{line}</li>
+            ))}
+          </ul>
+          <EventApplicationCta
+            eventStatus={event.status}
+            registrationStatus={event.registrationStatus}
+          />
+        </CardContent>
+      </Card>
 
-      <section className="space-y-3 rounded-xl border p-4 md:hidden">
-        <h2 className="text-base font-semibold">참가 신청 · 입금 안내</h2>
-        <ul className="text-muted-foreground space-y-1.5 text-xs leading-relaxed">
-          {paymentLines.map((line) => (
-            <li key={line}>{line}</li>
-          ))}
-        </ul>
-      </section>
+      <Card className="md:hidden">
+        <CardHeader>
+          <CardTitle className="text-base">참가 신청 · 입금 안내</CardTitle>
+        </CardHeader>
+        <CardContent>
+          <ul className="text-muted-foreground space-y-1.5 text-xs leading-relaxed">
+            {paymentLines.map((line) => (
+              <li key={line}>{line}</li>
+            ))}
+          </ul>
+        </CardContent>
+      </Card>
 
       {event.streamingConsentRequired ? (
-        <div
-          className="rounded-lg border border-amber-500/40 bg-amber-500/10 px-4 py-3 text-sm"
-          role="status"
-        >
+        <FeedbackMessage tone="warning">
           참가 신청 시 촬영 및 스트리밍 노출 동의가 필요합니다.
-        </div>
+        </FeedbackMessage>
       ) : null}
 
       <RecordingStreamingNotice
@@ -79,16 +95,20 @@ export function PublicEventOverviewSection({
         streamingNoticeText={event.streamingNoticeText}
       />
 
-      <section className="space-y-3 rounded-xl border p-4 md:p-5">
-        <h2 className="text-base font-semibold md:text-lg">체급 · 경기구분</h2>
-        {event.divisions.length > 0 ? (
-          <PublicEventDivisionList divisions={event.divisions} />
-        ) : (
-          <p className="text-muted-foreground rounded-lg border border-dashed p-4 text-sm">
-            주최자가 경기구분 정보를 준비 중입니다.
-          </p>
-        )}
-      </section>
+      <Card>
+        <CardHeader>
+          <CardTitle className="text-base md:text-lg">체급 · 경기구분</CardTitle>
+        </CardHeader>
+        <CardContent>
+          {event.divisions.length > 0 ? (
+            <PublicEventDivisionList divisions={event.divisions} />
+          ) : (
+            <FeedbackMessage tone="info">
+              주최자가 경기구분 정보를 준비 중입니다.
+            </FeedbackMessage>
+          )}
+        </CardContent>
+      </Card>
     </div>
   );
 }

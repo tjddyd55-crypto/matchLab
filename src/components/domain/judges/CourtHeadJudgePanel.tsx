@@ -11,6 +11,9 @@ import {
   headUpdateMatchOperationalSettingsAction,
 } from "@/features/judge-court/actions";
 import { Button } from "@/components/ui/button";
+import { Card, CardContent, CardHeader } from "@/components/ui/card";
+import { FeedbackMessage } from "@/components/shared/FeedbackMessage";
+import { MatchonStatusBadge } from "@/components/shared/MatchonStatusBadge";
 import type {
   CourtJudgeCourtVM,
   CourtJudgeMatchVM,
@@ -30,6 +33,11 @@ import {
 import { CourtJudgeEmptyState } from "./CourtJudgeEmptyState";
 import { CourtJudgeSceneBanner } from "./CourtJudgeSceneBanner";
 import { CourtJudgeScreenShell, CourtJudgeEmptyNotice } from "./CourtJudgeScreenShell";
+import {
+  judgeFieldInputClass,
+  judgeFieldTextareaClass,
+  resolveBracketMatchMatchonStatus,
+} from "@/lib/ui/judge-ui";
 
 function HeadMatchDetail({
   match,
@@ -43,7 +51,8 @@ function HeadMatchDetail({
   const router = useRouter();
   const [pending, startTransition] = useTransition();
   const [error, setError] = useState<string | null>(null);
-  const inputClass = "border-input bg-background h-10 rounded-md border px-2 text-sm";
+  const [success, setSuccess] = useState<string | null>(null);
+  const inputClass = judgeFieldInputClass;
 
   const hasOngoing = Boolean(ongoingMatchId);
 
@@ -53,11 +62,13 @@ function HeadMatchDetail({
   ) {
     startTransition(async () => {
       setError(null);
+      setSuccess(null);
       const res = await fn(formData);
       if (!res.ok) {
         setError(res.error?.message ?? "처리 실패");
         return;
       }
+      setSuccess("처리되었습니다.");
       router.refresh();
     });
   }
@@ -118,7 +129,9 @@ function HeadMatchDetail({
   const canEditOps = isPreparing || isOngoing;
 
   const operationalForm = canEditOps ? (
-    <form onSubmit={saveOperationalSettings} className="grid gap-3 rounded-xl border p-4 md:grid-cols-4">
+    <Card variant="default" className="py-4">
+      <CardContent className="px-4">
+    <form onSubmit={saveOperationalSettings} className="grid gap-3 md:grid-cols-4">
       <input type="hidden" name="courtId" value={match.courtId} />
       <input type="hidden" name="matchId" value={match.matchId} />
       <label className="grid gap-1 text-sm">
@@ -188,96 +201,113 @@ function HeadMatchDetail({
         </p>
       ) : null}
     </form>
+      </CardContent>
+    </Card>
   ) : null;
 
   return (
     <div className="space-y-4">
-      <section className="overflow-hidden rounded-xl border bg-card">
-        <div className="border-b bg-muted/30 px-4 py-3 text-sm">
+      <Card variant="default" className="overflow-hidden py-0">
+        <CardHeader className="border-b bg-muted/30 px-4 py-3 text-sm">
           <div className="flex flex-wrap items-center gap-2">
             <span className="font-medium">
               {match.courtOrder != null ? `${match.courtOrder}경기 · ` : ""}
               {match.divisionLabel ?? "경기구분 미상"}
             </span>
+            <MatchonStatusBadge
+              status={resolveBracketMatchMatchonStatus(match.status)}
+              size="sm"
+            />
           </div>
           <div className="mt-2">
             <CourtJudgeMatchLabels match={match} showDivision={false} />
           </div>
-        </div>
-        <div className="p-4">
+        </CardHeader>
+        <CardContent className="p-4">
           <CourtJudgeFightersHeader match={match} />
-        </div>
-      </section>
+        </CardContent>
+      </Card>
 
       {isCancelled ? (
-        <section className="rounded-xl border border-border/70 bg-muted/20 p-4">
-          <div className="flex flex-wrap items-center gap-2">
-            <span className="rounded-full border border-muted-foreground/30 px-2 py-0.5 text-[11px] font-medium text-muted-foreground">
-              취소
-            </span>
-            <p className="text-sm font-medium">경기가 취소되었습니다.</p>
-          </div>
-          {cancelledMemo ? (
-            <p className="text-muted-foreground mt-2 text-sm">취소 사유: {cancelledMemo}</p>
-          ) : null}
-        </section>
+        <Card variant="muted" className="py-4">
+          <CardContent className="space-y-2 px-4">
+            <MatchonStatusBadge status="cancelled" label="경기취소" size="sm" />
+            <FeedbackMessage tone="warning">경기가 취소되었습니다.</FeedbackMessage>
+            {cancelledMemo ? (
+              <p className="text-muted-foreground text-sm">취소 사유: {cancelledMemo}</p>
+            ) : null}
+          </CardContent>
+        </Card>
       ) : null}
 
       {isFinished ? (
-        <section className="rounded-xl border border-border/70 bg-muted/20 p-4">
-          <h2 className="text-sm font-semibold">경기 결과</h2>
-          <p className="text-muted-foreground mt-2 text-sm">{summary ?? "—"}</p>
-        </section>
+        <Card variant="muted" className="py-4">
+          <CardContent className="px-4">
+            <h2 className="text-sm font-semibold">경기 결과</h2>
+            <p className="text-muted-foreground mt-2 text-sm">{summary ?? "—"}</p>
+          </CardContent>
+        </Card>
       ) : null}
 
       {isWaiting ? (
-        <section className="rounded-xl border p-4">
-          <p className="text-muted-foreground text-sm">
-            대기 중인 경기입니다. 준비되면 경기준비를 시작하세요.
-          </p>
-          <Button
-            type="button"
-            size="lg"
-            className="mt-3 w-full sm:w-auto"
-            disabled={pending}
-            onClick={() => prepareMatch(match.matchId)}
-          >
-            경기 준비
-          </Button>
-        </section>
+        <Card variant="default" className="py-4">
+          <CardContent className="px-4">
+            <FeedbackMessage tone="info">
+              대기 중인 경기입니다. 준비되면 경기준비를 시작하세요.
+            </FeedbackMessage>
+            <Button
+              type="button"
+              size="field"
+              className="mt-3 w-full sm:w-auto"
+              disabled={pending}
+              onClick={() => prepareMatch(match.matchId)}
+            >
+              경기 준비
+            </Button>
+          </CardContent>
+        </Card>
       ) : null}
 
       {isPreparing ? (
-        <section className="space-y-4 rounded-xl border border-primary/30 bg-primary/5 p-4">
-          <p className="text-primary text-sm font-medium">경기준비중</p>
-          {operationalForm}
-          <Button
-            type="button"
-            size="lg"
-            className="w-full sm:w-auto"
-            disabled={pending || hasOngoing}
-            onClick={() => startMatch(match.matchId)}
-          >
-            경기 시작
-          </Button>
-          {hasOngoing ? (
-            <p className="text-muted-foreground text-xs">
-              이미 진행 중인 경기가 있습니다. 먼저 현재 경기를 완료해 주세요.
-            </p>
-          ) : null}
-        </section>
+        <Card variant="default" className="border-primary/30 bg-primary/5 py-4">
+          <CardContent className="space-y-4 px-4">
+            <p className="text-primary text-sm font-medium">경기준비중</p>
+            {operationalForm}
+            <Button
+              type="button"
+              size="field"
+              className="w-full sm:w-auto"
+              disabled={pending || hasOngoing}
+              onClick={() => startMatch(match.matchId)}
+            >
+              경기 시작
+            </Button>
+            {hasOngoing ? (
+              <FeedbackMessage tone="warning">
+                이미 진행 중인 경기가 있습니다. 먼저 현재 경기를 완료해 주세요.
+              </FeedbackMessage>
+            ) : null}
+          </CardContent>
+        </Card>
       ) : null}
 
       {isOngoing ? (
         <>
           {operationalForm}
 
-          <section className="rounded-xl border p-4">
-            <h2 className="font-semibold">채점심판 제출 현황</h2>
-            <CourtJudgeScorecardInlineList scorecards={scorecards} />
-          </section>
+          <Card variant="default" className="py-4">
+            <CardContent className="px-4">
+              <h2 className="font-semibold">채점심판 제출 현황</h2>
+              <p className="text-muted-foreground mt-1 text-xs">
+                제출 {scorecards.length}건
+              </p>
+              <CourtJudgeScorecardInlineList scorecards={scorecards} />
+            </CardContent>
+          </Card>
 
-          <form onSubmit={complete} className="grid gap-3 rounded-xl border p-4 md:grid-cols-3">
+          <Card variant="default" className="py-4">
+            <CardContent className="px-4">
+          <form onSubmit={complete} className="grid gap-3 md:grid-cols-3">
             <input type="hidden" name="courtId" value={match.courtId} />
             <input type="hidden" name="matchId" value={match.matchId} />
             <label className="grid gap-1 text-sm">
@@ -323,18 +353,22 @@ function HeadMatchDetail({
               rows={2}
               placeholder="메모"
               defaultValue={sanitizeJudgeVisibleMemo(match.displayResultMemo) ?? ""}
-              className="border-input bg-background rounded-md border px-2 py-2 text-sm md:col-span-3"
+              className={`${judgeFieldTextareaClass} md:col-span-3`}
             />
             <div className="md:col-span-3">
-              <Button type="submit" size="lg" className="w-full sm:w-auto" disabled={pending}>
+              <Button type="submit" size="field" className="w-full sm:w-auto" disabled={pending}>
                 완료
               </Button>
             </div>
           </form>
+            </CardContent>
+          </Card>
 
+          <Card variant="default" className="border-destructive/30 py-4">
+            <CardContent className="flex flex-col gap-3 px-4 md:flex-row md:items-end">
           <form
             onSubmit={cancel}
-            className="flex flex-col gap-2 rounded-xl border p-4 md:flex-row md:items-end"
+            className="flex w-full flex-col gap-3 md:flex-row md:items-end"
           >
             <input type="hidden" name="courtId" value={match.courtId} />
             <input type="hidden" name="matchId" value={match.matchId} />
@@ -342,14 +376,23 @@ function HeadMatchDetail({
               <span className="text-muted-foreground text-xs">경기취소 사유</span>
               <input name="reason" className={inputClass} />
             </label>
-            <Button type="submit" variant="destructive" size="lg" disabled={pending}>
+            <Button type="submit" variant="destructive" size="field" disabled={pending}>
               경기 취소
             </Button>
           </form>
+            </CardContent>
+          </Card>
         </>
       ) : null}
 
-      {error ? <p className="text-sm text-destructive">{error}</p> : null}
+      {error ? (
+        <FeedbackMessage tone="error" role="alert">
+          {error}
+        </FeedbackMessage>
+      ) : null}
+      {success ? (
+        <FeedbackMessage tone="success">{success}</FeedbackMessage>
+      ) : null}
     </div>
   );
 }

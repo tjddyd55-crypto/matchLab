@@ -1,6 +1,8 @@
 "use client";
 
 import { useState } from "react";
+import { Card, CardContent } from "@/components/ui/card";
+import { FeedbackMessage } from "@/components/shared/FeedbackMessage";
 import { cn } from "@/lib/utils";
 import { roundWinnerLabel } from "@/lib/court-judge-rounds";
 import type { CourtJudgeScorecardVM } from "@/lib/services/judge-court.service";
@@ -85,9 +87,9 @@ export function CourtJudgeScorecardInlineList({
 
   if (scorecards.length === 0) {
     return (
-      <p className="text-muted-foreground mt-2 text-sm">
+      <FeedbackMessage tone="info" className="mt-2 text-sm">
         채점 데이터 없음. 주심판은 채점 없이도 승패 입력·완료가 가능합니다.
-      </p>
+      </FeedbackMessage>
     );
   }
 
@@ -97,13 +99,13 @@ export function CourtJudgeScorecardInlineList({
         const key = `${scorecard.judgeName}-${scorecard.submittedAt ?? index}`;
         const open = expandedKey === key;
         return (
-          <li key={key} className="rounded-lg border">
+          <li key={key}>
+            <Card variant={open ? "selected" : "interactive"} className="py-0">
             <button
               type="button"
               onClick={() => setExpandedKey(open ? null : key)}
               className={cn(
                 "flex w-full items-center justify-between gap-2 px-3 py-2.5 text-left text-sm",
-                open && "bg-muted/30",
               )}
             >
               <span className="font-medium">
@@ -115,7 +117,12 @@ export function CourtJudgeScorecardInlineList({
               </span>
               <span className="text-muted-foreground text-xs">{open ? "접기" : "상세"}</span>
             </button>
-            {open ? <div className="border-t px-3 pb-3"><ScorecardDetailCard scorecard={scorecard} /></div> : null}
+            {open ? (
+              <CardContent className="border-t px-3 pb-3">
+                <ScorecardDetailCard scorecard={scorecard} />
+              </CardContent>
+            ) : null}
+            </Card>
           </li>
         );
       })}

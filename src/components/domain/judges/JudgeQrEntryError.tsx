@@ -1,4 +1,6 @@
-import { EmptyState } from "@/components/shared/EmptyState";
+import { BrandLogo } from "@/components/common/BrandLogo";
+import { FeedbackMessage } from "@/components/shared/FeedbackMessage";
+import { Card, CardContent } from "@/components/ui/card";
 import {
   judgeQrEntryUserMessage,
   type JudgeQrEntryFailureReason,
@@ -15,8 +17,18 @@ export function JudgeQrEntryError({
   const message = judgeQrEntryUserMessage(reason, qrType);
 
   return (
-    <div className="mx-auto flex min-h-[60vh] max-w-lg items-center px-4 py-10">
-      <EmptyState title={message.title} description={message.description} />
+    <div className="mx-auto flex min-h-[60vh] max-w-md flex-col justify-center gap-5 p-4">
+      <header className="space-y-3 text-center">
+        <BrandLogo size="md" showText className="justify-center" />
+      </header>
+      <Card variant="default" className="py-4">
+        <CardContent className="space-y-3 px-4">
+          <h1 className="text-center text-lg font-semibold">{message.title}</h1>
+          <FeedbackMessage tone="error" role="alert">
+            {message.description}
+          </FeedbackMessage>
+        </CardContent>
+      </Card>
     </div>
   );
 }

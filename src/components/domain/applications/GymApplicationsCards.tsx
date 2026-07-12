@@ -53,7 +53,7 @@ export function GymApplicationsCards({
             {row.paymentInstruction ? (
               <Dialog>
                 <DialogTrigger>
-                  <Button type="button" variant="outline" size="sm" className="w-full">
+                  <Button type="button" variant="outline" size="field" className="w-full">
                     입금 안내 다시 보기
                   </Button>
                 </DialogTrigger>

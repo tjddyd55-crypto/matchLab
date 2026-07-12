@@ -41,18 +41,18 @@ export function ConsentAgreementChecklist({
   }
 
   return (
-    <fieldset className="space-y-3">
-      <legend className="font-medium text-sm">필수 동의 항목</legend>
+    <fieldset className="space-y-2">
+      <legend className="sr-only">필수 동의 항목</legend>
       {(Object.keys(LABELS) as AgreementKey[]).map((key) => (
         <label
           key={key}
-          className="flex cursor-pointer gap-3 rounded-lg border border-transparent px-1 py-2 hover:bg-muted/40"
+          className="flex cursor-pointer gap-3 rounded-lg border border-border/60 px-3 py-3 hover:bg-muted/30"
         >
           <input
             type="checkbox"
             checked={value[key]}
             onChange={() => toggle(key)}
-            className="border-input mt-0.5 size-4 shrink-0 rounded"
+            className="border-input mt-0.5 size-5 shrink-0 rounded accent-primary"
           />
           <span className="text-sm leading-snug">{LABELS[key]}</span>
         </label>

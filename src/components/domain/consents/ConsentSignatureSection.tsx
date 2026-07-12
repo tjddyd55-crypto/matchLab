@@ -14,11 +14,14 @@ export function ConsentSignatureSection({
   return (
     <section className="space-y-3">
       <h3 className="font-medium text-sm">법정대리인 서명</h3>
-      <SignaturePad ref={padRef} />
+      <div className="overflow-hidden rounded-lg border border-border/80 bg-background">
+        <SignaturePad ref={padRef} />
+      </div>
       <Button
         type="button"
         variant="outline"
-        size="sm"
+        size="field"
+        className="w-full sm:w-auto"
         onClick={() => padRef.current?.clear()}
       >
         서명 지우기

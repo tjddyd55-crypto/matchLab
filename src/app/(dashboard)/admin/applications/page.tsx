@@ -1,6 +1,9 @@
 import { AdminApplicationsTable } from "@/components/domain/admin/AdminApplicationsTable";
+import { AdminPageHeader } from "@/components/domain/admin/AdminPageHeader";
+import { Card, CardContent } from "@/components/ui/card";
 import { requireActor } from "@/lib/auth/actor";
 import { adminService } from "@/lib/services/admin.service";
+import { adminPageContainerClass, adminPageStackClass } from "@/lib/ui/admin-ui";
 
 export const dynamic = "force-dynamic";
 
@@ -9,14 +12,18 @@ export default async function AdminApplicationsPage() {
   const rows = await adminService.listAdminApplications(actor);
 
   return (
-    <div className="mx-auto flex w-full max-w-7xl flex-col gap-6 px-4 py-8 md:px-6">
-      <div>
-        <h1 className="font-heading text-2xl font-semibold tracking-tight">전체 신청</h1>
-        <p className="text-muted-foreground mt-1 text-sm">
-          스냅샷 JSON·메모 원문은 표시하지 않습니다. 주최자 신청 관리 화면으로 이동할 수 있습니다.
-        </p>
+    <div className={adminPageContainerClass}>
+      <div className={adminPageStackClass}>
+        <AdminPageHeader
+          title="전체 신청"
+          description="스냅샷 JSON·메모 원문은 표시하지 않습니다. 주최자 신청 관리 화면으로 이동할 수 있습니다."
+        />
+        <Card>
+          <CardContent className="pt-4">
+            <AdminApplicationsTable rows={rows} />
+          </CardContent>
+        </Card>
       </div>
-      <AdminApplicationsTable rows={rows} />
     </div>
   );
 }

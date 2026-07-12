@@ -10,11 +10,16 @@ import type {
   EventApplicationDivisionRowDTO,
   EventApplicationFighterRowDTO,
 } from "@/lib/services/application.service";
-import { Badge } from "@/components/ui/badge";
+import { MatchonStatusBadge } from "@/components/shared/MatchonStatusBadge";
 import {
   TableCell,
   TableRow,
 } from "@/components/ui/table";
+import {
+  getBulkApplicationRowStatusLabel,
+  publicApplicationFieldSelectClass,
+  resolveBulkApplicationRowMatchonStatus,
+} from "@/lib/ui/public-application-ui";
 import { cn } from "@/lib/utils";
 
 export type FighterRowState = {
@@ -55,20 +60,14 @@ function buildDivisionOptions(
   return { recommended, others };
 }
 
-function rowStatusLabel(
-  fighter: EventApplicationFighterRowDTO,
-  rowState: FighterRowState,
-): { label: string; tone: "default" | "secondary" | "outline" | "destructive" } {
-  if (fighter.appliedDivisionIds.includes(rowState.divisionId)) {
-    return { label: "이미 신청됨", tone: "secondary" };
-  }
-  if (!rowState.checked) {
-    return { label: "미선택", tone: "outline" };
-  }
-  if (!rowState.divisionId) {
-    return { label: "경기구분 선택 필요", tone: "destructive" };
-  }
-  return { label: "신청 가능", tone: "default" };
+function rowStatusInput(fighter: EventApplicationFighterRowDTO, rowState: FighterRowState) {
+  return {
+    alreadyApplied: Boolean(
+      rowState.divisionId && fighter.appliedDivisionIds.includes(rowState.divisionId),
+    ),
+    checked: rowState.checked,
+    hasDivision: Boolean(rowState.divisionId),
+  };
 }
 
 function DivisionSelect({
@@ -101,7 +100,7 @@ function DivisionSelect({
         value={value}
         disabled={disabled}
         onChange={(e) => onChange(e.target.value)}
-        className="border-input bg-background ring-ring/50 h-10 w-full rounded-lg border px-3 text-sm outline-none focus-visible:ring-2"
+        className={publicApplicationFieldSelectClass}
         aria-label={`${fighter.name} 신청 경기구분`}
       >
         <option value="">경기구분 선택</option>
@@ -164,11 +163,8 @@ export function GymBulkApplicationTableRow(props: GymBulkApplicationRowProps) {
     onDivisionChange,
     formStatus,
   } = props;
-  const status = rowStatusLabel(fighter, rowState);
-  const alreadyApplied = Boolean(
-    rowState.divisionId &&
-      fighter.appliedDivisionIds.includes(rowState.divisionId),
-  );
+  const statusInput = rowStatusInput(fighter, rowState);
+  const alreadyApplied = statusInput.alreadyApplied;
 
   return (
     <TableRow>
@@ -199,7 +195,11 @@ export function GymBulkApplicationTableRow(props: GymBulkApplicationRowProps) {
       </TableCell>
       {formStatus ? <TableCell>{formStatus}</TableCell> : null}
       <TableCell>
-        <Badge variant={status.tone}>{status.label}</Badge>
+        <MatchonStatusBadge
+          status={resolveBulkApplicationRowMatchonStatus(statusInput)}
+          label={getBulkApplicationRowStatusLabel(statusInput)}
+          size="sm"
+        />
       </TableCell>
     </TableRow>
   );
@@ -214,17 +214,14 @@ export function GymBulkApplicationCard(props: GymBulkApplicationRowProps) {
     onDivisionChange,
     formStatus,
   } = props;
-  const status = rowStatusLabel(fighter, rowState);
-  const alreadyApplied = Boolean(
-    rowState.divisionId &&
-      fighter.appliedDivisionIds.includes(rowState.divisionId),
-  );
+  const statusInput = rowStatusInput(fighter, rowState);
+  const alreadyApplied = statusInput.alreadyApplied;
 
   return (
     <div
       className={cn(
         "rounded-xl border p-4",
-        rowState.checked ? "border-primary/40 bg-primary/5" : "border-border",
+        rowState.checked ? "border-primary/40 bg-primary/5" : "border-border bg-card",
       )}
     >
       <div className="flex items-start justify-between gap-3">
@@ -235,7 +232,11 @@ export function GymBulkApplicationCard(props: GymBulkApplicationRowProps) {
           </div>
         </div>
         <div className="flex flex-col items-end gap-1">
-          <Badge variant={status.tone}>{status.label}</Badge>
+          <MatchonStatusBadge
+            status={resolveBulkApplicationRowMatchonStatus(statusInput)}
+            label={getBulkApplicationRowStatusLabel(statusInput)}
+            size="sm"
+          />
           {formStatus}
         </div>
       </div>

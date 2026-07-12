@@ -2,6 +2,8 @@
 
 import type { GymEventApplicationStatusSummaryDTO } from "@/lib/services/gym-event-status.service";
 import type { GymEventStatusSummaryFilter } from "@/lib/gym-event-status-filters";
+import { Card } from "@/components/ui/card";
+import { matchonGridGapClass } from "@/lib/ui/matchon-layout";
 import { cn } from "@/lib/utils";
 
 function StatCard({
@@ -23,14 +25,18 @@ function StatCard({
       type="button"
       aria-pressed={active}
       onClick={() => onSelect(filter)}
-      className={cn(
-        "ring-foreground/10 rounded-lg border bg-card px-4 py-3 text-left shadow-sm transition-colors",
-        "hover:bg-muted/40 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring",
-        active && "border-primary bg-primary/5 ring-primary/30",
-      )}
+      className="w-full text-left"
     >
-      <p className="text-muted-foreground text-xs">{label}</p>
-      <p className="mt-1 text-2xl font-semibold tabular-nums">{value}</p>
+      <Card
+        variant={active ? "selected" : "interactive"}
+        className={cn(
+          "px-4 py-3 transition-colors",
+          "focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring",
+        )}
+      >
+        <p className="text-muted-foreground text-xs">{label}</p>
+        <p className="mt-1 text-2xl font-semibold tabular-nums">{value}</p>
+      </Card>
     </button>
   );
 }
@@ -45,7 +51,12 @@ export function GymEventStatusSummaryCards({
   onFilterChange: (filter: GymEventStatusSummaryFilter) => void;
 }) {
   return (
-    <div className="grid gap-3 sm:grid-cols-2 lg:grid-cols-4 xl:grid-cols-8">
+    <div
+      className={cn(
+        "grid sm:grid-cols-2 lg:grid-cols-4 xl:grid-cols-8",
+        matchonGridGapClass,
+      )}
+    >
       <StatCard
         label="전체 신청"
         value={summary.total}

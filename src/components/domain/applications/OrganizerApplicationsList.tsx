@@ -6,6 +6,7 @@ import {
 } from "@/components/domain/applications/OrganizerApplicationDisplayBadge";
 import { OrganizerApplicationRowActions } from "@/components/domain/applications/OrganizerApplicationRowActions";
 import { OrganizerManualEntryHint } from "@/components/domain/applications/OrganizerManualEntryHint";
+import { OrganizerApplicationsEmptyState } from "@/components/domain/applications/OrganizerApplicationsEmptyState";
 import type { OrganizerApplicationRowVM } from "@/components/domain/applications/OrganizerApplicationsTable";
 import { DivisionCompactDisplay } from "@/components/domain/shared/DivisionCompactDisplay";
 import { DivisionGenderBadge } from "@/components/domain/shared/DivisionGenderBadge";
@@ -20,12 +21,22 @@ export function OrganizerApplicationsList({
   rows,
   selectedIds,
   onToggleSelect,
+  emptyMessage = "아직 신청자가 없습니다.",
 }: {
   eventId: string;
   rows: OrganizerApplicationRowVM[];
   selectedIds: Set<string>;
   onToggleSelect: (applicationId: string, checked: boolean) => void;
+  emptyMessage?: string;
 }) {
+  if (rows.length === 0) {
+    return (
+      <div className="hidden min-w-0 md:block 2xl:hidden">
+        <OrganizerApplicationsEmptyState message={emptyMessage} />
+      </div>
+    );
+  }
+
   return (
     <div className="hidden min-w-0 md:block 2xl:hidden">
       <div className="text-muted-foreground hidden border-b px-1 pb-2 text-xs font-medium xl:grid xl:gap-x-3 xl:[grid-template-columns:2rem_minmax(0,0.9fr)_minmax(0,1.1fr)_minmax(0,1fr)_minmax(0,0.6fr)_minmax(0,0.6fr)_minmax(0,0.9fr)]">

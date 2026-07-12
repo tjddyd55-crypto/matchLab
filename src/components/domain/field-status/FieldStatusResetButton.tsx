@@ -3,14 +3,25 @@
 import { useState, useTransition } from "react";
 import { useRouter } from "next/navigation";
 import { resetFieldStatusInputFormAction } from "@/features/field-status/actions";
+import { FeedbackMessage } from "@/components/shared/FeedbackMessage";
 import { Button } from "@/components/ui/button";
 import { canResetFieldStatusInput } from "@/lib/field-final-result";
 import type { FieldStatusRowDTO } from "@/lib/services/field-status.service";
+import { cn } from "@/lib/utils";
 
-export function FieldStatusResetButton({ row }: { row: FieldStatusRowDTO }) {
+export function FieldStatusResetButton({
+  row,
+  touchFriendly = false,
+}: {
+  row: FieldStatusRowDTO;
+  touchFriendly?: boolean;
+}) {
   const router = useRouter();
   const [pending, startTransition] = useTransition();
-  const [error, setError] = useState<string | null>(null);
+  const [feedback, setFeedback] = useState<{
+    tone: "success" | "error";
+    message: string;
+  } | null>(null);
 
   const canReset = canResetFieldStatusInput(row);
 
@@ -27,16 +38,18 @@ export function FieldStatusResetButton({ row }: { row: FieldStatusRowDTO }) {
       return;
     }
 
-    setError(null);
+    setFeedback(null);
     startTransition(async () => {
       const fd = new FormData();
       fd.set("applicationId", row.applicationId);
       const res = await resetFieldStatusInputFormAction(fd);
       if (!res.ok) {
-        setError(res.error.message);
-        window.alert(res.error.message);
+        const message = res.error.message;
+        setFeedback({ tone: "error", message });
+        window.alert(message);
         return;
       }
+      setFeedback({ tone: "success", message: "계체·결과 입력이 초기화되었습니다." });
       router.refresh();
     });
   }
@@ -45,9 +58,11 @@ export function FieldStatusResetButton({ row }: { row: FieldStatusRowDTO }) {
     <div className="flex w-full flex-col items-center gap-1">
       <Button
         type="button"
-        size="xs"
+        size={touchFriendly ? "field" : "xs"}
         variant="outline"
-        className="h-8 w-fit px-2 text-xs"
+        className={cn(
+          touchFriendly ? "w-full sm:w-fit" : "h-8 w-fit px-2 text-xs",
+        )}
         disabled={pending || !canReset}
         onClick={handleReset}
         title={
@@ -58,10 +73,8 @@ export function FieldStatusResetButton({ row }: { row: FieldStatusRowDTO }) {
       >
         {pending ? "초기화 중…" : "초기화"}
       </Button>
-      {error ? (
-        <p className="text-destructive text-[10px]" role="alert">
-          {error}
-        </p>
+      {feedback ? (
+        <FeedbackMessage tone={feedback.tone}>{feedback.message}</FeedbackMessage>
       ) : null}
     </div>
   );

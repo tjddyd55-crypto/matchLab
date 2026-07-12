@@ -6,6 +6,7 @@ import {
   setDisqualificationReasonFormAction,
   setWeighInFailureResolutionFormAction,
 } from "@/features/field-status/actions";
+import { FeedbackMessage } from "@/components/shared/FeedbackMessage";
 import { Button } from "@/components/ui/button";
 import type { FieldStatusRowDTO } from "@/lib/services/field-status.service";
 import { WeighInFailureResolution } from "@/generated/prisma";
@@ -34,47 +35,74 @@ function inferPreset(reason: string | null): string {
 export function WeighInFailureResolutionForm({
   row,
   compact = false,
+  touchFriendly = false,
 }: {
   row: FieldStatusRowDTO;
   compact?: boolean;
+  touchFriendly?: boolean;
 }) {
   const router = useRouter();
   const [pending, startTransition] = useTransition();
+  const [feedback, setFeedback] = useState<{
+    tone: "success" | "error";
+    message: string;
+  } | null>(null);
 
   const isFailed =
     row.weighInStatus === "fail" || row.weighInStatus === "manual_fail";
   const resolution = row.weighInFailureResolution;
 
-  function run(resolution: WeighInFailureResolution) {
+  function run(resolutionValue: WeighInFailureResolution) {
+    setFeedback(null);
     startTransition(async () => {
       const fd = new FormData();
       fd.set("applicationId", row.applicationId);
-      fd.set("resolution", resolution);
+      fd.set("resolution", resolutionValue);
       const res = await setWeighInFailureResolutionFormAction(fd);
       if (!res.ok) {
-        window.alert(res.error.message);
+        setFeedback({
+          tone: "error",
+          message: res.error.message || "저장에 실패했습니다.",
+        });
         return;
       }
+      setFeedback({
+        tone: "success",
+        message:
+          resolutionValue === WeighInFailureResolution.cancel_match
+            ? "경기취소로 처리되었습니다."
+            : "계체 상태가 저장되었습니다.",
+      });
       router.refresh();
     });
   }
 
+  const btnSize = touchFriendly ? "field" : "sm";
+  const btnClass = touchFriendly ? "w-full sm:w-auto" : "h-8 text-xs";
+
   return (
     <div
       className={cn(
-        "flex w-full min-w-0 max-w-full flex-wrap gap-1",
-        compact ? "justify-center" : "min-w-[12rem]",
+        "flex w-full min-w-0 max-w-full flex-col gap-2",
+        compact ? "items-center" : "min-w-[12rem]",
       )}
     >
+      <div
+        className={cn(
+          "flex w-full flex-wrap gap-1",
+          compact ? "justify-center" : "",
+          touchFriendly && "flex-col sm:flex-row",
+        )}
+      >
       <Button
         type="button"
-        size="sm"
+        size={btnSize}
         variant={
           resolution === WeighInFailureResolution.proceed_with_handicap
             ? "default"
-            : "secondary"
+            : "outline"
         }
-        className="h-8 text-xs"
+        className={btnClass}
         disabled={pending}
         onClick={() => run(WeighInFailureResolution.proceed_with_handicap)}
       >
@@ -82,9 +110,9 @@ export function WeighInFailureResolutionForm({
       </Button>
       <Button
         type="button"
-        size="sm"
+        size={btnSize}
         variant="destructive"
-        className="h-8 text-xs"
+        className={btnClass}
         disabled={pending}
         onClick={() => {
           const message = isFailed
@@ -97,6 +125,10 @@ export function WeighInFailureResolutionForm({
       >
         경기취소
       </Button>
+      </div>
+      {feedback ? (
+        <FeedbackMessage tone={feedback.tone}>{feedback.message}</FeedbackMessage>
+      ) : null}
     </div>
   );
 }
@@ -104,12 +136,18 @@ export function WeighInFailureResolutionForm({
 export function DisqualificationReasonForm({
   row,
   compact = false,
+  touchFriendly = false,
 }: {
   row: FieldStatusRowDTO;
   compact?: boolean;
+  touchFriendly?: boolean;
 }) {
   const router = useRouter();
   const [pending, startTransition] = useTransition();
+  const [feedback, setFeedback] = useState<{
+    tone: "success" | "error";
+    message: string;
+  } | null>(null);
   const [preset, setPreset] = useState(() =>
     inferPreset(row.disqualificationReason),
   );
@@ -136,18 +174,28 @@ export function DisqualificationReasonForm({
       return;
     }
 
+    setFeedback(null);
     startTransition(async () => {
       const fd = new FormData();
       fd.set("applicationId", row.applicationId);
       fd.set("reason", reason);
       const res = await setDisqualificationReasonFormAction(fd);
       if (!res.ok) {
-        window.alert(res.error.message);
+        setFeedback({
+          tone: "error",
+          message: res.error.message || "저장에 실패했습니다.",
+        });
         return;
       }
+      setFeedback({ tone: "success", message: "실격 사유가 저장되었습니다." });
       router.refresh();
     });
   }
+
+  const inputClass = cn(
+    "border-input bg-background w-full max-w-full rounded-md border px-2 text-xs focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring",
+    touchFriendly ? "h-11 text-sm" : "h-8",
+  );
 
   return (
     <form
@@ -160,7 +208,7 @@ export function DisqualificationReasonForm({
     >
       <select
         name="preset"
-        className="border-input bg-background h-8 w-full max-w-full rounded-md border px-2 text-xs"
+        className={inputClass}
         value={preset}
         onChange={(e) => setPreset(e.target.value)}
         required
@@ -179,14 +227,23 @@ export function DisqualificationReasonForm({
           value={otherReason}
           onChange={(e) => setOtherReason(e.target.value)}
           placeholder="기타 사유 입력 (필수)"
-          className="border-input bg-background h-8 w-full max-w-full rounded-md border px-2 text-xs"
+          className={inputClass}
           maxLength={500}
           required
         />
       ) : null}
-      <Button type="submit" size="sm" className="h-8 w-fit text-xs" disabled={pending}>
+      <Button
+        type="submit"
+        size={touchFriendly ? "field" : "sm"}
+        variant="default"
+        className={touchFriendly ? "w-full sm:w-fit" : "h-8 w-fit text-xs"}
+        disabled={pending}
+      >
         사유 저장
       </Button>
+      {feedback ? (
+        <FeedbackMessage tone={feedback.tone}>{feedback.message}</FeedbackMessage>
+      ) : null}
     </form>
   );
 }

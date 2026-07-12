@@ -1,14 +1,14 @@
 import type { CheckInStatus } from "@/generated/prisma";
+import { MatchonStatusBadge } from "@/components/shared/MatchonStatusBadge";
 import { getCheckInStatusLabel } from "@/lib/field-eligibility";
-import { StatusBadge } from "@/components/shared/StatusBadge";
+import { resolveCheckInMatchonStatus } from "@/lib/ui/field-status-ui";
 
 export function CheckInStatusBadge({ status }: { status: CheckInStatus }) {
-  const label = getCheckInStatusLabel(status);
-  const variant =
-    status === "checked_in"
-      ? "default"
-      : status === "pending"
-        ? "secondary"
-        : "destructive";
-  return <StatusBadge variant={variant} label={label} />;
+  return (
+    <MatchonStatusBadge
+      status={resolveCheckInMatchonStatus(status)}
+      label={getCheckInStatusLabel(status)}
+      size="sm"
+    />
+  );
 }

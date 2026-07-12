@@ -1,6 +1,5 @@
 "use client";
 
-import { OrganizerMatchOpsPanel } from "@/components/domain/brackets/OrganizerMatchOpsPanel";
 import { OperationJudgeBriefCell } from "@/components/domain/operation/OperationJudgeBriefCell";
 import { OperationMatchFighterMatchup } from "@/components/domain/operation/OperationMatchFighterMatchup";
 import { MatchFinalResultSummary } from "@/components/domain/operation/MatchFinalResultSummary";
@@ -10,7 +9,6 @@ import { OrganizerJudgeAggregationInlineSection } from "@/components/domain/judg
 import { DivisionCompactDisplay } from "@/components/domain/shared/DivisionCompactDisplay";
 import type { OperationMatchRowVM } from "@/components/domain/operation/operation-match-row";
 import { getOperationMatchPhase } from "@/lib/match-operation-display";
-import { toMatchOpsProps } from "@/components/domain/operation/operation-match-row";
 import { operationExpandedMobileCardClass } from "@/lib/ui/list-table-styles";
 
 export function OrganizerOperationCardListMobile({
@@ -61,6 +59,7 @@ export function OrganizerOperationCardListMobile({
               phase={getOperationMatchPhase(row)}
               phaseLabel={row.phaseLabel}
               resultStatusLabel={row.resultStatusLabel}
+              status={row.status}
             />
           </div>
 
@@ -99,10 +98,9 @@ export function OrganizerOperationCardListMobile({
                 fighterRedName={row.fighterRed?.name ?? "미배정"}
                 fighterBlueName={row.fighterBlue?.name ?? "미배정"}
               />
-              <section className="border-t pt-3">
-                <h3 className="mb-2 text-sm font-semibold">주심 입력</h3>
-                <OrganizerMatchOpsPanel {...toMatchOpsProps(row)} />
-              </section>
+              <p className="text-muted-foreground text-xs">
+                결과 입력·상태 변경은 상단 「경기 운영」 영역에서 진행합니다.
+              </p>
             </div>
           ) : null}
         </article>

@@ -33,4 +33,4 @@ export const EVENT_POSTER_UPLOAD_HINT =
 
 /** gap-6 = 24px, lg 3열 고정 */
 export const PUBLIC_EVENTS_GRID_DESKTOP_CLASS =
-  "hidden gap-6 md:grid md:grid-cols-2 lg:grid-cols-3";
+  "hidden gap-3 sm:gap-4 md:grid md:grid-cols-2 lg:grid-cols-3";

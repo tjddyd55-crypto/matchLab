@@ -7,6 +7,50 @@ import { BracketMatchStatus } from "@/lib/enums";
 import { formatMatchOrderShort } from "@/lib/match-order-display";
 import type { OrganizerEventMatchListItemVM } from "@/lib/services/match.service";
 
+export type OperationSpotlightMatches<T extends OrganizerEventMatchListItemVM> = {
+  current: T | null;
+  next: T | null;
+  recentFinished: T | null;
+};
+
+/** 경기장 탭 기준 현재/다음/최근 종료 경기 */
+export function pickOperationSpotlightMatches<
+  T extends OrganizerEventMatchListItemVM,
+>(rows: T[]): OperationSpotlightMatches<T> {
+  const ongoingIdx = rows.findIndex((r) => r.status === BracketMatchStatus.ongoing);
+  const current =
+    ongoingIdx >= 0
+      ? rows[ongoingIdx]
+      : rows.find((r) => r.status === BracketMatchStatus.called) ?? null;
+
+  const startIdx =
+    ongoingIdx >= 0 ? ongoingIdx + 1 : current ? rows.indexOf(current) + 1 : 0;
+
+  const next =
+    rows.slice(startIdx).find(
+      (r) =>
+        r.status === BracketMatchStatus.waiting ||
+        r.status === BracketMatchStatus.called,
+    ) ??
+    rows.find(
+      (r) =>
+        r !== current &&
+        (r.status === BracketMatchStatus.waiting ||
+          r.status === BracketMatchStatus.called),
+    ) ??
+    null;
+
+  const terminal = rows.filter(
+    (r) =>
+      r.status === BracketMatchStatus.finished ||
+      r.status === BracketMatchStatus.cancelled,
+  );
+  const recentFinished =
+    terminal.length > 0 ? terminal[terminal.length - 1] : null;
+
+  return { current, next, recentFinished };
+}
+
 export type OperationOrderFields = Pick<
   OrganizerEventMatchListItemVM,
   | "matchId"

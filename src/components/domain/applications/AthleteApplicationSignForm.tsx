@@ -12,7 +12,16 @@ import {
 import { ConsentSignatureSection } from "@/components/domain/consents/ConsentSignatureSection";
 import type { SignaturePadHandle } from "@/components/shared/SignaturePad";
 import { completeFighterConsentAction } from "@/features/fighter-consents/actions";
+import { FeedbackMessage } from "@/components/shared/FeedbackMessage";
+import { MatchonStatusBadge } from "@/components/shared/MatchonStatusBadge";
 import { Button, buttonVariants } from "@/components/ui/button";
+import {
+  Card,
+  CardContent,
+  CardDescription,
+  CardHeader,
+  CardTitle,
+} from "@/components/ui/card";
 import { cn } from "@/lib/utils";
 
 const MAX_SIGNATURE_BYTES = 2 * 1024 * 1024;
@@ -41,16 +50,14 @@ export function AthleteApplicationSignForm({
   );
 
   if (completed) {
-    return (
-      <CompletedCard />
-    );
+    return <CompletedCard />;
   }
 
   if (!initial.documentId) {
     return (
-      <p className="text-destructive text-sm" role="alert">
+      <FeedbackMessage tone="error" role="alert">
         연결된 신청서 문서를 찾을 수 없습니다. 체육관에 문의해 주세요.
-      </p>
+      </FeedbackMessage>
     );
   }
 
@@ -145,37 +152,53 @@ export function AthleteApplicationSignForm({
   }
 
   return (
-    <form onSubmit={(e) => void handleSubmit(e)} className="space-y-8">
-      <header className="space-y-2">
-        <p className="text-muted-foreground text-sm">
-          대회: <span className="text-foreground">{initial.eventTitle}</span>
-        </p>
-        <p className="text-muted-foreground text-sm">
-          선수:{" "}
-          <span className="text-foreground font-medium">{initial.fighterName}</span>{" "}
-          · {initial.birthYearMasked}
-        </p>
-        <p className="font-medium">{initial.documentTitle}</p>
-        <ul className="text-muted-foreground list-inside list-disc text-xs">
-          {initial.policyLines.map((line) => (
-            <li key={line}>{line}</li>
-          ))}
-        </ul>
-      </header>
+    <form onSubmit={(e) => void handleSubmit(e)} className="space-y-6">
+      <Card>
+        <CardHeader>
+          <div className="flex flex-wrap items-start justify-between gap-2">
+            <CardTitle>{initial.documentTitle}</CardTitle>
+            <MatchonStatusBadge status="signature_pending" label="서명대기" size="sm" />
+          </div>
+          <CardDescription>
+            대회: {initial.eventTitle} · 선수: {initial.fighterName} (
+            {initial.birthYearMasked})
+          </CardDescription>
+        </CardHeader>
+        <CardContent>
+          <ul className="text-muted-foreground list-inside list-disc text-xs leading-relaxed">
+            {initial.policyLines.map((line) => (
+              <li key={line}>{line}</li>
+            ))}
+          </ul>
+        </CardContent>
+      </Card>
 
-      <ConsentAgreementChecklist value={agreements} onChange={setAgreements} />
-      <ConsentSignatureSection padRef={padRef} />
+      <Card>
+        <CardHeader>
+          <CardTitle className="text-base">필수 동의</CardTitle>
+        </CardHeader>
+        <CardContent>
+          <ConsentAgreementChecklist value={agreements} onChange={setAgreements} />
+        </CardContent>
+      </Card>
+
+      <Card>
+        <CardHeader>
+          <CardTitle className="text-base">서명</CardTitle>
+          <CardDescription>터치 또는 마우스로 서명해 주세요.</CardDescription>
+        </CardHeader>
+        <CardContent>
+          <ConsentSignatureSection padRef={padRef} />
+        </CardContent>
+      </Card>
 
       {error ? (
-        <div
-          className="rounded-lg border border-destructive/40 bg-destructive/10 px-4 py-3 text-sm text-destructive"
-          role="alert"
-        >
+        <FeedbackMessage tone="error" role="alert">
           {error}
-        </div>
+        </FeedbackMessage>
       ) : null}
 
-      <Button type="submit" disabled={pending} className="w-full sm:w-auto">
+      <Button type="submit" size="field" disabled={pending} className="w-full">
         {pending ? "제출 중…" : "서명 제출"}
       </Button>
     </form>
@@ -184,20 +207,24 @@ export function AthleteApplicationSignForm({
 
 function CompletedCard() {
   return (
-    <div
-      className="ring-foreground/10 space-y-3 rounded-xl bg-card p-6 ring-1"
-      role="status"
-    >
-      <p className="font-medium">선수 서명이 완료되었습니다.</p>
-      <p className="text-muted-foreground text-sm leading-relaxed">
-        보호자 동의가 필요한 경우 체육관에서 안내한 링크로 진행해 주세요.
-      </p>
-      <Link
-        href="/"
-        className={cn(buttonVariants({ variant: "outline", size: "sm" }))}
-      >
-        홈으로
-      </Link>
-    </div>
+    <Card variant="success">
+      <CardHeader>
+        <div className="flex flex-wrap items-center justify-between gap-2">
+          <CardTitle>선수 서명이 완료되었습니다</CardTitle>
+          <MatchonStatusBadge status="signature_completed" label="서명완료" size="sm" />
+        </div>
+        <CardDescription>
+          보호자 동의가 필요한 경우 체육관에서 안내한 링크로 진행해 주세요.
+        </CardDescription>
+      </CardHeader>
+      <CardContent>
+        <Link
+          href="/"
+          className={cn(buttonVariants({ variant: "outline", size: "field" }), "w-full sm:w-auto")}
+        >
+          홈으로
+        </Link>
+      </CardContent>
+    </Card>
   );
 }

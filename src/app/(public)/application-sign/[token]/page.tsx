@@ -1,10 +1,8 @@
-import Link from "next/link";
 import { AppError } from "@/lib/errors/app-error";
 import { fighterConsentService } from "@/lib/services/fighter-consent.service";
 import { AthleteApplicationSignForm } from "@/components/domain/applications/AthleteApplicationSignForm";
-import { EmptyState } from "@/components/shared/EmptyState";
-import { buttonVariants } from "@/components/ui/button";
-import { cn } from "@/lib/utils";
+import { PublicApplicationEmptyState } from "@/components/domain/applications/PublicApplicationEmptyState";
+import { PublicApplicationPageShell } from "@/components/domain/applications/PublicApplicationPageShell";
 
 export const dynamic = "force-dynamic";
 
@@ -18,10 +16,13 @@ export default async function ApplicationSignPage({
 
   if (!token) {
     return (
-      <SignEmpty
-        title="링크가 올바르지 않습니다"
-        description="서명 링크 전체를 사용해 주세요."
-      />
+      <div className="mx-auto max-w-lg px-4 py-12">
+        <PublicApplicationEmptyState
+          title="링크가 올바르지 않습니다"
+          description="서명 링크 전체를 사용해 주세요."
+          tone="error"
+        />
+      </div>
     );
   }
 
@@ -32,45 +33,28 @@ export default async function ApplicationSignPage({
   } catch (e: unknown) {
     if (e instanceof AppError) {
       return (
-        <SignEmpty
-          title="서명 페이지를 열 수 없습니다"
-          description={
-            e.code === "NOT_FOUND"
-              ? "유효하지 않거나 만료된 링크입니다."
-              : e.message
-          }
-        />
+        <div className="mx-auto max-w-lg px-4 py-12">
+          <PublicApplicationEmptyState
+            title="서명 페이지를 열 수 없습니다"
+            description={
+              e.code === "NOT_FOUND"
+                ? "유효하지 않거나 만료된 링크입니다."
+                : e.message
+            }
+            tone="error"
+          />
+        </div>
       );
     }
     throw e;
   }
 
   return (
-    <div className="mx-auto max-w-2xl px-4 py-8 md:py-12">
-      <div className="mb-8">
-        <Link
-          href="/"
-          className={cn(buttonVariants({ variant: "ghost", size: "sm" }))}
-        >
-          ← 홈
-        </Link>
-      </div>
-      <h1 className="font-heading mb-6 text-2xl font-semibold">대회 신청서 서명</h1>
+    <PublicApplicationPageShell
+      title="대회 신청서 서명"
+      description="선수 본인 서명과 필수 동의를 완료해 주세요."
+    >
       <AthleteApplicationSignForm initial={session} />
-    </div>
-  );
-}
-
-function SignEmpty({
-  title,
-  description,
-}: {
-  title: string;
-  description: string;
-}) {
-  return (
-    <div className="mx-auto max-w-lg px-4 py-12">
-      <EmptyState title={title} description={description} />
-    </div>
+    </PublicApplicationPageShell>
   );
 }

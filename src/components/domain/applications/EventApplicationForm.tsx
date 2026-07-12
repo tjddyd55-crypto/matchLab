@@ -5,7 +5,20 @@ import type { ActionResult } from "@/lib/action-result";
 import { applyToEventAction } from "@/features/applications/actions";
 import { ApplicationAgreementChecklist } from "@/components/domain/applications/ApplicationAgreementChecklist";
 import { PaymentInstructionCard } from "@/components/domain/payments/PaymentInstructionCard";
+import { FeedbackMessage } from "@/components/shared/FeedbackMessage";
+import { MatchonStatusBadge } from "@/components/shared/MatchonStatusBadge";
 import { Button } from "@/components/ui/button";
+import {
+  Card,
+  CardContent,
+  CardDescription,
+  CardHeader,
+  CardTitle,
+} from "@/components/ui/card";
+import {
+  publicApplicationFieldSelectClass,
+  publicApplicationFieldTextareaClass,
+} from "@/lib/ui/public-application-ui";
 import { cn } from "@/lib/utils";
 
 type FighterRow = {
@@ -81,11 +94,19 @@ export function EventApplicationForm(props: EventApplicationFormProps) {
   if (state?.ok) {
     return (
       <div className="grid gap-6">
-        <div className="rounded-xl border border-emerald-600/40 bg-emerald-950/10 px-4 py-3 text-sm">
-          {state.data.paymentInstruction
-            ? "신청이 접수되었습니다. 아래 계좌로 참가비를 입금해 주세요."
-            : "신청이 접수되었습니다."}
-        </div>
+        <Card variant="success">
+          <CardHeader>
+            <div className="flex flex-wrap items-center justify-between gap-2">
+              <CardTitle>신청이 접수되었습니다</CardTitle>
+              <MatchonStatusBadge status="application_completed" size="sm" />
+            </div>
+            <CardDescription>
+              {state.data.paymentInstruction
+                ? "아래 계좌로 참가비를 입금해 주세요."
+                : "신청 내역에서 상태를 확인할 수 있습니다."}
+            </CardDescription>
+          </CardHeader>
+        </Card>
         {state.data.paymentInstruction ? (
           <PaymentInstructionCard {...state.data.paymentInstruction} />
         ) : null}
@@ -102,104 +123,127 @@ export function EventApplicationForm(props: EventApplicationFormProps) {
         value={props.streamingAgreementRequired ? "1" : "0"}
       />
 
-      <div className="grid gap-2">
-        <label className="text-sm font-medium" htmlFor="divisionId">
-          경기구분
-        </label>
-        <select
-          id="divisionId"
-          name="divisionId"
-          required
-          value={divisionId}
-          onChange={(e) => setDivisionId(e.target.value)}
-          className="border-input bg-background ring-ring/50 h-10 w-full max-w-xl rounded-lg border px-3 text-sm outline-none focus-visible:ring-2"
-        >
-          {props.divisions.map((d) => (
-            <option key={d.id} value={d.id}>
-              {d.label}
-            </option>
-          ))}
-        </select>
-      </div>
+      <Card>
+        <CardHeader>
+          <CardTitle className="text-base">경기구분 선택</CardTitle>
+        </CardHeader>
+        <CardContent>
+          <label className="grid gap-2 text-sm" htmlFor="divisionId">
+            <span className="font-medium">경기구분</span>
+            <select
+              id="divisionId"
+              name="divisionId"
+              required
+              value={divisionId}
+              onChange={(e) => setDivisionId(e.target.value)}
+              className={publicApplicationFieldSelectClass}
+            >
+              {props.divisions.map((d) => (
+                <option key={d.id} value={d.id}>
+                  {d.label}
+                </option>
+              ))}
+            </select>
+          </label>
+        </CardContent>
+      </Card>
 
-      <div className="grid gap-2">
-        <div className="text-sm font-medium">선수</div>
-        <input type="hidden" name="fighterId" value={fighterId} />
-        <div className="grid gap-2 md:grid-cols-2">
-          {props.fighters.map((f) => {
-            const reason = fighterDivisionBlockReason(f, divisionId);
-            const selected = fighterId === f.id;
-            return (
-              <button
-                key={f.id}
-                type="button"
-                onClick={() => setFighterId(f.id)}
-                disabled={Boolean(reason)}
-                className={cn(
-                  "flex gap-3 rounded-xl border p-3 text-left text-sm transition",
-                  selected
-                    ? "border-primary ring-primary/40 ring-2"
-                    : "border-border hover:bg-muted/40",
-                  reason ? "cursor-not-allowed opacity-60" : "",
-                )}
-              >
-                <div className="relative size-12 shrink-0 overflow-hidden rounded-lg bg-muted">
-                  {f.profileImageUrl ? (
-                    // eslint-disable-next-line @next/next/no-img-element
-                    <img
-                      src={f.profileImageUrl}
-                      alt=""
-                      className="size-full object-cover"
-                    />
-                  ) : (
-                    <span className="flex size-full items-center justify-center text-xs font-semibold">
-                      {f.name.slice(0, 1)}
-                    </span>
+      <Card>
+        <CardHeader>
+          <CardTitle className="text-base">선수 선택</CardTitle>
+          <CardDescription>신청할 선수를 선택해 주세요.</CardDescription>
+        </CardHeader>
+        <CardContent>
+          <input type="hidden" name="fighterId" value={fighterId} />
+          <div className="grid gap-3 md:grid-cols-2">
+            {props.fighters.map((f) => {
+              const reason = fighterDivisionBlockReason(f, divisionId);
+              const selected = fighterId === f.id;
+              return (
+                <button
+                  key={f.id}
+                  type="button"
+                  onClick={() => setFighterId(f.id)}
+                  disabled={Boolean(reason)}
+                  className={cn(
+                    "flex gap-3 rounded-xl border p-3 text-left text-sm transition",
+                    selected
+                      ? "border-primary ring-primary/40 ring-2"
+                      : "border-border hover:bg-muted/40",
+                    reason ? "cursor-not-allowed opacity-60" : "",
                   )}
-                </div>
-                <div className="min-w-0 flex-1">
-                  <div className="font-medium">{f.name}</div>
-                  <div className="text-muted-foreground text-xs">
-                    {f.fighterCode} · {f.recordSummary}
+                >
+                  <div className="relative size-12 shrink-0 overflow-hidden rounded-lg bg-muted">
+                    {f.profileImageUrl ? (
+                      // eslint-disable-next-line @next/next/no-img-element
+                      <img
+                        src={f.profileImageUrl}
+                        alt=""
+                        className="size-full object-cover"
+                      />
+                    ) : (
+                      <span className="flex size-full items-center justify-center text-xs font-semibold">
+                        {f.name.slice(0, 1)}
+                      </span>
+                    )}
                   </div>
-                  <div className="text-muted-foreground mt-1 text-xs">
-                    {reason ?? "신청 가능"}
+                  <div className="min-w-0 flex-1">
+                    <div className="font-medium">{f.name}</div>
+                    <div className="text-muted-foreground text-xs">
+                      {f.fighterCode} · {f.recordSummary}
+                    </div>
+                    <div className="text-muted-foreground mt-1 text-xs">
+                      {reason ?? "신청 가능"}
+                    </div>
                   </div>
-                </div>
-              </button>
-            );
-          })}
-        </div>
-      </div>
+                </button>
+              );
+            })}
+          </div>
+        </CardContent>
+      </Card>
 
-      <ApplicationAgreementChecklist
-        streamingAgreementRequired={props.streamingAgreementRequired}
-        streamingNoticeText={props.streamingNoticeText}
-      />
+      <Card>
+        <CardHeader>
+          <CardTitle className="text-base">필수 동의</CardTitle>
+        </CardHeader>
+        <CardContent>
+          <ApplicationAgreementChecklist
+            streamingAgreementRequired={props.streamingAgreementRequired}
+            streamingNoticeText={props.streamingNoticeText}
+          />
+        </CardContent>
+      </Card>
 
-      <div className="grid gap-2">
-        <label className="text-sm font-medium" htmlFor="memo">
-          메모 (선택)
-        </label>
-        <textarea
-          id="memo"
-          name="memo"
-          rows={3}
-          maxLength={2000}
-          className="border-input bg-background min-h-[88px] w-full max-w-xl rounded-lg border px-3 py-2 text-sm outline-none focus-visible:ring-2 focus-visible:ring-ring"
-          placeholder="주최자에게 전달할 참고 사항"
-        />
-      </div>
+      <Card>
+        <CardHeader>
+          <CardTitle className="text-base">메모 (선택)</CardTitle>
+        </CardHeader>
+        <CardContent>
+          <textarea
+            id="memo"
+            name="memo"
+            rows={3}
+            maxLength={2000}
+            className={publicApplicationFieldTextareaClass}
+            placeholder="주최자에게 전달할 참고 사항"
+          />
+        </CardContent>
+      </Card>
 
       {blockReason && fighterId ? (
-        <p className="text-destructive text-sm">{blockReason}</p>
+        <FeedbackMessage tone="warning" role="alert">
+          {blockReason}
+        </FeedbackMessage>
       ) : null}
 
       {state && !state.ok ? (
-        <p className="text-destructive text-sm">{state.error.message}</p>
+        <FeedbackMessage tone="error" role="alert">
+          {state.error.message}
+        </FeedbackMessage>
       ) : null}
 
-      <Button type="submit" disabled={disabledSubmit}>
+      <Button type="submit" size="field" disabled={disabledSubmit} className="w-full">
         신청하기
       </Button>
     </form>

@@ -1,7 +1,9 @@
 "use client";
 
 import { PublicSparringUnderVsBadge } from "@/components/domain/shared/BoutFormatBadge";
-import { MatchStatusBadge as SharedMatchStatusBadge } from "@/components/domain/shared/MatchStatusBadge";
+import { MatchonStatusBadge } from "@/components/shared/MatchonStatusBadge";
+import { FeedbackMessage } from "@/components/shared/FeedbackMessage";
+import { Card, CardContent } from "@/components/ui/card";
 import {
   getCornerLabelClassName,
   getCornerSlotBg,
@@ -12,7 +14,10 @@ import type {
   CourtMatchScoreSummaryVM,
 } from "@/lib/services/judge-court.service";
 import { BracketMatchStatus } from "@/lib/enums";
-import { bracketMatchStatusLabel } from "@/lib/match-status-display";
+import {
+  getBracketMatchMatchonLabel,
+  resolveBracketMatchMatchonStatus,
+} from "@/lib/ui/bracket-match-ui";
 import { sanitizeJudgeVisibleMemo } from "@/lib/match-result-memo";
 import { CourtJudgeMatchLabels } from "./CourtJudgeMatchLabels";
 
@@ -52,16 +57,13 @@ function JudgeMatchStatusBadge({
   match: CourtJudgeMatchVM;
   size?: "sm" | "md";
 }) {
-  if (match.status === BracketMatchStatus.ongoing) {
-    return (
-      <SharedMatchStatusBadge
-        status={match.status}
-        label="진행중"
-        size={size}
-      />
-    );
-  }
-  return <SharedMatchStatusBadge status={match.status} size={size} />;
+  return (
+    <MatchonStatusBadge
+      status={resolveBracketMatchMatchonStatus(match.status)}
+      label={getBracketMatchMatchonLabel(match.status)}
+      size={size === "sm" ? "sm" : "md"}
+    />
+  );
 }
 
 function MatchRowContent({
@@ -189,9 +191,13 @@ export function CourtJudgeMatchList({
 }) {
   if (matches.length === 0) {
     return (
-      <div className="rounded-xl border border-dashed p-6 text-center text-sm text-muted-foreground">
-        이 경기장에 배정된 경기가 없습니다.
-      </div>
+      <Card variant="muted" className="py-4">
+        <CardContent className="px-4">
+          <FeedbackMessage tone="info">
+            이 경기장에 배정된 경기가 없습니다.
+          </FeedbackMessage>
+        </CardContent>
+      </Card>
     );
   }
 
@@ -299,4 +305,4 @@ export function CourtJudgeFightersHeader({ match }: { match: CourtJudgeMatchVM }
   );
 }
 
-export { bracketMatchStatusLabel as statusLabel, resultSummary };
+export { getBracketMatchMatchonLabel as statusLabel, resultSummary };

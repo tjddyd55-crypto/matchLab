@@ -56,11 +56,11 @@ export function EventDetailHeroMobile({
 
       <PublicEventTrustBadges event={event} compact />
 
-      <div className="w-full space-y-4 [&_a]:flex [&_a]:w-full [&_a]:justify-center">
+      <div className="w-full space-y-4">
         <EventApplicationCta
           eventStatus={event.status}
           registrationStatus={event.registrationStatus}
-          size="lg"
+          size="field"
         />
         <EventShareButtons
           url={buildEventPublicUrl(event)}

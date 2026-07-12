@@ -6,6 +6,11 @@ import {
   publicEventTabHref,
   type PublicEventTabId,
 } from "@/lib/public-event-tabs";
+import { buttonVariants } from "@/components/ui/button";
+import {
+  matchonScrollablePillItemClass,
+  matchonScrollablePillsClass,
+} from "@/lib/ui/matchon-layout";
 import { cn } from "@/lib/utils";
 
 export function PublicEventDetailTabs({
@@ -30,15 +35,18 @@ export function PublicEventDetailTabs({
   );
 
   return (
-    <div className="space-y-2">
+    <div className="space-y-3">
       {event ? (
         <PublicEventTrustBadges event={event} className="px-0.5" compact />
       ) : null}
       <nav
-        className="ring-foreground/10 -mx-1 rounded-xl bg-muted/30 p-1 ring-1"
+        className={cn(
+          matchonScrollablePillsClass,
+          "-mx-1 px-1",
+        )}
         aria-label="대회 정보 탭"
+        role="tablist"
       >
-        <div className="flex gap-1 overflow-x-auto pb-0.5 [-ms-overflow-style:none] [scrollbar-width:none] md:overflow-visible md:pb-0 [&::-webkit-scrollbar]:hidden">
         {tabs.map((tab) => {
           const isActive = activeTab === tab.id;
           return (
@@ -46,20 +54,23 @@ export function PublicEventDetailTabs({
               key={tab.id}
               href={publicEventTabHref(slug, tab.id)}
               scroll={tab.id !== activeTab}
-              className={cn(
-                "shrink-0 rounded-lg px-4 py-2.5 text-center text-sm font-medium transition-colors",
-                "min-w-[5.5rem] sm:min-w-0 md:flex-1",
-                isActive
-                  ? "bg-background text-foreground shadow-sm ring-1 ring-foreground/10"
-                  : "text-muted-foreground hover:bg-background/60 hover:text-foreground",
-              )}
+              role="tab"
+              aria-selected={isActive}
               aria-current={isActive ? "page" : undefined}
+              className={cn(
+                buttonVariants({
+                  variant: isActive ? "default" : "outline",
+                  size: "sm",
+                }),
+                matchonScrollablePillItemClass,
+                "min-h-10 rounded-full px-4",
+                isActive && "shadow-sm",
+              )}
             >
               {tab.label}
             </Link>
           );
         })}
-        </div>
       </nav>
     </div>
   );

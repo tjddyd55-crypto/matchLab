@@ -2,6 +2,7 @@
 
 import { useMemo, useRef, useState } from "react";
 import { OperationCourtTabBar } from "@/components/domain/operation/OperationCourtTabBar";
+import { OperationSpotlightSection } from "@/components/domain/operation/OperationSpotlightSection";
 import { OperationSummaryCards } from "@/components/domain/operation/OperationSummaryCards";
 import { OrganizerOperationCardListMobile } from "@/components/domain/operation/OrganizerOperationCardListMobile";
 import { OrganizerOperationTableDesktop } from "@/components/domain/operation/OrganizerOperationTableDesktop";
@@ -17,6 +18,7 @@ import {
   matchesOperationBoardFilter,
   matchesOperationSearchQuery,
   sortOperationMatchRows,
+  pickOperationSpotlightMatches,
   summarizeOperationBoard,
   type OperationBoardFilter,
 } from "@/lib/match-operation-display";
@@ -59,6 +61,7 @@ export function OrganizerOperationBoard({
   const [statusFilter, setStatusFilter] = useState<OperationBoardFilter>("all");
   const [search, setSearch] = useState("");
   const [expandedMatchId, setExpandedMatchId] = useState<string | null>(null);
+  const [focusedMatchId, setFocusedMatchId] = useState<string | null>(null);
 
   const summary = useMemo(() => summarizeOperationBoard(matches), [matches]);
 
@@ -82,6 +85,30 @@ export function OrganizerOperationBoard({
     }));
   }, [baseRows, courtTab, courts, search, activeFilter]);
 
+  const spotlight = useMemo(
+    () => pickOperationSpotlightMatches(filteredRows),
+    [filteredRows],
+  );
+
+  const defaultFocusedMatchId = useMemo(
+    () =>
+      spotlight.current?.matchId ??
+      spotlight.next?.matchId ??
+      filteredRows[0]?.matchId ??
+      null,
+    [spotlight, filteredRows],
+  );
+
+  const effectiveFocusedMatchId = useMemo(() => {
+    if (
+      focusedMatchId &&
+      filteredRows.some((row) => row.matchId === focusedMatchId)
+    ) {
+      return focusedMatchId;
+    }
+    return defaultFocusedMatchId;
+  }, [focusedMatchId, filteredRows, defaultFocusedMatchId]);
+
   const selectClass =
     "border-input bg-background h-9 rounded-md border px-2 text-sm shadow-sm";
 
@@ -95,6 +122,11 @@ export function OrganizerOperationBoard({
 
   function toggleInlinePanel(row: OperationMatchRowVM) {
     setExpandedMatchId((cur) => (cur === row.matchId ? null : row.matchId));
+    setFocusedMatchId(row.matchId);
+  }
+
+  function focusMatch(matchId: string) {
+    setFocusedMatchId(matchId);
   }
 
   return (
@@ -109,6 +141,12 @@ export function OrganizerOperationBoard({
         courts={courts}
         activeTab={courtTab}
         onTabChange={setCourtTab}
+      />
+
+      <OperationSpotlightSection
+        rows={filteredRows}
+        focusedMatchId={effectiveFocusedMatchId}
+        onFocusMatch={focusMatch}
       />
 
       <div className="flex flex-col gap-3 sm:flex-row sm:flex-wrap sm:items-end">
@@ -143,6 +181,7 @@ export function OrganizerOperationBoard({
       </div>
 
       <div ref={listRef} className="space-y-4">
+        <h2 className="text-sm font-semibold">전체 경기 목록</h2>
         <p className="text-muted-foreground text-sm">
           {filteredRows.length}건 표시 (전체 {matches.length}건)
         </p>

@@ -3,6 +3,8 @@
 import type { UnmatchedBracketCandidateVM } from "@/lib/services/bracket-auto-match.service";
 import { DivisionCompactDisplay } from "@/components/domain/shared/DivisionCompactDisplay";
 import { EligibilityBadge } from "@/components/domain/field-status/EligibilityBadge";
+import { BracketsEmptyState } from "@/components/domain/brackets/BracketsEmptyState";
+import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 
 const WAITING_REASONS = new Set([
   "odd_count",
@@ -20,18 +22,17 @@ export function UnmatchedBracketCandidatesPanel({
   const placed = candidates.filter((c) => c.reason === "already_placed");
 
   return (
-    <section className="ring-foreground/10 rounded-xl border bg-card p-4 shadow-sm">
-      <div>
-        <h2 className="text-lg font-semibold">미매칭 선수 / 대기선수</h2>
-        <p className="text-muted-foreground mt-1 text-sm">
+    <Card variant="default" className="py-4">
+      <CardHeader className="px-4 pb-2">
+        <CardTitle className="text-lg">미매칭 선수 / 대기선수</CardTitle>
+        <p className="text-muted-foreground mt-1 text-sm font-normal">
           자동·수동 대진 배치 후 아직 상대가 없거나 대기 중인 선수입니다.
         </p>
-      </div>
+      </CardHeader>
+      <CardContent className="px-4">
 
       {waiting.length === 0 ? (
-        <p className="text-muted-foreground mt-4 text-sm">
-          현재 미매칭·대기 선수가 없습니다.
-        </p>
+        <BracketsEmptyState message="현재 미매칭·대기 선수가 없습니다." />
       ) : (
         <div className="mt-4 overflow-x-auto">
           <table className="w-full min-w-[640px] text-left text-sm">
@@ -98,6 +99,7 @@ export function UnmatchedBracketCandidatesPanel({
           </ul>
         </details>
       ) : null}
-    </section>
+      </CardContent>
+    </Card>
   );
 }

@@ -2,9 +2,7 @@
 
 import { useState, useTransition } from "react";
 import { useRouter } from "next/navigation";
-import { OrganizerMatchOpsPanel } from "@/components/domain/brackets/OrganizerMatchOpsPanel";
-import { OrganizerJudgeAggregationInlineSection } from "@/components/domain/judges/OrganizerJudgeAggregationInlineSection";
-import { toMatchOpsProps } from "@/components/domain/operation/operation-match-row";
+import { FeedbackMessage } from "@/components/shared/FeedbackMessage";
 import { updateMatchStatusAction } from "@/features/matches/actions";
 import { Button } from "@/components/ui/button";
 import type { ActionResult } from "@/lib/action-result";
@@ -42,7 +40,7 @@ export function OrganizerOperationActions({
   const router = useRouter();
   const [pending, startTransition] = useTransition();
   const [error, setError] = useState<string | null>(null);
-  const [opsOpen, setOpsOpen] = useState(false);
+  const [success, setSuccess] = useState<string | null>(null);
 
   const blocked = match.status === BracketMatchStatus.cancelled;
   const showPrepare = canPrepareMatch(match.status);
@@ -55,25 +53,36 @@ export function OrganizerOperationActions({
 
   const refresh = () => router.refresh();
 
-  const runStatusUpdate = (status: BracketMatchStatus) => {
+  const runStatusUpdate = (status: BracketMatchStatus, successMessage: string) => {
     setError(null);
+    setSuccess(null);
     startTransition(async () => {
       const fd = new FormData();
       fd.set("matchId", match.matchId);
       fd.set("status", status);
       const err = await runAction(() => updateMatchStatusAction(fd));
       setError(err);
-      if (!err) refresh();
+      if (!err) {
+        setSuccess(successMessage);
+        refresh();
+      }
     });
   };
 
   const handleAdvance = () => {
     const next = getNextStatusForOperationStart(match.status);
     if (!next) return;
-    runStatusUpdate(next);
+    const message =
+      next === BracketMatchStatus.called
+        ? "경기준비 상태로 변경되었습니다."
+        : "경기가 시작되었습니다.";
+    runStatusUpdate(next, message);
   };
 
-  const handleEnd = () => runStatusUpdate(BracketMatchStatus.finished);
+  const handleEnd = () =>
+    runStatusUpdate(BracketMatchStatus.finished, "경기가 종료되었습니다.");
+
+  const btnSize = compact ? "xs" : "sm";
 
   if (blocked) {
     return (
@@ -87,7 +96,7 @@ export function OrganizerOperationActions({
         {showPrepare ? (
           <Button
             type="button"
-            size={compact ? "xs" : "sm"}
+            size={btnSize}
             variant="outline"
             disabled={pending}
             onClick={handleAdvance}
@@ -98,7 +107,7 @@ export function OrganizerOperationActions({
         {showStart && !showPrepare ? (
           <Button
             type="button"
-            size={compact ? "xs" : "sm"}
+            size={btnSize}
             variant="default"
             disabled={pending}
             onClick={handleAdvance}
@@ -109,7 +118,7 @@ export function OrganizerOperationActions({
         {showEnd ? (
           <Button
             type="button"
-            size={compact ? "xs" : "sm"}
+            size={btnSize}
             variant="secondary"
             disabled={pending}
             onClick={handleEnd}
@@ -120,34 +129,22 @@ export function OrganizerOperationActions({
         {showOpsToggle ? (
           <Button
             type="button"
-            size={compact ? "xs" : "sm"}
+            size={btnSize}
             variant="outline"
             disabled={pending}
-            onClick={() =>
-              externalToggle ? externalToggle() : setOpsOpen((v) => !v)
-            }
+            onClick={() => externalToggle?.()}
           >
-            {opsOpen && !externalToggle
-              ? "결과 패널 닫기"
-              : showResult
-                ? "결과 입력"
-                : "결과 보기"}
+            {showResult ? "결과 입력" : "결과 보기"}
           </Button>
         ) : null}
       </div>
       {error ? (
-        <p className="text-destructive text-xs" role="alert">
+        <FeedbackMessage tone="error" role="alert">
           {error}
-        </p>
+        </FeedbackMessage>
       ) : null}
-      {opsOpen && showOpsToggle && !externalToggle ? (
-        <div className="space-y-3 border-t pt-2">
-          <OrganizerMatchOpsPanel {...toMatchOpsProps(match)} compact />
-          <OrganizerJudgeAggregationInlineSection
-            matchId={match.matchId}
-            open={opsOpen}
-          />
-        </div>
+      {success ? (
+        <FeedbackMessage tone="success">{success}</FeedbackMessage>
       ) : null}
     </div>
   );

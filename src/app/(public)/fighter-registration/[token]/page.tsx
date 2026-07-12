@@ -2,7 +2,7 @@ import type { InviteGateReason } from "@/lib/services/invite-link.service";
 import { registrationService } from "@/lib/services/registration.service";
 import { GymFighterRegistrationPolicyNotice } from "@/components/domain/fighters/GymFighterRegistrationPolicyNotice";
 import { FighterRegistrationForm } from "@/components/domain/fighters/FighterRegistrationForm";
-import { EmptyState } from "@/components/shared/EmptyState";
+import { PublicApplicationEmptyState } from "@/components/domain/applications/PublicApplicationEmptyState";
 
 export const dynamic = "force-dynamic";
 
@@ -24,9 +24,10 @@ export default async function FighterRegistrationPublicPage({
   if (!ctx.valid) {
     return (
       <div className="mx-auto max-w-lg px-4 py-12">
-        <EmptyState
+        <PublicApplicationEmptyState
           title="등록 링크를 사용할 수 없습니다"
           description={INVALID_MESSAGES[ctx.reason]}
+          tone="error"
         />
       </div>
     );
@@ -36,6 +37,14 @@ export default async function FighterRegistrationPublicPage({
 
   return (
     <div className="mx-auto max-w-2xl space-y-6 px-4 py-8 md:py-12">
+      <header className="space-y-1">
+        <h1 className="font-heading text-2xl font-semibold tracking-tight">
+          {heading}
+        </h1>
+        <p className="text-muted-foreground text-sm leading-relaxed">
+          체육관 초대 링크로 선수 정보를 등록합니다.
+        </p>
+      </header>
       <GymFighterRegistrationPolicyNotice />
       <FighterRegistrationForm token={token} heading={heading} />
     </div>

@@ -6,11 +6,18 @@ import { GymEventStatusCards } from "@/components/domain/gym-event-status/GymEve
 import { GymEventStatusDetailDrawer } from "@/components/domain/gym-event-status/GymEventStatusDetailDrawer";
 import { GymEventStatusSummaryCards } from "@/components/domain/gym-event-status/GymEventStatusSummaryCards";
 import { GymEventStatusTable } from "@/components/domain/gym-event-status/GymEventStatusTable";
+import { MatchonEmptyState } from "@/components/shared/MatchonEmptyState";
+import { Card, CardContent } from "@/components/ui/card";
 import {
   matchesGymEventStatusSummaryFilter,
   type GymEventStatusSummaryFilter,
 } from "@/lib/gym-event-status-filters";
 import type { GymEventStatusPageDTO } from "@/lib/services/gym-event-status.service";
+import { eventListFieldInputClass, eventListFieldSelectClass } from "@/lib/ui/event-list-ui";
+import {
+  matchonSectionStackClass,
+  matchonSectionTitleClass,
+} from "@/lib/ui/matchon-layout";
 import { cn } from "@/lib/utils";
 
 const FILTER_OPTIONS: { value: GymEventStatusSummaryFilter; label: string }[] = [
@@ -46,9 +53,6 @@ export function GymEventStatusBoard({ data }: { data: GymEventStatusPageDTO }) {
     });
   }, [data.rows, summaryFilter, search]);
 
-  const selectClass =
-    "border-input bg-background h-9 rounded-md border px-2 text-sm shadow-sm";
-
   function handleSummaryFilterChange(filter: GymEventStatusSummaryFilter) {
     setSummaryFilter(filter);
     requestAnimationFrame(() => {
@@ -62,48 +66,64 @@ export function GymEventStatusBoard({ data }: { data: GymEventStatusPageDTO }) {
   }
 
   return (
-    <div className="flex flex-col gap-8">
+    <div className={cn("flex flex-col", matchonSectionStackClass)}>
       <GymEventStatusSummaryCards
         summary={data.summary}
         activeFilter={summaryFilter}
         onFilterChange={handleSummaryFilterChange}
       />
 
-      <div className="flex flex-col gap-3 sm:flex-row sm:flex-wrap sm:items-end">
-        <label className="flex min-w-[12rem] flex-1 flex-col gap-1 text-xs">
-          <span className="text-muted-foreground">선수명·경기구분 검색</span>
-          <input
-            type="search"
-            value={search}
-            onChange={(e) => setSearch(e.target.value)}
-            placeholder="선수명 또는 경기구분/체급"
-            className={cn(selectClass, "w-full")}
-          />
-        </label>
-        <label className="flex flex-col gap-1 text-xs">
-          <span className="text-muted-foreground">필터</span>
-          <select
-            className={cn(selectClass, "min-w-[10rem]")}
-            value={summaryFilter}
-            onChange={(e) =>
-              handleSummaryFilterChange(
-                e.target.value as GymEventStatusSummaryFilter,
-              )
-            }
-          >
-            {FILTER_OPTIONS.map((o) => (
-              <option key={o.value} value={o.value}>
-                {o.label}
-              </option>
-            ))}
-          </select>
-        </label>
-      </div>
+      <Card variant="muted" className="gap-0 py-0">
+        <CardContent className="flex flex-col gap-3 pt-4 sm:flex-row sm:flex-wrap sm:items-end">
+          <label className="flex min-w-[12rem] flex-1 flex-col gap-1 text-xs">
+            <span className="text-muted-foreground">선수명·경기구분 검색</span>
+            <input
+              type="search"
+              value={search}
+              onChange={(e) => setSearch(e.target.value)}
+              placeholder="선수명 또는 경기구분/체급"
+              className={eventListFieldInputClass}
+            />
+          </label>
+          <label className="flex flex-col gap-1 text-xs">
+            <span className="text-muted-foreground">필터</span>
+            <select
+              className={cn(eventListFieldSelectClass, "min-w-[10rem]")}
+              value={summaryFilter}
+              onChange={(e) =>
+                handleSummaryFilterChange(
+                  e.target.value as GymEventStatusSummaryFilter,
+                )
+              }
+            >
+              {FILTER_OPTIONS.map((o) => (
+                <option key={o.value} value={o.value}>
+                  {o.label}
+                </option>
+              ))}
+            </select>
+          </label>
+        </CardContent>
+      </Card>
 
       <div ref={listRef} className="flex flex-col gap-4">
-        <h2 className="text-lg font-semibold">신청 현황</h2>
-        <GymEventStatusTable rows={filtered} onOpenDetail={openDetail} />
-        <GymEventStatusCards rows={filtered} onOpenDetail={openDetail} />
+        <h2 className={matchonSectionTitleClass}>신청 현황</h2>
+        {data.rows.length === 0 ? (
+          <MatchonEmptyState
+            title="신청한 선수가 없습니다"
+            description="대회 신청 후 이 화면에서 신청·입금·현장·대진 상태를 확인할 수 있습니다."
+          />
+        ) : filtered.length === 0 ? (
+          <MatchonEmptyState
+            title="조건에 맞는 신청이 없습니다"
+            description="검색어나 필터를 변경해 보세요."
+          />
+        ) : (
+          <>
+            <GymEventStatusTable rows={filtered} onOpenDetail={openDetail} />
+            <GymEventStatusCards rows={filtered} onOpenDetail={openDetail} />
+          </>
+        )}
       </div>
 
       <GymEventMatchesSection

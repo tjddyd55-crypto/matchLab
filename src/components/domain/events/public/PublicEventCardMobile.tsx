@@ -14,6 +14,7 @@ import {
   type PublicEventCardProps,
 } from "@/components/domain/events/public/public-event-ui";
 import { buttonVariants } from "@/components/ui/button";
+import { Card, CardContent } from "@/components/ui/card";
 import { cn } from "@/lib/utils";
 
 export function PublicEventCardMobile({
@@ -22,11 +23,13 @@ export function PublicEventCardMobile({
   priorityImage,
 }: PublicEventCardProps) {
   const href = publicEventHref(event.publicSlug);
+  const ctaVariant =
+    event.registrationStatus === "open" ? "default" : "outline";
 
   return (
-    <article
+    <Card
       className={cn(
-        "flex flex-col overflow-hidden rounded-xl border bg-card shadow-sm md:hidden",
+        "gap-0 overflow-hidden py-0 md:hidden",
         className,
       )}
     >
@@ -43,10 +46,11 @@ export function PublicEventCardMobile({
         />
       </Link>
 
-      <div
+      <CardContent
         className={cn(
           "flex flex-col gap-3 text-left",
           PUBLIC_EVENT_CARD_BODY_PADDING_CLASS,
+          "pt-4",
         )}
       >
         <div className="mb-1 flex flex-wrap items-center gap-1.5">
@@ -73,10 +77,16 @@ export function PublicEventCardMobile({
           registrationEndDate={event.registrationEndDate}
         />
 
-        <Link href={href} className={cn(buttonVariants({ size: "lg" }), "w-full")}>
+        <Link
+          href={href}
+          className={cn(
+            buttonVariants({ variant: ctaVariant, size: "field" }),
+            "w-full",
+          )}
+        >
           {publicEventCtaLabel(event)}
         </Link>
-      </div>
-    </article>
+      </CardContent>
+    </Card>
   );
 }

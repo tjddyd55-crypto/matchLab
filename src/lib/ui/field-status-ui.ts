@@ -1,9 +1,10 @@
-import type { WeighInStatus } from "@/generated/prisma";
 import type { FieldStatusRowDTO } from "@/lib/services/field-status.service";
+import type { MatchonStatus } from "@/lib/ui/matchon-status";
 import type { StatusBadgeVariant } from "@/lib/ui/status-badge-ui";
 import {
   CheckInStatus,
   WeighInFailureResolution,
+  WeighInStatus,
   WeighInStatus as WeighInStatusEnum,
 } from "@/generated/prisma";
 
@@ -185,4 +186,60 @@ export function getFieldFinalResultBaseLabel(
   tone: FieldFinalResultTone,
 ): string {
   return fieldFinalResultUiTokens[tone].label;
+}
+
+/** 계체 상태 → MatchonStatusBadge 표시용 */
+export function resolveWeighInMatchonStatus(
+  status: WeighInStatus,
+): MatchonStatus {
+  if (status === "pass" || status === "manual_pass") return "weigh_passed";
+  if (status === "fail" || status === "manual_fail") return "weigh_failed";
+  return "waiting";
+}
+
+/** 현장 확인 상태 → MatchonStatusBadge 표시용 */
+export function resolveCheckInMatchonStatus(
+  status: CheckInStatus,
+): MatchonStatus {
+  if (status === "checked_in") return "application_completed";
+  if (status === "pending") return "waiting";
+  if (status === "disqualified") return "disqualified";
+  return "cancelled";
+}
+
+/** 체육관 현장·계체 화면 — rows 기반 요약 (표시 전용, API 변경 없음) */
+export type GymFieldStatusSummary = {
+  total: number;
+  checkedIn: number;
+  pendingCheckIn: number;
+  weighInPass: number;
+  weighInFail: number;
+  eligible: number;
+};
+
+export function buildGymFieldStatusSummaryFromRows(
+  rows: {
+    checkInStatus: CheckInStatus;
+    weighInStatus: WeighInStatus;
+    isEligibleForBracket: boolean;
+  }[],
+): GymFieldStatusSummary {
+  return {
+    total: rows.length,
+    checkedIn: rows.filter((r) => r.checkInStatus === CheckInStatus.checked_in)
+      .length,
+    pendingCheckIn: rows.filter((r) => r.checkInStatus === CheckInStatus.pending)
+      .length,
+    weighInPass: rows.filter(
+      (r) =>
+        r.weighInStatus === WeighInStatusEnum.pass ||
+        r.weighInStatus === WeighInStatusEnum.manual_pass,
+    ).length,
+    weighInFail: rows.filter(
+      (r) =>
+        r.weighInStatus === WeighInStatusEnum.fail ||
+        r.weighInStatus === WeighInStatusEnum.manual_fail,
+    ).length,
+    eligible: rows.filter((r) => r.isEligibleForBracket).length,
+  };
 }

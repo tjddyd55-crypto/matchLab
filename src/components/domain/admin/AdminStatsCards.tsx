@@ -1,4 +1,7 @@
 import type { AdminDashboardStatsDTO } from "@/lib/dto/admin";
+import { Card, CardContent } from "@/components/ui/card";
+import { matchonGridGapClass } from "@/lib/ui/admin-ui";
+import { cn } from "@/lib/utils";
 
 function StatCard({
   label,
@@ -10,17 +13,27 @@ function StatCard({
   hint?: string;
 }) {
   return (
-    <div className="ring-foreground/10 rounded-xl border bg-card p-4 shadow-sm">
-      <p className="text-muted-foreground text-xs font-medium">{label}</p>
-      <p className="mt-1 text-2xl font-semibold tabular-nums">{value.toLocaleString("ko-KR")}</p>
-      {hint ? <p className="text-muted-foreground mt-1 text-xs">{hint}</p> : null}
-    </div>
+    <Card variant="muted" className="px-4 py-3">
+      <CardContent className="p-0">
+        <p className="text-muted-foreground text-xs font-medium">{label}</p>
+        <p className="mt-1 text-2xl font-semibold tabular-nums">
+          {value.toLocaleString("ko-KR")}
+        </p>
+        {hint ? (
+          <p className="text-muted-foreground mt-1 text-xs leading-relaxed">
+            {hint}
+          </p>
+        ) : null}
+      </CardContent>
+    </Card>
   );
 }
 
 export function AdminStatsCards({ stats }: { stats: AdminDashboardStatsDTO }) {
   return (
-    <div className="grid gap-3 sm:grid-cols-2 lg:grid-cols-4">
+    <div
+      className={cn("grid sm:grid-cols-2 lg:grid-cols-4", matchonGridGapClass)}
+    >
       <StatCard label="전체 대회" value={stats.totalEvents} />
       <StatCard
         label="모집 중(open)"

@@ -8,6 +8,8 @@ import { eventService } from "@/lib/services/event.service";
 import { BracketCreateForm } from "@/components/domain/brackets/BracketCreateForm";
 import { OrganizerBracketList } from "@/components/domain/brackets/OrganizerBracketList";
 import { UnmatchedBracketCandidatesPanel } from "@/components/domain/brackets/UnmatchedBracketCandidatesPanel";
+import { BracketsEmptyState } from "@/components/domain/brackets/BracketsEmptyState";
+import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { eventCourtService } from "@/lib/services/event-court.service";
 
 /** 대진표 생성 탭 콘텐츠 */
@@ -45,23 +47,23 @@ export async function OrganizerBracketsGenerateSection({
 
       <BracketCreateForm eventId={eventId} divisions={divisions} />
 
-      <section className="space-y-4">
-        <div>
-          <h2 className="text-lg font-semibold">대진표 그룹</h2>
-          <p className="text-muted-foreground mt-1 text-sm">
+      <Card variant="default" className="py-4">
+        <CardHeader className="px-4 pb-2">
+          <CardTitle className="text-lg">대진표 그룹</CardTitle>
+          <p className="text-muted-foreground mt-1 text-sm font-normal">
             그룹명·공개 여부를 관리하고 상세 화면에서 경기를 수정·삭제할 수 있습니다.
           </p>
-        </div>
+        </CardHeader>
+        <CardContent className="px-4">
         {brackets.length === 0 ? (
-          <p className="text-muted-foreground text-sm">
-            아직 생성된 대진표가 없습니다.
-          </p>
+          <BracketsEmptyState message="아직 생성된 대진표가 없습니다." />
         ) : (
           <div className="overflow-x-auto">
             <OrganizerBracketList eventId={eventId} brackets={brackets} />
           </div>
         )}
-      </section>
+        </CardContent>
+      </Card>
 
       <UnmatchedBracketCandidatesPanel candidates={unmatchedCandidates} />
     </div>

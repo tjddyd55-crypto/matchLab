@@ -1,17 +1,10 @@
 import type { EventStatus } from "@/lib/enums";
-import { ORGANIZER_EVENT_STATUS_LABELS } from "@/lib/event-organizer-status";
-import { StatusBadge } from "@/components/shared/StatusBadge";
+import { MatchonStatusBadge } from "@/components/shared/MatchonStatusBadge";
+import {
+  getOrganizerEventListStatusLabel,
+  resolveOrganizerEventListMatchonStatus,
+} from "@/lib/ui/event-list-ui";
 import { cn } from "@/lib/utils";
-
-const VARIANT: Partial<
-  Record<EventStatus, "default" | "secondary" | "outline" | "destructive">
-> = {
-  open: "outline",
-  closed: "secondary",
-  bracket_ready: "default",
-  ongoing: "default",
-  finished: "secondary",
-};
 
 export function EventStatusPill({
   status,
@@ -21,9 +14,10 @@ export function EventStatusPill({
   className?: string;
 }) {
   return (
-    <StatusBadge
-      variant={VARIANT[status] ?? "secondary"}
-      label={ORGANIZER_EVENT_STATUS_LABELS[status]}
+    <MatchonStatusBadge
+      status={resolveOrganizerEventListMatchonStatus(status)}
+      label={getOrganizerEventListStatusLabel(status)}
+      size="sm"
       className={cn("shrink-0", className)}
     />
   );

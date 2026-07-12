@@ -1,40 +1,48 @@
 import { CheckInStatusBadge } from "@/components/domain/field-status/CheckInStatusBadge";
 import { EligibilityBadge } from "@/components/domain/field-status/EligibilityBadge";
+import { FieldStatusEmptyState } from "@/components/domain/field-status/FieldStatusEmptyState";
 import { WeighInStatusBadge } from "@/components/domain/field-status/WeighInStatusBadge";
 import type { FieldStatusRowDTO } from "@/lib/services/field-status.service";
+import {
+  Table,
+  TableBody,
+  TableCell,
+  TableHead,
+  TableHeader,
+  TableRow,
+} from "@/components/ui/table";
 
 export function GymFieldStatusTable({ rows }: { rows: FieldStatusRowDTO[] }) {
   if (rows.length === 0) {
     return (
-      <p className="text-muted-foreground text-sm">
-        승인된 신청 선수가 없습니다. 신청·승인 후 이 화면에서 현장 상태를 확인할
-        수 있습니다.
-      </p>
+      <FieldStatusEmptyState message="승인된 신청 선수가 없습니다. 신청·승인 후 이 화면에서 현장 상태를 확인할 수 있습니다." />
     );
   }
 
   return (
-    <div className="overflow-x-auto rounded-xl border">
-      <table className="w-full min-w-[48rem] text-left text-sm">
-        <thead className="bg-muted/40 text-xs">
-          <tr>
-            <th className="px-3 py-2 font-medium">선수명</th>
-            <th className="px-3 py-2 font-medium">신청 경기구분</th>
-            <th className="px-3 py-2 font-medium">현장 확인</th>
-            <th className="px-3 py-2 font-medium">계체 결과</th>
-            <th className="px-3 py-2 font-medium">출전 확정</th>
-            <th className="px-3 py-2 font-medium">메모</th>
-          </tr>
-        </thead>
-        <tbody className="divide-y">
+    <div className="hidden overflow-x-auto rounded-xl border lg:block">
+      <Table className="min-w-[48rem]">
+        <TableHeader>
+          <TableRow>
+            <TableHead className="min-w-[8rem]">선수명</TableHead>
+            <TableHead className="min-w-[12rem]">신청 경기구분</TableHead>
+            <TableHead className="min-w-[8rem]">현장 확인</TableHead>
+            <TableHead className="min-w-[10rem]">계체 결과</TableHead>
+            <TableHead className="min-w-[8rem]">출전 확정</TableHead>
+            <TableHead className="min-w-[10rem]">메모</TableHead>
+          </TableRow>
+        </TableHeader>
+        <TableBody>
           {rows.map((row) => (
-            <tr key={row.applicationId}>
-              <td className="px-3 py-3 font-medium">{row.fighterName}</td>
-              <td className="px-3 py-3 text-xs">{row.divisionLabel}</td>
-              <td className="px-3 py-3">
+            <TableRow key={row.applicationId}>
+              <TableCell className="font-medium break-words">
+                {row.fighterName}
+              </TableCell>
+              <TableCell className="text-xs break-words">{row.divisionLabel}</TableCell>
+              <TableCell>
                 <CheckInStatusBadge status={row.checkInStatus} />
-              </td>
-              <td className="px-3 py-3">
+              </TableCell>
+              <TableCell>
                 <div className="flex flex-col gap-1">
                   <WeighInStatusBadge status={row.weighInStatus} />
                   {row.weighInWeightKg != null ? (
@@ -43,21 +51,21 @@ export function GymFieldStatusTable({ rows }: { rows: FieldStatusRowDTO[] }) {
                     </span>
                   ) : null}
                 </div>
-              </td>
-              <td className="px-3 py-3">
+              </TableCell>
+              <TableCell>
                 <EligibilityBadge
                   label={row.eligibilityLabel}
                   isEligible={row.isEligibleForBracket}
                   title={row.eligibilityReason}
                 />
-              </td>
-              <td className="px-3 py-3 text-xs text-muted-foreground">
+              </TableCell>
+              <TableCell className="text-muted-foreground max-w-[12rem] text-xs break-words">
                 {row.fieldMemo ? row.fieldMemo : "—"}
-              </td>
-            </tr>
+              </TableCell>
+            </TableRow>
           ))}
-        </tbody>
-      </table>
+        </TableBody>
+      </Table>
     </div>
   );
 }

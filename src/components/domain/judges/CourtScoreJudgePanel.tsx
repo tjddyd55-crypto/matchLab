@@ -7,6 +7,9 @@ import {
   submitCourtScorecardAction,
 } from "@/features/judge-court/actions";
 import { Button } from "@/components/ui/button";
+import { Card, CardContent, CardHeader } from "@/components/ui/card";
+import { FeedbackMessage } from "@/components/shared/FeedbackMessage";
+import { MatchonStatusBadge } from "@/components/shared/MatchonStatusBadge";
 import { BoutFormatBadge } from "@/components/domain/shared/BoutFormatBadge";
 import { effectiveScoringRoundCount } from "@/lib/court-judge-rounds";
 import type {
@@ -27,6 +30,12 @@ import {
 import { CourtJudgeEmptyState } from "./CourtJudgeEmptyState";
 import { CourtJudgeScoreNotRequiredNotice } from "./CourtJudgeSceneBanner";
 import { CourtJudgeEmptyNotice, CourtJudgeScreenShell } from "./CourtJudgeScreenShell";
+import {
+  judgeFieldInputClass,
+  judgeFieldTextareaClass,
+  resolveBracketMatchMatchonStatus,
+  resolveScoreSubmissionMatchonStatus,
+} from "@/lib/ui/judge-ui";
 
 type RoundState = { roundNumber: number; redScore: string; blueScore: string };
 
@@ -50,9 +59,9 @@ function buildInitialRounds(count: number, existing?: CourtJudgeMyScorecardVM | 
 
 function SubmittedSummary({ scorecard }: { scorecard: CourtJudgeMyScorecardVM }) {
   return (
-    <div className="rounded-lg border border-emerald-300 bg-emerald-50/80 p-3 text-sm dark:bg-emerald-950/30">
-      <p className="font-medium text-emerald-800 dark:text-emerald-200">채점 전송 완료</p>
-      <p className="text-muted-foreground mt-1 text-xs">
+    <FeedbackMessage tone="success">
+      <span className="font-semibold">채점 전송 완료</span>
+      <span className="mt-1 block text-sm font-normal">
         홍 {scorecard.redTotal ?? "—"} · 청 {scorecard.blueTotal ?? "—"} · 제출{" "}
         {scorecard.submittedAt
           ? new Date(scorecard.submittedAt).toLocaleTimeString("ko-KR", {
@@ -60,15 +69,15 @@ function SubmittedSummary({ scorecard }: { scorecard: CourtJudgeMyScorecardVM })
               minute: "2-digit",
             })
           : "—"}
-      </p>
-      <ul className="mt-2 grid gap-1 text-xs sm:grid-cols-2">
+      </span>
+      <ul className="mt-2 grid gap-1 text-xs font-normal sm:grid-cols-2">
         {scorecard.rounds.map((round) => (
           <li key={round.roundNumber}>
             {round.roundNumber}R: 홍 {round.redScore ?? "—"} / 청 {round.blueScore ?? "—"}
           </li>
         ))}
       </ul>
-    </div>
+    </FeedbackMessage>
   );
 }
 
@@ -77,14 +86,18 @@ function MatchInfoHeader({ match }: { match: CourtJudgeMatchVM }) {
     match.courtOrder != null ? `${match.courtOrder}경기` : `#${match.matchNumber ?? "?"}`;
 
   return (
-    <section className="overflow-hidden rounded-xl border bg-card">
-      <div className="border-b bg-muted/30 px-4 py-3 text-sm">
-        <div className="flex flex-wrap items-center gap-2">
+    <Card variant="default" className="overflow-hidden py-0">
+      <CardHeader className="border-b bg-muted/30 px-4 py-3">
+        <div className="flex flex-wrap items-center gap-2 text-sm">
           <span className="font-medium">
             {orderLabel}
             {" · "}
             {match.divisionLabel ?? "경기구분 미상"}
           </span>
+          <MatchonStatusBadge
+            status={resolveBracketMatchMatchonStatus(match.status)}
+            size="sm"
+          />
         </div>
         <div className="mt-2 flex flex-wrap items-center gap-2">
           <BoutFormatBadge
@@ -95,11 +108,11 @@ function MatchInfoHeader({ match }: { match: CourtJudgeMatchVM }) {
           />
           <span className="text-muted-foreground text-xs">{match.operationalSettingsLabel}</span>
         </div>
-      </div>
-      <div className="p-4">
+      </CardHeader>
+      <CardContent className="p-4">
         <CourtJudgeFightersHeader match={match} />
-      </div>
-    </section>
+      </CardContent>
+    </Card>
   );
 }
 
@@ -151,8 +164,7 @@ function ScoreForm({
     };
   }, [match.courtId, match.matchId, judgeName, birthDate, roundCount]);
 
-  const inputClass =
-    "border-input bg-background h-11 w-full rounded-md border px-3 text-base";
+  const inputClass = judgeFieldInputClass;
 
   function updateRound(roundNumber: number, patch: Partial<RoundState>) {
     setRounds((prev) =>
@@ -206,8 +218,22 @@ function ScoreForm({
   const readOnly = myScorecard?.isLocked ?? false;
 
   return (
-    <form onSubmit={onSubmit} className="space-y-4 rounded-xl border p-4">
-      <p className="text-primary text-sm font-semibold">현재 채점할 경기</p>
+    <Card variant="default" className="py-4">
+      <CardContent className="space-y-4 px-4">
+    <form onSubmit={onSubmit} className="space-y-4">
+      <div className="flex flex-wrap items-center gap-2">
+        <p className="text-primary text-sm font-semibold">현재 채점할 경기</p>
+        {myScorecard ? (
+          <MatchonStatusBadge
+            status={resolveScoreSubmissionMatchonStatus({
+              submitted: true,
+              locked: myScorecard.isLocked,
+            })}
+            label={myScorecard.isLocked ? "제출완료" : "저장됨"}
+            size="sm"
+          />
+        ) : null}
+      </div>
 
       {loadingMine ? (
         <p className="text-muted-foreground text-sm">제출 상태 확인 중…</p>
@@ -282,23 +308,33 @@ function ScoreForm({
         <textarea
           name="memo"
           rows={3}
-          className="border-input bg-background rounded-md border px-3 py-2 text-sm"
+          className={judgeFieldTextareaClass}
           value={memo}
           disabled={readOnly}
           onChange={(e) => setMemo(e.target.value)}
         />
       </label>
 
-      {error ? <p className="text-sm text-destructive">{error}</p> : null}
-      {message ? <p className="text-sm text-emerald-700">{message}</p> : null}
+      {error ? (
+        <FeedbackMessage tone="error" role="alert">
+          {error}
+        </FeedbackMessage>
+      ) : null}
+      {message ? (
+        <FeedbackMessage tone="success">{message}</FeedbackMessage>
+      ) : null}
       {!readOnly ? (
-        <Button type="submit" disabled={pending} size="lg" className="w-full sm:w-auto">
+        <Button type="submit" disabled={pending} size="field" className="w-full sm:w-auto">
           {pending ? "전송 중…" : myScorecard ? "채점 재전송" : "채점 전송"}
         </Button>
       ) : (
-        <p className="text-muted-foreground text-sm">경기 종료 후에는 채점을 수정할 수 없습니다.</p>
+        <FeedbackMessage tone="info">
+          경기 종료 후에는 채점을 수정할 수 없습니다.
+        </FeedbackMessage>
       )}
     </form>
+      </CardContent>
+    </Card>
   );
 }
 
@@ -338,16 +374,18 @@ function FinishedScoreDetail({
 
   return (
     <div className="space-y-4">
-      <section className="rounded-xl border border-border/70 bg-muted/20 p-4">
-        <h2 className="text-sm font-semibold">이미 종료된 경기입니다</h2>
-        <p className="text-muted-foreground mt-1 text-xs">
-          결과와 제출 상태를 확인할 수 있습니다.
-        </p>
-        <p className="text-muted-foreground mt-3 text-sm">{summary ?? "—"}</p>
-        {scoreSummary ? (
-          <p className="text-muted-foreground mt-2 text-xs">{scoreSummary.label}</p>
-        ) : null}
-      </section>
+      <Card variant="muted" className="py-4">
+        <CardContent className="px-4">
+          <h2 className="text-sm font-semibold">이미 종료된 경기입니다</h2>
+          <p className="text-muted-foreground mt-1 text-xs">
+            결과와 제출 상태를 확인할 수 있습니다.
+          </p>
+          <p className="text-muted-foreground mt-3 text-sm">{summary ?? "—"}</p>
+          {scoreSummary ? (
+            <p className="text-muted-foreground mt-2 text-xs">{scoreSummary.label}</p>
+          ) : null}
+        </CardContent>
+      </Card>
 
       {loading ? (
         <p className="text-muted-foreground text-sm">제출 상태 확인 중…</p>
@@ -397,17 +435,15 @@ function ScoreDetail({
     return (
       <div className="space-y-4">
         <MatchInfoHeader match={match} />
-        <section className="rounded-xl border border-border/70 bg-muted/20 p-4">
-          <div className="flex flex-wrap items-center gap-2">
-            <span className="rounded-full border border-muted-foreground/30 px-2 py-0.5 text-[11px] font-medium text-muted-foreground">
-              취소
-            </span>
-            <p className="text-sm font-medium">취소된 경기입니다.</p>
-          </div>
-          {reason ? (
-            <p className="text-muted-foreground mt-2 text-sm">취소 사유: {reason}</p>
-          ) : null}
-        </section>
+        <Card variant="muted" className="py-4">
+          <CardContent className="space-y-2 px-4">
+            <MatchonStatusBadge status="cancelled" label="경기취소" size="sm" />
+            <FeedbackMessage tone="warning">취소된 경기입니다.</FeedbackMessage>
+            {reason ? (
+              <p className="text-muted-foreground text-sm">취소 사유: {reason}</p>
+            ) : null}
+          </CardContent>
+        </Card>
       </div>
     );
   }
@@ -433,12 +469,16 @@ function ScoreDetail({
     return (
       <div className="space-y-4">
         <MatchInfoHeader match={match} />
-        <section className="rounded-xl border p-4">
-          <p className="font-medium">아직 채점할 수 없습니다</p>
-          <p className="text-muted-foreground mt-2 text-sm">
-            아직 시작 전입니다. 주심판이 경기를 시작하면 채점할 수 있습니다.
-          </p>
-        </section>
+        <Card variant="default" className="py-4">
+          <CardContent className="px-4">
+            <FeedbackMessage tone="info">
+              <span className="font-semibold">아직 채점할 수 없습니다</span>
+              <span className="mt-1 block text-sm font-normal">
+                아직 시작 전입니다. 주심판이 경기를 시작하면 채점할 수 있습니다.
+              </span>
+            </FeedbackMessage>
+          </CardContent>
+        </Card>
       </div>
     );
   }

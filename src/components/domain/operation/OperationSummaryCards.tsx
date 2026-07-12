@@ -1,5 +1,6 @@
 "use client";
 
+import { Card } from "@/components/ui/card";
 import type { OperationBoardFilter, OperationBoardSummary } from "@/lib/match-operation-display";
 import { cn } from "@/lib/utils";
 
@@ -22,14 +23,18 @@ function StatCard({
       type="button"
       aria-pressed={active}
       onClick={() => onSelect(filter)}
-      className={cn(
-        "ring-foreground/10 rounded-lg border bg-card px-4 py-3 text-left shadow-sm transition-colors",
-        "hover:bg-muted/40 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring",
-        active && "border-primary bg-primary/5 ring-primary/30",
-      )}
+      className="w-full text-left"
     >
-      <p className="text-muted-foreground text-xs">{label}</p>
-      <p className="mt-1 text-2xl font-semibold tabular-nums">{value}</p>
+      <Card
+        variant={active ? "selected" : "interactive"}
+        className={cn(
+          "px-4 py-3 transition-colors",
+          "focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring",
+        )}
+      >
+        <p className="text-muted-foreground text-xs">{label}</p>
+        <p className="mt-1 text-2xl font-semibold tabular-nums">{value}</p>
+      </Card>
     </button>
   );
 }
@@ -67,14 +72,14 @@ export function OperationSummaryCards({
         onSelect={onFilterChange}
       />
       <StatCard
-        label="경기진행중"
+        label="진행중"
         value={summary.inProgress}
         filter="in_progress"
         activeFilter={activeFilter}
         onSelect={onFilterChange}
       />
       <StatCard
-        label="완료"
+        label="경기종료"
         value={summary.completed}
         filter="completed"
         activeFilter={activeFilter}

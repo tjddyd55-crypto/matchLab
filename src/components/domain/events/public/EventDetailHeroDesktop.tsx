@@ -8,6 +8,10 @@ import { PublicEventDeadlineBadge } from "@/components/domain/events/public/Publ
 import { PublicEventTrustBadges } from "@/components/domain/events/public/PublicEventTrustBadges";
 import { publicEventDivisionSummary } from "@/components/domain/events/public/public-event-ui";
 import { buildEventPublicUrl } from "@/lib/share/event-share";
+import {
+  Card,
+  CardContent,
+} from "@/components/ui/card";
 
 export function EventDetailHeroDesktop({
   event,
@@ -50,32 +54,32 @@ export function EventDetailHeroDesktop({
             ) : null}
           </div>
 
-          <div className="rounded-xl border bg-muted/20 p-5">
-            <EventMetaList
-              eventDate={event.eventDate}
-              location={event.location}
-              registrationStartDate={event.registrationStartDate}
-              registrationEndDate={event.registrationEndDate}
-              organizerName={event.organizerName}
-              primarySport={event.primarySport}
-              divisionSummary={publicEventDivisionSummary(event)}
-            />
-            {event.paymentInfo ? (
-              <p className="text-muted-foreground mt-3 text-sm">
-                {event.paymentInfo.feeLabel}
-              </p>
-            ) : null}
-            <div className="mt-3">
-              <PublicEventTrustBadges event={event} compact />
-            </div>
-            <div className="mt-5 space-y-4 border-t pt-5">
-              <EventApplicationCta
-                eventStatus={event.status}
-                registrationStatus={event.registrationStatus}
+          <Card variant="muted">
+            <CardContent className="space-y-5 pt-5">
+              <EventMetaList
+                eventDate={event.eventDate}
+                location={event.location}
+                registrationStartDate={event.registrationStartDate}
+                registrationEndDate={event.registrationEndDate}
+                organizerName={event.organizerName}
+                primarySport={event.primarySport}
+                divisionSummary={publicEventDivisionSummary(event)}
               />
-              <EventShareButtons url={buildEventPublicUrl(event)} />
-            </div>
-          </div>
+              {event.paymentInfo ? (
+                <p className="text-muted-foreground text-sm">
+                  {event.paymentInfo.feeLabel}
+                </p>
+              ) : null}
+              <PublicEventTrustBadges event={event} compact />
+              <div className="space-y-4 border-t pt-5">
+                <EventApplicationCta
+                  eventStatus={event.status}
+                  registrationStatus={event.registrationStatus}
+                />
+                <EventShareButtons url={buildEventPublicUrl(event)} />
+              </div>
+            </CardContent>
+          </Card>
         </div>
       </div>
     </header>

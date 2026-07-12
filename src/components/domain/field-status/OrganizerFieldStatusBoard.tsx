@@ -16,7 +16,20 @@ import {
   matchesFieldStatusSummaryFilter,
   type FieldStatusSummaryFilter,
 } from "@/components/domain/field-status/field-status-filters";
+import { MatchonTabs } from "@/components/shared/MatchonTabs";
+import { Card, CardContent } from "@/components/ui/card";
 import { cn } from "@/lib/utils";
+
+const QUICK_FILTER_TABS: { id: FieldStatusSummaryFilter; label: string }[] = [
+  { id: "all", label: "전체" },
+  { id: "pending", label: "미확인" },
+  { id: "checked_in", label: "현장확인" },
+  { id: "no_show_group", label: "미출석" },
+  { id: "weigh_in_pass", label: "계체통과" },
+  { id: "weigh_in_fail", label: "계체실패" },
+  { id: "manual_pass", label: "수동승인" },
+  { id: "eligible", label: "출전확정" },
+];
 
 export function OrganizerFieldStatusBoard({
   rows,
@@ -83,7 +96,7 @@ export function OrganizerFieldStatusBoard({
   const showSportSections = sportGroups.length > 1;
 
   const selectClass =
-    "border-input bg-background h-9 rounded-md border px-2 text-sm shadow-sm";
+    "border-input bg-background h-10 rounded-md border px-2 text-sm shadow-sm focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring md:h-9";
 
   function handleSummaryFilterChange(filter: FieldStatusSummaryFilter) {
     setSummaryFilter(filter);
@@ -120,7 +133,17 @@ export function OrganizerFieldStatusBoard({
         onFilterChange={handleSummaryFilterChange}
       />
 
-      <div className="flex flex-col gap-3">
+      <div className="space-y-3">
+        <p className="text-muted-foreground text-xs font-medium">빠른 상태 필터</p>
+        <MatchonTabs
+          items={QUICK_FILTER_TABS}
+          activeId={summaryFilter}
+          onChange={handleSummaryFilterChange}
+        />
+      </div>
+
+      <Card variant="default" className="py-4">
+        <CardContent className="flex flex-col gap-3 px-4">
         <label className="flex w-full flex-col gap-1 text-xs">
           <span className="text-muted-foreground font-medium">선수 검색</span>
           <input
@@ -130,7 +153,7 @@ export function OrganizerFieldStatusBoard({
             placeholder="선수명, 체육관, 경기구분, 체급으로 검색"
             className={cn(
               selectClass,
-              "h-10 w-full px-3 text-sm md:max-w-md",
+              "h-11 w-full px-3 text-sm md:h-10 md:max-w-md",
             )}
           />
         </label>
@@ -183,7 +206,8 @@ export function OrganizerFieldStatusBoard({
             </select>
           </label>
         </div>
-      </div>
+        </CardContent>
+      </Card>
 
       <div ref={listRef} className="min-w-0 flex flex-col gap-6">
         {showSportSections

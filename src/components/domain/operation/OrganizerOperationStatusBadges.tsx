@@ -1,15 +1,14 @@
 "use client";
 
-import { Badge } from "@/components/ui/badge";
+import { MatchonStatusBadge } from "@/components/shared/MatchonStatusBadge";
 import type { OperationMatchPhase } from "@/lib/match-operation-display";
-import { statusBadgeSizeClasses } from "@/lib/ui/status-badge-ui";
-import { operationPhaseBadgeVariant } from "@/lib/ui/match-status-ui";
+import { resolveOperationDisplayStatus } from "@/lib/ui/matchon-status";
 import { cn } from "@/lib/utils";
 
 export function OrganizerOperationStatusBadges({
-  phaseLabel,
   resultStatusLabel,
   phase,
+  status,
   className,
   stacked = false,
   size = "md",
@@ -17,11 +16,12 @@ export function OrganizerOperationStatusBadges({
   phaseLabel: string;
   resultStatusLabel: string;
   phase: OperationMatchPhase;
+  status: string;
   className?: string;
   stacked?: boolean;
-  size?: keyof typeof statusBadgeSizeClasses;
+  size?: "sm" | "md" | "lg";
 }) {
-  const sizeClass = cn(statusBadgeSizeClasses[size], "whitespace-nowrap");
+  const displayStatus = resolveOperationDisplayStatus({ status, phase });
 
   return (
     <div
@@ -32,13 +32,11 @@ export function OrganizerOperationStatusBadges({
         className,
       )}
     >
-      <Badge variant={operationPhaseBadgeVariant(phase)} className={sizeClass}>
-        {phaseLabel}
-      </Badge>
+      <MatchonStatusBadge status={displayStatus} size={size} />
       {phase !== "cancelled" ? (
-        <Badge variant="resultPending" className={sizeClass}>
+        <span className="text-muted-foreground text-[11px] whitespace-nowrap">
           {resultStatusLabel}
-        </Badge>
+        </span>
       ) : null}
     </div>
   );

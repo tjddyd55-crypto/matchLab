@@ -1,13 +1,16 @@
 "use client";
 
 import type { ApplicationCancellationSource, ApplicationStatus, PaymentStatus } from "@/generated/prisma";
+import { MatchonStatusBadge } from "@/components/shared/MatchonStatusBadge";
 import {
   getOrganizerApplicationDisplayStatusLabel,
   getOrganizerPaymentDisplayLabel,
-  isPaidForOrganizerDisplay,
   resolveOrganizerApplicationDisplayStatus,
 } from "@/lib/application-display-status";
-import { StatusBadge } from "@/components/shared/StatusBadge";
+import {
+  resolveApplicationDisplayMatchonStatus,
+  resolvePaymentDisplayMatchonStatus,
+} from "@/lib/ui/application-ui";
 
 export function OrganizerApplicationStatusBadge({
   applicationStatus,
@@ -20,14 +23,16 @@ export function OrganizerApplicationStatusBadge({
     status: applicationStatus,
     cancellationSource,
   });
-  const label = getOrganizerApplicationDisplayStatusLabel(display);
-  const variant =
-    display === "approved"
-      ? "default"
-      : display === "organizer_cancelled" || display === "gym_cancelled"
-        ? "destructive"
-        : "secondary";
-  return <StatusBadge variant={variant} label={label} />;
+  return (
+    <MatchonStatusBadge
+      status={resolveApplicationDisplayMatchonStatus({
+        status: applicationStatus,
+        cancellationSource,
+      })}
+      label={getOrganizerApplicationDisplayStatusLabel(display)}
+      size="sm"
+    />
+  );
 }
 
 export function OrganizerPaymentDisplayBadge({
@@ -35,7 +40,11 @@ export function OrganizerPaymentDisplayBadge({
 }: {
   paymentStatus: PaymentStatus;
 }) {
-  const label = getOrganizerPaymentDisplayLabel(paymentStatus);
-  const variant = isPaidForOrganizerDisplay(paymentStatus) ? "default" : "outline";
-  return <StatusBadge variant={variant} label={label} />;
+  return (
+    <MatchonStatusBadge
+      status={resolvePaymentDisplayMatchonStatus(paymentStatus)}
+      label={getOrganizerPaymentDisplayLabel(paymentStatus)}
+      size="sm"
+    />
+  );
 }

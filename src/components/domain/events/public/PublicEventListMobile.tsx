@@ -7,7 +7,7 @@ export function PublicEventListMobile({
   events: PublicEventListItemDTO[];
 }) {
   return (
-    <ul className="flex flex-col gap-4 md:hidden">
+    <ul className="flex flex-col gap-3 sm:gap-4 md:hidden">
       {events.map((e, i) => (
         <li key={e.id}>
           <PublicEventCardMobile event={e} priorityImage={i < 2} />

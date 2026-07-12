@@ -5,6 +5,7 @@ import {
   nowrapTruncateClass,
   shortenAssignabilityReason,
 } from "@/lib/ui/match-grid-layout";
+import { organizerBracketFieldSelectClass } from "@/lib/ui/organizer-bracket-ui";
 import { cn } from "@/lib/utils";
 
 export function ApprovedApplicationPicker({
@@ -32,7 +33,8 @@ export function ApprovedApplicationPicker({
   className?: string;
 }) {
   const selectClass = cn(
-    "border-input bg-background h-8 w-full min-w-0 max-w-full rounded-md border px-2 text-xs shadow-sm",
+    organizerBracketFieldSelectClass,
+    "w-full min-w-0 max-w-full text-xs shadow-sm",
     nowrapTruncateClass,
     className,
   );

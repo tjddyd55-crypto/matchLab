@@ -3,8 +3,11 @@ import { requireActor } from "@/lib/auth/actor";
 import { AppError } from "@/lib/errors/app-error";
 import { applicationFormTemplateService } from "@/lib/services/application-form-template.service";
 import { ApplicationFormTemplateListTable } from "@/components/domain/application-form-templates/ApplicationFormTemplateListTable";
+import { AdminPageHeader } from "@/components/domain/admin/AdminPageHeader";
 import { EmptyState } from "@/components/shared/EmptyState";
 import { buttonVariants } from "@/components/ui/button";
+import { Card, CardContent } from "@/components/ui/card";
+import { adminPageContainerClass, adminPageStackClass } from "@/lib/ui/admin-ui";
 import { cn } from "@/lib/utils";
 
 export const dynamic = "force-dynamic";
@@ -28,53 +31,51 @@ export default async function AdminApplicationFormTemplatesPage() {
   }
 
   return (
-    <div className="mx-auto flex w-full max-w-5xl flex-col gap-8 px-4 py-8 md:px-6">
-      <div className="flex flex-col gap-4 sm:flex-row sm:items-center sm:justify-between">
-        <PageTitle />
-        <Link
-          href="/admin/application-form-templates/new"
-          className={cn(buttonVariants(), "shrink-0")}
-        >
-          새 템플릿
-        </Link>
+    <div className={adminPageContainerClass}>
+      <div className={adminPageStackClass}>
+        <div className="flex flex-col gap-4 sm:flex-row sm:items-start sm:justify-between">
+          <AdminPageHeader
+            title="신청서 템플릿"
+            description="PDF 좌표형·자체 폼형 신청서 템플릿을 관리합니다. 대회 상세에서 템플릿을 연결하면 체육관 신청 흐름이 활성화됩니다."
+          />
+          <Link
+            href="/admin/application-form-templates/new"
+            className={cn(
+              buttonVariants({ size: "field" }),
+              "w-full shrink-0 sm:w-auto",
+            )}
+          >
+            새 템플릿
+          </Link>
+        </div>
+
+        {loadError ? (
+          <EmptyState title="템플릿을 불러올 수 없습니다" description={loadError} />
+        ) : templates.length === 0 ? (
+          <EmptyState
+            title="등록된 신청서 템플릿이 없습니다"
+            description="새 템플릿을 만들어 대회에 연결할 수 있습니다."
+            action={
+              <Link
+                href="/admin/application-form-templates/new"
+                className={cn(buttonVariants({ size: "field" }), "w-full sm:w-auto")}
+              >
+                새 템플릿
+              </Link>
+            }
+          />
+        ) : (
+          <Card>
+            <CardContent className="pt-4">
+              <ApplicationFormTemplateListTable
+                templates={templates}
+                editPathPrefix="/admin/application-form-templates"
+                canEditAll
+              />
+            </CardContent>
+          </Card>
+        )}
       </div>
-
-      {loadError ? (
-        <EmptyState title="템플릿을 불러올 수 없습니다" description={loadError} />
-      ) : templates.length === 0 ? (
-        <EmptyState
-          title="등록된 신청서 템플릿이 없습니다"
-          description="새 템플릿을 만들어 대회에 연결할 수 있습니다."
-          action={
-            <Link
-              href="/admin/application-form-templates/new"
-              className={buttonVariants()}
-            >
-              새 템플릿
-            </Link>
-          }
-        />
-      ) : (
-        <ApplicationFormTemplateListTable
-          templates={templates}
-          editPathPrefix="/admin/application-form-templates"
-          canEditAll
-        />
-      )}
-    </div>
-  );
-}
-
-function PageTitle() {
-  return (
-    <div>
-      <h1 className="font-heading text-2xl font-semibold tracking-tight">
-        신청서 템플릿
-      </h1>
-      <p className="text-muted-foreground mt-1 max-w-2xl text-sm leading-relaxed">
-        PDF 좌표형·자체 폼형 신청서 템플릿을 관리합니다. 대회 상세에서 템플릿을
-        연결하면 체육관 신청 흐름이 활성화됩니다.
-      </p>
     </div>
   );
 }

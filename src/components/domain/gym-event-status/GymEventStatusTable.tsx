@@ -23,16 +23,10 @@ export function GymEventStatusTable({
   rows: GymEventApplicationStatusRowDTO[];
   onOpenDetail: (row: GymEventApplicationStatusRowDTO) => void;
 }) {
-  if (rows.length === 0) {
-    return (
-      <p className="text-muted-foreground hidden text-sm lg:block">
-        조건에 맞는 신청이 없습니다.
-      </p>
-    );
-  }
+  if (rows.length === 0) return null;
 
   return (
-    <div className="hidden overflow-x-auto lg:block">
+    <div className="hidden overflow-x-auto rounded-xl border lg:block">
       <Table className="min-w-[72rem]">
         <TableHeader>
           <TableRow>
@@ -54,8 +48,10 @@ export function GymEventStatusTable({
               className="cursor-pointer"
               onClick={() => onOpenDetail(row)}
             >
-              <TableCell className="font-medium">{row.fighterName}</TableCell>
-              <TableCell className="text-xs">{row.divisionLabel}</TableCell>
+              <TableCell className="font-medium break-words">
+                {row.fighterName}
+              </TableCell>
+              <TableCell className="text-xs break-words">{row.divisionLabel}</TableCell>
               <TableCell>
                 <div className="flex flex-col flex-wrap gap-1">
                   <ApplicationStatusBadge status={row.applicationStatus} />
@@ -63,7 +59,10 @@ export function GymEventStatusTable({
                 </div>
               </TableCell>
               <TableCell>
-                <StatusBadge variant="outline" label={row.applicationFormStatusLabel} />
+                <StatusBadge
+                  variant="outline"
+                  label={row.applicationFormStatusLabel}
+                />
               </TableCell>
               <TableCell>
                 <CheckInStatusBadge status={row.checkInStatus} />
@@ -85,7 +84,9 @@ export function GymEventStatusTable({
                       {row.bracketAssigned ? "배정됨" : "미배정"}
                     </span>
                     {row.matchSummary ? (
-                      <span className="text-muted-foreground">{row.matchSummary}</span>
+                      <span className="text-muted-foreground">
+                        {row.matchSummary}
+                      </span>
                     ) : null}
                     {row.matchStatusLabel ? (
                       <span className="text-muted-foreground">

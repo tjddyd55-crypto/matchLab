@@ -28,7 +28,7 @@ export function DashboardShell({
           actorUserId={actorUserId}
           actorEmail={actorEmail}
         />
-        <main className="flex-1">{children}</main>
+        <main className="min-w-0 flex-1 overflow-x-clip">{children}</main>
       </div>
       <MobileBottomNav className="md:hidden" role={role} />
     </div>

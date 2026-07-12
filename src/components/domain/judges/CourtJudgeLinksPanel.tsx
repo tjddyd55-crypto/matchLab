@@ -1,82 +1,113 @@
 "use client";
 
-import { useState } from "react";
+import { useMemo, useState } from "react";
 import Link from "next/link";
-import { Button } from "@/components/ui/button";
+import { CourtJudgeCourtCard } from "@/components/domain/judges/CourtJudgeCourtCard";
+import {
+  CourtJudgeLinksSummaryCards,
+  type CourtFilter,
+} from "@/components/domain/judges/CourtJudgeLinksSummaryCards";
+import { FeedbackMessage } from "@/components/shared/FeedbackMessage";
+import { MatchonTabs } from "@/components/shared/MatchonTabs";
+import type { EventCourtVM } from "@/lib/services/event-court.service";
+import { formatCourtTabLabel } from "@/lib/court-tab-label";
 import type { CourtJudgeQrLinkVM } from "@/lib/qr-url";
+import "@/components/domain/events/qr/event-qr-print.css";
+
+const FILTER_TABS: { id: CourtFilter; label: string }[] = [
+  { id: "all", label: "전체" },
+  { id: "active", label: "활성" },
+  { id: "inactive", label: "비활성" },
+];
 
 export function CourtJudgeLinksPanel({
   courts,
+  courtQrLinks,
   eventId,
 }: {
-  courts: CourtJudgeQrLinkVM[];
-  eventId?: string;
+  courts: Pick<EventCourtVM, "id" | "name" | "isActive">[];
+  courtQrLinks: CourtJudgeQrLinkVM[];
+  eventId: string;
 }) {
-  const [copied, setCopied] = useState<string | null>(null);
+  const [filter, setFilter] = useState<CourtFilter>("all");
 
-  async function copy(id: string, url: string) {
-    await navigator.clipboard.writeText(url);
-    setCopied(id);
-    window.setTimeout(() => setCopied(null), 1800);
-  }
+  const linksByCourtId = useMemo(
+    () => new Map(courtQrLinks.map((link) => [link.id, link] as const)),
+    [courtQrLinks],
+  );
+
+  const activeCount = courts.filter((court) => court.isActive).length;
+  const inactiveCount = courts.length - activeCount;
+
+  const filteredCourts = useMemo(() => {
+    return courts.filter((court) => {
+      if (filter === "active") return court.isActive;
+      if (filter === "inactive") return !court.isActive;
+      return true;
+    });
+  }, [courts, filter]);
 
   if (courts.length === 0) {
     return (
-      <section className="rounded-xl border border-dashed p-6 text-sm text-muted-foreground">
-        활성 경기장이 없습니다.{" "}
-        <Link href={`/organizer/events/${eventId ?? ""}/courts`} className="text-primary underline">
-          경기장 관리
-        </Link>
-        에서 경기장을 먼저 등록하세요.
+      <section className="rounded-xl border border-dashed p-6 text-sm">
+        <FeedbackMessage tone="info">
+          활성 경기장이 없습니다.{" "}
+          <Link
+            href={`/organizer/events/${eventId}/courts`}
+            className="text-primary font-medium underline"
+          >
+            경기장 관리
+          </Link>
+          에서 경기장을 먼저 등록하세요.
+        </FeedbackMessage>
       </section>
     );
   }
 
   return (
-    <section className="space-y-3 rounded-xl border bg-card p-4">
-      <div>
-        <h2 className="text-lg font-semibold">경기장별 심판 QR · URL</h2>
-        <p className="text-muted-foreground mt-1 text-sm">
-          QR 접속 후 이름과 생년월일을 입력하세요. 채점심판은 진행중 경기만 채점하고,
-          주심판은 경기 시작·승패 입력·완료·취소를 처리합니다. QR 출력 화면에서 최신 QR을
-          사용하세요.
-        </p>
+    <div className="flex flex-col gap-6">
+      <CourtJudgeLinksSummaryCards
+        totalCourts={courts.length}
+        activeCourts={activeCount}
+        inactiveCourts={inactiveCount}
+        linkCount={courtQrLinks.length * 2}
+        activeFilter={filter}
+        onFilterChange={setFilter}
+      />
+
+      <div className="space-y-3">
+        <p className="text-muted-foreground text-xs font-medium">경기장 필터</p>
+        <MatchonTabs items={FILTER_TABS} activeId={filter} onChange={setFilter} />
       </div>
-      <div className="grid gap-3 md:grid-cols-2">
-        {courts.map((court) => (
-          <article key={court.id} className="space-y-3 rounded-lg border p-3">
-            <h3 className="font-medium">{court.name}</h3>
-            <div className="grid gap-2 text-xs">
-              <div className="rounded-md bg-muted/40 p-2">
-                <p className="font-medium">채점심판</p>
-                <code className="mt-1 block break-all">{court.scoreEntryUrl}</code>
-                <Button
-                  type="button"
-                  size="sm"
-                  variant="outline"
-                  className="mt-2"
-                  onClick={() => void copy(`${court.id}-score`, court.scoreEntryUrl)}
-                >
-                  {copied === `${court.id}-score` ? "복사됨" : "URL 복사"}
-                </Button>
-              </div>
-              <div className="rounded-md bg-muted/40 p-2">
-                <p className="font-medium">주심판</p>
-                <code className="mt-1 block break-all">{court.headEntryUrl}</code>
-                <Button
-                  type="button"
-                  size="sm"
-                  variant="outline"
-                  className="mt-2"
-                  onClick={() => void copy(`${court.id}-head`, court.headEntryUrl)}
-                >
-                  {copied === `${court.id}-head` ? "복사됨" : "URL 복사"}
-                </Button>
-              </div>
-            </div>
-          </article>
-        ))}
-      </div>
-    </section>
+
+      <section className="space-y-3">
+        <div>
+          <h2 className="text-lg font-semibold">경기장별 심판 QR · URL</h2>
+          <p className="text-muted-foreground mt-1 text-sm">
+            QR 접속 후 이름과 생년월일을 입력하세요. 채점심판은 진행중 경기만
+            채점하고, 주심판은 경기 시작·승패 입력·완료·취소를 처리합니다. QR
+            출력 화면에서 A4 인쇄용 QR도 확인할 수 있습니다.
+          </p>
+        </div>
+
+        {filteredCourts.length === 0 ? (
+          <FeedbackMessage tone="info">
+            선택한 필터에 해당하는 경기장이 없습니다.
+          </FeedbackMessage>
+        ) : (
+          <div className="grid gap-4 md:grid-cols-2 xl:grid-cols-3">
+            {filteredCourts.map((court, index) => (
+              <CourtJudgeCourtCard
+                key={court.id}
+                courtLabel={formatCourtTabLabel(court, index)}
+                isActive={court.isActive}
+                links={linksByCourtId.get(court.id) ?? null}
+                eventId={eventId}
+              />
+            ))}
+          </div>
+        )}
+      </section>
+    </div>
   );
 }

@@ -1,6 +1,6 @@
 "use client";
 
-import { Button } from "@/components/ui/button";
+import { MatchonTabs } from "@/components/shared/MatchonTabs";
 import {
   type CourtTabId,
   formatCourtTabLabel,
@@ -22,27 +22,19 @@ export function OperationCourtTabBar({
     return null;
   }
 
+  const items: { id: CourtTabId; label: string }[] = [
+    { id: "all", label: "전체" },
+    ...activeCourts.map((court, idx) => ({
+      id: court.id,
+      label: formatCourtTabLabel(court, idx),
+    })),
+  ];
+
   return (
-    <div className="flex flex-wrap gap-2">
-      <Button
-        type="button"
-        size="sm"
-        variant={activeTab === "all" ? "default" : "outline"}
-        onClick={() => onTabChange("all")}
-      >
-        전체
-      </Button>
-      {activeCourts.map((court, idx) => (
-        <Button
-          key={court.id}
-          type="button"
-          size="sm"
-          variant={activeTab === court.id ? "default" : "outline"}
-          onClick={() => onTabChange(court.id)}
-        >
-          {formatCourtTabLabel(court, idx)}
-        </Button>
-      ))}
-    </div>
+    <MatchonTabs
+      items={items}
+      activeId={activeTab}
+      onChange={onTabChange}
+    />
   );
 }

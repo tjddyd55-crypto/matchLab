@@ -1,12 +1,12 @@
 "use client";
 
 import type { PublicEventListItemDTO } from "@/lib/dto/public";
+import { EventListEmptyState } from "@/components/domain/events/EventListEmptyState";
 import { PublicEventsFiltersDesktop } from "@/components/domain/events/public/PublicEventsFiltersDesktop";
 import { PublicEventsFiltersMobile } from "@/components/domain/events/public/PublicEventsFiltersMobile";
 import { PublicEventListDesktop } from "@/components/domain/events/public/PublicEventListDesktop";
 import { PublicEventListMobile } from "@/components/domain/events/public/PublicEventListMobile";
 import { usePublicEventsFilter } from "@/components/domain/events/public/usePublicEventsFilter";
-import { EmptyState } from "@/components/shared/EmptyState";
 
 export function PublicEventsBoard({
   events,
@@ -46,8 +46,13 @@ export function PublicEventsBoard({
         sportOptions={sportOptions}
       />
 
-      {filtered.length === 0 ? (
-        <EmptyState
+      {events.length === 0 ? (
+        <EventListEmptyState
+          title="현재 공개된 대회가 없습니다"
+          description="주최자가 대회를 공개하면 여기에 표시됩니다."
+        />
+      ) : filtered.length === 0 ? (
+        <EventListEmptyState
           title="조건에 맞는 대회가 없습니다"
           description="필터를 바꾸거나 전체 목록을 확인해 주세요."
         />

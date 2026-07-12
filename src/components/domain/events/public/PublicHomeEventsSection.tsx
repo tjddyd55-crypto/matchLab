@@ -1,8 +1,8 @@
 import Link from "next/link";
 import type { PublicEventListItemDTO } from "@/lib/dto/public";
+import { EventListEmptyState } from "@/components/domain/events/EventListEmptyState";
 import { PublicEventListDesktop } from "@/components/domain/events/public/PublicEventListDesktop";
 import { PublicEventListMobile } from "@/components/domain/events/public/PublicEventListMobile";
-import { EmptyState } from "@/components/shared/EmptyState";
 import { buttonVariants } from "@/components/ui/button";
 import { PUBLIC_CONTENT_CONTAINER_CLASS } from "@/components/domain/events/public/public-event-layout";
 import { cn } from "@/lib/utils";
@@ -35,7 +35,7 @@ export function PublicHomeEventsSection({
       </div>
 
       {events.length === 0 ? (
-        <EmptyState
+        <EventListEmptyState
           title="표시할 대회 공고가 없습니다"
           description="공개된 대회가 등록되면 여기에 포스터 카드가 표시됩니다."
         />

@@ -15,6 +15,7 @@ import {
 } from "@/components/domain/applications/OrganizerApplicationDisplayBadge";
 import { OrganizerApplicationRowActions } from "@/components/domain/applications/OrganizerApplicationRowActions";
 import { OrganizerManualEntryHint } from "@/components/domain/applications/OrganizerManualEntryHint";
+import { OrganizerApplicationsEmptyState } from "@/components/domain/applications/OrganizerApplicationsEmptyState";
 import { DivisionCompactDisplay } from "@/components/domain/shared/DivisionCompactDisplay";
 import { DivisionGenderBadge } from "@/components/domain/shared/DivisionGenderBadge";
 import type { EventDivisionDisplayInput } from "@/lib/event-division-fields";
@@ -66,12 +67,22 @@ export function OrganizerApplicationsTable({
   rows,
   selectedIds,
   onToggleSelect,
+  emptyMessage = "아직 신청자가 없습니다.",
 }: {
   eventId: string;
   rows: OrganizerApplicationRowVM[];
   selectedIds: Set<string>;
   onToggleSelect: (applicationId: string, checked: boolean) => void;
+  emptyMessage?: string;
 }) {
+  if (rows.length === 0) {
+    return (
+      <div className="hidden min-w-0 2xl:block">
+        <OrganizerApplicationsEmptyState message={emptyMessage} />
+      </div>
+    );
+  }
+
   return (
     <div className="hidden min-w-0 2xl:block">
       <Table className="w-full table-fixed">

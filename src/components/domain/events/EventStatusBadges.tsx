@@ -1,7 +1,12 @@
 import type { EventStatus } from "@/lib/enums";
 import type { OrganizerRegistrationStatus } from "@/lib/event-organizer-status";
-import { EventApplicationStatusBadge } from "@/components/domain/events/EventApplicationStatusBadge";
-import { EventStatusPill } from "@/components/domain/events/EventStatusPill";
+import { MatchonStatusBadge } from "@/components/shared/MatchonStatusBadge";
+import {
+  getPublicEventStatusLabel,
+  getPublicRegistrationStatusLabel,
+  resolvePublicEventStatusMatchonStatus,
+  resolvePublicRegistrationMatchonStatus,
+} from "@/lib/ui/public-spectator-ui";
 import { cn } from "@/lib/utils";
 
 export function EventStatusBadges({
@@ -17,10 +22,20 @@ export function EventStatusBadges({
 }) {
   return (
     <div className={cn("flex flex-wrap items-center gap-1.5", className)}>
-      <EventStatusPill status={eventStatus} />
-      <EventApplicationStatusBadge
-        status={registrationStatus}
-        emphasized={emphasizeRegistration}
+      <MatchonStatusBadge
+        status={resolvePublicEventStatusMatchonStatus(eventStatus)}
+        label={getPublicEventStatusLabel(eventStatus)}
+        size="sm"
+      />
+      <MatchonStatusBadge
+        status={resolvePublicRegistrationMatchonStatus(registrationStatus)}
+        label={getPublicRegistrationStatusLabel(registrationStatus)}
+        size="sm"
+        className={cn(
+          emphasizeRegistration &&
+            registrationStatus === "open" &&
+            "ring-2 ring-emerald-500/40",
+        )}
       />
     </div>
   );

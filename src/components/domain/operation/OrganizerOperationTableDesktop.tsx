@@ -1,8 +1,8 @@
 "use client";
 
 import { OperationJudgeBriefCell } from "@/components/domain/operation/OperationJudgeBriefCell";
-import { OperationMatchFighterMatchup } from "@/components/domain/operation/OperationMatchFighterMatchup";import { extractDisplayResultMemo } from "@/lib/match-result-memo";
-import { OrganizerMatchOpsPanel } from "@/components/domain/brackets/OrganizerMatchOpsPanel";
+import { OperationMatchFighterMatchup } from "@/components/domain/operation/OperationMatchFighterMatchup";
+import { extractDisplayResultMemo } from "@/lib/match-result-memo";
 import { OrganizerJudgeAggregationInlineSection } from "@/components/domain/judges/OrganizerJudgeAggregationInlineSection";
 import { MatchFinalResultSummary } from "@/components/domain/operation/MatchFinalResultSummary";
 import { OrganizerOperationActions } from "@/components/domain/operation/OrganizerOperationActions";
@@ -10,7 +10,6 @@ import { OrganizerOperationStatusBadges } from "@/components/domain/operation/Or
 import { DivisionCompactDisplay } from "@/components/domain/shared/DivisionCompactDisplay";
 import type { OperationMatchRowVM } from "@/components/domain/operation/operation-match-row";
 import { getOperationMatchPhase } from "@/lib/match-operation-display";
-import { toMatchOpsProps } from "@/components/domain/operation/operation-match-row";
 import {
   listTableHeaderCellCenterClass,
   listTableHeaderCellStartClass,
@@ -110,6 +109,7 @@ export function OrganizerOperationTableDesktop({
                       phase={getOperationMatchPhase(row)}
                       phaseLabel={row.phaseLabel}
                       resultStatusLabel={row.resultStatusLabel}
+                      status={row.status}
                       stacked
                       size="sm"
                       className="justify-center"
@@ -148,7 +148,7 @@ export function OrganizerOperationTableDesktop({
               {isExpanded ? (
                 <tr className={operationExpandedDetailRowClass}>
                   <td colSpan={7} className="px-3 py-3">
-                    <div className="grid gap-3 xl:grid-cols-[minmax(0,1fr)_minmax(0,0.75fr)_minmax(0,1.1fr)]">
+                    <div className="grid gap-3 xl:grid-cols-2">
                       <OrganizerJudgeAggregationInlineSection
                         matchId={row.matchId}
                         open
@@ -163,14 +163,11 @@ export function OrganizerOperationTableDesktop({
                         fighterRedName={row.fighterRed?.name ?? "미배정"}
                         fighterBlueName={row.fighterBlue?.name ?? "미배정"}
                       />
-                      <section className="border-t pt-3 xl:border-l xl:border-t-0 xl:pl-3 xl:pt-0">
-                        <h3 className="mb-2 text-sm font-semibold">주심 입력</h3>
-                        <OrganizerMatchOpsPanel
-                          {...toMatchOpsProps(row)}
-                          compact
-                        />
-                      </section>
                     </div>
+                    <p className="text-muted-foreground text-xs">
+                      결과 입력·상태 변경은 상단 「경기 운영」 영역에서
+                      진행합니다.
+                    </p>
                   </td>
                 </tr>
               ) : null}

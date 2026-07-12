@@ -15,6 +15,14 @@ import {
   type BracketCandidateGroup,
   type BracketFighterPlacementMeta,
 } from "@/lib/bracket-fighter-compact-display";
+import { FeedbackMessage } from "@/components/shared/FeedbackMessage";
+import {
+  Card,
+  CardContent,
+  CardDescription,
+  CardHeader,
+  CardTitle,
+} from "@/components/ui/card";
 import { formatMatchOrderShort } from "@/lib/match-order-display";
 import { cn } from "@/lib/utils";
 
@@ -42,12 +50,6 @@ function buildPlacementMap(
   return map;
 }
 
-/**
- * 후보 분류 우선순위:
- * 1) 배치 불가(실격·취소·미출석 등) → 참여 불가
- * 2) 대진에 이미 배정됨 → 배정된 선수
- * 3) 그 외(출전 가능·미배정) → 미배정 선수
- */
 function classifyCandidate(
   option: OrganizerApprovedFighterOptionVM,
   isPlaced: boolean,
@@ -75,6 +77,7 @@ function CandidateCard({
     <li
       className={cn(
         "rounded-lg border bg-muted/20 px-2 py-1.5",
+        group === "assigned" && "border-primary/30 bg-primary/5",
         group === "unassignable"
           ? "border-destructive/40"
           : group === "unassigned" && !option.isEligibleForBracket
@@ -163,80 +166,76 @@ export function BracketApprovedCandidatesSection({
   ).length;
 
   return (
-    <section className="ring-foreground/10 rounded-xl border bg-card p-4 shadow-sm">
-      <div>
-        <h2 className="text-lg font-semibold">승인된 신청 선수 (대진 후보)</h2>
-        <p className="text-muted-foreground mt-1 max-w-2xl text-sm">
+    <Card>
+      <CardHeader>
+        <CardTitle className="text-lg">승인된 신청 선수 (대진 후보)</CardTitle>
+        <CardDescription>
           승인된 신청자를 배정된 선수 · 참여 불가 선수 · 미배정 선수로 나누어
           표시합니다. 실격·경기취소 등 출전 불가 선수는 배치할 수 없습니다.
-        </p>
-      </div>
-
-      {unassignablePlacedCount > 0 ? (
-        <div className="mt-4 rounded-md border border-destructive/50 bg-destructive/10 px-3 py-2 text-sm">
-          <p className="font-medium text-destructive">
+        </CardDescription>
+      </CardHeader>
+      <CardContent className="space-y-4">
+        {unassignablePlacedCount > 0 ? (
+          <FeedbackMessage tone="error" role="alert">
             대진표에 배치된 선수 중 출전 불가 상태인 선수가{" "}
-            {unassignablePlacedCount}명 있습니다.
-          </p>
-          <p className="text-muted-foreground mt-1 text-xs">
-            참여 불가 선수 영역에서 확인 후 슬롯을 비우거나 다른 선수로
-            교체해 주세요.
-          </p>
+            {unassignablePlacedCount}명 있습니다. 참여 불가 선수 영역에서 확인 후
+            슬롯을 비우거나 다른 선수로 교체해 주세요.
+          </FeedbackMessage>
+        ) : null}
+
+        <div className="grid gap-4 lg:grid-cols-3 lg:gap-5">
+          <CandidateColumn
+            title="배정된 선수"
+            count={grouped.assigned.length}
+            accentClassName="bg-primary/10 text-primary"
+            emptyMessage="대진에 배정된 선수가 없습니다."
+          >
+            {grouped.assigned.map((o) => (
+              <CandidateCard
+                key={o.applicationId}
+                option={o}
+                placement={placementMap.get(o.fighterId)}
+                isPlaced
+                group="assigned"
+              />
+            ))}
+          </CandidateColumn>
+
+          <CandidateColumn
+            title="참여 불가 선수"
+            count={grouped.unassignable.length}
+            accentClassName="bg-destructive/10 text-destructive"
+            emptyMessage="참여 불가 선수가 없습니다."
+          >
+            {grouped.unassignable.map((o) => (
+              <CandidateCard
+                key={o.applicationId}
+                option={o}
+                placement={placementMap.get(o.fighterId)}
+                isPlaced={placedIds.has(o.fighterId)}
+                group="unassignable"
+              />
+            ))}
+          </CandidateColumn>
+
+          <CandidateColumn
+            title="미배정 선수"
+            count={grouped.unassigned.length}
+            accentClassName="bg-amber-500/15 text-amber-700 dark:text-amber-300"
+            emptyMessage="미배정 선수가 없습니다."
+          >
+            {grouped.unassigned.map((o) => (
+              <CandidateCard
+                key={o.applicationId}
+                option={o}
+                placement={undefined}
+                isPlaced={false}
+                group="unassigned"
+              />
+            ))}
+          </CandidateColumn>
         </div>
-      ) : null}
-
-      <div className="mt-4 grid gap-4 lg:grid-cols-3 lg:gap-5">
-        <CandidateColumn
-          title="배정된 선수"
-          count={grouped.assigned.length}
-          accentClassName="bg-primary/10 text-primary"
-          emptyMessage="대진에 배정된 선수가 없습니다."
-        >
-          {grouped.assigned.map((o) => (
-            <CandidateCard
-              key={o.applicationId}
-              option={o}
-              placement={placementMap.get(o.fighterId)}
-              isPlaced
-              group="assigned"
-            />
-          ))}
-        </CandidateColumn>
-
-        <CandidateColumn
-          title="참여 불가 선수"
-          count={grouped.unassignable.length}
-          accentClassName="bg-destructive/10 text-destructive"
-          emptyMessage="참여 불가 선수가 없습니다."
-        >
-          {grouped.unassignable.map((o) => (
-            <CandidateCard
-              key={o.applicationId}
-              option={o}
-              placement={placementMap.get(o.fighterId)}
-              isPlaced={placedIds.has(o.fighterId)}
-              group="unassignable"
-            />
-          ))}
-        </CandidateColumn>
-
-        <CandidateColumn
-          title="미배정 선수"
-          count={grouped.unassigned.length}
-          accentClassName="bg-amber-500/15 text-amber-700 dark:text-amber-300"
-          emptyMessage="미배정 선수가 없습니다."
-        >
-          {grouped.unassigned.map((o) => (
-            <CandidateCard
-              key={o.applicationId}
-              option={o}
-              placement={undefined}
-              isPlaced={false}
-              group="unassigned"
-            />
-          ))}
-        </CandidateColumn>
-      </div>
-    </section>
+      </CardContent>
+    </Card>
   );
 }

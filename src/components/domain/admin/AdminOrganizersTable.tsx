@@ -1,49 +1,102 @@
 import type { AdminOrganizerListItemDTO } from "@/lib/dto/admin";
+import { AdminListEmptyState } from "@/components/domain/admin/AdminListEmptyState";
 import { formatAdminDateTime } from "@/components/domain/admin/admin-format";
+import { MatchonStatusBadge } from "@/components/shared/MatchonStatusBadge";
+import {
+  Card,
+  CardContent,
+  CardHeader,
+  CardTitle,
+} from "@/components/ui/card";
+import {
+  Table,
+  TableBody,
+  TableCell,
+  TableHead,
+  TableHeader,
+  TableRow,
+} from "@/components/ui/table";
+import {
+  adminDesktopTableClass,
+  adminMobileListClass,
+  getAdminOrganizerStatusLabel,
+  resolveAdminOrganizerStatusMatchon,
+} from "@/lib/ui/admin-ui";
 
-export function AdminOrganizersTable({ rows }: { rows: AdminOrganizerListItemDTO[] }) {
+export function AdminOrganizersTable({
+  rows,
+}: {
+  rows: AdminOrganizerListItemDTO[];
+}) {
   if (rows.length === 0) {
-    return <p className="text-muted-foreground text-sm">주최자 데이터가 없습니다.</p>;
+    return (
+      <AdminListEmptyState
+        title="주최자 데이터가 없습니다"
+        description="등록된 주최자가 없습니다."
+      />
+    );
   }
+
   return (
-    <div className="space-y-3">
-      <div className="hidden overflow-x-auto md:block">
-        <table className="w-full min-w-[480px] text-left text-sm">
-          <thead>
-            <tr className="text-muted-foreground border-b text-xs">
-              <th className="py-2 pr-2">이름</th>
-              <th className="py-2 pr-2">타입</th>
-              <th className="py-2 pr-2">상태</th>
-              <th className="py-2 pr-2">대회 수</th>
-              <th className="py-2">등록</th>
-            </tr>
-          </thead>
-          <tbody>
+    <>
+      <div className={adminDesktopTableClass}>
+        <Table className="min-w-[480px]">
+          <TableHeader>
+            <TableRow>
+              <TableHead>이름</TableHead>
+              <TableHead>타입</TableHead>
+              <TableHead>상태</TableHead>
+              <TableHead>대회 수</TableHead>
+              <TableHead>등록</TableHead>
+            </TableRow>
+          </TableHeader>
+          <TableBody>
             {rows.map((o) => (
-              <tr key={o.id} className="border-t">
-                <td className="py-2 pr-2 font-medium">{o.name}</td>
-                <td className="text-muted-foreground py-2 pr-2 text-xs">{o.type}</td>
-                <td className="py-2 pr-2 text-xs">{o.status}</td>
-                <td className="py-2 pr-2 tabular-nums">{o.eventCount}</td>
-                <td className="text-muted-foreground py-2 whitespace-nowrap text-xs">
+              <TableRow key={o.id}>
+                <TableCell className="font-medium break-words">{o.name}</TableCell>
+                <TableCell className="text-muted-foreground text-xs">{o.type}</TableCell>
+                <TableCell>
+                  <MatchonStatusBadge
+                    status={resolveAdminOrganizerStatusMatchon(o.status)}
+                    label={getAdminOrganizerStatusLabel(o.status)}
+                    size="sm"
+                  />
+                </TableCell>
+                <TableCell className="tabular-nums">{o.eventCount}</TableCell>
+                <TableCell className="text-muted-foreground whitespace-nowrap text-xs">
                   {formatAdminDateTime(o.createdAt)}
-                </td>
-              </tr>
+                </TableCell>
+              </TableRow>
             ))}
-          </tbody>
-        </table>
+          </TableBody>
+        </Table>
       </div>
-      <ul className="space-y-2 md:hidden">
+      <ul className={adminMobileListClass}>
         {rows.map((o) => (
-          <li key={o.id} className="rounded-lg border bg-card p-3 text-sm">
-            <p className="font-medium">{o.name}</p>
-            <p className="text-muted-foreground mt-1 text-xs">
-              {o.type} · {o.status} · 대회 {o.eventCount}개
-            </p>
-            <p className="text-muted-foreground text-xs">{formatAdminDateTime(o.createdAt)}</p>
+          <li key={o.id}>
+            <Card className="gap-0 overflow-hidden py-0">
+              <CardHeader className="border-b bg-muted/15 pb-3">
+                <div className="flex flex-wrap items-start justify-between gap-2">
+                  <CardTitle className="text-base">{o.name}</CardTitle>
+                  <MatchonStatusBadge
+                    status={resolveAdminOrganizerStatusMatchon(o.status)}
+                    label={getAdminOrganizerStatusLabel(o.status)}
+                    size="sm"
+                  />
+                </div>
+              </CardHeader>
+              <CardContent className="pt-3 text-xs">
+                <p className="text-muted-foreground">
+                  {o.type} · 대회 {o.eventCount}개
+                </p>
+                <p className="text-muted-foreground mt-1">
+                  {formatAdminDateTime(o.createdAt)}
+                </p>
+              </CardContent>
+            </Card>
           </li>
         ))}
       </ul>
-    </div>
+    </>
   );
 }

@@ -9,6 +9,10 @@ import {
   isEventManagementNavItemActive,
 } from "@/lib/event-management-nav-items";
 import { Button } from "@/components/ui/button";
+import {
+  matchonScrollablePillItemClass,
+  matchonScrollablePillsClass,
+} from "@/lib/ui/matchon-layout";
 import { cn } from "@/lib/utils";
 
 export function MobileEventManagementNav({
@@ -65,7 +69,7 @@ export function MobileEventManagementNav({
       {open ? (
         <nav
           id="event-management-mobile-nav"
-          className="flex gap-2 overflow-x-auto pb-1"
+          className={cn(matchonScrollablePillsClass, "-mx-1 px-1")}
           aria-label="대회 관리 바로가기"
         >
           {items.map((item) => {
@@ -81,7 +85,8 @@ export function MobileEventManagementNav({
                 href={item.href}
                 onClick={() => setOpen(false)}
                 className={cn(
-                  "shrink-0 rounded-full border px-3 py-1.5 text-sm whitespace-nowrap transition-colors",
+                  matchonScrollablePillItemClass,
+                  "min-h-10 rounded-full border px-3 py-1.5 text-sm whitespace-nowrap transition-colors",
                   active
                     ? "border-primary bg-primary text-primary-foreground"
                     : "border-border bg-background hover:bg-muted",

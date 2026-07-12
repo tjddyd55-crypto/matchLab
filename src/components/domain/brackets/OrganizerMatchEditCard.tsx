@@ -9,12 +9,17 @@ import {
   MatchEditCenterBadges,
   MatchEditControlsRow,
 } from "@/components/domain/brackets/MatchEditControlsRow";
-import { MatchStatusBadge } from "@/components/domain/shared/MatchStatusBadge";
+import { MatchonStatusBadge } from "@/components/shared/MatchonStatusBadge";
+import { FeedbackMessage } from "@/components/shared/FeedbackMessage";
 import type { OrganizerApprovedFighterOptionVM } from "@/lib/services/bracket.service";
 import type { OrganizerBracketMatchVM } from "@/lib/services/bracket.service";
 import type { EventCourtVM } from "@/lib/services/event-court.service";
-import { BracketType } from "@/lib/enums";
+import { BracketType, BracketMatchStatus } from "@/lib/enums";
 import { formatMatchOrderShort } from "@/lib/match-order-display";
+import {
+  getBracketMatchMatchonLabel,
+  resolveBracketMatchMatchonStatus,
+} from "@/lib/ui/bracket-match-ui";
 import { CORNER_SLOT_STYLES } from "@/lib/corner-slot-styles";
 import { cn } from "@/lib/utils";
 
@@ -44,12 +49,18 @@ export function OrganizerMatchEditCard({
     <BracketMatchCompactRow
       matchOrderLabel={orderLabel}
       statusArea={
-        <div className="flex flex-col items-center gap-0.5">
-          <MatchStatusBadge status={match.status} size="sm" />
+        <div className="flex flex-col items-center gap-1">
+          <MatchonStatusBadge
+            status={resolveBracketMatchMatchonStatus(match.status as BracketMatchStatus)}
+            label={getBracketMatchMatchonLabel(match.status as BracketMatchStatus)}
+            size="sm"
+          />
           {match.hasOfficialResults ? (
-            <span className="text-emerald-700 dark:text-emerald-400 text-[10px] font-medium leading-none whitespace-nowrap">
-              결과 확정
-            </span>
+            <MatchonStatusBadge
+              status="application_completed"
+              label="결과 확정"
+              size="sm"
+            />
           ) : null}
         </div>
       }
@@ -68,6 +79,10 @@ export function OrganizerMatchEditCard({
           className={cn(
             CORNER_SLOT_STYLES["홍코너"].bg,
             "rounded-md border px-2 py-1.5",
+            match.winnerId &&
+              match.fighterRedId &&
+              match.winnerId === match.fighterRedId &&
+              "ring-2 ring-emerald-600/60",
           )}
         />
       }
@@ -98,6 +113,10 @@ export function OrganizerMatchEditCard({
           className={cn(
             CORNER_SLOT_STYLES["청코너"].bg,
             "rounded-md border px-2 py-1.5",
+            match.winnerId &&
+              match.fighterBlueId &&
+              match.winnerId === match.fighterBlueId &&
+              "ring-2 ring-emerald-600/60",
           )}
         />
       }
@@ -112,9 +131,9 @@ export function OrganizerMatchEditCard({
       }
       footer={
         editLocked ? (
-          <p className="text-amber-800 border-t bg-muted/10 px-2 py-1.5 text-[11px] dark:text-amber-200">
+          <FeedbackMessage tone="warning" className="m-2 text-[11px]">
             공식 결과가 확정된 경기는 선수·라운드 변경이 제한됩니다.
-          </p>
+          </FeedbackMessage>
         ) : null
       }
     />

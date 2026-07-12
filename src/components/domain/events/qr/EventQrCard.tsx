@@ -2,7 +2,13 @@
 
 import { useCallback, useId, useRef, useState } from "react";
 import { QRCodeSVG } from "qrcode.react";
+import { FeedbackMessage } from "@/components/shared/FeedbackMessage";
 import { Button } from "@/components/ui/button";
+import { cardVariants } from "@/components/ui/card";
+import {
+  downloadSvgAsPng,
+  triggerEventQrPrint,
+} from "@/components/domain/judges/judge-qr-ui";
 import { cn } from "@/lib/utils";
 
 export type EventQrPrintGroup =
@@ -32,34 +38,6 @@ type EventQrCardProps = {
   className?: string;
 };
 
-function downloadSvgAsPng(svg: SVGSVGElement, fileName: string) {
-  const svgData = new XMLSerializer().serializeToString(svg);
-  const blob = new Blob([svgData], { type: "image/svg+xml;charset=utf-8" });
-  const objectUrl = URL.createObjectURL(blob);
-  const image = new Image();
-  const canvas = document.createElement("canvas");
-  const exportSize = 512;
-  canvas.width = exportSize;
-  canvas.height = exportSize;
-  const ctx = canvas.getContext("2d");
-  if (!ctx) {
-    URL.revokeObjectURL(objectUrl);
-    return;
-  }
-  image.onload = () => {
-    ctx.fillStyle = "#ffffff";
-    ctx.fillRect(0, 0, exportSize, exportSize);
-    ctx.drawImage(image, 0, 0, exportSize, exportSize);
-    URL.revokeObjectURL(objectUrl);
-    const pngUrl = canvas.toDataURL("image/png");
-    const anchor = document.createElement("a");
-    anchor.href = pngUrl;
-    anchor.download = fileName;
-    anchor.click();
-  };
-  image.src = objectUrl;
-}
-
 export function EventQrCard({
   title,
   description,
@@ -77,41 +55,46 @@ export function EventQrCard({
 }: EventQrCardProps) {
   const qrId = useId().replace(/:/g, "");
   const svgRef = useRef<SVGSVGElement | null>(null);
-  const [copied, setCopied] = useState(false);
+  const [feedback, setFeedback] = useState<{
+    tone: "success" | "error";
+    message: string;
+  } | null>(null);
 
   const copyUrl = useCallback(async () => {
     if (disabled || !url) return;
+    setFeedback(null);
     try {
       await navigator.clipboard.writeText(url);
-      setCopied(true);
-      setTimeout(() => setCopied(false), 2000);
+      setFeedback({ tone: "success", message: "URL을 복사했습니다." });
     } catch {
-      setCopied(false);
+      setFeedback({ tone: "error", message: "URL 복사에 실패했습니다." });
     }
   }, [disabled, url]);
 
   const downloadQr = useCallback(() => {
-    if (disabled || !svgRef.current) return;
+    if (disabled || !svgRef.current) {
+      setFeedback({ tone: "error", message: "QR을 불러오지 못했습니다." });
+      return;
+    }
     downloadSvgAsPng(
       svgRef.current,
       downloadFileName ?? `${title.replace(/\s+/g, "-")}.png`,
     );
+    setFeedback({ tone: "success", message: "QR 이미지를 다운로드했습니다." });
   }, [disabled, downloadFileName, title]);
 
   const printCard = useCallback(() => {
     if (disabled) return;
-    document.body.dataset.eventQrPrint = printGroup;
-    window.print();
-    window.setTimeout(() => {
-      delete document.body.dataset.eventQrPrint;
-    }, 500);
+    triggerEventQrPrint(printGroup);
+    setFeedback({ tone: "success", message: "인쇄 대화상자를 열었습니다." });
   }, [disabled, printGroup]);
 
   return (
     <article
       data-print-group={printGroup}
       className={cn(
-        "event-qr-card ring-foreground/10 flex flex-col gap-4 rounded-xl border bg-card p-4 shadow-sm md:p-5",
+        cardVariants({ variant: disabled ? "muted" : "interactive" }),
+        "event-qr-card flex flex-col gap-4 p-4 md:p-5",
         disabled && "opacity-60",
         className,
       )}
@@ -172,30 +155,37 @@ export function EventQrCard({
         ) : null}
       </div>
 
-      <div className="no-print flex flex-wrap gap-2">
+      {feedback ? (
+        <FeedbackMessage tone={feedback.tone}>{feedback.message}</FeedbackMessage>
+      ) : null}
+
+      <div className="no-print flex flex-col gap-2 sm:flex-row sm:flex-wrap">
         <Button
           type="button"
-          variant="outline"
-          size="sm"
+          variant="default"
+          size="field"
           disabled={disabled || !url}
+          className="w-full sm:w-auto"
           onClick={() => void copyUrl()}
         >
-          {copied ? "복사됨" : "URL 복사"}
+          URL 복사
         </Button>
         <Button
           type="button"
           variant="outline"
-          size="sm"
+          size="field"
           disabled={disabled || !url}
+          className="w-full sm:w-auto"
           onClick={downloadQr}
         >
           QR 다운로드
         </Button>
         <Button
           type="button"
-          variant="outline"
-          size="sm"
+          variant="secondary"
+          size="field"
           disabled={disabled || !url}
+          className="w-full sm:w-auto"
           onClick={printCard}
         >
           인쇄

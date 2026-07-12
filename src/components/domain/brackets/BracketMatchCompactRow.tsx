@@ -4,6 +4,7 @@ import {
   bracketMatchRowGridClass,
   matchGridCellCenterClass,
 } from "@/lib/ui/match-grid-layout";
+import { Card } from "@/components/ui/card";
 import { cn } from "@/lib/utils";
 
 export { bracketMatchRowGridClass } from "@/lib/ui/match-grid-layout";
@@ -56,12 +57,7 @@ export function BracketMatchCompactRow({
   className?: string;
 }) {
   return (
-    <article
-      className={cn(
-        "ring-foreground/10 overflow-hidden rounded-lg border bg-card shadow-sm",
-        className,
-      )}
-    >
+    <Card className={cn("gap-0 overflow-hidden py-0", className)}>
       {divisionHint ? (
         <p
           className="text-muted-foreground truncate border-b bg-muted/20 px-2 py-0.5 text-[10px] leading-tight whitespace-nowrap"
@@ -92,7 +88,7 @@ export function BracketMatchCompactRow({
       ) : null}
 
       {footer}
-    </article>
+    </Card>
   );
 }
 

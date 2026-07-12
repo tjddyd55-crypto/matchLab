@@ -2,8 +2,11 @@
 
 import { useRouter } from "next/navigation";
 import { BrandLogo } from "@/components/common/BrandLogo";
+import { FeedbackMessage } from "@/components/shared/FeedbackMessage";
+import { MatchonStatusBadge } from "@/components/shared/MatchonStatusBadge";
 import { Button } from "@/components/ui/button";
-import { cn } from "@/lib/utils";
+import { Card, CardContent } from "@/components/ui/card";
+import type { FeedbackTone } from "@/components/shared/FeedbackMessage";
 
 export type CourtJudgeUnavailableVariant =
   | "invalid_court"
@@ -12,7 +15,7 @@ export type CourtJudgeUnavailableVariant =
 
 const COPY: Record<
   CourtJudgeUnavailableVariant,
-  { title: string; lines: string[]; badge: string; badgeClass: string }
+  { title: string; lines: string[]; badge: string; tone: FeedbackTone }
 > = {
   invalid_court: {
     title: "경기장을 찾을 수 없습니다.",
@@ -21,13 +24,13 @@ const COPY: Record<
       "운영자에게 경기장 설정을 확인해 달라고 요청해 주세요.",
     ],
     badge: "경기장 오류",
-    badgeClass: "border-destructive/40 bg-destructive/10 text-destructive",
+    tone: "error",
   },
   inactive_court: {
     title: "입장할 수 없습니다.",
     lines: ["현재 사용하지 않는 경기장입니다.", "운영자에게 문의해 주세요."],
     badge: "비활성",
-    badgeClass: "border-muted-foreground/30 bg-muted text-muted-foreground",
+    tone: "warning",
   },
   client_error: {
     title: "화면을 불러오지 못했습니다.",
@@ -36,7 +39,7 @@ const COPY: Record<
       "새로고침 후에도 반복되면 운영자에게 문의해 주세요.",
     ],
     badge: "화면 오류",
-    badgeClass: "border-amber-500/40 bg-amber-500/10 text-amber-700 dark:text-amber-300",
+    tone: "error",
   },
 };
 
@@ -66,35 +69,48 @@ export function CourtJudgeUnavailableState({
           <p className="text-muted-foreground text-sm">{eventTitle}</p>
         ) : null}
         {courtName ? <p className="text-lg font-semibold">{courtName}</p> : null}
-        <p className="text-muted-foreground text-sm">{roleLabel}</p>
-        <span
-          className={cn(
-            "inline-flex rounded-full border px-3 py-1 text-xs font-medium",
-            copy.badgeClass,
-          )}
-        >
-          {copy.badge}
-        </span>
+        <MatchonStatusBadge
+          status={roleLabel === "주심판" ? "active" : "in_progress"}
+          label={roleLabel}
+          size="sm"
+        />
       </header>
 
-      <section className="rounded-xl border bg-card p-5 text-center shadow-sm">
-        <h1 className="text-lg font-semibold">{copy.title}</h1>
-        <div className="text-muted-foreground mt-3 space-y-2 text-sm leading-relaxed">
-          {copy.lines.map((line) => (
-            <p key={line}>{line}</p>
-          ))}
-        </div>
-      </section>
+      <Card variant="default" className="py-4">
+        <CardContent className="space-y-3 px-4 text-center">
+          <MatchonStatusBadge
+            status={copy.tone === "error" ? "cancelled" : "waiting"}
+            label={copy.badge}
+            size="sm"
+          />
+          <h1 className="text-lg font-semibold">{copy.title}</h1>
+          <FeedbackMessage tone={copy.tone}>
+            {copy.lines.map((line) => (
+              <span key={line} className="block text-sm font-normal">
+                {line}
+              </span>
+            ))}
+          </FeedbackMessage>
+        </CardContent>
+      </Card>
 
       <div className="flex flex-col gap-2 sm:flex-row sm:justify-center">
         <Button
           type="button"
           variant="outline"
+          size="field"
+          className="sm:w-auto"
           onClick={() => (onRefresh ? onRefresh() : router.refresh())}
         >
           {refreshLabel}
         </Button>
-        <Button type="button" variant="ghost" onClick={() => router.back()}>
+        <Button
+          type="button"
+          variant="ghost"
+          size="field"
+          className="sm:w-auto"
+          onClick={() => router.back()}
+        >
           뒤로가기
         </Button>
       </div>
