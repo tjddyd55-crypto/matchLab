@@ -4,6 +4,8 @@
  */
 import "dotenv/config";
 import { writeFileSync } from "node:fs";
+import { tmpdir } from "node:os";
+import { join } from "node:path";
 import { randomBytes, scryptSync } from "node:crypto";
 import { JudgeCredentialRole } from "../src/generated/prisma";
 import { prisma } from "../src/lib/prisma";
@@ -16,7 +18,7 @@ const ASSIGNED_MATCH_ID =
 const UNASSIGNED_MATCH_ID =
   process.env.JUDGE_UI_E2E_UNASSIGNED_MATCH_ID ?? "cmq963ze6000p0pjzpru7bioq";
 const PASSWORD = process.env.JUDGE_UI_E2E_PASSWORD ?? "JudgeUiE2e6512!";
-const BASE_URL = process.env.JUDGE_UI_E2E_BASE_URL ?? "http://localhost:3002";
+const BASE_URL = process.env.JUDGE_UI_E2E_BASE_URL ?? "http://localhost:3000";
 
 function hashJudgePassword(plain: string): string {
   const salt = randomBytes(16).toString("hex");
@@ -117,8 +119,13 @@ async function main() {
     },
   };
 
-  writeFileSync("/tmp/judge-ui-e2e-manifest.json", JSON.stringify(manifest, null, 2));
+  const manifestPath =
+    process.env.JUDGE_UI_E2E_MANIFEST_PATH ??
+    join(tmpdir(), "judge-ui-e2e-manifest.json");
+
+  writeFileSync(manifestPath, JSON.stringify(manifest, null, 2));
   console.log("Fixture ready:", manifest);
+  console.log("Manifest path:", manifestPath);
 }
 
 main()

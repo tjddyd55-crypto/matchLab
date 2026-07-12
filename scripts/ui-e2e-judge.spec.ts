@@ -1,6 +1,8 @@
 import { test, expect, type Page } from "@playwright/test";
 import { execSync } from "node:child_process";
-import { readFileSync } from "node:fs";
+import { readFileSync, existsSync } from "node:fs";
+import { tmpdir } from "node:os";
+import { join } from "node:path";
 
 type Manifest = {
   baseUrl: string;
@@ -13,10 +15,25 @@ type Manifest = {
   >;
 };
 
+function resolveManifestPath(): string {
+  const candidates = [
+    process.env.JUDGE_UI_E2E_MANIFEST_PATH,
+    join(tmpdir(), "judge-ui-e2e-manifest.json"),
+    "/tmp/judge-ui-e2e-manifest.json",
+    join(process.cwd(), "judge-ui-e2e-manifest.json"),
+  ].filter((p): p is string => Boolean(p));
+
+  for (const path of candidates) {
+    if (existsSync(path)) return path;
+  }
+
+  throw new Error(
+    `judge-ui-e2e manifest not found. Run npm run setup:judge-ui-e2e first. Tried: ${candidates.join(", ")}`,
+  );
+}
+
 function loadManifest(): Manifest {
-  return JSON.parse(
-    readFileSync("/tmp/judge-ui-e2e-manifest.json", "utf8"),
-  ) as Manifest;
+  return JSON.parse(readFileSync(resolveManifestPath(), "utf8")) as Manifest;
 }
 
 async function judgeLogin(page: Page, loginId: string, password: string) {

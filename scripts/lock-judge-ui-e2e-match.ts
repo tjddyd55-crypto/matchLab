@@ -2,13 +2,33 @@
  * UI E2E용 배정 경기 MatchResult 확정 (additive only, idempotent).
  */
 import "dotenv/config";
-import { readFileSync } from "node:fs";
+import { readFileSync, existsSync } from "node:fs";
+import { tmpdir } from "node:os";
+import { join } from "node:path";
 import { prisma } from "../src/lib/prisma";
 import { judgeScorecardRepository } from "../src/lib/repositories/judge-scorecard.repository";
 
-const manifest = JSON.parse(
-  readFileSync("/tmp/judge-ui-e2e-manifest.json", "utf8"),
-) as { assignedMatchId: string; eventId: string };
+function resolveManifestPath(): string {
+  const candidates = [
+    process.env.JUDGE_UI_E2E_MANIFEST_PATH,
+    join(tmpdir(), "judge-ui-e2e-manifest.json"),
+    "/tmp/judge-ui-e2e-manifest.json",
+    join(process.cwd(), "judge-ui-e2e-manifest.json"),
+  ].filter((p): p is string => Boolean(p));
+
+  for (const path of candidates) {
+    if (existsSync(path)) return path;
+  }
+
+  throw new Error(
+    `judge-ui-e2e manifest not found. Run npm run setup:judge-ui-e2e first. Tried: ${candidates.join(", ")}`,
+  );
+}
+
+const manifest = JSON.parse(readFileSync(resolveManifestPath(), "utf8")) as {
+  assignedMatchId: string;
+  eventId: string;
+};
 
 async function main() {
   const match = await prisma.bracketMatch.findUnique({
