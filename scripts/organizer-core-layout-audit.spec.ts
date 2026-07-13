@@ -110,3 +110,27 @@ for (const viewport of [
     }
   });
 }
+
+test.describe("dashboard padding regression", () => {
+  test.use({ viewport: { width: 1440, height: 900 } });
+
+  test("organizer events list keeps container padding", async ({ page }) => {
+    await loginOrganizer(page);
+    await page.goto("/organizer/events", {
+      waitUntil: "networkidle",
+      timeout: 60_000,
+    });
+
+    const globalSidebar = page.locator("aside.bg-matchon-sidebar");
+    const globalBox = await globalSidebar.boundingBox();
+    const mainHeading = page.getByRole("heading").first();
+    const headingBox = await mainHeading.boundingBox();
+
+    expect(globalBox).not.toBeNull();
+    expect(headingBox).not.toBeNull();
+    if (!globalBox || !headingBox) return;
+
+    const contentInset = headingBox.x - (globalBox.x + globalBox.width);
+    expect(contentInset).toBeGreaterThanOrEqual(24);
+  });
+});

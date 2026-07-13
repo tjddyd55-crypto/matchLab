@@ -88,6 +88,26 @@ function attachConsoleCollector(page: Page): string[] {
   return errors;
 }
 
+async function assertSidebarFlush(page: Page) {
+  const globalSidebar = page.locator("aside.bg-matchon-sidebar");
+  await expect(globalSidebar).toBeVisible();
+
+  const eventNav = page.getByRole("navigation", { name: "대회 관리 메뉴" });
+  const eventAside = eventNav.locator("xpath=ancestor::aside[1]");
+
+  const globalBox = await globalSidebar.boundingBox();
+  const eventBox = await eventAside.boundingBox();
+  expect(globalBox, "global sidebar box").not.toBeNull();
+  expect(eventBox, "event sidebar box").not.toBeNull();
+  if (!globalBox || !eventBox) return;
+
+  const globalRight = globalBox.x + globalBox.width;
+  const gap = eventBox.x - globalRight;
+  expect(Math.abs(gap), `sidebar gap ${gap.toFixed(2)}px`).toBeLessThanOrEqual(1);
+  expect(globalBox.width, "global sidebar width").toBeCloseTo(224, 0);
+  expect(eventBox.width, "event sidebar width").toBeCloseTo(232, 0);
+}
+
 async function assertVerticalSidebar(page: Page, route: RouteCase) {
   const sideNav = page.getByRole("navigation", { name: "대회 관리 메뉴" });
   await expect(sideNav).toBeVisible();
@@ -104,6 +124,8 @@ async function assertVerticalSidebar(page: Page, route: RouteCase) {
   ).toHaveAttribute("aria-current", "page");
 
   await expect(page.getByText("내 대회 목록")).toBeVisible();
+
+  await assertSidebarFlush(page);
 
   const overflow = await page.evaluate(
     () =>

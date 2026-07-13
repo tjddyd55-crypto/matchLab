@@ -6,7 +6,6 @@ import type { EventStatus } from "@/lib/enums";
 import { EVENT_MANAGEMENT_CONTENT_CLASS } from "@/lib/event-management-layout";
 import type { OrganizerRegistrationStatus } from "@/lib/event-organizer-status";
 import {
-  eventManagementLayoutBleedClass,
   eventManagementLayoutGridClass,
   eventManagementMainColumnClass,
   eventManagementMainContentClass,
@@ -39,7 +38,7 @@ export function EventManagementLayout({
   };
 
   return (
-    <div className={cn("w-full min-w-0", eventManagementLayoutBleedClass, className)}>
+    <div className={cn("w-full min-w-0", className)}>
       <div className={eventManagementLayoutGridClass}>
         <Suspense fallback={null}>
           <EventManagementSideNav {...navProps} />

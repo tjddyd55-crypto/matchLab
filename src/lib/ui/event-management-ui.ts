@@ -4,10 +4,6 @@ import { matchonPageDescClass } from "@/lib/ui/matchon-layout";
 
 export const eventManagementPageBackgroundClass = "bg-[#F8FAFC]";
 
-/** container padding 상쇄 — 이벤트 레이아웃 full-bleed */
-export const eventManagementLayoutBleedClass =
-  "-mx-4 -mt-6 sm:-mx-6 md:-mt-8 lg:-mx-8";
-
 export const eventManagementLayoutGridClass =
   "grid min-h-[calc(100vh-var(--dashboard-header-height))] min-w-0 grid-cols-1 md:grid-cols-[var(--event-sidebar-width)_minmax(0,1fr)]";
 
@@ -43,7 +39,7 @@ export const eventManagementSideNavLinkInactiveClass =
 export const eventManagementMainColumnClass = "min-w-0 bg-[#F8FAFC]";
 
 export const eventManagementMainContentClass =
-  "min-w-0 w-full space-y-5 px-4 py-5 sm:px-6 md:space-y-7 md:px-8 md:py-7";
+  "min-w-0 w-full space-y-5 px-[var(--dashboard-content-padding-x)] py-5 md:space-y-7 md:py-7";
 
 export const eventManagementMobileBarClass =
   "flex items-center justify-between gap-3 border-b border-[#E2E8F0] bg-white px-4 py-3 md:hidden";
@@ -61,10 +57,11 @@ export const eventManagementSelectedSurfaceClass = "bg-[#EAF1FF]";
 export const eventManagementBorderColorClass = "border-[#E2E8F0]";
 
 /** Organizer container padding과 동일한 inset (좌우 정렬 SSOT) */
-export const eventManagementContentInsetClass = "px-4 sm:px-6 lg:px-8";
+export const eventManagementContentInsetClass =
+  "px-[var(--dashboard-content-padding-x)]";
 
 /** Chrome를 container 전폭으로 확장 */
-export const eventManagementChromeBleedClass = `-mx-4 sm:-mx-6 lg:-mx-8 border-b ${eventManagementBorderColorClass} ${eventManagementChromeSurfaceClass}`;
+export const eventManagementChromeBleedClass = `-mx-[var(--dashboard-content-padding-x)] border-b ${eventManagementBorderColorClass} ${eventManagementChromeSurfaceClass}`;
 
 export const eventManagementContentClass =
   "min-w-0 w-full space-y-5 md:space-y-7";

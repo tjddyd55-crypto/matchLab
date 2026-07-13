@@ -81,6 +81,7 @@
   --global-sidebar-width: 14rem;
   --event-sidebar-width: 232px;
   --dashboard-header-height: 3.25rem;
+  --dashboard-content-padding-x: 1rem;
 
   --background: oklch(1 0 0);
   --foreground: oklch(0.145 0 0);
@@ -129,6 +130,18 @@
   --division-gender-column-divider: oklch(0.85 0.02 264);
   --division-row-hover-bg: oklch(0.97 0.005 264 / 70%);
   --division-section-divider: var(--border);
+}
+
+@media (min-width: 640px) {
+  :root {
+    --dashboard-content-padding-x: 1.5rem;
+  }
+}
+
+@media (min-width: 1024px) {
+  :root {
+    --dashboard-content-padding-x: 2rem;
+  }
 }
 
 .dark {
