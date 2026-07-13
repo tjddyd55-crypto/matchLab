@@ -5,7 +5,7 @@ import { bracketService } from "@/lib/services/bracket.service";
 import { eventCourtService } from "@/lib/services/event-court.service";
 import { OrganizerBracketEditor } from "@/components/domain/brackets/OrganizerBracketEditor";
 import { EventManagementLayout } from "@/components/domain/events/EventManagementLayout";
-import { loadEventManagementNavContext } from "@/lib/event-management-nav-context";
+import { loadEventManagementNavContext, eventManagementLayoutProps } from "@/lib/event-management-nav-context";
 
 export const dynamic = "force-dynamic";
 
@@ -30,7 +30,7 @@ export default async function OrganizerBracketDetailPage({
   }
 
   return (
-    <EventManagementLayout eventId={nav.eventId} publicSlug={nav.publicSlug}>
+    <EventManagementLayout {...eventManagementLayoutProps(nav)}>
       <OrganizerBracketEditor eventId={eventId} detail={detail} courts={courts} />
     </EventManagementLayout>
   );

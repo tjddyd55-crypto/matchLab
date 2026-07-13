@@ -3,7 +3,7 @@ import { EventManagementPageHeader } from "@/components/domain/events/EventManag
 import { EventQrPrintBoard } from "@/components/domain/events/qr/EventQrPrintBoard";
 import { requireActor } from "@/lib/auth/actor";
 import { requireOrganizerForEventPage, resolveOrganizerEventPageError } from "@/lib/permissions";
-import { loadEventManagementNavContext } from "@/lib/event-management-nav-context";
+import { loadEventManagementNavContext, eventManagementLayoutProps } from "@/lib/event-management-nav-context";
 import { eventService } from "@/lib/services/event.service";
 import { eventCourtService } from "@/lib/services/event-court.service";
 import { getServerAppBaseUrl } from "@/lib/qr-url";
@@ -43,7 +43,7 @@ export default async function OrganizerEventQrPage({
     : 0;
 
   return (
-    <EventManagementLayout eventId={nav.eventId} publicSlug={nav.publicSlug}>
+    <EventManagementLayout {...eventManagementLayoutProps(nav)}>
       <EventManagementPageHeader
         title="QR 출력"
         eventTitle={detail.title}

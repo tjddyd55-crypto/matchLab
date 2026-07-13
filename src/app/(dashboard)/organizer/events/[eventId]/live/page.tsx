@@ -5,7 +5,7 @@ import { EventManagementLayout } from "@/components/domain/events/EventManagemen
 import { EventManagementPageHeader } from "@/components/domain/events/EventManagementPageHeader";
 import { requireActor } from "@/lib/auth/actor";
 import { resolveOrganizerEventPageError } from "@/lib/permissions";
-import { loadEventManagementNavContext } from "@/lib/event-management-nav-context";
+import { loadEventManagementNavContext, eventManagementLayoutProps } from "@/lib/event-management-nav-context";
 import { eventService } from "@/lib/services/event.service";
 import { liveStreamService } from "@/lib/services/live-stream.service";
 import { cn } from "@/lib/utils";
@@ -33,7 +33,7 @@ export default async function OrganizerEventLivePage({
   ]);
 
   return (
-    <EventManagementLayout eventId={nav.eventId} publicSlug={nav.publicSlug}>
+    <EventManagementLayout {...eventManagementLayoutProps(nav)}>
       <EventManagementPageHeader
         title="라이브 URL"
         eventTitle={detail.title}

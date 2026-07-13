@@ -5,7 +5,7 @@ import { OrganizerCourtFieldStatusBoard } from "@/components/domain/field-status
 import { OrganizerMatchesRealtimeBridge } from "@/components/domain/matches/OrganizerMatchesRealtimeBridge";
 import { requireActor } from "@/lib/auth/actor";
 import { requireOrganizerForEventPage } from "@/lib/permissions";
-import { loadEventManagementNavContext } from "@/lib/event-management-nav-context";
+import { loadEventManagementNavContext, eventManagementLayoutProps } from "@/lib/event-management-nav-context";
 import { eventCourtService } from "@/lib/services/event-court.service";
 import { matchService } from "@/lib/services/match.service";
 import { buttonVariants } from "@/components/ui/button";
@@ -32,7 +32,7 @@ export default async function OrganizerEventFieldStatusPage({
   const bracketIds = [...new Set(matches.map((match) => match.bracketId))];
 
   return (
-    <EventManagementLayout eventId={nav.eventId} publicSlug={nav.publicSlug}>
+    <EventManagementLayout {...eventManagementLayoutProps(nav)}>
       <OrganizerMatchesRealtimeBridge
         eventId={eventId}
         bracketIds={bracketIds}

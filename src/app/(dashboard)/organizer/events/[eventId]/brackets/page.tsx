@@ -10,7 +10,7 @@ import { OrganizerCourtViewSection } from "@/components/domain/courts/OrganizerC
 import { parseBracketPageTab } from "@/lib/brackets/bracket-page-tab";
 import { EventManagementLayout } from "@/components/domain/events/EventManagementLayout";
 import { EventManagementPageHeader } from "@/components/domain/events/EventManagementPageHeader";
-import { loadEventManagementNavContext } from "@/lib/event-management-nav-context";
+import { loadEventManagementNavContext, eventManagementLayoutProps } from "@/lib/event-management-nav-context";
 
 export const dynamic = "force-dynamic";
 
@@ -37,7 +37,7 @@ export default async function OrganizerEventBracketsPage({
   const publicBracketCount = brackets.filter((b) => b.isPublic).length;
 
   return (
-    <EventManagementLayout eventId={nav.eventId} publicSlug={nav.publicSlug}>
+    <EventManagementLayout {...eventManagementLayoutProps(nav)}>
       <EventManagementPageHeader
         title="대진표 관리"
         eventTitle={nav.title}

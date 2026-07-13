@@ -10,9 +10,10 @@ import { EventRecordingStreamingSettings } from "@/components/domain/events/Even
 import { SpectatorSettingsSection } from "@/components/domain/events/SpectatorSettingsSection";
 import { EventStatusControl } from "@/components/domain/events/EventStatusControl";
 import { OrganizerEventFlashBanner } from "@/components/domain/events/OrganizerEventFlashBanner";
-import { EventStatusPill } from "@/components/domain/events/EventStatusPill";
+import { EventManagementPageHeader } from "@/components/domain/events/EventManagementPageHeader";
 import { resolveOrganizerEventPageError } from "@/lib/permissions";
 import { requireActor } from "@/lib/auth/actor";
+import { resolveOrganizerRegistrationStatus } from "@/lib/event-organizer-status";
 import { EventStatus } from "@/lib/enums";
 import { EventApplicationFormTemplateSection } from "@/components/domain/events/EventApplicationFormTemplateSection";
 import { applicationFormTemplateService } from "@/lib/services/application-form-template.service";
@@ -87,28 +88,36 @@ export default async function OrganizerEventDetailPage({
   const setupChecklist = buildEventSetupChecklist(setupInput);
 
   return (
-    <EventManagementLayout eventId={detail.id} publicSlug={detail.publicSlug}>
-      <header className="space-y-2">
-        <div className="flex flex-wrap items-center gap-2">
-          <h1 className="font-heading text-2xl font-semibold tracking-tight md:text-3xl">
-            {detail.title}
-          </h1>
-          <EventStatusPill status={detail.status} />
-        </div>
-        <p className="text-muted-foreground text-sm">
-          {detail.location ?? "—"} ·{" "}
-          {new Date(detail.eventDate).toLocaleString("ko-KR", {
-            dateStyle: "medium",
-            timeStyle: "short",
-          })}
-        </p>
-        {detail.status === EventStatus.draft ? (
+    <EventManagementLayout
+      eventId={detail.id}
+      publicSlug={detail.publicSlug}
+      eventTitle={detail.title}
+      eventStatus={detail.status}
+      registrationStatus={resolveOrganizerRegistrationStatus({
+        status: detail.status,
+        registrationStartDate: detail.registrationStartDate,
+        registrationEndDate: detail.registrationEndDate,
+      })}
+    >
+      <EventManagementPageHeader
+        title="관리 홈"
+        description={
+          <>
+            {detail.location ?? "—"} ·{" "}
+            {new Date(detail.eventDate).toLocaleString("ko-KR", {
+              dateStyle: "medium",
+              timeStyle: "short",
+            })}
+          </>
+        }
+      />
+
+      {detail.status === EventStatus.draft ? (
           <p className="rounded-md border border-amber-500/40 bg-amber-500/10 px-3 py-2 text-sm">
             작성 중인 대회는 공개 URL로 접속해도 공고가 보이지 않습니다. 신청
             공개(OPEN) 전환 후 확인해 주세요.
           </p>
-        ) : null}
-      </header>
+      ) : null}
 
       <OrganizerEventFlashBanner />
 

@@ -9,12 +9,12 @@ import { cn } from "@/lib/utils";
 export function EventManagementPageHeader({
   title,
   description,
-  eventTitle,
   children,
   className,
 }: {
   title: string;
   description?: ReactNode;
+  /** @deprecated EventContextHeader에서 대회명을 표시합니다. */
   eventTitle?: string | null;
   children?: ReactNode;
   className?: string;
@@ -22,9 +22,6 @@ export function EventManagementPageHeader({
   return (
     <header className={cn(EVENT_MANAGEMENT_PAGE_HEADER_CLASS, className)}>
       <h1 className={EVENT_MANAGEMENT_PAGE_TITLE_CLASS}>{title}</h1>
-      {eventTitle ? (
-        <p className="text-muted-foreground text-sm">{eventTitle}</p>
-      ) : null}
       {description ? (
         <div className={EVENT_MANAGEMENT_PAGE_DESC_CLASS}>{description}</div>
       ) : null}

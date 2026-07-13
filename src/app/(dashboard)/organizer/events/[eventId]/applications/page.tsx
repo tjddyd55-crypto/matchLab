@@ -4,7 +4,7 @@ import { applicationService } from "@/lib/services/application.service";
 import { OrganizerApplicationsBoard } from "@/components/domain/applications/OrganizerApplicationsBoard";
 import { EventManagementLayout } from "@/components/domain/events/EventManagementLayout";
 import { EventManagementPageHeader } from "@/components/domain/events/EventManagementPageHeader";
-import { loadEventManagementNavContext } from "@/lib/event-management-nav-context";
+import { loadEventManagementNavContext, eventManagementLayoutProps } from "@/lib/event-management-nav-context";
 
 export const dynamic = "force-dynamic";
 
@@ -25,7 +25,7 @@ export default async function OrganizerEventApplicationsPage({
   ]);
 
   return (
-    <EventManagementLayout eventId={nav.eventId} publicSlug={nav.publicSlug}>
+    <EventManagementLayout {...eventManagementLayoutProps(nav)}>
       <EventManagementPageHeader
         title="신청자 관리"
         eventTitle={nav.title}

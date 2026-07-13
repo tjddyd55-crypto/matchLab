@@ -6,7 +6,7 @@ import { EmptyState } from "@/components/shared/EmptyState";
 import { buttonVariants } from "@/components/ui/button";
 import { EventManagementLayout } from "@/components/domain/events/EventManagementLayout";
 import { EventManagementPageHeader } from "@/components/domain/events/EventManagementPageHeader";
-import { loadEventManagementNavContext } from "@/lib/event-management-nav-context";
+import { loadEventManagementNavContext, eventManagementLayoutProps } from "@/lib/event-management-nav-context";
 import { cn } from "@/lib/utils";
 
 export const dynamic = "force-dynamic";
@@ -26,7 +26,7 @@ export default async function OrganizerApplicationBatchesPage({
   ]);
 
   return (
-    <EventManagementLayout eventId={nav.eventId} publicSlug={nav.publicSlug}>
+    <EventManagementLayout {...eventManagementLayoutProps(nav)}>
       <EventManagementPageHeader
         title="공식 신청서 묶음"
         eventTitle={nav.title}

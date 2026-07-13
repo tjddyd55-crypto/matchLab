@@ -4,7 +4,7 @@ import { EventManagementPageHeader } from "@/components/domain/events/EventManag
 import { CourtJudgeLinksPanel } from "@/components/domain/judges/CourtJudgeLinksPanel";
 import { requireActor } from "@/lib/auth/actor";
 import { requireOrganizerForEventPage } from "@/lib/permissions";
-import { loadEventManagementNavContext } from "@/lib/event-management-nav-context";
+import { loadEventManagementNavContext, eventManagementLayoutProps } from "@/lib/event-management-nav-context";
 import { eventCourtService } from "@/lib/services/event-court.service";
 import { getServerAppBaseUrl } from "@/lib/qr-url";
 import { buildCourtJudgeQrLinks } from "@/lib/services/judge-qr-entry.service";
@@ -34,7 +34,7 @@ export default async function OrganizerEventJudgesPage({
   const courtQrLinks = buildCourtJudgeQrLinks(eventId, activeCourts, baseUrl);
 
   return (
-    <EventManagementLayout eventId={nav.eventId} publicSlug={nav.publicSlug}>
+    <EventManagementLayout {...eventManagementLayoutProps(nav)}>
       <EventManagementPageHeader
         title="심판 관리"
         eventTitle={nav.title}

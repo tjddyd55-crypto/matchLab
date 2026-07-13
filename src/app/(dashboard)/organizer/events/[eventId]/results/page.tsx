@@ -5,7 +5,7 @@ import { EmptyState } from "@/components/shared/EmptyState";
 import { buttonVariants } from "@/components/ui/button";
 import { requireActor } from "@/lib/auth/actor";
 import { resolveOrganizerEventPageError } from "@/lib/permissions";
-import { loadEventManagementNavContext } from "@/lib/event-management-nav-context";
+import { loadEventManagementNavContext, eventManagementLayoutProps } from "@/lib/event-management-nav-context";
 import { MatchRecordOutcome } from "@/lib/enums";
 import { eventService } from "@/lib/services/event.service";
 import { resultService } from "@/lib/services/result.service";
@@ -52,7 +52,7 @@ export default async function OrganizerEventResultsPage({
   );
 
   return (
-    <EventManagementLayout eventId={nav.eventId} publicSlug={nav.publicSlug}>
+    <EventManagementLayout {...eventManagementLayoutProps(nav)}>
       <EventManagementPageHeader
         title="결과"
         eventTitle={detail.title}

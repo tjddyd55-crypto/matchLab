@@ -7,7 +7,7 @@ import { fieldStatusService } from "@/lib/services/field-status.service";
 import { OrganizerFieldStatusBoard } from "@/components/domain/field-status/OrganizerFieldStatusBoard";
 import { EventManagementLayout } from "@/components/domain/events/EventManagementLayout";
 import { EventManagementPageHeader } from "@/components/domain/events/EventManagementPageHeader";
-import { loadEventManagementNavContext } from "@/lib/event-management-nav-context";
+import { loadEventManagementNavContext, eventManagementLayoutProps } from "@/lib/event-management-nav-context";
 export const dynamic = "force-dynamic";
 
 export default async function OrganizerEventCheckInPage({
@@ -30,7 +30,7 @@ export default async function OrganizerEventCheckInPage({
   ]);
 
   return (
-    <EventManagementLayout eventId={nav.eventId} publicSlug={nav.publicSlug}>
+    <EventManagementLayout {...eventManagementLayoutProps(nav)}>
       <EventManagementPageHeader
         title="현장 확인·계체"
         eventTitle={nav.title}

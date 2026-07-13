@@ -6,7 +6,7 @@ import { OrganizerOperationStaffLinkBanner } from "@/components/domain/operation
 import { requireActor } from "@/lib/auth/actor";
 import { getAppBaseUrl } from "@/lib/app-url";
 import { requireOrganizerForEventPage } from "@/lib/permissions";
-import { loadEventManagementNavContext } from "@/lib/event-management-nav-context";
+import { loadEventManagementNavContext, eventManagementLayoutProps } from "@/lib/event-management-nav-context";
 import { eventStaffAccessService } from "@/lib/services/event-staff-access.service";
 import { eventCourtService } from "@/lib/services/event-court.service";
 import { matchService } from "@/lib/services/match.service";
@@ -52,7 +52,7 @@ export default async function OrganizerEventOperationPage({
   const bracketIds = [...new Set(matches.map((m) => m.bracketId))];
 
   return (
-    <EventManagementLayout eventId={nav.eventId} publicSlug={nav.publicSlug}>
+    <EventManagementLayout {...eventManagementLayoutProps(nav)}>
       <OrganizerMatchesRealtimeBridge
         eventId={eventId}
         bracketIds={bracketIds}

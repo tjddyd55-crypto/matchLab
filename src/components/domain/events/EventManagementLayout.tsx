@@ -1,31 +1,43 @@
 import type { ReactNode } from "react";
-import { EventManagementSideNav } from "@/components/domain/events/EventManagementSideNav";
-import { MobileEventManagementNav } from "@/components/domain/events/MobileEventManagementNav";
+import { Suspense } from "react";
+import { EventContextHeader } from "@/components/domain/events/EventContextHeader";
+import { EventManagementNavBar } from "@/components/domain/events/EventManagementNavBar";
+import type { EventStatus } from "@/lib/enums";
 import { EVENT_MANAGEMENT_CONTENT_CLASS } from "@/lib/event-management-layout";
+import type { OrganizerRegistrationStatus } from "@/lib/event-organizer-status";
+import { eventManagementChromeClass } from "@/lib/ui/event-management-ui";
 import { cn } from "@/lib/utils";
 
 export function EventManagementLayout({
   eventId,
   publicSlug,
+  eventTitle,
+  eventStatus,
+  registrationStatus,
   children,
   className,
 }: {
   eventId: string;
   publicSlug?: string | null;
+  eventTitle: string;
+  eventStatus: EventStatus;
+  registrationStatus: OrganizerRegistrationStatus;
   children: ReactNode;
   className?: string;
 }) {
   return (
     <div className={cn("w-full min-w-0", className)}>
-      <div className="lg:grid lg:grid-cols-[240px_minmax(0,1fr)] lg:items-start lg:gap-5">
-        <aside className="hidden lg:block">
-          <EventManagementSideNav eventId={eventId} publicSlug={publicSlug} />
-        </aside>
-        <div className={EVENT_MANAGEMENT_CONTENT_CLASS}>
-          <MobileEventManagementNav eventId={eventId} publicSlug={publicSlug} />
-          {children}
-        </div>
+      <div className={eventManagementChromeClass}>
+        <EventContextHeader
+          eventTitle={eventTitle}
+          eventStatus={eventStatus}
+          registrationStatus={registrationStatus}
+        />
+        <Suspense fallback={null}>
+          <EventManagementNavBar eventId={eventId} publicSlug={publicSlug} />
+        </Suspense>
       </div>
+      <div className={EVENT_MANAGEMENT_CONTENT_CLASS}>{children}</div>
     </div>
   );
 }
