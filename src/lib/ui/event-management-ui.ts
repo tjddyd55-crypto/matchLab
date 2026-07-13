@@ -4,6 +4,50 @@ import { matchonPageDescClass } from "@/lib/ui/matchon-layout";
 
 export const eventManagementPageBackgroundClass = "bg-[#F8FAFC]";
 
+/** container padding 상쇄 — 이벤트 레이아웃 full-bleed */
+export const eventManagementLayoutBleedClass =
+  "-mx-4 -mt-6 sm:-mx-6 md:-mt-8 lg:-mx-8";
+
+export const eventManagementLayoutGridClass =
+  "grid min-h-[calc(100vh-var(--dashboard-header-height))] min-w-0 grid-cols-1 md:grid-cols-[var(--event-sidebar-width)_minmax(0,1fr)]";
+
+export const eventManagementSideNavAsideClass =
+  "hidden h-[calc(100vh-var(--dashboard-header-height))] shrink-0 flex-col border-r border-[#E2E8F0] bg-white md:sticky md:top-0 md:flex";
+
+export const eventManagementSideNavScrollClass =
+  "min-h-0 flex-1 overflow-y-auto overscroll-contain [-ms-overflow-style:none] [scrollbar-width:thin] [&::-webkit-scrollbar]:w-1.5 [&::-webkit-scrollbar-thumb]:rounded-full [&::-webkit-scrollbar-thumb]:bg-[#CBD5E1]";
+
+export const eventManagementSideNavHeaderClass =
+  "sticky top-0 z-10 shrink-0 border-b border-[#E2E8F0] bg-white p-4";
+
+export const eventManagementSideNavBackLinkClass =
+  "inline-flex items-center gap-1.5 text-xs font-medium text-[#64748B] transition-colors hover:text-[#0A47FF]";
+
+export const eventManagementSideNavTitleClass =
+  "mt-3 line-clamp-3 font-heading text-[15px] leading-snug font-bold text-[#0F172A]";
+
+export const eventManagementSideNavMenuClass = "px-3 py-4";
+
+export const eventManagementSideNavGroupLabelClass =
+  "mb-1.5 mt-5 px-3 text-[11px] font-semibold text-[#94A3B8] first:mt-0";
+
+export const eventManagementSideNavLinkBaseClass =
+  "flex h-10 w-full items-center gap-2.5 rounded-[9px] border border-transparent px-3 text-[13px] font-medium transition-colors";
+
+export const eventManagementSideNavLinkActiveClass =
+  "border-[#7AA2FF] bg-[#EAF1FF] font-semibold text-[#0A47FF] [&_svg]:text-[#0A47FF]";
+
+export const eventManagementSideNavLinkInactiveClass =
+  "text-[#64748B] hover:bg-[#F8FAFC] hover:text-[#334155] [&_svg]:text-[#94A3B8]";
+
+export const eventManagementMainColumnClass = "min-w-0 bg-[#F8FAFC]";
+
+export const eventManagementMainContentClass =
+  "min-w-0 w-full space-y-5 px-4 py-5 sm:px-6 md:space-y-7 md:px-8 md:py-7";
+
+export const eventManagementMobileBarClass =
+  "flex items-center justify-between gap-3 border-b border-[#E2E8F0] bg-white px-4 py-3 md:hidden";
+
 export const eventManagementChromeSurfaceClass = "bg-white";
 
 export const eventManagementSubNavSurfaceClass = "bg-[#F8FAFC]";
@@ -23,7 +67,7 @@ export const eventManagementContentInsetClass = "px-4 sm:px-6 lg:px-8";
 export const eventManagementChromeBleedClass = `-mx-4 sm:-mx-6 lg:-mx-8 border-b ${eventManagementBorderColorClass} ${eventManagementChromeSurfaceClass}`;
 
 export const eventManagementContentClass =
-  "min-w-0 w-full space-y-5 pt-5 md:space-y-7 md:pt-7";
+  "min-w-0 w-full space-y-5 md:space-y-7";
 
 export const eventManagementPageHeaderClass =
   "flex flex-col gap-3 sm:flex-row sm:items-start sm:justify-between sm:gap-4";

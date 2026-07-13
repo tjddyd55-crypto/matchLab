@@ -66,7 +66,7 @@ export function Sidebar({
   return (
     <aside
       className={cn(
-        "flex min-h-screen w-56 shrink-0 flex-col border-r border-white/8 bg-matchon-sidebar px-3 py-4",
+        "flex min-h-screen w-[var(--global-sidebar-width)] shrink-0 flex-col border-r border-white/8 bg-matchon-sidebar px-3 py-4",
         className,
       )}
     >

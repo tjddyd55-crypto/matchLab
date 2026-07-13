@@ -78,6 +78,10 @@
   --matchon-radius-md: 12px;
   --matchon-radius-lg: 16px;
 
+  --global-sidebar-width: 14rem;
+  --event-sidebar-width: 232px;
+  --dashboard-header-height: 3.25rem;
+
   --background: oklch(1 0 0);
   --foreground: oklch(0.145 0 0);
   --card: oklch(1 0 0);

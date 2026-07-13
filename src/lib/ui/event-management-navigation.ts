@@ -1,5 +1,5 @@
 /**
- * 대회 관리 가로 내비게이션 SSOT — 1차 대분류 · 2차 소분류 · active matcher
+ * 대회 관리 내비게이션 SSOT — 대분류 · 소분류 · active matcher
  */
 
 export type EventManagementNavGroupId =
@@ -47,10 +47,10 @@ export const EVENT_MANAGEMENT_NAV_GROUP_LABELS: Record<
   EventManagementNavGroupId,
   string
 > = {
-  setup: "대회 설정",
-  applications: "신청·현장",
+  setup: "설정",
+  applications: "신청",
   brackets: "대진·운영",
-  public: "공개·기타",
+  public: "공개",
 };
 
 export const EVENT_MANAGEMENT_NAV_GROUP_ORDER: EventManagementNavGroupId[] = [

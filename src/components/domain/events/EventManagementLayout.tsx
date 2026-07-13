@@ -1,13 +1,15 @@
 import type { ReactNode } from "react";
 import { Suspense } from "react";
-import { EventContextHeader } from "@/components/domain/events/EventContextHeader";
-import { EventManagementNavBar } from "@/components/domain/events/EventManagementNavBar";
+import { EventManagementNavigationSheet } from "@/components/domain/events/EventManagementNavigationSheet";
+import { EventManagementSideNav } from "@/components/domain/events/EventManagementSideNav";
 import type { EventStatus } from "@/lib/enums";
 import { EVENT_MANAGEMENT_CONTENT_CLASS } from "@/lib/event-management-layout";
 import type { OrganizerRegistrationStatus } from "@/lib/event-organizer-status";
 import {
-  eventManagementChromeClass,
-  eventManagementContentInsetClass,
+  eventManagementLayoutBleedClass,
+  eventManagementLayoutGridClass,
+  eventManagementMainColumnClass,
+  eventManagementMainContentClass,
 } from "@/lib/ui/event-management-ui";
 import { cn } from "@/lib/utils";
 
@@ -28,21 +30,30 @@ export function EventManagementLayout({
   children: ReactNode;
   className?: string;
 }) {
+  const navProps = {
+    eventId,
+    publicSlug,
+    eventTitle,
+    eventStatus,
+    registrationStatus,
+  };
+
   return (
-    <div className={cn("w-full min-w-0", className)}>
-      <div className={eventManagementChromeClass}>
-        <div className={eventManagementContentInsetClass}>
-          <EventContextHeader
-            eventTitle={eventTitle}
-            eventStatus={eventStatus}
-            registrationStatus={registrationStatus}
-          />
-        </div>
+    <div className={cn("w-full min-w-0", eventManagementLayoutBleedClass, className)}>
+      <div className={eventManagementLayoutGridClass}>
         <Suspense fallback={null}>
-          <EventManagementNavBar eventId={eventId} publicSlug={publicSlug} />
+          <EventManagementSideNav {...navProps} />
         </Suspense>
+
+        <div className={eventManagementMainColumnClass}>
+          <Suspense fallback={null}>
+            <EventManagementNavigationSheet {...navProps} />
+          </Suspense>
+          <div className={eventManagementMainContentClass}>
+            <div className={EVENT_MANAGEMENT_CONTENT_CLASS}>{children}</div>
+          </div>
+        </div>
       </div>
-      <div className={EVENT_MANAGEMENT_CONTENT_CLASS}>{children}</div>
     </div>
   );
 }

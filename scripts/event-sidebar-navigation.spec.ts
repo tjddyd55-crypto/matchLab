@@ -1,6 +1,6 @@
 /**
- * Event horizontal navigation smoke — layout, active state, no vertical sidebar.
- * Run: npx playwright test scripts/event-horizontal-navigation.spec.ts -c playwright.event-nav.config.ts
+ * Event vertical sidebar navigation — layout, active state, no horizontal nav.
+ * Run: npx playwright test scripts/event-sidebar-navigation.spec.ts -c playwright.event-nav.config.ts
  */
 import { test, expect, type Page } from "@playwright/test";
 import fs from "node:fs";
@@ -18,51 +18,45 @@ const PASSWORD = process.env.DEMO_PASSWORD ?? "123456!!";
 const OUT_DIR = path.join(
   process.cwd(),
   "test-results",
-  "event-horizontal-navigation",
+  "event-figma-sidebar-audit",
 );
 
 type RouteCase = {
   path: string;
-  primary: string;
-  secondary: string;
+  activeLabel: string;
   screenshot?: boolean;
 };
 
 const ROUTES: RouteCase[] = [
-  { path: BASE, primary: "대회 설정", secondary: "관리 홈", screenshot: true },
+  { path: BASE, activeLabel: "관리 홈", screenshot: true },
   {
     path: `${BASE}/applications`,
-    primary: "신청·현장",
-    secondary: "신청자",
+    activeLabel: "신청자",
     screenshot: true,
   },
   {
     path: `${BASE}/check-in`,
-    primary: "신청·현장",
-    secondary: "현장·계체",
+    activeLabel: "현장·계체",
     screenshot: true,
   },
   {
     path: `${BASE}/brackets`,
-    primary: "대진·운영",
-    secondary: "대진표",
+    activeLabel: "대진표",
     screenshot: true,
   },
   {
     path: `${BASE}/operation`,
-    primary: "대진·운영",
-    secondary: "경기 운영",
+    activeLabel: "경기 운영",
     screenshot: true,
   },
-  { path: `${BASE}/field-status`, primary: "대진·운영", secondary: "경기장 현황" },
-  { path: `${BASE}/judges`, primary: "대진·운영", secondary: "심판 관리" },
-  { path: `${BASE}/qr`, primary: "대진·운영", secondary: "QR 출력" },
-  { path: `${BASE}/results`, primary: "대진·운영", secondary: "결과" },
-  { path: `${BASE}/live`, primary: "공개·기타", secondary: "라이브 URL" },
+  { path: `${BASE}/field-status`, activeLabel: "경기장 현황" },
+  { path: `${BASE}/judges`, activeLabel: "심판 관리" },
+  { path: `${BASE}/qr`, activeLabel: "QR 출력" },
+  { path: `${BASE}/results`, activeLabel: "결과" },
+  { path: `${BASE}/live`, activeLabel: "라이브 URL" },
   {
     path: `${BASE}/application-batches`,
-    primary: "공개·기타",
-    secondary: "공식 신청서",
+    activeLabel: "공식 신청서",
   },
 ];
 
@@ -94,44 +88,49 @@ function attachConsoleCollector(page: Page): string[] {
   return errors;
 }
 
-async function assertHorizontalNav(page: Page, route: RouteCase) {
+async function assertVerticalSidebar(page: Page, route: RouteCase) {
+  const sideNav = page.getByRole("navigation", { name: "대회 관리 메뉴" });
+  await expect(sideNav).toBeVisible();
+
   await expect(
     page.getByRole("navigation", { name: "대회 관리 대분류" }),
-  ).toBeVisible();
+  ).toHaveCount(0);
   await expect(
     page.getByRole("navigation", { name: "대회 관리 소분류" }),
-  ).toBeVisible();
+  ).toHaveCount(0);
 
-  const legacySidebar = page.locator(
-    'aside nav[aria-label="대회 관리 메뉴"]',
-  );
-  await expect(legacySidebar).toHaveCount(0);
-
-  const primaryNav = page.getByRole("navigation", {
-    name: "대회 관리 대분류",
-  });
   await expect(
-    primaryNav.getByRole("link", { name: route.primary, exact: true }),
-  ).toHaveAttribute("aria-current", "true");
-
-  const secondaryNav = page.getByRole("navigation", {
-    name: "대회 관리 소분류",
-  });
-  await expect(
-    secondaryNav.getByRole("link", { name: route.secondary, exact: true }),
+    sideNav.getByRole("link", { name: route.activeLabel, exact: true }),
   ).toHaveAttribute("aria-current", "page");
 
+  await expect(page.getByText("내 대회 목록")).toBeVisible();
+
   const overflow = await page.evaluate(
-    () => document.documentElement.scrollWidth > document.documentElement.clientWidth,
+    () =>
+      document.documentElement.scrollWidth >
+      document.documentElement.clientWidth,
   );
   expect(overflow, `horizontal overflow on ${route.path}`).toBe(false);
+}
+
+async function assertMobileSheet(page: Page, route: RouteCase) {
+  await expect(
+    page.getByRole("navigation", { name: "대회 관리 메뉴" }),
+  ).toHaveCount(0);
+
+  await page.getByRole("button", { name: "대회 메뉴" }).click();
+  const sheetNav = page.getByRole("navigation", { name: "대회 관리 메뉴" });
+  await expect(sheetNav).toBeVisible();
+  await expect(
+    sheetNav.getByRole("link", { name: route.activeLabel, exact: true }),
+  ).toHaveAttribute("aria-current", "page");
 }
 
 for (const viewport of [
   { name: "pc", width: 1440, height: 900 },
   { name: "mobile", width: 390, height: 844 },
 ] as const) {
-  test.describe(`event nav @ ${viewport.name}`, () => {
+  test.describe(`event sidebar @ ${viewport.name}`, () => {
     test.use({ viewport: { width: viewport.width, height: viewport.height } });
 
     test.beforeEach(async ({ page }) => {
@@ -147,7 +146,11 @@ for (const viewport of [
         });
         expect(response?.status() ?? 0).toBeLessThan(500);
 
-        await assertHorizontalNav(page, route);
+        if (viewport.name === "pc") {
+          await assertVerticalSidebar(page, route);
+        } else {
+          await assertMobileSheet(page, route);
+        }
 
         const hydration = consoleErrors.filter(
           (e) =>
@@ -162,7 +165,8 @@ for (const viewport of [
         if (route.screenshot) {
           const dir = path.join(OUT_DIR, viewport.name);
           fs.mkdirSync(dir, { recursive: true });
-          const slug = route.path.replace(BASE, "").replace(/^\//, "") || "home";
+          const slug =
+            route.path.replace(BASE, "").replace(/^\//, "") || "home";
           await page.screenshot({
             path: path.join(dir, `${slug || "home"}.png`),
             fullPage: true,

@@ -16,7 +16,7 @@ export function EventManagementPageHeader({
 }: {
   title: string;
   description?: ReactNode;
-  /** @deprecated EventContextHeader에서 대회명을 표시합니다. */
+  /** @deprecated EventManagementSideNav 상단에서 대회명을 표시합니다. */
   eventTitle?: string | null;
   children?: ReactNode;
   className?: string;
