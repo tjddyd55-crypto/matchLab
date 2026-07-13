@@ -25,17 +25,24 @@ import {
   BracketMatchStatus,
   BracketType,
 } from "@/lib/enums";
-import { cn } from "@/lib/utils";
-import { BoutFormatBadge } from "@/components/domain/shared/BoutFormatBadge";
+import {
+  organizerMatchStatusButtonClassName,
+} from "@/lib/ui/organizer-operation-ui";
+import {
+  BRACKET_MATCH_STATUS_LABELS,
+  isCurrentMatchStatus,
+} from "@/lib/ui/match-status-ui";
 import { WinnerCornerPicker } from "@/components/domain/brackets/WinnerCornerPicker";
+import { BoutFormatBadge } from "@/components/domain/shared/BoutFormatBadge";
 import { outcomeStylePublicLabel } from "@/lib/match-result-snapshot";
+import { cn } from "@/lib/utils";
 
 const STATUS_OPTIONS: { value: BracketMatchStatus; label: string }[] = [
-  { value: BracketMatchStatus.waiting, label: "대기" },
-  { value: BracketMatchStatus.called, label: "경기준비" },
-  { value: BracketMatchStatus.ongoing, label: "경기진행중" },
-  { value: BracketMatchStatus.finished, label: "경기종료" },
-  { value: BracketMatchStatus.cancelled, label: "경기취소" },
+  { value: BracketMatchStatus.waiting, label: BRACKET_MATCH_STATUS_LABELS.waiting },
+  { value: BracketMatchStatus.called, label: BRACKET_MATCH_STATUS_LABELS.called },
+  { value: BracketMatchStatus.ongoing, label: BRACKET_MATCH_STATUS_LABELS.ongoing },
+  { value: BracketMatchStatus.finished, label: BRACKET_MATCH_STATUS_LABELS.finished },
+  { value: BracketMatchStatus.cancelled, label: BRACKET_MATCH_STATUS_LABELS.cancelled },
 ];
 
 function statusChangeSuccessMessage(status: BracketMatchStatus): string {
@@ -46,21 +53,10 @@ function statusChangeSuccessMessage(status: BracketMatchStatus): string {
   return "경기 상태가 변경되었습니다.";
 }
 
-function statusButtonVariant(
-  value: BracketMatchStatus,
-  isActive: boolean,
-  isOperation: boolean,
-): "default" | "outline" | "destructive" | "secondary" {
-  if (isActive) return "default";
-  if (!isOperation) return "outline";
-  if (value === BracketMatchStatus.cancelled) return "destructive";
-  if (value === BracketMatchStatus.ongoing) return "default";
-  return "outline";
-}
-
 function MatchOpsStatusSection({
   status,
   pending,
+  pendingStatus,
   blocked,
   staff,
   isOperation,
@@ -69,6 +65,7 @@ function MatchOpsStatusSection({
 }: {
   status: BracketMatchStatus;
   pending: boolean;
+  pendingStatus: BracketMatchStatus | null;
   blocked: boolean;
   staff: OrganizerMatchOpsPanelProps["staffAccess"];
   isOperation: boolean;
@@ -91,23 +88,41 @@ function MatchOpsStatusSection({
           isOperation && "sm:flex-row",
         )}
       >
-        {STATUS_OPTIONS.map((option) => (
-          <Button
-            key={option.value}
-            type="button"
-            size={isOperation ? actionSize : "xs"}
-            variant={statusButtonVariant(option.value, status === option.value, isOperation)}
-            disabled={
-              pending ||
-              blocked ||
-              (staff ? !staff.canChangeMatchStatus : false)
-            }
-            className={isOperation ? "w-full sm:w-auto" : undefined}
-            onClick={() => onStatus(option.value)}
-          >
-            {option.label}
-          </Button>
-        ))}
+        {STATUS_OPTIONS.map((option) => {
+          const isCurrent = isCurrentMatchStatus(status, option.value);
+          const isPendingTarget = pendingStatus === option.value;
+
+          return (
+            <Button
+              key={option.value}
+              type="button"
+              size={isOperation ? actionSize : "xs"}
+              variant={
+                isOperation ? "outline" : isCurrent ? "default" : "outline"
+              }
+              disabled={
+                pending ||
+                blocked ||
+                isCurrent ||
+                (staff ? !staff.canChangeMatchStatus : false)
+              }
+              className={cn(
+                isOperation ? "w-full sm:w-auto" : undefined,
+                isOperation &&
+                  organizerMatchStatusButtonClassName(status, option.value, {
+                    pendingTarget: isPendingTarget,
+                  }),
+              )}
+              aria-pressed={isCurrent ? "true" : "false"}
+              onClick={() => {
+                if (isCurrent) return;
+                onStatus(option.value);
+              }}
+            >
+              {isPendingTarget ? `${option.label}…` : option.label}
+            </Button>
+          );
+        })}
       </div>
       {isOperation && !blocked ? (
         <p className="text-muted-foreground text-[11px] leading-snug">
@@ -147,6 +162,8 @@ export type OrganizerMatchOpsPanelProps = {
   compact?: boolean;
   /** 경기 운영 화면 — field 버튼·피드백·상태 버튼 축소 */
   presentation?: "default" | "operation";
+  /** 상태 변경 성공 직후 운영 보드 client state 동기화 */
+  onStatusChanged?: (matchId: string, status: BracketMatchStatus) => void;
   /** 로그인 없는 결과 입력자 전용 링크 모드 */
   staffAccess?: {
     token: string;
@@ -273,6 +290,9 @@ export function OrganizerMatchOpsPanel(props: OrganizerMatchOpsPanelProps) {
 function OrganizerMatchOpsPanelBody(props: OrganizerMatchOpsPanelProps) {
   const router = useRouter();
   const [pending, startTransition] = useTransition();
+  const [pendingStatus, setPendingStatus] = useState<BracketMatchStatus | null>(
+    null,
+  );
   const [error, setError] = useState<string | null>(null);
   const [success, setSuccess] = useState<string | null>(null);
   const [editingCorrect, setEditingCorrect] = useState(false);
@@ -295,24 +315,41 @@ function OrganizerMatchOpsPanelBody(props: OrganizerMatchOpsPanelProps) {
   const refresh = () => router.refresh();
 
   const onStatus = (status: BracketMatchStatus) => {
+    if (isCurrentMatchStatus(props.status, status)) return;
     setError(null);
     setSuccess(null);
-    startTransition(async () => {
-      const fd = new FormData();
-      fd.set("matchId", props.matchId);
-      fd.set("status", status);
-      if (staff) fd.set("staffToken", staff.token);
-      const err = await runAction(() =>
-        staff
-          ? staffUpdateMatchStatusAction(fd)
-          : updateMatchStatusAction(fd),
-      );
-      setError(err);
-      if (!err) {
+    setPendingStatus(status);
+    const previousStatus = props.status;
+    props.onStatusChanged?.(props.matchId, status);
+    void (async () => {
+      try {
+        const fd = new FormData();
+        fd.set("matchId", props.matchId);
+        fd.set("status", status);
+        if (staff) fd.set("staffToken", staff.token);
+        const err = await runAction(() =>
+          staff
+            ? staffUpdateMatchStatusAction(fd)
+            : updateMatchStatusAction(fd),
+        );
+        setPendingStatus(null);
+        setError(err);
+        if (err) {
+          props.onStatusChanged?.(props.matchId, previousStatus);
+          return;
+        }
         setSuccess(statusChangeSuccessMessage(status));
         refresh();
+      } catch (cause) {
+        setPendingStatus(null);
+        props.onStatusChanged?.(props.matchId, previousStatus);
+        setError(
+          cause instanceof Error
+            ? cause.message
+            : "처리 중 오류가 발생했습니다.",
+        );
       }
-    });
+    })();
   };
 
   const onOutcomeSubmit = (formData: FormData) => {
@@ -418,6 +455,7 @@ function OrganizerMatchOpsPanelBody(props: OrganizerMatchOpsPanelProps) {
         <MatchOpsStatusSection
           status={props.status}
           pending={pending}
+          pendingStatus={pendingStatus}
           blocked={blocked}
           staff={staff}
           isOperation={isOperation}
@@ -480,6 +518,7 @@ function OrganizerMatchOpsPanelBody(props: OrganizerMatchOpsPanelProps) {
         <MatchOpsStatusSection
           status={props.status}
           pending={pending}
+          pendingStatus={pendingStatus}
           blocked={blocked}
           staff={staff}
           isOperation={isOperation}

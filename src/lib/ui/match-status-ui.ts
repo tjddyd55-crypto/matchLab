@@ -177,3 +177,26 @@ export const BRACKET_MATCH_STATUS_LABELS = Object.fromEntries(
     getBracketMatchStatusLabel(s),
   ]),
 ) as Record<BracketMatchStatus, string>;
+
+export function isCurrentMatchStatus(
+  currentStatus: BracketMatchStatus,
+  optionValue: BracketMatchStatus,
+): boolean {
+  return currentStatus === optionValue;
+}
+
+export type MatchStatusButtonVisual =
+  | "active"
+  | "active-finished"
+  | "active-cancelled"
+  | "inactive";
+
+export function getMatchStatusButtonVisual(
+  currentStatus: BracketMatchStatus,
+  optionValue: BracketMatchStatus,
+): MatchStatusButtonVisual {
+  if (!isCurrentMatchStatus(currentStatus, optionValue)) return "inactive";
+  if (optionValue === BracketMatchStatus.cancelled) return "active-cancelled";
+  if (optionValue === BracketMatchStatus.finished) return "active-finished";
+  return "active";
+}

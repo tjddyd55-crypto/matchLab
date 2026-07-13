@@ -9,7 +9,9 @@ import {
 import { PermissionError } from "@/lib/auth/permission-error";
 import { requireActorFromMutation } from "@/lib/auth/actor";
 import { AppError } from "@/lib/errors/app-error";
+import { matchRepository } from "@/lib/repositories/match.repository";
 import { matchService } from "@/lib/services/match.service";
+import { revalidateOrganizerMatchPaths } from "@/features/matches/revalidate-organizer-match-paths";
 import {
   cancelMatchSchema,
   recordMatchOutcomeDraftSchema,
@@ -67,6 +69,10 @@ export async function updateMatchStatusAction(
     }
     const actor = await requireActorFromMutation();
     await matchService.updateMatchStatus(actor, parsed.data);
+    const ctx = await matchRepository.findMatchOwnershipContext(parsed.data.matchId);
+    if (ctx) {
+      revalidateOrganizerMatchPaths(ctx.eventId, ctx.bracketId);
+    }
     return actionSuccess({ ok: true as const });
   });
 }

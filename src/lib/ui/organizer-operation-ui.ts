@@ -1,3 +1,6 @@
+import type { BracketMatchStatus } from "@/lib/enums";
+import { getMatchStatusButtonVisual } from "@/lib/ui/match-status-ui";
+import { cn } from "@/lib/utils";
 import {
   matchonCompactTableWrapClass,
   matchonFieldInputClass,
@@ -29,7 +32,7 @@ export const organizerOperationSpotlightPanelClass =
 export const organizerOperationVsCardClass = matchonVsCardClass;
 
 export const organizerOperationWorkspaceClass =
-  "grid gap-5 lg:grid-cols-[minmax(300px,360px)_minmax(0,1fr)] lg:items-stretch xl:grid-cols-[minmax(320px,360px)_minmax(0,1fr)]";
+  "grid gap-4 lg:grid-cols-[minmax(280px,320px)_minmax(0,1fr)] lg:items-stretch xl:grid-cols-[minmax(300px,340px)_minmax(0,1fr)]";
 
 export const organizerOperationListPaneClass =
   "flex min-h-0 min-w-0 flex-col gap-4 lg:max-h-[calc(100vh-14rem)] lg:overflow-hidden";
@@ -54,3 +57,42 @@ export const organizerOperationMatchListItemClass =
 
 export const organizerOperationMatchListItemActiveClass =
   "border-l-[3px] border-l-[#0A47FF] bg-[#EAF1FF] hover:bg-[#EAF1FF]";
+
+export const organizerOperationStatusButtonBaseClass =
+  "min-w-[4.5rem] border font-medium transition-colors";
+
+export const organizerOperationStatusButtonActiveClass =
+  "border-[#0A47FF] bg-[#0A47FF] text-white font-semibold hover:bg-[#0A47FF] hover:text-white";
+
+export const organizerOperationStatusButtonInactiveClass =
+  "border-[#CBD5E1] bg-white text-[#475569] hover:border-matchon-primary/30 hover:bg-matchon-primary-light/30 hover:text-matchon-text-primary";
+
+export const organizerOperationStatusButtonActiveFinishedClass =
+  "border-emerald-600 bg-emerald-600 text-white font-semibold hover:bg-emerald-600 hover:text-white";
+
+export const organizerOperationStatusButtonActiveCancelledClass =
+  "border-destructive bg-destructive text-white font-semibold hover:bg-destructive hover:text-white";
+
+export const organizerOperationStatusButtonPendingClass = "opacity-70";
+
+export function organizerMatchStatusButtonClassName(
+  currentStatus: BracketMatchStatus,
+  optionValue: BracketMatchStatus,
+  options?: { pendingTarget?: boolean },
+): string {
+  const visual = getMatchStatusButtonVisual(currentStatus, optionValue);
+  const visualClass =
+    visual === "active"
+      ? organizerOperationStatusButtonActiveClass
+      : visual === "active-finished"
+        ? organizerOperationStatusButtonActiveFinishedClass
+        : visual === "active-cancelled"
+          ? organizerOperationStatusButtonActiveCancelledClass
+          : organizerOperationStatusButtonInactiveClass;
+
+  return cn(
+    organizerOperationStatusButtonBaseClass,
+    visualClass,
+    options?.pendingTarget && organizerOperationStatusButtonPendingClass,
+  );
+}

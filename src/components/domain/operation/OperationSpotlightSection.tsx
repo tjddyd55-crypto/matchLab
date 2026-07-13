@@ -15,17 +15,20 @@ import {
   pickOperationSpotlightMatches,
 } from "@/lib/match-operation-display";
 import { organizerOperationSpotlightPanelClass } from "@/lib/ui/organizer-operation-ui";
+import { BracketMatchStatus } from "@/lib/enums";
 import { cn } from "@/lib/utils";
 
 export function OperationSpotlightSection({
   rows,
   focusedMatchId,
   onFocusMatch,
+  onMatchStatusChanged,
   className,
 }: {
   rows: OperationMatchRowVM[];
   focusedMatchId: string | null;
   onFocusMatch: (matchId: string) => void;
+  onMatchStatusChanged?: (matchId: string, status: BracketMatchStatus) => void;
   className?: string;
 }) {
   const resultRef = useRef<HTMLElement>(null);
@@ -123,6 +126,7 @@ export function OperationSpotlightSection({
               <OrganizerMatchOpsPanel
                 {...toMatchOpsProps(focusedMatch)}
                 presentation="operation"
+                onStatusChanged={onMatchStatusChanged}
               />
             </div>
           </section>

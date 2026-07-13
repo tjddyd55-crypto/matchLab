@@ -1,6 +1,7 @@
 "use client";
 
 import { useMemo, useRef, useState } from "react";
+import { BracketMatchStatus } from "@/lib/enums";
 import { OperationCompactSummaryBar } from "@/components/domain/operation/OperationCompactSummaryBar";
 import { OperationCourtTabBar } from "@/components/domain/operation/OperationCourtTabBar";
 import { OperationMatchListPane } from "@/components/domain/operation/OperationMatchListPane";
@@ -65,6 +66,9 @@ export function OrganizerOperationBoard({
   judgeBriefByMatch?: Record<string, { judgeName: string; winnerCorner: string }[]>;
 }) {
   const listRef = useRef<HTMLDivElement>(null);
+  const [statusPatches, setStatusPatches] = useState<
+    Record<string, BracketMatchStatus>
+  >({});
   const [courtTab, setCourtTab] = useState<CourtTabId>("all");
   const [summaryFilter, setSummaryFilter] = useState<OperationBoardFilter>("all");
   const [statusFilter, setStatusFilter] = useState<OperationBoardFilter>("all");
@@ -72,11 +76,21 @@ export function OrganizerOperationBoard({
   const [expandedMatchId, setExpandedMatchId] = useState<string | null>(null);
   const [focusedMatchId, setFocusedMatchId] = useState<string | null>(null);
 
-  const summary = useMemo(() => summarizeOperationBoard(matches), [matches]);
+  const liveMatches = useMemo(
+    () =>
+      matches.map((match) => {
+        const patchedStatus = statusPatches[match.matchId];
+        if (!patchedStatus || patchedStatus === match.status) return match;
+        return { ...match, status: patchedStatus };
+      }),
+    [matches, statusPatches],
+  );
+
+  const summary = useMemo(() => summarizeOperationBoard(liveMatches), [liveMatches]);
 
   const baseRows = useMemo(() => {
-    return matches.map((m) => toOperationMatchRow(m, judgeSummaryByMatch?.[m.matchId]));
-  }, [matches, judgeSummaryByMatch]);
+    return liveMatches.map((m) => toOperationMatchRow(m, judgeSummaryByMatch?.[m.matchId]));
+  }, [liveMatches, judgeSummaryByMatch]);
 
   const activeFilter = statusFilter !== "all" ? statusFilter : summaryFilter;
 
@@ -135,6 +149,10 @@ export function OrganizerOperationBoard({
     setFocusedMatchId(matchId);
   }
 
+  function handleMatchStatusChanged(matchId: string, status: BracketMatchStatus) {
+    setStatusPatches((current) => ({ ...current, [matchId]: status }));
+  }
+
   return (
     <div className="flex flex-col gap-4">
       <OperationCompactSummaryBar
@@ -191,7 +209,7 @@ export function OrganizerOperationBoard({
               경기 목록
             </h2>
             <p className="text-matchon-text-secondary text-xs">
-              {filteredRows.length}건 표시 (전체 {matches.length}건)
+              {filteredRows.length}건 표시 (전체 {liveMatches.length}건)
             </p>
           </div>
 
@@ -216,6 +234,7 @@ export function OrganizerOperationBoard({
             rows={filteredRows}
             focusedMatchId={effectiveFocusedMatchId}
             onFocusMatch={focusMatch}
+            onMatchStatusChanged={handleMatchStatusChanged}
           />
         </div>
 
@@ -225,6 +244,7 @@ export function OrganizerOperationBoard({
               rows={filteredRows}
               focusedMatchId={expandedMatchId}
               onFocusMatch={focusMatch}
+              onMatchStatusChanged={handleMatchStatusChanged}
             />
           ) : null}
         </div>

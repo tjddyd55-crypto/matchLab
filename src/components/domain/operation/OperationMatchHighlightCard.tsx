@@ -1,11 +1,9 @@
 "use client";
 
 import { OperationMatchFighterMatchup } from "@/components/domain/operation/OperationMatchFighterMatchup";
-import { MatchonStatusBadge } from "@/components/shared/MatchonStatusBadge";
+import { MatchStatusBadge } from "@/components/domain/shared/MatchStatusBadge";
 import { DivisionCompactDisplay } from "@/components/domain/shared/DivisionCompactDisplay";
 import type { OperationMatchRowVM } from "@/components/domain/operation/operation-match-row";
-import { getOperationMatchPhase } from "@/lib/match-operation-display";
-import { resolveOperationDisplayStatus } from "@/lib/ui/matchon-status";
 import { organizerOperationVsCardClass } from "@/lib/ui/organizer-operation-ui";
 import { cn } from "@/lib/utils";
 
@@ -40,12 +38,6 @@ export function OperationMatchHighlightCard({
       </div>
     );
   }
-
-  const phase = getOperationMatchPhase(match);
-  const displayStatus = resolveOperationDisplayStatus({
-    status: match.status,
-    phase,
-  });
 
   return (
     <div
@@ -85,7 +77,7 @@ export function OperationMatchHighlightCard({
             ) : null}
           </p>
         </div>
-        <MatchonStatusBadge status={displayStatus} size="sm" />
+        <MatchStatusBadge status={match.status} size="sm" />
       </div>
       <div className="mt-3 space-y-3">
         {match.division ? (

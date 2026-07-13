@@ -6,6 +6,8 @@ import {
   type ActionResult,
 } from "@/lib/action-result";
 import { AppError } from "@/lib/errors/app-error";
+import { revalidateOrganizerMatchPaths } from "@/features/matches/revalidate-organizer-match-paths";
+import { matchRepository } from "@/lib/repositories/match.repository";
 import { eventStaffAccessService } from "@/lib/services/event-staff-access.service";
 import { matchService } from "@/lib/services/match.service";
 import { resultService } from "@/lib/services/result.service";
@@ -65,6 +67,10 @@ export async function staffUpdateMatchStatusAction(
     }
 
     await matchService.updateMatchStatusStaff(link, parsed.data);
+    const ctx = await matchRepository.findMatchOwnershipContext(parsed.data.matchId);
+    if (ctx) {
+      revalidateOrganizerMatchPaths(ctx.eventId, ctx.bracketId);
+    }
     return actionSuccess({ ok: true as const });
   });
 }
