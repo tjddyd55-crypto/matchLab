@@ -134,3 +134,92 @@ test.describe("dashboard padding regression", () => {
     expect(contentInset).toBeGreaterThanOrEqual(24);
   });
 });
+
+test.describe("operation workspace simplification", () => {
+  test.use({ viewport: { width: 1440, height: 900 } });
+
+  test("hides staff/judge cards and search; aligns panes; court select width", async ({
+    page,
+  }) => {
+    const consoleErrors = attachConsoleCollector(page);
+    await loginOrganizer(page);
+
+    const operationPath = `/organizer/events/${EVENT_ID}/operation`;
+    await page.goto(operationPath, {
+      waitUntil: "networkidle",
+      timeout: 60_000,
+    });
+
+    await expect(
+      page.getByRole("heading", { name: "경기 운영", exact: true }),
+    ).toBeVisible();
+    await expect(page.getByText("스태프 결과 입력 링크")).toHaveCount(0);
+    await expect(page.getByText("활성 링크가 없습니다")).toHaveCount(0);
+    await expect(page.getByText("링크 발급·관리")).toHaveCount(0);
+    await expect(page.getByText("심판 채점", { exact: true })).toHaveCount(0);
+    await expect(
+      page.getByPlaceholder("선수명, 체육관명, 경기구분명"),
+    ).toHaveCount(0);
+    await expect(page.getByLabel("검색")).toHaveCount(0);
+    await expect(page.getByLabel("상태 필터")).toBeVisible();
+
+    const listPane = page.getByTestId("operation-list-pane");
+    const detailPane = page.getByTestId("operation-detail-pane");
+    await expect(listPane).toBeVisible();
+    await expect(detailPane).toBeVisible();
+
+    const listBox = await listPane.boundingBox();
+    const detailBox = await detailPane.boundingBox();
+    expect(listBox).not.toBeNull();
+    expect(detailBox).not.toBeNull();
+    if (listBox && detailBox) {
+      expect(Math.abs(listBox.y - detailBox.y)).toBeLessThanOrEqual(2);
+    }
+
+    await assertNoHorizontalOverflow(page);
+
+    const hydration = consoleErrors.filter(
+      (e) =>
+        e.includes("hydration") ||
+        e.includes("Hydration") ||
+        e.includes("#418") ||
+        e.includes("did not match"),
+    );
+    expect(hydration).toEqual([]);
+    expect(consoleErrors).toEqual([]);
+
+    await page.goto(`/organizer/events/${EVENT_ID}/brackets?tab=view`, {
+      waitUntil: "networkidle",
+      timeout: 60_000,
+    });
+
+    const courtSelect = page.getByLabel("경기장").first();
+    if (await courtSelect.count()) {
+      const courtBox = await courtSelect.boundingBox();
+      expect(courtBox).not.toBeNull();
+      if (courtBox) {
+        expect(courtBox.width).toBeGreaterThanOrEqual(132);
+        expect(courtBox.width).toBeLessThanOrEqual(148);
+      }
+
+      const roundSelect = page.getByLabel("라운드").first();
+      const durationSelect = page.getByLabel("시간").first();
+      if ((await roundSelect.count()) && (await durationSelect.count())) {
+        const roundBox = await roundSelect.boundingBox();
+        const durationBox = await durationSelect.boundingBox();
+        expect(roundBox).not.toBeNull();
+        expect(durationBox).not.toBeNull();
+        if (roundBox && durationBox) {
+          expect(Math.abs(roundBox.height - durationBox.height)).toBeLessThanOrEqual(
+            1,
+          );
+          expect(Math.abs(roundBox.height - (courtBox?.height ?? 0))).toBeLessThanOrEqual(
+            2,
+          );
+        }
+      }
+    }
+
+    await assertNoHorizontalOverflow(page);
+  });
+});

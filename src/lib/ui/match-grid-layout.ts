@@ -10,6 +10,28 @@ export const bracketMatchFightersGridClass =
 export const bracketMatchControlsGridClass =
   "grid grid-cols-1 items-center gap-2 md:grid-cols-[minmax(0,1fr)_auto_minmax(0,1fr)]";
 
+/** 경기장·라운드·시간 운영 control SSOT — 높이·폭 통일 */
+export const matchOperationalControlHeightClass = "h-9";
+
+export const matchCourtSelectClass =
+  `${matchOperationalControlHeightClass} w-[140px] min-w-[140px] max-w-[140px] truncate rounded-md border border-input bg-background px-2 text-xs shadow-sm focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring`;
+
+/** 모바일·블록 폼 — 컨테이너 폭을 넘지 않도록 */
+export const matchCourtSelectFluidClass =
+  `${matchOperationalControlHeightClass} w-full min-w-0 max-w-full truncate rounded-md border border-input bg-background px-2 text-xs shadow-sm focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring md:w-[140px] md:min-w-[140px] md:max-w-[140px]`;
+
+export const matchCourtSaveButtonClass =
+  `${matchOperationalControlHeightClass} min-w-[52px] shrink-0 px-3 text-xs`;
+
+export const matchRoundSelectClass =
+  `${matchOperationalControlHeightClass} w-[72px] min-w-[72px] max-w-[72px] rounded-md border border-input bg-background px-2 text-xs shadow-sm focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring`;
+
+export const matchDurationSelectClass =
+  `${matchOperationalControlHeightClass} w-[80px] min-w-[80px] max-w-[80px] rounded-md border border-input bg-background px-2 text-xs shadow-sm focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring`;
+
+export const matchOperationalControlsRowClass =
+  "flex flex-nowrap items-center gap-2";
+
 export const matchGridCellCenterClass =
   "flex min-h-[2.75rem] min-w-0 items-center justify-center";
 

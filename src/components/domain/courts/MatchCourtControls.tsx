@@ -6,7 +6,13 @@ import { setMatchCourtFormAction } from "@/features/event-courts/actions";
 import { Button } from "@/components/ui/button";
 import { FeedbackMessage } from "@/components/shared/FeedbackMessage";
 import type { EventCourtVM } from "@/lib/services/event-court.service";
-import { organizerBracketFieldInputClass, organizerBracketFieldSelectClass } from "@/lib/ui/organizer-bracket-ui";
+import {
+  matchCourtSaveButtonClass,
+  matchCourtSelectClass,
+  matchCourtSelectFluidClass,
+  matchOperationalControlsRowClass,
+} from "@/lib/ui/match-grid-layout";
+import { organizerBracketFieldInputClass } from "@/lib/ui/organizer-bracket-ui";
 import { cn } from "@/lib/utils";
 
 function resolveCourtSelectState(
@@ -148,14 +154,17 @@ export function MatchCourtControls({
   }
 
   function renderCourtSelect(className?: string) {
+    const selectedCourtName =
+      activeCourts.find((c) => c.id === selectValue)?.name ?? undefined;
     return (
       <select
         className={cn(
-          organizerBracketFieldSelectClass,
-          compactRow ? "min-w-[7rem] shrink-0" : "w-full",
+          compactRow ? matchCourtSelectClass : matchCourtSelectFluidClass,
+          "shrink-0",
           className,
         )}
         aria-label="경기장"
+        title={selectedCourtName}
         value={selectValue}
         onChange={(e) => handleCourtChange(e.target.value)}
         required
@@ -164,7 +173,7 @@ export function MatchCourtControls({
           <option value="">경기장 선택</option>
         ) : null}
         {activeCourts.map((c) => (
-          <option key={c.id} value={c.id}>
+          <option key={c.id} value={c.id} title={c.name}>
             {c.name}
           </option>
         ))}
@@ -212,7 +221,7 @@ export function MatchCourtControls({
       className={cn(
         inline
           ? compactRow
-            ? "flex flex-nowrap items-center justify-start gap-2"
+            ? matchOperationalControlsRowClass
             : "flex flex-wrap items-end gap-2"
           : "flex flex-col gap-2 rounded-md border bg-muted/20 p-2",
       )}
@@ -225,12 +234,7 @@ export function MatchCourtControls({
       {hideLabels ? (
         renderCourtSelect()
       ) : (
-        <label
-          className={cn(
-            "flex flex-col gap-0.5 text-xs",
-            compactRow && "min-w-[7rem] shrink-0",
-          )}
-        >
+        <label className="flex shrink-0 flex-col gap-0.5 text-xs">
           <span className="text-muted-foreground text-[10px]">경기장</span>
           {renderCourtSelect()}
         </label>
@@ -241,7 +245,7 @@ export function MatchCourtControls({
           <input
             type="number"
             min={1}
-            className={cn(organizerBracketFieldInputClass, "h-8 w-16 text-[11px]")}
+            className={cn(organizerBracketFieldInputClass, "h-9 w-16 text-[11px]")}
             value={localOrder}
             onChange={(e) => setLocalOrder(e.target.value)}
             placeholder="—"
@@ -252,9 +256,7 @@ export function MatchCourtControls({
         <Button
           type="button"
           size="sm"
-          className={cn(
-            compactRow ? "h-8 shrink-0 px-3 text-xs" : "h-7 text-[11px]",
-          )}
+          className={matchCourtSaveButtonClass}
           disabled={pending || !selectValue}
           onClick={() => save()}
         >

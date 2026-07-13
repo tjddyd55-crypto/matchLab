@@ -32,16 +32,19 @@ export const organizerOperationSpotlightPanelClass =
 export const organizerOperationVsCardClass = matchonVsCardClass;
 
 export const organizerOperationWorkspaceClass =
-  "grid gap-4 lg:grid-cols-[minmax(280px,320px)_minmax(0,1fr)] lg:items-stretch xl:grid-cols-[minmax(300px,340px)_minmax(0,1fr)]";
+  "grid gap-4 lg:grid-cols-[minmax(280px,320px)_minmax(0,1fr)] lg:items-start xl:grid-cols-[minmax(300px,340px)_minmax(0,1fr)]";
 
 export const organizerOperationListPaneClass =
-  "flex min-h-0 min-w-0 flex-col gap-4 lg:max-h-[calc(100vh-14rem)] lg:overflow-hidden";
+  "flex min-h-0 min-w-0 flex-col gap-2 lg:max-h-[calc(100vh-12rem)] lg:overflow-hidden";
+
+export const organizerOperationListHeaderClass =
+  "flex min-h-[52px] shrink-0 items-center justify-between gap-3 rounded-xl border border-matchon-border bg-white px-3 py-2.5";
 
 export const organizerOperationListScrollClass =
   "flex min-h-0 flex-1 flex-col gap-2 overflow-y-auto pr-0.5";
 
 export const organizerOperationDetailPaneClass =
-  "min-w-0 lg:max-h-[calc(100vh-14rem)] lg:overflow-y-auto";
+  "min-w-0 lg:max-h-[calc(100vh-12rem)] lg:overflow-y-auto";
 
 export const organizerOperationCompactSummaryClass =
   "flex flex-wrap items-center gap-2 overflow-x-auto rounded-xl border border-matchon-border bg-matchon-surface/60 px-3 py-2 text-xs";

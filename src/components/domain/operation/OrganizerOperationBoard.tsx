@@ -17,7 +17,6 @@ import type { OrganizerEventMatchListItemVM } from "@/lib/services/match.service
 import {
   formatOperationOrderLabel,
   matchesOperationBoardFilter,
-  matchesOperationSearchQuery,
   sortOperationMatchRows,
   pickOperationSpotlightMatches,
   summarizeOperationBoard,
@@ -25,9 +24,8 @@ import {
 } from "@/lib/match-operation-display";
 import {
   organizerOperationDetailPaneClass,
-  organizerOperationFieldInputClass,
   organizerOperationFieldSelectClass,
-  organizerOperationFilterBarClass,
+  organizerOperationListHeaderClass,
   organizerOperationListPaneClass,
   organizerOperationListScrollClass,
   organizerOperationWorkspaceClass,
@@ -72,7 +70,6 @@ export function OrganizerOperationBoard({
   const [courtTab, setCourtTab] = useState<CourtTabId>("all");
   const [summaryFilter, setSummaryFilter] = useState<OperationBoardFilter>("all");
   const [statusFilter, setStatusFilter] = useState<OperationBoardFilter>("all");
-  const [search, setSearch] = useState("");
   const [expandedMatchId, setExpandedMatchId] = useState<string | null>(null);
   const [focusedMatchId, setFocusedMatchId] = useState<string | null>(null);
 
@@ -97,7 +94,6 @@ export function OrganizerOperationBoard({
   const filteredRows = useMemo(() => {
     const filtered = baseRows.filter((row) => {
       if (!matchesCourtTab(row, courtTab)) return false;
-      if (!matchesOperationSearchQuery(row, search)) return false;
       if (!matchesOperationBoardFilter(row, activeFilter)) return false;
       return true;
     });
@@ -106,7 +102,7 @@ export function OrganizerOperationBoard({
       ...row,
       orderLabel: formatOperationOrderLabel(row, courtTab),
     }));
-  }, [baseRows, courtTab, courts, search, activeFilter]);
+  }, [baseRows, courtTab, courts, activeFilter]);
 
   const spotlight = useMemo(
     () => pickOperationSpotlightMatches(filteredRows),
@@ -154,7 +150,7 @@ export function OrganizerOperationBoard({
   }
 
   return (
-    <div className="flex flex-col gap-4">
+    <div className="flex flex-col gap-3 md:gap-4">
       <OperationCompactSummaryBar
         summary={summary}
         activeFilter={summaryFilter}
@@ -168,49 +164,44 @@ export function OrganizerOperationBoard({
       />
 
       <div className={organizerOperationWorkspaceClass}>
-        <div ref={listRef} className={organizerOperationListPaneClass}>
-          <div className={organizerOperationFilterBarClass}>
-            <div className="flex flex-col gap-3 sm:flex-row sm:flex-wrap sm:items-end">
-              <label className="flex min-w-[180px] flex-1 flex-col gap-1 text-sm">
-                <span className="text-matchon-text-secondary text-xs">검색</span>
-                <input
-                  type="search"
-                  value={search}
-                  onChange={(e) => setSearch(e.target.value)}
-                  placeholder="선수명, 체육관명, 경기구분명"
-                  className={cn(organizerOperationFieldInputClass, "w-full")}
-                />
-              </label>
-              <label className="flex min-w-[160px] flex-col gap-1 text-sm">
-                <span className="text-matchon-text-secondary text-xs">
-                  상태 필터
-                </span>
-                <select
-                  value={statusFilter}
-                  onChange={(e) => {
-                    const value = e.target.value as OperationBoardFilter;
-                    setStatusFilter(value);
-                    if (value !== "all") setSummaryFilter("all");
-                  }}
-                  className={organizerOperationFieldSelectClass}
-                >
-                  {FILTER_OPTIONS.map((option) => (
-                    <option key={option.value} value={option.value}>
-                      {option.label}
-                    </option>
-                  ))}
-                </select>
-              </label>
+        <div
+          ref={listRef}
+          className={organizerOperationListPaneClass}
+          data-testid="operation-list-pane"
+        >
+          <div className={organizerOperationListHeaderClass}>
+            <div className="min-w-0">
+              <h2 className="text-sm font-semibold text-matchon-text-primary">
+                경기 목록
+              </h2>
+              <p className="text-matchon-text-secondary text-xs">
+                {filteredRows.length}건 표시
+              </p>
             </div>
-          </div>
-
-          <div>
-            <h2 className="text-sm font-bold text-matchon-text-primary">
-              경기 목록
-            </h2>
-            <p className="text-matchon-text-secondary text-xs">
-              {filteredRows.length}건 표시 (전체 {liveMatches.length}건)
-            </p>
+            <label className="flex shrink-0 items-center gap-2 text-xs">
+              <span className="text-matchon-text-secondary sr-only sm:not-sr-only">
+                상태
+              </span>
+              <select
+                aria-label="상태 필터"
+                value={statusFilter}
+                onChange={(e) => {
+                  const value = e.target.value as OperationBoardFilter;
+                  setStatusFilter(value);
+                  if (value !== "all") setSummaryFilter("all");
+                }}
+                className={cn(
+                  organizerOperationFieldSelectClass,
+                  "h-9 min-w-[7.5rem] w-auto",
+                )}
+              >
+                {FILTER_OPTIONS.map((option) => (
+                  <option key={option.value} value={option.value}>
+                    {option.label}
+                  </option>
+                ))}
+              </select>
+            </label>
           </div>
 
           <div className={cn(organizerOperationListScrollClass, "hidden md:flex")}>
@@ -229,7 +220,10 @@ export function OrganizerOperationBoard({
           />
         </div>
 
-        <div className={cn(organizerOperationDetailPaneClass, "hidden md:block")}>
+        <div
+          className={cn(organizerOperationDetailPaneClass, "hidden md:block")}
+          data-testid="operation-detail-pane"
+        >
           <OperationSpotlightSection
             rows={filteredRows}
             focusedMatchId={effectiveFocusedMatchId}

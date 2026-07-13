@@ -13,6 +13,11 @@ import {
   DEFAULT_MATCH_OPERATIONAL_SETTINGS,
   parseMatchOperationalSettings,
 } from "@/lib/match-operational-settings";
+import {
+  matchDurationSelectClass,
+  matchOperationalControlsRowClass,
+  matchRoundSelectClass,
+} from "@/lib/ui/match-grid-layout";
 import { cn } from "@/lib/utils";
 
 function RoundSelect({
@@ -28,7 +33,7 @@ function RoundSelect({
 }) {
   const select = (
     <select
-      className="border-input bg-background h-8 min-w-[4.25rem] rounded-md border px-2 text-xs"
+      className={matchRoundSelectClass}
       aria-label="라운드"
       value={value}
       disabled={disabled}
@@ -45,7 +50,7 @@ function RoundSelect({
   if (hideLabels) return select;
 
   return (
-    <label className="flex min-w-0 flex-col gap-0.5 text-xs">
+    <label className="flex shrink-0 flex-col gap-0.5 text-xs">
       <span className="text-muted-foreground text-[10px] font-medium">라운드</span>
       {select}
     </label>
@@ -65,7 +70,7 @@ function TimeSelect({
 }) {
   const select = (
     <select
-      className="border-input bg-background h-8 min-w-[4.25rem] rounded-md border px-2 text-xs"
+      className={matchDurationSelectClass}
       aria-label="시간"
       value={value}
       disabled={disabled}
@@ -82,7 +87,7 @@ function TimeSelect({
   if (hideLabels) return select;
 
   return (
-    <label className="flex min-w-0 flex-col gap-0.5 text-xs">
+    <label className="flex shrink-0 flex-col gap-0.5 text-xs">
       <span className="text-muted-foreground text-[10px] font-medium">시간</span>
       {select}
     </label>
@@ -158,7 +163,7 @@ export function MatchOperationalSettingsSelect({
     <div
       className={cn(
         inline
-          ? "flex flex-wrap items-center justify-center gap-2"
+          ? matchOperationalControlsRowClass
           : "grid w-full gap-2 sm:grid-cols-2",
         className,
       )}
