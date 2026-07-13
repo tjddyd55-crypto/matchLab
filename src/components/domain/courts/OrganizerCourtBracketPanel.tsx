@@ -84,7 +84,7 @@ function CourtBracketFighterCell({
   const empty = !name?.trim() || name === "-";
 
   return (
-    <div className={cn("flex w-full min-w-0 justify-center rounded-md border px-2 py-1.5", style.bg)}>
+    <div className={cn("flex w-full min-w-0 justify-center rounded-md border px-3 py-3", style.bg)}>
       <BracketFighterCompactCard
         centerIdentity
         empty={empty}

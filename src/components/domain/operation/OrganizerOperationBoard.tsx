@@ -1,11 +1,11 @@
 "use client";
 
 import { useMemo, useRef, useState } from "react";
+import { OperationCompactSummaryBar } from "@/components/domain/operation/OperationCompactSummaryBar";
 import { OperationCourtTabBar } from "@/components/domain/operation/OperationCourtTabBar";
+import { OperationMatchListPane } from "@/components/domain/operation/OperationMatchListPane";
 import { OperationSpotlightSection } from "@/components/domain/operation/OperationSpotlightSection";
-import { OperationSummaryCards } from "@/components/domain/operation/OperationSummaryCards";
 import { OrganizerOperationCardListMobile } from "@/components/domain/operation/OrganizerOperationCardListMobile";
-import { OrganizerOperationTableDesktop } from "@/components/domain/operation/OrganizerOperationTableDesktop";
 import {
   toOperationMatchRow,
   type OperationMatchRowVM,
@@ -23,9 +23,13 @@ import {
   type OperationBoardFilter,
 } from "@/lib/match-operation-display";
 import {
+  organizerOperationDetailPaneClass,
   organizerOperationFieldInputClass,
   organizerOperationFieldSelectClass,
   organizerOperationFilterBarClass,
+  organizerOperationListPaneClass,
+  organizerOperationListScrollClass,
+  organizerOperationWorkspaceClass,
 } from "@/lib/ui/organizer-operation-ui";
 import { cn } from "@/lib/utils";
 
@@ -132,8 +136,8 @@ export function OrganizerOperationBoard({
   }
 
   return (
-    <div className="flex flex-col gap-5">
-      <OperationSummaryCards
+    <div className="flex flex-col gap-4">
+      <OperationCompactSummaryBar
         summary={summary}
         activeFilter={summaryFilter}
         onFilterChange={handleSummaryFilterChange}
@@ -145,8 +149,8 @@ export function OrganizerOperationBoard({
         onTabChange={setCourtTab}
       />
 
-      <div className="grid gap-5 lg:grid-cols-[minmax(0,1.15fr)_minmax(0,0.85fr)] lg:items-start">
-        <div ref={listRef} className="min-w-0 space-y-4">
+      <div className={organizerOperationWorkspaceClass}>
+        <div ref={listRef} className={organizerOperationListPaneClass}>
           <div className={organizerOperationFilterBarClass}>
             <div className="flex flex-col gap-3 sm:flex-row sm:flex-wrap sm:items-end">
               <label className="flex min-w-[180px] flex-1 flex-col gap-1 text-sm">
@@ -184,19 +188,21 @@ export function OrganizerOperationBoard({
 
           <div>
             <h2 className="text-sm font-bold text-matchon-text-primary">
-              전체 경기 목록
+              경기 목록
             </h2>
             <p className="text-matchon-text-secondary text-xs">
               {filteredRows.length}건 표시 (전체 {matches.length}건)
             </p>
           </div>
 
-          <OrganizerOperationTableDesktop
-            rows={filteredRows}
-            expandedMatchId={expandedMatchId}
-            onTogglePanel={toggleInlinePanel}
-            judgeBriefByMatch={judgeBriefByMatch}
-          />
+          <div className={cn(organizerOperationListScrollClass, "hidden md:flex")}>
+            <OperationMatchListPane
+              rows={filteredRows}
+              selectedMatchId={effectiveFocusedMatchId}
+              onSelectMatch={focusMatch}
+            />
+          </div>
+
           <OrganizerOperationCardListMobile
             rows={filteredRows}
             expandedMatchId={expandedMatchId}
@@ -205,12 +211,23 @@ export function OrganizerOperationBoard({
           />
         </div>
 
-        <OperationSpotlightSection
-          rows={filteredRows}
-          focusedMatchId={effectiveFocusedMatchId}
-          onFocusMatch={focusMatch}
-          className="lg:min-w-0"
-        />
+        <div className={cn(organizerOperationDetailPaneClass, "hidden md:block")}>
+          <OperationSpotlightSection
+            rows={filteredRows}
+            focusedMatchId={effectiveFocusedMatchId}
+            onFocusMatch={focusMatch}
+          />
+        </div>
+
+        <div className="md:hidden">
+          {expandedMatchId ? (
+            <OperationSpotlightSection
+              rows={filteredRows}
+              focusedMatchId={expandedMatchId}
+              onFocusMatch={focusMatch}
+            />
+          ) : null}
+        </div>
       </div>
     </div>
   );

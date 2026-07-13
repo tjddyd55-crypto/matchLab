@@ -83,3 +83,48 @@ export {
   getPublicRegistrationStatusLabel,
   resolvePublicRegistrationMatchonStatus,
 };
+
+/** 운영자 대회 목록 — 상태 필터 탭 */
+export type OrganizerEventListFilter =
+  | "all"
+  | "ongoing"
+  | "registration"
+  | "preparing"
+  | "finished";
+
+export const ORGANIZER_EVENT_LIST_FILTER_TABS: {
+  id: OrganizerEventListFilter;
+  label: string;
+}[] = [
+  { id: "all", label: "전체" },
+  { id: "ongoing", label: "진행 중" },
+  { id: "registration", label: "신청 중" },
+  { id: "preparing", label: "준비 중" },
+  { id: "finished", label: "종료" },
+];
+
+export function matchesOrganizerEventListFilter(
+  status: EventStatus,
+  filter: OrganizerEventListFilter,
+): boolean {
+  if (filter === "all") return true;
+  if (filter === "ongoing") return status === "ongoing";
+  if (filter === "registration") return status === "open";
+  if (filter === "preparing") {
+    return (
+      status === "draft" ||
+      status === "closed" ||
+      status === "bracket_ready"
+    );
+  }
+  if (filter === "finished") {
+    return status === "finished" || status === "cancelled";
+  }
+  return true;
+}
+
+export const organizerEventListTableWrapClass =
+  "hidden w-full min-w-0 overflow-x-auto rounded-xl border border-matchon-border bg-white md:block";
+
+export const organizerEventListFilterBarClass =
+  "flex flex-wrap gap-2";

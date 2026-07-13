@@ -78,19 +78,21 @@ export function WeighInFailureResolutionForm({
   }
 
   const btnSize = touchFriendly ? "field" : "sm";
-  const btnClass = touchFriendly ? "w-full sm:w-auto" : "h-8 text-xs";
+  const btnClass = touchFriendly
+    ? "w-full sm:w-auto"
+    : "h-[34px] min-w-[4.5rem] px-2 text-xs";
 
   return (
     <div
       className={cn(
-        "flex w-full min-w-0 max-w-full flex-col gap-2",
+        "flex w-full min-w-0 max-w-full flex-col gap-1",
         compact ? "items-center" : "min-w-[12rem]",
       )}
     >
       <div
         className={cn(
           "flex w-full flex-wrap gap-1",
-          compact ? "justify-center" : "",
+          compact ? "items-center justify-center" : "",
           touchFriendly && "flex-col sm:flex-row",
         )}
       >
@@ -202,24 +204,44 @@ export function DisqualificationReasonForm({
       key={`${row.applicationId}-${row.disqualificationReason ?? "none"}`}
       onSubmit={handleSubmit}
       className={cn(
-        "flex w-full min-w-0 max-w-full flex-col gap-1.5",
+        "flex w-full min-w-0 max-w-full flex-col gap-1",
         compact ? "items-center" : "min-w-[12rem]",
       )}
     >
-      <select
-        name="preset"
-        className={inputClass}
-        value={preset}
-        onChange={(e) => setPreset(e.target.value)}
-        required
+      <div
+        className={cn(
+          "flex w-full min-w-0 gap-1",
+          compact ? "flex-wrap items-center justify-center" : "flex-col",
+        )}
       >
-        <option value="">사유 선택</option>
-        {DISQUALIFICATION_PRESETS.map((p) => (
-          <option key={p.value} value={p.value}>
-            {p.label}
-          </option>
-        ))}
-      </select>
+        <select
+          name="preset"
+          className={cn(inputClass, compact && "min-w-0 flex-1")}
+          value={preset}
+          onChange={(e) => setPreset(e.target.value)}
+          required
+        >
+          <option value="">사유 선택</option>
+          {DISQUALIFICATION_PRESETS.map((p) => (
+            <option key={p.value} value={p.value}>
+              {p.label}
+            </option>
+          ))}
+        </select>
+        <Button
+          type="submit"
+          size={touchFriendly ? "field" : "sm"}
+          variant="default"
+          className={
+            touchFriendly
+              ? "w-full shrink-0 sm:w-fit"
+              : "h-[34px] shrink-0 px-2 text-xs"
+          }
+          disabled={pending}
+        >
+          저장
+        </Button>
+      </div>
       {preset === "other" ? (
         <input
           name="otherReason"
@@ -232,17 +254,10 @@ export function DisqualificationReasonForm({
           required
         />
       ) : null}
-      <Button
-        type="submit"
-        size={touchFriendly ? "field" : "sm"}
-        variant="default"
-        className={touchFriendly ? "w-full sm:w-fit" : "h-8 w-fit text-xs"}
-        disabled={pending}
-      >
-        사유 저장
-      </Button>
       {feedback ? (
-        <FeedbackMessage tone={feedback.tone}>{feedback.message}</FeedbackMessage>
+        <FeedbackMessage tone={feedback.tone} className="text-xs">
+          {feedback.message}
+        </FeedbackMessage>
       ) : null}
     </form>
   );

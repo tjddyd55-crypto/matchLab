@@ -30,7 +30,7 @@ export function BracketMatchCenterCell({
         {vsLabel}
       </span>
       {badges ? (
-        <div className="flex max-w-full flex-nowrap items-center justify-center gap-0.5 overflow-hidden">
+        <div className="flex max-w-full flex-wrap items-center justify-center gap-1 [word-break:keep-all]">
           {badges}
         </div>
       ) : null}

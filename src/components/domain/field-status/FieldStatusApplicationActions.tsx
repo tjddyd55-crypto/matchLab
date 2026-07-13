@@ -284,7 +284,7 @@ export function WeighInWeightInput({
       <form
         onSubmit={handleSubmit}
         className={cn(
-          "flex items-center justify-center gap-2",
+          "flex items-center justify-center gap-1.5",
           touchFriendly && "w-full flex-col sm:flex-row",
         )}
       >
@@ -298,7 +298,7 @@ export function WeighInWeightInput({
           onChange={(e) => setWeightInput(e.target.value)}
           className={cn(
             "border-input bg-background shrink-0 rounded-md border px-2 text-xs focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring",
-            touchFriendly ? "h-11 w-full text-sm sm:w-[5.5rem]" : "h-8 w-[4.5rem]",
+            touchFriendly ? "h-11 w-full text-sm sm:w-[5.5rem]" : "h-8 w-[4.25rem]",
           )}
         />
         <Button
@@ -307,7 +307,7 @@ export function WeighInWeightInput({
           variant="default"
           className={cn(
             "shrink-0",
-            touchFriendly ? "w-full sm:w-auto" : "h-8 px-2 text-xs",
+            touchFriendly ? "w-full sm:w-auto" : "h-8 min-w-[2.75rem] px-2 text-xs",
           )}
           disabled={pending}
         >
@@ -315,9 +315,9 @@ export function WeighInWeightInput({
         </Button>
       </form>
       {hydrated && isSaved && savedKg != null ? (
-        <FeedbackMessage tone="success" className="text-xs">
-          저장됨 · {formatSavedWeightKg(savedKg)}kg
-        </FeedbackMessage>
+        <p className="text-[11px] font-medium text-emerald-600" role="status">
+          저장됨 {formatSavedWeightKg(savedKg)}kg
+        </p>
       ) : null}
       {errorMessage ? (
         <FeedbackMessage tone="error" role="alert">

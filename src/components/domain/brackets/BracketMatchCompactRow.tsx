@@ -1,7 +1,7 @@
 import type { ReactNode } from "react";
 import {
   bracketMatchControlsGridClass,
-  bracketMatchRowGridClass,
+  bracketMatchFightersGridClass,
   matchGridCellCenterClass,
 } from "@/lib/ui/match-grid-layout";
 import { Card } from "@/components/ui/card";
@@ -21,16 +21,14 @@ export function BracketMatchColumnHeader({
   return (
     <div
       className={cn(
-        bracketMatchRowGridClass,
-        "text-muted-foreground mb-0.5 hidden px-2 text-[10px] font-medium uppercase tracking-wide md:grid",
+        "text-muted-foreground mb-1 hidden px-3 text-[10px] font-medium uppercase tracking-wide md:grid md:grid-cols-[minmax(220px,1fr)_minmax(140px,170px)_minmax(220px,1fr)] md:gap-x-2",
         className,
       )}
     >
-      <span className="text-center">경기</span>
       <span className="text-center">홍코너</span>
-      <span className="text-center">{centerLabel ?? ""}</span>
+      <span className="text-center">{centerLabel ?? "VS"}</span>
       <span className="text-center">청코너</span>
-      <span className="text-center">{statusLabel}</span>
+      <span className="sr-only">{statusLabel}</span>
     </div>
   );
 }
@@ -58,33 +56,37 @@ export function BracketMatchCompactRow({
 }) {
   return (
     <Card className={cn("gap-0 overflow-hidden py-0", className)}>
-      {divisionHint ? (
-        <p
-          className="text-muted-foreground truncate border-b bg-muted/20 px-2 py-0.5 text-[10px] leading-tight whitespace-nowrap"
-          title={divisionHint}
-        >
-          {divisionHint}
-        </p>
-      ) : null}
-
-      <div className={cn(bracketMatchRowGridClass, "px-2 py-1.5")}>
-        <div className={matchGridCellCenterClass}>
-          <span className="text-xs font-bold tabular-nums leading-none whitespace-nowrap">
+      <div className="flex items-center justify-between gap-2 border-b border-matchon-border bg-matchon-primary-light/20 px-3 py-1.5">
+        <div className="flex min-w-0 flex-1 items-center gap-2">
+          <span className="shrink-0 text-[15px] font-extrabold leading-none text-[#0F172A] tabular-nums whitespace-nowrap">
             {matchOrderLabel}
           </span>
+          {divisionHint ? (
+            <span
+              className="text-muted-foreground min-w-0 truncate text-xs leading-tight"
+              title={divisionHint}
+            >
+              {divisionHint}
+            </span>
+          ) : null}
         </div>
+        {statusArea ? (
+          <div className="flex shrink-0 items-center justify-end">{statusArea}</div>
+        ) : null}
+      </div>
 
+      <div className={cn(bracketMatchFightersGridClass)}>
         <div className={matchGridCellCenterClass}>{redSlot}</div>
-
-        <div className={matchGridCellCenterClass}>{center}</div>
-
+        <div className={cn(matchGridCellCenterClass, "min-w-[140px]")}>
+          {center}
+        </div>
         <div className={matchGridCellCenterClass}>{blueSlot}</div>
-
-        <div className={matchGridCellCenterClass}>{statusArea}</div>
       </div>
 
       {controls ? (
-        <div className="border-t bg-muted/10 px-2 py-1">{controls}</div>
+        <div className="border-t border-matchon-border bg-muted/10 px-3 py-1.5">
+          {controls}
+        </div>
       ) : null}
 
       {footer}
@@ -110,7 +112,7 @@ export function BracketMatchControlsRow({
         {left}
       </div>
       {center ? (
-        <div className="flex min-w-0 items-center justify-center justify-self-center px-1 whitespace-nowrap">
+        <div className="flex min-w-0 items-center justify-center justify-self-center px-1 text-center [word-break:keep-all] whitespace-normal">
           {center}
         </div>
       ) : null}

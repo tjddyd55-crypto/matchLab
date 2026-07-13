@@ -1,6 +1,10 @@
-/** Bracket match row — 5열 grid: 경기번호 | 홍 | VS | 청 | 상태 */
+/** Bracket match row — 5열 grid: 경기번호 | 홍 | VS | 청 | 상태 (레거시 헤더용) */
 export const bracketMatchRowGridClass =
-  "grid grid-cols-1 gap-1.5 md:grid-cols-[3rem_minmax(0,1.15fr)_4rem_minmax(0,1.15fr)_4.75rem] md:items-stretch md:gap-x-2";
+  "grid grid-cols-1 gap-1.5 md:grid-cols-[minmax(4.5rem,5.25rem)_minmax(220px,1fr)_minmax(140px,170px)_minmax(220px,1fr)_minmax(5rem,6rem)] md:items-stretch md:gap-x-2";
+
+/** 대진표 본문 — RED | 중앙 | BLUE 3열 */
+export const bracketMatchFightersGridClass =
+  "grid grid-cols-1 gap-2 px-3 py-2 md:grid-cols-[minmax(220px,1fr)_minmax(140px,170px)_minmax(220px,1fr)] md:items-stretch md:gap-x-2";
 
 /** Bracket control row — 좌: 경기장 / 중: 라운드·시간 / 우: 순서 */
 export const bracketMatchControlsGridClass =
@@ -13,10 +17,10 @@ export const matchGridCellStartClass =
   "flex min-h-[2.75rem] min-w-0 items-center justify-start";
 
 export const fieldStatusCenterCellClass =
-  "flex min-h-[2.5rem] w-full min-w-0 items-center justify-center";
+  "flex min-h-[2.25rem] w-full min-w-0 items-center justify-center";
 
 export const fieldStatusTextCellClass =
-  "flex min-h-[2.5rem] min-w-0 items-center justify-start";
+  "flex min-h-[2.25rem] min-w-0 items-center justify-start";
 
 export const tableCellCenterClass =
   "flex min-h-[2.75rem] w-full items-center justify-center";

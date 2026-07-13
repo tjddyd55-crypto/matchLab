@@ -210,7 +210,7 @@ export function OrganizerFieldStatusBoard({
       <div ref={listRef} className="min-w-0 flex flex-col gap-6">
         {showSportSections
           ? sportGroups.map((group) => (
-              <section key={group.sportTitle} className="flex flex-col gap-3">
+              <section key={group.sportTitle} className="flex flex-col gap-2">
                 <DivisionSportSectionHeader title={group.sportTitle} />
                 <OrganizerFieldStatusTable
                   rows={group.items}

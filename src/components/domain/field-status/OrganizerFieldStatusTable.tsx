@@ -44,14 +44,14 @@ export function OrganizerFieldStatusTable({
       <div className={cn(matchonCompactTableWrapClass, "hidden w-full min-w-0 md:block")}>
         <table className="w-full table-fixed text-left text-sm">
           <colgroup>
+            <col className="w-[13%]" />
             <col className="w-[9%]" />
-            <col className="w-[11%]" />
+            <col className="w-[15%]" />
+            <col className="w-[13%]" />
+            <col className="w-[14%]" />
             <col className="w-[18%]" />
-            <col className="w-[11%]" />
-            <col className="w-[14%]" />
-            <col className="w-[14%]" />
-            <col className="w-[17%]" />
-            <col className="w-[6%]" />
+            <col className="w-[13%]" />
+            <col className="w-[5%]" />
           </colgroup>
           <thead className={listTableHeaderRowClass}>
             <tr>
