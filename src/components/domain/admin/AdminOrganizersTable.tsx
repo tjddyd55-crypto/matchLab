@@ -18,7 +18,10 @@ import {
 } from "@/components/ui/table";
 import {
   adminDesktopTableClass,
+  adminMobileCardClass,
+  adminMobileCardHeaderClass,
   adminMobileListClass,
+  adminMutedTextClass,
   getAdminOrganizerStatusLabel,
   resolveAdminOrganizerStatusMatchon,
 } from "@/lib/ui/admin-ui";
@@ -54,7 +57,7 @@ export function AdminOrganizersTable({
             {rows.map((o) => (
               <TableRow key={o.id}>
                 <TableCell className="font-medium break-words">{o.name}</TableCell>
-                <TableCell className="text-muted-foreground text-xs">{o.type}</TableCell>
+                <TableCell className={`${adminMutedTextClass} text-xs`}>{o.type}</TableCell>
                 <TableCell>
                   <MatchonStatusBadge
                     status={resolveAdminOrganizerStatusMatchon(o.status)}
@@ -63,7 +66,7 @@ export function AdminOrganizersTable({
                   />
                 </TableCell>
                 <TableCell className="tabular-nums">{o.eventCount}</TableCell>
-                <TableCell className="text-muted-foreground whitespace-nowrap text-xs">
+                <TableCell className={`${adminMutedTextClass} whitespace-nowrap text-xs`}>
                   {formatAdminDateTime(o.createdAt)}
                 </TableCell>
               </TableRow>
@@ -74,8 +77,8 @@ export function AdminOrganizersTable({
       <ul className={adminMobileListClass}>
         {rows.map((o) => (
           <li key={o.id}>
-            <Card className="gap-0 overflow-hidden py-0">
-              <CardHeader className="border-b bg-muted/15 pb-3">
+            <Card className={adminMobileCardClass}>
+              <CardHeader className={adminMobileCardHeaderClass}>
                 <div className="flex flex-wrap items-start justify-between gap-2">
                   <CardTitle className="text-base">{o.name}</CardTitle>
                   <MatchonStatusBadge
@@ -86,10 +89,10 @@ export function AdminOrganizersTable({
                 </div>
               </CardHeader>
               <CardContent className="pt-3 text-xs">
-                <p className="text-muted-foreground">
+                <p className={adminMutedTextClass}>
                   {o.type} · 대회 {o.eventCount}개
                 </p>
-                <p className="text-muted-foreground mt-1">
+                <p className={`${adminMutedTextClass} mt-1`}>
                   {formatAdminDateTime(o.createdAt)}
                 </p>
               </CardContent>

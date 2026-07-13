@@ -1,5 +1,5 @@
 import type { PublicEventDetailDTO } from "@/lib/dto/public";
-import { BrandLogo } from "@/components/common/BrandLogo";
+import { MatchonLogo } from "@/components/common/MatchonLogo";
 import {
   spectatorWatchTabLabel,
   type SpectatorWatchTabId,
@@ -29,19 +29,21 @@ export function SpectatorWatchHeader({
   const place = event.locationName ?? event.location;
 
   return (
-    <header className="space-y-3 border-b bg-background px-4 pb-4 pt-5">
-      <BrandLogo size="sm" showText />
+    <header className="space-y-3 border-b border-matchon-border bg-white px-4 pb-4 pt-5">
+      <MatchonLogo size="sm" variant="light" />
       <div>
-        <h1 className="text-xl font-bold leading-snug">{event.title}</h1>
-        <p className="text-muted-foreground mt-1 text-sm">
+        <h1 className="text-xl font-bold leading-snug text-matchon-text-primary">
+          {event.title}
+        </h1>
+        <p className="mt-1 text-sm text-matchon-text-secondary">
           {formatEventDate(event.eventDate)}
           {place ? ` · ${place}` : ""}
         </p>
-        <p className="text-muted-foreground mt-0.5 text-xs">
+        <p className="mt-0.5 text-xs text-matchon-text-secondary">
           주최 {event.organizerName}
         </p>
       </div>
-      <p className="text-foreground text-lg font-semibold">
+      <p className="text-lg font-semibold text-matchon-text-primary">
         {spectatorWatchTabLabel(activeTab)}
       </p>
     </header>

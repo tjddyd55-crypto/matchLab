@@ -1,6 +1,13 @@
 import { FighterDashboardEmptyState } from "@/components/domain/fighter-dashboard/FighterDashboardEmptyState";
 import { requireActor } from "@/lib/auth/actor";
 import { fighterAccountService } from "@/lib/services/fighter-account.service";
+import { matchonPageHeaderStackClass } from "@/lib/ui/matchon-shell-ui";
+import {
+  matchonPageContainerClass,
+  matchonPageStackClass,
+  matchonPageTitleClass,
+} from "@/lib/ui/matchon-layout";
+import { cn } from "@/lib/utils";
 
 export const dynamic = "force-dynamic";
 
@@ -9,11 +16,11 @@ export default async function FighterPendingPage() {
   const gate = await fighterAccountService.getFighterRegistrationGate(actor);
 
   return (
-    <div className="mx-auto max-w-lg px-4 py-12">
-      <h1 className="font-heading text-2xl font-semibold tracking-tight">
-        체육관 승인 대기
-      </h1>
-      <div className="mt-6">
+    <div className={matchonPageContainerClass}>
+      <div className={cn(matchonPageStackClass, "max-w-lg")}>
+        <header className={matchonPageHeaderStackClass}>
+          <h1 className={matchonPageTitleClass}>체육관 승인 대기</h1>
+        </header>
         <FighterDashboardEmptyState
           title={
             gate.kind === "pending"

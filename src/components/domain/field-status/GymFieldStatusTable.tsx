@@ -3,6 +3,8 @@ import { EligibilityBadge } from "@/components/domain/field-status/EligibilityBa
 import { FieldStatusEmptyState } from "@/components/domain/field-status/FieldStatusEmptyState";
 import { WeighInStatusBadge } from "@/components/domain/field-status/WeighInStatusBadge";
 import type { FieldStatusRowDTO } from "@/lib/services/field-status.service";
+import { matchonCompactTableWrapClass } from "@/lib/ui/matchon-shell-ui";
+import { cn } from "@/lib/utils";
 import {
   Table,
   TableBody,
@@ -20,7 +22,12 @@ export function GymFieldStatusTable({ rows }: { rows: FieldStatusRowDTO[] }) {
   }
 
   return (
-    <div className="hidden overflow-x-auto rounded-xl border lg:block">
+    <div
+      className={cn(
+        matchonCompactTableWrapClass,
+        "hidden lg:block",
+      )}
+    >
       <Table className="min-w-[48rem]">
         <TableHeader>
           <TableRow>

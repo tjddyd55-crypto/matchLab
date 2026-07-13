@@ -9,6 +9,9 @@ import {
 } from "@/features/judges/actions";
 import { Button } from "@/components/ui/button";
 import { ORGANIZER_JUDGE_ROLE_OPTIONS } from "@/lib/judge-identity";
+import { ORGANIZER_FIELD_INPUT_CLASS } from "@/lib/organizer-dashboard-layout";
+import { listTableHeaderRowClass } from "@/lib/ui/list-table-styles";
+import { matchonCompactTableWrapClass } from "@/lib/ui/matchon-shell-ui";
 import type { JudgeCredentialListItemVM } from "@/lib/services/judge-credential.service";
 import { JudgeCredentialRole } from "@/generated/prisma";
 
@@ -45,8 +48,7 @@ export function OrganizerJudgeCredentialManager({
   const [error, setError] = useState<string | null>(null);
   const [createdPassword, setCreatedPassword] = useState<string | null>(null);
 
-  const inputClass =
-    "border-input bg-background h-9 w-full rounded-md border px-2 text-sm";
+  const inputClass = ORGANIZER_FIELD_INPUT_CLASS;
 
   function run(fn: () => Promise<void>) {
     setError(null);
@@ -203,9 +205,9 @@ export function OrganizerJudgeCredentialManager({
         </p>
       ) : null}
 
-      <div className="min-w-0 overflow-x-auto rounded-lg border">
+      <div className={matchonCompactTableWrapClass}>
         <table className="w-full min-w-0 text-left text-sm">
-          <thead className="bg-muted/50 text-xs">
+          <thead className={listTableHeaderRowClass}>
             <tr>
               <th className="px-3 py-2">ID</th>
               <th className="px-3 py-2">역할</th>

@@ -1,11 +1,11 @@
 {
-  "name": "매치온",
-  "short_name": "매치온",
-  "description": "대회 신청, 대진표, 심판 운영을 위한 격투기 대회 운영 플랫폼",
+  "name": "MATCHON",
+  "short_name": "MATCHON",
+  "description": "신청·대진표·경기·결과 통합 관리를 위한 격투기 대회 운영 플랫폼",
   "start_url": "/",
   "display": "standalone",
-  "background_color": "#ffffff",
-  "theme_color": "#0f172a",
+  "background_color": "#f8fafc",
+  "theme_color": "#0a47ff",
   "icons": [
     {
       "src": "/icons/icon-192.png",

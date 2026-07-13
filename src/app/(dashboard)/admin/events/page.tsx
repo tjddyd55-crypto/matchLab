@@ -1,9 +1,8 @@
 import { AdminEventsTable } from "@/components/domain/admin/AdminEventsTable";
 import { AdminPageHeader } from "@/components/domain/admin/AdminPageHeader";
-import { Card, CardContent } from "@/components/ui/card";
 import { requireActor } from "@/lib/auth/actor";
 import { adminService } from "@/lib/services/admin.service";
-import { adminPageContainerClass, adminPageStackClass } from "@/lib/ui/admin-ui";
+import { adminContentCardClass, adminPageContainerClass, adminPageStackClass } from "@/lib/ui/admin-ui";
 
 export const dynamic = "force-dynamic";
 
@@ -18,11 +17,9 @@ export default async function AdminEventsPage() {
           title="전체 대회"
           description="운영 화면은 주최자 뷰로 열립니다. 필터·검색·페이지네이션은 TODO."
         />
-        <Card>
-          <CardContent className="pt-4">
-            <AdminEventsTable rows={rows} />
-          </CardContent>
-        </Card>
+        <div className={adminContentCardClass}>
+          <AdminEventsTable rows={rows} />
+        </div>
       </div>
     </div>
   );

@@ -47,6 +47,10 @@
   --color-matchon-warning: var(--matchon-warning);
   --color-matchon-danger: var(--matchon-danger);
   --color-matchon-surface: var(--matchon-surface);
+  --color-matchon-sidebar: var(--matchon-sidebar);
+  --color-matchon-text-primary: var(--matchon-text-primary);
+  --color-matchon-text-secondary: var(--matchon-text-secondary);
+  --color-matchon-border: var(--matchon-border);
   --radius-sm: calc(var(--radius) * 0.6);
   --radius-md: calc(var(--radius) * 0.8);
   --radius-lg: var(--radius);
@@ -66,6 +70,7 @@
   --matchon-danger: #dc2626;
   --matchon-bg: #ffffff;
   --matchon-surface: #f8fafc;
+  --matchon-sidebar: #0d1117;
   --matchon-border: #e2e8f0;
   --matchon-text-primary: #0f172a;
   --matchon-text-secondary: #64748b;
@@ -97,13 +102,13 @@
   --chart-4: oklch(0.371 0 0);
   --chart-5: oklch(0.269 0 0);
   --radius: 0.625rem;
-  --sidebar: oklch(0.985 0 0);
-  --sidebar-foreground: oklch(0.145 0 0);
+  --sidebar: var(--matchon-sidebar);
+  --sidebar-foreground: oklch(0.985 0 0);
   --sidebar-primary: var(--matchon-primary);
   --sidebar-primary-foreground: oklch(0.985 0 0);
-  --sidebar-accent: oklch(0.97 0 0);
-  --sidebar-accent-foreground: oklch(0.205 0 0);
-  --sidebar-border: oklch(0.922 0 0);
+  --sidebar-accent: var(--matchon-primary-light);
+  --sidebar-accent-foreground: var(--matchon-primary);
+  --sidebar-border: oklch(1 0 0 / 8%);
   --sidebar-ring: oklch(0.708 0 0);
   --division-gender-male-bg: oklch(0.97 0.02 252);
   --division-gender-male-border: oklch(0.88 0.06 252);

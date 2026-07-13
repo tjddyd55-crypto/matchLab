@@ -13,17 +13,23 @@ import {
   getBracketMatchMatchonLabel,
   resolveBracketMatchMatchonStatus,
 } from "@/lib/ui/fighter-dashboard-ui";
+import {
+  matchonBlueCornerPanelClass,
+  matchonBlueCornerTextClass,
+  matchonRedCornerPanelClass,
+  matchonRedCornerTextClass,
+  matchonVsCardClass,
+} from "@/lib/ui/matchon-shell-ui";
+import { matchonSectionTitleClass } from "@/lib/ui/matchon-layout";
 import { cn } from "@/lib/utils";
 
 export function FighterNextMatchCard({ match }: { match: FieldModeMatchCardVM }) {
   return (
     <Card>
-      <CardHeader className="border-b bg-muted/20">
+      <CardHeader className="border-b border-matchon-border bg-matchon-surface/30">
         <div className="flex flex-wrap items-start justify-between gap-2">
           <div className="min-w-0 space-y-1">
-            <CardTitle className="text-base leading-snug">
-              {match.eventTitle}
-            </CardTitle>
+            <CardTitle className="text-base leading-snug">{match.eventTitle}</CardTitle>
             <CardDescription>
               {match.bracketTitle}
               {match.roundName ? ` · ${match.roundName}` : ""}
@@ -37,23 +43,26 @@ export function FighterNextMatchCard({ match }: { match: FieldModeMatchCardVM })
         </div>
       </CardHeader>
       <CardContent className="space-y-4 pt-4">
-        <div className="grid gap-3 rounded-lg border bg-muted/15 p-3 text-center sm:grid-cols-[1fr_auto_1fr] sm:items-center">
-          <div className="min-w-0">
-            <p className="text-muted-foreground text-[11px] font-medium">나</p>
-            <p className="truncate text-sm font-semibold">내 경기</p>
+        <div
+          className={cn(
+            "grid gap-2 text-center sm:grid-cols-[1fr_auto_1fr] sm:items-center",
+            matchonVsCardClass,
+          )}
+        >
+          <div className={cn("min-w-0", matchonRedCornerPanelClass)}>
+            <p className="text-[11px] font-medium opacity-80">나</p>
+            <p className={cn("text-sm", matchonRedCornerTextClass)}>내 경기</p>
           </div>
           <span className="text-muted-foreground text-xs font-bold tracking-widest">
             VS
           </span>
-          <div className="min-w-0">
-            <p className="text-muted-foreground text-[11px] font-medium">상대</p>
-            <p className="truncate text-sm font-semibold">
+          <div className={cn("min-w-0", matchonBlueCornerPanelClass)}>
+            <p className="text-[11px] font-medium opacity-80">상대</p>
+            <p className={cn("truncate text-sm", matchonBlueCornerTextClass)}>
               {match.opponentName ?? "미정"}
             </p>
             {match.opponentGymName ? (
-              <p className="text-muted-foreground truncate text-xs">
-                {match.opponentGymName}
-              </p>
+              <p className="truncate text-xs opacity-80">{match.opponentGymName}</p>
             ) : null}
           </div>
         </div>
@@ -110,7 +119,7 @@ export function FighterNextMatchEmptyCard() {
   return (
     <Card>
       <CardHeader>
-        <CardTitle className="text-base">내 다음 경기</CardTitle>
+        <CardTitle className={matchonSectionTitleClass}>내 다음 경기</CardTitle>
         <CardDescription>
           예정된 진행 중 경기가 없습니다. 시연 시드에서는 배정된 카드가 없을 수
           있습니다.

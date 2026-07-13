@@ -8,6 +8,13 @@ import {
   resolveBracketMatchMatchonStatus,
   resolveFighterResultSummaryMatchonStatus,
 } from "@/lib/ui/fighter-dashboard-ui";
+import {
+  matchonBlueCornerPanelClass,
+  matchonBlueCornerTextClass,
+  matchonRedCornerPanelClass,
+  matchonRedCornerTextClass,
+  matchonVsCardClass,
+} from "@/lib/ui/matchon-shell-ui";
 import { cn } from "@/lib/utils";
 
 export function FighterMatchListCard({ match }: { match: FighterMatchRowDTO }) {
@@ -30,21 +37,26 @@ export function FighterMatchListCard({ match }: { match: FighterMatchRowDTO }) {
           />
         </div>
 
-        <div className="grid gap-2 rounded-lg border bg-muted/15 p-3 text-center sm:grid-cols-[1fr_auto_1fr] sm:items-center">
-          <div className="min-w-0">
-            <p className="text-muted-foreground text-[11px]">나</p>
-            <p className="text-sm font-semibold">내 경기</p>
+        <div
+          className={cn(
+            "grid gap-2 text-center sm:grid-cols-[1fr_auto_1fr] sm:items-center",
+            matchonVsCardClass,
+          )}
+        >
+          <div className={cn("min-w-0", matchonRedCornerPanelClass)}>
+            <p className="text-[11px] font-medium opacity-80">나</p>
+            <p className={cn("text-sm", matchonRedCornerTextClass)}>내 경기</p>
           </div>
-          <span className="text-muted-foreground text-xs font-bold">VS</span>
-          <div className="min-w-0">
-            <p className="text-muted-foreground text-[11px]">상대</p>
-            <p className="truncate text-sm font-semibold">
+          <span className="text-muted-foreground text-xs font-bold tracking-widest">
+            VS
+          </span>
+          <div className={cn("min-w-0", matchonBlueCornerPanelClass)}>
+            <p className="text-[11px] font-medium opacity-80">상대</p>
+            <p className={cn("truncate text-sm", matchonBlueCornerTextClass)}>
               {match.opponentName ?? "미정"}
             </p>
             {match.opponentGymName ? (
-              <p className="text-muted-foreground truncate text-xs">
-                {match.opponentGymName}
-              </p>
+              <p className="truncate text-xs opacity-80">{match.opponentGymName}</p>
             ) : null}
           </div>
         </div>

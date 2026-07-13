@@ -3,11 +3,10 @@ import { PublicEventResultCard } from "@/components/domain/events/public/PublicE
 import { PublicSpectatorEmptyState } from "@/components/domain/events/public/PublicSpectatorEmptyState";
 import type { PublicMatchResultDTO } from "@/lib/dto/public";
 import {
-  Card,
-  CardDescription,
-  CardHeader,
-  CardTitle,
-} from "@/components/ui/card";
+  publicEventPageEyebrowClass,
+  publicEventPageTitleClass,
+} from "@/components/domain/events/public/public-event-ui";
+import { cn } from "@/lib/utils";
 
 function groupResults(results: PublicMatchResultDTO[]) {
   const grouped = new Map<string, PublicMatchResultDTO[]>();
@@ -41,15 +40,16 @@ export function PublicEventResultsSection({
         bracketIds={[]}
       />
 
-      <Card variant="muted" className="py-4">
-        <CardHeader>
-          <CardTitle className="text-xl md:text-2xl">공식 결과</CardTitle>
-          <CardDescription>
-            {eventTitle} — 확정된 MatchResult만 표시합니다. 휴대폰·생년월일 등
-            개인정보는 공개하지 않습니다.
-          </CardDescription>
-        </CardHeader>
-      </Card>
+      <header className="space-y-1">
+        <p className={publicEventPageEyebrowClass}>Results</p>
+        <h2 className={cn(publicEventPageTitleClass, "text-xl md:text-2xl")}>
+          공식 결과
+        </h2>
+        <p className="text-sm text-matchon-text-secondary">
+          {eventTitle} — 확정된 MatchResult만 표시합니다. 휴대폰·생년월일 등
+          개인정보는 공개하지 않습니다.
+        </p>
+      </header>
 
       {results.length === 0 ? (
         <PublicSpectatorEmptyState
@@ -64,8 +64,10 @@ export function PublicEventResultsSection({
             return (
               <section key={key} className="w-full space-y-4">
                 <header>
-                  <h3 className="text-lg font-semibold md:text-xl">{bracketTitle}</h3>
-                  <p className="text-muted-foreground text-sm">
+                  <h3 className="text-lg font-bold text-matchon-text-primary md:text-xl">
+                    {bracketTitle}
+                  </h3>
+                  <p className="text-sm text-matchon-text-secondary">
                     {(divisionLabel ?? "").trim()
                       ? `경기구분 ${divisionLabel}`
                       : "경기구분 정보 없음"}

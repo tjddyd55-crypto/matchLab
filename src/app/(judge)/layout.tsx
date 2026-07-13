@@ -1,5 +1,5 @@
 import type { ReactNode } from "react";
-import { BrandLogo } from "@/components/common/BrandLogo";
+import { MatchonLogo } from "@/components/common/MatchonLogo";
 
 export default function JudgeGroupLayout({
   children,
@@ -7,9 +7,9 @@ export default function JudgeGroupLayout({
   children: ReactNode;
 }) {
   return (
-    <div className="bg-background min-h-screen">
-      <header className="border-border bg-card/30 flex items-center justify-center border-b px-4 py-3 md:justify-start">
-        <BrandLogo size="sm" showText />
+    <div className="min-h-screen bg-matchon-surface">
+      <header className="flex items-center justify-center border-b border-matchon-border bg-white px-4 py-3 md:justify-start">
+        <MatchonLogo href="/" size="sm" variant="light" />
       </header>
       {children}
     </div>

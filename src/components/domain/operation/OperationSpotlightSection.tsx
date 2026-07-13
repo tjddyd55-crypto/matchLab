@@ -5,12 +5,12 @@ import { OrganizerMatchOpsPanel } from "@/components/domain/brackets/OrganizerMa
 import { OperationMatchHighlightCard } from "@/components/domain/operation/OperationMatchHighlightCard";
 import { toMatchOpsProps } from "@/components/domain/operation/operation-match-row";
 import type { OperationMatchRowVM } from "@/components/domain/operation/operation-match-row";
-import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import {
   canEnterResult,
   canViewResult,
   pickOperationSpotlightMatches,
 } from "@/lib/match-operation-display";
+import { organizerOperationSpotlightPanelClass } from "@/lib/ui/organizer-operation-ui";
 import { cn } from "@/lib/utils";
 
 export function OperationSpotlightSection({
@@ -47,8 +47,11 @@ export function OperationSpotlightSection({
   }, [focusedMatchId]);
 
   return (
-    <section className={cn("space-y-4", className)} aria-label="경기 운영 요약">
-      <div className="grid gap-4 lg:grid-cols-3">
+    <section
+      className={cn("space-y-4", className)}
+      aria-label="경기 운영 요약"
+    >
+      <div className="grid gap-3 lg:grid-cols-1">
         <OperationMatchHighlightCard
           title="현재 경기"
           match={spotlight.current}
@@ -73,22 +76,18 @@ export function OperationSpotlightSection({
       </div>
 
       {showOpsPanel && focusedMatch ? (
-        <section ref={resultRef}>
-          <Card variant="default" className="py-4">
-            <CardHeader className="px-4 py-0">
-              <CardTitle className="text-sm font-semibold">
-                {showResultEntry
-                  ? `결과 입력 · ${focusedMatch.orderLabel}`
-                  : `경기 운영 · ${focusedMatch.orderLabel}`}
-              </CardTitle>
-            </CardHeader>
-            <CardContent className="px-4 pt-3">
-              <OrganizerMatchOpsPanel
-                {...toMatchOpsProps(focusedMatch)}
-                presentation="operation"
-              />
-            </CardContent>
-          </Card>
+        <section ref={resultRef} className={organizerOperationSpotlightPanelClass}>
+          <h3 className="text-sm font-bold text-matchon-text-primary">
+            {showResultEntry
+              ? `결과 입력 · ${focusedMatch.orderLabel}`
+              : `경기 운영 · ${focusedMatch.orderLabel}`}
+          </h3>
+          <div className="mt-3">
+            <OrganizerMatchOpsPanel
+              {...toMatchOpsProps(focusedMatch)}
+              presentation="operation"
+            />
+          </div>
         </section>
       ) : null}
     </section>

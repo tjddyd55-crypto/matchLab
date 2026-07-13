@@ -22,6 +22,11 @@ import {
   summarizeOperationBoard,
   type OperationBoardFilter,
 } from "@/lib/match-operation-display";
+import {
+  organizerOperationFieldInputClass,
+  organizerOperationFieldSelectClass,
+  organizerOperationFilterBarClass,
+} from "@/lib/ui/organizer-operation-ui";
 import { cn } from "@/lib/utils";
 
 const FILTER_OPTIONS: { value: OperationBoardFilter; label: string }[] = [
@@ -109,9 +114,6 @@ export function OrganizerOperationBoard({
     return defaultFocusedMatchId;
   }, [focusedMatchId, filteredRows, defaultFocusedMatchId]);
 
-  const selectClass =
-    "border-input bg-background h-9 rounded-md border px-2 text-sm shadow-sm";
-
   function handleSummaryFilterChange(filter: OperationBoardFilter) {
     setSummaryFilter(filter);
     setStatusFilter("all");
@@ -130,7 +132,7 @@ export function OrganizerOperationBoard({
   }
 
   return (
-    <div className="flex flex-col gap-6">
+    <div className="flex flex-col gap-5">
       <OperationSummaryCards
         summary={summary}
         activeFilter={summaryFilter}
@@ -143,60 +145,71 @@ export function OrganizerOperationBoard({
         onTabChange={setCourtTab}
       />
 
-      <OperationSpotlightSection
-        rows={filteredRows}
-        focusedMatchId={effectiveFocusedMatchId}
-        onFocusMatch={focusMatch}
-      />
+      <div className="grid gap-5 lg:grid-cols-[minmax(0,1.15fr)_minmax(0,0.85fr)] lg:items-start">
+        <div ref={listRef} className="min-w-0 space-y-4">
+          <div className={organizerOperationFilterBarClass}>
+            <div className="flex flex-col gap-3 sm:flex-row sm:flex-wrap sm:items-end">
+              <label className="flex min-w-[180px] flex-1 flex-col gap-1 text-sm">
+                <span className="text-matchon-text-secondary text-xs">검색</span>
+                <input
+                  type="search"
+                  value={search}
+                  onChange={(e) => setSearch(e.target.value)}
+                  placeholder="선수명, 체육관명, 경기구분명"
+                  className={cn(organizerOperationFieldInputClass, "w-full")}
+                />
+              </label>
+              <label className="flex min-w-[160px] flex-col gap-1 text-sm">
+                <span className="text-matchon-text-secondary text-xs">
+                  상태 필터
+                </span>
+                <select
+                  value={statusFilter}
+                  onChange={(e) => {
+                    const value = e.target.value as OperationBoardFilter;
+                    setStatusFilter(value);
+                    if (value !== "all") setSummaryFilter("all");
+                  }}
+                  className={organizerOperationFieldSelectClass}
+                >
+                  {FILTER_OPTIONS.map((option) => (
+                    <option key={option.value} value={option.value}>
+                      {option.label}
+                    </option>
+                  ))}
+                </select>
+              </label>
+            </div>
+          </div>
 
-      <div className="flex flex-col gap-3 sm:flex-row sm:flex-wrap sm:items-end">
-        <label className="flex min-w-[180px] flex-1 flex-col gap-1 text-sm">
-          <span className="text-muted-foreground text-xs">검색</span>
-          <input
-            type="search"
-            value={search}
-            onChange={(e) => setSearch(e.target.value)}
-            placeholder="선수명, 체육관명, 경기구분명"
-            className={cn(selectClass, "w-full")}
+          <div>
+            <h2 className="text-sm font-bold text-matchon-text-primary">
+              전체 경기 목록
+            </h2>
+            <p className="text-matchon-text-secondary text-xs">
+              {filteredRows.length}건 표시 (전체 {matches.length}건)
+            </p>
+          </div>
+
+          <OrganizerOperationTableDesktop
+            rows={filteredRows}
+            expandedMatchId={expandedMatchId}
+            onTogglePanel={toggleInlinePanel}
+            judgeBriefByMatch={judgeBriefByMatch}
           />
-        </label>
-        <label className="flex min-w-[160px] flex-col gap-1 text-sm">
-          <span className="text-muted-foreground text-xs">상태 필터</span>
-          <select
-            value={statusFilter}
-            onChange={(e) => {
-              const value = e.target.value as OperationBoardFilter;
-              setStatusFilter(value);
-              if (value !== "all") setSummaryFilter("all");
-            }}
-            className={selectClass}
-          >
-            {FILTER_OPTIONS.map((option) => (
-              <option key={option.value} value={option.value}>
-                {option.label}
-              </option>
-            ))}
-          </select>
-        </label>
-      </div>
+          <OrganizerOperationCardListMobile
+            rows={filteredRows}
+            expandedMatchId={expandedMatchId}
+            onTogglePanel={toggleInlinePanel}
+            judgeBriefByMatch={judgeBriefByMatch}
+          />
+        </div>
 
-      <div ref={listRef} className="space-y-4">
-        <h2 className="text-sm font-semibold">전체 경기 목록</h2>
-        <p className="text-muted-foreground text-sm">
-          {filteredRows.length}건 표시 (전체 {matches.length}건)
-        </p>
-
-        <OrganizerOperationTableDesktop
+        <OperationSpotlightSection
           rows={filteredRows}
-          expandedMatchId={expandedMatchId}
-          onTogglePanel={toggleInlinePanel}
-          judgeBriefByMatch={judgeBriefByMatch}
-        />
-        <OrganizerOperationCardListMobile
-          rows={filteredRows}
-          expandedMatchId={expandedMatchId}
-          onTogglePanel={toggleInlinePanel}
-          judgeBriefByMatch={judgeBriefByMatch}
+          focusedMatchId={effectiveFocusedMatchId}
+          onFocusMatch={focusMatch}
+          className="lg:min-w-0"
         />
       </div>
     </div>

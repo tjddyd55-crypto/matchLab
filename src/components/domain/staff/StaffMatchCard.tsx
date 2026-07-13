@@ -4,6 +4,12 @@ import { StaffMatchStatusBadges } from "@/components/domain/staff/StaffMatchStat
 import { Button } from "@/components/ui/button";
 import { BracketMatchStatus } from "@/lib/enums";
 import type { StaffEventMatchListItemVM } from "@/lib/staff-match-display";
+import {
+  matchonBlueCornerPanelClass,
+  matchonRedCornerPanelClass,
+  matchonVsCardClass,
+} from "@/lib/ui/matchon-shell-ui";
+import { cn } from "@/lib/utils";
 
 export function StaffMatchCard({
   match,
@@ -28,27 +34,29 @@ export function StaffMatchCard({
     Boolean(match.fighterRed?.id && match.fighterBlue?.id);
 
   return (
-    <article className="ring-foreground/10 space-y-4 rounded-xl border bg-card p-4 shadow-sm">
+    <article className={cn(matchonVsCardClass, "space-y-4")}>
       <div className="flex flex-wrap items-start justify-between gap-3">
         <div className="min-w-0 flex-1">
-          <p className="text-muted-foreground text-xs">경기 {match.orderLabel}</p>
-          <p className="font-semibold">{match.divisionLabel ?? "경기구분 미상"}</p>
+          <p className="text-xs text-matchon-text-secondary">경기 {match.orderLabel}</p>
+          <p className="font-semibold text-matchon-text-primary">
+            {match.divisionLabel ?? "경기구분 미상"}
+          </p>
         </div>
         <StaffMatchStatusBadges match={match} />
       </div>
 
       <div className="grid gap-3 sm:grid-cols-2">
-        <div className="rounded-lg border px-3 py-3">
-          <p className="text-muted-foreground text-xs">선수 A</p>
-          <p className="line-clamp-2 font-medium">{match.fighterRed?.name ?? "—"}</p>
-          <p className="text-muted-foreground line-clamp-1 text-xs">
+        <div className={matchonRedCornerPanelClass}>
+          <p className="text-xs font-bold uppercase text-red-600">RED</p>
+          <p className="line-clamp-2 font-semibold">{match.fighterRed?.name ?? "—"}</p>
+          <p className="line-clamp-1 text-xs opacity-80">
             {match.fighterRed?.gymName ?? "—"}
           </p>
         </div>
-        <div className="rounded-lg border px-3 py-3">
-          <p className="text-muted-foreground text-xs">선수 B</p>
-          <p className="line-clamp-2 font-medium">{match.fighterBlue?.name ?? "—"}</p>
-          <p className="text-muted-foreground line-clamp-1 text-xs">
+        <div className={matchonBlueCornerPanelClass}>
+          <p className="text-xs font-bold uppercase text-blue-600">BLUE</p>
+          <p className="line-clamp-2 font-semibold">{match.fighterBlue?.name ?? "—"}</p>
+          <p className="line-clamp-1 text-xs opacity-80">
             {match.fighterBlue?.gymName ?? "—"}
           </p>
         </div>

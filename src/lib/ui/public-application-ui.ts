@@ -2,14 +2,15 @@ import type { ApplicationStatus } from "@/generated/prisma";
 import type { MatchonStatus } from "@/lib/ui/matchon-status";
 import { resolvePaymentDisplayMatchonStatus } from "@/lib/ui/application-ui";
 
+import { matchonFieldInputClass } from "@/lib/ui/matchon-shell-ui";
+
 /** 공개 신청·등록 화면 공통 입력 스타일 */
-export const publicApplicationFieldInputClass =
-  "border-input bg-background h-11 w-full rounded-md border px-3 text-base shadow-sm focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring";
+export const publicApplicationFieldInputClass = matchonFieldInputClass;
 
 export const publicApplicationFieldSelectClass = publicApplicationFieldInputClass;
 
 export const publicApplicationFieldTextareaClass =
-  "border-input bg-background min-h-[5.5rem] w-full rounded-md border px-3 py-2 text-base shadow-sm focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring";
+  "min-h-[5.5rem] w-full rounded-lg border border-matchon-border bg-white px-3 py-2 text-base shadow-sm focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-matchon-primary/30";
 
 const APPLICATION_DOCUMENT_STATUS_LABELS: Record<string, string> = {
   draft: "작성 중",

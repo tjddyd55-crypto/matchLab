@@ -1,11 +1,20 @@
 "use client";
 
-import { MatchonTabs } from "@/components/shared/MatchonTabs";
 import {
   type CourtTabId,
   formatCourtTabLabel,
 } from "@/lib/court-tab-label";
 import type { EventCourtVM } from "@/lib/services/event-court.service";
+import {
+  matchonScrollablePillItemClass,
+  matchonScrollablePillsClass,
+} from "@/lib/ui/matchon-layout";
+import {
+  organizerOperationCourtPillActiveClass,
+  organizerOperationCourtPillBaseClass,
+  organizerOperationCourtPillInactiveClass,
+} from "@/lib/ui/organizer-operation-ui";
+import { cn } from "@/lib/utils";
 
 export function OperationCourtTabBar({
   courts,
@@ -31,10 +40,32 @@ export function OperationCourtTabBar({
   ];
 
   return (
-    <MatchonTabs
-      items={items}
-      activeId={activeTab}
-      onChange={onTabChange}
-    />
+    <div
+      className={cn(matchonScrollablePillsClass, "-mx-1 px-1")}
+      role="tablist"
+      aria-label="경기장 선택"
+    >
+      {items.map((item) => {
+        const active = activeTab === item.id;
+        return (
+          <button
+            key={item.id}
+            type="button"
+            role="tab"
+            aria-selected={active}
+            onClick={() => onTabChange(item.id)}
+            className={cn(
+              matchonScrollablePillItemClass,
+              organizerOperationCourtPillBaseClass,
+              active
+                ? organizerOperationCourtPillActiveClass
+                : organizerOperationCourtPillInactiveClass,
+            )}
+          >
+            {item.label}
+          </button>
+        );
+      })}
+    </div>
   );
 }

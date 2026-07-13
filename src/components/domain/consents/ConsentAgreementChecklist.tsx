@@ -46,13 +46,13 @@ export function ConsentAgreementChecklist({
       {(Object.keys(LABELS) as AgreementKey[]).map((key) => (
         <label
           key={key}
-          className="flex cursor-pointer gap-3 rounded-lg border border-border/60 px-3 py-3 hover:bg-muted/30"
+          className="flex cursor-pointer gap-3 rounded-lg border border-matchon-border px-3 py-3 hover:bg-matchon-primary-light/20"
         >
           <input
             type="checkbox"
             checked={value[key]}
             onChange={() => toggle(key)}
-            className="border-input mt-0.5 size-5 shrink-0 rounded accent-primary"
+            className="mt-0.5 size-5 shrink-0 rounded border-matchon-border accent-matchon-primary"
           />
           <span className="text-sm leading-snug">{LABELS[key]}</span>
         </label>

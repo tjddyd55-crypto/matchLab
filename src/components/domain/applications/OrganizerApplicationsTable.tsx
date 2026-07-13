@@ -26,6 +26,7 @@ import {
   listTableHeaderCellStartClass,
   listTableHeaderRowClass,
 } from "@/lib/ui/list-table-styles";
+import { matchonCompactTableWrapClass } from "@/lib/ui/matchon-shell-ui";
 import { Checkbox } from "@/components/ui/checkbox";
 import {
   Table,
@@ -84,7 +85,7 @@ export function OrganizerApplicationsTable({
   }
 
   return (
-    <div className="hidden min-w-0 2xl:block">
+    <div className={cn(matchonCompactTableWrapClass, "hidden min-w-0 2xl:block")}>
       <Table className="w-full table-fixed">
         <TableHeader className={listTableHeaderRowClass}>
           <TableRow className="border-b hover:bg-transparent">
@@ -111,7 +112,7 @@ export function OrganizerApplicationsTable({
         </TableHeader>
         <TableBody>
           {rows.map((row) => (
-            <TableRow key={row.applicationId}>
+            <TableRow key={row.applicationId} className="border-b border-matchon-border/60 hover:bg-matchon-surface/50">
               <TableCell className="align-top">
                 <Checkbox
                   checked={selectedIds.has(row.applicationId)}

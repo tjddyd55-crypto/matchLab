@@ -1,67 +1,29 @@
-import Image from "next/image";
-import Link from "next/link";
-import {
-  BRAND_LOGO_ALT,
-  BRAND_LOGO_PATH,
-  BRAND_NAME,
-} from "@/lib/brand";
-import { cn } from "@/lib/utils";
-
-const sizeClasses = {
-  sm: {
-    img: "h-7 w-auto max-w-[7rem]",
-    text: "text-sm font-semibold",
-  },
-  md: {
-    img: "h-8 w-auto max-w-[8rem] md:h-9",
-    text: "text-base font-semibold",
-  },
-  lg: {
-    img: "h-10 w-auto max-w-[10rem]",
-    text: "text-lg font-semibold",
-  },
-} as const;
+import { MatchonLogo } from "@/components/common/MatchonLogo";
 
 type BrandLogoProps = {
-  size?: keyof typeof sizeClasses;
+  size?: "sm" | "md" | "lg";
   showText?: boolean;
   className?: string;
   href?: string;
   priority?: boolean;
+  /** @deprecated MatchonLogo variant 사용 권장 */
+  variant?: "light" | "dark";
 };
 
+/** @deprecated MatchonLogo를 직접 사용하세요. */
 export function BrandLogo({
   size = "md",
   showText = false,
   className,
   href,
-  priority = false,
+  variant = "light",
 }: BrandLogoProps) {
-  const content = (
-    <span className={cn("inline-flex items-center gap-2", className)}>
-      <Image
-        src={BRAND_LOGO_PATH}
-        alt={BRAND_LOGO_ALT}
-        width={160}
-        height={48}
-        className={cn("object-contain", sizeClasses[size].img)}
-        priority={priority}
-      />
-      {showText ? (
-        <span className={cn("tracking-tight", sizeClasses[size].text)}>
-          {BRAND_NAME}
-        </span>
-      ) : null}
-    </span>
+  return (
+    <MatchonLogo
+      variant={showText ? variant : "icon"}
+      size={size}
+      className={className}
+      href={href}
+    />
   );
-
-  if (href) {
-    return (
-      <Link href={href} className="inline-flex shrink-0">
-        {content}
-      </Link>
-    );
-  }
-
-  return content;
 }

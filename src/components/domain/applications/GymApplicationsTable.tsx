@@ -20,6 +20,8 @@ import {
 } from "@/components/ui/table";
 import { formatPublicDate, formatPublicDateTime } from "@/lib/date-display";
 import { Button } from "@/components/ui/button";
+import { matchonCompactTableWrapClass } from "@/lib/ui/matchon-shell-ui";
+import { cn } from "@/lib/utils";
 
 export type GymApplicationListItemVM = {
   id: string;
@@ -52,7 +54,7 @@ export function GymApplicationsTable({
   const nf = new Intl.NumberFormat("ko-KR");
 
   return (
-    <div className="hidden md:block">
+    <div className={cn(matchonCompactTableWrapClass, "hidden md:block")}>
       <Table>
         <TableHeader>
           <TableRow>
@@ -102,11 +104,13 @@ export function GymApplicationsTable({
               <TableCell className="text-right">
                 {row.paymentInstruction ? (
                   <Dialog>
-                    <DialogTrigger>
-                      <Button size="sm" variant="outline" type="button">
-                        다시 보기
-                      </Button>
-                    </DialogTrigger>
+                    <DialogTrigger
+                      render={
+                        <Button size="sm" variant="outline" type="button">
+                          다시 보기
+                        </Button>
+                      }
+                    />
                     <DialogContent className="max-w-lg">
                       <DialogHeader>
                         <DialogTitle>{row.eventTitle}</DialogTitle>

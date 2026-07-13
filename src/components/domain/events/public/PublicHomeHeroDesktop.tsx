@@ -1,38 +1,56 @@
 import Link from "next/link";
-import { BrandLogo } from "@/components/common/BrandLogo";
 import { PUBLIC_CONTENT_CONTAINER_CLASS } from "@/components/domain/events/public/public-event-layout";
 import { buttonVariants } from "@/components/ui/button";
 import { cn } from "@/lib/utils";
 
+const heroGradientClass =
+  "bg-[linear-gradient(170deg,#001C7A_6%,#0A47FF_54%,#3D7AFF_94%)]";
+
 export function PublicHomeHeroDesktop() {
   return (
-    <section className="hidden border-b bg-gradient-to-b from-primary/8 via-background to-background md:block">
+    <section className={cn("relative hidden overflow-hidden md:block", heroGradientClass)}>
+      <div className="pointer-events-none absolute inset-0 opacity-[0.04] [background:radial-gradient(circle_at_center,white,transparent_70%)]" />
       <div
         className={cn(
           PUBLIC_CONTENT_CONTAINER_CLASS,
-          "flex flex-col gap-8 py-16 lg:py-20",
+          "relative flex flex-col items-center py-[72px] text-center",
         )}
       >
-        <div className="max-w-3xl space-y-5">
-          <BrandLogo size="md" showText priority />
-          <h1 className="font-heading text-4xl font-semibold tracking-tight lg:text-5xl">
-            대회 공고 · 신청 · 현장 정보
-          </h1>
-          <p className="text-muted-foreground max-w-2xl text-base leading-relaxed">
-            참가 가능한 대회를 포스터와 함께 확인하고, 체육관 계정으로 선수
-            신청을 진행할 수 있습니다.
-          </p>
-          <div className="flex flex-wrap gap-3 pt-2">
-            <Link href="/events" className={cn(buttonVariants({ size: "lg" }))}>
-              진행 중인 대회 보기
-            </Link>
-            <Link
-              href="/login"
-              className={cn(buttonVariants({ variant: "outline", size: "lg" }))}
-            >
-              체육관 로그인
-            </Link>
-          </div>
+        <div className="mb-5 inline-flex items-center gap-1.5 rounded-full border border-white/20 bg-white/12 px-4 py-1.5 text-xs font-bold tracking-wide text-white/85">
+          격투기 대회 운영 플랫폼
+        </div>
+
+        <h1 className="max-w-3xl font-black text-[52px] leading-[1.1] tracking-[-2.08px] text-white">
+          격투기 대회를
+          <br />
+          <span className="text-white/70">더 스마트하게</span>
+        </h1>
+
+        <p className="mt-5 max-w-[520px] text-lg leading-relaxed text-white/72">
+          신청·대진표·심판 채점·결과 관리까지
+          <br />
+          대회 운영의 모든 것을 하나의 플랫폼에서
+        </p>
+
+        <div className="mt-9 flex flex-wrap items-center justify-center gap-3">
+          <Link
+            href="/events"
+            className={cn(
+              buttonVariants({ size: "lg" }),
+              "h-12 rounded-xl bg-white px-7 text-[15px] font-extrabold text-matchon-primary hover:bg-white/95",
+            )}
+          >
+            대회 공고 보기
+          </Link>
+          <Link
+            href="/login"
+            className={cn(
+              buttonVariants({ variant: "outline", size: "lg" }),
+              "h-12 rounded-xl border-white/30 bg-transparent px-6 text-[15px] font-bold text-white hover:bg-white/10 hover:text-white",
+            )}
+          >
+            주최자로 시작하기 →
+          </Link>
         </div>
       </div>
     </section>

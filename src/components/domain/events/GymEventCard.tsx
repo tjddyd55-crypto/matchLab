@@ -103,7 +103,7 @@ export function GymEventCard({ event }: { event: GymDashboardEventItemDTO }) {
         </dl>
 
         {event.liveStreamingEnabled || event.streamingConsentRequired ? (
-          <p className="rounded-md border border-amber-500/30 bg-amber-500/10 px-3 py-2 text-xs leading-relaxed text-amber-950 dark:text-amber-100">
+          <p className="rounded-xl border border-amber-500/30 bg-amber-500/10 px-3 py-2 text-xs leading-relaxed text-amber-950 dark:text-amber-100">
             촬영·스트리밍 안내 및 동의가 필요할 수 있습니다.
           </p>
         ) : null}

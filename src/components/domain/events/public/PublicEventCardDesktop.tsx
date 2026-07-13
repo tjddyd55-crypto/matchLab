@@ -4,17 +4,17 @@ import { EventStatusBadges } from "@/components/domain/events/EventStatusBadges"
 import { EventMetaList } from "@/components/domain/events/EventMetaList";
 import { PublicEventDeadlineBadge } from "@/components/domain/events/public/PublicEventDeadlineBadge";
 import { PublicEventTrustBadges } from "@/components/domain/events/public/PublicEventTrustBadges";
+import { PUBLIC_EVENT_CARD_BODY_PADDING_CLASS } from "@/components/domain/events/public/public-event-layout";
 import {
-  PUBLIC_EVENT_CARD_BODY_PADDING_CLASS,
-  PUBLIC_EVENT_CARD_POSTER_PADDING_CLASS,
-} from "@/components/domain/events/public/public-event-layout";
-import {
+  publicEventCardClass,
+  publicEventCardLivePillClass,
+  publicEventCardPosterOverlayClass,
+  publicEventCardSportPillClass,
   publicEventCtaLabel,
   publicEventHref,
   type PublicEventCardProps,
 } from "@/components/domain/events/public/public-event-ui";
 import { buttonVariants } from "@/components/ui/button";
-import { Card, CardContent } from "@/components/ui/card";
 import { cn } from "@/lib/utils";
 
 export function PublicEventCardDesktop({
@@ -27,26 +27,44 @@ export function PublicEventCardDesktop({
     event.registrationStatus === "open" ? "default" : "outline";
 
   return (
-    <Card
-      className={cn(
-        "group hidden h-full gap-0 overflow-hidden py-0 transition-shadow hover:shadow-md md:flex",
-        className,
-      )}
+    <article
+      className={cn(publicEventCardClass, "hidden md:flex", className)}
     >
-      <Link
-        href={href}
-        className={cn("block", PUBLIC_EVENT_CARD_POSTER_PADDING_CLASS)}
-      >
+      <Link href={href} className="relative block">
         <EventPosterImage
           variant="card"
           src={event.coverImageUrl}
           alt={`${event.title} 포스터`}
+          boxClassName="rounded-none"
+          imageClassName="object-cover"
           sizes="(max-width:1024px) 33vw, 340px"
           priority={priorityImage}
+          overlay={
+            <>
+              <div
+                className={publicEventCardPosterOverlayClass}
+                aria-hidden
+              />
+              {event.primarySport ? (
+                <span className={publicEventCardSportPillClass}>
+                  {event.primarySport}
+                </span>
+              ) : null}
+              {event.status === "ongoing" ? (
+                <span className={publicEventCardLivePillClass}>
+                  <span
+                    className="size-1.5 animate-pulse rounded-full bg-white"
+                    aria-hidden
+                  />
+                  LIVE
+                </span>
+              ) : null}
+            </>
+          }
         />
       </Link>
 
-      <CardContent
+      <div
         className={cn(
           "flex min-h-0 flex-1 flex-col gap-2.5 text-left",
           PUBLIC_EVENT_CARD_BODY_PADDING_CLASS,
@@ -65,10 +83,10 @@ export function PublicEventCardDesktop({
         <PublicEventTrustBadges event={event} compact className="mb-1" />
 
         <Link href={href} className="min-w-0 shrink-0 hover:underline">
-          <h3 className="font-heading line-clamp-2 text-lg font-semibold leading-snug">
+          <h3 className="line-clamp-2 font-black text-lg leading-snug text-matchon-text-primary">
             {event.title}
           </h3>
-          <p className="text-muted-foreground mt-1 line-clamp-1 text-xs">
+          <p className="mt-1 line-clamp-1 text-xs text-matchon-text-secondary">
             {event.organizerName}
           </p>
         </Link>
@@ -87,7 +105,7 @@ export function PublicEventCardDesktop({
         </div>
 
         {event.liveStreamingEnabled ? (
-          <p className="text-primary shrink-0 text-xs font-medium line-clamp-1">
+          <p className="line-clamp-1 shrink-0 text-xs font-semibold text-matchon-primary">
             라이브 스트리밍 예정
           </p>
         ) : null}
@@ -97,13 +115,13 @@ export function PublicEventCardDesktop({
             href={href}
             className={cn(
               buttonVariants({ variant: ctaVariant, size: "field" }),
-              "w-full",
+              "w-full rounded-xl",
             )}
           >
             {publicEventCtaLabel(event)}
           </Link>
         </div>
-      </CardContent>
-    </Card>
+      </div>
+    </article>
   );
 }

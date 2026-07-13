@@ -18,7 +18,10 @@ import {
 } from "@/components/ui/table";
 import {
   adminDesktopTableClass,
+  adminMobileCardClass,
+  adminMobileCardHeaderClass,
   adminMobileListClass,
+  adminMutedTextClass,
   getAdminGymStatusLabel,
   resolveAdminGymStatusMatchon,
 } from "@/lib/ui/admin-ui";
@@ -36,13 +39,12 @@ export function AdminGymsTable({ rows }: { rows: AdminGymListItemDTO[] }) {
   return (
     <>
       <div className={adminDesktopTableClass}>
-        <Table className="min-w-[520px]">
+        <Table className="min-w-[480px]">
           <TableHeader>
             <TableRow>
               <TableHead>이름</TableHead>
               <TableHead>상태</TableHead>
-              <TableHead>선수</TableHead>
-              <TableHead>신청</TableHead>
+              <TableHead>선수 수</TableHead>
               <TableHead>등록</TableHead>
             </TableRow>
           </TableHeader>
@@ -58,8 +60,7 @@ export function AdminGymsTable({ rows }: { rows: AdminGymListItemDTO[] }) {
                   />
                 </TableCell>
                 <TableCell className="tabular-nums">{g.fighterCount}</TableCell>
-                <TableCell className="tabular-nums">{g.applicationCount}</TableCell>
-                <TableCell className="text-muted-foreground whitespace-nowrap text-xs">
+                <TableCell className={`${adminMutedTextClass} whitespace-nowrap text-xs`}>
                   {formatAdminDateTime(g.createdAt)}
                 </TableCell>
               </TableRow>
@@ -70,10 +71,10 @@ export function AdminGymsTable({ rows }: { rows: AdminGymListItemDTO[] }) {
       <ul className={adminMobileListClass}>
         {rows.map((g) => (
           <li key={g.id}>
-            <Card className="gap-0 overflow-hidden py-0">
-              <CardHeader className="border-b bg-muted/15 pb-3">
+            <Card className={adminMobileCardClass}>
+              <CardHeader className={adminMobileCardHeaderClass}>
                 <div className="flex flex-wrap items-start justify-between gap-2">
-                  <CardTitle className="text-base break-words">{g.name}</CardTitle>
+                  <CardTitle className="text-base">{g.name}</CardTitle>
                   <MatchonStatusBadge
                     status={resolveAdminGymStatusMatchon(g.status)}
                     label={getAdminGymStatusLabel(g.status)}
@@ -82,10 +83,8 @@ export function AdminGymsTable({ rows }: { rows: AdminGymListItemDTO[] }) {
                 </div>
               </CardHeader>
               <CardContent className="pt-3 text-xs">
-                <p className="text-muted-foreground">
-                  선수 {g.fighterCount} · 신청 {g.applicationCount}
-                </p>
-                <p className="text-muted-foreground mt-1">
+                <p className={adminMutedTextClass}>선수 {g.fighterCount}명</p>
+                <p className={`${adminMutedTextClass} mt-1`}>
                   {formatAdminDateTime(g.createdAt)}
                 </p>
               </CardContent>

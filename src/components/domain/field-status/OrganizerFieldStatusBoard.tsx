@@ -17,7 +17,11 @@ import {
   type FieldStatusSummaryFilter,
 } from "@/components/domain/field-status/field-status-filters";
 import { MatchonTabs } from "@/components/shared/MatchonTabs";
-import { Card, CardContent } from "@/components/ui/card";
+import {
+  ORGANIZER_FIELD_INPUT_CLASS,
+  ORGANIZER_FIELD_SELECT_CLASS,
+  ORGANIZER_FILTER_BAR_CLASS,
+} from "@/lib/organizer-dashboard-layout";
 import { cn } from "@/lib/utils";
 
 const QUICK_FILTER_TABS: { id: FieldStatusSummaryFilter; label: string }[] = [
@@ -95,8 +99,7 @@ export function OrganizerFieldStatusBoard({
 
   const showSportSections = sportGroups.length > 1;
 
-  const selectClass =
-    "border-input bg-background h-10 rounded-md border px-2 text-sm shadow-sm focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring md:h-9";
+  const selectClass = ORGANIZER_FIELD_SELECT_CLASS;
 
   function handleSummaryFilterChange(filter: FieldStatusSummaryFilter) {
     setSummaryFilter(filter);
@@ -142,25 +145,21 @@ export function OrganizerFieldStatusBoard({
         />
       </div>
 
-      <Card variant="default" className="py-4">
-        <CardContent className="flex flex-col gap-3 px-4">
+      <div className={ORGANIZER_FILTER_BAR_CLASS}>
         <label className="flex w-full flex-col gap-1 text-xs">
-          <span className="text-muted-foreground font-medium">선수 검색</span>
+          <span className="text-matchon-text-secondary font-medium">선수 검색</span>
           <input
             type="search"
             value={searchQuery}
             onChange={(e) => setSearchQuery(e.target.value)}
             placeholder="선수명, 체육관, 경기구분, 체급으로 검색"
-            className={cn(
-              selectClass,
-              "h-11 w-full px-3 text-sm md:h-10 md:max-w-md",
-            )}
+            className={cn(ORGANIZER_FIELD_INPUT_CLASS, "md:max-w-md")}
           />
         </label>
 
         <div className="flex flex-wrap items-end gap-3">
           <label className="flex flex-col gap-1 text-xs">
-            <span className="text-muted-foreground">체육관</span>
+            <span className="text-matchon-text-secondary">체육관</span>
             <select
               className={selectClass}
               value={gymFilter}
@@ -175,7 +174,7 @@ export function OrganizerFieldStatusBoard({
             </select>
           </label>
           <label className="flex flex-col gap-1 text-xs">
-            <span className="text-muted-foreground">경기구분</span>
+            <span className="text-matchon-text-secondary">경기구분</span>
             <select
               className={selectClass}
               value={divisionFilter}
@@ -190,7 +189,7 @@ export function OrganizerFieldStatusBoard({
             </select>
           </label>
           <label className="flex flex-col gap-1 text-xs">
-            <span className="text-muted-foreground">현장 확인</span>
+            <span className="text-matchon-text-secondary">현장 확인</span>
             <select
               className={cn(selectClass, "min-w-[8rem]")}
               value={checkInFilter}
@@ -206,8 +205,7 @@ export function OrganizerFieldStatusBoard({
             </select>
           </label>
         </div>
-        </CardContent>
-      </Card>
+      </div>
 
       <div ref={listRef} className="min-w-0 flex flex-col gap-6">
         {showSportSections

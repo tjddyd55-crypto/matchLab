@@ -1,10 +1,10 @@
 import { GymFieldStatusBoard } from "@/components/domain/field-status/GymFieldStatusBoard";
 import { GymEventSubpageHeader } from "@/components/domain/gyms/GymEventSubpageHeader";
-import { EmptyState } from "@/components/shared/EmptyState";
-import { FeedbackMessage } from "@/components/shared/FeedbackMessage";
+import { MatchonEmptyState } from "@/components/shared/MatchonEmptyState";
 import { requireActor } from "@/lib/auth/actor";
 import { AppError } from "@/lib/errors/app-error";
 import { fieldStatusService } from "@/lib/services/field-status.service";
+import { matchonInfoBannerClass } from "@/lib/ui/matchon-shell-ui";
 import {
   matchonPageContainerClass,
   matchonPageStackClass,
@@ -24,9 +24,10 @@ export default async function GymEventFieldStatusPage({
     return (
       <div className={matchonPageContainerClass}>
         <div className={matchonPageStackClass}>
-          <EmptyState
+          <MatchonEmptyState
             title="체육관 계정이 필요합니다"
             description="현장 상태는 체육관(관장) 계정에서 조회할 수 있습니다."
+            tone="warning"
           />
         </div>
       </div>
@@ -42,7 +43,7 @@ export default async function GymEventFieldStatusPage({
     return (
       <div className={matchonPageContainerClass}>
         <div className={matchonPageStackClass}>
-          <EmptyState title="조회할 수 없습니다" description={message} />
+          <MatchonEmptyState title="조회할 수 없습니다" description={message} tone="error" />
         </div>
       </div>
     );
@@ -58,10 +59,10 @@ export default async function GymEventFieldStatusPage({
           active="field-status"
         />
 
-        <FeedbackMessage tone="info">
+        <p className={matchonInfoBannerClass}>
           현장 확인·계체 상태는 주최측 현장 운영자가 기록합니다. 수정이 필요하면
           주최자에게 문의해 주세요.
-        </FeedbackMessage>
+        </p>
 
         <GymFieldStatusBoard rows={data.rows} />
       </div>

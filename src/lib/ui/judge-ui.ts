@@ -3,8 +3,35 @@ import {
   getBracketMatchMatchonLabel,
   resolveBracketMatchMatchonStatus,
 } from "@/lib/ui/bracket-match-ui";
+import {
+  matchonBlueCornerPanelClass,
+  matchonBlueCornerTextClass,
+  matchonInfoBannerClass,
+  matchonPageDescClass,
+  matchonPageEyebrowClass,
+  matchonPageHeaderStackClass,
+  matchonPageTitleClass,
+  matchonRedCornerPanelClass,
+  matchonRedCornerTextClass,
+  matchonVsCardClass,
+  matchonCompactTableWrapClass,
+} from "@/lib/ui/matchon-shell-ui";
 
 export { getBracketMatchMatchonLabel, resolveBracketMatchMatchonStatus };
+
+export {
+  matchonBlueCornerPanelClass,
+  matchonBlueCornerTextClass,
+  matchonCompactTableWrapClass,
+  matchonInfoBannerClass,
+  matchonPageDescClass,
+  matchonPageEyebrowClass,
+  matchonPageHeaderStackClass,
+  matchonPageTitleClass,
+  matchonRedCornerPanelClass,
+  matchonRedCornerTextClass,
+  matchonVsCardClass,
+};
 
 /** 심판 현장 화면 공통 입력 스타일 */
 export const judgeFieldInputClass =

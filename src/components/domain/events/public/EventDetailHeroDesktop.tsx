@@ -8,10 +8,7 @@ import { PublicEventDeadlineBadge } from "@/components/domain/events/public/Publ
 import { PublicEventTrustBadges } from "@/components/domain/events/public/PublicEventTrustBadges";
 import { publicEventDivisionSummary } from "@/components/domain/events/public/public-event-ui";
 import { buildEventPublicUrl } from "@/lib/share/event-share";
-import {
-  Card,
-  CardContent,
-} from "@/components/ui/card";
+import { matchonStatCardClass } from "@/lib/ui/matchon-shell-ui";
 
 export function EventDetailHeroDesktop({
   event,
@@ -25,7 +22,8 @@ export function EventDetailHeroDesktop({
           variant="detail"
           src={event.coverImageUrl}
           alt={`${event.title} 포스터`}
-          boxClassName="rounded-xl ring-1 ring-foreground/10 shadow-lg"
+          boxClassName="rounded-[20px] border border-matchon-border shadow-lg"
+          imageClassName="object-cover"
           sizes="420px"
           priority
         />
@@ -41,21 +39,21 @@ export function EventDetailHeroDesktop({
               />
               <PublicEventDeadlineBadge event={event} />
             </div>
-            <h1 className="font-heading text-3xl font-semibold tracking-tight lg:text-4xl">
+            <h1 className="font-black text-3xl tracking-tight text-matchon-text-primary lg:text-4xl">
               {event.title}
             </h1>
-            <p className="text-muted-foreground text-sm">
+            <p className="text-sm text-matchon-text-secondary">
               주최 · {event.organizerName}
             </p>
             {event.liveStreamingEnabled ? (
-              <p className="text-primary text-sm font-medium">
+              <p className="text-sm font-semibold text-matchon-primary">
                 라이브 스트리밍 예정
               </p>
             ) : null}
           </div>
 
-          <Card variant="muted">
-            <CardContent className="space-y-5 pt-5">
+          <div className={matchonStatCardClass}>
+            <div className="space-y-5">
               <EventMetaList
                 eventDate={event.eventDate}
                 location={event.location}
@@ -66,20 +64,20 @@ export function EventDetailHeroDesktop({
                 divisionSummary={publicEventDivisionSummary(event)}
               />
               {event.paymentInfo ? (
-                <p className="text-muted-foreground text-sm">
+                <p className="text-sm text-matchon-text-secondary">
                   {event.paymentInfo.feeLabel}
                 </p>
               ) : null}
               <PublicEventTrustBadges event={event} compact />
-              <div className="space-y-4 border-t pt-5">
+              <div className="space-y-4 border-t border-matchon-border pt-5">
                 <EventApplicationCta
                   eventStatus={event.status}
                   registrationStatus={event.registrationStatus}
                 />
                 <EventShareButtons url={buildEventPublicUrl(event)} />
               </div>
-            </CardContent>
-          </Card>
+            </div>
+          </div>
         </div>
       </div>
     </header>

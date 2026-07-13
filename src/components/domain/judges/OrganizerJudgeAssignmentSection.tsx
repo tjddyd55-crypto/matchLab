@@ -10,6 +10,7 @@ import { Button } from "@/components/ui/button";
 import type { JudgeAssignmentVM } from "@/lib/services/judge-assignment.service";
 import type { JudgeCredentialListItemVM } from "@/lib/services/judge-credential.service";
 import type { OrganizerEventMatchListItemVM } from "@/lib/services/match.service";
+import { judgeFieldInputClass } from "@/lib/ui/judge-ui";
 
 export function OrganizerJudgeAssignmentSection({
   eventId,
@@ -34,8 +35,7 @@ export function OrganizerJudgeAssignmentSection({
   );
   const activeCredentials = credentials.filter((c) => c.isActive);
 
-  const inputClass =
-    "border-input bg-background h-9 rounded-md border px-2 text-sm";
+  const inputClass = judgeFieldInputClass;
 
   const selectedMatch = matches.find((m) => m.matchId === selectedMatchId);
 

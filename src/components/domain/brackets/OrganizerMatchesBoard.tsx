@@ -7,6 +7,9 @@ import {
 } from "@/components/domain/brackets/OrganizerMatchOpsPanel";
 import type { OrganizerEventMatchListItemVM } from "@/lib/services/match.service";
 import { BracketMatchStatus } from "@/lib/enums";
+import { ORGANIZER_FIELD_SELECT_CLASS, ORGANIZER_FILTER_BAR_CLASS } from "@/lib/organizer-dashboard-layout";
+import { organizerBracketTableWrapClass } from "@/lib/ui/organizer-bracket-ui";
+import { listTableHeaderRowClass } from "@/lib/ui/list-table-styles";
 import { cn } from "@/lib/utils";
 
 function rowOps(row: OrganizerEventMatchListItemVM) {
@@ -83,15 +86,14 @@ export function OrganizerMatchesBoard({
 
   return (
     <div className="space-y-6">
-      <div className="flex flex-wrap gap-3 text-sm">
+      <div className={ORGANIZER_FILTER_BAR_CLASS}>
+        <div className="flex flex-wrap gap-3 text-sm">
         <label className="flex flex-col gap-1">
-          <span className="text-muted-foreground text-xs">대진표 그룹</span>
+          <span className="text-matchon-text-secondary text-xs">대진표 그룹</span>
           <select
             value={bracketId}
             onChange={(e) => setBracketId(e.target.value)}
-            className={cn(
-              "border-input bg-background h-9 min-w-[180px] rounded-md border px-2",
-            )}
+            className={cn(ORGANIZER_FIELD_SELECT_CLASS, "min-w-[180px]")}
           >
             <option value="">전체</option>
             {bracketOptions.map(([id, title]) => (
@@ -102,13 +104,11 @@ export function OrganizerMatchesBoard({
           </select>
         </label>
         <label className="flex flex-col gap-1">
-          <span className="text-muted-foreground text-xs">경기구분</span>
+          <span className="text-matchon-text-secondary text-xs">경기구분</span>
           <select
             value={divisionLabel}
             onChange={(e) => setDivisionLabel(e.target.value)}
-            className={cn(
-              "border-input bg-background h-9 min-w-[180px] rounded-md border px-2",
-            )}
+            className={cn(ORGANIZER_FIELD_SELECT_CLASS, "min-w-[180px]")}
           >
             <option value="">전체</option>
             {divisionOptions.map((d) => (
@@ -119,13 +119,11 @@ export function OrganizerMatchesBoard({
           </select>
         </label>
         <label className="flex flex-col gap-1">
-          <span className="text-muted-foreground text-xs">경기 상태</span>
+          <span className="text-matchon-text-secondary text-xs">경기 상태</span>
           <select
             value={status}
             onChange={(e) => setStatus(e.target.value)}
-            className={cn(
-              "border-input bg-background h-9 min-w-[160px] rounded-md border px-2",
-            )}
+            className={cn(ORGANIZER_FIELD_SELECT_CLASS, "min-w-[160px]")}
           >
             <option value="">전체</option>
             {Object.values(BracketMatchStatus).map((s) => (
@@ -136,13 +134,11 @@ export function OrganizerMatchesBoard({
           </select>
         </label>
         <label className="flex flex-col gap-1">
-          <span className="text-muted-foreground text-xs">매트</span>
+          <span className="text-matchon-text-secondary text-xs">매트</span>
           <select
             value={mat}
             onChange={(e) => setMat(e.target.value)}
-            className={cn(
-              "border-input bg-background h-9 min-w-[120px] rounded-md border px-2",
-            )}
+            className={cn(ORGANIZER_FIELD_SELECT_CLASS, "min-w-[120px]")}
           >
             <option value="">전체</option>
             {matOptions.map((n) => (
@@ -152,11 +148,12 @@ export function OrganizerMatchesBoard({
             ))}
           </select>
         </label>
+        </div>
       </div>
 
-      <div className="hidden xl:block overflow-x-auto rounded-xl border">
+      <div className={cn(organizerBracketTableWrapClass, "hidden xl:block")}>
         <table className="w-full min-w-[1100px] text-left text-sm">
-          <thead className="bg-muted/50 border-b text-xs uppercase">
+          <thead className={cn(listTableHeaderRowClass, "text-xs uppercase")}>
             <tr>
               <th className="px-3 py-2">대진표 그룹</th>
               <th className="px-3 py-2">경기구분</th>

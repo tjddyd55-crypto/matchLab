@@ -3,10 +3,21 @@
 import { useMemo, useState } from "react";
 import { useRouter } from "next/navigation";
 import { saveJudgeScorecardAction } from "@/features/judge/actions";
+import { FeedbackMessage } from "@/components/shared/FeedbackMessage";
 import { Button } from "@/components/ui/button";
+import { Card, CardContent } from "@/components/ui/card";
 import { JudgeDecisionMethod } from "@/lib/enums";
 import { computeScorecardTotals } from "@/lib/judge-score-aggregation";
 import type { JudgeScorecardFormVM } from "@/lib/services/judge-scorecard.service";
+import {
+  judgeFieldInputClass,
+  judgeFieldTextareaClass,
+  matchonBlueCornerPanelClass,
+  matchonBlueCornerTextClass,
+  matchonInfoBannerClass,
+  matchonRedCornerPanelClass,
+  matchonRedCornerTextClass,
+} from "@/lib/ui/judge-ui";
 
 const DECISION_OPTIONS: { value: JudgeDecisionMethod; label: string }[] = [
   { value: JudgeDecisionMethod.decision, label: "판정" },
@@ -92,12 +103,12 @@ export function JudgeScorecardForm({
     }
   }
 
-  const inputClass =
-    "border-input bg-background h-9 w-full rounded-md border px-2 text-sm";
+  const inputClass = judgeFieldInputClass;
 
   return (
     <div className="flex flex-col gap-6">
-      <header className="space-y-2 rounded-lg border p-4 text-sm">
+      <Card variant="default" className="py-4">
+        <CardContent className="space-y-2 px-4 text-sm">
         <p className="font-medium">{form.eventTitle}</p>
         <p className="text-muted-foreground text-xs">
           {new Date(form.eventDate).toLocaleDateString("ko-KR")}
@@ -108,28 +119,31 @@ export function JudgeScorecardForm({
           <p className="text-muted-foreground text-xs">{form.divisionLabel}</p>
         ) : null}
         <div className="grid grid-cols-2 gap-2 pt-2">
-          <div className="rounded border border-red-500/30 bg-red-500/5 px-2 py-1">
+          <div className={matchonRedCornerPanelClass}>
             <p className="text-muted-foreground text-[10px]">홍코너</p>
-            <p className="font-medium text-red-700 dark:text-red-300">
+            <p className={matchonRedCornerTextClass}>
               {form.fighterRedName}
             </p>
           </div>
-          <div className="rounded border border-blue-500/30 bg-blue-500/5 px-2 py-1">
+          <div className={matchonBlueCornerPanelClass}>
             <p className="text-muted-foreground text-[10px]">청코너</p>
-            <p className="font-medium text-blue-700 dark:text-blue-300">
+            <p className={matchonBlueCornerTextClass}>
               {form.fighterBlueName}
             </p>
           </div>
         </div>
-      </header>
+        </CardContent>
+      </Card>
 
-      <div className="rounded-lg border bg-muted/20 px-3 py-2 text-sm">
+      <Card variant="muted" className="py-3">
+        <CardContent className="px-4 text-sm">
         <p className="text-muted-foreground text-xs">채점 심판 (본인 확인)</p>
         <p className="font-medium">{judgeName || "—"}</p>
         <input type="hidden" name="judgeName" value={judgeName} readOnly />
-      </div>
+        </CardContent>
+      </Card>
 
-      <p className="text-muted-foreground text-xs leading-relaxed">
+      <p className={matchonInfoBannerClass}>
         10점 감점제 기준입니다. 감점(deductions)은 총점에서 자동 차감됩니다.
         다운 횟수는 기록만 하며 점수는 직접 입력합니다.
       </p>
@@ -146,7 +160,7 @@ export function JudgeScorecardForm({
             </legend>
             <div className="mt-2 grid grid-cols-2 gap-3">
               <label className="flex flex-col gap-1 text-xs">
-                <span className="text-red-600">홍 점수 (0–10)</span>
+                <span className={matchonRedCornerTextClass}>홍 점수 (0–10)</span>
                 <input
                   type="number"
                   min={0}
@@ -159,7 +173,7 @@ export function JudgeScorecardForm({
                 />
               </label>
               <label className="flex flex-col gap-1 text-xs">
-                <span className="text-blue-600">청 점수 (0–10)</span>
+                <span className={matchonBlueCornerTextClass}>청 점수 (0–10)</span>
                 <input
                   type="number"
                   min={0}
@@ -278,14 +292,14 @@ export function JudgeScorecardForm({
           onChange={(e) => setMemo(e.target.value)}
           disabled={readOnly}
           rows={3}
-          className={inputClass}
+          className={judgeFieldTextareaClass}
         />
       </label>
 
       {error ? (
-        <p className="text-destructive text-sm" role="alert">
+        <FeedbackMessage tone="error" role="alert">
           {error}
-        </p>
+        </FeedbackMessage>
       ) : null}
 
       {!readOnly ? (
@@ -293,12 +307,13 @@ export function JudgeScorecardForm({
           <Button
             type="button"
             variant="outline"
+            size="field"
             disabled={pending}
             onClick={() => save(false)}
           >
             임시 저장
           </Button>
-          <Button type="button" disabled={pending} onClick={() => save(true)}>
+          <Button type="button" size="field" disabled={pending} onClick={() => save(true)}>
             전송
           </Button>
         </div>

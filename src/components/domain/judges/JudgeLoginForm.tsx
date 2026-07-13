@@ -3,7 +3,9 @@
 import { useState, useTransition } from "react";
 import { useRouter } from "next/navigation";
 import { judgeLoginAction } from "@/features/judge/actions";
+import { FeedbackMessage } from "@/components/shared/FeedbackMessage";
 import { Button } from "@/components/ui/button";
+import { judgeFieldInputClass } from "@/lib/ui/judge-ui";
 
 export function JudgeLoginForm({
   defaultLoginId = "",
@@ -42,7 +44,7 @@ export function JudgeLoginForm({
           required
           autoComplete="username"
           defaultValue={defaultLoginId}
-          className="border-input bg-background h-10 rounded-md border px-3 text-sm"
+          className={judgeFieldInputClass}
         />
       </label>
       {callbackUrl ? (
@@ -55,15 +57,15 @@ export function JudgeLoginForm({
           type="password"
           required
           autoComplete="current-password"
-          className="border-input bg-background h-10 rounded-md border px-3 text-sm"
+          className={judgeFieldInputClass}
         />
       </label>
       {error ? (
-        <p className="text-destructive text-sm" role="alert">
+        <FeedbackMessage tone="error" role="alert">
           {error}
-        </p>
+        </FeedbackMessage>
       ) : null}
-      <Button type="submit" disabled={pending}>
+      <Button type="submit" disabled={pending} size="field" className="w-full">
         {pending ? "로그인 중…" : "로그인"}
       </Button>
     </form>

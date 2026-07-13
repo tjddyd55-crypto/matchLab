@@ -6,6 +6,7 @@ import { createOrganizerManualApplicationAction } from "@/features/applications/
 import type { OrganizerManualRegistrationOptionsDTO } from "@/lib/services/application.service";
 import { ApplicationStatus, PaymentStatus } from "@/generated/prisma";
 import { Button } from "@/components/ui/button";
+import { ORGANIZER_FIELD_INPUT_CLASS } from "@/lib/organizer-dashboard-layout";
 import { cn } from "@/lib/utils";
 
 const GENDER_OPTIONS = [
@@ -19,8 +20,7 @@ type DuplicateCandidate = {
   name: string;
 };
 
-const fieldClass =
-  "border-input bg-background h-9 w-full rounded-md border px-2 text-sm shadow-sm";
+const fieldClass = ORGANIZER_FIELD_INPUT_CLASS;
 const labelClass = "text-muted-foreground mb-1 block text-xs font-medium";
 
 export function OrganizerManualApplicationPanel({

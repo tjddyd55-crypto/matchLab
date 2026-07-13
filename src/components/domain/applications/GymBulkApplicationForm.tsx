@@ -40,6 +40,8 @@ import {
   TableRow,
 } from "@/components/ui/table";
 import { publicApplicationFieldTextareaClass } from "@/lib/ui/public-application-ui";
+import { matchonCompactTableWrapClass } from "@/lib/ui/matchon-shell-ui";
+import { cn } from "@/lib/utils";
 
 type GymBulkApplicationFormProps = {
   eventId: string;
@@ -212,7 +214,7 @@ export function GymBulkApplicationForm(props: GymBulkApplicationFormProps) {
           </CardDescription>
         </CardHeader>
         <CardContent className="space-y-4 p-0 sm:p-0">
-      <div className="hidden md:block px-4 pb-4">
+      <div className={cn(matchonCompactTableWrapClass, "hidden md:block px-4 pb-4")}>
         <Table>
           <TableHeader>
             <TableRow>

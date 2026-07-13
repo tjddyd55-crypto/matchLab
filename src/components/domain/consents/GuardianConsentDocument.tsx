@@ -24,7 +24,7 @@ export function GuardianConsentDocument({
           본 동의는 선수 등록 및 향후 대회 참가 과정에서 필요한 보호자 확인 절차입니다.
           구체적인 대회 단위 조건은 추후 대회 신청 단계에서 별도 안내될 수 있습니다.
         </p>
-        <ol className="text-muted-foreground list-decimal space-y-2 pl-5">
+        <ol className="list-decimal space-y-2 pl-5 text-matchon-text-secondary">
           <li>
             체육관 및 주최 측은 선수 등록·대회 운영에 필요한 범위에서 개인정보를 수집·이용할 수
             있습니다.

@@ -4,12 +4,14 @@ import { useCallback, useId, useRef, useState } from "react";
 import Link from "next/link";
 import { QRCodeSVG } from "qrcode.react";
 import type { EventQrPrintGroup } from "@/components/domain/events/qr/EventQrCard";
+import { MatchonStatusBadge } from "@/components/shared/MatchonStatusBadge";
 import { FeedbackMessage } from "@/components/shared/FeedbackMessage";
 import { Button, buttonVariants } from "@/components/ui/button";
 import {
   downloadSvgAsPng,
   triggerEventQrPrint,
 } from "@/components/domain/judges/judge-qr-ui";
+import { resolveJudgeRoleMatchonStatus } from "@/lib/ui/judge-ui";
 import { cn } from "@/lib/utils";
 
 export function CourtJudgeRoleUrlSection({
@@ -81,9 +83,11 @@ export function CourtJudgeRoleUrlSection({
       <div className="space-y-1">
         <div className="flex flex-wrap items-center gap-2">
           <p className="text-sm font-semibold">{title}</p>
-          <span className="bg-muted text-muted-foreground rounded-full px-2 py-0.5 text-[10px] font-medium">
-            {role === "score" ? "채점" : "주심"}
-          </span>
+          <MatchonStatusBadge
+            status={resolveJudgeRoleMatchonStatus(role)}
+            label={role === "score" ? "채점" : "주심"}
+            size="sm"
+          />
         </div>
         <p className="text-muted-foreground text-xs leading-relaxed">{description}</p>
       </div>

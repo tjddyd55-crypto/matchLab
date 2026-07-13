@@ -9,11 +9,10 @@ import { PublicBracketRealtimeBridge } from "@/components/domain/brackets/Public
 import { TournamentBracketView } from "@/components/domain/brackets/TournamentBracketView";
 import { PublicSpectatorEmptyState } from "@/components/domain/events/public/PublicSpectatorEmptyState";
 import {
-  Card,
-  CardDescription,
-  CardHeader,
-  CardTitle,
-} from "@/components/ui/card";
+  publicEventPageEyebrowClass,
+  publicEventPageTitleClass,
+} from "@/components/domain/events/public/public-event-ui";
+import { cn } from "@/lib/utils";
 
 export function PublicEventBracketsSection({
   eventId,
@@ -40,14 +39,15 @@ export function PublicEventBracketsSection({
         bracketIds={bracketIds}
       />
 
-      <Card variant="muted" className="py-4">
-        <CardHeader>
-          <CardTitle className="text-xl md:text-2xl">공개 대진표</CardTitle>
-          <CardDescription>
-            주최자가 공개한 대진표만 표시됩니다.
-          </CardDescription>
-        </CardHeader>
-      </Card>
+      <header className="space-y-1">
+        <p className={publicEventPageEyebrowClass}>Brackets</p>
+        <h2 className={cn(publicEventPageTitleClass, "text-xl md:text-2xl")}>
+          공개 대진표
+        </h2>
+        <p className="text-sm text-matchon-text-secondary">
+          주최자가 공개한 대진표만 표시됩니다.
+        </p>
+      </header>
 
       {brackets.length === 0 ? (
         <PublicSpectatorEmptyState

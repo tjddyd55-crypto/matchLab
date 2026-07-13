@@ -3,11 +3,10 @@ import { requireActor } from "@/lib/auth/actor";
 import { AppError } from "@/lib/errors/app-error";
 import { applicationFormTemplateService } from "@/lib/services/application-form-template.service";
 import { ApplicationFormTemplateListTable } from "@/components/domain/application-form-templates/ApplicationFormTemplateListTable";
+import { AdminListEmptyState } from "@/components/domain/admin/AdminListEmptyState";
 import { AdminPageHeader } from "@/components/domain/admin/AdminPageHeader";
-import { EmptyState } from "@/components/shared/EmptyState";
 import { buttonVariants } from "@/components/ui/button";
-import { Card, CardContent } from "@/components/ui/card";
-import { adminPageContainerClass, adminPageStackClass } from "@/lib/ui/admin-ui";
+import { adminContentCardClass, adminPageContainerClass, adminPageStackClass } from "@/lib/ui/admin-ui";
 import { cn } from "@/lib/utils";
 
 export const dynamic = "force-dynamic";
@@ -50,30 +49,23 @@ export default async function AdminApplicationFormTemplatesPage() {
         </div>
 
         {loadError ? (
-          <EmptyState title="템플릿을 불러올 수 없습니다" description={loadError} />
+          <AdminListEmptyState
+            title="템플릿을 불러올 수 없습니다"
+            description={loadError}
+          />
         ) : templates.length === 0 ? (
-          <EmptyState
+          <AdminListEmptyState
             title="등록된 신청서 템플릿이 없습니다"
             description="새 템플릿을 만들어 대회에 연결할 수 있습니다."
-            action={
-              <Link
-                href="/admin/application-form-templates/new"
-                className={cn(buttonVariants({ size: "field" }), "w-full sm:w-auto")}
-              >
-                새 템플릿
-              </Link>
-            }
           />
         ) : (
-          <Card>
-            <CardContent className="pt-4">
-              <ApplicationFormTemplateListTable
-                templates={templates}
-                editPathPrefix="/admin/application-form-templates"
-                canEditAll
-              />
-            </CardContent>
-          </Card>
+          <div className={adminContentCardClass}>
+            <ApplicationFormTemplateListTable
+              templates={templates}
+              editPathPrefix="/admin/application-form-templates"
+              canEditAll
+            />
+          </div>
         )}
       </div>
     </div>

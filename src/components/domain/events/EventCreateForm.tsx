@@ -20,6 +20,7 @@ import {
   readImageDimensionsFromFile,
 } from "@/lib/client/event-poster-aspect";
 import { Button } from "@/components/ui/button";
+import { ORGANIZER_FIELD_INPUT_CLASS } from "@/lib/organizer-dashboard-layout";
 import { cn } from "@/lib/utils";
 import { zodFlattenToFieldErrors } from "@/lib/validators/event-form-errors";
 
@@ -230,7 +231,7 @@ export function EventCreateForm({ actorRole }: { actorRole: UserRole }) {
               name="organizerId"
               required
               className={cn(
-                "border-input bg-background h-9 w-full rounded-md border px-3 font-mono text-sm shadow-sm",
+                cn(ORGANIZER_FIELD_INPUT_CLASS, "font-mono"),
               )}
               placeholder="cuid…"
             />
@@ -243,7 +244,7 @@ export function EventCreateForm({ actorRole }: { actorRole: UserRole }) {
             required
             maxLength={200}
             className={cn(
-              "border-input bg-background h-9 w-full rounded-md border px-3 text-sm shadow-sm",
+              ORGANIZER_FIELD_INPUT_CLASS,
             )}
             aria-invalid={Boolean(fieldErrors.title?.[0])}
           />
@@ -256,7 +257,7 @@ export function EventCreateForm({ actorRole }: { actorRole: UserRole }) {
             rows={3}
             maxLength={8000}
             className={cn(
-              "border-input bg-background min-h-[72px] w-full rounded-md border px-3 py-2 text-sm shadow-sm",
+              cn(ORGANIZER_FIELD_INPUT_CLASS, "min-h-[72px] py-2"),
             )}
           />
         </label>
@@ -268,7 +269,7 @@ export function EventCreateForm({ actorRole }: { actorRole: UserRole }) {
             name="eventDate"
             required
             className={cn(
-              "border-input bg-background h-9 w-full rounded-md border px-3 text-sm shadow-sm",
+              ORGANIZER_FIELD_INPUT_CLASS,
             )}
             aria-invalid={Boolean(fieldErrors.eventDate?.[0])}
           />
@@ -281,7 +282,7 @@ export function EventCreateForm({ actorRole }: { actorRole: UserRole }) {
             name="registrationStartDate"
             required
             className={cn(
-              "border-input bg-background h-9 w-full rounded-md border px-3 text-sm shadow-sm",
+              ORGANIZER_FIELD_INPUT_CLASS,
             )}
             aria-invalid={Boolean(fieldErrors.registrationStartDate?.[0])}
           />
@@ -294,7 +295,7 @@ export function EventCreateForm({ actorRole }: { actorRole: UserRole }) {
             name="registrationEndDate"
             required
             className={cn(
-              "border-input bg-background h-9 w-full rounded-md border px-3 text-sm shadow-sm",
+              ORGANIZER_FIELD_INPUT_CLASS,
             )}
             aria-invalid={Boolean(fieldErrors.registrationEndDate?.[0])}
           />
@@ -362,7 +363,7 @@ export function EventCreateForm({ actorRole }: { actorRole: UserRole }) {
               rows={2}
               maxLength={4000}
               className={cn(
-                "border-input bg-background min-h-[56px] w-full rounded-md border px-3 py-2 text-sm shadow-sm",
+                cn(ORGANIZER_FIELD_INPUT_CLASS, "min-h-[56px] py-2"),
               )}
             />
           </label>

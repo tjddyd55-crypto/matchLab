@@ -1,13 +1,8 @@
 "use client";
 
 import { PublicSparringUnderVsBadge } from "@/components/domain/shared/BoutFormatBadge";
+import { MatchonEmptyState } from "@/components/shared/MatchonEmptyState";
 import { MatchonStatusBadge } from "@/components/shared/MatchonStatusBadge";
-import { FeedbackMessage } from "@/components/shared/FeedbackMessage";
-import { Card, CardContent } from "@/components/ui/card";
-import {
-  getCornerLabelClassName,
-  getCornerSlotBg,
-} from "@/lib/ui/corner-ui-tokens";
 import { cn } from "@/lib/utils";
 import type {
   CourtJudgeMatchVM,
@@ -16,8 +11,13 @@ import type {
 import { BracketMatchStatus } from "@/lib/enums";
 import {
   getBracketMatchMatchonLabel,
+  matchonBlueCornerPanelClass,
+  matchonBlueCornerTextClass,
+  matchonRedCornerPanelClass,
+  matchonRedCornerTextClass,
+  matchonVsCardClass,
   resolveBracketMatchMatchonStatus,
-} from "@/lib/ui/bracket-match-ui";
+} from "@/lib/ui/judge-ui";
 import { sanitizeJudgeVisibleMemo } from "@/lib/match-result-memo";
 import { CourtJudgeMatchLabels } from "./CourtJudgeMatchLabels";
 
@@ -191,13 +191,10 @@ export function CourtJudgeMatchList({
 }) {
   if (matches.length === 0) {
     return (
-      <Card variant="muted" className="py-4">
-        <CardContent className="px-4">
-          <FeedbackMessage tone="info">
-            이 경기장에 배정된 경기가 없습니다.
-          </FeedbackMessage>
-        </CardContent>
-      </Card>
+      <MatchonEmptyState
+        title="이 경기장에 배정된 경기가 없습니다."
+        description="운영자가 대진표를 생성하면 이 화면에서 확인할 수 있습니다."
+      />
     );
   }
 
@@ -268,38 +265,51 @@ export function CourtJudgeCurrentMatchCard({
 
 export function CourtJudgeFightersHeader({ match }: { match: CourtJudgeMatchVM }) {
   return (
-    <div className="grid grid-cols-[1fr_auto_1fr] items-stretch overflow-hidden rounded-lg border">
-      <div className={cn(getCornerSlotBg("홍코너"), "p-3")}>
-        <p className={cn("text-xs font-semibold", getCornerLabelClassName("홍코너"))}>레드</p>
-        <p
+    <div className={cn(matchonVsCardClass, "overflow-hidden p-0")}>
+      <div className="grid grid-cols-[1fr_auto_1fr] items-stretch gap-2 p-4">
+        <div
           className={cn(
-            "text-lg font-bold",
-            match.winnerId === match.fighterRedId && "text-emerald-700",
+            matchonRedCornerPanelClass,
+            match.winnerId === match.fighterRedId && "ring-2 ring-emerald-500/50",
           )}
         >
-          {match.fighterRedName}
-        </p>
-        <p className="text-muted-foreground text-xs">{match.fighterRedGymName ?? "—"}</p>
-      </div>
-      <div className="flex flex-col items-center justify-center bg-muted/30 px-4">
-        <span className="font-black">VS</span>
-        <PublicSparringUnderVsBadge
-          bracketType={match.bracketType}
-          bracketIsPublic={match.bracketIsPublic}
-          matchIsPublicSparring={match.matchIsPublicSparring}
-        />
-      </div>
-      <div className={cn(getCornerSlotBg("청코너"), "p-3 text-right")}>
-        <p className={cn("text-xs font-semibold", getCornerLabelClassName("청코너"))}>블루</p>
-        <p
+          <p className={cn("text-xs font-semibold", matchonRedCornerTextClass)}>레드</p>
+          <p
+            className={cn(
+              "text-lg font-bold",
+              match.winnerId === match.fighterRedId && "text-emerald-700",
+            )}
+          >
+            {match.fighterRedName}
+          </p>
+          <p className="text-matchon-text-secondary text-xs">{match.fighterRedGymName ?? "—"}</p>
+        </div>
+        <div className="text-matchon-text-secondary flex flex-col items-center justify-center px-2">
+          <span className="font-black">VS</span>
+          <PublicSparringUnderVsBadge
+            bracketType={match.bracketType}
+            bracketIsPublic={match.bracketIsPublic}
+            matchIsPublicSparring={match.matchIsPublicSparring}
+          />
+        </div>
+        <div
           className={cn(
-            "text-lg font-bold",
-            match.winnerId === match.fighterBlueId && "text-emerald-700",
+            matchonBlueCornerPanelClass,
+            "text-right",
+            match.winnerId === match.fighterBlueId && "ring-2 ring-emerald-500/50",
           )}
         >
-          {match.fighterBlueName}
-        </p>
-        <p className="text-muted-foreground text-xs">{match.fighterBlueGymName ?? "—"}</p>
+          <p className={cn("text-xs font-semibold", matchonBlueCornerTextClass)}>블루</p>
+          <p
+            className={cn(
+              "text-lg font-bold",
+              match.winnerId === match.fighterBlueId && "text-emerald-700",
+            )}
+          >
+            {match.fighterBlueName}
+          </p>
+          <p className="text-matchon-text-secondary text-xs">{match.fighterBlueGymName ?? "—"}</p>
+        </div>
       </div>
     </div>
   );

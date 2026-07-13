@@ -13,6 +13,11 @@ import {
   matchonScrollablePillItemClass,
   matchonScrollablePillsClass,
 } from "@/lib/ui/matchon-layout";
+import {
+  matchonFilterPillActiveClass,
+  matchonFilterPillBaseClass,
+  matchonFilterPillInactiveClass,
+} from "@/lib/ui/matchon-shell-ui";
 import { cn } from "@/lib/utils";
 
 export function MobileEventManagementNav({
@@ -40,19 +45,19 @@ export function MobileEventManagementNav({
     ) ?? items[0];
 
   return (
-    <div className="space-y-2 border-b pb-4 lg:hidden">
+    <div className="space-y-2 border-b border-matchon-border pb-4 lg:hidden">
       <Button
         type="button"
         variant="outline"
-        className="w-full justify-between"
+        className="h-10 w-full justify-between rounded-lg border-matchon-border bg-white"
         onClick={() => setOpen((value) => !value)}
         aria-expanded={open}
         aria-controls="event-management-mobile-nav"
       >
-        <span>
+        <span className="text-sm">
           대회 메뉴
           {activeItem ? (
-            <span className="text-muted-foreground ml-2 font-normal">
+            <span className="text-matchon-text-secondary ml-2 font-normal">
               · {activeItem.label}
             </span>
           ) : null}
@@ -86,10 +91,10 @@ export function MobileEventManagementNav({
                 onClick={() => setOpen(false)}
                 className={cn(
                   matchonScrollablePillItemClass,
-                  "min-h-10 rounded-full border px-3 py-1.5 text-sm whitespace-nowrap transition-colors",
+                  matchonFilterPillBaseClass,
                   active
-                    ? "border-primary bg-primary text-primary-foreground"
-                    : "border-border bg-background hover:bg-muted",
+                    ? matchonFilterPillActiveClass
+                    : matchonFilterPillInactiveClass,
                 )}
                 target={item.external ? "_blank" : undefined}
                 rel={item.external ? "noopener noreferrer" : undefined}

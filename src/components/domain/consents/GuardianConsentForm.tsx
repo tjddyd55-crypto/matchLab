@@ -220,7 +220,7 @@ export function GuardianConsentForm({
             체육관: {initial.gymDisplayLabel} · 선수: {initial.fighterName}
           </CardDescription>
         </CardHeader>
-        <CardContent className="text-muted-foreground text-sm">
+        <CardContent className="text-sm text-matchon-text-secondary">
           보호자(등록 시 입력): {initial.guardianNameMasked} · 연락처{" "}
           {initial.guardianPhoneMasked}
         </CardContent>

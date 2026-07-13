@@ -6,7 +6,7 @@ import { useRouter } from "next/navigation";
 import { signInWithPasswordAction } from "@/features/auth/actions";
 import type { ActionResult } from "@/lib/action-result";
 import { Button } from "@/components/ui/button";
-import { cn } from "@/lib/utils";
+import { authFieldInputClass } from "@/lib/ui/auth-ui";
 
 type SignInState = ActionResult<{ redirectTo: string }> | null;
 
@@ -26,7 +26,7 @@ export function LoginForm() {
 
   return (
     <form action={formAction} className="space-y-4">
-      <p className="text-muted-foreground text-xs leading-relaxed">
+      <p className="text-xs leading-relaxed text-matchon-text-secondary">
         관리자, 주최자, 체육관, 선수 모두 발급받은 아이디로 로그인합니다.
       </p>
       <div className="space-y-2">
@@ -41,12 +41,7 @@ export function LoginForm() {
           required
           disabled={pending}
           placeholder="아이디를 입력하세요"
-          className={cn(
-            "border-input bg-background ring-offset-background placeholder:text-muted-foreground",
-            "focus-visible:ring-ring flex h-9 w-full rounded-md border px-3 py-1 text-sm shadow-xs transition-colors",
-            "focus-visible:ring-2 focus-visible:ring-offset-2 focus-visible:outline-none",
-            "disabled:cursor-not-allowed disabled:opacity-50",
-          )}
+          className={authFieldInputClass}
         />
       </div>
       <div className="space-y-2">
@@ -60,12 +55,7 @@ export function LoginForm() {
           autoComplete="current-password"
           required
           disabled={pending}
-          className={cn(
-            "border-input bg-background ring-offset-background placeholder:text-muted-foreground",
-            "focus-visible:ring-ring flex h-9 w-full rounded-md border px-3 py-1 text-sm shadow-xs transition-colors",
-            "focus-visible:ring-2 focus-visible:ring-offset-2 focus-visible:outline-none",
-            "disabled:cursor-not-allowed disabled:opacity-50",
-          )}
+          className={authFieldInputClass}
         />
       </div>
 
@@ -79,9 +69,12 @@ export function LoginForm() {
         {pending ? "로그인 중…" : "로그인"}
       </Button>
 
-      <p className="text-muted-foreground text-center text-xs">
+      <p className="text-center text-xs text-matchon-text-secondary">
         계정이 없으신가요?{" "}
-        <Link href="/register" className="text-primary underline-offset-2 hover:underline">
+        <Link
+          href="/register"
+          className="font-medium text-matchon-primary underline-offset-2 hover:underline"
+        >
           안내 보기
         </Link>
       </p>

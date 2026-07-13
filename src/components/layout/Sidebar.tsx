@@ -1,6 +1,6 @@
-import Link from "next/link";
-import { BrandLogo } from "@/components/common/BrandLogo";
+import { MatchonLogo } from "@/components/common/MatchonLogo";
 import type { DashboardRole } from "@/components/layout/DashboardShell";
+import { SidebarNav } from "@/components/layout/SidebarNav";
 import { cn } from "@/lib/utils";
 
 type NavItem = { href: string; label: string };
@@ -43,17 +43,15 @@ const navByRole: Record<DashboardRole, NavItem[]> = {
   ],
 };
 
+const homePathsByRole: Record<DashboardRole, string[]> = {
+  organizer: ["/organizer"],
+  gym: ["/gym"],
+  fighter: ["/fighter"],
+  admin: ["/admin"],
+};
+
 function dashboardHomePath(role: DashboardRole): string {
-  switch (role) {
-    case "organizer":
-      return "/organizer";
-    case "gym":
-      return "/gym";
-    case "fighter":
-      return "/fighter";
-    case "admin":
-      return "/admin";
-  }
+  return homePathsByRole[role][0];
 }
 
 export function Sidebar({
@@ -66,21 +64,20 @@ export function Sidebar({
   const items = navByRole[role];
 
   return (
-    <aside className={cn("flex flex-col gap-1 p-3", className)}>
-      <div className="mb-3 px-2">
-        <BrandLogo href={dashboardHomePath(role)} size="sm" showText />
+    <aside
+      className={cn(
+        "flex min-h-screen w-56 shrink-0 flex-col border-r border-white/8 bg-matchon-sidebar px-3 py-4",
+        className,
+      )}
+    >
+      <div className="mb-4 px-2">
+        <MatchonLogo
+          href={dashboardHomePath(role)}
+          variant="dark"
+          size="sm"
+        />
       </div>
-      <nav className="flex flex-col gap-1 text-sm">
-        {items.map((item) => (
-          <Link
-            key={item.href}
-            href={item.href}
-            className="rounded-md px-2 py-1.5 hover:bg-muted"
-          >
-            {item.label}
-          </Link>
-        ))}
-      </nav>
+      <SidebarNav items={items} homePaths={homePathsByRole[role]} />
     </aside>
   );
 }

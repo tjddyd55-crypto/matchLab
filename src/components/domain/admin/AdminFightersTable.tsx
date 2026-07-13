@@ -18,7 +18,10 @@ import {
 } from "@/components/ui/table";
 import {
   adminDesktopTableClass,
+  adminMobileCardClass,
+  adminMobileCardHeaderClass,
   adminMobileListClass,
+  adminMutedTextClass,
   getAdminFighterStatusLabel,
   resolveAdminFighterStatusMatchon,
 } from "@/lib/ui/admin-ui";
@@ -57,8 +60,8 @@ export function AdminFightersTable({
               <TableRow key={f.id}>
                 <TableCell className="font-mono text-xs">{f.fighterCode}</TableCell>
                 <TableCell className="font-medium break-words">{f.name}</TableCell>
-                <TableCell className="text-muted-foreground text-xs">{f.gender}</TableCell>
-                <TableCell className="text-muted-foreground break-words">
+                <TableCell className={`${adminMutedTextClass} text-xs`}>{f.gender}</TableCell>
+                <TableCell className={`${adminMutedTextClass} break-words`}>
                   {f.currentGymName ?? "—"}
                 </TableCell>
                 <TableCell className="text-xs tabular-nums">{f.recordSummary}</TableCell>
@@ -69,7 +72,7 @@ export function AdminFightersTable({
                     size="sm"
                   />
                 </TableCell>
-                <TableCell className="text-muted-foreground whitespace-nowrap text-xs">
+                <TableCell className={`${adminMutedTextClass} whitespace-nowrap text-xs`}>
                   {formatAdminDateTime(f.createdAt)}
                 </TableCell>
               </TableRow>
@@ -80,12 +83,12 @@ export function AdminFightersTable({
       <ul className={adminMobileListClass}>
         {rows.map((f) => (
           <li key={f.id}>
-            <Card className="gap-0 overflow-hidden py-0">
-              <CardHeader className="border-b bg-muted/15 pb-3">
+            <Card className={adminMobileCardClass}>
+              <CardHeader className={adminMobileCardHeaderClass}>
                 <div className="flex flex-wrap items-start justify-between gap-2">
                   <CardTitle className="text-base break-words">
                     {f.name}{" "}
-                    <span className="text-muted-foreground font-mono text-xs font-normal">
+                    <span className={`${adminMutedTextClass} font-mono text-xs font-normal`}>
                       ({f.fighterCode})
                     </span>
                   </CardTitle>
@@ -97,10 +100,10 @@ export function AdminFightersTable({
                 </div>
               </CardHeader>
               <CardContent className="pt-3 text-xs">
-                <p className="text-muted-foreground break-words">
+                <p className={`${adminMutedTextClass} break-words`}>
                   {f.gender} · {f.currentGymName ?? "무소속"} · {f.recordSummary}
                 </p>
-                <p className="text-muted-foreground mt-1">
+                <p className={`${adminMutedTextClass} mt-1`}>
                   {formatAdminDateTime(f.createdAt)}
                 </p>
               </CardContent>

@@ -1,10 +1,14 @@
 "use client";
 
-import { Button } from "@/components/ui/button";
 import {
   matchonScrollablePillItemClass,
   matchonScrollablePillsClass,
 } from "@/lib/ui/matchon-layout";
+import {
+  matchonFilterPillActiveClass,
+  matchonFilterPillBaseClass,
+  matchonFilterPillInactiveClass,
+} from "@/lib/ui/matchon-shell-ui";
 import { cn } from "@/lib/utils";
 
 export type MatchonTabItem<T extends string> = {
@@ -37,25 +41,29 @@ export function MatchonTabs<T extends string>({
       )}
       role="tablist"
     >
-      {items.map((item) => (
-        <Button
-          key={item.id}
-          type="button"
-          size="sm"
-          variant={activeId === item.id ? "default" : "outline"}
-          disabled={item.disabled}
-          role="tab"
-          aria-selected={activeId === item.id}
-          className={cn(
-            matchonScrollablePillItemClass,
-            "min-h-10 rounded-full px-4",
-            activeId === item.id && "shadow-sm",
-          )}
-          onClick={() => onChange(item.id)}
-        >
-          {item.label}
-        </Button>
-      ))}
+      {items.map((item) => {
+        const active = activeId === item.id;
+        return (
+          <button
+            key={item.id}
+            type="button"
+            disabled={item.disabled}
+            role="tab"
+            aria-selected={active}
+            className={cn(
+              matchonScrollablePillItemClass,
+              matchonFilterPillBaseClass,
+              active
+                ? matchonFilterPillActiveClass
+                : matchonFilterPillInactiveClass,
+              item.disabled && "cursor-not-allowed opacity-50",
+            )}
+            onClick={() => onChange(item.id)}
+          >
+            {item.label}
+          </button>
+        );
+      })}
     </div>
   );
 }

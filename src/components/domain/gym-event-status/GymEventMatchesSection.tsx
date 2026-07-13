@@ -8,6 +8,14 @@ import type {
 } from "@/lib/services/gym-event-status.service";
 import { MatchonEmptyState } from "@/components/shared/MatchonEmptyState";
 import {
+  matchonBlueCornerPanelClass,
+  matchonBlueCornerTextClass,
+  matchonCompactTableWrapClass,
+  matchonRedCornerPanelClass,
+  matchonRedCornerTextClass,
+  matchonVsCardClass,
+} from "@/lib/ui/matchon-shell-ui";
+import {
   matchonCardStackClass,
   matchonSectionTitleClass,
 } from "@/lib/ui/matchon-layout";
@@ -71,7 +79,12 @@ export function GymEventMatchesSection({
         />
       ) : (
         <>
-          <div className="hidden overflow-x-auto rounded-xl border lg:block">
+          <div
+            className={cn(
+              matchonCompactTableWrapClass,
+              "hidden lg:block",
+            )}
+          >
             <Table className="min-w-[40rem] lg:min-w-[56rem]">
               <TableHeader>
                 <TableRow>
@@ -115,25 +128,45 @@ export function GymEventMatchesSection({
 
           <ul className={cn("flex flex-col lg:hidden", matchonCardStackClass)}>
             {matches.map((m) => (
-              <li
-                key={`${m.matchId}-${m.fighterId}`}
-                className="rounded-xl border bg-card p-4"
-              >
-                <p className="font-medium break-words">{m.fighterName}</p>
-                <p className="text-muted-foreground mt-1 text-xs break-words">
-                  vs {m.opponentName ?? "미정"}
-                  {m.opponentGymName ? ` · ${m.opponentGymName}` : ""}
-                </p>
-                <p className="text-muted-foreground mt-2 text-xs break-words">
-                  {m.divisionLabel}
-                </p>
-                <p className="text-muted-foreground mt-1 text-xs">
-                  {m.matchNumber != null ? `경기 #${m.matchNumber}` : "순서 미정"}
-                  {m.matchStatusLabel ? ` · ${m.matchStatusLabel}` : ""}
-                </p>
-                {m.resultSummary ? (
-                  <p className="mt-2 text-sm font-medium">{m.resultSummary}</p>
-                ) : null}
+              <li key={`${m.matchId}-${m.fighterId}`}>
+                <div className={cn(matchonVsCardClass, "overflow-hidden p-0")}>
+                  <div className="space-y-1 border-b border-matchon-border bg-matchon-primary-light/20 px-4 py-3">
+                    <p className="text-xs text-matchon-text-secondary">
+                      {m.divisionLabel}
+                    </p>
+                    <p className="text-xs text-matchon-text-secondary">
+                      {m.matchNumber != null ? `경기 #${m.matchNumber}` : "순서 미정"}
+                      {m.matchStatusLabel ? ` · ${m.matchStatusLabel}` : ""}
+                    </p>
+                  </div>
+                  <div className="grid items-stretch gap-2 p-4 sm:grid-cols-[1fr_auto_1fr]">
+                    <div className={matchonRedCornerPanelClass}>
+                      <p className="text-xs font-semibold text-red-700/80">홍코너</p>
+                      <p className={cn(matchonRedCornerTextClass, "mt-1 break-words")}>
+                        {m.fighterName}
+                      </p>
+                    </div>
+                    <span className="self-center px-1 text-sm font-black text-matchon-text-secondary">
+                      VS
+                    </span>
+                    <div className={matchonBlueCornerPanelClass}>
+                      <p className="text-xs font-semibold text-blue-700/80">청코너</p>
+                      <p className={cn(matchonBlueCornerTextClass, "mt-1 break-words")}>
+                        {m.opponentName ?? "미정"}
+                      </p>
+                      {m.opponentGymName ? (
+                        <p className="mt-1 text-xs text-blue-700/70">
+                          {m.opponentGymName}
+                        </p>
+                      ) : null}
+                    </div>
+                  </div>
+                  {m.resultSummary ? (
+                    <div className="border-t border-matchon-border px-4 py-3">
+                      <p className="text-sm font-semibold">{m.resultSummary}</p>
+                    </div>
+                  ) : null}
+                </div>
               </li>
             ))}
           </ul>

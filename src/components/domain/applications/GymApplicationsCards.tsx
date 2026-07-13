@@ -13,6 +13,9 @@ import {
   DialogTrigger,
 } from "@/components/ui/dialog";
 import { formatPublicDate, formatPublicDateTime } from "@/lib/date-display";
+import { matchonCardStackClass } from "@/lib/ui/matchon-layout";
+import { matchonMobileCardListClass } from "@/lib/ui/matchon-shell-ui";
+import { cn } from "@/lib/utils";
 
 export function GymApplicationsCards({
   items,
@@ -20,7 +23,7 @@ export function GymApplicationsCards({
   items: GymApplicationListItemVM[];
 }) {
   return (
-    <div className="flex flex-col gap-3 md:hidden">
+    <div className={cn(matchonMobileCardListClass, matchonCardStackClass)}>
       {items.map((row) => (
         <Card key={row.id}>
           <CardHeader className="pb-2">
@@ -52,11 +55,13 @@ export function GymApplicationsCards({
             </div>
             {row.paymentInstruction ? (
               <Dialog>
-                <DialogTrigger>
-                  <Button type="button" variant="outline" size="field" className="w-full">
-                    입금 안내 다시 보기
-                  </Button>
-                </DialogTrigger>
+                <DialogTrigger
+                  render={
+                    <Button type="button" variant="outline" size="field" className="w-full">
+                      입금 안내 다시 보기
+                    </Button>
+                  }
+                />
                 <DialogContent className="max-w-lg">
                   <DialogHeader>
                     <DialogTitle>{row.eventTitle}</DialogTitle>

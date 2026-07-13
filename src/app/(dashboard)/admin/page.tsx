@@ -6,10 +6,10 @@ import { AdminRecentResults } from "@/components/domain/admin/AdminRecentResults
 import { AdminPageHeader } from "@/components/domain/admin/AdminPageHeader";
 import { AdminStatsCards } from "@/components/domain/admin/AdminStatsCards";
 import { buttonVariants } from "@/components/ui/button";
-import { Card, CardContent } from "@/components/ui/card";
 import { requireActor } from "@/lib/auth/actor";
 import { adminService } from "@/lib/services/admin.service";
 import {
+  adminContentCardClass,
   adminPageContainerClass,
   adminPageStackClass,
   matchonSectionTitleClass,
@@ -41,11 +41,9 @@ export default async function AdminHomePage() {
               전체 대회 →
             </Link>
           </div>
-          <Card>
-            <CardContent className="pt-4">
-              <AdminRecentEvents rows={data.recentEvents} />
-            </CardContent>
-          </Card>
+          <div className={adminContentCardClass}>
+            <AdminRecentEvents rows={data.recentEvents} />
+          </div>
         </section>
 
         <section className="space-y-3">
@@ -55,11 +53,9 @@ export default async function AdminHomePage() {
               전체 신청 →
             </Link>
           </div>
-          <Card>
-            <CardContent className="pt-4">
-              <AdminRecentApplications rows={data.recentApplications} />
-            </CardContent>
-          </Card>
+          <div className={adminContentCardClass}>
+            <AdminRecentApplications rows={data.recentApplications} />
+          </div>
         </section>
 
         <section className="space-y-3">
@@ -69,11 +65,9 @@ export default async function AdminHomePage() {
               전체 결과 →
             </Link>
           </div>
-          <Card>
-            <CardContent className="pt-4">
-              <AdminRecentResults rows={data.recentMatchResults} />
-            </CardContent>
-          </Card>
+          <div className={adminContentCardClass}>
+            <AdminRecentResults rows={data.recentMatchResults} />
+          </div>
         </section>
 
         <section className="space-y-3">
@@ -83,11 +77,9 @@ export default async function AdminHomePage() {
               전체 로그 →
             </Link>
           </div>
-          <Card>
-            <CardContent className="pt-4">
-              <AdminRecentAuditLogs rows={data.recentAuditLogs} />
-            </CardContent>
-          </Card>
+          <div className={adminContentCardClass}>
+            <AdminRecentAuditLogs rows={data.recentAuditLogs} />
+          </div>
         </section>
       </div>
     </div>

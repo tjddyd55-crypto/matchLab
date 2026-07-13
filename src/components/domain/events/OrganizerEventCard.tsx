@@ -28,8 +28,8 @@ export function OrganizerEventCard({
   showOrganizer?: boolean;
 }) {
   return (
-    <Card className="h-full gap-0 overflow-hidden py-0">
-      <CardHeader className="border-b bg-muted/15 pb-3">
+    <Card className="h-full gap-0 overflow-hidden rounded-xl border-matchon-border py-0 shadow-sm">
+      <CardHeader className="border-b border-matchon-border bg-matchon-primary-light/20 pb-3">
         <div className="flex flex-wrap items-start justify-between gap-2">
           <div className="min-w-0 flex-1 space-y-1">
             <CardTitle className="line-clamp-2 text-base leading-snug">
@@ -77,7 +77,7 @@ export function OrganizerEventCard({
         </dl>
       </CardContent>
 
-      <CardFooter className="border-t bg-muted/10 pt-4">
+      <CardFooter className="border-t border-matchon-border bg-matchon-surface/50 pt-4">
         <Link
           href={`/organizer/events/${row.id}`}
           className={cn(

@@ -22,7 +22,7 @@ const LINKS = [
 export function AdminNavStrip() {
   return (
     <nav
-      className="border-b bg-muted/30 px-4 py-2 md:px-6"
+      className="border-b border-matchon-border bg-white px-4 py-2 md:px-6"
       aria-label="관리자 하위 메뉴"
     >
       <div className={cn("mx-auto max-w-7xl", matchonScrollablePillsClass)}>

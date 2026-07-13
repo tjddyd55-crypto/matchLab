@@ -24,7 +24,9 @@ import {
   listTableHeaderCellStartClass,
   listTableHeaderRowClass,
 } from "@/lib/ui/list-table-styles";
+import { matchonCompactTableWrapClass } from "@/lib/ui/matchon-shell-ui";
 import { APPLIED_MATCH_CATEGORY_LABEL } from "@/lib/ui-labels/match-category";
+import { cn } from "@/lib/utils";
 
 export function OrganizerFieldStatusTable({
   rows,
@@ -39,7 +41,7 @@ export function OrganizerFieldStatusTable({
 
   return (
     <>
-      <div className="hidden w-full min-w-0 rounded-xl border md:block">
+      <div className={cn(matchonCompactTableWrapClass, "hidden w-full min-w-0 md:block")}>
         <table className="w-full table-fixed text-left text-sm">
           <colgroup>
             <col className="w-[9%]" />
@@ -133,7 +135,7 @@ export function OrganizerFieldStatusTable({
 
       <div className="flex min-w-0 flex-col gap-3 md:hidden">
         {rows.map((row) => (
-          <Card key={row.applicationId} variant="interactive" className="py-4">
+          <Card key={row.applicationId} className="rounded-xl border-matchon-border bg-white py-4 shadow-sm">
             <CardHeader className="space-y-2 px-4 py-0">
               <p className="text-muted-foreground truncate text-xs font-medium">
                 {row.gymName}

@@ -20,6 +20,13 @@ import {
   resolveFighterResultSummaryMatchonStatus,
   resolveFighterWeighInLabelMatchonStatus,
 } from "@/lib/ui/fighter-dashboard-ui";
+import {
+  matchonBlueCornerPanelClass,
+  matchonBlueCornerTextClass,
+  matchonRedCornerPanelClass,
+  matchonRedCornerTextClass,
+  matchonVsCardClass,
+} from "@/lib/ui/matchon-shell-ui";
 import { cn } from "@/lib/utils";
 
 export function FighterApplicationCard({
@@ -71,62 +78,81 @@ export function FighterApplicationCard({
         </div>
 
         {row.bracketGenerated ? (
-          <dl className="grid gap-2 rounded-lg border bg-muted/15 p-3 text-xs">
-            <div className="flex flex-wrap items-center justify-between gap-2">
-              <dt className="text-muted-foreground font-medium">대진</dt>
-              <dd>
-                <MatchonStatusBadge
-                  status={resolveFighterBracketAssignmentMatchonStatus(
-                    row.bracketAssigned,
-                  )}
-                  label={getFighterBracketAssignmentLabel(row.bracketAssigned)}
-                  size="sm"
-                />
-              </dd>
-            </div>
+          <div className="flex flex-col gap-3">
             {row.opponentName ? (
-              <div className="flex justify-between gap-2">
-                <dt className="text-muted-foreground">상대</dt>
-                <dd className="text-right font-medium">
-                  {row.opponentName}
-                  {row.opponentGymName ? ` (${row.opponentGymName})` : ""}
-                </dd>
+              <div
+                className={cn(
+                  "grid gap-2 text-center sm:grid-cols-[1fr_auto_1fr] sm:items-center",
+                  matchonVsCardClass,
+                )}
+              >
+                <div className={cn("min-w-0", matchonRedCornerPanelClass)}>
+                  <p className="text-[11px] font-medium opacity-80">나</p>
+                  <p className={cn("text-sm", matchonRedCornerTextClass)}>내 경기</p>
+                </div>
+                <span className="text-muted-foreground text-xs font-bold tracking-widest">
+                  VS
+                </span>
+                <div className={cn("min-w-0", matchonBlueCornerPanelClass)}>
+                  <p className="text-[11px] font-medium opacity-80">상대</p>
+                  <p className={cn("truncate text-sm", matchonBlueCornerTextClass)}>
+                    {row.opponentName}
+                  </p>
+                  {row.opponentGymName ? (
+                    <p className="truncate text-xs opacity-80">{row.opponentGymName}</p>
+                  ) : null}
+                </div>
               </div>
             ) : null}
-            {row.matchNumber != null || row.globalMatchOrder != null ? (
-              <div className="flex justify-between gap-2">
-                <dt className="text-muted-foreground">경기 순서</dt>
-                <dd className="tabular-nums">
-                  {row.matchNumber != null ? `#${row.matchNumber}` : ""}
-                  {row.globalMatchOrder != null
-                    ? ` · 전역 ${row.globalMatchOrder}`
-                    : ""}
-                </dd>
-              </div>
-            ) : null}
-            {row.matchStatusLabel ? (
-              <div className="flex justify-between gap-2">
-                <dt className="text-muted-foreground">경기 상태</dt>
-                <dd>{row.matchStatusLabel}</dd>
-              </div>
-            ) : null}
-            {row.resultSummary ? (
+
+            <dl className={cn("grid gap-2 text-xs", matchonVsCardClass)}>
               <div className="flex flex-wrap items-center justify-between gap-2">
-                <dt className="text-muted-foreground">결과</dt>
+                <dt className="text-muted-foreground font-medium">대진</dt>
                 <dd>
-                  {resultStatus ? (
-                    <MatchonStatusBadge
-                      status={resultStatus}
-                      label={row.resultSummary}
-                      size="sm"
-                    />
-                  ) : (
-                    row.resultSummary
-                  )}
+                  <MatchonStatusBadge
+                    status={resolveFighterBracketAssignmentMatchonStatus(
+                      row.bracketAssigned,
+                    )}
+                    label={getFighterBracketAssignmentLabel(row.bracketAssigned)}
+                    size="sm"
+                  />
                 </dd>
               </div>
-            ) : null}
-          </dl>
+              {row.matchNumber != null || row.globalMatchOrder != null ? (
+                <div className="flex justify-between gap-2">
+                  <dt className="text-muted-foreground">경기 순서</dt>
+                  <dd className="tabular-nums">
+                    {row.matchNumber != null ? `#${row.matchNumber}` : ""}
+                    {row.globalMatchOrder != null
+                      ? ` · 전역 ${row.globalMatchOrder}`
+                      : ""}
+                  </dd>
+                </div>
+              ) : null}
+              {row.matchStatusLabel ? (
+                <div className="flex justify-between gap-2">
+                  <dt className="text-muted-foreground">경기 상태</dt>
+                  <dd>{row.matchStatusLabel}</dd>
+                </div>
+              ) : null}
+              {row.resultSummary ? (
+                <div className="flex flex-wrap items-center justify-between gap-2">
+                  <dt className="text-muted-foreground">결과</dt>
+                  <dd>
+                    {resultStatus ? (
+                      <MatchonStatusBadge
+                        status={resultStatus}
+                        label={row.resultSummary}
+                        size="sm"
+                      />
+                    ) : (
+                      row.resultSummary
+                    )}
+                  </dd>
+                </div>
+              ) : null}
+            </dl>
+          </div>
         ) : (
           <p className="text-muted-foreground text-xs">대진 미생성</p>
         )}

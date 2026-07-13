@@ -10,6 +10,7 @@ import { EventAddressInput } from "@/components/domain/events/EventAddressInput"
 import { EventCreateForm } from "@/components/domain/events/EventCreateForm";
 import { EventPosterUpload } from "@/components/domain/events/EventPosterUpload";
 import { Button } from "@/components/ui/button";
+import { ORGANIZER_FIELD_INPUT_CLASS } from "@/lib/organizer-dashboard-layout";
 import { cn } from "@/lib/utils";
 import { zodFlattenToFieldErrors } from "@/lib/validators/event-form-errors";
 
@@ -94,7 +95,7 @@ export function EventForm({
             maxLength={200}
             defaultValue={initial.title}
             className={cn(
-              "border-input bg-background h-9 w-full rounded-md border px-3 text-sm shadow-sm",
+              ORGANIZER_FIELD_INPUT_CLASS,
             )}
             aria-invalid={Boolean(fieldErrors.title?.[0])}
           />
@@ -108,7 +109,7 @@ export function EventForm({
             maxLength={8000}
             defaultValue={initial.description ?? ""}
             className={cn(
-              "border-input bg-background min-h-[72px] w-full rounded-md border px-3 py-2 text-sm shadow-sm",
+              cn(ORGANIZER_FIELD_INPUT_CLASS, "min-h-[72px] py-2"),
             )}
           />
         </label>
@@ -141,7 +142,7 @@ export function EventForm({
             required
             defaultValue={toDatetimeLocalValue(initial.eventDate)}
             className={cn(
-              "border-input bg-background h-9 w-full rounded-md border px-3 text-sm shadow-sm",
+              ORGANIZER_FIELD_INPUT_CLASS,
             )}
             aria-invalid={Boolean(fieldErrors.eventDate?.[0])}
           />
@@ -155,7 +156,7 @@ export function EventForm({
             required
             defaultValue={toDatetimeLocalValue(initial.registrationStartDate)}
             className={cn(
-              "border-input bg-background h-9 w-full rounded-md border px-3 text-sm shadow-sm",
+              ORGANIZER_FIELD_INPUT_CLASS,
             )}
             aria-invalid={Boolean(fieldErrors.registrationStartDate?.[0])}
           />
@@ -169,7 +170,7 @@ export function EventForm({
             required
             defaultValue={toDatetimeLocalValue(initial.registrationEndDate)}
             className={cn(
-              "border-input bg-background h-9 w-full rounded-md border px-3 text-sm shadow-sm",
+              ORGANIZER_FIELD_INPUT_CLASS,
             )}
             aria-invalid={Boolean(fieldErrors.registrationEndDate?.[0])}
           />
@@ -203,7 +204,7 @@ export function EventForm({
                   setPosterUrlField(e.target.value.trim() || null)
                 }
                 className={cn(
-                  "border-input bg-background h-9 w-full rounded-md border px-3 text-sm shadow-sm",
+                  ORGANIZER_FIELD_INPUT_CLASS,
                 )}
               />
             </label>

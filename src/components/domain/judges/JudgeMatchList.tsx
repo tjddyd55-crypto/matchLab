@@ -1,9 +1,17 @@
 "use client";
 
 import Link from "next/link";
+import { MatchonEmptyState } from "@/components/shared/MatchonEmptyState";
+import { MatchonStatusBadge } from "@/components/shared/MatchonStatusBadge";
 import { buttonVariants } from "@/components/ui/button";
+import { Card, CardContent } from "@/components/ui/card";
 import { cn } from "@/lib/utils";
 import type { JudgeMatchListItemVM } from "@/lib/services/judge-scorecard.service";
+import type { MatchonStatus } from "@/lib/ui/matchon-status";
+import {
+  matchonBlueCornerTextClass,
+  matchonRedCornerTextClass,
+} from "@/lib/ui/judge-ui";
 
 const STATUS_LABEL: Record<string, string> = {
   none: "미작성",
@@ -11,6 +19,19 @@ const STATUS_LABEL: Record<string, string> = {
   submitted: "제출 완료",
   locked: "잠김",
 };
+
+function resolveScorecardMatchonStatus(status: string): MatchonStatus {
+  switch (status) {
+    case "locked":
+      return "completed";
+    case "submitted":
+      return "signature_completed";
+    case "draft":
+      return "in_progress";
+    default:
+      return "waiting";
+  }
+}
 
 export function JudgeMatchList({
   matches,
@@ -21,31 +42,30 @@ export function JudgeMatchList({
 }) {
   if (matches.length === 0) {
     return (
-      <p className="text-muted-foreground rounded-lg border border-dashed px-4 py-8 text-center text-sm">
-        배정된 경기가 없습니다. 주최자에게 심판 배정을 요청해 주세요.
-      </p>
+      <MatchonEmptyState
+        title="배정된 경기가 없습니다."
+        description="주최자에게 심판 배정을 요청해 주세요."
+      />
     );
   }
 
   return (
     <ul className="flex flex-col gap-3">
       {matches.map((m) => (
-        <li
-          key={m.matchId}
-          className="border-border bg-card rounded-lg border p-4 shadow-sm"
-        >
-          <div className="flex flex-wrap items-start justify-between gap-3">
-            <div className="space-y-1">
+        <li key={m.matchId}>
+          <Card variant="default" className="py-4">
+            <CardContent className="flex flex-wrap items-start justify-between gap-3 px-4">
+            <div className="space-y-2">
               <p className="text-muted-foreground text-xs">
                 {m.eventTitle}
                 {m.matchNumber != null ? ` · ${m.matchNumber}경기` : ""}
               </p>
               <p className="font-medium">
-                <span className="text-red-600 dark:text-red-400">
+                <span className={matchonRedCornerTextClass}>
                   {m.fighterRedName}
                 </span>
                 <span className="text-muted-foreground mx-2">vs</span>
-                <span className="text-blue-600 dark:text-blue-400">
+                <span className={matchonBlueCornerTextClass}>
                   {m.fighterBlueName}
                 </span>
               </p>
@@ -54,22 +74,28 @@ export function JudgeMatchList({
                   .filter(Boolean)
                   .join(" · ")}
               </p>
-              <p className="text-muted-foreground text-xs">
-                채점: {STATUS_LABEL[m.scorecardStatus] ?? m.scorecardStatus}
-              </p>
+              <div className="flex flex-wrap items-center gap-2">
+                <span className="text-muted-foreground text-xs">채점</span>
+                <MatchonStatusBadge
+                  status={resolveScorecardMatchonStatus(m.scorecardStatus)}
+                  label={STATUS_LABEL[m.scorecardStatus] ?? m.scorecardStatus}
+                  size="sm"
+                />
+              </div>
             </div>
             <Link
               href={`/judge/matches/${m.matchId}/score`}
               className={cn(
                 buttonVariants({
-                  size: "sm",
+                  size: "field",
                   variant: m.isLocked ? "outline" : "default",
                 }),
               )}
             >
               {m.isLocked ? "보기" : "채점하기"}
             </Link>
-          </div>
+            </CardContent>
+          </Card>
         </li>
       ))}
       {judgeNameHint ? (

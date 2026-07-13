@@ -22,6 +22,7 @@ import {
   tableCellCenterClass,
   tableCellStartClass,
 } from "@/lib/ui/match-grid-layout";
+import { organizerOperationTableWrapClass } from "@/lib/ui/organizer-operation-ui";
 
 export function OrganizerOperationTableDesktop({
   rows,
@@ -43,7 +44,7 @@ export function OrganizerOperationTableDesktop({
   }
 
   return (
-    <div className="hidden overflow-x-auto rounded-xl border md:block">
+    <div className={organizerOperationTableWrapClass}>
       <table className="w-full min-w-[1200px] table-fixed text-sm">
         <colgroup>
           <col className="w-[5%]" />

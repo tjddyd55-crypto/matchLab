@@ -16,13 +16,13 @@ export default async function ApplicationSignPage({
 
   if (!token) {
     return (
-      <div className="mx-auto max-w-lg px-4 py-12">
+      <PublicApplicationPageShell title="대회 신청서 서명">
         <PublicApplicationEmptyState
           title="링크가 올바르지 않습니다"
           description="서명 링크 전체를 사용해 주세요."
           tone="error"
         />
-      </div>
+      </PublicApplicationPageShell>
     );
   }
 
@@ -33,7 +33,7 @@ export default async function ApplicationSignPage({
   } catch (e: unknown) {
     if (e instanceof AppError) {
       return (
-        <div className="mx-auto max-w-lg px-4 py-12">
+        <PublicApplicationPageShell title="대회 신청서 서명">
           <PublicApplicationEmptyState
             title="서명 페이지를 열 수 없습니다"
             description={
@@ -43,7 +43,7 @@ export default async function ApplicationSignPage({
             }
             tone="error"
           />
-        </div>
+        </PublicApplicationPageShell>
       );
     }
     throw e;

@@ -5,12 +5,16 @@ import {
   PUBLIC_EVENTS_FILTERS,
   type PublicEventsFilterKey,
 } from "@/components/domain/events/public/usePublicEventsFilter";
-import { Card, CardContent } from "@/components/ui/card";
-import { eventListFieldInputClass, eventListFieldSelectClass } from "@/lib/ui/event-list-ui";
 import {
-  matchonScrollablePillItemClass,
-  matchonScrollablePillsClass,
-} from "@/lib/ui/matchon-layout";
+  publicEventFilterBarClass,
+  publicEventFilterPillActiveClass,
+  publicEventFilterPillBaseClass,
+  publicEventFilterPillInactiveClass,
+} from "@/components/domain/events/public/public-event-ui";
+import {
+  matchonFieldInputClass,
+  matchonFieldSelectClass,
+} from "@/lib/ui/matchon-shell-ui";
 import { cn } from "@/lib/utils";
 
 export function PublicEventsFiltersMobile({
@@ -33,9 +37,9 @@ export function PublicEventsFiltersMobile({
   const [expanded, setExpanded] = useState(false);
 
   return (
-    <Card variant="muted" className="gap-0 py-0 md:hidden">
-      <CardContent className="space-y-3 p-3">
-        <div className={cn(matchonScrollablePillsClass, "-mx-1 px-1")}>
+    <div className={cn(publicEventFilterBarClass, "md:hidden")}>
+      <div className="space-y-3">
+        <div className="flex gap-2 overflow-x-auto pb-1 [-ms-overflow-style:none] [scrollbar-width:none] [&::-webkit-scrollbar]:hidden">
           <div className="flex w-max min-w-full gap-2">
             {PUBLIC_EVENTS_FILTERS.map((f) => (
               <button
@@ -43,11 +47,11 @@ export function PublicEventsFiltersMobile({
                 type="button"
                 onClick={() => onFilterChange(f.key)}
                 className={cn(
-                  matchonScrollablePillItemClass,
-                  "min-h-10 rounded-full border px-3 py-1.5 text-xs font-medium whitespace-nowrap transition-colors",
+                  publicEventFilterPillBaseClass,
+                  "text-xs whitespace-nowrap",
                   filter === f.key
-                    ? "border-primary bg-primary text-primary-foreground"
-                    : "border-border bg-background",
+                    ? publicEventFilterPillActiveClass
+                    : publicEventFilterPillInactiveClass,
                 )}
               >
                 {f.label}
@@ -57,7 +61,7 @@ export function PublicEventsFiltersMobile({
         </div>
         <button
           type="button"
-          className="text-muted-foreground text-xs font-medium underline-offset-2 hover:underline"
+          className="text-xs font-semibold text-matchon-primary underline-offset-2 hover:underline"
           onClick={() => setExpanded((v) => !v)}
         >
           {expanded ? "상세 필터 접기" : "종목·지역 필터"}
@@ -65,11 +69,11 @@ export function PublicEventsFiltersMobile({
         {expanded ? (
           <div className="grid gap-3">
             <label className="space-y-1.5 text-sm">
-              <span className="font-medium">종목</span>
+              <span className="font-semibold text-matchon-text-primary">종목</span>
               <select
                 value={sport}
                 onChange={(e) => onSportChange(e.target.value)}
-                className={cn(eventListFieldSelectClass, "h-10")}
+                className={matchonFieldSelectClass}
               >
                 <option value="all">전체</option>
                 {sportOptions.map((s) => (
@@ -80,17 +84,17 @@ export function PublicEventsFiltersMobile({
               </select>
             </label>
             <label className="space-y-1.5 text-sm">
-              <span className="font-medium">지역</span>
+              <span className="font-semibold text-matchon-text-primary">지역</span>
               <input
                 value={regionQuery}
                 onChange={(e) => onRegionQueryChange(e.target.value)}
                 placeholder="장소 키워드"
-                className={cn(eventListFieldInputClass, "h-10")}
+                className={matchonFieldInputClass}
               />
             </label>
           </div>
         ) : null}
-      </CardContent>
-    </Card>
+      </div>
+    </div>
   );
 }

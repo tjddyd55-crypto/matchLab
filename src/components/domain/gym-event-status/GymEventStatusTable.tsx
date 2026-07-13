@@ -7,6 +7,8 @@ import { WeighInStatusBadge } from "@/components/domain/field-status/WeighInStat
 import { PaymentStatusBadge } from "@/components/shared/PaymentStatusBadge";
 import { StatusBadge } from "@/components/shared/StatusBadge";
 import type { GymEventApplicationStatusRowDTO } from "@/lib/services/gym-event-status.service";
+import { matchonCompactTableWrapClass } from "@/lib/ui/matchon-shell-ui";
+import { cn } from "@/lib/utils";
 import {
   Table,
   TableBody,
@@ -26,7 +28,12 @@ export function GymEventStatusTable({
   if (rows.length === 0) return null;
 
   return (
-    <div className="hidden overflow-x-auto rounded-xl border lg:block">
+    <div
+      className={cn(
+        matchonCompactTableWrapClass,
+        "hidden lg:block",
+      )}
+    >
       <Table className="min-w-[72rem]">
         <TableHeader>
           <TableRow>

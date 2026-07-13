@@ -6,48 +6,7 @@ import {
   isPaidForOrganizerDisplay,
 } from "@/lib/application-display-status";
 import type { OrganizerApplicationSummaryFilter } from "@/components/domain/applications/organizer-application-filters";
-import { Card } from "@/components/ui/card";
-import { cn } from "@/lib/utils";
-
-function StatCard({
-  label,
-  value,
-  hint,
-  filter,
-  activeFilter,
-  onSelect,
-}: {
-  label: string;
-  value: string | number;
-  hint?: string;
-  filter: OrganizerApplicationSummaryFilter;
-  activeFilter: OrganizerApplicationSummaryFilter;
-  onSelect: (filter: OrganizerApplicationSummaryFilter) => void;
-}) {
-  const active = activeFilter === filter;
-  return (
-    <button
-      type="button"
-      aria-pressed={active}
-      onClick={() => onSelect(filter)}
-      className="w-full text-left"
-    >
-      <Card
-        variant={active ? "selected" : "interactive"}
-        className={cn(
-          "px-4 py-3 transition-colors",
-          "focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring",
-        )}
-      >
-        <p className="text-muted-foreground text-xs">{label}</p>
-        <p className="mt-1 text-2xl font-semibold tabular-nums">{value}</p>
-        {hint ? (
-          <p className="text-muted-foreground mt-1 text-[11px]">{hint}</p>
-        ) : null}
-      </Card>
-    </button>
-  );
-}
+import { MatchonStatCardButton } from "@/components/shared/MatchonStatCardButton";
 
 export function OrganizerApplicationsSummaryCards({
   rows,
@@ -95,57 +54,50 @@ export function OrganizerApplicationsSummaryCards({
 
   return (
     <section className="grid gap-3 sm:grid-cols-2 lg:grid-cols-4 xl:grid-cols-8">
-      <StatCard
+      <MatchonStatCardButton
         label="전체 신청"
         value={fighterCount}
         hint={`체육관 ${gymCount}곳`}
-        filter="all"
-        activeFilter={activeFilter}
-        onSelect={onFilterChange}
+        active={activeFilter === "all"}
+        onClick={() => onFilterChange("all")}
       />
-      <StatCard
+      <MatchonStatCardButton
         label="승인"
         value={approvedCount}
-        filter="approved"
-        activeFilter={activeFilter}
-        onSelect={onFilterChange}
+        active={activeFilter === "approved"}
+        onClick={() => onFilterChange("approved")}
       />
-      <StatCard
+      <MatchonStatCardButton
         label="미승인"
         value={pendingCount}
-        filter="pending"
-        activeFilter={activeFilter}
-        onSelect={onFilterChange}
+        active={activeFilter === "pending"}
+        onClick={() => onFilterChange("pending")}
       />
-      <StatCard
+      <MatchonStatCardButton
         label="입금완료"
         value={paidCount}
-        filter="paid"
-        activeFilter={activeFilter}
-        onSelect={onFilterChange}
+        active={activeFilter === "paid"}
+        onClick={() => onFilterChange("paid")}
       />
-      <StatCard
+      <MatchonStatCardButton
         label="미입금"
         value={unpaidCount}
-        filter="unpaid"
-        activeFilter={activeFilter}
-        onSelect={onFilterChange}
+        active={activeFilter === "unpaid"}
+        onClick={() => onFilterChange("unpaid")}
       />
-      <StatCard
+      <MatchonStatCardButton
         label="체육관취소"
         value={gymCancelledCount}
-        filter="gym_cancelled"
-        activeFilter={activeFilter}
-        onSelect={onFilterChange}
+        active={activeFilter === "gym_cancelled"}
+        onClick={() => onFilterChange("gym_cancelled")}
       />
-      <StatCard
+      <MatchonStatCardButton
         label="주최측취소"
         value={organizerCancelledCount}
-        filter="organizer_cancelled"
-        activeFilter={activeFilter}
-        onSelect={onFilterChange}
+        active={activeFilter === "organizer_cancelled"}
+        onClick={() => onFilterChange("organizer_cancelled")}
       />
-      <StatCard
+      <MatchonStatCardButton
         label="입금율"
         value={
           fighterCount > 0
@@ -153,9 +105,8 @@ export function OrganizerApplicationsSummaryCards({
             : "—"
         }
         hint={`${paidCount}/${fighterCount}`}
-        filter="paid"
-        activeFilter={activeFilter}
-        onSelect={onFilterChange}
+        active={activeFilter === "paid"}
+        onClick={() => onFilterChange("paid")}
       />
     </section>
   );

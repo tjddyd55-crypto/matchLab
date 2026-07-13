@@ -7,7 +7,7 @@ import {
   CourtJudgeLinksSummaryCards,
   type CourtFilter,
 } from "@/components/domain/judges/CourtJudgeLinksSummaryCards";
-import { FeedbackMessage } from "@/components/shared/FeedbackMessage";
+import { MatchonEmptyState } from "@/components/shared/MatchonEmptyState";
 import { MatchonTabs } from "@/components/shared/MatchonTabs";
 import type { EventCourtVM } from "@/lib/services/event-court.service";
 import { formatCourtTabLabel } from "@/lib/court-tab-label";
@@ -49,18 +49,18 @@ export function CourtJudgeLinksPanel({
 
   if (courts.length === 0) {
     return (
-      <section className="rounded-xl border border-dashed p-6 text-sm">
-        <FeedbackMessage tone="info">
-          활성 경기장이 없습니다.{" "}
+      <MatchonEmptyState
+        title="활성 경기장이 없습니다."
+        description="경기장 관리에서 경기장을 먼저 등록하세요."
+        action={
           <Link
             href={`/organizer/events/${eventId}/courts`}
-            className="text-primary font-medium underline"
+            className="text-matchon-primary text-sm font-medium underline"
           >
-            경기장 관리
+            경기장 관리로 이동
           </Link>
-          에서 경기장을 먼저 등록하세요.
-        </FeedbackMessage>
-      </section>
+        }
+      />
     );
   }
 
@@ -91,9 +91,7 @@ export function CourtJudgeLinksPanel({
         </div>
 
         {filteredCourts.length === 0 ? (
-          <FeedbackMessage tone="info">
-            선택한 필터에 해당하는 경기장이 없습니다.
-          </FeedbackMessage>
+          <MatchonEmptyState title="선택한 필터에 해당하는 경기장이 없습니다." />
         ) : (
           <div className="grid gap-4 md:grid-cols-2 xl:grid-cols-3">
             {filteredCourts.map((court, index) => (

@@ -14,7 +14,7 @@ export function ConsentSignatureSection({
   return (
     <section className="space-y-3">
       <h3 className="font-medium text-sm">법정대리인 서명</h3>
-      <div className="overflow-hidden rounded-lg border border-border/80 bg-background">
+      <div className="overflow-hidden rounded-lg border border-matchon-border bg-white">
         <SignaturePad ref={padRef} />
       </div>
       <Button

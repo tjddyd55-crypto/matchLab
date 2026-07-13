@@ -2,7 +2,7 @@ import { requireActor } from "@/lib/auth/actor";
 import { eventService } from "@/lib/services/event.service";
 import { GymEventCard } from "@/components/domain/events/GymEventCard";
 import { GymProfileMissingBanner } from "@/components/domain/gym/GymProfileMissingBanner";
-import { EmptyState } from "@/components/shared/EmptyState";
+import { MatchonEmptyState } from "@/components/shared/MatchonEmptyState";
 import {
   matchonGridGapClass,
   matchonPageContainerClass,
@@ -31,7 +31,7 @@ export default async function GymEventsPage() {
         </div>
 
         {events.length === 0 ? (
-          <EmptyState
+          <MatchonEmptyState
             title="표시할 대회가 없습니다"
             description="주최자가 대회를 공개(OPEN 등)하면 여기에 표시됩니다."
           />

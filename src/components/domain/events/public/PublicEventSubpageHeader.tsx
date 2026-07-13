@@ -1,6 +1,8 @@
 import Link from "next/link";
-import { buttonVariants } from "@/components/ui/button";
-import { cn } from "@/lib/utils";
+import {
+  publicEventPageEyebrowClass,
+  publicEventPageTitleClass,
+} from "@/components/domain/events/public/public-event-ui";
 
 export function PublicEventSubpageHeader({
   slug,
@@ -17,16 +19,15 @@ export function PublicEventSubpageHeader({
     <header className="mb-2 space-y-2">
       <Link
         href={`/events/${slug}`}
-        className={cn(buttonVariants({ variant: "ghost", size: "sm" }), "-ml-2")}
+        className="inline-flex text-sm font-bold text-matchon-primary hover:underline"
       >
         ← 행사 안내
       </Link>
-      <h1 className="font-heading text-2xl font-semibold tracking-tight md:text-3xl">
-        {title}
-      </h1>
-      <p className="text-muted-foreground text-sm">{eventTitle}</p>
+      <p className={publicEventPageEyebrowClass}>Event</p>
+      <h1 className={publicEventPageTitleClass}>{title}</h1>
+      <p className="text-sm text-matchon-text-secondary">{eventTitle}</p>
       {description ? (
-        <p className="text-muted-foreground text-xs leading-relaxed">
+        <p className="text-xs leading-relaxed text-matchon-text-secondary">
           {description}
         </p>
       ) : null}

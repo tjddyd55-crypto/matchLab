@@ -1,16 +1,18 @@
 import type { GymFieldStatusSummary } from "@/lib/ui/field-status-ui";
-import { Card, CardContent } from "@/components/ui/card";
-import { matchonGridGapClass } from "@/lib/ui/matchon-layout";
+import {
+  matchonStatCardClass,
+  matchonStatLabelClass,
+  matchonStatValueClass,
+  matchonStatsGridClass,
+} from "@/lib/ui/matchon-shell-ui";
 import { cn } from "@/lib/utils";
 
 function StatCard({ label, value }: { label: string; value: number }) {
   return (
-    <Card variant="muted" className="px-4 py-3">
-      <CardContent className="p-0">
-        <p className="text-muted-foreground text-xs">{label}</p>
-        <p className="mt-1 text-2xl font-semibold tabular-nums">{value}</p>
-      </CardContent>
-    </Card>
+    <div className={matchonStatCardClass}>
+      <p className={matchonStatLabelClass}>{label}</p>
+      <p className={cn(matchonStatValueClass, "mt-1 tabular-nums")}>{value}</p>
+    </div>
   );
 }
 
@@ -23,7 +25,7 @@ export function GymFieldStatusSummaryCards({
     <div
       className={cn(
         "grid sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-6",
-        matchonGridGapClass,
+        matchonStatsGridClass,
       )}
     >
       <StatCard label="전체 선수" value={summary.total} />

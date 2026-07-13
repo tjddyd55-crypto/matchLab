@@ -1,6 +1,10 @@
 "use client";
 
 import type { CustomFormFieldDefinition } from "@/lib/application-form/custom-form";
+import {
+  matchonFieldInputClass,
+  matchonFieldSelectClass,
+} from "@/lib/ui/matchon-shell-ui";
 import { cn } from "@/lib/utils";
 
 export type CustomFormAnswers = Record<string, unknown>;
@@ -42,7 +46,7 @@ export function GymCustomFormFields({
   };
 
   return (
-    <div className={cn("grid gap-3 rounded-lg border border-border/70 bg-muted/10 p-3", className)}>
+    <div className={cn("grid gap-3 rounded-xl border border-matchon-border bg-matchon-primary-light/20 p-3", className)}>
       <p className="text-xs font-medium">신청서 항목</p>
       {fields.map((field) => {
         const inputId = `custom-form-${field.id}`;
@@ -80,7 +84,7 @@ export function GymCustomFormFields({
                 placeholder={field.placeholder}
                 value={displayValue}
                 onChange={(e) => setValue(field.id, e.target.value)}
-                className="border-input bg-background min-h-[72px] w-full rounded-lg border px-3 py-2 text-sm"
+                className={cn(matchonFieldInputClass, "min-h-[72px] py-2")}
               />
             </label>
           );
@@ -121,7 +125,7 @@ export function GymCustomFormFields({
                 required={field.required}
                 value={displayValue}
                 onChange={(e) => setValue(field.id, e.target.value)}
-                className="border-input bg-background h-10 w-full rounded-lg border px-3 text-sm"
+                className={matchonFieldSelectClass}
               >
                 <option value="">선택</option>
                 {(field.options ?? []).map((opt) => (
@@ -176,7 +180,7 @@ export function GymCustomFormFields({
               placeholder={field.placeholder}
               value={displayValue}
               onChange={(e) => setValue(field.id, e.target.value)}
-              className="border-input bg-background h-10 w-full rounded-lg border px-3 text-sm"
+              className={matchonFieldInputClass}
             />
           </label>
         );

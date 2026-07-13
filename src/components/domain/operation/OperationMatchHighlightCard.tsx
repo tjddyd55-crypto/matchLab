@@ -2,11 +2,11 @@
 
 import { OperationMatchFighterMatchup } from "@/components/domain/operation/OperationMatchFighterMatchup";
 import { MatchonStatusBadge } from "@/components/shared/MatchonStatusBadge";
-import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { DivisionCompactDisplay } from "@/components/domain/shared/DivisionCompactDisplay";
 import type { OperationMatchRowVM } from "@/components/domain/operation/operation-match-row";
 import { getOperationMatchPhase } from "@/lib/match-operation-display";
 import { resolveOperationDisplayStatus } from "@/lib/ui/matchon-status";
+import { organizerOperationVsCardClass } from "@/lib/ui/organizer-operation-ui";
 import { cn } from "@/lib/utils";
 
 export function OperationMatchHighlightCard({
@@ -26,16 +26,18 @@ export function OperationMatchHighlightCard({
 }) {
   if (!match) {
     return (
-      <Card variant="muted" className={cn("py-4", className)}>
-        <CardHeader className="px-4 py-0">
-          <CardTitle className="text-muted-foreground text-sm font-medium">
-            {title}
-          </CardTitle>
-        </CardHeader>
-        <CardContent className="text-muted-foreground px-4 pt-2 text-xs">
+      <div
+        className={cn(
+          organizerOperationVsCardClass,
+          "py-4 opacity-70",
+          className,
+        )}
+      >
+        <p className="text-matchon-text-secondary text-xs font-medium">{title}</p>
+        <p className="text-matchon-text-secondary mt-2 text-xs">
           해당 경기가 없습니다.
-        </CardContent>
-      </Card>
+        </p>
+      </div>
     );
   }
 
@@ -44,13 +46,15 @@ export function OperationMatchHighlightCard({
     status: match.status,
     phase,
   });
-  const cardVariant = selected ? "selected" : variant;
 
   return (
-    <Card
-      variant={cardVariant}
+    <div
       className={cn(
-        onSelect && "cursor-pointer",
+        organizerOperationVsCardClass,
+        "cursor-pointer transition-shadow hover:shadow-md",
+        selected && "border-matchon-primary ring-1 ring-matchon-primary/25",
+        variant === "success" && !selected && "border-emerald-200",
+        variant === "selected" && !selected && "border-matchon-primary/40",
         className,
       )}
       onClick={onSelect ? () => onSelect(match) : undefined}
@@ -67,21 +71,23 @@ export function OperationMatchHighlightCard({
           : undefined
       }
     >
-      <CardHeader className="flex flex-row items-start justify-between gap-2 px-4 py-0">
+      <div className="flex flex-row items-start justify-between gap-2">
         <div className="min-w-0 space-y-1">
-          <p className="text-muted-foreground text-xs font-medium">{title}</p>
-          <CardTitle className="text-base leading-snug">
+          <p className="text-matchon-text-secondary text-xs font-medium">
+            {title}
+          </p>
+          <p className="text-base font-bold leading-snug text-matchon-text-primary">
             {match.orderLabel}
             {match.courtName ? (
-              <span className="text-muted-foreground ml-1 text-sm font-normal">
+              <span className="text-matchon-text-secondary ml-1 text-sm font-normal">
                 · {match.courtName}
               </span>
             ) : null}
-          </CardTitle>
+          </p>
         </div>
         <MatchonStatusBadge status={displayStatus} size="sm" />
-      </CardHeader>
-      <CardContent className="space-y-3 px-4 pt-2">
+      </div>
+      <div className="mt-3 space-y-3">
         {match.division ? (
           <DivisionCompactDisplay
             division={match.division}
@@ -99,7 +105,7 @@ export function OperationMatchHighlightCard({
           winnerId={match.winnerId}
           identityMode="wrap"
         />
-      </CardContent>
-    </Card>
+      </div>
+    </div>
   );
 }

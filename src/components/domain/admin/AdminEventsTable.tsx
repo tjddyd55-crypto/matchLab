@@ -21,7 +21,11 @@ import {
 } from "@/components/ui/table";
 import {
   adminDesktopTableClass,
+  adminMobileCardClass,
+  adminMobileCardFooterClass,
+  adminMobileCardHeaderClass,
   adminMobileListClass,
+  adminMutedTextClass,
 } from "@/lib/ui/admin-ui";
 import { cn } from "@/lib/utils";
 
@@ -53,16 +57,16 @@ export function AdminEventsTable({ rows }: { rows: AdminEventListItemDTO[] }) {
             {rows.map((e) => (
               <TableRow key={e.id}>
                 <TableCell className="font-medium break-words">{e.title}</TableCell>
-                <TableCell className="text-muted-foreground break-words">
+                <TableCell className={`${adminMutedTextClass} break-words`}>
                   {e.organizerName}
                 </TableCell>
                 <TableCell>
                   <EventStatusPill status={e.status} />
                 </TableCell>
-                <TableCell className="text-muted-foreground whitespace-nowrap">
+                <TableCell className={`${adminMutedTextClass} whitespace-nowrap`}>
                   {formatAdminDateTime(e.eventDate)}
                 </TableCell>
-                <TableCell className="text-muted-foreground tabular-nums whitespace-nowrap">
+                <TableCell className={`${adminMutedTextClass} tabular-nums whitespace-nowrap`}>
                   {e.applicationCount} / {e.bracketCount}
                 </TableCell>
                 <TableCell>
@@ -93,23 +97,23 @@ export function AdminEventsTable({ rows }: { rows: AdminEventListItemDTO[] }) {
       <ul className={adminMobileListClass}>
         {rows.map((e) => (
           <li key={e.id}>
-            <Card className="gap-0 overflow-hidden py-0">
-              <CardHeader className="border-b bg-muted/15 pb-3">
+            <Card className={adminMobileCardClass}>
+              <CardHeader className={adminMobileCardHeaderClass}>
                 <div className="flex flex-wrap items-start justify-between gap-2">
                   <CardTitle className="line-clamp-2 text-base leading-snug">
                     {e.title}
                   </CardTitle>
                   <EventStatusPill status={e.status} />
                 </div>
-                <p className="text-muted-foreground text-xs">{e.organizerName}</p>
+                <p className={`${adminMutedTextClass} text-xs`}>{e.organizerName}</p>
               </CardHeader>
               <CardContent className="pt-3 text-xs">
-                <p className="text-muted-foreground">
+                <p className={adminMutedTextClass}>
                   {formatAdminDateTime(e.eventDate)} · 신청 {e.applicationCount} · 대진{" "}
                   {e.bracketCount}
                 </p>
               </CardContent>
-              <CardFooter className="flex flex-wrap gap-2 border-t bg-muted/10 pt-3">
+              <CardFooter className={`${adminMobileCardFooterClass} flex flex-wrap gap-2`}>
                 <Link
                   href={`/organizer/events/${e.id}`}
                   className={cn(

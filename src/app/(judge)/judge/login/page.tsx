@@ -1,10 +1,16 @@
 import { JudgeLoginForm } from "@/components/domain/judges/JudgeLoginForm";
 import { JudgeQrEntryError } from "@/components/domain/judges/JudgeQrEntryError";
-import { BrandLogo } from "@/components/common/BrandLogo";
+import { MatchonLogo } from "@/components/common/MatchonLogo";
 import { JUDGE_COUNT_POLICY_LINES } from "@/lib/judge-round-count";
 import { judgeDefaultRoute } from "@/lib/judge-identity";
 import { judgeCredentialService } from "@/lib/services/judge-credential.service";
 import { validateJudgeLoginEntry } from "@/lib/services/judge-qr-entry.service";
+import {
+  matchonPageDescClass,
+  matchonPageEyebrowClass,
+  matchonPageHeaderStackClass,
+  matchonPageTitleClass,
+} from "@/lib/ui/judge-ui";
 import { redirect } from "next/navigation";
 
 export const dynamic = "force-dynamic";
@@ -53,18 +59,18 @@ export default async function JudgeLoginPage({
 
   return (
     <div className="mx-auto flex w-full max-w-md flex-col gap-6 px-4 py-8">
-      <BrandLogo size="md" showText className="justify-center" />
-      <header className="space-y-2">
-        <p className="text-primary text-xs font-medium tracking-wide uppercase">
+      <MatchonLogo size="md" variant="light" className="justify-center" />
+      <header className={matchonPageHeaderStackClass}>
+        <p className={matchonPageEyebrowClass}>
           심판 전용 로그인
         </p>
-        <h1 className="font-heading text-2xl font-semibold tracking-tight">
+        <h1 className={matchonPageTitleClass}>
           심판 로그인
         </h1>
         {eventTitle ? (
-          <p className="text-sm font-medium">{eventTitle}</p>
+          <p className="text-sm font-medium text-matchon-text-primary">{eventTitle}</p>
         ) : null}
-        <p className="text-muted-foreground text-sm">
+        <p className={matchonPageDescClass}>
           부여받은 아이디와 비밀번호를 입력해 주세요.
         </p>
       </header>

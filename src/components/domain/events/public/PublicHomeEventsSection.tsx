@@ -3,7 +3,6 @@ import type { PublicEventListItemDTO } from "@/lib/dto/public";
 import { EventListEmptyState } from "@/components/domain/events/EventListEmptyState";
 import { PublicEventListDesktop } from "@/components/domain/events/public/PublicEventListDesktop";
 import { PublicEventListMobile } from "@/components/domain/events/public/PublicEventListMobile";
-import { buttonVariants } from "@/components/ui/button";
 import { PUBLIC_CONTENT_CONTAINER_CLASS } from "@/components/domain/events/public/public-event-layout";
 import { cn } from "@/lib/utils";
 
@@ -21,16 +20,18 @@ export function PublicHomeEventsSection({
     >
       <div className="flex items-end justify-between gap-4">
         <div>
-          <h2 className="text-lg font-semibold md:text-xl">대회 공고</h2>
-          <p className="text-muted-foreground mt-1 text-xs md:text-sm">
-            최신 공개 대회를 포스터와 함께 확인하세요.
+          <p className="text-xs font-extrabold uppercase tracking-[0.96px] text-matchon-primary">
+            Open for Registration
           </p>
+          <h2 className="mt-1.5 font-black text-[28px] tracking-tight text-matchon-text-primary">
+            진행 중인 대회 공고
+          </h2>
         </div>
         <Link
           href="/events"
-          className={cn(buttonVariants({ variant: "ghost", size: "sm" }))}
+          className="text-sm font-bold text-matchon-primary hover:underline"
         >
-          전체 보기
+          전체 보기 →
         </Link>
       </div>
 

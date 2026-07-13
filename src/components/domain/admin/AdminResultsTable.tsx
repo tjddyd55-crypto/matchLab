@@ -18,7 +18,10 @@ import {
 } from "@/components/ui/table";
 import {
   adminDesktopTableClass,
+  adminMobileCardClass,
+  adminMobileCardHeaderClass,
   adminMobileListClass,
+  adminMutedTextClass,
   getAdminMatchRecordStatusLabel,
   resolveAdminMatchRecordStatusMatchon,
 } from "@/lib/ui/admin-ui";
@@ -73,17 +76,17 @@ export function AdminResultsTable({
                 <TableCell className="font-medium break-words">{r.eventTitle}</TableCell>
                 <TableCell className="break-words">
                   {r.fighterName}{" "}
-                  <span className="text-muted-foreground text-xs">
+                  <span className={`${adminMutedTextClass} text-xs`}>
                     ({r.fighterCode})
                   </span>
                 </TableCell>
-                <TableCell className="text-muted-foreground break-words">
+                <TableCell className={`${adminMutedTextClass} break-words`}>
                   {r.opponentName
                     ? `${r.opponentName} (${r.opponentCode ?? ""})`
                     : "—"}
                 </TableCell>
                 <TableCell>{outcomeKo(r)}</TableCell>
-                <TableCell className="text-muted-foreground text-xs">
+                <TableCell className={`${adminMutedTextClass} text-xs`}>
                   {r.resultType ?? "—"}
                 </TableCell>
                 <TableCell>
@@ -93,7 +96,7 @@ export function AdminResultsTable({
                     size="sm"
                   />
                 </TableCell>
-                <TableCell className="text-muted-foreground whitespace-nowrap text-xs">
+                <TableCell className={`${adminMutedTextClass} whitespace-nowrap text-xs`}>
                   {r.confirmedAt ? formatAdminDateTime(r.confirmedAt) : "—"}
                 </TableCell>
               </TableRow>
@@ -104,8 +107,8 @@ export function AdminResultsTable({
       <ul className={adminMobileListClass}>
         {rows.map((r) => (
           <li key={r.id}>
-            <Card className="gap-0 overflow-hidden py-0">
-              <CardHeader className="border-b bg-muted/15 pb-3">
+            <Card className={adminMobileCardClass}>
+              <CardHeader className={adminMobileCardHeaderClass}>
                 <div className="flex flex-wrap items-start justify-between gap-2">
                   <CardTitle className="line-clamp-2 text-base leading-snug">
                     {r.eventTitle}
@@ -121,10 +124,10 @@ export function AdminResultsTable({
                 <p className="break-words">
                   {r.fighterName} ({r.fighterCode}) vs {r.opponentName ?? "—"}
                 </p>
-                <p className="text-muted-foreground mt-1">
+                <p className={`${adminMutedTextClass} mt-1`}>
                   {outcomeKo(r)} · {r.resultType ?? "—"}
                 </p>
-                <p className="text-muted-foreground mt-1">
+                <p className={`${adminMutedTextClass} mt-1`}>
                   확정: {r.confirmedAt ? formatAdminDateTime(r.confirmedAt) : "—"}
                 </p>
               </CardContent>

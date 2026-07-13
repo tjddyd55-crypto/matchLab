@@ -1,7 +1,7 @@
 "use client";
 
 import { useEffect, useState, type FormEvent } from "react";
-import { BrandLogo } from "@/components/common/BrandLogo";
+import { MatchonLogo } from "@/components/common/MatchonLogo";
 import { MatchonStatusBadge } from "@/components/shared/MatchonStatusBadge";
 import { FeedbackMessage } from "@/components/shared/FeedbackMessage";
 import { Button } from "@/components/ui/button";
@@ -70,7 +70,7 @@ export function CourtJudgeIdentityGate({
   if (!hydrated) {
     return (
       <div className="mx-auto flex min-h-[60vh] max-w-md flex-col items-center justify-center gap-3 p-4 text-center">
-        <BrandLogo size="md" showText className="justify-center" />
+        <MatchonLogo size="md" variant="light" className="justify-center" />
         <p className="text-muted-foreground text-sm">입장 정보를 확인 중…</p>
       </div>
     );
@@ -80,7 +80,7 @@ export function CourtJudgeIdentityGate({
     return (
       <div className="mx-auto flex min-h-[60vh] max-w-md flex-col justify-center gap-5 p-4">
         <header className="space-y-3 text-center">
-          <BrandLogo size="md" showText className="justify-center" />
+          <MatchonLogo size="md" variant="light" className="justify-center" />
           <div className="space-y-2">
             <p className="text-muted-foreground text-sm">{eventTitle}</p>
             <p className="text-lg font-semibold">{courtName}</p>

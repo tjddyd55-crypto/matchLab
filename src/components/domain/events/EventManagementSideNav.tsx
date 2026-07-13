@@ -8,6 +8,13 @@ import {
   groupEventManagementNavItems,
   isEventManagementNavItemActive,
 } from "@/lib/event-management-nav-items";
+import {
+  eventManagementSidebarClass,
+  eventManagementSidebarLinkActiveClass,
+  eventManagementSidebarLinkBaseClass,
+  eventManagementSidebarLinkInactiveClass,
+  eventManagementSidebarSectionLabelClass,
+} from "@/lib/ui/event-management-ui";
 import { cn } from "@/lib/utils";
 
 export function EventManagementSideNav({
@@ -31,13 +38,16 @@ export function EventManagementSideNav({
 
   return (
     <nav
-      className="sticky top-6 max-h-[calc(100vh-3rem)] overflow-y-auto pr-1"
+      className={cn(
+        eventManagementSidebarClass,
+        "sticky top-6 max-h-[calc(100vh-3rem)] overflow-y-auto",
+      )}
       aria-label="대회 관리 메뉴"
     >
-      <div className="space-y-5">
+      <div className="space-y-4">
         {sections.map((section) => (
           <div key={section.group}>
-            <p className="text-muted-foreground mb-2 px-2 text-xs font-semibold tracking-wide uppercase">
+            <p className={eventManagementSidebarSectionLabelClass}>
               {section.label}
             </p>
             <ul className="space-y-0.5">
@@ -53,10 +63,10 @@ export function EventManagementSideNav({
                     <Link
                       href={item.href}
                       className={cn(
-                        "block rounded-md px-3 py-2 text-sm transition-colors",
+                        eventManagementSidebarLinkBaseClass,
                         active
-                          ? "bg-primary text-primary-foreground font-medium"
-                          : "text-foreground hover:bg-muted",
+                          ? eventManagementSidebarLinkActiveClass
+                          : eventManagementSidebarLinkInactiveClass,
                       )}
                       target={item.external ? "_blank" : undefined}
                       rel={item.external ? "noopener noreferrer" : undefined}

@@ -2,8 +2,7 @@ import Link from "next/link";
 import type { AdminApplicationListItemDTO } from "@/lib/dto/admin";
 import { AdminListEmptyState } from "@/components/domain/admin/AdminListEmptyState";
 import { formatAdminDateTime } from "@/components/domain/admin/admin-format";
-import { ApplicationStatusBadge } from "@/components/domain/applications/ApplicationStatusBadge";
-import { PaymentStatusBadge } from "@/components/shared/PaymentStatusBadge";
+import { MatchonStatusBadge } from "@/components/shared/MatchonStatusBadge";
 import { buttonVariants } from "@/components/ui/button";
 import {
   Card,
@@ -22,7 +21,15 @@ import {
 } from "@/components/ui/table";
 import {
   adminDesktopTableClass,
+  adminMobileCardClass,
+  adminMobileCardFooterClass,
+  adminMobileCardHeaderClass,
   adminMobileListClass,
+  adminMutedTextClass,
+  applicationStatusKo,
+  paymentStatusKo,
+  resolveAdminApplicationMatchonStatus,
+  resolveAdminPaymentMatchonStatus,
 } from "@/lib/ui/admin-ui";
 import { cn } from "@/lib/utils";
 
@@ -61,20 +68,28 @@ export function AdminApplicationsTable({
                 <TableCell className="font-medium break-words">{a.eventTitle}</TableCell>
                 <TableCell className="break-words">
                   {a.fighterName}{" "}
-                  <span className="text-muted-foreground text-xs">
+                  <span className={`${adminMutedTextClass} text-xs`}>
                     ({a.fighterCode})
                   </span>
                 </TableCell>
-                <TableCell className="text-muted-foreground break-words">
+                <TableCell className={`${adminMutedTextClass} break-words`}>
                   {a.gymName}
                 </TableCell>
                 <TableCell>
-                  <ApplicationStatusBadge status={a.status} />
+                  <MatchonStatusBadge
+                    status={resolveAdminApplicationMatchonStatus(a.status)}
+                    label={applicationStatusKo(a.status)}
+                    size="sm"
+                  />
                 </TableCell>
                 <TableCell>
-                  <PaymentStatusBadge status={a.paymentStatus} />
+                  <MatchonStatusBadge
+                    status={resolveAdminPaymentMatchonStatus(a.paymentStatus)}
+                    label={paymentStatusKo(a.paymentStatus)}
+                    size="sm"
+                  />
                 </TableCell>
-                <TableCell className="text-muted-foreground whitespace-nowrap">
+                <TableCell className={`${adminMutedTextClass} whitespace-nowrap`}>
                   {formatAdminDateTime(a.createdAt)}
                 </TableCell>
                 <TableCell>
@@ -95,25 +110,33 @@ export function AdminApplicationsTable({
       <ul className={adminMobileListClass}>
         {rows.map((a) => (
           <li key={a.id}>
-            <Card className="gap-0 overflow-hidden py-0">
-              <CardHeader className="border-b bg-muted/15 pb-3">
+            <Card className={adminMobileCardClass}>
+              <CardHeader className={adminMobileCardHeaderClass}>
                 <CardTitle className="line-clamp-2 text-base leading-snug">
                   {a.eventTitle}
                 </CardTitle>
-                <p className="text-muted-foreground text-xs break-words">
+                <p className={`${adminMutedTextClass} text-xs break-words`}>
                   {a.fighterName} ({a.fighterCode}) · {a.gymName}
                 </p>
               </CardHeader>
               <CardContent className="space-y-2 pt-3">
                 <div className="flex flex-wrap gap-2">
-                  <ApplicationStatusBadge status={a.status} />
-                  <PaymentStatusBadge status={a.paymentStatus} />
+                  <MatchonStatusBadge
+                    status={resolveAdminApplicationMatchonStatus(a.status)}
+                    label={applicationStatusKo(a.status)}
+                    size="sm"
+                  />
+                  <MatchonStatusBadge
+                    status={resolveAdminPaymentMatchonStatus(a.paymentStatus)}
+                    label={paymentStatusKo(a.paymentStatus)}
+                    size="sm"
+                  />
                 </div>
-                <p className="text-muted-foreground text-xs">
+                <p className={`${adminMutedTextClass} text-xs`}>
                   {formatAdminDateTime(a.createdAt)}
                 </p>
               </CardContent>
-              <CardFooter className="border-t bg-muted/10 pt-3">
+              <CardFooter className={adminMobileCardFooterClass}>
                 <Link
                   href={`/organizer/events/${a.eventId}/applications`}
                   className={cn(

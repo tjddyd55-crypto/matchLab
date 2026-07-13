@@ -1,11 +1,10 @@
 "use client";
 
 import { useCallback, useEffect, useMemo, useRef, useState } from "react";
-import { BrandLogo } from "@/components/common/BrandLogo";
+import { MatchonLogo } from "@/components/common/MatchonLogo";
 import { MatchonStatusBadge } from "@/components/shared/MatchonStatusBadge";
-import { FeedbackMessage } from "@/components/shared/FeedbackMessage";
+import { MatchonEmptyState } from "@/components/shared/MatchonEmptyState";
 import { Card, CardContent } from "@/components/ui/card";
-import { cn } from "@/lib/utils";
 import { resolveJudgeRoleMatchonStatus } from "@/lib/ui/judge-ui";
 import { resolveDefaultSelectedMatchId } from "@/lib/court-judge-page-state";
 import type {
@@ -125,7 +124,7 @@ export function CourtJudgeScreenShell({
               size="sm"
             />
           </div>
-          <BrandLogo size="sm" showText={false} className="shrink-0" />
+          <MatchonLogo size="sm" variant="icon" className="shrink-0" />
         </CardContent>
       </Card>
 
@@ -155,10 +154,8 @@ export function CourtJudgeEmptyNotice({
   className?: string;
 }) {
   return (
-    <Card variant="muted" className={cn("py-4", className)}>
-      <CardContent className="px-4">
-        <FeedbackMessage tone="info">{children}</FeedbackMessage>
-      </CardContent>
-    </Card>
+    <div className={className}>
+      <MatchonEmptyState title={String(children)} />
+    </div>
   );
 }

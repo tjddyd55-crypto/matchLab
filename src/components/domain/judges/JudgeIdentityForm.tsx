@@ -2,8 +2,10 @@
 
 import { useState } from "react";
 import { confirmJudgeIdentityAction } from "@/features/judge/actions";
+import { FeedbackMessage } from "@/components/shared/FeedbackMessage";
 import { Button } from "@/components/ui/button";
 import type { ResolvedJudgeSession } from "@/lib/services/judge-credential.service";
+import { judgeFieldInputClass } from "@/lib/ui/judge-ui";
 
 export function JudgeIdentityForm({
   session,
@@ -63,7 +65,7 @@ export function JudgeIdentityForm({
           maxLength={80}
           value={verifiedName}
           onChange={(e) => setVerifiedName(e.target.value)}
-          className="border-input bg-background h-10 rounded-md border px-3 text-sm"
+          className={judgeFieldInputClass}
         />
       </label>
 
@@ -75,7 +77,7 @@ export function JudgeIdentityForm({
           required
           value={birthDate}
           onChange={(e) => setBirthDate(e.target.value)}
-          className="border-input bg-background h-10 rounded-md border px-3 text-sm"
+          className={judgeFieldInputClass}
         />
       </label>
 
@@ -86,7 +88,7 @@ export function JudgeIdentityForm({
           maxLength={40}
           value={phone}
           onChange={(e) => setPhone(e.target.value)}
-          className="border-input bg-background h-10 rounded-md border px-3 text-sm"
+          className={judgeFieldInputClass}
         />
       </label>
 
@@ -97,17 +99,17 @@ export function JudgeIdentityForm({
           maxLength={120}
           value={organization}
           onChange={(e) => setOrganization(e.target.value)}
-          className="border-input bg-background h-10 rounded-md border px-3 text-sm"
+          className={judgeFieldInputClass}
         />
       </label>
 
       {error ? (
-        <p className="text-destructive text-sm" role="alert">
+        <FeedbackMessage tone="error" role="alert">
           {error}
-        </p>
+        </FeedbackMessage>
       ) : null}
 
-      <Button type="submit" disabled={pending}>
+      <Button type="submit" disabled={pending} size="field" className="w-full sm:w-auto">
         {pending ? "저장 중…" : initial.identityConfirmed ? "정보 수정 후 계속" : "본인 확인 완료"}
       </Button>
 

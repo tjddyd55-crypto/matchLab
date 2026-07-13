@@ -20,13 +20,13 @@ export default async function GuardianConsentPage({
 
   if (scope === "registration" && !token) {
     return (
-      <div className="mx-auto max-w-lg px-4 py-12">
+      <PublicApplicationPageShell title="보호자 동의서">
         <PublicApplicationEmptyState
           title="링크가 올바르지 않습니다"
           description="초대 링크에 포함된 동의 주소 전체를 사용해 주세요."
           tone="error"
         />
-      </div>
+      </PublicApplicationPageShell>
     );
   }
 
@@ -42,13 +42,15 @@ export default async function GuardianConsentPage({
   } catch (e: unknown) {
     if (e instanceof AppError) {
       return (
-        <div className="mx-auto max-w-lg px-4 py-12">
+        <PublicApplicationPageShell
+          title={scope === "application" ? "대회 신청 보호자 동의" : "보호자 동의서"}
+        >
           <PublicApplicationEmptyState
             title="동의서를 열 수 없습니다"
             description={e.message}
             tone="error"
           />
-        </div>
+        </PublicApplicationPageShell>
       );
     }
     throw e;

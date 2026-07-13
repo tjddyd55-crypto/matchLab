@@ -3,12 +3,13 @@ import { format } from "date-fns";
 import { ko } from "date-fns/locale";
 import { FighterSnsLinks } from "@/components/domain/fighters/FighterSnsLinks";
 import type { PublicFighterProfileDTO } from "@/lib/services/fighter-profile.service";
+import { matchonStatCardClass } from "@/lib/ui/matchon-shell-ui";
 
 function MetaItem({ label, value }: { label: string; value: string }) {
   return (
     <div className="space-y-0.5">
-      <dt className="text-muted-foreground text-xs">{label}</dt>
-      <dd className="text-sm font-medium">{value}</dd>
+      <dt className="text-xs text-matchon-text-secondary">{label}</dt>
+      <dd className="text-sm font-medium text-matchon-text-primary">{value}</dd>
     </div>
   );
 }
@@ -21,7 +22,7 @@ export function PublicFighterProfileView({
   return (
     <article className="mx-auto w-full max-w-3xl">
       {/* Hero — 모바일: 세로 / PC: 가로 */}
-      <section className="ring-foreground/10 overflow-hidden rounded-2xl bg-card ring-1">
+      <section className={matchonStatCardClass}>
         <div className="flex flex-col gap-6 p-6 md:flex-row md:items-center md:gap-8 md:p-8">
           <div className="mx-auto shrink-0 md:mx-0">
             {profile.profileImageUrl ? (

@@ -1,7 +1,7 @@
 "use client";
 
 import { useCallback } from "react";
-import { BrandLogo } from "@/components/common/BrandLogo";
+import { MatchonLogo } from "@/components/common/MatchonLogo";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { EventQrCard } from "./EventQrCard";
@@ -244,7 +244,7 @@ export function EventQrPrintBoard({
       </Card>
 
       <div className="event-qr-print-header hidden print:block">
-        <BrandLogo size="sm" showText className="mb-3" />
+        <MatchonLogo size="sm" variant="light" className="mb-3" />
         <h1 className="text-xl font-bold">{eventTitle}</h1>
         {formattedDate ? (
           <p className="text-sm">{formattedDate}</p>

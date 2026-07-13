@@ -1,7 +1,7 @@
 export function GymProfileMissingBanner() {
   return (
     <div
-      className="rounded-lg border border-amber-500/40 bg-amber-500/10 px-4 py-3 text-sm leading-relaxed text-amber-950 dark:text-amber-100"
+      className="rounded-xl border border-amber-500/40 bg-amber-500/10 px-4 py-3 text-sm leading-relaxed text-amber-950 dark:text-amber-100"
       role="status"
     >
       <p className="font-medium">체육관 프로필이 연결되지 않았습니다</p>

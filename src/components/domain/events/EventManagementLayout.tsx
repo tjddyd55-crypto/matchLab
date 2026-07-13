@@ -17,7 +17,7 @@ export function EventManagementLayout({
 }) {
   return (
     <div className={cn("w-full min-w-0", className)}>
-      <div className="lg:grid lg:grid-cols-[240px_minmax(0,1fr)] lg:gap-6">
+      <div className="lg:grid lg:grid-cols-[240px_minmax(0,1fr)] lg:items-start lg:gap-5">
         <aside className="hidden lg:block">
           <EventManagementSideNav eventId={eventId} publicSlug={publicSlug} />
         </aside>

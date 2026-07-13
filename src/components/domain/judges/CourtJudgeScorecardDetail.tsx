@@ -1,11 +1,15 @@
 "use client";
 
 import { useState } from "react";
-import { Card, CardContent } from "@/components/ui/card";
 import { FeedbackMessage } from "@/components/shared/FeedbackMessage";
+import { Card, CardContent } from "@/components/ui/card";
 import { cn } from "@/lib/utils";
 import { roundWinnerLabel } from "@/lib/court-judge-rounds";
 import type { CourtJudgeScorecardVM } from "@/lib/services/judge-court.service";
+import {
+  matchonBlueCornerTextClass,
+  matchonRedCornerTextClass,
+} from "@/lib/ui/judge-ui";
 
 const CORNER_LABEL: Record<string, string> = {
   red: "홍",
@@ -40,8 +44,8 @@ function ScorecardDetailCard({ scorecard }: { scorecard: CourtJudgeScorecardVM }
           <thead className="text-muted-foreground">
             <tr>
               <th className="py-1 pr-2">R</th>
-              <th className="py-1 px-2 text-center">홍</th>
-              <th className="py-1 px-2 text-center">청</th>
+              <th className={cn("py-1 px-2 text-center", matchonRedCornerTextClass)}>홍</th>
+              <th className={cn("py-1 px-2 text-center", matchonBlueCornerTextClass)}>청</th>
               <th className="py-1 pl-2">승</th>
             </tr>
           </thead>
@@ -51,8 +55,8 @@ function ScorecardDetailCard({ scorecard }: { scorecard: CourtJudgeScorecardVM }
               return (
                 <tr key={round.roundNumber} className="border-t border-border/60">
                   <td className="py-1.5 pr-2 font-medium">{round.roundNumber}</td>
-                  <td className="py-1.5 px-2 text-center text-red-700">{round.redScore ?? "—"}</td>
-                  <td className="py-1.5 px-2 text-center text-blue-700">{round.blueScore ?? "—"}</td>
+                  <td className={cn("py-1.5 px-2 text-center", matchonRedCornerTextClass)}>{round.redScore ?? "—"}</td>
+                  <td className={cn("py-1.5 px-2 text-center", matchonBlueCornerTextClass)}>{round.blueScore ?? "—"}</td>
                   <td className="py-1.5 pl-2">{winner ? CORNER_LABEL[winner] : "—"}</td>
                 </tr>
               );
@@ -62,10 +66,10 @@ function ScorecardDetailCard({ scorecard }: { scorecard: CourtJudgeScorecardVM }
       </div>
       <div className="mt-3 flex flex-wrap gap-3 text-xs">
         <span>
-          총점 홍 <strong>{scorecard.redTotal ?? "—"}</strong>
+          총점 홍 <strong className={matchonRedCornerTextClass}>{scorecard.redTotal ?? "—"}</strong>
         </span>
         <span>
-          청 <strong>{scorecard.blueTotal ?? "—"}</strong>
+          청 <strong className={matchonBlueCornerTextClass}>{scorecard.blueTotal ?? "—"}</strong>
         </span>
         <span>
           판정 <strong>{CORNER_LABEL[scorecard.winnerCorner]}</strong>

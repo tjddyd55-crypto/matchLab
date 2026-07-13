@@ -33,6 +33,8 @@ import { CourtJudgeEmptyNotice, CourtJudgeScreenShell } from "./CourtJudgeScreen
 import {
   judgeFieldInputClass,
   judgeFieldTextareaClass,
+  matchonBlueCornerTextClass,
+  matchonRedCornerTextClass,
   resolveBracketMatchMatchonStatus,
   resolveScoreSubmissionMatchonStatus,
 } from "@/lib/ui/judge-ui";
@@ -255,7 +257,7 @@ function ScoreForm({
             </legend>
             <div className="mt-2 grid grid-cols-2 gap-3">
               <label className="grid gap-1 text-sm">
-                <span className="text-red-700 text-xs">레드 점수</span>
+                <span className={matchonRedCornerTextClass}>레드 점수</span>
                 <input
                   type="number"
                   min={0}
@@ -269,7 +271,7 @@ function ScoreForm({
                 />
               </label>
               <label className="grid gap-1 text-sm">
-                <span className="text-blue-700 text-xs">블루 점수</span>
+                <span className={matchonBlueCornerTextClass}>블루 점수</span>
                 <input
                   type="number"
                   min={0}

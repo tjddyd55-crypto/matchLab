@@ -4,6 +4,7 @@ import { useState, useTransition } from "react";
 import { useRouter } from "next/navigation";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent } from "@/components/ui/card";
+import { ORGANIZER_COMPACT_ACTION_BAR_CLASS } from "@/lib/organizer-dashboard-layout";
 import { FeedbackMessage } from "@/components/shared/FeedbackMessage";
 import { formatBulkApplicationResultSummary } from "@/lib/bulk-application-result-feedback";
 import type { BulkApplicationAction } from "@/lib/services/application-organizer-bulk.service";
@@ -73,8 +74,8 @@ export function OrganizerApplicationsBulkToolbar({
   );
 
   return (
-    <Card variant="muted" className="py-4">
-      <CardContent className="flex flex-col gap-3 px-4">
+    <div className={ORGANIZER_COMPACT_ACTION_BAR_CLASS}>
+      <div className="flex w-full flex-col gap-3">
         <p className="text-sm font-medium">
           {gymName ? `${gymName} · ` : ""}선택 {selectedIds.length}명
         </p>
@@ -158,7 +159,7 @@ export function OrganizerApplicationsBulkToolbar({
             {message.text}
           </FeedbackMessage>
         ) : null}
-      </CardContent>
-    </Card>
+      </div>
+    </div>
   );
 }

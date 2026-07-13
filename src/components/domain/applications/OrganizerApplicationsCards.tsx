@@ -13,6 +13,7 @@ import { DivisionCompactDisplay } from "@/components/domain/shared/DivisionCompa
 import { DivisionGenderBadge } from "@/components/domain/shared/DivisionGenderBadge";
 import { Checkbox } from "@/components/ui/checkbox";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
+import { matchonMobileCardListClass } from "@/lib/ui/matchon-shell-ui";
 
 export function OrganizerApplicationsCards({
   eventId,
@@ -36,9 +37,9 @@ export function OrganizerApplicationsCards({
   }
 
   return (
-    <div className="flex min-w-0 flex-col gap-3 md:hidden">
+    <div className={matchonMobileCardListClass}>
       {rows.map((row) => (
-        <Card key={row.applicationId} variant="interactive" className="py-4">
+        <Card key={row.applicationId} className="rounded-xl border-matchon-border bg-white py-4 shadow-sm">
           <CardHeader className="space-y-2 px-4 py-0">
             <div className="flex items-start gap-2">
               <Checkbox

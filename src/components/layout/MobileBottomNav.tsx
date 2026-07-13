@@ -40,7 +40,7 @@ export function MobileBottomNav({
   return (
     <nav
       className={cn(
-        "fixed bottom-0 left-0 right-0 z-40 flex justify-around border-t bg-background px-2 py-2 text-xs",
+        "fixed bottom-0 left-0 right-0 z-40 flex justify-around border-t border-matchon-border bg-white px-2 py-2 text-xs",
         className,
       )}
     >
@@ -48,7 +48,7 @@ export function MobileBottomNav({
         <Link
           key={item.href}
           href={item.href}
-          className="flex min-h-[44px] flex-1 flex-col items-center justify-center rounded-md hover:bg-muted"
+          className="flex min-h-[44px] flex-1 flex-col items-center justify-center rounded-lg font-medium text-matchon-text-secondary hover:bg-matchon-primary-light hover:text-matchon-primary"
         >
           {item.label}
         </Link>

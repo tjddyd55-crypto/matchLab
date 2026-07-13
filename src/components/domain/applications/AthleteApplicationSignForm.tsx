@@ -165,7 +165,7 @@ export function AthleteApplicationSignForm({
           </CardDescription>
         </CardHeader>
         <CardContent>
-          <ul className="text-muted-foreground list-inside list-disc text-xs leading-relaxed">
+          <ul className="list-inside list-disc text-xs leading-relaxed text-matchon-text-secondary">
             {initial.policyLines.map((line) => (
               <li key={line}>{line}</li>
             ))}

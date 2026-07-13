@@ -14,6 +14,13 @@ import {
   matchonScrollablePillItemClass,
   matchonSectionTitleClass,
 } from "@/lib/ui/matchon-layout";
+import {
+  matchonCompactTableWrapClass,
+  matchonStatCardClass,
+  matchonStatLabelClass,
+  matchonStatsGridClass,
+  matchonStatValueClass,
+} from "@/lib/ui/matchon-shell-ui";
 import type { MatchonStatus } from "@/lib/ui/matchon-status";
 import {
   applicationStatusKo,
@@ -39,8 +46,29 @@ export const adminPageContainerClass =
 export const adminPageTitleClass = matchonPageTitleClass;
 export const adminPageDescClass = matchonPageDescClass;
 
-export const adminDesktopTableClass = "hidden overflow-x-auto rounded-xl border md:block";
+export const adminDesktopTableClass = matchonCompactTableWrapClass;
 export const adminMobileListClass = "flex flex-col gap-3 md:hidden";
+
+export const adminContentCardClass =
+  "rounded-xl border border-matchon-border bg-white p-4 shadow-sm";
+
+export const adminMobileCardClass =
+  "gap-0 overflow-hidden rounded-xl border border-matchon-border bg-white py-0 shadow-sm";
+
+export const adminMobileCardHeaderClass =
+  "border-b border-matchon-border bg-matchon-primary-light/15 pb-3";
+
+export const adminMobileCardFooterClass =
+  "border-t border-matchon-border bg-matchon-surface pt-3";
+
+export const adminMutedTextClass = "text-matchon-text-secondary";
+
+export {
+  matchonStatsGridClass,
+  matchonStatCardClass,
+  matchonStatValueClass,
+  matchonStatLabelClass,
+};
 
 const ORGANIZER_STATUS_LABELS: Record<OrganizerStatus, string> = {
   pending: "대기",

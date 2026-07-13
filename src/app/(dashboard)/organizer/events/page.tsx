@@ -31,12 +31,10 @@ export default async function OrganizerEventsPage() {
         </Link>
       </OrganizerDashboardPageHeader>
 
-      <div className="px-4 pb-8 md:px-6">
-        <OrganizerEventList
-          rows={rows}
-          showOrganizerColumn={actor.role === "admin"}
-        />
-      </div>
+      <OrganizerEventList
+        rows={rows}
+        showOrganizerColumn={actor.role === "admin"}
+      />
     </>
   );
 }

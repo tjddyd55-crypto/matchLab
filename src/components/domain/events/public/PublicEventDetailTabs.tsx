@@ -2,15 +2,16 @@ import Link from "next/link";
 import type { PublicEventDetailDTO } from "@/lib/dto/public";
 import { PublicEventTrustBadges } from "@/components/domain/events/public/PublicEventTrustBadges";
 import {
+  publicEventUnderlineTabActiveClass,
+  publicEventUnderlineTabBaseClass,
+  publicEventUnderlineTabInactiveClass,
+  publicEventUnderlineTabsNavClass,
+} from "@/components/domain/events/public/public-event-ui";
+import {
   PUBLIC_EVENT_TABS,
   publicEventTabHref,
   type PublicEventTabId,
 } from "@/lib/public-event-tabs";
-import { buttonVariants } from "@/components/ui/button";
-import {
-  matchonScrollablePillItemClass,
-  matchonScrollablePillsClass,
-} from "@/lib/ui/matchon-layout";
 import { cn } from "@/lib/utils";
 
 export function PublicEventDetailTabs({
@@ -40,10 +41,7 @@ export function PublicEventDetailTabs({
         <PublicEventTrustBadges event={event} className="px-0.5" compact />
       ) : null}
       <nav
-        className={cn(
-          matchonScrollablePillsClass,
-          "-mx-1 px-1",
-        )}
+        className={publicEventUnderlineTabsNavClass}
         aria-label="대회 정보 탭"
         role="tablist"
       >
@@ -58,13 +56,10 @@ export function PublicEventDetailTabs({
               aria-selected={isActive}
               aria-current={isActive ? "page" : undefined}
               className={cn(
-                buttonVariants({
-                  variant: isActive ? "default" : "outline",
-                  size: "sm",
-                }),
-                matchonScrollablePillItemClass,
-                "min-h-10 rounded-full px-4",
-                isActive && "shadow-sm",
+                publicEventUnderlineTabBaseClass,
+                isActive
+                  ? publicEventUnderlineTabActiveClass
+                  : publicEventUnderlineTabInactiveClass,
               )}
             >
               {tab.label}

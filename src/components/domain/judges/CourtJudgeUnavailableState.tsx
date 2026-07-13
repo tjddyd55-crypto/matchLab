@@ -1,7 +1,7 @@
 "use client";
 
 import { useRouter } from "next/navigation";
-import { BrandLogo } from "@/components/common/BrandLogo";
+import { MatchonLogo } from "@/components/common/MatchonLogo";
 import { FeedbackMessage } from "@/components/shared/FeedbackMessage";
 import { MatchonStatusBadge } from "@/components/shared/MatchonStatusBadge";
 import { Button } from "@/components/ui/button";
@@ -64,7 +64,7 @@ export function CourtJudgeUnavailableState({
   return (
     <div className="mx-auto flex min-h-[70vh] max-w-md flex-col justify-center gap-6 p-6">
       <header className="space-y-3 text-center">
-        <BrandLogo size="md" showText className="justify-center" />
+        <MatchonLogo size="md" variant="light" className="justify-center" />
         {eventTitle ? (
           <p className="text-muted-foreground text-sm">{eventTitle}</p>
         ) : null}

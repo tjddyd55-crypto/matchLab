@@ -1,11 +1,28 @@
 import { BracketStatus } from "@/lib/enums";
 import type { MatchonStatus } from "@/lib/ui/matchon-status";
 import { judgeFieldInputClass, judgeFieldTextareaClass } from "@/lib/ui/judge-ui";
+import {
+  matchonBlueCornerPanelClass,
+  matchonBlueCornerTextClass,
+  matchonCompactTableWrapClass,
+  matchonRedCornerPanelClass,
+  matchonRedCornerTextClass,
+  matchonVsCardClass,
+} from "@/lib/ui/matchon-shell-ui";
 
 /** 운영자 대진 상세 편집 공통 입력 스타일 */
 export const organizerBracketFieldInputClass = judgeFieldInputClass;
 export const organizerBracketFieldSelectClass = judgeFieldInputClass;
 export const organizerBracketFieldTextareaClass = judgeFieldTextareaClass;
+
+export {
+  matchonVsCardClass as organizerBracketVsCardClass,
+  matchonRedCornerPanelClass as organizerBracketRedCornerPanelClass,
+  matchonBlueCornerPanelClass as organizerBracketBlueCornerPanelClass,
+  matchonRedCornerTextClass as organizerBracketRedCornerTextClass,
+  matchonBlueCornerTextClass as organizerBracketBlueCornerTextClass,
+  matchonCompactTableWrapClass as organizerBracketTableWrapClass,
+};
 
 const BRACKET_GROUP_STATUS_LABELS: Record<BracketStatus, string> = {
   draft: "초안",

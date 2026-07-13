@@ -1,5 +1,10 @@
 import Link from "next/link";
 import { buttonVariants } from "@/components/ui/button";
+import {
+  matchonScrollablePillItemClass,
+  matchonScrollablePillsClass,
+} from "@/lib/ui/matchon-layout";
+import { matchonCompactActionBarClass } from "@/lib/ui/matchon-shell-ui";
 import { cn } from "@/lib/utils";
 
 export function GymFightersToolbar({
@@ -12,7 +17,7 @@ export function GymFightersToolbar({
   const tabBase = "/gym/fighters";
   return (
     <div className="flex flex-col gap-4">
-      <div className="flex flex-wrap gap-2">
+      <div className={matchonCompactActionBarClass}>
         <Link
           href="/gym/fighters/new"
           className={cn(buttonVariants({ size: "sm" }))}
@@ -38,7 +43,10 @@ export function GymFightersToolbar({
           {pendingRequestCount > 0 ? ` (${pendingRequestCount})` : ""}
         </Link>
       </div>
-      <nav className="flex flex-wrap gap-2" aria-label="선수 관리 탭">
+      <nav
+        className={cn(matchonScrollablePillsClass, "-mx-1 px-1")}
+        aria-label="선수 관리 탭"
+      >
         <Link
           href={tabBase}
           className={cn(
@@ -46,7 +54,8 @@ export function GymFightersToolbar({
               variant: !showRequests ? "default" : "outline",
               size: "sm",
             }),
-            "rounded-full",
+            matchonScrollablePillItemClass,
+            "min-h-10 rounded-full px-4",
           )}
           aria-current={!showRequests ? "page" : undefined}
         >
@@ -59,7 +68,8 @@ export function GymFightersToolbar({
               variant: showRequests ? "default" : "outline",
               size: "sm",
             }),
-            "rounded-full",
+            matchonScrollablePillItemClass,
+            "min-h-10 rounded-full px-4",
           )}
           aria-current={showRequests ? "page" : undefined}
         >

@@ -6,7 +6,8 @@ import {
   resolveOrganizerApplicationDisplayStatus,
 } from "@/lib/application-display-status";
 import { OrganizerApplicationsEmptyState } from "@/components/domain/applications/OrganizerApplicationsEmptyState";
-import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
+import { matchonCompactTableWrapClass } from "@/lib/ui/matchon-shell-ui";
+import { listTableHeaderRowClass } from "@/lib/ui/list-table-styles";
 import { cn } from "@/lib/utils";
 
 export type GymApplicationSummary = {
@@ -77,16 +78,18 @@ export function OrganizerApplicationsGymSummaryTable({
   }
 
   return (
-    <Card variant="default" className="overflow-hidden py-0">
-      <CardHeader className="border-b px-4 py-3">
-        <CardTitle className="text-sm font-semibold">체육관별 현황</CardTitle>
-        <p className="text-muted-foreground mt-1 text-xs font-normal">
+    <div className="overflow-hidden rounded-xl border border-matchon-border bg-white shadow-sm">
+      <div className="border-b border-matchon-border px-4 py-3">
+        <h3 className="text-sm font-bold text-matchon-text-primary">
+          체육관별 현황
+        </h3>
+        <p className="text-matchon-text-secondary mt-1 text-xs">
           체육관을 클릭하면 해당 체육관 선수만 필터됩니다.
         </p>
-      </CardHeader>
-      <CardContent className="overflow-x-auto p-0">
+      </div>
+      <div className={cn(matchonCompactTableWrapClass, "rounded-none border-0 shadow-none")}>
       <table className="w-full min-w-[52rem] text-left text-sm">
-        <thead className="bg-muted/40 text-xs">
+        <thead className={listTableHeaderRowClass}>
           <tr>
             <th className="px-3 py-2 font-medium">체육관</th>
             <th className="px-3 py-2 font-medium text-center">참가선수</th>
@@ -126,8 +129,8 @@ export function OrganizerApplicationsGymSummaryTable({
           })}
         </tbody>
       </table>
-      </CardContent>
-    </Card>
+      </div>
+    </div>
   );
 }
 

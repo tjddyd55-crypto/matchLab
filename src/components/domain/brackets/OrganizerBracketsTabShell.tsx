@@ -2,12 +2,18 @@
 
 import { usePathname, useRouter } from "next/navigation";
 import type { ReactNode } from "react";
-import { MatchonTabs } from "@/components/shared/MatchonTabs";
 import {
   BRACKET_PAGE_TAB_LABELS,
   BRACKET_PAGE_TABS,
   type BracketPageTab,
 } from "@/lib/brackets/bracket-page-tab";
+import {
+  matchonUnderlineTabActiveClass,
+  matchonUnderlineTabBaseClass,
+  matchonUnderlineTabInactiveClass,
+  matchonUnderlineTabsNavClass,
+} from "@/lib/ui/matchon-shell-ui";
+import { cn } from "@/lib/utils";
 
 const TABS = BRACKET_PAGE_TABS.map((id) => ({
   id,
@@ -44,8 +50,29 @@ export function OrganizerBracketsTabShell({
         : view;
 
   return (
-    <div className="flex flex-col gap-6">
-      <MatchonTabs items={TABS} activeId={activeTab} onChange={selectTab} />
+    <div className="flex flex-col gap-5">
+      <nav className={matchonUnderlineTabsNavClass} role="tablist">
+        {TABS.map((tab) => {
+          const active = activeTab === tab.id;
+          return (
+            <button
+              key={tab.id}
+              type="button"
+              role="tab"
+              aria-selected={active}
+              onClick={() => selectTab(tab.id)}
+              className={cn(
+                matchonUnderlineTabBaseClass,
+                active
+                  ? matchonUnderlineTabActiveClass
+                  : matchonUnderlineTabInactiveClass,
+              )}
+            >
+              {tab.label}
+            </button>
+          );
+        })}
+      </nav>
 
       <div role="tabpanel" data-event-id={eventId}>
         {panel}

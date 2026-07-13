@@ -1,3 +1,4 @@
+import type { ReactNode } from "react";
 import type { PublicEventDetailDTO } from "@/lib/dto/public";
 import { PublicEventDivisionList } from "@/components/domain/events/PublicEventDivisionList";
 import { PublicEventGallery } from "@/components/domain/events/PublicEventGallery";
@@ -6,12 +7,25 @@ import { EventApplicationCta } from "@/components/domain/events/EventApplication
 import { PublicEventVenueSection } from "@/components/domain/events/public/PublicEventVenueSection";
 import { PublicEventInfoSummaryCard } from "@/components/domain/events/public/PublicEventInfoSummaryCard";
 import { FeedbackMessage } from "@/components/shared/FeedbackMessage";
-import {
-  Card,
-  CardContent,
-  CardHeader,
-  CardTitle,
-} from "@/components/ui/card";
+import { matchonSectionTitleClass, matchonStatCardClass } from "@/lib/ui/matchon-shell-ui";
+import { cn } from "@/lib/utils";
+
+function OverviewCard({
+  title,
+  children,
+  className,
+}: {
+  title: string;
+  children: ReactNode;
+  className?: string;
+}) {
+  return (
+    <section className={cn(matchonStatCardClass, className)}>
+      <h2 className={cn(matchonSectionTitleClass, "mb-4")}>{title}</h2>
+      {children}
+    </section>
+  );
+}
 
 export function PublicEventOverviewSection({
   event,
@@ -26,24 +40,21 @@ export function PublicEventOverviewSection({
 
       <PublicEventVenueSection event={event} />
 
-      <Card>
-        <CardHeader>
-          <CardTitle className="text-base md:text-lg">대회 개요</CardTitle>
-        </CardHeader>
-        <CardContent>
-          {event.description ? (
-            <div className="text-muted-foreground whitespace-pre-wrap text-sm leading-relaxed">
-              {event.description}
-            </div>
-          ) : (
-            <p className="text-muted-foreground text-sm">등록된 소개가 없습니다.</p>
-          )}
-        </CardContent>
-      </Card>
+      <OverviewCard title="대회 개요">
+        {event.description ? (
+          <div className="whitespace-pre-wrap text-sm leading-relaxed text-matchon-text-secondary">
+            {event.description}
+          </div>
+        ) : (
+          <p className="text-sm text-matchon-text-secondary">
+            등록된 소개가 없습니다.
+          </p>
+        )}
+      </OverviewCard>
 
       {event.posterUrl && event.galleryImages.length > 0 ? (
         <section className="space-y-3">
-          <h2 className="text-base font-semibold md:text-lg">
+          <h2 className={matchonSectionTitleClass}>
             포스터 · 상세 이미지
           </h2>
           <PublicEventGallery images={event.galleryImages} />
@@ -52,35 +63,27 @@ export function PublicEventOverviewSection({
         <PublicEventGallery images={event.galleryImages} />
       ) : null}
 
-      <Card className="hidden md:block">
-        <CardHeader>
-          <CardTitle className="text-lg">참가 신청 · 입금 안내</CardTitle>
-        </CardHeader>
-        <CardContent className="space-y-4">
-          <ul className="text-muted-foreground space-y-2 text-sm leading-relaxed">
-            {paymentLines.map((line) => (
-              <li key={line}>{line}</li>
-            ))}
-          </ul>
+      <OverviewCard title="참가 신청 · 입금 안내" className="hidden md:block">
+        <ul className="space-y-2 text-sm leading-relaxed text-matchon-text-secondary">
+          {paymentLines.map((line) => (
+            <li key={line}>{line}</li>
+          ))}
+        </ul>
+        <div className="mt-4">
           <EventApplicationCta
             eventStatus={event.status}
             registrationStatus={event.registrationStatus}
           />
-        </CardContent>
-      </Card>
+        </div>
+      </OverviewCard>
 
-      <Card className="md:hidden">
-        <CardHeader>
-          <CardTitle className="text-base">참가 신청 · 입금 안내</CardTitle>
-        </CardHeader>
-        <CardContent>
-          <ul className="text-muted-foreground space-y-1.5 text-xs leading-relaxed">
-            {paymentLines.map((line) => (
-              <li key={line}>{line}</li>
-            ))}
-          </ul>
-        </CardContent>
-      </Card>
+      <OverviewCard title="참가 신청 · 입금 안내" className="md:hidden">
+        <ul className="space-y-1.5 text-xs leading-relaxed text-matchon-text-secondary">
+          {paymentLines.map((line) => (
+            <li key={line}>{line}</li>
+          ))}
+        </ul>
+      </OverviewCard>
 
       {event.streamingConsentRequired ? (
         <FeedbackMessage tone="warning">
@@ -95,20 +98,15 @@ export function PublicEventOverviewSection({
         streamingNoticeText={event.streamingNoticeText}
       />
 
-      <Card>
-        <CardHeader>
-          <CardTitle className="text-base md:text-lg">체급 · 경기구분</CardTitle>
-        </CardHeader>
-        <CardContent>
-          {event.divisions.length > 0 ? (
-            <PublicEventDivisionList divisions={event.divisions} />
-          ) : (
-            <FeedbackMessage tone="info">
-              주최자가 경기구분 정보를 준비 중입니다.
-            </FeedbackMessage>
-          )}
-        </CardContent>
-      </Card>
+      <OverviewCard title="체급 · 경기구분">
+        {event.divisions.length > 0 ? (
+          <PublicEventDivisionList divisions={event.divisions} />
+        ) : (
+          <FeedbackMessage tone="info">
+            주최자가 경기구분 정보를 준비 중입니다.
+          </FeedbackMessage>
+        )}
+      </OverviewCard>
     </div>
   );
 }

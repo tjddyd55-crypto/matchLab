@@ -12,6 +12,12 @@ import {
 } from "@/components/domain/fighters/GymFighterForm";
 import { GymProfileMissingBanner } from "@/components/domain/gym/GymProfileMissingBanner";
 import { buttonVariants } from "@/components/ui/button";
+import {
+  matchonPageContainerClass,
+  matchonPageDescClass,
+  matchonPageStackClass,
+  matchonPageTitleClass,
+} from "@/lib/ui/matchon-layout";
 import { cn } from "@/lib/utils";
 
 export const dynamic = "force-dynamic";
@@ -26,8 +32,10 @@ export default async function GymFighterEditPage({
 
   if (!actor.gymId && actor.role !== "admin") {
     return (
-      <div className="mx-auto flex w-full max-w-2xl flex-col gap-6 px-4 py-8 md:px-6">
-        <GymProfileMissingBanner />
+      <div className={matchonPageContainerClass}>
+        <div className={matchonPageStackClass}>
+          <GymProfileMissingBanner />
+        </div>
       </div>
     );
   }
@@ -45,44 +53,44 @@ export default async function GymFighterEditPage({
   const { row } = data;
 
   return (
-    <div className="mx-auto flex w-full max-w-2xl flex-col gap-6 px-4 py-8 md:px-6">
-      <div>
-        <Link
-          href="/gym/fighters"
-          className={cn(
-            buttonVariants({ variant: "ghost", size: "sm" }),
-            "mb-2",
-          )}
-        >
-          ← 소속 선수
-        </Link>
-        <h1 className="font-heading text-2xl font-semibold tracking-tight">
-          선수 정보 수정
-        </h1>
-        <p className="text-muted-foreground mt-1 font-mono text-xs">
-          {row.fighterCode}
-        </p>
+    <div className={matchonPageContainerClass}>
+      <div className={cn(matchonPageStackClass, "max-w-2xl")}>
+        <div className="min-w-0">
+          <Link
+            href="/gym/fighters"
+            className={cn(
+              buttonVariants({ variant: "ghost", size: "sm" }),
+              "-ml-2 mb-2",
+            )}
+          >
+            ← 소속 선수
+          </Link>
+          <h1 className={matchonPageTitleClass}>선수 정보 수정</h1>
+          <p className={cn(matchonPageDescClass, "font-mono text-xs")}>
+            {row.fighterCode}
+          </p>
+        </div>
+
+        <GymFighterAccountPanel
+          fighterId={fighterId}
+          loginId={data.loginId}
+          hasAccount={data.accountStatus === "issued"}
+        />
+
+        <GymFighterProfileStatusPanel
+          accountStatus={data.accountStatus}
+          loginId={data.loginId}
+          profileStatus={data.profileStatus}
+          hasFighterProfile={data.hasFighterProfile}
+          publicProfileHref={data.publicProfileHref}
+        />
+
+        <GymFighterForm
+          mode="edit"
+          fighterId={fighterId}
+          initial={gymFighterFormInitialFromEdit(row)}
+        />
       </div>
-
-      <GymFighterAccountPanel
-        fighterId={fighterId}
-        loginId={data.loginId}
-        hasAccount={data.accountStatus === "issued"}
-      />
-
-      <GymFighterProfileStatusPanel
-        accountStatus={data.accountStatus}
-        loginId={data.loginId}
-        profileStatus={data.profileStatus}
-        hasFighterProfile={data.hasFighterProfile}
-        publicProfileHref={data.publicProfileHref}
-      />
-
-      <GymFighterForm
-        mode="edit"
-        fighterId={fighterId}
-        initial={gymFighterFormInitialFromEdit(row)}
-      />
     </div>
   );
 }

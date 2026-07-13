@@ -1,5 +1,6 @@
 "use client";
 
+import { MatchonLogo } from "@/components/common/MatchonLogo";
 import { Button } from "@/components/ui/button";
 
 export function PrintApplicationDocument({
@@ -20,34 +21,38 @@ export function PrintApplicationDocument({
   hasGeneratedPdf: boolean;
 }) {
   return (
-    <div className="mx-auto max-w-3xl px-6 py-8 print:px-0 print:py-0">
-      <div className="mb-6 flex justify-end print:hidden">
+    <div className="mx-auto max-w-3xl bg-white px-6 py-8 print:px-0 print:py-0">
+      <div className="mb-6 flex items-center justify-between print:hidden">
+        <MatchonLogo variant="light" size="sm" />
         <Button type="button" onClick={() => window.print()}>
           인쇄
         </Button>
       </div>
-      <p className="text-muted-foreground mb-4 text-xs print:hidden">
+      <p className="mb-4 text-xs text-matchon-text-secondary print:hidden">
         {hasGeneratedPdf
           ? "완료 PDF가 생성되었습니다. 문서 상세에서 PDF 파일을 열 수 있습니다."
           : "PDF overlay가 아직 생성되지 않은 경우 현재 화면을 출력할 수 있습니다."}
       </p>
       <article className="space-y-4 text-sm">
-        <header className="border-b pb-4">
-          <h1 className="text-xl font-semibold">{title}</h1>
-          <p className="text-muted-foreground mt-1">{eventTitle}</p>
-          <p className="mt-2">
+        <header className="border-b border-matchon-border pb-4">
+          <MatchonLogo variant="light" size="sm" className="mb-3 hidden print:inline-flex" />
+          <h1 className="text-xl font-bold text-matchon-text-primary">{title}</h1>
+          <p className="mt-1 text-sm text-matchon-text-secondary">{eventTitle}</p>
+          <p className="mt-2 text-sm text-matchon-text-primary">
             {gymName} · {fighterName}
           </p>
-          <p className="text-muted-foreground mt-2 text-xs">
+          <p className="mt-2 text-xs text-matchon-text-secondary">
             원본 PDF: {originalPdfFileName}
           </p>
         </header>
-        <table className="w-full border-collapse">
+        <table className="w-full border-collapse text-sm">
           <tbody>
             {Object.entries(previewValues).map(([id, value]) => (
-              <tr key={id} className="border-b">
-                <th className="w-1/3 py-2 pr-4 text-left font-medium">{id}</th>
-                <td className="py-2">{value || "—"}</td>
+              <tr key={id} className="border-b border-matchon-border">
+                <th className="w-1/3 py-2 pr-4 text-left font-semibold text-matchon-text-primary">
+                  {id}
+                </th>
+                <td className="py-2 text-matchon-text-primary">{value || "—"}</td>
               </tr>
             ))}
           </tbody>

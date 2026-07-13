@@ -7,13 +7,16 @@ import { GymEventStatusDetailDrawer } from "@/components/domain/gym-event-status
 import { GymEventStatusSummaryCards } from "@/components/domain/gym-event-status/GymEventStatusSummaryCards";
 import { GymEventStatusTable } from "@/components/domain/gym-event-status/GymEventStatusTable";
 import { MatchonEmptyState } from "@/components/shared/MatchonEmptyState";
-import { Card, CardContent } from "@/components/ui/card";
 import {
   matchesGymEventStatusSummaryFilter,
   type GymEventStatusSummaryFilter,
 } from "@/lib/gym-event-status-filters";
 import type { GymEventStatusPageDTO } from "@/lib/services/gym-event-status.service";
-import { eventListFieldInputClass, eventListFieldSelectClass } from "@/lib/ui/event-list-ui";
+import {
+  matchonFilterBarClass,
+  matchonFieldInputClass,
+  matchonFieldSelectClass,
+} from "@/lib/ui/matchon-shell-ui";
 import {
   matchonSectionStackClass,
   matchonSectionTitleClass,
@@ -73,22 +76,22 @@ export function GymEventStatusBoard({ data }: { data: GymEventStatusPageDTO }) {
         onFilterChange={handleSummaryFilterChange}
       />
 
-      <Card variant="muted" className="gap-0 py-0">
-        <CardContent className="flex flex-col gap-3 pt-4 sm:flex-row sm:flex-wrap sm:items-end">
+      <div className={matchonFilterBarClass}>
+        <div className="flex flex-col gap-3 sm:flex-row sm:flex-wrap sm:items-end">
           <label className="flex min-w-[12rem] flex-1 flex-col gap-1 text-xs">
-            <span className="text-muted-foreground">선수명·경기구분 검색</span>
+            <span className="text-matchon-text-secondary">선수명·경기구분 검색</span>
             <input
               type="search"
               value={search}
               onChange={(e) => setSearch(e.target.value)}
               placeholder="선수명 또는 경기구분/체급"
-              className={eventListFieldInputClass}
+              className={matchonFieldInputClass}
             />
           </label>
           <label className="flex flex-col gap-1 text-xs">
-            <span className="text-muted-foreground">필터</span>
+            <span className="text-matchon-text-secondary">필터</span>
             <select
-              className={cn(eventListFieldSelectClass, "min-w-[10rem]")}
+              className={cn(matchonFieldSelectClass, "min-w-[10rem]")}
               value={summaryFilter}
               onChange={(e) =>
                 handleSummaryFilterChange(
@@ -103,8 +106,8 @@ export function GymEventStatusBoard({ data }: { data: GymEventStatusPageDTO }) {
               ))}
             </select>
           </label>
-        </CardContent>
-      </Card>
+        </div>
+      </div>
 
       <div ref={listRef} className="flex flex-col gap-4">
         <h2 className={matchonSectionTitleClass}>신청 현황</h2>
