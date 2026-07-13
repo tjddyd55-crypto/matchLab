@@ -8,15 +8,12 @@ import {
   listTableHeaderCellStartClass,
   listTableHeaderRowClass,
 } from "@/lib/ui/list-table-styles";
-import { organizerEventListTableWrapClass } from "@/lib/ui/event-list-ui";
+import {
+  organizerEventListTableWrapClass,
+  formatOrganizerEventListDate,
+} from "@/lib/ui/event-list-ui";
 import { nowrapTruncateClass } from "@/lib/ui/match-grid-layout";
 import { cn } from "@/lib/utils";
-
-function formatEventDate(iso: string): string {
-  const d = new Date(iso);
-  if (Number.isNaN(d.getTime())) return "—";
-  return d.toLocaleDateString("ko-KR", { dateStyle: "medium" });
-}
 
 export function OrganizerEventListTable({
   rows,
@@ -92,7 +89,7 @@ export function OrganizerEventListTable({
                 </td>
               ) : null}
               <td className="px-2 py-2.5 align-middle text-xs tabular-nums whitespace-nowrap">
-                {formatEventDate(row.eventDate)}
+                {formatOrganizerEventListDate(row.eventDate)}
               </td>
               <td className="min-w-0 px-2 py-2.5 align-middle text-xs">
                 <span

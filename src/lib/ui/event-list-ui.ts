@@ -128,3 +128,15 @@ export const organizerEventListTableWrapClass =
 
 export const organizerEventListFilterBarClass =
   "flex flex-wrap gap-2";
+
+const ORGANIZER_EVENT_LIST_TIMEZONE = "Asia/Seoul";
+
+/** SSR/CSR 일치 — Railway(UTC)와 브라우저(KST) hydration 방지 */
+export function formatOrganizerEventListDate(iso: string): string {
+  const d = new Date(iso);
+  if (Number.isNaN(d.getTime())) return "—";
+  return d.toLocaleDateString("ko-KR", {
+    dateStyle: "medium",
+    timeZone: ORGANIZER_EVENT_LIST_TIMEZONE,
+  });
+}

@@ -3,13 +3,8 @@ import { EventStatusPill } from "@/components/domain/events/EventStatusPill";
 import { RegistrationStatusPill } from "@/components/domain/events/RegistrationStatusPill";
 import { buttonVariants } from "@/components/ui/button";
 import type { OrganizerEventListItemVM } from "@/lib/services/event.service";
+import { formatOrganizerEventListDate } from "@/lib/ui/event-list-ui";
 import { cn } from "@/lib/utils";
-
-function formatEventDate(iso: string): string {
-  const d = new Date(iso);
-  if (Number.isNaN(d.getTime())) return "—";
-  return d.toLocaleDateString("ko-KR", { dateStyle: "medium" });
-}
 
 export function OrganizerEventCompactCard({
   row,
@@ -47,7 +42,7 @@ export function OrganizerEventCompactCard({
       <dl className="text-muted-foreground mt-2 space-y-1 text-xs">
         <div className="flex flex-wrap gap-x-2 gap-y-0.5">
           <dt className="sr-only">대회일</dt>
-          <dd>{formatEventDate(row.eventDate)}</dd>
+          <dd>{formatOrganizerEventListDate(row.eventDate)}</dd>
           <span aria-hidden>·</span>
           <dt className="sr-only">장소</dt>
           <dd className="min-w-0 flex-1 truncate" title={row.location ?? undefined}>
