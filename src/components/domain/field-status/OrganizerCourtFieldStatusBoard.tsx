@@ -17,6 +17,14 @@ import {
 } from "@/lib/court-field-status-display";
 import type { EventCourtVM } from "@/lib/services/event-court.service";
 import type { OrganizerEventMatchListItemVM } from "@/lib/services/match.service";
+import {
+  eventManagementCourtCardGridClass,
+  eventManagementMutedFilterSurfaceClass,
+  eventManagementSectionHeaderClass,
+  eventManagementSectionStackClass,
+  eventManagementSectionTitleClass,
+} from "@/lib/ui/event-management-ui";
+import { cn } from "@/lib/utils";
 
 const STATUS_TAB_ITEMS: { id: CourtFieldStatusFilter; label: string }[] = [
   { id: "all", label: "전체" },
@@ -37,6 +45,7 @@ export function OrganizerCourtFieldStatusBoard({
   matches: OrganizerEventMatchListItemVM[];
   courts: EventCourtVM[];
 }) {
+  void eventTitle;
   const router = useRouter();
   const [isRefreshing, startRefresh] = useTransition();
   const [statusFilter, setStatusFilter] = useState<CourtFieldStatusFilter>("all");
@@ -72,13 +81,14 @@ export function OrganizerCourtFieldStatusBoard({
   }
 
   return (
-    <div className="flex flex-col gap-6">
-      <div className="flex flex-wrap items-center justify-between gap-3">
-        <p className="text-muted-foreground text-sm">{eventTitle}</p>
+    <div className={eventManagementSectionStackClass}>
+      <div className={eventManagementSectionHeaderClass}>
+        <p className={eventManagementSectionTitleClass}>경기장 요약</p>
         <Button
           type="button"
           variant="outline"
-          size="field"
+          size="sm"
+          className="h-9"
           disabled={isRefreshing}
           onClick={handleRefresh}
         >
@@ -96,8 +106,13 @@ export function OrganizerCourtFieldStatusBoard({
         onFilterChange={setStatusFilter}
       />
 
-      <div className="space-y-3">
-        <p className="text-muted-foreground text-xs font-medium">상태 필터</p>
+      <div
+        className={cn(
+          "space-y-2 rounded-xl border border-[#E2E8F0] p-3",
+          eventManagementMutedFilterSurfaceClass,
+        )}
+      >
+        <p className="text-xs font-medium text-[#64748B]">상태 필터</p>
         <MatchonTabs
           items={STATUS_TAB_ITEMS}
           activeId={statusFilter}
@@ -120,7 +135,7 @@ export function OrganizerCourtFieldStatusBoard({
           선택한 필터에 해당하는 경기장이 없습니다.
         </FeedbackMessage>
       ) : (
-        <div className="grid gap-4 md:grid-cols-2 xl:grid-cols-3">
+        <div className={eventManagementCourtCardGridClass}>
           {filteredCourts.map((court) => (
             <CourtFieldStatusCard
               key={court.courtId}

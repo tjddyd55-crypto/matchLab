@@ -1,10 +1,18 @@
 "use client";
 
-import { Card } from "@/components/ui/card";
 import type {
   CourtFieldStatusBoardSummary,
   CourtFieldStatusFilter,
 } from "@/lib/court-field-status-display";
+import {
+  eventManagementStatCardClass,
+  eventManagementStatCardInteractiveClass,
+  eventManagementStatCardSelectedClass,
+  eventManagementStatGridClass,
+  eventManagementStatLabelClass,
+  eventManagementStatLabelSelectedClass,
+  eventManagementStatValueClass,
+} from "@/lib/ui/event-management-ui";
 import { cn } from "@/lib/utils";
 
 function StatCard({
@@ -26,18 +34,22 @@ function StatCard({
       type="button"
       aria-pressed={active}
       onClick={() => onSelect(filter)}
-      className="w-full text-left"
+      className={cn(
+        eventManagementStatCardClass,
+        eventManagementStatCardInteractiveClass,
+        "w-full",
+        active && eventManagementStatCardSelectedClass,
+      )}
     >
-      <Card
-        variant={active ? "selected" : "interactive"}
+      <p
         className={cn(
-          "px-4 py-3 transition-colors",
-          "focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring",
+          eventManagementStatLabelClass,
+          active && eventManagementStatLabelSelectedClass,
         )}
       >
-        <p className="text-muted-foreground text-xs">{label}</p>
-        <p className="mt-1 text-2xl font-semibold tabular-nums">{value}</p>
-      </Card>
+        {label}
+      </p>
+      <p className={eventManagementStatValueClass}>{value}</p>
     </button>
   );
 }
@@ -52,7 +64,7 @@ export function CourtFieldStatusSummaryCards({
   onFilterChange: (filter: CourtFieldStatusFilter) => void;
 }) {
   return (
-    <div className="grid gap-3 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-5">
+    <div className={eventManagementStatGridClass}>
       <StatCard
         label="전체 경기장"
         value={summary.totalCourts}

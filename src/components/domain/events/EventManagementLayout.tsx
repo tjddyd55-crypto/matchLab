@@ -5,7 +5,10 @@ import { EventManagementNavBar } from "@/components/domain/events/EventManagemen
 import type { EventStatus } from "@/lib/enums";
 import { EVENT_MANAGEMENT_CONTENT_CLASS } from "@/lib/event-management-layout";
 import type { OrganizerRegistrationStatus } from "@/lib/event-organizer-status";
-import { eventManagementChromeClass } from "@/lib/ui/event-management-ui";
+import {
+  eventManagementChromeClass,
+  eventManagementContentInsetClass,
+} from "@/lib/ui/event-management-ui";
 import { cn } from "@/lib/utils";
 
 export function EventManagementLayout({
@@ -28,11 +31,13 @@ export function EventManagementLayout({
   return (
     <div className={cn("w-full min-w-0", className)}>
       <div className={eventManagementChromeClass}>
-        <EventContextHeader
-          eventTitle={eventTitle}
-          eventStatus={eventStatus}
-          registrationStatus={registrationStatus}
-        />
+        <div className={eventManagementContentInsetClass}>
+          <EventContextHeader
+            eventTitle={eventTitle}
+            eventStatus={eventStatus}
+            registrationStatus={registrationStatus}
+          />
+        </div>
         <Suspense fallback={null}>
           <EventManagementNavBar eventId={eventId} publicSlug={publicSlug} />
         </Suspense>

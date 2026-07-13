@@ -19,19 +19,20 @@ export function EventContextHeader({
 }) {
   return (
     <header className={cn(eventManagementContextHeaderClass, className)}>
-      <div className="flex min-w-0 flex-1 items-start gap-3">
+      <div className="flex min-w-0 flex-1 items-center gap-2 sm:gap-3">
         <Link
           href="/organizer/events"
-          className="text-matchon-text-secondary hover:text-matchon-primary mt-0.5 inline-flex shrink-0 items-center gap-1 text-sm font-medium transition-colors"
+          className="inline-flex shrink-0 items-center gap-1 text-xs font-medium text-[#64748B] transition-colors hover:text-[#0A47FF]"
         >
-          <ArrowLeft className="size-4 shrink-0" aria-hidden />
+          <ArrowLeft className="size-3.5 shrink-0" aria-hidden />
           <span className="hidden sm:inline">대회 목록</span>
         </Link>
-        <div className="min-w-0 flex-1">
-          <h2 className="truncate font-heading text-base font-bold tracking-tight text-matchon-text-primary sm:text-lg">
-            {eventTitle}
-          </h2>
-        </div>
+        <span className="hidden text-[#CBD5E1] sm:inline" aria-hidden>
+          |
+        </span>
+        <h2 className="truncate font-heading text-base font-bold tracking-tight text-[#0F172A]">
+          {eventTitle}
+        </h2>
       </div>
       <EventStatusBadges
         eventStatus={eventStatus}

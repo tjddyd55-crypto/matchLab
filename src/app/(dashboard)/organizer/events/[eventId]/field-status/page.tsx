@@ -41,12 +41,11 @@ export default async function OrganizerEventFieldStatusPage({
 
       <EventManagementPageHeader
         title="경기장 현황"
-        eventTitle={nav.title}
         description="전체 경기장의 현재·다음·최근 종료 경기를 한눈에 확인합니다. 상세 운영과 결과 입력은 경기 운영 화면에서 진행합니다."
       >
         <Link
           href={`/organizer/events/${eventId}/operation`}
-          className={cn(buttonVariants({ variant: "default", size: "field" }), "mt-2 inline-flex")}
+          className={cn(buttonVariants({ variant: "default", size: "field" }), "w-full sm:w-auto")}
         >
           경기 운영으로 이동
         </Link>

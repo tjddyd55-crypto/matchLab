@@ -11,6 +11,8 @@ import {
   resolveActiveEventManagementNavGroupId,
 } from "@/lib/ui/event-management-navigation";
 import {
+  eventManagementBorderColorClass,
+  eventManagementContentInsetClass,
   eventManagementPrimaryNavClass,
   eventManagementPrimaryNavLinkActiveClass,
   eventManagementPrimaryNavLinkBaseClass,
@@ -56,7 +58,11 @@ export function EventManagementNavBar({
   return (
     <div className="min-w-0">
       <nav
-        className={eventManagementPrimaryNavClass}
+        className={cn(
+          eventManagementPrimaryNavClass,
+          eventManagementContentInsetClass,
+          `border-b ${eventManagementBorderColorClass}`,
+        )}
         aria-label="대회 관리 대분류"
       >
         {groups.map((group) => {
@@ -81,7 +87,11 @@ export function EventManagementNavBar({
 
       {activeGroup ? (
         <nav
-          className={eventManagementSecondaryNavClass}
+          className={cn(
+            eventManagementSecondaryNavClass,
+            eventManagementContentInsetClass,
+            `border-b ${eventManagementBorderColorClass}`,
+          )}
           aria-label="대회 관리 소분류"
         >
           {activeGroup.items.map((item) => {

@@ -1,7 +1,9 @@
 import {
   eventManagementContentClass,
   eventManagementPageDescClass,
+  eventManagementPageHeaderActionsClass,
   eventManagementPageHeaderClass,
+  eventManagementPageHeaderMainClass,
   eventManagementPageTitleClass,
 } from "@/lib/ui/event-management-ui";
 
@@ -10,6 +12,12 @@ import {
 export const EVENT_MANAGEMENT_CONTENT_CLASS = eventManagementContentClass;
 
 export const EVENT_MANAGEMENT_PAGE_HEADER_CLASS = eventManagementPageHeaderClass;
+
+export const EVENT_MANAGEMENT_PAGE_HEADER_MAIN_CLASS =
+  eventManagementPageHeaderMainClass;
+
+export const EVENT_MANAGEMENT_PAGE_HEADER_ACTIONS_CLASS =
+  eventManagementPageHeaderActionsClass;
 
 export const EVENT_MANAGEMENT_PAGE_TITLE_CLASS = eventManagementPageTitleClass;
 

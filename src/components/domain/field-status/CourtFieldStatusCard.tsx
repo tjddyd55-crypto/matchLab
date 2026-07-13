@@ -22,14 +22,19 @@ export function CourtFieldStatusCard({
   const hasMatches = court.rows.length > 0;
 
   return (
-    <Card variant={courtFieldStatusCardVariant(court.overallStatus)} className="py-4">
-      <CardHeader className="flex flex-row items-start justify-between gap-3 px-4 py-0">
-        <div className="min-w-0 space-y-1">
-          <CardTitle className="text-base leading-snug">{court.courtLabel}</CardTitle>
+    <Card
+      variant={courtFieldStatusCardVariant(court.overallStatus)}
+      className="rounded-[14px] border-[#E2E8F0] py-0 shadow-none"
+    >
+      <CardHeader className="flex flex-row items-center justify-between gap-3 border-b border-[#E2E8F0]/80 px-4 py-3">
+        <div className="min-w-0 space-y-0.5">
+          <CardTitle className="text-sm font-semibold leading-snug text-[#0F172A]">
+            {court.courtLabel}
+          </CardTitle>
           {court.courtName.trim() !== court.courtLabel ? (
-            <p className="text-muted-foreground text-xs">{court.courtName}</p>
+            <p className="text-xs text-[#64748B]">{court.courtName}</p>
           ) : null}
-          <p className="text-muted-foreground text-[11px]">
+          <p className="text-[11px] text-[#64748B]">
             진행 {matchCounts.inProgress} · 대기 {matchCounts.waiting} · 종료{" "}
             {matchCounts.completed}
             {matchCounts.cancelled > 0 ? ` · 취소 ${matchCounts.cancelled}` : ""}
@@ -38,7 +43,7 @@ export function CourtFieldStatusCard({
         <MatchonStatusBadge status={court.overallStatus} size="sm" />
       </CardHeader>
 
-      <CardContent className="space-y-3 px-4 pt-3">
+      <CardContent className="space-y-2.5 px-4 py-3">
         {!hasMatches ? (
           <p className="text-muted-foreground rounded-md border border-dashed bg-muted/20 px-3 py-4 text-center text-xs">
             아직 배정된 경기가 없습니다.
