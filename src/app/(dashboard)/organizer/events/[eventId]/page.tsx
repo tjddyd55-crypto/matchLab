@@ -1,4 +1,3 @@
-import { EventStaffRecorderLinksSection } from "@/components/domain/events/EventStaffRecorderLinksSection";
 import { EventGalleryManager } from "@/components/domain/events/EventGalleryManager";
 import { EventDivisionManager } from "@/components/domain/events/EventDivisionManager";
 import { EventForm } from "@/components/domain/events/EventForm";
@@ -20,7 +19,6 @@ import { applicationFormTemplateService } from "@/lib/services/application-form-
 import { divisionTemplateService } from "@/lib/services/division-template.service";
 import { eventRepository } from "@/lib/repositories/event.repository";
 import { eventService } from "@/lib/services/event.service";
-import { eventStaffAccessService } from "@/lib/services/event-staff-access.service";
 import {
   buildEventSetupChecklist,
   buildEventSetupInputFromDetail,
@@ -55,7 +53,6 @@ export default async function OrganizerEventDetailPage({
   let detail;
   let divisionTemplates;
   let divisionTemplateDetails;
-  let staffRecorderLinks;
   let formTemplates;
   let linkedTemplateId: string | null = null;
   try {
@@ -64,11 +61,10 @@ export default async function OrganizerEventDetailPage({
       eventId,
     );
     linkedTemplateId = eventApp?.applicationFormTemplateId ?? null;
-    [divisionTemplates, divisionTemplateDetails, staffRecorderLinks, formTemplates] =
+    [divisionTemplates, divisionTemplateDetails, formTemplates] =
       await Promise.all([
       divisionTemplateService.listTemplatesForEvent(actor, eventId),
       divisionTemplateService.listTemplateDetailsForEvent(actor, eventId),
-      eventStaffAccessService.listLinksForOrganizer(actor, eventId),
       applicationFormTemplateService.listSelectableForEvent(actor, eventId),
     ]);
   } catch (e) {
@@ -144,12 +140,6 @@ export default async function OrganizerEventDetailPage({
       <EventRecordingStreamingSettings event={detail} />
 
       <SpectatorSettingsSection detail={detail} baseUrl={baseUrl} />
-
-      <EventStaffRecorderLinksSection
-        eventId={detail.id}
-        baseUrl={baseUrl}
-        links={staffRecorderLinks}
-      />
 
       <EventGalleryManager eventId={detail.id} images={detail.galleryImages} />
 

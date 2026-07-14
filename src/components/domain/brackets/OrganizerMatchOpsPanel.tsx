@@ -11,11 +11,6 @@ import {
   correctMatchResultAction,
   voidMatchResultsAction,
 } from "@/features/results/actions";
-import {
-  staffConfirmMatchResultsAction,
-  staffRecordMatchOutcomeDraftAction,
-  staffUpdateMatchStatusAction,
-} from "@/features/staff-result/actions";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent } from "@/components/ui/card";
 import { FeedbackMessage } from "@/components/shared/FeedbackMessage";
@@ -58,7 +53,6 @@ function MatchOpsStatusSection({
   pending,
   pendingStatus,
   blocked,
-  staff,
   isOperation,
   actionSize,
   onStatus,
@@ -67,7 +61,6 @@ function MatchOpsStatusSection({
   pending: boolean;
   pendingStatus: BracketMatchStatus | null;
   blocked: boolean;
-  staff: OrganizerMatchOpsPanelProps["staffAccess"];
   isOperation: boolean;
   actionSize: "xs" | "sm" | "field";
   onStatus: (status: BracketMatchStatus) => void;
@@ -100,12 +93,7 @@ function MatchOpsStatusSection({
               variant={
                 isOperation ? "outline" : isCurrent ? "default" : "outline"
               }
-              disabled={
-                pending ||
-                blocked ||
-                isCurrent ||
-                (staff ? !staff.canChangeMatchStatus : false)
-              }
+              disabled={pending || blocked || isCurrent}
               className={cn(
                 isOperation ? "w-full sm:w-auto" : undefined,
                 isOperation &&
@@ -164,13 +152,6 @@ export type OrganizerMatchOpsPanelProps = {
   presentation?: "default" | "operation";
   /** 상태 변경 성공 직후 운영 보드 client state 동기화 */
   onStatusChanged?: (matchId: string, status: BracketMatchStatus) => void;
-  /** 로그인 없는 결과 입력자 전용 링크 모드 */
-  staffAccess?: {
-    token: string;
-    canChangeMatchStatus: boolean;
-    canRecordOutcomeDraft: boolean;
-    canConfirmResult: boolean;
-  };
 };
 
 async function runAction(
@@ -300,17 +281,13 @@ function OrganizerMatchOpsPanelBody(props: OrganizerMatchOpsPanelProps) {
   const [resultType, setResultType] = useState(
     props.resultType ?? BracketMatchOutcomeStyle.decision,
   );
-  const staff = props.staffAccess;
   const isOperation = props.presentation === "operation";
   const actionSize = isOperation ? "field" : props.compact ? "xs" : "sm";
 
   const canFillOutcome = Boolean(props.fighterRedId && props.fighterBlueId);
   const blocked = props.status === BracketMatchStatus.cancelled;
   const canRecordOutcome =
-    !blocked &&
-    canFillOutcome &&
-    !props.hasOfficialResults &&
-    (!staff || staff.canRecordOutcomeDraft);
+    !blocked && canFillOutcome && !props.hasOfficialResults;
 
   const refresh = () => router.refresh();
 
@@ -326,12 +303,7 @@ function OrganizerMatchOpsPanelBody(props: OrganizerMatchOpsPanelProps) {
         const fd = new FormData();
         fd.set("matchId", props.matchId);
         fd.set("status", status);
-        if (staff) fd.set("staffToken", staff.token);
-        const err = await runAction(() =>
-          staff
-            ? staffUpdateMatchStatusAction(fd)
-            : updateMatchStatusAction(fd),
-        );
+        const err = await runAction(() => updateMatchStatusAction(fd));
         setPendingStatus(null);
         setError(err);
         if (err) {
@@ -356,17 +328,12 @@ function OrganizerMatchOpsPanelBody(props: OrganizerMatchOpsPanelProps) {
     setError(null);
     setSuccess(null);
     formData.set("matchId", props.matchId);
-    if (staff) formData.set("staffToken", staff.token);
     const intent = String(formData.get("intent") ?? "draft");
     startTransition(async () => {
       const err = await runAction(() =>
         intent === "confirm"
-          ? staff
-            ? staffConfirmMatchResultsAction(formData)
-            : confirmMatchResultsAction(formData)
-          : staff
-            ? staffRecordMatchOutcomeDraftAction(formData)
-            : recordMatchOutcomeDraftAction(formData),
+          ? confirmMatchResultsAction(formData)
+          : recordMatchOutcomeDraftAction(formData),
       );
       setError(err);
       if (!err) {
@@ -435,13 +402,6 @@ function OrganizerMatchOpsPanelBody(props: OrganizerMatchOpsPanelProps) {
         </div>
       ) : null}
 
-      {staff ? (
-        <p className="rounded-md border border-amber-500/40 bg-amber-500/10 px-2 py-1.5 text-[11px] leading-snug text-amber-900 dark:text-amber-100">
-          결과 입력 전용 링크입니다. URL 유출 시 무단 조작 위험이 있으니 현장에서만
-          공유하세요. (향후 PIN·전용 계정 도입 TODO)
-        </p>
-      ) : null}
-
       {error ? (
         <FeedbackMessage tone="error" role="alert">
           {error}
@@ -457,7 +417,6 @@ function OrganizerMatchOpsPanelBody(props: OrganizerMatchOpsPanelProps) {
           pending={pending}
           pendingStatus={pendingStatus}
           blocked={blocked}
-          staff={staff}
           isOperation={isOperation}
           actionSize={actionSize}
           onStatus={onStatus}
@@ -498,18 +457,16 @@ function OrganizerMatchOpsPanelBody(props: OrganizerMatchOpsPanelProps) {
             >
               임시저장
             </Button>
-            {!staff || staff.canConfirmResult ? (
-              <Button
-                type="submit"
-                name="intent"
-                value="confirm"
-                size={actionSize}
-                disabled={pending}
-                className={isOperation ? "w-full sm:w-auto" : undefined}
-              >
-                확정
-              </Button>
-            ) : null}
+            <Button
+              type="submit"
+              name="intent"
+              value="confirm"
+              size={actionSize}
+              disabled={pending}
+              className={isOperation ? "w-full sm:w-auto" : undefined}
+            >
+              확정
+            </Button>
           </div>
         </form>
       ) : null}
@@ -520,14 +477,13 @@ function OrganizerMatchOpsPanelBody(props: OrganizerMatchOpsPanelProps) {
           pending={pending}
           pendingStatus={pendingStatus}
           blocked={blocked}
-          staff={staff}
           isOperation={isOperation}
           actionSize={actionSize}
           onStatus={onStatus}
         />
       ) : null}
 
-      {!staff && !blocked && props.hasOfficialResults ? (
+      {!blocked && props.hasOfficialResults ? (
         <div className="space-y-2 border-t pt-2">
           {!editingCorrect ? (
             <div className="space-y-2">

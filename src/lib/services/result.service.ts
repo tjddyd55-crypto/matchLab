@@ -121,17 +121,6 @@ async function ensureMatchResultOrganizerContext(actor: ActorContext, matchId: s
   return ctx;
 }
 
-async function ensureMatchResultStaffContext(
-  link: ResolvedStaffRecorderLink,
-  matchId: string,
-) {
-  const ctx = await loadMatchResultBracketCtx(matchId);
-  if (ctx.eventId !== link.eventId) {
-    throw new AppError("NOT_FOUND", "경기를 찾을 수 없습니다.");
-  }
-  return ctx;
-}
-
 function augmentStaffReason(
   staffLabel: string | undefined,
   explicit?: string | null,
@@ -225,16 +214,10 @@ export const resultService = {
       confirmedByUserId = principal.actor.userId;
       changedByStaffLinkId = null;
     } else if (principal.kind === "staff") {
-      if (!principal.link.canConfirmResult) {
-        throw new AppError(
-          "FORBIDDEN",
-          "이 링크로는 공식 결과를 확정할 수 없습니다.",
-        );
-      }
-      ctx = await ensureMatchResultStaffContext(principal.link, input.matchId);
-      confirmedByUserId = null;
-      changedByStaffLinkId = principal.link.id;
-      staffLabel = principal.link.label;
+      throw new AppError(
+        "FORBIDDEN",
+        "결과 입력 링크(스태프)는 더 이상 사용되지 않습니다. 주심 또는 운영자 화면에서 결과를 처리해 주세요.",
+      );
     } else {
       ctx = await loadMatchResultBracketCtx(input.matchId);
       if (ctx.eventId !== principal.eventId) {

@@ -23,7 +23,6 @@ export type EventManagementNavIconKey =
   | "gavel"
   | "qr-code"
   | "trophy"
-  | "link"
   | "globe"
   | "files"
   | "radio";
@@ -65,7 +64,6 @@ const SETUP_ANCHOR_IDS = new Set([
   "setup-divisions",
   "setup-application-form",
   "setup-payment",
-  "setup-staff-links",
 ]);
 
 export function getEventManagementBasePath(eventId: string): string {
@@ -137,13 +135,6 @@ export function getEventManagementNavItems(
     { href: `${base}/judges`, label: "심판 관리", group: "brackets", icon: "gavel" },
     { href: `${base}/qr`, label: "QR 출력", group: "brackets", icon: "qr-code" },
     { href: `${base}/results`, label: "결과", group: "brackets", icon: "trophy" },
-    {
-      href: `${base}#setup-staff-links`,
-      label: "스태프 링크",
-      group: "public",
-      icon: "link",
-      anchorId: "setup-staff-links",
-    },
     ...(publicSlug
       ? [
           {
