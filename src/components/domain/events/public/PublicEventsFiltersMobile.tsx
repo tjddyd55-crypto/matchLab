@@ -1,20 +1,18 @@
 "use client";
 
-import { useState } from "react";
 import {
   PUBLIC_EVENTS_FILTERS,
   type PublicEventsFilterKey,
 } from "@/components/domain/events/public/usePublicEventsFilter";
 import {
   publicEventFilterBarClass,
+  publicEventFilterControlLabelClass,
   publicEventFilterPillActiveClass,
   publicEventFilterPillBaseClass,
   publicEventFilterPillInactiveClass,
+  publicEventFilterRegionInputClass,
+  publicEventFilterSportSelectClass,
 } from "@/components/domain/events/public/public-event-ui";
-import {
-  matchonFieldInputClass,
-  matchonFieldSelectClass,
-} from "@/lib/ui/matchon-shell-ui";
 import { cn } from "@/lib/utils";
 
 export function PublicEventsFiltersMobile({
@@ -34,13 +32,11 @@ export function PublicEventsFiltersMobile({
   onRegionQueryChange: (value: string) => void;
   sportOptions: string[];
 }) {
-  const [expanded, setExpanded] = useState(false);
-
   return (
     <div className={cn(publicEventFilterBarClass, "md:hidden")}>
-      <div className="space-y-3">
-        <div className="flex gap-2 overflow-x-auto pb-1 [-ms-overflow-style:none] [scrollbar-width:none] [&::-webkit-scrollbar]:hidden">
-          <div className="flex w-max min-w-full gap-2">
+      <div className="flex flex-col gap-3">
+        <div className="flex gap-2 overflow-x-auto pb-0.5 [-ms-overflow-style:none] [scrollbar-width:none] [&::-webkit-scrollbar]:hidden">
+          <div className="flex w-max gap-2">
             {PUBLIC_EVENTS_FILTERS.map((f) => (
               <button
                 key={f.key}
@@ -59,41 +55,34 @@ export function PublicEventsFiltersMobile({
             ))}
           </div>
         </div>
-        <button
-          type="button"
-          className="text-xs font-semibold text-matchon-primary underline-offset-2 hover:underline"
-          onClick={() => setExpanded((v) => !v)}
-        >
-          {expanded ? "상세 필터 접기" : "종목·지역 필터"}
-        </button>
-        {expanded ? (
-          <div className="grid gap-3">
-            <label className="space-y-1.5 text-sm">
-              <span className="font-semibold text-matchon-text-primary">종목</span>
-              <select
-                value={sport}
-                onChange={(e) => onSportChange(e.target.value)}
-                className={matchonFieldSelectClass}
-              >
-                <option value="all">전체</option>
-                {sportOptions.map((s) => (
-                  <option key={s} value={s}>
-                    {s}
-                  </option>
-                ))}
-              </select>
-            </label>
-            <label className="space-y-1.5 text-sm">
-              <span className="font-semibold text-matchon-text-primary">지역</span>
-              <input
-                value={regionQuery}
-                onChange={(e) => onRegionQueryChange(e.target.value)}
-                placeholder="장소 키워드"
-                className={matchonFieldInputClass}
-              />
-            </label>
-          </div>
-        ) : null}
+
+        <label className="flex w-full min-w-0 flex-col">
+          <span className={publicEventFilterControlLabelClass}>종목</span>
+          <select
+            value={sport}
+            onChange={(e) => onSportChange(e.target.value)}
+            className={cn(publicEventFilterSportSelectClass, "w-full")}
+          >
+            <option value="all">전체</option>
+            {sportOptions.map((s) => (
+              <option key={s} value={s}>
+                {s}
+              </option>
+            ))}
+          </select>
+        </label>
+
+        <label className="flex w-full min-w-0 flex-col">
+          <span className={publicEventFilterControlLabelClass}>
+            지역 / 장소 키워드
+          </span>
+          <input
+            value={regionQuery}
+            onChange={(e) => onRegionQueryChange(e.target.value)}
+            placeholder="지역 또는 장소 검색"
+            className={cn(publicEventFilterRegionInputClass, "max-w-none w-full")}
+          />
+        </label>
       </div>
     </div>
   );

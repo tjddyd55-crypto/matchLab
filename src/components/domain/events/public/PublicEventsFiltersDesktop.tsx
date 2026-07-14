@@ -6,14 +6,13 @@ import {
 } from "@/components/domain/events/public/usePublicEventsFilter";
 import {
   publicEventFilterBarClass,
+  publicEventFilterControlLabelClass,
   publicEventFilterPillActiveClass,
   publicEventFilterPillBaseClass,
   publicEventFilterPillInactiveClass,
+  publicEventFilterSportSelectClass,
+  publicEventFilterRegionInputClass,
 } from "@/components/domain/events/public/public-event-ui";
-import {
-  matchonFieldInputClass,
-  matchonFieldSelectClass,
-} from "@/lib/ui/matchon-shell-ui";
 import { cn } from "@/lib/utils";
 
 export function PublicEventsFiltersDesktop({
@@ -35,8 +34,8 @@ export function PublicEventsFiltersDesktop({
 }) {
   return (
     <div className={cn(publicEventFilterBarClass, "hidden md:block")}>
-      <div className="space-y-4">
-        <div className="flex flex-wrap items-center gap-2">
+      <div className="flex flex-col gap-3.5 md:gap-4">
+        <div className="flex gap-2 overflow-x-auto [-ms-overflow-style:none] [scrollbar-width:none] [&::-webkit-scrollbar]:hidden">
           {PUBLIC_EVENTS_FILTERS.map((f) => (
             <button
               key={f.key}
@@ -44,6 +43,7 @@ export function PublicEventsFiltersDesktop({
               onClick={() => onFilterChange(f.key)}
               className={cn(
                 publicEventFilterPillBaseClass,
+                "whitespace-nowrap",
                 filter === f.key
                   ? publicEventFilterPillActiveClass
                   : publicEventFilterPillInactiveClass,
@@ -53,13 +53,14 @@ export function PublicEventsFiltersDesktop({
             </button>
           ))}
         </div>
-        <div className="flex flex-wrap gap-4">
-          <label className="space-y-1.5 text-sm">
-            <span className="font-semibold text-matchon-text-primary">종목</span>
+
+        <div className="grid w-fit max-w-full grid-cols-[minmax(160px,180px)_minmax(280px,420px)] items-end gap-3 md:gap-4">
+          <label className="flex min-w-0 flex-col">
+            <span className={publicEventFilterControlLabelClass}>종목</span>
             <select
               value={sport}
               onChange={(e) => onSportChange(e.target.value)}
-              className={cn(matchonFieldSelectClass, "min-w-[140px]")}
+              className={publicEventFilterSportSelectClass}
             >
               <option value="all">전체</option>
               {sportOptions.map((s) => (
@@ -69,13 +70,15 @@ export function PublicEventsFiltersDesktop({
               ))}
             </select>
           </label>
-          <label className="min-w-[200px] flex-1 space-y-1.5 text-sm">
-            <span className="font-semibold text-matchon-text-primary">지역</span>
+          <label className="flex min-w-0 flex-col">
+            <span className={publicEventFilterControlLabelClass}>
+              지역 / 장소 키워드
+            </span>
             <input
               value={regionQuery}
               onChange={(e) => onRegionQueryChange(e.target.value)}
-              placeholder="장소 키워드"
-              className={cn(matchonFieldInputClass, "max-w-xs")}
+              placeholder="지역 또는 장소 검색"
+              className={publicEventFilterRegionInputClass}
             />
           </label>
         </div>

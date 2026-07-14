@@ -1,9 +1,10 @@
 import type { PublicEventDetailDTO, PublicEventListItemDTO } from "@/lib/dto/public";
 import {
-  matchonFilterBarClass,
   matchonFilterPillActiveClass,
   matchonFilterPillBaseClass,
   matchonFilterPillInactiveClass,
+  matchonFieldInputClass,
+  matchonFieldSelectClass,
   matchonPageEyebrowClass,
   matchonUnderlineTabActiveClass,
   matchonUnderlineTabBaseClass,
@@ -11,10 +12,15 @@ import {
   matchonUnderlineTabsNavClass,
 } from "@/lib/ui/matchon-shell-ui";
 import { matchonPageTitleClass } from "@/lib/ui/matchon-layout";
+import { cn } from "@/lib/utils";
 
 export const publicEventPageEyebrowClass = matchonPageEyebrowClass;
 export const publicEventPageTitleClass = matchonPageTitleClass;
-export const publicEventFilterBarClass = matchonFilterBarClass;
+
+/** /events 필터 Card — compact padding, no shadow */
+export const publicEventFilterBarClass =
+  "rounded-xl border border-matchon-border bg-matchon-primary-light/35 p-3.5 shadow-none md:p-4";
+
 export const publicEventFilterPillBaseClass = matchonFilterPillBaseClass;
 export const publicEventFilterPillActiveClass = matchonFilterPillActiveClass;
 export const publicEventFilterPillInactiveClass = matchonFilterPillInactiveClass;
@@ -22,6 +28,19 @@ export const publicEventUnderlineTabsNavClass = matchonUnderlineTabsNavClass;
 export const publicEventUnderlineTabBaseClass = matchonUnderlineTabBaseClass;
 export const publicEventUnderlineTabActiveClass = matchonUnderlineTabActiveClass;
 export const publicEventUnderlineTabInactiveClass = matchonUnderlineTabInactiveClass;
+
+export const publicEventFilterControlLabelClass =
+  "mb-1.5 block text-xs font-semibold text-matchon-text-primary";
+
+export const publicEventFilterSportSelectClass = cn(
+  matchonFieldSelectClass,
+  "w-full shrink-0",
+);
+
+export const publicEventFilterRegionInputClass = cn(
+  matchonFieldInputClass,
+  "w-full max-w-none",
+);
 
 /** Figma 포스터 중심 카드 */
 export const publicEventCardClass =

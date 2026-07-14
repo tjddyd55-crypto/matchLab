@@ -26,7 +26,7 @@ export function PublicEventsBoard({
   } = usePublicEventsFilter(events);
 
   return (
-    <div className="space-y-5 md:space-y-6">
+    <div className="flex flex-col gap-5 md:gap-6">
       <PublicEventsFiltersDesktop
         filter={filter}
         onFilterChange={setFilter}
