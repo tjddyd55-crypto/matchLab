@@ -90,3 +90,22 @@ export function isOrganizerMemberGymPath(pathname: string): boolean {
     pathname.startsWith("/organizer/member-gyms/")
   );
 }
+
+/** 글로벌 nav 하위 항목 active 판별 SSOT (PC · 모바일 Sheet 공통) */
+export function isOrganizerGlobalNavItemActive(
+  pathname: string,
+  href: string,
+): boolean {
+  if (href === "/organizer") return pathname === "/organizer";
+  if (href === "/organizer/member-gyms") {
+    return (
+      pathname === "/organizer/member-gyms" ||
+      (/^\/organizer\/member-gyms\/[^/]+$/.test(pathname) &&
+        !pathname.startsWith("/organizer/member-gyms/overview") &&
+        !pathname.startsWith("/organizer/member-gyms/links") &&
+        !pathname.startsWith("/organizer/member-gyms/applications") &&
+        !pathname.startsWith("/organizer/member-gyms/settings"))
+    );
+  }
+  return pathname === href || pathname.startsWith(`${href}/`);
+}

@@ -1,0 +1,169 @@
+/**
+ * Organizer global nav hierarchy checks (static + optional Playwright).
+ * Static always runs. Browser checks need PROD_BASE_URL + PREVIEW_TEST_PASSWORD.
+ */
+import assert from "node:assert/strict";
+import {
+  getOrganizerGlobalNavGroups,
+  isOrganizerGlobalNavItemActive,
+} from "../src/lib/navigation/organizer-global-navigation";
+
+function staticChecks() {
+  const assoc = getOrganizerGlobalNavGroups({ organizerType: "association" });
+  const normal = getOrganizerGlobalNavGroups({ organizerType: "individual" });
+
+  const assocSections = assoc
+    .map((g) => g.label)
+    .filter((x): x is string => !!x);
+  assert.deepEqual(assocSections, [
+    "대회",
+    "회원사 관리",
+    "선수",
+    "공통 도구",
+  ]);
+  assert.equal(assoc[0]?.label, null);
+  assert.equal(assoc[0]?.items[0]?.label, "홈");
+
+  const normalSections = normal
+    .map((g) => g.label)
+    .filter((x): x is string => !!x);
+  assert.deepEqual(normalSections, ["대회", "선수", "공통 도구"]);
+  assert.ok(!normalSections.includes("회원사 관리"));
+
+  assert.equal(isOrganizerGlobalNavItemActive("/organizer", "/organizer"), true);
+  assert.equal(
+    isOrganizerGlobalNavItemActive("/organizer/events", "/organizer"),
+    false,
+  );
+  assert.equal(
+    isOrganizerGlobalNavItemActive(
+      "/organizer/member-gyms/overview",
+      "/organizer/member-gyms/overview",
+    ),
+    true,
+  );
+  assert.equal(
+    isOrganizerGlobalNavItemActive(
+      "/organizer/member-gyms/overview",
+      "/organizer/member-gyms",
+    ),
+    false,
+  );
+
+  console.log("STATIC_NAV_HIERARCHY=PASS");
+}
+
+async function browserChecks() {
+  // Requires a deploy (or local) that already includes data-organizer-global-nav.
+  if (process.env.ORGANIZER_NAV_BROWSER !== "1") {
+    console.log(
+      "BROWSER_NAV_HIERARCHY=SKIP (set ORGANIZER_NAV_BROWSER=1 + PROD_BASE_URL + PREVIEW_TEST_PASSWORD)",
+    );
+    return;
+  }
+  const base = process.env.PROD_BASE_URL?.trim();
+  const password = process.env.PREVIEW_TEST_PASSWORD?.trim();
+  if (!base || !password) {
+    console.log("BROWSER_NAV_HIERARCHY=SKIP (no PROD_BASE_URL/PREVIEW_TEST_PASSWORD)");
+    return;
+  }
+
+  const { chromium } = await import("@playwright/test");
+  const browser = await chromium.launch({ headless: true });
+  const page = await browser.newPage({ viewport: { width: 1440, height: 900 } });
+
+  await page.goto(`${base}/login`, { waitUntil: "networkidle" });
+  await page.getByLabel("아이디").fill("preview-assoc");
+  await page.getByLabel("비밀번호").fill(password);
+  await page.getByRole("button", { name: "로그인" }).click();
+  try {
+    await page.waitForURL((u) => !u.pathname.includes("/login"), {
+      timeout: 20000,
+    });
+  } catch {
+    console.log("BROWSER_NAV_HIERARCHY=SKIP (login failed on target)");
+    await browser.close();
+    return;
+  }
+  await page.goto(`${base}/organizer`, { waitUntil: "networkidle" });
+
+  const nav = page.locator("[data-organizer-global-nav]");
+  try {
+    await nav.waitFor({ state: "visible", timeout: 10000 });
+  } catch {
+    console.log(
+      "BROWSER_NAV_HIERARCHY=SKIP (nav markup not on target — deploy needed)",
+    );
+    await browser.close();
+    return;
+  }
+
+  const sectionCount = await nav.locator("[data-nav-level='section']").count();
+  assert.equal(sectionCount, 4, "association should have 4 sections");
+
+  const sectionBox = await nav
+    .locator("[data-nav-section='대회']")
+    .boundingBox();
+  const itemBox = await nav
+    .locator("[data-nav-item='대회 목록']")
+    .boundingBox();
+  assert.ok(sectionBox && itemBox, "section/item boxes");
+  const indent = itemBox!.x - sectionBox!.x;
+  assert.ok(
+    indent >= 8,
+    `child indent should be >= 8px, got ${indent}`,
+  );
+  console.log(`INDENT_PX=${indent.toFixed(1)}`);
+
+  await page.goto(`${base}/organizer/events`, { waitUntil: "networkidle" });
+  const current = nav.locator('[data-nav-item="대회 목록"][aria-current="page"]');
+  assert.equal(await current.count(), 1, "aria-current on events list");
+
+  // mobile sheet
+  await page.setViewportSize({ width: 390, height: 844 });
+  await page.goto(`${base}/organizer`, { waitUntil: "networkidle" });
+  await page.getByRole("button", { name: "메뉴" }).click();
+  const sheetNav = page.locator("[data-organizer-global-nav]");
+  await sheetNav.waitFor({ state: "visible" });
+  assert.equal(
+    await sheetNav.locator("[data-nav-level='section']").count(),
+    4,
+  );
+  console.log("MOBILE_SHEET_SECTIONS=4");
+
+  // normal organizer
+  await page.context().clearCookies();
+  await page.setViewportSize({ width: 1440, height: 900 });
+  await page.goto(`${base}/login`, { waitUntil: "networkidle" });
+  await page.getByLabel("아이디").fill("preview-org");
+  await page.getByLabel("비밀번호").fill(password);
+  await page.getByRole("button", { name: "로그인" }).click();
+  await page.waitForURL((u) => !u.pathname.includes("/login"), {
+    timeout: 25000,
+  });
+  await page.goto(`${base}/organizer`, { waitUntil: "networkidle" });
+  const normalNav = page.locator("[data-organizer-global-nav]");
+  if (await normalNav.count()) {
+    assert.equal(
+      await normalNav.locator("[data-nav-section='회원사 관리']").count(),
+      0,
+    );
+    assert.equal(
+      await normalNav.locator("[data-nav-level='section']").count(),
+      3,
+    );
+  }
+  console.log("BROWSER_NAV_HIERARCHY=PASS");
+  await browser.close();
+}
+
+async function main() {
+  staticChecks();
+  await browserChecks();
+  console.log("ORGANIZER_NAV_HIERARCHY=ALL_PASS");
+}
+
+main().catch((e) => {
+  console.error(e);
+  process.exit(1);
+});

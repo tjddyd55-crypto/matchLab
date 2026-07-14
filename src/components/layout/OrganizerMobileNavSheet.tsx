@@ -1,10 +1,8 @@
 "use client";
 
-import Link from "next/link";
-import { usePathname } from "next/navigation";
 import { useState } from "react";
+import { OrganizerGlobalNavGroups } from "@/components/layout/OrganizerGlobalNavGroups";
 import type { OrganizerGlobalNavGroup } from "@/lib/navigation/organizer-global-navigation";
-import { cn } from "@/lib/utils";
 
 export function OrganizerMobileNavSheet({
   groups,
@@ -12,7 +10,6 @@ export function OrganizerMobileNavSheet({
   groups: OrganizerGlobalNavGroup[];
 }) {
   const [open, setOpen] = useState(false);
-  const pathname = usePathname();
 
   return (
     <div className="md:hidden">
@@ -42,40 +39,11 @@ export function OrganizerMobileNavSheet({
                 닫기
               </button>
             </div>
-            <nav className="flex-1 space-y-4 overflow-y-auto">
-              {groups.map((group) => (
-                <div key={group.id} className="space-y-1">
-                  {group.label ? (
-                    <p className="text-[11px] font-bold uppercase tracking-wide text-white/45">
-                      {group.label}
-                    </p>
-                  ) : null}
-                  <ul className="space-y-0.5">
-                    {group.items.map((item) => {
-                      const active =
-                        pathname === item.href ||
-                        pathname.startsWith(`${item.href}/`);
-                      return (
-                        <li key={item.href}>
-                          <Link
-                            href={item.href}
-                            onClick={() => setOpen(false)}
-                            className={cn(
-                              "block rounded-md px-2 py-2 text-sm",
-                              active
-                                ? "bg-white/12 font-semibold"
-                                : "text-white/75",
-                            )}
-                          >
-                            {item.label}
-                          </Link>
-                        </li>
-                      );
-                    })}
-                  </ul>
-                </div>
-              ))}
-            </nav>
+            <OrganizerGlobalNavGroups
+              groups={groups}
+              density="touch"
+              onNavigate={() => setOpen(false)}
+            />
           </div>
         </div>
       ) : null}
