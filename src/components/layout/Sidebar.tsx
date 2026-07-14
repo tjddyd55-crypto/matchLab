@@ -1,22 +1,17 @@
 import { MatchonLogo } from "@/components/common/MatchonLogo";
 import type { DashboardRole } from "@/components/layout/DashboardShell";
+import { GymPortalNavGroups } from "@/components/layout/GymPortalNavGroups";
 import { OrganizerSidebarNav } from "@/components/layout/OrganizerSidebarNav";
 import { SidebarNav } from "@/components/layout/SidebarNav";
 import type { OrganizerType } from "@/lib/enums";
+import { getGymPortalHomePaths } from "@/lib/navigation/gym-portal-navigation";
 import { getOrganizerGlobalNavGroups } from "@/lib/navigation/organizer-global-navigation";
 import { cn } from "@/lib/utils";
 
 type NavItem = { href: string; label: string };
 
-const navByRole: Record<Exclude<DashboardRole, "organizer">, NavItem[]> = {
-  gym: [
-    { href: "/gym", label: "홈" },
-    { href: "/gym/fighters", label: "선수" },
-    { href: "/gym/invite-links", label: "등록 링크" },
-    { href: "/gym/events", label: "대회" },
-    { href: "/gym/applications", label: "신청" },
-    { href: "/notifications", label: "알림" },
-  ],
+const navByRole: Record<Exclude<DashboardRole, "organizer" | "gym">, NavItem[]> =
+  {
   fighter: [
     { href: "/fighter", label: "홈" },
     { href: "/fighter/profile", label: "내 프로필" },
@@ -39,7 +34,7 @@ const navByRole: Record<Exclude<DashboardRole, "organizer">, NavItem[]> = {
 
 const homePathsByRole: Record<DashboardRole, string[]> = {
   organizer: ["/organizer"],
-  gym: ["/gym"],
+  gym: getGymPortalHomePaths(),
   fighter: ["/fighter"],
   admin: ["/admin"],
 };
@@ -75,6 +70,8 @@ export function Sidebar({
         <OrganizerSidebarNav
           groups={getOrganizerGlobalNavGroups({ organizerType })}
         />
+      ) : role === "gym" ? (
+        <GymPortalNavGroups density="desktop" />
       ) : (
         <SidebarNav
           items={navByRole[role]}

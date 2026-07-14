@@ -14,6 +14,10 @@ import { fighterAccountService } from "@/lib/services/fighter-account.service";
 import { toUtcDateOnly } from "@/lib/date-only";
 import { prisma } from "@/lib/prisma";
 import { normalizePhoneDigits } from "@/lib/phone";
+import {
+  requireGymPortalRead,
+  requireGymPortalWrite,
+} from "@/lib/gym-portal-access";
 import { requireGymOwner, requireRole } from "@/lib/permissions";
 import { isPrismaUniqueViolation } from "@/lib/prisma-errors";
 import { consentRepository } from "@/lib/repositories/consent.repository";
@@ -51,11 +55,8 @@ export type GymFighterEditPageViewModel = {
 
 export const fighterService = {
   async listGymFighters(actor: ActorContext): Promise<GymFighterListRow[]> {
-    requireRole(actor, ["gym", "admin"]);
-    const gymId = actor.gymId;
-    if (!gymId) return [];
-    await requireGymOwner(actor, gymId);
-    return fighterRepository.listActiveFightersForGymManagement(gymId);
+    const access = await requireGymPortalRead(actor);
+    return fighterRepository.listActiveFightersForGymManagement(access.gymId);
   },
 
   async assertGymCanManageFighter(
@@ -166,15 +167,8 @@ export const fighterService = {
     linked: boolean;
     loginCredentials?: { loginId: string; temporaryPassword: string };
   }> {
-    requireRole(actor, ["gym", "admin"]);
-    const gymId = actor.gymId;
-    if (!gymId) {
-      throw new AppError(
-        "FORBIDDEN",
-        "체육관 계정 설정이 필요합니다.",
-      );
-    }
-    await requireGymOwner(actor, gymId);
+    const portal = await requireGymPortalWrite(actor);
+    const gymId = portal.gymId;
 
     const phone = normalizeGymFighterPhone(input.phone);
     const birthDate = toUtcDateOnly(input.birthDate);
@@ -348,6 +342,7 @@ export const fighterService = {
     actor: ActorContext,
     fighterId: string,
   ): Promise<void> {
+    await requireGymPortalWrite(actor);
     const { gymId } = await fighterService.assertGymCanManageFighter(
       actor,
       fighterId,
@@ -361,6 +356,7 @@ export const fighterService = {
     actor: ActorContext,
     input: GymFighterUpdateInput,
   ): Promise<void> {
+    await requireGymPortalWrite(actor);
     const { row } = await fighterService.assertGymCanManageFighter(
       actor,
       input.fighterId,

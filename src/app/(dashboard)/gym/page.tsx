@@ -1,26 +1,18 @@
 import Link from "next/link";
 import type { ReactNode } from "react";
-import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
+import { format } from "date-fns";
 import { buttonVariants } from "@/components/ui/button";
-import { MatchonEmptyState } from "@/components/shared/MatchonEmptyState";
-import { MatchonStatusBadge } from "@/components/shared/MatchonStatusBadge";
 import { GymProfileMissingBanner } from "@/components/domain/gym/GymProfileMissingBanner";
 import { requireActor } from "@/lib/auth/actor";
-import { AppError } from "@/lib/errors/app-error";
-import { matchService } from "@/lib/services/match.service";
-import { BracketMatchStatus } from "@/lib/enums";
-import type { MatchonStatus } from "@/lib/ui/matchon-status";
+import { FighterStatus } from "@/lib/enums";
+import { resolveGymPortalAccess } from "@/lib/gym-portal-access";
+import { prisma } from "@/lib/prisma";
 import {
-  matchonBlueCornerPanelClass,
-  matchonBlueCornerTextClass,
   matchonCompactActionBarClass,
-  matchonRedCornerPanelClass,
-  matchonRedCornerTextClass,
   matchonStatCardClass,
   matchonStatLabelClass,
   matchonStatValueClass,
   matchonStatsGridClass,
-  matchonVsCardClass,
 } from "@/lib/ui/matchon-shell-ui";
 import {
   matchonPageContainerClass,
@@ -32,40 +24,6 @@ import {
 import { cn } from "@/lib/utils";
 
 export const dynamic = "force-dynamic";
-
-function statusKo(s: BracketMatchStatus): string {
-  switch (s) {
-    case BracketMatchStatus.waiting:
-      return "대기";
-    case BracketMatchStatus.called:
-      return "호명";
-    case BracketMatchStatus.ongoing:
-      return "진행 중";
-    case BracketMatchStatus.delayed:
-      return "지연";
-    case BracketMatchStatus.finished:
-      return "종료";
-    case BracketMatchStatus.cancelled:
-      return "취소";
-    default:
-      return String(s);
-  }
-}
-
-function resolveMatchStatusMatchon(status: BracketMatchStatus): MatchonStatus {
-  switch (status) {
-    case BracketMatchStatus.ongoing:
-      return "in_progress";
-    case BracketMatchStatus.finished:
-      return "completed";
-    case BracketMatchStatus.cancelled:
-      return "cancelled";
-    case BracketMatchStatus.delayed:
-      return "application_pending";
-    default:
-      return "waiting";
-  }
-}
 
 function GymProfileShell({ children }: { children: ReactNode }) {
   return (
@@ -86,155 +44,123 @@ export default async function GymHomePage() {
     );
   }
 
-  let field: Awaited<ReturnType<typeof matchService.getGymFieldMode>>;
-  try {
-    field = await matchService.getGymFieldMode(actor);
-  } catch (e) {
-    if (e instanceof AppError && e.code === "FORBIDDEN") {
-      return (
-        <GymProfileShell>
-          <GymProfileMissingBanner />
-        </GymProfileShell>
-      );
-    }
-    throw e;
-  }
+  const access = await resolveGymPortalAccess(actor).catch(() => null);
+  const canCreate = access?.canCreateFighter ?? true;
+  const canUpdate = access?.canUpdateFighter ?? true;
+
+  const [total, active, recent] = await Promise.all([
+    prisma.fighter.count({ where: { currentGymId: actor.gymId } }),
+    prisma.fighter.count({
+      where: { currentGymId: actor.gymId, status: FighterStatus.active },
+    }),
+    prisma.fighter.findMany({
+      where: { currentGymId: actor.gymId },
+      orderBy: { createdAt: "desc" },
+      take: 5,
+      select: {
+        id: true,
+        name: true,
+        status: true,
+        createdAt: true,
+        gender: true,
+      },
+    }),
+  ]);
+  const inactive = total - active;
 
   return (
     <div className={matchonPageContainerClass}>
       <div className={matchonPageStackClass}>
         <div className="min-w-0 space-y-1">
-          <h1 className={matchonPageTitleClass}>현장 모드</h1>
+          <h1 className={matchonPageTitleClass}>회원사 홈</h1>
           <p className={matchonPageDescClass}>
-            소속 선수의 진행 예정 경기와 신청·입금 요약입니다.
+            소속 선수를 등록·관리합니다. 체육관 정보는 프로필에서 확인할 수
+            있습니다.
           </p>
         </div>
 
-        <Card>
-          <CardHeader>
-            <CardTitle className={matchonSectionTitleClass}>바로가기</CardTitle>
-          </CardHeader>
-          <CardContent>
-            <div className={matchonCompactActionBarClass}>
-              <Link
-                href="/gym/fighters"
-                className={cn(buttonVariants({ variant: "outline", size: "sm" }))}
-              >
-                선수
-              </Link>
-              <Link
-                href="/gym/invite-links"
-                className={cn(buttonVariants({ variant: "outline", size: "sm" }))}
-              >
-                초대 링크
-              </Link>
-              <Link
-                href="/gym/events"
-                className={cn(buttonVariants({ variant: "outline", size: "sm" }))}
-              >
-                대회·신청 현황
-              </Link>
-              <Link
-                href="/gym/records"
-                className={cn(buttonVariants({ variant: "outline", size: "sm" }))}
-              >
-                소속 전적
-              </Link>
-            </div>
-          </CardContent>
-        </Card>
-
-        <section className="space-y-4">
-          <h2 className={matchonSectionTitleClass}>신청·입금 요약</h2>
-          <div className={matchonStatsGridClass}>
-            <div className={matchonStatCardClass}>
-              <p className={matchonStatLabelClass}>승인 대기 신청</p>
-              <p className={matchonStatValueClass}>
-                {field.applicationAttention.pendingApproval}
-              </p>
-            </div>
-            <div className={matchonStatCardClass}>
-              <p className={matchonStatLabelClass}>승인·입금 미완료</p>
-              <p className={matchonStatValueClass}>
-                {field.applicationAttention.approvedPaymentIncomplete}
-              </p>
-            </div>
+        <div className={matchonStatsGridClass}>
+          <div className={matchonStatCardClass}>
+            <p className={matchonStatLabelClass}>전체 선수</p>
+            <p className={matchonStatValueClass}>{total}</p>
           </div>
-          <Link
-            href="/gym/applications"
-            className={cn(buttonVariants({ variant: "outline", size: "field" }), "w-fit")}
-          >
-            신청 관리
-          </Link>
-        </section>
+          <div className={matchonStatCardClass}>
+            <p className={matchonStatLabelClass}>활동 선수</p>
+            <p className={matchonStatValueClass}>{active}</p>
+          </div>
+          <div className={matchonStatCardClass}>
+            <p className={matchonStatLabelClass}>비활동 선수</p>
+            <p className={matchonStatValueClass}>{inactive}</p>
+          </div>
+        </div>
 
-        <section className="space-y-4">
-          <h2 className={matchonSectionTitleClass}>우리 선수 진행 예정 경기</h2>
-          {field.upcoming.length === 0 ? (
-            <MatchonEmptyState
-              title="진행 예정 경기가 없습니다"
-              description="시드 데이터가 있으면 공개 대진표에서 배정된 경기가 표시됩니다."
-            />
+        <div className={matchonCompactActionBarClass}>
+          {canCreate ? (
+            <Link
+              href="/gym/fighters/new"
+              className={cn(buttonVariants({ size: "sm" }))}
+            >
+              선수 등록
+            </Link>
           ) : (
-            <ul className="flex flex-col gap-4">
-              {field.upcoming.map((m) => (
-                <li key={m.matchId}>
-                  <div className={cn(matchonVsCardClass, "overflow-hidden p-0")}>
-                    <div className="space-y-1 border-b border-matchon-border bg-matchon-primary-light/20 px-4 py-3">
-                      <p className="font-semibold text-matchon-text-primary">
-                        {m.eventTitle}
-                      </p>
-                      <p className="text-matchon-text-secondary text-xs">
-                        {m.bracketTitle} · {m.roundName ?? "라운드 미상"}
-                      </p>
-                      <div className="flex flex-wrap items-center gap-2 pt-1">
-                        <MatchonStatusBadge
-                          status={resolveMatchStatusMatchon(m.status)}
-                          label={statusKo(m.status)}
-                          size="sm"
-                        />
-                        <span className="text-matchon-text-secondary text-xs">
-                          매트 {m.matNumber ?? "—"} · #
-                          {m.globalMatchOrder ?? m.matchOrder}
-                        </span>
-                        <span className="text-matchon-text-secondary text-xs">
-                          공식 결과 {m.hasOfficialResults ? "확정" : "미확정"}
-                        </span>
-                      </div>
-                    </div>
-                    <div className="grid items-stretch gap-2 p-4 sm:grid-cols-[1fr_auto_1fr]">
-                      <div className={matchonRedCornerPanelClass}>
-                        <p className="text-xs font-semibold text-red-700/80">홍코너</p>
-                        <p className={cn(matchonRedCornerTextClass, "mt-1 break-words")}>
-                          {m.gymFighterName ?? "—"}
-                        </p>
-                      </div>
-                      <span className="self-center px-1 text-sm font-black text-matchon-text-secondary">
-                        VS
-                      </span>
-                      <div className={matchonBlueCornerPanelClass}>
-                        <p className="text-xs font-semibold text-blue-700/80">청코너</p>
-                        <p className={cn(matchonBlueCornerTextClass, "mt-1 break-words")}>
-                          {m.opponentName ?? "미정"}
-                        </p>
-                        {m.opponentGymName ? (
-                          <p className="mt-1 text-xs text-blue-700/70">
-                            {m.opponentGymName}
-                          </p>
-                        ) : null}
-                      </div>
-                    </div>
-                    <div className="border-t border-matchon-border px-4 py-3">
-                      <Link
-                        href={`/events/${m.publicSlug}/brackets`}
-                        className={cn(
-                          buttonVariants({ variant: "outline", size: "sm" }),
-                        )}
-                      >
-                        공개 대진표
-                      </Link>
-                    </div>
+            <span
+              className={cn(
+                buttonVariants({ size: "sm" }),
+                "pointer-events-none opacity-50",
+              )}
+              aria-disabled
+            >
+              선수 등록
+            </span>
+          )}
+          <Link
+            href="/gym/fighters"
+            className={cn(buttonVariants({ variant: "outline", size: "sm" }))}
+          >
+            선수 목록 보기
+          </Link>
+          <Link
+            href="/gym/profile"
+            className={cn(buttonVariants({ variant: "outline", size: "sm" }))}
+          >
+            체육관 정보
+          </Link>
+        </div>
+
+        <section className="space-y-3">
+          <h2 className={matchonSectionTitleClass}>최근 등록 선수</h2>
+          {recent.length === 0 ? (
+            <p className="text-sm text-matchon-text-secondary">
+              등록된 선수가 없습니다. 선수 등록으로 시작해 보세요.
+            </p>
+          ) : (
+            <ul className="divide-y divide-matchon-border rounded-md border border-matchon-border bg-white">
+              {recent.map((f) => (
+                <li
+                  key={f.id}
+                  className="flex flex-wrap items-center justify-between gap-2 px-3 py-2.5 text-sm"
+                >
+                  <div>
+                    <p className="font-medium text-matchon-text-primary">
+                      {f.name}
+                    </p>
+                    <p className="text-xs text-matchon-text-secondary">
+                      {f.gender} · {f.status} ·{" "}
+                      {format(f.createdAt, "yyyy-MM-dd")}
+                    </p>
                   </div>
+                  {canUpdate ? (
+                    <Link
+                      href={`/gym/fighters/${f.id}/edit`}
+                      className="text-xs font-semibold text-matchon-primary underline"
+                    >
+                      수정
+                    </Link>
+                  ) : (
+                    <span className="text-xs text-matchon-text-secondary">
+                      조회만
+                    </span>
+                  )}
                 </li>
               ))}
             </ul>

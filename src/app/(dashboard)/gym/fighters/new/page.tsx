@@ -1,5 +1,7 @@
 import Link from "next/link";
+import { redirect } from "next/navigation";
 import { requireActor } from "@/lib/auth/actor";
+import { resolveGymPortalAccess } from "@/lib/gym-portal-access";
 import { GymFighterForm } from "@/components/domain/fighters/GymFighterForm";
 import { GymProfileMissingBanner } from "@/components/domain/gym/GymProfileMissingBanner";
 import { GymFighterRegistrationPolicyNotice } from "@/components/domain/fighters/GymFighterRegistrationPolicyNotice";
@@ -21,6 +23,12 @@ export default async function GymFighterNewPage({
 }) {
   const actor = await requireActor();
   const { returnTo } = await searchParams;
+  if (actor.gymId) {
+    const access = await resolveGymPortalAccess(actor);
+    if (!access.canCreateFighter) {
+      redirect("/gym/fighters");
+    }
+  }
 
   return (
     <div className={matchonPageContainerClass}>

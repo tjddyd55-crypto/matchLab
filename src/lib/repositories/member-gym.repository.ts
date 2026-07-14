@@ -342,7 +342,27 @@ export const memberGymRepository = {
             phone: true,
             address: true,
             status: true,
-            _count: { select: { fighters: true } },
+            ownerUserId: true,
+            ownerUser: {
+              select: {
+                id: true,
+                name: true,
+                email: true,
+                phone: true,
+                loginId: true,
+                role: true,
+                authUserId: true,
+              },
+            },
+            fighters: {
+              where: { status: "active" },
+              select: { id: true },
+            },
+            _count: {
+              select: {
+                fighters: true,
+              },
+            },
           },
         },
       },
@@ -368,6 +388,32 @@ export const memberGymRepository = {
             phone: true,
             address: true,
             status: true,
+            ownerUserId: true,
+            ownerUser: {
+              select: {
+                id: true,
+                name: true,
+                email: true,
+                phone: true,
+                loginId: true,
+                role: true,
+                authUserId: true,
+                createdAt: true,
+              },
+            },
+            fighters: {
+              select: {
+                id: true,
+                name: true,
+                gender: true,
+                birthDate: true,
+                weight: true,
+                status: true,
+                createdAt: true,
+                updatedAt: true,
+              },
+              orderBy: { createdAt: "desc" },
+            },
             _count: { select: { fighters: true } },
           },
         },
@@ -390,6 +436,44 @@ export const memberGymRepository = {
   ) {
     return db(tx).associationMemberGym.findUnique({
       where: { organizerId_gymId: { organizerId, gymId } },
+    });
+  },
+
+  /** 협회 membership 존재 여부(일반 Gym 게이트용). 다수면 최신 1건. */
+  async findMemberGymByGymId(gymId: string) {
+    return prisma.associationMemberGym.findFirst({
+      where: { gymId },
+      orderBy: { updatedAt: "desc" },
+    });
+  },
+
+  async findMemberGymByOwnerInviteTokenHash(tokenHash: string) {
+    return prisma.associationMemberGym.findFirst({
+      where: {
+        ownerInviteTokenHash: tokenHash,
+        ownerInviteExpiresAt: { gt: new Date() },
+      },
+      include: {
+        gym: {
+          select: {
+            id: true,
+            name: true,
+            ownerUserId: true,
+          },
+        },
+        organizer: { select: { id: true, name: true } },
+      },
+    });
+  },
+
+  async updateMemberGym(
+    memberGymId: string,
+    data: Prisma.AssociationMemberGymUpdateInput,
+    tx?: Prisma.TransactionClient,
+  ) {
+    return db(tx).associationMemberGym.update({
+      where: { id: memberGymId },
+      data,
     });
   },
 

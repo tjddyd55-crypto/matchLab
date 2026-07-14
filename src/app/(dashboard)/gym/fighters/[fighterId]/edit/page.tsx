@@ -1,8 +1,9 @@
 import Link from "next/link";
-import { notFound } from "next/navigation";
+import { notFound, redirect } from "next/navigation";
 import { requireActor } from "@/lib/auth/actor";
 import { AppError } from "@/lib/errors/app-error";
 import { PermissionError } from "@/lib/auth/permission-error";
+import { resolveGymPortalAccess } from "@/lib/gym-portal-access";
 import { fighterService } from "@/lib/services/fighter.service";
 import { GymFighterAccountPanel } from "@/components/domain/fighters/GymFighterAccountPanel";
 import { GymFighterProfileStatusPanel } from "@/components/domain/fighters/GymFighterProfileStatusPanel";
@@ -29,6 +30,13 @@ export default async function GymFighterEditPage({
 }) {
   const actor = await requireActor();
   const { fighterId } = await params;
+
+  if (actor.gymId) {
+    const access = await resolveGymPortalAccess(actor);
+    if (!access.canUpdateFighter) {
+      redirect("/gym/fighters");
+    }
+  }
 
   if (!actor.gymId && actor.role !== "admin") {
     return (

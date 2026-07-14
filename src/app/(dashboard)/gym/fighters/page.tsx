@@ -1,5 +1,6 @@
 import Link from "next/link";
 import { requireActor } from "@/lib/auth/actor";
+import { resolveGymPortalAccess } from "@/lib/gym-portal-access";
 import { fighterService } from "@/lib/services/fighter.service";
 import { publicFighterService } from "@/lib/services/public-fighter.service";
 import { registrationService } from "@/lib/services/registration.service";
@@ -31,6 +32,11 @@ export default async function GymFightersPage({
   const actor = await requireActor();
   const { tab } = await searchParams;
   const showRequests = tab === "requests";
+  const portal = actor.gymId
+    ? await resolveGymPortalAccess(actor).catch(() => null)
+    : null;
+  const canCreateFighter = portal?.canCreateFighter ?? true;
+  const canUpdateFighter = portal?.canUpdateFighter ?? true;
 
   const [fighters, requests, publicSettings] = await Promise.all([
     fighterService.listGymFighters(actor),
@@ -67,6 +73,7 @@ export default async function GymFightersPage({
           <GymFightersToolbar
             showRequests={showRequests}
             pendingRequestCount={pendingRequestCount}
+            canCreateFighter={canCreateFighter}
           />
         )}
 
@@ -99,22 +106,24 @@ export default async function GymFightersPage({
             title="등록된 선수가 없습니다"
             description="선수를 직접 등록하거나, 등록 요청 링크로 선수에게 정보를 받아 주세요."
             action={
-              <div className="flex flex-wrap justify-center gap-2">
-                <Link
-                  href="/gym/fighters/new"
-                  className={cn(buttonVariants({ size: "sm" }))}
-                >
-                  선수 직접 등록
-                </Link>
-                <Link
-                  href="/gym/invite-links"
-                  className={cn(
-                    buttonVariants({ variant: "outline", size: "sm" }),
-                  )}
-                >
-                  등록 링크 만들기
-                </Link>
-              </div>
+              canCreateFighter ? (
+                <div className="flex flex-wrap justify-center gap-2">
+                  <Link
+                    href="/gym/fighters/new"
+                    className={cn(buttonVariants({ size: "sm" }))}
+                  >
+                    선수 직접 등록
+                  </Link>
+                  <Link
+                    href="/gym/invite-links"
+                    className={cn(
+                      buttonVariants({ variant: "outline", size: "sm" }),
+                    )}
+                  >
+                    등록 링크 만들기
+                  </Link>
+                </div>
+              ) : undefined
             }
           />
         ) : (
@@ -123,6 +132,7 @@ export default async function GymFightersPage({
             <GymFightersListClient
               fighters={fighters}
               publicByFighterId={publicByFighterId}
+              readOnly={!canUpdateFighter}
             />
           </>
         )}

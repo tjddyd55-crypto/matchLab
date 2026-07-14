@@ -7,7 +7,9 @@ import { requireActor, redirectUnlessDashboardRole } from "@/lib/auth/actor";
 import { AssociationMemberGymStatus } from "@/lib/enums";
 import { requireAssociationOrganizerPage } from "@/lib/permissions";
 import { memberGymService } from "@/lib/services/member-gym.service";
+import { resolveMemberGymOwnerAccountStatus } from "@/lib/member-gym/owner-account";
 import { MEMBER_GYM_STATUS_LABEL } from "@/lib/ui-labels/member-gym";
+import { MEMBER_GYM_OWNER_ACCOUNT_STATUS_LABEL } from "@/lib/ui-labels/member-gym-owner";
 import { format } from "date-fns";
 
 export const dynamic = "force-dynamic";
@@ -88,29 +90,41 @@ export default async function MemberGymListPage({
               <tr>
                 <th className="px-3 py-2">회원사명</th>
                 <th className="px-3 py-2">회원사 코드</th>
-                <th className="px-3 py-2">연락처</th>
-                <th className="px-3 py-2">지역</th>
-                <th className="px-3 py-2">선수</th>
+                <th className="px-3 py-2">계정</th>
+                <th className="px-3 py-2">선수(전체/활동)</th>
                 <th className="px-3 py-2">상태</th>
-                <th className="px-3 py-2">가입일</th>
+                <th className="px-3 py-2">승인일</th>
                 <th className="px-3 py-2">관리</th>
               </tr>
             </thead>
             <tbody>
-              {rows.map((row) => (
+              {rows.map((row) => {
+                const accountStatus = resolveMemberGymOwnerAccountStatus({
+                  owner: row.gym.ownerUser,
+                  ownerAccessSuspendedAt: row.ownerAccessSuspendedAt,
+                  ownerInviteTokenHash: row.ownerInviteTokenHash,
+                  ownerInviteExpiresAt: row.ownerInviteExpiresAt,
+                });
+                const activeFighters = row.gym.fighters.length;
+                return (
                 <tr key={row.id} className="border-t border-matchon-border">
                   <td className="px-3 py-2 font-medium">{row.gym.name}</td>
                   <td className="px-3 py-2 tabular-nums">{row.memberCode}</td>
-                  <td className="px-3 py-2">{row.gym.phone ?? "-"}</td>
-                  <td className="px-3 py-2">{row.gym.address ?? "-"}</td>
+                  <td className="px-3 py-2">
+                    <span className="rounded bg-matchon-surface px-2 py-0.5 text-xs">
+                      {MEMBER_GYM_OWNER_ACCOUNT_STATUS_LABEL[accountStatus]}
+                    </span>
+                  </td>
                   <td className="px-3 py-2 tabular-nums">
-                    {row.gym._count.fighters}
+                    {row.gym._count.fighters} / {activeFighters}
                   </td>
                   <td className="px-3 py-2">
                     {MEMBER_GYM_STATUS_LABEL[row.status]}
                   </td>
                   <td className="px-3 py-2">
-                    {format(row.joinedAt, "yyyy-MM-dd")}
+                    {row.approvedAt
+                      ? format(row.approvedAt, "yyyy-MM-dd")
+                      : "-"}
                   </td>
                   <td className="px-3 py-2">
                     <Link
@@ -121,25 +135,41 @@ export default async function MemberGymListPage({
                     </Link>
                   </td>
                 </tr>
-              ))}
+              );
+              })}
             </tbody>
           </table>
         </div>
         <ul className="space-y-2 md:hidden">
-          {rows.map((row) => (
-            <li
-              key={row.id}
-              className="rounded-md border border-matchon-border bg-white p-3"
-            >
-              <Link href={`/organizer/member-gyms/${row.id}`} className="block">
-                <p className="font-semibold">{row.gym.name}</p>
-                <p className="mt-1 text-xs text-matchon-text-secondary">
-                  {row.memberCode} · {MEMBER_GYM_STATUS_LABEL[row.status]} · 선수{" "}
-                  {row.gym._count.fighters}
-                </p>
-              </Link>
-            </li>
-          ))}
+          {rows.map((row) => {
+            const accountStatus = resolveMemberGymOwnerAccountStatus({
+              owner: row.gym.ownerUser,
+              ownerAccessSuspendedAt: row.ownerAccessSuspendedAt,
+              ownerInviteTokenHash: row.ownerInviteTokenHash,
+              ownerInviteExpiresAt: row.ownerInviteExpiresAt,
+            });
+            const activeFighters = row.gym.fighters.length;
+            return (
+              <li
+                key={row.id}
+                className="rounded-md border border-matchon-border bg-white p-3"
+              >
+                <Link
+                  href={`/organizer/member-gyms/${row.id}`}
+                  className="block"
+                >
+                  <p className="font-semibold">{row.gym.name}</p>
+                  <p className="mt-1 text-xs text-matchon-text-secondary">
+                    {row.memberCode} · {MEMBER_GYM_STATUS_LABEL[row.status]} ·{" "}
+                    {MEMBER_GYM_OWNER_ACCOUNT_STATUS_LABEL[accountStatus]}
+                  </p>
+                  <p className="mt-0.5 text-xs text-matchon-text-secondary">
+                    선수 {row.gym._count.fighters} / 활동 {activeFighters}
+                  </p>
+                </Link>
+              </li>
+            );
+          })}
         </ul>
         {rows.length === 0 ? (
           <p className="text-sm text-matchon-text-secondary">

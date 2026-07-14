@@ -10,26 +10,42 @@ import { cn } from "@/lib/utils";
 export function GymFightersToolbar({
   showRequests,
   pendingRequestCount = 0,
+  canCreateFighter = true,
 }: {
   showRequests: boolean;
   pendingRequestCount?: number;
+  canCreateFighter?: boolean;
 }) {
   const tabBase = "/gym/fighters";
   return (
     <div className="flex flex-col gap-4">
       <div className={matchonCompactActionBarClass}>
-        <Link
-          href="/gym/fighters/new"
-          className={cn(buttonVariants({ size: "sm" }))}
-        >
-          선수 직접 등록
-        </Link>
-        <Link
-          href="/gym/invite-links"
-          className={cn(buttonVariants({ variant: "outline", size: "sm" }))}
-        >
-          등록 요청 링크 만들기
-        </Link>
+        {canCreateFighter ? (
+          <Link
+            href="/gym/fighters/new"
+            className={cn(buttonVariants({ size: "sm" }))}
+          >
+            선수 직접 등록
+          </Link>
+        ) : (
+          <span
+            className={cn(
+              buttonVariants({ size: "sm" }),
+              "pointer-events-none opacity-50",
+            )}
+            aria-disabled
+          >
+            선수 직접 등록
+          </span>
+        )}
+        {canCreateFighter ? (
+          <Link
+            href="/gym/invite-links"
+            className={cn(buttonVariants({ variant: "outline", size: "sm" }))}
+          >
+            등록 요청 링크 만들기
+          </Link>
+        ) : null}
         <Link
           href={`${tabBase}?tab=requests`}
           className={cn(

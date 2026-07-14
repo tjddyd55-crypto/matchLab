@@ -34,9 +34,11 @@ export type GymFighterTableRow = GymFighterListRow & {
 export function FightersTableDesktop({
   fighters,
   publicByFighterId = {},
+  readOnly = false,
 }: {
   fighters: GymFighterTableRow[];
   publicByFighterId?: Record<string, GymFighterPublicSettingsRow>;
+  readOnly?: boolean;
 }) {
   return (
     <div className="hidden overflow-x-auto rounded-lg border md:block">
@@ -120,20 +122,35 @@ export function FightersTableDesktop({
                 />
               </TableCell>
               <TableCell>
-                <GymFighterPublicToggle
-                  fighterId={f.id}
-                  initialPublic={
-                    publicByFighterId[f.id]?.isPublicToOrganizers ?? false
-                  }
-                />
+                {readOnly ? (
+                  <span className="text-xs text-muted-foreground">
+                    {(publicByFighterId[f.id]?.isPublicToOrganizers ?? false)
+                      ? "공개"
+                      : "비공개"}
+                  </span>
+                ) : (
+                  <GymFighterPublicToggle
+                    fighterId={f.id}
+                    initialPublic={
+                      publicByFighterId[f.id]?.isPublicToOrganizers ?? false
+                    }
+                  />
+                )}
               </TableCell>
               <TableCell>
-                <Link
-                  href={`/gym/fighters/${f.id}/edit`}
-                  className={cn(buttonVariants({ variant: "outline", size: "sm" }), "h-7 text-xs")}
-                >
-                  수정
-                </Link>
+                {readOnly ? (
+                  <span className="text-xs text-muted-foreground">조회만</span>
+                ) : (
+                  <Link
+                    href={`/gym/fighters/${f.id}/edit`}
+                    className={cn(
+                      buttonVariants({ variant: "outline", size: "sm" }),
+                      "h-7 text-xs",
+                    )}
+                  >
+                    수정
+                  </Link>
+                )}
               </TableCell>
             </TableRow>
           ))}

@@ -273,6 +273,12 @@ enum AuditAction {
   admin_adjustment
   payment_high_risk_change
   system_setting_changed
+  gym_owner_connected
+  gym_owner_replaced
+  gym_owner_access_suspended
+  gym_owner_access_restored
+  gym_owner_invited
+  gym_owner_invite_cancelled
 }
 
 enum BracketChangeType {
@@ -341,6 +347,7 @@ model User {
   associationMemberGymApplicationReviews AssociationMemberGymApplicationReview[] @relation("MemberGymApplicationReviewer")
   associationJoinLinkAttachmentsUploaded AssociationJoinLinkAttachment[]         @relation("JoinLinkAttachmentUploader")
   associationMemberGymApplicationsCreated AssociationMemberGymApplication[]      @relation("MemberGymApplicationCreator")
+  associationMemberGymOwnerInvitesCreated AssociationMemberGym[]                  @relation("MemberGymOwnerInviteCreator")
 }
 
 model Organizer {
@@ -1720,17 +1727,29 @@ model AssociationMemberGym {
   suspendedAt   DateTime?
   withdrawnAt   DateTime?
   internalNote  String?
+  /// 협회가 대표 계정 포털 접근을 중지한 시각 (ownerUserId는 유지)
+  ownerAccessSuspendedAt DateTime?
+  /// 신규 owner 초대 (tokenHash만 저장)
+  ownerInviteTokenHash       String?   @unique
+  ownerInviteExpiresAt       DateTime?
+  ownerInviteEmail           String?
+  ownerInviteName            String?
+  ownerInvitePhone           String?
+  ownerInviteCreatedAt       DateTime?
+  ownerInviteCreatedByUserId String?
   createdAt     DateTime                   @default(now())
   updatedAt     DateTime                   @updatedAt
 
   organizer   Organizer                        @relation(fields: [organizerId], references: [id], onDelete: Cascade)
   gym         Gym                              @relation(fields: [gymId], references: [id], onDelete: Restrict)
   application AssociationMemberGymApplication? @relation(fields: [applicationId], references: [id], onDelete: SetNull)
+  ownerInviteCreatedByUser User? @relation("MemberGymOwnerInviteCreator", fields: [ownerInviteCreatedByUserId], references: [id], onDelete: SetNull)
 
   @@unique([organizerId, gymId])
   @@unique([organizerId, memberCode])
   @@index([organizerId])
   @@index([status])
+  @@index([gymId])
 }
 
 /// 협회별 회원사 환경 설정 (JSON으로 과도한 테이블 분할 방지)

@@ -22,9 +22,11 @@ const FIGHTER_STATUS_LABEL: Record<FighterStatus, string> = {
 export function FightersCardListMobile({
   fighters,
   publicByFighterId = {},
+  readOnly = false,
 }: {
   fighters: GymFighterTableRow[];
   publicByFighterId?: Record<string, GymFighterPublicSettingsRow>;
+  readOnly?: boolean;
 }) {
   return (
     <ul className="flex flex-col gap-3 md:hidden">
@@ -72,19 +74,36 @@ export function FightersCardListMobile({
               })}
               className="text-[10px]"
             />
-            <GymFighterPublicToggle
-              fighterId={f.id}
-              initialPublic={
-                publicByFighterId[f.id]?.isPublicToOrganizers ?? false
-              }
-            />
+            {readOnly ? (
+              <span className="text-xs text-muted-foreground">
+                {(publicByFighterId[f.id]?.isPublicToOrganizers ?? false)
+                  ? "공개"
+                  : "비공개"}
+              </span>
+            ) : (
+              <GymFighterPublicToggle
+                fighterId={f.id}
+                initialPublic={
+                  publicByFighterId[f.id]?.isPublicToOrganizers ?? false
+                }
+              />
+            )}
           </div>
-          <Link
-            href={`/gym/fighters/${f.id}/edit`}
-            className={cn(buttonVariants({ variant: "outline", size: "sm" }), "w-full")}
-          >
-            수정
-          </Link>
+          {readOnly ? (
+            <p className="text-center text-xs text-muted-foreground">
+              조회만 가능합니다
+            </p>
+          ) : (
+            <Link
+              href={`/gym/fighters/${f.id}/edit`}
+              className={cn(
+                buttonVariants({ variant: "outline", size: "sm" }),
+                "w-full",
+              )}
+            >
+              수정
+            </Link>
+          )}
         </li>
       ))}
     </ul>

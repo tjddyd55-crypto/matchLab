@@ -1,6 +1,7 @@
 import Link from "next/link";
 import { MatchonLogo } from "@/components/common/MatchonLogo";
 import type { DashboardRole } from "@/components/layout/DashboardShell";
+import { GymMobileNavSheet } from "@/components/layout/GymMobileNavSheet";
 import { OrganizerMobileNavSheet } from "@/components/layout/OrganizerMobileNavSheet";
 import { LogoutButton } from "@/components/domain/auth/LogoutButton";
 import { NotificationBell } from "@/components/domain/notifications/NotificationBell";
@@ -35,6 +36,7 @@ export function Header(props: HeaderProps) {
           {props.role === "organizer" && props.organizerNavGroups ? (
             <OrganizerMobileNavSheet groups={props.organizerNavGroups} />
           ) : null}
+          {props.role === "gym" ? <GymMobileNavSheet /> : null}
           <MatchonLogo
             href={
               props.role === "organizer"

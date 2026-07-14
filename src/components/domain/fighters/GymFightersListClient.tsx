@@ -10,9 +10,11 @@ import { FightersCardListMobile } from "@/components/domain/fighters/FightersCar
 export function GymFightersListClient({
   fighters,
   publicByFighterId,
+  readOnly = false,
 }: {
   fighters: GymFighterListRow[];
   publicByFighterId: Record<string, GymFighterPublicSettingsRow>;
+  readOnly?: boolean;
 }) {
   const [q, setQ] = useState("");
   const [gender, setGender] = useState("");
@@ -71,10 +73,12 @@ export function GymFightersListClient({
       <FightersTableDesktop
         fighters={enriched}
         publicByFighterId={publicByFighterId}
+        readOnly={readOnly}
       />
       <FightersCardListMobile
         fighters={enriched}
         publicByFighterId={publicByFighterId}
+        readOnly={readOnly}
       />
     </div>
   );

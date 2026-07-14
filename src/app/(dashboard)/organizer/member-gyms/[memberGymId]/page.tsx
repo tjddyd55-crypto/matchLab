@@ -1,10 +1,13 @@
 import Link from "next/link";
 import { notFound } from "next/navigation";
+import { MemberGymAccountSection } from "@/components/domain/member-gyms/MemberGymAccountSection";
+import { MemberGymFightersReadonlySection } from "@/components/domain/member-gyms/MemberGymFightersReadonlySection";
 import { MemberGymSubNav } from "@/components/domain/member-gyms/MemberGymSubNav";
 import { OrganizerDashboardPageHeader } from "@/components/dashboard/OrganizerDashboardPageHeader";
 import { requireActor, redirectUnlessDashboardRole } from "@/lib/auth/actor";
 import { AppError } from "@/lib/errors/app-error";
 import { requireAssociationOrganizerPage } from "@/lib/permissions";
+import { gymOwnerAccountService } from "@/lib/services/gym-owner-account.service";
 import { memberGymService } from "@/lib/services/member-gym.service";
 import { MEMBER_GYM_STATUS_LABEL } from "@/lib/ui-labels/member-gym";
 import { format } from "date-fns";
@@ -29,6 +32,11 @@ export default async function MemberGymDetailPage({
     throw e;
   }
 
+  const account = gymOwnerAccountService.describeOwnerAccount(row);
+  const fighters = row.gym.fighters.filter(
+    (f) => f /* currentGymId already gym SoT via relation */,
+  );
+
   return (
     <>
       <OrganizerDashboardPageHeader
@@ -43,34 +51,47 @@ export default async function MemberGymDetailPage({
         </Link>
       </OrganizerDashboardPageHeader>
       <MemberGymSubNav />
-      <div className="mt-4 grid gap-4 lg:grid-cols-2">
-        <section className="space-y-2 rounded-md border border-matchon-border bg-white p-4 text-sm">
-          <h2 className="font-bold">체육관(SoT: Gym)</h2>
-          <p>이름: {row.gym.name}</p>
-          <p>전화: {row.gym.phone ?? "-"}</p>
-          <p>주소: {row.gym.address ?? "-"}</p>
-          <p>소속 선수: {row.gym._count.fighters}</p>
-        </section>
-        <section className="space-y-2 rounded-md border border-matchon-border bg-white p-4 text-sm">
-          <h2 className="font-bold">협회 회원 관계</h2>
-          <p>상태: {MEMBER_GYM_STATUS_LABEL[row.status]}</p>
-          <p>가입일: {format(row.joinedAt, "yyyy-MM-dd")}</p>
-          <p>
-            승인일:{" "}
-            {row.approvedAt ? format(row.approvedAt, "yyyy-MM-dd") : "-"}
-          </p>
-          <p>메모: {row.internalNote ?? "-"}</p>
-          {row.applicationId ? (
+      <div className="mt-4 space-y-4">
+        <div className="grid gap-4 lg:grid-cols-2">
+          <section className="space-y-2 rounded-md border border-matchon-border bg-white p-4 text-sm">
+            <h2 className="font-bold">기본정보</h2>
+            <p>체육관명: {row.gym.name}</p>
+            <p>전화: {row.gym.phone ?? "-"}</p>
+            <p>주소: {row.gym.address ?? "-"}</p>
+            <p>소속 선수(전체): {row.gym._count.fighters}</p>
+          </section>
+          <section className="space-y-2 rounded-md border border-matchon-border bg-white p-4 text-sm">
+            <h2 className="font-bold">협회 회원 관계</h2>
+            <p>상태: {MEMBER_GYM_STATUS_LABEL[row.status]}</p>
+            <p>가입일: {format(row.joinedAt, "yyyy-MM-dd")}</p>
             <p>
-              <Link
-                href={`/organizer/member-gyms/applications/${row.applicationId}`}
-                className="text-matchon-primary underline"
-              >
-                가입 신청 원본 보기
-              </Link>
+              승인일:{" "}
+              {row.approvedAt ? format(row.approvedAt, "yyyy-MM-dd") : "-"}
             </p>
-          ) : null}
-        </section>
+            <p>내부 메모: {row.internalNote ?? "-"}</p>
+            {row.applicationId ? (
+              <p>
+                <Link
+                  href={`/organizer/member-gyms/applications/${row.applicationId}`}
+                  className="text-matchon-primary underline"
+                >
+                  제출 서류·가입 신청 원본
+                </Link>
+              </p>
+            ) : null}
+          </section>
+        </div>
+
+        <MemberGymAccountSection
+          memberGymId={row.id}
+          gymName={row.gym.name}
+          account={account}
+        />
+
+        <MemberGymFightersReadonlySection
+          memberGymId={row.id}
+          fighters={fighters}
+        />
       </div>
     </>
   );
