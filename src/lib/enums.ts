@@ -4,6 +4,11 @@
  */
 
 export {
+  AssociationJoinLinkAttachmentKind,
+  AssociationJoinLinkStatus,
+  AssociationMemberGymApplicationAttachmentType,
+  AssociationMemberGymApplicationStatus,
+  AssociationMemberGymStatus,
   ApplicationDocumentStatus,
   ApplicationStatus,
   AuditAction,

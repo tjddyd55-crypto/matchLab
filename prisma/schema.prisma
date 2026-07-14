@@ -336,6 +336,10 @@ model User {
   matchResultChangeLogs   MatchResultChangeLog[]    @relation("MatchResultChangeActor")
   applicationFormTemplatesCreated ApplicationFormTemplate[] @relation("ApplicationFormTemplateCreator")
   applicationBatchesSubmitted     EventApplicationBatch[]   @relation("BatchSubmitter")
+
+  associationJoinLinksCreated            AssociationJoinLink[]                   @relation("AssociationJoinLinkCreator")
+  associationMemberGymApplicationReviews AssociationMemberGymApplicationReview[] @relation("MemberGymApplicationReviewer")
+  associationJoinLinkAttachmentsUploaded AssociationJoinLinkAttachment[]         @relation("JoinLinkAttachmentUploader")
 }
 
 model Organizer {
@@ -354,6 +358,11 @@ model Organizer {
   creditWallet       OrganizerCreditWallet?
   creditLedgers      OrganizerCreditLedger[]
   creditPayments     OrganizerCreditPayment[]
+
+  associationJoinLinks             AssociationJoinLink[]
+  associationMemberGymApplications AssociationMemberGymApplication[]
+  associationMemberGyms            AssociationMemberGym[]
+  associationMemberGymSettings     AssociationMemberGymSettings?
 }
 
 model Gym {
@@ -378,6 +387,9 @@ model Gym {
   matchResults              MatchResult[]                    @relation("MatchResultFighterGym")
   matchResultsAsOpponentGym MatchResult[]                    @relation("MatchResultOpponentGym")
   gymEventFeeSettings       GymEventFeeSetting[]
+
+  associationMemberGyms            AssociationMemberGym[]
+  associationMemberGymApplications AssociationMemberGymApplication[] @relation("MemberGymApplicationLinkedGym")
 }
 
 model Fighter {
@@ -1480,4 +1492,232 @@ model JudgeRoundScore {
 
   @@unique([scorecardId, roundNumber])
   @@index([scorecardId])
+}
+
+// --- Association member gym (additive) --------------------------------------
+
+enum AssociationJoinLinkStatus {
+  active
+  inactive
+  revoked
+}
+
+enum AssociationMemberGymApplicationStatus {
+  submitted
+  under_review
+  supplementation_requested
+  resubmitted
+  on_hold
+  approved
+  rejected
+  withdrawn
+}
+
+enum AssociationMemberGymStatus {
+  active
+  pending
+  on_hold
+  suspended
+  withdrawn
+}
+
+enum AssociationMemberGymApplicationAttachmentType {
+  business_registration
+  representative_photo
+  gym_exterior_photo
+  gym_interior_photo
+  instructor_certificate
+  dan_certificate
+  association_certificate
+  coach_certificate
+  referee_certificate
+  location_proof
+  identity_document
+  other
+}
+
+enum AssociationJoinLinkAttachmentKind {
+  join_guide
+  fee_guide
+  regulation
+  privacy_guide
+  other
+}
+
+/// 협회 회원사 가입 링크 (DB에는 tokenHash만 저장)
+model AssociationJoinLink {
+  id                        String                    @id @default(cuid())
+  organizerId               String
+  label                     String
+  tokenHash                 String                    @unique
+  status                    AssociationJoinLinkStatus @default(active)
+  expiresAt                 DateTime?
+  maxUses                   Int?
+  usedCount                 Int                       @default(0)
+  allowDuplicateApplication Boolean                   @default(true)
+  applicationType           String?
+  createdByUserId           String
+  revokedAt                 DateTime?
+  createdAt                 DateTime                  @default(now())
+  updatedAt                 DateTime                  @updatedAt
+
+  organizer     Organizer                         @relation(fields: [organizerId], references: [id], onDelete: Cascade)
+  createdByUser User                              @relation("AssociationJoinLinkCreator", fields: [createdByUserId], references: [id], onDelete: Cascade)
+  applications  AssociationMemberGymApplication[]
+  attachments   AssociationJoinLinkAttachment[]
+
+  @@index([organizerId])
+  @@index([status])
+}
+
+model AssociationJoinLinkAttachment {
+  id               String                            @id @default(cuid())
+  joinLinkId       String
+  kind             AssociationJoinLinkAttachmentKind @default(other)
+  storageBucket    String
+  storagePath      String
+  originalFileName String
+  mimeType         String
+  sizeBytes        Int
+  sortOrder        Int                               @default(0)
+  uploadedByUserId String?
+  deletedAt        DateTime?
+  createdAt        DateTime                          @default(now())
+
+  joinLink       AssociationJoinLink @relation(fields: [joinLinkId], references: [id], onDelete: Cascade)
+  uploadedByUser User?               @relation("JoinLinkAttachmentUploader", fields: [uploadedByUserId], references: [id], onDelete: SetNull)
+
+  @@index([joinLinkId])
+}
+
+/// 가입 신청 스냅샷 (현재 Gym 정보와 분리)
+model AssociationMemberGymApplication {
+  id                  String                                @id @default(cuid())
+  organizerId         String
+  joinLinkId          String?
+  status              AssociationMemberGymApplicationStatus @default(submitted)
+  gymName             String
+  ownerName           String
+  ownerNameEn         String?
+  birthDate           DateTime?
+  gender              String?
+  phone               String
+  gymPhone            String?
+  email               String
+  homeAddress         String?
+  gymAddress          String
+  gymAddressDetail    String?
+  businessNo          String?
+  sportType           String?
+  classDescription    String?
+  instructorCount     Int?
+  athleteCount        Int?
+  websiteUrl          String?
+  snsUrl              String?
+  qualifications      String?
+  careerSummary       String?
+  memo                String?
+  contactName         String?
+  contactPhone        String?
+  contactEmail        String?
+  privacyConsent      Boolean                               @default(false)
+  registrationConsent Boolean                               @default(false)
+  smsConsent          Boolean                               @default(false)
+  informationConsent  Boolean                               @default(false)
+  signatureName       String
+  signatureConsent    Boolean                               @default(false)
+  uploadBatchId       String?
+  reviewNote          String?
+  supplementationNote String?
+  rejectionReason     String?
+  linkedGymId         String?
+  submittedAt         DateTime                              @default(now())
+  reviewedAt          DateTime?
+  createdAt           DateTime                              @default(now())
+  updatedAt           DateTime                              @updatedAt
+
+  organizer   Organizer                                   @relation(fields: [organizerId], references: [id], onDelete: Cascade)
+  joinLink    AssociationJoinLink?                        @relation(fields: [joinLinkId], references: [id], onDelete: SetNull)
+  linkedGym   Gym?                                        @relation("MemberGymApplicationLinkedGym", fields: [linkedGymId], references: [id], onDelete: SetNull)
+  attachments AssociationMemberGymApplicationAttachment[]
+  reviews     AssociationMemberGymApplicationReview[]
+  memberGym   AssociationMemberGym?
+
+  @@index([organizerId])
+  @@index([status])
+  @@index([joinLinkId])
+  @@index([submittedAt])
+}
+
+model AssociationMemberGymApplicationAttachment {
+  id               String                                        @id @default(cuid())
+  applicationId    String
+  attachmentType   AssociationMemberGymApplicationAttachmentType
+  storageBucket    String
+  storagePath      String
+  originalFileName String
+  mimeType         String
+  sizeBytes        Int
+  sortOrder        Int                                           @default(0)
+  deletedAt        DateTime?
+  createdAt        DateTime                                      @default(now())
+
+  application AssociationMemberGymApplication @relation(fields: [applicationId], references: [id], onDelete: Cascade)
+
+  @@index([applicationId])
+  @@index([attachmentType])
+}
+
+model AssociationMemberGymApplicationReview {
+  id            String                                 @id @default(cuid())
+  applicationId String
+  fromStatus    AssociationMemberGymApplicationStatus?
+  toStatus      AssociationMemberGymApplicationStatus
+  note          String?
+  actorUserId   String?
+  createdAt     DateTime                               @default(now())
+
+  application AssociationMemberGymApplication @relation(fields: [applicationId], references: [id], onDelete: Cascade)
+  actorUser   User?                           @relation("MemberGymApplicationReviewer", fields: [actorUserId], references: [id], onDelete: SetNull)
+
+  @@index([applicationId])
+}
+
+/// 협회–Gym 회원 관계 (체육관 SoT는 Gym)
+model AssociationMemberGym {
+  id            String                     @id @default(cuid())
+  organizerId   String
+  gymId         String
+  applicationId String?                    @unique
+  memberCode    String
+  memberType    String?
+  status        AssociationMemberGymStatus @default(active)
+  duesStatus    String?
+  joinedAt      DateTime                   @default(now())
+  approvedAt    DateTime?
+  suspendedAt   DateTime?
+  withdrawnAt   DateTime?
+  internalNote  String?
+  createdAt     DateTime                   @default(now())
+  updatedAt     DateTime                   @updatedAt
+
+  organizer   Organizer                        @relation(fields: [organizerId], references: [id], onDelete: Cascade)
+  gym         Gym                              @relation(fields: [gymId], references: [id], onDelete: Restrict)
+  application AssociationMemberGymApplication? @relation(fields: [applicationId], references: [id], onDelete: SetNull)
+
+  @@unique([organizerId, gymId])
+  @@unique([organizerId, memberCode])
+  @@index([organizerId])
+  @@index([status])
+}
+
+/// 협회별 회원사 환경 설정 (JSON으로 과도한 테이블 분할 방지)
+model AssociationMemberGymSettings {
+  id           String   @id @default(cuid())
+  organizerId  String   @unique
+  settingsJson Json     @default("{}")
+  createdAt    DateTime @default(now())
+  updatedAt    DateTime @updatedAt
+
+  organizer Organizer @relation(fields: [organizerId], references: [id], onDelete: Cascade)
 }

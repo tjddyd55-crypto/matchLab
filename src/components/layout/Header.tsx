@@ -1,8 +1,11 @@
 import Link from "next/link";
 import { MatchonLogo } from "@/components/common/MatchonLogo";
 import type { DashboardRole } from "@/components/layout/DashboardShell";
+import { OrganizerMobileNavSheet } from "@/components/layout/OrganizerMobileNavSheet";
 import { LogoutButton } from "@/components/domain/auth/LogoutButton";
 import { NotificationBell } from "@/components/domain/notifications/NotificationBell";
+import type { OrganizerGlobalNavGroup } from "@/lib/navigation/organizer-global-navigation";
+
 type HeaderProps =
   | { variant: "public" }
   | {
@@ -10,6 +13,7 @@ type HeaderProps =
       role: DashboardRole;
       actorUserId: string;
       actorEmail: string;
+      organizerNavGroups?: OrganizerGlobalNavGroup[];
     };
 
 export function Header(props: HeaderProps) {
@@ -28,6 +32,9 @@ export function Header(props: HeaderProps) {
     <header className="border-b border-matchon-border bg-white px-4 py-3 md:px-6">
       <div className="flex flex-wrap items-center justify-between gap-3">
         <div className="flex min-w-0 items-center gap-3">
+          {props.role === "organizer" && props.organizerNavGroups ? (
+            <OrganizerMobileNavSheet groups={props.organizerNavGroups} />
+          ) : null}
           <MatchonLogo
             href={
               props.role === "organizer"

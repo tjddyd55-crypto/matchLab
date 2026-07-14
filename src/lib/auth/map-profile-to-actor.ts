@@ -9,6 +9,7 @@ export function actorProfileRowToContext(row: ActorProfileRow): ActorContext {
     loginId: row.loginId ?? undefined,
     mustChangePassword: row.mustChangePassword,
     organizerId: row.organizer?.id,
+    organizerType: row.organizer?.type,
     gymId: row.ownedGym?.id,
     fighterId: row.fighter?.id,
   };

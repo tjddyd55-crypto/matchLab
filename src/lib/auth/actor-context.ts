@@ -1,4 +1,4 @@
-import type { UserRole } from "@/lib/enums";
+import type { OrganizerType, UserRole } from "@/lib/enums";
 
 /**
  * Supabase 세션 + DB `User` + Organizer/Gym/Fighter 조합 (`roles-permissions.md`).
@@ -10,6 +10,8 @@ export type ActorContext = {
   loginId?: string;
   mustChangePassword?: boolean;
   organizerId?: string;
+  /** 주최자(organizer)인 경우 Organizer.type — 회원사 관리 association gate */
+  organizerType?: OrganizerType;
   gymId?: string;
   fighterId?: string;
 };

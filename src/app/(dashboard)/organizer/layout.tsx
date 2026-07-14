@@ -18,6 +18,7 @@ export default async function OrganizerDashboardLayout({
         role={dashboardRoleFor(actor.role)}
         actorUserId={actor.userId}
         actorEmail={actor.email || ""}
+        organizerType={actor.organizerType}
       >
         <OrganizerDashboardRouteContent>{children}</OrganizerDashboardRouteContent>
       </DashboardShell>

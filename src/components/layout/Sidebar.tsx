@@ -1,20 +1,14 @@
 import { MatchonLogo } from "@/components/common/MatchonLogo";
 import type { DashboardRole } from "@/components/layout/DashboardShell";
+import { OrganizerSidebarNav } from "@/components/layout/OrganizerSidebarNav";
 import { SidebarNav } from "@/components/layout/SidebarNav";
+import type { OrganizerType } from "@/lib/enums";
+import { getOrganizerGlobalNavGroups } from "@/lib/navigation/organizer-global-navigation";
 import { cn } from "@/lib/utils";
 
 type NavItem = { href: string; label: string };
 
-const navByRole: Record<DashboardRole, NavItem[]> = {
-  organizer: [
-    { href: "/organizer", label: "홈" },
-    { href: "/organizer/events", label: "대회" },
-    { href: "/organizer/application-form-templates", label: "신청서 템플릿" },
-    { href: "/organizer/public-fighters", label: "공개 선수" },
-    { href: "/organizer/credits", label: "크레딧" },
-    { href: "/organizer/division-templates", label: "체급표 템플릿" },
-    { href: "/notifications", label: "알림" },
-  ],
+const navByRole: Record<Exclude<DashboardRole, "organizer">, NavItem[]> = {
   gym: [
     { href: "/gym", label: "홈" },
     { href: "/gym/fighters", label: "선수" },
@@ -56,13 +50,13 @@ function dashboardHomePath(role: DashboardRole): string {
 
 export function Sidebar({
   role,
+  organizerType,
   className,
 }: {
   role: DashboardRole;
+  organizerType?: OrganizerType | null;
   className?: string;
 }) {
-  const items = navByRole[role];
-
   return (
     <aside
       className={cn(
@@ -77,7 +71,16 @@ export function Sidebar({
           size="sm"
         />
       </div>
-      <SidebarNav items={items} homePaths={homePathsByRole[role]} />
+      {role === "organizer" ? (
+        <OrganizerSidebarNav
+          groups={getOrganizerGlobalNavGroups({ organizerType })}
+        />
+      ) : (
+        <SidebarNav
+          items={navByRole[role]}
+          homePaths={homePathsByRole[role]}
+        />
+      )}
     </aside>
   );
 }
