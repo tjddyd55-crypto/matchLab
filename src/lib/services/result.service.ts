@@ -35,6 +35,7 @@ import {
 import { prisma } from "@/lib/prisma";
 import { bracketRepository } from "@/lib/repositories/bracket.repository";
 import { fighterRepository } from "@/lib/repositories/fighter.repository";
+import { judgeScorecardRepository } from "@/lib/repositories/judge-scorecard.repository";
 import { matchRepository } from "@/lib/repositories/match.repository";
 import { resultRepository } from "@/lib/repositories/result.repository";
 import { tryNotify } from "@/lib/notifications/safe-dispatch";
@@ -47,6 +48,8 @@ import type {
 } from "@/lib/validators/result.validator";
 
 /** BracketMatch 결과 필드는 무효 처리 시 초기화한다(MVP). 행정 보존이 필요하면 로그·별도 스냅샷으로 확장한다. */
+/** 원격 DB에서 전적 캐시·스냅샷까지 한 트랜잭션으로 처리하므로 기본 5s보다 여유를 둔다. */
+const RESULT_MUTATION_TX_OPTIONS = { maxWait: 10_000, timeout: 25_000 } as const;
 function changelogReason(
   changeType: BracketChangeType,
   explicit?: string | null,
@@ -395,6 +398,7 @@ export const resultService = {
       );
 
       await resultRepository.createMatchResults(rows, tx);
+      await judgeScorecardRepository.lockByMatch(input.matchId, tx);
 
       await appendBracketChangeLog(tx, {
         eventId: ctx.eventId,
@@ -435,25 +439,6 @@ export const resultService = {
         [redId, blueId],
         tx,
       );
-
-      const pubSlug = match.bracket.event?.publicSlug;
-      if (pubSlug) {
-        await tryNotify(`result-confirmed:${input.matchId}`, () =>
-          notificationService.notifyResultConfirmed(
-            {
-              eventId: match.bracket.eventId,
-              publicSlug: pubSlug,
-              bracketTitle: match.bracket.title,
-              matchId: input.matchId,
-              redFighterId: redId,
-              blueFighterId: blueId,
-              summaryLine:
-                "공식 결과가 확정되어 전적에 반영되었습니다.",
-            },
-            tx,
-          ),
-        );
-      }
 
       if (
         ctx.bracketType === BracketType.single_elimination &&
@@ -529,7 +514,23 @@ export const resultService = {
           reason: augmentStaffReason(staffLabel, "단판 토너먼트 승자 진출"),
         });
       }
-    });
+    }, RESULT_MUTATION_TX_OPTIONS);
+
+    // 알림은 확정 커밋 이후에 best-effort — 트랜잭션 타임아웃/롤백을 유발하지 않음
+    const pubSlug = match.bracket.event?.publicSlug;
+    if (pubSlug) {
+      await tryNotify(`result-confirmed:${input.matchId}`, () =>
+        notificationService.notifyResultConfirmed({
+          eventId: match.bracket.eventId,
+          publicSlug: pubSlug,
+          bracketTitle: match.bracket.title,
+          matchId: input.matchId,
+          redFighterId: redId,
+          blueFighterId: blueId,
+          summaryLine: "공식 결과가 확정되어 전적에 반영되었습니다.",
+        }),
+      );
+    }
   },
 
   async correctMatchResult(
@@ -709,23 +710,20 @@ export const resultService = {
         tx,
       );
 
-      const pubSlug = match.bracket.event?.publicSlug;
-      if (pubSlug) {
-        await tryNotify(`result-adjusted:${input.matchId}`, () =>
-          notificationService.notifyOfficialResultAdjusted(
-            {
-              eventId: match.bracket.eventId,
-              publicSlug: pubSlug,
-              bracketTitle: match.bracket.title,
-              matchId: input.matchId,
-            },
-            tx,
-          ),
-        );
-      }
-
       // 단판 진출 재반영은 MVP 범위 밖 — 선수 배치를 별도 화면에서 조정하거나 후속 단계에서 자동 보정 TODO
-    });
+    }, RESULT_MUTATION_TX_OPTIONS);
+
+    const adjustedPubSlug = match.bracket.event?.publicSlug;
+    if (adjustedPubSlug) {
+      await tryNotify(`result-adjusted:${input.matchId}`, () =>
+        notificationService.notifyOfficialResultAdjusted({
+          eventId: match.bracket.eventId,
+          publicSlug: adjustedPubSlug,
+          bracketTitle: match.bracket.title,
+          matchId: input.matchId,
+        }),
+      );
+    }
   },
 
   async voidMatchResults(
@@ -783,21 +781,6 @@ export const resultService = {
         tx,
       );
 
-      const pubSlug = matchRow?.bracket.event?.publicSlug;
-      if (pubSlug && matchRow?.bracket.title) {
-        await tryNotify(`result-voided:${input.matchId}`, () =>
-          notificationService.notifyOfficialResultVoided(
-            {
-              eventId: ctx.eventId,
-              publicSlug: pubSlug,
-              bracketTitle: matchRow.bracket.title,
-              matchId: input.matchId,
-            },
-            tx,
-          ),
-        );
-      }
-
       await appendBracketChangeLog(tx, {
         eventId: ctx.eventId,
         bracketId: ctx.bracketId,
@@ -809,7 +792,19 @@ export const resultService = {
         afterData: { clearedBracketOutcome: true },
         reason: input.reason,
       });
-    });
+    }, RESULT_MUTATION_TX_OPTIONS);
+
+    const voidPubSlug = matchRow?.bracket.event?.publicSlug;
+    if (voidPubSlug && matchRow?.bracket.title) {
+      await tryNotify(`result-voided:${input.matchId}`, () =>
+        notificationService.notifyOfficialResultVoided({
+          eventId: ctx.eventId,
+          publicSlug: voidPubSlug,
+          bracketTitle: matchRow.bracket.title,
+          matchId: input.matchId,
+        }),
+      );
+    }
   },
 
   async listEventResults(

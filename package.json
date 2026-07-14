@@ -23,6 +23,8 @@
     "setup:judge-ui-e2e": "tsx scripts/setup-judge-ui-e2e-fixtures.ts",
     "lock:judge-ui-e2e-match": "tsx scripts/lock-judge-ui-e2e-match.ts",
     "ui-e2e:judge": "playwright test",
+    "ui-e2e:judge-lifecycle": "playwright test -c playwright.judge-lifecycle.config.ts",
+    "verify:judge-lifecycle": "tsx scripts/judge-head-match-lifecycle.ts",
     "generate:icons": "node scripts/generate-icons.mjs"
   },
   "prisma": {

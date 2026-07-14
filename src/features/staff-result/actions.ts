@@ -17,6 +17,13 @@ import {
 } from "@/lib/validators/match.validator";
 import { confirmMatchResultsSchema } from "@/lib/validators/result.validator";
 
+async function revalidateStaffMatch(matchId: string): Promise<void> {
+  const ctx = await matchRepository.findMatchOwnershipContext(matchId);
+  if (ctx) {
+    revalidateOrganizerMatchPaths(ctx.eventId, ctx.bracketId);
+  }
+}
+
 function mapStaff<T>(
   fn: () => Promise<ActionResult<T>>,
 ): Promise<ActionResult<T>> {
@@ -105,6 +112,7 @@ export async function staffRecordMatchOutcomeDraftAction(
     }
 
     await matchService.recordMatchOutcomeDraftStaff(link, parsed.data);
+    await revalidateStaffMatch(parsed.data.matchId);
     return actionSuccess({ ok: true as const });
   });
 }
@@ -143,6 +151,7 @@ export async function staffConfirmMatchResultsAction(
       { kind: "staff", link },
       parsed.data,
     );
+    await revalidateStaffMatch(parsed.data.matchId);
     return actionSuccess({ ok: true as const });
   });
 }

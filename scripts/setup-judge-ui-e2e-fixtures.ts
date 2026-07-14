@@ -1,7 +1,3 @@
-/**
- * Railway DB에 심판 UI E2E용 fixture 생성 (db:seed 금지, additive only).
- * 출력: /tmp/judge-ui-e2e-manifest.json
- */
 import "dotenv/config";
 import { writeFileSync } from "node:fs";
 import { tmpdir } from "node:os";
@@ -11,12 +7,15 @@ import { JudgeCredentialRole } from "../src/generated/prisma";
 import { prisma } from "../src/lib/prisma";
 import { judgeAssignmentRepository } from "../src/lib/repositories/judge-assignment.repository";
 import { judgeCredentialRepository } from "../src/lib/repositories/judge-credential.repository";
+import { buildCourtJudgeEntryPath } from "./lib/court-judge-entry-path";
 
 const EVENT_ID = process.env.JUDGE_UI_E2E_EVENT_ID ?? "cmpba6v1l000eqcux4kfmg49y";
 const ASSIGNED_MATCH_ID =
   process.env.JUDGE_UI_E2E_MATCH_ID ?? "cmq963zle002f0pjzgdpjlsox";
 const UNASSIGNED_MATCH_ID =
   process.env.JUDGE_UI_E2E_UNASSIGNED_MATCH_ID ?? "cmq963ze6000p0pjzpru7bioq";
+const COURT_ID =
+  process.env.JUDGE_LIFECYCLE_COURT_ID ?? "cmqfsqfhp000j0po9hryb2s41";
 const PASSWORD = process.env.JUDGE_UI_E2E_PASSWORD ?? "JudgeUiE2e6512!";
 const BASE_URL = process.env.JUDGE_UI_E2E_BASE_URL ?? "http://localhost:3000";
 
@@ -104,9 +103,32 @@ async function main() {
     }
   }
 
+  const court = await prisma.eventCourt.findFirst({
+    where: { id: COURT_ID, eventId: EVENT_ID },
+    select: { id: true, name: true },
+  });
+  if (!court) {
+    throw new Error(`Lifecycle court not found: ${COURT_ID}`);
+  }
+
+  const headEntryPath = buildCourtJudgeEntryPath({
+    eventId: EVENT_ID,
+    courtId: court.id,
+    target: "head",
+  });
+  const scoreEntryPath = buildCourtJudgeEntryPath({
+    eventId: EVENT_ID,
+    courtId: court.id,
+    target: "score",
+  });
+
   const manifest = {
     baseUrl: BASE_URL,
     eventId: EVENT_ID,
+    courtId: court.id,
+    courtName: court.name,
+    headEntryPath,
+    scoreEntryPath,
     assignedMatchId: ASSIGNED_MATCH_ID,
     unassignedMatchId: UNASSIGNED_MATCH_ID,
     password: PASSWORD,

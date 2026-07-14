@@ -104,6 +104,10 @@ export async function recordMatchOutcomeDraftAction(
     }
     const actor = await requireActorFromMutation();
     await matchService.recordMatchOutcomeDraft(actor, parsed.data);
+    const ctx = await matchRepository.findMatchOwnershipContext(parsed.data.matchId);
+    if (ctx) {
+      revalidateOrganizerMatchPaths(ctx.eventId, ctx.bracketId);
+    }
     return actionSuccess({ ok: true as const });
   });
 }
@@ -131,6 +135,10 @@ export async function cancelMatchAction(
     }
     const actor = await requireActorFromMutation();
     await matchService.cancelMatch(actor, parsed.data);
+    const ctx = await matchRepository.findMatchOwnershipContext(parsed.data.matchId);
+    if (ctx) {
+      revalidateOrganizerMatchPaths(ctx.eventId, ctx.bracketId);
+    }
     return actionSuccess({ ok: true as const });
   });
 }

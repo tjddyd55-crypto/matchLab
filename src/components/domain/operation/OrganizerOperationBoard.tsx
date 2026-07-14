@@ -78,6 +78,13 @@ export function OrganizerOperationBoard({
       matches.map((match) => {
         const patchedStatus = statusPatches[match.matchId];
         if (!patchedStatus || patchedStatus === match.status) return match;
+        // 서버가 종료·취소로 확정되면 stale optimistic(진행중 등)을 덮어쓰지 않는다.
+        if (
+          match.status === BracketMatchStatus.finished ||
+          match.status === BracketMatchStatus.cancelled
+        ) {
+          return match;
+        }
         return { ...match, status: patchedStatus };
       }),
     [matches, statusPatches],

@@ -1,6 +1,6 @@
 "use client";
 
-import { useState, useTransition, type FormEvent } from "react";
+import { useMemo, useState, useTransition, type FormEvent } from "react";
 import { useRouter } from "next/navigation";
 import {
   headAddOvertimeRoundAction,
@@ -39,14 +39,23 @@ import {
   resolveBracketMatchMatchonStatus,
 } from "@/lib/ui/judge-ui";
 
+function formatCourtMatchLabel(match: CourtJudgeMatchVM): string {
+  if (match.courtOrder != null) return `제${match.courtOrder}경기`;
+  return match.divisionLabel ?? "다른 경기";
+}
+
 function HeadMatchDetail({
   match,
+  matches,
   ongoingMatchId,
   scorecards,
+  onStatusChanged,
 }: {
   match: CourtJudgeMatchVM | null;
+  matches: CourtJudgeMatchVM[];
   ongoingMatchId: string | null;
   scorecards: CourtJudgeScorecardVM[];
+  onStatusChanged: (matchId: string, status: BracketMatchStatus) => void;
 }) {
   const router = useRouter();
   const [pending, startTransition] = useTransition();
@@ -54,11 +63,20 @@ function HeadMatchDetail({
   const [success, setSuccess] = useState<string | null>(null);
   const inputClass = judgeFieldInputClass;
 
-  const hasOngoing = Boolean(ongoingMatchId);
+  const blockingOngoing =
+    ongoingMatchId && match && ongoingMatchId !== match.matchId
+      ? matches.find((m) => m.matchId === ongoingMatchId) ?? null
+      : null;
+  const hasOtherOngoing = Boolean(blockingOngoing);
 
   function run(
     formData: FormData,
-    fn: (fd: FormData) => Promise<{ ok: boolean; error?: { message: string } }>,
+    fn: (fd: FormData) => Promise<{
+      ok: boolean;
+      error?: { message: string };
+      data?: unknown;
+    }>,
+    expectedStatus?: BracketMatchStatus,
   ) {
     startTransition(async () => {
       setError(null);
@@ -68,23 +86,38 @@ function HeadMatchDetail({
         setError(res.error?.message ?? "처리 실패");
         return;
       }
+      const matchId = formReqMatchId(formData);
+      const data =
+        res.data && typeof res.data === "object"
+          ? (res.data as { matchStatus?: BracketMatchStatus | string })
+          : undefined;
+      const nextStatus =
+        (data?.matchStatus as BracketMatchStatus | undefined) ?? expectedStatus;
+      if (matchId && nextStatus) {
+        onStatusChanged(matchId, nextStatus);
+      }
       setSuccess("처리되었습니다.");
       router.refresh();
     });
+  }
+
+  function formReqMatchId(formData: FormData): string {
+    const v = formData.get("matchId");
+    return typeof v === "string" ? v.trim() : "";
   }
 
   function prepareMatch(matchId: string) {
     const fd = new FormData();
     fd.set("courtId", match?.courtId ?? "");
     fd.set("matchId", matchId);
-    run(fd, headPrepareCourtMatchAction);
+    run(fd, headPrepareCourtMatchAction, BracketMatchStatus.called);
   }
 
   function startMatch(matchId: string) {
     const fd = new FormData();
     fd.set("courtId", match?.courtId ?? "");
     fd.set("matchId", matchId);
-    run(fd, headStartCourtMatchAction);
+    run(fd, headStartCourtMatchAction, BracketMatchStatus.ongoing);
   }
 
   function addOvertimeRound(matchId: string) {
@@ -96,12 +129,20 @@ function HeadMatchDetail({
 
   function complete(e: FormEvent<HTMLFormElement>) {
     e.preventDefault();
-    run(new FormData(e.currentTarget), headCompleteCourtMatchAction);
+    run(
+      new FormData(e.currentTarget),
+      headCompleteCourtMatchAction,
+      BracketMatchStatus.finished,
+    );
   }
 
   function cancel(e: FormEvent<HTMLFormElement>) {
     e.preventDefault();
-    run(new FormData(e.currentTarget), headCancelCourtMatchAction);
+    run(
+      new FormData(e.currentTarget),
+      headCancelCourtMatchAction,
+      BracketMatchStatus.cancelled,
+    );
   }
 
   function saveOperationalSettings(e: FormEvent<HTMLFormElement>) {
@@ -277,14 +318,15 @@ function HeadMatchDetail({
               type="button"
               size="field"
               className="w-full sm:w-auto"
-              disabled={pending || hasOngoing}
+              disabled={pending || hasOtherOngoing}
               onClick={() => startMatch(match.matchId)}
             >
               경기 시작
             </Button>
-            {hasOngoing ? (
+            {blockingOngoing ? (
               <FeedbackMessage tone="warning">
-                이미 진행 중인 경기가 있습니다. 먼저 현재 경기를 완료해 주세요.
+                {formatCourtMatchLabel(blockingOngoing)}이(가) 진행 중입니다.
+                해당 경기를 종료한 후 시작할 수 있습니다.
               </FeedbackMessage>
             ) : null}
           </CardContent>
@@ -412,9 +454,42 @@ export function CourtHeadJudgePanel({
   scoreSummariesByMatchId: Record<string, CourtMatchScoreSummaryVM>;
   scene: CourtJudgeScene;
 }) {
+  const [statusPatches, setStatusPatches] = useState<
+    Record<string, BracketMatchStatus>
+  >({});
+
+  const liveMatches = useMemo(
+    () =>
+      matches.map((match) => {
+        const patched = statusPatches[match.matchId];
+        if (!patched || patched === match.status) return match;
+        if (
+          match.status === BracketMatchStatus.finished ||
+          match.status === BracketMatchStatus.cancelled
+        ) {
+          return match;
+        }
+        return { ...match, status: patched };
+      }),
+    [matches, statusPatches],
+  );
+
+  const liveOngoingMatchId = useMemo(() => {
+    const fromLive = liveMatches.find(
+      (m) => m.status === BracketMatchStatus.ongoing,
+    )?.matchId;
+    return fromLive ?? ongoingMatchId;
+  }, [liveMatches, ongoingMatchId]);
+
+  function handleStatusChanged(matchId: string, status: BracketMatchStatus) {
+    setStatusPatches((current) => ({ ...current, [matchId]: status }));
+  }
+
   function renderDetail(selected: CourtJudgeMatchVM | null) {
-    if (matches.length === 0) {
-      return <CourtJudgeEmptyState scene="no_matches" matches={matches} role="head" />;
+    if (liveMatches.length === 0) {
+      return (
+        <CourtJudgeEmptyState scene="no_matches" matches={liveMatches} role="head" />
+      );
     }
 
     if (!selected) {
@@ -431,13 +506,15 @@ export function CourtHeadJudgePanel({
 
     return (
       <div className="space-y-4">
-        {scene !== "active" && !ongoingMatchId ? (
+        {scene !== "active" && !liveOngoingMatchId ? (
           <CourtJudgeSceneBanner scene={scene} role="head" />
         ) : null}
         <HeadMatchDetail
           match={selected}
-          ongoingMatchId={ongoingMatchId}
+          matches={liveMatches}
+          ongoingMatchId={liveOngoingMatchId}
           scorecards={scorecards}
+          onStatusChanged={handleStatusChanged}
         />
       </div>
     );
@@ -447,8 +524,8 @@ export function CourtHeadJudgePanel({
     <CourtJudgeRefreshShell>
       <CourtJudgeScreenShell
         court={court}
-        matches={matches}
-        ongoingMatchId={ongoingMatchId}
+        matches={liveMatches}
+        ongoingMatchId={liveOngoingMatchId}
         roleLabel="주심판"
         scoreSummariesByMatchId={scoreSummariesByMatchId}
         detail={(selected) => renderDetail(selected)}

@@ -10,6 +10,11 @@ import { judgeCourtService } from "@/lib/services/judge-court.service";
 import type { CourtJudgeMyScorecardVM } from "@/lib/services/judge-court.service";
 import { BracketMatchOutcomeStyle, JudgeDecisionMethod } from "@/lib/enums";
 import { confirmMatchResultsSchema } from "@/lib/validators/result.validator";
+import {
+  revalidateJudgeCourtPaths,
+  revalidateOrganizerMatchPaths,
+  revalidatePublicEventMatchPaths,
+} from "@/features/matches/revalidate-organizer-match-paths";
 
 function formReq(formData: FormData, key: string): string {
   const v = formData.get(key);
@@ -24,6 +29,16 @@ function mapCaught<T>(
     console.error(e);
     return actionFailure("INTERNAL", "처리 중 오류가 발생했습니다.");
   });
+}
+
+async function revalidateAfterCourtMutation(
+  courtId: string,
+  matchId?: string,
+): Promise<void> {
+  const ctx = await judgeCourtService.getRevalidationContext(courtId, matchId);
+  revalidateJudgeCourtPaths(ctx.courtId);
+  revalidateOrganizerMatchPaths(ctx.eventId, ctx.bracketId);
+  revalidatePublicEventMatchPaths(ctx.publicSlug);
 }
 
 function scoreNumber(value: unknown): number | null {
@@ -95,22 +110,25 @@ export async function submitCourtScorecardAction(
       return actionFailure("VALIDATION_ERROR", "모든 라운드 점수를 입력해 주세요.");
     }
     const decision = formReq(formData, "decisionMethod");
+    const courtId = formReq(formData, "courtId");
+    const matchId = formReq(formData, "matchId");
     await judgeCourtService.submitOpenScorecard({
-      courtId: formReq(formData, "courtId"),
-      matchId: formReq(formData, "matchId"),
+      courtId,
+      matchId,
       judgeName: formReq(formData, "judgeName"),
       birthDate: formReq(formData, "birthDate"),
       rounds,
       decisionMethod: decision ? (decision as JudgeDecisionMethod) : null,
       memo: formReq(formData, "memo") || null,
     });
+    await revalidateAfterCourtMutation(courtId, matchId);
     return actionSuccess({ ok: true as const });
   });
 }
 
 export async function headPrepareCourtMatchAction(
   formData: FormData,
-): Promise<ActionResult<{ ok: true }>> {
+): Promise<ActionResult<{ ok: true; matchStatus: "called" }>> {
   return mapCaught(async () => {
     const courtId = formReq(formData, "courtId");
     const matchId = formReq(formData, "matchId");
@@ -118,7 +136,8 @@ export async function headPrepareCourtMatchAction(
       return actionFailure("VALIDATION_ERROR", "경기를 선택해 주세요.");
     }
     await judgeCourtService.prepareMatch(courtId, matchId);
-    return actionSuccess({ ok: true as const });
+    await revalidateAfterCourtMutation(courtId, matchId);
+    return actionSuccess({ ok: true as const, matchStatus: "called" as const });
   });
 }
 
@@ -141,6 +160,7 @@ export async function headUpdateMatchOperationalSettingsAction(
       overtimeEnabled,
       overtimeRoundCount,
     });
+    await revalidateAfterCourtMutation(courtId, matchId);
     return actionSuccess({ ok: true as const });
   });
 }
@@ -155,13 +175,14 @@ export async function headAddOvertimeRoundAction(
       return actionFailure("VALIDATION_ERROR", "경기를 선택해 주세요.");
     }
     await judgeCourtService.addOvertimeRound(courtId, matchId);
+    await revalidateAfterCourtMutation(courtId, matchId);
     return actionSuccess({ ok: true as const });
   });
 }
 
 export async function headStartCourtMatchAction(
   formData: FormData,
-): Promise<ActionResult<{ ok: true }>> {
+): Promise<ActionResult<{ ok: true; matchStatus: "ongoing" }>> {
   return mapCaught(async () => {
     const courtId = formReq(formData, "courtId");
     const matchId = formReq(formData, "matchId");
@@ -169,29 +190,35 @@ export async function headStartCourtMatchAction(
       return actionFailure("VALIDATION_ERROR", "시작할 경기를 선택해 주세요.");
     }
     await judgeCourtService.startMatch(courtId, matchId);
-    return actionSuccess({ ok: true as const });
+    await revalidateAfterCourtMutation(courtId, matchId);
+    return actionSuccess({ ok: true as const, matchStatus: "ongoing" as const });
   });
 }
 
 export async function headCancelCourtMatchAction(
   formData: FormData,
-): Promise<ActionResult<{ ok: true }>> {
+): Promise<ActionResult<{ ok: true; matchStatus: "cancelled" }>> {
   return mapCaught(async () => {
+    const courtId = formReq(formData, "courtId");
+    const matchId = formReq(formData, "matchId");
     await judgeCourtService.cancelMatch(
-      formReq(formData, "courtId"),
-      formReq(formData, "matchId"),
+      courtId,
+      matchId,
       formReq(formData, "reason") || null,
     );
-    return actionSuccess({ ok: true as const });
+    await revalidateAfterCourtMutation(courtId, matchId);
+    return actionSuccess({ ok: true as const, matchStatus: "cancelled" as const });
   });
 }
 
 export async function headCompleteCourtMatchAction(
   formData: FormData,
-): Promise<ActionResult<{ ok: true }>> {
+): Promise<ActionResult<{ ok: true; matchStatus: "finished" }>> {
   return mapCaught(async () => {
+    const courtId = formReq(formData, "courtId");
+    const matchId = formReq(formData, "matchId");
     const parsed = confirmMatchResultsSchema.safeParse({
-      matchId: formReq(formData, "matchId"),
+      matchId,
       outcomeMode: formReq(formData, "outcomeMode"),
       winnerId: formReq(formData, "winnerId") || undefined,
       resultType: formReq(formData, "resultType") || BracketMatchOutcomeStyle.decision,
@@ -205,7 +232,8 @@ export async function headCompleteCourtMatchAction(
         parsed.error.flatten(),
       );
     }
-    await judgeCourtService.completeMatch(formReq(formData, "courtId"), parsed.data);
-    return actionSuccess({ ok: true as const });
+    await judgeCourtService.completeMatch(courtId, parsed.data);
+    await revalidateAfterCourtMutation(courtId, matchId);
+    return actionSuccess({ ok: true as const, matchStatus: "finished" as const });
   });
 }

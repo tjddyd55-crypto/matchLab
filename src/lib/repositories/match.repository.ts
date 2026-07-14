@@ -250,6 +250,7 @@ export const matchRepository = {
       select: {
         id: true,
         bracketId: true,
+        courtId: true,
         status: true,
         fighterRedId: true,
         fighterBlueId: true,
@@ -374,6 +375,7 @@ export const matchRepository = {
         loserId: data.loserId,
         resultType: data.resultType,
         resultMemo: data.resultMemo ?? null,
+        endedAt: data.status === BracketMatchStatus.finished ? new Date() : undefined,
       },
     });
   },

@@ -319,12 +319,45 @@ async function resolveCourtForPage(courtId: string): Promise<
 async function findCourt(courtId: string) {
   const court = await prisma.eventCourt.findUnique({
     where: { id: courtId },
-    include: { event: { select: { id: true, title: true } } },
+    include: {
+      event: { select: { id: true, title: true, publicSlug: true } },
+    },
   });
   if (!court || !court.isActive) {
     throw new AppError("NOT_FOUND", "경기장을 찾을 수 없습니다.");
   }
   return court;
+}
+
+/** 주심 action 후 캐시 무효화에 필요한 event/bracket 컨텍스트 */
+async function resolveCourtRevalidateContext(
+  courtId: string,
+  matchId?: string,
+): Promise<{
+  courtId: string;
+  eventId: string;
+  publicSlug: string | null;
+  bracketId: string | null;
+}> {
+  const court = await findCourt(courtId);
+  let bracketId: string | null = null;
+  if (matchId) {
+    const match = await prisma.bracketMatch.findFirst({
+      where: {
+        id: matchId,
+        courtId: court.id,
+        bracket: { eventId: court.event.id },
+      },
+      select: { bracketId: true },
+    });
+    bracketId = match?.bracketId ?? null;
+  }
+  return {
+    courtId: court.id,
+    eventId: court.event.id,
+    publicSlug: court.event.publicSlug,
+    bracketId,
+  };
 }
 
 async function listCourtMatchRows(courtId: string): Promise<CourtMatchRow[]> {
@@ -557,6 +590,18 @@ export const judgeCourtService = {
   loadScoringPage,
   loadHeadPage,
 
+  async getRevalidationContext(
+    courtId: string,
+    matchId?: string,
+  ): Promise<{
+    courtId: string;
+    eventId: string;
+    publicSlug: string | null;
+    bracketId: string | null;
+  }> {
+    return resolveCourtRevalidateContext(courtId, matchId);
+  },
+
   async listCourtMatches(courtId: string): Promise<CourtJudgeMatchVM[]> {
     const court = await findCourt(courtId);
     const rows = await listCourtMatchRows(courtId);
@@ -742,9 +787,13 @@ export const judgeCourtService = {
     const court = await findCourt(courtId);
     const ongoing = await findOngoingCourtMatch(courtId);
     if (ongoing) {
+      const label =
+        ongoing.courtOrder != null
+          ? `제${ongoing.courtOrder}경기`
+          : "다른 경기";
       throw new AppError(
         "CONFLICT",
-        "이미 진행 중인 경기가 있습니다. 먼저 현재 경기를 완료해 주세요.",
+        `${label}이(가) 진행 중입니다. 해당 경기를 종료한 후 시작할 수 있습니다.`,
       );
     }
     const target = await prisma.bracketMatch.findFirst({

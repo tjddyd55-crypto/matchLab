@@ -10,6 +10,12 @@ import { PermissionError } from "@/lib/auth/permission-error";
 import { requireActorFromMutation } from "@/lib/auth/actor";
 import { AppError } from "@/lib/errors/app-error";
 import { resultService } from "@/lib/services/result.service";
+import { matchRepository } from "@/lib/repositories/match.repository";
+import {
+  revalidateJudgeCourtPaths,
+  revalidateOrganizerMatchPaths,
+  revalidatePublicEventMatchPaths,
+} from "@/features/matches/revalidate-organizer-match-paths";
 import {
   confirmMatchResultsSchema,
   correctMatchResultSchema,
@@ -42,6 +48,19 @@ function formReq(formData: FormData, key: string): string {
   return typeof v === "string" ? v.trim() : "";
 }
 
+async function revalidateAfterResultMutation(matchId: string): Promise<void> {
+  const match = await matchRepository.findMatchWithBracketContext(matchId);
+  if (!match) return;
+  const eventId = match.bracket.eventId;
+  const bracketId = match.bracketId;
+  const publicSlug = match.bracket.event?.publicSlug ?? null;
+  revalidateOrganizerMatchPaths(eventId, bracketId);
+  revalidatePublicEventMatchPaths(publicSlug);
+  if (match.courtId) {
+    revalidateJudgeCourtPaths(match.courtId);
+  }
+}
+
 export async function confirmMatchResultsAction(
   arg1: unknown,
   arg2?: FormData,
@@ -72,6 +91,7 @@ export async function confirmMatchResultsAction(
       { kind: "organizer", actor },
       parsed.data,
     );
+    await revalidateAfterResultMutation(parsed.data.matchId);
     return actionSuccess({ ok: true as const });
   });
 }
@@ -103,6 +123,7 @@ export async function correctMatchResultAction(
     }
     const actor = await requireActorFromMutation();
     await resultService.correctMatchResult(actor, parsed.data);
+    await revalidateAfterResultMutation(parsed.data.matchId);
     return actionSuccess({ ok: true as const });
   });
 }
@@ -130,6 +151,7 @@ export async function voidMatchResultsAction(
     }
     const actor = await requireActorFromMutation();
     await resultService.voidMatchResults(actor, parsed.data);
+    await revalidateAfterResultMutation(parsed.data.matchId);
     return actionSuccess({ ok: true as const });
   });
 }
