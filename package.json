@@ -19,6 +19,8 @@
     "setup:demo-org-gym-fighters": "tsx scripts/setup-demo-org-gym-fighters.ts",
     "verify:judge-schema": "tsx scripts/verify-judge-schema-after-push.ts",
     "verify:organizer-ops-schema": "tsx scripts/verify-organizer-ops-schema-after-push.ts",
+    "verify-member-gym-token": "tsx scripts/verify-member-gym-token.ts",
+    "verify:member-gym-concurrent-approval": "tsx scripts/verify-member-gym-concurrent-approval.ts",
     "e2e:judge-identity": "tsx scripts/e2e-judge-identity-smoke.ts",
     "setup:judge-ui-e2e": "tsx scripts/setup-judge-ui-e2e-fixtures.ts",
     "lock:judge-ui-e2e-match": "tsx scripts/lock-judge-ui-e2e-match.ts",

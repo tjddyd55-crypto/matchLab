@@ -18,6 +18,7 @@ import {
   type MemberGymSettingsV1,
 } from "@/lib/member-gym/settings";
 import { resolveAssociationOrganizerScope } from "@/lib/permissions";
+import { isPrismaUniqueViolation } from "@/lib/prisma-errors";
 import { gymRepository } from "@/lib/repositories/gym.repository";
 import { memberGymRepository } from "@/lib/repositories/member-gym.repository";
 import { prisma } from "@/lib/prisma";
@@ -558,95 +559,116 @@ export const memberGymService = {
       (await memberGymRepository.getOrCreateSettings(organizerId)).settingsJson,
     );
 
-    return prisma.$transaction(async (tx) => {
-      let gymId: string;
-      let gymCreated = false;
+    try {
+      return await prisma.$transaction(async (tx) => {
+        let gymId: string;
+        let gymCreated = false;
 
-      if (input.mode === "link_existing") {
-        if (!input.gymId?.trim()) {
-          throw new AppError("VALIDATION_ERROR", "연결할 체육관을 선택해 주세요.");
+        if (input.mode === "link_existing") {
+          if (!input.gymId?.trim()) {
+            throw new AppError(
+              "VALIDATION_ERROR",
+              "연결할 체육관을 선택해 주세요.",
+            );
+          }
+          const gym = await gymRepository.findActiveGymById(input.gymId, tx);
+          if (!gym) {
+            throw new AppError("NOT_FOUND", "선택한 체육관을 찾을 수 없습니다.");
+          }
+          gymId = gym.id;
+        } else {
+          const created =
+            await gymRepository.findOrCreateGymForOrganizerManualEntry(
+              app.gymName,
+              tx,
+            );
+          gymId = created.id;
+          gymCreated = created.created;
+          await tx.gym.update({
+            where: { id: gymId },
+            data: {
+              phone: app.gymPhone || app.phone || undefined,
+              address: app.gymAddress || undefined,
+            },
+          });
         }
-        const gym = await gymRepository.findActiveGymById(input.gymId, tx);
-        if (!gym) {
-          throw new AppError("NOT_FOUND", "선택한 체육관을 찾을 수 없습니다.");
+
+        const existingMember =
+          await memberGymRepository.findMemberGymByOrganizerGym(
+            organizerId,
+            gymId,
+            tx,
+          );
+        if (existingMember) {
+          throw new AppError(
+            "CONFLICT",
+            "이미 해당 협회 회원사로 등록된 체육관입니다. 기존 회원사 상세에서 확인해 주세요.",
+            { memberGymId: existingMember.id },
+          );
         }
-        gymId = gym.id;
-      } else {
-        const created = await gymRepository.findOrCreateGymForOrganizerManualEntry(
-          app.gymName,
+
+        const next = await memberGymRepository.nextMemberCodeNumber(
+          organizerId,
           tx,
         );
-        gymId = created.id;
-        gymCreated = created.created;
-        await tx.gym.update({
-          where: { id: gymId },
-          data: {
-            phone: app.gymPhone || app.phone || undefined,
-            address: app.gymAddress || undefined,
-          },
-        });
-      }
+        const memberCode = formatMemberCode(
+          settings.approval.memberCodePrefix,
+          settings.approval.memberCodePadding,
+          next,
+        );
 
-      const existingMember = await memberGymRepository.findMemberGymByOrganizerGym(
-        organizerId,
-        gymId,
-        tx,
-      );
-      if (existingMember) {
+        const memberGym = await memberGymRepository.createMemberGym(
+          {
+            organizer: { connect: { id: organizerId } },
+            gym: { connect: { id: gymId } },
+            application: { connect: { id: app.id } },
+            memberCode,
+            status: AssociationMemberGymStatus.active,
+            approvedAt: new Date(),
+            internalNote: input.note?.trim() || null,
+          },
+          tx,
+        );
+
+        await memberGymRepository.updateApplication(
+          app.id,
+          {
+            status: AssociationMemberGymApplicationStatus.approved,
+            linkedGym: { connect: { id: gymId } },
+            reviewedAt: new Date(),
+            reviewNote: input.note?.trim() || app.reviewNote,
+          },
+          tx,
+        );
+
+        await memberGymRepository.createReview(
+          {
+            applicationId: app.id,
+            fromStatus: app.status,
+            toStatus: AssociationMemberGymApplicationStatus.approved,
+            note: input.note ?? `승인 (gym ${gymCreated ? "신규" : "연결"})`,
+            actorUserId: actor.userId,
+          },
+          tx,
+        );
+
+        return { memberGymId: memberGym.id, gymId, gymCreated, memberCode };
+      });
+    } catch (error) {
+      if (error instanceof AppError) throw error;
+      if (
+        isPrismaUniqueViolation(error, "organizerId_gymId") ||
+        isPrismaUniqueViolation(error, "organizerId") ||
+        isPrismaUniqueViolation(error, "applicationId") ||
+        isPrismaUniqueViolation(error)
+      ) {
         throw new AppError(
           "CONFLICT",
-          "이미 해당 협회 회원사로 등록된 체육관입니다. 기존 회원사 상세에서 확인해 주세요.",
-          { memberGymId: existingMember.id },
+          "이미 해당 협회 회원사로 등록되었거나 다른 관리자가 먼저 승인했습니다. 기존 회원사 상세에서 확인해 주세요.",
         );
       }
-
-      const next = await memberGymRepository.nextMemberCodeNumber(
-        organizerId,
-        tx,
-      );
-      const memberCode = formatMemberCode(
-        settings.approval.memberCodePrefix,
-        settings.approval.memberCodePadding,
-        next,
-      );
-
-      const memberGym = await memberGymRepository.createMemberGym(
-        {
-          organizer: { connect: { id: organizerId } },
-          gym: { connect: { id: gymId } },
-          application: { connect: { id: app.id } },
-          memberCode,
-          status: AssociationMemberGymStatus.active,
-          approvedAt: new Date(),
-          internalNote: input.note?.trim() || null,
-        },
-        tx,
-      );
-
-      await memberGymRepository.updateApplication(
-        app.id,
-        {
-          status: AssociationMemberGymApplicationStatus.approved,
-          linkedGym: { connect: { id: gymId } },
-          reviewedAt: new Date(),
-          reviewNote: input.note?.trim() || app.reviewNote,
-        },
-        tx,
-      );
-
-      await memberGymRepository.createReview(
-        {
-          applicationId: app.id,
-          fromStatus: app.status,
-          toStatus: AssociationMemberGymApplicationStatus.approved,
-          note: input.note ?? `승인 (gym ${gymCreated ? "신규" : "연결"})`,
-          actorUserId: actor.userId,
-        },
-        tx,
-      );
-
-      return { memberGymId: memberGym.id, gymId, gymCreated, memberCode };
-    });
+      throw error;
+    }
   },
 
   async listMemberGyms(
