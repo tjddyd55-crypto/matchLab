@@ -25,7 +25,10 @@ export function GymPortalNavGroups({
       : "rounded-lg px-3 py-2.5 text-sm font-medium transition-colors";
 
   return (
-    <nav className="flex flex-col gap-3 text-sm" aria-label="회원사 메뉴">
+    <nav
+      className="flex flex-col gap-3 text-sm"
+      aria-label={density === "desktop" ? "회원사 사이드바" : "회원사 시트 메뉴"}
+    >
       {groups.map((group) => (
         <div key={group.id} className="flex flex-col gap-0.5">
           {group.label ? (
