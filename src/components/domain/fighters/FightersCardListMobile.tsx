@@ -1,6 +1,5 @@
 import Link from "next/link";
-import { format } from "date-fns";
-import { ko } from "date-fns/locale";
+import { formatUtcDateOnly } from "@/lib/date-only";
 import type { GymFighterTableRow } from "@/components/domain/fighters/FightersTableDesktop";
 import type { GymFighterPublicSettingsRow } from "@/lib/services/public-fighter.service";
 import {
@@ -53,7 +52,7 @@ export function FightersCardListMobile({
               </p>
               <p className="text-muted-foreground text-xs">
                 {f.gender} · {f.ageGroup ?? "—"} ·{" "}
-                {format(f.birthDate, "yyyy.MM.dd", { locale: ko })}
+                {formatUtcDateOnly(f.birthDate)}
               </p>
               <p className="text-muted-foreground text-xs">
                 {f.phone || "연락처 없음"} · 체중{" "}

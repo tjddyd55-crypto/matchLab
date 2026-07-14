@@ -1,6 +1,5 @@
 import Link from "next/link";
-import { format } from "date-fns";
-import { ko } from "date-fns/locale";
+import { formatUtcDateOnly } from "@/lib/date-only";
 import type { GymFighterListRow } from "@/lib/repositories/fighter.repository";
 import type { GymFighterPublicSettingsRow } from "@/lib/services/public-fighter.service";
 import {
@@ -86,7 +85,7 @@ export function FightersTableDesktop({
               <TableCell>{f.gender}</TableCell>
               <TableCell>{f.ageGroup ?? "—"}</TableCell>
               <TableCell className="text-xs whitespace-nowrap">
-                {format(f.birthDate, "yyyy.MM.dd", { locale: ko })}
+                {formatUtcDateOnly(f.birthDate)}
               </TableCell>
               <TableCell className="text-xs">{f.phone || "—"}</TableCell>
               <TableCell className="text-right text-sm">
@@ -98,7 +97,7 @@ export function FightersTableDesktop({
               <TableCell>{FIGHTER_STATUS_LABEL[f.status]}</TableCell>
               <TableCell className="text-muted-foreground text-xs whitespace-nowrap">
                 {f.affiliationStartDate
-                  ? format(f.affiliationStartDate, "yyyy.MM.dd", { locale: ko })
+                  ? formatUtcDateOnly(f.affiliationStartDate)
                   : "—"}
               </TableCell>
               <TableCell className="text-xs">
