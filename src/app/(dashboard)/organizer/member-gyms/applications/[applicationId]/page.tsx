@@ -7,7 +7,10 @@ import { requireActor, redirectUnlessDashboardRole } from "@/lib/auth/actor";
 import { AppError } from "@/lib/errors/app-error";
 import { requireAssociationOrganizerPage } from "@/lib/permissions";
 import { memberGymService } from "@/lib/services/member-gym.service";
-import { MEMBER_GYM_APPLICATION_STATUS_LABEL } from "@/lib/ui-labels/member-gym";
+import {
+  MEMBER_GYM_APPLICATION_STATUS_LABEL,
+  resolveMemberGymApplicationSourceLabel,
+} from "@/lib/ui-labels/member-gym";
 import { format } from "date-fns";
 
 export const dynamic = "force-dynamic";
@@ -52,6 +55,19 @@ export default async function MemberGymApplicationDetailPage({
       <div className="mt-4 grid gap-4 lg:grid-cols-2">
         <section className="space-y-2 rounded-md border border-matchon-border bg-white p-4 text-sm">
           <h2 className="font-bold">신청 정보</h2>
+          <p>
+            접수 방식:{" "}
+            <span className="rounded bg-matchon-surface px-2 py-0.5 text-xs">
+              {resolveMemberGymApplicationSourceLabel(
+                app.submissionSource,
+                app.joinLinkId,
+              )}
+            </span>
+          </p>
+          {app.internalMemo ? <p>내부 메모: {app.internalMemo}</p> : null}
+          {app.receivedAt ? (
+            <p>접수일: {format(app.receivedAt, "yyyy-MM-dd")}</p>
+          ) : null}
           <p>대표자: {app.ownerName}</p>
           {app.ownerNameEn ? <p>영문: {app.ownerNameEn}</p> : null}
           <p>연락처: {app.phone}</p>

@@ -63,7 +63,7 @@ export function MemberGymJoinLinkCreateForm() {
       {state?.ok ? (
         <div className="rounded-md border border-matchon-border bg-matchon-surface p-3 text-sm">
           <p className="font-medium text-matchon-text-primary">
-            링크가 생성되었습니다. 지금만 원문 URL을 복사할 수 있습니다.
+            링크가 생성되었습니다. URL을 복사하거나 QR로 공유하세요.
           </p>
           <p className="mt-2 break-all text-xs text-matchon-text-secondary">
             {state.data.url}

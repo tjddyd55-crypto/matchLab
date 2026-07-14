@@ -1,6 +1,7 @@
 import type {
   AssociationJoinLinkStatus,
   AssociationMemberGymApplicationAttachmentType,
+  AssociationMemberGymApplicationSource,
   AssociationMemberGymApplicationStatus,
   AssociationMemberGymStatus,
 } from "@/lib/enums";
@@ -52,8 +53,30 @@ export const MEMBER_GYM_ATTACHMENT_TYPE_LABEL: Record<
   referee_certificate: "심판 자격",
   location_proof: "사업장 확인자료",
   identity_document: "신분 확인자료",
+  paper_application_scan: "원본 종이 신청서 스캔",
   other: "기타",
 };
+
+export const MEMBER_GYM_APPLICATION_SOURCE_LABEL: Record<
+  AssociationMemberGymApplicationSource,
+  string
+> = {
+  public_link: "온라인",
+  manual: "직접 입력",
+  paper: "종이",
+  visit: "방문",
+  phone: "전화",
+  email: "이메일",
+};
+
+/** 목록·필터용 접수 방식 그룹 */
+export function resolveMemberGymApplicationSourceLabel(
+  source: AssociationMemberGymApplicationSource | null | undefined,
+  joinLinkId?: string | null,
+): string {
+  if (source) return MEMBER_GYM_APPLICATION_SOURCE_LABEL[source];
+  return joinLinkId ? "온라인" : "직접 입력";
+}
 
 export const MEMBER_GYM_APPLICATION_FILTERS = [
   "all",

@@ -17,8 +17,8 @@ export default async function MemberGymLinksPage() {
   return (
     <>
       <OrganizerDashboardPageHeader
-        title="가입 링크"
-        description="체육관에 전달할 회원사 가입 링크를 만들고 관리합니다. 토큰 원문은 DB에 저장하지 않습니다."
+        title="가입 링크 관리"
+        description="보조 관리 화면입니다. 평소에는 가입 신청 화면의 ‘가입 링크 복사’를 사용하세요. 토큰 원문은 DB에 저장하지 않습니다."
       />
       <MemberGymSubNav />
       <div className="mt-4 space-y-4">

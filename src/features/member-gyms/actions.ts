@@ -23,12 +23,16 @@ import {
   approveMemberGymApplicationSchema,
   createMemberGymJoinLinkSchema,
   memberGymJoinApplicationSchema,
+  memberGymManualApplicationSchema,
   applicationAttachmentMetaSchema,
   setJoinLinkStatusSchema,
   transitionMemberGymApplicationSchema,
 } from "@/lib/validators/member-gym.validator";
 import { parseMemberGymSettings } from "@/lib/member-gym/settings";
-import { AssociationJoinLinkAttachmentKind } from "@/lib/enums";
+import {
+  AssociationJoinLinkAttachmentKind,
+  AssociationMemberGymApplicationAttachmentType,
+} from "@/lib/enums";
 
 function mapError(e: unknown): ActionResult<never> {
   if (e instanceof PermissionError) {
@@ -62,7 +66,7 @@ function revalidateMemberGymPaths() {
 export async function createMemberGymJoinLinkAction(
   _prev: unknown,
   formData: FormData,
-): Promise<ActionResult<{ id: string; token: string; url: string }>> {
+): Promise<ActionResult<{ id: string; url: string }>> {
   try {
     const actor = await requireActorFromMutation();
     const parsed = createMemberGymJoinLinkSchema.safeParse(
@@ -76,6 +80,127 @@ export async function createMemberGymJoinLinkAction(
     }
     const result = await memberGymService.createLink(actor, parsed.data);
     revalidateMemberGymPaths();
+    return actionSuccess(result);
+  } catch (e) {
+    return mapError(e);
+  }
+}
+
+export type MemberGymJoinLinkCopyPrepareResult =
+  | { kind: "none" }
+  | {
+      kind: "single";
+      link: {
+        id: string;
+        label: string;
+        url: string;
+        expiresAt: Date | null;
+        usedCount: number;
+        maxUses: number | null;
+      };
+    }
+  | {
+      kind: "many";
+      links: {
+        id: string;
+        label: string;
+        url: string;
+        expiresAt: Date | null;
+        usedCount: number;
+        maxUses: number | null;
+      }[];
+    };
+
+export async function prepareMemberGymJoinLinkCopyAction(): Promise<
+  ActionResult<MemberGymJoinLinkCopyPrepareResult>
+> {
+  try {
+    const actor = await requireActorFromMutation();
+    const links = await memberGymService.listActiveLinksForCopy(actor);
+    if (links.length === 0) return actionSuccess({ kind: "none" });
+    if (links.length === 1) {
+      return actionSuccess({ kind: "single", link: links[0]! });
+    }
+    return actionSuccess({ kind: "many", links });
+  } catch (e) {
+    return mapError(e);
+  }
+}
+
+export async function ensureDefaultMemberGymJoinLinkAction(): Promise<
+  ActionResult<{ id: string; url: string; label: string }>
+> {
+  try {
+    const actor = await requireActorFromMutation();
+    const link = await memberGymService.ensureDefaultActiveLink(actor);
+    revalidateMemberGymPaths();
+    return actionSuccess({
+      id: link.id,
+      url: link.url,
+      label: link.label,
+    });
+  } catch (e) {
+    return mapError(e);
+  }
+}
+
+export async function createManualMemberGymApplicationAction(
+  input: unknown,
+): Promise<ActionResult<{ applicationId: string }>> {
+  try {
+    const actor = await requireActorFromMutation();
+    const parsed = memberGymManualApplicationSchema.safeParse(input);
+    if (!parsed.success) {
+      return actionFailure(
+        "VALIDATION_ERROR",
+        parsed.error.issues[0]?.message ?? "입력값을 확인해 주세요.",
+      );
+    }
+    let attachments: ReturnType<
+      typeof applicationAttachmentMetaSchema.parse
+    > = [];
+    if (parsed.data.attachmentsJson) {
+      try {
+        attachments = applicationAttachmentMetaSchema.parse(
+          JSON.parse(parsed.data.attachmentsJson),
+        );
+      } catch {
+        return actionFailure(
+          "VALIDATION_ERROR",
+          "첨부파일 정보가 올바르지 않습니다.",
+        );
+      }
+    }
+    const result = await memberGymService.createManualApplication(actor, {
+      ...parsed.data,
+      paperConsentConfirmed: true,
+      attachments,
+    });
+    revalidateMemberGymPaths();
+    revalidatePath(
+      `/organizer/member-gyms/applications/${result.applicationId}`,
+    );
+    return actionSuccess(result);
+  } catch (e) {
+    return mapError(e);
+  }
+}
+
+export async function issueManualMemberGymApplicationUploadAction(input: {
+  uploadBatchId: string;
+  attachmentType: AssociationMemberGymApplicationAttachmentType;
+  mimeType: string;
+  sizeBytes: number;
+  originalFileName: string;
+}): Promise<
+  ActionResult<{ uploadUrl: string; path: string; bucket: string; expiresIn: number }>
+> {
+  try {
+    const actor = await requireActorFromMutation();
+    const result = await memberGymUploadService.issueManualApplicationUploadUrl(
+      actor,
+      input,
+    );
     return actionSuccess(result);
   } catch (e) {
     return mapError(e);

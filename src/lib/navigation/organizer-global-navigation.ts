@@ -46,7 +46,6 @@ export function getOrganizerGlobalNavGroups(input: {
       label: "회원사 관리",
       items: [
         { href: "/organizer/member-gyms/overview", label: "회원사 현황" },
-        { href: "/organizer/member-gyms/links", label: "가입 링크" },
         { href: "/organizer/member-gyms/applications", label: "가입 신청" },
         { href: "/organizer/member-gyms", label: "회원사 목록" },
         { href: "/organizer/member-gyms/settings", label: "환경 설정" },

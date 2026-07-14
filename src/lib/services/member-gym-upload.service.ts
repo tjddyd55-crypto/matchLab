@@ -16,10 +16,12 @@ import {
   MEMBER_GYM_UPLOAD_EXPIRES_SEC,
   memberGymFilesBucket,
 } from "@/lib/member-gym/constants";
-import { hashMemberGymJoinToken } from "@/lib/member-gym/token";
 import { resolveAssociationOrganizerScope } from "@/lib/permissions";
 import { memberGymRepository } from "@/lib/repositories/member-gym.repository";
-import { evaluateMemberGymJoinGate } from "@/lib/services/member-gym.service";
+import {
+  evaluateMemberGymJoinGate,
+  resolveJoinLinkFromPublicToken,
+} from "@/lib/services/member-gym.service";
 import { createSupabaseAdminClient } from "@/lib/supabase/admin";
 
 function assertMimeAndSize(mimeType: string, sizeBytes: number) {
@@ -107,8 +109,7 @@ export const memberGymUploadService = {
     originalFileName: string;
   }) {
     assertMimeAndSize(input.mimeType, input.sizeBytes);
-    const tokenHash = hashMemberGymJoinToken(input.token);
-    const link = await memberGymRepository.findJoinLinkByTokenHash(tokenHash);
+    const link = await resolveJoinLinkFromPublicToken(input.token);
     const gate = evaluateMemberGymJoinGate(link);
     if (!gate.ok) {
       throw new AppError("FORBIDDEN", "유효하지 않은 가입 링크입니다.");
@@ -119,6 +120,28 @@ export const memberGymUploadService = {
     }
     const ext = extFromMime(input.mimeType);
     const path = `member-gym/applications/pending/${batch}/${randomUUID()}.${ext}`;
+    return createSignedUpload(path);
+  },
+
+  async issueManualApplicationUploadUrl(
+    actor: ActorContext,
+    input: {
+      uploadBatchId: string;
+      attachmentType: AssociationMemberGymApplicationAttachmentType;
+      mimeType: string;
+      sizeBytes: number;
+      originalFileName: string;
+    },
+    organizerIdHint?: string | null,
+  ) {
+    assertMimeAndSize(input.mimeType, input.sizeBytes);
+    const organizerId = resolveAssociationOrganizerScope(actor, organizerIdHint);
+    const batch = input.uploadBatchId.trim();
+    if (!batch || batch.length < 8) {
+      throw new AppError("VALIDATION_ERROR", "uploadBatchId가 필요합니다.");
+    }
+    const ext = extFromMime(input.mimeType);
+    const path = `member-gym/applications/manual/${organizerId}/${batch}/${randomUUID()}.${ext}`;
     return createSignedUpload(path);
   },
 
@@ -210,8 +233,7 @@ export const memberGymUploadService = {
   },
 
   async getLinkAttachmentDownloadByToken(token: string, attachmentId: string) {
-    const tokenHash = hashMemberGymJoinToken(token);
-    const link = await memberGymRepository.findJoinLinkByTokenHash(tokenHash);
+    const link = await resolveJoinLinkFromPublicToken(token);
     const gate = evaluateMemberGymJoinGate(link);
     if (!gate.ok) {
       throw new AppError("FORBIDDEN", "유효하지 않은 가입 링크입니다.");

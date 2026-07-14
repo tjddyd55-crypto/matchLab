@@ -1,10 +1,15 @@
 /**
- * 회원사 가입 링크 토큰 해시 순수 검증 (DB 불필요).
+ * 회원사 가입 링크 토큰 해시·안정 URL 서명 순수 검증 (DB 불필요).
  * 실행: npx tsx scripts/verify-member-gym-token.ts
  */
 import {
+  buildStableMemberGymJoinToken,
+  parseStableMemberGymJoinToken,
+} from "../src/lib/member-gym/join-link-url";
+import {
   generateMemberGymJoinToken,
   hashMemberGymJoinToken,
+  isStableMemberGymJoinToken,
   memberGymJoinTokensEqual,
 } from "../src/lib/member-gym/token";
 
@@ -22,5 +27,12 @@ assert(
   hashMemberGymJoinToken(token) === hashMemberGymJoinToken(` ${token} `),
   "trim",
 );
+
+const linkId = "clxxxxxxxxlinkid01";
+const stable = buildStableMemberGymJoinToken(linkId);
+assert(isStableMemberGymJoinToken(stable), "stable format");
+assert(parseStableMemberGymJoinToken(stable)?.linkId === linkId, "parse linkId");
+assert(parseStableMemberGymJoinToken(`${linkId}.deadbeef`) == null, "bad sig");
+assert(!isStableMemberGymJoinToken(token), "legacy random is not stable");
 
 console.log("verify-member-gym-token: ALL PASS");

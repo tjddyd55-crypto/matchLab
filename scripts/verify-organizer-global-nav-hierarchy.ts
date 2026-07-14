@@ -24,6 +24,17 @@ function staticChecks() {
   assert.equal(assoc[0]?.label, null);
   assert.equal(assoc[0]?.items[0]?.label, "홈");
 
+  const memberGym = assoc.find((g) => g.id === "member-gyms");
+  assert.ok(memberGym, "member-gyms group");
+  assert.deepEqual(
+    memberGym!.items.map((i) => i.label),
+    ["회원사 현황", "가입 신청", "회원사 목록", "환경 설정"],
+  );
+  assert.ok(
+    !memberGym!.items.some((i) => i.label === "가입 링크"),
+    "가입 링크 must not be in global nav",
+  );
+
   const normalSections = normal
     .map((g) => g.label)
     .filter((x): x is string => !!x);

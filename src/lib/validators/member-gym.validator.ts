@@ -4,12 +4,18 @@ import {
   AssociationMemberGymApplicationAttachmentType,
   AssociationMemberGymApplicationStatus,
 } from "@/lib/enums";
+import { MEMBER_GYM_RECEPTION_OPTIONS } from "@/lib/member-gym/application-form";
 
 const optionalText = z
   .string()
   .trim()
   .transform((v) => (v === "" ? undefined : v))
   .optional();
+
+const receptionChannelValues = MEMBER_GYM_RECEPTION_OPTIONS.map((o) => o.value) as [
+  (typeof MEMBER_GYM_RECEPTION_OPTIONS)[number]["value"],
+  ...(typeof MEMBER_GYM_RECEPTION_OPTIONS)[number]["value"][],
+];
 
 export const createMemberGymJoinLinkSchema = z.object({
   label: z.string().trim().min(1, "링크명을 입력해 주세요.").max(120),
@@ -21,8 +27,8 @@ export const createMemberGymJoinLinkSchema = z.object({
     .transform((v) => v === true || v === "on" || v === "true"),
 });
 
-export const memberGymJoinApplicationSchema = z.object({
-  token: z.string().trim().min(1),
+/** 공개·직접 등록 공통 신청 필드 */
+export const memberGymApplicationBaseFieldsSchema = z.object({
   gymName: z.string().trim().min(1, "체육관명을 입력해 주세요.").max(120),
   ownerName: z.string().trim().min(1, "관장 성명을 입력해 주세요.").max(80),
   ownerNameEn: optionalText,
@@ -43,15 +49,32 @@ export const memberGymJoinApplicationSchema = z.object({
   contactName: optionalText,
   contactPhone: optionalText,
   contactEmail: optionalText,
-  privacyConsent: z.literal(true),
-  registrationConsent: z.literal(true),
-  smsConsent: z.boolean().optional(),
-  informationConsent: z.boolean().optional(),
-  signatureName: z.string().trim().min(1, "신청인 성명을 입력해 주세요.").max(80),
-  signatureConsent: z.literal(true),
   uploadBatchId: optionalText,
   attachmentsJson: optionalText,
 });
+
+export const memberGymJoinApplicationSchema =
+  memberGymApplicationBaseFieldsSchema.extend({
+    token: z.string().trim().min(1),
+    privacyConsent: z.literal(true),
+    registrationConsent: z.literal(true),
+    smsConsent: z.boolean().optional(),
+    informationConsent: z.boolean().optional(),
+    signatureName: z
+      .string()
+      .trim()
+      .min(1, "신청인 성명을 입력해 주세요.")
+      .max(80),
+    signatureConsent: z.literal(true),
+  });
+
+export const memberGymManualApplicationSchema =
+  memberGymApplicationBaseFieldsSchema.extend({
+    receptionChannel: z.enum(receptionChannelValues),
+    receivedAt: optionalText,
+    internalMemo: optionalText,
+    paperConsentConfirmed: z.literal(true),
+  });
 
 export const applicationAttachmentMetaSchema = z.array(
   z.object({

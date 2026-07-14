@@ -1,4 +1,5 @@
 import Link from "next/link";
+import { MemberGymJoinLinkQuickActions } from "@/components/domain/member-gyms/MemberGymJoinLinkQuickActions";
 import { MemberGymSubNav } from "@/components/domain/member-gyms/MemberGymSubNav";
 import { MemberGymSummaryStrip } from "@/components/domain/member-gyms/MemberGymSummaryStrip";
 import { OrganizerDashboardPageHeader } from "@/components/dashboard/OrganizerDashboardPageHeader";
@@ -38,7 +39,13 @@ export default async function MemberGymListPage({
       <OrganizerDashboardPageHeader
         title="회원사 목록"
         description="승인된 협회 회원사입니다. 체육관 SoT는 기존 Gym이며, 회원사 코드는 협회 행정용입니다."
-      />
+      >
+        <MemberGymJoinLinkQuickActions
+          showCopy={false}
+          showLinkManage={false}
+          showDirectRegister
+        />
+      </OrganizerDashboardPageHeader>
       <MemberGymSubNav />
       <div className="mt-4 space-y-4">
         <MemberGymSummaryStrip

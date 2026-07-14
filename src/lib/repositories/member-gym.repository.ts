@@ -18,6 +18,8 @@ export type MemberGymApplicationListFilters = {
   organizerId: string;
   status?: AssociationMemberGymApplicationStatus;
   q?: string;
+  /** online = public_link(+레거시 joinLink), manual = 직접 접수 계열 */
+  sourceGroup?: "online" | "manual";
 };
 
 export type MemberGymListFilters = {
@@ -100,6 +102,39 @@ export const memberGymRepository = {
     });
   },
 
+  /** 공개 안정 URL(HMAC) 해석용 — organizer scope 없이 id로 조회 */
+  async findJoinLinkByPublicId(linkId: string) {
+    return prisma.associationJoinLink.findUnique({
+      where: { id: linkId },
+      include: {
+        organizer: { select: { id: true, name: true, type: true } },
+        attachments: {
+          where: { deletedAt: null },
+          orderBy: { sortOrder: "asc" },
+        },
+      },
+    });
+  },
+
+  async listActiveJoinLinks(organizerId: string) {
+    return prisma.associationJoinLink.findMany({
+      where: {
+        organizerId,
+        status: AssociationJoinLinkStatus.active,
+        revokedAt: null,
+      },
+      orderBy: { createdAt: "desc" },
+      select: {
+        id: true,
+        label: true,
+        expiresAt: true,
+        maxUses: true,
+        usedCount: true,
+        createdAt: true,
+      },
+    });
+  },
+
   async updateJoinLink(
     linkId: string,
     data: Prisma.AssociationJoinLinkUpdateInput,
@@ -171,21 +206,42 @@ export const memberGymRepository = {
   },
 
   async listApplications(filters: MemberGymApplicationListFilters) {
-    const where: Prisma.AssociationMemberGymApplicationWhereInput = {
-      organizerId: filters.organizerId,
-    };
-    if (filters.status) where.status = filters.status;
+    const and: Prisma.AssociationMemberGymApplicationWhereInput[] = [
+      { organizerId: filters.organizerId },
+    ];
+    if (filters.status) and.push({ status: filters.status });
+    if (filters.sourceGroup === "online") {
+      and.push({
+        OR: [
+          { submissionSource: "public_link" },
+          { submissionSource: null, joinLinkId: { not: null } },
+        ],
+      });
+    } else if (filters.sourceGroup === "manual") {
+      and.push({
+        OR: [
+          {
+            submissionSource: {
+              in: ["manual", "paper", "visit", "phone", "email"],
+            },
+          },
+          { submissionSource: null, joinLinkId: null },
+        ],
+      });
+    }
     const q = filters.q?.trim();
     if (q) {
-      where.OR = [
-        { gymName: { contains: q, mode: "insensitive" } },
-        { ownerName: { contains: q, mode: "insensitive" } },
-        { contactName: { contains: q, mode: "insensitive" } },
-        { phone: { contains: q, mode: "insensitive" } },
-      ];
+      and.push({
+        OR: [
+          { gymName: { contains: q, mode: "insensitive" } },
+          { ownerName: { contains: q, mode: "insensitive" } },
+          { contactName: { contains: q, mode: "insensitive" } },
+          { phone: { contains: q, mode: "insensitive" } },
+        ],
+      });
     }
     return prisma.associationMemberGymApplication.findMany({
-      where,
+      where: { AND: and },
       orderBy: { submittedAt: "desc" },
       include: {
         _count: { select: { attachments: true } },

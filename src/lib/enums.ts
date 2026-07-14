@@ -7,6 +7,7 @@ export {
   AssociationJoinLinkAttachmentKind,
   AssociationJoinLinkStatus,
   AssociationMemberGymApplicationAttachmentType,
+  AssociationMemberGymApplicationSource,
   AssociationMemberGymApplicationStatus,
   AssociationMemberGymStatus,
   ApplicationDocumentStatus,

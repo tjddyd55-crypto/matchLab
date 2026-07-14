@@ -340,6 +340,7 @@ model User {
   associationJoinLinksCreated            AssociationJoinLink[]                   @relation("AssociationJoinLinkCreator")
   associationMemberGymApplicationReviews AssociationMemberGymApplicationReview[] @relation("MemberGymApplicationReviewer")
   associationJoinLinkAttachmentsUploaded AssociationJoinLinkAttachment[]         @relation("JoinLinkAttachmentUploader")
+  associationMemberGymApplicationsCreated AssociationMemberGymApplication[]      @relation("MemberGymApplicationCreator")
 }
 
 model Organizer {
@@ -1533,7 +1534,18 @@ enum AssociationMemberGymApplicationAttachmentType {
   referee_certificate
   location_proof
   identity_document
+  paper_application_scan
   other
+}
+
+/// 가입 신청 접수 경로 (공개 링크 / 관리자 직접 접수)
+enum AssociationMemberGymApplicationSource {
+  public_link
+  manual
+  paper
+  visit
+  phone
+  email
 }
 
 enum AssociationJoinLinkAttachmentKind {
@@ -1596,6 +1608,14 @@ model AssociationMemberGymApplication {
   organizerId         String
   joinLinkId          String?
   status              AssociationMemberGymApplicationStatus @default(submitted)
+  /// 접수 경로. null은 레거시(공개 링크로 간주).
+  submissionSource    AssociationMemberGymApplicationSource?
+  /// 관리자 직접 등록 시 입력 담당자
+  createdByUserId     String?
+  /// 관리자 직접 등록 시 접수일(없으면 submittedAt)
+  receivedAt          DateTime?
+  /// 관리자 내부 메모 (신청자 비고와 분리)
+  internalMemo        String?
   gymName             String
   ownerName           String
   ownerNameEn         String?
@@ -1636,17 +1656,19 @@ model AssociationMemberGymApplication {
   createdAt           DateTime                              @default(now())
   updatedAt           DateTime                              @updatedAt
 
-  organizer   Organizer                                   @relation(fields: [organizerId], references: [id], onDelete: Cascade)
-  joinLink    AssociationJoinLink?                        @relation(fields: [joinLinkId], references: [id], onDelete: SetNull)
-  linkedGym   Gym?                                        @relation("MemberGymApplicationLinkedGym", fields: [linkedGymId], references: [id], onDelete: SetNull)
-  attachments AssociationMemberGymApplicationAttachment[]
-  reviews     AssociationMemberGymApplicationReview[]
-  memberGym   AssociationMemberGym?
+  organizer     Organizer                                   @relation(fields: [organizerId], references: [id], onDelete: Cascade)
+  joinLink      AssociationJoinLink?                        @relation(fields: [joinLinkId], references: [id], onDelete: SetNull)
+  createdByUser User?                                       @relation("MemberGymApplicationCreator", fields: [createdByUserId], references: [id], onDelete: SetNull)
+  linkedGym     Gym?                                        @relation("MemberGymApplicationLinkedGym", fields: [linkedGymId], references: [id], onDelete: SetNull)
+  attachments   AssociationMemberGymApplicationAttachment[]
+  reviews       AssociationMemberGymApplicationReview[]
+  memberGym     AssociationMemberGym?
 
   @@index([organizerId])
   @@index([status])
   @@index([joinLinkId])
   @@index([submittedAt])
+  @@index([submissionSource])
 }
 
 model AssociationMemberGymApplicationAttachment {

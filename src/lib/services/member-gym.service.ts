@@ -13,19 +13,31 @@ import {
   hashMemberGymJoinToken,
 } from "@/lib/member-gym/token";
 import {
+  appBaseUrl,
+  buildStableMemberGymRegisterUrl,
+  DEFAULT_MEMBER_GYM_JOIN_LINK_LABEL,
+  parseStableMemberGymJoinToken,
+} from "@/lib/member-gym/join-link-url";
+import {
   DEFAULT_MEMBER_GYM_SETTINGS,
   parseMemberGymSettings,
   type MemberGymSettingsV1,
 } from "@/lib/member-gym/settings";
+import type { MemberGymReceptionChannel } from "@/lib/member-gym/application-form";
 import { resolveAssociationOrganizerScope } from "@/lib/permissions";
 import { isPrismaUniqueViolation } from "@/lib/prisma-errors";
 import { gymRepository } from "@/lib/repositories/gym.repository";
 import { memberGymRepository } from "@/lib/repositories/member-gym.repository";
 import { prisma } from "@/lib/prisma";
 import type { AssociationMemberGymApplicationAttachmentType } from "@/lib/enums";
+import { AssociationMemberGymApplicationSource } from "@/lib/enums";
+
+type LoadedJoinLink = NonNullable<
+  Awaited<ReturnType<typeof memberGymRepository.findJoinLinkByTokenHash>>
+>;
 
 export type MemberGymJoinGateResult =
-  | { ok: true; link: NonNullable<Awaited<ReturnType<typeof memberGymRepository.findJoinLinkByTokenHash>>> }
+  | { ok: true; link: LoadedJoinLink }
   | {
       ok: false;
       reason:
@@ -37,19 +49,24 @@ export type MemberGymJoinGateResult =
         | "organizer";
     };
 
-function appBaseUrl(): string {
-  return (
-    process.env.NEXT_PUBLIC_APP_URL?.replace(/\/$/, "") ||
-    "http://localhost:3000"
-  );
-}
-
 export function buildMemberGymRegisterUrl(token: string): string {
   return `${appBaseUrl()}/member-gym-register/${token}`;
 }
 
+/** 공개 토큰(HMAC 안정 URL 또는 레거시 랜덤)으로 가입 링크 조회 */
+export async function resolveJoinLinkFromPublicToken(
+  token: string,
+): Promise<LoadedJoinLink | null> {
+  const stable = parseStableMemberGymJoinToken(token);
+  if (stable) {
+    return memberGymRepository.findJoinLinkByPublicId(stable.linkId);
+  }
+  const tokenHash = hashMemberGymJoinToken(token);
+  return memberGymRepository.findJoinLinkByTokenHash(tokenHash);
+}
+
 export function evaluateMemberGymJoinGate(
-  link: Awaited<ReturnType<typeof memberGymRepository.findJoinLinkByTokenHash>>,
+  link: LoadedJoinLink | null,
 ): MemberGymJoinGateResult {
   if (!link) return { ok: false, reason: "not_found" };
   if (link.organizer.type !== OrganizerType.association) {
@@ -77,6 +94,8 @@ function formatMemberCode(prefix: string, padding: number, n: number): string {
 export const memberGymService = {
   evaluateMemberGymJoinGate,
   buildMemberGymRegisterUrl,
+  resolveJoinLinkFromPublicToken,
+  buildStableMemberGymRegisterUrl,
 
   async getSettings(actor: ActorContext, organizerIdHint?: string | null) {
     const organizerId = resolveAssociationOrganizerScope(actor, organizerIdHint);
@@ -180,10 +199,57 @@ export const memberGymService = {
       createdByUserId: actor.userId,
     });
 
+    // 관리자 노출 URL은 HMAC 안정 경로(재구성 가능). 랜덤 원문은 반환·저장하지 않음.
+    void token;
     return {
       id: row.id,
-      token,
-      url: buildMemberGymRegisterUrl(token),
+      url: buildStableMemberGymRegisterUrl(row.id),
+    };
+  },
+
+  async listActiveLinksForCopy(
+    actor: ActorContext,
+    organizerIdHint?: string | null,
+  ) {
+    const organizerId = resolveAssociationOrganizerScope(actor, organizerIdHint);
+    const rows = await memberGymRepository.listActiveJoinLinks(organizerId);
+    const now = Date.now();
+    return rows
+      .filter((link) => {
+        if (link.expiresAt && link.expiresAt.getTime() < now) return false;
+        if (link.maxUses != null && link.usedCount >= link.maxUses) return false;
+        return true;
+      })
+      .map((link) => ({
+        id: link.id,
+        label: link.label,
+        expiresAt: link.expiresAt,
+        maxUses: link.maxUses,
+        usedCount: link.usedCount,
+        url: buildStableMemberGymRegisterUrl(link.id),
+      }));
+  },
+
+  async ensureDefaultActiveLink(
+    actor: ActorContext,
+    organizerIdHint?: string | null,
+  ) {
+    const existing = await this.listActiveLinksForCopy(actor, organizerIdHint);
+    if (existing.length > 0) {
+      return existing[0]!;
+    }
+    const created = await this.createLink(
+      actor,
+      { label: DEFAULT_MEMBER_GYM_JOIN_LINK_LABEL },
+      organizerIdHint,
+    );
+    return {
+      id: created.id,
+      label: DEFAULT_MEMBER_GYM_JOIN_LINK_LABEL,
+      expiresAt: null as Date | null,
+      maxUses: null as number | null,
+      usedCount: 0,
+      url: created.url,
     };
   },
 
@@ -204,8 +270,7 @@ export const memberGymService = {
   },
 
   async getPublicRegistrationContext(token: string) {
-    const tokenHash = hashMemberGymJoinToken(token);
-    const link = await memberGymRepository.findJoinLinkByTokenHash(tokenHash);
+    const link = await resolveJoinLinkFromPublicToken(token);
     const gate = evaluateMemberGymJoinGate(link);
     if (!gate.ok) return { ok: false as const, reason: gate.reason };
     const settings = parseMemberGymSettings(
@@ -269,8 +334,7 @@ export const memberGymService = {
       }[];
     },
   ) {
-    const tokenHash = hashMemberGymJoinToken(token);
-    const link = await memberGymRepository.findJoinLinkByTokenHash(tokenHash);
+    const link = await resolveJoinLinkFromPublicToken(token);
     const gate = evaluateMemberGymJoinGate(link);
     if (!gate.ok) {
       throw new AppError("FORBIDDEN", "유효하지 않거나 만료된 가입 링크입니다.");
@@ -338,6 +402,7 @@ export const memberGymService = {
         {
           organizer: { connect: { id: gate.link.organizerId } },
           joinLink: { connect: { id: gate.link.id } },
+          submissionSource: AssociationMemberGymApplicationSource.public_link,
           status: AssociationMemberGymApplicationStatus.submitted,
           gymName: input.gymName.trim(),
           ownerName: input.ownerName.trim(),
@@ -407,11 +472,171 @@ export const memberGymService = {
     };
   },
 
+  async createManualApplication(
+    actor: ActorContext,
+    input: {
+      receptionChannel: MemberGymReceptionChannel;
+      receivedAt?: string;
+      internalMemo?: string;
+      gymName: string;
+      ownerName: string;
+      ownerNameEn?: string;
+      birthDate?: string;
+      gender?: string;
+      phone: string;
+      gymPhone?: string;
+      email: string;
+      homeAddress?: string;
+      gymAddress: string;
+      gymAddressDetail?: string;
+      businessNo?: string;
+      sportType?: string;
+      qualifications?: string;
+      careerSummary?: string;
+      memo?: string;
+      paperConsentConfirmed: boolean;
+      uploadBatchId?: string;
+      attachments?: {
+        attachmentType: AssociationMemberGymApplicationAttachmentType;
+        storagePath: string;
+        originalFileName: string;
+        mimeType: string;
+        sizeBytes: number;
+      }[];
+    },
+    organizerIdHint?: string | null,
+  ) {
+    const organizerId = resolveAssociationOrganizerScope(actor, organizerIdHint);
+    if (!input.paperConsentConfirmed) {
+      throw new AppError(
+        "VALIDATION_ERROR",
+        "종이·현장 서류 확인에 동의해 주세요.",
+      );
+    }
+
+    const settings = parseMemberGymSettings(
+      (await memberGymRepository.getOrCreateSettings(organizerId)).settingsJson,
+    );
+    const attachments = input.attachments ?? [];
+    if (settings.form.requireRepresentativePhoto) {
+      const has = attachments.some(
+        (a) => a.attachmentType === "representative_photo",
+      );
+      if (!has) {
+        throw new AppError("VALIDATION_ERROR", "증명사진을 첨부해 주세요.");
+      }
+    }
+    if (settings.form.requireBusinessRegistration) {
+      const has = attachments.some(
+        (a) => a.attachmentType === "business_registration",
+      );
+      if (!has) {
+        throw new AppError("VALIDATION_ERROR", "사업자등록증을 첨부해 주세요.");
+      }
+    }
+
+    const sourceMap: Record<
+      MemberGymReceptionChannel,
+      AssociationMemberGymApplicationSource
+    > = {
+      paper: AssociationMemberGymApplicationSource.paper,
+      visit: AssociationMemberGymApplicationSource.visit,
+      phone: AssociationMemberGymApplicationSource.phone,
+      email: AssociationMemberGymApplicationSource.email,
+      manual: AssociationMemberGymApplicationSource.manual,
+    };
+    const submissionSource = sourceMap[input.receptionChannel];
+
+    const birthDate = input.birthDate?.trim()
+      ? new Date(input.birthDate)
+      : null;
+    let receivedAt = new Date();
+    if (input.receivedAt?.trim()) {
+      const parsed = new Date(input.receivedAt);
+      if (Number.isNaN(parsed.getTime())) {
+        throw new AppError("VALIDATION_ERROR", "접수일 형식이 올바르지 않습니다.");
+      }
+      receivedAt = parsed;
+    }
+
+    const bucket =
+      process.env.SUPABASE_MEMBER_GYM_FILES_BUCKET?.trim() || "member-gym-files";
+
+    const application = await prisma.$transaction(async (tx) => {
+      const created = await memberGymRepository.createApplication(
+        {
+          organizer: { connect: { id: organizerId } },
+          createdByUser: { connect: { id: actor.userId } },
+          submissionSource,
+          receivedAt,
+          internalMemo: input.internalMemo?.trim() || null,
+          status: AssociationMemberGymApplicationStatus.under_review,
+          gymName: input.gymName.trim(),
+          ownerName: input.ownerName.trim(),
+          ownerNameEn: input.ownerNameEn?.trim() || null,
+          birthDate:
+            birthDate && !Number.isNaN(birthDate.getTime()) ? birthDate : null,
+          gender: input.gender?.trim() || null,
+          phone: input.phone.trim(),
+          gymPhone: input.gymPhone?.trim() || null,
+          email: input.email.trim(),
+          homeAddress: input.homeAddress?.trim() || null,
+          gymAddress: input.gymAddress.trim(),
+          gymAddressDetail: input.gymAddressDetail?.trim() || null,
+          businessNo: input.businessNo?.trim() || null,
+          sportType: input.sportType?.trim() || null,
+          qualifications: input.qualifications?.trim() || null,
+          careerSummary: input.careerSummary?.trim() || null,
+          memo: input.memo?.trim() || null,
+          privacyConsent: true,
+          registrationConsent: true,
+          smsConsent: false,
+          informationConsent: false,
+          signatureName: input.ownerName.trim(),
+          signatureConsent: true,
+          uploadBatchId: input.uploadBatchId?.trim() || null,
+          submittedAt: receivedAt,
+        },
+        tx,
+      );
+
+      await memberGymRepository.createApplicationAttachments(
+        attachments.map((a, i) => ({
+          applicationId: created.id,
+          attachmentType: a.attachmentType,
+          storageBucket: bucket,
+          storagePath: a.storagePath,
+          originalFileName: a.originalFileName,
+          mimeType: a.mimeType,
+          sizeBytes: a.sizeBytes,
+          sortOrder: i,
+        })),
+        tx,
+      );
+
+      await memberGymRepository.createReview(
+        {
+          applicationId: created.id,
+          fromStatus: null,
+          toStatus: AssociationMemberGymApplicationStatus.under_review,
+          note: `manual_created:${submissionSource}`,
+          actorUserId: actor.userId,
+        },
+        tx,
+      );
+
+      return created;
+    });
+
+    return { applicationId: application.id };
+  },
+
   async listApplications(
     actor: ActorContext,
     filters: {
       status?: AssociationMemberGymApplicationStatus;
       q?: string;
+      sourceGroup?: "online" | "manual";
     },
     organizerIdHint?: string | null,
   ) {
@@ -420,6 +645,7 @@ export const memberGymService = {
       organizerId,
       status: filters.status,
       q: filters.q,
+      sourceGroup: filters.sourceGroup,
     });
   },
 
