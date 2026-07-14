@@ -1,6 +1,6 @@
 import type { ActorContext } from "@/lib/auth/actor-context";
 import type { PublicFighterCardDTO } from "@/lib/dto/public";
-import type { UserRole } from "@/lib/enums";
+import { OrganizerType, type UserRole } from "@/lib/enums";
 import { eventRepository } from "@/lib/repositories/event.repository";
 import { fighterRepository } from "@/lib/repositories/fighter.repository";
 import { PermissionError } from "@/lib/auth/permission-error";
@@ -14,6 +14,50 @@ export function requireRole(
 ): asserts actor is ActorContext {
   if (!actor || !allowed.includes(actor.role)) {
     throw new PermissionError("FORBIDDEN");
+  }
+}
+
+/**
+ * 협회 회원사 관리 — association organizer만 허용.
+ * admin은 명시적 organizerId가 있을 때만 보조 접근.
+ * UI 메뉴 숨김만으로 권한을 처리하지 않는다.
+ */
+export function resolveAssociationOrganizerScope(
+  actor: ActorContext,
+  explicitOrganizerId?: string | null,
+): string {
+  if (actor.role === "admin") {
+    const id = explicitOrganizerId?.trim();
+    if (!id) {
+      throw new AppError(
+        "FORBIDDEN",
+        "관리자는 organizerId를 지정해야 회원사 관리에 접근할 수 있습니다.",
+      );
+    }
+    return id;
+  }
+  requireRole(actor, ["organizer"]);
+  if (!actor.organizerId) {
+    throw new PermissionError("FORBIDDEN", "주최자 컨텍스트가 없습니다.");
+  }
+  if (actor.organizerType !== OrganizerType.association) {
+    throw new PermissionError(
+      "FORBIDDEN",
+      "협회 주최자만 회원사 관리를 사용할 수 있습니다.",
+    );
+  }
+  return actor.organizerId;
+}
+
+export function requireAssociationOrganizerPage(
+  actor: ActorContext,
+  explicitOrganizerId?: string | null,
+): string {
+  try {
+    return resolveAssociationOrganizerScope(actor, explicitOrganizerId);
+  } catch (e) {
+    if (e instanceof PermissionError || e instanceof AppError) notFound();
+    throw e;
   }
 }
 

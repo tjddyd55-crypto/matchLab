@@ -2,7 +2,7 @@
  * [CONTRACT] PrismaClient import는 `src/lib/repositories` 내부에만 허용한다.
  */
 import { prisma } from "@/lib/prisma";
-import type { UserRole } from "@/lib/enums";
+import type { OrganizerType, UserRole } from "@/lib/enums";
 
 const actorProfileSelect = {
   id: true,
@@ -10,7 +10,7 @@ const actorProfileSelect = {
   role: true,
   loginId: true,
   mustChangePassword: true,
-  organizer: { select: { id: true } },
+  organizer: { select: { id: true, type: true } },
   ownedGym: { select: { id: true } },
   fighter: { select: { id: true } },
 } as const;
@@ -21,7 +21,7 @@ export type ActorProfileRow = {
   role: UserRole;
   loginId: string | null;
   mustChangePassword: boolean;
-  organizer: { id: string } | null;
+  organizer: { id: string; type: OrganizerType } | null;
   ownedGym: { id: string } | null;
   fighter: { id: string } | null;
 };
