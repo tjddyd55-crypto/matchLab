@@ -160,8 +160,8 @@ export function FighterRegistrationForm({
                 required
                 minLength={4}
                 maxLength={20}
-                pattern="[a-z0-9][-a-z0-9_]{3,19}"
                 autoComplete="username"
+                title="4~20자, 영문 소문자·숫자·_·-"
                 className={publicApplicationFieldInputClass}
               />
               <span className="text-muted-foreground text-xs">

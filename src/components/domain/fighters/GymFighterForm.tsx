@@ -338,10 +338,10 @@ export function GymFighterForm({
                   name="loginId"
                   required
                   className={inputClass}
-                  pattern="[a-z0-9][-a-z0-9_]{3,19}"
                   minLength={4}
                   maxLength={20}
                   autoComplete="off"
+                  title="4~20자, 영문 소문자·숫자·_·-"
                 />
                 <span className="text-muted-foreground text-xs">
                   4~20자, 영문 소문자·숫자·_·-
