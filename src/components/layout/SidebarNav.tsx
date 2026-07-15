@@ -23,13 +23,14 @@ export function SidebarNav({
   const pathname = usePathname();
 
   return (
-    <nav className="flex flex-col gap-0.5 text-sm">
+    <nav className="flex flex-col gap-0.5 text-sm" aria-label="주요 메뉴">
       {items.map((item) => {
         const active = isNavActive(item.href, pathname, homePaths);
         return (
           <Link
             key={item.href}
             href={item.href}
+            aria-current={active ? "page" : undefined}
             className={cn(
               "rounded-lg px-3 py-2 font-medium transition-colors",
               active

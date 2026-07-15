@@ -7,9 +7,16 @@
 @theme inline {
   --color-background: var(--background);
   --color-foreground: var(--foreground);
-  --font-sans: var(--font-sans);
+  --font-sans: var(--font-matchon-sans);
   --font-mono: var(--font-geist-mono);
-  --font-heading: var(--font-sans);
+  --font-heading: var(--font-matchon-sans);
+  --text-xs: var(--font-size-xs);
+  --text-sm: var(--font-size-sm);
+  --text-base: var(--font-size-base);
+  --text-lg: var(--font-size-lg);
+  --text-xl: var(--font-size-xl);
+  --text-2xl: var(--font-size-2xl);
+  --text-3xl: var(--font-size-3xl);
   --color-sidebar-ring: var(--sidebar-ring);
   --color-sidebar-border: var(--sidebar-border);
   --color-sidebar-accent-foreground: var(--sidebar-accent-foreground);
@@ -61,6 +68,20 @@
 }
 
 :root {
+  --font-matchon-sans: var(--font-geist-sans), "Apple SD Gothic Neo",
+    "Noto Sans KR", "Malgun Gothic", "Segoe UI", system-ui, -apple-system,
+    BlinkMacSystemFont, sans-serif;
+
+  --font-size-xs: 0.8125rem; /* 13px */
+  --font-size-sm: 0.875rem; /* 14px */
+  --font-size-base: 1rem; /* 16px */
+  --font-size-md: 1.0625rem; /* 17px */
+  --font-size-lg: 1.125rem; /* 18px */
+  --font-size-xl: 1.25rem; /* 20px */
+  --font-size-2xl: 1.5rem; /* 24px */
+  --font-size-3xl: 1.75rem; /* 28px */
+  --line-height-body: 1.6;
+
   --matchon-primary: #0a47ff;
   --matchon-primary-dark: #001c7a;
   --matchon-primary-light: #eaf1ff;
@@ -197,10 +218,23 @@
   * {
     @apply border-border outline-ring/50;
   }
-  body {
-    @apply bg-background text-foreground;
-  }
   html {
     @apply font-sans;
+    font-size: 16px;
+    -webkit-text-size-adjust: 100%;
+  }
+  body {
+    @apply bg-background text-matchon-text-primary;
+    font-size: var(--font-size-base);
+    line-height: var(--line-height-body);
+  }
+  label {
+    font-size: var(--font-size-sm);
+    font-weight: 600;
+  }
+  input,
+  select,
+  textarea {
+    font-size: var(--font-size-base);
   }
 }

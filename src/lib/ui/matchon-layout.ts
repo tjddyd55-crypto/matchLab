@@ -13,10 +13,10 @@ export const matchonCardStackClass = "flex flex-col gap-3 sm:gap-4";
 export const matchonGridGapClass = "gap-3 sm:gap-4";
 
 export const matchonPageTitleClass =
-  "font-heading text-2xl font-semibold tracking-tight md:text-3xl";
+  "font-heading text-[1.375rem] font-semibold tracking-tight md:text-[1.625rem]";
 
 export const matchonPageDescClass =
-  "text-muted-foreground text-sm leading-relaxed";
+  "text-matchon-text-secondary text-base leading-relaxed";
 
 export const matchonSectionTitleClass =
   "font-heading text-lg font-semibold tracking-tight md:text-xl";

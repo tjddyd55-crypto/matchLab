@@ -1,6 +1,5 @@
 import { AppShell } from "@/components/layout/AppShell";
 import { DashboardShell } from "@/components/layout/DashboardShell";
-import { AdminNavStrip } from "@/components/domain/admin/AdminNavStrip";
 import { redirectUnlessDashboardRole, requireActor } from "@/lib/auth/actor";
 
 export default async function AdminDashboardLayout({
@@ -18,7 +17,6 @@ export default async function AdminDashboardLayout({
         actorUserId={actor.userId}
         actorEmail={actor.email || ""}
       >
-        <AdminNavStrip />
         {children}
       </DashboardShell>
     </AppShell>

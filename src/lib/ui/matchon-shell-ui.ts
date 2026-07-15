@@ -7,7 +7,7 @@ import {
 /** MATCHON Figma Shell·목록·필터·탭·테이블 공통 SSOT */
 
 export const matchonPageEyebrowClass =
-  "text-xs font-extrabold uppercase tracking-[0.96px] text-matchon-primary";
+  "text-sm font-extrabold uppercase tracking-[0.96px] text-matchon-primary";
 
 export const matchonPageHeaderStackClass = "space-y-1";
 
@@ -17,7 +17,7 @@ export const matchonFilterBarClass =
   "rounded-xl border border-matchon-border bg-matchon-primary-light/35 p-4";
 
 export const matchonFilterPillBaseClass =
-  "min-h-9 shrink-0 rounded-full border px-3.5 py-1.5 text-sm font-medium transition-colors";
+  "min-h-10 shrink-0 rounded-full border px-3.5 py-2 text-sm font-medium transition-colors";
 
 export const matchonFilterPillActiveClass =
   "border-matchon-primary bg-matchon-primary text-white";
@@ -29,10 +29,10 @@ export const matchonSecondarySidebarClass =
   "rounded-xl border border-matchon-border bg-white p-3 shadow-sm";
 
 export const matchonSecondarySidebarSectionLabelClass =
-  "mb-2 px-2 text-[11px] font-bold uppercase tracking-wide text-matchon-text-secondary";
+  "mb-2 px-2 text-xs font-bold uppercase tracking-wide text-matchon-text-secondary";
 
 export const matchonSecondarySidebarLinkBaseClass =
-  "block rounded-lg px-3 py-2 text-sm font-medium transition-colors";
+  "block rounded-lg px-3 py-2.5 text-[15px] font-medium transition-colors";
 
 export const matchonSecondarySidebarLinkActiveClass =
   "bg-matchon-primary-light text-matchon-primary";
@@ -44,7 +44,7 @@ export const matchonUnderlineTabsNavClass =
   "flex gap-6 overflow-x-auto border-b border-matchon-border [-ms-overflow-style:none] [scrollbar-width:none] [&::-webkit-scrollbar]:hidden";
 
 export const matchonUnderlineTabBaseClass =
-  "shrink-0 border-b-2 border-transparent pb-3 text-sm font-semibold transition-colors";
+  "shrink-0 border-b-2 border-transparent pb-3 text-[15px] font-semibold transition-colors";
 
 export const matchonUnderlineTabActiveClass =
   "border-matchon-primary text-matchon-primary";
@@ -65,7 +65,7 @@ export const matchonStatCardClass =
 export const matchonStatValueClass =
   "font-black text-2xl tracking-tight text-matchon-text-primary";
 
-export const matchonStatLabelClass = "text-xs text-matchon-text-secondary";
+export const matchonStatLabelClass = "text-sm text-matchon-text-secondary";
 
 export const matchonVsCardClass =
   "rounded-xl border border-matchon-border bg-white p-4 shadow-sm";
@@ -84,9 +84,9 @@ export const matchonCompactActionBarClass =
   "flex flex-wrap items-center gap-2 rounded-xl border border-matchon-border bg-white p-3";
 
 export const matchonInfoBannerClass =
-  "rounded-xl border border-matchon-border bg-matchon-primary-light/30 px-4 py-3 text-sm text-matchon-text-primary";
+  "rounded-xl border border-matchon-border bg-matchon-primary-light/30 px-4 py-3 text-base text-matchon-text-primary";
 
 export const matchonFieldInputClass =
-  "h-10 w-full rounded-lg border border-matchon-border bg-white px-3 text-sm shadow-sm focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-matchon-primary/30";
+  "h-11 min-h-11 w-full rounded-lg border border-matchon-border bg-white px-3.5 text-base shadow-sm placeholder:text-matchon-text-secondary/80 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-matchon-primary/30";
 
 export const matchonFieldSelectClass = matchonFieldInputClass;

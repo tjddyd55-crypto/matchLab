@@ -1,10 +1,11 @@
 import Link from "next/link";
 import type { DashboardRole } from "@/components/layout/DashboardShell";
+import { getAdminMobileBottomNavItems } from "@/lib/navigation/admin-navigation";
 import { getGymPortalNavItems } from "@/lib/navigation/gym-portal-navigation";
 import { cn } from "@/lib/utils";
 
 const bottomNavByRole: Record<
-  Exclude<DashboardRole, "gym">,
+  Exclude<DashboardRole, "gym" | "admin">,
   { href: string; label: string }[]
 > = {
   organizer: [
@@ -17,12 +18,6 @@ const bottomNavByRole: Record<
     { href: "/fighter/events", label: "내 대회" },
     { href: "/fighter/records", label: "전적" },
   ],
-  admin: [
-    { href: "/admin", label: "홈" },
-    { href: "/admin/events", label: "대회" },
-    { href: "/admin/applications", label: "신청" },
-    { href: "/notifications", label: "알림" },
-  ],
 };
 
 export function MobileBottomNav({
@@ -33,14 +28,24 @@ export function MobileBottomNav({
   className?: string;
 }) {
   const items =
-    role === "gym" ? getGymPortalNavItems() : bottomNavByRole[role];
+    role === "gym"
+      ? getGymPortalNavItems()
+      : role === "admin"
+        ? getAdminMobileBottomNavItems()
+        : bottomNavByRole[role];
   return (
     <nav
       className={cn(
         "fixed bottom-0 left-0 right-0 z-40 flex justify-around border-t border-matchon-border bg-white px-2 py-2 text-xs",
         className,
       )}
-      aria-label={role === "gym" ? "회원사 하단 메뉴" : undefined}
+      aria-label={
+        role === "gym"
+          ? "회원사 하단 메뉴"
+          : role === "admin"
+            ? "관리자 하단 메뉴"
+            : "대시보드 하단 메뉴"
+      }
     >
       {items.map((item) => (
         <Link

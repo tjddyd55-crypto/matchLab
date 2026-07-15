@@ -15,6 +15,7 @@ export function LogoutButton() {
       variant="outline"
       size="xs"
       disabled={pending}
+      aria-label="로그아웃"
       onClick={() => {
         startTransition(async () => {
           const r = await signOutAction();
