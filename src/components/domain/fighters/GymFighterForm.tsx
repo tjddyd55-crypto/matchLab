@@ -338,7 +338,7 @@ export function GymFighterForm({
                   name="loginId"
                   required
                   className={inputClass}
-                  pattern="[a-z0-9][a-z0-9_-]{3,19}"
+                  pattern="[a-z0-9][-a-z0-9_]{3,19}"
                   minLength={4}
                   maxLength={20}
                   autoComplete="off"
