@@ -633,14 +633,49 @@ export const gymOwnerAccountService = {
       password,
       email_confirm: true,
     });
-    if (error || !data.user?.id) {
-      const msg = error?.message?.toLowerCase() ?? "";
+    let authUserId = data.user?.id ?? null;
+    if ((!authUserId || error) && error) {
+      const msg = error.message?.toLowerCase() ?? "";
       if (msg.includes("already") || msg.includes("registered")) {
+        // Auth orphan(User 없음)이면 삭제 후 1회 재시도 — 기존 User가 있으면 아이디 충돌
+        const listed = await supabase.auth.admin.listUsers({
+          page: 1,
+          perPage: 200,
+        });
+        const orphan = (listed.data?.users || []).find(
+          (u) => (u.email || "").toLowerCase() === authEmail.toLowerCase(),
+        );
+        if (orphan) {
+          const linked = await prisma.user.findFirst({
+            where: { authUserId: orphan.id },
+            select: { id: true },
+          });
+          if (!linked) {
+            await supabase.auth.admin.deleteUser(orphan.id);
+            const retry = await supabase.auth.admin.createUser({
+              email: authEmail,
+              password,
+              email_confirm: true,
+            });
+            if (retry.data.user?.id) {
+              authUserId = retry.data.user.id;
+            }
+          }
+        }
+        if (!authUserId) {
+          throw new AppError(
+            "CONFLICT",
+            "이미 사용 중인 아이디입니다.\n다른 아이디를 입력해 주세요.",
+          );
+        }
+      } else {
         throw new AppError(
-          "CONFLICT",
-          "이미 사용 중인 아이디입니다.\n다른 아이디를 입력해 주세요.",
+          "INTERNAL",
+          "계정 생성 중 오류가 발생했습니다.\n잠시 후 다시 시도해 주세요.",
         );
       }
+    }
+    if (!authUserId) {
       throw new AppError(
         "INTERNAL",
         "계정 생성 중 오류가 발생했습니다.\n잠시 후 다시 시도해 주세요.",
@@ -652,7 +687,7 @@ export const gymOwnerAccountService = {
       await prisma.$transaction(async (tx) => {
         const user = await tx.user.create({
           data: {
-            authUserId: data.user!.id,
+            authUserId,
             // Auth SSOT — 선수 계정과 동일 (loginId → synthetic email)
             email: authEmail,
             loginId,
@@ -692,7 +727,7 @@ export const gymOwnerAccountService = {
         );
       });
     } catch (e) {
-      await supabase.auth.admin.deleteUser(data.user.id).catch(() => undefined);
+      await supabase.auth.admin.deleteUser(authUserId).catch(() => undefined);
       if (e instanceof AppError) throw e;
       throw new AppError(
         "INTERNAL",
