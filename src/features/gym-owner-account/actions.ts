@@ -135,12 +135,24 @@ export async function acceptMemberGymOwnerInviteAction(input: {
   token: string;
   loginId: string;
   password: string;
+  passwordConfirm: string;
 }) {
   try {
     const result = await gymOwnerAccountService.acceptOwnerInvite(input.token, {
       loginId: input.loginId,
       password: input.password,
+      passwordConfirm: input.passwordConfirm,
     });
+    return actionSuccess(result);
+  } catch (e) {
+    return mapError(e);
+  }
+}
+
+export async function checkMemberGymOwnerInviteLoginIdAction(loginId: string) {
+  try {
+    const result =
+      await gymOwnerAccountService.isLoginIdAvailableForInvite(loginId);
     return actionSuccess(result);
   } catch (e) {
     return mapError(e);

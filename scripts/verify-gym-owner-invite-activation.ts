@@ -18,7 +18,11 @@ function main() {
   assert.equal(src.includes('"submitting"'), true);
   assert.equal(src.includes('"success"'), true);
   assert.equal(src.includes('"error"'), true);
-  assert.equal(src.includes("finally"), false); // pending cleared on error/success paths explicitly
+  assert.equal(src.includes("finally"), false);
+  assert.equal(src.includes("passwordConfirm"), true);
+  assert.equal(src.includes('activated: "1"'), true);
+  assert.equal(src.includes("중복확인"), true);
+  assert.equal(src.includes("loginIdReady"), true);
   console.log("verify:gym-owner-invite-activation: OK");
 }
 

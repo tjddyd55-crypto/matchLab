@@ -8,6 +8,7 @@ import {
   loginIdToAuthEmail,
   normalizeLoginId,
 } from "@/lib/fighter-login";
+import { isSyntheticAuthEmail } from "@/lib/member-gym/owner-account";
 import { userRepository } from "@/lib/repositories/user.repository";
 
 /**
@@ -21,6 +22,10 @@ export const authService = {
   /**
    * 로그인 identifier(아이디 또는 이메일) → Supabase Auth email.
    * 모든 User.role 지원. identifier를 Supabase에 그대로 넘기지 않습니다.
+   *
+   * loginId 기반 계정 SSOT: Auth email = loginIdToAuthEmail(loginId).
+   * User.email에 연락처가 잘못 저장된 회원사(초대 활성화 회귀)는
+   * synthetic Auth email로 해석한다. @demo.local 등 기존 이메일 Auth는 유지.
    */
   async resolveAuthEmailForLogin(identifier: string): Promise<string | null> {
     const trimmed = identifier.trim();
@@ -32,8 +37,28 @@ export const authService = {
 
     const loginId = normalizeLoginId(trimmed);
     const byLoginId = await userRepository.findUserByLoginId(loginId);
-    if (byLoginId?.email) {
-      return normalizeAuthEmail(byLoginId.email);
+    if (byLoginId?.loginId) {
+      const synthetic = normalizeAuthEmail(loginIdToAuthEmail(byLoginId.loginId));
+      const stored = byLoginId.email
+        ? normalizeAuthEmail(byLoginId.email)
+        : null;
+
+      if (!stored) return synthetic;
+
+      // 데모·레거시: User.email이 곧 Auth email
+      if (stored.endsWith("@demo.local")) return stored;
+
+      // 이미 Auth SSOT와 일치
+      if (stored === synthetic || isSyntheticAuthEmail(stored)) {
+        return synthetic;
+      }
+
+      // 회원사 초대 버그 복구: User.email=신청 이메일, Auth=synthetic
+      if (byLoginId.role === "gym") {
+        return synthetic;
+      }
+
+      return stored;
     }
 
     // loginId 미기입 DB: 데모 @demo.local / 내부 auth email 하위 호환

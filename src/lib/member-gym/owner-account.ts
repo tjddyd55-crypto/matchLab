@@ -18,12 +18,31 @@ export const MEMBER_GYM_OWNER_ACCOUNT_STATUS_LABEL: Record<
   access_suspended: "접근 중지",
 };
 
+const INTERNAL_AUTH_EMAIL_DOMAIN = (
+  process.env.FIGHTER_INTERNAL_EMAIL_DOMAIN?.trim() ||
+  "internal.matchlab.local"
+).toLowerCase();
+
+/** placeholder 전용 이메일(수동 생성 / @internal.invalid) */
 export function isInternalPlaceholderEmail(
   email: string | null | undefined,
 ): boolean {
   if (!email) return false;
   const e = email.toLowerCase();
   return e.endsWith("@internal.invalid") || e.startsWith("manual-gym-");
+}
+
+/**
+ * 화면·연락처로 노출하면 안 되는 Auth용 synthetic email.
+ * (선수/회원사 초대 활성화 공통: loginId@internal.matchlab.local)
+ */
+export function isSyntheticAuthEmail(
+  email: string | null | undefined,
+): boolean {
+  if (!email) return false;
+  const e = email.toLowerCase();
+  if (isInternalPlaceholderEmail(e)) return true;
+  return e.endsWith(`@${INTERNAL_AUTH_EMAIL_DOMAIN}`);
 }
 
 export function isPlaceholderGymOwnerUser(user: {
@@ -33,6 +52,7 @@ export function isPlaceholderGymOwnerUser(user: {
 }): boolean {
   const login = user.loginId?.toLowerCase() ?? "";
   if (login.startsWith("manual-gym-")) return true;
+  // matchlab synthetic은 정상 Auth SSOT — placeholder가 아님
   if (isInternalPlaceholderEmail(user.email)) return true;
   if (!user.authUserId) return true;
   return false;
@@ -81,7 +101,7 @@ export function resolveMemberGymOwnerDisplay(input: {
     : true;
 
   const realOwnerEmail =
-    input.owner?.email && !isInternalPlaceholderEmail(input.owner.email)
+    input.owner?.email && !isSyntheticAuthEmail(input.owner.email)
       ? input.owner.email
       : null;
   const realOwnerPhone =
@@ -101,11 +121,10 @@ export function resolveMemberGymOwnerDisplay(input: {
   const displayEmail =
     firstNonEmpty(
       realOwnerEmail,
-      input.inviteEmail && !isInternalPlaceholderEmail(input.inviteEmail)
+      input.inviteEmail && !isSyntheticAuthEmail(input.inviteEmail)
         ? input.inviteEmail
         : null,
-      input.application?.email &&
-        !isInternalPlaceholderEmail(input.application.email)
+      input.application?.email && !isSyntheticAuthEmail(input.application.email)
         ? input.application.email
         : null,
     ) ?? "미등록";
@@ -128,11 +147,11 @@ export function resolveMemberGymOwnerDisplay(input: {
       ) ?? "",
     email:
       firstNonEmpty(
-        input.inviteEmail && !isInternalPlaceholderEmail(input.inviteEmail)
+        input.inviteEmail && !isSyntheticAuthEmail(input.inviteEmail)
           ? input.inviteEmail
           : null,
         input.application?.email &&
-          !isInternalPlaceholderEmail(input.application.email)
+          !isSyntheticAuthEmail(input.application.email)
           ? input.application.email
           : null,
       ) ?? "",

@@ -10,7 +10,13 @@ import { authFieldInputClass } from "@/lib/ui/auth-ui";
 
 type SignInState = ActionResult<{ redirectTo: string }> | null;
 
-export function LoginForm() {
+export function LoginForm({
+  defaultLoginId,
+  activatedBanner,
+}: {
+  defaultLoginId?: string;
+  activatedBanner?: boolean;
+}) {
   const router = useRouter();
   const [state, formAction, pending] = useActionState(
     signInWithPasswordAction,
@@ -26,6 +32,16 @@ export function LoginForm() {
 
   return (
     <form action={formAction} className="space-y-4">
+      {activatedBanner ? (
+        <p
+          className="rounded-md border border-matchon-primary/30 bg-matchon-surface px-3 py-2 text-sm text-matchon-text-primary"
+          role="status"
+        >
+          회원사 계정이 활성화되었습니다.
+          <br />
+          설정한 아이디와 비밀번호로 로그인해 주세요.
+        </p>
+      ) : null}
       <p className="text-xs leading-relaxed text-matchon-text-secondary">
         관리자, 주최자, 체육관, 선수 모두 발급받은 아이디로 로그인합니다.
       </p>
@@ -40,6 +56,7 @@ export function LoginForm() {
           autoComplete="username"
           required
           disabled={pending}
+          defaultValue={defaultLoginId ?? ""}
           placeholder="아이디를 입력하세요"
           className={authFieldInputClass}
         />
