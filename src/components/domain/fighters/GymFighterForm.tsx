@@ -8,7 +8,9 @@ import {
   releaseGymFighterAffiliationAction,
   updateGymFighterAction,
 } from "@/features/fighters/actions";
+import { AppDateInput } from "@/components/shared/AppDateInput";
 import { Button, buttonVariants } from "@/components/ui/button";
+import { toDateInputValue } from "@/lib/date-only";
 import { cn } from "@/lib/utils";
 import { FighterStatus } from "@/lib/enums";
 
@@ -41,11 +43,6 @@ const STATUS_OPTIONS: { value: FighterStatus; label: string }[] = [
   { value: FighterStatus.active, label: "활성" },
   { value: FighterStatus.inactive, label: "비활성" },
 ];
-
-function toDateInputValue(d: Date): string {
-  if (Number.isNaN(d.getTime())) return "";
-  return d.toISOString().slice(0, 10);
-}
 
 export function GymFighterForm({
   mode,
@@ -211,16 +208,16 @@ export function GymFighterForm({
             defaultValue={initial?.name ?? ""}
           />
         </label>
-        <label className="space-y-1 text-sm">
-          <span className="font-medium">생년월일 *</span>
-          <input
-            className={inputClass}
-            type="date"
+        <div className="space-y-1.5 text-sm">
+          <span className="font-semibold">생년월일 *</span>
+          <AppDateInput
             name="birthDate"
             required
+            disallowFuture
             defaultValue={initial?.birthDate ?? ""}
+            aria-label="생년월일"
           />
-        </label>
+        </div>
         <label className="space-y-1 text-sm">
           <span className="font-medium">성별 *</span>
           <select

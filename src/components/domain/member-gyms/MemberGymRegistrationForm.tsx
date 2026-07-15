@@ -2,6 +2,7 @@
 
 import { useMemo, useState, useTransition } from "react";
 import { AddressSearchField } from "@/components/shared/AddressSearchField";
+import { AppDateInput } from "@/components/shared/AppDateInput";
 import { BusinessNoInput, PhoneInput } from "@/components/shared/PhoneInput";
 import {
   MemberGymSignatureField,
@@ -365,21 +366,43 @@ function Field({
   label,
   required,
   type = "text",
+  defaultValue,
 }: {
   name: string;
   label: string;
   required?: boolean;
   type?: string;
+  defaultValue?: string;
 }) {
+  if (type === "date") {
+    return (
+      <div className="block space-y-1.5 text-sm">
+        <span className="font-semibold">
+          {label}
+          {required ? " *" : ""}
+        </span>
+        <AppDateInput
+          name={name}
+          required={required}
+          defaultValue={defaultValue}
+          disallowFuture={name === "birthDate"}
+          aria-label={label}
+        />
+      </div>
+    );
+  }
   return (
-    <label className="block text-xs">
-      {label}
-      {required ? " *" : ""}
+    <label className="block space-y-1.5 text-sm">
+      <span className="font-semibold">
+        {label}
+        {required ? " *" : ""}
+      </span>
       <input
         name={name}
         type={type}
         required={required}
-        className="mt-1 w-full rounded-md border border-matchon-border px-3 py-2 text-sm"
+        defaultValue={defaultValue}
+        className="mt-1 h-11 w-full rounded-lg border border-matchon-border bg-white px-3 text-base shadow-sm"
       />
     </label>
   );

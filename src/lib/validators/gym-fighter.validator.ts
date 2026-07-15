@@ -1,6 +1,11 @@
 import { z } from "zod";
 import { FighterStatus } from "@/lib/enums";
 import {
+  isDateOnlyNotAfterToday,
+  isValidDateOnlyString,
+  parseDateOnlyString,
+} from "@/lib/date-only";
+import {
   fighterPasswordSchema,
   loginIdSchema,
 } from "@/lib/validators/fighter-account.validator";
@@ -24,10 +29,23 @@ function optionalTrimmedString(max = 500) {
 
 const genderSchema = z.string().trim().min(1, "성별을 선택해 주세요.");
 
+/** 생년월일 등 — YYYY-MM-DD 문자열 → UTC date-only Date */
+export const birthDateOnlySchema = z
+  .string()
+  .trim()
+  .min(1, "생년월일을 입력해 주세요.")
+  .refine(isValidDateOnlyString, {
+    message: "생년월일은 YYYY-MM-DD 형식(연도 4자리)이어야 합니다.",
+  })
+  .refine(isDateOnlyNotAfterToday, {
+    message: "생년월일은 미래일일 수 없습니다.",
+  })
+  .transform((s) => parseDateOnlyString(s)!);
+
 export const gymFighterCreateSchema = z
   .object({
     name: z.string().trim().min(1, "선수명을 입력해 주세요."),
-    birthDate: z.coerce.date({ message: "생년월일을 선택해 주세요." }),
+    birthDate: birthDateOnlySchema,
     gender: genderSchema,
     phone: z
       .string()
@@ -107,7 +125,7 @@ export const gymFighterUpdateSchema = z
   .object({
     fighterId: z.string().min(1),
     name: z.string().trim().min(1, "선수명을 입력해 주세요."),
-    birthDate: z.coerce.date({ message: "생년월일을 선택해 주세요." }),
+    birthDate: birthDateOnlySchema,
     gender: genderSchema,
     phone: z
       .string()
@@ -122,10 +140,6 @@ export const gymFighterUpdateSchema = z
     guardianPhone: optionalTrimmedString(20),
     gymInternalMemo: optionalTrimmedString(2000),
     status: z.nativeEnum(FighterStatus).optional(),
-    releaseAffiliation: z
-      .enum(["true", "false"])
-      .optional()
-      .transform((v) => v === "true"),
   })
   .strict();
 

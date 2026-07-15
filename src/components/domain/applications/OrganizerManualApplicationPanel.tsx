@@ -5,6 +5,7 @@ import { useState, useTransition } from "react";
 import { createOrganizerManualApplicationAction } from "@/features/applications/actions";
 import type { OrganizerManualRegistrationOptionsDTO } from "@/lib/services/application.service";
 import { ApplicationStatus, PaymentStatus } from "@/generated/prisma";
+import { AppDateInput } from "@/components/shared/AppDateInput";
 import { Button } from "@/components/ui/button";
 import { ORGANIZER_FIELD_INPUT_CLASS } from "@/lib/organizer-dashboard-layout";
 import { cn } from "@/lib/utils";
@@ -214,12 +215,13 @@ export function OrganizerManualApplicationPanel({
                   <label className={labelClass} htmlFor="manual-birthDate">
                     생년월일 *
                   </label>
-                  <input
+                  <AppDateInput
                     id="manual-birthDate"
                     name="birthDate"
-                    type="date"
                     required
-                    className={fieldClass}
+                    disallowFuture
+                    aria-label="생년월일"
+                    inputClassName={fieldClass}
                   />
                 </div>
               </div>

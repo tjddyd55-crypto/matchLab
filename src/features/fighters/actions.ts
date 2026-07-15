@@ -39,33 +39,50 @@ function formReq(formData: FormData, key: string): string {
   return typeof v === "string" ? v.trim() : "";
 }
 
-function payloadFromGymFighterForm(formData: FormData): unknown {
-  const gv = (k: string): string | undefined => {
-    const v = formData.get(k);
-    if (v === null || typeof v !== "string") return undefined;
-    const t = v.trim();
-    return t === "" ? undefined : t;
-  };
+function formOpt(formData: FormData, key: string): string | undefined {
+  const v = formData.get(key);
+  if (v === null || typeof v !== "string") return undefined;
+  const t = v.trim();
+  return t === "" ? undefined : t;
+}
+
+/** 등록 전용 — fighterId/status/releaseAffiliation 포함 금지 */
+function buildCreateGymFighterPayload(formData: FormData): unknown {
   return {
     name: formReq(formData, "name"),
     birthDate: formReq(formData, "birthDate"),
     gender: formReq(formData, "gender"),
-    phone: gv("phone"),
+    phone: formOpt(formData, "phone"),
     height: formData.get("height"),
     weight: formData.get("weight"),
-    primarySport: gv("primarySport"),
-    guardianName: gv("guardianName"),
-    guardianPhone: gv("guardianPhone"),
-    gymInternalMemo: gv("gymInternalMemo"),
-    confirmDuplicateLink: gv("confirmDuplicateLink"),
-    linkFighterId: gv("linkFighterId"),
-    createLoginAccount: gv("createLoginAccount"),
-    loginId: gv("loginId"),
-    password: gv("password"),
-    autoGeneratePassword: gv("autoGeneratePassword"),
-    fighterId: gv("fighterId"),
-    status: gv("status"),
-    releaseAffiliation: gv("releaseAffiliation"),
+    primarySport: formOpt(formData, "primarySport"),
+    guardianName: formOpt(formData, "guardianName"),
+    guardianPhone: formOpt(formData, "guardianPhone"),
+    gymInternalMemo: formOpt(formData, "gymInternalMemo"),
+    confirmDuplicateLink: formOpt(formData, "confirmDuplicateLink"),
+    linkFighterId: formOpt(formData, "linkFighterId"),
+    createLoginAccount: formOpt(formData, "createLoginAccount"),
+    loginId: formOpt(formData, "loginId"),
+    password: formOpt(formData, "password"),
+    autoGeneratePassword: formOpt(formData, "autoGeneratePassword"),
+  };
+}
+
+/** 수정 전용 — 로그인 계정 생성·소속 해제 필드 제외 */
+function buildUpdateGymFighterPayload(formData: FormData): unknown {
+  return {
+    fighterId: formReq(formData, "fighterId"),
+    name: formReq(formData, "name"),
+    birthDate: formReq(formData, "birthDate"),
+    gender: formReq(formData, "gender"),
+    phone: formOpt(formData, "phone"),
+    height: formData.get("height"),
+    weight: formData.get("weight"),
+    primarySport: formOpt(formData, "primarySport"),
+    guardianName: formOpt(formData, "guardianName"),
+    guardianPhone: formOpt(formData, "guardianPhone"),
+    gymInternalMemo: formOpt(formData, "gymInternalMemo"),
+    status: formOpt(formData, "status"),
   };
 }
 
@@ -84,7 +101,7 @@ export async function createGymFighterDirectAction(
   return mapCaught(async () => {
     const actor = await requireActorFromMutation();
     const parsed = gymFighterCreateSchema.safeParse(
-      payloadFromGymFighterForm(formData),
+      buildCreateGymFighterPayload(formData),
     );
     if (!parsed.success) {
       const msg = parsed.error.issues.map((i) => i.message).join(" ");
@@ -204,7 +221,7 @@ export async function updateGymFighterAction(
   return mapCaught(async () => {
     const actor = await requireActorFromMutation();
     const parsed = gymFighterUpdateSchema.safeParse(
-      payloadFromGymFighterForm(formData),
+      buildUpdateGymFighterPayload(formData),
     );
     if (!parsed.success) {
       const msg = parsed.error.issues.map((i) => i.message).join(" ");

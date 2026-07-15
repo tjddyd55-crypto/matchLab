@@ -33,6 +33,8 @@
     "verify:organizer-global-nav": "tsx scripts/verify-organizer-global-nav-hierarchy.ts",
     "verify:gym-account-access": "tsx scripts/verify-gym-account-access.ts",
     "verify:gym-fighter-management": "tsx scripts/verify-gym-fighter-management.ts",
+    "verify:gym-fighter-create-payload": "tsx scripts/verify-gym-fighter-create-payload.ts",
+    "verify:date-input-four-digit-year": "tsx scripts/verify-date-input-four-digit-year.ts",
     "verify:gym-owner-account-service": "tsx scripts/verify-gym-owner-account-service.ts",
     "setup:e2e-member-gym-fixtures": "tsx scripts/setup-e2e-member-gym-fixtures.mts",
     "e2e:judge-identity": "tsx scripts/e2e-judge-identity-smoke.ts",

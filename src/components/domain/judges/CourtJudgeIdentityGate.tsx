@@ -2,6 +2,7 @@
 
 import { useEffect, useState, type FormEvent } from "react";
 import { MatchonLogo } from "@/components/common/MatchonLogo";
+import { AppDateInput } from "@/components/shared/AppDateInput";
 import { MatchonStatusBadge } from "@/components/shared/MatchonStatusBadge";
 import { FeedbackMessage } from "@/components/shared/FeedbackMessage";
 import { Button } from "@/components/ui/button";
@@ -104,16 +105,18 @@ export function CourtJudgeIdentityGate({
                   className={judgeFieldInputClass}
                 />
               </label>
-              <label className="grid gap-1 text-sm">
-                <span className="text-muted-foreground text-xs font-medium">생년월일</span>
-                <input
+              <div className="grid gap-1 text-sm">
+                <span className="text-muted-foreground text-xs font-medium">
+                  생년월일
+                </span>
+                <AppDateInput
                   name="birthDate"
-                  type="date"
                   required
-                  autoComplete="bday"
-                  className={judgeFieldInputClass}
+                  disallowFuture
+                  aria-label="생년월일"
+                  inputClassName={judgeFieldInputClass}
                 />
-              </label>
+              </div>
               {error ? (
                 <FeedbackMessage tone="error" role="alert">
                   {error}

@@ -3,6 +3,7 @@
 import { useMemo, useState, useTransition } from "react";
 import { useRouter } from "next/navigation";
 import { AddressSearchField } from "@/components/shared/AddressSearchField";
+import { AppDateInput } from "@/components/shared/AppDateInput";
 import { BusinessNoInput, PhoneInput } from "@/components/shared/PhoneInput";
 import {
   MemberGymSignatureField,
@@ -12,6 +13,7 @@ import {
   createManualMemberGymApplicationAction,
   issueManualMemberGymApplicationUploadAction,
 } from "@/features/member-gyms/actions";
+import { todayUtcDateOnlyString } from "@/lib/date-only";
 import type { AssociationMemberGymApplicationAttachmentType } from "@/lib/enums";
 import {
   MEMBER_GYM_APPLICATION_ATTACHMENT_SLOTS,
@@ -180,12 +182,12 @@ export function MemberGymManualApplicationForm({
             ))}
           </select>
         </label>
-        <Field
-          name="receivedAt"
-          label="접수일"
-          type="date"
-          defaultValue={new Date().toISOString().slice(0, 10)}
-        />
+          <Field
+            name="receivedAt"
+            label="접수일"
+            type="date"
+            defaultValue={todayUtcDateOnlyString()}
+          />
         <label className="block text-xs">
           내부 메모
           <textarea
@@ -364,16 +366,35 @@ function Field({
   type?: string;
   defaultValue?: string;
 }) {
+  if (type === "date") {
+    return (
+      <div className="block space-y-1.5 text-sm">
+        <span className="font-semibold">
+          {label}
+          {required ? " *" : ""}
+        </span>
+        <AppDateInput
+          name={name}
+          required={required}
+          defaultValue={defaultValue}
+          disallowFuture={name === "birthDate"}
+          aria-label={label}
+        />
+      </div>
+    );
+  }
   return (
-    <label className="block text-xs">
-      {label}
-      {required ? " *" : ""}
+    <label className="block space-y-1.5 text-sm">
+      <span className="font-semibold">
+        {label}
+        {required ? " *" : ""}
+      </span>
       <input
         name={name}
         type={type}
         required={required}
         defaultValue={defaultValue}
-        className="mt-1 w-full rounded-md border border-matchon-border px-3 py-2 text-sm"
+        className="mt-1 h-11 w-full rounded-lg border border-matchon-border bg-white px-3 text-base shadow-sm"
       />
     </label>
   );

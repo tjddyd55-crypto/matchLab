@@ -2,6 +2,7 @@
 
 import { useActionState } from "react";
 import { submitFighterRegistrationFormAction } from "@/features/registrations/actions";
+import { AppDateInput } from "@/components/shared/AppDateInput";
 import { FeedbackMessage } from "@/components/shared/FeedbackMessage";
 import { Button } from "@/components/ui/button";
 import {
@@ -55,15 +56,16 @@ export function FighterRegistrationForm({
               <span className="font-medium">이름</span>
               <input name="name" required className={publicApplicationFieldInputClass} />
             </label>
-            <label className="space-y-1.5 text-sm">
+            <div className="space-y-1.5 text-sm">
               <span className="font-medium">생년월일</span>
-              <input
+              <AppDateInput
                 name="birthDate"
-                type="date"
                 required
-                className={publicApplicationFieldInputClass}
+                disallowFuture
+                aria-label="생년월일"
+                inputClassName={publicApplicationFieldInputClass}
               />
-            </label>
+            </div>
             <label className="space-y-1.5 text-sm">
               <span className="font-medium">성별</span>
               <select name="gender" required className={publicApplicationFieldSelectClass}>

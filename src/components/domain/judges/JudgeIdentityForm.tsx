@@ -2,6 +2,7 @@
 
 import { useState } from "react";
 import { confirmJudgeIdentityAction } from "@/features/judge/actions";
+import { AppDateInput } from "@/components/shared/AppDateInput";
 import { FeedbackMessage } from "@/components/shared/FeedbackMessage";
 import { Button } from "@/components/ui/button";
 import type { ResolvedJudgeSession } from "@/lib/services/judge-credential.service";
@@ -69,17 +70,18 @@ export function JudgeIdentityForm({
         />
       </label>
 
-      <label className="flex flex-col gap-1 text-sm">
+      <div className="flex flex-col gap-1 text-sm">
         <span className="text-muted-foreground text-xs">생년월일</span>
-        <input
+        <AppDateInput
           name="birthDate"
-          type="date"
           required
+          disallowFuture
           value={birthDate}
-          onChange={(e) => setBirthDate(e.target.value)}
-          className={judgeFieldInputClass}
+          onValueChange={setBirthDate}
+          aria-label="생년월일"
+          inputClassName={judgeFieldInputClass}
         />
-      </label>
+      </div>
 
       <label className="flex flex-col gap-1 text-sm">
         <span className="text-muted-foreground text-xs">연락처 (선택)</span>
