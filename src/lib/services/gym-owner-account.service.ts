@@ -11,7 +11,9 @@ import {
   isPlaceholderGymOwnerUser,
   MEMBER_GYM_OWNER_INVITE_TTL_MS,
   resolveMemberGymOwnerAccountStatus,
+  resolveMemberGymOwnerDisplay,
 } from "@/lib/member-gym/owner-account";
+import { normalizePhoneDigits } from "@/lib/phone";
 import { resolveAssociationOrganizerScope } from "@/lib/permissions";
 import { auditRepository } from "@/lib/repositories/audit.repository";
 import { memberGymRepository } from "@/lib/repositories/member-gym.repository";
@@ -242,7 +244,9 @@ export const gymOwnerAccountService = {
           ownerInviteExpiresAt: expiresAt,
           ownerInviteEmail: email,
           ownerInviteName: name,
-          ownerInvitePhone: input.phone?.trim() || null,
+          ownerInvitePhone: input.phone?.trim()
+            ? normalizePhoneDigits(input.phone)
+            : null,
           ownerInviteCreatedAt: new Date(),
           ownerInviteCreatedByUserId: actor.userId,
         },
@@ -401,6 +405,7 @@ export const gymOwnerAccountService = {
       organizerName: row.organizer.name,
       email: row.ownerInviteEmail!,
       name: row.ownerInviteName!,
+      phone: row.ownerInvitePhone,
       expiresAt: row.ownerInviteExpiresAt!,
     };
   },
@@ -413,7 +418,10 @@ export const gymOwnerAccountService = {
     const row =
       await memberGymRepository.findMemberGymByOwnerInviteTokenHash(tokenHash);
     if (!row || !row.ownerInviteEmail || !row.ownerInviteName) {
-      throw new AppError("FORBIDDEN", "유효하지 않거나 만료된 초대입니다.");
+      throw new AppError(
+        "FORBIDDEN",
+        "초대 링크가 만료되었거나 이미 사용된 초대입니다.",
+      );
     }
 
     const loginId = normalizeLoginId(input.loginId);
@@ -428,6 +436,35 @@ export const gymOwnerAccountService = {
       throw new AppError("CONFLICT", "이미 사용 중인 아이디입니다.");
     }
 
+    const existingByEmail = await prisma.user.findFirst({
+      where: {
+        email: { equals: row.ownerInviteEmail, mode: "insensitive" },
+        authUserId: { not: null },
+      },
+      include: { ownedGym: { select: { id: true, name: true } } },
+    });
+    if (existingByEmail?.ownedGym && existingByEmail.ownedGym.id !== row.gymId) {
+      throw new AppError(
+        "CONFLICT",
+        "이 이메일은 다른 체육관 계정으로 연결되어 있습니다.",
+      );
+    }
+    if (
+      existingByEmail &&
+      existingByEmail.ownedGym?.id === row.gymId &&
+      !isPlaceholderGymOwnerUser(existingByEmail)
+    ) {
+      await prisma.associationMemberGym.update({
+        where: { id: row.id },
+        data: clearInviteData(),
+      });
+      return {
+        loginId: existingByEmail.loginId ?? loginId,
+        email: row.ownerInviteEmail,
+        alreadyActive: true as const,
+      };
+    }
+
     const authEmail = loginIdToAuthEmail(loginId);
     const supabase = createSupabaseAdminClient();
     const { data, error } = await supabase.auth.admin.createUser({
@@ -436,10 +473,16 @@ export const gymOwnerAccountService = {
       email_confirm: true,
     });
     if (error || !data.user?.id) {
+      const msg = error?.message?.toLowerCase() ?? "";
+      if (msg.includes("already") || msg.includes("registered")) {
+        throw new AppError(
+          "CONFLICT",
+          "이미 사용 중인 아이디입니다. 다른 아이디로 다시 시도해 주세요.",
+        );
+      }
       throw new AppError(
         "CONFLICT",
-        "계정 생성에 실패했습니다. 잠시 후 다시 시도해 주세요.",
-        error?.message,
+        "계정 활성화 중 오류가 발생했습니다. 다시 시도해 주세요.",
       );
     }
 
@@ -483,10 +526,18 @@ export const gymOwnerAccountService = {
       });
     } catch (e) {
       await supabase.auth.admin.deleteUser(data.user.id).catch(() => undefined);
-      throw e;
+      if (e instanceof AppError) throw e;
+      throw new AppError(
+        "INTERNAL",
+        "계정 활성화 중 오류가 발생했습니다. 다시 시도해 주세요.",
+      );
     }
 
-    return { loginId, email: row.ownerInviteEmail };
+    return {
+      loginId,
+      email: row.ownerInviteEmail,
+      alreadyActive: false as const,
+    };
   },
 
   describeOwnerAccount(row: {
@@ -494,7 +545,11 @@ export const gymOwnerAccountService = {
     ownerInviteTokenHash: string | null;
     ownerInviteExpiresAt: Date | null;
     ownerInviteEmail: string | null;
+    ownerInviteName?: string | null;
+    ownerInvitePhone?: string | null;
     gym: {
+      name?: string;
+      phone?: string | null;
       ownerUser: {
         id: string;
         name: string;
@@ -506,6 +561,12 @@ export const gymOwnerAccountService = {
         createdAt?: Date;
       };
     };
+    application?: {
+      ownerName?: string | null;
+      email?: string | null;
+      phone?: string | null;
+      contactPhone?: string | null;
+    } | null;
   }) {
     const status = resolveMemberGymOwnerAccountStatus({
       owner: row.gym.ownerUser,
@@ -513,13 +574,35 @@ export const gymOwnerAccountService = {
       ownerInviteTokenHash: row.ownerInviteTokenHash,
       ownerInviteExpiresAt: row.ownerInviteExpiresAt,
     });
+    const display = resolveMemberGymOwnerDisplay({
+      owner: row.gym.ownerUser,
+      gymName: row.gym.name,
+      gymPhone: row.gym.phone,
+      inviteEmail: row.ownerInviteEmail,
+      inviteName: row.ownerInviteName,
+      invitePhone: row.ownerInvitePhone,
+      application: row.application
+        ? {
+            ownerName: row.application.ownerName,
+            email: row.application.email,
+            phone: row.application.phone,
+            contactPhone: row.application.contactPhone,
+          }
+        : null,
+    });
     return {
       status,
       owner: row.gym.ownerUser,
       inviteEmail: row.ownerInviteEmail,
       inviteExpiresAt: row.ownerInviteExpiresAt,
-      canLogin: Boolean(row.gym.ownerUser.authUserId) && !row.ownerAccessSuspendedAt,
+      canLogin:
+        Boolean(row.gym.ownerUser.authUserId) && !row.ownerAccessSuspendedAt,
       isPlaceholder: isPlaceholderGymOwnerUser(row.gym.ownerUser),
+      displayName: display.displayName,
+      displayEmail: display.displayEmail,
+      displayPhone: display.displayPhone,
+      roleLabel: display.roleLabel,
+      inviteDefaults: display.inviteDefaults,
     };
   },
 };

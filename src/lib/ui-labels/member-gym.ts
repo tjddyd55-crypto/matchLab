@@ -54,6 +54,7 @@ export const MEMBER_GYM_ATTACHMENT_TYPE_LABEL: Record<
   location_proof: "사업장 확인자료",
   identity_document: "신분 확인자료",
   paper_application_scan: "원본 종이 신청서 스캔",
+  applicant_signature: "신청인 손서명",
   other: "기타",
 };
 

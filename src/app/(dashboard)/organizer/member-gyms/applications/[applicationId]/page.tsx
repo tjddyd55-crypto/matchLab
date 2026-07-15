@@ -9,8 +9,10 @@ import { requireAssociationOrganizerPage } from "@/lib/permissions";
 import { memberGymService } from "@/lib/services/member-gym.service";
 import {
   MEMBER_GYM_APPLICATION_STATUS_LABEL,
+  MEMBER_GYM_ATTACHMENT_TYPE_LABEL,
   resolveMemberGymApplicationSourceLabel,
 } from "@/lib/ui-labels/member-gym";
+import { formatPhoneDisplay } from "@/lib/phone";
 import { format } from "date-fns";
 
 export const dynamic = "force-dynamic";
@@ -70,12 +72,24 @@ export default async function MemberGymApplicationDetailPage({
           ) : null}
           <p>대표자: {app.ownerName}</p>
           {app.ownerNameEn ? <p>영문: {app.ownerNameEn}</p> : null}
-          <p>연락처: {app.phone}</p>
+          <p>연락처: {formatPhoneDisplay(app.phone, "-")}</p>
+          {app.gymPhone ? (
+            <p>체육관 전화: {formatPhoneDisplay(app.gymPhone, "-")}</p>
+          ) : null}
           <p>이메일: {app.email}</p>
           <p>체육관 주소: {app.gymAddress}</p>
+          {app.gymAddressDetail ? (
+            <p>상세 주소: {app.gymAddressDetail}</p>
+          ) : null}
           {app.homeAddress ? <p>집 주소: {app.homeAddress}</p> : null}
           {app.qualifications ? <p>자격: {app.qualifications}</p> : null}
           <p>신청인: {app.signatureName}</p>
+          <p>
+            서명 일시:{" "}
+            {app.signatureSignedAt
+              ? format(app.signatureSignedAt, "yyyy-MM-dd HH:mm")
+              : "서명 정보 없음"}
+          </p>
           <p>신청일: {format(app.submittedAt, "yyyy-MM-dd HH:mm")}</p>
           <p>
             동의: 개인정보 {app.privacyConsent ? "Y" : "N"} / 등록{" "}
@@ -90,6 +104,25 @@ export default async function MemberGymApplicationDetailPage({
           gymCandidates={candidates}
         />
       </div>
+      <section className="mt-4 rounded-md border border-matchon-border bg-white p-4 text-sm">
+        <h2 className="mb-2 font-bold">신청인 손서명</h2>
+        {(() => {
+          const sig = app.attachments.find(
+            (a) => a.attachmentType === "applicant_signature",
+          );
+          if (!sig) {
+            return (
+              <p className="text-matchon-text-secondary">서명 정보 없음</p>
+            );
+          }
+          return (
+            <p className="text-matchon-text-secondary">
+              {MEMBER_GYM_ATTACHMENT_TYPE_LABEL.applicant_signature} ·{" "}
+              {sig.originalFileName} — 우측 「검토·첨부」에서 미리보기·다운로드
+            </p>
+          );
+        })()}
+      </section>
       <section className="mt-4 rounded-md border border-matchon-border bg-white p-4 text-sm">
         <h2 className="mb-2 font-bold">상태 이력</h2>
         <ul className="space-y-1">

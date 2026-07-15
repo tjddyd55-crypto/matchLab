@@ -1,10 +1,14 @@
 "use client";
 
 import { useMemo, useState, useTransition } from "react";
-import { submitMemberGymJoinApplicationAction } from "@/features/member-gyms/actions";
+import { AddressSearchField } from "@/components/shared/AddressSearchField";
+import { BusinessNoInput, PhoneInput } from "@/components/shared/PhoneInput";
 import {
-  AssociationMemberGymApplicationAttachmentType,
-} from "@/lib/enums";
+  MemberGymSignatureField,
+  dataUrlToFile,
+} from "@/components/domain/member-gyms/MemberGymSignatureField";
+import { submitMemberGymJoinApplicationAction } from "@/features/member-gyms/actions";
+import { AssociationMemberGymApplicationAttachmentType } from "@/lib/enums";
 import { MEMBER_GYM_APPLICATION_ATTACHMENT_SLOTS } from "@/lib/member-gym/application-form";
 import { MEMBER_GYM_ATTACHMENT_TYPE_LABEL } from "@/lib/ui-labels/member-gym";
 import type { MemberGymSettingsV1 } from "@/lib/member-gym/settings";
@@ -21,7 +25,6 @@ type PendingAttachment = {
   originalFileName: string;
   mimeType: string;
   sizeBytes: number;
-  previewUrl?: string;
 };
 
 export function MemberGymRegistrationForm({
@@ -40,14 +43,15 @@ export function MemberGymRegistrationForm({
   const uploadBatchId = useMemo(() => crypto.randomUUID(), []);
   const [pending, start] = useTransition();
   const [attachments, setAttachments] = useState<PendingAttachment[]>([]);
+  const [ownerName, setOwnerName] = useState("");
+  const [signatureDataUrl, setSignatureDataUrl] = useState<string | null>(null);
   const [done, setDone] = useState<string | null>(null);
   const [error, setError] = useState<string | null>(null);
-  const [photoPreview, setPhotoPreview] = useState<string | null>(null);
 
   async function uploadFile(
     file: File,
     attachmentType: AssociationMemberGymApplicationAttachmentType,
-  ) {
+  ): Promise<PendingAttachment> {
     const issueRes = await fetch("/api/uploads/member-gym-application", {
       method: "POST",
       headers: { "Content-Type": "application/json" },
@@ -70,22 +74,18 @@ export function MemberGymRegistrationForm({
       body: file,
     });
     if (!put.ok) throw new Error("파일 업로드 실패");
-    const previewUrl =
-      attachmentType === "representative_photo"
-        ? URL.createObjectURL(file)
-        : undefined;
-    if (previewUrl) setPhotoPreview(previewUrl);
+    const meta: PendingAttachment = {
+      attachmentType,
+      storagePath: issueJson.data.path,
+      originalFileName: file.name,
+      mimeType: file.type,
+      sizeBytes: file.size,
+    };
     setAttachments((prev) => [
-      ...prev,
-      {
-        attachmentType,
-        storagePath: issueJson.data.path,
-        originalFileName: file.name,
-        mimeType: file.type,
-        sizeBytes: file.size,
-        previewUrl,
-      },
+      ...prev.filter((a) => a.attachmentType !== attachmentType),
+      meta,
     ]);
+    return meta;
   }
 
   if (done) {
@@ -105,49 +105,74 @@ export function MemberGymRegistrationForm({
         const fd = new FormData(e.currentTarget);
         start(async () => {
           setError(null);
-          const payload = {
-            token,
-            gymName: String(fd.get("gymName") || ""),
-            ownerName: String(fd.get("ownerName") || ""),
-            ownerNameEn: String(fd.get("ownerNameEn") || "") || undefined,
-            birthDate: String(fd.get("birthDate") || "") || undefined,
-            gender: String(fd.get("gender") || "") || undefined,
-            phone: String(fd.get("phone") || ""),
-            gymPhone: String(fd.get("gymPhone") || "") || undefined,
-            email: String(fd.get("email") || ""),
-            homeAddress: String(fd.get("homeAddress") || "") || undefined,
-            gymAddress: String(fd.get("gymAddress") || ""),
-            gymAddressDetail:
-              String(fd.get("gymAddressDetail") || "") || undefined,
-            businessNo: String(fd.get("businessNo") || "") || undefined,
-            sportType: String(fd.get("sportType") || "") || undefined,
-            qualifications:
-              String(fd.get("qualifications") || "") || undefined,
-            careerSummary: String(fd.get("careerSummary") || "") || undefined,
-            memo: String(fd.get("memo") || "") || undefined,
-            privacyConsent: fd.get("privacyConsent") === "on",
-            registrationConsent: fd.get("registrationConsent") === "on",
-            smsConsent: fd.get("smsConsent") === "on",
-            informationConsent: fd.get("informationConsent") === "on",
-            signatureName: String(fd.get("signatureName") || ""),
-            signatureConsent: fd.get("signatureConsent") === "on",
-            uploadBatchId,
-            attachmentsJson: JSON.stringify(
-              attachments.map((a) => ({
-                attachmentType: a.attachmentType,
-                storagePath: a.storagePath,
-                originalFileName: a.originalFileName,
-                mimeType: a.mimeType,
-                sizeBytes: a.sizeBytes,
-              })),
-            ),
-          };
-          const res = await submitMemberGymJoinApplicationAction(payload);
-          if (!res.ok) {
-            setError(res.error.message);
-            return;
+          try {
+            if (!signatureDataUrl) {
+              setError("손서명을 완료해 주세요.");
+              return;
+            }
+
+            let nextAttachments = [...attachments];
+            const existingSig = nextAttachments.find(
+              (a) => a.attachmentType === "applicant_signature",
+            );
+            if (!existingSig) {
+              const file = dataUrlToFile(
+                signatureDataUrl,
+                "applicant-signature.png",
+              );
+              const meta = await uploadFile(file, "applicant_signature");
+              nextAttachments = [
+                ...nextAttachments.filter(
+                  (a) => a.attachmentType !== "applicant_signature",
+                ),
+                meta,
+              ];
+            }
+
+            const homeBase = String(fd.get("homeAddress") || "").trim();
+            const homeDetail = String(fd.get("homeAddressDetail") || "").trim();
+            const homeAddress = [homeBase, homeDetail]
+              .filter(Boolean)
+              .join(" ");
+
+            const payload = {
+              token,
+              gymName: String(fd.get("gymName") || ""),
+              ownerName: String(fd.get("ownerName") || ""),
+              ownerNameEn: String(fd.get("ownerNameEn") || "") || undefined,
+              birthDate: String(fd.get("birthDate") || "") || undefined,
+              gender: String(fd.get("gender") || "") || undefined,
+              phone: String(fd.get("phone") || ""),
+              gymPhone: String(fd.get("gymPhone") || "") || undefined,
+              email: String(fd.get("email") || ""),
+              homeAddress: homeAddress || undefined,
+              gymAddress: String(fd.get("gymAddress") || ""),
+              gymAddressDetail:
+                String(fd.get("gymAddressDetail") || "") || undefined,
+              businessNo: String(fd.get("businessNo") || "") || undefined,
+              sportType: String(fd.get("sportType") || "") || undefined,
+              qualifications:
+                String(fd.get("qualifications") || "") || undefined,
+              careerSummary: String(fd.get("careerSummary") || "") || undefined,
+              memo: String(fd.get("memo") || "") || undefined,
+              privacyConsent: fd.get("privacyConsent") === "on",
+              registrationConsent: fd.get("registrationConsent") === "on",
+              smsConsent: fd.get("smsConsent") === "on",
+              informationConsent: fd.get("informationConsent") === "on",
+              signatureName: String(fd.get("signatureName") || ""),
+              signatureConsent: fd.get("signatureConsent") === "on",
+              uploadBatchId,
+              attachmentsJson: JSON.stringify(nextAttachments),
+            };
+            const res = await submitMemberGymJoinApplicationAction(payload);
+            if (!res.ok) {
+              setError(res.error.message);
+              return;
+            }
+            setDone(res.data.message);
+          } catch (err) {
+            setError(err instanceof Error ? err.message : "제출 실패");
           }
-          setDone(res.data.message);
         });
       }}
     >
@@ -177,43 +202,39 @@ export function MemberGymRegistrationForm({
       <section className="space-y-3 rounded-md border border-matchon-border bg-white p-4">
         <h2 className="text-sm font-bold">1. 회원사·체육관 정보</h2>
         <Field name="gymName" label="체육관명" required />
-        <Field name="gymAddress" label="체육관 주소" required />
-        <Field name="gymAddressDetail" label="상세 주소" />
-        <Field name="gymPhone" label="체육관 연락처" />
-        <Field name="businessNo" label="사업자등록번호" />
+        <AddressSearchField
+          label="체육관 주소"
+          required
+          addressName="gymAddress"
+          detailName="gymAddressDetail"
+        />
+        <PhoneInput name="gymPhone" label="체육관 연락처" />
+        <BusinessNoInput name="businessNo" label="사업자등록번호" />
         <Field name="sportType" label="종목" />
       </section>
 
       <section className="space-y-3 rounded-md border border-matchon-border bg-white p-4">
         <h2 className="text-sm font-bold">2. 대표자 정보</h2>
-        <div className="flex flex-wrap gap-4">
-          <div className="flex-1 space-y-3">
-            <Field name="ownerName" label="관장 성명" required />
-            <Field name="ownerNameEn" label="성명 영문" />
-            <Field name="birthDate" label="생년월일" type="date" />
-            <Field name="gender" label="성별" />
-            <Field name="phone" label="개인 연락처" required />
-            <Field name="email" label="이메일" type="email" required />
-            <Field name="homeAddress" label="집주소" />
-          </div>
-          <div className="w-28 shrink-0">
-            <p className="mb-1 text-xs font-medium">증명사진</p>
-            <div className="flex aspect-[3/4] items-center justify-center overflow-hidden rounded border border-dashed bg-matchon-surface">
-              {photoPreview ? (
-                // eslint-disable-next-line @next/next/no-img-element
-                <img
-                  src={photoPreview}
-                  alt="증명사진 미리보기"
-                  className="h-full w-full object-cover"
-                />
-              ) : (
-                <span className="p-2 text-center text-[10px] text-matchon-text-secondary">
-                  사진
-                </span>
-              )}
-            </div>
-          </div>
-        </div>
+        <label className="block text-xs">
+          관장 성명 *
+          <input
+            name="ownerName"
+            required
+            value={ownerName}
+            onChange={(e) => setOwnerName(e.target.value)}
+            className="mt-1 w-full rounded-md border border-matchon-border px-3 py-2 text-sm"
+          />
+        </label>
+        <Field name="ownerNameEn" label="성명 영문" />
+        <Field name="birthDate" label="생년월일" type="date" />
+        <Field name="gender" label="성별" />
+        <PhoneInput name="phone" label="개인 연락처" required />
+        <Field name="email" label="이메일" type="email" required />
+        <AddressSearchField
+          label="집 주소"
+          addressName="homeAddress"
+          detailName="homeAddressDetail"
+        />
       </section>
 
       <section className="space-y-3 rounded-md border border-matchon-border bg-white p-4">
@@ -245,13 +266,11 @@ export function MemberGymRegistrationForm({
       </section>
 
       <section className="space-y-3 rounded-md border border-matchon-border bg-white p-4">
-        <h2 className="text-sm font-bold">4. 증빙자료</h2>
+        <h2 className="text-sm font-bold">4. 첨부 서류</h2>
         <p className="text-xs text-matchon-text-secondary">
           JPEG/PNG/WebP/PDF · 이미지는 10MB, PDF는 20MB까지. private storage에만
           저장됩니다.
-          {settings.form.requireRepresentativePhoto
-            ? " 증명사진 필수."
-            : ""}
+          {settings.form.requireRepresentativePhoto ? " 증명사진 필수." : ""}
           {settings.form.requireBusinessRegistration
             ? " 사업자등록증 필수."
             : ""}
@@ -280,17 +299,19 @@ export function MemberGymRegistrationForm({
           </label>
         ))}
         <ul className="text-xs text-matchon-text-secondary">
-          {attachments.map((a) => (
-            <li key={a.storagePath}>
-              {MEMBER_GYM_ATTACHMENT_TYPE_LABEL[a.attachmentType]} ·{" "}
-              {a.originalFileName}
-            </li>
-          ))}
+          {attachments
+            .filter((a) => a.attachmentType !== "applicant_signature")
+            .map((a) => (
+              <li key={a.storagePath}>
+                {MEMBER_GYM_ATTACHMENT_TYPE_LABEL[a.attachmentType]} ·{" "}
+                {a.originalFileName}
+              </li>
+            ))}
         </ul>
       </section>
 
       <section className="space-y-2 rounded-md border border-matchon-border bg-white p-4 text-sm">
-        <h2 className="text-sm font-bold">5. 동의·신청인 확인</h2>
+        <h2 className="text-sm font-bold">5. 신청인 및 서약인</h2>
         <label className="flex items-start gap-2">
           <input name="privacyConsent" type="checkbox" required />
           개인정보 수집·이용에 동의합니다. (필수)
@@ -307,7 +328,20 @@ export function MemberGymRegistrationForm({
           <input name="informationConsent" type="checkbox" />
           자료·정보 수신에 동의합니다.
         </label>
-        <Field name="signatureName" label="신청인 및 서약인" required />
+        <label className="block text-xs">
+          신청인 성명 *
+          <input
+            name="signatureName"
+            required
+            value={ownerName}
+            onChange={(e) => setOwnerName(e.target.value)}
+            className="mt-1 w-full rounded-md border border-matchon-border px-3 py-2 text-sm"
+          />
+        </label>
+        <div>
+          <p className="mb-1 text-xs font-medium">손서명 *</p>
+          <MemberGymSignatureField onChange={setSignatureDataUrl} />
+        </div>
         <label className="flex items-start gap-2">
           <input name="signatureConsent" type="checkbox" required />
           위 내용이 사실임을 확인하고 전자 신청합니다. (필수)

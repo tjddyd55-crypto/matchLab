@@ -12,6 +12,8 @@ import {
 } from "@/features/gym-owner-account/actions";
 import { MEMBER_GYM_OWNER_ACCOUNT_STATUS_LABEL } from "@/lib/ui-labels/member-gym-owner";
 import type { MemberGymOwnerAccountStatus } from "@/lib/member-gym/owner-account";
+import { formatPhoneDisplay, formatPhoneNumber } from "@/lib/phone";
+import { PhoneInput } from "@/components/shared/PhoneInput";
 
 type OwnerView = {
   status: MemberGymOwnerAccountStatus;
@@ -28,6 +30,11 @@ type OwnerView = {
   inviteExpiresAt: Date | string | null;
   canLogin: boolean;
   isPlaceholder: boolean;
+  displayName: string;
+  displayEmail: string;
+  displayPhone: string;
+  roleLabel: string;
+  inviteDefaults: { name: string; email: string; phone: string };
 };
 
 type SearchHit = {
@@ -58,12 +65,21 @@ export function MemberGymAccountSection({
   const [confirmConnect, setConfirmConnect] = useState<SearchHit | null>(null);
   const [hits, setHits] = useState<SearchHit[]>([]);
   const [inviteUrl, setInviteUrl] = useState<string | null>(null);
+  const [inviteTarget, setInviteTarget] = useState<{
+    name: string;
+    email: string;
+    phone: string;
+  } | null>(null);
 
   function refreshMsg(ok: string) {
     setMessage(ok);
     setError(null);
     router.refresh();
   }
+
+  const phoneLabel = formatPhoneDisplay(
+    account.displayPhone === "미등록" ? "" : account.displayPhone,
+  );
 
   return (
     <section className="space-y-3 rounded-md border border-matchon-border bg-white p-4 text-sm">
@@ -77,13 +93,22 @@ export function MemberGymAccountSection({
       <dl className="grid gap-1 text-sm text-matchon-text-secondary">
         <div>
           이름:{" "}
-          <span className="text-matchon-text-primary">{account.owner.name}</span>
+          <span className="text-matchon-text-primary">{account.displayName}</span>
         </div>
-        <div>이메일: {account.owner.email ?? account.inviteEmail ?? "-"}</div>
-        <div>휴대전화: {account.owner.phone ?? "-"}</div>
-        <div>역할: {account.owner.role}</div>
-        <div>로그인 가능: {account.canLogin ? "예" : "아니오"}</div>
-        <div>임시 계정: {account.isPlaceholder ? "예" : "아니오"}</div>
+        <div>이메일: {account.displayEmail}</div>
+        <div>휴대전화: {phoneLabel}</div>
+        <div>역할: {account.roleLabel}</div>
+        <div>로그인 가능: {account.canLogin ? "예" : "아니요"}</div>
+        <div>
+          계정 상태: {MEMBER_GYM_OWNER_ACCOUNT_STATUS_LABEL[account.status]}
+        </div>
+        {account.isPlaceholder ? (
+          <div>
+            <span className="rounded bg-amber-50 px-1.5 py-0.5 text-[11px] font-medium text-amber-800">
+              임시 계정
+            </span>
+          </div>
+        ) : null}
         {account.inviteExpiresAt ? (
           <div>
             초대 만료:{" "}
@@ -200,6 +225,15 @@ export function MemberGymAccountSection({
       {inviteUrl ? (
         <div className="rounded border border-matchon-border p-3 text-xs">
           <p className="font-medium">초대 링크 (이메일 발송 없음 · 복사만)</p>
+          {inviteTarget ? (
+            <p className="mt-1 text-matchon-text-secondary">
+              대상: {inviteTarget.name}
+              {inviteTarget.email ? ` · ${inviteTarget.email}` : ""}
+              {inviteTarget.phone
+                ? ` · ${formatPhoneNumber(inviteTarget.phone)}`
+                : ""}
+            </p>
+          ) : null}
           <p className="mt-1 break-all text-matchon-text-secondary">{inviteUrl}</p>
           <button
             type="button"
@@ -284,7 +318,7 @@ export function MemberGymAccountSection({
                 <div className="min-w-0 text-xs">
                   <p className="font-medium">{h.name}</p>
                   <p className="text-matchon-text-secondary">
-                    {h.email ?? "-"} · {h.phone ?? "-"} · {h.role}
+                    {h.email ?? "-"} · {formatPhoneDisplay(h.phone)} · {h.role}
                   </p>
                   {h.blockReason ? (
                     <p className="text-red-600">{h.blockReason}</p>
@@ -362,18 +396,26 @@ export function MemberGymAccountSection({
             onSubmit={(e) => {
               e.preventDefault();
               const fd = new FormData(e.currentTarget);
+              const name = String(fd.get("name") || "");
+              const email = String(fd.get("email") || "");
+              const phone = String(fd.get("phone") || "") || undefined;
               start(async () => {
                 setError(null);
                 const res = await inviteMemberGymOwnerAction({
                   memberGymId,
-                  name: String(fd.get("name") || ""),
-                  email: String(fd.get("email") || ""),
-                  phone: String(fd.get("phone") || "") || undefined,
+                  name,
+                  email,
+                  phone,
                 });
                 if (!res.ok) {
                   setError(res.error.message);
                   return;
                 }
+                setInviteTarget({
+                  name,
+                  email,
+                  phone: phone ?? "",
+                });
                 setInviteUrl(res.data.inviteUrl);
                 setInviteOpen(false);
                 refreshMsg("초대를 생성했습니다. 링크를 복사해 전달하세요.");
@@ -383,6 +425,7 @@ export function MemberGymAccountSection({
             <input
               name="name"
               required
+              defaultValue={account.inviteDefaults.name}
               placeholder="대표자 이름"
               className="rounded border px-2 py-1.5 text-sm"
             />
@@ -390,13 +433,14 @@ export function MemberGymAccountSection({
               name="email"
               type="email"
               required
+              defaultValue={account.inviteDefaults.email}
               placeholder="이메일"
               className="rounded border px-2 py-1.5 text-sm"
             />
-            <input
+            <PhoneInput
               name="phone"
-              placeholder="휴대전화"
-              className="rounded border px-2 py-1.5 text-sm"
+              label="휴대전화"
+              defaultValue={account.inviteDefaults.phone}
             />
             <div className="flex gap-2">
               <button

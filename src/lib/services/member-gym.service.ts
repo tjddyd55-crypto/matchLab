@@ -24,6 +24,10 @@ import {
   type MemberGymSettingsV1,
 } from "@/lib/member-gym/settings";
 import type { MemberGymReceptionChannel } from "@/lib/member-gym/application-form";
+import {
+  normalizeBusinessRegistrationNumber,
+  normalizePhoneDigits,
+} from "@/lib/phone";
 import { resolveAssociationOrganizerScope } from "@/lib/permissions";
 import { isPrismaUniqueViolation } from "@/lib/prisma-errors";
 import { gymRepository } from "@/lib/repositories/gym.repository";
@@ -373,6 +377,11 @@ export const memberGymService = {
     }
 
     const attachments = input.attachments ?? [];
+    if (
+      !attachments.some((a) => a.attachmentType === "applicant_signature")
+    ) {
+      throw new AppError("VALIDATION_ERROR", "손서명을 완료해 주세요.");
+    }
     if (settings.form.requireRepresentativePhoto) {
       const has = attachments.some(
         (a) => a.attachmentType === "representative_photo",
@@ -397,6 +406,14 @@ export const memberGymService = {
       ? new Date(input.birthDate)
       : null;
 
+    const phone = normalizePhoneDigits(input.phone.trim());
+    const gymPhone = input.gymPhone?.trim()
+      ? normalizePhoneDigits(input.gymPhone)
+      : null;
+    const businessNo = input.businessNo?.trim()
+      ? normalizeBusinessRegistrationNumber(input.businessNo)
+      : null;
+
     const application = await prisma.$transaction(async (tx) => {
       const created = await memberGymRepository.createApplication(
         {
@@ -410,13 +427,13 @@ export const memberGymService = {
           birthDate:
             birthDate && !Number.isNaN(birthDate.getTime()) ? birthDate : null,
           gender: input.gender?.trim() || null,
-          phone: input.phone.trim(),
-          gymPhone: input.gymPhone?.trim() || null,
+          phone,
+          gymPhone,
           email: input.email.trim(),
           homeAddress: input.homeAddress?.trim() || null,
           gymAddress: input.gymAddress.trim(),
           gymAddressDetail: input.gymAddressDetail?.trim() || null,
-          businessNo: input.businessNo?.trim() || null,
+          businessNo,
           sportType: input.sportType?.trim() || null,
           classDescription: input.classDescription?.trim() || null,
           qualifications: input.qualifications?.trim() || null,
@@ -431,6 +448,7 @@ export const memberGymService = {
           informationConsent: Boolean(input.informationConsent),
           signatureName: input.signatureName.trim(),
           signatureConsent: true,
+          signatureSignedAt: new Date(),
           uploadBatchId: input.uploadBatchId?.trim() || null,
         },
         tx,
@@ -518,6 +536,18 @@ export const memberGymService = {
       (await memberGymRepository.getOrCreateSettings(organizerId)).settingsJson,
     );
     const attachments = input.attachments ?? [];
+    const hasPaperScan = attachments.some(
+      (a) => a.attachmentType === "paper_application_scan",
+    );
+    const hasSignature = attachments.some(
+      (a) => a.attachmentType === "applicant_signature",
+    );
+    if (!hasPaperScan && !hasSignature) {
+      throw new AppError(
+        "VALIDATION_ERROR",
+        "손서명을 완료하거나 종이 신청서 스캔을 첨부해 주세요.",
+      );
+    }
     if (settings.form.requireRepresentativePhoto) {
       const has = attachments.some(
         (a) => a.attachmentType === "representative_photo",
@@ -562,6 +592,14 @@ export const memberGymService = {
     const bucket =
       process.env.SUPABASE_MEMBER_GYM_FILES_BUCKET?.trim() || "member-gym-files";
 
+    const phone = normalizePhoneDigits(input.phone.trim());
+    const gymPhone = input.gymPhone?.trim()
+      ? normalizePhoneDigits(input.gymPhone)
+      : null;
+    const businessNo = input.businessNo?.trim()
+      ? normalizeBusinessRegistrationNumber(input.businessNo)
+      : null;
+
     const application = await prisma.$transaction(async (tx) => {
       const created = await memberGymRepository.createApplication(
         {
@@ -577,13 +615,13 @@ export const memberGymService = {
           birthDate:
             birthDate && !Number.isNaN(birthDate.getTime()) ? birthDate : null,
           gender: input.gender?.trim() || null,
-          phone: input.phone.trim(),
-          gymPhone: input.gymPhone?.trim() || null,
+          phone,
+          gymPhone,
           email: input.email.trim(),
           homeAddress: input.homeAddress?.trim() || null,
           gymAddress: input.gymAddress.trim(),
           gymAddressDetail: input.gymAddressDetail?.trim() || null,
-          businessNo: input.businessNo?.trim() || null,
+          businessNo,
           sportType: input.sportType?.trim() || null,
           qualifications: input.qualifications?.trim() || null,
           careerSummary: input.careerSummary?.trim() || null,
@@ -594,6 +632,7 @@ export const memberGymService = {
           informationConsent: false,
           signatureName: input.ownerName.trim(),
           signatureConsent: true,
+          signatureSignedAt: hasSignature ? new Date() : null,
           uploadBatchId: input.uploadBatchId?.trim() || null,
           submittedAt: receivedAt,
         },
@@ -807,16 +846,26 @@ export const memberGymService = {
             await gymRepository.findOrCreateGymForOrganizerManualEntry(
               app.gymName,
               tx,
+              {
+                ownerName: app.ownerName,
+                phone: app.phone,
+                gymPhone: app.gymPhone,
+                address: [app.gymAddress, app.gymAddressDetail]
+                  .filter(Boolean)
+                  .join(" "),
+              },
             );
           gymId = created.id;
           gymCreated = created.created;
-          await tx.gym.update({
-            where: { id: gymId },
-            data: {
-              phone: app.gymPhone || app.phone || undefined,
-              address: app.gymAddress || undefined,
-            },
-          });
+          if (!gymCreated) {
+            await tx.gym.update({
+              where: { id: gymId },
+              data: {
+                phone: app.gymPhone || app.phone || undefined,
+                address: app.gymAddress || undefined,
+              },
+            });
+          }
         }
 
         const existingMember =

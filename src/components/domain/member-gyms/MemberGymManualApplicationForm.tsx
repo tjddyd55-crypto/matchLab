@@ -2,6 +2,12 @@
 
 import { useMemo, useState, useTransition } from "react";
 import { useRouter } from "next/navigation";
+import { AddressSearchField } from "@/components/shared/AddressSearchField";
+import { BusinessNoInput, PhoneInput } from "@/components/shared/PhoneInput";
+import {
+  MemberGymSignatureField,
+  dataUrlToFile,
+} from "@/components/domain/member-gyms/MemberGymSignatureField";
 import {
   createManualMemberGymApplicationAction,
   issueManualMemberGymApplicationUploadAction,
@@ -34,8 +40,10 @@ export function MemberGymManualApplicationForm({
   const uploadBatchId = useMemo(() => crypto.randomUUID(), []);
   const [pending, start] = useTransition();
   const [attachments, setAttachments] = useState<PendingAttachment[]>([]);
+  const [ownerName, setOwnerName] = useState("");
+  const [signatureDataUrl, setSignatureDataUrl] = useState<string | null>(null);
+  const [paperOriginalConfirmed, setPaperOriginalConfirmed] = useState(false);
   const [error, setError] = useState<string | null>(null);
-  const [photoPreview, setPhotoPreview] = useState<string | null>(null);
 
   const attachmentSlots = [
     ...MEMBER_GYM_APPLICATION_ATTACHMENT_SLOTS,
@@ -45,7 +53,7 @@ export function MemberGymManualApplicationForm({
   async function uploadFile(
     file: File,
     attachmentType: AssociationMemberGymApplicationAttachmentType,
-  ) {
+  ): Promise<PendingAttachment> {
     const issue = await issueManualMemberGymApplicationUploadAction({
       uploadBatchId,
       attachmentType,
@@ -62,19 +70,18 @@ export function MemberGymManualApplicationForm({
       body: file,
     });
     if (!put.ok) throw new Error("파일 업로드 실패");
-    if (attachmentType === "representative_photo") {
-      setPhotoPreview(URL.createObjectURL(file));
-    }
+    const meta: PendingAttachment = {
+      attachmentType,
+      storagePath: issue.data.path,
+      originalFileName: file.name,
+      mimeType: file.type,
+      sizeBytes: file.size,
+    };
     setAttachments((prev) => [
       ...prev.filter((a) => a.attachmentType !== attachmentType),
-      {
-        attachmentType,
-        storagePath: issue.data.path,
-        originalFileName: file.name,
-        mimeType: file.type,
-        sizeBytes: file.size,
-      },
+      meta,
     ]);
+    return meta;
   }
 
   return (
@@ -85,41 +92,74 @@ export function MemberGymManualApplicationForm({
         const fd = new FormData(e.currentTarget);
         start(async () => {
           setError(null);
-          const payload = {
-            receptionChannel: String(fd.get("receptionChannel") || "manual"),
-            receivedAt: String(fd.get("receivedAt") || "") || undefined,
-            internalMemo: String(fd.get("internalMemo") || "") || undefined,
-            gymName: String(fd.get("gymName") || ""),
-            ownerName: String(fd.get("ownerName") || ""),
-            ownerNameEn: String(fd.get("ownerNameEn") || "") || undefined,
-            birthDate: String(fd.get("birthDate") || "") || undefined,
-            gender: String(fd.get("gender") || "") || undefined,
-            phone: String(fd.get("phone") || ""),
-            gymPhone: String(fd.get("gymPhone") || "") || undefined,
-            email: String(fd.get("email") || ""),
-            homeAddress: String(fd.get("homeAddress") || "") || undefined,
-            gymAddress: String(fd.get("gymAddress") || ""),
-            gymAddressDetail:
-              String(fd.get("gymAddressDetail") || "") || undefined,
-            businessNo: String(fd.get("businessNo") || "") || undefined,
-            sportType: String(fd.get("sportType") || "") || undefined,
-            qualifications:
-              String(fd.get("qualifications") || "") || undefined,
-            careerSummary: String(fd.get("careerSummary") || "") || undefined,
-            memo: String(fd.get("memo") || "") || undefined,
-            paperConsentConfirmed: fd.get("paperConsentConfirmed") === "on",
-            uploadBatchId,
-            attachmentsJson: JSON.stringify(attachments),
-          };
-          const res = await createManualMemberGymApplicationAction(payload);
-          if (!res.ok) {
-            setError(res.error.message);
-            return;
+          try {
+            let nextAttachments = [...attachments];
+            const hasPaper = nextAttachments.some(
+              (a) => a.attachmentType === "paper_application_scan",
+            );
+            if (signatureDataUrl) {
+              const file = dataUrlToFile(
+                signatureDataUrl,
+                "applicant-signature.png",
+              );
+              const meta = await uploadFile(file, "applicant_signature");
+              nextAttachments = [
+                ...nextAttachments.filter(
+                  (a) => a.attachmentType !== "applicant_signature",
+                ),
+                meta,
+              ];
+            } else if (!hasPaper || !paperOriginalConfirmed) {
+              setError(
+                "손서명을 완료하거나, 종이 신청서 스캔 첨부 후 「종이 원본 서명 확인」에 체크해 주세요.",
+              );
+              return;
+            }
+
+            const homeBase = String(fd.get("homeAddress") || "").trim();
+            const homeDetail = String(fd.get("homeAddressDetail") || "").trim();
+            const homeAddress = [homeBase, homeDetail]
+              .filter(Boolean)
+              .join(" ");
+
+            const payload = {
+              receptionChannel: String(fd.get("receptionChannel") || "manual"),
+              receivedAt: String(fd.get("receivedAt") || "") || undefined,
+              internalMemo: String(fd.get("internalMemo") || "") || undefined,
+              gymName: String(fd.get("gymName") || ""),
+              ownerName: String(fd.get("ownerName") || ""),
+              ownerNameEn: String(fd.get("ownerNameEn") || "") || undefined,
+              birthDate: String(fd.get("birthDate") || "") || undefined,
+              gender: String(fd.get("gender") || "") || undefined,
+              phone: String(fd.get("phone") || ""),
+              gymPhone: String(fd.get("gymPhone") || "") || undefined,
+              email: String(fd.get("email") || ""),
+              homeAddress: homeAddress || undefined,
+              gymAddress: String(fd.get("gymAddress") || ""),
+              gymAddressDetail:
+                String(fd.get("gymAddressDetail") || "") || undefined,
+              businessNo: String(fd.get("businessNo") || "") || undefined,
+              sportType: String(fd.get("sportType") || "") || undefined,
+              qualifications:
+                String(fd.get("qualifications") || "") || undefined,
+              careerSummary: String(fd.get("careerSummary") || "") || undefined,
+              memo: String(fd.get("memo") || "") || undefined,
+              paperConsentConfirmed: fd.get("paperConsentConfirmed") === "on",
+              uploadBatchId,
+              attachmentsJson: JSON.stringify(nextAttachments),
+            };
+            const res = await createManualMemberGymApplicationAction(payload);
+            if (!res.ok) {
+              setError(res.error.message);
+              return;
+            }
+            router.push(
+              `/organizer/member-gyms/applications/${res.data.applicationId}`,
+            );
+            router.refresh();
+          } catch (err) {
+            setError(err instanceof Error ? err.message : "저장 실패");
           }
-          router.push(
-            `/organizer/member-gyms/applications/${res.data.applicationId}`,
-          );
-          router.refresh();
         });
       }}
     >
@@ -162,43 +202,39 @@ export function MemberGymManualApplicationForm({
       <section className="space-y-3 rounded-md border border-matchon-border bg-white p-4">
         <h2 className="text-sm font-bold">1. 회원사·체육관 정보</h2>
         <Field name="gymName" label="체육관명" required />
-        <Field name="gymAddress" label="체육관 주소" required />
-        <Field name="gymAddressDetail" label="상세 주소" />
-        <Field name="gymPhone" label="체육관 연락처" />
-        <Field name="businessNo" label="사업자등록번호" />
+        <AddressSearchField
+          label="체육관 주소"
+          required
+          addressName="gymAddress"
+          detailName="gymAddressDetail"
+        />
+        <PhoneInput name="gymPhone" label="체육관 연락처" />
+        <BusinessNoInput name="businessNo" label="사업자등록번호" />
         <Field name="sportType" label="종목" />
       </section>
 
       <section className="space-y-3 rounded-md border border-matchon-border bg-white p-4">
         <h2 className="text-sm font-bold">2. 대표자 정보</h2>
-        <div className="flex flex-wrap gap-4">
-          <div className="min-w-[240px] flex-1 space-y-3">
-            <Field name="ownerName" label="관장 성명" required />
-            <Field name="ownerNameEn" label="성명 영문" />
-            <Field name="birthDate" label="생년월일" type="date" />
-            <Field name="gender" label="성별" />
-            <Field name="phone" label="개인 휴대전화" required />
-            <Field name="email" label="이메일" type="email" required />
-            <Field name="homeAddress" label="집 주소" />
-          </div>
-          <div className="w-28 shrink-0">
-            <p className="mb-1 text-xs font-medium">증명사진</p>
-            <div className="flex aspect-[3/4] items-center justify-center overflow-hidden rounded border border-dashed bg-matchon-surface">
-              {photoPreview ? (
-                // eslint-disable-next-line @next/next/no-img-element
-                <img
-                  src={photoPreview}
-                  alt="증명사진 미리보기"
-                  className="h-full w-full object-cover"
-                />
-              ) : (
-                <span className="p-2 text-center text-[10px] text-matchon-text-secondary">
-                  사진
-                </span>
-              )}
-            </div>
-          </div>
-        </div>
+        <label className="block text-xs">
+          관장 성명 *
+          <input
+            name="ownerName"
+            required
+            value={ownerName}
+            onChange={(e) => setOwnerName(e.target.value)}
+            className="mt-1 w-full rounded-md border border-matchon-border px-3 py-2 text-sm"
+          />
+        </label>
+        <Field name="ownerNameEn" label="성명 영문" />
+        <Field name="birthDate" label="생년월일" type="date" />
+        <Field name="gender" label="성별" />
+        <PhoneInput name="phone" label="개인 휴대전화" required />
+        <Field name="email" label="이메일" type="email" required />
+        <AddressSearchField
+          label="집 주소"
+          addressName="homeAddress"
+          detailName="homeAddressDetail"
+        />
       </section>
 
       <section className="space-y-3 rounded-md border border-matchon-border bg-white p-4">
@@ -262,17 +298,35 @@ export function MemberGymManualApplicationForm({
           </label>
         ))}
         <ul className="text-xs text-matchon-text-secondary">
-          {attachments.map((a) => (
-            <li key={a.storagePath}>
-              {MEMBER_GYM_ATTACHMENT_TYPE_LABEL[a.attachmentType]} ·{" "}
-              {a.originalFileName}
-            </li>
-          ))}
+          {attachments
+            .filter((a) => a.attachmentType !== "applicant_signature")
+            .map((a) => (
+              <li key={a.storagePath}>
+                {MEMBER_GYM_ATTACHMENT_TYPE_LABEL[a.attachmentType]} ·{" "}
+                {a.originalFileName}
+              </li>
+            ))}
         </ul>
       </section>
 
       <section className="space-y-2 rounded-md border border-matchon-border bg-white p-4 text-sm">
-        <h2 className="text-sm font-bold">5. 서류 확인</h2>
+        <h2 className="text-sm font-bold">5. 신청인 서명·서류 확인</h2>
+        <p className="text-xs text-matchon-text-secondary">
+          신청인 성명: {ownerName || "(대표자 성명과 동일)"}
+        </p>
+        <div>
+          <p className="mb-1 text-xs font-medium">손서명</p>
+          <MemberGymSignatureField onChange={setSignatureDataUrl} />
+        </div>
+        <label className="flex items-start gap-2">
+          <input
+            type="checkbox"
+            checked={paperOriginalConfirmed}
+            onChange={(e) => setPaperOriginalConfirmed(e.target.checked)}
+          />
+          종이 신청서 원본 서명을 확인했습니다. (스캔만으로 손서명 생략 시
+          필수)
+        </label>
         <label className="flex items-start gap-2">
           <input name="paperConsentConfirmed" type="checkbox" required />
           원본 서류(종이·방문 접수 등)를 확인하고 사실과 다름없이

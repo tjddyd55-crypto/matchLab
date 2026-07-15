@@ -1,4 +1,5 @@
 import { MemberGymOwnerInviteAcceptForm } from "@/components/domain/member-gyms/MemberGymOwnerInviteAcceptForm";
+import { formatPhoneNumber } from "@/lib/phone";
 import { gymOwnerAccountService } from "@/lib/services/gym-owner-account.service";
 
 export const dynamic = "force-dynamic";
@@ -30,11 +31,16 @@ export default async function GymOwnerInvitePage({
       <p className="mt-2 text-sm text-matchon-text-secondary">
         {ctx.organizerName} · {ctx.gymName}
       </p>
-      <p className="mt-1 text-sm">초대 이메일: {ctx.email}</p>
+      <p className="mt-1 text-sm">
+        대상: {ctx.name} · {ctx.email}
+        {ctx.phone ? ` · ${formatPhoneNumber(ctx.phone)}` : ""}
+      </p>
       <div className="mt-6">
         <MemberGymOwnerInviteAcceptForm
           token={token}
           defaultName={ctx.name}
+          inviteEmail={ctx.email}
+          invitePhone={ctx.phone}
           suggestedLoginId={ctx.email.split("@")[0] || ""}
         />
       </div>

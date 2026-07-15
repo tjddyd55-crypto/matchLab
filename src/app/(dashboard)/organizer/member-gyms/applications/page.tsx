@@ -11,6 +11,7 @@ import {
   MEMBER_GYM_APPLICATION_STATUS_LABEL,
   resolveMemberGymApplicationSourceLabel,
 } from "@/lib/ui-labels/member-gym";
+import { formatPhoneNumber } from "@/lib/phone";
 import { format } from "date-fns";
 
 export const dynamic = "force-dynamic";
@@ -178,7 +179,9 @@ export default async function MemberGymApplicationsPage({
                       )}
                     </span>
                   </td>
-                  <td className="px-3 py-2">{row.phone}</td>
+                  <td className="px-3 py-2">
+                    {formatPhoneNumber(row.phone) || row.phone}
+                  </td>
                   <td className="px-3 py-2">{row.gymAddress}</td>
                   <td className="px-3 py-2">
                     {format(row.submittedAt, "yyyy-MM-dd")}

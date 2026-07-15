@@ -79,7 +79,10 @@ export function MemberGymApplicationReviewPanel({
                   })
                 }
               >
-                다운로드
+                {a.attachmentType === "applicant_signature" ||
+                a.originalFileName.match(/\.(png|jpe?g|webp)$/i)
+                  ? "미리보기/다운로드"
+                  : "다운로드"}
               </button>
             </li>
           ))

@@ -23,7 +23,9 @@ function mapError(e: unknown): ActionResult<never> {
           ? "NOT_FOUND"
           : e.code === "CONFLICT"
             ? "CONFLICT"
-            : "FORBIDDEN",
+            : e.code === "INTERNAL"
+              ? "INTERNAL"
+              : "FORBIDDEN",
       e.message,
       e.details,
     );

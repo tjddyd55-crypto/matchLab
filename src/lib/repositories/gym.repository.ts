@@ -47,6 +47,12 @@ export const gymRepository = {
   async findOrCreateGymForOrganizerManualEntry(
     name: string,
     tx?: Prisma.TransactionClient,
+    ownerSnapshot?: {
+      ownerName?: string | null;
+      phone?: string | null;
+      gymPhone?: string | null;
+      address?: string | null;
+    },
   ): Promise<{ id: string; name: string; created: boolean }> {
     const trimmed = name.trim();
     const existing = await gymRepository.findActiveGymByNameInsensitive(
@@ -59,11 +65,15 @@ export const gymRepository = {
 
     const client = db(tx);
     const suffix = randomBytes(6).toString("hex");
+    const ownerName =
+      ownerSnapshot?.ownerName?.trim() || trimmed;
+    const ownerPhone = ownerSnapshot?.phone?.trim() || null;
     const owner = await client.user.create({
       data: {
         loginId: `manual-gym-${suffix}`,
         email: `manual-gym-${suffix}@internal.invalid`,
-        name: trimmed,
+        name: ownerName,
+        phone: ownerPhone,
         role: UserRole.gym,
       },
       select: { id: true },
@@ -73,6 +83,8 @@ export const gymRepository = {
       data: {
         ownerUserId: owner.id,
         name: trimmed,
+        phone: ownerSnapshot?.gymPhone?.trim() || ownerPhone || undefined,
+        address: ownerSnapshot?.address?.trim() || undefined,
         status: GymStatus.active,
       },
       select: { id: true, name: true },

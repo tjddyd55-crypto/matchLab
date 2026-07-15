@@ -1542,6 +1542,7 @@ enum AssociationMemberGymApplicationAttachmentType {
   location_proof
   identity_document
   paper_application_scan
+  applicant_signature
   other
 }
 
@@ -1653,6 +1654,8 @@ model AssociationMemberGymApplication {
   informationConsent  Boolean                               @default(false)
   signatureName       String
   signatureConsent    Boolean                               @default(false)
+  /// 손서명 완료 시각 (attachment applicant_signature와 병행, 기존 null 허용)
+  signatureSignedAt   DateTime?
   uploadBatchId       String?
   reviewNote          String?
   supplementationNote String?
