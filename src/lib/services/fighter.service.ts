@@ -245,7 +245,7 @@ export const fighterService = {
       );
     }
 
-    return prisma.$transaction(async (tx) => {
+    const created = await prisma.$transaction(async (tx) => {
       let fighter: { id: string; fighterCode: string } | null = null;
       const payload = {
         name: input.name.trim(),
@@ -294,20 +294,21 @@ export const fighterService = {
         );
       }
 
-      const result = {
+      return {
         fighterId: fighter.id,
         fighterCode: fighter.fighterCode,
         linked: false,
       };
-      if (input.createLoginAccount && input.loginId) {
-        const creds = await fighterService.provisionLoginAfterCreate(
-          fighter.id,
-          input,
-        );
-        return { ...result, loginCredentials: creds };
-      }
-      return result;
     });
+
+    if (input.createLoginAccount && input.loginId) {
+      const creds = await fighterService.provisionLoginAfterCreate(
+        created.fighterId,
+        input,
+      );
+      return { ...created, loginCredentials: creds };
+    }
+    return created;
   },
 
   async provisionLoginAfterCreate(
