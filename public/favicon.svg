@@ -1,0 +1,13 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 32 32" fill="none">
+  <!-- Fixed brand colors only — no currentColor. Simplified for 16px tabs. -->
+  <g transform="translate(5.2 2.1) scale(0.982)">
+    <path
+      d="M11 1.625L20.625 7.125V20.875L11 26.375L1.375 20.875V7.125L11 1.625Z"
+      fill="#0A47FF"
+    />
+    <path
+      d="M7.05 11.05L11 9.1L14.95 11.05V16.95L11 18.9L7.05 16.95V11.05Z"
+      fill="#FFFFFF"
+    />
+  </g>
+</svg>
