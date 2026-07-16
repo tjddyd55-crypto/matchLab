@@ -1,6 +1,7 @@
 import { NextResponse } from "next/server";
 import { toApiError, toApiSuccess } from "@/lib/action-result";
-import { requireActor } from "@/lib/auth/actor";
+import { requireActorFromMutation } from "@/lib/auth/actor";
+import { PermissionError } from "@/lib/auth/permission-error";
 import { AppError } from "@/lib/errors/app-error";
 import { associationApplicationService } from "@/lib/services/association-application.service";
 
@@ -11,7 +12,7 @@ export async function POST(
   context: { params: Promise<{ applicationId: string }> },
 ) {
   try {
-    const actor = await requireActor();
+    const actor = await requireActorFromMutation();
     const { applicationId } = await context.params;
     const body = (await request.json().catch(() => ({}))) as {
       reviewMemo?: string;
@@ -28,6 +29,11 @@ export async function POST(
       }),
     );
   } catch (e) {
+    if (e instanceof PermissionError) {
+      return NextResponse.json(toApiError(e.code, e.message), {
+        status: e.code === "UNAUTHORIZED" ? 401 : 403,
+      });
+    }
     if (e instanceof AppError) {
       const status =
         e.code === "FORBIDDEN"
