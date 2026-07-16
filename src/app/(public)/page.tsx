@@ -3,13 +3,18 @@ import { PublicHomeHeroDesktop } from "@/components/domain/events/public/PublicH
 import { PublicHomeHeroMobile } from "@/components/domain/events/public/PublicHomeHeroMobile";
 import { PublicHomeHowItWorksSection } from "@/components/domain/events/public/PublicHomeHowItWorksSection";
 import { PublicHomeOrganizerCtaSection } from "@/components/domain/events/public/PublicHomeOrganizerCtaSection";
+import { PublicHomePartnersSection } from "@/components/domain/events/public/PublicHomePartnersSection";
 import { PublicHomeStatsSection } from "@/components/domain/events/public/PublicHomeStatsSection";
 import { eventService } from "@/lib/services/event.service";
+import { publicPartnerService } from "@/lib/services/public-partner.service";
 
 export const dynamic = "force-dynamic";
 
 export default async function PublicHomePage() {
-  const events = await eventService.listPublicEvents();
+  const [events, partners] = await Promise.all([
+    eventService.listPublicEvents(),
+    publicPartnerService.listHomePartners(),
+  ]);
   const featured = events
     .filter(
       (e) =>
@@ -28,6 +33,7 @@ export default async function PublicHomePage() {
       <PublicHomeEventsSection events={featured} />
       <PublicHomeHowItWorksSection />
       <PublicHomeOrganizerCtaSection />
+      <PublicHomePartnersSection partners={partners} />
     </div>
   );
 }

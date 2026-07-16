@@ -34,6 +34,7 @@ export async function listJoinableAssociations(): Promise<
     select: {
       id: true,
       name: true,
+      logoUrl: true,
       associationJoinLinks: {
         where: {
           status: AssociationJoinLinkStatus.active,
@@ -55,7 +56,7 @@ export async function listJoinableAssociations(): Promise<
       return {
         organizerId: row.id,
         name: row.name,
-        logoUrl: null,
+        logoUrl: row.logoUrl,
         registerPath: `/member-gym-register/${buildStableMemberGymJoinToken(link.id)}`,
       };
     })

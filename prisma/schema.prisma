@@ -279,6 +279,7 @@ enum AuditAction {
   gym_owner_access_restored
   gym_owner_invited
   gym_owner_invite_cancelled
+  public_partner_changed
 }
 
 enum BracketChangeType {
@@ -356,6 +357,12 @@ model Organizer {
   name      String
   type      OrganizerType
   status    OrganizerStatus  @default(pending)
+  /// 공개 홈 파트너 영역용 로고 (event-images 공개 버킷 path/URL)
+  logoPath  String?
+  logoUrl   String?
+  /// 공개 홈에 협회 로고 노출 여부
+  publicLogoVisible Boolean  @default(false)
+  websiteUrl String?
   createdAt DateTime         @default(now())
   updatedAt DateTime         @updatedAt
 
@@ -1765,3 +1772,33 @@ model AssociationMemberGymSettings {
 
   organizer Organizer @relation(fields: [organizerId], references: [id], onDelete: Cascade)
 }
+
+/// 공개 홈 스폰서·파트너 로고 (협회 로고는 Organizer 필드 사용 — 복사 저장 금지)
+enum PublicPartnerType {
+  sponsor
+  partner
+}
+
+model PublicPartner {
+  id          String            @id @default(cuid())
+  name        String
+  type        PublicPartnerType
+  /// event-images 버킷 내 object path (public-partners/{id}/logo/...)
+  logoPath    String
+  /// 공개 읽기용 캐시 URL (임의 외부 URL 저장 금지)
+  logoUrl     String
+  websiteUrl  String?
+  altText     String?
+  sortOrder   Int               @default(0)
+  isActive    Boolean           @default(true)
+  startsAt    DateTime?
+  endsAt      DateTime?
+  deletedAt   DateTime?
+  createdAt   DateTime          @default(now())
+  updatedAt   DateTime          @updatedAt
+
+  @@index([isActive, sortOrder])
+  @@index([deletedAt])
+  @@index([type])
+}
+

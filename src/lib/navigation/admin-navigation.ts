@@ -20,6 +20,7 @@ export function getAdminNavItems(): AdminNavItem[] {
     { href: "/admin", label: "홈" },
     { href: "/admin/events", label: "대회" },
     { href: "/admin/organizers", label: "주최자" },
+    { href: "/admin/public-partners", label: "파트너 로고" },
     { href: "/admin/credits", label: "크레딧" },
     { href: "/admin/gyms", label: "체육관" },
     { href: "/admin/fighters", label: "선수" },
