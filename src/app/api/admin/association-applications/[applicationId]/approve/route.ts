@@ -30,8 +30,8 @@ export async function POST(
     );
   } catch (e) {
     if (e instanceof PermissionError) {
-      return NextResponse.json(toApiError(e.code, e.message), {
-        status: e.code === "UNAUTHORIZED" ? 401 : 403,
+      return NextResponse.json(toApiError(e.reason, e.message), {
+        status: e.reason === "UNAUTHORIZED" ? 401 : 403,
       });
     }
     if (e instanceof AppError) {
