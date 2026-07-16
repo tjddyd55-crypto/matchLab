@@ -1,10 +1,6 @@
 "use client";
 
 import { useRef, useState, useTransition } from "react";
-import {
-  acceptAssociationOwnerInviteAction,
-  checkAssociationOwnerInviteLoginIdAction,
-} from "@/features/association-applications/actions";
 
 type AcceptStatus = "idle" | "submitting" | "success" | "error";
 type LoginIdCheckStatus =
@@ -51,16 +47,32 @@ export function AssociationOwnerInviteAcceptForm({
 
   async function runDuplicateCheck() {
     setLoginIdCheck("checking");
-    const res = await checkAssociationOwnerInviteLoginIdAction(loginId);
-    if (!res.ok) {
+    try {
+      const res = await fetch(
+        "/api/public/association-owner-invite/check-login-id",
+        {
+          method: "POST",
+          headers: { "Content-Type": "application/json" },
+          body: JSON.stringify({ loginId }),
+        },
+      );
+      const json = await res.json().catch(() => null);
+      if (!res.ok || !json?.data) {
+        setLoginIdCheck("error");
+        setLoginIdMessage(
+          json?.error?.message ?? "중복 확인에 실패했습니다.",
+        );
+        setCheckedLoginId(null);
+        return;
+      }
+      setLoginIdCheck(json.data.available ? "available" : "unavailable");
+      setLoginIdMessage(json.data.message ?? null);
+      setCheckedLoginId(json.data.available ? json.data.loginId : null);
+    } catch {
       setLoginIdCheck("error");
-      setLoginIdMessage(res.error.message);
+      setLoginIdMessage("중복 확인에 실패했습니다.");
       setCheckedLoginId(null);
-      return;
     }
-    setLoginIdCheck(res.data.available ? "available" : "unavailable");
-    setLoginIdMessage(res.data.message ?? null);
-    setCheckedLoginId(res.data.available ? res.data.loginId : null);
   }
 
   return (
@@ -72,19 +84,39 @@ export function AssociationOwnerInviteAcceptForm({
         submittingRef.current = true;
         setStatus("submitting");
         setError(null);
-        const fd = new FormData(e.currentTarget);
         startTransition(async () => {
-          const res = await acceptAssociationOwnerInviteAction(fd);
-          submittingRef.current = false;
-          if (!res.ok) {
+          try {
+            const res = await fetch(
+              "/api/public/association-owner-invite/activate",
+              {
+                method: "POST",
+                headers: { "Content-Type": "application/json" },
+                body: JSON.stringify({
+                  token,
+                  loginId,
+                  password,
+                  passwordConfirm,
+                }),
+              },
+            );
+            const json = await res.json().catch(() => null);
+            submittingRef.current = false;
+            if (!res.ok || !json?.data?.loginId) {
+              setStatus("error");
+              setError(
+                json?.error?.message ?? "계정 활성화에 실패했습니다.",
+              );
+              return;
+            }
+            setStatus("success");
+            window.location.assign(
+              `/login?activated=1&loginId=${encodeURIComponent(json.data.loginId)}`,
+            );
+          } catch {
+            submittingRef.current = false;
             setStatus("error");
-            setError(res.error.message);
-            return;
+            setError("계정 활성화에 실패했습니다.");
           }
-          setStatus("success");
-          window.location.assign(
-            `/login?activated=1&loginId=${encodeURIComponent(res.data.loginId)}`,
-          );
         });
       }}
     >
@@ -132,8 +164,6 @@ export function AssociationOwnerInviteAcceptForm({
           </span>
         ) : null}
       </label>
-
-      <input type="hidden" name="token" value={token} />
 
       <label className="flex flex-col gap-1 text-sm">
         비밀번호

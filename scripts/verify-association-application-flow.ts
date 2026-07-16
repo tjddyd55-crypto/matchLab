@@ -39,7 +39,15 @@ function main() {
     existsSync(
       join(
         root,
-        "src/app/api/admin/association-applications/[applicationId]/approve/route.ts",
+        "src/app/api/public/association-owner-invite/activate/route.ts",
+      ),
+    ),
+  );
+  assert.ok(
+    existsSync(
+      join(
+        root,
+        "src/app/api/public/association-owner-invite/check-login-id/route.ts",
       ),
     ),
   );
