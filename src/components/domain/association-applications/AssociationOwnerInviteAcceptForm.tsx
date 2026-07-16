@@ -45,7 +45,8 @@ export function AssociationOwnerInviteAcceptForm({
   const canSubmit =
     !formLocked && loginIdReady && password.length >= 8 && passwordsMatch;
 
-  async function runDuplicateCheck() {
+  async function runDuplicateCheck(rawLoginId = loginId) {
+    const candidate = rawLoginId.trim();
     setLoginIdCheck("checking");
     try {
       const res = await fetch(
@@ -53,7 +54,7 @@ export function AssociationOwnerInviteAcceptForm({
         {
           method: "POST",
           headers: { "Content-Type": "application/json" },
-          body: JSON.stringify({ loginId }),
+          body: JSON.stringify({ loginId: candidate }),
         },
       );
       const json = await res.json().catch(() => null);
@@ -146,7 +147,12 @@ export function AssociationOwnerInviteAcceptForm({
           <button
             type="button"
             disabled={formLocked || loginIdCheck === "checking"}
-            onClick={() => void runDuplicateCheck()}
+            onClick={() => {
+              const input = document.querySelector(
+                'input[name="loginId"]',
+              ) as HTMLInputElement | null;
+              void runDuplicateCheck(input?.value || loginId);
+            }}
             className="rounded-lg border px-3 text-sm font-semibold"
           >
             중복확인
