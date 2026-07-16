@@ -25,25 +25,24 @@ export function AssociationApplicationReviewActions({
     <div className="space-y-3">
       {canReview && !inviteUrl ? (
         <div className="flex flex-wrap gap-2">
-          <Button
-            type="button"
-            disabled={pending}
-            onClick={() => {
-              const fd = new FormData();
-              fd.set("applicationId", applicationId);
+          <form
+            action={(fd) => {
               startTransition(async () => {
+                setError(null);
                 const res = await approveAssociationApplicationAction(fd);
                 if (!res.ok) {
                   setError(res.error.message);
                   return;
                 }
                 setInviteUrl(res.data.inviteUrl);
-                setError(null);
               });
             }}
           >
-            승인 및 계정 초대 발급
-          </Button>
+            <input type="hidden" name="applicationId" value={applicationId} />
+            <Button type="submit" disabled={pending}>
+              승인 및 계정 초대 발급
+            </Button>
+          </form>
           <form action={rejectAssociationApplicationAction}>
             <input type="hidden" name="applicationId" value={applicationId} />
             <Button type="submit" variant="outline" disabled={pending}>
