@@ -9,10 +9,12 @@ import { OrganizerManualEntryHint } from "@/components/domain/applications/Organ
 import { OrganizerApplicationsEmptyState } from "@/components/domain/applications/OrganizerApplicationsEmptyState";
 import type { OrganizerApplicationRowVM } from "@/components/domain/applications/OrganizerApplicationsTable";
 import { formatPublicDateTime } from "@/lib/date-display";
+import { ListSequenceMobilePrefix } from "@/components/domain/shared/CompactApplicantFilterBar";
 import { DivisionCompactDisplay } from "@/components/domain/shared/DivisionCompactDisplay";
 import { DivisionGenderBadge } from "@/components/domain/shared/DivisionGenderBadge";
 import { Checkbox } from "@/components/ui/checkbox";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
+import { displaySequenceNumber } from "@/lib/ui/list-sequence";
 import { matchonMobileCardListClass } from "@/lib/ui/matchon-shell-ui";
 
 export function OrganizerApplicationsCards({
@@ -20,12 +22,14 @@ export function OrganizerApplicationsCards({
   rows,
   selectedIds,
   onToggleSelect,
+  sequenceStart = 0,
   emptyMessage = "아직 신청자가 없습니다.",
 }: {
   eventId: string;
   rows: OrganizerApplicationRowVM[];
   selectedIds: Set<string>;
   onToggleSelect: (applicationId: string, checked: boolean) => void;
+  sequenceStart?: number;
   emptyMessage?: string;
 }) {
   if (rows.length === 0) {
@@ -38,7 +42,7 @@ export function OrganizerApplicationsCards({
 
   return (
     <div className={matchonMobileCardListClass}>
-      {rows.map((row) => (
+      {rows.map((row, index) => (
         <Card key={row.applicationId} className="rounded-xl border-matchon-border bg-white py-4 shadow-sm">
           <CardHeader className="space-y-2 px-4 py-0">
             <div className="flex items-start gap-2">
@@ -51,9 +55,14 @@ export function OrganizerApplicationsCards({
                 className="mt-1"
               />
               <div className="min-w-0 flex-1">
-                <p className="text-muted-foreground truncate text-xs font-medium">
-                  {row.gymName}
-                </p>
+                <div className="flex items-center gap-2">
+                  <ListSequenceMobilePrefix
+                    sequence={displaySequenceNumber(index, sequenceStart)}
+                  />
+                  <p className="text-muted-foreground truncate text-xs font-medium">
+                    {row.gymName}
+                  </p>
+                </div>
                 <div className="flex min-w-0 items-center gap-1.5">
                   <CardTitle className="truncate text-base leading-snug">
                     {row.fighterName}
@@ -62,8 +71,7 @@ export function OrganizerApplicationsCards({
                 </div>
                 <OrganizerManualEntryHint show={row.isOrganizerManualEntry} />
               </div>
-            </div>
-            <div className="flex flex-wrap gap-1.5 pl-8">
+            </div>            <div className="flex flex-wrap gap-1.5 pl-8">
               <OrganizerPaymentDisplayBadge paymentStatus={row.paymentStatus} />
               <OrganizerApplicationStatusBadge
                 applicationStatus={row.applicationStatus}

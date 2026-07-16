@@ -8,25 +8,31 @@ import { OrganizerApplicationRowActions } from "@/components/domain/applications
 import { OrganizerManualEntryHint } from "@/components/domain/applications/OrganizerManualEntryHint";
 import { OrganizerApplicationsEmptyState } from "@/components/domain/applications/OrganizerApplicationsEmptyState";
 import type { OrganizerApplicationRowVM } from "@/components/domain/applications/OrganizerApplicationsTable";
+import {
+  ListSequenceCell,
+} from "@/components/domain/shared/CompactApplicantFilterBar";
 import { DivisionCompactDisplay } from "@/components/domain/shared/DivisionCompactDisplay";
 import { DivisionGenderBadge } from "@/components/domain/shared/DivisionGenderBadge";
 import { MATCH_CATEGORY_WITH_WEIGHT_LABEL } from "@/lib/ui-labels/match-category";
+import { displaySequenceNumber } from "@/lib/ui/list-sequence";
 import { Checkbox } from "@/components/ui/checkbox";
 
 const LIST_GRID_CLASS =
-  "grid min-w-0 gap-x-3 gap-y-2 py-3 text-sm [grid-template-columns:2rem_minmax(0,0.9fr)_minmax(0,1.1fr)_minmax(0,1fr)_minmax(0,0.6fr)_minmax(0,0.6fr)_minmax(0,0.9fr)] max-xl:[grid-template-columns:2rem_minmax(0,0.8fr)_minmax(0,1fr)_minmax(0,1fr)_minmax(0,0.7fr)_minmax(0,0.7fr)] max-xl:[&_.col-actions]:col-span-2";
+  "grid min-w-0 gap-x-3 gap-y-2 py-3 text-sm [grid-template-columns:2rem_2.5rem_minmax(0,0.9fr)_minmax(0,1.1fr)_minmax(0,1fr)_minmax(0,0.6fr)_minmax(0,0.6fr)_minmax(0,0.9fr)] max-xl:[grid-template-columns:2rem_2.5rem_minmax(0,0.8fr)_minmax(0,1fr)_minmax(0,1fr)_minmax(0,0.7fr)_minmax(0,0.7fr)] max-xl:[&_.col-actions]:col-span-2";
 
 export function OrganizerApplicationsList({
   eventId,
   rows,
   selectedIds,
   onToggleSelect,
+  sequenceStart = 0,
   emptyMessage = "아직 신청자가 없습니다.",
 }: {
   eventId: string;
   rows: OrganizerApplicationRowVM[];
   selectedIds: Set<string>;
   onToggleSelect: (applicationId: string, checked: boolean) => void;
+  sequenceStart?: number;
   emptyMessage?: string;
 }) {
   if (rows.length === 0) {
@@ -39,8 +45,9 @@ export function OrganizerApplicationsList({
 
   return (
     <div className="hidden min-w-0 md:block 2xl:hidden">
-      <div className="text-muted-foreground hidden border-b px-1 pb-2 text-xs font-medium xl:grid xl:gap-x-3 xl:[grid-template-columns:2rem_minmax(0,0.9fr)_minmax(0,1.1fr)_minmax(0,1fr)_minmax(0,0.6fr)_minmax(0,0.6fr)_minmax(0,0.9fr)]">
+      <div className="text-muted-foreground hidden border-b px-1 pb-2 text-xs font-medium xl:grid xl:gap-x-3 xl:[grid-template-columns:2rem_2.5rem_minmax(0,0.9fr)_minmax(0,1.1fr)_minmax(0,1fr)_minmax(0,0.6fr)_minmax(0,0.6fr)_minmax(0,0.9fr)]">
         <span />
+        <span className="text-center">순번</span>
         <span>체육관</span>
         <span>선수 이름</span>
         <span>{MATCH_CATEGORY_WITH_WEIGHT_LABEL}</span>
@@ -50,7 +57,7 @@ export function OrganizerApplicationsList({
       </div>
 
       <ul className="divide-border min-w-0 divide-y">
-        {rows.map((row) => (
+        {rows.map((row, index) => (
           <li key={row.applicationId} className={LIST_GRID_CLASS}>
             <div className="flex items-start pt-1">
               <Checkbox
@@ -59,6 +66,12 @@ export function OrganizerApplicationsList({
                   onToggleSelect(row.applicationId, v === true)
                 }
                 aria-label={`${row.fighterName} 선택`}
+              />
+            </div>
+
+            <div className="flex items-start justify-center pt-1">
+              <ListSequenceCell
+                sequence={displaySequenceNumber(index, sequenceStart)}
               />
             </div>
 

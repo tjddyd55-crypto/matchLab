@@ -84,6 +84,8 @@ export type OperationBoardSummary = {
   preparing: number;
   inProgress: number;
   completed: number;
+  resultPending: number;
+  resultDone: number;
 };
 
 export function getOperationMatchPhase(
@@ -131,6 +133,8 @@ export function summarizeOperationBoard(
   let preparing = 0;
   let inProgress = 0;
   let completed = 0;
+  let resultPending = 0;
+  let resultDone = 0;
 
   for (const match of matches) {
     const phase = getOperationMatchPhase(match);
@@ -138,6 +142,15 @@ export function summarizeOperationBoard(
     if (phase === "preparing") preparing += 1;
     if (phase === "in_progress") inProgress += 1;
     if (phase === "finished" || phase === "result_done") completed += 1;
+    if (
+      match.status === BracketMatchStatus.finished &&
+      !match.hasOfficialResults
+    ) {
+      resultPending += 1;
+    }
+    if (match.hasOfficialResults) {
+      resultDone += 1;
+    }
   }
 
   return {
@@ -146,6 +159,8 @@ export function summarizeOperationBoard(
     preparing,
     inProgress,
     completed,
+    resultPending,
+    resultDone,
   };
 }
 

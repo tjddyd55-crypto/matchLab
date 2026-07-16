@@ -11,6 +11,10 @@ import { FieldStatusEmptyState } from "@/components/domain/field-status/FieldSta
 import { CheckInStatusBadge } from "@/components/domain/field-status/CheckInStatusBadge";
 import { WeighInStatusBadge } from "@/components/domain/field-status/WeighInStatusBadge";
 import { EligibilityBadge } from "@/components/domain/field-status/EligibilityBadge";
+import {
+  ListSequenceCell,
+  ListSequenceMobilePrefix,
+} from "@/components/domain/shared/CompactApplicantFilterBar";
 import { DivisionCompactDisplay } from "@/components/domain/shared/DivisionCompactDisplay";
 import type { FieldStatusRowDTO } from "@/lib/services/field-status.service";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
@@ -24,15 +28,18 @@ import {
   listTableHeaderCellStartClass,
   listTableHeaderRowClass,
 } from "@/lib/ui/list-table-styles";
+import { displaySequenceNumber } from "@/lib/ui/list-sequence";
 import { matchonCompactTableWrapClass } from "@/lib/ui/matchon-shell-ui";
 import { APPLIED_MATCH_CATEGORY_LABEL } from "@/lib/ui-labels/match-category";
 import { cn } from "@/lib/utils";
 
 export function OrganizerFieldStatusTable({
   rows,
+  sequenceStart = 0,
   emptyMessage = "표시할 승인 신청자가 없습니다.",
 }: {
   rows: FieldStatusRowDTO[];
+  sequenceStart?: number;
   emptyMessage?: string;
 }) {
   if (rows.length === 0) {
@@ -44,17 +51,19 @@ export function OrganizerFieldStatusTable({
       <div className={cn(matchonCompactTableWrapClass, "hidden w-full min-w-0 md:block")}>
         <table className="w-full table-fixed text-left text-sm">
           <colgroup>
-            <col className="w-[13%]" />
+            <col className="w-[56px]" />
+            <col className="w-[12%]" />
             <col className="w-[9%]" />
-            <col className="w-[15%]" />
+            <col className="w-[14%]" />
             <col className="w-[13%]" />
             <col className="w-[14%]" />
-            <col className="w-[18%]" />
-            <col className="w-[13%]" />
+            <col className="w-[16%]" />
+            <col className="w-[12%]" />
             <col className="w-[5%]" />
           </colgroup>
           <thead className={listTableHeaderRowClass}>
             <tr>
+              <th className={listTableHeaderCellCenterClass}>순번</th>
               <th className={listTableHeaderCellStartClass}>체육관</th>
               <th className={listTableHeaderCellStartClass}>선수명</th>
               <th className={listTableHeaderCellStartClass}>
@@ -68,8 +77,13 @@ export function OrganizerFieldStatusTable({
             </tr>
           </thead>
           <tbody>
-            {rows.map((row) => (
+            {rows.map((row, index) => (
               <tr key={row.applicationId} className="border-t align-middle">
+                <td className="px-2 py-2 align-middle text-center">
+                  <ListSequenceCell
+                    sequence={displaySequenceNumber(index, sequenceStart)}
+                  />
+                </td>
                 <td className="min-w-0 px-2 py-2 align-middle text-xs font-medium">
                   <div className={fieldStatusTextCellClass}>
                     <span
@@ -134,12 +148,17 @@ export function OrganizerFieldStatusTable({
       </div>
 
       <div className="flex min-w-0 flex-col gap-3 md:hidden">
-        {rows.map((row) => (
+        {rows.map((row, index) => (
           <Card key={row.applicationId} className="rounded-xl border-matchon-border bg-white py-4 shadow-sm">
             <CardHeader className="space-y-2 px-4 py-0">
-              <p className="text-muted-foreground truncate text-xs font-medium">
-                {row.gymName}
-              </p>
+              <div className="flex items-center gap-2">
+                <ListSequenceMobilePrefix
+                  sequence={displaySequenceNumber(index, sequenceStart)}
+                />
+                <p className="text-muted-foreground truncate text-xs font-medium">
+                  {row.gymName}
+                </p>
+              </div>
               <CardTitle className="truncate text-base leading-snug">
                 {row.fighterName}
               </CardTitle>

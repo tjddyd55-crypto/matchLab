@@ -24,23 +24,11 @@ import {
 } from "@/lib/match-operation-display";
 import {
   organizerOperationDetailPaneClass,
-  organizerOperationFieldSelectClass,
-  organizerOperationListHeaderClass,
   organizerOperationListPaneClass,
   organizerOperationListScrollClass,
   organizerOperationWorkspaceClass,
 } from "@/lib/ui/organizer-operation-ui";
 import { cn } from "@/lib/utils";
-
-const FILTER_OPTIONS: { value: OperationBoardFilter; label: string }[] = [
-  { value: "all", label: "전체" },
-  { value: "scheduled", label: "대기" },
-  { value: "preparing", label: "경기준비" },
-  { value: "in_progress", label: "경기진행중" },
-  { value: "completed", label: "완료" },
-  { value: "result_pending", label: "결과 미입력" },
-  { value: "result_done", label: "결과 입력 완료" },
-];
 
 export type JudgeMatchSummaryVM = {
   assignedCount: number;
@@ -69,7 +57,6 @@ export function OrganizerOperationBoard({
   >({});
   const [courtTab, setCourtTab] = useState<CourtTabId>("all");
   const [summaryFilter, setSummaryFilter] = useState<OperationBoardFilter>("all");
-  const [statusFilter, setStatusFilter] = useState<OperationBoardFilter>("all");
   const [expandedMatchId, setExpandedMatchId] = useState<string | null>(null);
   const [focusedMatchId, setFocusedMatchId] = useState<string | null>(null);
 
@@ -78,7 +65,6 @@ export function OrganizerOperationBoard({
       matches.map((match) => {
         const patchedStatus = statusPatches[match.matchId];
         if (!patchedStatus || patchedStatus === match.status) return match;
-        // 서버가 종료·취소로 확정되면 stale optimistic(진행중 등)을 덮어쓰지 않는다.
         if (
           match.status === BracketMatchStatus.finished ||
           match.status === BracketMatchStatus.cancelled
@@ -93,15 +79,15 @@ export function OrganizerOperationBoard({
   const summary = useMemo(() => summarizeOperationBoard(liveMatches), [liveMatches]);
 
   const baseRows = useMemo(() => {
-    return liveMatches.map((m) => toOperationMatchRow(m, judgeSummaryByMatch?.[m.matchId]));
+    return liveMatches.map((m) =>
+      toOperationMatchRow(m, judgeSummaryByMatch?.[m.matchId]),
+    );
   }, [liveMatches, judgeSummaryByMatch]);
-
-  const activeFilter = statusFilter !== "all" ? statusFilter : summaryFilter;
 
   const filteredRows = useMemo(() => {
     const filtered = baseRows.filter((row) => {
       if (!matchesCourtTab(row, courtTab)) return false;
-      if (!matchesOperationBoardFilter(row, activeFilter)) return false;
+      if (!matchesOperationBoardFilter(row, summaryFilter)) return false;
       return true;
     });
 
@@ -109,7 +95,7 @@ export function OrganizerOperationBoard({
       ...row,
       orderLabel: formatOperationOrderLabel(row, courtTab),
     }));
-  }, [baseRows, courtTab, courts, activeFilter]);
+  }, [baseRows, courtTab, courts, summaryFilter]);
 
   const spotlight = useMemo(
     () => pickOperationSpotlightMatches(filteredRows),
@@ -137,7 +123,6 @@ export function OrganizerOperationBoard({
 
   function handleSummaryFilterChange(filter: OperationBoardFilter) {
     setSummaryFilter(filter);
-    setStatusFilter("all");
     requestAnimationFrame(() => {
       listRef.current?.scrollIntoView({ behavior: "smooth", block: "start" });
     });
@@ -176,41 +161,6 @@ export function OrganizerOperationBoard({
           className={organizerOperationListPaneClass}
           data-testid="operation-list-pane"
         >
-          <div className={organizerOperationListHeaderClass}>
-            <div className="min-w-0">
-              <h2 className="text-sm font-semibold text-matchon-text-primary">
-                경기 목록
-              </h2>
-              <p className="text-matchon-text-secondary text-xs">
-                {filteredRows.length}건 표시
-              </p>
-            </div>
-            <label className="flex shrink-0 items-center gap-2 text-xs">
-              <span className="text-matchon-text-secondary sr-only sm:not-sr-only">
-                상태
-              </span>
-              <select
-                aria-label="상태 필터"
-                value={statusFilter}
-                onChange={(e) => {
-                  const value = e.target.value as OperationBoardFilter;
-                  setStatusFilter(value);
-                  if (value !== "all") setSummaryFilter("all");
-                }}
-                className={cn(
-                  organizerOperationFieldSelectClass,
-                  "h-9 min-w-[7.5rem] w-auto",
-                )}
-              >
-                {FILTER_OPTIONS.map((option) => (
-                  <option key={option.value} value={option.value}>
-                    {option.label}
-                  </option>
-                ))}
-              </select>
-            </label>
-          </div>
-
           <div className={cn(organizerOperationListScrollClass, "hidden md:flex")}>
             <OperationMatchListPane
               rows={filteredRows}

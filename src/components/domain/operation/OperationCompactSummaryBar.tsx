@@ -18,6 +18,8 @@ const SUMMARY_ITEMS: {
   { filter: "preparing", label: "준비", key: "preparing" },
   { filter: "in_progress", label: "진행", key: "inProgress" },
   { filter: "completed", label: "종료", key: "completed" },
+  { filter: "result_pending", label: "결과 미입력", key: "resultPending" },
+  { filter: "result_done", label: "결과 입력", key: "resultDone" },
 ];
 
 export function OperationCompactSummaryBar({

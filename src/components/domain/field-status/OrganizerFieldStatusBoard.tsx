@@ -16,24 +16,18 @@ import {
   matchesFieldStatusSummaryFilter,
   type FieldStatusSummaryFilter,
 } from "@/components/domain/field-status/field-status-filters";
-import { MatchonTabs } from "@/components/shared/MatchonTabs";
+import {
+  CompactFilterResetButton,
+  compactApplicantFilterBarClass,
+  compactApplicantFilterRowClass,
+  compactApplicantSearchClass,
+  compactApplicantSelectWidths,
+} from "@/components/domain/shared/CompactApplicantFilterBar";
 import {
   ORGANIZER_FIELD_INPUT_CLASS,
   ORGANIZER_FIELD_SELECT_CLASS,
-  ORGANIZER_FILTER_BAR_CLASS,
 } from "@/lib/organizer-dashboard-layout";
 import { cn } from "@/lib/utils";
-
-const QUICK_FILTER_TABS: { id: FieldStatusSummaryFilter; label: string }[] = [
-  { id: "all", label: "전체" },
-  { id: "pending", label: "미확인" },
-  { id: "checked_in", label: "현장확인" },
-  { id: "no_show_group", label: "미출석" },
-  { id: "weigh_in_pass", label: "계체통과" },
-  { id: "weigh_in_fail", label: "계체실패" },
-  { id: "manual_pass", label: "수동승인" },
-  { id: "eligible", label: "출전확정" },
-];
 
 export function OrganizerFieldStatusBoard({
   rows,
@@ -121,12 +115,26 @@ export function OrganizerFieldStatusBoard({
     else setSummaryFilter("all");
   }
 
+  function resetFilters() {
+    setSearchQuery("");
+    setGymFilter("all");
+    setDivisionFilter("all");
+    setCheckInFilter("all");
+    setSummaryFilter("all");
+  }
+
   const emptyMessage =
     rows.length === 0
       ? "표시할 승인 신청자가 없습니다."
-      : searchQuery.trim() || gymFilter !== "all" || divisionFilter !== "all" || checkInFilter !== "all" || summaryFilter !== "all"
+      : searchQuery.trim() ||
+          gymFilter !== "all" ||
+          divisionFilter !== "all" ||
+          checkInFilter !== "all" ||
+          summaryFilter !== "all"
         ? "검색 결과가 없습니다."
         : "표시할 승인 신청자가 없습니다.";
+
+  let sequenceOffset = 0;
 
   return (
     <div className="flex flex-col gap-6">
@@ -136,66 +144,50 @@ export function OrganizerFieldStatusBoard({
         onFilterChange={handleSummaryFilterChange}
       />
 
-      <div className="space-y-3">
-        <p className="text-muted-foreground text-xs font-medium">빠른 상태 필터</p>
-        <MatchonTabs
-          items={QUICK_FILTER_TABS}
-          activeId={summaryFilter}
-          onChange={handleSummaryFilterChange}
-        />
-      </div>
-
-      <div className={ORGANIZER_FILTER_BAR_CLASS}>
-        <label className="flex w-full flex-col gap-1 text-xs">
-          <span className="text-matchon-text-secondary font-medium">선수 검색</span>
+      <div className={compactApplicantFilterBarClass}>
+        <div className={compactApplicantFilterRowClass}>
           <input
             type="search"
             value={searchQuery}
             onChange={(e) => setSearchQuery(e.target.value)}
-            placeholder="선수명, 체육관, 경기구분, 체급으로 검색"
-            className={cn(ORGANIZER_FIELD_INPUT_CLASS, "md:max-w-md")}
+            placeholder="선수명·체육관·경기구분·체급 검색"
+            aria-label="선수 검색"
+            className={cn(ORGANIZER_FIELD_INPUT_CLASS, compactApplicantSearchClass)}
           />
-        </label>
-
-        <div className="flex flex-wrap items-end gap-3">
-          <label className="flex flex-col gap-1 text-xs">
-            <span className="text-matchon-text-secondary">체육관</span>
+          <div className="grid grid-cols-2 gap-2.5 md:contents">
             <select
-              className={selectClass}
+              className={cn(selectClass, compactApplicantSelectWidths.gym)}
               value={gymFilter}
               onChange={(e) => setGymFilter(e.target.value)}
+              aria-label="체육관 필터"
             >
-              <option value="all">전체</option>
+              <option value="all">체육관 전체</option>
               {gymOptions.map((g) => (
                 <option key={g.id} value={g.id}>
                   {g.name}
                 </option>
               ))}
             </select>
-          </label>
-          <label className="flex flex-col gap-1 text-xs">
-            <span className="text-matchon-text-secondary">경기구분</span>
             <select
-              className={selectClass}
+              className={cn(selectClass, compactApplicantSelectWidths.division)}
               value={divisionFilter}
               onChange={(e) => setDivisionFilter(e.target.value)}
+              aria-label="경기구분 필터"
             >
-              <option value="all">전체</option>
+              <option value="all">경기구분 전체</option>
               {divisionOptions.map((d) => (
                 <option key={d.id} value={d.id}>
                   {d.label}
                 </option>
               ))}
             </select>
-          </label>
-          <label className="flex flex-col gap-1 text-xs">
-            <span className="text-matchon-text-secondary">현장 확인</span>
             <select
-              className={cn(selectClass, "min-w-[8rem]")}
+              className={cn(selectClass, compactApplicantSelectWidths.checkIn)}
               value={checkInFilter}
               onChange={(e) => handleCheckInDropdown(e.target.value)}
+              aria-label="현장 확인 필터"
             >
-              <option value="all">전체</option>
+              <option value="all">현장확인 전체</option>
               <option value="pending">미확인</option>
               <option value="checked_in">현장 확인</option>
               <option value="no_show_group">미출석·철회·실격</option>
@@ -203,21 +195,30 @@ export function OrganizerFieldStatusBoard({
               <option value="withdrawn">철회</option>
               <option value="disqualified">실격</option>
             </select>
-          </label>
+            <CompactFilterResetButton
+              onClick={resetFilters}
+              className="col-span-2 w-full md:col-span-1 md:w-auto"
+            />
+          </div>
         </div>
       </div>
 
       <div ref={listRef} className="min-w-0 flex flex-col gap-6">
         {showSportSections
-          ? sportGroups.map((group) => (
-              <section key={group.sportTitle} className="flex flex-col gap-2">
-                <DivisionSportSectionHeader title={group.sportTitle} />
-                <OrganizerFieldStatusTable
-                  rows={group.items}
-                  emptyMessage={emptyMessage}
-                />
-              </section>
-            ))
+          ? sportGroups.map((group) => {
+              const start = sequenceOffset;
+              sequenceOffset += group.items.length;
+              return (
+                <section key={group.sportTitle} className="flex flex-col gap-2">
+                  <DivisionSportSectionHeader title={group.sportTitle} />
+                  <OrganizerFieldStatusTable
+                    rows={group.items}
+                    sequenceStart={start}
+                    emptyMessage={emptyMessage}
+                  />
+                </section>
+              );
+            })
           : (
               <>
                 {singleSportTitle ? (
@@ -228,6 +229,7 @@ export function OrganizerFieldStatusBoard({
                 ) : null}
                 <OrganizerFieldStatusTable
                   rows={filtered}
+                  sequenceStart={0}
                   emptyMessage={emptyMessage}
                 />
               </>

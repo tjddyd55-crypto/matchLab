@@ -16,6 +16,9 @@ import {
 import { OrganizerApplicationRowActions } from "@/components/domain/applications/OrganizerApplicationRowActions";
 import { OrganizerManualEntryHint } from "@/components/domain/applications/OrganizerManualEntryHint";
 import { OrganizerApplicationsEmptyState } from "@/components/domain/applications/OrganizerApplicationsEmptyState";
+import {
+  ListSequenceCell,
+} from "@/components/domain/shared/CompactApplicantFilterBar";
 import { DivisionCompactDisplay } from "@/components/domain/shared/DivisionCompactDisplay";
 import { DivisionGenderBadge } from "@/components/domain/shared/DivisionGenderBadge";
 import type { EventDivisionDisplayInput } from "@/lib/event-division-fields";
@@ -26,6 +29,7 @@ import {
   listTableHeaderCellStartClass,
   listTableHeaderRowClass,
 } from "@/lib/ui/list-table-styles";
+import { displaySequenceNumber } from "@/lib/ui/list-sequence";
 import { matchonCompactTableWrapClass } from "@/lib/ui/matchon-shell-ui";
 import { Checkbox } from "@/components/ui/checkbox";
 import {
@@ -68,12 +72,14 @@ export function OrganizerApplicationsTable({
   rows,
   selectedIds,
   onToggleSelect,
+  sequenceStart = 0,
   emptyMessage = "아직 신청자가 없습니다.",
 }: {
   eventId: string;
   rows: OrganizerApplicationRowVM[];
   selectedIds: Set<string>;
   onToggleSelect: (applicationId: string, checked: boolean) => void;
+  sequenceStart?: number;
   emptyMessage?: string;
 }) {
   if (rows.length === 0) {
@@ -90,13 +96,16 @@ export function OrganizerApplicationsTable({
         <TableHeader className={listTableHeaderRowClass}>
           <TableRow className="border-b hover:bg-transparent">
             <TableHead className={cn(listTableHeaderCellCenterClass, "w-[3%]")} />
+            <TableHead className={cn(listTableHeaderCellCenterClass, "w-[5%]")}>
+              순번
+            </TableHead>
             <TableHead className={cn(listTableHeaderCellStartClass, "w-[10%]")}>
               체육관
             </TableHead>
-            <TableHead className={cn(listTableHeaderCellStartClass, "w-[13%]")}>
+            <TableHead className={cn(listTableHeaderCellStartClass, "w-[12%]")}>
               선수명
             </TableHead>
-            <TableHead className={cn(listTableHeaderCellStartClass, "w-[20%]")}>
+            <TableHead className={cn(listTableHeaderCellStartClass, "w-[18%]")}>
               {MATCH_CATEGORY_WITH_WEIGHT_LABEL}
             </TableHead>
             <TableHead className={cn(listTableHeaderCellCenterClass, "w-[10%]")}>
@@ -105,15 +114,15 @@ export function OrganizerApplicationsTable({
             <TableHead className={cn(listTableHeaderCellCenterClass, "w-[10%]")}>
               상태
             </TableHead>
-            <TableHead className={cn(listTableHeaderCellCenterClass, "w-[24%]")}>
+            <TableHead className={cn(listTableHeaderCellCenterClass, "w-[22%]")}>
               상태입력/처리
             </TableHead>
           </TableRow>
         </TableHeader>
         <TableBody>
-          {rows.map((row) => (
+          {rows.map((row, index) => (
             <TableRow key={row.applicationId} className="border-b border-matchon-border/60 hover:bg-matchon-surface/50">
-              <TableCell className="align-top">
+              <TableCell className="align-middle">
                 <Checkbox
                   checked={selectedIds.has(row.applicationId)}
                   onCheckedChange={(v) =>
@@ -122,10 +131,15 @@ export function OrganizerApplicationsTable({
                   aria-label={`${row.fighterName} 선택`}
                 />
               </TableCell>
-              <TableCell className="align-top">
+              <TableCell className="align-middle text-center">
+                <ListSequenceCell
+                  sequence={displaySequenceNumber(index, sequenceStart)}
+                />
+              </TableCell>
+              <TableCell className="align-middle">
                 <div className="truncate text-sm">{row.gymName}</div>
               </TableCell>
-              <TableCell className="align-top">
+              <TableCell className="align-middle">
                 <div className="flex min-w-0 items-center gap-1.5">
                   <span className="truncate text-sm font-medium">
                     {row.fighterName}

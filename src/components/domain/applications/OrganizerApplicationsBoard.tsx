@@ -12,8 +12,10 @@ import {
 import { OrganizerApplicationsTable } from "@/components/domain/applications/OrganizerApplicationsTable";
 import { OrganizerApplicationsSummaryCards } from "@/components/domain/applications/OrganizerApplicationsSummaryCards";
 import { DivisionSportSectionHeader } from "@/components/domain/shared/DivisionSportSectionHeader";
-import { resolveOrganizerApplicationDisplayStatus } from "@/lib/application-display-status";
-import { isPaidForOrganizerDisplay } from "@/lib/application-display-status";
+import {
+  isPaidForOrganizerDisplay,
+  resolveOrganizerApplicationDisplayStatus,
+} from "@/lib/application-display-status";
 import {
   groupItemsByDivisionSport,
   resolveSingleSportSectionTitle,
@@ -21,10 +23,8 @@ import {
 import { OrganizerApplicationsGymSummaryTable } from "@/components/domain/applications/OrganizerApplicationsGymSummaryTable";
 import { OrganizerManualApplicationPanel } from "@/components/domain/applications/OrganizerManualApplicationPanel";
 import type { OrganizerManualRegistrationOptionsDTO } from "@/lib/services/application.service";
-import { MatchonTabs } from "@/components/shared/MatchonTabs";
 import {
   inferSummaryFilter,
-  QUICK_APPLICATION_FILTER_TABS,
   summaryFilterToFilters,
   type OrganizerApplicationSummaryFilter,
 } from "@/components/domain/applications/organizer-application-filters";
@@ -81,10 +81,16 @@ export function OrganizerApplicationsBoard({
       if (filters.displayStatus !== "all" && display !== filters.displayStatus) {
         return false;
       }
-      if (filters.paymentDisplay === "paid" && !isPaidForOrganizerDisplay(r.paymentStatus)) {
+      if (
+        filters.paymentDisplay === "paid" &&
+        !isPaidForOrganizerDisplay(r.paymentStatus)
+      ) {
         return false;
       }
-      if (filters.paymentDisplay === "unpaid" && isPaidForOrganizerDisplay(r.paymentStatus)) {
+      if (
+        filters.paymentDisplay === "unpaid" &&
+        isPaidForOrganizerDisplay(r.paymentStatus)
+      ) {
         return false;
       }
       if (filters.divisionId !== "all" && r.divisionId !== filters.divisionId) {
@@ -97,8 +103,11 @@ export function OrganizerApplicationsBoard({
         return false;
       }
       const nameQuery = filters.fighterName.trim().toLowerCase();
-      if (nameQuery && !r.fighterName.toLowerCase().includes(nameQuery)) {
-        return false;
+      if (nameQuery) {
+        const haystack = [r.fighterName, r.gymName, r.divisionLabel]
+          .join(" ")
+          .toLowerCase();
+        if (!haystack.includes(nameQuery)) return false;
       }
       return true;
     });
@@ -120,7 +129,10 @@ export function OrganizerApplicationsBoard({
 
   const groupedRows = useMemo(() => {
     if (!groupByGym) return null;
-    const map = new Map<string, { gymName: string; rows: OrganizerApplicationRowVM[] }>();
+    const map = new Map<
+      string,
+      { gymName: string; rows: OrganizerApplicationRowVM[] }
+    >();
     for (const r of filtered) {
       const key = r.gymId || "_unknown";
       const entry = map.get(key) ?? { gymName: r.gymName, rows: [] };
@@ -164,7 +176,9 @@ export function OrganizerApplicationsBoard({
   }
 
   function selectAllInGym(gymId: string) {
-    const ids = filtered.filter((r) => r.gymId === gymId).map((r) => r.applicationId);
+    const ids = filtered
+      .filter((r) => r.gymId === gymId)
+      .map((r) => r.applicationId);
     setSelectedIds(new Set(ids));
   }
 
@@ -187,15 +201,32 @@ export function OrganizerApplicationsBoard({
     emptyMessage,
   };
 
-  function renderApplicationViews(applicationRows: OrganizerApplicationRowVM[]) {
+  function renderApplicationViews(
+    applicationRows: OrganizerApplicationRowVM[],
+    sequenceStart: number,
+  ) {
     return (
       <>
-        <OrganizerApplicationsTable rows={applicationRows} {...listProps} />
-        <OrganizerApplicationsList rows={applicationRows} {...listProps} />
-        <OrganizerApplicationsCards rows={applicationRows} {...listProps} />
+        <OrganizerApplicationsTable
+          rows={applicationRows}
+          sequenceStart={sequenceStart}
+          {...listProps}
+        />
+        <OrganizerApplicationsList
+          rows={applicationRows}
+          sequenceStart={sequenceStart}
+          {...listProps}
+        />
+        <OrganizerApplicationsCards
+          rows={applicationRows}
+          sequenceStart={sequenceStart}
+          {...listProps}
+        />
       </>
     );
   }
+
+  let sequenceOffset = 0;
 
   return (
     <div className="flex min-w-0 flex-col gap-6 overflow-x-hidden">
@@ -209,15 +240,6 @@ export function OrganizerApplicationsBoard({
         activeFilter={summaryFilter}
         onFilterChange={handleSummaryFilterChange}
       />
-
-      <div className="space-y-3">
-        <p className="text-muted-foreground text-xs font-medium">빠른 상태 필터</p>
-        <MatchonTabs
-          items={QUICK_APPLICATION_FILTER_TABS}
-          activeId={summaryFilter}
-          onChange={handleSummaryFilterChange}
-        />
-      </div>
 
       <OrganizerApplicationsGymSummaryTable
         rows={rows}
@@ -270,37 +292,45 @@ export function OrganizerApplicationsBoard({
       <div ref={listRef} className="min-w-0 flex flex-col gap-6">
         {groupByGym && groupedRows
           ? groupedRows.length > 0
-            ? groupedRows.map((group) => (
-                <section key={group.gymName} className="flex flex-col gap-3">
-                  <div className="flex flex-wrap items-center justify-between gap-2">
-                    <h3 className="text-sm font-semibold">{group.gymName}</h3>
-                    <Button
-                      type="button"
-                      size="sm"
-                      variant="outline"
-                      onClick={() => {
-                        const gymId = group.rows[0]?.gymId;
-                        if (gymId) selectAllInGym(gymId);
-                      }}
-                    >
-                      이 체육관 전체 선택
-                    </Button>
-                  </div>
-                  {renderApplicationViews(group.rows)}
-                </section>
-              ))
-            : renderApplicationViews(filtered)
+            ? groupedRows.map((group) => {
+                const start = sequenceOffset;
+                sequenceOffset += group.rows.length;
+                return (
+                  <section key={group.gymName} className="flex flex-col gap-3">
+                    <div className="flex flex-wrap items-center justify-between gap-2">
+                      <h3 className="text-sm font-semibold">{group.gymName}</h3>
+                      <Button
+                        type="button"
+                        size="sm"
+                        variant="outline"
+                        onClick={() => {
+                          const gymId = group.rows[0]?.gymId;
+                          if (gymId) selectAllInGym(gymId);
+                        }}
+                      >
+                        이 체육관 전체 선택
+                      </Button>
+                    </div>
+                    {renderApplicationViews(group.rows, start)}
+                  </section>
+                );
+              })
+            : renderApplicationViews(filtered, 0)
           : null}
 
         {!groupByGym && sportGroups
           ? sportGroups.length > 0
-            ? sportGroups.map((group) => (
-                <section key={group.sportTitle} className="flex flex-col gap-3">
-                  <DivisionSportSectionHeader title={group.sportTitle} />
-                  {renderApplicationViews(group.items)}
-                </section>
-              ))
-            : renderApplicationViews(filtered)
+            ? sportGroups.map((group) => {
+                const start = sequenceOffset;
+                sequenceOffset += group.items.length;
+                return (
+                  <section key={group.sportTitle} className="flex flex-col gap-3">
+                    <DivisionSportSectionHeader title={group.sportTitle} />
+                    {renderApplicationViews(group.items, start)}
+                  </section>
+                );
+              })
+            : renderApplicationViews(filtered, 0)
           : null}
       </div>
     </div>
