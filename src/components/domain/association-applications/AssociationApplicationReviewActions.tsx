@@ -1,15 +1,8 @@
 "use client";
 
-import { useActionState, useState } from "react";
-import {
-  approveAssociationApplicationAction,
-  rejectAssociationApplicationAction,
-} from "@/features/association-applications/actions";
+import { useState, useTransition } from "react";
+import { rejectAssociationApplicationAction } from "@/features/association-applications/actions";
 import { Button } from "@/components/ui/button";
-
-type ApproveState = Awaited<
-  ReturnType<typeof approveAssociationApplicationAction>
-> | null;
 
 export function AssociationApplicationReviewActions({
   applicationId,
@@ -18,14 +11,10 @@ export function AssociationApplicationReviewActions({
   applicationId: string;
   canReview: boolean;
 }) {
-  const [state, formAction, pending] = useActionState(
-    approveAssociationApplicationAction,
-    null as ApproveState,
-  );
+  const [pending, startTransition] = useTransition();
+  const [inviteUrl, setInviteUrl] = useState<string | null>(null);
+  const [error, setError] = useState<string | null>(null);
   const [copied, setCopied] = useState(false);
-
-  const inviteUrl = state?.ok ? state.data.inviteUrl : null;
-  const error = state && !state.ok ? state.error.message : null;
 
   if (!canReview && !inviteUrl) return null;
 
@@ -33,12 +22,34 @@ export function AssociationApplicationReviewActions({
     <div className="space-y-3">
       {canReview && !inviteUrl ? (
         <div className="flex flex-wrap gap-2">
-          <form action={formAction}>
-            <input type="hidden" name="applicationId" value={applicationId} />
-            <Button type="submit" disabled={pending}>
-              {pending ? "승인 중…" : "승인 및 계정 초대 발급"}
-            </Button>
-          </form>
+          <Button
+            type="button"
+            disabled={pending}
+            onClick={() => {
+              startTransition(async () => {
+                setError(null);
+                const res = await fetch(
+                  `/api/admin/association-applications/${applicationId}/approve`,
+                  {
+                    method: "POST",
+                    headers: { "Content-Type": "application/json" },
+                    body: JSON.stringify({}),
+                  },
+                );
+                const json = await res.json().catch(() => null);
+                if (!res.ok || !json?.data?.inviteUrl) {
+                  setError(
+                    json?.error?.message ||
+                      "승인 처리에 실패했습니다. 다시 시도해 주세요.",
+                  );
+                  return;
+                }
+                setInviteUrl(json.data.inviteUrl);
+              });
+            }}
+          >
+            {pending ? "승인 중…" : "승인 및 계정 초대 발급"}
+          </Button>
           <form action={rejectAssociationApplicationAction}>
             <input type="hidden" name="applicationId" value={applicationId} />
             <Button type="submit" variant="outline" disabled={pending}>

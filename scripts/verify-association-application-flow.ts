@@ -37,7 +37,10 @@ function main() {
   );
   assert.ok(
     existsSync(
-      join(root, "src/app/api/uploads/association-application/route.ts"),
+      join(
+        root,
+        "src/app/api/admin/association-applications/[applicationId]/approve/route.ts",
+      ),
     ),
   );
   assert.ok(
