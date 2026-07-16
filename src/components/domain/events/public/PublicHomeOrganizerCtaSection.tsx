@@ -20,13 +20,13 @@ export function PublicHomeOrganizerCtaSection() {
           모든 기능을 사용할 수 있습니다.
         </p>
         <Link
-          href="/login"
+          href="/join"
           className={cn(
             buttonVariants({ size: "lg" }),
             "mt-7 inline-flex h-12 rounded-xl bg-white px-6 text-[15px] font-extrabold text-matchon-primary hover:bg-white/95",
           )}
         >
-          주최자로 시작하기
+          회원가입으로 시작하기
         </Link>
       </div>
     </section>

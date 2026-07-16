@@ -1,17 +1,15 @@
 import type { ReactNode } from "react";
-import { MatchonLogo } from "@/components/common/MatchonLogo";
 
+/**
+ * Judge route group — 배경만 제공.
+ * 로그인 화면은 AuthLoginShell(중앙 로고), 세션 화면은 (workspace) layout header 사용.
+ */
 export default function JudgeGroupLayout({
   children,
 }: {
   children: ReactNode;
 }) {
   return (
-    <div className="min-h-screen bg-matchon-surface">
-      <header className="flex items-center justify-center border-b border-matchon-border bg-white px-4 py-3 md:justify-start">
-        <MatchonLogo href="/" size="sm" variant="light" />
-      </header>
-      {children}
-    </div>
+    <div className="min-h-screen bg-matchon-surface">{children}</div>
   );
 }

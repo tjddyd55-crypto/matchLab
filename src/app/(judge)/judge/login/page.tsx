@@ -1,16 +1,11 @@
+import { AuthLoginNoticeList } from "@/components/domain/auth/AuthLoginNoticeList";
+import { AuthLoginShell } from "@/components/domain/auth/AuthLoginShell";
 import { JudgeLoginForm } from "@/components/domain/judges/JudgeLoginForm";
 import { JudgeQrEntryError } from "@/components/domain/judges/JudgeQrEntryError";
-import { MatchonLogo } from "@/components/common/MatchonLogo";
 import { JUDGE_COUNT_POLICY_LINES } from "@/lib/judge-round-count";
 import { judgeDefaultRoute } from "@/lib/judge-identity";
 import { judgeCredentialService } from "@/lib/services/judge-credential.service";
 import { validateJudgeLoginEntry } from "@/lib/services/judge-qr-entry.service";
-import {
-  matchonPageDescClass,
-  matchonPageEyebrowClass,
-  matchonPageHeaderStackClass,
-  matchonPageTitleClass,
-} from "@/lib/ui/judge-ui";
 import { redirect } from "next/navigation";
 
 export const dynamic = "force-dynamic";
@@ -58,31 +53,23 @@ export default async function JudgeLoginPage({
   }
 
   return (
-    <div className="mx-auto flex w-full max-w-md flex-col gap-6 px-4 py-8">
-      <MatchonLogo size="md" variant="light" className="justify-center" />
-      <header className={matchonPageHeaderStackClass}>
-        <p className={matchonPageEyebrowClass}>
-          심판 전용 로그인
-        </p>
-        <h1 className={matchonPageTitleClass}>
-          심판 로그인
-        </h1>
-        {eventTitle ? (
-          <p className="text-sm font-medium text-matchon-text-primary">{eventTitle}</p>
-        ) : null}
-        <p className={matchonPageDescClass}>
-          부여받은 아이디와 비밀번호를 입력해 주세요.
-        </p>
-      </header>
+    <AuthLoginShell
+      eyebrow="심판 전용 로그인"
+      title="심판 로그인"
+      subtitle={
+        eventTitle ? (
+          <p className="text-[0.9375rem] font-medium text-matchon-text-primary">
+            {eventTitle}
+          </p>
+        ) : null
+      }
+      description="부여받은 아이디와 비밀번호를 입력해 주세요."
+      footer={<AuthLoginNoticeList items={JUDGE_COUNT_POLICY_LINES} />}
+    >
       <JudgeLoginForm
         defaultLoginId={defaultLoginId}
         callbackUrl={callbackUrl}
       />
-      <ul className="text-muted-foreground list-disc space-y-1 pl-5 text-xs leading-relaxed">
-        {JUDGE_COUNT_POLICY_LINES.map((line) => (
-          <li key={line}>{line}</li>
-        ))}
-      </ul>
-    </div>
+    </AuthLoginShell>
   );
 }

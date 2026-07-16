@@ -2,7 +2,6 @@ import { PublicHomeEventsSection } from "@/components/domain/events/public/Publi
 import { PublicHomeHeroDesktop } from "@/components/domain/events/public/PublicHomeHeroDesktop";
 import { PublicHomeHeroMobile } from "@/components/domain/events/public/PublicHomeHeroMobile";
 import { PublicHomeHowItWorksSection } from "@/components/domain/events/public/PublicHomeHowItWorksSection";
-import { PublicHomeJudgeSection } from "@/components/domain/events/public/PublicHomeJudgeSection";
 import { PublicHomeOrganizerCtaSection } from "@/components/domain/events/public/PublicHomeOrganizerCtaSection";
 import { PublicHomeStatsSection } from "@/components/domain/events/public/PublicHomeStatsSection";
 import { eventService } from "@/lib/services/event.service";
@@ -29,7 +28,6 @@ export default async function PublicHomePage() {
       <PublicHomeEventsSection events={featured} />
       <PublicHomeHowItWorksSection />
       <PublicHomeOrganizerCtaSection />
-      <PublicHomeJudgeSection />
     </div>
   );
 }

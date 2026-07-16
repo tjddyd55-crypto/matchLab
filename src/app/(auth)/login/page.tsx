@@ -1,11 +1,11 @@
 import { redirect } from "next/navigation";
+import { AuthLoginShell } from "@/components/domain/auth/AuthLoginShell";
 import { LoginForm } from "@/components/domain/auth/LoginForm";
 import { BRAND_NAME } from "@/lib/brand";
 import {
   dashboardPathForRole,
   getCurrentActor,
 } from "@/lib/auth/actor";
-import { authPageDescClass, authPageTitleClass } from "@/lib/ui/auth-ui";
 import { normalizeLoginId } from "@/lib/validators/login-id.validator";
 
 export const dynamic = "force-dynamic";
@@ -36,17 +36,14 @@ export default async function LoginPage({
       : undefined;
 
   return (
-    <div className="space-y-6">
-      <div className="space-y-1 text-center">
-        <h1 className={authPageTitleClass}>{BRAND_NAME} 로그인</h1>
-        <p className={authPageDescClass}>
-          발급받은 아이디와 비밀번호로 로그인합니다.
-        </p>
-      </div>
+    <AuthLoginShell
+      title={`${BRAND_NAME} 로그인`}
+      description="발급받은 아이디와 비밀번호로 로그인합니다."
+    >
       <LoginForm
         defaultLoginId={defaultLoginId}
         activatedBanner={activated}
       />
-    </div>
+    </AuthLoginShell>
   );
 }

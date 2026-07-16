@@ -4,6 +4,10 @@ import { PUBLIC_CONTENT_CONTAINER_CLASS } from "@/components/domain/events/publi
 import { buttonVariants } from "@/components/ui/button";
 import { cn } from "@/lib/utils";
 
+/**
+ * 공개 헤더 SSOT — 로그인 + 회원가입.
+ * 운영용 judge 경로는 public 헤더에 노출하지 않는다.
+ */
 export function PublicNav() {
   return (
     <header className="sticky top-0 z-50 border-b border-matchon-border bg-white/95 backdrop-blur supports-[backdrop-filter]:bg-white/90">
@@ -26,22 +30,22 @@ export function PublicNav() {
 
         <div className="flex items-center gap-2">
           <Link
-            href="/judge/login"
-            className={cn(
-              buttonVariants({ variant: "outline", size: "sm" }),
-              "hidden border-matchon-border bg-matchon-sidebar text-xs text-white/85 hover:bg-matchon-sidebar hover:text-white sm:inline-flex",
-            )}
-          >
-            심판 입장
-          </Link>
-          <Link
             href="/login"
             className={cn(
               buttonVariants({ variant: "outline", size: "sm" }),
-              "border-matchon-primary text-xs font-bold text-matchon-primary",
+              "border-matchon-border text-xs font-bold text-matchon-text-primary",
             )}
           >
             로그인
+          </Link>
+          <Link
+            href="/join"
+            className={cn(
+              buttonVariants({ variant: "default", size: "sm" }),
+              "text-xs font-bold",
+            )}
+          >
+            회원가입
           </Link>
         </div>
       </div>

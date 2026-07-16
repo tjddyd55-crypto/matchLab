@@ -4,7 +4,10 @@ import {
 } from "@/lib/ui/matchon-layout";
 import { matchonFieldInputClass } from "@/lib/ui/matchon-shell-ui";
 
-/** 로그인·회원가입·공개 신청/서명/동의 화면 공통 SSOT */
+/**
+ * 공개 신청/서명/동의·레거시 auth 카드 SSOT.
+ * `/login`·`/judge/login` 시각은 `auth-login-ui.ts` + AuthLoginShell 을 쓴다.
+ */
 
 export const authPageShellClass =
   "flex min-h-screen flex-col items-center justify-center bg-matchon-surface p-6";
