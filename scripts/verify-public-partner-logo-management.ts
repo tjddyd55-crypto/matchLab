@@ -16,7 +16,8 @@ function main() {
   assert.ok(schema.includes("model PublicPartner"));
   assert.ok(schema.includes("enum PublicPartnerType"));
   assert.ok(schema.includes("publicLogoVisible"));
-  assert.equal(schema.includes("model AssociationApplication"), false);
+  assert.ok(schema.includes("logoPath"));
+  assert.ok(schema.includes("websiteUrl"));
 
   const svc = read("src/lib/services/public-partner.service.ts");
   assert.ok(svc.includes("listHomePartners"));
@@ -36,7 +37,6 @@ function main() {
 
   const nav = read("src/lib/navigation/admin-navigation.ts");
   assert.ok(nav.includes("/admin/public-partners"));
-  assert.equal(nav.includes("/admin/association-applications"), false);
 
   const home = read("src/app/(public)/page.tsx");
   assert.ok(home.includes("PublicHomePartnersSection"));

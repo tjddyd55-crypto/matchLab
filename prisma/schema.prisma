@@ -280,6 +280,7 @@ enum AuditAction {
   gym_owner_invited
   gym_owner_invite_cancelled
   public_partner_changed
+  association_application_reviewed
 }
 
 enum BracketChangeType {
@@ -349,6 +350,7 @@ model User {
   associationJoinLinkAttachmentsUploaded AssociationJoinLinkAttachment[]         @relation("JoinLinkAttachmentUploader")
   associationMemberGymApplicationsCreated AssociationMemberGymApplication[]      @relation("MemberGymApplicationCreator")
   associationMemberGymOwnerInvitesCreated AssociationMemberGym[]                  @relation("MemberGymOwnerInviteCreator")
+  associationApplicationsReviewed         AssociationApplication[]               @relation("AssociationApplicationReviewer")
 }
 
 model Organizer {
@@ -378,6 +380,7 @@ model Organizer {
   associationMemberGymApplications AssociationMemberGymApplication[]
   associationMemberGyms            AssociationMemberGym[]
   associationMemberGymSettings     AssociationMemberGymSettings?
+  associationApplicationsCreated   AssociationApplication[] @relation("AssociationApplicationCreatedOrganizer")
 }
 
 model Gym {
@@ -1800,5 +1803,76 @@ model PublicPartner {
   @@index([isActive, sortOrder])
   @@index([deletedAt])
   @@index([type])
+}
+
+/// 플랫폼 협회 가입 신청 — 승인 후 초대 토큰으로 계정 활성화
+enum AssociationApplicationStatus {
+  pending
+  under_review
+  approved
+  rejected
+  withdrawn
+}
+
+enum AssociationApplicationAttachmentType {
+  logo
+  business_registration
+  establishment_proof
+  other
+}
+
+model AssociationApplication {
+  id                   String                        @id @default(cuid())
+  associationName      String
+  associationNameEn    String?
+  representativeName   String
+  contactName          String
+  contactPhone         String
+  contactEmail         String
+  address              String?
+  addressDetail        String?
+  website              String?
+  description          String?
+  status               AssociationApplicationStatus  @default(pending)
+  submittedAt          DateTime                      @default(now())
+  reviewedAt           DateTime?
+  reviewedByUserId     String?
+  reviewMemo           String?
+  createdOrganizerId   String?
+  /// 승인 후 관리자 계정 초대 (원문 금지, hash만)
+  ownerInviteTokenHash String?                       @unique
+  ownerInviteExpiresAt DateTime?
+  ownerInviteCreatedAt DateTime?
+  ownerInviteCreatedByUserId String?
+  termsAcceptedAt      DateTime?
+  privacyAcceptedAt    DateTime?
+  deletedAt            DateTime?
+  createdAt            DateTime                      @default(now())
+  updatedAt            DateTime                      @updatedAt
+
+  reviewedByUser   User?      @relation("AssociationApplicationReviewer", fields: [reviewedByUserId], references: [id], onDelete: SetNull)
+  createdOrganizer Organizer? @relation("AssociationApplicationCreatedOrganizer", fields: [createdOrganizerId], references: [id], onDelete: SetNull)
+  attachments      AssociationApplicationAttachment[]
+
+  @@index([status])
+  @@index([submittedAt])
+  @@index([deletedAt])
+}
+
+model AssociationApplicationAttachment {
+  id               String                                @id @default(cuid())
+  applicationId    String
+  attachmentType   AssociationApplicationAttachmentType
+  storageBucket    String
+  storagePath      String
+  originalFileName String
+  mimeType         String
+  sizeBytes        Int
+  uploadedAt       DateTime                              @default(now())
+  deletedAt        DateTime?
+
+  application AssociationApplication @relation(fields: [applicationId], references: [id], onDelete: Cascade)
+
+  @@index([applicationId])
 }
 

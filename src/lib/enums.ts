@@ -45,6 +45,8 @@ export {
   OrganizerType,
   PaymentStatus,
   PublicPartnerType,
+  AssociationApplicationStatus,
+  AssociationApplicationAttachmentType,
   StreamType,
   UserRole,
 } from "@/generated/prisma";

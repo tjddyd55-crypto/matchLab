@@ -9,10 +9,23 @@ import { cn } from "@/lib/utils";
 
 export const dynamic = "force-dynamic";
 
-/**
- * 회원가입 허브.
- * 협회 가입 카드는 계정 활성화 완성 전까지 노출하지 않는다.
- */
+const cards = [
+  {
+    title: "협회 가입",
+    description:
+      "대회를 주최하고 회원사를 관리하는 협회입니다. 관리자 승인 후 계정이 발급됩니다.",
+    href: "/join/association",
+    cta: "가입 신청",
+  },
+  {
+    title: "체육관 가입 (회원사)",
+    description:
+      "소속 선수를 등록하고 대회에 참가하는 체육관입니다. 가입할 협회를 선택한 뒤 기존 회원사 신청서를 작성합니다.",
+    href: "/join/gym",
+    cta: "가입 신청",
+  },
+] as const;
+
 export default function JoinHubPage() {
   return (
     <AuthLoginShell
@@ -30,23 +43,27 @@ export default function JoinHubPage() {
         </p>
       }
     >
-      <div className="rounded-xl border border-matchon-border bg-matchon-surface/60 p-5 text-left">
-        <h2 className="text-lg font-bold text-matchon-text-primary">
-          체육관 가입 (회원사)
-        </h2>
-        <p className={cn(authLoginDescClass, "mt-2")}>
-          소속 선수를 등록하고 대회에 참가하는 체육관입니다. 가입할 협회를
-          선택한 뒤 기존 회원사 신청서를 작성합니다.
-        </p>
-        <Link
-          href="/join/gym"
-          className={cn(
-            buttonVariants({ variant: "default", size: "sm" }),
-            "mt-4 font-bold",
-          )}
-        >
-          가입 신청
-        </Link>
+      <div className="flex flex-col gap-4">
+        {cards.map((card) => (
+          <div
+            key={card.href}
+            className="rounded-xl border border-matchon-border bg-matchon-surface/60 p-5 text-left"
+          >
+            <h2 className="text-lg font-bold text-matchon-text-primary">
+              {card.title}
+            </h2>
+            <p className={cn(authLoginDescClass, "mt-2")}>{card.description}</p>
+            <Link
+              href={card.href}
+              className={cn(
+                buttonVariants({ variant: "default", size: "sm" }),
+                "mt-4 font-bold",
+              )}
+            >
+              {card.cta}
+            </Link>
+          </div>
+        ))}
       </div>
     </AuthLoginShell>
   );
