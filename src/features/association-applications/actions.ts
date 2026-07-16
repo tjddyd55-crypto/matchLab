@@ -84,6 +84,7 @@ export async function submitAssociationApplicationAction(
 }
 
 export async function approveAssociationApplicationAction(
+  _prev: unknown,
   formData: FormData,
 ): Promise<ActionResult<{ inviteUrl: string; organizerId: string }>> {
   return mapCaught(async () => {

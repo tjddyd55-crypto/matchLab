@@ -1,11 +1,15 @@
 "use client";
 
-import { useState, useTransition } from "react";
+import { useActionState, useState } from "react";
 import {
   approveAssociationApplicationAction,
   rejectAssociationApplicationAction,
 } from "@/features/association-applications/actions";
 import { Button } from "@/components/ui/button";
+
+type ApproveState = Awaited<
+  ReturnType<typeof approveAssociationApplicationAction>
+> | null;
 
 export function AssociationApplicationReviewActions({
   applicationId,
@@ -14,10 +18,14 @@ export function AssociationApplicationReviewActions({
   applicationId: string;
   canReview: boolean;
 }) {
-  const [pending, startTransition] = useTransition();
-  const [inviteUrl, setInviteUrl] = useState<string | null>(null);
-  const [error, setError] = useState<string | null>(null);
+  const [state, formAction, pending] = useActionState(
+    approveAssociationApplicationAction,
+    null as ApproveState,
+  );
   const [copied, setCopied] = useState(false);
+
+  const inviteUrl = state?.ok ? state.data.inviteUrl : null;
+  const error = state && !state.ok ? state.error.message : null;
 
   if (!canReview && !inviteUrl) return null;
 
@@ -25,22 +33,10 @@ export function AssociationApplicationReviewActions({
     <div className="space-y-3">
       {canReview && !inviteUrl ? (
         <div className="flex flex-wrap gap-2">
-          <form
-            action={(fd) => {
-              startTransition(async () => {
-                setError(null);
-                const res = await approveAssociationApplicationAction(fd);
-                if (!res.ok) {
-                  setError(res.error.message);
-                  return;
-                }
-                setInviteUrl(res.data.inviteUrl);
-              });
-            }}
-          >
+          <form action={formAction}>
             <input type="hidden" name="applicationId" value={applicationId} />
             <Button type="submit" disabled={pending}>
-              승인 및 계정 초대 발급
+              {pending ? "승인 중…" : "승인 및 계정 초대 발급"}
             </Button>
           </form>
           <form action={rejectAssociationApplicationAction}>
