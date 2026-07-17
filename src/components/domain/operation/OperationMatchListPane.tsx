@@ -5,6 +5,7 @@ import type { OperationMatchRowVM } from "@/components/domain/operation/operatio
 import {
   getOperationMatchListCardToneClass,
   getOperationMatchListDisplay,
+  getOperationMatchListResultClassName,
 } from "@/lib/operation-match-list-display";
 import { cn } from "@/lib/utils";
 
@@ -77,19 +78,15 @@ export function OperationMatchListPane({
             <p
               className={cn(
                 "truncate text-sm font-semibold",
-                display.isCompleted && "text-slate-600",
+                display.isFinished && "text-slate-600",
               )}
               title={display.matchupLabel}
             >
               {display.matchupLabel}
             </p>
             <p
-              className={cn(
-                "truncate text-xs",
-                display.isCompleted
-                  ? "text-slate-500"
-                  : "text-matchon-text-secondary",
-              )}
+              className={getOperationMatchListResultClassName(display)}
+              title={display.resultLabel}
             >
               {display.resultLabel}
             </p>

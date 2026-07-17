@@ -268,6 +268,7 @@ export function OrganizerFieldStatusBoard({
         <div className={organizerOperationDetailPaneClass}>
           {selectedRow ? (
             <OrganizerFieldStatusDetailPane
+              key={selectedRow.applicationId}
               row={selectedRow}
               eventId={eventId}
             />
@@ -283,6 +284,7 @@ export function OrganizerFieldStatusBoard({
       <div className="flex flex-col gap-4 md:hidden">
         {mobileShowDetail && selectedRow ? (
           <OrganizerFieldStatusDetailPane
+            key={selectedRow.applicationId}
             row={selectedRow}
             eventId={eventId}
             onBack={() => setMobileShowDetail(false)}

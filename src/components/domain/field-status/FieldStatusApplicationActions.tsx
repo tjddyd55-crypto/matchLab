@@ -280,11 +280,11 @@ export function WeighInWeightInput({
   }
 
   return (
-    <div className="flex w-full min-w-0 flex-col items-center justify-center gap-0.5">
+    <div className="flex w-full min-w-0 flex-col items-start justify-center gap-0.5">
       <form
         onSubmit={handleSubmit}
         className={cn(
-          "flex items-center justify-center gap-1.5",
+          "flex items-center justify-start gap-1.5",
           touchFriendly && "w-full flex-col sm:flex-row",
         )}
       >

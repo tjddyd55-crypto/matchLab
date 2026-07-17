@@ -3,9 +3,9 @@ import type { OperationMatchRowVM } from "@/components/domain/operation/operatio
 import {
   getOperationMatchPhase,
   operationPhaseLabel,
-  operationResultStatusLabel,
   type OperationMatchPhase,
 } from "@/lib/match-operation-display";
+import { getSelectableListCardClass } from "@/lib/ui/selectable-list-card";
 import { resolveMatchStatusTone, type MatchStatusTone } from "@/lib/ui/match-status-ui";
 import { cn } from "@/lib/utils";
 
@@ -14,13 +14,18 @@ export type OperationMatchListDisplay = {
   courtLabel: string | null;
   divisionLabel: string;
   matchupLabel: string;
+  /** 승자: 이름 | 결과 미입력 | 특수 결과 | 경기취소 */
   resultLabel: string;
+  winnerName: string | null;
+  hasWinner: boolean;
   statusLabel: string;
   statusTone: MatchStatusTone;
   phase: OperationMatchPhase;
+  /** 화면상 경기종료 (status finished 또는 공식 결과) — DB 미변경 */
+  isFinished: boolean;
   isCompleted: boolean;
   isCancelled: boolean;
-  cardClassName: string;
+  cardToneClassName: string;
   badgeClassName: string;
 };
 
@@ -30,64 +35,80 @@ function formatMatchup(row: OperationMatchRowVM): string {
   return `${red} VS ${blue}`;
 }
 
-function formatResult(row: OperationMatchRowVM): string {
-  if (row.status === BracketMatchStatus.cancelled) return "경기취소";
-  if (row.hasOfficialResults) {
-    const winner =
-      row.winnerId && row.fighterRed?.id === row.winnerId
-        ? row.fighterRed.name
-        : row.winnerId && row.fighterBlue?.id === row.winnerId
-          ? row.fighterBlue.name
-          : null;
-    return winner ? `승자: ${winner}` : "결과 입력 완료";
+function resolveWinnerName(row: OperationMatchRowVM): string | null {
+  if (!row.winnerId) return null;
+  if (row.fighterRed?.id === row.winnerId) {
+    return row.fighterRed.name?.trim() || null;
   }
-  return operationResultStatusLabel(row);
+  if (row.fighterBlue?.id === row.winnerId) {
+    return row.fighterBlue.name?.trim() || null;
+  }
+  return null;
 }
 
-/** 목록 카드 배경·보더 — 상태별 즉시 구분 */
+/**
+ * 목록·상세 공통: 승패/공식 결과가 있으면 경기종료로 표시.
+ * DB status는 변경하지 않는다.
+ */
+export function isOperationMatchFinishedDisplay(
+  row: Pick<OperationMatchRowVM, "status" | "hasOfficialResults">,
+): boolean {
+  return (
+    row.status === BracketMatchStatus.finished || Boolean(row.hasOfficialResults)
+  );
+}
+
+function formatResultLabel(row: OperationMatchRowVM): {
+  resultLabel: string;
+  winnerName: string | null;
+} {
+  if (row.status === BracketMatchStatus.cancelled) {
+    return { resultLabel: "경기취소", winnerName: null };
+  }
+
+  const winnerName = resolveWinnerName(row);
+  if (winnerName) {
+    return { resultLabel: `승자: ${winnerName}`, winnerName };
+  }
+
+  if (row.hasOfficialResults) {
+    const special = row.resultType?.trim();
+    if (special) {
+      return { resultLabel: special, winnerName: null };
+    }
+    return { resultLabel: "경기종료", winnerName: null };
+  }
+
+  return { resultLabel: "결과 미입력", winnerName: null };
+}
+
+/** 상태별 카드 배경·border (selected 제외) */
+export function getOperationMatchListToneClassName(
+  phase: OperationMatchPhase,
+): string {
+  switch (phase) {
+    case "preparing":
+      return "border-[#F59E0B] bg-[#FFFBEB] hover:bg-[#FEF3C7]";
+    case "in_progress":
+      return "border-[#3B82F6] bg-[#EFF6FF] hover:bg-[#DBEAFE]";
+    case "finished":
+    case "result_done":
+      return "border-[#CBD5E1] bg-[#F1F5F9] text-slate-700 hover:bg-[#E8EEF4]";
+    case "cancelled":
+      return "border-[#FB7185] bg-[#FFF1F2] hover:bg-[#FFE4E6]";
+    default:
+      return "border-[#E2E8F0] bg-white hover:border-matchon-primary/30 hover:bg-matchon-primary-light/20";
+  }
+}
+
 export function getOperationMatchListCardToneClass(
   phase: OperationMatchPhase,
   selected: boolean,
 ): string {
-  const base =
-    "flex w-full min-w-0 cursor-pointer flex-col gap-1 rounded-lg border px-3 py-2.5 text-left transition-colors";
-  const selectedRing = selected
-    ? "ring-2 ring-matchon-primary ring-offset-1"
-    : "";
-
-  switch (phase) {
-    case "preparing":
-      return cn(
-        base,
-        selectedRing,
-        "border-amber-300 bg-amber-50 hover:bg-amber-50/90",
-      );
-    case "in_progress":
-      return cn(
-        base,
-        selectedRing,
-        "border-sky-400 bg-sky-50 hover:bg-sky-50/90",
-      );
-    case "finished":
-    case "result_done":
-      return cn(
-        base,
-        selectedRing,
-        "border-slate-200 bg-[#F1F5F9] text-slate-700 hover:bg-[#E8EEF4]",
-      );
-    case "cancelled":
-      return cn(
-        base,
-        selectedRing,
-        "border-rose-300 bg-rose-50 hover:bg-rose-50/90",
-      );
-    default:
-      return cn(
-        base,
-        selectedRing,
-        "border-matchon-border bg-white hover:border-matchon-primary/30 hover:bg-matchon-primary-light/20",
-      );
-  }
+  return getSelectableListCardClass({
+    selected,
+    toneClassName: getOperationMatchListToneClassName(phase),
+  });
 }
 
 export function getOperationMatchListBadgeClass(phase: OperationMatchPhase): string {
@@ -98,7 +119,7 @@ export function getOperationMatchListBadgeClass(phase: OperationMatchPhase): str
       return "border-sky-400 bg-sky-100 text-sky-900";
     case "finished":
     case "result_done":
-      return "border-emerald-300 bg-emerald-50 text-emerald-800";
+      return "border-slate-300 bg-slate-100 text-slate-700";
     case "cancelled":
       return "border-rose-300 bg-rose-100 text-rose-900";
     default:
@@ -111,21 +132,50 @@ export function getOperationMatchListDisplay(
 ): OperationMatchListDisplay {
   const phase = getOperationMatchPhase(row);
   const statusTone = resolveMatchStatusTone(row.status);
-  const isCompleted = phase === "finished" || phase === "result_done";
+  const isFinished = isOperationMatchFinishedDisplay(row);
   const isCancelled = phase === "cancelled";
+  const { resultLabel, winnerName } = formatResultLabel(row);
+
+  // 공식 결과가 있으면 phase가 result_done이어도 라벨은 경기종료로 통일
+  const statusLabel = isFinished
+    ? "경기종료"
+    : isCancelled
+      ? "경기취소"
+      : operationPhaseLabel(phase);
 
   return {
     matchNumberLabel: row.orderLabel,
     courtLabel: row.courtName?.trim() || null,
     divisionLabel: row.divisionLabel ?? "경기구분 미상",
     matchupLabel: formatMatchup(row),
-    resultLabel: formatResult(row),
-    statusLabel: operationPhaseLabel(phase),
+    resultLabel,
+    winnerName,
+    hasWinner: Boolean(winnerName),
+    statusLabel,
     statusTone,
     phase,
-    isCompleted,
+    isFinished,
+    isCompleted: isFinished,
     isCancelled,
-    cardClassName: "",
+    cardToneClassName: getOperationMatchListToneClassName(phase),
     badgeClassName: getOperationMatchListBadgeClass(phase),
   };
+}
+
+export function getOperationMatchListResultClassName(
+  display: Pick<
+    OperationMatchListDisplay,
+    "hasWinner" | "isFinished" | "isCancelled"
+  >,
+): string {
+  if (display.hasWinner) {
+    return cn("truncate text-sm font-bold text-slate-900");
+  }
+  if (display.isFinished) {
+    return "truncate text-xs font-medium text-slate-600";
+  }
+  if (display.isCancelled) {
+    return "truncate text-xs font-medium text-rose-800";
+  }
+  return "truncate text-xs text-matchon-text-secondary";
 }

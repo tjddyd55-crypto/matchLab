@@ -13,8 +13,10 @@ import { CheckInStatus } from "@/lib/enums";
 
 export function FieldStatusCheckInActions({
   row,
+  hideTitle = false,
 }: {
   row: FieldStatusRowDTO;
+  hideTitle?: boolean;
 }) {
   const router = useRouter();
   const [pending, startTransition] = useTransition();
@@ -40,11 +42,12 @@ export function FieldStatusCheckInActions({
 
   return (
     <div className="space-y-2">
-      <p className="text-sm font-medium">현장 확인</p>
-      <div className="flex flex-wrap gap-2">
+      {hideTitle ? null : <p className="text-sm font-medium">현장 확인</p>}
+      <div className="flex flex-wrap gap-1.5">
         <Button
           type="button"
           size="sm"
+          className="h-9 text-xs"
           variant={row.checkInStatus === CheckInStatus.pending ? "default" : "outline"}
           disabled={pending || row.checkInStatus === CheckInStatus.pending}
           onClick={() =>
@@ -58,6 +61,7 @@ export function FieldStatusCheckInActions({
         <Button
           type="button"
           size="sm"
+          className="h-9 text-xs"
           variant={
             row.checkInStatus === CheckInStatus.checked_in ? "default" : "outline"
           }
@@ -71,6 +75,7 @@ export function FieldStatusCheckInActions({
         <Button
           type="button"
           size="sm"
+          className="h-9 text-xs"
           variant={
             row.checkInStatus === CheckInStatus.no_show ? "destructive" : "outline"
           }

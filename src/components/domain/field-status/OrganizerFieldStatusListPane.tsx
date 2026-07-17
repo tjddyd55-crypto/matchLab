@@ -1,10 +1,13 @@
 "use client";
 
 import { CheckInStatusBadge } from "@/components/domain/field-status/CheckInStatusBadge";
-import { EligibilityBadge } from "@/components/domain/field-status/EligibilityBadge";
 import { WeighInStatusBadge } from "@/components/domain/field-status/WeighInStatusBadge";
 import { DivisionCompactDisplay } from "@/components/domain/shared/DivisionCompactDisplay";
 import { ListSequenceMobilePrefix } from "@/components/domain/shared/CompactApplicantFilterBar";
+import {
+  getFieldStatusListCardClass,
+  getFieldStatusListTone,
+} from "@/lib/field-status-list-display";
 import type { FieldStatusRowDTO } from "@/lib/services/field-status.service";
 import { displaySequenceNumber } from "@/lib/ui/list-sequence";
 import { cn } from "@/lib/utils";
@@ -39,6 +42,7 @@ export function OrganizerFieldStatusListPane({
       {rows.map((row, index) => {
         const selected = row.applicationId === selectedApplicationId;
         const sequence = displaySequenceNumber(index, sequenceStart);
+        const tone = getFieldStatusListTone(row);
         return (
           <button
             key={row.applicationId}
@@ -47,12 +51,7 @@ export function OrganizerFieldStatusListPane({
             aria-selected={selected}
             aria-current={selected ? "true" : undefined}
             onClick={() => onSelect(row.applicationId)}
-            className={cn(
-              "w-full rounded-lg border px-3 py-2.5 text-left transition-colors",
-              selected
-                ? "border-matchon-primary bg-matchon-primary-light/50"
-                : "border-matchon-border bg-white hover:border-matchon-primary/40 hover:bg-matchon-primary-light/20",
-            )}
+            className={getFieldStatusListCardClass({ selected, tone })}
           >
             <div className="flex items-start gap-2">
               <ListSequenceMobilePrefix sequence={sequence} />
@@ -68,14 +67,10 @@ export function OrganizerFieldStatusListPane({
                   mainClassName="text-xs"
                   secondaryClassName="text-[11px]"
                 />
+                {/* 최대 2개: 현장 + 계체 (출전/중복 badge 제거) */}
                 <div className="flex flex-wrap gap-1 pt-0.5">
                   <CheckInStatusBadge status={row.checkInStatus} />
                   <WeighInStatusBadge status={row.weighInStatus} />
-                  <EligibilityBadge
-                    label={row.eligibilityLabel}
-                    isEligible={row.isEligibleForBracket}
-                    title={row.eligibilityReason}
-                  />
                 </div>
               </div>
             </div>

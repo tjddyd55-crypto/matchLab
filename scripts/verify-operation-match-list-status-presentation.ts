@@ -16,6 +16,8 @@ assert.ok(display.includes("getOperationMatchListCardToneClass"));
 assert.ok(display.includes("preparing"));
 assert.ok(display.includes("in_progress"));
 assert.ok(display.includes("#F1F5F9"));
+assert.ok(display.includes("isOperationMatchFinishedDisplay"));
+assert.ok(!display.includes('"결과 입력 완료"'));
 
 const pane = read(
   "src/components/domain/operation/OperationMatchListPane.tsx",

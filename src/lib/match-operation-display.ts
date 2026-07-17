@@ -111,19 +111,24 @@ export function operationPhaseLabel(phase: OperationMatchPhase): string {
     case "in_progress":
       return "경기진행중";
     case "finished":
-      return "경기종료";
     case "result_done":
-      return "결과 입력 완료";
+      // 공식 결과 존재(result_done)도 사용자에게는 경기종료로 통일
+      return "경기종료";
     case "cancelled":
       return "경기취소";
   }
 }
 
+/**
+ * 결과 보조 문구. 공식 결과가 있으면 빈 문자열(목록/배지에서 숨김).
+ * `결과 입력 완료`는 사용하지 않는다.
+ */
 export function operationResultStatusLabel(
   match: Pick<OrganizerEventMatchListItemVM, "hasOfficialResults" | "status">,
 ): string {
   if (match.status === BracketMatchStatus.cancelled) return "—";
-  return match.hasOfficialResults ? "결과 입력 완료" : "결과 미입력";
+  if (match.hasOfficialResults) return "";
+  return "결과 미입력";
 }
 
 export function summarizeOperationBoard(
