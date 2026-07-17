@@ -2,12 +2,12 @@ import type { FieldStatusRowDTO } from "@/lib/services/field-status.service";
 
 export type FieldStatusSummaryFilter =
   | "all"
-  | "checked_in"
-  | "pending"
-  | "no_show_group"
+  | "weigh_pending"
   | "weigh_in_pass"
   | "weigh_in_fail"
-  | "manual_pass"
+  | "handicap_proceed"
+  | "match_cancelled"
+  | "disqualified"
   | "eligible";
 
 export function matchesFieldStatusSummaryFilter(
@@ -17,16 +17,8 @@ export function matchesFieldStatusSummaryFilter(
   switch (filter) {
     case "all":
       return true;
-    case "checked_in":
-      return row.checkInStatus === "checked_in";
-    case "pending":
-      return row.checkInStatus === "pending";
-    case "no_show_group":
-      return (
-        row.checkInStatus === "no_show" ||
-        row.checkInStatus === "withdrawn" ||
-        row.checkInStatus === "disqualified"
-      );
+    case "weigh_pending":
+      return row.weighInStatus === "pending";
     case "weigh_in_pass":
       return (
         row.weighInStatus === "pass" || row.weighInStatus === "manual_pass"
@@ -35,8 +27,16 @@ export function matchesFieldStatusSummaryFilter(
       return (
         row.weighInStatus === "fail" || row.weighInStatus === "manual_fail"
       );
-    case "manual_pass":
-      return row.weighInStatus === "manual_pass";
+    case "handicap_proceed":
+      return row.weighInFailureResolution === "proceed_with_handicap";
+    case "match_cancelled":
+      return row.weighInFailureResolution === "cancel_match";
+    case "disqualified":
+      return (
+        row.checkInStatus === "disqualified" ||
+        row.checkInStatus === "no_show" ||
+        row.checkInStatus === "withdrawn"
+      );
     case "eligible":
       return row.isEligibleForBracket;
     default:
@@ -64,16 +64,17 @@ export function matchesFieldStatusSearchQuery(
   return haystack.includes(normalized);
 }
 
-export function checkInSelectValueForFilter(
+/** 계체 상태 select ↔ summary filter 동기화 */
+export function weighInSelectValueForFilter(
   filter: FieldStatusSummaryFilter,
 ): string {
   switch (filter) {
-    case "checked_in":
-      return "checked_in";
-    case "pending":
+    case "weigh_pending":
       return "pending";
-    case "no_show_group":
-      return "no_show_group";
+    case "weigh_in_pass":
+      return "pass";
+    case "weigh_in_fail":
+      return "fail";
     default:
       return "all";
   }

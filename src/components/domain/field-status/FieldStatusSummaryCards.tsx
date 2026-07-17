@@ -22,22 +22,10 @@ export function FieldStatusSummaryCards({
         onClick={() => onFilterChange("all")}
       />
       <MatchonStatCardButton
-        label="현장 확인"
-        value={summary.checkedIn}
-        active={activeFilter === "checked_in"}
-        onClick={() => onFilterChange("checked_in")}
-      />
-      <MatchonStatCardButton
-        label="미확인"
-        value={summary.pendingCheckIn}
-        active={activeFilter === "pending"}
-        onClick={() => onFilterChange("pending")}
-      />
-      <MatchonStatCardButton
-        label="미출석·철회·실격"
-        value={summary.noShow}
-        active={activeFilter === "no_show_group"}
-        onClick={() => onFilterChange("no_show_group")}
+        label="계체 대기"
+        value={summary.weighInPending}
+        active={activeFilter === "weigh_pending"}
+        onClick={() => onFilterChange("weigh_pending")}
       />
       <MatchonStatCardButton
         label="계체 통과"
@@ -52,10 +40,22 @@ export function FieldStatusSummaryCards({
         onClick={() => onFilterChange("weigh_in_fail")}
       />
       <MatchonStatCardButton
-        label="수동 승인"
-        value={summary.manualPass}
-        active={activeFilter === "manual_pass"}
-        onClick={() => onFilterChange("manual_pass")}
+        label="경기 진행"
+        value={summary.handicapProceed}
+        active={activeFilter === "handicap_proceed"}
+        onClick={() => onFilterChange("handicap_proceed")}
+      />
+      <MatchonStatCardButton
+        label="경기 취소"
+        value={summary.matchCancelled}
+        active={activeFilter === "match_cancelled"}
+        onClick={() => onFilterChange("match_cancelled")}
+      />
+      <MatchonStatCardButton
+        label="실격"
+        value={summary.disqualified}
+        active={activeFilter === "disqualified"}
+        onClick={() => onFilterChange("disqualified")}
       />
       <MatchonStatCardButton
         label="출전 확정"

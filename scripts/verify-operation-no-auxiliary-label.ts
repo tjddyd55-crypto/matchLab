@@ -27,6 +27,6 @@ const spotlight = read(
   "src/components/domain/operation/OperationSpotlightSection.tsx",
 );
 assert.ok(!spotlight.includes("보조 정보"));
-assert.ok(spotlight.includes("현재 · 다음 · 최근"));
+assert.ok(!spotlight.includes("현재 · 다음 · 최근"));
 
 console.log("verify:operation-no-auxiliary-label: OK");

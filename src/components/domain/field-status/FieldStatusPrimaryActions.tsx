@@ -5,7 +5,6 @@ import { useRouter } from "next/navigation";
 import {
   markDisqualifiedFormAction,
   weighInFailFormAction,
-  weighInManualPassFormAction,
   weighInPassFormAction,
 } from "@/features/field-status/actions";
 import { Button } from "@/components/ui/button";
@@ -13,10 +12,10 @@ import type { FieldStatusRowDTO } from "@/lib/services/field-status.service";
 
 export function FieldStatusPrimaryActions({
   row,
-  showDisqualify = true,
+  showDisqualify = false,
 }: {
   row: FieldStatusRowDTO;
-  /** 상세 workflow에서는 실격을 사유 구역으로 분리 */
+  /** 상세 workflow에서는 실격을 사유 구역으로 분리 (기본 false) */
   showDisqualify?: boolean;
 }) {
   const router = useRouter();
@@ -38,6 +37,8 @@ export function FieldStatusPrimaryActions({
 
   const isDisqualified = row.checkInStatus === "disqualified";
   const weighIn = row.weighInStatus;
+  const isPass = weighIn === "pass" || weighIn === "manual_pass";
+  const isFail = weighIn === "fail" || weighIn === "manual_fail";
 
   return (
     <div className="flex flex-col gap-1.5">
@@ -45,9 +46,9 @@ export function FieldStatusPrimaryActions({
         <Button
           type="button"
           size="sm"
-          variant={weighIn === "pass" ? "default" : "outline"}
+          variant={isPass ? "default" : "outline"}
           className="h-9 text-xs"
-          disabled={pending || weighIn === "pass"}
+          disabled={pending || isPass}
           onClick={() =>
             startTransition(() => run(weighInPassFormAction))
           }
@@ -57,32 +58,14 @@ export function FieldStatusPrimaryActions({
         <Button
           type="button"
           size="sm"
-          variant={
-            weighIn === "fail" || weighIn === "manual_fail"
-              ? "default"
-              : "outline"
-          }
+          variant={isFail ? "default" : "outline"}
           className="h-9 text-xs"
-          disabled={
-            pending || weighIn === "fail" || weighIn === "manual_fail"
-          }
+          disabled={pending || isFail}
           onClick={() =>
             startTransition(() => run(weighInFailFormAction))
           }
         >
           계체 실패
-        </Button>
-        <Button
-          type="button"
-          size="sm"
-          variant={weighIn === "manual_pass" ? "default" : "outline"}
-          className="h-9 text-xs"
-          disabled={pending || weighIn === "manual_pass"}
-          onClick={() =>
-            startTransition(() => run(weighInManualPassFormAction))
-          }
-        >
-          수동 승인
         </Button>
         {showDisqualify ? (
           <Button

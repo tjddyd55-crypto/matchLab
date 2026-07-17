@@ -3,7 +3,6 @@
 import { useEffect, useMemo, useRef } from "react";
 import { OrganizerMatchOpsPanel } from "@/components/domain/brackets/OrganizerMatchOpsPanel";
 import { OperationMatchFighterMatchup } from "@/components/domain/operation/OperationMatchFighterMatchup";
-import { OperationMatchHighlightCard } from "@/components/domain/operation/OperationMatchHighlightCard";
 import { OrganizerOperationStatusBadges } from "@/components/domain/operation/OrganizerOperationStatusBadges";
 import { toMatchOpsProps } from "@/components/domain/operation/operation-match-row";
 import type { OperationMatchRowVM } from "@/components/domain/operation/operation-match-row";
@@ -38,7 +37,11 @@ export function OperationSpotlightSection({
     rows.find((r) => r.matchId === focusedMatchId) ??
     spotlight.current ??
     spotlight.next ??
+    rows[0] ??
     null;
+
+  // onFocusMatch retained for API compatibility; auxiliary highlight cards removed
+  void onFocusMatch;
 
   const showOpsPanel = Boolean(focusedMatch);
   const showResultEntry =
@@ -75,7 +78,7 @@ export function OperationSpotlightSection({
           <div className="flex flex-wrap items-start justify-between gap-2">
             <div className="min-w-0 space-y-1">
               <p className="text-matchon-text-secondary text-xs font-medium">
-                현재 경기
+                선택 경기
               </p>
               <p className="text-base font-bold leading-snug text-matchon-text-primary">
                 {focusedMatch.orderLabel}
@@ -131,38 +134,6 @@ export function OperationSpotlightSection({
             </div>
           </section>
         ) : null}
-      </div>
-
-      <div className="space-y-2 border-t border-matchon-border pt-3">
-        <p className="text-matchon-text-secondary text-[11px] font-medium uppercase tracking-wide">
-          현재 · 다음 · 최근
-        </p>
-        <div className="grid gap-2 sm:grid-cols-3">
-          <OperationMatchHighlightCard
-            title="현재 경기"
-            match={spotlight.current}
-            variant="selected"
-            selected={spotlight.current?.matchId === focusedMatchId}
-            onSelect={(m) => onFocusMatch(m.matchId)}
-            className="p-3"
-          />
-          <OperationMatchHighlightCard
-            title="다음 경기"
-            match={spotlight.next}
-            variant="default"
-            selected={spotlight.next?.matchId === focusedMatchId}
-            onSelect={(m) => onFocusMatch(m.matchId)}
-            className="p-3"
-          />
-          <OperationMatchHighlightCard
-            title="최근 종료"
-            match={spotlight.recentFinished}
-            variant="success"
-            selected={spotlight.recentFinished?.matchId === focusedMatchId}
-            onSelect={(m) => onFocusMatch(m.matchId)}
-            className="p-3"
-          />
-        </div>
       </div>
     </section>
   );

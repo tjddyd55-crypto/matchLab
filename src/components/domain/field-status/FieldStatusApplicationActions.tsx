@@ -18,7 +18,6 @@ import {
   recordWeighInWeightFormAction,
   saveFieldMemoFormAction,
   weighInFailFormAction,
-  weighInManualPassFormAction,
   weighInPassFormAction,
 } from "@/features/field-status/actions";
 import { FieldStatusBracketPanel } from "@/components/domain/field-status/FieldStatusBracketPanel";
@@ -208,10 +207,6 @@ export function FieldStatusRowActions({
           variant="destructive"
           onClick={() => runAction(id, weighInFailFormAction)}
         />
-        <ActionButton
-          label="수동 승인"
-          onClick={() => runAction(id, weighInManualPassFormAction)}
-        />
       </ActionGroup>
 
       <ActionGroup title="출전" inline={inline}>
@@ -223,7 +218,7 @@ export function FieldStatusRowActions({
           confirmMessage={
             row.isEligibleForBracket
               ? undefined
-              : `${name} 선수를 현장 확인·계체 통과 상태로 출전 확정할까요?`
+              : `${name} 선수를 계체 통과 상태로 출전 확정할까요?`
           }
         />
       </ActionGroup>

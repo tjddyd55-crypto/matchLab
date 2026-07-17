@@ -99,12 +99,19 @@ export type FieldStatusRowDTO = ReturnType<typeof mapRow> & {
 
 export type FieldStatusSummaryDTO = {
   totalApproved: number;
+  /** @deprecated 내부 호환 — UI 미사용 */
   checkedIn: number;
+  /** @deprecated 내부 호환 — UI 미사용 */
   pendingCheckIn: number;
   noShow: number;
+  weighInPending: number;
   weighInPass: number;
   weighInFail: number;
+  /** @deprecated UI에서 수동 승인 카드 제거 — 수치만 호환 유지 */
   manualPass: number;
+  handicapProceed: number;
+  matchCancelled: number;
+  disqualified: number;
   eligibleCount: number;
 };
 
@@ -121,7 +128,13 @@ function buildSummary(rows: FieldStatusRowDTO[]): FieldStatusSummaryDTO {
         r.checkInStatus === CheckInStatus.withdrawn ||
         r.checkInStatus === CheckInStatus.disqualified,
     ).length,
-    weighInPass: rows.filter((r) => r.weighInStatus === WeighInStatus.pass).length,
+    weighInPending: rows.filter((r) => r.weighInStatus === WeighInStatus.pending)
+      .length,
+    weighInPass: rows.filter(
+      (r) =>
+        r.weighInStatus === WeighInStatus.pass ||
+        r.weighInStatus === WeighInStatus.manual_pass,
+    ).length,
     weighInFail: rows.filter(
       (r) =>
         r.weighInStatus === WeighInStatus.fail ||
@@ -129,6 +142,18 @@ function buildSummary(rows: FieldStatusRowDTO[]): FieldStatusSummaryDTO {
     ).length,
     manualPass: rows.filter((r) => r.weighInStatus === WeighInStatus.manual_pass)
       .length,
+    handicapProceed: rows.filter(
+      (r) => r.weighInFailureResolution === "proceed_with_handicap",
+    ).length,
+    matchCancelled: rows.filter(
+      (r) => r.weighInFailureResolution === "cancel_match",
+    ).length,
+    disqualified: rows.filter(
+      (r) =>
+        r.checkInStatus === CheckInStatus.disqualified ||
+        r.checkInStatus === CheckInStatus.no_show ||
+        r.checkInStatus === CheckInStatus.withdrawn,
+    ).length,
     eligibleCount: rows.filter((r) => r.isEligibleForBracket).length,
   };
 }
@@ -324,7 +349,7 @@ export const fieldStatusService = {
     }
   },
 
-  /** 현장 확인 + 계체 통과(또는 수동 승인)로 출전 확정 조건 충족 */
+  /** 계체 통과(또는 핸디캡 진행)로 출전 확정 조건 충족 — 현장 확인 선행 없음 */
   async quickConfirmEligibility(
     actor: ActorContext,
     applicationId: string,
@@ -333,23 +358,34 @@ export const fieldStatusService = {
     const eligibility = computeFieldEligibility({
       checkInStatus: row.checkInStatus,
       weighInStatus: row.weighInStatus,
+      weighInFailureResolution: row.weighInFailureResolution ?? undefined,
     });
     if (eligibility.isEligibleForBracket) return;
 
-    if (row.checkInStatus !== CheckInStatus.checked_in) {
-      await fieldStatusService.setCheckInStatus(
-        actor,
-        applicationId,
-        CheckInStatus.checked_in,
+    if (
+      row.checkInStatus === CheckInStatus.no_show ||
+      row.checkInStatus === CheckInStatus.withdrawn ||
+      row.checkInStatus === CheckInStatus.disqualified
+    ) {
+      throw new AppError(
+        "CONFLICT",
+        "미출석·철회·실격 선수는 출전 확정할 수 없습니다.",
       );
     }
 
-    const refreshed = await fieldStatusRepository.findApprovedApplicationById(
-      applicationId,
-    );
-    if (!refreshed) return;
+    const weighIn = row.weighInStatus;
+    if (
+      weighIn === WeighInStatus.fail ||
+      weighIn === WeighInStatus.manual_fail
+    ) {
+      await fieldStatusService.setWeighInFailureResolution(
+        actor,
+        applicationId,
+        WeighInFailureResolution.proceed_with_handicap,
+      );
+      return;
+    }
 
-    const weighIn = refreshed.weighInStatus;
     if (
       weighIn === WeighInStatus.pass ||
       weighIn === WeighInStatus.manual_pass
@@ -357,15 +393,10 @@ export const fieldStatusService = {
       return;
     }
 
-    const nextWeighIn =
-      weighIn === WeighInStatus.fail || weighIn === WeighInStatus.manual_fail
-        ? WeighInStatus.manual_pass
-        : WeighInStatus.pass;
-
     await fieldStatusService.setWeighInStatus(
       actor,
       applicationId,
-      nextWeighIn,
+      WeighInStatus.pass,
     );
   },
 

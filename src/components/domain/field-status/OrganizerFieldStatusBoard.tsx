@@ -12,9 +12,9 @@ import {
   resolveSingleSportSectionTitle,
 } from "@/lib/division-sport-grouping";
 import {
-  checkInSelectValueForFilter,
   matchesFieldStatusSearchQuery,
   matchesFieldStatusSummaryFilter,
+  weighInSelectValueForFilter,
   type FieldStatusSummaryFilter,
 } from "@/components/domain/field-status/field-status-filters";
 import {
@@ -51,7 +51,7 @@ export function OrganizerFieldStatusBoard({
   const [divisionFilter, setDivisionFilter] = useState("all");
   const [summaryFilter, setSummaryFilter] =
     useState<FieldStatusSummaryFilter>("all");
-  const [checkInFilter, setCheckInFilter] = useState("all");
+  const [weighInFilter, setWeighInFilter] = useState("all");
   const [preferredApplicationId, setPreferredApplicationId] = useState<
     string | null
   >(null);
@@ -73,26 +73,31 @@ export function OrganizerFieldStatusBoard({
     return rows.filter((r) => {
       if (!matchesFieldStatusSearchQuery(r, searchQuery)) return false;
       if (gymFilter !== "all" && r.gymId !== gymFilter) return false;
-      if (divisionFilter !== "all" && r.divisionId !== divisionFilter)
-        return false;
-      if (
-        checkInFilter !== "all" &&
-        checkInFilter !== "no_show_group" &&
-        r.checkInStatus !== checkInFilter
-      ) {
+      if (divisionFilter !== "all" && r.divisionId !== divisionFilter) {
         return false;
       }
-      if (checkInFilter === "no_show_group") {
-        const inGroup =
-          r.checkInStatus === "no_show" ||
-          r.checkInStatus === "withdrawn" ||
-          r.checkInStatus === "disqualified";
-        if (!inGroup) return false;
+      if (weighInFilter === "pending") {
+        if (r.weighInStatus !== "pending") return false;
+      } else if (weighInFilter === "pass") {
+        if (r.weighInStatus !== "pass" && r.weighInStatus !== "manual_pass") {
+          return false;
+        }
+      } else if (weighInFilter === "fail") {
+        if (r.weighInStatus !== "fail" && r.weighInStatus !== "manual_fail") {
+          return false;
+        }
       }
       if (!matchesFieldStatusSummaryFilter(r, summaryFilter)) return false;
       return true;
     });
-  }, [rows, searchQuery, gymFilter, divisionFilter, checkInFilter, summaryFilter]);
+  }, [
+    rows,
+    searchQuery,
+    gymFilter,
+    divisionFilter,
+    weighInFilter,
+    summaryFilter,
+  ]);
 
   const selectedApplicationId = useMemo(() => {
     if (filtered.length === 0) return null;
@@ -124,21 +129,21 @@ export function OrganizerFieldStatusBoard({
 
   function handleSummaryFilterChange(filter: FieldStatusSummaryFilter) {
     setSummaryFilter(filter);
-    setCheckInFilter(checkInSelectValueForFilter(filter));
+    setWeighInFilter(weighInSelectValueForFilter(filter));
     requestAnimationFrame(() => {
       listRef.current?.scrollIntoView({ behavior: "smooth", block: "start" });
     });
   }
 
-  function handleCheckInDropdown(value: string) {
-    setCheckInFilter(value);
+  function handleWeighInDropdown(value: string) {
+    setWeighInFilter(value);
     if (value === "all") {
       setSummaryFilter("all");
       return;
     }
-    if (value === "checked_in") setSummaryFilter("checked_in");
-    else if (value === "pending") setSummaryFilter("pending");
-    else if (value === "no_show_group") setSummaryFilter("no_show_group");
+    if (value === "pending") setSummaryFilter("weigh_pending");
+    else if (value === "pass") setSummaryFilter("weigh_in_pass");
+    else if (value === "fail") setSummaryFilter("weigh_in_fail");
     else setSummaryFilter("all");
   }
 
@@ -146,7 +151,7 @@ export function OrganizerFieldStatusBoard({
     setSearchQuery("");
     setGymFilter("all");
     setDivisionFilter("all");
-    setCheckInFilter("all");
+    setWeighInFilter("all");
     setSummaryFilter("all");
   }
 
@@ -236,18 +241,15 @@ export function OrganizerFieldStatusBoard({
               ))}
             </select>
             <select
-              className={cn(selectClass, compactApplicantSelectWidths.checkIn)}
-              value={checkInFilter}
-              onChange={(e) => handleCheckInDropdown(e.target.value)}
-              aria-label="현장 확인 필터"
+              className={cn(selectClass, compactApplicantSelectWidths.status)}
+              value={weighInFilter}
+              onChange={(e) => handleWeighInDropdown(e.target.value)}
+              aria-label="계체 상태 필터"
             >
-              <option value="all">현장확인 전체</option>
-              <option value="pending">미확인</option>
-              <option value="checked_in">현장 확인</option>
-              <option value="no_show_group">미출석·철회·실격</option>
-              <option value="no_show">미출석</option>
-              <option value="withdrawn">철회</option>
-              <option value="disqualified">실격</option>
+              <option value="all">계체상태 전체</option>
+              <option value="pending">계체 대기</option>
+              <option value="pass">계체 통과</option>
+              <option value="fail">계체 실패</option>
             </select>
             <CompactFilterResetButton
               onClick={resetFilters}
@@ -257,7 +259,6 @@ export function OrganizerFieldStatusBoard({
         </div>
       </div>
 
-      {/* PC master-detail */}
       <div
         ref={listRef}
         className={cn(organizerOperationWorkspaceClass, "hidden md:grid")}
@@ -280,7 +281,6 @@ export function OrganizerFieldStatusBoard({
         </div>
       </div>
 
-      {/* Mobile stack */}
       <div className="flex flex-col gap-4 md:hidden">
         {mobileShowDetail && selectedRow ? (
           <OrganizerFieldStatusDetailPane

@@ -1,5 +1,5 @@
 /**
- * 현장 확인 master-detail 정적 검증.
+ * 현장 계체 master-detail 정적 검증.
  */
 import assert from "node:assert/strict";
 import { readFileSync } from "node:fs";
@@ -19,6 +19,8 @@ assert.ok(board.includes("mobileShowDetail"));
 assert.ok(board.includes("목록으로") === false); // back is in detail pane
 assert.ok(board.includes("OrganizerFieldStatusListPane"));
 assert.ok(board.includes("OrganizerFieldStatusDetailPane"));
+assert.ok(!board.includes("현장확인"));
+assert.ok(board.includes("계체상태"));
 
 const detail = read(
   "src/components/domain/field-status/OrganizerFieldStatusDetailPane.tsx",
@@ -26,14 +28,16 @@ const detail = read(
 assert.ok(detail.includes("FieldStatusResetButton"));
 assert.ok(detail.includes("FieldFinalResultCell"));
 assert.ok(detail.includes("경기 운영에서 보기"));
-assert.ok(detail.includes('title="현장 확인"'));
+assert.ok(!detail.includes('title="현장 확인"'));
 assert.ok(detail.includes('title="계체"'));
 assert.ok(detail.includes('title="경기 진행 여부"'));
+assert.ok(!detail.includes("FieldStatusCheckInActions"));
 
 const list = read(
   "src/components/domain/field-status/OrganizerFieldStatusListPane.tsx",
 );
 assert.ok(!list.includes("WeighInWeightInput"));
 assert.ok(!list.includes("WeighInFailureResolutionForm"));
+assert.ok(!list.includes("CheckInStatusBadge"));
 
 console.log("verify:event-check-in-master-detail: OK");

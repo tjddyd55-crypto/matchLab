@@ -1,18 +1,22 @@
 import type { FieldStatusRowDTO } from "@/lib/services/field-status.service";
 import { WeighInStatus } from "@/generated/prisma";
 import { CheckInStatus } from "@/lib/enums";
+import { getWeighInStatusLabel } from "@/lib/field-eligibility";
 import { getSelectableListCardClass } from "@/lib/ui/selectable-list-card";
 
 export type FieldStatusListTone =
   | "dq_noshow"
   | "weigh_fail"
   | "weigh_pass"
-  | "checked_in"
+  | "handicap"
   | "pending";
 
 /** 목록 카드 톤 — 우선순위 1개만 적용 */
 export function getFieldStatusListTone(
-  row: Pick<FieldStatusRowDTO, "checkInStatus" | "weighInStatus">,
+  row: Pick<
+    FieldStatusRowDTO,
+    "checkInStatus" | "weighInStatus" | "weighInFailureResolution"
+  >,
 ): FieldStatusListTone {
   if (
     row.checkInStatus === CheckInStatus.disqualified ||
@@ -20,6 +24,12 @@ export function getFieldStatusListTone(
     row.checkInStatus === CheckInStatus.withdrawn
   ) {
     return "dq_noshow";
+  }
+  if (row.weighInFailureResolution === "cancel_match") {
+    return "dq_noshow";
+  }
+  if (row.weighInFailureResolution === "proceed_with_handicap") {
+    return "handicap";
   }
   if (
     row.weighInStatus === WeighInStatus.fail ||
@@ -33,9 +43,6 @@ export function getFieldStatusListTone(
   ) {
     return "weigh_pass";
   }
-  if (row.checkInStatus === CheckInStatus.checked_in) {
-    return "checked_in";
-  }
   return "pending";
 }
 
@@ -45,10 +52,10 @@ export function getFieldStatusListToneClassName(tone: FieldStatusListTone): stri
       return "border-rose-300 bg-[#FFF1F2] hover:bg-[#FFE4E6]";
     case "weigh_fail":
       return "border-orange-300 bg-[#FFF7ED] hover:bg-[#FFEDD5]";
+    case "handicap":
+      return "border-amber-300 bg-[#FFFBEB] hover:bg-[#FEF3C7]";
     case "weigh_pass":
       return "border-emerald-300 bg-[#ECFDF5] hover:bg-[#D1FAE5]";
-    case "checked_in":
-      return "border-sky-300 bg-[#EFF6FF] hover:bg-[#DBEAFE]";
     default:
       return "border-[#E2E8F0] bg-white hover:border-matchon-primary/40 hover:bg-matchon-primary-light/20";
   }
@@ -67,21 +74,38 @@ export function getFieldStatusListCardClass({
   });
 }
 
-export function getFieldCheckInStepHint(
-  status: FieldStatusRowDTO["checkInStatus"],
+/** 목록용 계체 badge 라벨 */
+export function getFieldWeighInBadgeLabel(
+  status: FieldStatusRowDTO["weighInStatus"],
 ): string {
-  switch (status) {
-    case CheckInStatus.checked_in:
-      return "완료";
-    case CheckInStatus.no_show:
-      return "미출석";
-    case CheckInStatus.withdrawn:
-      return "철회";
-    case CheckInStatus.disqualified:
-      return "실격";
-    default:
-      return "미확인";
+  return getWeighInStatusLabel(status);
+}
+
+/**
+ * 목록용 2번째 badge — 진행/실격/핸디캡.
+ * 현장 확인 badge는 사용하지 않는다.
+ */
+export function getFieldProgressBadgeLabel(
+  row: Pick<
+    FieldStatusRowDTO,
+    | "checkInStatus"
+    | "weighInStatus"
+    | "weighInFailureResolution"
+    | "isEligibleForBracket"
+    | "eligibilityLabel"
+  >,
+): string | null {
+  if (row.checkInStatus === CheckInStatus.no_show) return "미출석";
+  if (row.checkInStatus === CheckInStatus.disqualified) return "실격";
+  if (row.checkInStatus === CheckInStatus.withdrawn) return "철회";
+  if (row.weighInFailureResolution === "proceed_with_handicap") {
+    return "핸디캡 경기";
   }
+  if (row.weighInFailureResolution === "cancel_match") {
+    return "경기취소";
+  }
+  if (row.isEligibleForBracket) return "출전 확정";
+  return null;
 }
 
 export function getFieldWeighInStepHint(
@@ -89,14 +113,13 @@ export function getFieldWeighInStepHint(
 ): string {
   switch (status) {
     case WeighInStatus.pass:
-      return "통과";
     case WeighInStatus.manual_pass:
-      return "수동 승인";
+      return "통과";
     case WeighInStatus.fail:
     case WeighInStatus.manual_fail:
       return "실패";
     default:
-      return "미실시";
+      return "대기";
   }
 }
 
@@ -118,6 +141,9 @@ export function getFieldProgressStepHint(
   }
   if (row.weighInFailureResolution === "cancel_match") {
     return "경기 취소";
+  }
+  if (row.weighInFailureResolution === "proceed_with_handicap") {
+    return "핸디캡 진행";
   }
   if (row.isEligibleForBracket) {
     return "진행 가능";

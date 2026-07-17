@@ -24,7 +24,8 @@ assert.ok(
 assert.ok(board.includes('aria-label="선수 검색"'));
 assert.ok(board.includes('aria-label="체육관 필터"'));
 assert.ok(board.includes('aria-label="경기구분 필터"'));
-assert.ok(board.includes('aria-label="현장 확인 필터"'));
+assert.ok(board.includes('aria-label="계체 상태 필터"'));
+assert.ok(!board.includes('aria-label="현장 확인 필터"'));
 assert.ok(board.includes("FieldStatusSummaryCards"), "summary cards kept");
 assert.ok(board.includes("OrganizerFieldStatusListPane"));
 assert.ok(board.includes("OrganizerFieldStatusDetailPane"));
@@ -57,9 +58,9 @@ assert.ok(list.includes("aria-selected"));
 const detail = read(
   "src/components/domain/field-status/OrganizerFieldStatusDetailPane.tsx",
 );
-assert.ok(detail.includes("WeighInWeightForm"));
+assert.ok(detail.includes("WeighInWeightInput"));
 assert.ok(detail.includes("WeighInFailureResolutionForm"));
 assert.ok(detail.includes("DisqualificationReasonForm"));
-assert.ok(detail.includes("FieldStatusCheckInActions"));
+assert.ok(!detail.includes("FieldStatusCheckInActions"));
 
 console.log("verify:event-check-in-compact-filters: OK");

@@ -20,15 +20,22 @@ import { cn } from "@/lib/utils";
  */
 
 const DISQUALIFICATION_PRESETS = [
-  { value: "withdrawal", label: "신청철회", reason: "신청철회" },
   { value: "no_show", label: "미출석", reason: "미출석" },
+  { value: "weigh_fail", label: "계체 실패", reason: "계체 실패" },
+  { value: "injury", label: "부상", reason: "부상" },
+  { value: "withdrawal", label: "선수 포기", reason: "선수 포기" },
+  { value: "ineligible", label: "자격 미달", reason: "자격 미달" },
+  { value: "rule_violation", label: "규정 위반", reason: "규정 위반" },
   { value: "other", label: "기타", reason: "" },
 ] as const;
 
 function inferPreset(reason: string | null): string {
   if (!reason) return "";
+  const exact = DISQUALIFICATION_PRESETS.find(
+    (p) => p.reason && p.reason === reason,
+  );
+  if (exact) return exact.value;
   if (reason === "신청철회") return "withdrawal";
-  if (reason === "미출석") return "no_show";
   return "other";
 }
 
@@ -163,14 +170,15 @@ export function DisqualificationReasonForm({
     e.preventDefault();
 
     let reason = "";
-    if (preset === "withdrawal") reason = "신청철회";
-    else if (preset === "no_show") reason = "미출석";
-    else if (preset === "other") {
+    const presetMeta = DISQUALIFICATION_PRESETS.find((p) => p.value === preset);
+    if (preset === "other") {
       reason = otherReason.trim();
       if (!reason) {
         window.alert("기타 사유를 입력해 주세요.");
         return;
       }
+    } else if (presetMeta?.reason) {
+      reason = presetMeta.reason;
     } else {
       window.alert("실격 사유를 선택해 주세요.");
       return;

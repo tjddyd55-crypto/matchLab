@@ -32,9 +32,9 @@ export default async function OrganizerEventCheckInPage({
   return (
     <EventManagementLayout {...eventManagementLayoutProps(nav)}>
       <EventManagementPageHeader
-        title="현장 확인·계체"
+        title="현장 계체"
         eventTitle={nav.title}
-        description="승인된 신청자에 대해 현장 확인(체크인), 계체, 출전 확정 상태를 기록합니다. 현장 확인은 계체 통과와 별개이며, 출전 확정은 현장 확인 완료와 계체 통과(또는 수동 승인)가 모두 충족될 때 표시됩니다."
+        description="승인된 신청자의 계체·경기 진행·실격·출전 상태를 관리합니다. 계체 통과 또는 계체 실패 후 핸디캡 경기 진행 시 출전 확정됩니다."
       />
 
       <OrganizerFieldStatusBoard

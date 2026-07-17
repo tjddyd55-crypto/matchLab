@@ -24,19 +24,27 @@ const CHECK_IN_LABEL: Record<CheckInStatus, string> = {
   disqualified: "실격",
 };
 
+/** UI 표시용 — manual_pass는 레거시 데이터 호환, 사용자에게 수동 승인으로 노출하지 않음 */
 const WEIGH_IN_LABEL: Record<WeighInStatus, string> = {
-  pending: "계체 전",
+  pending: "계체 대기",
   pass: "계체 통과",
   fail: "계체 실패",
-  manual_pass: "수동 승인",
-  manual_fail: "수동 실패",
+  manual_pass: "계체 통과",
+  manual_fail: "계체 실패",
 };
 
 function isWeighInPassed(status: WeighInStatus): boolean {
   return status === "pass" || status === "manual_pass";
 }
 
-/** 출전 확정: 현장 확인 + (계체 통과 또는 수동 승인) */
+/**
+ * 출전 확정 SSOT.
+ * - 미출석/철회/실격 → 불가
+ * - 계체 통과(또는 레거시 manual_pass) → 가능
+ * - 계체 실패 + 핸디캡 경기 진행 → 가능
+ * - 계체 실패 + 경기 취소 / 미결정 → 불가
+ * - 현장 확인(check-in pending)은 더 이상 선행 조건이 아님
+ */
 export function computeFieldEligibility(
   input: FieldEligibilityInput,
 ): FieldEligibility {
@@ -46,7 +54,7 @@ export function computeFieldEligibility(
     return {
       isEligibleForBracket: false,
       eligibilityLabel: "미출석",
-      eligibilityReason: "현장에 도착하지 않은 선수입니다.",
+      eligibilityReason: "미출석으로 처리된 선수입니다.",
     };
   }
 
@@ -66,59 +74,41 @@ export function computeFieldEligibility(
     };
   }
 
-  if (checkInStatus === "pending") {
-    return {
-      isEligibleForBracket: false,
-      eligibilityLabel: "현장 미확인",
-      eligibilityReason: "현장 확인(체크인)이 완료되지 않았습니다.",
-    };
-  }
-
   if (weighInStatus === "fail" || weighInStatus === "manual_fail") {
     if (input.weighInFailureResolution === "proceed_with_handicap") {
       return {
         isEligibleForBracket: true,
-        eligibilityLabel: "계체 실패 · 경기진행",
-        eligibilityReason: "핸디캡 적용 후 경기 진행",
+        eligibilityLabel: "핸디캡 경기",
+        eligibilityReason: "계체 실패 후 핸디캡 적용 경기 진행",
       };
     }
     if (input.weighInFailureResolution === "cancel_match") {
       return {
         isEligibleForBracket: false,
-        eligibilityLabel: "계체 실패 · 경기취소",
+        eligibilityLabel: "경기취소",
         eligibilityReason: "계체 실패 후 경기가 취소되었습니다.",
       };
     }
     return {
       isEligibleForBracket: false,
       eligibilityLabel: "계체 실패",
-      eligibilityReason:
-        weighInStatus === "manual_fail"
-          ? "주최측이 계체 실패(수동)로 처리했습니다."
-          : "신청 체급 기준을 충족하지 못했습니다.",
+      eligibilityReason: "신청 체급 기준을 충족하지 못했습니다.",
     };
   }
 
   if (weighInStatus === "pending") {
     return {
       isEligibleForBracket: false,
-      eligibilityLabel: "계체 전",
+      eligibilityLabel: "계체 대기",
       eligibilityReason: "계체가 완료되지 않았습니다.",
     };
   }
 
-  if (weighInStatus === "manual_pass") {
-    return {
-      isEligibleForBracket: true,
-      eligibilityLabel: "수동 승인",
-      eligibilityReason: "현장 확인 완료 · 주최자 수동 승인",
-    };
-  }
-
+  // pass 또는 레거시 manual_pass
   return {
     isEligibleForBracket: true,
     eligibilityLabel: "출전 확정",
-    eligibilityReason: "현장 확인 및 계체 통과",
+    eligibilityReason: "계체 통과",
   };
 }
 

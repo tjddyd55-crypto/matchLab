@@ -1,16 +1,56 @@
 "use client";
 
-import { CheckInStatusBadge } from "@/components/domain/field-status/CheckInStatusBadge";
-import { WeighInStatusBadge } from "@/components/domain/field-status/WeighInStatusBadge";
 import { DivisionCompactDisplay } from "@/components/domain/shared/DivisionCompactDisplay";
 import { ListSequenceMobilePrefix } from "@/components/domain/shared/CompactApplicantFilterBar";
 import {
+  getFieldProgressBadgeLabel,
   getFieldStatusListCardClass,
   getFieldStatusListTone,
+  getFieldWeighInBadgeLabel,
 } from "@/lib/field-status-list-display";
 import type { FieldStatusRowDTO } from "@/lib/services/field-status.service";
 import { displaySequenceNumber } from "@/lib/ui/list-sequence";
 import { cn } from "@/lib/utils";
+
+function ListStatusChip({
+  label,
+  tone,
+}: {
+  label: string;
+  tone: "neutral" | "ok" | "warn" | "danger" | "accent";
+}) {
+  return (
+    <span
+      className={cn(
+        "inline-flex rounded-md border px-1.5 py-0.5 text-[10px] font-semibold",
+        tone === "ok" && "border-emerald-300 bg-emerald-50 text-emerald-800",
+        tone === "warn" && "border-orange-300 bg-orange-50 text-orange-900",
+        tone === "danger" && "border-rose-300 bg-rose-50 text-rose-900",
+        tone === "accent" && "border-amber-300 bg-amber-50 text-amber-900",
+        tone === "neutral" && "border-slate-200 bg-slate-50 text-slate-600",
+      )}
+    >
+      {label}
+    </span>
+  );
+}
+
+function weighTone(
+  status: FieldStatusRowDTO["weighInStatus"],
+): "neutral" | "ok" | "warn" {
+  if (status === "pass" || status === "manual_pass") return "ok";
+  if (status === "fail" || status === "manual_fail") return "warn";
+  return "neutral";
+}
+
+function progressTone(label: string): "ok" | "warn" | "danger" | "accent" {
+  if (label === "출전 확정") return "ok";
+  if (label === "핸디캡 경기") return "accent";
+  if (label === "경기취소" || label === "실격" || label === "미출석" || label === "철회") {
+    return "danger";
+  }
+  return "warn";
+}
 
 export function OrganizerFieldStatusListPane({
   rows,
@@ -37,12 +77,14 @@ export function OrganizerFieldStatusListPane({
     <div
       className={cn("flex flex-col gap-2", className)}
       role="listbox"
-      aria-label="현장 확인 선수 목록"
+      aria-label="현장 계체 선수 목록"
     >
       {rows.map((row, index) => {
         const selected = row.applicationId === selectedApplicationId;
         const sequence = displaySequenceNumber(index, sequenceStart);
         const tone = getFieldStatusListTone(row);
+        const weighLabel = getFieldWeighInBadgeLabel(row.weighInStatus);
+        const progressLabel = getFieldProgressBadgeLabel(row);
         return (
           <button
             key={row.applicationId}
@@ -67,10 +109,17 @@ export function OrganizerFieldStatusListPane({
                   mainClassName="text-xs"
                   secondaryClassName="text-[11px]"
                 />
-                {/* 최대 2개: 현장 + 계체 (출전/중복 badge 제거) */}
                 <div className="flex flex-wrap gap-1 pt-0.5">
-                  <CheckInStatusBadge status={row.checkInStatus} />
-                  <WeighInStatusBadge status={row.weighInStatus} />
+                  <ListStatusChip
+                    label={weighLabel}
+                    tone={weighTone(row.weighInStatus)}
+                  />
+                  {progressLabel ? (
+                    <ListStatusChip
+                      label={progressLabel}
+                      tone={progressTone(progressLabel)}
+                    />
+                  ) : null}
                 </div>
               </div>
             </div>
