@@ -382,13 +382,31 @@ export const matchService = {
     await prisma.$transaction(async (tx) => {
       const cur = await tx.bracketMatch.findUnique({
         where: { id: input.matchId },
-        select: { status: true },
+        select: {
+          status: true,
+          _count: {
+            select: {
+              matchResults: {
+                where: {
+                  status: {
+                    in: [
+                      MatchRecordStatus.confirmed,
+                      MatchRecordStatus.corrected,
+                    ],
+                  },
+                },
+              },
+            },
+          },
+        },
       });
       if (!cur) {
         throw new AppError("NOT_FOUND", "경기를 찾을 수 없습니다.");
       }
 
-      assertBracketMatchStatusTransition(cur.status, input.status);
+      assertBracketMatchStatusTransition(cur.status, input.status, {
+        hasOfficialResults: cur._count.matchResults >= 2,
+      });
 
       await matchRepository.updateMatchStatus(input.matchId, input.status, tx);
 

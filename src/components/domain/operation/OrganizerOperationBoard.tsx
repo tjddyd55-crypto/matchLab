@@ -65,9 +65,13 @@ export function OrganizerOperationBoard({
       matches.map((match) => {
         const patchedStatus = statusPatches[match.matchId];
         if (!patchedStatus || patchedStatus === match.status) return match;
+        if (match.status === BracketMatchStatus.finished) {
+          return match;
+        }
+        // cancelled → waiting/called/ongoing 낙관적 복구 허용
         if (
-          match.status === BracketMatchStatus.finished ||
-          match.status === BracketMatchStatus.cancelled
+          match.status === BracketMatchStatus.cancelled &&
+          patchedStatus === BracketMatchStatus.cancelled
         ) {
           return match;
         }

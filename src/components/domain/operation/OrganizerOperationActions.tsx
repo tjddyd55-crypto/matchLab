@@ -42,8 +42,10 @@ export function OrganizerOperationActions({
   const [error, setError] = useState<string | null>(null);
   const [success, setSuccess] = useState<string | null>(null);
 
-  const blocked = match.status === BracketMatchStatus.cancelled;
-  const showPrepare = canPrepareMatch(match.status);
+  const cancelled = match.status === BracketMatchStatus.cancelled;
+  const canRecoverCancelled = cancelled && !match.hasOfficialResults;
+  const showPrepare =
+    canPrepareMatch(match.status) || canRecoverCancelled;
   const showStart = canStartMatch(match.status);
   const showEnd = canEndMatch(match.status);
   const showResult = canEnterResult(match);
@@ -53,7 +55,10 @@ export function OrganizerOperationActions({
 
   const refresh = () => router.refresh();
 
-  const runStatusUpdate = (status: BracketMatchStatus, successMessage: string) => {
+  const runStatusUpdate = (
+    status: BracketMatchStatus,
+    successMessage: string,
+  ) => {
     setError(null);
     setSuccess(null);
     startTransition(async () => {
@@ -70,6 +75,18 @@ export function OrganizerOperationActions({
   };
 
   const handleAdvance = () => {
+    if (canRecoverCancelled) {
+      if (
+        !window.confirm("취소된 경기를 다시 진행 상태로 변경할까요?")
+      ) {
+        return;
+      }
+      runStatusUpdate(
+        BracketMatchStatus.called,
+        "경기준비 상태로 복구되었습니다.",
+      );
+      return;
+    }
     const next = getNextStatusForOperationStart(match.status);
     if (!next) return;
     const message =
@@ -84,9 +101,11 @@ export function OrganizerOperationActions({
 
   const btnSize = compact ? "xs" : "sm";
 
-  if (blocked) {
+  if (cancelled && match.hasOfficialResults) {
     return (
-      <p className="text-muted-foreground text-xs">취소된 경기입니다.</p>
+      <p className="text-muted-foreground text-xs">
+        결과가 있는 취소 경기는 결과 초기화 후 복구할 수 있습니다.
+      </p>
     );
   }
 
@@ -101,7 +120,7 @@ export function OrganizerOperationActions({
             disabled={pending}
             onClick={handleAdvance}
           >
-            경기 준비
+            {canRecoverCancelled ? "경기준비로 복구" : "경기 준비"}
           </Button>
         ) : null}
         {showStart && !showPrepare ? (

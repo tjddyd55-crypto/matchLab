@@ -3,7 +3,8 @@
 import { useMemo, useRef, useState } from "react";
 import type { FieldStatusRowDTO } from "@/lib/services/field-status.service";
 import { FieldStatusSummaryCards } from "@/components/domain/field-status/FieldStatusSummaryCards";
-import { OrganizerFieldStatusTable } from "@/components/domain/field-status/OrganizerFieldStatusTable";
+import { OrganizerFieldStatusDetailPane } from "@/components/domain/field-status/OrganizerFieldStatusDetailPane";
+import { OrganizerFieldStatusListPane } from "@/components/domain/field-status/OrganizerFieldStatusListPane";
 import { DivisionSportSectionHeader } from "@/components/domain/shared/DivisionSportSectionHeader";
 import type { FieldStatusSummaryDTO } from "@/lib/services/field-status.service";
 import {
@@ -27,14 +28,22 @@ import {
   ORGANIZER_FIELD_INPUT_CLASS,
   ORGANIZER_FIELD_SELECT_CLASS,
 } from "@/lib/organizer-dashboard-layout";
+import {
+  organizerOperationDetailPaneClass,
+  organizerOperationListPaneClass,
+  organizerOperationListScrollClass,
+  organizerOperationWorkspaceClass,
+} from "@/lib/ui/organizer-operation-ui";
 import { cn } from "@/lib/utils";
 
 export function OrganizerFieldStatusBoard({
   rows,
   summary,
+  eventId,
 }: {
   rows: FieldStatusRowDTO[];
   summary: FieldStatusSummaryDTO;
+  eventId: string;
 }) {
   const listRef = useRef<HTMLDivElement>(null);
   const [searchQuery, setSearchQuery] = useState("");
@@ -43,6 +52,10 @@ export function OrganizerFieldStatusBoard({
   const [summaryFilter, setSummaryFilter] =
     useState<FieldStatusSummaryFilter>("all");
   const [checkInFilter, setCheckInFilter] = useState("all");
+  const [preferredApplicationId, setPreferredApplicationId] = useState<
+    string | null
+  >(null);
+  const [mobileShowDetail, setMobileShowDetail] = useState(false);
 
   const gymOptions = useMemo(() => {
     const map = new Map<string, string>();
@@ -81,6 +94,17 @@ export function OrganizerFieldStatusBoard({
     });
   }, [rows, searchQuery, gymFilter, divisionFilter, checkInFilter, summaryFilter]);
 
+  const selectedApplicationId = useMemo(() => {
+    if (filtered.length === 0) return null;
+    if (
+      preferredApplicationId &&
+      filtered.some((r) => r.applicationId === preferredApplicationId)
+    ) {
+      return preferredApplicationId;
+    }
+    return filtered[0]!.applicationId;
+  }, [filtered, preferredApplicationId]);
+
   const sportGroups = useMemo(
     () => groupItemsByDivisionSport(filtered, (r) => r.division),
     [filtered],
@@ -92,6 +116,9 @@ export function OrganizerFieldStatusBoard({
   );
 
   const showSportSections = sportGroups.length > 1;
+
+  const selectedRow =
+    filtered.find((r) => r.applicationId === selectedApplicationId) ?? null;
 
   const selectClass = ORGANIZER_FIELD_SELECT_CLASS;
 
@@ -123,18 +150,45 @@ export function OrganizerFieldStatusBoard({
     setSummaryFilter("all");
   }
 
-  const emptyMessage =
-    rows.length === 0
-      ? "표시할 승인 신청자가 없습니다."
-      : searchQuery.trim() ||
-          gymFilter !== "all" ||
-          divisionFilter !== "all" ||
-          checkInFilter !== "all" ||
-          summaryFilter !== "all"
-        ? "검색 결과가 없습니다."
-        : "표시할 승인 신청자가 없습니다.";
+  function handleSelect(applicationId: string) {
+    setPreferredApplicationId(applicationId);
+    setMobileShowDetail(true);
+  }
 
   let sequenceOffset = 0;
+
+  const listContent = showSportSections ? (
+    sportGroups.map((group) => {
+      const start = sequenceOffset;
+      sequenceOffset += group.items.length;
+      return (
+        <section key={group.sportTitle} className="flex flex-col gap-2">
+          <DivisionSportSectionHeader title={group.sportTitle} />
+          <OrganizerFieldStatusListPane
+            rows={group.items}
+            sequenceStart={start}
+            selectedApplicationId={selectedApplicationId}
+            onSelect={handleSelect}
+          />
+        </section>
+      );
+    })
+  ) : (
+    <>
+      {singleSportTitle ? (
+        <DivisionSportSectionHeader
+          title={singleSportTitle}
+          className="mb-1"
+        />
+      ) : null}
+      <OrganizerFieldStatusListPane
+        rows={filtered}
+        sequenceStart={0}
+        selectedApplicationId={selectedApplicationId}
+        onSelect={handleSelect}
+      />
+    </>
+  );
 
   return (
     <div className="flex flex-col gap-6">
@@ -203,37 +257,39 @@ export function OrganizerFieldStatusBoard({
         </div>
       </div>
 
-      <div ref={listRef} className="min-w-0 flex flex-col gap-6">
-        {showSportSections
-          ? sportGroups.map((group) => {
-              const start = sequenceOffset;
-              sequenceOffset += group.items.length;
-              return (
-                <section key={group.sportTitle} className="flex flex-col gap-2">
-                  <DivisionSportSectionHeader title={group.sportTitle} />
-                  <OrganizerFieldStatusTable
-                    rows={group.items}
-                    sequenceStart={start}
-                    emptyMessage={emptyMessage}
-                  />
-                </section>
-              );
-            })
-          : (
-              <>
-                {singleSportTitle ? (
-                  <DivisionSportSectionHeader
-                    title={singleSportTitle}
-                    className="mb-1"
-                  />
-                ) : null}
-                <OrganizerFieldStatusTable
-                  rows={filtered}
-                  sequenceStart={0}
-                  emptyMessage={emptyMessage}
-                />
-              </>
-            )}
+      {/* PC master-detail */}
+      <div
+        ref={listRef}
+        className={cn(organizerOperationWorkspaceClass, "hidden md:grid")}
+      >
+        <div className={organizerOperationListPaneClass}>
+          <div className={organizerOperationListScrollClass}>{listContent}</div>
+        </div>
+        <div className={organizerOperationDetailPaneClass}>
+          {selectedRow ? (
+            <OrganizerFieldStatusDetailPane
+              row={selectedRow}
+              eventId={eventId}
+            />
+          ) : (
+            <p className="text-muted-foreground rounded-xl border px-4 py-8 text-center text-sm">
+              선수를 선택하면 상세·조치를 처리할 수 있습니다.
+            </p>
+          )}
+        </div>
+      </div>
+
+      {/* Mobile stack */}
+      <div className="flex flex-col gap-4 md:hidden">
+        {mobileShowDetail && selectedRow ? (
+          <OrganizerFieldStatusDetailPane
+            row={selectedRow}
+            eventId={eventId}
+            onBack={() => setMobileShowDetail(false)}
+          />
+        ) : (
+          listContent
+        )}
       </div>
     </div>
   );

@@ -40,6 +40,7 @@ export default async function OrganizerEventCheckInPage({
       <OrganizerFieldStatusBoard
         rows={fieldStatus.rows}
         summary={fieldStatus.summary}
+        eventId={eventId}
       />
     </EventManagementLayout>
   );

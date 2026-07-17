@@ -1,21 +1,12 @@
 "use client";
 
-import { ChevronRight } from "lucide-react";
-import { OrganizerOperationStatusBadges } from "@/components/domain/operation/OrganizerOperationStatusBadges";
 import { DivisionCompactDisplay } from "@/components/domain/shared/DivisionCompactDisplay";
 import type { OperationMatchRowVM } from "@/components/domain/operation/operation-match-row";
-import { getOperationMatchPhase } from "@/lib/match-operation-display";
 import {
-  organizerOperationMatchListItemActiveClass,
-  organizerOperationMatchListItemClass,
-} from "@/lib/ui/organizer-operation-ui";
+  getOperationMatchListCardToneClass,
+  getOperationMatchListDisplay,
+} from "@/lib/operation-match-list-display";
 import { cn } from "@/lib/utils";
-
-function formatFighterVs(row: OperationMatchRowVM): string {
-  const red = row.fighterRed?.name?.trim() || "미배정";
-  const blue = row.fighterBlue?.name?.trim() || "미배정";
-  return `${red} vs ${blue}`;
-}
 
 export function OperationMatchListPane({
   rows,
@@ -37,63 +28,71 @@ export function OperationMatchListPane({
   }
 
   return (
-    <div className={cn("flex flex-col gap-2", className)}>
+    <div className={cn("flex flex-col gap-2", className)} role="listbox">
       {rows.map((row) => {
         const selected = row.matchId === selectedMatchId;
+        const display = getOperationMatchListDisplay(row);
         return (
           <button
             key={row.matchId}
             type="button"
+            role="option"
+            aria-selected={selected}
             onClick={() => onSelectMatch(row.matchId)}
-            className={cn(
-              organizerOperationMatchListItemClass,
-              selected && organizerOperationMatchListItemActiveClass,
+            className={getOperationMatchListCardToneClass(
+              display.phase,
+              selected,
             )}
           >
-            <div className="min-w-0 flex-1 space-y-1">
-              <div className="flex flex-wrap items-center gap-x-2 gap-y-0.5">
-                <span className="text-sm font-bold text-matchon-text-primary">
-                  {row.orderLabel}
-                </span>
-                {row.courtName ? (
-                  <span className="text-matchon-text-secondary truncate text-xs">
-                    {row.courtName}
+            <div className="flex flex-wrap items-center justify-between gap-2">
+              <p className="text-sm font-bold text-matchon-text-primary">
+                {display.matchNumberLabel}
+                {display.courtLabel ? (
+                  <span className="text-matchon-text-secondary font-medium">
+                    {" "}
+                    · {display.courtLabel}
                   </span>
                 ) : null}
-              </div>
-              {row.division ? (
-                <DivisionCompactDisplay
-                  division={row.division}
-                  mainClassName="text-xs"
-                  secondaryClassName="text-[11px]"
-                />
-              ) : (
-                <p className="truncate text-xs font-medium">
-                  {row.divisionLabel ?? "경기구분 미상"}
-                </p>
-              )}
-              <p
-                className="truncate text-xs text-matchon-text-secondary"
-                title={formatFighterVs(row)}
-              >
-                {formatFighterVs(row)}
               </p>
-              <OrganizerOperationStatusBadges
-                phase={getOperationMatchPhase(row)}
-                phaseLabel={row.phaseLabel}
-                resultStatusLabel={row.resultStatusLabel}
-                status={row.status}
-                size="sm"
-                className="justify-start"
-              />
+              <span
+                className={cn(
+                  "inline-flex shrink-0 rounded-md border px-2 py-0.5 text-[11px] font-semibold",
+                  display.badgeClassName,
+                )}
+              >
+                {display.statusLabel}
+              </span>
             </div>
-            <ChevronRight
+            {row.division ? (
+              <DivisionCompactDisplay
+                division={row.division}
+                mainClassName="text-xs"
+                secondaryClassName="text-[11px]"
+              />
+            ) : (
+              <p className="truncate text-xs font-medium">
+                {display.divisionLabel}
+              </p>
+            )}
+            <p
               className={cn(
-                "mt-0.5 size-4 shrink-0 text-matchon-text-secondary",
-                selected && "text-matchon-primary",
+                "truncate text-sm font-semibold",
+                display.isCompleted && "text-slate-600",
               )}
-              aria-hidden
-            />
+              title={display.matchupLabel}
+            >
+              {display.matchupLabel}
+            </p>
+            <p
+              className={cn(
+                "truncate text-xs",
+                display.isCompleted
+                  ? "text-slate-500"
+                  : "text-matchon-text-secondary",
+              )}
+            >
+              {display.resultLabel}
+            </p>
           </button>
         );
       })}

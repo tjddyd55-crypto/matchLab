@@ -52,7 +52,7 @@ function MatchOpsStatusSection({
   status,
   pending,
   pendingStatus,
-  blocked,
+  hasOfficialResults,
   isOperation,
   actionSize,
   onStatus,
@@ -60,11 +60,32 @@ function MatchOpsStatusSection({
   status: BracketMatchStatus;
   pending: boolean;
   pendingStatus: BracketMatchStatus | null;
-  blocked: boolean;
+  hasOfficialResults: boolean;
   isOperation: boolean;
   actionSize: "xs" | "sm" | "field";
   onStatus: (status: BracketMatchStatus) => void;
 }) {
+  const finishedTerminal = status === BracketMatchStatus.finished;
+  const cancelledNeedsVoid =
+    status === BracketMatchStatus.cancelled && hasOfficialResults;
+
+  function isOptionDisabled(optionValue: BracketMatchStatus): boolean {
+    if (pending) return true;
+    if (isCurrentMatchStatus(status, optionValue)) return true;
+    if (finishedTerminal) return true;
+    if (status === BracketMatchStatus.cancelled) {
+      if (
+        optionValue === BracketMatchStatus.waiting ||
+        optionValue === BracketMatchStatus.called ||
+        optionValue === BracketMatchStatus.ongoing
+      ) {
+        return cancelledNeedsVoid;
+      }
+      return true;
+    }
+    return false;
+  }
+
   return (
     <div
       className={cn(
@@ -84,6 +105,7 @@ function MatchOpsStatusSection({
         {STATUS_OPTIONS.map((option) => {
           const isCurrent = isCurrentMatchStatus(status, option.value);
           const isPendingTarget = pendingStatus === option.value;
+          const disabled = isOptionDisabled(option.value);
 
           return (
             <Button
@@ -93,7 +115,7 @@ function MatchOpsStatusSection({
               variant={
                 isOperation ? "outline" : isCurrent ? "default" : "outline"
               }
-              disabled={pending || blocked || isCurrent}
+              disabled={disabled}
               className={cn(
                 isOperation ? "w-full sm:w-auto" : undefined,
                 isOperation &&
@@ -103,7 +125,13 @@ function MatchOpsStatusSection({
               )}
               aria-pressed={isCurrent ? "true" : "false"}
               onClick={() => {
-                if (isCurrent) return;
+                if (isCurrent || disabled) return;
+                if (status === BracketMatchStatus.cancelled) {
+                  const ok = window.confirm(
+                    "취소된 경기를 다시 진행 상태로 변경할까요?",
+                  );
+                  if (!ok) return;
+                }
                 onStatus(option.value);
               }}
             >
@@ -112,10 +140,22 @@ function MatchOpsStatusSection({
           );
         })}
       </div>
-      {isOperation && !blocked ? (
+      {status === BracketMatchStatus.cancelled && cancelledNeedsVoid ? (
+        <p className="text-amber-800 text-[11px] leading-snug">
+          공식 결과가 있습니다. 결과 초기화 후 대기·경기준비·경기진행중으로
+          복구할 수 있습니다.
+        </p>
+      ) : null}
+      {status === BracketMatchStatus.cancelled && !cancelledNeedsVoid ? (
         <p className="text-muted-foreground text-[11px] leading-snug">
-          임의 상태 변경이 필요할 때 선택하세요. 경기취소는 되돌리기 어려울 수
-          있습니다.
+          취소된 경기를 대기·경기준비·경기진행중으로 복구할 수 있습니다.
+        </p>
+      ) : null}
+      {isOperation &&
+      status !== BracketMatchStatus.cancelled &&
+      !finishedTerminal ? (
+        <p className="text-muted-foreground text-[11px] leading-snug">
+          임의 상태 변경이 필요할 때 선택하세요.
         </p>
       ) : null}
     </div>
@@ -285,9 +325,9 @@ function OrganizerMatchOpsPanelBody(props: OrganizerMatchOpsPanelProps) {
   const actionSize = isOperation ? "field" : props.compact ? "xs" : "sm";
 
   const canFillOutcome = Boolean(props.fighterRedId && props.fighterBlueId);
-  const blocked = props.status === BracketMatchStatus.cancelled;
+  const cancelled = props.status === BracketMatchStatus.cancelled;
   const canRecordOutcome =
-    !blocked && canFillOutcome && !props.hasOfficialResults;
+    !cancelled && canFillOutcome && !props.hasOfficialResults;
 
   const refresh = () => router.refresh();
 
@@ -416,7 +456,7 @@ function OrganizerMatchOpsPanelBody(props: OrganizerMatchOpsPanelProps) {
           status={props.status}
           pending={pending}
           pendingStatus={pendingStatus}
-          blocked={blocked}
+          hasOfficialResults={props.hasOfficialResults}
           isOperation={isOperation}
           actionSize={actionSize}
           onStatus={onStatus}
@@ -476,14 +516,14 @@ function OrganizerMatchOpsPanelBody(props: OrganizerMatchOpsPanelProps) {
           status={props.status}
           pending={pending}
           pendingStatus={pendingStatus}
-          blocked={blocked}
+          hasOfficialResults={props.hasOfficialResults}
           isOperation={isOperation}
           actionSize={actionSize}
           onStatus={onStatus}
         />
       ) : null}
 
-      {!blocked && props.hasOfficialResults ? (
+      {!cancelled && props.hasOfficialResults ? (
         <div className="space-y-2 border-t pt-2">
           {!editingCorrect ? (
             <div className="space-y-2">

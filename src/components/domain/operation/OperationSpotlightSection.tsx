@@ -135,7 +135,7 @@ export function OperationSpotlightSection({
 
       <div className="space-y-2 border-t border-matchon-border pt-3">
         <p className="text-matchon-text-secondary text-[11px] font-medium uppercase tracking-wide">
-          보조 정보
+          현재 · 다음 · 최근
         </p>
         <div className="grid gap-2 sm:grid-cols-3">
           <OperationMatchHighlightCard
