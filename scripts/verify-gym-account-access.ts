@@ -14,7 +14,6 @@ import {
   resolveMemberGymOwnerAccountStatus,
 } from "../src/lib/member-gym/owner-account";
 import {
-  GYM_PORTAL_HIDDEN_EVENT_HREFS,
   getGymPortalNavGroups,
   getGymPortalNavItems,
 } from "../src/lib/navigation/gym-portal-navigation";
@@ -183,19 +182,20 @@ function assertGymPortalNav() {
     "홈",
     "선수 목록",
     "선수 등록",
+    "대회 공고",
+    "신청 내역",
     "체육관 정보",
+    "협회 연결",
   ]);
   assert.deepEqual(hrefs, [
     "/gym",
     "/gym/fighters",
     "/gym/fighters/new",
+    "/gym/events",
+    "/gym/applications",
     "/gym/profile",
+    "/gym/associations",
   ]);
-
-  for (const hidden of GYM_PORTAL_HIDDEN_EVENT_HREFS) {
-    assert.ok(!hrefs.includes(hidden), `hidden nav must not include ${hidden}`);
-  }
-  assert.ok(!labels.some((l) => /대회|신청/.test(l)));
 
   const groups = getGymPortalNavGroups();
   const fighterGroup = groups.find((g) => g.id === "fighters");
@@ -204,6 +204,8 @@ function assertGymPortalNav() {
     fighterGroup?.items.map((i) => i.label),
     ["선수 목록", "선수 등록"],
   );
+  const eventsGroup = groups.find((g) => g.id === "events");
+  assert.equal(eventsGroup?.label, "대회");
 
   // PC/mobile same SSOT: Sidebar + Sheet + bottom all call getGymPortalNavGroups/Items
   const sidebar = readFileSync(
@@ -226,8 +228,6 @@ function assertGymPortalNav() {
   assert.match(bottom, /getGymPortalNavItems/);
   assert.match(sheet, /getGymPortalNavGroups/);
   assert.match(header, /GymMobileNavSheet/);
-  assert.doesNotMatch(sidebar, /\/gym\/events/);
-  assert.doesNotMatch(bottom, /\/gym\/events/);
 }
 
 function assertServiceGuards() {

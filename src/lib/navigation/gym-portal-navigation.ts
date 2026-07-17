@@ -1,7 +1,6 @@
 /**
  * 회원사(/gym) 포털 글로벌 네비 SSOT.
  * PC sidebar · 모바일 Sheet · bottom nav가 동일 소스를 사용한다.
- * 대회·신청 route는 유지하되 기본 메뉴에는 노출하지 않는다.
  */
 
 export type GymPortalNavItem = {
@@ -32,9 +31,20 @@ export function getGymPortalNavGroups(): GymPortalNavGroup[] {
       ],
     },
     {
+      id: "events",
+      label: "대회",
+      items: [
+        { href: "/gym/events", label: "대회 공고" },
+        { href: "/gym/applications", label: "신청 내역" },
+      ],
+    },
+    {
       id: "profile",
       label: null,
-      items: [{ href: "/gym/profile", label: "체육관 정보" }],
+      items: [
+        { href: "/gym/profile", label: "체육관 정보" },
+        { href: "/gym/associations", label: "협회 연결" },
+      ],
     },
   ];
 }
@@ -47,14 +57,6 @@ export function getGymPortalNavItems(): GymPortalNavItem[] {
 export function getGymPortalHomePaths(): string[] {
   return ["/gym"];
 }
-
-/** 기본 메뉴에 나오면 안 되는 대회·신청 경로 */
-export const GYM_PORTAL_HIDDEN_EVENT_HREFS = [
-  "/gym/events",
-  "/gym/applications",
-  "/gym/invite-links",
-  "/gym/records",
-] as const;
 
 export function isGymPortalNavItemActive(
   href: string,

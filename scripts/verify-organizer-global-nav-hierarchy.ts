@@ -4,7 +4,6 @@
  */
 import assert from "node:assert/strict";
 import {
-  GYM_PORTAL_HIDDEN_EVENT_HREFS,
   getGymPortalNavItems,
 } from "../src/lib/navigation/gym-portal-navigation";
 import {
@@ -16,12 +15,18 @@ function assertGymPortalNavSsot() {
   const items = getGymPortalNavItems();
   assert.deepEqual(
     items.map((i) => i.label),
-    ["홈", "선수 목록", "선수 등록", "체육관 정보"],
+    [
+      "홈",
+      "선수 목록",
+      "선수 등록",
+      "대회 공고",
+      "신청 내역",
+      "체육관 정보",
+      "협회 연결",
+    ],
   );
-  assert.ok(!items.some((i) => /대회|신청/.test(i.label)));
-  for (const href of GYM_PORTAL_HIDDEN_EVENT_HREFS) {
-    assert.ok(!items.some((i) => i.href === href));
-  }
+  assert.ok(items.some((i) => i.href === "/gym/events"));
+  assert.ok(items.some((i) => i.href === "/gym/associations"));
   // 일반/협회 organizer 메뉴와 분리
   const assoc = getOrganizerGlobalNavGroups({ organizerType: "association" });
   assert.ok(assoc.some((g) => g.id === "member-gyms"));

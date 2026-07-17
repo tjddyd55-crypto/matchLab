@@ -1,10 +1,12 @@
 import Link from "next/link";
+import { AssociationConnectionRequestsPanel } from "@/components/domain/member-gyms/AssociationConnectionRequestsPanel";
 import { MemberGymJoinLinkQuickActions } from "@/components/domain/member-gyms/MemberGymJoinLinkQuickActions";
 import { MemberGymSubNav } from "@/components/domain/member-gyms/MemberGymSubNav";
 import { OrganizerDashboardPageHeader } from "@/components/dashboard/OrganizerDashboardPageHeader";
 import { requireActor, redirectUnlessDashboardRole } from "@/lib/auth/actor";
 import { AssociationMemberGymApplicationStatus } from "@/lib/enums";
 import { requireAssociationOrganizerPage } from "@/lib/permissions";
+import { associationGymConnectionService } from "@/lib/services/association-gym-connection.service";
 import { memberGymService } from "@/lib/services/member-gym.service";
 import {
   MEMBER_GYM_APPLICATION_FILTERS,
@@ -40,6 +42,12 @@ export default async function MemberGymApplicationsPage({
     q: sp.q,
     sourceGroup,
   });
+  const connectionRequests = actor.organizerId
+    ? await associationGymConnectionService.listPendingForOrganizer(
+        actor,
+        actor.organizerId,
+      )
+    : [];
 
   function withQuery(next: { status?: string; source?: string }) {
     const params = new URLSearchParams();
@@ -64,6 +72,27 @@ export default async function MemberGymApplicationsPage({
       </OrganizerDashboardPageHeader>
       <MemberGymSubNav />
       <div className="mt-4 space-y-4">
+        <section className="space-y-2 rounded-md border border-matchon-border bg-white p-4">
+          <h2 className="text-sm font-bold text-matchon-text-primary">
+            기존 체육관 연결 요청
+          </h2>
+          <p className="text-xs text-matchon-text-secondary">
+            이미 MATCHON에 가입된 체육관의 협회 연결 요청입니다. 아래「신규
+            체육관 가입」신청과 구분됩니다.
+          </p>
+          <AssociationConnectionRequestsPanel
+            rows={connectionRequests.map((r) => ({
+              id: r.id,
+              memo: r.memo,
+              createdAt: r.createdAt.toISOString(),
+              gym: r.gym,
+              requestingUser: r.requestingUser,
+            }))}
+          />
+        </section>
+        <h2 className="text-sm font-bold text-matchon-text-primary">
+          신규 체육관 가입 신청
+        </h2>
         <div className="flex flex-wrap gap-2">
           {MEMBER_GYM_APPLICATION_FILTERS.map((tab) => {
             const href = withQuery({
