@@ -1,5 +1,5 @@
 /**
- * 공개 회원가입 허브 검증 (협회·체육관 모두 노출).
+ * 공개 회원가입 허브 검증 (협회·체육관 독립 가입).
  */
 import assert from "node:assert/strict";
 import { existsSync, readFileSync } from "node:fs";
@@ -22,9 +22,13 @@ function main() {
   assert.ok(hub.includes("협회 가입"));
   assert.ok(hub.includes("/join/gym"));
   assert.ok(hub.includes("/join/association"));
+  assert.ok(hub.includes("협회 연결"));
+  assert.ok(!hub.includes("회원사로 가입"));
 
   const gym = read("src/app/(public)/join/gym/page.tsx");
   assert.equal(gym.includes("redirect("), false);
+  assert.ok(gym.includes("GymApplicationForm"));
+  assert.ok(!gym.includes("listJoinableAssociations"));
 
   const register = read("src/app/(auth)/register/page.tsx");
   assert.ok(register.includes('redirect("/join")'));

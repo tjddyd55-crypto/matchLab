@@ -1,4 +1,4 @@
-// =============================================================================
+﻿// =============================================================================
 // 격투기 대회 운영 플랫폼 — Prisma 스키마 (database.md / status-machine.md / api-contract.md 정합)
 // - 전적 원천: MatchResult / Fighter.record* 는 캐시
 // - 입금 진실: EventApplicationPayment / EventApplication.paymentStatus 는 집계 캐시
@@ -441,6 +441,9 @@ model User {
   associationMemberGymApplicationsCreated AssociationMemberGymApplication[]      @relation("MemberGymApplicationCreator")
   associationMemberGymOwnerInvitesCreated AssociationMemberGym[]                  @relation("MemberGymOwnerInviteCreator")
   associationApplicationsReviewed         AssociationApplication[]               @relation("AssociationApplicationReviewer")
+  gymApplicationsReviewed                 GymApplication[]                       @relation("GymApplicationReviewer")
+  associationGymConnectionRequestsReviewed AssociationGymConnectionRequest[]     @relation("AssociationGymConnectionReviewer")
+  associationGymConnectionRequestsMade     AssociationGymConnectionRequest[]     @relation("AssociationGymConnectionRequester")
 }
 
 model Organizer {
@@ -471,6 +474,7 @@ model Organizer {
   associationMemberGyms            AssociationMemberGym[]
   associationMemberGymSettings     AssociationMemberGymSettings?
   associationApplicationsCreated   AssociationApplication[] @relation("AssociationApplicationCreatedOrganizer")
+  associationGymConnectionRequests AssociationGymConnectionRequest[]
 }
 
 model Gym {
@@ -498,6 +502,8 @@ model Gym {
 
   associationMemberGyms            AssociationMemberGym[]
   associationMemberGymApplications AssociationMemberGymApplication[] @relation("MemberGymApplicationLinkedGym")
+  gymApplicationsCreated           GymApplication[]                  @relation("GymApplicationCreatedGym")
+  associationGymConnectionRequests AssociationGymConnectionRequest[]
 
   gymMembers          GymMember[]
   gymMembershipPlans  GymMembershipPlan[]
@@ -1884,8 +1890,10 @@ model AssociationMemberGymApplication {
   gymPhone            String?
   email               String
   homeAddress         String?
+  homePostalCode      String?
   gymAddress          String
   gymAddressDetail    String?
+  gymPostalCode       String?
   businessNo          String?
   sportType           String?
   classDescription    String?
@@ -2132,9 +2140,130 @@ model AssociationApplicationAttachment {
   @@index([applicationId])
 }
 
+/// 플랫폼 독립 체육관 가입 신청 — 협회 소속과 무관. 승인 시 Gym만 생성한다.
+enum GymApplicationStatus {
+  pending
+  under_review
+  approved
+  rejected
+  withdrawn
+}
+
+enum GymApplicationAttachmentType {
+  business_registration
+  representative_photo
+  gym_exterior_photo
+  gym_interior_photo
+  dan_certificate
+  coach_certificate
+  referee_certificate
+  applicant_signature
+  other
+}
+
+model GymApplication {
+  id                   String               @id @default(cuid())
+  gymName              String
+  representativeName   String
+  contactName          String
+  phone                String?
+  mobilePhone          String
+  email                String
+  postalCode           String?
+  address              String?
+  addressDetail        String?
+  businessNo           String?
+  sportType            String?
+  description          String?
+  privacyConsent       Boolean              @default(false)
+  registrationConsent  Boolean              @default(false)
+  smsConsent           Boolean              @default(false)
+  informationConsent   Boolean              @default(false)
+  signatureName        String?
+  signatureConsent     Boolean              @default(false)
+  signatureSignedAt    DateTime?
+  uploadBatchId        String?
+  status               GymApplicationStatus @default(pending)
+  submittedAt          DateTime             @default(now())
+  reviewedAt           DateTime?
+  reviewedByUserId     String?
+  reviewMemo           String?
+  createdGymId         String?
+  /// 승인 후 체육관 owner 계정 초대 (원문 금지, hash만)
+  ownerInviteTokenHash String?              @unique
+  ownerInviteExpiresAt DateTime?
+  ownerInviteCreatedAt DateTime?
+  ownerInviteCreatedByUserId String?
+  termsAcceptedAt      DateTime?
+  privacyAcceptedAt    DateTime?
+  deletedAt            DateTime?
+  createdAt            DateTime             @default(now())
+  updatedAt            DateTime             @updatedAt
+
+  reviewedByUser User? @relation("GymApplicationReviewer", fields: [reviewedByUserId], references: [id], onDelete: SetNull)
+  createdGym     Gym?  @relation("GymApplicationCreatedGym", fields: [createdGymId], references: [id], onDelete: SetNull)
+  attachments    GymApplicationAttachment[]
+
+  @@index([status])
+  @@index([submittedAt])
+  @@index([deletedAt])
+}
+
+model GymApplicationAttachment {
+  id               String                       @id @default(cuid())
+  applicationId    String
+  attachmentType   GymApplicationAttachmentType
+  storageBucket    String
+  storagePath      String
+  originalFileName String
+  mimeType         String
+  sizeBytes        Int
+  uploadedAt       DateTime                     @default(now())
+  deletedAt        DateTime?
+
+  application GymApplication @relation(fields: [applicationId], references: [id], onDelete: Cascade)
+
+  @@index([applicationId])
+}
+
+/// 이미 MATCHON Gym이 있는 체육관의 협회 연결 요청 (신규 회원사 신청과 분리)
+enum AssociationGymConnectionRequestStatus {
+  pending
+  approved
+  rejected
+  cancelled
+  withdrawn
+}
+
+model AssociationGymConnectionRequest {
+  id                            String                                @id @default(cuid())
+  gymId                         String
+  associationOrganizerId        String
+  requestingUserId              String
+  status                        AssociationGymConnectionRequestStatus @default(pending)
+  memo                          String?
+  reviewedAt                    DateTime?
+  reviewedByUserId              String?
+  reviewMemo                    String?
+  createdAssociationMemberGymId String?
+  deletedAt                     DateTime?
+  createdAt                     DateTime                              @default(now())
+  updatedAt                     DateTime                              @updatedAt
+
+  gym                  Gym       @relation(fields: [gymId], references: [id], onDelete: Cascade)
+  associationOrganizer Organizer @relation(fields: [associationOrganizerId], references: [id], onDelete: Cascade)
+  requestingUser       User      @relation("AssociationGymConnectionRequester", fields: [requestingUserId], references: [id], onDelete: Cascade)
+  reviewedByUser       User?     @relation("AssociationGymConnectionReviewer", fields: [reviewedByUserId], references: [id], onDelete: SetNull)
+
+  @@index([gymId, associationOrganizerId])
+  @@index([associationOrganizerId, status])
+  @@index([status])
+  @@index([deletedAt])
+}
+
 /// MATCHON 전용 메시징 템플릿 — 타 프로젝트/기능과 분리된 범용 구조
 model MatchonMessageTemplate {
-  id                  String                 @id @default(cuid())
+  id                  String                  @id @default(cuid())
   ownerType           MatchonMessageOwnerType
   gymId               String?
   channel             MatchonMessageChannel
@@ -2143,18 +2272,18 @@ model MatchonMessageTemplate {
   subject             String?
   body                String
   kakaoTemplateCode   String?
-  variables           Json                   @default("{}")
+  variables           Json                    @default("{}")
   buttons             Json?
   approvedFingerprint String?
-  isApproved          Boolean                @default(false)
-  isActive            Boolean                @default(true)
-  isSystem            Boolean                @default(false)
+  isApproved          Boolean                 @default(false)
+  isActive            Boolean                 @default(true)
+  isSystem            Boolean                 @default(false)
   deletedAt           DateTime?
   createdByUserId     String?
-  createdAt           DateTime               @default(now())
-  updatedAt           DateTime               @updatedAt
+  createdAt           DateTime                @default(now())
+  updatedAt           DateTime                @updatedAt
 
-  gym       Gym?                     @relation(fields: [gymId], references: [id], onDelete: SetNull)
+  gym        Gym?                     @relation(fields: [gymId], references: [id], onDelete: SetNull)
   dispatches MatchonMessageDispatch[]
 
   @@index([ownerType, gymId, deletedAt])
@@ -2192,8 +2321,8 @@ model MatchonMessageDispatch {
   createdAt         DateTime                     @default(now())
   updatedAt         DateTime                     @updatedAt
 
-  gym      Gym?                      @relation(fields: [gymId], references: [id], onDelete: SetNull)
-  template MatchonMessageTemplate?   @relation(fields: [templateId], references: [id], onDelete: SetNull)
+  gym        Gym?                      @relation(fields: [gymId], references: [id], onDelete: SetNull)
+  template   MatchonMessageTemplate?   @relation(fields: [templateId], references: [id], onDelete: SetNull)
   recipients MatchonMessageRecipient[]
 
   @@unique([idempotencyScope, idempotencyKey])
@@ -2238,4 +2367,3 @@ model MatchonMessageRecipient {
   @@index([gymId, createdAt])
   @@index([referenceType, referenceId])
 }
-
