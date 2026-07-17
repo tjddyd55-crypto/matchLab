@@ -21,6 +21,7 @@ export function getAdminNavItems(): AdminNavItem[] {
     { href: "/admin/events", label: "대회" },
     { href: "/admin/organizers", label: "주최자" },
     { href: "/admin/association-applications", label: "협회 가입 신청" },
+    { href: "/admin/gym-applications", label: "체육관 가입 신청" },
     { href: "/admin/public-partners", label: "파트너 로고" },
     { href: "/admin/credits", label: "크레딧" },
     { href: "/admin/gyms", label: "체육관" },

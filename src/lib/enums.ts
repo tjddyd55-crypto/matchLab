@@ -49,4 +49,7 @@ export {
   AssociationApplicationAttachmentType,
   StreamType,
   UserRole,
+  GymApplicationStatus,
+  GymApplicationAttachmentType,
+  AssociationGymConnectionRequestStatus,
 } from "@/generated/prisma";

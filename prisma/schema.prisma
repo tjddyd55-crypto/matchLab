@@ -281,6 +281,8 @@ enum AuditAction {
   gym_owner_invite_cancelled
   public_partner_changed
   association_application_reviewed
+  gym_application_reviewed
+  association_gym_connection_reviewed
 }
 
 enum BracketChangeType {
@@ -351,6 +353,9 @@ model User {
   associationMemberGymApplicationsCreated AssociationMemberGymApplication[]      @relation("MemberGymApplicationCreator")
   associationMemberGymOwnerInvitesCreated AssociationMemberGym[]                  @relation("MemberGymOwnerInviteCreator")
   associationApplicationsReviewed         AssociationApplication[]               @relation("AssociationApplicationReviewer")
+  gymApplicationsReviewed                 GymApplication[]                       @relation("GymApplicationReviewer")
+  associationGymConnectionRequestsReviewed AssociationGymConnectionRequest[]     @relation("AssociationGymConnectionReviewer")
+  associationGymConnectionRequestsMade     AssociationGymConnectionRequest[]     @relation("AssociationGymConnectionRequester")
 }
 
 model Organizer {
@@ -381,6 +386,7 @@ model Organizer {
   associationMemberGyms            AssociationMemberGym[]
   associationMemberGymSettings     AssociationMemberGymSettings?
   associationApplicationsCreated   AssociationApplication[] @relation("AssociationApplicationCreatedOrganizer")
+  associationGymConnectionRequests AssociationGymConnectionRequest[]
 }
 
 model Gym {
@@ -408,6 +414,8 @@ model Gym {
 
   associationMemberGyms            AssociationMemberGym[]
   associationMemberGymApplications AssociationMemberGymApplication[] @relation("MemberGymApplicationLinkedGym")
+  gymApplicationsCreated           GymApplication[]                  @relation("GymApplicationCreatedGym")
+  associationGymConnectionRequests AssociationGymConnectionRequest[]
 }
 
 model Fighter {
@@ -1874,5 +1882,111 @@ model AssociationApplicationAttachment {
   application AssociationApplication @relation(fields: [applicationId], references: [id], onDelete: Cascade)
 
   @@index([applicationId])
+}
+
+/// 플랫폼 독립 체육관 가입 신청 — 협회 소속과 무관. 승인 시 Gym만 생성한다.
+enum GymApplicationStatus {
+  pending
+  under_review
+  approved
+  rejected
+  withdrawn
+}
+
+enum GymApplicationAttachmentType {
+  business_registration
+  gym_photo
+  representative_proof
+  other
+}
+
+model GymApplication {
+  id                   String              @id @default(cuid())
+  gymName              String
+  representativeName   String
+  contactName          String
+  phone                String?
+  mobilePhone          String
+  email                String
+  postalCode           String?
+  address              String?
+  addressDetail        String?
+  description          String?
+  status               GymApplicationStatus @default(pending)
+  submittedAt          DateTime            @default(now())
+  reviewedAt           DateTime?
+  reviewedByUserId     String?
+  reviewMemo           String?
+  createdGymId         String?
+  /// 승인 후 체육관 owner 계정 초대 (원문 금지, hash만)
+  ownerInviteTokenHash String?             @unique
+  ownerInviteExpiresAt DateTime?
+  ownerInviteCreatedAt DateTime?
+  ownerInviteCreatedByUserId String?
+  termsAcceptedAt      DateTime?
+  privacyAcceptedAt    DateTime?
+  deletedAt            DateTime?
+  createdAt            DateTime            @default(now())
+  updatedAt            DateTime            @updatedAt
+
+  reviewedByUser User? @relation("GymApplicationReviewer", fields: [reviewedByUserId], references: [id], onDelete: SetNull)
+  createdGym     Gym?  @relation("GymApplicationCreatedGym", fields: [createdGymId], references: [id], onDelete: SetNull)
+  attachments    GymApplicationAttachment[]
+
+  @@index([status])
+  @@index([submittedAt])
+  @@index([deletedAt])
+}
+
+model GymApplicationAttachment {
+  id               String                       @id @default(cuid())
+  applicationId    String
+  attachmentType   GymApplicationAttachmentType
+  storageBucket    String
+  storagePath      String
+  originalFileName String
+  mimeType         String
+  sizeBytes        Int
+  uploadedAt       DateTime                     @default(now())
+  deletedAt        DateTime?
+
+  application GymApplication @relation(fields: [applicationId], references: [id], onDelete: Cascade)
+
+  @@index([applicationId])
+}
+
+/// 이미 MATCHON Gym이 있는 체육관의 협회 연결 요청 (신규 회원사 신청과 분리)
+enum AssociationGymConnectionRequestStatus {
+  pending
+  approved
+  rejected
+  cancelled
+  withdrawn
+}
+
+model AssociationGymConnectionRequest {
+  id                         String                                 @id @default(cuid())
+  gymId                      String
+  associationOrganizerId     String
+  requestingUserId           String
+  status                     AssociationGymConnectionRequestStatus  @default(pending)
+  memo                       String?
+  reviewedAt                 DateTime?
+  reviewedByUserId           String?
+  reviewMemo                 String?
+  createdAssociationMemberGymId String?
+  deletedAt                  DateTime?
+  createdAt                  DateTime                               @default(now())
+  updatedAt                  DateTime                               @updatedAt
+
+  gym                  Gym       @relation(fields: [gymId], references: [id], onDelete: Cascade)
+  associationOrganizer Organizer @relation(fields: [associationOrganizerId], references: [id], onDelete: Cascade)
+  requestingUser       User      @relation("AssociationGymConnectionRequester", fields: [requestingUserId], references: [id], onDelete: Cascade)
+  reviewedByUser       User?     @relation("AssociationGymConnectionReviewer", fields: [reviewedByUserId], references: [id], onDelete: SetNull)
+
+  @@index([gymId, associationOrganizerId])
+  @@index([associationOrganizerId, status])
+  @@index([status])
+  @@index([deletedAt])
 }
 
