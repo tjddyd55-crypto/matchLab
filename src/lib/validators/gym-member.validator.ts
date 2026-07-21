@@ -32,12 +32,26 @@ function optionalPositiveInt() {
   }, z.number().int().nonnegative().optional());
 }
 
+function optionalBoolFlag() {
+  return z.preprocess((val) => {
+    if (val === "" || val === undefined || val === null) return undefined;
+    return val;
+  }, z.enum(["true", "false"]).optional());
+}
+
 function optionalPositiveFloat() {
   return z.preprocess((val) => {
     if (val === "" || val === undefined || val === null) return undefined;
     const n = Number(val);
     return Number.isFinite(n) ? n : undefined;
   }, z.number().positive().optional());
+}
+
+function optionalPaymentMethod() {
+  return z.preprocess((val) => {
+    if (val === "" || val === undefined || val === null) return undefined;
+    return val;
+  }, z.nativeEnum(GymMemberPaymentMethod).optional());
 }
 
 const optionalBirthDate = z.preprocess((val) => {
@@ -82,33 +96,21 @@ export const gymMemberCreateSchema = z.object({
   primarySport: optionalTrimmedString(80),
   rankName: optionalTrimmedString(80),
   memo: optionalTrimmedString(2000),
-  smsOptOut: z
-    .enum(["true", "false"])
-    .optional()
-    .transform((v) => v === "true"),
-  confirmDuplicate: z
-    .enum(["true", "false"])
-    .optional()
-    .transform((v) => v === "true"),
+  smsOptOut: optionalBoolFlag().transform((v) => v === "true"),
+  confirmDuplicate: optionalBoolFlag().transform((v) => v === "true"),
   /** 이용권 배정 (선택) */
   planId: optionalTrimmedString(40),
   subscriptionStartedAt: optionalDateOnly,
   subscriptionEndsAt: optionalDateOnly,
   paymentAmount: optionalPositiveInt(),
-  paymentMethod: z.nativeEnum(GymMemberPaymentMethod).optional(),
+  paymentMethod: optionalPaymentMethod(),
   paymentMemo: optionalTrimmedString(500),
   /** 선수로 함께 등록 */
-  registerAsFighter: z
-    .enum(["true", "false"])
-    .optional()
-    .transform((v) => v === "true"),
+  registerAsFighter: optionalBoolFlag().transform((v) => v === "true"),
   height: optionalPositiveFloat(),
   weight: optionalPositiveFloat(),
   fighterPrimarySport: optionalTrimmedString(80),
-  createLoginAccount: z
-    .enum(["true", "false"])
-    .optional()
-    .transform((v) => v === "true"),
+  createLoginAccount: optionalBoolFlag().transform((v) => v === "true"),
   loginId: z
     .string()
     .trim()
@@ -139,10 +141,7 @@ export const gymMemberUpdateSchema = z.object({
   primarySport: optionalTrimmedString(80),
   rankName: optionalTrimmedString(80),
   memo: optionalTrimmedString(2000),
-  smsOptOut: z
-    .enum(["true", "false"])
-    .optional()
-    .transform((v) => v === "true"),
+  smsOptOut: optionalBoolFlag().transform((v) => v === "true"),
   joinedAt: optionalDateOnly,
 });
 
