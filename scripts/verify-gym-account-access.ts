@@ -181,12 +181,18 @@ function assertGymPortalNav() {
 
   assert.deepEqual(labels, [
     "홈",
+    "전체 회원",
+    "회원 등록",
+    "이용권 관리",
     "선수 목록",
     "선수 등록",
     "체육관 정보",
   ]);
   assert.deepEqual(hrefs, [
     "/gym",
+    "/gym/members",
+    "/gym/members/new",
+    "/gym/membership-plans",
     "/gym/fighters",
     "/gym/fighters/new",
     "/gym/profile",
@@ -198,6 +204,12 @@ function assertGymPortalNav() {
   assert.ok(!labels.some((l) => /대회|신청/.test(l)));
 
   const groups = getGymPortalNavGroups();
+  const memberGroup = groups.find((g) => g.id === "members");
+  assert.equal(memberGroup?.label, "회원 관리");
+  assert.deepEqual(
+    memberGroup?.items.map((i) => i.label),
+    ["전체 회원", "회원 등록", "이용권 관리"],
+  );
   const fighterGroup = groups.find((g) => g.id === "fighters");
   assert.equal(fighterGroup?.label, "선수 관리");
   assert.deepEqual(
@@ -205,7 +217,7 @@ function assertGymPortalNav() {
     ["선수 목록", "선수 등록"],
   );
 
-  // PC/mobile same SSOT: Sidebar + Sheet + bottom all call getGymPortalNavGroups/Items
+  // PC/mobile: Sidebar+Sheet use groups; bottom uses compact mobile items
   const sidebar = readFileSync(
     join(root, "src/components/layout/Sidebar.tsx"),
     "utf8",
@@ -223,7 +235,7 @@ function assertGymPortalNav() {
     "utf8",
   );
   assert.match(sidebar, /GymPortalNavGroups/);
-  assert.match(bottom, /getGymPortalNavItems/);
+  assert.match(bottom, /getGymPortalMobileBottomNavItems/);
   assert.match(sheet, /getGymPortalNavGroups/);
   assert.match(header, /GymMobileNavSheet/);
   assert.doesNotMatch(sidebar, /\/gym\/events/);

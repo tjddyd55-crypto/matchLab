@@ -1,7 +1,7 @@
 import Link from "next/link";
 import type { DashboardRole } from "@/components/layout/DashboardShell";
 import { getAdminMobileBottomNavItems } from "@/lib/navigation/admin-navigation";
-import { getGymPortalNavItems } from "@/lib/navigation/gym-portal-navigation";
+import { getGymPortalMobileBottomNavItems } from "@/lib/navigation/gym-portal-navigation";
 import { cn } from "@/lib/utils";
 
 const bottomNavByRole: Record<
@@ -29,7 +29,7 @@ export function MobileBottomNav({
 }) {
   const items =
     role === "gym"
-      ? getGymPortalNavItems()
+      ? getGymPortalMobileBottomNavItems()
       : role === "admin"
         ? getAdminMobileBottomNavItems()
         : bottomNavByRole[role];

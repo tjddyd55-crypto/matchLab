@@ -1,6 +1,6 @@
 /**
  * 회원사(/gym) 포털 글로벌 네비 SSOT.
- * PC sidebar · 모바일 Sheet · bottom nav가 동일 소스를 사용한다.
+ * PC sidebar · 모바일 Sheet가 동일 소스를 사용한다.
  * 대회·신청 route는 유지하되 기본 메뉴에는 노출하지 않는다.
  */
 
@@ -24,6 +24,15 @@ export function getGymPortalNavGroups(): GymPortalNavGroup[] {
       items: [{ href: "/gym", label: "홈" }],
     },
     {
+      id: "members",
+      label: "회원 관리",
+      items: [
+        { href: "/gym/members", label: "전체 회원" },
+        { href: "/gym/members/new", label: "회원 등록" },
+        { href: "/gym/membership-plans", label: "이용권 관리" },
+      ],
+    },
+    {
       id: "fighters",
       label: "선수 관리",
       items: [
@@ -39,9 +48,22 @@ export function getGymPortalNavGroups(): GymPortalNavGroup[] {
   ];
 }
 
-/** 평탄화 — bottom nav·검증용 */
+/** 평탄화 — 검증·시트용 */
 export function getGymPortalNavItems(): GymPortalNavItem[] {
   return getGymPortalNavGroups().flatMap((g) => g.items);
+}
+
+/**
+ * 모바일 bottom nav — 핵심만.
+ * 전체 그룹을 flat으로 넣지 않는다.
+ */
+export function getGymPortalMobileBottomNavItems(): GymPortalNavItem[] {
+  return [
+    { href: "/gym", label: "홈" },
+    { href: "/gym/members", label: "회원" },
+    { href: "/gym/fighters", label: "선수" },
+    { href: "/gym/profile", label: "더보기" },
+  ];
 }
 
 export function getGymPortalHomePaths(): string[] {
@@ -68,6 +90,13 @@ export function isGymPortalNavItemActive(
       pathname === "/gym/fighters" ||
       (pathname.startsWith("/gym/fighters/") &&
         !pathname.startsWith("/gym/fighters/new"))
+    );
+  }
+  if (href === "/gym/members") {
+    return (
+      pathname === "/gym/members" ||
+      (pathname.startsWith("/gym/members/") &&
+        !pathname.startsWith("/gym/members/new"))
     );
   }
   return pathname === href || pathname.startsWith(`${href}/`);

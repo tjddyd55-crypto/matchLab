@@ -16,7 +16,15 @@ function assertGymPortalNavSsot() {
   const items = getGymPortalNavItems();
   assert.deepEqual(
     items.map((i) => i.label),
-    ["홈", "선수 목록", "선수 등록", "체육관 정보"],
+    [
+      "홈",
+      "전체 회원",
+      "회원 등록",
+      "이용권 관리",
+      "선수 목록",
+      "선수 등록",
+      "체육관 정보",
+    ],
   );
   assert.ok(!items.some((i) => /대회|신청/.test(i.label)));
   for (const href of GYM_PORTAL_HIDDEN_EVENT_HREFS) {
