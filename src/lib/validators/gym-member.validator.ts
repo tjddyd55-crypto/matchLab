@@ -163,10 +163,7 @@ export const gymMembershipPlanSchema = z.object({
   }, z.number().int().nonnegative()),
   description: optionalTrimmedString(500),
   sortOrder: optionalPositiveInt(),
-  isActive: z
-    .enum(["true", "false"])
-    .optional()
-    .transform((v) => v !== "false"),
+  isActive: optionalBoolFlag().transform((v) => v !== "false"),
 });
 
 export type GymMembershipPlanInput = z.infer<typeof gymMembershipPlanSchema>;
@@ -188,10 +185,7 @@ export const gymMemberSubscriptionExtendSchema = z.object({
 export const gymMemberPauseSchema = z.object({
   pausedAt: optionalDateOnly,
   resumeAt: optionalDateOnly,
-  extendEndsAt: z
-    .enum(["true", "false"])
-    .optional()
-    .transform((v) => v !== "false"),
+  extendEndsAt: optionalBoolFlag().transform((v) => v !== "false"),
   reason: optionalTrimmedString(500),
 });
 
@@ -201,7 +195,7 @@ export const gymMemberPaymentCreateSchema = z.object({
     return Number.isFinite(n) ? Math.trunc(n) : undefined;
   }, z.number().int().positive("금액을 입력해 주세요.")),
   paidAt: optionalDateOnly,
-  paymentMethod: z.nativeEnum(GymMemberPaymentMethod).default("cash"),
+  paymentMethod: optionalPaymentMethod().transform((v) => v ?? "cash"),
   subscriptionId: optionalTrimmedString(40),
   memo: optionalTrimmedString(500),
 });
@@ -210,10 +204,7 @@ export const gymMemberPromoteFighterSchema = z.object({
   height: optionalPositiveFloat(),
   weight: optionalPositiveFloat(),
   primarySport: optionalTrimmedString(80),
-  createLoginAccount: z
-    .enum(["true", "false"])
-    .optional()
-    .transform((v) => v === "true"),
+  createLoginAccount: optionalBoolFlag().transform((v) => v === "true"),
   loginId: z
     .string()
     .trim()
