@@ -37,6 +37,39 @@ enum FighterStatus {
   archived
 }
 
+/// 체육관 회원 저장 상태 (만료·만료예정은 이용권 endsAt으로 계산)
+enum GymMemberStatus {
+  active
+  paused
+  withdrawn
+}
+
+enum GymMembershipDurationType {
+  days
+  months
+  fixed_end
+}
+
+enum GymMemberSubscriptionStatus {
+  active
+  paused
+  ended
+  cancelled
+}
+
+enum GymMemberPaymentMethod {
+  cash
+  card
+  transfer
+  other
+}
+
+enum GymMemberPaymentStatus {
+  paid
+  cancelled
+  refunded
+}
+
 enum OrganizerType {
   association
   gym
@@ -281,6 +314,15 @@ enum AuditAction {
   gym_owner_invite_cancelled
   public_partner_changed
   association_application_reviewed
+  gym_member_created
+  gym_member_updated
+  gym_member_paused
+  gym_member_resumed
+  gym_member_withdrawn
+  gym_member_fighter_linked
+  gym_member_subscription_changed
+  gym_member_payment_created
+  gym_member_payment_cancelled
 }
 
 enum BracketChangeType {
@@ -408,6 +450,11 @@ model Gym {
 
   associationMemberGyms            AssociationMemberGym[]
   associationMemberGymApplications AssociationMemberGymApplication[] @relation("MemberGymApplicationLinkedGym")
+
+  gymMembers          GymMember[]
+  gymMembershipPlans  GymMembershipPlan[]
+  gymMemberSubscriptions GymMemberSubscription[]
+  gymMemberPayments   GymMemberPayment[]
 }
 
 model Fighter {
@@ -415,6 +462,8 @@ model Fighter {
   fighterCode      String        @unique
   userId           String?       @unique
   currentGymId     String?
+  /// 체육관 회원(사람 SSOT)과의 선택적 1:1 — additive, nullable
+  gymMemberId      String?       @unique
   name             String
   birthDate        DateTime
   /// MVP는 자유 문자열 — 추후 Gender enum 분리 가능
@@ -439,6 +488,7 @@ model Fighter {
 
   user       User? @relation(fields: [userId], references: [id], onDelete: SetNull)
   currentGym Gym?  @relation(fields: [currentGymId], references: [id], onDelete: SetNull)
+  gymMember  GymMember? @relation(fields: [gymMemberId], references: [id], onDelete: SetNull)
 
   gymHistories      FighterGymHistory[]
   applications      EventApplication[]
@@ -458,6 +508,145 @@ model Fighter {
 
   @@index([birthDate, gender, phone])
   @@index([currentGymId])
+}
+
+/// 체육관에 등록된 모든 사람의 기본 정보 SSOT (일반 회원 + 선수 회원)
+model GymMember {
+  id                     String         @id @default(cuid())
+  gymId                  String
+  memberNumber           String
+  name                   String
+  /// 화면 표시용 원본/하이픈 포함 가능
+  phone                  String
+  /// 숫자만 정규화 — unique 강제 없음 (가족 공용번호 허용)
+  normalizedPhone        String
+  birthDate              DateTime?
+  gender                 String?
+  email                  String?
+  postalCode             String?
+  address                String?
+  addressDetail          String?
+  emergencyContactName   String?
+  emergencyContactPhone  String?
+  guardianName           String?
+  guardianPhone          String?
+  joinedAt               DateTime       @default(now())
+  status                 GymMemberStatus @default(active)
+  primarySport           String?
+  rankName               String?
+  memo                   String?
+  /// 향후 문자 수신 거부 (SMS 자동화는 1차 범위 외)
+  smsOptOut              Boolean        @default(false)
+  profileImagePath       String?
+  createdByUserId        String?
+  updatedByUserId        String?
+  deletedAt              DateTime?
+  createdAt              DateTime       @default(now())
+  updatedAt              DateTime       @updatedAt
+
+  gym           Gym                      @relation(fields: [gymId], references: [id], onDelete: Cascade)
+  fighter       Fighter?
+  subscriptions GymMemberSubscription[]
+  payments      GymMemberPayment[]
+
+  @@unique([gymId, memberNumber])
+  @@index([gymId, deletedAt])
+  @@index([gymId, status])
+  @@index([gymId, phone])
+  @@index([gymId, normalizedPhone])
+  @@index([gymId, name])
+}
+
+/// 체육관별 이용권 상품
+model GymMembershipPlan {
+  id            String                   @id @default(cuid())
+  gymId         String
+  name          String
+  durationType  GymMembershipDurationType
+  durationValue Int?
+  price         Int                      @default(0)
+  description   String?
+  sortOrder     Int                      @default(0)
+  isActive      Boolean                  @default(true)
+  deletedAt     DateTime?
+  createdAt     DateTime                 @default(now())
+  updatedAt     DateTime                 @updatedAt
+
+  gym           Gym                     @relation(fields: [gymId], references: [id], onDelete: Cascade)
+  subscriptions GymMemberSubscription[]
+
+  @@index([gymId, deletedAt])
+  @@index([gymId, isActive])
+}
+
+/// 회원에게 적용된 이용권 (상품명·가격 snapshot)
+model GymMemberSubscription {
+  id                String                      @id @default(cuid())
+  gymId             String
+  gymMemberId       String
+  planId            String?
+  planNameSnapshot  String
+  priceSnapshot     Int                         @default(0)
+  startedAt         DateTime
+  endsAt            DateTime?
+  status            GymMemberSubscriptionStatus @default(active)
+  pausedAt          DateTime?
+  resumedAt         DateTime?
+  cancelledAt       DateTime?
+  memo              String?
+  createdByUserId   String?
+  createdAt         DateTime                    @default(now())
+  updatedAt         DateTime                    @updatedAt
+
+  gym     Gym                        @relation(fields: [gymId], references: [id], onDelete: Cascade)
+  member  GymMember                  @relation(fields: [gymMemberId], references: [id], onDelete: Cascade)
+  plan    GymMembershipPlan?         @relation(fields: [planId], references: [id], onDelete: SetNull)
+  pauses  GymMemberSubscriptionPause[]
+  payments GymMemberPayment[]
+
+  @@index([gymMemberId, status, endsAt])
+  @@index([gymId, status])
+}
+
+/// 이용권 휴회 이력
+model GymMemberSubscriptionPause {
+  id             String    @id @default(cuid())
+  subscriptionId String
+  pausedAt       DateTime
+  resumeAt       DateTime?
+  resumedAt      DateTime?
+  extendEndsAt   Boolean   @default(true)
+  reason         String?
+  createdByUserId String?
+  createdAt      DateTime  @default(now())
+
+  subscription GymMemberSubscription @relation(fields: [subscriptionId], references: [id], onDelete: Cascade)
+
+  @@index([subscriptionId])
+}
+
+/// 회비 납부 내역 (카드·계좌 평문 저장 금지)
+model GymMemberPayment {
+  id              String                 @id @default(cuid())
+  gymId           String
+  gymMemberId     String
+  subscriptionId  String?
+  paidAt          DateTime
+  amount          Int
+  paymentMethod   GymMemberPaymentMethod @default(cash)
+  status          GymMemberPaymentStatus @default(paid)
+  memo            String?
+  cancelledAt     DateTime?
+  createdByUserId String?
+  createdAt       DateTime               @default(now())
+  updatedAt       DateTime               @updatedAt
+
+  gym          Gym                    @relation(fields: [gymId], references: [id], onDelete: Cascade)
+  member       GymMember              @relation(fields: [gymMemberId], references: [id], onDelete: Cascade)
+  subscription GymMemberSubscription? @relation(fields: [subscriptionId], references: [id], onDelete: SetNull)
+
+  @@index([gymMemberId, paidAt])
+  @@index([gymId, paidAt])
 }
 
 /// 선수 공개 개인 프로필 (주최자 공개 풀·체육관 DB와 별도)
