@@ -457,6 +457,7 @@ export const fighterRepository = {
       primarySport?: string | null;
       gymInternalMemo?: string | null;
       currentGymId: string;
+      gymMemberId?: string | null;
     },
   ): Promise<{ id: string; fighterCode: string }> {
     const fighter = await tx.fighter.create({
@@ -475,6 +476,7 @@ export const fighterRepository = {
         guardianPhone: params.guardianPhone ?? null,
         primarySport: params.primarySport ?? null,
         currentGymId: params.currentGymId,
+        gymMemberId: params.gymMemberId ?? null,
       },
       select: { id: true, fighterCode: true },
     });

@@ -7,6 +7,7 @@ import {
   DuplicateCheckStatus,
   FighterRegistrationSubmissionStatus,
   FighterStatus,
+  GymMemberStatus,
 } from "@/lib/enums";
 import { generateTemporaryPassword } from "@/lib/fighter-login";
 import { normalizeGymFighterPhone } from "@/lib/gym-fighter-management";
@@ -29,6 +30,7 @@ import {
 } from "@/lib/repositories/fighter.repository";
 import { fighterAccountRepository } from "@/lib/repositories/fighter-account.repository";
 import { registrationRepository } from "@/lib/repositories/registration.repository";
+import { gymMemberRepository } from "@/lib/repositories/gym-member.repository";
 import type {
   GymFighterAccountStatus,
   GymFighterProfileDisplayStatus,
@@ -246,6 +248,26 @@ export const fighterService = {
     }
 
     const created = await prisma.$transaction(async (tx) => {
+      const memberNumber = await gymMemberRepository.nextMemberNumber(gymId, tx);
+      const member = await gymMemberRepository.create(
+        {
+          gym: { connect: { id: gymId } },
+          memberNumber,
+          name: input.name.trim(),
+          phone,
+          normalizedPhone: phone,
+          birthDate,
+          gender: input.gender,
+          guardianName: input.guardianName ?? null,
+          guardianPhone: input.guardianPhone ?? null,
+          primarySport: input.primarySport ?? null,
+          status: GymMemberStatus.active,
+          createdByUserId: actor.userId,
+          updatedByUserId: actor.userId,
+        },
+        tx,
+      );
+
       let fighter: { id: string; fighterCode: string } | null = null;
       const payload = {
         name: input.name.trim(),
@@ -259,6 +281,7 @@ export const fighterService = {
         guardianPhone: input.guardianPhone ?? null,
         gymInternalMemo: input.gymInternalMemo ?? null,
         currentGymId: gymId,
+        gymMemberId: member.id,
       };
 
       const maxCodeAttempts = 3;
@@ -298,6 +321,7 @@ export const fighterService = {
         fighterId: fighter.id,
         fighterCode: fighter.fighterCode,
         linked: false,
+        memberId: member.id,
       };
     });
 
