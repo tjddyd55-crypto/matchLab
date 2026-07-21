@@ -314,6 +314,9 @@ enum AuditAction {
   gym_owner_invite_cancelled
   public_partner_changed
   association_application_reviewed
+  /// Preview/독립 가입 브랜치와 enum 호환 — 값 삭제 금지
+  gym_application_reviewed
+  association_gym_connection_reviewed
   gym_member_created
   gym_member_updated
   gym_member_paused
