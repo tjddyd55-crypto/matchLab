@@ -326,6 +326,51 @@ enum AuditAction {
   gym_member_subscription_changed
   gym_member_payment_created
   gym_member_payment_cancelled
+  matchon_message_dispatch_created
+  matchon_message_dispatch_executed
+  matchon_message_template_changed
+}
+
+enum MatchonMessageChannel {
+  sms
+  lms
+  kakao_alimtalk
+}
+
+enum MatchonMessageSourceType {
+  manual
+  system
+  automation
+  test
+}
+
+enum MatchonMessageDispatchStatus {
+  draft
+  dry_run
+  queued
+  processing
+  completed
+  partially_failed
+  failed
+  blocked
+  cancelled
+}
+
+enum MatchonMessageRecipientStatus {
+  pending
+  dry_run
+  sent
+  accepted
+  delivered
+  failed
+  excluded
+  blocked
+  cancelled
+}
+
+enum MatchonMessageOwnerType {
+  platform
+  gym
 }
 
 enum BracketChangeType {
@@ -458,6 +503,10 @@ model Gym {
   gymMembershipPlans  GymMembershipPlan[]
   gymMemberSubscriptions GymMemberSubscription[]
   gymMemberPayments   GymMemberPayment[]
+
+  matchonMessageTemplates  MatchonMessageTemplate[]
+  matchonMessageDispatches MatchonMessageDispatch[]
+  matchonMessageRecipients MatchonMessageRecipient[]
 }
 
 model Fighter {
@@ -2066,5 +2115,112 @@ model AssociationApplicationAttachment {
   application AssociationApplication @relation(fields: [applicationId], references: [id], onDelete: Cascade)
 
   @@index([applicationId])
+}
+
+/// MATCHON 전용 메시징 템플릿 — 타 프로젝트/기능과 분리된 범용 구조
+model MatchonMessageTemplate {
+  id                  String                 @id @default(cuid())
+  ownerType           MatchonMessageOwnerType
+  gymId               String?
+  channel             MatchonMessageChannel
+  name                String
+  category            String?
+  subject             String?
+  body                String
+  kakaoTemplateCode   String?
+  variables           Json                   @default("{}")
+  buttons             Json?
+  approvedFingerprint String?
+  isApproved          Boolean                @default(false)
+  isActive            Boolean                @default(true)
+  isSystem            Boolean                @default(false)
+  deletedAt           DateTime?
+  createdByUserId     String?
+  createdAt           DateTime               @default(now())
+  updatedAt           DateTime               @updatedAt
+
+  gym       Gym?                     @relation(fields: [gymId], references: [id], onDelete: SetNull)
+  dispatches MatchonMessageDispatch[]
+
+  @@index([ownerType, gymId, deletedAt])
+  @@index([channel, isActive])
+  @@index([isApproved])
+}
+
+/// MATCHON 전용 발송 요청(dispatch) 스냅샷
+model MatchonMessageDispatch {
+  id                String                       @id @default(cuid())
+  ownerType         MatchonMessageOwnerType
+  gymId             String?
+  sourceType        MatchonMessageSourceType
+  channel           MatchonMessageChannel
+  templateId        String?
+  title             String?
+  subjectSnapshot   String?
+  bodySnapshot      String
+  requestedCount    Int                          @default(0)
+  eligibleCount     Int                          @default(0)
+  excludedCount     Int                          @default(0)
+  successCount      Int                          @default(0)
+  failureCount      Int                          @default(0)
+  dryRun            Boolean                      @default(true)
+  status            MatchonMessageDispatchStatus @default(draft)
+  /// platform | gym:{id} — nullable gymId unique 이슈 회피
+  idempotencyScope  String?
+  idempotencyKey    String?
+  blockedReason     String?
+  scheduledAt       DateTime?
+  startedAt         DateTime?
+  completedAt       DateTime?
+  createdByUserId   String?
+  metadata          Json?
+  createdAt         DateTime                     @default(now())
+  updatedAt         DateTime                     @updatedAt
+
+  gym      Gym?                      @relation(fields: [gymId], references: [id], onDelete: SetNull)
+  template MatchonMessageTemplate?   @relation(fields: [templateId], references: [id], onDelete: SetNull)
+  recipients MatchonMessageRecipient[]
+
+  @@unique([idempotencyScope, idempotencyKey])
+  @@index([ownerType, gymId, createdAt])
+  @@index([status, createdAt])
+  @@index([channel, dryRun])
+}
+
+/// MATCHON 전용 수신자 스냅샷 — referenceType/Id는 강결합 FK 없음
+model MatchonMessageRecipient {
+  id                        String                        @id @default(cuid())
+  dispatchId                String
+  gymId                     String?
+  referenceType             String?
+  referenceId               String?
+  recipientNameSnapshot     String?
+  phoneSnapshot             String
+  normalizedPhone           String
+  channel                   MatchonMessageChannel
+  subjectSnapshot           String?
+  bodySnapshot              String
+  templateVariablesSnapshot Json?
+  status                    MatchonMessageRecipientStatus @default(pending)
+  excludedReason            String?
+  providerMessageId         String?
+  providerCode              String?
+  providerMessage           String?
+  attemptCount              Int                           @default(0)
+  retryable                 Boolean                       @default(false)
+  lastAttemptAt             DateTime?
+  sentAt                    DateTime?
+  deliveredAt               DateTime?
+  failedAt                  DateTime?
+  createdAt                 DateTime                      @default(now())
+  updatedAt                 DateTime                      @updatedAt
+
+  dispatch MatchonMessageDispatch @relation(fields: [dispatchId], references: [id], onDelete: Cascade)
+  gym      Gym?                   @relation(fields: [gymId], references: [id], onDelete: SetNull)
+
+  @@index([dispatchId, status])
+  @@index([normalizedPhone])
+  @@index([gymId, createdAt])
+  @@index([referenceType, referenceId])
 }
 
