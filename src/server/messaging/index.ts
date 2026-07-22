@@ -18,3 +18,9 @@ export { renderMatchonMessageTemplate } from "./templates/matchon-message-templa
 export { computeMatchonTemplateFingerprint } from "./templates/matchon-template-fingerprint";
 export { MatchonDryRunProvider } from "./providers/matchon-dry-run-provider";
 export type { MatchonMessagingProvider } from "./providers/matchon-messaging-provider";
+export { MatchonAligoSmsProvider } from "./providers/matchon-aligo-sms-provider";
+export { MatchonAligoKakaoProvider } from "./providers/matchon-aligo-kakao-provider";
+export {
+  FakeAligoTransport,
+  MatchonAligoHttpTransport,
+} from "./transport/matchon-aligo-transport";

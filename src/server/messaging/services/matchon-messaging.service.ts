@@ -24,6 +24,9 @@ import type {
   MatchonTemplateVariableSchema,
 } from "../domain/matchon-message-types";
 import { MatchonDryRunProvider } from "../providers/matchon-dry-run-provider";
+import { MatchonAligoSmsProvider } from "../providers/matchon-aligo-sms-provider";
+import { MatchonAligoKakaoProvider } from "../providers/matchon-aligo-kakao-provider";
+import { FakeAligoTransport } from "../transport/matchon-aligo-transport";
 import { renderMatchonMessageTemplate } from "../templates/matchon-message-template-renderer";
 import { computeMatchonTemplateFingerprint } from "../templates/matchon-template-fingerprint";
 import { classifyMatchonSmsMessage } from "../utils/matchon-sms-length";
@@ -345,7 +348,8 @@ export class MatchonMessagingService {
     });
 
     // 현재 기본: DRY_RUN — 외부 transport 호출 0
-    // Aligo adapter 이중 가드는 adapters 커밋에서 연결
+    // Fake transport로 adapter 이중 가드 검증 (realSendAllowed=false면 호출 0)
+    const fakeTransport = new FakeAligoTransport();
 
     let successCount = 0;
     let failureCount = 0;
@@ -386,6 +390,47 @@ export class MatchonMessagingService {
           : new MatchonDryRunProvider(
               dispatch.channel === "lms" ? "lms" : "sms",
             );
+
+      if (dispatch.channel === "sms" || dispatch.channel === "lms") {
+        const smsProvider = new MatchonAligoSmsProvider(
+          this.config,
+          fakeTransport,
+          { commandAllowRealSend: options?.allowRealSend },
+        );
+        await smsProvider.send({
+          dispatchId: dispatch.id,
+          recipientId: recipient.id,
+          recipientPhone: recipient.normalizedPhone,
+          recipientName: recipient.recipientNameSnapshot ?? undefined,
+          subject: recipient.subjectSnapshot ?? undefined,
+          body: recipient.bodySnapshot,
+          idempotencyKey: `${dispatch.id}:${recipient.id}`,
+        });
+      } else if (dispatch.channel === "kakao_alimtalk") {
+        const kakaoProvider = new MatchonAligoKakaoProvider(
+          this.config,
+          fakeTransport,
+          {
+            commandAllowRealSend: options?.allowRealSend,
+            templateGuard: {
+              isApproved: false,
+              kakaoTemplateCode: null,
+              approvedFingerprint: null,
+              currentFingerprint: "execute-dry-run",
+            },
+          },
+        );
+        await kakaoProvider.send({
+          dispatchId: dispatch.id,
+          recipientId: recipient.id,
+          recipientPhone: recipient.normalizedPhone,
+          recipientName: recipient.recipientNameSnapshot ?? undefined,
+          subject: recipient.subjectSnapshot ?? undefined,
+          body: recipient.bodySnapshot,
+          templateCode: "DRY_RUN",
+          idempotencyKey: `${dispatch.id}:${recipient.id}`,
+        });
+      }
 
       const result = await provider.send({
         dispatchId: dispatch.id,
@@ -468,6 +513,14 @@ export class MatchonMessagingService {
       blockedReason: realGate.allowed ? null : realGate.reason,
       completedAt: new Date(),
     });
+
+    if (fakeTransport.calls.length > 0 && !realGate.allowed) {
+      throw new MatchonMessagingError(
+        MatchonMessagingErrorCode.REAL_SEND_NOT_ALLOWED,
+        "실발송 차단 상태에서 transport가 호출되었습니다.",
+        `transportCalls=${fakeTransport.calls.length}`,
+      );
+    }
 
     return matchonMessageRepository.getDispatch(dispatch.id);
   }
