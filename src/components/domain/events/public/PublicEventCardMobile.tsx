@@ -1,17 +1,9 @@
 import Link from "next/link";
-import { EventPosterImage } from "@/components/domain/events/EventPosterImage";
-import { EventStatusBadges } from "@/components/domain/events/EventStatusBadges";
+import { EventAnnouncementCard } from "@/components/domain/events/announcement/EventAnnouncementCard";
+import { eventAnnouncementPublicHref } from "@/components/domain/events/announcement/event-announcement-card-ui";
 import { EventMetaSummaryMobile } from "@/components/domain/events/public/EventMetaSummaryMobile";
-import { PublicEventDeadlineBadge } from "@/components/domain/events/public/PublicEventDeadlineBadge";
-import { PublicEventTrustBadges } from "@/components/domain/events/public/PublicEventTrustBadges";
-import { PUBLIC_EVENT_CARD_BODY_PADDING_CLASS } from "@/components/domain/events/public/public-event-layout";
 import {
-  publicEventCardClass,
-  publicEventCardLivePillClass,
-  publicEventCardPosterOverlayClass,
-  publicEventCardSportPillClass,
   publicEventCtaLabel,
-  publicEventHref,
   type PublicEventCardProps,
 } from "@/components/domain/events/public/public-event-ui";
 import { buttonVariants } from "@/components/ui/button";
@@ -22,77 +14,30 @@ export function PublicEventCardMobile({
   className,
   priorityImage,
 }: PublicEventCardProps) {
-  const href = publicEventHref(event.publicSlug);
+  const href = eventAnnouncementPublicHref(event.publicSlug);
   const ctaVariant =
     event.registrationStatus === "open" ? "default" : "outline";
 
   return (
-    <article className={cn(publicEventCardClass, "md:hidden", className)}>
-      <Link href={href} className="relative block">
-        <EventPosterImage
-          variant="card"
-          src={event.coverImageUrl}
-          alt={`${event.title} 포스터`}
-          boxClassName="rounded-none"
-          imageClassName="object-cover"
-          sizes="100vw"
-          priority={priorityImage}
-          overlay={
-            <>
-              <div
-                className={publicEventCardPosterOverlayClass}
-                aria-hidden
-              />
-              {event.primarySport ? (
-                <span className={publicEventCardSportPillClass}>
-                  {event.primarySport}
-                </span>
-              ) : null}
-              {event.status === "ongoing" ? (
-                <span className={publicEventCardLivePillClass}>
-                  <span
-                    className="size-1.5 animate-pulse rounded-full bg-white"
-                    aria-hidden
-                  />
-                  LIVE
-                </span>
-              ) : null}
-            </>
-          }
-        />
-      </Link>
-
-      <div
-        className={cn(
-          "flex flex-col gap-3 text-left",
-          PUBLIC_EVENT_CARD_BODY_PADDING_CLASS,
-          "pt-4",
-        )}
-      >
-        <div className="mb-1 flex flex-wrap items-center gap-1.5">
-          <EventStatusBadges
-            className="gap-2"
-            eventStatus={event.status}
-            registrationStatus={event.registrationStatus}
-            emphasizeRegistration={event.registrationStatus === "open"}
-          />
-          <PublicEventDeadlineBadge event={event} compact />
-        </div>
-        <PublicEventTrustBadges event={event} compact className="mb-1" />
-
-        <Link href={href} className="min-w-0">
-          <h3 className="line-clamp-2 font-black text-base leading-snug text-matchon-text-primary">
-            {event.title}
-          </h3>
-        </Link>
-
+    <EventAnnouncementCard
+      event={event}
+      className={className}
+      visibilityClassName="md:hidden"
+      posterHref={href}
+      titleHref={href}
+      priorityImage={priorityImage}
+      posterSizes="100vw"
+      titleSize="base"
+      showOrganizerUnderTitle={false}
+      meta={
         <EventMetaSummaryMobile
           eventDate={event.eventDate}
           location={event.location}
           registrationStartDate={event.registrationStartDate}
           registrationEndDate={event.registrationEndDate}
         />
-
+      }
+      actions={
         <Link
           href={href}
           className={cn(
@@ -102,7 +47,7 @@ export function PublicEventCardMobile({
         >
           {publicEventCtaLabel(event)}
         </Link>
-      </div>
-    </article>
+      }
+    />
   );
 }

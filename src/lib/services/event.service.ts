@@ -406,6 +406,17 @@ export type GymDashboardEventItemDTO = {
   applyDisabledReason?: string;
   registrationStatusLabel: string;
   gymApplicationCount: number;
+  /** 공개 카드와 동일 포스터·메타 (announcement SSOT) */
+  location: string | null;
+  posterUrl: string | null;
+  coverImageUrl: string | null;
+  primarySport: string | null;
+  divisionSummary: string;
+  registrationStatus: import("@/lib/event-organizer-status").OrganizerRegistrationStatus;
+  registrationDeadlineLabel: string;
+  registrationDeadlinePhase: import("@/lib/event-public-display").PublicEventDeadlinePhase;
+  hasPublicBrackets: boolean;
+  hasPublicResults: boolean;
 };
 
 export type GymHomeEventSummaryDTO = {
@@ -649,11 +660,17 @@ export const eventService = {
     actor: ActorContext,
   ): Promise<GymDashboardEventItemDTO[]> {
     const rows = await eventRepository.listEventsForGymDashboard();
+    const eventIds = rows.map((row) => row.id);
     const gymId = actor.gymId;
-    const activeFighterCount = gymId
-      ? (await fighterRepository.listActiveFightersForEventApplication(gymId))
-          .length
-      : 0;
+    const [activeFighterCount, bracketIds, resultIds] = await Promise.all([
+      gymId
+        ? fighterRepository
+            .listActiveFightersForEventApplication(gymId)
+            .then((fighters) => fighters.length)
+        : Promise.resolve(0),
+      eventRepository.findEventIdsWithPublicBrackets(eventIds),
+      eventRepository.findEventIdsWithPublicResults(eventIds),
+    ]);
 
     const applicationCountByEvent = new Map<string, number>();
     if (gymId) {
@@ -675,6 +692,13 @@ export const eventService = {
     return rows.map((row) => {
       const divisionCount = row._count.divisions;
       const hasPaymentSetting = row.paymentSetting != null;
+      const registrationStartDate = toIso(row.registrationStartDate);
+      const registrationEndDate = toIso(row.registrationEndDate);
+      const registrationDisplay = buildPublicRegistrationDisplay({
+        status: row.status,
+        registrationStartDate,
+        registrationEndDate,
+      });
       const apply = evaluateGymEventApplyEligibility({
         status: row.status,
         registrationStartDate: row.registrationStartDate,
@@ -700,8 +724,8 @@ export const eventService = {
         title: row.title,
         publicSlug: row.publicSlug,
         eventDate: toIso(row.eventDate),
-        registrationStartDate: toIso(row.registrationStartDate),
-        registrationEndDate: toIso(row.registrationEndDate),
+        registrationStartDate,
+        registrationEndDate,
         status: row.status,
         statusLabel: EVENT_STATUS_LABEL_KO[row.status],
         listingBadgeLabel,
@@ -716,6 +740,19 @@ export const eventService = {
         applyDisabledReason: apply.applyDisabledReason,
         registrationStatusLabel: apply.registrationStatusLabel,
         gymApplicationCount: applicationCountByEvent.get(row.id) ?? 0,
+        location: row.location,
+        posterUrl: row.posterUrl,
+        coverImageUrl: resolveEventCoverImageUrl({
+          posterUrl: row.posterUrl,
+          galleryImageUrl: row.images[0]?.imageUrl ?? null,
+        }),
+        primarySport: primarySportFromDivisions(row.divisions),
+        divisionSummary: buildDivisionSummary(row.divisions, divisionCount),
+        registrationStatus: registrationDisplay.registrationStatus,
+        registrationDeadlineLabel: registrationDisplay.registrationDeadlineLabel,
+        registrationDeadlinePhase: registrationDisplay.registrationDeadlinePhase,
+        hasPublicBrackets: bracketIds.has(row.id),
+        hasPublicResults: resultIds.has(row.id),
       };
     });
   },

@@ -1,5 +1,12 @@
 import type { PublicEventDetailDTO, PublicEventListItemDTO } from "@/lib/dto/public";
 import {
+  eventAnnouncementCardClass,
+  eventAnnouncementCardLivePillClass,
+  eventAnnouncementCardPosterOverlayClass,
+  eventAnnouncementCardSportPillClass,
+  eventAnnouncementPublicHref,
+} from "@/components/domain/events/announcement/event-announcement-card-ui";
+import {
   matchonFilterPillActiveClass,
   matchonFilterPillBaseClass,
   matchonFilterPillInactiveClass,
@@ -42,18 +49,12 @@ export const publicEventFilterRegionInputClass = cn(
   "w-full max-w-none",
 );
 
-/** Figma 포스터 중심 카드 */
-export const publicEventCardClass =
-  "group flex h-full flex-col gap-0 overflow-hidden rounded-[20px] border border-matchon-border bg-white py-0 shadow-sm transition-shadow hover:shadow-md";
-
+/** @deprecated Prefer eventAnnouncementCardClass — 공개 카드는 announcement SSOT 재사용 */
+export const publicEventCardClass = eventAnnouncementCardClass;
 export const publicEventCardPosterOverlayClass =
-  "pointer-events-none absolute inset-0 bg-gradient-to-t from-[rgba(10,10,30,0.85)] via-[rgba(10,10,30,0.3)] via-45% to-transparent to-70%";
-
-export const publicEventCardSportPillClass =
-  "absolute left-3 top-3 rounded-full bg-amber-100 px-2 py-0.5 text-[11px] font-bold text-amber-800";
-
-export const publicEventCardLivePillClass =
-  "absolute right-3 top-3 inline-flex items-center gap-1 rounded-full bg-red-600 px-2 py-1 text-[10px] font-extrabold tracking-wide text-white";
+  eventAnnouncementCardPosterOverlayClass;
+export const publicEventCardSportPillClass = eventAnnouncementCardSportPillClass;
+export const publicEventCardLivePillClass = eventAnnouncementCardLivePillClass;
 
 export type PublicEventCardProps = {
   event: PublicEventListItemDTO;
@@ -62,7 +63,7 @@ export type PublicEventCardProps = {
 };
 
 export function publicEventHref(slug: string): string {
-  return `/events/${slug}`;
+  return eventAnnouncementPublicHref(slug);
 }
 
 export function publicEventCtaLabel(event: PublicEventListItemDTO): string {

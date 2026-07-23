@@ -65,6 +65,7 @@
     "verify:gym-event-application-cancel": "tsx scripts/verify-gym-event-navigation.ts",
     "verify:gym-event-application-duplicate": "tsx scripts/verify-gym-event-navigation.ts",
     "verify:gym-event-independent-gym-policy": "tsx scripts/verify-gym-event-navigation.ts",
+    "verify:shared-event-announcement-card": "tsx scripts/verify-shared-event-announcement-card.ts",
     "verify:gym-member-ssot": "tsx scripts/verify-gym-member-ssot.ts",
     "verify:matchon-messaging": "tsx scripts/verify-matchon-messaging.ts",
     "verify:matchon-messaging-isolation": "tsx scripts/verify-matchon-messaging.ts",

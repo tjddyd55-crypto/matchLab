@@ -99,6 +99,17 @@ export type PublicEventListRecord = Prisma.EventGetPayload<{
   select: typeof listSelect;
 }>;
 
+/** 공개 listSelect + 체육관 신청 판단용 필드 */
+const gymDashboardListSelect = {
+  ...listSelect,
+  streamingConsentRequired: true,
+  paymentSetting: { select: { eventId: true } },
+} as const;
+
+export type GymDashboardEventRecord = Prisma.EventGetPayload<{
+  select: typeof gymDashboardListSelect;
+}>;
+
 export type PublicEventDetailRecord = Prisma.EventGetPayload<{
   select: typeof detailHeaderSelect;
 }>;
@@ -569,42 +580,15 @@ export const eventRepository = {
     });
   },
 
-  /** 체육관 대회 목록 — 공개 상태(draft·cancelled 제외), 신청 기간과 무관하게 전부 조회 */
-  async listEventsForGymDashboard(): Promise<
-    Prisma.EventGetPayload<{
-      select: {
-        id: true;
-        title: true;
-        publicSlug: true;
-        eventDate: true;
-        registrationStartDate: true;
-        registrationEndDate: true;
-        status: true;
-        liveStreamingEnabled: true;
-        streamingConsentRequired: true;
-        organizer: { select: { name: true } };
-        _count: { select: { divisions: true } };
-        paymentSetting: { select: { eventId: true } };
-      };
-    }>[]
-  > {
+  /**
+   * 체육관 대회 목록 — 공개 상태(draft·cancelled 제외).
+   * 포스터·장소·종목은 공개 listSelect와 동일 필드(SSOT)를 사용한다.
+   */
+  async listEventsForGymDashboard(): Promise<GymDashboardEventRecord[]> {
     return prisma.event.findMany({
       where: { status: { notIn: excludedFromPublic } },
       orderBy: [{ eventDate: "asc" }, { registrationEndDate: "asc" }],
-      select: {
-        id: true,
-        title: true,
-        publicSlug: true,
-        eventDate: true,
-        registrationStartDate: true,
-        registrationEndDate: true,
-        status: true,
-        liveStreamingEnabled: true,
-        streamingConsentRequired: true,
-        organizer: { select: { name: true } },
-        _count: { select: { divisions: true } },
-        paymentSetting: { select: { eventId: true } },
-      },
+      select: gymDashboardListSelect,
     });
   },
 };
