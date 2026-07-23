@@ -3,7 +3,10 @@
  */
 import { FighterStatus, type Prisma } from "@/generated/prisma";
 import { AppError } from "@/lib/errors/app-error";
-import { activeFighterAffiliatedWithGymWhere } from "@/lib/gym-affiliation";
+import {
+  activeFighterAffiliatedWithGymWhere,
+  activeFighterEligibleForEventApplicationWhere,
+} from "@/lib/gym-affiliation";
 import {
   activeGymHistoryWhere,
   fighterIdentityDayRange,
@@ -416,7 +419,7 @@ export const fighterRepository = {
     }[]
   > {
     return prisma.fighter.findMany({
-      where: activeFighterAffiliatedWithGymWhere(gymId),
+      where: activeFighterEligibleForEventApplicationWhere(gymId),
       orderBy: { createdAt: "desc" },
       select: {
         id: true,

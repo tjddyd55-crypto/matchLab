@@ -76,10 +76,13 @@ function main() {
   assert.ok(appsRoute.length > 0, "gym applications route must remain");
 
   const home = read("src/app/(dashboard)/gym/page.tsx");
-  assert.match(home, /전체 선수|활동 선수|비활동/);
+  assert.match(home, /체육관 홈/);
+  assert.match(home, /신청 가능 대회|신청 가능한 대회/);
   assert.match(home, /선수 등록/);
   assert.match(home, /체육관 정보/);
   assert.doesNotMatch(home, /대회·신청 현황|신청 관리|현장 모드/);
+  assert.doesNotMatch(home, /전체 선수/);
+  assert.doesNotMatch(home, /비활동 선수/);
 
   console.log("verify:gym-fighter-management: ALL_PASS");
 }

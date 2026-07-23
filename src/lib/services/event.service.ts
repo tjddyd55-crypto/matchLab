@@ -12,9 +12,12 @@ import type {
 import type { Prisma } from "@/generated/prisma";
 import { AuditAction, EventStatus } from "@/generated/prisma";
 import {
+  computeGymEventApplicationAvailability,
   evaluateGymEventApplyEligibility,
   gymListingBadgeLabel,
 } from "@/lib/gym-event-apply";
+import { prisma } from "@/lib/prisma";
+import { ApplicationStatus } from "@/lib/enums";
 import {
   normalizeEventDivisionWeightInput,
   resolveEventDivisionWeightFields,
@@ -39,7 +42,6 @@ import {
 import { AppError } from "@/lib/errors/app-error";
 import { geocodeVenueCoordinate } from "@/lib/naver-geocode.server";
 import { requireOrganizerForEvent, requireRole } from "@/lib/permissions";
-import { prisma } from "@/lib/prisma";
 import type {
   ChangeEventStatusInput,
   CreateEventDivisionInput,
@@ -393,6 +395,8 @@ export type GymDashboardEventItemDTO = {
   status: EventStatus;
   statusLabel: string;
   listingBadgeLabel: string;
+  availabilityPhase: string;
+  availabilityLabel: string;
   liveStreamingEnabled: boolean;
   streamingConsentRequired: boolean;
   organizerName: string;
@@ -401,6 +405,23 @@ export type GymDashboardEventItemDTO = {
   canApply: boolean;
   applyDisabledReason?: string;
   registrationStatusLabel: string;
+  gymApplicationCount: number;
+};
+
+export type GymHomeEventSummaryDTO = {
+  openCount: number;
+  scheduledCount: number;
+  appliedEventCount: number;
+  appliedFighterCount: number;
+  closingSoonCount: number;
+  openEvents: Array<{
+    id: string;
+    title: string;
+    eventDate: string;
+    registrationEndDate: string;
+    canApply: boolean;
+    gymApplicationCount: number;
+  }>;
 };
 
 const EVENT_STATUS_LABEL_KO: Record<EventStatus, string> = {
@@ -634,6 +655,23 @@ export const eventService = {
           .length
       : 0;
 
+    const applicationCountByEvent = new Map<string, number>();
+    if (gymId) {
+      const grouped = await prisma.eventApplication.groupBy({
+        by: ["eventId"],
+        where: {
+          gymId,
+          status: {
+            notIn: [ApplicationStatus.cancelled],
+          },
+        },
+        _count: { _all: true },
+      });
+      for (const g of grouped) {
+        applicationCountByEvent.set(g.eventId, g._count._all);
+      }
+    }
+
     return rows.map((row) => {
       const divisionCount = row._count.divisions;
       const hasPaymentSetting = row.paymentSetting != null;
@@ -644,6 +682,11 @@ export const eventService = {
         divisionCount,
         hasPaymentSetting,
         activeFighterCount,
+      });
+      const availability = computeGymEventApplicationAvailability({
+        status: row.status,
+        registrationStartDate: row.registrationStartDate,
+        registrationEndDate: row.registrationEndDate,
       });
 
       const listingBadgeLabel = gymListingBadgeLabel({
@@ -662,6 +705,8 @@ export const eventService = {
         status: row.status,
         statusLabel: EVENT_STATUS_LABEL_KO[row.status],
         listingBadgeLabel,
+        availabilityPhase: availability.phase,
+        availabilityLabel: availability.label,
         liveStreamingEnabled: row.liveStreamingEnabled,
         streamingConsentRequired: row.streamingConsentRequired,
         organizerName: row.organizer.name,
@@ -670,8 +715,60 @@ export const eventService = {
         canApply: apply.canApply,
         applyDisabledReason: apply.applyDisabledReason,
         registrationStatusLabel: apply.registrationStatusLabel,
+        gymApplicationCount: applicationCountByEvent.get(row.id) ?? 0,
       };
     });
+  },
+
+  async getGymHomeEventSummary(
+    actor: ActorContext,
+  ): Promise<GymHomeEventSummaryDTO> {
+    const events = await this.listEventsForGymDashboard(actor);
+    const gymId = actor.gymId;
+    const now = Date.now();
+    const weekMs = 7 * 24 * 60 * 60 * 1000;
+
+    const openEvents = events.filter((e) => e.canApply);
+    const scheduledCount = events.filter(
+      (e) => e.availabilityPhase === "scheduled",
+    ).length;
+    const appliedEventIds = new Set(
+      events.filter((e) => e.gymApplicationCount > 0).map((e) => e.id),
+    );
+
+    let appliedFighterCount = 0;
+    if (gymId) {
+      const apps = await prisma.eventApplication.findMany({
+        where: {
+          gymId,
+          status: { notIn: [ApplicationStatus.cancelled] },
+        },
+        select: { fighterId: true },
+        distinct: ["fighterId"],
+      });
+      appliedFighterCount = apps.length;
+    }
+
+    const closingSoonCount = openEvents.filter((e) => {
+      const end = new Date(e.registrationEndDate).getTime();
+      return end >= now && end - now <= weekMs;
+    }).length;
+
+    return {
+      openCount: openEvents.length,
+      scheduledCount,
+      appliedEventCount: appliedEventIds.size,
+      appliedFighterCount,
+      closingSoonCount,
+      openEvents: openEvents.slice(0, 5).map((e) => ({
+        id: e.id,
+        title: e.title,
+        eventDate: e.eventDate,
+        registrationEndDate: e.registrationEndDate,
+        canApply: e.canApply,
+        gymApplicationCount: e.gymApplicationCount,
+      })),
+    };
   },
 
   async listOrganizerEvents(

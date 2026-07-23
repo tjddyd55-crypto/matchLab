@@ -84,6 +84,16 @@ export function GymEventCard({ event }: { event: GymDashboardEventItemDTO }) {
             </dd>
           </div>
           <div className="flex justify-between gap-3">
+            <dt className="text-muted-foreground shrink-0">모집</dt>
+            <dd className="text-right font-medium">{event.availabilityLabel}</dd>
+          </div>
+          <div className="flex justify-between gap-3">
+            <dt className="text-muted-foreground shrink-0">우리 체육관 신청</dt>
+            <dd className="text-right font-medium">
+              {event.gymApplicationCount}명
+            </dd>
+          </div>
+          <div className="flex justify-between gap-3">
             <dt className="text-muted-foreground shrink-0">대회 상태</dt>
             <dd className="text-right">{event.statusLabel}</dd>
           </div>

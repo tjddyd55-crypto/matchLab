@@ -1,7 +1,7 @@
 /**
- * 회원사(/gym) 포털 글로벌 네비 SSOT.
+ * 체육관(/gym) 포털 글로벌 네비 SSOT.
  * PC sidebar · 모바일 Sheet가 동일 소스를 사용한다.
- * 대회·신청 route는 유지하되 기본 메뉴에는 노출하지 않는다.
+ * 대회 목록·신청 내역은 메뉴에 노출한다 (모바일은 더보기 Sheet).
  */
 
 export type GymPortalNavItem = {
@@ -41,8 +41,16 @@ export function getGymPortalNavGroups(): GymPortalNavGroup[] {
       ],
     },
     {
+      id: "events",
+      label: "대회",
+      items: [
+        { href: "/gym/events", label: "대회 목록" },
+        { href: "/gym/applications", label: "신청 내역" },
+      ],
+    },
+    {
       id: "profile",
-      label: null,
+      label: "체육관",
       items: [{ href: "/gym/profile", label: "체육관 정보" }],
     },
   ];
@@ -70,13 +78,27 @@ export function getGymPortalHomePaths(): string[] {
   return ["/gym"];
 }
 
-/** 기본 메뉴에 나오면 안 되는 대회·신청 경로 */
+/**
+ * 기본 메뉴에 노출하지 않는 보조 경로.
+ * 대회 목록·신청 내역은 메뉴에 포함되므로 여기 두지 않는다.
+ */
 export const GYM_PORTAL_HIDDEN_EVENT_HREFS = [
-  "/gym/events",
-  "/gym/applications",
   "/gym/invite-links",
   "/gym/records",
 ] as const;
+
+/** 메뉴·페이지가 동일하게 쓰는 대회 신청 접근 경로 */
+export const GYM_PORTAL_EVENT_APPLICATION_HREFS = [
+  "/gym/events",
+  "/gym/applications",
+] as const;
+
+export function canGymAccessEventApplications(input: {
+  role: string;
+  gymId: string | null | undefined;
+}): boolean {
+  return input.role === "gym" && Boolean(input.gymId);
+}
 
 export function isGymPortalNavItemActive(
   href: string,
@@ -97,6 +119,17 @@ export function isGymPortalNavItemActive(
       pathname === "/gym/members" ||
       (pathname.startsWith("/gym/members/") &&
         !pathname.startsWith("/gym/members/new"))
+    );
+  }
+  if (href === "/gym/events") {
+    return (
+      pathname === "/gym/events" || pathname.startsWith("/gym/events/")
+    );
+  }
+  if (href === "/gym/applications") {
+    return (
+      pathname === "/gym/applications" ||
+      pathname.startsWith("/gym/applications/")
     );
   }
   return pathname === href || pathname.startsWith(`${href}/`);

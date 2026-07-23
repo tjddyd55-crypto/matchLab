@@ -149,8 +149,8 @@ export default async function GymEventApplyPage({
             meta={registrationPeriodMeta(form)}
           />
           <PublicApplicationEmptyState
-            title="신청 가능한 선수가 없습니다"
-            description="먼저 선수를 등록한 뒤 대회 신청을 진행해 주세요."
+            title="등록된 선수가 없습니다"
+            description="일반 회원은 신청 대상이 아닙니다. 먼저 회원을 선수로 등록해 주세요."
             tone="info"
             action={
               <div className="flex flex-col gap-2 sm:flex-row sm:flex-wrap">
@@ -158,7 +158,7 @@ export default async function GymEventApplyPage({
                   href={`/gym/fighters/new?returnTo=/gym/events/${eventId}/apply`}
                   className={cn(buttonVariants({ size: "field" }), "w-full sm:w-auto")}
                 >
-                  선수 직접 등록
+                  선수 등록
                 </Link>
                 <Link
                   href="/gym/fighters"

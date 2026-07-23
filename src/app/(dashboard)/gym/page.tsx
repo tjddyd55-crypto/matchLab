@@ -5,9 +5,9 @@ import { buttonVariants } from "@/components/ui/button";
 import { GymProfileMissingBanner } from "@/components/domain/gym/GymProfileMissingBanner";
 import { MatchonEmptyState } from "@/components/shared/MatchonEmptyState";
 import { requireActor } from "@/lib/auth/actor";
-import { FighterStatus } from "@/lib/enums";
 import { resolveGymPortalAccess } from "@/lib/gym-portal-access";
 import { prisma } from "@/lib/prisma";
+import { eventService } from "@/lib/services/event.service";
 import { gymMemberService } from "@/lib/services/gym-member.service";
 import {
   matchonCompactActionBarClass,
@@ -35,6 +35,12 @@ function GymProfileShell({ children }: { children: ReactNode }) {
   );
 }
 
+function formatDate(value: string): string {
+  const date = new Date(value);
+  if (Number.isNaN(date.getTime())) return "—";
+  return format(date, "yyyy-MM-dd");
+}
+
 export default async function GymHomePage() {
   const actor = await requireActor();
 
@@ -50,41 +56,36 @@ export default async function GymHomePage() {
   const canCreate = access?.canCreateFighter ?? true;
   const canUpdate = access?.canUpdateFighter ?? true;
 
-  const [memberSummary, totalFighters, activeFighters, recentMembers] =
-    await Promise.all([
-      gymMemberService.getSummary(actor).catch(() => null),
-      prisma.fighter.count({ where: { currentGymId: actor.gymId } }),
-      prisma.fighter.count({
-        where: { currentGymId: actor.gymId, status: FighterStatus.active },
-      }),
-      prisma.gymMember
-        .findMany({
-          where: { gymId: actor.gymId, deletedAt: null },
-          orderBy: { createdAt: "desc" },
-          take: 5,
-          select: {
-            id: true,
-            name: true,
-            status: true,
-            createdAt: true,
-            memberNumber: true,
-            fighter: { select: { id: true } },
-          },
-        })
-        .catch(() => []),
-    ]);
+  const [memberSummary, recentMembers, eventSummary] = await Promise.all([
+    gymMemberService.getSummary(actor).catch(() => null),
+    prisma.gymMember
+      .findMany({
+        where: { gymId: actor.gymId, deletedAt: null },
+        orderBy: { createdAt: "desc" },
+        take: 5,
+        select: {
+          id: true,
+          name: true,
+          status: true,
+          createdAt: true,
+          memberNumber: true,
+          fighter: { select: { id: true } },
+        },
+      })
+      .catch(() => []),
+    eventService.getGymHomeEventSummary(actor).catch(() => null),
+  ]);
 
-  const inactiveFighters = totalFighters - activeFighters;
   const hasMembers = (memberSummary?.total ?? 0) > 0;
 
   return (
     <div className={matchonPageContainerClass}>
       <div className={matchonPageStackClass}>
         <div className="min-w-0 space-y-1">
-          <h1 className={matchonPageTitleClass}>회원사 홈</h1>
+          <h1 className={matchonPageTitleClass}>체육관 홈</h1>
           <p className={matchonPageDescClass}>
-            회원을 등록·관리하고, 필요 시 선수로 연결합니다. 체육관 정보는
-            프로필에서 확인할 수 있습니다.
+            회원과 선수를 관리하고, 참가 가능한 대회를 확인하여 출전 신청할 수
+            있습니다.
           </p>
         </div>
 
@@ -95,7 +96,7 @@ export default async function GymHomePage() {
               <p className={matchonStatValueClass}>{memberSummary.total}</p>
             </div>
             <div className={matchonStatCardClass}>
-              <p className={matchonStatLabelClass}>일반</p>
+              <p className={matchonStatLabelClass}>일반 회원</p>
               <p className={matchonStatValueClass}>
                 {memberSummary.withoutFighter}
               </p>
@@ -120,36 +121,39 @@ export default async function GymHomePage() {
                 {memberSummary.newThisMonth}
               </p>
             </div>
+            <div className={matchonStatCardClass}>
+              <p className={matchonStatLabelClass}>신청 가능 대회</p>
+              <p className={matchonStatValueClass}>
+                {eventSummary?.openCount ?? 0}
+              </p>
+            </div>
+            <div className={matchonStatCardClass}>
+              <p className={matchonStatLabelClass}>신청 선수</p>
+              <p className={matchonStatValueClass}>
+                {eventSummary?.appliedFighterCount ?? 0}
+              </p>
+            </div>
           </div>
         ) : null}
 
-        <div className={matchonStatsGridClass}>
-          <div className={matchonStatCardClass}>
-            <p className={matchonStatLabelClass}>전체 선수</p>
-            <p className={matchonStatValueClass}>{totalFighters}</p>
-          </div>
-          <div className={matchonStatCardClass}>
-            <p className={matchonStatLabelClass}>활동 선수</p>
-            <p className={matchonStatValueClass}>{activeFighters}</p>
-          </div>
-          <div className={matchonStatCardClass}>
-            <p className={matchonStatLabelClass}>비활동 선수</p>
-            <p className={matchonStatValueClass}>{inactiveFighters}</p>
-          </div>
-        </div>
-
         <div className={matchonCompactActionBarClass}>
           <Link
-            href="/gym/members/new"
+            href="/gym/events"
             className={cn(buttonVariants({ size: "sm" }))}
           >
-            회원 등록
+            대회 목록
           </Link>
           <Link
-            href="/gym/members"
+            href="/gym/applications"
             className={cn(buttonVariants({ variant: "outline", size: "sm" }))}
           >
-            회원 목록
+            신청 내역
+          </Link>
+          <Link
+            href="/gym/members/new"
+            className={cn(buttonVariants({ variant: "outline", size: "sm" }))}
+          >
+            회원 등록
           </Link>
           {canCreate ? (
             <Link
@@ -176,6 +180,58 @@ export default async function GymHomePage() {
             체육관 정보
           </Link>
         </div>
+
+        <section className="space-y-3">
+          <div className="flex flex-wrap items-center justify-between gap-2">
+            <h2 className={matchonSectionTitleClass}>신청 가능한 대회</h2>
+            <Link
+              href="/gym/events"
+              className="text-xs font-semibold text-matchon-primary underline"
+            >
+              대회 목록 보기
+            </Link>
+          </div>
+          {!eventSummary || eventSummary.openEvents.length === 0 ? (
+            <MatchonEmptyState
+              title="현재 신청 가능한 대회가 없습니다"
+              description="모집 중인 대회가 공개되면 여기에 표시됩니다."
+              action={
+                <Link
+                  href="/gym/events"
+                  className={cn(buttonVariants({ size: "sm" }))}
+                >
+                  대회 목록 보기
+                </Link>
+              }
+            />
+          ) : (
+            <ul className="divide-y divide-matchon-border rounded-md border border-matchon-border bg-white">
+              {eventSummary.openEvents.map((e) => (
+                <li
+                  key={e.id}
+                  className="flex flex-wrap items-center justify-between gap-2 px-3 py-2.5 text-sm"
+                >
+                  <div className="min-w-0">
+                    <p className="font-medium text-matchon-text-primary">
+                      {e.title}
+                    </p>
+                    <p className="text-xs text-matchon-text-secondary">
+                      개최 {formatDate(e.eventDate)} · 접수 마감{" "}
+                      {formatDate(e.registrationEndDate)} · 신청{" "}
+                      {e.gymApplicationCount}명
+                    </p>
+                  </div>
+                  <Link
+                    href={`/gym/events/${e.id}/apply`}
+                    className={cn(buttonVariants({ size: "sm" }))}
+                  >
+                    신청하기
+                  </Link>
+                </li>
+              ))}
+            </ul>
+          )}
+        </section>
 
         <section className="space-y-3">
           <h2 className={matchonSectionTitleClass}>최근 등록 회원</h2>

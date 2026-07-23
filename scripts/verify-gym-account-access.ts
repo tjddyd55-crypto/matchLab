@@ -186,6 +186,8 @@ function assertGymPortalNav() {
     "이용권 관리",
     "선수 목록",
     "선수 등록",
+    "대회 목록",
+    "신청 내역",
     "체육관 정보",
   ]);
   assert.deepEqual(hrefs, [
@@ -195,13 +197,17 @@ function assertGymPortalNav() {
     "/gym/membership-plans",
     "/gym/fighters",
     "/gym/fighters/new",
+    "/gym/events",
+    "/gym/applications",
     "/gym/profile",
   ]);
 
   for (const hidden of GYM_PORTAL_HIDDEN_EVENT_HREFS) {
     assert.ok(!hrefs.includes(hidden), `hidden nav must not include ${hidden}`);
   }
-  assert.ok(!labels.some((l) => /대회|신청/.test(l)));
+  assert.ok(labels.some((l) => l === "대회 목록"));
+  assert.ok(labels.some((l) => l === "신청 내역"));
+  assert.ok(!labels.some((l) => l === "초대 링크" || l === "전적"));
 
   const groups = getGymPortalNavGroups();
   const memberGroup = groups.find((g) => g.id === "members");
@@ -215,6 +221,12 @@ function assertGymPortalNav() {
   assert.deepEqual(
     fighterGroup?.items.map((i) => i.label),
     ["선수 목록", "선수 등록"],
+  );
+  const eventsGroup = groups.find((g) => g.id === "events");
+  assert.equal(eventsGroup?.label, "대회");
+  assert.deepEqual(
+    eventsGroup?.items.map((i) => i.label),
+    ["대회 목록", "신청 내역"],
   );
 
   // PC/mobile: Sidebar+Sheet use groups; bottom uses compact mobile items

@@ -1,6 +1,60 @@
 import { EventStatus } from "@/lib/enums";
 
-/** 체육관 대회 목록에 노출할 공개 상태 (draft·cancelled 제외) */
+/**
+ * 사용자용 체육관 대회 신청 가능 단계 SSOT.
+ * DB EventStatus와 접수 기간을 합쳐 표시한다.
+ */
+export type GymEventAvailabilityPhase =
+  | "scheduled"
+  | "open"
+  | "closed"
+  | "ongoing"
+  | "finished"
+  | "unavailable";
+
+export function computeGymEventApplicationAvailability(
+  input: Pick<
+    GymEventApplyEvaluationInput,
+    "status" | "registrationStartDate" | "registrationEndDate"
+  >,
+  now: Date = new Date(),
+): {
+  phase: GymEventAvailabilityPhase;
+  label: string;
+  canStartApplication: boolean;
+} {
+  const { status, registrationStartDate, registrationEndDate } = input;
+
+  if (status === EventStatus.finished) {
+    return { phase: "finished", label: "종료", canStartApplication: false };
+  }
+  if (status === EventStatus.ongoing || status === EventStatus.bracket_ready) {
+    return { phase: "ongoing", label: "진행 중", canStartApplication: false };
+  }
+  if (status === EventStatus.closed) {
+    return { phase: "closed", label: "마감", canStartApplication: false };
+  }
+  if (status !== EventStatus.open) {
+    return {
+      phase: "unavailable",
+      label: "신청 불가",
+      canStartApplication: false,
+    };
+  }
+  if (now < registrationStartDate) {
+    return {
+      phase: "scheduled",
+      label: "모집 예정",
+      canStartApplication: false,
+    };
+  }
+  if (now > registrationEndDate) {
+    return { phase: "closed", label: "마감", canStartApplication: false };
+  }
+  return { phase: "open", label: "모집 중", canStartApplication: true };
+}
+
+/** 체육관 목록에 노출할 공개 상태 (draft·cancelled 제외) */
 export const GYM_VISIBLE_EVENT_STATUSES: EventStatus[] = [
   EventStatus.open,
   EventStatus.closed,
@@ -103,7 +157,8 @@ export function evaluateGymEventApplyEligibility(
     return {
       canApply: false,
       registrationStatusLabel: "신청 가능",
-      applyDisabledReason: "소속 활성 선수가 없습니다. 선수 등록 후 신청해 주세요.",
+      applyDisabledReason:
+        "GymMember와 연결된 활성 선수가 없습니다. 회원을 선수로 등록해 주세요.",
     };
   }
 

@@ -93,11 +93,14 @@ function assertNav() {
   assert.ok(hrefs.includes("/gym/members"));
   assert.ok(hrefs.includes("/gym/membership-plans"));
   assert.ok(hrefs.includes("/gym/fighters"));
+  assert.ok(hrefs.includes("/gym/events"));
+  assert.ok(hrefs.includes("/gym/applications"));
   for (const h of GYM_PORTAL_HIDDEN_EVENT_HREFS) {
     assert.ok(!hrefs.includes(h));
   }
   const groups = getGymPortalNavGroups();
   assert.ok(groups.some((g) => g.id === "members" && g.label === "회원 관리"));
+  assert.ok(groups.some((g) => g.id === "events" && g.label === "대회"));
   const bottom = getGymPortalMobileBottomNavItems();
   assert.deepEqual(
     bottom.map((i) => i.label),

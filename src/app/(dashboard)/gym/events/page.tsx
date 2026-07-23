@@ -10,6 +10,12 @@ import {
   matchonPageStackClass,
   matchonPageTitleClass,
 } from "@/lib/ui/matchon-layout";
+import {
+  matchonStatCardClass,
+  matchonStatLabelClass,
+  matchonStatValueClass,
+  matchonStatsGridClass,
+} from "@/lib/ui/matchon-shell-ui";
 import { cn } from "@/lib/utils";
 
 export const dynamic = "force-dynamic";
@@ -18,6 +24,18 @@ export default async function GymEventsPage() {
   const actor = await requireActor();
   const events = await eventService.listEventsForGymDashboard(actor);
 
+  const openCount = events.filter((e) => e.availabilityPhase === "open").length;
+  const scheduledCount = events.filter(
+    (e) => e.availabilityPhase === "scheduled",
+  ).length;
+  const appliedCount = events.filter((e) => e.gymApplicationCount > 0).length;
+  const closedCount = events.filter(
+    (e) => e.availabilityPhase === "closed",
+  ).length;
+  const ongoingCount = events.filter(
+    (e) => e.availabilityPhase === "ongoing",
+  ).length;
+
   return (
     <div className={matchonPageContainerClass}>
       <div className={matchonPageStackClass}>
@@ -25,15 +43,37 @@ export default async function GymEventsPage() {
         <div className="min-w-0 space-y-1">
           <h1 className={matchonPageTitleClass}>대회 목록</h1>
           <p className={matchonPageDescClass}>
-            공개된 대회를 모두 표시합니다. 신청 가능 여부는 신청 기간·경기구분·입금
-            설정·소속 선수에 따라 카드에 안내됩니다.
+            참가 가능한 대회를 확인하고 소속 선수를 신청할 수 있습니다.
           </p>
+        </div>
+
+        <div className={matchonStatsGridClass}>
+          <div className={matchonStatCardClass}>
+            <p className={matchonStatLabelClass}>모집 중</p>
+            <p className={matchonStatValueClass}>{openCount}</p>
+          </div>
+          <div className={matchonStatCardClass}>
+            <p className={matchonStatLabelClass}>모집 예정</p>
+            <p className={matchonStatValueClass}>{scheduledCount}</p>
+          </div>
+          <div className={matchonStatCardClass}>
+            <p className={matchonStatLabelClass}>신청 완료</p>
+            <p className={matchonStatValueClass}>{appliedCount}</p>
+          </div>
+          <div className={matchonStatCardClass}>
+            <p className={matchonStatLabelClass}>마감</p>
+            <p className={matchonStatValueClass}>{closedCount}</p>
+          </div>
+          <div className={matchonStatCardClass}>
+            <p className={matchonStatLabelClass}>진행 중</p>
+            <p className={matchonStatValueClass}>{ongoingCount}</p>
+          </div>
         </div>
 
         {events.length === 0 ? (
           <MatchonEmptyState
             title="표시할 대회가 없습니다"
-            description="주최자가 대회를 공개(OPEN 등)하면 여기에 표시됩니다."
+            description="주최자가 대회를 공개하면 여기에 표시됩니다."
           />
         ) : (
           <div

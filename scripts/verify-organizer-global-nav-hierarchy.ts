@@ -23,10 +23,13 @@ function assertGymPortalNavSsot() {
       "이용권 관리",
       "선수 목록",
       "선수 등록",
+      "대회 목록",
+      "신청 내역",
       "체육관 정보",
     ],
   );
-  assert.ok(!items.some((i) => /대회|신청/.test(i.label)));
+  assert.ok(items.some((i) => i.href === "/gym/events"));
+  assert.ok(items.some((i) => i.href === "/gym/applications"));
   for (const href of GYM_PORTAL_HIDDEN_EVENT_HREFS) {
     assert.ok(!items.some((i) => i.href === href));
   }

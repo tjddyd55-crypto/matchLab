@@ -32,3 +32,26 @@ export function activeFighterAffiliatedWithGymWhere(
     OR: affiliatedWithGymOr(gymId),
   };
 }
+
+/**
+ * 대회 신청 대상: 활성 소속 + GymMember 연결.
+ * 일반 회원(비선수) 및 미연결 Fighter는 제외.
+ */
+export function activeFighterEligibleForEventApplicationWhere(
+  gymId: string,
+): Prisma.FighterWhereInput {
+  return {
+    AND: [
+      activeFighterAffiliatedWithGymWhere(gymId),
+      {
+        gymMemberId: { not: null },
+        gymMember: {
+          is: {
+            gymId,
+            deletedAt: null,
+          },
+        },
+      },
+    ],
+  };
+}
