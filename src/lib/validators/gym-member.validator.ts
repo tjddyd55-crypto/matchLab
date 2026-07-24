@@ -193,10 +193,30 @@ export const gymMemberPaymentCreateSchema = z.object({
   amount: z.preprocess((val) => {
     const n = Number(val);
     return Number.isFinite(n) ? Math.trunc(n) : undefined;
-  }, z.number().int().positive("금액을 입력해 주세요.")),
+  }, z.number().int().nonnegative("금액을 입력해 주세요.")),
+  listPrice: optionalPositiveInt(),
+  discountAmount: z.preprocess((val) => {
+    if (val === "" || val === undefined || val === null) return 0;
+    const n = Number(val);
+    return Number.isFinite(n) ? Math.trunc(n) : undefined;
+  }, z.number().int().nonnegative().default(0)),
   paidAt: optionalDateOnly,
   paymentMethod: optionalPaymentMethod().transform((v) => v ?? "cash"),
   subscriptionId: optionalTrimmedString(40),
+  category: z
+    .preprocess(
+      (val) => (val === "" || val === undefined || val === null ? undefined : val),
+      z
+        .enum([
+          "membership",
+          "personal_lesson",
+          "group_class",
+          "product",
+          "event",
+          "other",
+        ])
+        .optional(),
+    ),
   memo: optionalTrimmedString(500),
 });
 

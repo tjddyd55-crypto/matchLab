@@ -36,6 +36,8 @@ export {
   GymMemberStatus,
   GymMemberSubscriptionStatus,
   GymMembershipDurationType,
+  GymReceivableStatus,
+  GymSalesCategory,
   GymStatus,
   JudgeDecisionMethod,
   JudgeScorecardStatus,

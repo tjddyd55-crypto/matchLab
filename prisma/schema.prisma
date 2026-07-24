@@ -61,6 +61,7 @@ enum GymMemberPaymentMethod {
   cash
   card
   transfer
+  easy_pay
   other
 }
 
@@ -68,6 +69,24 @@ enum GymMemberPaymentStatus {
   paid
   cancelled
   refunded
+}
+
+/// 체육관 매출 유형 (null/미연결 = 미분류)
+enum GymSalesCategory {
+  membership
+  personal_lesson
+  group_class
+  product
+  event
+  other
+}
+
+enum GymReceivableStatus {
+  pending
+  partial
+  overdue
+  paid
+  cancelled
 }
 
 enum OrganizerType {
@@ -332,6 +351,13 @@ enum AuditAction {
   gym_attendance_kiosk_token_regenerated
   gym_attendance_manual_created
   gym_attendance_cancelled
+  gym_sales_manual_created
+  gym_sales_manual_cancelled
+  gym_payment_refund_created
+  gym_payment_refund_cancelled
+  gym_receivable_created
+  gym_receivable_payment_recorded
+  gym_receivable_cancelled
   matchon_message_dispatch_created
   matchon_message_dispatch_executed
   matchon_message_template_changed
@@ -527,6 +553,9 @@ model Gym {
   gymMemberPayments   GymMemberPayment[]
   gymAttendanceKiosks GymAttendanceKiosk[]
   gymMemberAttendances GymMemberAttendance[]
+  gymManualSales      GymManualSale[]
+  gymPaymentRefunds   GymPaymentRefund[]
+  gymReceivables      GymReceivable[]
 
   matchonMessageTemplates  MatchonMessageTemplate[]
   matchonMessageDispatches MatchonMessageDispatch[]
@@ -625,6 +654,8 @@ model GymMember {
   subscriptions GymMemberSubscription[]
   payments      GymMemberPayment[]
   attendances   GymMemberAttendance[]
+  receivables   GymReceivable[]
+  manualSales   GymManualSale[]
 
   @@unique([gymId, memberNumber])
   @@index([gymId, deletedAt])
@@ -760,16 +791,24 @@ model GymMemberSubscriptionPause {
   @@index([subscriptionId])
 }
 
-/// 회비 납부 내역 (카드·계좌 평문 저장 금지)
+/// 회비 납부 내역 (카드·계좌 평문 저장 금지) — 체육관 매출 SSOT의 회원 결제 축
 model GymMemberPayment {
   id              String                 @id @default(cuid())
   gymId           String
   gymMemberId     String
   subscriptionId  String?
+  /// 미수금 납부 연결 (선택)
+  receivableId    String?
   paidAt          DateTime
+  /// 실제 납부금액 (매출 포함 기준)
   amount          Int
+  /// 정가(선택) — 없으면 amount만 사용
+  listPrice       Int?
+  discountAmount  Int                    @default(0)
   paymentMethod   GymMemberPaymentMethod @default(cash)
   status          GymMemberPaymentStatus @default(paid)
+  /// null = 미분류
+  category        GymSalesCategory?
   memo            String?
   cancelledAt     DateTime?
   createdByUserId String?
@@ -779,9 +818,92 @@ model GymMemberPayment {
   gym          Gym                    @relation(fields: [gymId], references: [id], onDelete: Cascade)
   member       GymMember              @relation(fields: [gymMemberId], references: [id], onDelete: Cascade)
   subscription GymMemberSubscription? @relation(fields: [subscriptionId], references: [id], onDelete: SetNull)
+  receivable   GymReceivable?         @relation(fields: [receivableId], references: [id], onDelete: SetNull)
+  refunds      GymPaymentRefund[]
 
   @@index([gymMemberId, paidAt])
   @@index([gymId, paidAt])
+  @@index([gymId, status, paidAt])
+  @@index([receivableId])
+}
+
+/// 회원 미연결 가능 수기 매출
+model GymManualSale {
+  id              String                 @id @default(cuid())
+  gymId           String
+  gymMemberId     String?
+  title           String
+  category        GymSalesCategory       @default(other)
+  soldAt          DateTime
+  amount          Int
+  listPrice       Int?
+  discountAmount  Int                    @default(0)
+  paymentMethod   GymMemberPaymentMethod @default(cash)
+  status          GymMemberPaymentStatus @default(paid)
+  memo            String?
+  cancelledAt     DateTime?
+  createdByUserId String?
+  createdAt       DateTime               @default(now())
+  updatedAt       DateTime               @updatedAt
+
+  gym     Gym                @relation(fields: [gymId], references: [id], onDelete: Cascade)
+  member  GymMember?         @relation(fields: [gymMemberId], references: [id], onDelete: SetNull)
+  refunds GymPaymentRefund[]
+
+  @@index([gymId, soldAt])
+  @@index([gymId, status, soldAt])
+}
+
+/// 환불 — 원결제/수기매출에 귀속. 환불일 기준 매출 차감
+model GymPaymentRefund {
+  id              String                 @id @default(cuid())
+  gymId           String
+  paymentId       String?
+  manualSaleId    String?
+  amount          Int
+  refundedAt      DateTime
+  refundMethod    GymMemberPaymentMethod @default(cash)
+  reason          String?
+  memo            String?
+  cancelledAt     DateTime?
+  createdByUserId String?
+  createdAt       DateTime               @default(now())
+  updatedAt       DateTime               @updatedAt
+
+  gym        Gym               @relation(fields: [gymId], references: [id], onDelete: Cascade)
+  payment    GymMemberPayment? @relation(fields: [paymentId], references: [id], onDelete: Cascade)
+  manualSale GymManualSale?    @relation(fields: [manualSaleId], references: [id], onDelete: Cascade)
+
+  @@index([gymId, refundedAt])
+  @@index([paymentId])
+  @@index([manualSaleId])
+}
+
+/// 미수금 — 매출 합계에 포함하지 않음. 납부 시 GymMemberPayment 생성
+model GymReceivable {
+  id              String              @id @default(cuid())
+  gymId           String
+  gymMemberId     String
+  title           String
+  category        GymSalesCategory?
+  totalAmount     Int
+  paidAmount      Int                 @default(0)
+  dueDate         DateTime?
+  status          GymReceivableStatus @default(pending)
+  subscriptionId  String?
+  memo            String?
+  cancelledAt     DateTime?
+  createdByUserId String?
+  createdAt       DateTime            @default(now())
+  updatedAt       DateTime            @updatedAt
+
+  gym      Gym                @relation(fields: [gymId], references: [id], onDelete: Cascade)
+  member   GymMember          @relation(fields: [gymMemberId], references: [id], onDelete: Cascade)
+  payments GymMemberPayment[]
+
+  @@index([gymId, status])
+  @@index([gymMemberId, status])
+  @@index([gymId, dueDate])
 }
 
 /// 선수 공개 개인 프로필 (주최자 공개 풀·체육관 DB와 별도)
