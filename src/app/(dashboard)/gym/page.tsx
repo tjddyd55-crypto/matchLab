@@ -9,6 +9,7 @@ import { resolveGymPortalAccess } from "@/lib/gym-portal-access";
 import { prisma } from "@/lib/prisma";
 import { eventService } from "@/lib/services/event.service";
 import { gymMemberService } from "@/lib/services/gym-member.service";
+import { gymAttendanceService } from "@/lib/services/gym-attendance.service";
 import {
   matchonCompactActionBarClass,
   matchonStatCardClass,
@@ -56,7 +57,8 @@ export default async function GymHomePage() {
   const canCreate = access?.canCreateFighter ?? true;
   const canUpdate = access?.canUpdateFighter ?? true;
 
-  const [memberSummary, recentMembers, eventSummary] = await Promise.all([
+  const [memberSummary, recentMembers, eventSummary, attendanceSummary] =
+    await Promise.all([
     gymMemberService.getSummary(actor).catch(() => null),
     prisma.gymMember
       .findMany({
@@ -74,6 +76,7 @@ export default async function GymHomePage() {
       })
       .catch(() => []),
     eventService.getGymHomeEventSummary(actor).catch(() => null),
+    gymAttendanceService.getHomeAttendanceSnippet(actor),
   ]);
 
   const hasMembers = (memberSummary?.total ?? 0) > 0;
@@ -136,6 +139,44 @@ export default async function GymHomePage() {
           </div>
         ) : null}
 
+        {attendanceSummary ? (
+          <section className="rounded-xl border border-matchon-border bg-white p-4">
+            <div className="flex flex-wrap items-center justify-between gap-2">
+              <h2 className={matchonSectionTitleClass}>오늘 출석</h2>
+              <div className="flex gap-2">
+                <Link
+                  href="/gym/attendance"
+                  className="text-xs font-semibold text-matchon-primary underline"
+                >
+                  출석 관리
+                </Link>
+                <Link
+                  href="/gym/attendance/kiosks"
+                  className="text-xs font-semibold text-matchon-primary underline"
+                >
+                  출석 화면
+                </Link>
+              </div>
+            </div>
+            <div className="mt-3 grid grid-cols-3 gap-3">
+              <div>
+                <p className={matchonStatLabelClass}>오늘</p>
+                <p className="text-lg font-bold">{attendanceSummary.todayCount}</p>
+              </div>
+              <div>
+                <p className={matchonStatLabelClass}>이번 달</p>
+                <p className="text-lg font-bold">{attendanceSummary.monthCount}</p>
+              </div>
+              <div>
+                <p className={matchonStatLabelClass}>확인 필요</p>
+                <p className="text-lg font-bold">
+                  {attendanceSummary.deskNoticeCount}
+                </p>
+              </div>
+            </div>
+          </section>
+        ) : null}
+
         <div className={matchonCompactActionBarClass}>
           <Link
             href="/gym/events"
@@ -154,6 +195,18 @@ export default async function GymHomePage() {
             className={cn(buttonVariants({ variant: "outline", size: "sm" }))}
           >
             회원 등록
+          </Link>
+          <Link
+            href="/gym/attendance"
+            className={cn(buttonVariants({ variant: "outline", size: "sm" }))}
+          >
+            출석 관리
+          </Link>
+          <Link
+            href="/gym/attendance/kiosks"
+            className={cn(buttonVariants({ variant: "outline", size: "sm" }))}
+          >
+            출석 화면
           </Link>
           {canCreate ? (
             <Link

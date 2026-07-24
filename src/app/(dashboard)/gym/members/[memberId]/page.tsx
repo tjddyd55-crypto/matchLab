@@ -8,8 +8,11 @@ import { formatPhoneNumber } from "@/lib/phone";
 import { formatUtcDateOnly } from "@/lib/date-only";
 import { formatWon } from "@/lib/format-won";
 import { getGymMemberStoredStatusLabel } from "@/lib/gym-member-membership-status";
+import { getSeoulYmdParts } from "@/lib/gym-attendance/seoul-date";
+import { gymAttendanceService } from "@/lib/services/gym-attendance.service";
 import { gymMemberService } from "@/lib/services/gym-member.service";
 import { gymMembershipPlanService } from "@/lib/services/gym-membership-plan.service";
+import { GymMemberAttendanceCalendar } from "@/components/domain/gym-attendance/GymMemberAttendanceCalendar";
 import { GymMemberDetailActions } from "@/components/domain/gym-members/GymMemberDetailActions";
 import { GymProfileMissingBanner } from "@/components/domain/gym/GymProfileMissingBanner";
 import { buttonVariants } from "@/components/ui/button";
@@ -36,11 +39,14 @@ function InfoRow({ label, value }: { label: string; value: ReactNode }) {
 
 export default async function GymMemberDetailPage({
   params,
+  searchParams,
 }: {
   params: Promise<{ memberId: string }>;
+  searchParams: Promise<Record<string, string | string[] | undefined>>;
 }) {
   const actor = await requireActor();
   const { memberId } = await params;
+  const sp = await searchParams;
 
   if (!actor.gymId) {
     return (
@@ -52,12 +58,31 @@ export default async function GymMemberDetailPage({
     );
   }
 
+  const seoul = getSeoulYmdParts();
+  const yearRaw =
+    typeof sp.attendanceYear === "string" ? Number(sp.attendanceYear) : seoul.year;
+  const monthRaw =
+    typeof sp.attendanceMonth === "string"
+      ? Number(sp.attendanceMonth)
+      : seoul.month;
+  const calYear = Number.isFinite(yearRaw) ? yearRaw : seoul.year;
+  const calMonth = Number.isFinite(monthRaw) ? monthRaw : seoul.month;
+
   let detail;
   let plans;
+  let attendanceSummary;
+  let attendanceCalendar;
   try {
-    [detail, plans] = await Promise.all([
+    [detail, plans, attendanceSummary, attendanceCalendar] = await Promise.all([
       gymMemberService.getMemberDetail(actor, memberId),
       gymMembershipPlanService.listPlans(actor, false),
+      gymAttendanceService.getGymMemberAttendanceSummary(actor, memberId),
+      gymAttendanceService.getGymMemberAttendanceCalendar(
+        actor,
+        memberId,
+        calYear,
+        calMonth,
+      ),
     ]);
   } catch (e) {
     if (e instanceof AppError && e.code === "NOT_FOUND") notFound();
@@ -258,6 +283,15 @@ export default async function GymMemberDetailPage({
                 </ul>
               )}
             </section>
+
+            <GymMemberAttendanceCalendar
+              memberId={member.id}
+              memberName={member.name}
+              year={attendanceCalendar.year}
+              month={attendanceCalendar.month}
+              days={attendanceCalendar.days}
+              summary={attendanceSummary}
+            />
 
             <section className="rounded-xl border border-matchon-border bg-white p-4">
               <h2 className={cn(matchonSectionTitleClass, "mb-3")}>선수</h2>

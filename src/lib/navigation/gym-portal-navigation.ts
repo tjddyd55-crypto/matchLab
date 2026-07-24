@@ -33,6 +33,14 @@ export function getGymPortalNavGroups(): GymPortalNavGroup[] {
       ],
     },
     {
+      id: "attendance",
+      label: "출석 관리",
+      items: [
+        { href: "/gym/attendance", label: "출석 현황" },
+        { href: "/gym/attendance/kiosks", label: "출석 키오스크" },
+      ],
+    },
+    {
       id: "fighters",
       label: "선수 관리",
       items: [
@@ -130,6 +138,19 @@ export function isGymPortalNavItemActive(
     return (
       pathname === "/gym/applications" ||
       pathname.startsWith("/gym/applications/")
+    );
+  }
+  if (href === "/gym/attendance") {
+    return (
+      pathname === "/gym/attendance" ||
+      (pathname.startsWith("/gym/attendance/") &&
+        !pathname.startsWith("/gym/attendance/kiosks"))
+    );
+  }
+  if (href === "/gym/attendance/kiosks") {
+    return (
+      pathname === "/gym/attendance/kiosks" ||
+      pathname.startsWith("/gym/attendance/kiosks/")
     );
   }
   return pathname === href || pathname.startsWith(`${href}/`);
