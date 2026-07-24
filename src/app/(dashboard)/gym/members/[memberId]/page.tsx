@@ -12,6 +12,7 @@ import { getSeoulYmdParts } from "@/lib/gym-attendance/seoul-date";
 import { gymAttendanceService } from "@/lib/services/gym-attendance.service";
 import { gymMemberService } from "@/lib/services/gym-member.service";
 import { gymMembershipPlanService } from "@/lib/services/gym-membership-plan.service";
+import { gymSalesService } from "@/lib/services/gym-sales.service";
 import { GymMemberAttendanceCalendar } from "@/components/domain/gym-attendance/GymMemberAttendanceCalendar";
 import { GymMemberDetailActions } from "@/components/domain/gym-members/GymMemberDetailActions";
 import { GymProfileMissingBanner } from "@/components/domain/gym/GymProfileMissingBanner";
@@ -72,18 +73,21 @@ export default async function GymMemberDetailPage({
   let plans;
   let attendanceSummary;
   let attendanceCalendar;
+  let salesSummary;
   try {
-    [detail, plans, attendanceSummary, attendanceCalendar] = await Promise.all([
-      gymMemberService.getMemberDetail(actor, memberId),
-      gymMembershipPlanService.listPlans(actor, false),
-      gymAttendanceService.getGymMemberAttendanceSummary(actor, memberId),
-      gymAttendanceService.getGymMemberAttendanceCalendar(
-        actor,
-        memberId,
-        calYear,
-        calMonth,
-      ),
-    ]);
+    [detail, plans, attendanceSummary, attendanceCalendar, salesSummary] =
+      await Promise.all([
+        gymMemberService.getMemberDetail(actor, memberId),
+        gymMembershipPlanService.listPlans(actor, false),
+        gymAttendanceService.getGymMemberAttendanceSummary(actor, memberId),
+        gymAttendanceService.getGymMemberAttendanceCalendar(
+          actor,
+          memberId,
+          calYear,
+          calMonth,
+        ),
+        gymSalesService.getMemberSalesSummary(actor, memberId),
+      ]);
   } catch (e) {
     if (e instanceof AppError && e.code === "NOT_FOUND") notFound();
     if (e instanceof AppError && e.code === "FORBIDDEN") notFound();
@@ -255,13 +259,41 @@ export default async function GymMemberDetailPage({
 
             <section className="rounded-xl border border-matchon-border bg-white p-4">
               <h2 className={cn(matchonSectionTitleClass, "mb-3")}>결제</h2>
-              {member.payments.length === 0 ? (
+              <div className="mb-3 grid grid-cols-2 gap-2 text-sm sm:grid-cols-4">
+                <div>
+                  <p className="text-xs text-matchon-text-secondary">총 결제</p>
+                  <p className="font-medium">
+                    {formatWon(salesSummary.grossPaid)}
+                  </p>
+                </div>
+                <div>
+                  <p className="text-xs text-matchon-text-secondary">총 환불</p>
+                  <p className="font-medium">
+                    {formatWon(salesSummary.refundTotal)}
+                  </p>
+                </div>
+                <div>
+                  <p className="text-xs text-matchon-text-secondary">미수금</p>
+                  <p className="font-medium">
+                    {formatWon(salesSummary.outstanding)}
+                  </p>
+                </div>
+                <div>
+                  <p className="text-xs text-matchon-text-secondary">최근 결제</p>
+                  <p className="font-medium">
+                    {salesSummary.latestPaidAt
+                      ? formatUtcDateOnly(salesSummary.latestPaidAt)
+                      : "—"}
+                  </p>
+                </div>
+              </div>
+              {salesSummary.payments.length === 0 ? (
                 <p className="text-sm text-matchon-text-secondary">
                   결제 기록이 없습니다.
                 </p>
               ) : (
                 <ul className="divide-y divide-matchon-border">
-                  {member.payments.map((p) => (
+                  {salesSummary.payments.map((p) => (
                     <li
                       key={p.id}
                       className="flex flex-wrap items-center justify-between gap-2 py-2 text-sm"
@@ -269,8 +301,9 @@ export default async function GymMemberDetailPage({
                       <div>
                         <p className="font-medium">{formatWon(p.amount)}</p>
                         <p className="text-xs text-matchon-text-secondary">
-                          {formatUtcDateOnly(p.paidAt)} · {p.paymentMethod} ·{" "}
-                          {p.status}
+                          {formatUtcDateOnly(p.paidAt)} · {p.paymentMethodLabel}{" "}
+                          · {p.status}
+                          {p.categoryLabel ? ` · ${p.categoryLabel}` : ""}
                         </p>
                       </div>
                       {p.memo ? (
@@ -282,6 +315,22 @@ export default async function GymMemberDetailPage({
                   ))}
                 </ul>
               )}
+              {salesSummary.refunds.length > 0 ? (
+                <div className="mt-4 border-t border-matchon-border pt-3">
+                  <p className="mb-2 text-xs font-medium text-matchon-text-secondary">
+                    환불 내역
+                  </p>
+                  <ul className="space-y-1 text-sm">
+                    {salesSummary.refunds.map((r) => (
+                      <li key={r.id} className="text-matchon-text-secondary">
+                        {formatUtcDateOnly(r.refundedAt)} ·{" "}
+                        {formatWon(r.amount)}
+                        {r.reason ? ` · ${r.reason}` : ""}
+                      </li>
+                    ))}
+                  </ul>
+                </div>
+              ) : null}
             </section>
 
             <GymMemberAttendanceCalendar

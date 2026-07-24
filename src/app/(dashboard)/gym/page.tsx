@@ -10,6 +10,8 @@ import { prisma } from "@/lib/prisma";
 import { eventService } from "@/lib/services/event.service";
 import { gymMemberService } from "@/lib/services/gym-member.service";
 import { gymAttendanceService } from "@/lib/services/gym-attendance.service";
+import { gymSalesService } from "@/lib/services/gym-sales.service";
+import { formatWon } from "@/lib/format-won";
 import {
   matchonCompactActionBarClass,
   matchonStatCardClass,
@@ -57,7 +59,7 @@ export default async function GymHomePage() {
   const canCreate = access?.canCreateFighter ?? true;
   const canUpdate = access?.canUpdateFighter ?? true;
 
-  const [memberSummary, recentMembers, eventSummary, attendanceSummary] =
+  const [memberSummary, recentMembers, eventSummary, attendanceSummary, salesSummary] =
     await Promise.all([
     gymMemberService.getSummary(actor).catch(() => null),
     prisma.gymMember
@@ -77,6 +79,7 @@ export default async function GymHomePage() {
       .catch(() => []),
     eventService.getGymHomeEventSummary(actor).catch(() => null),
     gymAttendanceService.getHomeAttendanceSnippet(actor),
+    gymSalesService.getHomeSalesSnippet(actor),
   ]);
 
   const hasMembers = (memberSummary?.total ?? 0) > 0;
@@ -139,39 +142,84 @@ export default async function GymHomePage() {
           </div>
         ) : null}
 
-        {attendanceSummary ? (
+        {attendanceSummary || salesSummary ? (
           <section className="rounded-xl border border-matchon-border bg-white p-4">
             <div className="flex flex-wrap items-center justify-between gap-2">
-              <h2 className={matchonSectionTitleClass}>오늘 출석</h2>
+              <h2 className={matchonSectionTitleClass}>오늘 운영 현황</h2>
               <div className="flex gap-2">
-                <Link
-                  href="/gym/attendance"
-                  className="text-xs font-semibold text-matchon-primary underline"
-                >
-                  출석 관리
-                </Link>
-                <Link
-                  href="/gym/attendance/kiosks"
-                  className="text-xs font-semibold text-matchon-primary underline"
-                >
-                  출석 화면
-                </Link>
+                {attendanceSummary ? (
+                  <Link
+                    href="/gym/attendance"
+                    className="text-xs font-semibold text-matchon-primary underline"
+                  >
+                    출석 관리
+                  </Link>
+                ) : null}
+                {salesSummary ? (
+                  <Link
+                    href="/gym/sales"
+                    className="text-xs font-semibold text-matchon-primary underline"
+                  >
+                    매출 관리
+                  </Link>
+                ) : null}
               </div>
             </div>
-            <div className="mt-3 grid grid-cols-3 gap-3">
-              <div>
-                <p className={matchonStatLabelClass}>오늘</p>
-                <p className="text-lg font-bold">{attendanceSummary.todayCount}</p>
-              </div>
-              <div>
-                <p className={matchonStatLabelClass}>이번 달</p>
-                <p className="text-lg font-bold">{attendanceSummary.monthCount}</p>
-              </div>
-              <div>
-                <p className={matchonStatLabelClass}>확인 필요</p>
-                <p className="text-lg font-bold">
-                  {attendanceSummary.deskNoticeCount}
-                </p>
+            <div className="mt-3 grid grid-cols-2 gap-3 sm:grid-cols-3">
+              {attendanceSummary ? (
+                <>
+                  <div>
+                    <p className={matchonStatLabelClass}>오늘 출석</p>
+                    <p className="text-lg font-bold">
+                      {attendanceSummary.todayCount}
+                    </p>
+                  </div>
+                  <div>
+                    <p className={matchonStatLabelClass}>확인 필요</p>
+                    <p className="text-lg font-bold">
+                      {attendanceSummary.deskNoticeCount}
+                    </p>
+                  </div>
+                </>
+              ) : null}
+              {salesSummary ? (
+                <div>
+                  <p className={matchonStatLabelClass}>오늘 매출</p>
+                  <p className="text-lg font-bold">
+                    {formatWon(salesSummary.todayNet)}
+                  </p>
+                </div>
+              ) : null}
+            </div>
+            <div className="mt-4 border-t border-matchon-border pt-3">
+              <h3 className="text-sm font-semibold text-matchon-text-primary">
+                이번 달 현황
+              </h3>
+              <div className="mt-2 grid grid-cols-2 gap-3 sm:grid-cols-3">
+                {attendanceSummary ? (
+                  <div>
+                    <p className={matchonStatLabelClass}>이번 달 출석</p>
+                    <p className="text-lg font-bold">
+                      {attendanceSummary.monthCount}
+                    </p>
+                  </div>
+                ) : null}
+                {salesSummary ? (
+                  <>
+                    <div>
+                      <p className={matchonStatLabelClass}>이번 달 순매출</p>
+                      <p className="text-lg font-bold">
+                        {formatWon(salesSummary.monthNet)}
+                      </p>
+                    </div>
+                    <div>
+                      <p className={matchonStatLabelClass}>미수금</p>
+                      <p className="text-lg font-bold">
+                        {formatWon(salesSummary.outstandingTotal)}
+                      </p>
+                    </div>
+                  </>
+                ) : null}
               </div>
             </div>
           </section>
@@ -201,6 +249,12 @@ export default async function GymHomePage() {
             className={cn(buttonVariants({ variant: "outline", size: "sm" }))}
           >
             출석 관리
+          </Link>
+          <Link
+            href="/gym/sales"
+            className={cn(buttonVariants({ variant: "outline", size: "sm" }))}
+          >
+            매출 관리
           </Link>
           <Link
             href="/gym/attendance/kiosks"

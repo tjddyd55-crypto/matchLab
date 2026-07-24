@@ -407,9 +407,12 @@ export async function createGymMemberPaymentAction(
     const parsed = gymMemberPaymentCreateSchema.safeParse({
       ...formObj(formData, [
         "amount",
+        "listPrice",
+        "discountAmount",
         "paidAt",
         "paymentMethod",
         "subscriptionId",
+        "category",
         "memo",
       ]),
       paymentMethod:
@@ -424,9 +427,13 @@ export async function createGymMemberPaymentAction(
     const payment = await gymMemberPaymentService.createPayment(
       actor,
       memberId,
-      parsed.data,
+      {
+        ...parsed.data,
+        category: parsed.data.category ?? null,
+      },
     );
     revalidateMemberPaths(memberId);
+    revalidatePath("/gym/sales");
     return actionSuccess({ paymentId: payment.id });
   });
 }

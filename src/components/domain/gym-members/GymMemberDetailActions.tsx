@@ -302,7 +302,24 @@ export function GymMemberDetailActions({
           className="space-y-2"
         >
           <label className="block space-y-1 text-sm">
-            <span>금액 *</span>
+            <span>정가</span>
+            <input
+              name="listPrice"
+              inputMode="numeric"
+              className={matchonFieldInputClass}
+            />
+          </label>
+          <label className="block space-y-1 text-sm">
+            <span>할인금액</span>
+            <input
+              name="discountAmount"
+              inputMode="numeric"
+              defaultValue={0}
+              className={matchonFieldInputClass}
+            />
+          </label>
+          <label className="block space-y-1 text-sm">
+            <span>실제 결제금액 *</span>
             <input
               name="amount"
               inputMode="numeric"
@@ -318,10 +335,23 @@ export function GymMemberDetailActions({
               className={matchonFieldInputClass}
               defaultValue={GymMemberPaymentMethod.cash}
             >
-              <option value={GymMemberPaymentMethod.cash}>현금</option>
               <option value={GymMemberPaymentMethod.card}>카드</option>
+              <option value={GymMemberPaymentMethod.cash}>현금</option>
               <option value={GymMemberPaymentMethod.transfer}>계좌이체</option>
+              <option value={GymMemberPaymentMethod.easy_pay}>간편결제</option>
               <option value={GymMemberPaymentMethod.other}>기타</option>
+            </select>
+          </label>
+          <label className="block space-y-1 text-sm">
+            <span>매출 유형</span>
+            <select name="category" className={matchonFieldInputClass} defaultValue="">
+              <option value="">미분류</option>
+              <option value="membership">회원권</option>
+              <option value="personal_lesson">개인 레슨</option>
+              <option value="group_class">그룹 수업</option>
+              <option value="product">용품</option>
+              <option value="event">대회</option>
+              <option value="other">기타</option>
             </select>
           </label>
           <label className="block space-y-1 text-sm">

@@ -41,6 +41,14 @@ export function getGymPortalNavGroups(): GymPortalNavGroup[] {
       ],
     },
     {
+      id: "sales",
+      label: "매출 관리",
+      items: [
+        { href: "/gym/sales", label: "매출 현황" },
+        { href: "/gym/sales/receivables", label: "미수금" },
+      ],
+    },
+    {
       id: "fighters",
       label: "선수 관리",
       items: [
@@ -151,6 +159,19 @@ export function isGymPortalNavItemActive(
     return (
       pathname === "/gym/attendance/kiosks" ||
       pathname.startsWith("/gym/attendance/kiosks/")
+    );
+  }
+  if (href === "/gym/sales") {
+    return (
+      pathname === "/gym/sales" ||
+      (pathname.startsWith("/gym/sales/") &&
+        !pathname.startsWith("/gym/sales/receivables"))
+    );
+  }
+  if (href === "/gym/sales/receivables") {
+    return (
+      pathname === "/gym/sales/receivables" ||
+      pathname.startsWith("/gym/sales/receivables/")
     );
   }
   return pathname === href || pathname.startsWith(`${href}/`);
