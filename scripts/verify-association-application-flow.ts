@@ -68,12 +68,22 @@ function main() {
   );
   assert.ok(appForm.includes("/api/uploads/association-application"));
   assert.ok(appForm.includes("attachmentsJson"));
+  assert.ok(appForm.includes("DocumentUploadField"));
+  assert.ok(appForm.includes("AddressSearchField"));
 
   const hub = read("src/app/(public)/join/page.tsx");
   assert.ok(hub.includes("/join/association"));
 
   const nav = read("src/lib/navigation/admin-navigation.ts");
   assert.ok(nav.includes("/admin/association-applications"));
+
+  assert.equal(svc.includes("협회 로고를 첨부해 주세요"), false);
+  assert.ok(svc.includes("logoUrl: null"));
+  assert.ok(svc.includes("logoPath: null"));
+  assert.match(
+    svc,
+    /REQUIRED_ATTACHMENT_TYPES[\s\S]*?AssociationApplicationAttachmentType\.business_registration/,
+  );
 
   console.log("verify:association-application-flow: OK");
 }

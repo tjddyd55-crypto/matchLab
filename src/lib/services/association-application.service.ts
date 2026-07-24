@@ -19,6 +19,7 @@ import { createSupabaseAdminClient } from "@/lib/supabase/admin";
 import { loginIdSchema } from "@/lib/validators/login-id.validator";
 import { passwordSchema } from "@/lib/validators/password.validator";
 import { normalizePostalCode } from "@/lib/postal-address";
+import { assertAssociationAttachmentMimeAndSize } from "./association-application-upload.service";
 
 export const ASSOCIATION_OWNER_INVITE_TTL_MS = 7 * 24 * 60 * 60 * 1000;
 
@@ -59,7 +60,6 @@ export type AssociationApplicationInput = {
 };
 
 const REQUIRED_ATTACHMENT_TYPES: AssociationApplicationAttachmentType[] = [
-  AssociationApplicationAttachmentType.logo,
   AssociationApplicationAttachmentType.business_registration,
 ];
 
@@ -70,14 +70,13 @@ function assertAttachmentPaths(
     if (!a.storagePath.startsWith("association-applications/")) {
       throw new AppError("FORBIDDEN", "첨부 파일 경로가 올바르지 않습니다.");
     }
+    assertAssociationAttachmentMimeAndSize(a);
   }
   for (const required of REQUIRED_ATTACHMENT_TYPES) {
     if (!attachments.some((a) => a.attachmentType === required)) {
       throw new AppError(
         "VALIDATION_ERROR",
-        required === AssociationApplicationAttachmentType.logo
-          ? "협회 로고를 첨부해 주세요."
-          : "고유번호증 또는 사업자등록증을 첨부해 주세요.",
+        "고유번호증 또는 사업자등록증을 첨부해 주세요.",
       );
     }
   }
@@ -242,6 +241,9 @@ export const associationApplicationService = {
           status: OrganizerStatus.active,
           websiteUrl: row.website,
           publicLogoVisible: false,
+          // 빈 문자열은 금지하므로, 협회 가입 로고를 Organizer에 승계하지 않습니다.
+          logoUrl: null,
+          logoPath: null,
         },
       });
 

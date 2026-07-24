@@ -19,20 +19,44 @@ import { createSupabaseAdminClient } from "@/lib/supabase/admin";
 
 const PATH_PREFIX = "association-applications/";
 
-function assertMimeAndSize(mimeType: string, sizeBytes: number) {
-  const isImage = MEMBER_GYM_ALLOWED_IMAGE_MIME.has(mimeType);
-  const isDoc = MEMBER_GYM_ALLOWED_DOCUMENT_MIME.has(mimeType);
-  if (!isImage && !isDoc) {
+export function associationAttachmentMaxBytes(
+  attachmentType: AssociationApplicationAttachmentType,
+  mimeType: string,
+): number {
+  if (attachmentType === AssociationApplicationAttachmentType.logo) {
+    return MEMBER_GYM_IMAGE_MAX_BYTES;
+  }
+  return MEMBER_GYM_ALLOWED_IMAGE_MIME.has(mimeType)
+    ? MEMBER_GYM_IMAGE_MAX_BYTES
+    : MEMBER_GYM_DOCUMENT_MAX_BYTES;
+}
+
+export function assertAssociationAttachmentMimeAndSize({
+  attachmentType,
+  mimeType,
+  sizeBytes,
+}: {
+  attachmentType: AssociationApplicationAttachmentType;
+  mimeType: string;
+  sizeBytes: number;
+}) {
+  const allowedMimeTypes =
+    attachmentType === AssociationApplicationAttachmentType.logo
+      ? MEMBER_GYM_ALLOWED_IMAGE_MIME
+      : MEMBER_GYM_ALLOWED_DOCUMENT_MIME;
+  if (!allowedMimeTypes.has(mimeType)) {
     throw new AppError(
       "VALIDATION_ERROR",
-      "허용되지 않는 파일 형식입니다. (JPEG/PNG/WebP/PDF)",
+      attachmentType === AssociationApplicationAttachmentType.logo
+        ? "지원하지 않는 파일 형식입니다. JPEG, PNG, WebP 파일을 선택해 주세요."
+        : "지원하지 않는 파일 형식입니다. JPEG, PNG, WebP, PDF 파일을 선택해 주세요.",
     );
   }
-  const max = isImage ? MEMBER_GYM_IMAGE_MAX_BYTES : MEMBER_GYM_DOCUMENT_MAX_BYTES;
+  const max = associationAttachmentMaxBytes(attachmentType, mimeType);
   if (sizeBytes > max) {
     throw new AppError(
       "VALIDATION_ERROR",
-      `파일 크기는 최대 ${Math.floor(max / (1024 * 1024))}MB까지입니다.`,
+      `파일 용량이 너무 큽니다. 최대 ${Math.floor(max / (1024 * 1024))}MB 이하의 파일을 선택해 주세요.`,
     );
   }
 }
@@ -73,7 +97,7 @@ export const associationApplicationUploadService = {
     ) {
       throw new AppError("VALIDATION_ERROR", "첨부 유형이 올바르지 않습니다.");
     }
-    assertMimeAndSize(input.mimeType, input.sizeBytes);
+    assertAssociationAttachmentMimeAndSize(input);
     const batch = input.uploadBatchId.trim();
     if (!batch || batch.length < 8) {
       throw new AppError("VALIDATION_ERROR", "uploadBatchId가 필요합니다.");

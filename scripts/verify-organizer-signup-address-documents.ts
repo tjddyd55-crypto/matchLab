@@ -1,6 +1,6 @@
 /**
- * 협회 가입 주소 검색·postalCode 검증 (commit1).
- * Document upload 검증은 후속 커밋에서 확장한다.
+ * 협회 가입 주소·첨부파일 UI 정적 검증.
+ * npm run verify:organizer-signup-document-upload-ui
  */
 import assert from "node:assert/strict";
 import { readFileSync } from "node:fs";
@@ -24,6 +24,21 @@ function main() {
   );
   assert.match(form, /AddressSearchField/);
   assert.match(form, /postalName="postalCode"/);
+  assert.match(form, /DocumentUploadField/);
+  assert.match(form, /attachmentType === AssociationApplicationAttachmentType\.logo/);
+  assert.match(form, /required: false/);
+  assert.match(form, /business_registration/);
+  assert.match(form, /required: true/);
+  assert.match(form, /\/api\/uploads\/association-application/);
+  assert.match(form, /isUploading/);
+  assert.match(form, /\(필수\)/);
+  assert.doesNotMatch(form, /private 저장소/);
+
+  const documentUploadField = read("src/components/shared/DocumentUploadField.tsx");
+  assert.match(documentUploadField, /className="sr-only"/);
+  assert.match(documentUploadField, /type="file"/);
+  assert.match(documentUploadField, /flex-wrap/);
+  assert.match(documentUploadField, /min-w-0/);
 
   const helper = read("src/lib/postal-address.ts");
   assert.match(helper, /formatPostalAddress/);
@@ -46,6 +61,32 @@ function main() {
 
   const svc = read("src/lib/services/association-application.service.ts");
   assert.match(svc, /postalCode: normalizePostalCode/);
+  assert.match(svc, /assertAssociationAttachmentMimeAndSize/);
+  assert.match(
+    svc,
+    /REQUIRED_ATTACHMENT_TYPES[\s\S]*?AssociationApplicationAttachmentType\.business_registration/,
+  );
+  assert.doesNotMatch(
+    svc.match(/const REQUIRED_ATTACHMENT_TYPES[\s\S]*?];/)?.[0] ?? "",
+    /AssociationApplicationAttachmentType\.logo/,
+  );
+  assert.match(svc, /logoUrl: null/);
+  assert.match(svc, /logoPath: null/);
+
+  const uploadService = read(
+    "src/lib/services/association-application-upload.service.ts",
+  );
+  assert.match(uploadService, /associationAttachmentMaxBytes/);
+  assert.match(uploadService, /assertAssociationAttachmentMimeAndSize/);
+  assert.match(uploadService, /MEMBER_GYM_ALLOWED_IMAGE_MIME/);
+  assert.match(
+    uploadService,
+    /지원하지 않는 파일 형식입니다\. JPEG, PNG, WebP 파일을 선택해 주세요\./,
+  );
+  assert.match(uploadService, /issueUploadUrl[\s\S]*?assertAssociationAttachmentMimeAndSize/);
+  assert.match(uploadService, /createSignedUploadUrl/);
+  assert.match(uploadService, /createSignedUrl/);
+  assert.match(uploadService, /requireRole\(actor, \[UserRole\.admin\]\)/);
 
   const admin = read(
     "src/app/(dashboard)/admin/association-applications/[applicationId]/page.tsx",
@@ -53,8 +94,11 @@ function main() {
   assert.match(admin, /formatPostalAddress/);
 
   console.log("verify:organizer-signup-address-search: OK");
-  console.log("verify:organizer-signup-address-storage: OK");
-  console.log("verify:organizer-signup-address: ALL_PASS");
+  console.log("verify:organizer-signup-document-upload-ui: OK");
+  console.log("verify:organizer-signup-document-validation: OK");
+  console.log("verify:organizer-signup-private-attachments: OK");
+  console.log("verify:organizer-signup-mobile-layout: OK");
+  console.log("verify:organizer-signup-address-documents: ALL_PASS");
 }
 
 main();
