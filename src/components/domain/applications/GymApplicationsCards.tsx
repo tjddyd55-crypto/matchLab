@@ -1,5 +1,6 @@
 "use client";
 
+import Link from "next/link";
 import { ApplicationPaymentSummary } from "@/components/domain/applications/ApplicationPaymentSummary";
 import type { GymApplicationListItemVM } from "@/components/domain/applications/GymApplicationsTable";
 import { PaymentInstructionCard } from "@/components/domain/payments/PaymentInstructionCard";
@@ -47,6 +48,19 @@ export function GymApplicationsCards({
               applicationStatus={row.applicationStatus}
               paymentStatus={row.paymentStatus}
             />
+            <div className="flex justify-between gap-2 text-xs">
+              <span className="text-muted-foreground">대진표</span>
+              {row.hasPublicBrackets ? (
+                <Link
+                  href={`/gym/brackets?eventId=${encodeURIComponent(row.eventId)}`}
+                  className="font-medium text-matchon-primary underline-offset-2 hover:underline"
+                >
+                  대진표 확인
+                </Link>
+              ) : (
+                <span className="text-matchon-text-secondary">미공개</span>
+              )}
+            </div>
             <div className="text-muted-foreground text-xs">
               신청{" "}
               {row.appliedAt

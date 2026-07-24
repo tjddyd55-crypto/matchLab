@@ -548,6 +548,7 @@ export const matchRepository = {
             id: true,
             title: true,
             type: true,
+            isPublic: true,
             divisionId: true,
             event: { select: { title: true, publicSlug: true } },
             division: {

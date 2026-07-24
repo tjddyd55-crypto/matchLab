@@ -11,7 +11,8 @@ export type GymEventCardActionPlan = {
   secondary: GymEventCardActionLink | null;
   textLink: GymEventCardActionLink | null;
   disabledPrimaryLabel: string | null;
-  fieldStatusLink: GymEventCardActionLink | null;
+  /** 대진표 공개 시 체육관 대진표 확인 */
+  bracketLink: GymEventCardActionLink | null;
 };
 
 function publicAnnouncementHref(slug: string): string {
@@ -20,7 +21,8 @@ function publicAnnouncementHref(slug: string): string {
 
 /**
  * 체육관 대회 카드 CTA 우선순위.
- * Primary 1 + Secondary 1 + (선택) text link / field compact link.
+ * Primary 1 + Secondary 1 + (선택) text / bracket link.
+ * 현장 계체(field-status)는 Gym 포털에서 노출하지 않는다.
  */
 export function resolveGymEventCardActions(
   event: Pick<
@@ -32,20 +34,21 @@ export function resolveGymEventCardActions(
     | "registrationStatus"
     | "registrationStatusLabel"
     | "status"
+    | "hasPublicBrackets"
   >,
 ): GymEventCardActionPlan {
   const applyHref = `/gym/events/${event.id}/apply`;
   const statusHref = `/gym/events/${event.id}/status`;
   const publicHref = publicAnnouncementHref(event.publicSlug);
-  const fieldHref = `/gym/events/${event.id}/field-status`;
+  const bracketsHref = `/gym/brackets?eventId=${encodeURIComponent(event.id)}`;
   const hasApps = event.gymApplicationCount > 0;
   const publicLink: GymEventCardActionLink = {
     href: publicHref,
     label: "공개 공고 보기",
     external: true,
   };
-  const fieldLink: GymEventCardActionLink | null = hasApps
-    ? { href: fieldHref, label: "현장/계체 상태" }
+  const bracketLink: GymEventCardActionLink | null = event.hasPublicBrackets
+    ? { href: bracketsHref, label: "대진표 확인" }
     : null;
 
   if (event.canApply && !hasApps) {
@@ -54,7 +57,7 @@ export function resolveGymEventCardActions(
       secondary: publicLink,
       textLink: null,
       disabledPrimaryLabel: null,
-      fieldStatusLink: null,
+      bracketLink,
     };
   }
 
@@ -64,7 +67,7 @@ export function resolveGymEventCardActions(
       secondary: { href: applyHref, label: "선수 추가 신청" },
       textLink: publicLink,
       disabledPrimaryLabel: null,
-      fieldStatusLink: fieldLink,
+      bracketLink,
     };
   }
 
@@ -74,7 +77,7 @@ export function resolveGymEventCardActions(
       secondary: publicLink,
       textLink: null,
       disabledPrimaryLabel: null,
-      fieldStatusLink: fieldLink,
+      bracketLink,
     };
   }
 
@@ -83,7 +86,7 @@ export function resolveGymEventCardActions(
     secondary: publicLink,
     textLink: null,
     disabledPrimaryLabel: resolveClosedApplyLabel(event),
-    fieldStatusLink: null,
+    bracketLink,
   };
 }
 

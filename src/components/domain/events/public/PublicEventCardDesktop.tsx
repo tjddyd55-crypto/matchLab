@@ -1,6 +1,9 @@
 import Link from "next/link";
 import { EventAnnouncementCard } from "@/components/domain/events/announcement/EventAnnouncementCard";
-import { eventAnnouncementPublicHref } from "@/components/domain/events/announcement/event-announcement-card-ui";
+import {
+  eventAnnouncementCardPosterSizesDesktop,
+  eventAnnouncementPublicHref,
+} from "@/components/domain/events/announcement/event-announcement-card-ui";
 import { EventMetaList } from "@/components/domain/events/EventMetaList";
 import {
   publicEventCtaLabel,
@@ -26,7 +29,7 @@ export function PublicEventCardDesktop({
       posterHref={href}
       titleHref={href}
       priorityImage={priorityImage}
-      posterSizes="(max-width:1024px) 33vw, 340px"
+      posterSizes={eventAnnouncementCardPosterSizesDesktop}
       titleSize="lg"
       meta={
         <>

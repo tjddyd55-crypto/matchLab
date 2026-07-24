@@ -65,6 +65,7 @@ function assertNavSsotUnchanged() {
         items: [
           { href: "/gym/events", label: "대회 목록" },
           { href: "/gym/applications", label: "신청 내역" },
+          { href: "/gym/brackets", label: "대진표 확인" },
         ],
       },
       {

@@ -37,7 +37,7 @@ function assertNav() {
   assert.equal(events?.label, "대회");
   assert.deepEqual(
     events?.items.map((i) => i.label),
-    ["대회 목록", "신청 내역"],
+    ["대회 목록", "신청 내역", "대진표 확인"],
   );
   const bottom = getGymPortalMobileBottomNavItems();
   assert.deepEqual(

@@ -13,7 +13,7 @@ import {
 } from "@/lib/ui/matchon-layout";
 import { cn } from "@/lib/utils";
 
-export type GymEventSubpageActive = "apply" | "status" | "field-status";
+export type GymEventSubpageActive = "apply" | "status" | "brackets";
 
 export function GymEventSubpageHeader({
   eventId,
@@ -22,6 +22,7 @@ export function GymEventSubpageHeader({
   publicSlug,
   active,
   meta,
+  hasPublicBrackets = false,
 }: {
   eventId: string;
   eventTitle: string;
@@ -29,6 +30,7 @@ export function GymEventSubpageHeader({
   publicSlug?: string;
   active: GymEventSubpageActive;
   meta?: React.ReactNode;
+  hasPublicBrackets?: boolean;
 }) {
   return (
     <div className="flex min-w-0 flex-col gap-4">
@@ -74,16 +76,28 @@ export function GymEventSubpageHeader({
                 신청 현황
               </Link>
             ) : null}
-            {active !== "field-status" ? (
-              <Link
-                href={`/gym/events/${eventId}/field-status`}
-                className={cn(
-                  buttonVariants({ variant: "outline", size: "field" }),
-                  "w-full sm:w-auto",
-                )}
-              >
-                현장·계체 상태
-              </Link>
+            {active !== "brackets" ? (
+              hasPublicBrackets ? (
+                <Link
+                  href={`/gym/brackets?eventId=${encodeURIComponent(eventId)}`}
+                  className={cn(
+                    buttonVariants({ variant: "outline", size: "field" }),
+                    "w-full sm:w-auto",
+                  )}
+                >
+                  대진표 확인
+                </Link>
+              ) : (
+                <span
+                  className={cn(
+                    buttonVariants({ variant: "secondary", size: "field" }),
+                    "inline-flex w-full cursor-not-allowed justify-center opacity-80 sm:w-auto",
+                  )}
+                  aria-disabled
+                >
+                  대진표 준비 중
+                </span>
+              )
             ) : null}
             {publicSlug ? (
               <Link

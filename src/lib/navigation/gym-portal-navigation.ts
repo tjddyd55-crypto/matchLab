@@ -62,6 +62,7 @@ export function getGymPortalNavGroups(): GymPortalNavGroup[] {
       items: [
         { href: "/gym/events", label: "대회 목록" },
         { href: "/gym/applications", label: "신청 내역" },
+        { href: "/gym/brackets", label: "대진표 확인" },
       ],
     },
     {
@@ -107,6 +108,7 @@ export const GYM_PORTAL_HIDDEN_EVENT_HREFS = [
 export const GYM_PORTAL_EVENT_APPLICATION_HREFS = [
   "/gym/events",
   "/gym/applications",
+  "/gym/brackets",
 ] as const;
 
 export function canGymAccessEventApplications(input: {
@@ -146,6 +148,11 @@ export function isGymPortalNavItemActive(
     return (
       pathname === "/gym/applications" ||
       pathname.startsWith("/gym/applications/")
+    );
+  }
+  if (href === "/gym/brackets") {
+    return (
+      pathname === "/gym/brackets" || pathname.startsWith("/gym/brackets/")
     );
   }
   if (href === "/gym/attendance") {

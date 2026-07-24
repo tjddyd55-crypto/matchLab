@@ -192,6 +192,7 @@ function assertGymPortalNav() {
     "선수 등록",
     "대회 목록",
     "신청 내역",
+    "대진표 확인",
     "체육관 정보",
   ]);
   assert.deepEqual(hrefs, [
@@ -207,6 +208,7 @@ function assertGymPortalNav() {
     "/gym/fighters/new",
     "/gym/events",
     "/gym/applications",
+    "/gym/brackets",
     "/gym/profile",
   ]);
 
@@ -234,7 +236,7 @@ function assertGymPortalNav() {
   assert.equal(eventsGroup?.label, "대회");
   assert.deepEqual(
     eventsGroup?.items.map((i) => i.label),
-    ["대회 목록", "신청 내역"],
+    ["대회 목록", "신청 내역", "대진표 확인"],
   );
 
   // PC/mobile: Sidebar+Sheet use groups; bottom uses compact mobile items

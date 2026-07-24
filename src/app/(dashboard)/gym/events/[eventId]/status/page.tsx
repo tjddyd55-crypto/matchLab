@@ -60,11 +60,12 @@ export default async function GymEventStatusPage({
           pageTitle="신청 현황"
           publicSlug={data.publicSlug}
           active="status"
+          hasPublicBrackets={data.hasPublicBrackets}
         />
 
         <p className={matchonInfoBannerClass}>
-          신청·입금·현장 확인·대진 정보는 조회만 가능합니다. 수정이 필요하면
-          주최자 또는 소속 체육관 운영자에게 문의해 주세요.
+          신청·대진 정보는 조회만 가능합니다. 현장 계체·대진 수정은 주최자만
+          가능합니다.
         </p>
 
         <GymEventStatusBoard data={data} />

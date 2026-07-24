@@ -29,6 +29,7 @@ import { bracketRepository } from "@/lib/repositories/bracket.repository";
 import { eventRepository } from "@/lib/repositories/event.repository";
 import { matchRepository } from "@/lib/repositories/match.repository";
 import { notificationRepository } from "@/lib/repositories/notification.repository";
+import { eventService } from "@/lib/services/event.service";
 
 export type GymApplicationFormStatusKey =
   | "none"
@@ -101,10 +102,13 @@ export type GymEventStatusPageDTO = {
   eventTitle: string;
   publicSlug: string;
   bracketGenerated: boolean;
+  hasPublicBrackets: boolean;
   applicationFormMode: ApplicationFormMode;
   rows: GymEventApplicationStatusRowDTO[];
   summary: GymEventApplicationStatusSummaryDTO;
   matches: GymEventMatchRowDTO[];
+  /** 공개 대진표 기준 매치만 — Gym 대진표 확인용 */
+  publicMatches: GymEventMatchRowDTO[];
   unassignedFighters: { fighterId: string; fighterName: string; divisionLabel: string }[];
 };
 
@@ -290,6 +294,7 @@ export const gymEventStatusService = {
       ]);
 
     const bracketGenerated = brackets.length > 0;
+    const hasPublicBrackets = brackets.some((b) => b.isPublic);
     const placedSet = new Set(placedFighterIds);
     const docByFighter = new Map(documents.map((d) => [d.fighterId, d]));
 
@@ -425,6 +430,39 @@ export const gymEventStatusService = {
       ];
     });
 
+    const publicMatches = matches
+      .filter((m) => m.bracket.isPublic)
+      .flatMap((m) => {
+        const perspective = mapGymPerspectiveMatch(gymId, m);
+        if (!perspective) return [];
+        const divisionLabel = m.bracket.division
+          ? formatDivisionNameLabel(m.bracket.division)
+          : m.bracket.title;
+        return [
+          {
+            matchId: m.id,
+            fighterId: perspective.fighterId,
+            fighterName: perspective.fighterName,
+            opponentName: perspective.opponentName,
+            opponentGymName: perspective.opponentGymName,
+            divisionLabel,
+            bracketTitle: m.bracket.title,
+            matchNumber: m.matchNumber,
+            globalMatchOrder: m.globalMatchOrder,
+            matchStatus: m.status,
+            matchStatusLabel: bracketMatchStatusLabel(m.status),
+            resultSummary: buildMatchResultSummary(perspective.fighterId, {
+              status: m.status,
+              winnerId: m.winnerId,
+              loserId: m.loserId,
+              resultType: m.resultType,
+              matchResults: m.matchResults ?? [],
+            }),
+            publicSlug: m.bracket.event.publicSlug,
+          } satisfies GymEventMatchRowDTO,
+        ];
+      });
+
     const unassignedFighters = rows
       .filter(
         (r) =>
@@ -443,11 +481,72 @@ export const gymEventStatusService = {
       eventTitle: event.title,
       publicSlug: slugRow?.publicSlug ?? matches[0]?.bracket.event.publicSlug ?? "",
       bracketGenerated,
+      hasPublicBrackets,
       applicationFormMode,
       rows,
       summary: buildApplicationStatusSummary(rows),
       matches: matchRows,
+      publicMatches,
       unassignedFighters,
     };
+  },
+
+  /**
+   * Gym 대진표 확인 보드 — 공개 대진만, 조회 전용.
+   * eventId가 있으면 해당 대회만, 없으면 신청이 있는 대회를 순회한다.
+   */
+  async listGymBracketBoard(
+    actor: ActorContext,
+    filters?: { eventId?: string },
+  ): Promise<{
+    events: Array<{
+      eventId: string;
+      eventTitle: string;
+      publicSlug: string;
+      eventDate: string | null;
+      hasPublicBrackets: boolean;
+      matches: GymEventMatchRowDTO[];
+      unassignedFighters: {
+        fighterId: string;
+        fighterName: string;
+        divisionLabel: string;
+      }[];
+    }>;
+  }> {
+    requireRole(actor, ["gym", "admin"]);
+    const gymId = actor.gymId;
+    if (!gymId) {
+      throw new AppError(
+        "FORBIDDEN",
+        "체육관 정보가 없습니다. 체육관 계정으로 이용해 주세요.",
+      );
+    }
+    await requireGymOwner(actor, gymId);
+
+    const dashboard = await eventService.listEventsForGymDashboard(actor);
+    const targets = filters?.eventId
+      ? dashboard.filter((e) => e.id === filters.eventId)
+      : dashboard.filter((e) => e.gymApplicationCount > 0);
+
+    const events = [];
+    for (const ev of targets) {
+      const page = await gymEventStatusService.getGymEventStatusPage(
+        actor,
+        ev.id,
+      );
+      events.push({
+        eventId: page.eventId,
+        eventTitle: page.eventTitle,
+        publicSlug: page.publicSlug,
+        eventDate: ev.eventDate,
+        hasPublicBrackets: page.hasPublicBrackets,
+        matches: page.publicMatches,
+        unassignedFighters: page.hasPublicBrackets
+          ? page.unassignedFighters
+          : [],
+      });
+    }
+
+    return { events };
   },
 };

@@ -60,6 +60,14 @@ export function GymEventCardActions({
         />
       ) : null}
 
+      {plan.bracketLink ? (
+        <ActionButton link={plan.bracketLink} variant="outline" />
+      ) : event.gymApplicationCount > 0 ? (
+        <span className="block text-center text-xs text-matchon-text-secondary">
+          대진표 준비 중
+        </span>
+      ) : null}
+
       {plan.textLink ? (
         <Link
           href={plan.textLink.href}
@@ -70,19 +78,11 @@ export function GymEventCardActions({
           {plan.textLink.label}
         </Link>
       ) : null}
-
-      {plan.fieldStatusLink ? (
-        <Link
-          href={plan.fieldStatusLink.href}
-          className="block text-center text-xs font-medium text-matchon-text-secondary underline-offset-2 hover:text-matchon-primary hover:underline"
-        >
-          {plan.fieldStatusLink.label}
-        </Link>
-      ) : null}
     </div>
   );
 }
 
+/** Gym 전용 요약 — 공개 배지와 중복되는 공개/신청/대진/결과 상태는 반복하지 않는다. */
 export function GymEventApplicationSummary({
   event,
 }: {
@@ -91,23 +91,15 @@ export function GymEventApplicationSummary({
   const hasApps = event.gymApplicationCount > 0;
 
   return (
-    <div className="shrink-0 space-y-1 rounded-xl border border-matchon-border/80 bg-matchon-primary-light/25 px-3 py-2 text-xs">
+    <div className="shrink-0 space-y-0.5 rounded-xl border border-matchon-border/80 bg-matchon-primary-light/25 px-3 py-2 text-xs">
       <p className="font-semibold text-matchon-text-primary">
         우리 체육관 신청{" "}
         <span className="tabular-nums">{event.gymApplicationCount}명</span>
+        <span className="font-normal text-matchon-text-secondary">
+          {" "}
+          · {hasApps ? "신청 있음" : "신청 없음"}
+        </span>
       </p>
-      <p className="text-matchon-text-secondary">
-        {hasApps ? "신청 완료" : "신청 없음"}
-        {!event.hasPaymentSetting ? " · 입금 미설정" : null}
-      </p>
-      {event.liveStreamingEnabled || event.streamingConsentRequired ? (
-        <p className="text-amber-900/80 dark:text-amber-100/90">
-          촬영·스트리밍 안내가 필요할 수 있습니다.
-        </p>
-      ) : null}
-      {event.applyDisabledReason && !event.canApply ? (
-        <p className="text-matchon-text-secondary">{event.applyDisabledReason}</p>
-      ) : null}
     </div>
   );
 }

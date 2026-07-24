@@ -1,7 +1,10 @@
 import { requireActor } from "@/lib/auth/actor";
 import { eventService } from "@/lib/services/event.service";
 import { GymEventCard } from "@/components/domain/events/GymEventCard";
-import { eventAnnouncementCardGridClass } from "@/components/domain/events/announcement/event-announcement-card-ui";
+import {
+  eventAnnouncementCardGridClass,
+  eventAnnouncementCardListWidthClass,
+} from "@/components/domain/events/announcement/event-announcement-card-ui";
 import { GymProfileMissingBanner } from "@/components/domain/gym/GymProfileMissingBanner";
 import { MatchonEmptyState } from "@/components/shared/MatchonEmptyState";
 import {
@@ -16,6 +19,7 @@ import {
   matchonStatValueClass,
   matchonStatsGridClass,
 } from "@/lib/ui/matchon-shell-ui";
+import { cn } from "@/lib/utils";
 
 export const dynamic = "force-dynamic";
 
@@ -75,7 +79,12 @@ export default async function GymEventsPage() {
             description="주최자가 대회를 공개하면 여기에 표시됩니다."
           />
         ) : (
-          <div className={eventAnnouncementCardGridClass}>
+          <div
+            className={cn(
+              eventAnnouncementCardListWidthClass,
+              eventAnnouncementCardGridClass,
+            )}
+          >
             {events.map((event) => (
               <GymEventCard key={event.id} event={event} />
             ))}

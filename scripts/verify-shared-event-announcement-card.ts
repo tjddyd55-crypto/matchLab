@@ -27,9 +27,11 @@ function assertSharedCardWiring() {
   assert.match(
     gymCard,
     /from "@\/components\/domain\/events\/announcement\/EventAnnouncementCard"/,
+    "Gym card must use shared announcement card",
   );
   assert.match(gymCard, /GymEventCardActions/);
   assert.match(gymCard, /GymEventApplicationSummary/);
+  assert.match(gymCard, /eventAnnouncementCardPosterSizesDesktop/);
   assert.doesNotMatch(
     gymCard,
     /EventPosterImage/,
@@ -57,6 +59,7 @@ function assertSharedCardWiring() {
   const gymPage = read("src/app/(dashboard)/gym/events/page.tsx");
   assert.match(gymPage, /GymEventCard/);
   assert.match(gymPage, /eventAnnouncementCardGridClass/);
+  assert.match(gymPage, /eventAnnouncementCardListWidthClass/);
 
   const service = read("src/lib/services/event.service.ts");
   assert.match(service, /coverImageUrl: resolveEventCoverImageUrl/);
@@ -77,6 +80,7 @@ function assertGymActionsPlan() {
     registrationStatus: "open" as const,
     registrationStatusLabel: "신청 가능",
     status: "open" as const,
+    hasPublicBrackets: false,
   };
 
   const applyFirst = resolveGymEventCardActions({
@@ -86,26 +90,29 @@ function assertGymActionsPlan() {
   });
   assert.equal(applyFirst.primary?.label, "선수 신청하기");
   assert.equal(applyFirst.secondary?.label, "공개 공고 보기");
-  assert.equal(applyFirst.fieldStatusLink, null);
+  assert.equal(applyFirst.bracketLink, null);
 
   const withApps = resolveGymEventCardActions({
     ...base,
     canApply: true,
     gymApplicationCount: 2,
+    hasPublicBrackets: true,
   });
   assert.equal(withApps.primary?.label, "신청 현황");
   assert.equal(withApps.secondary?.label, "선수 추가 신청");
   assert.equal(withApps.textLink?.label, "공개 공고 보기");
-  assert.equal(withApps.fieldStatusLink?.label, "현장/계체 상태");
+  assert.equal(withApps.bracketLink?.label, "대진표 확인");
+  assert.ok(withApps.bracketLink?.href.includes("/gym/brackets?eventId="));
 
   const closedWithApps = resolveGymEventCardActions({
     ...base,
     canApply: false,
     registrationStatus: "closed",
     gymApplicationCount: 1,
+    hasPublicBrackets: false,
   });
   assert.equal(closedWithApps.primary?.label, "신청 현황");
-  assert.equal(closedWithApps.fieldStatusLink?.label, "현장/계체 상태");
+  assert.equal(closedWithApps.bracketLink, null);
 
   const closedNoApps = resolveGymEventCardActions({
     ...base,
@@ -115,7 +122,7 @@ function assertGymActionsPlan() {
   });
   assert.equal(closedNoApps.primary, null);
   assert.equal(closedNoApps.disabledPrimaryLabel, "신청 마감");
-  assert.equal(closedNoApps.fieldStatusLink, null);
+  assert.equal(closedNoApps.bracketLink, null);
 
   console.log("verify:shared-event-announcement-card: actions OK");
 }

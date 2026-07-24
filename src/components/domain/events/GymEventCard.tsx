@@ -3,7 +3,10 @@ import {
   GymEventApplicationSummary,
   GymEventCardActions,
 } from "@/components/domain/events/announcement/GymEventCardActions";
-import { eventAnnouncementPublicHref } from "@/components/domain/events/announcement/event-announcement-card-ui";
+import {
+  eventAnnouncementCardPosterSizesDesktop,
+  eventAnnouncementPublicHref,
+} from "@/components/domain/events/announcement/event-announcement-card-ui";
 import { EventMetaList } from "@/components/domain/events/EventMetaList";
 import type { GymDashboardEventItemDTO } from "@/lib/services/event.service";
 
@@ -26,7 +29,7 @@ export function GymEventCard({ event }: { event: GymDashboardEventItemDTO }) {
       }}
       posterHref={publicHref}
       titleHref={publicHref}
-      posterSizes="(max-width:768px) 100vw, (max-width:1024px) 50vw, 340px"
+      posterSizes={eventAnnouncementCardPosterSizesDesktop}
       meta={
         <EventMetaList
           eventDate={event.eventDate}

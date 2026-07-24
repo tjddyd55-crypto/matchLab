@@ -1,5 +1,6 @@
 "use client";
 
+import Link from "next/link";
 import type { ApplicationStatus, PaymentStatus } from "@/generated/prisma";
 import { ApplicationPaymentSummary } from "@/components/domain/applications/ApplicationPaymentSummary";
 import { PaymentInstructionCard } from "@/components/domain/payments/PaymentInstructionCard";
@@ -36,6 +37,7 @@ export type GymApplicationListItemVM = {
   registrationEndDate: string;
   organizerDepositPerAthlete: number | null;
   gymAthleteFeeGuidance: number | null;
+  hasPublicBrackets?: boolean;
   paymentInstruction: {
     feeAmount: number;
     bankName: string;
@@ -62,6 +64,7 @@ export function GymApplicationsTable({
             <TableHead>선수</TableHead>
             <TableHead>경기구분</TableHead>
             <TableHead>상태</TableHead>
+            <TableHead>대진표</TableHead>
             <TableHead>신청일</TableHead>
             <TableHead className="text-right">입금 안내</TableHead>
           </TableRow>
@@ -95,6 +98,18 @@ export function GymApplicationsTable({
                   applicationStatus={row.applicationStatus}
                   paymentStatus={row.paymentStatus}
                 />
+              </TableCell>
+              <TableCell className="text-xs">
+                {row.hasPublicBrackets ? (
+                  <Link
+                    href={`/gym/brackets?eventId=${encodeURIComponent(row.eventId)}`}
+                    className="font-medium text-matchon-primary underline-offset-2 hover:underline"
+                  >
+                    대진표 확인
+                  </Link>
+                ) : (
+                  <span className="text-matchon-text-secondary">미공개</span>
+                )}
               </TableCell>
               <TableCell className="text-muted-foreground text-xs whitespace-nowrap">
                 {row.appliedAt

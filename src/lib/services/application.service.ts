@@ -24,6 +24,7 @@ import { consentRepository } from "@/lib/repositories/consent.repository";
 import { eventRepository } from "@/lib/repositories/event.repository";
 import { fighterRepository } from "@/lib/repositories/fighter.repository";
 import { gymEventFeeRepository } from "@/lib/repositories/gym-event-fee.repository";
+import { bracketRepository } from "@/lib/repositories/bracket.repository";
 import { registrationRepository } from "@/lib/repositories/registration.repository";
 import { safeNotify } from "@/lib/notifications/safe-dispatch";
 import { notificationService } from "@/lib/services/notification.service";
@@ -306,6 +307,7 @@ export type GymApplicationListRowDTO = {
   organizerDepositPerAthlete: number | null;
   /** 체육관이 선수에게 안내하는 참가비 */
   gymAthleteFeeGuidance: number | null;
+  hasPublicBrackets: boolean;
 };
 
 /** 선수 계정에 연결된 프로필 기준 — 계좌번호 등 입금 세부는 포함하지 않음 */
@@ -511,9 +513,15 @@ export const applicationService = {
         Awaited<ReturnType<typeof eventRepository.findEventPaymentSettingFull>>
       >
     >();
+    const publicBracketsByEvent = new Map<string, boolean>();
     for (const eid of eventIds) {
       const p = await eventRepository.findEventPaymentSettingFull(eid);
       if (p) paymentByEvent.set(eid, p);
+      const brackets = await bracketRepository.listBracketsByEvent(eid);
+      publicBracketsByEvent.set(
+        eid,
+        brackets.some((b) => b.isPublic),
+      );
     }
 
     const gymFees = await gymEventFeeRepository.listByGym(gymId);
@@ -548,6 +556,7 @@ export const applicationService = {
           : null,
         organizerDepositPerAthlete: paymentFull?.feeAmount ?? null,
         gymAthleteFeeGuidance: gf?.athleteFeeAmount ?? null,
+        hasPublicBrackets: publicBracketsByEvent.get(row.event.id) ?? false,
       };
     });
   },
