@@ -82,6 +82,7 @@ function assertEventCardSsot() {
   );
   assert.match(ui, /eventAnnouncementCardListWidthClass/);
   assert.match(ui, /max-w-\[1120px\]/);
+  assert.match(ui, /px-4 sm:px-6 lg:px-8/);
   assert.match(ui, /eventAnnouncementCardPosterSizesDesktop/);
 
   const gymPage = read("src/app/(dashboard)/gym/events/page.tsx");

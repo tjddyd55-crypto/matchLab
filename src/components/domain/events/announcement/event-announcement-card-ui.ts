@@ -18,11 +18,12 @@ export const eventAnnouncementCardGridClass =
   "grid grid-cols-1 gap-3 sm:gap-4 md:grid-cols-2 lg:grid-cols-3";
 
 /**
- * 공개 `/events`와 동일한 카드 열 폭 상한 (max 1120px).
- * Gym 포털 페이지 컨테이너가 더 넓어도 카드 크기를 공개와 맞춘다.
+ * 공개 `/events`와 동일한 카드 열 폭 (max 1120px + 공개와 같은 가로 padding).
+ * Gym 포털 페이지 컨테이너가 더 넓어도 카드·포스터 폭을 공개와 맞춘다.
+ * PUBLIC_CONTENT_CONTAINER_CLASS 의 padding과 동일해야 한다.
  */
 export const eventAnnouncementCardListWidthClass =
-  "mx-auto w-full max-w-[1120px]";
+  "mx-auto w-full max-w-[1120px] px-4 sm:px-6 lg:px-8";
 
 /** 공개 PC 카드와 동일한 sizes 힌트 */
 export const eventAnnouncementCardPosterSizesDesktop =
