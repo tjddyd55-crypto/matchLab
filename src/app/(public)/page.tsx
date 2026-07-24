@@ -13,7 +13,7 @@ export const dynamic = "force-dynamic";
 export default async function PublicHomePage() {
   const [events, partners] = await Promise.all([
     eventService.listPublicEvents(),
-    publicPartnerService.listHomePartners(),
+    publicPartnerService.listActivePublicPartnerLogos(),
   ]);
   const featured = events
     .filter(

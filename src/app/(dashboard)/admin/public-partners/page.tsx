@@ -18,8 +18,8 @@ export default async function AdminPublicPartnersPage() {
     <div className={adminPageContainerClass}>
       <div className={adminPageStackClass}>
         <AdminPageHeader
-          title="파트너 로고 관리"
-          description="공개 홈「함께하는 협회 및 파트너」영역에 노출되는 스폰서·파트너 로고를 관리합니다. 협회 로고는 협회 프로필에서 관리합니다."
+          title="메인 파트너 로고"
+          description="메인 페이지 하단에 표시할 후원사·협력사·기관 로고를 관리합니다. 협회·주최자 프로필 로고와는 분리되어 있으며, 관리자가 직접 등록한 활성 로고만 공개 메인에 노출됩니다."
         />
         <div className={adminContentCardClass}>
           <AdminPublicPartnersManager
@@ -31,10 +31,13 @@ export default async function AdminPublicPartnersPage() {
               logoPath: r.logoPath,
               websiteUrl: r.websiteUrl,
               altText: r.altText,
+              description: r.description,
               sortOrder: r.sortOrder,
               isActive: r.isActive,
+              openInNewTab: r.openInNewTab,
               startsAt: r.startsAt?.toISOString() ?? null,
               endsAt: r.endsAt?.toISOString() ?? null,
+              exposureStatus: r.exposureStatus,
             }))}
           />
         </div>

@@ -8,7 +8,7 @@ export const dynamic = "force-dynamic";
  * object key · 관리자 ID · 내부 메모 비노출.
  */
 export async function GET() {
-  const partners = await publicPartnerService.listHomePartners();
+  const partners = await publicPartnerService.listActivePublicPartnerLogos();
   return NextResponse.json({
     partners: partners.map((p) => ({
       id: p.id,
@@ -17,6 +17,7 @@ export async function GET() {
       logoUrl: p.logoUrl,
       websiteUrl: p.websiteUrl,
       altText: p.altText,
+      openInNewTab: p.openInNewTab,
       sortOrder: p.sortOrder,
     })),
   });
