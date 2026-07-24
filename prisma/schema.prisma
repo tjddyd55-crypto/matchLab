@@ -452,7 +452,7 @@ model Organizer {
   /// 공개 홈 파트너 영역용 로고 (event-images 공개 버킷 path/URL)
   logoPath  String?
   logoUrl   String?
-  /// 공개 홈에 협회 로고 노출 여부
+  /// @deprecated 메인 하단 자동 노출에 사용하지 않음. 필드 유지(호환). 신규 저장은 false.
   publicLogoVisible Boolean  @default(false)
   websiteUrl String?
   createdAt DateTime         @default(now())
@@ -2018,30 +2018,44 @@ model AssociationMemberGymSettings {
 }
 
 /// 공개 홈 스폰서·파트너 로고 (협회 로고는 Organizer 필드 사용 — 복사 저장 금지)
+/// 메인 하단 파트너 로고 분류 (노출 여부와 무관 — 관리자 수동 등록만)
 enum PublicPartnerType {
   sponsor
   partner
+  association
+  brand
+  media
+  supplier
+  other
 }
 
+/// 공개 홈 하단 파트너·후원사 로고. Organizer 프로필 로고와 완전 분리.
 model PublicPartner {
-  id          String            @id @default(cuid())
-  name        String
-  type        PublicPartnerType
+  id              String            @id @default(cuid())
+  name            String
+  type            PublicPartnerType @default(partner)
   /// event-images 버킷 내 object path (public-partners/{id}/logo/...)
-  logoPath    String
+  logoPath        String
   /// 공개 읽기용 캐시 URL (임의 외부 URL 저장 금지)
-  logoUrl     String
-  websiteUrl  String?
-  altText     String?
-  sortOrder   Int               @default(0)
-  isActive    Boolean           @default(true)
-  startsAt    DateTime?
-  endsAt      DateTime?
-  deletedAt   DateTime?
-  createdAt   DateTime          @default(now())
-  updatedAt   DateTime          @updatedAt
+  logoUrl         String
+  websiteUrl      String?
+  altText         String?
+  description     String?
+  sortOrder       Int               @default(0)
+  isActive        Boolean           @default(true)
+  openInNewTab    Boolean           @default(true)
+  /// date-only UTC. 노출 시작(당일부터)
+  startsAt        DateTime?
+  /// date-only UTC. 노출 종료(당일까지 포함)
+  endsAt          DateTime?
+  createdByUserId String?
+  updatedByUserId String?
+  deletedAt       DateTime?
+  createdAt       DateTime          @default(now())
+  updatedAt       DateTime          @updatedAt
 
-  @@index([isActive, sortOrder])
+  @@index([isActive, deletedAt, sortOrder])
+  @@index([startsAt, endsAt])
   @@index([deletedAt])
   @@index([type])
 }

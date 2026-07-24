@@ -10,13 +10,16 @@ type Initial = {
   websiteUrl: string | null;
 };
 
+/**
+ * 협회 프로필 로고 — 대회/가입 안내용.
+ * 메인 하단 파트너 영역과 완전 분리 (자동 노출 없음).
+ */
 export function AssociationPublicLogoForm({ initial }: { initial: Initial }) {
   const [pending, start] = useTransition();
   const [error, setError] = useState<string | null>(null);
   const [message, setMessage] = useState<string | null>(null);
   const [logoPath, setLogoPath] = useState("");
   const [logoUrl, setLogoUrl] = useState(initial.logoUrl ?? "");
-  const [visible, setVisible] = useState(initial.publicLogoVisible);
   const [websiteUrl, setWebsiteUrl] = useState(initial.websiteUrl ?? "");
 
   async function onLogoSelected(file: File | null) {
@@ -57,7 +60,8 @@ export function AssociationPublicLogoForm({ initial }: { initial: Initial }) {
               op: "save",
               logoPath: logoPath || undefined,
               logoUrl: logoPath ? logoUrl : undefined,
-              publicLogoVisible: visible,
+              // 메인 하단 자동 노출 금지 — 필드 유지하되 항상 false
+              publicLogoVisible: false,
               websiteUrl: websiteUrl || null,
             }),
           });
@@ -67,20 +71,22 @@ export function AssociationPublicLogoForm({ initial }: { initial: Initial }) {
             return;
           }
           if (json.data.logoUrl) setLogoUrl(json.data.logoUrl);
-          setVisible(Boolean(json.data.publicLogoVisible));
           setWebsiteUrl(json.data.websiteUrl ?? "");
-          setMessage("공개 로고 설정이 저장되었습니다.");
+          setMessage("협회 프로필 로고 설정이 저장되었습니다.");
         });
       }}
     >
-      <h2 className="text-base font-bold text-matchon-text-primary">공개 로고</h2>
+      <h2 className="text-base font-bold text-matchon-text-primary">협회 프로필 로고</h2>
       <p className="text-sm text-matchon-text-secondary">
-        승인된 활성 협회만 공개 홈에 표시됩니다. PNG/JPEG/WebP · 최대 5MB.
+        이 로고는 협회 프로필·체육관 가입 안내에 사용됩니다. 메인 하단 파트너
+        영역에는 자동으로 표시되지 않으며, 메인 노출은 플랫폼 관리자가 별도로
+        등록합니다. PNG/JPEG/WebP · 최대 5MB.
       </p>
       {logoUrl ? (
+        // eslint-disable-next-line @next/next/no-img-element
         <img
           src={logoUrl}
-          alt="협회 공개 로고 미리보기"
+          alt="협회 프로필 로고 미리보기"
           className="h-16 w-auto object-contain"
         />
       ) : (
@@ -102,14 +108,6 @@ export function AssociationPublicLogoForm({ initial }: { initial: Initial }) {
           onChange={(e) => setWebsiteUrl(e.target.value)}
           className="h-11 rounded-lg border border-matchon-border px-3"
         />
-      </label>
-      <label className="flex items-center gap-2 text-sm">
-        <input
-          type="checkbox"
-          checked={visible}
-          onChange={(e) => setVisible(e.target.checked)}
-        />
-        공개 홈에 로고 노출
       </label>
       {error ? (
         <p className="text-sm text-red-600" role="alert">

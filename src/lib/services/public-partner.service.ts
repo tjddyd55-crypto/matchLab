@@ -1,82 +1,72 @@
 import "server-only";
 
-import { OrganizerStatus, OrganizerType, PublicPartnerType } from "@/lib/enums";
 import { prisma } from "@/lib/prisma";
+import {
+  isPublicPartnerVisibleOnHome,
+  type PublicPartnerExposureStatus,
+} from "@/lib/public-partner-logo";
+import type { PublicPartnerType } from "@/lib/enums";
 
 export type HomePartnerItem = {
   id: string;
   name: string;
-  type: "association" | "sponsor" | "partner";
+  type: PublicPartnerType;
   logoUrl: string;
   websiteUrl: string | null;
   altText: string;
+  openInNewTab: boolean;
   sortOrder: number;
 };
 
-function inExposureWindow(now: Date, startsAt: Date | null, endsAt: Date | null) {
-  if (startsAt && startsAt > now) return false;
-  if (endsAt && endsAt < now) return false;
-  return true;
-}
-
 /**
- * 공개 홈 로고 스트립.
- * MVP 정렬: 협회(이름순) 먼저 → PublicPartner(sortOrder).
+ * 공개 홈 하단 파트너 로고.
+ * Admin `PublicPartner`만 사용 — Organizer/Association 프로필 로고와 완전 분리.
  */
 export const publicPartnerService = {
-  async listHomePartners(): Promise<HomePartnerItem[]> {
-    const now = new Date();
+  async listActivePublicPartnerLogos(
+    now: Date = new Date(),
+  ): Promise<HomePartnerItem[]> {
+    const partners = await prisma.publicPartner.findMany({
+      where: {
+        deletedAt: null,
+        isActive: true,
+      },
+      orderBy: [
+        { sortOrder: "asc" },
+        { createdAt: "asc" },
+        { id: "asc" },
+      ],
+    });
 
-    const [associations, partners] = await Promise.all([
-      prisma.organizer.findMany({
-        where: {
-          type: OrganizerType.association,
-          status: OrganizerStatus.active,
-          publicLogoVisible: true,
-          logoUrl: { not: null },
-        },
-        select: {
-          id: true,
-          name: true,
-          logoUrl: true,
-          websiteUrl: true,
-          createdAt: true,
-        },
-        orderBy: [{ name: "asc" }, { createdAt: "asc" }],
-      }),
-      prisma.publicPartner.findMany({
-        where: {
-          deletedAt: null,
-          isActive: true,
-        },
-        orderBy: [{ sortOrder: "asc" }, { name: "asc" }, { createdAt: "asc" }],
-      }),
-    ]);
-
-    const associationItems: HomePartnerItem[] = associations
-      .filter((a) => Boolean(a.logoUrl))
-      .map((a, index) => ({
-        id: `assoc-${a.id}`,
-        name: a.name,
-        type: "association" as const,
-        logoUrl: a.logoUrl!,
-        websiteUrl: a.websiteUrl,
-        altText: `${a.name} 로고`,
-        sortOrder: index,
-      }));
-
-    const partnerItems: HomePartnerItem[] = partners
-      .filter((p) => inExposureWindow(now, p.startsAt, p.endsAt) && p.logoUrl)
+    return partners
+      .filter((p) =>
+        isPublicPartnerVisibleOnHome(
+          {
+            isActive: p.isActive,
+            deletedAt: p.deletedAt,
+            startsAt: p.startsAt,
+            endsAt: p.endsAt,
+            logoUrl: p.logoUrl,
+          },
+          now,
+        ),
+      )
       .map((p) => ({
         id: p.id,
         name: p.name,
-        type: p.type === PublicPartnerType.sponsor ? "sponsor" : "partner",
+        type: p.type,
         logoUrl: p.logoUrl,
         websiteUrl: p.websiteUrl,
         altText: p.altText?.trim() || `${p.name} 로고`,
+        openInNewTab: p.openInNewTab,
         sortOrder: p.sortOrder,
       }));
+  },
 
-    return [...associationItems, ...partnerItems];
+  /** @deprecated Prefer listActivePublicPartnerLogos */
+  async listHomePartners(): Promise<HomePartnerItem[]> {
+    return this.listActivePublicPartnerLogos();
   },
 };
+
+export type { PublicPartnerExposureStatus };
