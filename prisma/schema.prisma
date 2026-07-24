@@ -2151,6 +2151,10 @@ enum GymApplicationStatus {
 
 enum GymApplicationAttachmentType {
   business_registration
+  /// legacy Preview enum — 삭제 금지
+  gym_photo
+  /// legacy Preview enum — 삭제 금지
+  representative_proof
   representative_photo
   gym_exterior_photo
   gym_interior_photo
