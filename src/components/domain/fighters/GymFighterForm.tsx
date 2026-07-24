@@ -10,9 +10,9 @@ import {
 } from "@/features/fighters/actions";
 import { AppDateInput } from "@/components/shared/AppDateInput";
 import { Button, buttonVariants } from "@/components/ui/button";
-import { toDateInputValue } from "@/lib/date-only";
-import { cn } from "@/lib/utils";
 import { FighterStatus } from "@/lib/enums";
+import type { GymFighterFormInitialValues } from "@/lib/fighters/gym-fighter-form-initial";
+import { cn } from "@/lib/utils";
 
 type DuplicateCandidate = {
   id: string;
@@ -20,19 +20,7 @@ type DuplicateCandidate = {
   name: string;
 };
 
-export type GymFighterFormValues = {
-  name: string;
-  birthDate: string;
-  gender: string;
-  phone: string;
-  height: string;
-  weight: string;
-  primarySport: string;
-  guardianName: string;
-  guardianPhone: string;
-  gymInternalMemo: string;
-  status?: FighterStatus;
-};
+export type GymFighterFormValues = GymFighterFormInitialValues;
 
 const GENDER_OPTIONS = [
   { value: "male", label: "남" },
@@ -439,30 +427,5 @@ export function GymFighterForm({
   );
 }
 
-export function gymFighterFormInitialFromEdit(row: {
-  name: string;
-  birthDate: Date;
-  gender: string;
-  phone: string;
-  height: number | null;
-  weight: number | null;
-  primarySport: string | null;
-  guardianName: string | null;
-  guardianPhone: string | null;
-  gymInternalMemo: string | null;
-  status: FighterStatus;
-}): GymFighterFormValues {
-  return {
-    name: row.name,
-    birthDate: toDateInputValue(row.birthDate),
-    gender: row.gender,
-    phone: row.phone ?? "",
-    height: row.height != null ? String(row.height) : "",
-    weight: row.weight != null ? String(row.weight) : "",
-    primarySport: row.primarySport ?? "",
-    guardianName: row.guardianName ?? "",
-    guardianPhone: row.guardianPhone ?? "",
-    gymInternalMemo: row.gymInternalMemo ?? "",
-    status: row.status,
-  };
-}
+/** @deprecated import from `@/lib/fighters/gym-fighter-form-initial` (server-safe) */
+export { gymFighterFormInitialFromEdit } from "@/lib/fighters/gym-fighter-form-initial";

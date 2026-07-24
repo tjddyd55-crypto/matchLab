@@ -9,8 +9,8 @@ import { GymFighterAccountPanel } from "@/components/domain/fighters/GymFighterA
 import { GymFighterProfileStatusPanel } from "@/components/domain/fighters/GymFighterProfileStatusPanel";
 import {
   GymFighterForm,
-  gymFighterFormInitialFromEdit,
 } from "@/components/domain/fighters/GymFighterForm";
+import { gymFighterFormInitialFromEdit } from "@/lib/fighters/gym-fighter-form-initial";
 import { GymProfileMissingBanner } from "@/components/domain/gym/GymProfileMissingBanner";
 import { buttonVariants } from "@/components/ui/button";
 import {
