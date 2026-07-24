@@ -1,7 +1,10 @@
 import { MatchonLogo } from "@/components/common/MatchonLogo";
-import { MemberGymRegistrationForm } from "@/components/domain/member-gyms/MemberGymRegistrationForm";
+import { GymJoinApplicationForm } from "@/components/domain/gym-join/GymJoinApplicationForm";
 import { memberGymService } from "@/lib/services/member-gym.service";
-import { matchonPageDescClass, matchonPageTitleClass } from "@/lib/ui/matchon-layout";
+import {
+  matchonPageDescClass,
+  matchonPageTitleClass,
+} from "@/lib/ui/matchon-layout";
 
 export const dynamic = "force-dynamic";
 
@@ -36,18 +39,20 @@ export default async function MemberGymRegisterPage({
   return (
     <div className="mx-auto max-w-2xl px-4 py-8 md:px-6">
       <MatchonLogo variant="light" size="sm" />
-      <p className="mt-4 text-xs font-extrabold uppercase tracking-[0.96px] text-matchon-primary">
-        Association Member Join
+      <h1 className={matchonPageTitleClass}>체육관 가입</h1>
+      <p className={matchonPageDescClass}>
+        체육관 정보를 입력하고 가입 신청을 제출해 주세요.
       </p>
-      <h1 className={matchonPageTitleClass}>회원사 가입 신청</h1>
-      <p className={matchonPageDescClass}>{ctx.link.label}</p>
       <div className="mt-6">
-        <MemberGymRegistrationForm
-          token={token}
-          organizerName={ctx.link.organizerName}
-          guideMessage={ctx.settings.joinLink.guideMessage}
-          settings={ctx.settings}
-          guideFiles={ctx.link.attachments}
+        <GymJoinApplicationForm
+          mode="association_invite"
+          associationInvite={{
+            token,
+            organizerName: ctx.link.organizerName,
+            guideMessage: ctx.settings.joinLink.guideMessage,
+            settings: ctx.settings,
+            guideFiles: ctx.link.attachments,
+          }}
         />
       </div>
     </div>
