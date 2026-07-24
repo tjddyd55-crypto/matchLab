@@ -20,14 +20,23 @@ const wonInt = z.preprocess((val) => {
 const paymentMethodEnum = z.nativeEnum(GymMemberPaymentMethod);
 const categoryEnum = z.nativeEnum(GymSalesCategory);
 
+const optionalWonInt = z.preprocess((val) => {
+  if (val === "" || val === undefined || val === null) return undefined;
+  const n = Number(val);
+  return Number.isFinite(n) ? Math.trunc(n) : undefined;
+}, z.number().int().nonnegative().optional());
+
+const wonIntOrZero = z.preprocess((val) => {
+  if (val === "" || val === undefined || val === null) return 0;
+  const n = Number(val);
+  return Number.isFinite(n) ? Math.trunc(n) : undefined;
+}, z.number().int().nonnegative());
+
 export const gymManualSaleCreateSchema = z.object({
   title: z.string().trim().min(1, "항목명을 입력해 주세요.").max(120),
   amount: wonInt.pipe(z.number().int().positive("금액을 입력해 주세요.")),
-  listPrice: wonInt.pipe(z.number().int().nonnegative()).optional(),
-  discountAmount: wonInt
-    .pipe(z.number().int().nonnegative())
-    .optional()
-    .default(0),
+  listPrice: optionalWonInt,
+  discountAmount: wonIntOrZero,
   soldAt: optionalDateOnly,
   paymentMethod: paymentMethodEnum.optional().default(GymMemberPaymentMethod.cash),
   category: categoryEnum.optional().default(GymSalesCategory.other),
