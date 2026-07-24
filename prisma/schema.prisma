@@ -1,4 +1,4 @@
-﻿// =============================================================================
+// =============================================================================
 // 격투기 대회 운영 플랫폼 — Prisma 스키마 (database.md / status-machine.md / api-contract.md 정합)
 // - 전적 원천: MatchResult / Fighter.record* 는 캐시
 // - 입금 진실: EventApplicationPayment / EventApplication.paymentStatus 는 집계 캐시

@@ -311,8 +311,10 @@ export const memberGymService = {
       gymPhone?: string;
       email: string;
       homeAddress?: string;
+      homePostalCode?: string;
       gymAddress: string;
       gymAddressDetail?: string;
+      gymPostalCode?: string;
       businessNo?: string;
       sportType?: string;
       classDescription?: string;
@@ -431,8 +433,10 @@ export const memberGymService = {
           gymPhone,
           email: input.email.trim(),
           homeAddress: input.homeAddress?.trim() || null,
+          homePostalCode: input.homePostalCode?.trim() || null,
           gymAddress: input.gymAddress.trim(),
           gymAddressDetail: input.gymAddressDetail?.trim() || null,
+          gymPostalCode: input.gymPostalCode?.trim() || null,
           businessNo,
           sportType: input.sportType?.trim() || null,
           classDescription: input.classDescription?.trim() || null,

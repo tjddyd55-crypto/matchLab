@@ -27,7 +27,8 @@ export const DEFAULT_MEMBER_GYM_SETTINGS: MemberGymSettingsV1 = {
     defaultExpiresDays: 30,
     defaultMaxUses: null,
     allowDuplicateApplication: true,
-    guideMessage: "협회 회원사 가입 신청서입니다. 안내에 따라 작성해 주세요.",
+    guideMessage:
+      "체육관 가입 신청서입니다. 안내에 따라 작성해 주세요.",
     completionMessage: "신청이 접수되었습니다. 검토 후 연락드리겠습니다.",
   },
   attachments: {

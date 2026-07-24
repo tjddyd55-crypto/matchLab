@@ -15,8 +15,11 @@ import { memberGymFilesBucket } from "@/lib/member-gym/constants";
 import { prisma } from "@/lib/prisma";
 import { requireRole } from "@/lib/permissions";
 import { createSupabaseAdminClient } from "@/lib/supabase/admin";
+import { normalizePostalCode } from "@/lib/postal-address";
+import { formatPostalAddress } from "@/lib/postal-address";
 import { loginIdSchema } from "@/lib/validators/login-id.validator";
 import { passwordSchema } from "@/lib/validators/password.validator";
+import { assertGymApplicationAttachmentMimeAndSize } from "./gym-application-upload.service";
 
 export const GYM_OWNER_APPLICATION_INVITE_TTL_MS = 7 * 24 * 60 * 60 * 1000;
 
@@ -49,9 +52,16 @@ export type GymApplicationInput = {
   postalCode?: string;
   address?: string;
   addressDetail?: string;
+  businessNo?: string;
+  sportType?: string;
   description?: string;
-  termsAccepted: boolean;
-  privacyAccepted: boolean;
+  privacyConsent: boolean;
+  registrationConsent: boolean;
+  smsConsent?: boolean;
+  informationConsent?: boolean;
+  signatureName: string;
+  signatureConsent: boolean;
+  uploadBatchId?: string;
   attachments?: GymApplicationAttachmentInput[];
 };
 
@@ -60,6 +70,14 @@ function assertAttachmentPaths(attachments: GymApplicationAttachmentInput[]) {
     if (!a.storagePath.startsWith("gym-applications/")) {
       throw new AppError("FORBIDDEN", "첨부 파일 경로가 올바르지 않습니다.");
     }
+    assertGymApplicationAttachmentMimeAndSize(a);
+  }
+  if (
+    !attachments.some(
+      (a) => a.attachmentType === GymApplicationAttachmentType.applicant_signature,
+    )
+  ) {
+    throw new AppError("VALIDATION_ERROR", "손서명을 완료해 주세요.");
   }
 }
 
@@ -71,15 +89,16 @@ function requireText(value: string | undefined, label: string): string {
 
 export const gymApplicationService = {
   async submit(input: GymApplicationInput) {
-    if (!input.termsAccepted || !input.privacyAccepted) {
-      throw new AppError(
-        "VALIDATION_ERROR",
-        "이용약관 및 개인정보 처리에 동의해 주세요.",
-      );
+    if (!input.privacyConsent || !input.registrationConsent) {
+      throw new AppError("VALIDATION_ERROR", "필수 동의 항목에 동의해 주세요.");
+    }
+    if (!input.signatureConsent || !input.signatureName.trim()) {
+      throw new AppError("VALIDATION_ERROR", "신청인 확인이 필요합니다.");
     }
     const attachments = input.attachments ?? [];
     assertAttachmentPaths(attachments);
     const bucket = memberGymFilesBucket();
+    const postalCode = normalizePostalCode(input.postalCode);
 
     return prisma.$transaction(async (tx) => {
       const created = await tx.gymApplication.create({
@@ -88,12 +107,22 @@ export const gymApplicationService = {
           representativeName: requireText(input.representativeName, "대표자명"),
           contactName: requireText(input.contactName, "담당자명"),
           phone: input.phone?.trim() || null,
-          mobilePhone: requireText(input.mobilePhone, "휴대폰"),
+          mobilePhone: requireText(input.mobilePhone, "연락처"),
           email: requireText(input.email, "이메일"),
-          postalCode: input.postalCode?.trim() || null,
+          postalCode,
           address: input.address?.trim() || null,
           addressDetail: input.addressDetail?.trim() || null,
+          businessNo: input.businessNo?.trim() || null,
+          sportType: input.sportType?.trim() || null,
           description: input.description?.trim() || null,
+          privacyConsent: true,
+          registrationConsent: true,
+          smsConsent: Boolean(input.smsConsent),
+          informationConsent: Boolean(input.informationConsent),
+          signatureName: input.signatureName.trim(),
+          signatureConsent: true,
+          signatureSignedAt: new Date(),
+          uploadBatchId: input.uploadBatchId?.trim() || null,
           status: GymApplicationStatus.pending,
           termsAcceptedAt: new Date(),
           privacyAcceptedAt: new Date(),
@@ -218,13 +247,18 @@ export const gymApplicationService = {
         },
       });
 
-      const address = [row.address, row.addressDetail].filter(Boolean).join(" ");
+      const address =
+        formatPostalAddress({
+          postalCode: row.postalCode,
+          address: row.address,
+          addressDetail: row.addressDetail,
+        }) || null;
       const gym = await tx.gym.create({
         data: {
           ownerUserId: user.id,
           name: row.gymName,
           phone: row.phone || row.mobilePhone,
-          address: address || null,
+          address,
           status: GymStatus.active,
         },
       });

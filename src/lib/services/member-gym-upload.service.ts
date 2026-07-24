@@ -7,6 +7,7 @@ import {
   AssociationJoinLinkAttachmentKind,
   AssociationMemberGymApplicationAttachmentType,
 } from "@/lib/enums";
+import { GYM_JOIN_IMAGE_ONLY_ATTACHMENT_TYPES } from "@/lib/gym-join/application-form";
 import {
   MEMBER_GYM_ALLOWED_DOCUMENT_MIME,
   MEMBER_GYM_ALLOWED_IMAGE_MIME,
@@ -24,16 +25,28 @@ import {
 } from "@/lib/services/member-gym.service";
 import { createSupabaseAdminClient } from "@/lib/supabase/admin";
 
-function assertMimeAndSize(mimeType: string, sizeBytes: number) {
-  const isImage = MEMBER_GYM_ALLOWED_IMAGE_MIME.has(mimeType);
-  const isDoc = MEMBER_GYM_ALLOWED_DOCUMENT_MIME.has(mimeType);
-  if (!isImage && !isDoc) {
+function assertMimeAndSize(
+  mimeType: string,
+  sizeBytes: number,
+  attachmentType?: string,
+) {
+  const imageOnly = attachmentType
+    ? GYM_JOIN_IMAGE_ONLY_ATTACHMENT_TYPES.has(attachmentType)
+    : false;
+  const allowed = imageOnly
+    ? MEMBER_GYM_ALLOWED_IMAGE_MIME
+    : MEMBER_GYM_ALLOWED_DOCUMENT_MIME;
+  if (!allowed.has(mimeType)) {
     throw new AppError(
       "VALIDATION_ERROR",
-      "허용되지 않는 파일 형식입니다. (JPEG/PNG/WebP/PDF)",
+      imageOnly
+        ? "지원하지 않는 파일 형식입니다. JPEG, PNG, WebP 파일을 선택해 주세요."
+        : "허용되지 않는 파일 형식입니다. (JPEG/PNG/WebP/PDF)",
     );
   }
-  const max = isImage ? MEMBER_GYM_IMAGE_MAX_BYTES : MEMBER_GYM_DOCUMENT_MAX_BYTES;
+  const max = MEMBER_GYM_ALLOWED_IMAGE_MIME.has(mimeType)
+    ? MEMBER_GYM_IMAGE_MAX_BYTES
+    : MEMBER_GYM_DOCUMENT_MAX_BYTES;
   if (sizeBytes > max) {
     throw new AppError(
       "VALIDATION_ERROR",
@@ -108,7 +121,7 @@ export const memberGymUploadService = {
     sizeBytes: number;
     originalFileName: string;
   }) {
-    assertMimeAndSize(input.mimeType, input.sizeBytes);
+    assertMimeAndSize(input.mimeType, input.sizeBytes, input.attachmentType);
     const link = await resolveJoinLinkFromPublicToken(input.token);
     const gate = evaluateMemberGymJoinGate(link);
     if (!gate.ok) {
@@ -134,7 +147,7 @@ export const memberGymUploadService = {
     },
     organizerIdHint?: string | null,
   ) {
-    assertMimeAndSize(input.mimeType, input.sizeBytes);
+    assertMimeAndSize(input.mimeType, input.sizeBytes, input.attachmentType);
     const organizerId = resolveAssociationOrganizerScope(actor, organizerIdHint);
     const batch = input.uploadBatchId.trim();
     if (!batch || batch.length < 8) {

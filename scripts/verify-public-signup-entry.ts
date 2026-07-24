@@ -22,12 +22,12 @@ function main() {
   assert.ok(hub.includes("협회 가입"));
   assert.ok(hub.includes("/join/gym"));
   assert.ok(hub.includes("/join/association"));
-  assert.ok(hub.includes("협회 연결"));
-  assert.ok(!hub.includes("회원사로 가입"));
+  assert.ok(hub.includes("초대 링크"));
+  assert.equal(hub.includes("로그인 후 협회 연결"), false);
 
   const gym = read("src/app/(public)/join/gym/page.tsx");
   assert.equal(gym.includes("redirect("), false);
-  assert.ok(gym.includes("GymApplicationForm"));
+  assert.ok(gym.includes("GymJoinApplicationForm"));
   assert.ok(!gym.includes("listJoinableAssociations"));
 
   const register = read("src/app/(auth)/register/page.tsx");

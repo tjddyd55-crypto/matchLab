@@ -3,42 +3,69 @@ import "server-only";
 import { randomUUID } from "node:crypto";
 import { AppError } from "@/lib/errors/app-error";
 import { GymApplicationAttachmentType } from "@/lib/enums";
+import { GYM_JOIN_IMAGE_ONLY_ATTACHMENT_TYPES } from "@/lib/gym-join/application-form";
 import {
   MEMBER_GYM_ALLOWED_DOCUMENT_MIME,
   MEMBER_GYM_ALLOWED_IMAGE_MIME,
   MEMBER_GYM_DOCUMENT_MAX_BYTES,
+  MEMBER_GYM_DOWNLOAD_EXPIRES_SEC,
   MEMBER_GYM_IMAGE_MAX_BYTES,
   MEMBER_GYM_UPLOAD_EXPIRES_SEC,
   memberGymFilesBucket,
 } from "@/lib/member-gym/constants";
+import { prisma } from "@/lib/prisma";
+import type { ActorContext } from "@/lib/auth/actor-context";
+import { requireRole } from "@/lib/permissions";
+import { UserRole } from "@/lib/enums";
 import { createSupabaseAdminClient } from "@/lib/supabase/admin";
 
 const PATH_PREFIX = "gym-applications/";
 
-function assertMimeAndSize(mimeType: string, sizeBytes: number) {
-  const isImage = MEMBER_GYM_ALLOWED_IMAGE_MIME.has(mimeType);
-  const isDoc = MEMBER_GYM_ALLOWED_DOCUMENT_MIME.has(mimeType);
-  if (!isImage && !isDoc) {
+export function assertGymApplicationAttachmentMimeAndSize({
+  attachmentType,
+  mimeType,
+  sizeBytes,
+}: {
+  attachmentType: GymApplicationAttachmentType;
+  mimeType: string;
+  sizeBytes: number;
+}) {
+  const imageOnly = GYM_JOIN_IMAGE_ONLY_ATTACHMENT_TYPES.has(attachmentType);
+  const allowed = imageOnly
+    ? MEMBER_GYM_ALLOWED_IMAGE_MIME
+    : MEMBER_GYM_ALLOWED_DOCUMENT_MIME;
+  if (!allowed.has(mimeType)) {
     throw new AppError(
       "VALIDATION_ERROR",
-      "허용되지 않는 파일 형식입니다. (JPEG/PNG/WebP/PDF)",
+      imageOnly
+        ? "지원하지 않는 파일 형식입니다. JPEG, PNG, WebP 파일을 선택해 주세요."
+        : "지원하지 않는 파일 형식입니다. JPEG, PNG, WebP, PDF 파일을 선택해 주세요.",
     );
   }
-  const max = isImage ? MEMBER_GYM_IMAGE_MAX_BYTES : MEMBER_GYM_DOCUMENT_MAX_BYTES;
+  const max = MEMBER_GYM_ALLOWED_IMAGE_MIME.has(mimeType)
+    ? MEMBER_GYM_IMAGE_MAX_BYTES
+    : MEMBER_GYM_DOCUMENT_MAX_BYTES;
   if (sizeBytes > max) {
     throw new AppError(
       "VALIDATION_ERROR",
-      `파일 크기는 최대 ${Math.floor(max / (1024 * 1024))}MB까지입니다.`,
+      `파일 용량이 너무 큽니다. 최대 ${Math.floor(max / (1024 * 1024))}MB 이하의 파일을 선택해 주세요.`,
     );
   }
 }
 
 function extFromMime(mimeType: string): string {
-  if (mimeType === "image/jpeg") return "jpg";
-  if (mimeType === "image/png") return "png";
-  if (mimeType === "image/webp") return "webp";
-  if (mimeType === "application/pdf") return "pdf";
-  return "bin";
+  switch (mimeType) {
+    case "image/jpeg":
+      return "jpg";
+    case "image/png":
+      return "png";
+    case "image/webp":
+      return "webp";
+    case "application/pdf":
+      return "pdf";
+    default:
+      return "bin";
+  }
 }
 
 export const gymApplicationUploadService = {
@@ -49,23 +76,24 @@ export const gymApplicationUploadService = {
     sizeBytes: number;
     originalFileName: string;
   }) {
-    assertMimeAndSize(input.mimeType, input.sizeBytes);
     if (
       !Object.values(GymApplicationAttachmentType).includes(input.attachmentType)
     ) {
       throw new AppError("VALIDATION_ERROR", "첨부 유형이 올바르지 않습니다.");
     }
-    const batch = input.uploadBatchId.trim() || randomUUID();
+    assertGymApplicationAttachmentMimeAndSize(input);
+    const batch = input.uploadBatchId.trim();
+    if (!batch || batch.length < 8) {
+      throw new AppError("VALIDATION_ERROR", "uploadBatchId가 필요합니다.");
+    }
     const ext = extFromMime(input.mimeType);
-    const storagePath = `${PATH_PREFIX}${batch}/${input.attachmentType}-${randomUUID()}.${ext}`;
-    const bucket = memberGymFilesBucket();
+    const path = `${PATH_PREFIX}pending/${batch}/${randomUUID()}.${ext}`;
     const supabase = createSupabaseAdminClient();
+    const bucket = memberGymFilesBucket();
     const { data, error } = await supabase.storage
       .from(bucket)
-      .createSignedUploadUrl(storagePath, {
-        upsert: false,
-      });
-    if (error || !data) {
+      .createSignedUploadUrl(path, { upsert: false });
+    if (error || !data?.signedUrl) {
       throw new AppError(
         "INTERNAL",
         "업로드 URL 발급에 실패했습니다.",
@@ -74,9 +102,29 @@ export const gymApplicationUploadService = {
     }
     return {
       uploadUrl: data.signedUrl,
-      path: storagePath,
+      path,
       bucket,
       expiresIn: MEMBER_GYM_UPLOAD_EXPIRES_SEC,
+    };
+  },
+
+  async getAttachmentDownloadUrl(actor: ActorContext, attachmentId: string) {
+    requireRole(actor, [UserRole.admin]);
+    const row = await prisma.gymApplicationAttachment.findFirst({
+      where: { id: attachmentId, deletedAt: null },
+    });
+    if (!row) throw new AppError("NOT_FOUND", "첨부 파일을 찾을 수 없습니다.");
+    const supabase = createSupabaseAdminClient();
+    const { data, error } = await supabase.storage
+      .from(row.storageBucket)
+      .createSignedUrl(row.storagePath, MEMBER_GYM_DOWNLOAD_EXPIRES_SEC);
+    if (error || !data?.signedUrl) {
+      throw new AppError("INTERNAL", "다운로드 URL 발급에 실패했습니다.");
+    }
+    return {
+      downloadUrl: data.signedUrl,
+      originalFileName: row.originalFileName,
+      mimeType: row.mimeType,
     };
   },
 };
