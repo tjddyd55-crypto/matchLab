@@ -326,9 +326,25 @@ enum AuditAction {
   gym_member_subscription_changed
   gym_member_payment_created
   gym_member_payment_cancelled
+  gym_attendance_kiosk_created
+  gym_attendance_kiosk_updated
+  gym_attendance_kiosk_revoked
+  gym_attendance_kiosk_token_regenerated
+  gym_attendance_manual_created
+  gym_attendance_cancelled
   matchon_message_dispatch_created
   matchon_message_dispatch_executed
   matchon_message_template_changed
+}
+
+enum GymMemberAttendanceSource {
+  kiosk
+  admin_manual
+  import
+}
+
+enum GymAttendanceKioskDuplicatePolicy {
+  once_per_day
 }
 
 enum MatchonMessageChannel {
@@ -509,6 +525,8 @@ model Gym {
   gymMembershipPlans  GymMembershipPlan[]
   gymMemberSubscriptions GymMemberSubscription[]
   gymMemberPayments   GymMemberPayment[]
+  gymAttendanceKiosks GymAttendanceKiosk[]
+  gymMemberAttendances GymMemberAttendance[]
 
   matchonMessageTemplates  MatchonMessageTemplate[]
   matchonMessageDispatches MatchonMessageDispatch[]
@@ -606,6 +624,7 @@ model GymMember {
   fighter       Fighter?
   subscriptions GymMemberSubscription[]
   payments      GymMemberPayment[]
+  attendances   GymMemberAttendance[]
 
   @@unique([gymId, memberNumber])
   @@index([gymId, deletedAt])
@@ -613,6 +632,64 @@ model GymMember {
   @@index([gymId, phone])
   @@index([gymId, normalizedPhone])
   @@index([gymId, name])
+}
+
+/// 체육관 입구 출석 키오스크 (공개 token hash 기반)
+model GymAttendanceKiosk {
+  id                   String                           @id @default(cuid())
+  gymId                String
+  name                 String
+  /// raw token은 URL에만 — DB에는 sha256 hex
+  publicTokenHash      String                           @unique
+  isActive             Boolean                          @default(true)
+  /// 이용권 만료 회원도 출석 기록 허용 (안내 메시지)
+  allowExpiredMember   Boolean                          @default(true)
+  /// 휴회 회원도 출석 기록 허용 (안내 메시지)
+  allowPausedMember    Boolean                          @default(true)
+  duplicatePolicy      GymAttendanceKioskDuplicatePolicy @default(once_per_day)
+  lastUsedAt           DateTime?
+  createdByUserId      String
+  revokedAt            DateTime?
+  createdAt            DateTime                         @default(now())
+  updatedAt            DateTime                         @updatedAt
+
+  gym         Gym                   @relation(fields: [gymId], references: [id], onDelete: Cascade)
+  attendances GymMemberAttendance[]
+
+  @@index([gymId, isActive])
+  @@index([gymId, revokedAt])
+}
+
+/// 체육관 회원 출석 — GymMember 귀속 (Fighter 비SSOT)
+model GymMemberAttendance {
+  id                       String                     @id @default(cuid())
+  gymId                    String
+  gymMemberId              String
+  /// 실제 출석 시각
+  attendedAt               DateTime
+  /// Asia/Seoul 달력일 — UTC date-only(자정)로 저장. 같은 날 중복 SSOT
+  attendanceDate           DateTime
+  source                   GymMemberAttendanceSource
+  kioskSessionId           String?
+  createdByUserId          String?
+  note                     String?
+  /// 출석 시점 이용권 표시 상태 스냅샷 (active/expired/paused/…)
+  membershipStatusSnapshot String?
+  deletedAt                DateTime?
+  cancelledByUserId        String?
+  cancellationReason       String?
+  createdAt                DateTime                   @default(now())
+  updatedAt                DateTime                   @updatedAt
+
+  gym       Gym                  @relation(fields: [gymId], references: [id], onDelete: Cascade)
+  gymMember GymMember            @relation(fields: [gymMemberId], references: [id], onDelete: Cascade)
+  kiosk     GymAttendanceKiosk?  @relation(fields: [kioskSessionId], references: [id], onDelete: SetNull)
+
+  @@unique([gymId, gymMemberId, attendanceDate])
+  @@index([gymId, attendanceDate])
+  @@index([gymMemberId, attendanceDate])
+  @@index([gymId, attendedAt])
+  @@index([gymId, deletedAt])
 }
 
 /// 체육관별 이용권 상품

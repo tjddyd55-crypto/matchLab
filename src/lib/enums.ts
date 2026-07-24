@@ -29,6 +29,8 @@ export {
   FighterConsentType,
   FighterRegistrationSubmissionStatus,
   FighterStatus,
+  GymAttendanceKioskDuplicatePolicy,
+  GymMemberAttendanceSource,
   GymMemberPaymentMethod,
   GymMemberPaymentStatus,
   GymMemberStatus,
