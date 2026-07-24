@@ -44,11 +44,13 @@ export function GymMobileNavSheet() {
                 <X className="h-4 w-4" />
               </button>
             </div>
-            <GymPortalNavGroups
-              groups={groups}
-              density="mobile"
-              onNavigate={() => setOpen(false)}
-            />
+            <div className="min-h-0 flex-1 overflow-y-auto overflow-x-hidden">
+              <GymPortalNavGroups
+                groups={groups}
+                density="mobile"
+                onNavigate={() => setOpen(false)}
+              />
+            </div>
           </div>
         </div>
       ) : null}

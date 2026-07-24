@@ -21,6 +21,7 @@ import {
   resetGymAttendanceRateLimitForTests,
 } from "../src/lib/gym-attendance/rate-limit";
 import {
+  formatSeoulTimeAria,
   formatSeoulTimeHm,
   toSeoulAttendanceDate,
   toSeoulDateOnlyString,
@@ -110,10 +111,14 @@ function assertPhonePrivacy() {
     ),
     "utf8",
   );
-  assert.match(api, /maskedMemberName/);
+  assert.match(api, /displayMemberName/);
+  assert.doesNotMatch(api, /maskedMemberName/);
   assert.doesNotMatch(api, /birthDate|address|memo|fighter/);
+  // 응답 JSON에 전화번호 필드를 넣지 않는다 (요청 body phone 파싱은 허용)
+  assert.doesNotMatch(api, /phone:\s*result|normalizedPhone|maskedPhone/);
   console.log("verify:gym-attendance-phone-privacy: OK");
   console.log("verify:gym-attendance-phone-checkin: OK");
+  assertKioskFullNameAndPrivacy();
 }
 
 function assertDuplicateAndStatus() {
@@ -269,6 +274,11 @@ function assertTimezoneCalendar() {
   );
   assert.match(cal, /grid-cols-7/);
   assert.match(cal, /출석 취소/);
+  assert.match(cal, /attendance-calendar-time/);
+  assert.match(cal, /formatSeoulTimeHm/);
+  assert.match(cal, /formatSeoulTimeAria/);
+  assert.match(cal, /whitespace-nowrap/);
+  assert.equal(formatSeoulTimeAria(nearMidnightUtc), "오전 12시 30분");
 
   const service = readFileSync(
     join(root, "src/lib/services/gym-attendance.service.ts"),
@@ -281,9 +291,57 @@ function assertTimezoneCalendar() {
   assert.match(service, /softCancelAttendance|deletedAt/);
 
   console.log("verify:gym-attendance-calendar: OK");
+  console.log("verify:gym-attendance-calendar-time: OK");
   console.log("verify:gym-attendance-summary: OK");
   console.log("verify:gym-attendance-manual: OK");
   console.log("verify:gym-attendance-cancel: OK");
+}
+
+function assertKioskFullNameAndPrivacy() {
+  const service = readFileSync(
+    join(root, "src/lib/services/gym-attendance.service.ts"),
+    "utf8",
+  );
+  assert.match(service, /displayMemberName:\s*member\.name\.trim\(\)/);
+  assert.match(service, /status:\s*"already_checked_in"/);
+  assert.match(service, /status:\s*"created"/);
+  assert.match(service, /function publicFail/);
+  // publicFail must not attach a name field
+  assert.match(
+    service,
+    /function publicFail\([\s\S]*?\{[\s\S]*?return \{ success: false, status, message \};/,
+  );
+  assert.doesNotMatch(
+    service,
+    /publicFail\([\s\S]{0,80}displayMemberName/,
+  );
+
+  const kiosk = readFileSync(
+    join(
+      root,
+      "src/components/domain/gym-attendance/GymAttendanceKioskClient.tsx",
+    ),
+    "utf8",
+  );
+  assert.match(kiosk, /displayMemberName/);
+  assert.doesNotMatch(kiosk, /maskedMemberName/);
+  assert.match(kiosk, /RESET_MS\s*=\s*4000/);
+  assert.match(kiosk, /setResult\(null\)/);
+  assert.match(kiosk, /line-clamp-2/);
+  assert.match(kiosk, /회원님/);
+
+  const api = readFileSync(
+    join(
+      root,
+      "src/app/api/public/gym-attendance/[token]/check-in/route.ts",
+    ),
+    "utf8",
+  );
+  assert.match(api, /displayMemberName:\s*result\.displayMemberName/);
+  assert.doesNotMatch(api, /gymMemberId|memberId|birthDate/);
+
+  console.log("verify:gym-attendance-kiosk-full-name: OK");
+  console.log("verify:gym-attendance-kiosk-privacy: OK");
 }
 
 function assertMobileLayout() {

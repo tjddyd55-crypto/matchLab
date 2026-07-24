@@ -4,6 +4,7 @@ import { useMemo, useState, useTransition } from "react";
 import { cancelGymAttendanceAction } from "@/features/gym-attendance/actions";
 import { Button } from "@/components/ui/button";
 import {
+  formatSeoulTimeAria,
   formatSeoulTimeHm,
   getSeoulYmdParts,
   toSeoulDateOnlyString,
@@ -155,7 +156,9 @@ export function GymMemberAttendanceCalendar({
       <div className="grid grid-cols-7 gap-1">
         {cells.map((day, idx) => {
           if (day == null) {
-            return <div key={`e-${idx}`} className="aspect-square" />;
+            return (
+              <div key={`e-${idx}`} className="min-h-[52px] sm:min-h-[60px]" />
+            );
           }
           const attendance = byDay.get(day);
           const isToday =
@@ -163,33 +166,57 @@ export function GymMemberAttendanceCalendar({
             today.month === month &&
             today.day === day;
           const isSelected = selectedDay === day;
+          const timeHm = attendance
+            ? formatSeoulTimeHm(new Date(attendance.attendedAt))
+            : null;
+          const ariaLabel = attendance
+            ? `${year}년 ${month}월 ${day}일 출석, ${formatSeoulTimeAria(new Date(attendance.attendedAt))}`
+            : `${year}년 ${month}월 ${day}일`;
           return (
             <button
               key={day}
               type="button"
               onClick={() => setSelectedDay(day)}
               className={cn(
-                "flex aspect-square flex-col items-center justify-center rounded-md border text-sm",
+                "attendance-calendar-cell flex min-h-[52px] flex-col items-center justify-center gap-0.5 rounded-md border px-0.5 py-1 text-sm sm:min-h-[60px]",
                 isSelected
-                  ? "border-matchon-primary"
+                  ? "border-matchon-primary bg-matchon-primary text-white"
                   : "border-transparent",
-                isToday ? "ring-1 ring-matchon-primary/40" : "",
-                attendance ? "bg-matchon-primary/10" : "hover:bg-slate-50",
+                !isSelected && isToday ? "ring-1 ring-matchon-primary/40" : "",
+                !isSelected && attendance
+                  ? "bg-matchon-primary/10"
+                  : !isSelected
+                    ? "hover:bg-slate-50"
+                    : "",
               )}
-              aria-label={
-                attendance
-                  ? `${day}일 출석`
-                  : `${day}일`
-              }
+              aria-label={ariaLabel}
+              aria-pressed={isSelected}
             >
-              <span>{day}</span>
+              <span className="attendance-calendar-date leading-none">
+                {day}
+              </span>
               {attendance ? (
-                <span
-                  className="mt-0.5 text-[10px] text-matchon-primary"
-                  aria-hidden
-                >
-                  ✓
-                </span>
+                <>
+                  <span
+                    className={cn(
+                      "attendance-calendar-status text-[10px] leading-none",
+                      isSelected ? "text-white" : "text-matchon-primary",
+                    )}
+                    aria-hidden
+                  >
+                    ✓
+                  </span>
+                  <span
+                    className={cn(
+                      "attendance-calendar-time whitespace-nowrap text-[10px] leading-none tabular-nums sm:text-[11px]",
+                      isSelected
+                        ? "text-white/95"
+                        : "text-matchon-text-secondary",
+                    )}
+                  >
+                    {timeHm}
+                  </span>
+                </>
               ) : null}
             </button>
           );

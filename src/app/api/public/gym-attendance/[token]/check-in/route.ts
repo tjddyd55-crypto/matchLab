@@ -69,7 +69,7 @@ export async function POST(
     {
       success: result.success,
       status: result.status,
-      maskedMemberName: result.maskedMemberName,
+      displayMemberName: result.displayMemberName,
       attendanceTime: result.attendanceTime,
       message: result.message,
       needsDeskNotice: result.needsDeskNotice ?? false,

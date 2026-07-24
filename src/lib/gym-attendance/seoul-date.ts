@@ -39,6 +39,16 @@ export function formatSeoulTimeHm(at: Date): string {
   return `${h}:${m}`;
 }
 
+/** 접근성용 시각 — 예: 오후 10시 35분 (Asia/Seoul) */
+export function formatSeoulTimeAria(at: Date): string {
+  const seoul = new Date(at.getTime() + SEOUL_OFFSET_MS);
+  const h24 = seoul.getUTCHours();
+  const m = seoul.getUTCMinutes();
+  const period = h24 < 12 ? "오전" : "오후";
+  const h12 = h24 % 12 === 0 ? 12 : h24 % 12;
+  return `${period} ${h12}시 ${String(m).padStart(2, "0")}분`;
+}
+
 /** YYYY-MM-DD HH:mm (Seoul) */
 export function formatSeoulDateTime(at: Date): string {
   return `${toSeoulDateOnlyString(at)} ${formatSeoulTimeHm(at)}`;

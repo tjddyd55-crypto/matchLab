@@ -8,7 +8,7 @@ const RESET_MS = 4000;
 type CheckInResponse = {
   success: boolean;
   status: string;
-  maskedMemberName?: string;
+  displayMemberName?: string;
   attendanceTime?: string;
   message: string;
   needsDeskNotice?: boolean;
@@ -142,9 +142,9 @@ export function GymAttendanceKioskClient({
           <p className="whitespace-pre-line text-lg font-semibold text-matchon-text-primary">
             {result?.message}
           </p>
-          {result?.maskedMemberName ? (
-            <p className="mt-3 text-xl font-bold text-matchon-text-primary">
-              {result.maskedMemberName} 회원님
+          {result?.displayMemberName ? (
+            <p className="mt-3 max-w-full break-keep text-center text-xl font-bold leading-snug text-matchon-text-primary [overflow-wrap:anywhere] line-clamp-2">
+              {result.displayMemberName} 회원님
             </p>
           ) : null}
           {result?.attendanceTime ? (

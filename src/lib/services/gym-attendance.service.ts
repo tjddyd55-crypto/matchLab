@@ -53,7 +53,8 @@ export type PublicCheckInStatus =
 export type PublicCheckInResult = {
   success: boolean;
   status: PublicCheckInStatus;
-  maskedMemberName?: string;
+  /** 성공(created / already_checked_in)에서만 전체 이름. 실패·ambiguous에는 없음. */
+  displayMemberName?: string;
   attendanceTime?: string;
   message: string;
   needsDeskNotice?: boolean;
@@ -289,7 +290,7 @@ export const gymAttendanceService = {
       return {
         success: true,
         status: "already_checked_in",
-        maskedMemberName: maskMemberName(member.name),
+        displayMemberName: member.name.trim(),
         attendanceTime: formatSeoulTimeHm(existing.attendedAt),
         message: "오늘 이미 출석하셨습니다.",
         needsDeskNotice: false,
@@ -338,7 +339,7 @@ export const gymAttendanceService = {
     return {
       success: true,
       status: "created",
-      maskedMemberName: maskMemberName(member.name),
+      displayMemberName: member.name.trim(),
       attendanceTime: formatSeoulTimeHm(now),
       message: baseMessage,
       needsDeskNotice: eligibility.needsDeskNotice,
