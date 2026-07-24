@@ -18,6 +18,7 @@ import { requireRole } from "@/lib/permissions";
 import { createSupabaseAdminClient } from "@/lib/supabase/admin";
 import { loginIdSchema } from "@/lib/validators/login-id.validator";
 import { passwordSchema } from "@/lib/validators/password.validator";
+import { normalizePostalCode } from "@/lib/postal-address";
 
 export const ASSOCIATION_OWNER_INVITE_TTL_MS = 7 * 24 * 60 * 60 * 1000;
 
@@ -47,6 +48,7 @@ export type AssociationApplicationInput = {
   contactName: string;
   contactPhone: string;
   contactEmail: string;
+  postalCode?: string;
   address?: string;
   addressDetail?: string;
   website?: string;
@@ -108,6 +110,7 @@ export const associationApplicationService = {
           contactName: requireText(input.contactName, "담당자명"),
           contactPhone: requireText(input.contactPhone, "담당자 연락처"),
           contactEmail: requireText(input.contactEmail, "담당자 이메일"),
+          postalCode: normalizePostalCode(input.postalCode),
           address: input.address?.trim() || null,
           addressDetail: input.addressDetail?.trim() || null,
           website: input.website?.trim() || null,

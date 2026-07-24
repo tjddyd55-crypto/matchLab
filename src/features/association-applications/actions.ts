@@ -73,6 +73,7 @@ export async function submitAssociationApplicationAction(
       contactEmail: formReq(formData, "contactEmail"),
       address: formReq(formData, "address") || undefined,
       addressDetail: formReq(formData, "addressDetail") || undefined,
+      postalCode: formReq(formData, "postalCode") || undefined,
       website: formReq(formData, "website") || undefined,
       description: formReq(formData, "description") || undefined,
       termsAccepted: formData.get("termsAccepted") === "on",

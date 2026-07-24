@@ -2084,6 +2084,7 @@ model AssociationApplication {
   contactName          String
   contactPhone         String
   contactEmail         String
+  postalCode           String?
   address              String?
   addressDetail        String?
   website              String?

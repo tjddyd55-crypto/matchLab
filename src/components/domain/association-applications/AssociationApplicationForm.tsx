@@ -3,6 +3,7 @@
 import { useActionState, useMemo, useState } from "react";
 import Link from "next/link";
 import { submitAssociationApplicationAction } from "@/features/association-applications/actions";
+import { AddressSearchField } from "@/components/shared/AddressSearchField";
 import { Button } from "@/components/ui/button";
 import { AssociationApplicationAttachmentType } from "@/lib/enums";
 import {
@@ -152,8 +153,13 @@ export function AssociationApplicationForm() {
       <Field id="contactName" name="contactName" label="담당자명" required />
       <Field id="contactPhone" name="contactPhone" label="담당자 연락처" required />
       <Field id="contactEmail" name="contactEmail" label="담당자 이메일" type="email" required />
-      <Field id="address" name="address" label="주소" />
-      <Field id="addressDetail" name="addressDetail" label="상세 주소" />
+      <AddressSearchField
+        label="주소"
+        addressName="address"
+        detailName="addressDetail"
+        postalName="postalCode"
+        inputClassName={authLoginInputClass}
+      />
       <Field id="website" name="website" label="홈페이지 / SNS" />
       <div className={authLoginFieldStackClass}>
         <label htmlFor="description" className={authLoginLabelClass}>

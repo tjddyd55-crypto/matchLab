@@ -5,6 +5,7 @@ import { AssociationApplicationReviewActions } from "@/components/domain/associa
 import { AdminPageHeader } from "@/components/domain/admin/AdminPageHeader";
 import { requireActor } from "@/lib/auth/actor";
 import { associationApplicationService } from "@/lib/services/association-application.service";
+import { formatPostalAddress } from "@/lib/postal-address";
 import {
   adminContentCardClass,
   adminPageContainerClass,
@@ -44,7 +45,11 @@ export default async function AdminAssociationApplicationDetailPage({
           </p>
           <p>
             <span className="font-semibold">주소:</span>{" "}
-            {[row.address, row.addressDetail].filter(Boolean).join(" ") || "-"}
+            {formatPostalAddress({
+              postalCode: row.postalCode,
+              address: row.address,
+              addressDetail: row.addressDetail,
+            }) || "-"}
           </p>
           <p>
             <span className="font-semibold">웹사이트:</span> {row.website || "-"}
