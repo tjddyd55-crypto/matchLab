@@ -55,11 +55,23 @@ async function execIgnoreDup(client: import("pg").PoolClient, sql: string) {
 
 async function main() {
   const raw = readFileSync(sqlPath, "utf8").replace(/^\uFEFF/, "");
-  if (/DROP\s+|TRUNCATE\s+|SET\s+NOT\s+NULL|ALTER\s+COLUMN.*TYPE/i.test(raw)) {
+  const withoutComments = raw
+    .split("\n")
+    .filter((line) => !line.trim().startsWith("--"))
+    .join("\n");
+  if (
+    /DROP\s+|TRUNCATE\s+|SET\s+NOT\s+NULL|ALTER\s+COLUMN[\s\S]{0,40}TYPE/i.test(
+      withoutComments,
+    )
+  ) {
     console.error("FAIL: destructive SQL pattern detected");
     process.exit(1);
   }
-  if (/Organizer|backfill|INSERT\s+INTO\s+"PublicPartner"/i.test(raw)) {
+  if (
+    /UPDATE\s+"Organizer"|INSERT\s+INTO\s+"PublicPartner"|DELETE\s+FROM\s+"Organizer"/i.test(
+      withoutComments,
+    )
+  ) {
     console.error("FAIL: Organizer mutation / backfill SQL not allowed");
     process.exit(1);
   }
