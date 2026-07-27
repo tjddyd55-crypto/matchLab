@@ -361,6 +361,13 @@ enum AuditAction {
   matchon_message_dispatch_created
   matchon_message_dispatch_executed
   matchon_message_template_changed
+  fighter_account_setup_link_created
+  fighter_account_setup_link_revoked
+  fighter_account_setup_completed
+  fighter_password_reset_link_created
+  fighter_password_reset_completed
+  fighter_profile_image_changed
+  fighter_profile_image_removed
 }
 
 enum GymMemberAttendanceSource {
@@ -486,6 +493,10 @@ model User {
   gymApplicationsReviewed                 GymApplication[]                       @relation("GymApplicationReviewer")
   associationGymConnectionRequestsReviewed AssociationGymConnectionRequest[]     @relation("AssociationGymConnectionReviewer")
   associationGymConnectionRequestsMade     AssociationGymConnectionRequest[]     @relation("AssociationGymConnectionRequester")
+
+  fighterAccountSetupTokensCreated   FighterAccountSetupToken[]   @relation("FighterAccountSetupTokenCreator")
+  fighterPasswordResetTokensCreated  FighterPasswordResetToken[]  @relation("FighterPasswordResetTokenCreator")
+  fighterPasswordResetTokens         FighterPasswordResetToken[]  @relation("FighterPasswordResetTokenUser")
 }
 
 model Organizer {
@@ -610,6 +621,9 @@ model Fighter {
   matchResultsAsOpponent MatchResult[] @relation("MatchResultOpponent")
 
   fighterProfile FighterProfile?
+
+  accountSetupTokens   FighterAccountSetupToken[]
+  passwordResetTokens  FighterPasswordResetToken[]
 
   @@index([birthDate, gender, phone])
   @@index([currentGymId])
@@ -926,6 +940,49 @@ model FighterProfile {
   fighter Fighter @relation(fields: [fighterId], references: [id], onDelete: Cascade)
 
   @@index([isPublic])
+}
+
+/// 선수 본인 계정 설정 링크 (DB에는 tokenHash만 저장, raw token 금지)
+model FighterAccountSetupToken {
+  id              String    @id @default(cuid())
+  fighterId       String
+  /// 기존 미전달 자동 계정 재설정 시 대상 User (없으면 신규 생성)
+  userId          String?
+  tokenHash       String    @unique
+  expiresAt       DateTime
+  usedAt          DateTime?
+  revokedAt       DateTime?
+  createdByUserId String
+  createdAt       DateTime  @default(now())
+
+  fighter       Fighter @relation(fields: [fighterId], references: [id], onDelete: Cascade)
+  createdByUser User    @relation("FighterAccountSetupTokenCreator", fields: [createdByUserId], references: [id], onDelete: Cascade)
+
+  @@index([fighterId])
+  @@index([expiresAt])
+}
+
+/// 선수 비밀번호 재설정 링크 (DB에는 tokenHash만 저장)
+model FighterPasswordResetToken {
+  id              String    @id @default(cuid())
+  userId          String
+  fighterId       String
+  tokenHash       String    @unique
+  /// self_service | gym_admin_link
+  requestSource   String
+  expiresAt       DateTime
+  usedAt          DateTime?
+  revokedAt       DateTime?
+  createdByUserId String?
+  createdAt       DateTime  @default(now())
+
+  user          User     @relation("FighterPasswordResetTokenUser", fields: [userId], references: [id], onDelete: Cascade)
+  fighter       Fighter  @relation(fields: [fighterId], references: [id], onDelete: Cascade)
+  createdByUser User?    @relation("FighterPasswordResetTokenCreator", fields: [createdByUserId], references: [id], onDelete: SetNull)
+
+  @@index([userId])
+  @@index([fighterId])
+  @@index([expiresAt])
 }
 
 model FighterGymHistory {

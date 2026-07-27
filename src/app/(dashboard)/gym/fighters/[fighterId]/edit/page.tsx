@@ -5,6 +5,7 @@ import { AppError } from "@/lib/errors/app-error";
 import { PermissionError } from "@/lib/auth/permission-error";
 import { resolveGymPortalAccess } from "@/lib/gym-portal-access";
 import { fighterService } from "@/lib/services/fighter.service";
+import { fighterAccountSetupService } from "@/lib/services/fighter-account-setup.service";
 import { GymFighterAccountPanel } from "@/components/domain/fighters/GymFighterAccountPanel";
 import { GymFighterProfileStatusPanel } from "@/components/domain/fighters/GymFighterProfileStatusPanel";
 import {
@@ -49,8 +50,13 @@ export default async function GymFighterEditPage({
   }
 
   let data;
+  let accountPanel;
   try {
     data = await fighterService.getGymFighterEditPageData(actor, fighterId);
+    accountPanel = await fighterAccountSetupService.getGymPanelState(
+      actor,
+      fighterId,
+    );
   } catch (e) {
     if (e instanceof AppError && e.code === "NOT_FOUND") notFound();
     if (e instanceof AppError && e.code === "FORBIDDEN") notFound();
@@ -81,8 +87,10 @@ export default async function GymFighterEditPage({
 
         <GymFighterAccountPanel
           fighterId={fighterId}
-          loginId={data.loginId}
-          hasAccount={data.accountStatus === "issued"}
+          loginId={accountPanel.loginId}
+          hasAccount={accountPanel.hasAccount}
+          statusKind={accountPanel.statusKind}
+          activeSetupExpiresAt={accountPanel.activeSetupExpiresAt}
         />
 
         <GymFighterProfileStatusPanel

@@ -4,6 +4,7 @@ import Link from "next/link";
 import { AuthLoginForm } from "@/components/domain/auth/AuthLoginForm";
 import { signInWithPasswordAction } from "@/features/auth/actions";
 import { authLoginFooterClass } from "@/lib/ui/auth-login-ui";
+import { cn } from "@/lib/utils";
 
 /**
  * 일반 로그인 — AuthLoginForm SSOT + 일반 auth action.
@@ -36,15 +37,30 @@ export function LoginForm({
       }
       secondaryNote="관리자, 주최자, 체육관, 선수 모두 발급받은 아이디로 로그인합니다."
       footer={
-        <p className={authLoginFooterClass}>
-          계정이 없으신가요?{" "}
-          <Link
-            href="/join"
-            className="font-semibold text-matchon-primary underline-offset-2 hover:underline"
-          >
-            안내 보기
-          </Link>
-        </p>
+        <div className={cn(authLoginFooterClass, "space-y-2")}>
+          <p>
+            비밀번호를 잊으셨나요?{" "}
+            <Link
+              href="/fighter/forgot-password"
+              className="font-semibold text-matchon-primary underline-offset-2 hover:underline"
+            >
+              비밀번호 찾기
+            </Link>
+          </p>
+          <p className="text-[0.8125rem] leading-relaxed">
+            체육관에서 받은 계정 설정 링크가 있다면 링크로 먼저 아이디와
+            비밀번호를 만들어 주세요.
+          </p>
+          <p>
+            계정이 없으신가요?{" "}
+            <Link
+              href="/join"
+              className="font-semibold text-matchon-primary underline-offset-2 hover:underline"
+            >
+              안내 보기
+            </Link>
+          </p>
+        </div>
       }
     />
   );
