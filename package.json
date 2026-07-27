@@ -180,7 +180,10 @@
     "ui-e2e:judge": "playwright test",
     "ui-e2e:judge-lifecycle": "playwright test -c playwright.judge-lifecycle.config.ts",
     "verify:judge-lifecycle": "tsx scripts/judge-head-match-lifecycle.ts",
-    "generate:icons": "node scripts/generate-icons.mjs"
+    "generate:icons": "node scripts/generate-icons.mjs",
+    "verify:fighter-profile-photo-upload": "tsx scripts/verify-fighter-profile-photo.ts",
+    "verify:fighter-profile-photo-preview": "tsx scripts/verify-fighter-profile-photo.ts",
+    "verify:fighter-profile-photo-delete": "tsx scripts/verify-fighter-profile-photo.ts"
   },
   "prisma": {
     "seed": "tsx prisma/seed.ts"

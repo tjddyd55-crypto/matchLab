@@ -524,6 +524,10 @@ function profileImagesBucket(): string {
   );
 }
 
+/**
+ * 선수 프로필 사진 read URL SSOT.
+ * `profile-images` 는 **public bucket** 계약 — signed read URL을 쓰지 않는다.
+ */
 export function buildPublicStorageUrlForProfileImages(path: string): string {
   const base = process.env.NEXT_PUBLIC_SUPABASE_URL?.replace(/\/$/, "") ?? "";
   if (!base) {

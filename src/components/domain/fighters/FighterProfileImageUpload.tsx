@@ -1,7 +1,7 @@
 "use client";
 
 import Image from "next/image";
-import { useRef, useState, useTransition } from "react";
+import { useEffect, useRef, useState, useTransition } from "react";
 import { putFileToEventSignedUploadUrl } from "@/lib/client/event-image-storage-upload";
 import {
   PROFILE_IMAGE_ALLOWED_MIME,
@@ -20,6 +20,19 @@ type UploadEnvelope = {
   error?: { message?: string };
 };
 
+type PreviewMode =
+  | { kind: "none" }
+  | { kind: "local"; objectUrl: string }
+  | { kind: "remote"; url: string }
+  | { kind: "broken"; attemptedUrl: string };
+
+/**
+ * 선수 프로필 사진 업로드 UI.
+ * - 선택 직후 local blob preview
+ * - 업로드 성공 후 remote public URL
+ * - 유효하지 않은 src / 빈 문자열 렌더 금지
+ * - 실패 시 이전 remote 유지
+ */
 export function FighterProfileImageUpload({
   fighterId,
   initialImageUrl,
@@ -34,9 +47,44 @@ export function FighterProfileImageUpload({
   onImageChange: (next: { url: string; path: string } | null) => void;
 }) {
   const inputRef = useRef<HTMLInputElement>(null);
+  const localUrlRef = useRef<string | null>(null);
   const [pending, startTransition] = useTransition();
   const [error, setError] = useState<string | null>(null);
-  const preview = imageUrl.trim() || initialImageUrl;
+  const [markedRemoved, setMarkedRemoved] = useState(false);
+  const [remoteBroken, setRemoteBroken] = useState(false);
+  const [localPreview, setLocalPreview] = useState<string | null>(null);
+
+  function revokeLocal() {
+    if (localUrlRef.current) {
+      URL.revokeObjectURL(localUrlRef.current);
+      localUrlRef.current = null;
+    }
+  }
+
+  useEffect(() => () => revokeLocal(), []);
+
+  const resolvedPreview: PreviewMode = (() => {
+    if (localPreview) return { kind: "local", objectUrl: localPreview };
+    if (markedRemoved && !imageUrl.trim()) return { kind: "none" };
+    const url = imageUrl.trim() || (!markedRemoved ? initialImageUrl?.trim() || "" : "");
+    if (!url) return { kind: "none" };
+    if (remoteBroken && url === (imageUrl.trim() || initialImageUrl?.trim() || "")) {
+      return { kind: "broken", attemptedUrl: url };
+    }
+    return { kind: "remote", url };
+  })();
+
+  async function assertRemoteReadable(url: string): Promise<boolean> {
+    try {
+      const res = await fetch(url, { method: "GET", mode: "cors", cache: "no-store" });
+      if (!res.ok) return false;
+      const ct = res.headers.get("content-type") || "";
+      return ct.startsWith("image/");
+    } catch {
+      // CORS 등으로 HEAD/GET 실패해도 객체는 존재할 수 있음 — img onError로 최종 판정
+      return true;
+    }
+  }
 
   async function uploadFile(file: File) {
     const mimeType = file.type;
@@ -52,43 +100,76 @@ export function FighterProfileImageUpload({
     }
 
     setError(null);
+    revokeLocal();
+    const objectUrl = URL.createObjectURL(file);
+    localUrlRef.current = objectUrl;
+    setLocalPreview(objectUrl);
+    setRemoteBroken(false);
+
     startTransition(async () => {
-      const issueRes = await fetch("/api/uploads/profile-image", {
-        method: "POST",
-        headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ fighterId, mimeType }),
-      });
+      try {
+        const issueRes = await fetch("/api/uploads/profile-image", {
+          method: "POST",
+          headers: { "Content-Type": "application/json" },
+          body: JSON.stringify({ fighterId, mimeType }),
+        });
 
-      const issueJson = (await issueRes.json()) as UploadEnvelope;
+        const issueJson = (await issueRes.json()) as UploadEnvelope;
 
-      if (
-        !issueRes.ok ||
-        !issueJson.data?.uploadUrl ||
-        !issueJson.data.path ||
-        !issueJson.data.publicUrl
-      ) {
-        setError(
-          issueJson.error?.message ??
-            `업로드 URL 발급에 실패했습니다 (${issueRes.status}).`,
+        if (
+          !issueRes.ok ||
+          !issueJson.data?.uploadUrl ||
+          !issueJson.data.path ||
+          !issueJson.data.publicUrl
+        ) {
+          setError(
+            issueJson.error?.message ??
+              `업로드 URL 발급에 실패했습니다 (${issueRes.status}).`,
+          );
+          revokeLocal();
+          setLocalPreview(null);
+          return;
+        }
+
+        const put = await putFileToEventSignedUploadUrl(
+          issueJson.data.uploadUrl,
+          file,
         );
-        return;
-      }
+        if (!put.ok) {
+          setError(
+            `스토리지 업로드에 실패했습니다 (${put.status}). ${put.detail || "다시 시도해 주세요."}`,
+          );
+          revokeLocal();
+          setLocalPreview(null);
+          return;
+        }
 
-      const put = await putFileToEventSignedUploadUrl(
-        issueJson.data.uploadUrl,
-        file,
-      );
-      if (!put.ok) {
+        const readable = await assertRemoteReadable(issueJson.data.publicUrl);
+        if (!readable) {
+          setError(
+            "업로드는 됐지만 사진을 읽을 수 없습니다. Storage 버킷(profile-images) 설정을 확인해 주세요.",
+          );
+          revokeLocal();
+          setLocalPreview(null);
+          return;
+        }
+
+        setMarkedRemoved(false);
+        onImageChange({
+          url: issueJson.data.publicUrl,
+          path: issueJson.data.path,
+        });
+        revokeLocal();
+        setLocalPreview(null);
+      } catch (e) {
         setError(
-          `스토리지 업로드에 실패했습니다 (${put.status}). ${put.detail || "다시 시도해 주세요."}`,
+          e instanceof Error
+            ? e.message
+            : "업로드 중 오류가 발생했습니다. 다시 시도해 주세요.",
         );
-        return;
+        revokeLocal();
+        setLocalPreview(null);
       }
-
-      onImageChange({
-        url: issueJson.data.publicUrl,
-        path: issueJson.data.path,
-      });
     });
   }
 
@@ -100,8 +181,14 @@ export function FighterProfileImageUpload({
 
   function clearImage() {
     setError(null);
+    setMarkedRemoved(true);
+    setRemoteBroken(false);
+    revokeLocal();
+    setLocalPreview(null);
     onImageChange(null);
   }
+
+  const showActions = resolvedPreview.kind !== "none" || pending;
 
   return (
     <div className="space-y-3">
@@ -119,17 +206,36 @@ export function FighterProfileImageUpload({
           {error}
         </p>
       ) : null}
+      {markedRemoved && !imageUrl.trim() ? (
+        <p className="text-muted-foreground text-xs" role="status">
+          제거 예정 — 저장하면 프로필 사진이 삭제됩니다.
+        </p>
+      ) : null}
       <div className="flex flex-wrap items-start gap-4">
-        {preview ? (
+        {resolvedPreview.kind === "local" || resolvedPreview.kind === "remote" ? (
           <div className="relative size-32 shrink-0 overflow-hidden rounded-2xl ring-1 ring-foreground/10 md:rounded-full">
             <Image
-              src={preview}
-              alt="프로필 미리보기"
+              src={
+                resolvedPreview.kind === "local"
+                  ? resolvedPreview.objectUrl
+                  : resolvedPreview.url
+              }
+              alt=""
               fill
               className="object-cover"
               sizes="128px"
               unoptimized
+              onError={() => {
+                if (resolvedPreview.kind === "remote") {
+                  setRemoteBroken(true);
+                }
+              }}
             />
+          </div>
+        ) : resolvedPreview.kind === "broken" ? (
+          <div className="flex size-32 shrink-0 flex-col items-center justify-center gap-1 rounded-2xl border border-dashed border-destructive/40 bg-destructive/5 px-2 text-center text-[11px] text-destructive md:rounded-full">
+            <span>사진을 불러올 수 없습니다</span>
+            <span className="text-[10px] text-muted-foreground">다시 업로드해 주세요</span>
           </div>
         ) : (
           <div className="flex size-32 shrink-0 items-center justify-center rounded-2xl border border-dashed bg-muted/30 text-center text-[11px] text-muted-foreground px-2 md:rounded-full">
@@ -153,16 +259,16 @@ export function FighterProfileImageUpload({
           >
             {pending
               ? "업로드 중…"
-              : preview
+              : showActions && resolvedPreview.kind !== "none"
                 ? "사진 교체"
                 : "사진 선택"}
           </Button>
-          {preview ? (
+          {resolvedPreview.kind !== "none" || (markedRemoved && !imageUrl.trim()) ? (
             <Button
               type="button"
               variant="outline"
               size="sm"
-              disabled={pending}
+              disabled={pending || (markedRemoved && !imageUrl.trim() && !localPreview)}
               onClick={clearImage}
             >
               사진 제거
