@@ -31,5 +31,13 @@ export async function readGymMemberPortalSessionCookie(): Promise<string | null>
 
 export async function clearGymMemberPortalSessionCookie(): Promise<void> {
   const cookieStore = await cookies();
+  // path/secure를 생성 시와 맞춰 만료 — delete만으로는 환경에 따라 잔존할 수 있음
+  cookieStore.set(GYM_MEMBER_PORTAL_SESSION_COOKIE, "", {
+    httpOnly: true,
+    secure: process.env.NODE_ENV === "production",
+    sameSite: "lax",
+    path: "/",
+    maxAge: 0,
+  });
   cookieStore.delete(GYM_MEMBER_PORTAL_SESSION_COOKIE);
 }
