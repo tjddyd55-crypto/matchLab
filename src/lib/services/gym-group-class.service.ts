@@ -670,45 +670,105 @@ export const gymGroupClassService = {
     return { classId };
   },
 
-  async addParticipant(actor: ActorContext, classId: string, gymMemberId: string) {
-    const access = await requireGymGroupClassManageParticipants(actor);
-    const cls = await gymGroupClassRepository.findById(classId, access.gymId);
+  /**
+   * Stage 3 participation SSOT — admin/owner 및 member portal이 동일 lock·capacity·promote를 사용.
+   * actorUserId null = 회원 포털 자기 신청 (감사 로그 actor 없음).
+   */
+  async joinAsMember(input: {
+    gymId: string;
+    classId: string;
+    gymMemberId: string;
+    actorUserId: string | null;
+    requireNotStarted?: boolean;
+    overlapMessage?: string;
+  }): Promise<{
+    status: "attending" | "waitlisted";
+    alreadyAttending: boolean;
+  }> {
+    const cls = await gymGroupClassRepository.findById(
+      input.classId,
+      input.gymId,
+    );
     if (!cls) throw new AppError("NOT_FOUND", "그룹수업을 찾을 수 없습니다.");
-    assertCanManageClass(access, cls.instructorStaffId);
     if (cls.status !== "scheduled") {
-      throw new AppError("VALIDATION_ERROR", "예정 수업에만 참석자를 추가할 수 있습니다.");
+      throw new AppError(
+        "VALIDATION_ERROR",
+        "예정 수업에만 참석자를 추가할 수 있습니다.",
+      );
+    }
+    if (input.requireNotStarted && cls.startsAt.getTime() <= Date.now()) {
+      throw new AppError(
+        "VALIDATION_ERROR",
+        "이미 시작된 수업은 변경할 수 없습니다.",
+      );
     }
     const member = await prisma.gymMember.findFirst({
-      where: { id: gymMemberId, gymId: access.gymId, deletedAt: null },
-      select: { id: true, name: true },
+      where: {
+        id: input.gymMemberId,
+        gymId: input.gymId,
+        deletedAt: null,
+      },
+      select: { id: true },
     });
     if (!member) throw new AppError("NOT_FOUND", "회원을 찾을 수 없습니다.");
 
-    await assertMemberAvailability({
-      gymId: access.gymId,
-      gymMemberId,
-      startsAt: cls.startsAt,
-      endsAt: cls.endsAt,
-      excludeGroupClassId: classId,
-    });
+    try {
+      await assertMemberAvailability({
+        gymId: input.gymId,
+        gymMemberId: input.gymMemberId,
+        startsAt: cls.startsAt,
+        endsAt: cls.endsAt,
+        excludeGroupClassId: input.classId,
+      });
+    } catch (e) {
+      if (e instanceof AppError && e.code === "CONFLICT" && input.overlapMessage) {
+        throw new AppError("CONFLICT", input.overlapMessage, e.details);
+      }
+      throw e;
+    }
 
-    const result = await prisma.$transaction(async (tx) => {
-      await lockGroupClass(tx, classId);
+    return prisma.$transaction(async (tx) => {
+      await lockGroupClass(tx, input.classId);
       const fresh = await tx.gymGroupClass.findFirst({
-        where: { id: classId, gymId: access.gymId, deletedAt: null },
+        where: {
+          id: input.classId,
+          gymId: input.gymId,
+          deletedAt: null,
+        },
       });
       if (!fresh || fresh.status !== "scheduled") {
-        throw new AppError("VALIDATION_ERROR", "예정 수업에만 참석자를 추가할 수 있습니다.");
+        throw new AppError(
+          "VALIDATION_ERROR",
+          "예정 수업에만 참석자를 추가할 수 있습니다.",
+        );
+      }
+      if (
+        input.requireNotStarted &&
+        fresh.startsAt.getTime() <= Date.now()
+      ) {
+        throw new AppError(
+          "VALIDATION_ERROR",
+          "이미 시작된 수업은 변경할 수 없습니다.",
+        );
       }
       const existing = await tx.gymGroupClassParticipation.findUnique({
         where: {
-          gymGroupClassId_gymMemberId: { gymGroupClassId: classId, gymMemberId },
+          gymGroupClassId_gymMemberId: {
+            gymGroupClassId: input.classId,
+            gymMemberId: input.gymMemberId,
+          },
         },
       });
       if (existing?.status === "attending") {
-        return { status: "attending" as const, promotedFromWaitlist: false };
+        return {
+          status: "attending" as const,
+          alreadyAttending: true,
+        };
       }
-      const attendingCount = await gymGroupClassRepository.countAttending(tx, classId);
+      const attendingCount = await gymGroupClassRepository.countAttending(
+        tx,
+        input.classId,
+      );
       const hasSpace =
         fresh.capacity == null || attendingCount < fresh.capacity;
       const nextStatus: GymGroupClassParticipationStatus = hasSpace
@@ -716,7 +776,7 @@ export const gymGroupClassService = {
         : "waitlisted";
       const waitlistOrder =
         nextStatus === "waitlisted"
-          ? await gymGroupClassRepository.nextWaitlistOrder(tx, classId)
+          ? await gymGroupClassRepository.nextWaitlistOrder(tx, input.classId)
           : null;
 
       if (existing) {
@@ -728,44 +788,219 @@ export const gymGroupClassService = {
             respondedAt: new Date(),
             cancelledAt: null,
             cancelledByUserId: null,
-            createdByUserId: actor.userId,
+            createdByUserId: input.actorUserId,
           },
         });
       } else {
         await tx.gymGroupClassParticipation.create({
           data: {
-            gymId: access.gymId,
-            gymGroupClassId: classId,
-            gymMemberId,
+            gymId: input.gymId,
+            gymGroupClassId: input.classId,
+            gymMemberId: input.gymMemberId,
             status: nextStatus,
             waitlistOrder,
-            createdByUserId: actor.userId,
+            createdByUserId: input.actorUserId,
           },
         });
       }
 
       await auditRepository.createAuditLog(
         {
-          actorUserId: actor.userId,
+          actorUserId: input.actorUserId,
           action:
             nextStatus === "attending"
               ? AuditAction.gym_group_class_participant_added
               : AuditAction.gym_group_class_participant_waitlisted,
           targetType: "GymGroupClassParticipation",
-          targetId: classId,
+          targetId: input.classId,
           afterData: {
-            gymMemberId,
+            gymMemberId: input.gymMemberId,
             status: nextStatus,
             waitlistOrder,
-            groupClassId: classId,
+            groupClassId: input.classId,
+            source: input.actorUserId ? "admin" : "member_portal",
           },
         },
         tx,
       );
-      return { status: nextStatus, promotedFromWaitlist: false };
+      return {
+        status: nextStatus,
+        alreadyAttending: false,
+      };
     }, GROUP_CLASS_TX);
+  },
 
-    return result;
+  async cancelAsMember(input: {
+    gymId: string;
+    classId: string;
+    gymMemberId: string;
+    actorUserId: string | null;
+    requireNotStarted?: boolean;
+  }): Promise<{ promotedMemberId: string | null }> {
+    const cls = await gymGroupClassRepository.findById(
+      input.classId,
+      input.gymId,
+    );
+    if (!cls) throw new AppError("NOT_FOUND", "그룹수업을 찾을 수 없습니다.");
+    if (cls.status === "completed") {
+      throw new AppError(
+        "VALIDATION_ERROR",
+        "완료된 수업의 참석 상태는 변경할 수 없습니다.",
+      );
+    }
+    if (cls.status === "cancelled") {
+      throw new AppError(
+        "VALIDATION_ERROR",
+        "취소된 수업의 참석 상태는 변경할 수 없습니다.",
+      );
+    }
+    if (input.requireNotStarted && cls.startsAt.getTime() <= Date.now()) {
+      throw new AppError(
+        "VALIDATION_ERROR",
+        "이미 시작된 수업은 변경할 수 없습니다.",
+      );
+    }
+
+    return prisma.$transaction(async (tx) => {
+      await lockGroupClass(tx, input.classId);
+      const freshClass = await tx.gymGroupClass.findFirst({
+        where: {
+          id: input.classId,
+          gymId: input.gymId,
+          deletedAt: null,
+        },
+      });
+      if (!freshClass) {
+        throw new AppError("NOT_FOUND", "그룹수업을 찾을 수 없습니다.");
+      }
+      if (
+        input.requireNotStarted &&
+        freshClass.startsAt.getTime() <= Date.now()
+      ) {
+        throw new AppError(
+          "VALIDATION_ERROR",
+          "이미 시작된 수업은 변경할 수 없습니다.",
+        );
+      }
+      const part = await tx.gymGroupClassParticipation.findUnique({
+        where: {
+          gymGroupClassId_gymMemberId: {
+            gymGroupClassId: input.classId,
+            gymMemberId: input.gymMemberId,
+          },
+        },
+      });
+      if (
+        !part ||
+        part.status === "cancelled" ||
+        part.status === "not_attending"
+      ) {
+        throw new AppError(
+          "VALIDATION_ERROR",
+          "취소할 참석 정보가 없습니다.",
+        );
+      }
+      const wasAttending = part.status === "attending";
+      await tx.gymGroupClassParticipation.update({
+        where: { id: part.id },
+        data: {
+          status: "cancelled",
+          cancelledAt: new Date(),
+          cancelledByUserId: input.actorUserId,
+          waitlistOrder: null,
+        },
+      });
+      await auditRepository.createAuditLog(
+        {
+          actorUserId: input.actorUserId,
+          action: AuditAction.gym_group_class_participant_cancelled,
+          targetType: "GymGroupClassParticipation",
+          targetId: part.id,
+          beforeData: { status: part.status },
+          afterData: {
+            status: "cancelled",
+            gymMemberId: input.gymMemberId,
+            groupClassId: input.classId,
+            source: input.actorUserId ? "admin" : "member_portal",
+          },
+        },
+        tx,
+      );
+
+      let promotedMemberId: string | null = null;
+      if (wasAttending && freshClass.status === "scheduled") {
+        for (let i = 0; i < 20; i++) {
+          const attendingCount = await gymGroupClassRepository.countAttending(
+            tx,
+            input.classId,
+          );
+          const hasSpace =
+            freshClass.capacity == null ||
+            attendingCount < freshClass.capacity;
+          if (!hasSpace) break;
+          const next = await gymGroupClassRepository.findEarliestWaitlisted(
+            tx,
+            input.classId,
+          );
+          if (!next) break;
+          try {
+            await assertMemberAvailability({
+              gymId: input.gymId,
+              gymMemberId: next.gymMemberId,
+              startsAt: freshClass.startsAt,
+              endsAt: freshClass.endsAt,
+              excludeGroupClassId: input.classId,
+            });
+          } catch {
+            break;
+          }
+          await tx.gymGroupClassParticipation.update({
+            where: { id: next.id },
+            data: {
+              status: "attending",
+              waitlistOrder: null,
+              respondedAt: new Date(),
+            },
+          });
+          promotedMemberId = next.gymMemberId;
+          await auditRepository.createAuditLog(
+            {
+              actorUserId: input.actorUserId,
+              action: AuditAction.gym_group_class_participant_promoted,
+              targetType: "GymGroupClassParticipation",
+              targetId: next.id,
+              afterData: {
+                gymMemberId: next.gymMemberId,
+                groupClassId: input.classId,
+                auto: true,
+                source: input.actorUserId ? "admin" : "member_portal",
+              },
+            },
+            tx,
+          );
+          break;
+        }
+      }
+      return { promotedMemberId };
+    }, GROUP_CLASS_TX);
+  },
+
+  async addParticipant(actor: ActorContext, classId: string, gymMemberId: string) {
+    const access = await requireGymGroupClassManageParticipants(actor);
+    const cls = await gymGroupClassRepository.findById(classId, access.gymId);
+    if (!cls) throw new AppError("NOT_FOUND", "그룹수업을 찾을 수 없습니다.");
+    assertCanManageClass(access, cls.instructorStaffId);
+
+    const result = await this.joinAsMember({
+      gymId: access.gymId,
+      classId,
+      gymMemberId,
+      actorUserId: actor.userId,
+    });
+    return {
+      status: result.status,
+      promotedFromWaitlist: false,
+    };
   },
 
   async cancelParticipant(
@@ -777,104 +1012,13 @@ export const gymGroupClassService = {
     const cls = await gymGroupClassRepository.findById(classId, access.gymId);
     if (!cls) throw new AppError("NOT_FOUND", "그룹수업을 찾을 수 없습니다.");
     assertCanManageClass(access, cls.instructorStaffId);
-    if (cls.status === "completed") {
-      throw new AppError("VALIDATION_ERROR", "완료된 수업의 참석 상태는 변경할 수 없습니다.");
-    }
 
-    const outcome = await prisma.$transaction(async (tx) => {
-      await lockGroupClass(tx, classId);
-      const part = await tx.gymGroupClassParticipation.findUnique({
-        where: {
-          gymGroupClassId_gymMemberId: { gymGroupClassId: classId, gymMemberId },
-        },
-      });
-      if (!part || part.status === "cancelled" || part.status === "not_attending") {
-        throw new AppError("VALIDATION_ERROR", "취소할 참석 정보가 없습니다.");
-      }
-      const wasAttending = part.status === "attending";
-      await tx.gymGroupClassParticipation.update({
-        where: { id: part.id },
-        data: {
-          status: "cancelled",
-          cancelledAt: new Date(),
-          cancelledByUserId: actor.userId,
-          waitlistOrder: null,
-        },
-      });
-      await auditRepository.createAuditLog(
-        {
-          actorUserId: actor.userId,
-          action: AuditAction.gym_group_class_participant_cancelled,
-          targetType: "GymGroupClassParticipation",
-          targetId: part.id,
-          beforeData: { status: part.status },
-          afterData: { status: "cancelled", gymMemberId, groupClassId: classId },
-        },
-        tx,
-      );
-
-      let promotedMemberId: string | null = null;
-      if (wasAttending) {
-        const fresh = await tx.gymGroupClass.findUnique({ where: { id: classId } });
-        if (fresh && fresh.status === "scheduled") {
-          // 충돌 대기자는 건너뛰고 다음 후보 승급
-          for (let i = 0; i < 20; i++) {
-            const attendingCount = await gymGroupClassRepository.countAttending(
-              tx,
-              classId,
-            );
-            const hasSpace =
-              fresh.capacity == null || attendingCount < fresh.capacity;
-            if (!hasSpace) break;
-            const next = await gymGroupClassRepository.findEarliestWaitlisted(
-              tx,
-              classId,
-            );
-            if (!next) break;
-            try {
-              await assertMemberAvailability({
-                gymId: access.gymId,
-                gymMemberId: next.gymMemberId,
-                startsAt: fresh.startsAt,
-                endsAt: fresh.endsAt,
-                excludeGroupClassId: classId,
-              });
-            } catch {
-              // 충돌 대기는 승급 후보에서 일시적으로 제외하지 않고 루프 방지용 skip:
-              // waitlistOrder를 뒤로 밀지 않고 break (관리자 수동 처리)
-              break;
-            }
-            await tx.gymGroupClassParticipation.update({
-              where: { id: next.id },
-              data: {
-                status: "attending",
-                waitlistOrder: null,
-                respondedAt: new Date(),
-              },
-            });
-            promotedMemberId = next.gymMemberId;
-            await auditRepository.createAuditLog(
-              {
-                actorUserId: actor.userId,
-                action: AuditAction.gym_group_class_participant_promoted,
-                targetType: "GymGroupClassParticipation",
-                targetId: next.id,
-                afterData: {
-                  gymMemberId: next.gymMemberId,
-                  groupClassId: classId,
-                  auto: true,
-                },
-              },
-              tx,
-            );
-            break;
-          }
-        }
-      }
-      return { promotedMemberId };
-    }, GROUP_CLASS_TX);
-
-    return outcome;
+    return this.cancelAsMember({
+      gymId: access.gymId,
+      classId,
+      gymMemberId,
+      actorUserId: actor.userId,
+    });
   },
 
   async promoteParticipant(

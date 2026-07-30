@@ -446,6 +446,9 @@ enum AuditAction {
   gym_group_class_participant_waitlisted_manual
   gym_group_class_capacity_changed
   gym_group_class_instructor_changed
+  gym_member_portal_created
+  gym_member_portal_token_rotated
+  gym_member_portal_revoked
 }
 
 enum GymMemberAttendanceSource {
@@ -592,6 +595,8 @@ model User {
   gymGroupClassesCancelled GymGroupClass[] @relation("GymGroupClassCanceller")
   gymGroupClassParticipationsCreated   GymGroupClassParticipation[] @relation("GymGroupClassParticipationCreator")
   gymGroupClassParticipationsCancelled GymGroupClassParticipation[] @relation("GymGroupClassParticipationCanceller")
+
+  gymMemberPortalsCreated GymMemberPortal[] @relation("GymMemberPortalCreator")
 }
 
 model Organizer {
@@ -672,6 +677,8 @@ model Gym {
   gymPersonalSchedules      GymPersonalSchedule[]
   gymGroupClasses           GymGroupClass[]
   gymGroupClassParticipations GymGroupClassParticipation[]
+  gymMemberPortals          GymMemberPortal[]
+  gymMemberPortalSessions   GymMemberPortalSession[]
 }
 
 model Fighter {
@@ -774,6 +781,7 @@ model GymMember {
   staffAssignments   GymStaffMemberAssignment[]
   personalSchedules  GymPersonalSchedule[]
   groupClassParticipations GymGroupClassParticipation[]
+  portalSessions     GymMemberPortalSession[]
 
   @@unique([gymId, memberNumber])
   @@index([gymId, deletedAt])
@@ -1013,6 +1021,49 @@ model GymAttendanceKiosk {
 
   @@index([gymId, isActive])
   @@index([gymId, revokedAt])
+}
+
+/// 체육관 회원 전용 포털 입구 링크 (공개 token hash — Gym당 활성 0..1)
+model GymMemberPortal {
+  id              String    @id @default(cuid())
+  gymId           String
+  /// raw token은 생성 응답·URL에만 — DB에는 sha256 hex
+  publicTokenHash String    @unique
+  isActive        Boolean   @default(true)
+  createdByUserId String
+  lastRotatedAt   DateTime?
+  revokedAt       DateTime?
+  createdAt       DateTime  @default(now())
+  updatedAt       DateTime  @updatedAt
+
+  gym           Gym                      @relation(fields: [gymId], references: [id], onDelete: Cascade)
+  createdByUser User                     @relation("GymMemberPortalCreator", fields: [createdByUserId], references: [id], onDelete: Cascade)
+  sessions      GymMemberPortalSession[]
+
+  @@index([gymId, isActive])
+  @@index([gymId, revokedAt])
+}
+
+/// 회원 포털 확인 세션 (HttpOnly cookie의 raw session token → hash)
+model GymMemberPortalSession {
+  id                String    @id @default(cuid())
+  gymMemberPortalId String
+  gymId             String
+  gymMemberId       String
+  sessionTokenHash  String    @unique
+  expiresAt         DateTime
+  revokedAt         DateTime?
+  lastSeenAt        DateTime?
+  createdAt         DateTime  @default(now())
+  updatedAt         DateTime  @updatedAt
+
+  portal    GymMemberPortal @relation(fields: [gymMemberPortalId], references: [id], onDelete: Cascade)
+  gym       Gym             @relation(fields: [gymId], references: [id], onDelete: Cascade)
+  gymMember GymMember       @relation(fields: [gymMemberId], references: [id], onDelete: Cascade)
+
+  @@index([gymMemberPortalId, revokedAt])
+  @@index([gymMemberId, expiresAt])
+  @@index([gymId, expiresAt])
 }
 
 /// 체육관 회원 출석 — GymMember 귀속 (Fighter 비SSOT)
