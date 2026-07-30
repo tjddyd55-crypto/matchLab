@@ -35,8 +35,12 @@ export function getGymPortalNavGroups(
           ? [
               { href: "/gym/schedules", label: "전체 일정" },
               { href: "/gym/schedules/my", label: "내 일정" },
+              { href: "/gym/group-classes", label: "그룹수업" },
             ]
-          : [{ href: "/gym/schedules", label: "내 일정" }],
+          : [
+              { href: "/gym/schedules", label: "내 일정" },
+              { href: "/gym/group-classes", label: "그룹수업" },
+            ],
     },
     {
       id: "members",
@@ -224,6 +228,12 @@ export function isGymPortalNavItemActive(
     return (
       pathname === "/gym/schedules/my" ||
       pathname.startsWith("/gym/schedules/my/")
+    );
+  }
+  if (href === "/gym/group-classes") {
+    return (
+      pathname === "/gym/group-classes" ||
+      pathname.startsWith("/gym/group-classes/")
     );
   }
   if (href === "/gym/sales") {

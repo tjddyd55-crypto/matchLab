@@ -21,6 +21,8 @@ import { GymMemberDetailActions } from "@/components/domain/gym-members/GymMembe
 import { GymProfileMissingBanner } from "@/components/domain/gym/GymProfileMissingBanner";
 import { buttonVariants } from "@/components/ui/button";
 import { resolveGymPortalAccess } from "@/lib/gym-portal-access";
+import { GymMemberGroupClassesSection } from "@/components/domain/gym-group-classes/GymMemberGroupClassesSection";
+import { gymGroupClassService } from "@/lib/services/gym-group-class.service";
 import { gymScheduleService } from "@/lib/services/gym-schedule.service";
 import { gymStaffService } from "@/lib/services/gym-staff.service";
 import {
@@ -86,10 +88,21 @@ export default async function GymMemberDetailPage({
   let upcomingSchedules: Awaited<
     ReturnType<typeof gymScheduleService.getMemberUpcoming>
   > = [];
+  let upcomingGroupClasses: Awaited<
+    ReturnType<typeof gymGroupClassService.getMemberUpcoming>
+  > = [];
   const access = await resolveGymPortalAccess(actor).catch(() => null);
   try {
-    [detail, plans, attendanceSummary, attendanceCalendar, salesSummary, assignedStaff, upcomingSchedules] =
-      await Promise.all([
+    [
+      detail,
+      plans,
+      attendanceSummary,
+      attendanceCalendar,
+      salesSummary,
+      assignedStaff,
+      upcomingSchedules,
+      upcomingGroupClasses,
+    ] = await Promise.all([
         gymMemberService.getMemberDetail(actor, memberId),
         gymMembershipPlanService.listPlans(actor, false).catch(() => []),
         gymAttendanceService.getGymMemberAttendanceSummary(actor, memberId),
@@ -102,6 +115,7 @@ export default async function GymMemberDetailPage({
         gymSalesService.getMemberSalesSummary(actor, memberId).catch(() => null),
         gymStaffService.listAssignmentsForMember(actor, memberId).catch(() => []),
         gymScheduleService.getMemberUpcoming(actor, memberId, 30).catch(() => []),
+        gymGroupClassService.getMemberUpcoming(actor, memberId, 30).catch(() => []),
       ]);
   } catch (e) {
     if (e instanceof AppError && e.code === "NOT_FOUND") notFound();
@@ -235,6 +249,15 @@ export default async function GymMemberDetailPage({
             <GymMemberUpcomingSchedulesSection
               items={upcomingSchedules}
               memberId={memberId}
+              canCreate={Boolean(
+                access?.isOwner ||
+                  actor.role === "admin" ||
+                  actor.role === "gym_staff",
+              )}
+            />
+
+            <GymMemberGroupClassesSection
+              items={upcomingGroupClasses}
               canCreate={Boolean(
                 access?.isOwner ||
                   actor.role === "admin" ||

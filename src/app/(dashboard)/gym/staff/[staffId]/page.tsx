@@ -7,6 +7,7 @@ import { AppError } from "@/lib/errors/app-error";
 import { formatPhoneNumber } from "@/lib/phone";
 import { gymStaffAccountSetupService } from "@/lib/services/gym-staff-account-setup.service";
 import { gymStaffService } from "@/lib/services/gym-staff.service";
+import { gymGroupClassService } from "@/lib/services/gym-group-class.service";
 import { gymScheduleService } from "@/lib/services/gym-schedule.service";
 import { GymStaffAccountPanel } from "@/components/domain/gym-staff/GymStaffAccountPanel";
 import { GymStaffAssignmentPanel } from "@/components/domain/gym-staff/GymStaffAssignmentPanel";
@@ -57,12 +58,18 @@ export default async function GymStaffDetailPage({
   let scheduleSnippet: Awaited<
     ReturnType<typeof gymScheduleService.getStaffUpcoming>
   > | null = null;
+  let groupClassSnippet: Awaited<
+    ReturnType<typeof gymGroupClassService.getStaffUpcoming>
+  > | null = null;
   try {
     [detail, accountState] = await Promise.all([
       gymStaffService.getStaffDetail(actor, staffId),
       gymStaffAccountSetupService.getPanelState(actor, staffId),
     ]);
     scheduleSnippet = await gymScheduleService
+      .getStaffUpcoming(actor, staffId)
+      .catch(() => null);
+    groupClassSnippet = await gymGroupClassService
       .getStaffUpcoming(actor, staffId)
       .catch(() => null);
   } catch (e) {
@@ -161,6 +168,58 @@ export default async function GymStaffDetailPage({
               ) : (
                 <p className="text-sm text-matchon-text-secondary">
                   일정 정보를 불러올 수 없습니다.
+                </p>
+              )}
+            </section>
+
+            <section className="rounded-xl border border-matchon-border bg-white p-4">
+              <div className="mb-3 flex flex-wrap items-center justify-between gap-2">
+                <h2 className={matchonSectionTitleClass}>그룹수업</h2>
+                <div className="flex gap-2">
+                  <Link
+                    href={`/gym/group-classes?staffId=${staff.id}&view=week`}
+                    className={cn(buttonVariants({ variant: "outline", size: "sm" }))}
+                  >
+                    그룹수업 보기
+                  </Link>
+                  <Link
+                    href={`/gym/group-classes?staffId=${staff.id}&view=day`}
+                    className={cn(buttonVariants({ size: "sm" }))}
+                  >
+                    그룹수업 등록
+                  </Link>
+                </div>
+              </div>
+              {groupClassSnippet ? (
+                <div className="space-y-2 text-sm">
+                  <InfoRow
+                    label="오늘 그룹수업"
+                    value={`${groupClassSnippet.todayCount}건`}
+                  />
+                  <InfoRow
+                    label="이번 주 그룹수업"
+                    value={`${groupClassSnippet.weekCount}건`}
+                  />
+                  <InfoRow
+                    label="다음 그룹수업"
+                    value={
+                      groupClassSnippet.next
+                        ? `${groupClassSnippet.next.timeRangeLabel} · ${groupClassSnippet.next.title}`
+                        : "—"
+                    }
+                  />
+                  <InfoRow
+                    label="예정 참석자"
+                    value={`${groupClassSnippet.attendingTotal}명`}
+                  />
+                  <InfoRow
+                    label="대기 인원"
+                    value={`${groupClassSnippet.waitTotal}명`}
+                  />
+                </div>
+              ) : (
+                <p className="text-sm text-matchon-text-secondary">
+                  그룹수업 정보를 불러올 수 없습니다.
                 </p>
               )}
             </section>

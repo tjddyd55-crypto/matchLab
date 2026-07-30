@@ -12,6 +12,7 @@ import { gymMemberService } from "@/lib/services/gym-member.service";
 import { gymAttendanceService } from "@/lib/services/gym-attendance.service";
 import { gymSalesService } from "@/lib/services/gym-sales.service";
 import { gymScheduleService } from "@/lib/services/gym-schedule.service";
+import { gymGroupClassService } from "@/lib/services/gym-group-class.service";
 import { formatWon } from "@/lib/format-won";
 import {
   matchonCompactActionBarClass,
@@ -61,8 +62,15 @@ export default async function GymHomePage() {
   const canUpdate = access?.canUpdateFighter ?? true;
   const isStaffViewer = actor.role === "gym_staff";
 
-  const [memberSummary, recentMembers, eventSummary, attendanceSummary, salesSummary, scheduleSummary] =
-    await Promise.all([
+  const [
+    memberSummary,
+    recentMembers,
+    eventSummary,
+    attendanceSummary,
+    salesSummary,
+    scheduleSummary,
+    groupClassSummary,
+  ] = await Promise.all([
     gymMemberService.getSummary(actor).catch(() => null),
     prisma.gymMember
       .findMany({
@@ -87,6 +95,9 @@ export default async function GymHomePage() {
       ? Promise.resolve(null)
       : gymSalesService.getHomeSalesSnippet(actor),
     gymScheduleService
+      .getSummary(actor, { myOnly: isStaffViewer })
+      .catch(() => null),
+    gymGroupClassService
       .getSummary(actor, { myOnly: isStaffViewer })
       .catch(() => null),
   ]);
@@ -222,6 +233,61 @@ export default async function GymHomePage() {
                   내 일정 확인
                 </Link>
               </div>
+            ) : null}
+          </section>
+        ) : null}
+
+        {groupClassSummary ? (
+          <section className="rounded-xl border border-matchon-border bg-white p-4">
+            <div className="flex flex-wrap items-center justify-between gap-2">
+              <h2 className={matchonSectionTitleClass}>
+                {isStaffViewer ? "내 그룹수업" : "그룹수업"}
+              </h2>
+              <Link
+                href="/gym/group-classes"
+                className="text-xs font-semibold text-matchon-primary underline"
+              >
+                그룹수업 관리
+              </Link>
+            </div>
+            <div className="mt-3 grid grid-cols-2 gap-3 sm:grid-cols-4">
+              <div>
+                <p className={matchonStatLabelClass}>오늘</p>
+                <p className="text-lg font-bold">{groupClassSummary.todayCount}</p>
+              </div>
+              <div>
+                <p className={matchonStatLabelClass}>이번 주</p>
+                <p className="text-lg font-bold">{groupClassSummary.weekCount}</p>
+              </div>
+              <div>
+                <p className={matchonStatLabelClass}>
+                  {isStaffViewer ? "예정 참석" : "오늘 참석 예정"}
+                </p>
+                <p className="text-lg font-bold">
+                  {groupClassSummary.attendingToday}
+                </p>
+              </div>
+              <div>
+                <p className={matchonStatLabelClass}>
+                  {isStaffViewer ? "대기" : "정원 마감"}
+                </p>
+                <p className="text-lg font-bold">
+                  {isStaffViewer
+                    ? groupClassSummary.waitToday
+                    : groupClassSummary.fullToday}
+                </p>
+              </div>
+            </div>
+            {!isStaffViewer && groupClassSummary.waitToday > 0 ? (
+              <p className="mt-2 text-sm text-matchon-text-secondary">
+                대기 발생 수업 {groupClassSummary.waitToday}건
+              </p>
+            ) : null}
+            {groupClassSummary.next ? (
+              <p className="mt-3 text-sm text-matchon-text-secondary">
+                다음 그룹수업 {groupClassSummary.next.timeRangeLabel}{" "}
+                {groupClassSummary.next.title}
+              </p>
             ) : null}
           </section>
         ) : null}

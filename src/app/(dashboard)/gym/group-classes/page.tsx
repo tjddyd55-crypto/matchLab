@@ -1,13 +1,21 @@
 import { requireActor } from "@/lib/auth/actor";
 import { GymProfileMissingBanner } from "@/components/domain/gym/GymProfileMissingBanner";
-import { GymScheduleCalendarApp } from "@/components/domain/gym-schedules/GymScheduleCalendarApp";
+import {
+  GymGroupClassListApp,
+  type SerializableGymGroupClassVM,
+} from "@/components/domain/gym-group-classes/GymGroupClassListApp";
 import { resolveGymPortalAccess } from "@/lib/gym-portal-access";
-import { toSeoulDateKey } from "@/lib/gym-schedule/seoul-schedule";
-import { gymScheduleService } from "@/lib/services/gym-schedule.service";
+import {
+  createSeoulDateTime,
+  getSeoulDayRange,
+  getSeoulScheduleMonthRange,
+  getSeoulScheduleWeekRange,
+  getSeoulYmdParts,
+  toSeoulDateKey,
+} from "@/lib/gym-schedule/seoul-schedule";
+import { gymGroupClassService } from "@/lib/services/gym-group-class.service";
 import { gymStaffService } from "@/lib/services/gym-staff.service";
-import { gymMemberService } from "@/lib/services/gym-member.service";
 import { prisma } from "@/lib/prisma";
-import { formatPhoneNumber } from "@/lib/phone";
 import {
   matchonPageContainerClass,
   matchonPageDescClass,
@@ -17,12 +25,34 @@ import {
 
 export const dynamic = "force-dynamic";
 
-export async function SchedulePageInner({
+function serializeClass(
+  vm: Awaited<ReturnType<typeof gymGroupClassService.listClasses>>[number],
+): SerializableGymGroupClassVM {
+  const { startsAt, endsAt, ...rest } = vm;
+  void startsAt;
+  void endsAt;
+  return rest;
+}
+
+function resolveRange(view: "month" | "week" | "day", dateKey: string) {
+  const at = createSeoulDateTime(dateKey, "12:00");
+  if (view === "month") {
+    const { year, month } = getSeoulYmdParts(at);
+    const m = getSeoulScheduleMonthRange(year, month);
+    return { rangeStart: m.start, rangeEndExclusive: m.endExclusive };
+  }
+  if (view === "week") {
+    const w = getSeoulScheduleWeekRange(at);
+    return { rangeStart: w.start, rangeEndExclusive: w.endExclusive };
+  }
+  const d = getSeoulDayRange(dateKey);
+  return { rangeStart: d.start, rangeEndExclusive: d.endExclusive };
+}
+
+export default async function GymGroupClassesPage({
   searchParams,
-  myOnly,
 }: {
   searchParams: Promise<Record<string, string | string[] | undefined>>;
-  myOnly: boolean;
 }) {
   const actor = await requireActor();
   if (!actor.gymId) {
@@ -51,17 +81,20 @@ export async function SchedulePageInner({
       : toSeoulDateKey(new Date());
   const staffIdParam = typeof sp.staffId === "string" ? sp.staffId : null;
   const status = typeof sp.status === "string" ? sp.status : "active";
+  const titleQuery = typeof sp.q === "string" ? sp.q : null;
 
-  const forceMyOnly = myOnly || !isOwner;
-  const calendar = await gymScheduleService.getCalendar(actor, {
-    view,
-    dateKey,
-    gymStaffId: forceMyOnly ? access.gymStaffId : staffIdParam,
-    status,
-    myOnly: forceMyOnly,
-  });
-  const summary = await gymScheduleService.getSummary(actor, {
-    myOnly: forceMyOnly,
+  const { rangeStart, rangeEndExclusive } = resolveRange(view, dateKey);
+
+  const classes = await gymGroupClassService.listClasses(actor, {
+    rangeStart,
+    rangeEndExclusive,
+    instructorStaffId: isOwner ? staffIdParam : staffIdParam,
+    status:
+      status === "all" || status === "active"
+        ? null
+        : (status as "scheduled" | "completed" | "cancelled"),
+    titleQuery,
+    myOnly: false,
   });
 
   let staffOptions: Array<{
@@ -94,64 +127,20 @@ export async function SchedulePageInner({
     if (self) staffOptions = [self];
   }
 
-  const membersPage = await gymMemberService.listMembers(actor, {
-    pageSize: 100,
-  });
-  const assignments = await prisma.gymStaffMemberAssignment.findMany({
-    where: {
-      gymId: access.gymId,
-      deletedAt: null,
-      endedAt: null,
-      isPrimary: true,
-    },
-    select: {
-      gymMemberId: true,
-      gymStaff: { select: { name: true } },
-    },
-  });
-  const primaryByMember = new Map(
-    assignments.map((a) => [a.gymMemberId, a.gymStaff.name]),
-  );
-
-  const memberOptions = membersPage.items.map((m) => ({
-    id: m.id,
-    name: m.name,
-    memberNumber: m.memberNumber,
-    phoneMasked: (() => {
-      const digits = m.phone.replace(/\D/g, "");
-      return digits.length >= 4
-        ? `***-****-${digits.slice(-4)}`
-        : formatPhoneNumber(m.phone);
-    })(),
-    status: m.status,
-    profileImageUrl: m.profileImageUrl,
-    primaryStaffName: primaryByMember.get(m.id) ?? null,
-    planLabel: m.planName
-      ? `${m.planName} · ${m.membershipStatusLabel}`
-      : m.membershipStatusLabel,
-  }));
-
   return (
     <div className={matchonPageContainerClass}>
       <div className={matchonPageStackClass}>
         <div className="min-w-0 space-y-1">
-          <h1 className={matchonPageTitleClass}>
-            {forceMyOnly ? "내 일정" : "일정 관리"}
-          </h1>
+          <h1 className={matchonPageTitleClass}>그룹수업</h1>
           <p className={matchonPageDescClass}>
-            {forceMyOnly
-              ? "내 개인 PT 일정과 그룹수업을 확인합니다."
-              : "개인 PT 일정과 그룹수업을 함께 확인할 수 있습니다."}
+            체육관 그룹 운동 일정과 참석자를 관리할 수 있습니다.
           </p>
         </div>
-        <GymScheduleCalendarApp
-          initialItems={calendar.items}
-          summary={summary}
+        <GymGroupClassListApp
+          initialClasses={classes.map(serializeClass)}
           staffOptions={staffOptions}
-          memberOptions={memberOptions}
           viewer={isOwner ? "owner" : "staff"}
-          fixedStaffId={forceMyOnly ? access.gymStaffId : null}
-          myOnly={forceMyOnly}
+          fixedStaffId={isOwner ? null : access.gymStaffId}
           defaultStaffId={access.gymStaffId ?? staffOptions[0]?.id ?? null}
         />
       </div>

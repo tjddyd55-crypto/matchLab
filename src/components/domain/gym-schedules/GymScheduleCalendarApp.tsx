@@ -23,6 +23,7 @@ import {
 } from "@/lib/gym-schedule/seoul-schedule";
 import { matchonFieldInputClass } from "@/lib/ui/matchon-shell-ui";
 import { cn } from "@/lib/utils";
+import type { GymCalendarItem } from "@/lib/gym-schedule/calendar-item";
 import type { GymScheduleVM } from "@/lib/services/gym-schedule.service";
 
 export type ScheduleStaffOption = {
@@ -94,7 +95,7 @@ export function GymScheduleCalendarApp({
   myOnly,
   defaultStaffId,
 }: {
-  initialItems: GymScheduleVM[];
+  initialItems: GymCalendarItem[];
   summary: {
     todayScheduled: number;
     todayCompleted: number;
@@ -121,8 +122,10 @@ export function GymScheduleCalendarApp({
   const staffFilter =
     fixedStaffId || searchParams.get("staffId") || "";
   const statusFilter = searchParams.get("status") || "active";
+  const itemKindFilter =
+    (searchParams.get("kind") as "all" | "personal" | "group_class") || "all";
 
-  const [selected, setSelected] = useState<GymScheduleVM | null>(null);
+  const [selected, setSelected] = useState<GymCalendarItem | null>(null);
   const [formOpen, setFormOpen] = useState(false);
   const [formDefaults, setFormDefaults] = useState<{
     dateKey: string;
@@ -146,7 +149,13 @@ export function GymScheduleCalendarApp({
 
   const items = useMemo(() => {
     return initialItems.filter((item) => {
-      if (staffFilter && item.gymStaffId !== staffFilter) return false;
+      if (itemKindFilter === "personal" && item.itemType !== "personal") {
+        return false;
+      }
+      if (itemKindFilter === "group_class" && item.itemType !== "group_class") {
+        return false;
+      }
+      if (staffFilter && item.staffId !== staffFilter) return false;
       if (statusFilter === "active" && item.status === "cancelled") return false;
       if (
         statusFilter !== "all" &&
@@ -157,10 +166,10 @@ export function GymScheduleCalendarApp({
       }
       return true;
     });
-  }, [initialItems, staffFilter, statusFilter]);
+  }, [initialItems, staffFilter, statusFilter, itemKindFilter]);
 
   const byDate = useMemo(() => {
-    const map = new Map<string, GymScheduleVM[]>();
+    const map = new Map<string, GymCalendarItem[]>();
     for (const item of items) {
       const list = map.get(item.dateKey) ?? [];
       list.push(item);
@@ -201,16 +210,55 @@ export function GymScheduleCalendarApp({
     setFormOpen(true);
   }
 
-  function openEdit(item: GymScheduleVM) {
+  function openEdit(item: GymCalendarItem) {
+    if (item.itemType !== "personal") return;
     setFormDefaults({
       dateKey: item.dateKey,
       startHm: item.timeRangeLabel.slice(0, 5),
-      staffId: item.gymStaffId,
-      memberId: item.gymMemberId,
+      staffId: item.staffId ?? "",
+      memberId: item.memberId ?? undefined,
       scheduleId: item.id,
     });
     setSelected(null);
     setFormOpen(true);
+  }
+
+  function onItemClick(item: GymCalendarItem) {
+    if (item.itemType === "group_class") {
+      router.push(`/gym/group-classes/${item.id}`);
+      return;
+    }
+    setSelected(item);
+  }
+
+  function toPersonalVm(item: GymCalendarItem): GymScheduleVM {
+    return {
+      id: item.id,
+      gymId: "",
+      gymStaffId: item.staffId ?? "",
+      gymMemberId: item.memberId ?? "",
+      title: item.title,
+      scheduleType: (item.scheduleType as GymScheduleVM["scheduleType"]) || "personal_training",
+      scheduleTypeLabel: item.scheduleTypeLabel || "",
+      startsAt: item.startsAt,
+      endsAt: item.endsAt,
+      dateKey: item.dateKey,
+      timeRangeLabel: item.timeRangeLabel,
+      status: item.status as GymScheduleVM["status"],
+      statusLabel: item.statusLabel,
+      location: null,
+      memo: null,
+      colorKey: item.colorKey,
+      staffName: item.staffName || "",
+      staffTitle: null,
+      staffColorKey: item.colorKey,
+      memberName: item.memberName || "",
+      memberNumber: "",
+      memberPhoneMasked: "",
+      memberStatus: "",
+      memberProfileImageUrl: item.memberProfileImageUrl,
+      canManage: item.canManage,
+    };
   }
 
   const weekDays = useMemo(() => {
@@ -311,6 +359,15 @@ export function GymScheduleCalendarApp({
         ) : null}
         <select
           className={cn(matchonFieldInputClass, "w-auto")}
+          value={itemKindFilter}
+          onChange={(e) => pushQuery({ kind: e.target.value || "all" })}
+        >
+          <option value="all">전체 일정</option>
+          <option value="personal">개인 일정</option>
+          <option value="group_class">그룹수업</option>
+        </select>
+        <select
+          className={cn(matchonFieldInputClass, "w-auto")}
           value={statusFilter}
           onChange={(e) => pushQuery({ status: e.target.value })}
         >
@@ -332,7 +389,7 @@ export function GymScheduleCalendarApp({
           byDate={byDate}
           todayKey={todayKey}
           onDayClick={(key) => pushQuery({ view: "day", date: key })}
-          onItemClick={setSelected}
+          onItemClick={onItemClick}
         />
       ) : null}
 
@@ -344,7 +401,7 @@ export function GymScheduleCalendarApp({
               byDate={byDate}
               todayKey={todayKey}
               nowTop={nowLineTop}
-              onItemClick={setSelected}
+              onItemClick={onItemClick}
               onSlotClick={(dk, hm) => openCreate({ dateKey: dk, startHm: hm })}
             />
           </div>
@@ -379,7 +436,7 @@ export function GymScheduleCalendarApp({
               dateKey={mobileWeekDay || dateKey}
               items={byDate.get(mobileWeekDay || dateKey) ?? []}
               nowTop={nowLineTop}
-              onItemClick={setSelected}
+              onItemClick={onItemClick}
               onSlotClick={(hm) =>
                 openCreate({ dateKey: mobileWeekDay || dateKey, startHm: hm })
               }
@@ -393,13 +450,13 @@ export function GymScheduleCalendarApp({
           dateKey={dateKey}
           items={byDate.get(dateKey) ?? []}
           nowTop={nowLineTop}
-          onItemClick={setSelected}
+          onItemClick={onItemClick}
           onSlotClick={(hm) => openCreate({ dateKey, startHm: hm })}
         />
       ) : null}
 
       <GymScheduleDetailSheet
-        item={selected}
+        item={selected ? toPersonalVm(selected) : null}
         open={Boolean(selected)}
         onOpenChange={(open) => {
           if (!open) setSelected(null);
@@ -420,7 +477,12 @@ export function GymScheduleCalendarApp({
         defaults={formDefaults}
         existing={
           formDefaults?.scheduleId
-            ? items.find((i) => i.id === formDefaults.scheduleId) ?? null
+            ? (() => {
+                const found = initialItems.find(
+                  (i) => i.id === formDefaults.scheduleId,
+                );
+                return found ? toPersonalVm(found) : null;
+              })()
             : null
         }
         onSaved={() => {
@@ -461,10 +523,10 @@ function MonthView({
   onItemClick,
 }: {
   dateKey: string;
-  byDate: Map<string, GymScheduleVM[]>;
+  byDate: Map<string, GymCalendarItem[]>;
   todayKey: string;
   onDayClick: (key: string) => void;
-  onItemClick: (item: GymScheduleVM) => void;
+  onItemClick: (item: GymCalendarItem) => void;
 }) {
   const { cells } = monthCells(dateKey);
   return (
@@ -502,7 +564,8 @@ function MonthView({
                     role="presentation"
                     className={cn(
                       "truncate rounded px-1 py-0.5 text-[10px] ring-1 ring-inset md:text-[11px]",
-                      gymStaffColorClass(item.staffColorKey),
+                      gymStaffColorClass(item.colorKey),
+                      item.itemType === "group_class" && "font-medium",
                       item.status === "cancelled" && "opacity-50 line-through",
                     )}
                     onClick={(e) => {
@@ -513,7 +576,13 @@ function MonthView({
                     <span className="hidden md:inline">
                       {item.timeRangeLabel.slice(0, 5)}{" "}
                     </span>
-                    {item.memberName}
+                    {item.itemType === "group_class"
+                      ? `${item.title}${
+                          item.capacity != null
+                            ? ` ${item.participantCount ?? 0}/${item.capacity}`
+                            : ""
+                        }`
+                      : item.memberName}
                   </div>
                 ))}
                 {more > 0 ? (
@@ -539,10 +608,10 @@ function WeekDesktop({
   onSlotClick,
 }: {
   weekDays: string[];
-  byDate: Map<string, GymScheduleVM[]>;
+  byDate: Map<string, GymCalendarItem[]>;
   todayKey: string;
   nowTop: number;
-  onItemClick: (item: GymScheduleVM) => void;
+  onItemClick: (item: GymCalendarItem) => void;
   onSlotClick: (dateKey: string, hm: string) => void;
 }) {
   const height = scheduleGridTotalHeightPx();
@@ -610,7 +679,8 @@ function WeekDesktop({
                 type="button"
                 className={cn(
                   "absolute inset-x-1 z-10 overflow-hidden rounded-md px-1.5 py-1 text-left text-[11px] ring-1 ring-inset",
-                  gymStaffColorClass(item.staffColorKey),
+                  gymStaffColorClass(item.colorKey),
+                  item.itemType === "group_class" && "border-l-2 border-l-primary",
                   item.status === "cancelled" && "opacity-50",
                 )}
                 style={{
@@ -619,12 +689,24 @@ function WeekDesktop({
                 }}
                 onClick={() => onItemClick(item)}
               >
-                <div className="font-medium">
-                  {item.timeRangeLabel}
+                <div className="font-medium">{item.timeRangeLabel}</div>
+                <div className="truncate">
+                  {item.itemType === "group_class" ? item.title : item.memberName}
                 </div>
-                <div className="truncate">{item.memberName}</div>
                 <div className="truncate text-[10px] opacity-80">
-                  {item.staffName} · {item.scheduleTypeLabel}
+                  {item.itemType === "group_class"
+                    ? `${item.staffName || "미정"}${
+                        item.capacity != null
+                          ? ` · ${item.participantCount ?? 0}/${item.capacity}`
+                          : item.participantCount != null
+                            ? ` · ${item.participantCount}명`
+                            : ""
+                      }${
+                        item.waitlistCount
+                          ? ` · 대기 ${item.waitlistCount}`
+                          : ""
+                      }`
+                    : `${item.staffName} · ${item.scheduleTypeLabel}`}
                 </div>
               </button>
             ))}
@@ -643,9 +725,9 @@ function DayTimeline({
   onSlotClick,
 }: {
   dateKey: string;
-  items: GymScheduleVM[];
+  items: GymCalendarItem[];
   nowTop: number;
-  onItemClick: (item: GymScheduleVM) => void;
+  onItemClick: (item: GymCalendarItem) => void;
   onSlotClick: (hm: string) => void;
 }) {
   const height = scheduleGridTotalHeightPx();
@@ -708,7 +790,8 @@ function DayTimeline({
               type="button"
               className={cn(
                 "absolute inset-x-2 z-10 flex gap-2 overflow-hidden rounded-lg px-2 py-1.5 text-left text-xs ring-1 ring-inset",
-                gymStaffColorClass(item.staffColorKey),
+                gymStaffColorClass(item.colorKey),
+                item.itemType === "group_class" && "border-l-2 border-l-primary",
                 item.status === "cancelled" && "opacity-50",
               )}
               style={{
@@ -720,16 +803,34 @@ function DayTimeline({
               }}
               onClick={() => onItemClick(item)}
             >
-              <GymMemberAvatar
-                name={item.memberName}
-                src={item.memberProfileImageUrl}
-                className="size-8"
-              />
+              {item.itemType === "personal" ? (
+                <GymMemberAvatar
+                  name={item.memberName || ""}
+                  src={item.memberProfileImageUrl}
+                  className="size-8"
+                />
+              ) : (
+                <div className="flex size-8 shrink-0 items-center justify-center rounded-full bg-primary/15 text-[10px] font-semibold text-primary">
+                  그룹
+                </div>
+              )}
               <div className="min-w-0">
                 <div className="font-medium">{item.timeRangeLabel}</div>
-                <div className="truncate">{item.memberName}</div>
+                <div className="truncate">
+                  {item.itemType === "group_class" ? item.title : item.memberName}
+                </div>
                 <div className="truncate opacity-80">
-                  {item.scheduleTypeLabel} · {item.staffName} · {item.statusLabel}
+                  {item.itemType === "group_class"
+                    ? `${item.staffName || "미정"}${
+                        item.capacity != null
+                          ? ` · ${item.participantCount ?? 0}/${item.capacity}`
+                          : ""
+                      }${
+                        item.waitlistCount
+                          ? ` · 대기 ${item.waitlistCount}`
+                          : ""
+                      } · ${item.statusLabel}`
+                    : `${item.scheduleTypeLabel} · ${item.staffName} · ${item.statusLabel}`}
                 </div>
               </div>
             </button>
