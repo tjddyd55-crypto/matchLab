@@ -181,6 +181,8 @@ function assertGymPortalNav() {
 
   assert.deepEqual(labels, [
     "홈",
+    "전체 일정",
+    "내 일정",
     "전체 회원",
     "회원 등록",
     "이용권 관리",
@@ -199,6 +201,8 @@ function assertGymPortalNav() {
   ]);
   assert.deepEqual(hrefs, [
     "/gym",
+    "/gym/schedules",
+    "/gym/schedules/my",
     "/gym/members",
     "/gym/members/new",
     "/gym/membership-plans",

@@ -11,6 +11,7 @@ import { eventService } from "@/lib/services/event.service";
 import { gymMemberService } from "@/lib/services/gym-member.service";
 import { gymAttendanceService } from "@/lib/services/gym-attendance.service";
 import { gymSalesService } from "@/lib/services/gym-sales.service";
+import { gymScheduleService } from "@/lib/services/gym-schedule.service";
 import { formatWon } from "@/lib/format-won";
 import {
   matchonCompactActionBarClass,
@@ -58,8 +59,9 @@ export default async function GymHomePage() {
   const access = await resolveGymPortalAccess(actor).catch(() => null);
   const canCreate = access?.canCreateFighter ?? true;
   const canUpdate = access?.canUpdateFighter ?? true;
+  const isStaffViewer = actor.role === "gym_staff";
 
-  const [memberSummary, recentMembers, eventSummary, attendanceSummary, salesSummary] =
+  const [memberSummary, recentMembers, eventSummary, attendanceSummary, salesSummary, scheduleSummary] =
     await Promise.all([
     gymMemberService.getSummary(actor).catch(() => null),
     prisma.gymMember
@@ -78,8 +80,15 @@ export default async function GymHomePage() {
       })
       .catch(() => []),
     eventService.getGymHomeEventSummary(actor).catch(() => null),
-    gymAttendanceService.getHomeAttendanceSnippet(actor),
-    gymSalesService.getHomeSalesSnippet(actor),
+    isStaffViewer
+      ? Promise.resolve(null)
+      : gymAttendanceService.getHomeAttendanceSnippet(actor),
+    isStaffViewer
+      ? Promise.resolve(null)
+      : gymSalesService.getHomeSalesSnippet(actor),
+    gymScheduleService
+      .getSummary(actor, { myOnly: isStaffViewer })
+      .catch(() => null),
   ]);
 
   const hasMembers = (memberSummary?.total ?? 0) > 0;
@@ -140,6 +149,81 @@ export default async function GymHomePage() {
               </p>
             </div>
           </div>
+        ) : null}
+
+        {scheduleSummary ? (
+          <section className="rounded-xl border border-matchon-border bg-white p-4">
+            <div className="flex flex-wrap items-center justify-between gap-2">
+              <h2 className={matchonSectionTitleClass}>
+                {isStaffViewer ? "내 오늘 일정" : "오늘 일정"}
+              </h2>
+              <div className="flex gap-2">
+                <Link
+                  href="/gym/schedules"
+                  className="text-xs font-semibold text-matchon-primary underline"
+                >
+                  {isStaffViewer ? "내 일정" : "일정 관리"}
+                </Link>
+                {!isStaffViewer ? (
+                  <Link
+                    href="/gym/schedules/my"
+                    className="text-xs font-semibold text-matchon-primary underline"
+                  >
+                    내 일정
+                  </Link>
+                ) : null}
+              </div>
+            </div>
+            <p className="mt-2 text-lg font-bold">
+              총{" "}
+              {scheduleSummary.todayScheduled +
+                scheduleSummary.todayCompleted +
+                scheduleSummary.todayNoShow}
+              건
+            </p>
+            <div className="mt-3 grid grid-cols-2 gap-3 sm:grid-cols-4">
+              <div>
+                <p className={matchonStatLabelClass}>진행 예정</p>
+                <p className="text-lg font-bold">
+                  {scheduleSummary.todayScheduled}
+                </p>
+              </div>
+              <div>
+                <p className={matchonStatLabelClass}>완료</p>
+                <p className="text-lg font-bold">
+                  {scheduleSummary.todayCompleted}
+                </p>
+              </div>
+              <div>
+                <p className={matchonStatLabelClass}>노쇼</p>
+                <p className="text-lg font-bold">
+                  {scheduleSummary.todayNoShow}
+                </p>
+              </div>
+              <div>
+                <p className={matchonStatLabelClass}>이번 주 예정</p>
+                <p className="text-lg font-bold">
+                  {scheduleSummary.weekScheduled}
+                </p>
+              </div>
+            </div>
+            {scheduleSummary.next ? (
+              <p className="mt-3 text-sm text-matchon-text-secondary">
+                다음 일정 {scheduleSummary.next.timeRangeLabel}{" "}
+                {scheduleSummary.next.memberName} 회원
+              </p>
+            ) : null}
+            {isStaffViewer ? (
+              <div className="mt-4">
+                <Link
+                  href="/gym/schedules"
+                  className={cn(buttonVariants({ size: "sm" }))}
+                >
+                  내 일정 확인
+                </Link>
+              </div>
+            ) : null}
+          </section>
         ) : null}
 
         {attendanceSummary || salesSummary ? (

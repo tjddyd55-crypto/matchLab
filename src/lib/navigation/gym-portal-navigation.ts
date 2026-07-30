@@ -28,6 +28,17 @@ export function getGymPortalNavGroups(
       items: [{ href: "/gym", label: "홈" }],
     },
     {
+      id: "schedules",
+      label: "일정 관리",
+      items:
+        viewer === "owner"
+          ? [
+              { href: "/gym/schedules", label: "전체 일정" },
+              { href: "/gym/schedules/my", label: "내 일정" },
+            ]
+          : [{ href: "/gym/schedules", label: "내 일정" }],
+    },
+    {
       id: "members",
       label: "회원 관리",
       items: [
@@ -113,6 +124,7 @@ export function getGymPortalMobileBottomNavItems(
   if (viewer === "staff") {
     return [
       { href: "/gym", label: "홈" },
+      { href: "/gym/schedules", label: "일정" },
       { href: "/gym/members", label: "회원" },
     ];
   }
@@ -199,6 +211,19 @@ export function isGymPortalNavItemActive(
     return (
       pathname === "/gym/attendance/kiosks" ||
       pathname.startsWith("/gym/attendance/kiosks/")
+    );
+  }
+  if (href === "/gym/schedules") {
+    return (
+      pathname === "/gym/schedules" ||
+      (pathname.startsWith("/gym/schedules/") &&
+        !pathname.startsWith("/gym/schedules/my"))
+    );
+  }
+  if (href === "/gym/schedules/my") {
+    return (
+      pathname === "/gym/schedules/my" ||
+      pathname.startsWith("/gym/schedules/my/")
     );
   }
   if (href === "/gym/sales") {

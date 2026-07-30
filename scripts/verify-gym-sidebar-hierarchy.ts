@@ -27,6 +27,14 @@ function assertNavSsotUnchanged() {
         items: [{ href: "/gym", label: "홈" }],
       },
       {
+        id: "schedules",
+        label: "일정 관리",
+        items: [
+          { href: "/gym/schedules", label: "전체 일정" },
+          { href: "/gym/schedules/my", label: "내 일정" },
+        ],
+      },
+      {
         id: "members",
         label: "회원 관리",
         items: [
@@ -87,7 +95,7 @@ function assertNavSsotUnchanged() {
   const staffGroups = getGymPortalNavGroups("staff");
   assert.deepEqual(
     staffGroups.map((g) => g.id),
-    ["home", "members"],
+    ["home", "schedules", "members"],
   );
   assert.equal(
     staffGroups.some((g) => g.id === "sales" || g.id === "staff"),
