@@ -90,6 +90,7 @@ function verifyOverlap() {
   assertIncludes(service, "같은 선생님", "staff overlap msg");
   assertIncludes(service, "같은 회원", "member overlap msg");
   assertIncludes(service, 'status: { not: "cancelled" }', "exclude cancelled");
+  assertIncludes(service, "pg_advisory_xact_lock", "advisory lock");
   console.log("verify:gym-schedule-staff-overlap: OK");
   console.log("verify:gym-schedule-member-overlap: OK");
 }

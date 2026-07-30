@@ -251,6 +251,19 @@ async function assertNoOverlap(input: {
   }
 }
 
+/**
+ * 동시 생성/수정 race 방지 — staff·member 키별 transaction advisory lock.
+ * Postgres exclusion constraint 도입 전 Stage 2 보완.
+ */
+async function lockScheduleActors(
+  tx: { $executeRaw: typeof prisma.$executeRaw },
+  gymStaffId: string,
+  gymMemberId: string,
+) {
+  await tx.$executeRaw`SELECT pg_advisory_xact_lock(hashtext(${`gps-staff:${gymStaffId}`}))`;
+  await tx.$executeRaw`SELECT pg_advisory_xact_lock(hashtext(${`gps-member:${gymMemberId}`}))`;
+}
+
 function defaultTitle(memberName: string, type: GymPersonalScheduleType): string {
   return `${memberName} ${GYM_PERSONAL_SCHEDULE_TYPE_LABEL[type]}`;
 }
@@ -502,6 +515,7 @@ export const gymScheduleService = {
       input.title?.trim() || defaultTitle(member.name, scheduleType);
 
     const scheduleId = await prisma.$transaction(async (tx) => {
+      await lockScheduleActors(tx, input.gymStaffId, input.gymMemberId);
       await assertNoOverlap({
         gymId: access.gymId,
         gymStaffId: input.gymStaffId,
@@ -649,6 +663,7 @@ export const gymScheduleService = {
       input.title?.trim() || defaultTitle(member.name, scheduleType);
 
     await prisma.$transaction(async (tx) => {
+      await lockScheduleActors(tx, input.gymStaffId, input.gymMemberId);
       const conflicts = await tx.gymPersonalSchedule.findMany({
         where: {
           gymId: access.gymId,
