@@ -19,7 +19,7 @@ import {
   getGymStaffRoleLabel,
 } from "@/lib/gym-staff/labels";
 import { normalizeGymFighterPhone } from "@/lib/gym-fighter-management";
-import { requireGymPortalOwnerManage } from "@/lib/gym-portal-access";
+import { requireGymPortalOwnerManage, requireGymPortalRead } from "@/lib/gym-portal-access";
 import { prisma } from "@/lib/prisma";
 import { auditRepository } from "@/lib/repositories/audit.repository";
 import { gymMemberRepository } from "@/lib/repositories/gym-member.repository";
@@ -444,9 +444,9 @@ export const gymStaffService = {
     });
   },
 
-  /** 회원 상세에서 담당 선생님 표시용 */
+  /** 회원 상세에서 담당 선생님 표시용 — owner/staff 읽기, 변경은 owner 전용 actions */
   async listAssignmentsForMember(actor: ActorContext, memberId: string) {
-    const access = await requireGymPortalOwnerManage(actor);
+    const access = await requireGymPortalRead(actor);
     const member = await gymMemberRepository.findImageContextForGym(
       memberId,
       access.gymId,
@@ -459,9 +459,12 @@ export const gymStaffService = {
       id: r.id,
       staffId: r.gymStaff.id,
       staffName: r.gymStaff.name,
+      staffTitle: r.gymStaff.title,
       staffRoleLabel: getGymStaffRoleLabel(r.gymStaff.staffRole),
       assignmentTypeLabel: GYM_STAFF_ASSIGNMENT_TYPE_LABEL[r.assignmentType],
       isPrimary: r.isPrimary,
+      startedAt: r.startedAt,
+      colorKey: r.gymStaff.colorKey,
     }));
   },
 };

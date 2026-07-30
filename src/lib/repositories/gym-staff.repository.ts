@@ -195,8 +195,16 @@ export const gymStaffRepository = {
         id: true,
         assignmentType: true,
         isPrimary: true,
+        startedAt: true,
         gymStaff: {
-          select: { id: true, name: true, staffRole: true, isActive: true },
+          select: {
+            id: true,
+            name: true,
+            title: true,
+            staffRole: true,
+            isActive: true,
+            colorKey: true,
+          },
         },
       },
       orderBy: [{ isPrimary: "desc" }, { startedAt: "desc" }],

@@ -41,6 +41,8 @@ export {
   GymStatus,
   GymStaffAssignmentType,
   GymStaffRole,
+  GymPersonalScheduleStatus,
+  GymPersonalScheduleType,
   JudgeDecisionMethod,
   JudgeScorecardStatus,
   JudgeWinnerCorner,

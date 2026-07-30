@@ -41,6 +41,21 @@ enum GymStaffAssignmentType {
   OTHER
 }
 
+enum GymPersonalScheduleType {
+  personal_training
+  consultation
+  body_check
+  rehabilitation
+  other
+}
+
+enum GymPersonalScheduleStatus {
+  scheduled
+  completed
+  cancelled
+  no_show
+}
+
 enum GymStatus {
   active
   suspended
@@ -397,6 +412,11 @@ enum AuditAction {
   gym_staff_password_reset_completed
   gym_staff_member_assigned
   gym_staff_member_unassigned
+  gym_personal_schedule_created
+  gym_personal_schedule_updated
+  gym_personal_schedule_completed
+  gym_personal_schedule_no_show
+  gym_personal_schedule_cancelled
 }
 
 enum GymMemberAttendanceSource {
@@ -531,6 +551,11 @@ model User {
   gymStaffAccountSetupTokensCreated  GymStaffAccountSetupToken[]  @relation("GymStaffAccountSetupTokenCreator")
   gymStaffPasswordResetTokensCreated GymStaffPasswordResetToken[] @relation("GymStaffPasswordResetTokenCreator")
   gymStaffPasswordResetTokens        GymStaffPasswordResetToken[] @relation("GymStaffPasswordResetTokenUser")
+
+  gymPersonalSchedulesCreated   GymPersonalSchedule[] @relation("GymPersonalScheduleCreator")
+  gymPersonalSchedulesUpdated   GymPersonalSchedule[] @relation("GymPersonalScheduleUpdater")
+  gymPersonalSchedulesCompleted GymPersonalSchedule[] @relation("GymPersonalScheduleCompleter")
+  gymPersonalSchedulesCancelled GymPersonalSchedule[] @relation("GymPersonalScheduleCanceller")
 }
 
 model Organizer {
@@ -608,6 +633,7 @@ model Gym {
 
   gymStaffs                 GymStaff[]
   gymStaffMemberAssignments GymStaffMemberAssignment[]
+  gymPersonalSchedules      GymPersonalSchedule[]
 }
 
 model Fighter {
@@ -707,7 +733,8 @@ model GymMember {
   attendances   GymMemberAttendance[]
   receivables   GymReceivable[]
   manualSales   GymManualSale[]
-  staffAssignments GymStaffMemberAssignment[]
+  staffAssignments   GymStaffMemberAssignment[]
+  personalSchedules  GymPersonalSchedule[]
 
   @@unique([gymId, memberNumber])
   @@index([gymId, deletedAt])
@@ -738,14 +765,55 @@ model GymStaff {
   gym   Gym   @relation(fields: [gymId], references: [id], onDelete: Cascade)
   user  User? @relation(fields: [userId], references: [id], onDelete: SetNull)
 
-  memberAssignments GymStaffMemberAssignment[]
+  memberAssignments   GymStaffMemberAssignment[]
   accountSetupTokens  GymStaffAccountSetupToken[]
   passwordResetTokens GymStaffPasswordResetToken[]
+  personalSchedules   GymPersonalSchedule[]
 
   @@index([gymId, deletedAt])
   @@index([gymId, isActive])
   @@index([gymId, normalizedPhone])
   @@index([gymId, name])
+}
+
+/// 선생님–회원 개인 PT·상담 등 1:1 일정 (그룹수업은 Stage 3)
+model GymPersonalSchedule {
+  id                 String                     @id @default(cuid())
+  gymId              String
+  gymStaffId         String
+  gymMemberId        String
+  title              String
+  scheduleType       GymPersonalScheduleType    @default(personal_training)
+  startsAt           DateTime
+  endsAt             DateTime
+  status             GymPersonalScheduleStatus  @default(scheduled)
+  location           String?
+  memo               String?
+  colorKey           String?
+  createdByUserId    String
+  updatedByUserId    String?
+  completedAt        DateTime?
+  completedByUserId  String?
+  cancelledAt        DateTime?
+  cancelledByUserId  String?
+  cancellationReason String?
+  deletedAt          DateTime?
+  createdAt          DateTime                   @default(now())
+  updatedAt          DateTime                   @updatedAt
+
+  gym             Gym       @relation(fields: [gymId], references: [id], onDelete: Cascade)
+  gymStaff        GymStaff  @relation(fields: [gymStaffId], references: [id], onDelete: Cascade)
+  gymMember       GymMember @relation(fields: [gymMemberId], references: [id], onDelete: Cascade)
+  createdByUser   User      @relation("GymPersonalScheduleCreator", fields: [createdByUserId], references: [id], onDelete: Cascade)
+  updatedByUser   User?     @relation("GymPersonalScheduleUpdater", fields: [updatedByUserId], references: [id], onDelete: SetNull)
+  completedByUser User?     @relation("GymPersonalScheduleCompleter", fields: [completedByUserId], references: [id], onDelete: SetNull)
+  cancelledByUser User?     @relation("GymPersonalScheduleCanceller", fields: [cancelledByUserId], references: [id], onDelete: SetNull)
+
+  @@index([gymId, startsAt])
+  @@index([gymStaffId, startsAt])
+  @@index([gymMemberId, startsAt])
+  @@index([gymId, status, startsAt])
+  @@index([gymId, deletedAt])
 }
 
 /// 선생님–회원 담당 관계
