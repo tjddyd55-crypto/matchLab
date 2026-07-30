@@ -17,6 +17,7 @@ export function dashboardPathForRole(role: UserRole): string {
     case "organizer":
       return "/organizer";
     case "gym":
+    case "gym_staff":
       return "/gym";
     case "fighter":
       return "/fighter";

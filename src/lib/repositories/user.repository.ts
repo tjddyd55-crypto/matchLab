@@ -12,6 +12,9 @@ const actorProfileSelect = {
   mustChangePassword: true,
   organizer: { select: { id: true, type: true } },
   ownedGym: { select: { id: true } },
+  gymStaff: {
+    select: { id: true, gymId: true, isActive: true, deletedAt: true },
+  },
   fighter: { select: { id: true } },
 } as const;
 
@@ -23,6 +26,12 @@ export type ActorProfileRow = {
   mustChangePassword: boolean;
   organizer: { id: string; type: OrganizerType } | null;
   ownedGym: { id: string } | null;
+  gymStaff: {
+    id: string;
+    gymId: string;
+    isActive: boolean;
+    deletedAt: Date | null;
+  } | null;
   fighter: { id: string } | null;
 };
 
@@ -54,6 +63,36 @@ export const userRepository = {
         mustChangePassword: true,
       },
     });
+  },
+
+  /** 역할 무관 로그인 아이디 중복 검사 (정규화된 소문자 입력 기준) */
+  async isLoginIdTaken(
+    loginId: string,
+    excludeUserId?: string | null,
+  ): Promise<boolean> {
+    const row = await prisma.user.findFirst({
+      where: {
+        loginId: { equals: loginId.trim().toLowerCase(), mode: "insensitive" },
+        ...(excludeUserId ? { id: { not: excludeUserId } } : {}),
+      },
+      select: { id: true },
+    });
+    return Boolean(row);
+  },
+
+  /** 내부 auth 이메일(`{loginId}@...`) 중복 검사 */
+  async isAuthEmailTaken(
+    email: string,
+    excludeUserId?: string | null,
+  ): Promise<boolean> {
+    const row = await prisma.user.findFirst({
+      where: {
+        email: { equals: email.trim().toLowerCase(), mode: "insensitive" },
+        ...(excludeUserId ? { id: { not: excludeUserId } } : {}),
+      },
+      select: { id: true },
+    });
+    return Boolean(row);
   },
 
   async findUserByAuthUserId(authUserId: string) {

@@ -8,6 +8,7 @@ export function dashboardRoleFor(actorRole: string): DashboardRole {
     case "organizer":
       return "organizer";
     case "gym":
+    case "gym_staff":
       return "gym";
     case "fighter":
       return "fighter";

@@ -10,7 +10,10 @@ export default async function GymDashboardLayout({
   children: React.ReactNode;
 }) {
   const actor = await requireActor();
-  redirectUnlessDashboardRole(actor, ["gym", "admin"]);
+  redirectUnlessDashboardRole(actor, ["gym", "gym_staff", "admin"]);
+
+  const gymNavViewer =
+    actor.role === "gym_staff" ? ("staff" as const) : ("owner" as const);
 
   let access = null as Awaited<ReturnType<typeof resolveGymPortalAccess>> | null;
   try {
@@ -28,6 +31,7 @@ export default async function GymDashboardLayout({
           role="gym"
           actorUserId={actor.userId}
           actorEmail={actor.email || ""}
+          gymNavViewer={gymNavViewer}
         >
           <div className="mx-auto max-w-lg px-4 py-16">
             <h1 className="text-xl font-bold text-matchon-text-primary">
@@ -48,6 +52,7 @@ export default async function GymDashboardLayout({
         role="gym"
         actorUserId={actor.userId}
         actorEmail={actor.email || ""}
+        gymNavViewer={gymNavViewer}
       >
         {access ? (
           <div className="px-4 pt-4 md:px-6">

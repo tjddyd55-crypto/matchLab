@@ -13,7 +13,7 @@ import {
 const root = process.cwd();
 
 function assertNavSsotUnchanged() {
-  const groups = getGymPortalNavGroups();
+  const groups = getGymPortalNavGroups("owner");
   assert.deepEqual(
     groups.map((g) => ({
       id: g.id,
@@ -41,6 +41,14 @@ function assertNavSsotUnchanged() {
         items: [
           { href: "/gym/attendance", label: "출석 현황" },
           { href: "/gym/attendance/kiosks", label: "출석 키오스크" },
+        ],
+      },
+      {
+        id: "staff",
+        label: "직원 관리",
+        items: [
+          { href: "/gym/staff", label: "선생님 목록" },
+          { href: "/gym/staff/new", label: "선생님 등록" },
         ],
       },
       {
@@ -74,6 +82,16 @@ function assertNavSsotUnchanged() {
         items: [{ href: "/gym/profile", label: "체육관 정보" }],
       },
     ],
+  );
+
+  const staffGroups = getGymPortalNavGroups("staff");
+  assert.deepEqual(
+    staffGroups.map((g) => g.id),
+    ["home", "members"],
+  );
+  assert.equal(
+    staffGroups.some((g) => g.id === "sales" || g.id === "staff"),
+    false,
   );
 }
 

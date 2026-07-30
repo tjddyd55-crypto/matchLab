@@ -13,5 +13,7 @@ export type ActorContext = {
   /** 주최자(organizer)인 경우 Organizer.type — 회원사 관리 association gate */
   organizerType?: OrganizerType;
   gymId?: string;
+  /** role=gym_staff 일 때 활성 GymStaff.id */
+  gymStaffId?: string;
   fighterId?: string;
 };

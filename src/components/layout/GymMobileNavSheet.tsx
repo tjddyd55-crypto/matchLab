@@ -3,11 +3,18 @@
 import { useState } from "react";
 import { Menu, X } from "lucide-react";
 import { GymPortalNavGroups } from "@/components/layout/GymPortalNavGroups";
-import { getGymPortalNavGroups } from "@/lib/navigation/gym-portal-navigation";
+import {
+  getGymPortalNavGroups,
+  type GymPortalNavViewer,
+} from "@/lib/navigation/gym-portal-navigation";
 
-export function GymMobileNavSheet() {
+export function GymMobileNavSheet({
+  viewer = "owner",
+}: {
+  viewer?: GymPortalNavViewer;
+}) {
   const [open, setOpen] = useState(false);
-  const groups = getGymPortalNavGroups();
+  const groups = getGymPortalNavGroups(viewer);
 
   return (
     <>

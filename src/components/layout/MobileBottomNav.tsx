@@ -1,7 +1,10 @@
 import Link from "next/link";
 import type { DashboardRole } from "@/components/layout/DashboardShell";
 import { getAdminMobileBottomNavItems } from "@/lib/navigation/admin-navigation";
-import { getGymPortalMobileBottomNavItems } from "@/lib/navigation/gym-portal-navigation";
+import {
+  getGymPortalMobileBottomNavItems,
+  type GymPortalNavViewer,
+} from "@/lib/navigation/gym-portal-navigation";
 import { cn } from "@/lib/utils";
 
 const bottomNavByRole: Record<
@@ -22,14 +25,16 @@ const bottomNavByRole: Record<
 
 export function MobileBottomNav({
   role,
+  gymNavViewer = "owner",
   className,
 }: {
   role: DashboardRole;
+  gymNavViewer?: GymPortalNavViewer;
   className?: string;
 }) {
   const items =
     role === "gym"
-      ? getGymPortalMobileBottomNavItems()
+      ? getGymPortalMobileBottomNavItems(gymNavViewer)
       : role === "admin"
         ? getAdminMobileBottomNavItems()
         : bottomNavByRole[role];
@@ -51,7 +56,7 @@ export function MobileBottomNav({
         <Link
           key={item.href}
           href={item.href}
-          className="flex min-h-[44px] flex-1 flex-col items-center justify-center rounded-lg px-0.5 text-center font-medium text-matchon-text-secondary hover:bg-matchon-primary-light hover:text-matchon-primary"
+          className="flex min-h-11 min-w-0 flex-1 flex-col items-center justify-center px-1 py-1 font-medium text-matchon-text-secondary"
         >
           {item.label}
         </Link>

@@ -108,6 +108,27 @@ export async function requireGymOwner(
   }
 }
 
+/** 체육관 owner 또는 해당 gym의 활성 선생님 */
+export async function requireGymStaff(
+  actor: ActorContext,
+  gymId: string,
+): Promise<void> {
+  if (actor.role === "admin") return;
+  if (actor.role === "gym") {
+    await requireGymOwner(actor, gymId);
+    return;
+  }
+  requireRole(actor, ["gym_staff"]);
+  if (actor.gymId !== gymId || !actor.gymStaffId) {
+    throw new PermissionError("FORBIDDEN");
+  }
+}
+
+/** 체육관 관장만 (선생님 계정·매출·설정 등) */
+export function isGymPortalOwner(actor: ActorContext): boolean {
+  return actor.role === "admin" || actor.role === "gym";
+}
+
 /** 관리 UI·내부 서비스용 조회 — 비-organizer 는 false */
 export async function canManageEvent(
   actor: ActorContext,

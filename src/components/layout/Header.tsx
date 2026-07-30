@@ -6,6 +6,7 @@ import { GymMobileNavSheet } from "@/components/layout/GymMobileNavSheet";
 import { OrganizerMobileNavSheet } from "@/components/layout/OrganizerMobileNavSheet";
 import { LogoutButton } from "@/components/domain/auth/LogoutButton";
 import { NotificationBell } from "@/components/domain/notifications/NotificationBell";
+import type { GymPortalNavViewer } from "@/lib/navigation/gym-portal-navigation";
 import type { OrganizerGlobalNavGroup } from "@/lib/navigation/organizer-global-navigation";
 
 type HeaderProps =
@@ -16,6 +17,8 @@ type HeaderProps =
       actorUserId: string;
       actorEmail: string;
       organizerNavGroups?: OrganizerGlobalNavGroup[];
+      /** 체육관 포털은 관장/선생님이 서로 다른 메뉴를 본다. */
+      gymNavViewer?: GymPortalNavViewer;
     };
 
 export function Header(props: HeaderProps) {
@@ -37,7 +40,9 @@ export function Header(props: HeaderProps) {
           {props.role === "organizer" && props.organizerNavGroups ? (
             <OrganizerMobileNavSheet groups={props.organizerNavGroups} />
           ) : null}
-          {props.role === "gym" ? <GymMobileNavSheet /> : null}
+          {props.role === "gym" ? (
+            <GymMobileNavSheet viewer={props.gymNavViewer ?? "owner"} />
+          ) : null}
           {props.role === "admin" ? <AdminMobileNavSheet /> : null}
           <MatchonLogo
             href={

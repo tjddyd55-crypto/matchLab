@@ -5,7 +5,12 @@ import {
   AssociationMemberGymStatus,
   type AssociationMemberGymStatus as MemberStatus,
 } from "@/lib/enums";
-import { requireGymOwner, requireRole } from "@/lib/permissions";
+import {
+  isGymPortalOwner,
+  requireGymOwner,
+  requireGymStaff,
+  requireRole,
+} from "@/lib/permissions";
 import { memberGymRepository } from "@/lib/repositories/member-gym.repository";
 import { prisma } from "@/lib/prisma";
 
@@ -14,7 +19,8 @@ export type GymPortalAccessMode =
   | "association_active"
   | "association_suspended"
   | "association_withdrawn"
-  | "association_owner_suspended";
+  | "association_owner_suspended"
+  | "gym_staff";
 
 export type GymPortalAccess = {
   gymId: string;
@@ -32,7 +38,14 @@ export type GymPortalAccess = {
   canCreateFighter: boolean;
   canUpdateFighter: boolean;
   canReleaseFighter: boolean;
+  /** 직원·매출·체육관 설정·회원 쓰기 */
+  canManageStaff: boolean;
+  canManageSales: boolean;
+  canManageGymSettings: boolean;
+  canWriteMembers: boolean;
   bannerMessage: string | null;
+  isOwner: boolean;
+  gymStaffId: string | null;
 };
 
 function isPlaceholderOwner(user: {
@@ -132,19 +145,40 @@ export function decideGymPortalAccessFromMembership(
   };
 }
 
+function ownerCapabilityFlags(decision: MembershipGateDecision) {
+  const writeOk =
+    decision.canEnterPortal &&
+    decision.canRead &&
+    decision.accessMode !== "association_suspended";
+  return {
+    canManageStaff: writeOk,
+    canManageSales: writeOk,
+    canManageGymSettings: writeOk,
+    canWriteMembers: writeOk,
+    isOwner: true as const,
+  };
+}
+
 /**
  * 일반 Gym은 기존 CRUD 유지.
  * AssociationMemberGym이 있는 Gym만 회원사 상태 게이트 적용.
+ * gym_staff는 읽기 중심(담당 회원·향후 일정), 직원/매출/설정 차단.
  */
 export async function resolveGymPortalAccess(
   actor: ActorContext,
 ): Promise<GymPortalAccess> {
-  requireRole(actor, ["gym", "admin"]);
+  requireRole(actor, ["gym", "gym_staff", "admin"]);
   const gymId = actor.gymId;
   if (!gymId) {
     throw new PermissionError("FORBIDDEN", "체육관 계정 설정이 필요합니다.");
   }
-  await requireGymOwner(actor, gymId);
+
+  const asStaff = actor.role === "gym_staff";
+  if (asStaff) {
+    await requireGymStaff(actor, gymId);
+  } else {
+    await requireGymOwner(actor, gymId);
+  }
 
   const gym = await prisma.gym.findUnique({
     where: { id: gymId },
@@ -152,6 +186,27 @@ export async function resolveGymPortalAccess(
   });
   if (!gym) {
     throw new AppError("NOT_FOUND", "체육관을 찾을 수 없습니다.");
+  }
+
+  if (asStaff) {
+    return {
+      gymId,
+      gym,
+      memberGym: null,
+      accessMode: "gym_staff",
+      canEnterPortal: true,
+      canRead: true,
+      canCreateFighter: false,
+      canUpdateFighter: false,
+      canReleaseFighter: false,
+      canManageStaff: false,
+      canManageSales: false,
+      canManageGymSettings: false,
+      canWriteMembers: false,
+      bannerMessage: null,
+      isOwner: false,
+      gymStaffId: actor.gymStaffId ?? null,
+    };
   }
 
   const memberGym = await memberGymRepository.findMemberGymByGymId(gymId);
@@ -177,6 +232,8 @@ export async function resolveGymPortalAccess(
         }
       : null,
     ...decision,
+    ...ownerCapabilityFlags(decision),
+    gymStaffId: null,
   };
 }
 
@@ -193,9 +250,20 @@ export async function requireGymPortalRead(
   return access;
 }
 
+/**
+ * 관장 쓰기 (회원·선수·출석·매출 등).
+ * 선생님(gym_staff)은 Stage 1에서 차단.
+ * association suspended 시 기존처럼 선수 변경 불가.
+ */
 export async function requireGymPortalWrite(
   actor: ActorContext,
 ): Promise<GymPortalAccess> {
+  if (!isGymPortalOwner(actor) && actor.role !== "admin") {
+    throw new PermissionError(
+      "FORBIDDEN",
+      "체육관 관장만 수정할 수 있습니다.",
+    );
+  }
   const access = await resolveGymPortalAccess(actor);
   if (!access.canEnterPortal) {
     throw new PermissionError(
@@ -209,6 +277,16 @@ export async function requireGymPortalWrite(
       access.bannerMessage ||
         "현재 회원사 상태에서는 선수 정보를 변경할 수 없습니다.",
     );
+  }
+  return access;
+}
+
+export async function requireGymPortalOwnerManage(
+  actor: ActorContext,
+): Promise<GymPortalAccess> {
+  const access = await requireGymPortalWrite(actor);
+  if (!access.canManageStaff) {
+    throw new PermissionError("FORBIDDEN", "직원 관리 권한이 없습니다.");
   }
   return access;
 }

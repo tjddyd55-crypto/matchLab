@@ -8,7 +8,11 @@ import {
   getAdminHomePaths,
   getAdminNavItems,
 } from "@/lib/navigation/admin-navigation";
-import { getGymPortalHomePaths } from "@/lib/navigation/gym-portal-navigation";
+import {
+  getGymPortalHomePaths,
+  getGymPortalNavGroups,
+  type GymPortalNavViewer,
+} from "@/lib/navigation/gym-portal-navigation";
 import { getOrganizerGlobalNavGroups } from "@/lib/navigation/organizer-global-navigation";
 import { cn } from "@/lib/utils";
 
@@ -41,10 +45,12 @@ function dashboardHomePath(role: DashboardRole): string {
 export function Sidebar({
   role,
   organizerType,
+  gymNavViewer = "owner",
   className,
 }: {
   role: DashboardRole;
   organizerType?: OrganizerType | null;
+  gymNavViewer?: GymPortalNavViewer;
   className?: string;
 }) {
   return (
@@ -75,7 +81,10 @@ export function Sidebar({
           groups={getOrganizerGlobalNavGroups({ organizerType })}
         />
       ) : role === "gym" ? (
-        <GymPortalNavGroups density="desktop" />
+        <GymPortalNavGroups
+          density="desktop"
+          groups={getGymPortalNavGroups(gymNavViewer)}
+        />
       ) : role === "admin" ? (
         <SidebarNav
           items={getAdminNavItems()}
