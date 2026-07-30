@@ -216,7 +216,13 @@ async function assertMemberAvailability(input: {
   endsAt: Date;
   excludeGroupClassId?: string;
 }) {
-  const groupHits = await gymGroupClassRepository.listMemberAttendingOverlapping(input);
+  const groupHits = await gymGroupClassRepository.listMemberAttendingOverlapping({
+    gymId: input.gymId,
+    gymMemberId: input.gymMemberId,
+    startsAt: input.startsAt,
+    endsAt: input.endsAt,
+    excludeClassId: input.excludeGroupClassId,
+  });
   if (groupHits.length > 0) {
     throw new AppError(
       "CONFLICT",
