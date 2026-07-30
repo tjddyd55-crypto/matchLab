@@ -56,6 +56,8 @@ import type {
 import { formatPhoneNumber } from "@/lib/phone";
 import type { GymCalendarItem } from "@/lib/gym-schedule/calendar-item";
 
+const GROUP_CLASS_TX = { maxWait: 10_000, timeout: 25_000 } as const;
+
 export type GymGroupClassVM = {
   id: string;
   gymId: string;
@@ -608,7 +610,7 @@ export const gymGroupClassService = {
           tx,
         );
       }
-    });
+    }, GROUP_CLASS_TX);
     return { classId };
   },
 
@@ -761,7 +763,7 @@ export const gymGroupClassService = {
         tx,
       );
       return { status: nextStatus, promotedFromWaitlist: false };
-    });
+    }, GROUP_CLASS_TX);
 
     return result;
   },
@@ -870,7 +872,7 @@ export const gymGroupClassService = {
         }
       }
       return { promotedMemberId };
-    });
+    }, GROUP_CLASS_TX);
 
     return outcome;
   },
@@ -927,7 +929,7 @@ export const gymGroupClassService = {
         },
         tx,
       );
-    });
+    }, GROUP_CLASS_TX);
     return { ok: true };
   },
 
@@ -977,7 +979,7 @@ export const gymGroupClassService = {
       if (fresh) {
         await promoteWhileSpace(tx, classId, fresh.capacity, actor.userId);
       }
-    });
+    }, GROUP_CLASS_TX);
     return { ok: true };
   },
 
