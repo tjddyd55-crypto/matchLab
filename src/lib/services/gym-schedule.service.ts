@@ -334,8 +334,10 @@ export const gymScheduleService = {
       gymMemberId?: string | null;
       status?: string | null;
       myOnly?: boolean;
+      itemKind?: "all" | "personal" | "group_class";
     },
   ) {
+    const access = await requireGymScheduleRead(actor);
     const anchor = createSeoulDateTime(input.dateKey, "12:00");
     let rangeStart: Date;
     let rangeEndExclusive: Date;
@@ -351,14 +353,69 @@ export const gymScheduleService = {
         input.dateKey,
       ));
     }
-    const items = await this.listSchedules(actor, {
-      rangeStart,
-      rangeEndExclusive,
-      gymStaffId: input.gymStaffId,
-      gymMemberId: input.gymMemberId,
-      status: input.status,
-      myOnly: input.myOnly,
-    });
+
+    const kind = input.itemKind ?? "all";
+    const personalVms =
+      kind === "group_class"
+        ? []
+        : await this.listSchedules(actor, {
+            rangeStart,
+            rangeEndExclusive,
+            gymStaffId: input.gymStaffId,
+            gymMemberId: input.gymMemberId,
+            status: input.status,
+            myOnly: input.myOnly,
+          });
+
+    const personalItems: import("@/lib/gym-schedule/calendar-item").GymCalendarItem[] =
+      personalVms.map((v) => ({
+        id: v.id,
+        itemType: "personal" as const,
+        title: v.title,
+        startsAt: v.startsAt,
+        endsAt: v.endsAt,
+        dateKey: v.dateKey,
+        timeRangeLabel: v.timeRangeLabel,
+        staffId: v.gymStaffId,
+        staffName: v.staffName,
+        status: v.status,
+        statusLabel: v.statusLabel,
+        memberId: v.gymMemberId,
+        memberName: v.memberName,
+        memberProfileImageUrl: v.memberProfileImageUrl,
+        groupClassId: null,
+        participantCount: null,
+        capacity: null,
+        waitlistCount: null,
+        colorKey: v.colorKey,
+        scheduleType: v.scheduleType,
+        scheduleTypeLabel: v.scheduleTypeLabel,
+        canManage: v.canManage,
+      }));
+
+    let groupItems: import("@/lib/gym-schedule/calendar-item").GymCalendarItem[] =
+      [];
+    if (kind !== "personal") {
+      const { gymGroupClassService } = await import(
+        "@/lib/services/gym-group-class.service"
+      );
+      groupItems = await gymGroupClassService.getCalendarItems(actor, {
+        view: input.view,
+        dateKey: input.dateKey,
+        instructorStaffId: input.myOnly ? access.gymStaffId : input.gymStaffId,
+        status:
+          input.status === "active" || !input.status
+            ? "scheduled"
+            : input.status === "all"
+              ? null
+              : input.status,
+        myOnly: input.myOnly,
+      });
+    }
+
+    const items = [...personalItems, ...groupItems].sort(
+      (a, b) => a.startsAt.getTime() - b.startsAt.getTime(),
+    );
     return { rangeStart, rangeEndExclusive, items };
   },
 

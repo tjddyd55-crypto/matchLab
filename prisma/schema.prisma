@@ -56,6 +56,24 @@ enum GymPersonalScheduleStatus {
   no_show
 }
 
+enum GymGroupClassStatus {
+  scheduled
+  completed
+  cancelled
+}
+
+enum GymGroupClassVisibility {
+  members_only
+  public
+}
+
+enum GymGroupClassParticipationStatus {
+  attending
+  waitlisted
+  cancelled
+  not_attending
+}
+
 enum GymStatus {
   active
   suspended
@@ -417,6 +435,17 @@ enum AuditAction {
   gym_personal_schedule_completed
   gym_personal_schedule_no_show
   gym_personal_schedule_cancelled
+  gym_group_class_created
+  gym_group_class_updated
+  gym_group_class_completed
+  gym_group_class_cancelled
+  gym_group_class_participant_added
+  gym_group_class_participant_waitlisted
+  gym_group_class_participant_cancelled
+  gym_group_class_participant_promoted
+  gym_group_class_participant_waitlisted_manual
+  gym_group_class_capacity_changed
+  gym_group_class_instructor_changed
 }
 
 enum GymMemberAttendanceSource {
@@ -556,6 +585,13 @@ model User {
   gymPersonalSchedulesUpdated   GymPersonalSchedule[] @relation("GymPersonalScheduleUpdater")
   gymPersonalSchedulesCompleted GymPersonalSchedule[] @relation("GymPersonalScheduleCompleter")
   gymPersonalSchedulesCancelled GymPersonalSchedule[] @relation("GymPersonalScheduleCanceller")
+
+  gymGroupClassesCreated   GymGroupClass[] @relation("GymGroupClassCreator")
+  gymGroupClassesUpdated   GymGroupClass[] @relation("GymGroupClassUpdater")
+  gymGroupClassesCompleted GymGroupClass[] @relation("GymGroupClassCompleter")
+  gymGroupClassesCancelled GymGroupClass[] @relation("GymGroupClassCanceller")
+  gymGroupClassParticipationsCreated   GymGroupClassParticipation[] @relation("GymGroupClassParticipationCreator")
+  gymGroupClassParticipationsCancelled GymGroupClassParticipation[] @relation("GymGroupClassParticipationCanceller")
 }
 
 model Organizer {
@@ -634,6 +670,8 @@ model Gym {
   gymStaffs                 GymStaff[]
   gymStaffMemberAssignments GymStaffMemberAssignment[]
   gymPersonalSchedules      GymPersonalSchedule[]
+  gymGroupClasses           GymGroupClass[]
+  gymGroupClassParticipations GymGroupClassParticipation[]
 }
 
 model Fighter {
@@ -735,6 +773,7 @@ model GymMember {
   manualSales   GymManualSale[]
   staffAssignments   GymStaffMemberAssignment[]
   personalSchedules  GymPersonalSchedule[]
+  groupClassParticipations GymGroupClassParticipation[]
 
   @@unique([gymId, memberNumber])
   @@index([gymId, deletedAt])
@@ -769,6 +808,7 @@ model GymStaff {
   accountSetupTokens  GymStaffAccountSetupToken[]
   passwordResetTokens GymStaffPasswordResetToken[]
   personalSchedules   GymPersonalSchedule[]
+  instructedGroupClasses GymGroupClass[]
 
   @@index([gymId, deletedAt])
   @@index([gymId, isActive])
@@ -776,7 +816,73 @@ model GymStaff {
   @@index([gymId, name])
 }
 
-/// 선생님–회원 개인 PT·상담 등 1:1 일정 (그룹수업은 Stage 3)
+/// 체육관 그룹수업 (개인 PT와 분리 · 정원·대기)
+model GymGroupClass {
+  id                 String                  @id @default(cuid())
+  gymId              String
+  title              String
+  description        String?
+  instructorStaffId  String?
+  startsAt           DateTime
+  endsAt             DateTime
+  capacity           Int?
+  location           String?
+  status             GymGroupClassStatus     @default(scheduled)
+  visibility         GymGroupClassVisibility @default(members_only)
+  colorKey           String?
+  createdByUserId    String
+  updatedByUserId    String?
+  completedAt        DateTime?
+  completedByUserId  String?
+  cancelledAt        DateTime?
+  cancelledByUserId  String?
+  cancellationReason String?
+  deletedAt          DateTime?
+  createdAt          DateTime                @default(now())
+  updatedAt          DateTime                @updatedAt
+
+  gym             Gym       @relation(fields: [gymId], references: [id], onDelete: Cascade)
+  instructorStaff GymStaff? @relation(fields: [instructorStaffId], references: [id], onDelete: SetNull)
+  createdByUser   User      @relation("GymGroupClassCreator", fields: [createdByUserId], references: [id], onDelete: Cascade)
+  updatedByUser   User?     @relation("GymGroupClassUpdater", fields: [updatedByUserId], references: [id], onDelete: SetNull)
+  completedByUser User?     @relation("GymGroupClassCompleter", fields: [completedByUserId], references: [id], onDelete: SetNull)
+  cancelledByUser User?     @relation("GymGroupClassCanceller", fields: [cancelledByUserId], references: [id], onDelete: SetNull)
+  participations  GymGroupClassParticipation[]
+
+  @@index([gymId, startsAt])
+  @@index([instructorStaffId, startsAt])
+  @@index([gymId, status, startsAt])
+  @@index([gymId, deletedAt])
+}
+
+model GymGroupClassParticipation {
+  id               String                           @id @default(cuid())
+  gymId            String
+  gymGroupClassId  String
+  gymMemberId      String
+  status           GymGroupClassParticipationStatus @default(attending)
+  waitlistOrder    Int?
+  respondedAt      DateTime                         @default(now())
+  checkedInAt      DateTime?
+  cancelledAt      DateTime?
+  cancelledByUserId String?
+  createdByUserId  String?
+  createdAt        DateTime                         @default(now())
+  updatedAt        DateTime                         @updatedAt
+
+  gym             Gym          @relation(fields: [gymId], references: [id], onDelete: Cascade)
+  gymGroupClass   GymGroupClass @relation(fields: [gymGroupClassId], references: [id], onDelete: Cascade)
+  gymMember       GymMember    @relation(fields: [gymMemberId], references: [id], onDelete: Cascade)
+  cancelledByUser User?        @relation("GymGroupClassParticipationCanceller", fields: [cancelledByUserId], references: [id], onDelete: SetNull)
+  createdByUser   User?        @relation("GymGroupClassParticipationCreator", fields: [createdByUserId], references: [id], onDelete: SetNull)
+
+  @@unique([gymGroupClassId, gymMemberId])
+  @@index([gymGroupClassId, status])
+  @@index([gymMemberId, status])
+  @@index([gymId, status])
+}
+
+/// 선생님–회원 개인 PT·상담 등 1:1 일정 (그룹수업은 GymGroupClass)
 model GymPersonalSchedule {
   id                 String                     @id @default(cuid())
   gymId              String
