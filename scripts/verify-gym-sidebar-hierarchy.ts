@@ -32,6 +32,7 @@ function assertNavSsotUnchanged() {
         items: [
           { href: "/gym/schedules", label: "전체 일정" },
           { href: "/gym/schedules/my", label: "내 일정" },
+          { href: "/gym/group-classes", label: "그룹수업" },
         ],
       },
       {

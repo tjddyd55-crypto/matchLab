@@ -166,11 +166,11 @@ function verifyNavigation() {
   assert.ok(owner.some((g) => g.id === "schedules"));
   assert.deepEqual(
     owner.find((g) => g.id === "schedules")?.items.map((i) => i.label),
-    ["전체 일정", "내 일정"],
+    ["전체 일정", "내 일정", "그룹수업"],
   );
   assert.deepEqual(
     staff.find((g) => g.id === "schedules")?.items.map((i) => i.label),
-    ["내 일정"],
+    ["내 일정", "그룹수업"],
   );
   const bottom = getGymPortalMobileBottomNavItems("staff");
   assert.ok(bottom.some((i) => i.href === "/gym/schedules"));
