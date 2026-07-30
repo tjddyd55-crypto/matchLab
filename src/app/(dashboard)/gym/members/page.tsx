@@ -5,6 +5,7 @@ import { formatPhoneNumber } from "@/lib/phone";
 import { formatUtcDateOnly } from "@/lib/date-only";
 import { gymMemberService } from "@/lib/services/gym-member.service";
 import { getGymMemberStoredStatusLabel } from "@/lib/gym-member-membership-status";
+import { GymMemberAvatar } from "@/components/domain/gym-members/GymMemberAvatar";
 import { GymProfileMissingBanner } from "@/components/domain/gym/GymProfileMissingBanner";
 import { MatchonEmptyState } from "@/components/shared/MatchonEmptyState";
 import { buttonVariants } from "@/components/ui/button";
@@ -266,13 +267,16 @@ export default async function GymMembersPage({
                   className="block space-y-2 rounded-xl border border-matchon-border bg-white p-4 shadow-sm"
                 >
                   <div className="flex items-start justify-between gap-2">
-                    <div>
-                      <p className="font-semibold text-matchon-text-primary">
-                        {m.name}
-                      </p>
-                      <p className="font-mono text-xs text-matchon-text-secondary">
-                        {m.memberNumber}
-                      </p>
+                    <div className="flex min-w-0 items-center gap-3">
+                      <GymMemberAvatar src={m.profileImageUrl} name={m.name} />
+                      <div className="min-w-0">
+                        <p className="font-semibold text-matchon-text-primary">
+                          {m.name}
+                        </p>
+                        <p className="font-mono text-xs text-matchon-text-secondary">
+                          {m.memberNumber}
+                        </p>
+                      </div>
                     </div>
                     <span className="text-xs font-medium text-matchon-primary">
                       {m.membershipStatusLabel}
@@ -319,7 +323,16 @@ export default async function GymMembersPage({
                       <td className="px-3 py-3 font-mono text-xs">
                         {m.memberNumber}
                       </td>
-                      <td className="px-3 py-3 font-medium">{m.name}</td>
+                      <td className="px-3 py-3 font-medium">
+                        <span className="flex items-center gap-2">
+                          <GymMemberAvatar
+                            src={m.profileImageUrl}
+                            name={m.name}
+                            className="size-8"
+                          />
+                          {m.name}
+                        </span>
+                      </td>
                       <td className="px-3 py-3 whitespace-nowrap">
                         {formatPhoneNumber(m.phone)}
                       </td>

@@ -12,7 +12,13 @@ import type { ActorContext } from "@/lib/auth/actor-context";
 import { AppError } from "@/lib/errors/app-error";
 import { toUtcDateOnly, todayUtcDateOnlyString } from "@/lib/date-only";
 import { normalizePhoneDigits } from "@/lib/phone";
+import { assertGymMemberImagePath } from "@/lib/constants/gym-member-image-upload";
 import { normalizeGymFighterPhone } from "@/lib/gym-fighter-management";
+import {
+  createGymMemberImageSignedReadUrlForPath,
+  createGymMemberImageSignedReadUrlMap,
+  removeGymMemberImageObject,
+} from "@/lib/services/gym-member-image.service";
 import {
   requireGymPortalRead,
   requireGymPortalWrite,
@@ -103,11 +109,30 @@ function syncFighterBasicFromMember(member: {
   };
 }
 
+/**
+ * 회원 사진 경로는 항상 체육관 범위로 다시 검증한다.
+ * (폼에서 넘어온 값이므로 신뢰 경계 밖의 입력으로 취급한다.)
+ */
+function assertOwnedImagePath(
+  gymId: string,
+  path: string | null | undefined,
+): string | null {
+  const trimmed = path?.trim();
+  if (!trimmed) return null;
+  try {
+    assertGymMemberImagePath(trimmed, gymId);
+  } catch {
+    throw new AppError("VALIDATION_ERROR", "사진 경로가 올바르지 않습니다.");
+  }
+  return trimmed;
+}
+
 export type GymMemberListItemVM = {
   id: string;
   memberNumber: string;
   name: string;
   phone: string;
+  profileImageUrl: string | null;
   status: GymMemberStatus;
   membershipStatus: GymMemberMembershipDisplayStatus;
   membershipStatusLabel: string;
@@ -164,6 +189,10 @@ export const gymMemberService = {
     });
 
     const today = todayUtcDateOnly();
+    const imageUrlByPath = await createGymMemberImageSignedReadUrlMap(
+      access.gymId,
+      rows.map((row) => row.profileImagePath),
+    );
     let items: GymMemberListItemVM[] = rows.map((row, idx) => {
       const sub = row.subscriptions[0] ?? null;
       const membershipStatus = computeGymMemberMembershipStatus({
@@ -176,6 +205,9 @@ export const gymMemberService = {
         memberNumber: row.memberNumber,
         name: row.name,
         phone: row.phone,
+        profileImageUrl: row.profileImagePath
+          ? (imageUrlByPath.get(row.profileImagePath) ?? null)
+          : null,
         status: row.status,
         membershipStatus,
         membershipStatusLabel:
@@ -200,8 +232,14 @@ export const gymMemberService = {
   },
 
   async getMemberDetail(actor: ActorContext, memberId: string) {
-    const { member } = await assertMemberOwned(actor, memberId, false);
+    const { access, member } = await assertMemberOwned(actor, memberId, false);
     const today = todayUtcDateOnly();
+    const profileImageUrl = member.profileImagePath
+      ? await createGymMemberImageSignedReadUrlForPath(
+          access.gymId,
+          member.profileImagePath,
+        )
+      : null;
     const currentSub =
       member.subscriptions.find(
         (s) =>
@@ -215,6 +253,7 @@ export const gymMemberService = {
     });
     return {
       member,
+      profileImageUrl,
       currentSubscription: currentSub,
       membershipStatus,
       membershipStatusLabel:
@@ -276,6 +315,11 @@ export const gymMemberService = {
       );
     }
 
+    const profileImagePath = assertOwnedImagePath(
+      gymId,
+      input.profileImagePath,
+    );
+
     if (input.registerAsFighter) {
       if (!input.birthDate || !input.gender) {
         throw new AppError(
@@ -320,6 +364,7 @@ export const gymMemberService = {
               primarySport: input.primarySport ?? null,
               rankName: input.rankName ?? null,
               memo: input.memo ?? null,
+              profileImagePath,
               smsOptOut: input.smsOptOut ?? false,
               createdByUserId: actor.userId,
               updatedByUserId: actor.userId,
@@ -435,6 +480,7 @@ export const gymMemberService = {
             memberNumber: member.memberNumber,
             name: input.name.trim(),
             fighterId: fighterId ?? null,
+            hasProfileImage: Boolean(profileImagePath),
           },
         },
         tx,
@@ -475,6 +521,21 @@ export const gymMemberService = {
       throw new AppError("VALIDATION_ERROR", "휴대전화번호를 입력해 주세요.");
     }
 
+    const uploadedImagePath = assertOwnedImagePath(
+      access.gymId,
+      input.profileImagePath,
+    );
+    /** 업로드 > 제거 > 유지 순으로 결정한다. */
+    const nextImagePath = uploadedImagePath
+      ? uploadedImagePath
+      : input.removeProfileImage
+        ? null
+        : member.profileImagePath;
+    const replacedImagePath =
+      member.profileImagePath && member.profileImagePath !== nextImagePath
+        ? member.profileImagePath
+        : null;
+
     await prisma.$transaction(async (tx) => {
       await gymMemberRepository.update(
         memberId,
@@ -501,6 +562,7 @@ export const gymMemberService = {
           primarySport: input.primarySport ?? null,
           rankName: input.rankName ?? null,
           memo: input.memo ?? null,
+          profileImagePath: nextImagePath,
           smsOptOut: input.smsOptOut ?? false,
           joinedAt: input.joinedAt
             ? toUtcDateOnly(input.joinedAt)
@@ -539,7 +601,25 @@ export const gymMemberService = {
         },
         tx,
       );
+
+      if (nextImagePath !== member.profileImagePath) {
+        await auditRepository.createAuditLog(
+          {
+            actorUserId: actor.userId,
+            action: nextImagePath
+              ? AuditAction.gym_member_profile_image_changed
+              : AuditAction.gym_member_profile_image_removed,
+            targetType: "GymMember",
+            targetId: memberId,
+            afterData: { hasImage: Boolean(nextImagePath) },
+          },
+          tx,
+        );
+      }
     });
+
+    // 커밋 이후에만 정리한다 (롤백 시 사진이 사라지는 것을 막는다).
+    await removeGymMemberImageObject(replacedImagePath);
   },
 
   async setMemberStatus(

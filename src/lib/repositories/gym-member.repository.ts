@@ -39,6 +39,7 @@ const memberListSelect = {
   joinedAt: true,
   primarySport: true,
   rankName: true,
+  profileImagePath: true,
   createdAt: true,
   fighter: {
     select: {
@@ -124,6 +125,18 @@ export const gymMemberRepository = {
           take: 50,
         },
       },
+    });
+  },
+
+  /** 사진 업로드·서명 권한 검사용 최소 조회 */
+  async findImageContextForGym(
+    memberId: string,
+    gymId: string,
+    tx?: Prisma.TransactionClient,
+  ) {
+    return db(tx).gymMember.findFirst({
+      where: { id: memberId, gymId, deletedAt: null },
+      select: { id: true, gymId: true, profileImagePath: true },
     });
   },
 

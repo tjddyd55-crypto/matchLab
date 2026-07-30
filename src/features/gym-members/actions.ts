@@ -99,6 +99,7 @@ export async function createGymMemberAction(
         "primarySport",
         "rankName",
         "memo",
+        "profileImagePath",
         "smsOptOut",
         "confirmDuplicate",
         "planId",
@@ -152,6 +153,8 @@ export async function updateGymMemberAction(
         "primarySport",
         "rankName",
         "memo",
+        "profileImagePath",
+        "removeProfileImage",
         "smsOptOut",
       ]),
     );

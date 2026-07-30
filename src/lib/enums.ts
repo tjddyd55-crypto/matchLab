@@ -39,6 +39,8 @@ export {
   GymReceivableStatus,
   GymSalesCategory,
   GymStatus,
+  GymStaffAssignmentType,
+  GymStaffRole,
   JudgeDecisionMethod,
   JudgeScorecardStatus,
   JudgeWinnerCorner,

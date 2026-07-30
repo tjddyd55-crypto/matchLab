@@ -68,6 +68,7 @@ export default async function GymMemberEditPage({
 
         <GymMemberEditForm
           memberId={member.id}
+          profileImageUrl={detail.profileImageUrl}
           initial={{
             name: member.name,
             phone: member.phone,

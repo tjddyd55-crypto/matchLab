@@ -5,6 +5,7 @@ import { useRouter } from "next/navigation";
 import Link from "next/link";
 import { AppDateInput } from "@/components/shared/AppDateInput";
 import { AddressSearchField } from "@/components/shared/AddressSearchField";
+import { GymMemberProfileImageUpload } from "@/components/domain/gym-members/GymMemberProfileImageUpload";
 import { PhoneInput } from "@/components/shared/PhoneInput";
 import { Button, buttonVariants } from "@/components/ui/button";
 import { createGymMemberAction } from "@/features/gym-members/actions";
@@ -40,6 +41,7 @@ export function GymMemberCreateForm({
     defaultRegisterAsFighter,
   );
   const [createLogin, setCreateLogin] = useState(false);
+  const [profileImagePath, setProfileImagePath] = useState("");
 
   const joinedDefault = useMemo(() => todayUtcDateOnlyString(), []);
 
@@ -111,6 +113,12 @@ export function GymMemberCreateForm({
 
       <section className="space-y-3">
         <h2 className="text-base font-semibold">기본 정보</h2>
+        <GymMemberProfileImageUpload
+          memberId={null}
+          initialImageUrl={null}
+          imagePath={profileImagePath}
+          onImagePathChange={setProfileImagePath}
+        />
         <label className="block space-y-1 text-sm">
           <span>이름 *</span>
           <input

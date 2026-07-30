@@ -14,6 +14,7 @@ import { gymMemberService } from "@/lib/services/gym-member.service";
 import { gymMembershipPlanService } from "@/lib/services/gym-membership-plan.service";
 import { gymSalesService } from "@/lib/services/gym-sales.service";
 import { GymMemberAttendanceCalendar } from "@/components/domain/gym-attendance/GymMemberAttendanceCalendar";
+import { GymMemberAvatar } from "@/components/domain/gym-members/GymMemberAvatar";
 import { GymMemberDetailActions } from "@/components/domain/gym-members/GymMemberDetailActions";
 import { GymProfileMissingBanner } from "@/components/domain/gym/GymProfileMissingBanner";
 import { buttonVariants } from "@/components/ui/button";
@@ -114,10 +115,19 @@ export default async function GymMemberDetailPage({
           >
             ← 전체 회원
           </Link>
-          <h1 className={matchonPageTitleClass}>{member.name}</h1>
-          <p className={cn(matchonPageDescClass, "font-mono text-xs")}>
-            {member.memberNumber}
-          </p>
+          <div className="flex items-center gap-3">
+            <GymMemberAvatar
+              src={detail.profileImageUrl}
+              name={member.name}
+              className="size-14"
+            />
+            <div className="min-w-0">
+              <h1 className={matchonPageTitleClass}>{member.name}</h1>
+              <p className={cn(matchonPageDescClass, "font-mono text-xs")}>
+                {member.memberNumber}
+              </p>
+            </div>
+          </div>
         </div>
 
         <div className={matchonCompactActionBarClass}>

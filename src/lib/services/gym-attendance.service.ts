@@ -37,6 +37,7 @@ import {
 } from "@/lib/gym-attendance/token";
 import { getGymMemberMembershipStatusLabel } from "@/lib/gym-member-membership-status";
 import { auditRepository } from "@/lib/repositories/audit.repository";
+import { createGymMemberImageSignedReadUrlMap } from "@/lib/services/gym-member-image.service";
 import { gymAttendanceRepository } from "@/lib/repositories/gym-attendance.repository";
 import { prisma } from "@/lib/prisma";
 
@@ -432,6 +433,11 @@ export const gymAttendanceService = {
       take: pageSize,
     });
 
+    const imageUrlByPath = await createGymMemberImageSignedReadUrlMap(
+      access.gymId,
+      rows.map((r) => r.gymMember.profileImagePath),
+    );
+
     return {
       total,
       page,
@@ -447,6 +453,9 @@ export const gymAttendanceService = {
           membershipStatusSnapshot: r.membershipStatusSnapshot,
           memberId: r.gymMember.id,
           memberName: r.gymMember.name,
+          memberProfileImageUrl: r.gymMember.profileImagePath
+            ? (imageUrlByPath.get(r.gymMember.profileImagePath) ?? null)
+            : null,
           maskedPhone: maskPhoneForAdminList(r.gymMember.phone),
           memberStatus: r.gymMember.status,
           planName: r.gymMember.subscriptions[0]?.planNameSnapshot ?? null,

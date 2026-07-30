@@ -6,6 +6,7 @@ import {
   cancelGymAttendanceAction,
   createManualGymAttendanceAction,
 } from "@/features/gym-attendance/actions";
+import { GymMemberAvatar } from "@/components/domain/gym-members/GymMemberAvatar";
 import { Button, buttonVariants } from "@/components/ui/button";
 import {
   formatSeoulDateTime,
@@ -22,6 +23,8 @@ type AttendanceRow = {
   membershipStatusSnapshot: string | null;
   memberId: string;
   memberName: string;
+  /** 서버에서 발급한 signed read URL (private 버킷) */
+  memberProfileImageUrl: string | null;
   maskedPhone: string;
   memberStatus: string;
   planName: string | null;
@@ -272,26 +275,33 @@ export function GymAttendanceAdminPanel({
               key={row.id}
               className="flex flex-wrap items-start justify-between gap-3 px-4 py-3"
             >
-              <div className="min-w-0">
-                <p className="font-medium text-matchon-text-primary">
-                  {row.memberName}{" "}
-                  <span className="text-xs font-normal text-matchon-text-secondary">
-                    {row.maskedPhone}
-                  </span>
-                </p>
-                <p className="mt-0.5 text-xs text-matchon-text-secondary">
-                  {formatSeoulDateTime(new Date(row.attendedAt))} ·{" "}
-                  {sourceLabel(row.source)}
-                  {row.membershipStatusSnapshot
-                    ? ` · ${row.membershipStatusSnapshot}`
-                    : ""}
-                  {row.planName ? ` · ${row.planName}` : ""}
-                </p>
-                {row.note ? (
-                  <p className="mt-1 text-xs text-matchon-text-secondary">
-                    {row.note}
+              <div className="flex min-w-0 items-start gap-3">
+                <GymMemberAvatar
+                  src={row.memberProfileImageUrl}
+                  name={row.memberName}
+                  className="size-9"
+                />
+                <div className="min-w-0">
+                  <p className="font-medium text-matchon-text-primary">
+                    {row.memberName}{" "}
+                    <span className="text-xs font-normal text-matchon-text-secondary">
+                      {row.maskedPhone}
+                    </span>
                   </p>
-                ) : null}
+                  <p className="mt-0.5 text-xs text-matchon-text-secondary">
+                    {formatSeoulDateTime(new Date(row.attendedAt))} ·{" "}
+                    {sourceLabel(row.source)}
+                    {row.membershipStatusSnapshot
+                      ? ` · ${row.membershipStatusSnapshot}`
+                      : ""}
+                    {row.planName ? ` · ${row.planName}` : ""}
+                  </p>
+                  {row.note ? (
+                    <p className="mt-1 text-xs text-matchon-text-secondary">
+                      {row.note}
+                    </p>
+                  ) : null}
+                </div>
               </div>
               <div className="flex flex-wrap gap-2">
                 <Link

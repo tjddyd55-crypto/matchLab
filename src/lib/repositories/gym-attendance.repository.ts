@@ -241,6 +241,7 @@ export const gymAttendanceRepository = {
               phone: true,
               normalizedPhone: true,
               status: true,
+              profileImagePath: true,
               subscriptions: {
                 where: { status: { in: ["active", "paused"] } },
                 orderBy: { startedAt: "desc" },

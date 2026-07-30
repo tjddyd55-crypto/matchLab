@@ -5,6 +5,7 @@ import { useRouter } from "next/navigation";
 import Link from "next/link";
 import { AppDateInput } from "@/components/shared/AppDateInput";
 import { AddressSearchField } from "@/components/shared/AddressSearchField";
+import { GymMemberProfileImageUpload } from "@/components/domain/gym-members/GymMemberProfileImageUpload";
 import { PhoneInput } from "@/components/shared/PhoneInput";
 import { Button, buttonVariants } from "@/components/ui/button";
 import { updateGymMemberAction } from "@/features/gym-members/actions";
@@ -40,13 +41,17 @@ function dateDefault(value: Date | string | null | undefined): string {
 export function GymMemberEditForm({
   memberId,
   initial,
+  profileImageUrl = null,
 }: {
   memberId: string;
   initial: GymMemberEditInitial;
+  /** 서버에서 발급한 signed read URL (private 버킷) */
+  profileImageUrl?: string | null;
 }) {
   const router = useRouter();
   const [pending, startTransition] = useTransition();
   const [error, setError] = useState<string | null>(null);
+  const [profileImagePath, setProfileImagePath] = useState("");
 
   function submit(formData: FormData) {
     setError(null);
@@ -68,6 +73,13 @@ export function GymMemberEditForm({
           {error}
         </p>
       ) : null}
+
+      <GymMemberProfileImageUpload
+        memberId={memberId}
+        initialImageUrl={profileImageUrl}
+        imagePath={profileImagePath}
+        onImagePathChange={setProfileImagePath}
+      />
 
       <label className="block space-y-1 text-sm">
         <span>이름 *</span>

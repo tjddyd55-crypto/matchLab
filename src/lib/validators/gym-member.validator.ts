@@ -47,6 +47,28 @@ function optionalPositiveFloat() {
   }, z.number().positive().optional());
 }
 
+/**
+ * 회원 사진 경로는 서버(`buildGymMemberImagePath`)가 만든 형태만 허용한다.
+ * 체육관 소유 여부(prefix)는 서비스에서 actor.gymId로 다시 검증한다.
+ */
+const GYM_MEMBER_IMAGE_PATH_PATTERN =
+  /^gyms\/[A-Za-z0-9_-]+\/members\/[A-Za-z0-9_-]+\/[A-Za-z0-9-]+\.(jpg|png|webp)$/;
+
+function optionalGymMemberImagePath() {
+  return z.preprocess(
+    (val) => {
+      if (val === "" || val === undefined || val === null) return undefined;
+      return val;
+    },
+    z
+      .string()
+      .trim()
+      .max(300)
+      .regex(GYM_MEMBER_IMAGE_PATH_PATTERN, "사진 경로가 올바르지 않습니다.")
+      .optional(),
+  );
+}
+
 function optionalPaymentMethod() {
   return z.preprocess((val) => {
     if (val === "" || val === undefined || val === null) return undefined;
@@ -96,6 +118,7 @@ export const gymMemberCreateSchema = z.object({
   primarySport: optionalTrimmedString(80),
   rankName: optionalTrimmedString(80),
   memo: optionalTrimmedString(2000),
+  profileImagePath: optionalGymMemberImagePath(),
   smsOptOut: optionalBoolFlag().transform((v) => v === "true"),
   confirmDuplicate: optionalBoolFlag().transform((v) => v === "true"),
   /** 이용권 배정 (선택) */
@@ -141,6 +164,9 @@ export const gymMemberUpdateSchema = z.object({
   primarySport: optionalTrimmedString(80),
   rankName: optionalTrimmedString(80),
   memo: optionalTrimmedString(2000),
+  profileImagePath: optionalGymMemberImagePath(),
+  /** 사진 제거 요청. 새 경로가 함께 오면 교체로 처리한다. */
+  removeProfileImage: optionalBoolFlag().transform((v) => v === "true"),
   smsOptOut: optionalBoolFlag().transform((v) => v === "true"),
   joinedAt: optionalDateOnly,
 });

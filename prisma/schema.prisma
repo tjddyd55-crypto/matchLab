@@ -21,7 +21,24 @@ enum UserRole {
   admin
   organizer
   gym
+  gym_staff
   fighter
+}
+
+/// 체육관 직원 역할 (UserRole.gym_staff 계정과 분리)
+enum GymStaffRole {
+  owner
+  manager
+  instructor
+  trainer
+  desk
+}
+
+enum GymStaffAssignmentType {
+  PT
+  GROUP
+  GENERAL
+  OTHER
 }
 
 enum GymStatus {
@@ -368,6 +385,18 @@ enum AuditAction {
   fighter_password_reset_completed
   fighter_profile_image_changed
   fighter_profile_image_removed
+  gym_member_profile_image_changed
+  gym_member_profile_image_removed
+  gym_staff_created
+  gym_staff_updated
+  gym_staff_deactivated
+  gym_staff_account_setup_link_created
+  gym_staff_account_setup_link_revoked
+  gym_staff_account_setup_completed
+  gym_staff_password_reset_link_created
+  gym_staff_password_reset_completed
+  gym_staff_member_assigned
+  gym_staff_member_unassigned
 }
 
 enum GymMemberAttendanceSource {
@@ -467,6 +496,7 @@ model User {
 
   organizer Organizer?
   ownedGym  Gym?     @relation("GymOwner")
+  gymStaff  GymStaff?
 
   fighter Fighter?
 
@@ -497,6 +527,10 @@ model User {
   fighterAccountSetupTokensCreated   FighterAccountSetupToken[]   @relation("FighterAccountSetupTokenCreator")
   fighterPasswordResetTokensCreated  FighterPasswordResetToken[]  @relation("FighterPasswordResetTokenCreator")
   fighterPasswordResetTokens         FighterPasswordResetToken[]  @relation("FighterPasswordResetTokenUser")
+
+  gymStaffAccountSetupTokensCreated  GymStaffAccountSetupToken[]  @relation("GymStaffAccountSetupTokenCreator")
+  gymStaffPasswordResetTokensCreated GymStaffPasswordResetToken[] @relation("GymStaffPasswordResetTokenCreator")
+  gymStaffPasswordResetTokens        GymStaffPasswordResetToken[] @relation("GymStaffPasswordResetTokenUser")
 }
 
 model Organizer {
@@ -571,6 +605,9 @@ model Gym {
   matchonMessageTemplates  MatchonMessageTemplate[]
   matchonMessageDispatches MatchonMessageDispatch[]
   matchonMessageRecipients MatchonMessageRecipient[]
+
+  gymStaffs                 GymStaff[]
+  gymStaffMemberAssignments GymStaffMemberAssignment[]
 }
 
 model Fighter {
@@ -670,6 +707,7 @@ model GymMember {
   attendances   GymMemberAttendance[]
   receivables   GymReceivable[]
   manualSales   GymManualSale[]
+  staffAssignments GymStaffMemberAssignment[]
 
   @@unique([gymId, memberNumber])
   @@index([gymId, deletedAt])
@@ -677,6 +715,104 @@ model GymMember {
   @@index([gymId, phone])
   @@index([gymId, normalizedPhone])
   @@index([gymId, name])
+}
+
+/// 체육관 선생님·강사·데스크 직원 (User role=gym_staff 와 선택적 연결)
+model GymStaff {
+  id               String       @id @default(cuid())
+  gymId            String
+  userId           String?      @unique
+  name             String
+  phone            String
+  normalizedPhone  String
+  email            String?
+  staffRole        GymStaffRole @default(instructor)
+  title            String?
+  profileImagePath String?
+  colorKey         String?
+  isActive         Boolean      @default(true)
+  deletedAt        DateTime?
+  createdAt        DateTime     @default(now())
+  updatedAt        DateTime     @updatedAt
+
+  gym   Gym   @relation(fields: [gymId], references: [id], onDelete: Cascade)
+  user  User? @relation(fields: [userId], references: [id], onDelete: SetNull)
+
+  memberAssignments GymStaffMemberAssignment[]
+  accountSetupTokens  GymStaffAccountSetupToken[]
+  passwordResetTokens GymStaffPasswordResetToken[]
+
+  @@index([gymId, deletedAt])
+  @@index([gymId, isActive])
+  @@index([gymId, normalizedPhone])
+  @@index([gymId, name])
+}
+
+/// 선생님–회원 담당 관계
+model GymStaffMemberAssignment {
+  id             String                 @id @default(cuid())
+  gymId          String
+  gymStaffId     String
+  gymMemberId    String
+  assignmentType GymStaffAssignmentType @default(GENERAL)
+  startedAt      DateTime               @default(now())
+  endedAt        DateTime?
+  isPrimary      Boolean                @default(false)
+  memo           String?
+  deletedAt      DateTime?
+  createdAt      DateTime               @default(now())
+  updatedAt      DateTime               @updatedAt
+
+  gym       Gym       @relation(fields: [gymId], references: [id], onDelete: Cascade)
+  gymStaff  GymStaff  @relation(fields: [gymStaffId], references: [id], onDelete: Cascade)
+  gymMember GymMember @relation(fields: [gymMemberId], references: [id], onDelete: Cascade)
+
+  @@index([gymId, deletedAt])
+  @@index([gymStaffId, deletedAt])
+  @@index([gymMemberId, deletedAt])
+  @@index([gymMemberId, isPrimary, deletedAt])
+}
+
+/// 선생님 계정 설정 링크 (DB에는 tokenHash만)
+model GymStaffAccountSetupToken {
+  id              String    @id @default(cuid())
+  gymStaffId      String
+  userId          String?
+  tokenHash       String    @unique
+  expiresAt       DateTime
+  usedAt          DateTime?
+  revokedAt       DateTime?
+  createdByUserId String
+  createdAt       DateTime  @default(now())
+
+  gymStaff      GymStaff @relation(fields: [gymStaffId], references: [id], onDelete: Cascade)
+  createdByUser User     @relation("GymStaffAccountSetupTokenCreator", fields: [createdByUserId], references: [id], onDelete: Cascade)
+
+  @@index([gymStaffId])
+  @@index([expiresAt])
+}
+
+/// 선생님 비밀번호 재설정 링크 (DB에는 tokenHash만)
+model GymStaffPasswordResetToken {
+  id              String    @id @default(cuid())
+  userId          String
+  gymStaffId      String
+  tokenHash       String    @unique
+  /// gym_admin_link | self_service (후속)
+  requestSource   String
+  expiresAt       DateTime
+  usedAt          DateTime?
+  revokedAt       DateTime?
+  createdByUserId String?
+  createdAt       DateTime  @default(now())
+
+  user          User     @relation("GymStaffPasswordResetTokenUser", fields: [userId], references: [id], onDelete: Cascade)
+  gymStaff      GymStaff @relation(fields: [gymStaffId], references: [id], onDelete: Cascade)
+  createdByUser User?    @relation("GymStaffPasswordResetTokenCreator", fields: [createdByUserId], references: [id], onDelete: SetNull)
+
+  @@index([userId])
+  @@index([gymStaffId])
+  @@index([expiresAt])
 }
 
 /// 체육관 입구 출석 키오스크 (공개 token hash 기반)
