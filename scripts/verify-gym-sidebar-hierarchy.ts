@@ -88,7 +88,10 @@ function assertNavSsotUnchanged() {
       {
         id: "profile",
         label: "체육관",
-        items: [{ href: "/gym/profile", label: "체육관 정보" }],
+        items: [
+          { href: "/gym/profile", label: "체육관 정보" },
+          { href: "/gym/member-portal", label: "회원 전용 페이지" },
+        ],
       },
     ],
   );
