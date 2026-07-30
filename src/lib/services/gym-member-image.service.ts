@@ -17,6 +17,7 @@ import {
   GYM_MEMBER_IMAGE_UPLOAD_EXPIRES_SEC,
   assertGymMemberImagePath,
   gymMemberImagesBucket,
+  isGymMemberImagePathOwned,
 } from "@/lib/constants/gym-member-image-upload";
 import { AppError } from "@/lib/errors/app-error";
 import {
@@ -133,7 +134,12 @@ export async function createGymMemberImageSignedReadUrlForPath(
 ): Promise<string | null> {
   const trimmed = path.trim();
   if (!trimmed) return null;
-  assertGymMemberImagePath(trimmed, gymId);
+  if (!isGymMemberImagePathOwned(trimmed, gymId)) {
+    throw new AppError(
+      "FORBIDDEN",
+      "다른 체육관 사진에는 접근할 수 없습니다.",
+    );
+  }
 
   const supabase = createSupabaseAdminClient();
   const { data, error } = await supabase.storage
