@@ -655,7 +655,9 @@ function MonthView({
                 {visible.map((item) => (
                   <div
                     key={item.id}
-                    role="presentation"
+                    role="button"
+                    tabIndex={0}
+                    data-testid="schedule-block"
                     className={cn(
                       "truncate rounded px-1 py-0.5 text-[10px] ring-1 ring-inset md:text-[11px]",
                       gymStaffColorClass(item.colorKey),
@@ -665,6 +667,13 @@ function MonthView({
                     onClick={(e) => {
                       e.stopPropagation();
                       onItemClick(item);
+                    }}
+                    onKeyDown={(e) => {
+                      if (e.key === "Enter" || e.key === " ") {
+                        e.preventDefault();
+                        e.stopPropagation();
+                        onItemClick(item);
+                      }
                     }}
                   >
                     <span className="hidden md:inline">
@@ -777,6 +786,7 @@ function WeekDesktop({
               <button
                 key={item.id}
                 type="button"
+                data-testid="schedule-block"
                 className={cn(
                   "absolute inset-x-1 z-10 overflow-hidden rounded-md px-1.5 py-1 text-left text-[11px] ring-1 ring-inset",
                   gymStaffColorClass(item.colorKey),
@@ -888,6 +898,7 @@ function DayTimeline({
             <button
               key={item.id}
               type="button"
+              data-testid="schedule-block"
               className={cn(
                 "absolute inset-x-2 z-10 flex gap-2 overflow-hidden rounded-lg px-2 py-1.5 text-left text-xs ring-1 ring-inset",
                 gymStaffColorClass(item.colorKey),
