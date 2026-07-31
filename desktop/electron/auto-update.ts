@@ -193,9 +193,8 @@ export function initAutoUpdate(): UpdateStatusSnapshot {
   if (!gate.ok) {
     const messageByReason: Record<string, string> = {
       development: "개발 빌드에서는 자동 업데이트가 비활성입니다.",
-      explicitly_disabled: "환경변수로 자동 업데이트가 꺼져 있습니다.",
-      missing_feed_url:
-        "업데이트 서버(MATCHON_DESKTOP_UPDATE_FEED_URL)가 아직 설정되지 않았습니다.",
+      explicitly_disabled: "업데이트를 사용할 수 없습니다.",
+      missing_feed_url: "최신 버전 확인이 준비되지 않았습니다.",
     };
     return publish({
       state: "disabled",

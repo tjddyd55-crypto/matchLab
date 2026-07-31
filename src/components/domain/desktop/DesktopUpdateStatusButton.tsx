@@ -14,6 +14,7 @@ import { isMatchonDesktopClient } from "@/lib/desktop/client";
 import type { MatchonDesktopUpdateStatus } from "@/types/matchon-desktop";
 import { cn } from "@/lib/utils";
 
+/** 사용자에게 보여줄 짧은 라벨. 환경변수·내부 키 이름은 절대 노출하지 않는다. */
 function labelFor(status: MatchonDesktopUpdateStatus): string {
   switch (status.state) {
     case "disabled":
@@ -41,9 +42,17 @@ function labelFor(status: MatchonDesktopUpdateStatus): string {
   }
 }
 
+function sanitizeUserMessage(raw: string | null | undefined): string {
+  if (!raw) return "업데이트를 사용할 수 없습니다.";
+  if (/MATCHON_|process\.env|FEED_URL|secret|token/i.test(raw)) {
+    return "최신 버전 확인이 준비되지 않았습니다.";
+  }
+  return raw;
+}
+
 /**
  * MATCHON Manager 상단 업데이트 버튼 — Electron bridge 상태 SSOT.
- * 웹에서는 렌더하지 않는다.
+ * 웹에서는 렌더하지 않는다. 헤더는 한 줄 정렬을 유지한다.
  */
 export function DesktopUpdateStatusButton({
   className,
@@ -51,7 +60,6 @@ export function DesktopUpdateStatusButton({
   className?: string;
 }) {
   const [status, setStatus] = useState<MatchonDesktopUpdateStatus | null>(null);
-  const [hint, setHint] = useState<string | null>(null);
   const [confirmOpen, setConfirmOpen] = useState(false);
 
   useEffect(() => {
@@ -86,10 +94,9 @@ export function DesktopUpdateStatusButton({
   async function onClick() {
     const current = status;
     if (!current) return;
-    setHint(null);
 
     if (current.state === "disabled") {
-      setHint(current.message ?? "업데이트 기능이 아직 연결되지 않았습니다.");
+      // 상세는 title/tooltip 만 — 헤더에 환경변수 문구를 펼치지 않는다.
       return;
     }
 
@@ -99,16 +106,10 @@ export function DesktopUpdateStatusButton({
     }
 
     if (current.state === "checking" || current.state === "downloading") {
-      setHint(
-        current.state === "downloading"
-          ? "다운로드가 진행 중입니다."
-          : "업데이트를 확인하는 중입니다.",
-      );
       return;
     }
 
     if (current.state === "up_to_date") {
-      setHint("최신 버전입니다.");
       return;
     }
 
@@ -118,30 +119,31 @@ export function DesktopUpdateStatusButton({
   const busy =
     status.state === "checking" || status.state === "downloading";
 
+  const tooltip =
+    status.state === "disabled"
+      ? sanitizeUserMessage(status.message)
+      : `현재 v${status.currentVersion}${
+          status.availableVersion ? ` → v${status.availableVersion}` : ""
+        }`;
+
   return (
-    <div className={cn("flex flex-col items-end gap-1", className)}>
+    <div className={cn("flex items-center", className)}>
       <Button
         type="button"
         size="sm"
         variant={status.state === "ready" ? "default" : "outline"}
         className={cn(
-          "h-8 px-2.5 text-xs font-semibold",
+          "h-8 shrink-0 px-2.5 text-xs font-semibold",
           status.state === "ready" && "bg-matchon-primary text-white",
         )}
         onClick={() => void onClick()}
         disabled={busy}
         data-testid="desktop-update-button"
-        title={`현재 v${status.currentVersion}${
-          status.availableVersion ? ` → v${status.availableVersion}` : ""
-        }`}
+        title={tooltip}
+        aria-label={labelFor(status)}
       >
         {labelFor(status)}
       </Button>
-      {hint ? (
-        <span className="max-w-[14rem] text-right text-[0.65rem] text-matchon-text-secondary">
-          {hint}
-        </span>
-      ) : null}
 
       <Dialog open={confirmOpen} onOpenChange={setConfirmOpen}>
         <DialogContent className="sm:max-w-sm">

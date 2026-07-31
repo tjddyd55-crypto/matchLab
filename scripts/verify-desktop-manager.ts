@@ -220,6 +220,26 @@ function packagingPc2() {
   assertIncludes(autoUpdate, "MATCHON_DESKTOP_UPDATE_FEED_URL", "feed url env");
   assertIncludes(autoUpdate, "electron-updater", "updater wired");
   assertIncludes(autoUpdate, "quitAndInstall(true, true)", "silent install path");
+  assertIncludes(
+    autoUpdate,
+    "최신 버전 확인이 준비되지 않았습니다.",
+    "safe missing feed message",
+  );
+  assert.equal(
+    autoUpdate.includes("업데이트 서버(MATCHON_DESKTOP_UPDATE_FEED_URL)"),
+    false,
+    "must not expose env key in user message",
+  );
+  const updateBtn = read(
+    "src/components/domain/desktop/DesktopUpdateStatusButton.tsx",
+  );
+  assertIncludes(updateBtn, "sanitizeUserMessage", "sanitize user messages");
+  assert.equal(
+    updateBtn.includes("flex-col items-end"),
+    false,
+    "header update must stay single-line",
+  );
+  console.log("verify:desktop-update-safe-message: OK");
   assertIncludes(preload, "getUpdateStatus", "preload update api");
   assertIncludes(preload, "installUpdate", "preload install api");
   assertIncludes(header, "DesktopUpdateStatusButton", "header update button");
