@@ -169,7 +169,9 @@ export function installUpdateNow(): boolean {
   if (snapshot.state !== "ready") {
     return false;
   }
-  autoUpdater.quitAndInstall(false, true);
+  // oneClick:false NSIS는 isSilent=false면 설치 마법사가 떠서 자동 적용이 멈춘다.
+  // 사용자가 UI에서 이미 재시작 확인을 했으므로 silent + forceRunAfter.
+  autoUpdater.quitAndInstall(true, true);
   return true;
 }
 

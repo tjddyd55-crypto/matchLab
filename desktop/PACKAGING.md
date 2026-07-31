@@ -58,7 +58,7 @@ Behavior:
 
 - `autoDownload = true`
 - `autoInstallOnAppQuit = false`
-- UI button "업데이트 적용" → `quitAndInstall()`
+- UI button "업데이트 적용" → `quitAndInstall(true, true)` (silent NSIS; UI에서 재시작 확인 후)
 - Missing feed URL → status `disabled`, app continues normally
 
 Release upload checklist:

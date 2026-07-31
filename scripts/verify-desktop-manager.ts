@@ -187,7 +187,7 @@ function environment() {
   assertIncludes(pkg, '"productName": "MATCHON Manager"', "pkg");
   assertIncludes(pkg, "com.matchon.manager", "appId");
   assertIncludes(pkg, "electron-builder", "builder");
-  assertIncludes(pkg, '"version": "1.0.0"', "desktop version SSOT");
+  assertIncludes(pkg, '"version": "1.0.1"', "desktop version SSOT");
   assertIncludes(rootPkg, "desktop:dev", "root scripts");
   assertIncludes(rootPkg, "desktop:build", "root scripts");
   assertIncludes(rootPkg, "desktop:package", "root scripts");
@@ -219,7 +219,7 @@ function packagingPc2() {
   assertIncludes(main, "initAutoUpdate", "main wires auto-update");
   assertIncludes(autoUpdate, "MATCHON_DESKTOP_UPDATE_FEED_URL", "feed url env");
   assertIncludes(autoUpdate, "electron-updater", "updater wired");
-  assertIncludes(autoUpdate, "quitAndInstall", "install path");
+  assertIncludes(autoUpdate, "quitAndInstall(true, true)", "silent install path");
   assertIncludes(preload, "getUpdateStatus", "preload update api");
   assertIncludes(preload, "installUpdate", "preload install api");
   assertIncludes(header, "DesktopUpdateStatusButton", "header update button");
