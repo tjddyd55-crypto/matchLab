@@ -28,7 +28,7 @@ export function DrawerPanel({
   className?: string;
 }) {
   return (
-    <Dialog open={open} onOpenChange={onOpenChange}>
+    <Dialog open={open} onOpenChange={onOpenChange} dismissible>
       <DialogContent
         showCloseButton
         className={cn(

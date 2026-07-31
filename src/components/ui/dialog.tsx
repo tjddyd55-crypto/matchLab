@@ -7,8 +7,32 @@ import { cn } from "@/lib/utils"
 import { Button } from "@/components/ui/button"
 import { XIcon } from "lucide-react"
 
-function Dialog({ ...props }: DialogPrimitive.Root.Props) {
-  return <DialogPrimitive.Root data-slot="dialog" {...props} />
+/**
+ * Dialog SSOT (Base UI).
+ *
+ * 입력·확인·상태 변경 모달 기본 정책:
+ * - 외부 overlay / outside press 로 닫히지 않는다 (`dismissible` 기본 false).
+ * - 취소·닫기·X·저장/확인 후 프로그램적 닫기·Escape 는 허용.
+ *
+ * 읽기 전용 네비 Sheet 등 바깥 클릭 닫힘이 필요하면 `dismissible`.
+ */
+function Dialog({
+  dismissible = false,
+  disablePointerDismissal,
+  ...props
+}: DialogPrimitive.Root.Props & {
+  /** true면 overlay/outside click 로 닫힘. 입력·확인 모달은 false(기본). */
+  dismissible?: boolean
+}) {
+  return (
+    <DialogPrimitive.Root
+      data-slot="dialog"
+      disablePointerDismissal={
+        disablePointerDismissal ?? !dismissible
+      }
+      {...props}
+    />
+  )
 }
 
 function DialogTrigger({ ...props }: DialogPrimitive.Trigger.Props) {

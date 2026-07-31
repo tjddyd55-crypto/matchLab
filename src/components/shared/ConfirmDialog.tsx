@@ -1,5 +1,9 @@
 "use client";
 
+/**
+ * ConfirmDialog SSOT — Dialog 기본 dismissible=false 를 그대로 사용한다.
+ * overlay / outside press 로 닫히지 않으며, 취소·확인·X·Escape 만 닫는다.
+ */
 import type { ReactNode } from "react";
 import {
   Dialog,
