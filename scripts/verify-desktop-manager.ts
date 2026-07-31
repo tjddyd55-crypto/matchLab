@@ -187,7 +187,7 @@ function environment() {
   assertIncludes(pkg, '"productName": "MATCHON Manager"', "pkg");
   assertIncludes(pkg, "com.matchon.manager", "appId");
   assertIncludes(pkg, "electron-builder", "builder");
-  assertIncludes(pkg, '"version": "1.0.1"', "desktop version SSOT");
+  assertIncludes(pkg, '"version": "1.0.2"', "desktop version SSOT");
   assertIncludes(rootPkg, "desktop:dev", "root scripts");
   assertIncludes(rootPkg, "desktop:build", "root scripts");
   assertIncludes(rootPkg, "desktop:package", "root scripts");
