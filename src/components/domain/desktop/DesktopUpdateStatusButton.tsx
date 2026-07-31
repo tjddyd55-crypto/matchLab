@@ -11,48 +11,13 @@ import {
   DialogTitle,
 } from "@/components/ui/dialog";
 import { isMatchonDesktopClient } from "@/lib/desktop/client";
+import { getDesktopUpdateDisplayState } from "@/lib/desktop/update-display";
 import type { MatchonDesktopUpdateStatus } from "@/types/matchon-desktop";
 import { cn } from "@/lib/utils";
 
-/** 사용자에게 보여줄 짧은 라벨. 환경변수·내부 키 이름은 절대 노출하지 않는다. */
-function labelFor(status: MatchonDesktopUpdateStatus): string {
-  switch (status.state) {
-    case "disabled":
-      return "업데이트 준비";
-    case "checking":
-      return "확인 중…";
-    case "downloading": {
-      const p =
-        typeof status.progressPercent === "number"
-          ? Math.max(0, Math.min(100, Math.round(status.progressPercent)))
-          : null;
-      return p == null ? "다운로드 중…" : `다운로드 중 ${p}%`;
-    }
-    case "available":
-      return "업데이트 확인";
-    case "ready":
-      return "업데이트 적용";
-    case "up_to_date":
-      return "최신 버전";
-    case "error":
-      return "다시 시도";
-    case "idle":
-    default:
-      return "업데이트 확인";
-  }
-}
-
-function sanitizeUserMessage(raw: string | null | undefined): string {
-  if (!raw) return "업데이트를 사용할 수 없습니다.";
-  if (/MATCHON_|process\.env|FEED_URL|secret|token/i.test(raw)) {
-    return "최신 버전 확인이 준비되지 않았습니다.";
-  }
-  return raw;
-}
-
 /**
- * MATCHON Manager 상단 업데이트 버튼 — Electron bridge 상태 SSOT.
- * 웹에서는 렌더하지 않는다. 헤더는 한 줄 정렬을 유지한다.
+ * MATCHON Manager 업데이트 상태 버튼.
+ * Header · /desktop/login 공통. 사용자 문구는 update-display SSOT.
  */
 export function DesktopUpdateStatusButton({
   className,
@@ -61,6 +26,7 @@ export function DesktopUpdateStatusButton({
 }) {
   const [status, setStatus] = useState<MatchonDesktopUpdateStatus | null>(null);
   const [confirmOpen, setConfirmOpen] = useState(false);
+  const [flash, setFlash] = useState<string | null>(null);
 
   useEffect(() => {
     if (!isMatchonDesktopClient()) return;
@@ -80,10 +46,20 @@ export function DesktopUpdateStatusButton({
     };
   }, []);
 
+  useEffect(() => {
+    if (!flash) return;
+    const t = window.setTimeout(() => setFlash(null), 2200);
+    return () => window.clearTimeout(t);
+  }, [flash]);
+
   if (!status) return null;
 
+  const display = getDesktopUpdateDisplayState(status);
+
   async function runCheck() {
-    await window.matchonDesktop?.checkForUpdates?.();
+    const next = await window.matchonDesktop?.checkForUpdates?.();
+    if (next) setStatus(next);
+    return next ?? null;
   }
 
   async function runInstall() {
@@ -95,8 +71,7 @@ export function DesktopUpdateStatusButton({
     const current = status;
     if (!current) return;
 
-    if (current.state === "disabled") {
-      // 상세는 title/tooltip 만 — 헤더에 환경변수 문구를 펼치지 않는다.
+    if (current.state === "checking" || current.state === "downloading") {
       return;
     }
 
@@ -105,48 +80,54 @@ export function DesktopUpdateStatusButton({
       return;
     }
 
-    if (current.state === "checking" || current.state === "downloading") {
+    if (current.state === "disabled") {
+      setFlash("최신 버전입니다");
       return;
     }
 
-    if (current.state === "up_to_date") {
+    if (current.state === "available") {
       return;
     }
 
-    await runCheck();
+    const next = await runCheck();
+    if (
+      next &&
+      (next.state === "up_to_date" || next.state === "disabled")
+    ) {
+      setFlash("최신 버전입니다");
+    }
   }
 
-  const busy =
-    status.state === "checking" || status.state === "downloading";
-
-  const tooltip =
-    status.state === "disabled"
-      ? sanitizeUserMessage(status.message)
-      : `현재 v${status.currentVersion}${
-          status.availableVersion ? ` → v${status.availableVersion}` : ""
-        }`;
-
   return (
-    <div className={cn("flex items-center", className)}>
+    <div className={cn("relative flex shrink-0 items-center", className)}>
       <Button
         type="button"
         size="sm"
-        variant={status.state === "ready" ? "default" : "outline"}
+        variant={display.emphasize ? "default" : "outline"}
         className={cn(
-          "h-8 shrink-0 px-2.5 text-xs font-semibold",
-          status.state === "ready" && "bg-matchon-primary text-white",
+          "h-8 shrink-0 whitespace-nowrap px-2.5 text-xs font-semibold",
+          display.emphasize && "bg-matchon-primary text-white",
         )}
         onClick={() => void onClick()}
-        disabled={busy}
+        disabled={display.busy || !display.interactive}
         data-testid="desktop-update-button"
-        title={tooltip}
-        aria-label={labelFor(status)}
+        title={display.tooltip ?? undefined}
+        aria-label={display.label}
       >
-        {labelFor(status)}
+        {display.label}
       </Button>
 
+      {flash ? (
+        <span
+          role="status"
+          className="pointer-events-none absolute top-full right-0 z-20 mt-1 whitespace-nowrap rounded-md border border-matchon-border bg-white px-2 py-1 text-[11px] font-medium text-matchon-text-primary shadow-sm"
+        >
+          {flash}
+        </span>
+      ) : null}
+
       <Dialog open={confirmOpen} onOpenChange={setConfirmOpen}>
-        <DialogContent className="sm:max-w-sm">
+        <DialogContent className="sm:max-w-sm" showCloseButton={false}>
           <DialogHeader>
             <DialogTitle>업데이트 적용</DialogTitle>
             <DialogDescription>
@@ -163,7 +144,7 @@ export function DesktopUpdateStatusButton({
               취소
             </Button>
             <Button type="button" onClick={() => void runInstall()}>
-              적용하고 재시작
+              업데이트 적용
             </Button>
           </DialogFooter>
         </DialogContent>

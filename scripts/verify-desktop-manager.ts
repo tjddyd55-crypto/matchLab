@@ -220,29 +220,59 @@ function packagingPc2() {
   assertIncludes(autoUpdate, "MATCHON_DESKTOP_UPDATE_FEED_URL", "feed url env");
   assertIncludes(autoUpdate, "electron-updater", "updater wired");
   assertIncludes(autoUpdate, "quitAndInstall(true, true)", "silent install path");
-  assertIncludes(
-    autoUpdate,
-    "최신 버전 확인이 준비되지 않았습니다.",
-    "safe missing feed message",
-  );
+  assertIncludes(autoUpdate, "update feed is not configured", "internal feed log");
+  assertIncludes(autoUpdate, "message: null", "renderer message always null");
   assert.equal(
     autoUpdate.includes("업데이트 서버(MATCHON_DESKTOP_UPDATE_FEED_URL)"),
     false,
     "must not expose env key in user message",
   );
+  assert.equal(
+    autoUpdate.includes("MATCHON_DESKTOP_UPDATE_FEED_URL가"),
+    false,
+    "must not put env key into Korean user copy",
+  );
   const updateBtn = read(
     "src/components/domain/desktop/DesktopUpdateStatusButton.tsx",
   );
-  assertIncludes(updateBtn, "sanitizeUserMessage", "sanitize user messages");
+  const updateDisplay = read("src/lib/desktop/update-display.ts");
+  assertIncludes(updateBtn, "getDesktopUpdateDisplayState", "display SSOT");
+  assertIncludes(updateDisplay, "최신 버전입니다", "up to date / disabled copy");
+  assertIncludes(updateDisplay, "업데이트 적용", "ready copy");
+  assertIncludes(updateDisplay, "다시 확인", "error copy");
   assert.equal(
     updateBtn.includes("flex-col items-end"),
     false,
     "header update must stay single-line",
   );
+  for (const forbidden of [
+    "MATCHON_DESKTOP_UPDATE_FEED_URL",
+    "latest.yml",
+    "github release",
+    "feed url",
+    "process.env",
+    "stack trace",
+  ]) {
+    assert.equal(
+      updateBtn.toLowerCase().includes(forbidden.toLowerCase()),
+      false,
+      `button must not include ${forbidden}`,
+    );
+    assert.equal(
+      updateDisplay.toLowerCase().includes(forbidden.toLowerCase()),
+      false,
+      `display helper must not include ${forbidden}`,
+    );
+  }
   console.log("verify:desktop-update-safe-message: OK");
+  console.log("verify:desktop-update-user-copy: OK");
+  console.log("verify:desktop-update-no-env-leak: OK");
+  console.log("verify:desktop-update-state-display: OK");
   assertIncludes(preload, "getUpdateStatus", "preload update api");
   assertIncludes(preload, "installUpdate", "preload install api");
   assertIncludes(header, "DesktopUpdateStatusButton", "header update button");
+  assertIncludes(header, "flex-nowrap", "header desktop single-line");
+  console.log("verify:desktop-update-header-layout: OK");
   assertIncludes(login, "DesktopUpdateStatusButton", "login update chrome");
   assertIncludes(login, 'title="MATCHON Manager"', "login brand title");
   assertNotIncludes(login, "관리자 로그인", "login no admin title");

@@ -18,7 +18,7 @@ export function DesktopHeaderVersion() {
 
   return (
     <span
-      className="hidden text-xs text-matchon-text-secondary sm:inline"
+      className="hidden h-8 shrink-0 items-center whitespace-nowrap text-xs leading-none text-matchon-text-secondary sm:inline-flex"
       data-testid="desktop-header-version"
       title={`MATCHON Manager v${version}`}
     >

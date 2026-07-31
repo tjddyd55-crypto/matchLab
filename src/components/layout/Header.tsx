@@ -72,7 +72,13 @@ export function Header(props: HeaderProps) {
             </span>
           </div>
         </div>
-        <div className="flex flex-wrap items-center gap-2">
+        <div
+          className={
+            isDesktop
+              ? "flex shrink-0 flex-nowrap items-center gap-2"
+              : "flex flex-wrap items-center gap-2"
+          }
+        >
           <NotificationBell userId={props.actorUserId} />
           {isDesktop ? <DesktopUpdateStatusButton /> : null}
           {isDesktop ? <DesktopHeaderVersion /> : null}
@@ -86,6 +92,7 @@ export function Header(props: HeaderProps) {
           ) : null}
           <LogoutButton
             afterLogoutPath={isDesktop ? "/desktop/login" : undefined}
+            className={isDesktop ? "h-8 px-2.5 text-xs" : undefined}
           />
         </div>
       </div>

@@ -1,10 +1,11 @@
 /**
- * MATCHON Manager 자동 업데이트.
+ * MATCHON Manager 자동 업데이트 (main process).
  *
- * - packaged + feed URL 있을 때만 실제 electron-updater 동작
- * - feed/opt-in 없으면 enabled=false 상태만 유지 (앱 크래시 금지)
+ * - packaged + feed URL 있을 때만 electron-updater 동작
+ * - renderer에는 state / version / progress 만 전달 (환경변수·feed URL·stack 금지)
+ * - 내부 사유는 console.warn 으로만 남긴다
  * - autoDownload=true, autoInstallOnAppQuit=false
- * - 적용은 사용자가 "업데이트 적용" 클릭 시 quitAndInstall()
+ * - 적용은 사용자가 "업데이트 적용" 클릭 시 quitAndInstall(true, true)
  */
 import { app, BrowserWindow } from "electron";
 import { autoUpdater } from "electron-updater";
@@ -19,17 +20,20 @@ export type UpdateUiState =
   | "up_to_date"
   | "error";
 
+/** preload / renderer 계약. message 필드는 하위 호환용이며 항상 null. */
 export type UpdateStatusSnapshot = {
   state: UpdateUiState;
   enabled: boolean;
   currentVersion: string;
   availableVersion: string | null;
   progressPercent: number | null;
+  /** @deprecated UI에 쓰지 않음. 항상 null. */
   message: string | null;
 };
 
 const CHANNEL = "desktop:update-status";
 const PERIODIC_CHECK_MS = 4 * 60 * 60 * 1000;
+const LOG_PREFIX = "[desktop-updater]";
 
 let snapshot: UpdateStatusSnapshot = {
   state: "disabled",
@@ -48,6 +52,8 @@ function publish(next: Partial<UpdateStatusSnapshot>): UpdateStatusSnapshot {
     ...snapshot,
     ...next,
     currentVersion: app.getVersion(),
+    // renderer로 내부 문구가 새지 않도록 강제
+    message: null,
   };
   for (const win of BrowserWindow.getAllWindows()) {
     if (!win.isDestroyed()) {
@@ -55,6 +61,14 @@ function publish(next: Partial<UpdateStatusSnapshot>): UpdateStatusSnapshot {
     }
   }
   return snapshot;
+}
+
+function logInternal(level: "warn" | "error", detail: string): void {
+  if (level === "error") {
+    console.error(`${LOG_PREFIX} ${detail}`);
+    return;
+  }
+  console.warn(`${LOG_PREFIX} ${detail}`);
 }
 
 function resolveFeedUrl(): string | null {
@@ -65,7 +79,7 @@ function resolveFeedUrl(): string | null {
 
 function shouldEnableUpdater():
   | { ok: true; feedUrl: string }
-  | { ok: false; reason: string } {
+  | { ok: false; reason: "development" | "explicitly_disabled" | "missing_feed_url" } {
   if (!app.isPackaged) {
     return { ok: false, reason: "development" };
   }
@@ -86,7 +100,6 @@ function wireUpdaterEvents(): void {
   autoUpdater.on("checking-for-update", () => {
     publish({
       state: "checking",
-      message: "업데이트를 확인하는 중",
       progressPercent: null,
     });
   });
@@ -95,7 +108,6 @@ function wireUpdaterEvents(): void {
     publish({
       state: "available",
       availableVersion: info.version ?? null,
-      message: "새 버전이 있습니다. 다운로드를 시작합니다.",
       progressPercent: 0,
     });
   });
@@ -105,7 +117,6 @@ function wireUpdaterEvents(): void {
       state: "up_to_date",
       availableVersion: null,
       progressPercent: null,
-      message: "최신 버전입니다.",
     });
   });
 
@@ -114,7 +125,6 @@ function wireUpdaterEvents(): void {
       state: "downloading",
       progressPercent:
         typeof progress.percent === "number" ? progress.percent : null,
-      message: "업데이트를 다운로드하는 중",
     });
   });
 
@@ -123,14 +133,15 @@ function wireUpdaterEvents(): void {
       state: "ready",
       availableVersion: info.version ?? snapshot.availableVersion,
       progressPercent: 100,
-      message: "다운로드 완료. 적용을 누르면 앱이 재시작됩니다.",
     });
   });
 
   autoUpdater.on("error", (err) => {
+    const detail =
+      err instanceof Error ? err.message : "unknown updater error";
+    logInternal("error", detail);
     publish({
       state: "error",
-      message: err?.message || "업데이트 확인 중 오류가 발생했습니다.",
       progressPercent: null,
     });
   });
@@ -140,6 +151,7 @@ export function getUpdateStatus(): UpdateStatusSnapshot {
   return {
     ...snapshot,
     currentVersion: app.getVersion(),
+    message: null,
   };
 }
 
@@ -148,19 +160,17 @@ export async function checkForUpdatesNow(): Promise<UpdateStatusSnapshot> {
     return publish({
       state: "disabled",
       enabled: false,
-      message: snapshot.message ?? "업데이트가 비활성 상태입니다.",
     });
   }
 
   try {
-    publish({ state: "checking", message: "업데이트를 확인하는 중" });
+    publish({ state: "checking", progressPercent: null });
     await autoUpdater.checkForUpdates();
   } catch (error) {
-    const message =
-      error instanceof Error
-        ? error.message
-        : "업데이트 확인 중 오류가 발생했습니다.";
-    publish({ state: "error", message, progressPercent: null });
+    const detail =
+      error instanceof Error ? error.message : "checkForUpdates failed";
+    logInternal("error", detail);
+    publish({ state: "error", progressPercent: null });
   }
   return getUpdateStatus();
 }
@@ -170,7 +180,6 @@ export function installUpdateNow(): boolean {
     return false;
   }
   // oneClick:false NSIS는 isSilent=false면 설치 마법사가 떠서 자동 적용이 멈춘다.
-  // 사용자가 UI에서 이미 재시작 확인을 했으므로 silent + forceRunAfter.
   autoUpdater.quitAndInstall(true, true);
   return true;
 }
@@ -191,15 +200,17 @@ export function initAutoUpdate(): UpdateStatusSnapshot {
 
   const gate = shouldEnableUpdater();
   if (!gate.ok) {
-    const messageByReason: Record<string, string> = {
-      development: "개발 빌드에서는 자동 업데이트가 비활성입니다.",
-      explicitly_disabled: "업데이트를 사용할 수 없습니다.",
-      missing_feed_url: "최신 버전 확인이 준비되지 않았습니다.",
-    };
+    if (gate.reason === "missing_feed_url") {
+      logInternal("warn", "update feed is not configured");
+    } else if (gate.reason === "development") {
+      logInternal("warn", "updater disabled in development build");
+    } else if (gate.reason === "explicitly_disabled") {
+      logInternal("warn", "updater explicitly disabled");
+    }
+    // UI: disabled → "최신 버전입니다" (사용자에게 내부 사유 비노출)
     return publish({
       state: "disabled",
       enabled: false,
-      message: messageByReason[gate.reason] ?? "업데이트가 비활성입니다.",
     });
   }
 
@@ -212,7 +223,6 @@ export function initAutoUpdate(): UpdateStatusSnapshot {
     publish({
       state: "idle",
       enabled: true,
-      message: null,
     });
 
     void checkForUpdatesNow();
@@ -224,14 +234,12 @@ export function initAutoUpdate(): UpdateStatusSnapshot {
 
     return getUpdateStatus();
   } catch (error) {
-    const message =
-      error instanceof Error
-        ? error.message
-        : "업데이트 모듈을 불러오지 못했습니다.";
+    const detail =
+      error instanceof Error ? error.message : "failed to init updater";
+    logInternal("error", detail);
     return publish({
       state: "disabled",
       enabled: false,
-      message,
     });
   }
 }
