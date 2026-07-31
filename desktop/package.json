@@ -1,34 +1,56 @@
 {
   "name": "matchon-manager",
-  "version": "0.1.0",
+  "version": "1.0.0",
   "private": true,
   "description": "MATCHON 주최측 및 체육관 관리자 프로그램",
   "author": "MATCHON",
   "main": "dist/main.js",
   "productName": "MATCHON Manager",
   "scripts": {
-    "build": "tsc -p tsconfig.json && node scripts/copy-static.cjs",
+    "icons": "node scripts/generate-icons.mjs",
+    "build": "npm run icons && tsc -p tsconfig.json && node scripts/copy-static.cjs",
     "dev": "tsx scripts/dev.ts",
     "start": "electron .",
-    "package": "npm run build && electron-builder --win dir",
-    "package:nsis": "npm run build && electron-builder --win nsis"
+    "package": "npm run build && electron-builder --win nsis dir",
+    "package:nsis": "npm run build && electron-builder --win nsis",
+    "package:dir": "npm run build && electron-builder --win dir"
   },
   "build": {
     "appId": "com.matchon.manager",
     "productName": "MATCHON Manager",
+    "copyright": "Copyright © MATCHON",
     "directories": {
-      "output": "release"
+      "output": "out-pc2",
+      "buildResources": "assets"
     },
     "files": [
       "dist/**/*",
-      "assets/**/*",
+      "assets/icon.ico",
+      "assets/icon.png",
       "package.json"
+    ],
+    "extraResources": [
+      {
+        "from": "assets/icon.ico",
+        "to": "assets/icon.ico"
+      },
+      {
+        "from": "assets/icon.png",
+        "to": "assets/icon.png"
+      }
     ],
     "extraMetadata": {
       "main": "dist/main.js"
     },
+    "publish": null,
     "win": {
       "target": [
+        {
+          "target": "nsis",
+          "arch": [
+            "x64"
+          ]
+        },
         {
           "target": "dir",
           "arch": [
@@ -36,19 +58,36 @@
           ]
         }
       ],
-      "icon": "assets/icon.png",
-      "artifactName": "MATCHON-Manager-${version}-${arch}.${ext}"
+      "icon": "assets/icon.ico",
+      "artifactName": "MATCHON-Manager-${version}-${arch}.${ext}",
+      "executableName": "MATCHON Manager",
+      "signAndEditExecutable": true,
+      "forceCodeSigning": false
     },
     "nsis": {
       "oneClick": false,
+      "perMachine": false,
       "allowToChangeInstallationDirectory": true,
-      "artifactName": "MATCHON-Manager-Setup-${version}.${ext}"
+      "allowElevation": true,
+      "createDesktopShortcut": true,
+      "createStartMenuShortcut": true,
+      "shortcutName": "MATCHON Manager",
+      "runAfterFinish": true,
+      "deleteAppDataOnUninstall": false,
+      "installerIcon": "assets/icon.ico",
+      "uninstallerIcon": "assets/icon.ico",
+      "installerHeaderIcon": "assets/icon.ico",
+      "artifactName": "MATCHON-Manager-Setup-${version}.${ext}",
+      "uninstallDisplayName": "MATCHON Manager",
+      "include": "nsis/installer.nsh"
     }
   },
   "devDependencies": {
     "@types/node": "^22.15.21",
     "electron": "^36.4.0",
     "electron-builder": "^26.0.12",
+    "sharp": "^0.35.3",
+    "to-ico": "^1.1.5",
     "tsx": "^4.20.3",
     "typescript": "^5.8.3"
   }

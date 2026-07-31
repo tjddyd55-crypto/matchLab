@@ -1,5 +1,7 @@
-import { app, BrowserWindow, ipcMain, session } from "electron";
+import { app, BrowserWindow, ipcMain, session, nativeImage } from "electron";
+import { existsSync } from "node:fs";
 import { join } from "node:path";
+import { initAutoUpdate } from "./auto-update";
 import {
   DESKTOP_ENTRY_PATH,
   getDesktopBaseUrl,
@@ -18,6 +20,15 @@ let sessionConfigured = false;
 
 function appVersion(): string {
   return app.getVersion();
+}
+
+function resolveAppIconPath(): string | undefined {
+  const candidates = [
+    join(__dirname, "..", "assets", "icon.ico"),
+    join(__dirname, "..", "assets", "icon.png"),
+    join(process.resourcesPath, "assets", "icon.ico"),
+  ];
+  return candidates.find((p) => existsSync(p));
 }
 
 function buildUserAgent(base: string): string {
@@ -59,6 +70,7 @@ async function loadEntry(win: BrowserWindow): Promise<void> {
 function createMainWindow(): BrowserWindow {
   const state = loadWindowState();
   const preloadPath = join(__dirname, "preload.js");
+  const iconPath = resolveAppIconPath();
   configureSession();
 
   const win = new BrowserWindow({
@@ -70,8 +82,11 @@ function createMainWindow(): BrowserWindow {
     minHeight: 700,
     show: false,
     backgroundColor: "#F8FAFC",
-    title: "MATCHON Manager",
+    title: `MATCHON Manager v${appVersion()}`,
     autoHideMenuBar: true,
+    ...(iconPath
+      ? { icon: nativeImage.createFromPath(iconPath) }
+      : {}),
     webPreferences: {
       preload: preloadPath,
       partition: SESSION_PARTITION,
@@ -84,6 +99,12 @@ function createMainWindow(): BrowserWindow {
   });
 
   win.webContents.setUserAgent(buildUserAgent(win.webContents.getUserAgent()));
+
+  // 웹 document.title이 창 제목을 덮어쓰지 않도록 Manager 버전 유지
+  win.on("page-title-updated", (event) => {
+    event.preventDefault();
+    win.setTitle(`MATCHON Manager v${appVersion()}`);
+  });
 
   attachNavigationGuards(win);
   attachWindowStatePersistence(win);
@@ -152,6 +173,7 @@ if (!gotLock) {
 
   app.whenReady().then(() => {
     registerIpc();
+    initAutoUpdate();
     mainWindow = createMainWindow();
 
     app.on("activate", () => {
