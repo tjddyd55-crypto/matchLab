@@ -5,14 +5,22 @@ import {
   actionSuccess,
   type ActionResult,
 } from "@/lib/action-result";
-import { dashboardPathForRole, isSupabaseAuthConfigured } from "@/lib/auth/actor";
-import { authService } from "@/lib/services/auth.service";
-import { createSupabaseServerClient } from "@/lib/supabase/server";
+import {
+  dashboardPathForRole,
+  isSupabaseAuthConfigured,
+} from "@/lib/auth/actor";
+import {
+  DESKTOP_LAUNCH_PATH,
+  DESKTOP_LOGIN_PATH,
+  DESKTOP_MANAGER_UNAVAILABLE_MESSAGE,
+} from "@/lib/desktop/constants";
+import { isDesktopManagerRole } from "@/lib/desktop/manager-roles";
+import { isMatchonDesktopRequest } from "@/lib/desktop/request";
 import { fighterAccountService } from "@/lib/services/fighter-account.service";
-import { signInWithPasswordFormSchema } from "@/lib/validators/auth.validator";
-
-const PROFILE_NOT_LINKED_MESSAGE =
-  "로그인은 성공했지만 앱 사용자 프로필이 연결되지 않았습니다. 관리자에게 authUserId 매핑을 확인해 주세요.";
+import {
+  authenticateWithPassword,
+  revokeCurrentAuthSession,
+} from "@/features/auth/authenticate-password";
 
 /** `<form action>` 단일 인자 vs `useActionState(prev, formData)` 모두 지원 */
 function resolveFormData(a: unknown, b?: FormData): FormData | null {
@@ -48,55 +56,13 @@ export async function signInWithPasswordAction(
   }
 
   return mapCaught(async () => {
-    if (!isSupabaseAuthConfigured()) {
-      return actionFailure(
-        "INTERNAL",
-        "Supabase 인증 환경 변수(NEXT_PUBLIC_SUPABASE_URL, NEXT_PUBLIC_SUPABASE_ANON_KEY)가 설정되지 않았습니다.",
-      );
-    }
-
-    const parsed = signInWithPasswordFormSchema.safeParse({
-      identifier: formReq(formData, "identifier") || formReq(formData, "email"),
-      password: formReq(formData, "password"),
-    });
-    if (!parsed.success) {
-      const first = parsed.error.issues[0];
-      return actionFailure(
-        "VALIDATION_ERROR",
-        first?.message ?? "입력값을 확인해 주세요.",
-        parsed.error.flatten(),
-      );
-    }
-
-    const authEmail = await authService.resolveAuthEmailForLogin(
-      parsed.data.identifier,
+    const auth = await authenticateWithPassword(
+      formReq(formData, "identifier") || formReq(formData, "email"),
+      formReq(formData, "password"),
     );
-    if (!authEmail) {
-      return actionFailure(
-        "UNAUTHORIZED",
-        "아이디 또는 비밀번호를 확인해 주세요.",
-      );
-    }
+    if (!auth.ok) return auth.result;
 
-    const supabase = await createSupabaseServerClient();
-    const { data, error } = await supabase.auth.signInWithPassword({
-      email: authEmail,
-      password: parsed.data.password,
-    });
-
-    if (error || !data.user?.id) {
-      return actionFailure(
-        "UNAUTHORIZED",
-        "아이디 또는 비밀번호를 확인해 주세요.",
-        error?.message,
-      );
-    }
-
-    const actor = await authService.getActorByAuthUserId(data.user.id);
-    if (!actor) {
-      await supabase.auth.signOut();
-      return actionFailure("FORBIDDEN", PROFILE_NOT_LINKED_MESSAGE);
-    }
+    const { actor } = auth;
 
     if (actor.role === "fighter" && actor.mustChangePassword) {
       return actionSuccess({ redirectTo: "/fighter/change-password" });
@@ -123,14 +89,44 @@ export async function signInWithPasswordAction(
   });
 }
 
+/**
+ * MATCHON Manager PC 로그인 — 동일 인증 코어, 관리자 역할만 허용 후 /desktop/launch.
+ */
+export async function signInWithPasswordDesktopAction(
+  arg1: unknown,
+  arg2?: FormData,
+): Promise<ActionResult<{ redirectTo: string }>> {
+  const formData = resolveFormData(arg1, arg2);
+  if (!formData) {
+    return actionFailure("VALIDATION_ERROR", "요청 본문이 올바르지 않습니다.");
+  }
+
+  return mapCaught(async () => {
+    const auth = await authenticateWithPassword(
+      formReq(formData, "identifier") || formReq(formData, "email"),
+      formReq(formData, "password"),
+    );
+    if (!auth.ok) return auth.result;
+
+    if (!isDesktopManagerRole(auth.actor.role)) {
+      await revokeCurrentAuthSession();
+      return actionFailure("FORBIDDEN", DESKTOP_MANAGER_UNAVAILABLE_MESSAGE);
+    }
+
+    return actionSuccess({ redirectTo: DESKTOP_LAUNCH_PATH });
+  });
+}
+
 export async function signOutAction(): Promise<
   ActionResult<{ redirectTo: string }>
 > {
   return mapCaught(async () => {
     if (isSupabaseAuthConfigured()) {
-      const supabase = await createSupabaseServerClient();
-      await supabase.auth.signOut();
+      await revokeCurrentAuthSession();
     }
-    return actionSuccess({ redirectTo: "/login" });
+    const desktop = await isMatchonDesktopRequest();
+    return actionSuccess({
+      redirectTo: desktop ? DESKTOP_LOGIN_PATH : "/login",
+    });
   });
 }

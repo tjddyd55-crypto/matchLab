@@ -21,6 +21,8 @@ export type AuthLoginShellProps = {
   footer?: ReactNode;
   children: ReactNode;
   className?: string;
+  /** 로고 링크. `null`이면 링크 없음(desktop Manager). 기본 `/`. */
+  logoHref?: string | null;
 };
 
 /**
@@ -35,12 +37,17 @@ export function AuthLoginShell({
   footer,
   children,
   className,
+  logoHref = "/",
 }: AuthLoginShellProps) {
   return (
     <div className={cn(authLoginShellClass, className)}>
       <div className={authLoginCardClass}>
         <div className={authLoginLogoWrapClass}>
-          <MatchonLogo href="/" size={AUTH_LOGIN_LOGO_SIZE} variant="light" />
+          <MatchonLogo
+            href={logoHref ?? undefined}
+            size={AUTH_LOGIN_LOGO_SIZE}
+            variant="light"
+          />
         </div>
         <header className={authLoginHeaderStackClass}>
           {eyebrow ? <p className={authLoginEyebrowClass}>{eyebrow}</p> : null}

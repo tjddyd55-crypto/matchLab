@@ -2,13 +2,14 @@ import type { ReactNode } from "react";
 import { Header } from "@/components/layout/Header";
 import { MobileBottomNav } from "@/components/layout/MobileBottomNav";
 import { Sidebar } from "@/components/layout/Sidebar";
+import { isMatchonDesktopRequest } from "@/lib/desktop/request";
 import type { OrganizerType } from "@/lib/enums";
 import type { GymPortalNavViewer } from "@/lib/navigation/gym-portal-navigation";
 import { getOrganizerGlobalNavGroups } from "@/lib/navigation/organizer-global-navigation";
 
 export type DashboardRole = "organizer" | "gym" | "fighter" | "admin";
 
-export function DashboardShell({
+export async function DashboardShell({
   role,
   actorUserId,
   actorEmail,
@@ -27,6 +28,7 @@ export function DashboardShell({
     role === "organizer"
       ? getOrganizerGlobalNavGroups({ organizerType })
       : undefined;
+  const isDesktop = await isMatchonDesktopRequest();
 
   return (
     <div className="flex min-h-screen flex-col bg-matchon-surface md:flex-row">
@@ -44,6 +46,7 @@ export function DashboardShell({
           actorEmail={actorEmail}
           organizerNavGroups={organizerNavGroups}
           gymNavViewer={gymNavViewer}
+          isDesktop={isDesktop}
         />
         <main className="min-w-0 flex-1 overflow-x-clip">{children}</main>
       </div>

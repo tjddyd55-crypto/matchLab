@@ -19,6 +19,9 @@ type HeaderProps =
       organizerNavGroups?: OrganizerGlobalNavGroup[];
       /** 체육관 포털은 관장/선생님이 서로 다른 메뉴를 본다. */
       gymNavViewer?: GymPortalNavViewer;
+      /** MATCHON Manager — 공개 홈 숨김 등 UI만 분기 (권한 아님). */
+      isDesktop?: boolean;
+      desktopAppVersion?: string | null;
     };
 
 export function Header(props: HeaderProps) {
@@ -32,6 +35,7 @@ export function Header(props: HeaderProps) {
     fighter: "선수",
     admin: "관리자",
   };
+  const isDesktop = Boolean(props.isDesktop);
 
   return (
     <header className="border-b border-matchon-border bg-white px-4 py-3 md:px-6">
@@ -69,12 +73,19 @@ export function Header(props: HeaderProps) {
         </div>
         <div className="flex flex-wrap items-center gap-2">
           <NotificationBell userId={props.actorUserId} />
-          <Link
-            href="/"
-            className="text-xs text-matchon-text-secondary hover:text-matchon-text-primary"
-          >
-            공개 홈
-          </Link>
+          {isDesktop && props.desktopAppVersion ? (
+            <span className="text-xs text-matchon-text-secondary">
+              Manager {props.desktopAppVersion}
+            </span>
+          ) : null}
+          {!isDesktop ? (
+            <Link
+              href="/"
+              className="text-xs text-matchon-text-secondary hover:text-matchon-text-primary"
+            >
+              공개 홈
+            </Link>
+          ) : null}
           <LogoutButton />
         </div>
       </div>
