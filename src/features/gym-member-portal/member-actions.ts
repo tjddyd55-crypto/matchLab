@@ -1,6 +1,7 @@
 "use server";
 
 import { headers } from "next/headers";
+import { redirect } from "next/navigation";
 import { revalidatePath } from "next/cache";
 import {
   actionFailure,
@@ -69,12 +70,32 @@ export async function verifyGymMemberPortalIdentityAction(
   });
 }
 
+/**
+ * form action + redirect — Set-Cookie(만료)가 응답에 확실히 실리도록 한다.
+ * mapCaught로 감싸지 않는다 (redirect throw 보존).
+ */
+export async function logoutGymMemberPortalFormAction(
+  formData: FormData,
+): Promise<void> {
+  const token = formStr(formData, "token");
+  try {
+    await gymMemberPortalService.destroySession(token || undefined);
+  } catch (e) {
+    console.error(e);
+  }
+  if (token) {
+    revalidateMemberPaths(token);
+    redirect(`/member-portal/${token}`);
+  }
+  redirect("/");
+}
+
 export async function logoutGymMemberPortalAction(
   formData: FormData,
 ): Promise<ActionResult<{ ok: true }>> {
   return mapCaught(async () => {
     const token = formStr(formData, "token");
-    await gymMemberPortalService.destroySession();
+    await gymMemberPortalService.destroySession(token || undefined);
     if (token) revalidateMemberPaths(token);
     return actionSuccess({ ok: true });
   });

@@ -453,15 +453,19 @@ export const gymMemberPortalService = {
     };
   },
 
-  async destroySession(): Promise<void> {
+  async destroySession(rawPortalToken?: string): Promise<void> {
+    const now = new Date();
     const rawSession = await readGymMemberPortalSessionCookie();
     if (rawSession) {
       const sessionTokenHash = hashSessionToken(rawSession);
       await prisma.gymMemberPortalSession.updateMany({
-        where: { sessionTokenHash, revokedAt: null },
-        data: { revokedAt: new Date() },
+        where: { sessionTokenHash },
+        data: { revokedAt: now },
       });
     }
+    // cookie 미전송/미일치 대비 — portal token으로 활성 세션을 추가 폐기하지는 않음
+    // (다른 기기 세션까지 끊지 않기 위함). 쿠키 clear는 항상 수행.
+    void rawPortalToken;
     await clearGymMemberPortalSessionCookie();
   },
 
