@@ -1,11 +1,12 @@
 "use client";
 
 import Link from "next/link";
-import { useMemo, useState, useTransition } from "react";
+import { useMemo, useRef, useState, useTransition, type RefObject } from "react";
 import { usePathname, useRouter, useSearchParams } from "next/navigation";
 import { GymMemberAvatar } from "@/components/domain/gym-members/GymMemberAvatar";
 import { GymScheduleFormDialog } from "@/components/domain/gym-schedules/GymScheduleFormDialog";
 import { GymScheduleDetailSheet } from "@/components/domain/gym-schedules/GymScheduleDetailSheet";
+import { GymCalendarGroupClassDetailDialog } from "@/components/domain/gym-schedules/GymCalendarGroupClassDetailDialog";
 import { Button, buttonVariants } from "@/components/ui/button";
 import { gymStaffColorClass } from "@/lib/gym-schedule/labels";
 import { TEN_MINUTE_TIME_OPTIONS } from "@/lib/gym-schedule/hours";
@@ -21,7 +22,12 @@ import {
   scheduleGridTotalHeightPx,
   toSeoulDateKey,
 } from "@/lib/gym-schedule/seoul-schedule";
-import { matchonFieldInputClass } from "@/lib/ui/matchon-shell-ui";
+import {
+  matchonToolbarButtonClass,
+  matchonToolbarControlClass,
+  matchonToolbarSegmentClass,
+  matchonToolbarSegmentItemClass,
+} from "@/lib/ui/matchon-shell-ui";
 import { cn } from "@/lib/utils";
 import type { GymCalendarItem } from "@/lib/gym-schedule/calendar-item";
 import type { GymScheduleVM } from "@/lib/services/gym-schedule.service";
@@ -126,6 +132,9 @@ export function GymScheduleCalendarApp({
     (searchParams.get("kind") as "all" | "personal" | "group_class") || "all";
 
   const [selected, setSelected] = useState<GymCalendarItem | null>(null);
+  const [selectedGroup, setSelectedGroup] = useState<GymCalendarItem | null>(
+    null,
+  );
   const [formOpen, setFormOpen] = useState(false);
   const [formDefaults, setFormDefaults] = useState<{
     dateKey: string;
@@ -135,6 +144,31 @@ export function GymScheduleCalendarApp({
     scheduleId?: string;
   } | null>(null);
   const [mobileWeekDay, setMobileWeekDay] = useState(dateKey);
+  const weekScrollRef = useRef<HTMLDivElement | null>(null);
+  const scrollPositionRef = useRef<{ week: number; windowY: number }>({
+    week: 0,
+    windowY: 0,
+  });
+  const pendingReopenPersonalIdRef = useRef<string | null>(null);
+
+  function captureScrollPosition() {
+    scrollPositionRef.current = {
+      week: weekScrollRef.current?.scrollTop ?? 0,
+      windowY: typeof window !== "undefined" ? window.scrollY : 0,
+    };
+  }
+
+  function restoreScrollPosition() {
+    const { week, windowY } = scrollPositionRef.current;
+    requestAnimationFrame(() => {
+      if (weekScrollRef.current) {
+        weekScrollRef.current.scrollTop = week;
+      }
+      if (typeof window !== "undefined") {
+        window.scrollTo(0, windowY);
+      }
+    });
+  }
 
   function pushQuery(patch: Record<string, string | null>) {
     const next = new URLSearchParams(searchParams.toString());
@@ -212,6 +246,8 @@ export function GymScheduleCalendarApp({
 
   function openEdit(item: GymCalendarItem) {
     if (item.itemType !== "personal") return;
+    captureScrollPosition();
+    pendingReopenPersonalIdRef.current = item.id;
     setFormDefaults({
       dateKey: item.dateKey,
       startHm: item.timeRangeLabel.slice(0, 5),
@@ -224,11 +260,22 @@ export function GymScheduleCalendarApp({
   }
 
   function onItemClick(item: GymCalendarItem) {
+    captureScrollPosition();
     if (item.itemType === "group_class") {
-      router.push(`/gym/group-classes/${item.id}`);
+      setSelectedGroup(item);
       return;
     }
     setSelected(item);
+  }
+
+  function closePersonalDetail() {
+    setSelected(null);
+    restoreScrollPosition();
+  }
+
+  function closeGroupDetail() {
+    setSelectedGroup(null);
+    restoreScrollPosition();
   }
 
   function toPersonalVm(item: GymCalendarItem): GymScheduleVM {
@@ -284,103 +331,119 @@ export function GymScheduleCalendarApp({
         <SummaryChip label="이번 주 취소" value={summary.weekCancelled} />
       </div>
 
-      <div className="flex flex-wrap items-center gap-2">
-        <Button
-          type="button"
-          variant="outline"
-          size="sm"
-          onClick={() =>
-            pushQuery({
-              date:
-                view === "month"
-                  ? shiftMonth(dateKey, -1)
-                  : shiftDateKey(dateKey, view === "week" ? -7 : -1),
-            })
-          }
-        >
-          이전
-        </Button>
-        <Button
-          type="button"
-          variant="outline"
-          size="sm"
-          onClick={() => pushQuery({ date: todayKey })}
-        >
-          오늘
-        </Button>
-        <Button
-          type="button"
-          variant="outline"
-          size="sm"
-          onClick={() =>
-            pushQuery({
-              date:
-                view === "month"
-                  ? shiftMonth(dateKey, 1)
-                  : shiftDateKey(dateKey, view === "week" ? 7 : 1),
-            })
-          }
-        >
-          다음
-        </Button>
-        <div className="flex rounded-lg border border-matchon-border p-0.5">
-          {(["month", "week", "day"] as ViewMode[]).map((v) => (
-            <button
-              key={v}
-              type="button"
-              className={cn(
-                "rounded-md px-3 py-1.5 text-sm",
-                view === v
-                  ? "bg-primary text-primary-foreground"
-                  : "text-matchon-text-secondary",
-              )}
-              onClick={() => pushQuery({ view: v })}
-            >
-              {v === "month" ? "월간" : v === "week" ? "주간" : "일간"}
-            </button>
-          ))}
-        </div>
-        <p className="min-w-0 flex-1 text-sm font-medium">{title}</p>
-        {viewer === "owner" && !fixedStaffId ? (
-          <select
-            className={cn(matchonFieldInputClass, "w-auto min-w-[140px]")}
-            value={staffFilter}
-            onChange={(e) =>
-              pushQuery({ staffId: e.target.value || null })
+      <div className="flex flex-col gap-3">
+        <div className="flex flex-wrap items-center gap-2">
+          <Button
+            type="button"
+            variant="outline"
+            className={matchonToolbarButtonClass}
+            onClick={() =>
+              pushQuery({
+                date:
+                  view === "month"
+                    ? shiftMonth(dateKey, -1)
+                    : shiftDateKey(dateKey, view === "week" ? -7 : -1),
+              })
             }
           >
-            <option value="">전체 선생님</option>
-            {staffOptions.map((s) => (
-              <option key={s.id} value={s.id}>
-                {s.name}
-              </option>
+            이전
+          </Button>
+          <Button
+            type="button"
+            variant="outline"
+            className={matchonToolbarButtonClass}
+            onClick={() => pushQuery({ date: todayKey })}
+          >
+            오늘
+          </Button>
+          <Button
+            type="button"
+            variant="outline"
+            className={matchonToolbarButtonClass}
+            onClick={() =>
+              pushQuery({
+                date:
+                  view === "month"
+                    ? shiftMonth(dateKey, 1)
+                    : shiftDateKey(dateKey, view === "week" ? 7 : 1),
+              })
+            }
+          >
+            다음
+          </Button>
+          <div className={matchonToolbarSegmentClass}>
+            {(["month", "week", "day"] as ViewMode[]).map((v) => (
+              <button
+                key={v}
+                type="button"
+                className={cn(
+                  matchonToolbarSegmentItemClass,
+                  view === v
+                    ? "bg-primary text-primary-foreground"
+                    : "text-matchon-text-secondary",
+                )}
+                onClick={() => pushQuery({ view: v })}
+              >
+                {v === "month" ? "월간" : v === "week" ? "주간" : "일간"}
+              </button>
             ))}
+          </div>
+          <p className="flex h-10 min-w-0 items-center text-sm font-medium">
+            {title}
+          </p>
+        </div>
+        <div className="flex flex-wrap items-center gap-2">
+          {viewer === "owner" && !fixedStaffId ? (
+            <select
+              className={cn(matchonToolbarControlClass, "min-w-[140px]")}
+              value={staffFilter}
+              onChange={(e) =>
+                pushQuery({ staffId: e.target.value || null })
+              }
+              aria-label="선생님 필터"
+            >
+              <option value="">전체 선생님</option>
+              {staffOptions.map((s) => (
+                <option key={s.id} value={s.id}>
+                  {s.name}
+                </option>
+              ))}
+            </select>
+          ) : null}
+          <select
+            className={matchonToolbarControlClass}
+            value={itemKindFilter}
+            onChange={(e) => pushQuery({ kind: e.target.value || "all" })}
+            aria-label="일정 종류"
+          >
+            <option value="all">전체 종류</option>
+            <option value="personal">개인 일정</option>
+            <option value="group_class">그룹수업</option>
           </select>
-        ) : null}
-        <select
-          className={cn(matchonFieldInputClass, "w-auto")}
-          value={itemKindFilter}
-          onChange={(e) => pushQuery({ kind: e.target.value || "all" })}
-        >
-          <option value="all">전체 일정</option>
-          <option value="personal">개인 일정</option>
-          <option value="group_class">그룹수업</option>
-        </select>
-        <select
-          className={cn(matchonFieldInputClass, "w-auto")}
-          value={statusFilter}
-          onChange={(e) => pushQuery({ status: e.target.value })}
-        >
-          <option value="active">취소 제외</option>
-          <option value="all">전체 상태</option>
-          <option value="scheduled">예정</option>
-          <option value="completed">완료</option>
-          <option value="no_show">노쇼</option>
-          <option value="cancelled">취소</option>
-        </select>
-        <Button type="button" size="sm" onClick={() => openCreate()}>
-          일정 등록
-        </Button>
+          <select
+            className={matchonToolbarControlClass}
+            value={statusFilter}
+            onChange={(e) => pushQuery({ status: e.target.value })}
+            aria-label="상태 필터"
+          >
+            <option value="active">취소 제외</option>
+            <option value="all">전체 상태</option>
+            <option value="scheduled">예정</option>
+            <option value="completed">완료</option>
+            <option value="no_show">노쇼</option>
+            <option value="cancelled">취소</option>
+          </select>
+          <Button
+            type="button"
+            className={matchonToolbarButtonClass}
+            onClick={() => {
+              captureScrollPosition();
+              openCreate();
+            }}
+          >
+            일정 등록
+          </Button>
+        </div>
       </div>
 
       {view === "month" ? (
@@ -401,8 +464,12 @@ export function GymScheduleCalendarApp({
               byDate={byDate}
               todayKey={todayKey}
               nowTop={nowLineTop}
+              scrollRef={weekScrollRef}
               onItemClick={onItemClick}
-              onSlotClick={(dk, hm) => openCreate({ dateKey: dk, startHm: hm })}
+              onSlotClick={(dk, hm) => {
+                captureScrollPosition();
+                openCreate({ dateKey: dk, startHm: hm });
+              }}
             />
           </div>
           <div className="md:hidden space-y-3">
@@ -451,7 +518,10 @@ export function GymScheduleCalendarApp({
           items={byDate.get(dateKey) ?? []}
           nowTop={nowLineTop}
           onItemClick={onItemClick}
-          onSlotClick={(hm) => openCreate({ dateKey, startHm: hm })}
+          onSlotClick={(hm) => {
+            captureScrollPosition();
+            openCreate({ dateKey, startHm: hm });
+          }}
         />
       ) : null}
 
@@ -459,18 +529,40 @@ export function GymScheduleCalendarApp({
         item={selected ? toPersonalVm(selected) : null}
         open={Boolean(selected)}
         onOpenChange={(open) => {
-          if (!open) setSelected(null);
+          if (!open) closePersonalDetail();
         }}
         onEdit={() => selected && openEdit(selected)}
         onChanged={() => {
           setSelected(null);
+          restoreScrollPosition();
           router.refresh();
+        }}
+      />
+
+      <GymCalendarGroupClassDetailDialog
+        item={selectedGroup}
+        open={Boolean(selectedGroup)}
+        onOpenChange={(open) => {
+          if (!open) closeGroupDetail();
         }}
       />
 
       <GymScheduleFormDialog
         open={formOpen}
-        onOpenChange={setFormOpen}
+        onOpenChange={(open) => {
+          setFormOpen(open);
+          if (!open) {
+            const reopenId = pendingReopenPersonalIdRef.current;
+            pendingReopenPersonalIdRef.current = null;
+            if (reopenId) {
+              const found = initialItems.find((i) => i.id === reopenId);
+              if (found && found.itemType === "personal") {
+                setSelected(found);
+              }
+            }
+            restoreScrollPosition();
+          }
+        }}
         staffOptions={staffOptions}
         memberOptions={memberOptions}
         fixedStaffId={fixedStaffId}
@@ -486,7 +578,9 @@ export function GymScheduleCalendarApp({
             : null
         }
         onSaved={() => {
+          pendingReopenPersonalIdRef.current = null;
           setFormOpen(false);
+          restoreScrollPosition();
           router.refresh();
         }}
       />
@@ -494,7 +588,7 @@ export function GymScheduleCalendarApp({
       <p className="text-xs text-matchon-text-secondary">
         시작·종료는 10분 단위입니다. 같은 선생님·같은 회원 일정은 겹칠 수
         없습니다.
-        {myOnly ? " (내 일정 범위)" : null}
+        {myOnly ? " (내 일정 범위)" : " (전체 일정 범위)"}
       </p>
       <div className="flex flex-wrap gap-2 text-xs">
         <Link href="/gym/members" className={buttonVariants({ variant: "link", size: "sm" })}>
@@ -604,6 +698,7 @@ function WeekDesktop({
   byDate,
   todayKey,
   nowTop,
+  scrollRef,
   onItemClick,
   onSlotClick,
 }: {
@@ -611,6 +706,7 @@ function WeekDesktop({
   byDate: Map<string, GymCalendarItem[]>;
   todayKey: string;
   nowTop: number;
+  scrollRef: RefObject<HTMLDivElement | null>;
   onItemClick: (item: GymCalendarItem) => void;
   onSlotClick: (dateKey: string, hm: string) => void;
 }) {
@@ -620,7 +716,11 @@ function WeekDesktop({
     (_, i) => SCHEDULE_GRID_START_HOUR + i,
   );
   return (
-    <div className="overflow-auto rounded-xl border border-matchon-border">
+    <div
+      ref={scrollRef}
+      className="overflow-auto rounded-xl border border-matchon-border"
+      data-testid="schedule-week-scroll"
+    >
       <div className="sticky top-0 z-10 grid grid-cols-[56px_repeat(7,minmax(0,1fr))] border-b border-matchon-border bg-background">
         <div />
         {weekDays.map((dk, i) => (

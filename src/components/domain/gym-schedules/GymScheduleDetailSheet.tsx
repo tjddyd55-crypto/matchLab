@@ -196,6 +196,13 @@ export function GymScheduleDetailSheet({
             >
               회원 상세 보기
             </Link>
+            <Button
+              type="button"
+              variant="outline"
+              onClick={() => onOpenChange(false)}
+            >
+              닫기
+            </Button>
           </DialogFooter>
         )}
       </DialogContent>

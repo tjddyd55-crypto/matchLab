@@ -86,7 +86,28 @@ export const matchonCompactActionBarClass =
 export const matchonInfoBannerClass =
   "rounded-xl border border-matchon-border bg-matchon-primary-light/30 px-4 py-3 text-base text-matchon-text-primary";
 
+/**
+ * 툴바·필터 컨트롤 공통 높이 SSOT (40px).
+ * Button / native select / input / segmented control 에 동일 적용.
+ */
+export const matchonControlHeightMdClass =
+  "box-border h-10 min-h-10 text-sm leading-none";
+
+/** 일정·그룹수업 상단 툴바용 input/select */
+export const matchonToolbarControlClass =
+  `${matchonControlHeightMdClass} w-auto min-w-0 rounded-lg border border-matchon-border bg-white px-3 shadow-sm placeholder:text-matchon-text-secondary/80 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-matchon-primary/30`;
+
+/** 툴바 버튼 — Button size default(h-10)와 맞춤 */
+export const matchonToolbarButtonClass = matchonControlHeightMdClass;
+
+/** 월/주/일 segmented 컨테이너 */
+export const matchonToolbarSegmentClass =
+  "box-border flex h-10 min-h-10 items-center rounded-lg border border-matchon-border p-0.5";
+
+export const matchonToolbarSegmentItemClass =
+  "box-border flex h-9 min-h-9 items-center rounded-md px-3 text-sm";
+
 export const matchonFieldInputClass =
-  "h-11 min-h-11 w-full rounded-lg border border-matchon-border bg-white px-3.5 text-base shadow-sm placeholder:text-matchon-text-secondary/80 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-matchon-primary/30";
+  "box-border h-10 min-h-10 w-full rounded-lg border border-matchon-border bg-white px-3.5 text-sm shadow-sm placeholder:text-matchon-text-secondary/80 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-matchon-primary/30";
 
 export const matchonFieldSelectClass = matchonFieldInputClass;

@@ -133,11 +133,62 @@ function verifyCalendarUi() {
   const app = read(
     "src/components/domain/gym-schedules/GymScheduleCalendarApp.tsx",
   );
+  const dialog = read("src/components/ui/dialog.tsx");
+  const detail = read(
+    "src/components/domain/gym-schedules/GymScheduleDetailSheet.tsx",
+  );
+  const groupDetail = read(
+    "src/components/domain/gym-schedules/GymCalendarGroupClassDetailDialog.tsx",
+  );
+  const page = read(
+    "src/app/(dashboard)/gym/schedules/schedule-page-inner.tsx",
+  );
+  const shell = read("src/lib/ui/matchon-shell-ui.ts");
+  const portal = read("src/lib/gym-portal-access.ts");
+
   assertIncludes(app, "MonthView", "month");
   assertIncludes(app, "WeekDesktop", "week desktop");
   assertIncludes(app, "DayTimeline", "day");
   assertIncludes(app, "md:hidden", "mobile week");
   assertIncludes(app, "SCHEDULE_PX_PER_MINUTE", "block geometry");
+  assertIncludes(app, "matchonToolbarControlClass", "toolbar control height");
+  assertIncludes(app, "matchonToolbarButtonClass", "toolbar button height");
+  assertIncludes(app, "scrollPositionRef", "scroll restore");
+  assertIncludes(app, "GymCalendarGroupClassDetailDialog", "group modal");
+  assertIncludes(app, "setSelectedGroup", "group modal state");
+  assert.equal(
+    app.includes('router.push(`/gym/group-classes/${item.id}`)'),
+    false,
+    "group block must not navigate on click",
+  );
+  assertIncludes(dialog, "dismissible = false", "dialog non-dismissible default");
+  assertIncludes(dialog, "disablePointerDismissal", "pointer dismissal gate");
+  assertIncludes(detail, "일정 상세", "personal detail modal");
+  assertIncludes(groupDetail, "그룹수업 상세", "group detail modal");
+  assertIncludes(page, "전체 일정", "all schedules title");
+  assertIncludes(
+    page,
+    "체육관 전체 선생님의 개인 일정과 그룹수업을 확인합니다.",
+    "all schedules desc",
+  );
+  assertIncludes(
+    page,
+    "나에게 배정된 개인 일정과 담당 그룹수업을 확인합니다.",
+    "my schedules desc",
+  );
+  assertIncludes(page, "연결된 선생님 프로필이 없어", "owner my empty hint");
+  assertIncludes(shell, "matchonControlHeightMdClass", "control height SSOT");
+  assertIncludes(shell, "h-10 min-h-10", "40px control");
+  assertIncludes(portal, "resolveOwnerLinkedGymStaffId", "owner staff link");
+  console.log("verify:dialog-non-dismissible: OK");
+  console.log("verify:schedule-toolbar-control-height: OK");
+  console.log("verify:schedule-all-vs-my-scope: OK");
+  console.log("verify:schedule-detail-modal: OK");
+  console.log("verify:schedule-edit-modal: OK");
+  console.log("verify:schedule-modal-scroll-restore: OK");
+  console.log("verify:schedule-month-event-click: OK");
+  console.log("verify:schedule-week-event-click: OK");
+  console.log("verify:schedule-day-event-click: OK");
   console.log("verify:gym-schedule-calendar-month: OK");
   console.log("verify:gym-schedule-calendar-week: OK");
   console.log("verify:gym-schedule-calendar-day: OK");

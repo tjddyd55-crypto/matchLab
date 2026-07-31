@@ -233,13 +233,36 @@ export async function resolveGymPortalAccess(
       : null,
     ...decision,
     ...ownerCapabilityFlags(decision),
-    gymStaffId: null,
+    // 관장도 GymStaff(userId) 연결이 있으면 "내 일정" 스코프에 사용한다.
+    // createdByUserId 기준이 아니다.
+    gymStaffId: await resolveOwnerLinkedGymStaffId(gymId, actor.userId),
   };
+}
+
+async function resolveOwnerLinkedGymStaffId(
+  gymId: string,
+  userId: string,
+): Promise<string | null> {
+  const linked = await prisma.gymStaff.findFirst({
+    where: {
+      gymId,
+      userId,
+      deletedAt: null,
+    },
+    select: { id: true },
+  });
+  return linked?.id ?? null;
 }
 
 export async function requireGymPortalRead(
   actor: ActorContext,
 ): Promise<GymPortalAccess> {
+  if (actor.role === "gym_staff" && actor.mustChangePassword) {
+    throw new PermissionError(
+      "FORBIDDEN",
+      "임시 비밀번호를 변경한 뒤 이용해 주세요.",
+    );
+  }
   const access = await resolveGymPortalAccess(actor);
   if (!access.canEnterPortal || !access.canRead) {
     throw new PermissionError(

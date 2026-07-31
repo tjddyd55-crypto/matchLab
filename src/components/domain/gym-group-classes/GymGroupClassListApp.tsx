@@ -13,7 +13,12 @@ import {
   getSeoulYmdParts,
   toSeoulDateKey,
 } from "@/lib/gym-schedule/seoul-schedule";
-import { matchonFieldInputClass } from "@/lib/ui/matchon-shell-ui";
+import {
+  matchonToolbarButtonClass,
+  matchonToolbarControlClass,
+  matchonToolbarSegmentClass,
+  matchonToolbarSegmentItemClass,
+} from "@/lib/ui/matchon-shell-ui";
 import type { GymGroupClassVM } from "@/lib/services/gym-group-class.service";
 import type { ScheduleStaffOption } from "@/components/domain/gym-schedules/GymScheduleCalendarApp";
 import { cn } from "@/lib/utils";
@@ -169,93 +174,99 @@ export function GymGroupClassListApp({
 
   return (
     <div className="space-y-4">
-      <div className="flex flex-wrap items-center gap-2">
-        <Button
-          type="button"
-          variant="outline"
-          size="sm"
-          onClick={() =>
-            pushQuery({
-              date:
-                view === "month"
-                  ? shiftMonth(dateKey, -1)
-                  : shiftDateKey(dateKey, view === "week" ? -7 : -1),
-            })
-          }
-        >
-          이전
-        </Button>
-        <Button
-          type="button"
-          variant="outline"
-          size="sm"
-          onClick={() => pushQuery({ date: todayKey })}
-        >
-          오늘
-        </Button>
-        <Button
-          type="button"
-          variant="outline"
-          size="sm"
-          onClick={() =>
-            pushQuery({
-              date:
-                view === "month"
-                  ? shiftMonth(dateKey, 1)
-                  : shiftDateKey(dateKey, view === "week" ? 7 : 1),
-            })
-          }
-        >
-          다음
-        </Button>
-        <div className="flex rounded-lg border border-matchon-border p-0.5">
-          {(["month", "week", "day"] as ViewMode[]).map((v) => (
-            <button
-              key={v}
-              type="button"
-              className={cn(
-                "rounded-md px-3 py-1.5 text-sm",
-                view === v
-                  ? "bg-primary text-primary-foreground"
-                  : "text-matchon-text-secondary",
-              )}
-              onClick={() => pushQuery({ view: v })}
-            >
-              {v === "month" ? "월간" : v === "week" ? "주간" : "일간"}
-            </button>
-          ))}
-        </div>
-        <p className="min-w-0 flex-1 text-sm font-medium">{title}</p>
-        {viewer === "owner" && !fixedStaffId ? (
-          <select
-            className={cn(matchonFieldInputClass, "w-auto min-w-[140px]")}
-            value={staffFilter}
-            onChange={(e) => pushQuery({ staffId: e.target.value || null })}
+      <div className="flex flex-col gap-3">
+        <div className="flex flex-wrap items-center gap-2">
+          <Button
+            type="button"
+            variant="outline"
+            className={matchonToolbarButtonClass}
+            onClick={() =>
+              pushQuery({
+                date:
+                  view === "month"
+                    ? shiftMonth(dateKey, -1)
+                    : shiftDateKey(dateKey, view === "week" ? -7 : -1),
+              })
+            }
           >
-            <option value="">전체 선생님</option>
-            {staffOptions.map((s) => (
-              <option key={s.id} value={s.id}>
-                {s.name}
+            이전
+          </Button>
+          <Button
+            type="button"
+            variant="outline"
+            className={matchonToolbarButtonClass}
+            onClick={() => pushQuery({ date: todayKey })}
+          >
+            오늘
+          </Button>
+          <Button
+            type="button"
+            variant="outline"
+            className={matchonToolbarButtonClass}
+            onClick={() =>
+              pushQuery({
+                date:
+                  view === "month"
+                    ? shiftMonth(dateKey, 1)
+                    : shiftDateKey(dateKey, view === "week" ? 7 : 1),
+              })
+            }
+          >
+            다음
+          </Button>
+          <div className={matchonToolbarSegmentClass}>
+            {(["month", "week", "day"] as ViewMode[]).map((v) => (
+              <button
+                key={v}
+                type="button"
+                className={cn(
+                  matchonToolbarSegmentItemClass,
+                  view === v
+                    ? "bg-primary text-primary-foreground"
+                    : "text-matchon-text-secondary",
+                )}
+                onClick={() => pushQuery({ view: v })}
+              >
+                {v === "month" ? "월간" : v === "week" ? "주간" : "일간"}
+              </button>
+            ))}
+          </div>
+          <p className="flex h-10 min-w-0 items-center text-sm font-medium">
+            {title}
+          </p>
+        </div>
+        <div className="flex flex-wrap items-center gap-2">
+          {viewer === "owner" && !fixedStaffId ? (
+            <select
+              className={cn(matchonToolbarControlClass, "min-w-[140px]")}
+              value={staffFilter}
+              onChange={(e) => pushQuery({ staffId: e.target.value || null })}
+              aria-label="선생님 필터"
+            >
+              <option value="">전체 선생님</option>
+              {staffOptions.map((s) => (
+                <option key={s.id} value={s.id}>
+                  {s.name}
+                </option>
+              ))}
+            </select>
+          ) : null}
+          <select
+            className={matchonToolbarControlClass}
+            value={statusFilter}
+            onChange={(e) => pushQuery({ status: e.target.value })}
+            aria-label="상태 필터"
+          >
+            <option value="active">취소 제외</option>
+            <option value="all">전체 상태</option>
+            {GYM_GROUP_CLASS_STATUS_OPTIONS.map((o) => (
+              <option key={o.value} value={o.value}>
+                {o.label}
               </option>
             ))}
           </select>
-        ) : null}
-        <select
-          className={cn(matchonFieldInputClass, "w-auto")}
-          value={statusFilter}
-          onChange={(e) => pushQuery({ status: e.target.value })}
-        >
-          <option value="active">취소 제외</option>
-          <option value="all">전체 상태</option>
-          {GYM_GROUP_CLASS_STATUS_OPTIONS.map((o) => (
-            <option key={o.value} value={o.value}>
-              {o.label}
-            </option>
-          ))}
-        </select>
-        <div className="flex items-center gap-1">
           <input
-            className={cn(matchonFieldInputClass, "w-36")}
+            className={cn(matchonToolbarControlClass, "min-w-[10rem] flex-1")}
             value={searchInput}
             onChange={(e) => setSearchInput(e.target.value)}
             onKeyDown={(e) => {
@@ -264,19 +275,24 @@ export function GymGroupClassListApp({
               }
             }}
             placeholder="수업명 검색"
+            aria-label="수업명 검색"
           />
           <Button
             type="button"
             variant="outline"
-            size="sm"
+            className={matchonToolbarButtonClass}
             onClick={() => pushQuery({ q: searchInput.trim() || null })}
           >
             검색
           </Button>
+          <Button
+            type="button"
+            className={matchonToolbarButtonClass}
+            onClick={() => openCreate()}
+          >
+            수업 등록
+          </Button>
         </div>
-        <Button type="button" size="sm" onClick={() => openCreate()}>
-          수업 등록
-        </Button>
       </div>
 
       {classes.length === 0 ? (

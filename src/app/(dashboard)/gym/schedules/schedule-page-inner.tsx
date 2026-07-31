@@ -136,13 +136,19 @@ export async function SchedulePageInner({
       <div className={matchonPageStackClass}>
         <div className="min-w-0 space-y-1">
           <h1 className={matchonPageTitleClass}>
-            {forceMyOnly ? "내 일정" : "일정 관리"}
+            {forceMyOnly ? "내 일정" : "전체 일정"}
           </h1>
           <p className={matchonPageDescClass}>
             {forceMyOnly
-              ? "내 개인 PT 일정과 그룹수업을 확인합니다."
-              : "개인 PT 일정과 그룹수업을 함께 확인할 수 있습니다."}
+              ? "나에게 배정된 개인 일정과 담당 그룹수업을 확인합니다."
+              : "체육관 전체 선생님의 개인 일정과 그룹수업을 확인합니다."}
           </p>
+          {forceMyOnly && !access.gymStaffId ? (
+            <p className="text-sm text-matchon-text-secondary">
+              관장님에게 연결된 선생님 프로필이 없어 내 일정이 없습니다.
+              선생님 목록에서 본인 계정을 연결하면 내 일정을 볼 수 있습니다.
+            </p>
+          ) : null}
         </div>
         <GymScheduleCalendarApp
           initialItems={calendar.items}

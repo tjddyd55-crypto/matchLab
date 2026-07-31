@@ -166,9 +166,18 @@ function verifyCalendar() {
   assertIncludes(calendarItem, '"group_class"', "group type");
   assertIncludes(scheduleService, "itemKind", "kind filter");
   assertIncludes(scheduleService, "getCalendarItems", "merge group items");
-  assertIncludes(calendarApp, "전체 일정", "kind filter UI");
+  assertIncludes(calendarApp, "전체 종류", "kind filter UI");
   assertIncludes(calendarApp, "group_class", "group click");
-  assertIncludes(calendarApp, "/gym/group-classes/", "navigate detail");
+  assertIncludes(calendarApp, "GymCalendarGroupClassDetailDialog", "group detail modal");
+  const groupModal = read(
+    "src/components/domain/gym-schedules/GymCalendarGroupClassDetailDialog.tsx",
+  );
+  assertIncludes(groupModal, "/gym/group-classes/", "detail manage link path");
+  assert.equal(
+    calendarApp.includes('router.push(`/gym/group-classes/${item.id}`)'),
+    false,
+    "block click must open modal not navigate",
+  );
   console.log("verify:gym-group-class-calendar: OK");
 }
 
