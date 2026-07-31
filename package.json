@@ -258,7 +258,21 @@
     "generate:icons": "node scripts/generate-icons.mjs",
     "desktop:dev": "npm --prefix desktop run dev",
     "desktop:build": "npm --prefix desktop run build",
-    "desktop:package": "npm --prefix desktop run package"
+    "desktop:package": "npm --prefix desktop run package",
+    "verify:desktop-entry-routes": "tsx scripts/verify-desktop-manager.ts entry-routes",
+    "verify:desktop-role-destination": "tsx scripts/verify-desktop-manager.ts role-destination",
+    "verify:desktop-login-reuse": "tsx scripts/verify-desktop-manager.ts login-reuse",
+    "verify:desktop-session-persistence": "tsx scripts/verify-desktop-manager.ts session-persistence",
+    "verify:desktop-logout": "tsx scripts/verify-desktop-manager.ts logout",
+    "verify:desktop-web-regression": "tsx scripts/verify-desktop-manager.ts web-regression",
+    "verify:desktop-navigation-security": "tsx scripts/verify-desktop-manager.ts navigation-security",
+    "verify:desktop-external-links": "tsx scripts/verify-desktop-manager.ts external-links",
+    "verify:desktop-window-security": "tsx scripts/verify-desktop-manager.ts window-security",
+    "verify:desktop-single-instance": "tsx scripts/verify-desktop-manager.ts single-instance",
+    "verify:desktop-environment": "tsx scripts/verify-desktop-manager.ts environment",
+    "verify:desktop-no-secrets": "tsx scripts/verify-desktop-manager.ts no-secrets",
+    "verify:desktop-ui-contract": "tsx scripts/verify-desktop-manager.ts ui-contract",
+    "verify:desktop-manager": "tsx scripts/verify-desktop-manager.ts"
   },
   "prisma": {
     "seed": "tsx prisma/seed.ts"
