@@ -5,6 +5,7 @@ import { AdminMobileNavSheet } from "@/components/layout/AdminMobileNavSheet";
 import { GymMobileNavSheet } from "@/components/layout/GymMobileNavSheet";
 import { OrganizerMobileNavSheet } from "@/components/layout/OrganizerMobileNavSheet";
 import { LogoutButton } from "@/components/domain/auth/LogoutButton";
+import { DesktopHeaderVersion } from "@/components/domain/desktop/DesktopHeaderVersion";
 import { NotificationBell } from "@/components/domain/notifications/NotificationBell";
 import type { GymPortalNavViewer } from "@/lib/navigation/gym-portal-navigation";
 import type { OrganizerGlobalNavGroup } from "@/lib/navigation/organizer-global-navigation";
@@ -21,7 +22,6 @@ type HeaderProps =
       gymNavViewer?: GymPortalNavViewer;
       /** MATCHON Manager — 공개 홈 숨김 등 UI만 분기 (권한 아님). */
       isDesktop?: boolean;
-      desktopAppVersion?: string | null;
     };
 
 export function Header(props: HeaderProps) {
@@ -73,11 +73,7 @@ export function Header(props: HeaderProps) {
         </div>
         <div className="flex flex-wrap items-center gap-2">
           <NotificationBell userId={props.actorUserId} />
-          {isDesktop && props.desktopAppVersion ? (
-            <span className="text-xs text-matchon-text-secondary">
-              Manager {props.desktopAppVersion}
-            </span>
-          ) : null}
+          {isDesktop ? <DesktopHeaderVersion /> : null}
           {!isDesktop ? (
             <Link
               href="/"

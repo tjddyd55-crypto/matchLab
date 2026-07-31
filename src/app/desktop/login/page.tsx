@@ -1,5 +1,6 @@
 import { redirect } from "next/navigation";
 import { AuthLoginShell } from "@/components/domain/auth/AuthLoginShell";
+import { DesktopAppVersionLabel } from "@/components/domain/desktop/DesktopAppVersionLabel";
 import { DesktopLoginForm } from "@/components/domain/desktop/DesktopLoginForm";
 import { getCurrentActor } from "@/lib/auth/actor";
 import { DESKTOP_UNAVAILABLE_PATH } from "@/lib/desktop/constants";
@@ -22,6 +23,7 @@ export default async function DesktopLoginPage() {
       eyebrow="MATCHON Manager"
       title="관리자 로그인"
       description="주최측과 체육관 운영을 위한 관리자 프로그램"
+      footer={<DesktopAppVersionLabel className="mt-6" />}
     >
       <DesktopLoginForm />
     </AuthLoginShell>
