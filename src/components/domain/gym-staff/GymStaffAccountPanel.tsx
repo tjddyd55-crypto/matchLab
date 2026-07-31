@@ -1,6 +1,6 @@
 "use client";
 
-import { useMemo, useState, useTransition } from "react";
+import { useEffect, useMemo, useState, useTransition } from "react";
 import { Button } from "@/components/ui/button";
 import {
   Dialog,
@@ -16,11 +16,20 @@ import {
   resetGymStaffTemporaryPasswordAction,
 } from "@/features/gym-staff-account/actions";
 import { generateTemporaryPassword } from "@/lib/fighter-login";
+import { formatSeoulDateTime } from "@/lib/gym-attendance/seoul-date";
 import {
   GYM_STAFF_ACCOUNT_STATUS_LABEL,
   type GymStaffAccountStatusKind,
 } from "@/lib/gym-staff-account/status";
 import { matchonFieldInputClass } from "@/lib/ui/matchon-shell-ui";
+
+/** ISO → Seoul 고정 포맷 (toLocaleString 금지 — SSR/CSR hydration 불일치 방지) */
+function formatAccountInstant(iso: string | null | undefined): string {
+  if (!iso) return "—";
+  const at = new Date(iso);
+  if (Number.isNaN(at.getTime())) return "—";
+  return formatSeoulDateTime(at);
+}
 
 type CredentialsReveal = {
   kind: "created" | "reset";
@@ -106,14 +115,32 @@ export function GymStaffAccountPanel({
     setShowPassword(true);
   }
 
-  function resetCreateForm() {
-    setNewLoginId("");
+  function clearSensitivePasswordState() {
     setPassword("");
     setPasswordConfirm("");
     setShowPassword(false);
+  }
+
+  function resetCreateForm() {
+    setNewLoginId("");
+    clearSensitivePasswordState();
     setLoginIdHint(null);
     setError(null);
   }
+
+  function closeReveal() {
+    setReveal(null);
+    clearSensitivePasswordState();
+  }
+
+  useEffect(() => {
+    return () => {
+      // unmount 시 평문 임시 비밀번호 state 제거
+      setReveal(null);
+      setPassword("");
+      setPasswordConfirm("");
+    };
+  }, []);
 
   async function checkLoginId() {
     const res = await checkGymStaffAccountLoginIdAction({
@@ -146,12 +173,13 @@ export function GymStaffAccountPanel({
         setError(res.error.message);
         return;
       }
+      const issuedPassword = password;
       setCreateOpen(false);
       setReveal({
         kind: "created",
         staffName,
         loginId: res.data.loginId,
-        temporaryPassword: password,
+        temporaryPassword: issuedPassword,
       });
       resetCreateForm();
     });
@@ -170,16 +198,15 @@ export function GymStaffAccountPanel({
         setError(res.error.message);
         return;
       }
+      const issuedPassword = password;
       setResetOpen(false);
       setReveal({
         kind: "reset",
         staffName,
         loginId: res.data.loginId,
-        temporaryPassword: password,
+        temporaryPassword: issuedPassword,
       });
-      setPassword("");
-      setPasswordConfirm("");
-      setShowPassword(false);
+      clearSensitivePasswordState();
     });
   }
 
@@ -233,15 +260,11 @@ export function GymStaffAccountPanel({
             </p>
             <p>
               <span className="text-matchon-text-secondary">계정 생성일</span>{" "}
-              {accountCreatedAt
-                ? new Date(accountCreatedAt).toLocaleString("ko-KR")
-                : "—"}
+              {formatAccountInstant(accountCreatedAt)}
             </p>
             <p>
               <span className="text-matchon-text-secondary">비밀번호 발급</span>{" "}
-              {passwordIssuedAt
-                ? new Date(passwordIssuedAt).toLocaleString("ko-KR")
-                : "—"}
+              {formatAccountInstant(passwordIssuedAt)}
             </p>
           </div>
           <div className="flex flex-wrap gap-2">
@@ -482,14 +505,14 @@ export function GymStaffAccountPanel({
         </DialogContent>
       </Dialog>
 
-      {/* 완료 안내 — 평문은 메모리에만 */}
+      {/* 완료 안내 — 평문은 React state 메모리에만 1회 */}
       <Dialog
         open={Boolean(reveal)}
         onOpenChange={(open) => {
-          if (!open) setReveal(null);
+          if (!open) closeReveal();
         }}
       >
-        <DialogContent className="sm:max-w-md">
+        <DialogContent className="sm:max-w-md" showCloseButton={false}>
           <DialogHeader>
             <DialogTitle>
               {reveal?.kind === "reset"
@@ -497,8 +520,10 @@ export function GymStaffAccountPanel({
                 : "로그인 계정이 만들어졌습니다"}
             </DialogTitle>
             <DialogDescription>
-              아래 정보를 선생님에게 전달해 주세요. 임시 비밀번호는 이 화면을
-              닫으면 다시 확인할 수 없습니다.
+              임시 비밀번호는 지금 한 번만 확인할 수 있습니다. 선생님에게
+              안전하게 전달해 주세요. 최초 로그인 후 새 비밀번호로 변경해야
+              합니다. 복사한 내용은 클립보드에 남을 수 있으니 전달 후 주의해
+              주세요.
             </DialogDescription>
           </DialogHeader>
           {reveal ? (
@@ -543,7 +568,7 @@ export function GymStaffAccountPanel({
             </div>
           ) : null}
           <DialogFooter>
-            <Button type="button" onClick={() => setReveal(null)}>
+            <Button type="button" onClick={closeReveal}>
               확인했습니다
             </Button>
           </DialogFooter>

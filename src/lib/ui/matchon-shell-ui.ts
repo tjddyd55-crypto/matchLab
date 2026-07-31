@@ -100,12 +100,12 @@ export const matchonToolbarControlClass =
 /** 툴바 버튼 — Button size default(h-10)와 맞춤 */
 export const matchonToolbarButtonClass = matchonControlHeightMdClass;
 
-/** 월/주/일 segmented 컨테이너 */
+/** 월/주/일 segmented 컨테이너 — 내부 항목도 h-10으로 맞춤 */
 export const matchonToolbarSegmentClass =
-  "box-border flex h-10 min-h-10 items-center rounded-lg border border-matchon-border p-0.5";
+  "box-border flex h-10 min-h-10 items-center overflow-hidden rounded-lg border border-matchon-border";
 
 export const matchonToolbarSegmentItemClass =
-  "box-border flex h-9 min-h-9 items-center rounded-md px-3 text-sm";
+  "box-border flex h-10 min-h-10 items-center rounded-none px-3 text-sm first:rounded-l-[calc(0.5rem-1px)] last:rounded-r-[calc(0.5rem-1px)]";
 
 export const matchonFieldInputClass =
   "box-border h-10 min-h-10 w-full rounded-lg border border-matchon-border bg-white px-3.5 text-sm shadow-sm placeholder:text-matchon-text-secondary/80 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-matchon-primary/30";
