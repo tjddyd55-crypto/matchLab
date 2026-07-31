@@ -53,6 +53,9 @@ yarn-error.log*
 /desktop/dist
 /desktop/release
 /desktop/release-qa
+/desktop/release-pc2
+/desktop/out-pc2
+/desktop/assets/icon-*.png
 /desktop/*.tsbuildinfo
 
 # typescript
