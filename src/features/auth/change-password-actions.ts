@@ -56,12 +56,31 @@ export async function changeFighterPasswordAction(
       );
     }
 
-    const admin = createSupabaseAdminClient();
-    const { error } = await admin.auth.admin.updateUserById(user.authUserId, {
+    // 현재 세션에서 비밀번호를 바꿔 세션 쿠키를 유지한다.
+    // admin.updateUserById 는 세션을 무효화해 변경 직후 /login 으로 튕길 수 있다.
+    const { error } = await supabase.auth.updateUser({
       password: parsed.data.newPassword,
     });
     if (error) {
-      return actionFailure("INTERNAL", "비밀번호 변경에 실패했습니다.");
+      // 세션 updateUser 실패 시 admin 경로로 재시도한 뒤 새 비밀번호로 재로그인
+      const admin = createSupabaseAdminClient();
+      const adminUpdate = await admin.auth.admin.updateUserById(
+        user.authUserId,
+        { password: parsed.data.newPassword },
+      );
+      if (adminUpdate.error) {
+        return actionFailure("INTERNAL", "비밀번호 변경에 실패했습니다.");
+      }
+      const refresh = await supabase.auth.signInWithPassword({
+        email: authEmail,
+        password: parsed.data.newPassword,
+      });
+      if (refresh.error) {
+        return actionFailure(
+          "INTERNAL",
+          "비밀번호는 변경되었지만 세션을 갱신하지 못했습니다. 다시 로그인해 주세요.",
+        );
+      }
     }
 
     await fighterAccountRepository.updatePasswordFlags(actor.userId, {
