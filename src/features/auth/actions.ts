@@ -10,11 +10,11 @@ import {
   isSupabaseAuthConfigured,
 } from "@/lib/auth/actor";
 import {
-  DESKTOP_LAUNCH_PATH,
   DESKTOP_LOGIN_PATH,
   DESKTOP_MANAGER_UNAVAILABLE_MESSAGE,
 } from "@/lib/desktop/constants";
 import { isDesktopManagerRole } from "@/lib/desktop/manager-roles";
+import { resolveDesktopDestination } from "@/lib/desktop/role-destination";
 import { isMatchonDesktopRequest } from "@/lib/desktop/request";
 import { fighterAccountService } from "@/lib/services/fighter-account.service";
 import {
@@ -113,7 +113,13 @@ export async function signInWithPasswordDesktopAction(
       return actionFailure("FORBIDDEN", DESKTOP_MANAGER_UNAVAILABLE_MESSAGE);
     }
 
-    return actionSuccess({ redirectTo: DESKTOP_LAUNCH_PATH });
+    const destination = resolveDesktopDestination(auth.actor);
+    if (destination.kind === "unavailable") {
+      await revokeCurrentAuthSession();
+      return actionFailure("FORBIDDEN", destination.message);
+    }
+
+    return actionSuccess({ redirectTo: destination.path });
   });
 }
 
