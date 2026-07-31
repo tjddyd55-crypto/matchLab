@@ -202,6 +202,9 @@ function packagingPc2() {
   const copyStatic = read("desktop/scripts/copy-static.cjs");
   const generateIcons = read("desktop/scripts/generate-icons.mjs");
   const login = read("src/app/desktop/login/page.tsx");
+  const preload = read("desktop/electron/preload.ts");
+  const header = read("src/components/layout/Header.tsx");
+  const desktopForm = read("src/components/domain/desktop/DesktopLoginForm.tsx");
 
   assert.equal(pkg.build.appId, "com.matchon.manager");
   assert.equal(pkg.build.productName, "MATCHON Manager");
@@ -213,9 +216,19 @@ function packagingPc2() {
   assert.equal(pkg.build.nsis.deleteAppDataOnUninstall, false);
   assert.equal(pkg.build.win.forceCodeSigning, false);
   assertIncludes(pkg.build.win.icon, "assets/icon.ico", "win icon");
-  assertIncludes(main, "initAutoUpdate", "main wires auto-update stub");
-  assertIncludes(autoUpdate, "disabled_by_default", "auto-update default off");
-  assertIncludes(autoUpdate, "MATCHON_DESKTOP_AUTO_UPDATE", "auto-update opt-in");
+  assertIncludes(main, "initAutoUpdate", "main wires auto-update");
+  assertIncludes(autoUpdate, "MATCHON_DESKTOP_UPDATE_FEED_URL", "feed url env");
+  assertIncludes(autoUpdate, "electron-updater", "updater wired");
+  assertIncludes(autoUpdate, "quitAndInstall", "install path");
+  assertIncludes(preload, "getUpdateStatus", "preload update api");
+  assertIncludes(preload, "installUpdate", "preload install api");
+  assertIncludes(header, "DesktopUpdateStatusButton", "header update button");
+  assertIncludes(login, "DesktopUpdateStatusButton", "login update chrome");
+  assertIncludes(login, 'title="MATCHON Manager"', "login brand title");
+  assertNotIncludes(login, "관리자 로그인", "login no admin title");
+  assertIncludes(desktopForm, "비밀번호 찾기", "password help link");
+  assertIncludes(desktopForm, "관리자에게 문의하기", "inquiry link");
+  assertNotIncludes(desktopForm, "로그인 세션은 서버에서 유지됩니다", "no session note");
   assertIncludes(copyStatic, "public/icon.png", "copy-static must mention not overwriting");
   assertIncludes(generateIcons, "favicon.svg", "icons from web brand SVG");
   assertIncludes(generateIcons, "16, 24, 32, 48, 64, 128, 256", "multi-size ico");
@@ -224,6 +237,43 @@ function packagingPc2() {
   assert.ok(existsSync(join(root, "desktop/assets/icon.png")), "icon.png present");
   assert.ok(existsSync(join(root, "desktop/PACKAGING.md")), "packaging docs");
   console.log("verify:desktop-packaging-pc2: OK");
+}
+
+function supportInquiryPc3() {
+  const schema = read("prisma/schema.prisma");
+  const service = read("src/lib/services/desktop-support-inquiry.service.ts");
+  const actions = read("src/features/desktop-support-inquiry/actions.ts");
+  const adminNav = read("src/lib/navigation/admin-navigation.ts");
+  const listPage = read("src/app/(dashboard)/admin/support-inquiries/page.tsx");
+  const detailPage = read(
+    "src/app/(dashboard)/admin/support-inquiries/[inquiryId]/page.tsx",
+  );
+  const sql = read(
+    "prisma/migrations_manual/20260731_desktop_support_inquiry.sql",
+  );
+
+  assertIncludes(schema, "model DesktopSupportInquiry", "schema model");
+  assertIncludes(schema, "password_help", "schema category");
+  assertIncludes(schema, "DesktopSupportInquiryStatus", "schema status");
+  assertIncludes(sql, "CREATE TABLE IF NOT EXISTS \"DesktopSupportInquiry\"", "sql");
+  assertNotIncludes(sql, "DROP TABLE", "sql additive");
+  assertIncludes(service, "createPublic", "public create");
+  assertIncludes(service, "assertAdmin", "admin gate");
+  assertIncludes(service, "비밀번호·인증번호·토큰", "no secret paste");
+  assertIncludes(service, 'source: "desktop"', "source server-fixed");
+  assertIncludes(service, 'status: "open"', "status server-fixed");
+  assertIncludes(actions, "createDesktopSupportInquiryAction", "public action");
+  assertIncludes(actions, "checkDesktopSupportInquiryRateLimit", "rate limit");
+  assertIncludes(actions, "updateDesktopSupportInquiryStatusAction", "admin action");
+  assertIncludes(actions, 'actor.role !== "admin"', "admin action role gate");
+  assert.ok(
+    existsSync(join(root, "src/lib/desktop/support-inquiry-rate-limit.ts")),
+    "rate limit module",
+  );
+  assertIncludes(adminNav, "/admin/support-inquiries", "admin nav");
+  assertIncludes(listPage, "Manager 문의", "admin list");
+  assertIncludes(detailPage, "AdminSupportInquiryStatusForm", "admin detail");
+  console.log("verify:desktop-support-inquiry-pc3: OK");
 }
 
 function noSecrets() {
@@ -264,7 +314,7 @@ function uiContract() {
   assertIncludes(header, "DesktopHeaderVersion", "header version badge");
   assertIncludes(shell, "isMatchonDesktopRequest", "shell desktop detect");
   assertIncludes(shell, "async function DashboardShell", "async shell");
-  assertIncludes(desktopLogin, "관리자에게 문의해 주세요", "support copy");
+  assertIncludes(desktopLogin, "비밀번호 찾기", "password help");
   assertIncludes(desktopLogin, "AuthLoginForm", "desktop form");
   assertIncludes(preparing, "관리자 환경을 준비하고 있습니다", "splash copy");
   assertIncludes(versionLabel, "getAppVersion", "version from preload SSOT");
@@ -287,6 +337,7 @@ const runners: Record<string, () => void> = {
   "no-secrets": noSecrets,
   "ui-contract": uiContract,
   "packaging-pc2": packagingPc2,
+  "support-inquiry-pc3": supportInquiryPc3,
 };
 
 function main() {
