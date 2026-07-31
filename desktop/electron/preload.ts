@@ -1,4 +1,5 @@
-import { contextBridge, ipcRenderer } from "electron";
+import { contextBridge, ipcRenderer, type IpcRendererEvent } from "electron";
+import type { UpdateStatusSnapshot } from "./auto-update";
 
 /**
  * Renderer에 노출하는 최소 bridge.
@@ -14,6 +15,26 @@ const bridge = {
   retryConnection: (): Promise<boolean> =>
     ipcRenderer.invoke("desktop:retry-connection"),
   isDesktopApp: (): boolean => true,
+  getUpdateStatus: (): Promise<UpdateStatusSnapshot> =>
+    ipcRenderer.invoke("desktop:get-update-status"),
+  checkForUpdates: (): Promise<UpdateStatusSnapshot> =>
+    ipcRenderer.invoke("desktop:check-for-updates"),
+  installUpdate: (): Promise<boolean> =>
+    ipcRenderer.invoke("desktop:install-update"),
+  subscribeUpdateStatus: (
+    callback: (status: UpdateStatusSnapshot) => void,
+  ): (() => void) => {
+    const listener = (
+      _event: IpcRendererEvent,
+      status: UpdateStatusSnapshot,
+    ) => {
+      callback(status);
+    };
+    ipcRenderer.on("desktop:update-status", listener);
+    return () => {
+      ipcRenderer.removeListener("desktop:update-status", listener);
+    };
+  },
 };
 
 contextBridge.exposeInMainWorld("matchonDesktop", bridge);

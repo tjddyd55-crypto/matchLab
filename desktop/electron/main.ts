@@ -1,7 +1,12 @@
 import { app, BrowserWindow, ipcMain, session, nativeImage } from "electron";
 import { existsSync } from "node:fs";
 import { join } from "node:path";
-import { initAutoUpdate } from "./auto-update";
+import {
+  checkForUpdatesNow,
+  getUpdateStatus,
+  initAutoUpdate,
+  installUpdateNow,
+} from "./auto-update";
 import {
   DESKTOP_ENTRY_PATH,
   getDesktopBaseUrl,
@@ -161,6 +166,9 @@ function registerIpc(): void {
     await loadEntry(mainWindow);
     return true;
   });
+  ipcMain.handle("desktop:get-update-status", () => getUpdateStatus());
+  ipcMain.handle("desktop:check-for-updates", async () => checkForUpdatesNow());
+  ipcMain.handle("desktop:install-update", () => installUpdateNow());
 }
 
 const gotLock = app.requestSingleInstanceLock();

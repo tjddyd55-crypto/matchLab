@@ -42,7 +42,12 @@
     "extraMetadata": {
       "main": "dist/main.js"
     },
-    "publish": null,
+    "publish": [
+      {
+        "provider": "generic",
+        "url": "https://updates.example.invalid/matchon-manager/"
+      }
+    ],
     "win": {
       "target": [
         {
@@ -81,6 +86,9 @@
       "uninstallDisplayName": "MATCHON Manager",
       "include": "nsis/installer.nsh"
     }
+  },
+  "dependencies": {
+    "electron-updater": "^6.8.9"
   },
   "devDependencies": {
     "@types/node": "^22.15.21",

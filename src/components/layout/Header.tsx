@@ -6,6 +6,7 @@ import { GymMobileNavSheet } from "@/components/layout/GymMobileNavSheet";
 import { OrganizerMobileNavSheet } from "@/components/layout/OrganizerMobileNavSheet";
 import { LogoutButton } from "@/components/domain/auth/LogoutButton";
 import { DesktopHeaderVersion } from "@/components/domain/desktop/DesktopHeaderVersion";
+import { DesktopUpdateStatusButton } from "@/components/domain/desktop/DesktopUpdateStatusButton";
 import { NotificationBell } from "@/components/domain/notifications/NotificationBell";
 import type { GymPortalNavViewer } from "@/lib/navigation/gym-portal-navigation";
 import type { OrganizerGlobalNavGroup } from "@/lib/navigation/organizer-global-navigation";
@@ -73,6 +74,7 @@ export function Header(props: HeaderProps) {
         </div>
         <div className="flex flex-wrap items-center gap-2">
           <NotificationBell userId={props.actorUserId} />
+          {isDesktop ? <DesktopUpdateStatusButton /> : null}
           {isDesktop ? <DesktopHeaderVersion /> : null}
           {!isDesktop ? (
             <Link
