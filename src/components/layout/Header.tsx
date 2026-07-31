@@ -86,7 +86,9 @@ export function Header(props: HeaderProps) {
               공개 홈
             </Link>
           ) : null}
-          <LogoutButton />
+          <LogoutButton
+            afterLogoutPath={isDesktop ? "/desktop/login" : undefined}
+          />
         </div>
       </div>
     </header>

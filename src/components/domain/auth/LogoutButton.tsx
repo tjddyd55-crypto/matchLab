@@ -5,7 +5,12 @@ import { useRouter } from "next/navigation";
 import { signOutAction } from "@/features/auth/actions";
 import { Button } from "@/components/ui/button";
 
-export function LogoutButton() {
+export function LogoutButton({
+  afterLogoutPath,
+}: {
+  /** desktop Manager 등 — 서버 revoke 후 클라이언트 이동 경로 고정 */
+  afterLogoutPath?: string;
+}) {
   const router = useRouter();
   const [pending, startTransition] = useTransition();
 
@@ -20,7 +25,7 @@ export function LogoutButton() {
         startTransition(async () => {
           const r = await signOutAction();
           if (r.ok) {
-            router.push(r.data.redirectTo);
+            router.push(afterLogoutPath ?? r.data.redirectTo);
             router.refresh();
           }
         });
