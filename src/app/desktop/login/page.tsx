@@ -2,6 +2,7 @@ import { redirect } from "next/navigation";
 import { AuthLoginShell } from "@/components/domain/auth/AuthLoginShell";
 import { DesktopAppVersionLabel } from "@/components/domain/desktop/DesktopAppVersionLabel";
 import { DesktopLoginForm } from "@/components/domain/desktop/DesktopLoginForm";
+import { DesktopUpdateStatusButton } from "@/components/domain/desktop/DesktopUpdateStatusButton";
 import { getCurrentActor } from "@/lib/auth/actor";
 import { DESKTOP_UNAVAILABLE_PATH } from "@/lib/desktop/constants";
 import { isDesktopManagerRole } from "@/lib/desktop/manager-roles";
@@ -18,14 +19,18 @@ export default async function DesktopLoginPage() {
   }
 
   return (
-    <AuthLoginShell
-      logoHref={null}
-      eyebrow="MATCHON Manager"
-      title="관리자 로그인"
-      description="주최측과 체육관 운영을 위한 관리자 프로그램"
-      footer={<DesktopAppVersionLabel className="mt-6" />}
-    >
-      <DesktopLoginForm />
-    </AuthLoginShell>
+    <div className="relative min-h-screen w-full">
+      <div className="absolute right-4 top-4 z-10 sm:right-6 sm:top-5">
+        <DesktopUpdateStatusButton />
+      </div>
+      <AuthLoginShell
+        logoHref={null}
+        title="MATCHON Manager"
+        description="주최측과 체육관 운영을 위한 관리자 프로그램"
+        footer={<DesktopAppVersionLabel className="mt-5 text-[0.7rem] opacity-80" />}
+      >
+        <DesktopLoginForm />
+      </AuthLoginShell>
+    </div>
   );
 }

@@ -14,7 +14,8 @@ import { cn } from "@/lib/utils";
 
 export type AuthLoginShellProps = {
   eyebrow?: string;
-  title: string;
+  /** 생략 시 제목 행을 렌더하지 않음(desktop Manager 심플 카드용). */
+  title?: string;
   description?: string;
   /** description 아래 보조 문구 (대회명 등) */
   subtitle?: ReactNode;
@@ -51,7 +52,7 @@ export function AuthLoginShell({
         </div>
         <header className={authLoginHeaderStackClass}>
           {eyebrow ? <p className={authLoginEyebrowClass}>{eyebrow}</p> : null}
-          <h1 className={authLoginTitleClass}>{title}</h1>
+          {title ? <h1 className={authLoginTitleClass}>{title}</h1> : null}
           {subtitle}
           {description ? (
             <p className={authLoginDescClass}>{description}</p>
