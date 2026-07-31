@@ -1,11 +1,10 @@
 /**
- * 선생님 로그인 계정 — 링크 기반 self setup / 비밀번호 재설정.
+ * 선생님 로그인 계정 — 관장이 아이디·임시 비밀번호를 직접 발급.
  *
- * 정책 (선수 계정 설정과 동일한 계약):
- * - 관장은 링크만 발급한다. 비밀번호는 서버·DB·로그 어디에도 남기지 않는다.
- * - DB에는 tokenHash만 저장하고 raw token은 URL에만 존재한다.
- * - 링크는 1회용이며 새로 발급하면 기존 활성 링크를 폐기한다.
- * - 본인이 직접 설정하므로 `mustChangePassword`는 false.
+ * 정책:
+ * - 비밀번호는 Supabase Auth에만 저장 (DB passwordHash 없음). 평문은 로그·응답 금지.
+ * - GymStaff.userId 가 SSOT 연결. 신규 계정 mustChangePassword=true.
+ * - 설정 링크 신규 발급은 차단. 기존 미사용 token은 계정 생성·재설정 시 폐기.
  */
 import "server-only";
 
@@ -14,13 +13,6 @@ import { AuditAction, UserRole } from "@/lib/enums";
 import { AppError } from "@/lib/errors/app-error";
 import { loginIdToAuthEmail } from "@/lib/fighter-login";
 import {
-  GYM_STAFF_ACCOUNT_SETUP_TTL_MS,
-  GYM_STAFF_PASSWORD_RESET_TTL_MS,
-  buildGymStaffAccountSetupMessage,
-  buildGymStaffAccountSetupUrl,
-  buildGymStaffPasswordResetMessage,
-  buildGymStaffPasswordResetUrl,
-  generateGymStaffAccountToken,
   hashGymStaffAccountToken,
   type GymStaffAccountStatusKind,
 } from "@/lib/gym-staff-account/token";
@@ -44,6 +36,12 @@ export type GymStaffAccountPanelState = {
   statusKind: GymStaffAccountStatusKind;
   loginId: string | null;
   hasAccount: boolean;
+  mustChangePassword: boolean;
+  passwordIssuedAt: string | null;
+  accountCreatedAt: string | null;
+  staffName: string;
+  staffActive: boolean;
+  /** @deprecated 링크 UI 제거 — 항상 null */
   activeSetupExpiresAt: string | null;
   activeResetExpiresAt: string | null;
 };
@@ -95,7 +93,8 @@ async function createGymStaffLoginAccount(input: {
   loginId: string;
   password: string;
   name: string;
-}): Promise<{ userId: string; loginId: string }> {
+  mustChangePassword: boolean;
+}): Promise<{ userId: string; loginId: string; createdAt: Date }> {
   const authEmail = loginIdToAuthEmail(input.loginId);
   const supabase = await ensureSupabaseAdmin();
   const { data, error } = await supabase.auth.admin.createUser({
@@ -106,7 +105,7 @@ async function createGymStaffLoginAccount(input: {
   if (error || !data.user?.id) {
     throw new AppError(
       "CONFLICT",
-      "로그인 계정 생성에 실패했습니다. 아이디가 이미 사용 중일 수 있습니다.",
+      "이미 사용 중인 로그인 아이디입니다.",
       error?.message,
     );
   }
@@ -120,12 +119,16 @@ async function createGymStaffLoginAccount(input: {
         loginId: input.loginId,
         name: input.name,
         role: UserRole.gym_staff,
-        mustChangePassword: false,
+        mustChangePassword: input.mustChangePassword,
         passwordIssuedAt: new Date(),
       },
-      select: { id: true },
+      select: { id: true, createdAt: true },
     });
-    return { userId: user.id, loginId: input.loginId };
+    return {
+      userId: user.id,
+      loginId: input.loginId,
+      createdAt: user.createdAt,
+    };
   } catch (e) {
     await supabase.auth.admin.deleteUser(authUserId).catch(() => undefined);
     throw e;
@@ -247,95 +250,253 @@ export const gymStaffAccountSetupService = {
   ): Promise<GymStaffAccountPanelState> {
     const { staff } = await assertGymCanManageStaffAccount(actor, staffId);
 
-    const [activeSetup, activeReset] = await Promise.all([
-      prisma.gymStaffAccountSetupToken.findFirst({
-        where: { gymStaffId: staffId, usedAt: null, revokedAt: null },
-        orderBy: { createdAt: "desc" },
-        select: { expiresAt: true },
-      }),
-      prisma.gymStaffPasswordResetToken.findFirst({
-        where: { gymStaffId: staffId, usedAt: null, revokedAt: null },
-        orderBy: { createdAt: "desc" },
-        select: { expiresAt: true },
-      }),
-    ]);
-
     const loginId = staff.user?.loginId ?? null;
     const hasAccount = Boolean(staff.userId && loginId);
+    const mustChangePassword = Boolean(staff.user?.mustChangePassword);
 
     let statusKind: GymStaffAccountStatusKind;
-    if (hasAccount) {
-      statusKind = "active";
-    } else if (activeSetup) {
-      statusKind =
-        activeSetup.expiresAt.getTime() > Date.now()
-          ? "setup_link_active"
-          : "setup_link_expired";
-    } else {
+    if (!hasAccount) {
       statusKind = "no_account";
+    } else if (mustChangePassword) {
+      statusKind = "password_change_required";
+    } else {
+      statusKind = "active";
     }
 
     return {
       statusKind,
       loginId,
       hasAccount,
-      activeSetupExpiresAt:
-        activeSetup && activeSetup.expiresAt.getTime() > Date.now()
-          ? activeSetup.expiresAt.toISOString()
-          : null,
-      activeResetExpiresAt:
-        activeReset && activeReset.expiresAt.getTime() > Date.now()
-          ? activeReset.expiresAt.toISOString()
-          : null,
+      mustChangePassword,
+      passwordIssuedAt: staff.user?.passwordIssuedAt?.toISOString() ?? null,
+      accountCreatedAt: staff.user?.createdAt?.toISOString() ?? null,
+      staffName: staff.name,
+      staffActive: staff.isActive,
+      activeSetupExpiresAt: null,
+      activeResetExpiresAt: null,
     };
   },
 
-  async createSetupLink(actor: ActorContext, staffId: string) {
+  /**
+   * @deprecated 설정 링크 신규 발급 차단. UI는 직접 계정 생성을 사용한다.
+   */
+  async createSetupLink(
+    actor: ActorContext,
+    staffId: string,
+  ): Promise<{
+    url: string;
+    expiresAt: Date;
+    message: string;
+  }> {
+    void actor;
+    void staffId;
+    throw new AppError(
+      "FORBIDDEN",
+      "설정 링크 발급은 더 이상 지원하지 않습니다. 로그인 계정 만들기를 이용해 주세요.",
+    );
+  },
+
+  /**
+   * @deprecated 재설정 링크 신규 발급 차단.
+   */
+  async createPasswordResetLink(
+    actor: ActorContext,
+    staffId: string,
+  ): Promise<{
+    url: string;
+    expiresAt: Date;
+    message: string;
+    loginId: string;
+  }> {
+    void actor;
+    void staffId;
+    throw new AppError(
+      "FORBIDDEN",
+      "비밀번호 재설정 링크는 더 이상 지원하지 않습니다. 임시 비밀번호 재설정을 이용해 주세요.",
+    );
+  },
+
+  async createLoginAccount(
+    actor: ActorContext,
+    staffId: string,
+    input: {
+      loginId: string;
+      temporaryPassword: string;
+      temporaryPasswordConfirm: string;
+    },
+  ): Promise<{
+    staffId: string;
+    userId: string;
+    loginId: string;
+    mustChangePassword: true;
+    createdAt: string;
+  }> {
     const { access, staff } = await assertGymCanManageStaffAccount(
       actor,
       staffId,
     );
 
-    const rawToken = generateGymStaffAccountToken();
-    const tokenHash = hashGymStaffAccountToken(rawToken);
-    const expiresAt = new Date(Date.now() + GYM_STAFF_ACCOUNT_SETUP_TTL_MS);
-    const url = buildGymStaffAccountSetupUrl(rawToken);
-    const message = buildGymStaffAccountSetupMessage({
-      staffName: staff.name,
-      gymName: access.gym.name,
-      setupUrl: url,
-      hoursValid: Math.round(
-        GYM_STAFF_ACCOUNT_SETUP_TTL_MS / (60 * 60 * 1000),
-      ),
+    if (!staff.isActive) {
+      throw new AppError(
+        "FORBIDDEN",
+        "퇴사 또는 비활성 상태의 선생님에게는 계정을 만들 수 없습니다.",
+      );
+    }
+    if (staff.userId) {
+      throw new AppError(
+        "CONFLICT",
+        "이미 로그인 계정이 연결된 선생님입니다.",
+      );
+    }
+
+    const loginId = parseLoginId(input.loginId);
+    if (input.temporaryPassword !== input.temporaryPasswordConfirm) {
+      throw new AppError(
+        "VALIDATION_ERROR",
+        "임시 비밀번호 확인이 일치하지 않습니다.",
+      );
+    }
+    const password = parsePassword(input.temporaryPassword, loginId);
+
+    if (await userRepository.isLoginIdTaken(loginId)) {
+      throw new AppError("CONFLICT", "이미 사용 중인 로그인 아이디입니다.");
+    }
+    const authEmail = loginIdToAuthEmail(loginId);
+    if (await userRepository.isAuthEmailTaken(authEmail)) {
+      throw new AppError("CONFLICT", "이미 사용 중인 로그인 아이디입니다.");
+    }
+
+    const account = await createGymStaffLoginAccount({
+      loginId,
+      password,
+      name: staff.name,
+      mustChangePassword: true,
     });
 
+    try {
+      await prisma.$transaction(async (tx) => {
+        await gymStaffRepository.linkUserId(tx, staffId, account.userId);
+        await revokeActiveSetupTokens(staffId, undefined, tx);
+        await revokeActiveResetTokens(staffId, undefined, tx);
+        await auditRepository.createAuditLog(
+          {
+            actorUserId: actor.userId,
+            action: AuditAction.gym_staff_account_setup_completed,
+            targetType: "GymStaff",
+            targetId: staffId,
+            afterData: {
+              userId: account.userId,
+              loginId: account.loginId,
+              mode: "owner_direct",
+              mustChangePassword: true,
+              gymId: access.gymId,
+            },
+          },
+          tx,
+        );
+      });
+    } catch (e) {
+      const supabase = await ensureSupabaseAdmin();
+      const linked = await prisma.user.findUnique({
+        where: { id: account.userId },
+        select: { authUserId: true },
+      });
+      if (linked?.authUserId) {
+        await supabase.auth.admin.deleteUser(linked.authUserId).catch(() => undefined);
+      }
+      await prisma.user.delete({ where: { id: account.userId } }).catch(() => undefined);
+      throw e;
+    }
+
+    return {
+      staffId,
+      userId: account.userId,
+      loginId: account.loginId,
+      mustChangePassword: true,
+      createdAt: account.createdAt.toISOString(),
+    };
+  },
+
+  async resetTemporaryPassword(
+    actor: ActorContext,
+    staffId: string,
+    input: {
+      temporaryPassword: string;
+      temporaryPasswordConfirm: string;
+    },
+  ): Promise<{
+    staffId: string;
+    userId: string;
+    loginId: string;
+    mustChangePassword: true;
+  }> {
+    const { access, staff } = await assertGymCanManageStaffAccount(
+      actor,
+      staffId,
+    );
+
+    if (!staff.isActive) {
+      throw new AppError(
+        "FORBIDDEN",
+        "퇴사 또는 비활성 상태의 선생님 계정은 재설정할 수 없습니다.",
+      );
+    }
+    if (!staff.userId || !staff.user?.loginId || !staff.user.authUserId) {
+      throw new AppError(
+        "NOT_FOUND",
+        "연결된 로그인 계정이 없습니다. 먼저 계정을 만들어 주세요.",
+      );
+    }
+
+    if (input.temporaryPassword !== input.temporaryPasswordConfirm) {
+      throw new AppError(
+        "VALIDATION_ERROR",
+        "임시 비밀번호 확인이 일치하지 않습니다.",
+      );
+    }
+    const password = parsePassword(
+      input.temporaryPassword,
+      staff.user.loginId,
+    );
+
+    await updateSupabaseCredentials(staff.user.authUserId, { password });
+
+    const now = new Date();
     await prisma.$transaction(async (tx) => {
-      await revokeActiveSetupTokens(staffId, undefined, tx);
-      await tx.gymStaffAccountSetupToken.create({
+      await tx.user.update({
+        where: { id: staff.userId! },
         data: {
-          gymStaffId: staffId,
-          userId: staff.userId,
-          tokenHash,
-          expiresAt,
-          createdByUserId: actor.userId,
+          mustChangePassword: true,
+          passwordIssuedAt: now,
+          passwordResetAt: now,
         },
       });
+      await revokeActiveSetupTokens(staffId, undefined, tx);
+      await revokeActiveResetTokens(staffId, undefined, tx);
       await auditRepository.createAuditLog(
         {
           actorUserId: actor.userId,
-          action: AuditAction.gym_staff_account_setup_link_created,
+          action: AuditAction.gym_staff_password_reset_completed,
           targetType: "GymStaff",
           targetId: staffId,
           afterData: {
-            expiresAt: expiresAt.toISOString(),
-            hasLinkedUser: Boolean(staff.userId),
+            userId: staff.userId,
+            loginId: staff.user!.loginId,
+            mode: "owner_temporary_password",
+            mustChangePassword: true,
+            gymId: access.gymId,
           },
         },
         tx,
       );
     });
 
-    return { url, expiresAt, message };
+    return {
+      staffId,
+      userId: staff.userId,
+      loginId: staff.user.loginId,
+      mustChangePassword: true,
+    };
   },
 
   async revokeSetupLink(actor: ActorContext, staffId: string) {
@@ -380,6 +541,7 @@ export const gymStaffAccountSetupService = {
         gymStaff: {
           select: {
             name: true,
+            userId: true,
             gym: { select: { name: true } },
             user: { select: { loginId: true } },
           },
@@ -392,6 +554,16 @@ export const gymStaffAccountSetupService = {
         staffName: "",
         gymName: "",
         status: "invalid",
+        existingLoginId: null,
+      };
+    }
+
+    // 관장이 직접 계정을 만든 뒤 남은 링크는 사용 불가
+    if (row.gymStaff.userId) {
+      return {
+        staffName: "",
+        gymName: "",
+        status: "used",
         existingLoginId: null,
       };
     }
@@ -489,6 +661,13 @@ export const gymStaffAccountSetupService = {
     }
     assertUsableToken(classifyToken(tokenRow), "setup");
 
+    if (tokenRow.gymStaff.userId) {
+      throw new AppError(
+        "FORBIDDEN",
+        "이미 로그인 계정이 연결된 선생님입니다. 로그인 화면에서 로그인해 주세요.",
+      );
+    }
+
     const loginId = parseLoginId(input.loginId);
     const password = parsePassword(input.password, loginId);
     const staff = tokenRow.gymStaff;
@@ -565,6 +744,7 @@ export const gymStaffAccountSetupService = {
       loginId,
       password,
       name: staff.name,
+      mustChangePassword: false,
     });
 
     await prisma.$transaction(async (tx) => {
@@ -588,66 +768,6 @@ export const gymStaffAccountSetupService = {
     });
 
     return { loginId: account.loginId };
-  },
-
-  async createPasswordResetLink(actor: ActorContext, staffId: string) {
-    const { staff } = await assertGymCanManageStaffAccount(actor, staffId);
-
-    if (!staff.userId) {
-      throw new AppError(
-        "VALIDATION_ERROR",
-        "아직 계정이 없습니다. 계정 설정 링크를 먼저 발급해 주세요.",
-      );
-    }
-
-    const user = await userRepository.findUserById(staff.userId);
-    if (!user?.authUserId || !user.loginId) {
-      throw new AppError(
-        "VALIDATION_ERROR",
-        "아직 계정이 없습니다. 계정 설정 링크를 먼저 발급해 주세요.",
-      );
-    }
-
-    const rawToken = generateGymStaffAccountToken();
-    const tokenHash = hashGymStaffAccountToken(rawToken);
-    const expiresAt = new Date(Date.now() + GYM_STAFF_PASSWORD_RESET_TTL_MS);
-    const url = buildGymStaffPasswordResetUrl(rawToken);
-    const message = buildGymStaffPasswordResetMessage({
-      staffName: staff.name,
-      resetUrl: url,
-      hoursValid: Math.round(
-        GYM_STAFF_PASSWORD_RESET_TTL_MS / (60 * 60 * 1000),
-      ),
-    });
-
-    await prisma.$transaction(async (tx) => {
-      await revokeActiveResetTokens(staffId, undefined, tx);
-      await tx.gymStaffPasswordResetToken.create({
-        data: {
-          userId: user.id,
-          gymStaffId: staffId,
-          tokenHash,
-          requestSource: "gym_admin_link",
-          expiresAt,
-          createdByUserId: actor.userId,
-        },
-      });
-      await auditRepository.createAuditLog(
-        {
-          actorUserId: actor.userId,
-          action: AuditAction.gym_staff_password_reset_link_created,
-          targetType: "GymStaff",
-          targetId: staffId,
-          afterData: {
-            expiresAt: expiresAt.toISOString(),
-            requestSource: "gym_admin_link",
-          },
-        },
-        tx,
-      );
-    });
-
-    return { url, expiresAt, message, loginId: user.loginId };
   },
 
   async getResetPageByToken(rawToken: string): Promise<{

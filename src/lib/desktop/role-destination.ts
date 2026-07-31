@@ -23,6 +23,13 @@ export function resolveDesktopDestination(actor: ActorContext): DesktopDestinati
     };
   }
 
+  if (actor.role === "gym_staff" && actor.mustChangePassword) {
+    return {
+      kind: "redirect",
+      path: "/gym/change-password",
+    };
+  }
+
   return {
     kind: "redirect",
     path: dashboardPathForRole(actor.role),

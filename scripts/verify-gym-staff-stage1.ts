@@ -124,22 +124,42 @@ function verifyStaffAccountSetup() {
   const resetPage = read(
     "src/app/(public)/gym-staff/password/reset/[token]/page.tsx",
   );
+  const changePasswordPage = read(
+    "src/app/(dashboard)/gym/change-password/page.tsx",
+  );
+  const authActions = read("src/features/auth/actions.ts");
+  const gate = read("src/lib/auth/gym-staff-password-gate.ts");
 
   assertIncludes(token, "GYM_STAFF_ACCOUNT_SETUP_TTL_MS", "setup ttl");
-  assertIncludes(token, "GYM_STAFF_PASSWORD_RESET_TTL_MS", "reset ttl");
   assertIncludes(token, "sha256", "hash");
-  assertIncludes(token, "/gym-staff/account/setup/", "setup url");
-  assertIncludes(token, "/gym-staff/password/reset/", "reset url");
   assertIncludes(rate, "staff-setup:", "rate key");
   assertIncludes(service, "tokenHash", "hash only");
   assertIncludes(service, "UserRole.gym_staff", "role on create");
-  assertIncludes(service, "mustChangePassword: false", "self setup");
-  assertNotIncludes(service, "temporaryPassword", "no temp password");
-  assertIncludes(actions, "createGymStaffAccountSetupLinkAction", "actions");
-  assertIncludes(panel, "계정 설정 링크 만들기", "owner UI");
-  assertNotIncludes(panel, "임시 비밀번호", "no temp pw UI");
-  assertIncludes(setupPage, "GymStaffAccountSetupForm", "setup page");
-  assertIncludes(resetPage, "GymStaffPasswordResetForm", "reset page");
+  assertIncludes(service, "mustChangePassword: true", "owner direct create");
+  assertIncludes(service, "createLoginAccount", "owner create API");
+  assertIncludes(service, "resetTemporaryPassword", "owner reset API");
+  assertIncludes(
+    service,
+    "설정 링크 발급은 더 이상 지원하지 않습니다",
+    "setup link blocked",
+  );
+  assertIncludes(actions, "createGymStaffLoginAccountAction", "create action");
+  assertIncludes(
+    actions,
+    "resetGymStaffTemporaryPasswordAction",
+    "reset action",
+  );
+  assertIncludes(panel, "로그인 계정 만들기", "owner create UI");
+  assertIncludes(panel, "임시 비밀번호 재설정", "owner reset UI");
+  assertIncludes(panel, "안전한 임시 비밀번호 생성", "generate temp pw");
+  assertIncludes(panel, "로그인 정보 전체 복사", "copy all");
+  assertNotIncludes(panel, "계정 설정 링크 만들기", "no setup link UI");
+  assertNotIncludes(panel, "설정 링크 발급", "no setup badge");
+  assertIncludes(setupPage, "GymStaffAccountSetupForm", "legacy setup page");
+  assertIncludes(resetPage, "GymStaffPasswordResetForm", "legacy reset page");
+  assertIncludes(changePasswordPage, "비밀번호 변경", "force change page");
+  assertIncludes(authActions, "/gym/change-password", "login redirect");
+  assertIncludes(gate, "mustChangePassword", "password gate");
   console.log("verify:gym-staff-account-setup: OK");
 }
 

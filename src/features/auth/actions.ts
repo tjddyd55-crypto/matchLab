@@ -68,6 +68,10 @@ export async function signInWithPasswordAction(
       return actionSuccess({ redirectTo: "/fighter/change-password" });
     }
 
+    if (actor.role === "gym_staff" && actor.mustChangePassword) {
+      return actionSuccess({ redirectTo: "/gym/change-password" });
+    }
+
     if (actor.role === "fighter" && !actor.fighterId) {
       const gate = await fighterAccountService.getFighterRegistrationGate(
         actor,

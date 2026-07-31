@@ -25,7 +25,17 @@ const staffListSelect = {
   colorKey: true,
   isActive: true,
   createdAt: true,
-  user: { select: { id: true, loginId: true } },
+  user: {
+    select: {
+      id: true,
+      loginId: true,
+      mustChangePassword: true,
+      passwordIssuedAt: true,
+      passwordResetAt: true,
+      createdAt: true,
+      authUserId: true,
+    },
+  },
   _count: {
     select: {
       memberAssignments: { where: { deletedAt: null, endedAt: null } },

@@ -20,6 +20,10 @@ export async function changeFighterPasswordAction(
 ): Promise<ActionResult<{ redirectTo: string }>> {
   try {
     const actor = await requireActorFromMutation();
+    if (actor.role !== "fighter" && actor.role !== "gym_staff") {
+      return actionFailure("FORBIDDEN", "비밀번호를 변경할 수 없습니다.");
+    }
+
     const parsed = changePasswordSchema.safeParse({
       currentPassword: formData.get("currentPassword"),
       newPassword: formData.get("newPassword"),
@@ -67,6 +71,8 @@ export async function changeFighterPasswordAction(
     let redirectTo = dashboardPathForRole(actor.role);
     if (actor.role === "fighter") {
       redirectTo = actor.fighterId ? "/fighter" : "/fighter/unlinked";
+    } else if (actor.role === "gym_staff") {
+      redirectTo = "/gym";
     }
 
     return actionSuccess({ redirectTo });

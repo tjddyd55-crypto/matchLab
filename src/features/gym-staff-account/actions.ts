@@ -94,6 +94,52 @@ export async function createGymStaffPasswordResetLinkAction(staffId: string) {
   }
 }
 
+export async function createGymStaffLoginAccountAction(input: {
+  staffId: string;
+  loginId: string;
+  temporaryPassword: string;
+  temporaryPasswordConfirm: string;
+}) {
+  try {
+    const actor = await requireActorFromMutation();
+    const result = await gymStaffAccountSetupService.createLoginAccount(
+      actor,
+      input.staffId,
+      {
+        loginId: input.loginId,
+        temporaryPassword: input.temporaryPassword,
+        temporaryPasswordConfirm: input.temporaryPasswordConfirm,
+      },
+    );
+    revalidateStaffDetail(input.staffId);
+    return actionSuccess(result);
+  } catch (e) {
+    return mapError(e);
+  }
+}
+
+export async function resetGymStaffTemporaryPasswordAction(input: {
+  staffId: string;
+  temporaryPassword: string;
+  temporaryPasswordConfirm: string;
+}) {
+  try {
+    const actor = await requireActorFromMutation();
+    const result = await gymStaffAccountSetupService.resetTemporaryPassword(
+      actor,
+      input.staffId,
+      {
+        temporaryPassword: input.temporaryPassword,
+        temporaryPasswordConfirm: input.temporaryPasswordConfirm,
+      },
+    );
+    revalidateStaffDetail(input.staffId);
+    return actionSuccess(result);
+  } catch (e) {
+    return mapError(e);
+  }
+}
+
 export async function checkGymStaffAccountLoginIdAction(input: {
   loginId: string;
   /** setup token이 있으면 연결된 User를 중복 검사에서 제외 */

@@ -261,10 +261,14 @@ export default async function GymStaffDetailPage({
           <div className="space-y-6">
             <GymStaffAccountPanel
               staffId={staff.id}
+              staffName={staff.name}
               loginId={accountState.loginId}
               hasAccount={accountState.hasAccount}
               statusKind={accountState.statusKind}
-              activeSetupExpiresAt={accountState.activeSetupExpiresAt}
+              mustChangePassword={accountState.mustChangePassword}
+              staffActive={staff.isActive}
+              accountCreatedAt={accountState.accountCreatedAt}
+              passwordIssuedAt={accountState.passwordIssuedAt}
             />
           </div>
         </div>

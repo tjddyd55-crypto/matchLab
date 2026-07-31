@@ -1,4 +1,5 @@
 import { GymPortalStatusBanner } from "@/components/domain/gym/GymPortalStatusBanner";
+import { GymStaffPasswordChangeGate } from "@/components/domain/gym/GymStaffPasswordChangeGate";
 import { AppShell } from "@/components/layout/AppShell";
 import { DashboardShell } from "@/components/layout/DashboardShell";
 import { redirectUnlessDashboardRole, requireActor } from "@/lib/auth/actor";
@@ -14,6 +15,8 @@ export default async function GymDashboardLayout({
 
   const gymNavViewer =
     actor.role === "gym_staff" ? ("staff" as const) : ("owner" as const);
+  const mustChangePassword =
+    actor.role === "gym_staff" && Boolean(actor.mustChangePassword);
 
   let access = null as Awaited<ReturnType<typeof resolveGymPortalAccess>> | null;
   try {
@@ -54,12 +57,14 @@ export default async function GymDashboardLayout({
         actorEmail={actor.email || ""}
         gymNavViewer={gymNavViewer}
       >
-        {access ? (
-          <div className="px-4 pt-4 md:px-6">
-            <GymPortalStatusBanner access={access} />
-          </div>
-        ) : null}
-        {children}
+        <GymStaffPasswordChangeGate mustChangePassword={mustChangePassword}>
+          {access && !mustChangePassword ? (
+            <div className="px-4 pt-4 md:px-6">
+              <GymPortalStatusBanner access={access} />
+            </div>
+          ) : null}
+          {children}
+        </GymStaffPasswordChangeGate>
       </DashboardShell>
     </AppShell>
   );
