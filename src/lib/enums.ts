@@ -73,4 +73,7 @@ export {
   GymApplicationStatus,
   GymApplicationAttachmentType,
   AssociationGymConnectionRequestStatus,
+  DesktopSupportInquiryCategory,
+  DesktopSupportInquirySource,
+  DesktopSupportInquiryStatus,
 } from "@/generated/prisma";

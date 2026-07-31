@@ -449,6 +449,7 @@ enum AuditAction {
   gym_member_portal_created
   gym_member_portal_token_rotated
   gym_member_portal_revoked
+  desktop_support_inquiry_status_changed
 }
 
 enum GymMemberAttendanceSource {
@@ -597,6 +598,8 @@ model User {
   gymGroupClassParticipationsCancelled GymGroupClassParticipation[] @relation("GymGroupClassParticipationCanceller")
 
   gymMemberPortalsCreated GymMemberPortal[] @relation("GymMemberPortalCreator")
+
+  desktopSupportInquiriesResolved DesktopSupportInquiry[] @relation("DesktopSupportInquiryResolver")
 }
 
 model Organizer {
@@ -2987,4 +2990,52 @@ model MatchonMessageRecipient {
   @@index([normalizedPhone])
   @@index([gymId, createdAt])
   @@index([referenceType, referenceId])
+}
+
+// --- MATCHON Manager desktop support inquiries (Stage PC-3, additive) ------
+
+enum DesktopSupportInquiryCategory {
+  password_help
+  login_issue
+  desktop_bug
+  general
+}
+
+enum DesktopSupportInquirySource {
+  desktop
+  web
+}
+
+enum DesktopSupportInquiryStatus {
+  open
+  in_progress
+  resolved
+  closed
+}
+
+/// MATCHON Manager / 관리자 문의·비밀번호 찾기 요청 (로그인 전 공개 생성)
+model DesktopSupportInquiry {
+  id               String                         @id @default(cuid())
+  category         DesktopSupportInquiryCategory
+  source           DesktopSupportInquirySource    @default(desktop)
+  name             String
+  loginId          String?
+  contact          String
+  message          String
+  appVersion       String?
+  roleHint         String?
+  status           DesktopSupportInquiryStatus    @default(open)
+  adminNote        String?
+  createdAt        DateTime                       @default(now())
+  updatedAt        DateTime                       @updatedAt
+  resolvedAt       DateTime?
+  resolvedByUserId String?
+  deletedAt        DateTime?
+
+  resolvedByUser User? @relation("DesktopSupportInquiryResolver", fields: [resolvedByUserId], references: [id], onDelete: SetNull)
+
+  @@index([status, createdAt])
+  @@index([category, createdAt])
+  @@index([source, createdAt])
+  @@index([deletedAt])
 }

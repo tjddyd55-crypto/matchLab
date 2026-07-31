@@ -30,6 +30,7 @@ export function getAdminNavItems(): AdminNavItem[] {
     { href: "/admin/application-form-templates", label: "신청서 템플릿" },
     { href: "/admin/results", label: "결과" },
     { href: "/admin/audit-logs", label: "감사" },
+    { href: "/admin/support-inquiries", label: "Manager 문의" },
     { href: "/admin/messaging/diagnostics", label: "메시징 진단" },
     { href: "/admin/messaging/test", label: "메시징 테스트" },
     { href: "/admin/messaging/history", label: "발송 이력" },
