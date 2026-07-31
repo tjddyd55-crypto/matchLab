@@ -1,0 +1,55 @@
+{
+  "name": "matchon-manager",
+  "version": "0.1.0",
+  "private": true,
+  "description": "MATCHON 주최측 및 체육관 관리자 프로그램",
+  "author": "MATCHON",
+  "main": "dist/main.js",
+  "productName": "MATCHON Manager",
+  "scripts": {
+    "build": "tsc -p tsconfig.json && node scripts/copy-static.cjs",
+    "dev": "tsx scripts/dev.ts",
+    "start": "electron .",
+    "package": "npm run build && electron-builder --win dir",
+    "package:nsis": "npm run build && electron-builder --win nsis"
+  },
+  "build": {
+    "appId": "com.matchon.manager",
+    "productName": "MATCHON Manager",
+    "directories": {
+      "output": "release"
+    },
+    "files": [
+      "dist/**/*",
+      "assets/**/*",
+      "package.json"
+    ],
+    "extraMetadata": {
+      "main": "dist/main.js"
+    },
+    "win": {
+      "target": [
+        {
+          "target": "dir",
+          "arch": [
+            "x64"
+          ]
+        }
+      ],
+      "icon": "assets/icon.png",
+      "artifactName": "MATCHON-Manager-${version}-${arch}.${ext}"
+    },
+    "nsis": {
+      "oneClick": false,
+      "allowToChangeInstallationDirectory": true,
+      "artifactName": "MATCHON-Manager-Setup-${version}.${ext}"
+    }
+  },
+  "devDependencies": {
+    "@types/node": "^22.15.21",
+    "electron": "^36.4.0",
+    "electron-builder": "^26.0.12",
+    "tsx": "^4.20.3",
+    "typescript": "^5.8.3"
+  }
+}

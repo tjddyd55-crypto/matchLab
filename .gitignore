@@ -48,8 +48,11 @@ yarn-error.log*
 # logs
 *.log
 
-# build output (일반적)
-/dist
+# MATCHON Manager (Electron)
+/desktop/node_modules
+/desktop/dist
+/desktop/release
+/desktop/*.tsbuildinfo
 
 # typescript
 *.tsbuildinfo
