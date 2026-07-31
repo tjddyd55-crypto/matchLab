@@ -187,10 +187,43 @@ function environment() {
   assertIncludes(pkg, '"productName": "MATCHON Manager"', "pkg");
   assertIncludes(pkg, "com.matchon.manager", "appId");
   assertIncludes(pkg, "electron-builder", "builder");
+  assertIncludes(pkg, '"version": "1.0.0"', "desktop version SSOT");
   assertIncludes(rootPkg, "desktop:dev", "root scripts");
   assertIncludes(rootPkg, "desktop:build", "root scripts");
   assertIncludes(rootPkg, "desktop:package", "root scripts");
+  assertIncludes(rootPkg, "desktop:icons", "root scripts");
   console.log("verify:desktop-environment: OK");
+}
+
+function packagingPc2() {
+  const pkg = JSON.parse(read("desktop/package.json"));
+  const main = read("desktop/electron/main.ts");
+  const autoUpdate = read("desktop/electron/auto-update.ts");
+  const copyStatic = read("desktop/scripts/copy-static.cjs");
+  const generateIcons = read("desktop/scripts/generate-icons.mjs");
+  const login = read("src/app/desktop/login/page.tsx");
+
+  assert.equal(pkg.build.appId, "com.matchon.manager");
+  assert.equal(pkg.build.productName, "MATCHON Manager");
+  assertIncludes(JSON.stringify(pkg.build.nsis), "MATCHON-Manager-Setup-", "nsis artifactName");
+  assert.equal(pkg.build.nsis.oneClick, false);
+  assert.equal(pkg.build.nsis.createDesktopShortcut, true);
+  assert.equal(pkg.build.nsis.createStartMenuShortcut, true);
+  assert.equal(pkg.build.nsis.runAfterFinish, true);
+  assert.equal(pkg.build.nsis.deleteAppDataOnUninstall, false);
+  assert.equal(pkg.build.win.forceCodeSigning, false);
+  assertIncludes(pkg.build.win.icon, "assets/icon.ico", "win icon");
+  assertIncludes(main, "initAutoUpdate", "main wires auto-update stub");
+  assertIncludes(autoUpdate, "disabled_by_default", "auto-update default off");
+  assertIncludes(autoUpdate, "MATCHON_DESKTOP_AUTO_UPDATE", "auto-update opt-in");
+  assertIncludes(copyStatic, "public/icon.png", "copy-static must mention not overwriting");
+  assertIncludes(generateIcons, "favicon.svg", "icons from web brand SVG");
+  assertIncludes(generateIcons, "16, 24, 32, 48, 64, 128, 256", "multi-size ico");
+  assertIncludes(login, "DesktopAppVersionLabel", "login version");
+  assert.ok(existsSync(join(root, "desktop/assets/icon.ico")), "icon.ico present");
+  assert.ok(existsSync(join(root, "desktop/assets/icon.png")), "icon.png present");
+  assert.ok(existsSync(join(root, "desktop/PACKAGING.md")), "packaging docs");
+  console.log("verify:desktop-packaging-pc2: OK");
 }
 
 function noSecrets() {
@@ -222,15 +255,20 @@ function uiContract() {
   const shell = read("src/components/layout/DashboardShell.tsx");
   const desktopLogin = read("src/components/domain/desktop/DesktopLoginForm.tsx");
   const preparing = read("src/components/domain/desktop/DesktopPreparing.tsx");
+  const versionLabel = read(
+    "src/components/domain/desktop/DesktopAppVersionLabel.tsx",
+  );
 
   assertIncludes(header, "공개 홈", "header keeps web public home");
   assertIncludes(header, "!isDesktop", "header hides public home on desktop");
+  assertIncludes(header, "DesktopHeaderVersion", "header version badge");
   assertIncludes(shell, "isMatchonDesktopRequest", "shell desktop detect");
   assertIncludes(shell, "async function DashboardShell", "async shell");
   assertIncludes(desktopLogin, "관리자에게 문의해 주세요", "support copy");
   assertIncludes(desktopLogin, "AuthLoginForm", "desktop form");
   assertIncludes(preparing, "관리자 환경을 준비하고 있습니다", "splash copy");
-  assert.ok(existsSync(join(root, "public/icon.png")), "brand icon exists");
+  assertIncludes(versionLabel, "getAppVersion", "version from preload SSOT");
+  assert.ok(existsSync(join(root, "public/favicon.svg")), "brand SVG exists");
   console.log("verify:desktop-ui-contract: OK");
 }
 
@@ -248,6 +286,7 @@ const runners: Record<string, () => void> = {
   environment,
   "no-secrets": noSecrets,
   "ui-contract": uiContract,
+  "packaging-pc2": packagingPc2,
 };
 
 function main() {
