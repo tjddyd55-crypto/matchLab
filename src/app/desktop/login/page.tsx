@@ -2,17 +2,16 @@ import { redirect } from "next/navigation";
 import { AuthLoginShell } from "@/components/domain/auth/AuthLoginShell";
 import { DesktopLoginForm } from "@/components/domain/desktop/DesktopLoginForm";
 import { getCurrentActor } from "@/lib/auth/actor";
-import {
-  DESKTOP_LAUNCH_PATH,
-  DESKTOP_UNAVAILABLE_PATH,
-} from "@/lib/desktop/constants";
+import { DESKTOP_UNAVAILABLE_PATH } from "@/lib/desktop/constants";
 import { isDesktopManagerRole } from "@/lib/desktop/manager-roles";
+import { resolveDesktopDestination } from "@/lib/desktop/role-destination";
 
 export default async function DesktopLoginPage() {
   const actor = await getCurrentActor();
   if (actor) {
     if (isDesktopManagerRole(actor.role)) {
-      redirect(DESKTOP_LAUNCH_PATH);
+      const destination = resolveDesktopDestination(actor);
+      redirect(destination.path);
     }
     redirect(DESKTOP_UNAVAILABLE_PATH);
   }
