@@ -40,8 +40,16 @@ import {
   maskPortalPhoneDisplay,
 } from "@/lib/gym-member-portal/token";
 import {
+  formatPortalClassCapacity,
+  formatPortalWaitlistOrder,
+  PORTAL_CLASS_STATUS,
+  type PortalClassAction,
+} from "@/lib/gym-member-portal/class-display";
+import type { PortalGroupClassItem } from "@/lib/gym-member-portal/portal-class-types";
+import {
   formatSeoulScheduleRange,
   getSeoulDayRange,
+  getSeoulScheduleMonthRange,
   getSeoulScheduleWeekRange,
   toSeoulDateKey,
 } from "@/lib/gym-schedule/seoul-schedule";
@@ -88,6 +96,119 @@ const PT_STATUS_LABEL: Record<GymPersonalScheduleStatus, string> = {
   no_show: "노쇼",
   cancelled: "취소",
 };
+
+export type { PortalGroupClassItem } from "@/lib/gym-member-portal/portal-class-types";
+
+type PortalClassParticipationRow = {
+  status: GymGroupClassParticipationStatus;
+  gymMemberId: string;
+  waitlistOrder: number | null;
+};
+
+type PortalClassQueryRow = {
+  id: string;
+  title: string;
+  description: string | null;
+  startsAt: Date;
+  endsAt: Date;
+  location: string | null;
+  capacity: number | null;
+  status: string;
+  visibility: string;
+  instructorStaff: { name: string } | null;
+  participations: PortalClassParticipationRow[];
+};
+
+function mapPortalGroupClassItem(
+  cls: PortalClassQueryRow,
+  gymMemberId: string,
+  now: Date,
+): PortalGroupClassItem {
+  const attendingCount = cls.participations.filter(
+    (p) => p.status === GymGroupClassParticipationStatus.attending,
+  ).length;
+  const waitlistedCount = cls.participations.filter(
+    (p) => p.status === GymGroupClassParticipationStatus.waitlisted,
+  ).length;
+  const mine = cls.participations.find((p) => p.gymMemberId === gymMemberId);
+  const started = cls.startsAt.getTime() <= now.getTime();
+  const hasSpace = cls.capacity == null || attendingCount < cls.capacity;
+
+  let action: PortalClassAction = "none";
+  let statusLabel: string = PORTAL_CLASS_STATUS.available;
+
+  if (cls.status === "cancelled") {
+    statusLabel = PORTAL_CLASS_STATUS.cancelled;
+    action = "closed";
+  } else if (cls.status === "completed") {
+    statusLabel = PORTAL_CLASS_STATUS.completed;
+    action = "closed";
+  } else if (mine?.status === GymGroupClassParticipationStatus.attending) {
+    statusLabel = PORTAL_CLASS_STATUS.attending;
+    action = started ? "closed" : "cancel_attending";
+  } else if (mine?.status === GymGroupClassParticipationStatus.waitlisted) {
+    statusLabel = PORTAL_CLASS_STATUS.waitlisted;
+    action = started ? "closed" : "cancel_waitlist";
+  } else if (started) {
+    statusLabel = PORTAL_CLASS_STATUS.closed;
+    action = "closed";
+  } else if (hasSpace) {
+    statusLabel = PORTAL_CLASS_STATUS.available;
+    action = "join";
+  } else {
+    statusLabel = PORTAL_CLASS_STATUS.available;
+    action = "waitlist";
+  }
+
+  const myParticipationStatus = mine?.status ?? null;
+  const myWaitlistOrder = mine?.waitlistOrder ?? null;
+
+  return {
+    id: cls.id,
+    title: cls.title,
+    description: cls.description,
+    dateKey: toSeoulDateKey(cls.startsAt),
+    timeRangeLabel: formatSeoulScheduleRange(cls.startsAt, cls.endsAt),
+    instructorName: cls.instructorStaff?.name ?? null,
+    location: cls.location,
+    capacity: cls.capacity,
+    attendingCount,
+    waitlistedCount,
+    waitlistCount: waitlistedCount,
+    myParticipationStatus,
+    myStatus: myParticipationStatus,
+    myWaitlistOrder,
+    classStatus: cls.status,
+    visibility: cls.visibility,
+    statusLabel,
+    capacityLabel: formatPortalClassCapacity(attendingCount, cls.capacity),
+    waitlistOrderLabel: formatPortalWaitlistOrder(myWaitlistOrder),
+    action,
+    canJoin: action === "join" || action === "waitlist",
+    canCancel: action === "cancel_attending" || action === "cancel_waitlist",
+    started,
+  };
+}
+
+const PORTAL_CLASS_LIST_INCLUDE = {
+  instructorStaff: { select: { name: true } },
+  participations: {
+    where: {
+      status: {
+        in: [
+          GymGroupClassParticipationStatus.attending,
+          GymGroupClassParticipationStatus.waitlisted,
+        ],
+      },
+    },
+    select: {
+      status: true,
+      gymMemberId: true,
+      waitlistOrder: true,
+    },
+  },
+};
+
 
 async function findActivePortalByTokenHash(tokenHash: string) {
   return prisma.gymMemberPortal.findFirst({
@@ -650,92 +771,52 @@ export const gymMemberPortalService = {
         startsAt: { gte: week.start, lt: week.endExclusive },
         status: { in: ["scheduled", "completed", "cancelled"] },
       },
-      include: {
-        instructorStaff: { select: { name: true } },
-        participations: {
-          where: {
-            status: {
-              in: [
-                GymGroupClassParticipationStatus.attending,
-                GymGroupClassParticipationStatus.waitlisted,
-              ],
-            },
-          },
-          select: {
-            status: true,
-            gymMemberId: true,
-            waitlistOrder: true,
-          },
-        },
-      },
+      include: PORTAL_CLASS_LIST_INCLUDE,
       orderBy: { startsAt: "asc" },
     });
 
-    return classes.map((cls) => {
-      const attendingCount = cls.participations.filter(
-        (p) => p.status === "attending",
-      ).length;
-      const waitlistCount = cls.participations.filter(
-        (p) => p.status === "waitlisted",
-      ).length;
-      const mine = cls.participations.find(
-        (p) => p.gymMemberId === session.gymMemberId,
-      );
-      const started = cls.startsAt.getTime() <= now.getTime();
-      const hasSpace =
-        cls.capacity == null || attendingCount < cls.capacity;
-      let action:
-        | "join"
-        | "waitlist"
-        | "cancel_attending"
-        | "cancel_waitlist"
-        | "closed"
-        | "none" = "none";
-      let statusLabel = "신청 가능";
-      if (cls.status === "cancelled") {
-        statusLabel = "수업 취소";
-        action = "closed";
-      } else if (cls.status === "completed") {
-        statusLabel = "완료";
-        action = "closed";
-      } else if (mine?.status === "attending") {
-        statusLabel = "참석 예정";
-        action = started ? "closed" : "cancel_attending";
-      } else if (mine?.status === "waitlisted") {
-        statusLabel =
-          mine.waitlistOrder != null
-            ? `대기 ${mine.waitlistOrder}번째`
-            : "대기 중";
-        action = started ? "closed" : "cancel_waitlist";
-      } else if (started) {
-        statusLabel = "신청 마감";
-        action = "closed";
-      } else if (hasSpace) {
-        statusLabel = "참석 가능";
-        action = "join";
-      } else {
-        statusLabel = "마감";
-        action = "waitlist";
-      }
+    return classes.map((cls) =>
+      mapPortalGroupClassItem(cls, session.gymMemberId, now),
+    );
+  },
 
-      return {
-        id: cls.id,
-        title: cls.title,
-        dateKey: toSeoulDateKey(cls.startsAt),
-        timeRangeLabel: formatSeoulScheduleRange(cls.startsAt, cls.endsAt),
-        instructorName: cls.instructorStaff?.name ?? null,
-        location: cls.location,
-        capacity: cls.capacity,
-        attendingCount,
-        waitlistCount,
-        myStatus: mine?.status ?? null,
-        myWaitlistOrder: mine?.waitlistOrder ?? null,
-        classStatus: cls.status,
-        statusLabel,
-        action,
-        started,
-      };
+  /**
+   * 회원 포털 월간 달력용 수업 목록.
+   * participation은 집계·본인 status만 사용한다 (다른 회원 PII 미반환).
+   */
+  async listGroupClassesByMonth(
+    session: PortalSessionContext,
+    year: number,
+    month: number,
+  ) {
+    if (
+      !Number.isInteger(year) ||
+      year < 2000 ||
+      year > 2100 ||
+      !Number.isInteger(month) ||
+      month < 1 ||
+      month > 12
+    ) {
+      throw new AppError("VALIDATION_ERROR", "조회 월이 올바르지 않습니다.");
+    }
+
+    const now = new Date();
+    const range = getSeoulScheduleMonthRange(year, month);
+    const classes = await prisma.gymGroupClass.findMany({
+      where: {
+        gymId: session.gymId,
+        deletedAt: null,
+        visibility: { in: ["members_only", "public"] },
+        startsAt: { gte: range.start, lt: range.endExclusive },
+        status: { in: ["scheduled", "completed", "cancelled"] },
+      },
+      include: PORTAL_CLASS_LIST_INCLUDE,
+      orderBy: { startsAt: "asc" },
     });
+
+    return classes.map((cls) =>
+      mapPortalGroupClassItem(cls, session.gymMemberId, now),
+    );
   },
 
   async listMyParticipations(session: PortalSessionContext) {
@@ -885,9 +966,15 @@ export const gymMemberPortalService = {
       return { kind: "already_attending" as const, message: "이미 참석 신청됨" };
     }
     if (result.status === "attending") {
-      return { kind: "attending" as const, message: "참석 신청 완료" };
+      return {
+        kind: "attending" as const,
+        message: "참석 신청이 완료되었습니다.",
+      };
     }
-    return { kind: "waitlisted" as const, message: "대기 신청 완료" };
+    return {
+      kind: "waitlisted" as const,
+      message: "정원이 마감되어 대기 신청되었습니다.",
+    };
   },
 
   async cancelClass(

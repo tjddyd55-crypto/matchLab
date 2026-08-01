@@ -24,6 +24,11 @@ import {
 } from "../src/lib/gym-member-portal/token";
 import { getGymPortalNavGroups } from "../src/lib/navigation/gym-portal-navigation";
 import { normalizePhoneDigits } from "../src/lib/phone";
+import {
+  buildPortalMonthCells,
+  parsePortalYearMonth,
+  resolvePortalSelectedDateKey,
+} from "../src/lib/gym-member-portal/portal-month-calendar";
 
 const root = process.cwd();
 const focus = process.argv[2] ?? "all";
@@ -216,10 +221,142 @@ function verifyPersonalSchedules() {
 
 function verifyGroupClasses() {
   const service = read("src/lib/services/gym-member-portal.service.ts");
+  const page = read("src/app/member-portal/[token]/classes/page.tsx");
+  const calendar = read(
+    "src/components/domain/gym-member-portal/MemberPortalClassesCalendarApp.tsx",
+  );
   assertIncludes(service, "listGroupClasses", "list");
+  assertIncludes(service, "listGroupClassesByMonth", "month list");
   assertIncludes(service, "members_only", "visibility");
   assertIncludes(service, "myWaitlistOrder", "own wait order");
+  assertIncludes(page, "MemberPortalClassesCalendarApp", "calendar page");
+  assertIncludes(calendar, "portal-cal-grid", "calendar grid");
+  assertNotIncludes(page, "이번 주 프로그램", "old week list title");
   console.log("verify:gym-member-portal-group-classes: OK");
+}
+
+function verifyGroupCalendar() {
+  const calendarLib = read("src/lib/gym-member-portal/portal-month-calendar.ts");
+  const display = read("src/lib/gym-member-portal/class-display.ts");
+  const calendar = read(
+    "src/components/domain/gym-member-portal/MemberPortalClassesCalendarApp.tsx",
+  );
+  assertIncludes(calendarLib, "buildPortalMonthCells", "month cells");
+  assertIncludes(calendarLib, "일요일", "sun start comment or label");
+  assertIncludes(display, "신청 가능", "status available");
+  assertIncludes(display, "참석 예정", "status attending");
+  assertIncludes(display, "대기 중", "status waitlisted");
+  assertIncludes(display, "신청 마감", "status closed");
+  assertIncludes(display, "수업 완료", "status completed");
+  assertIncludes(display, "수업 취소", "status cancelled");
+  assertIncludes(calendar, "+{extra}개", "overflow +N");
+  assertIncludes(calendar, "이전 달", "prev month");
+  assertIncludes(calendar, "다음 달", "next month");
+  assertIncludes(calendar, "오늘", "today");
+  console.log("verify:gym-member-portal-group-calendar: OK");
+}
+
+function verifyCalendarMonth() {
+  const cells = buildPortalMonthCells(2026, 8);
+  assert.equal(cells.length, 42, "42 cells");
+  assert.equal(
+    cells[0]?.dateKey,
+    "2026-07-26",
+    "aug 2026 starts sunday week from jul 26",
+  );
+  const inMonth = cells.filter((c) => c.inMonth);
+  assert.equal(inMonth.length, 31, "31 days in aug");
+  const ym = parsePortalYearMonth("2026", "8");
+  assert.deepEqual(ym, { year: 2026, month: 8 });
+  const selected = resolvePortalSelectedDateKey({
+    dateRaw: "2026-08-03",
+    year: 2026,
+    month: 8,
+    todayKey: "2026-08-01",
+  });
+  assert.equal(selected, "2026-08-03");
+  console.log("verify:gym-member-portal-calendar-month: OK");
+}
+
+function verifyCalendarDaySelection() {
+  const page = read("src/app/member-portal/[token]/classes/page.tsx");
+  const calendar = read(
+    "src/components/domain/gym-member-portal/MemberPortalClassesCalendarApp.tsx",
+  );
+  assertIncludes(page, "searchParams", "query");
+  assertIncludes(page, "selectedDateKey", "selected");
+  assertIncludes(calendar, "pushCalendarQuery", "url sync");
+  assertIncludes(calendar, "portal-cal-day-list", "day list");
+  console.log("verify:gym-member-portal-calendar-day-selection: OK");
+}
+
+function verifyCalendarParticipation() {
+  const service = read("src/lib/services/gym-member-portal.service.ts");
+  const dialog = read(
+    "src/components/domain/gym-member-portal/MemberPortalClassDetailDialog.tsx",
+  );
+  assertIncludes(service, "joinAsMember", "join ssot");
+  assertIncludes(service, "cancelAsMember", "cancel ssot");
+  assertIncludes(service, "참석 신청이 완료되었습니다.", "join attending msg");
+  assertIncludes(
+    service,
+    "정원이 마감되어 대기 신청되었습니다.",
+    "join waitlist msg",
+  );
+  assertIncludes(dialog, "joinGymMemberPortalClassAction", "join action");
+  assertIncludes(dialog, "cancelGymMemberPortalClassAction", "cancel action");
+  console.log("verify:gym-member-portal-calendar-participation: OK");
+}
+
+function verifyCalendarPrivacy() {
+  const service = read("src/lib/services/gym-member-portal.service.ts");
+  const types = read("src/lib/gym-member-portal/portal-class-types.ts");
+  const dialog = read(
+    "src/components/domain/gym-member-portal/MemberPortalClassDetailDialog.tsx",
+  );
+  assertIncludes(service, "gymMemberId: true", "member id for mine only");
+  assertNotIncludes(types, "phone", "no phone in portal class type");
+  assertNotIncludes(types, "profileImage", "no profile image in type");
+  assertNotIncludes(dialog, "참석자 명단", "no roster label");
+  assertNotIncludes(service, "participations: true", "no full participation dump");
+  console.log("verify:gym-member-portal-calendar-privacy: OK");
+}
+
+function verifyCalendarMobile() {
+  const calendar = read(
+    "src/components/domain/gym-member-portal/MemberPortalClassesCalendarApp.tsx",
+  );
+  const shell = read(
+    "src/components/domain/gym-member-portal/MemberPortalAppShell.tsx",
+  );
+  assertIncludes(calendar, "grid-cols-7", "7 col");
+  assertIncludes(calendar, "min-h-[4.25rem]", "cell height");
+  assertIncludes(calendar, "truncate", "truncate titles");
+  assertIncludes(shell, "pb-24", "nav padding");
+  console.log("verify:gym-member-portal-calendar-mobile: OK");
+}
+
+function verifyClassModal() {
+  const dialog = read(
+    "src/components/domain/gym-member-portal/MemberPortalClassDetailDialog.tsx",
+  );
+  assertIncludes(dialog, "MemberPortalClassDetailDialog", "detail dialog");
+  assertIncludes(dialog, "member-portal-class-detail-dialog", "testid");
+  assertIncludes(dialog, "description", "shows description field");
+  assertIncludes(dialog, "닫기", "close button");
+  console.log("verify:gym-member-portal-class-modal: OK");
+}
+
+function verifyClassModalNonDismissible() {
+  const dialogUi = read("src/components/ui/dialog.tsx");
+  const detail = read(
+    "src/components/domain/gym-member-portal/MemberPortalClassDetailDialog.tsx",
+  );
+  assertIncludes(dialogUi, "dismissible = false", "ssot default");
+  assertIncludes(detail, "<Dialog", "uses Dialog");
+  assertNotIncludes(detail, "dismissible", "keeps default non-dismissible");
+  assertIncludes(detail, "member-portal-class-cancel-dialog", "cancel dialog");
+  console.log("verify:gym-member-portal-class-modal-non-dismissible: OK");
 }
 
 function verifyParticipation() {
@@ -319,6 +456,14 @@ const runners: Record<string, () => void> = {
   "profile-image": verifyProfileImage,
   "personal-schedules": verifyPersonalSchedules,
   "group-classes": verifyGroupClasses,
+  "group-calendar": verifyGroupCalendar,
+  "calendar-month": verifyCalendarMonth,
+  "calendar-day-selection": verifyCalendarDaySelection,
+  "calendar-participation": verifyCalendarParticipation,
+  "calendar-privacy": verifyCalendarPrivacy,
+  "calendar-mobile": verifyCalendarMobile,
+  "class-modal": verifyClassModal,
+  "class-modal-non-dismissible": verifyClassModalNonDismissible,
   participation: verifyParticipation,
   waitlist: verifyWaitlist,
   "auto-promotion": verifyAutoPromotion,

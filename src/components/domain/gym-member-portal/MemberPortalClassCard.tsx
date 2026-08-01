@@ -1,5 +1,9 @@
 "use client";
 
+/**
+ * 레거시 카드 — 달력 상세 모달과 동일 action/문구 SSOT를 사용한다.
+ * 신규 화면은 MemberPortalClassListCard + MemberPortalClassDetailDialog 를 우선한다.
+ */
 import { useState, useTransition } from "react";
 import { useRouter } from "next/navigation";
 import {
@@ -7,6 +11,20 @@ import {
   joinGymMemberPortalClassAction,
 } from "@/features/gym-member-portal/member-actions";
 import { Button } from "@/components/ui/button";
+import {
+  Dialog,
+  DialogContent,
+  DialogDescription,
+  DialogFooter,
+  DialogHeader,
+  DialogTitle,
+} from "@/components/ui/dialog";
+import {
+  formatPortalClassCapacity,
+  formatPortalTimeRangeLabel,
+  PORTAL_CLASS_ACTION_LABEL,
+  type PortalClassAction,
+} from "@/lib/gym-member-portal/class-display";
 
 export type MemberPortalClassCardData = {
   id: string;
@@ -19,13 +37,7 @@ export type MemberPortalClassCardData = {
   attendingCount: number;
   waitlistCount: number;
   statusLabel: string;
-  action:
-    | "join"
-    | "waitlist"
-    | "cancel_attending"
-    | "cancel_waitlist"
-    | "closed"
-    | "none";
+  action: PortalClassAction;
   myWaitlistOrder: number | null;
 };
 
@@ -40,6 +52,7 @@ export function MemberPortalClassCard({
   const [pending, startTransition] = useTransition();
   const [error, setError] = useState<string | null>(null);
   const [message, setMessage] = useState<string | null>(null);
+  const [confirmOpen, setConfirmOpen] = useState(false);
 
   function runJoin() {
     setError(null);
@@ -59,12 +72,6 @@ export function MemberPortalClassCard({
   }
 
   function runCancel() {
-    const confirmMessage =
-      item.action === "cancel_attending"
-        ? "참석 신청을 취소할까요?"
-        : "대기 신청을 취소할까요?";
-    if (!window.confirm(confirmMessage)) return;
-
     setError(null);
     setMessage(null);
     const fd = new FormData();
@@ -72,6 +79,7 @@ export function MemberPortalClassCard({
     fd.set("classId", item.id);
     startTransition(async () => {
       const result = await cancelGymMemberPortalClassAction(fd);
+      setConfirmOpen(false);
       if (!result.ok) {
         setError(result.error.message);
         return;
@@ -81,15 +89,15 @@ export function MemberPortalClassCard({
     });
   }
 
-  const capacityLabel =
-    item.capacity == null
-      ? `${item.attendingCount}명 신청`
-      : `${item.attendingCount} / ${item.capacity}명`;
+  const capacityLabel = formatPortalClassCapacity(
+    item.attendingCount,
+    item.capacity,
+  );
 
   return (
     <article className="rounded-xl border border-[#E2E8F0] bg-white p-4">
       <p className="text-xs text-[#64748B]">
-        {item.dateKey} · {item.timeRangeLabel}
+        {item.dateKey} · {formatPortalTimeRangeLabel(item.timeRangeLabel)}
       </p>
       <h3 className="mt-1 text-base font-semibold text-[#0F172A] break-keep">
         {item.title}
@@ -107,24 +115,14 @@ export function MemberPortalClassCard({
       <p className="mt-1 text-sm font-medium text-[#001C7A]">{item.statusLabel}</p>
 
       <div className="mt-3">
-        {item.action === "join" ? (
+        {item.action === "join" || item.action === "waitlist" ? (
           <Button
             type="button"
             className="min-h-11 w-full"
             disabled={pending}
             onClick={runJoin}
           >
-            참석하기
-          </Button>
-        ) : null}
-        {item.action === "waitlist" ? (
-          <Button
-            type="button"
-            className="min-h-11 w-full"
-            disabled={pending}
-            onClick={runJoin}
-          >
-            대기 신청
+            {PORTAL_CLASS_ACTION_LABEL[item.action]}
           </Button>
         ) : null}
         {item.action === "cancel_attending" ||
@@ -134,9 +132,9 @@ export function MemberPortalClassCard({
             variant="outline"
             className="min-h-11 w-full"
             disabled={pending}
-            onClick={runCancel}
+            onClick={() => setConfirmOpen(true)}
           >
-            {item.action === "cancel_attending" ? "참석 취소" : "대기 취소"}
+            {PORTAL_CLASS_ACTION_LABEL[item.action]}
           </Button>
         ) : null}
         {item.action === "closed" ? (
@@ -152,6 +150,40 @@ export function MemberPortalClassCard({
       {error ? (
         <p className="mt-2 whitespace-pre-line text-sm text-red-600">{error}</p>
       ) : null}
+
+      <Dialog open={confirmOpen} onOpenChange={setConfirmOpen}>
+        <DialogContent className="sm:max-w-sm">
+          <DialogHeader>
+            <DialogTitle>
+              {item.action === "cancel_attending"
+                ? "참석 신청을 취소할까요?"
+                : "대기 신청을 취소할까요?"}
+            </DialogTitle>
+            {item.action === "cancel_attending" ? (
+              <DialogDescription>
+                취소하면 대기 중인 다른 회원이 자동으로 참석 처리될 수 있습니다.
+              </DialogDescription>
+            ) : null}
+          </DialogHeader>
+          <DialogFooter className="gap-2">
+            <Button
+              type="button"
+              variant="outline"
+              onClick={() => setConfirmOpen(false)}
+            >
+              취소
+            </Button>
+            <Button
+              type="button"
+              variant="destructive"
+              disabled={pending}
+              onClick={runCancel}
+            >
+              {item.action === "cancel_attending" ? "참석 취소" : "대기 취소"}
+            </Button>
+          </DialogFooter>
+        </DialogContent>
+      </Dialog>
     </article>
   );
 }

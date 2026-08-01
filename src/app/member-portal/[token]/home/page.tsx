@@ -68,21 +68,25 @@ export default async function MemberPortalHomePage({
         </Link>
         <Link
           href={`/member-portal/${token}/classes`}
-          className="rounded-xl border border-[#E2E8F0] bg-white p-4"
+          className="rounded-xl border border-[#E2E8F0] bg-white p-4 transition-colors hover:border-[#0A47FF]/40"
+          data-testid="home-week-group-classes"
         >
           <p className="text-sm font-semibold text-[#0F172A]">이번 주 그룹수업</p>
           <p className="mt-1 text-sm text-[#64748B]">
             {home.weekClassCount}개 수업
           </p>
+          <p className="mt-2 text-xs font-medium text-[#0A47FF]">달력에서 보기</p>
         </Link>
         <Link
           href={`/member-portal/${token}/classes`}
-          className="rounded-xl border border-[#E2E8F0] bg-white p-4"
+          className="rounded-xl border border-[#E2E8F0] bg-white p-4 transition-colors hover:border-[#0A47FF]/40"
+          data-testid="home-my-participations"
         >
           <p className="text-sm font-semibold text-[#0F172A]">내 참석 신청</p>
           <p className="mt-1 text-sm text-[#64748B]">
             진행 중 {home.myActiveParticipationCount}건
           </p>
+          <p className="mt-2 text-xs font-medium text-[#0A47FF]">그룹수업으로 이동</p>
         </Link>
       </section>
     </MemberPortalAppShell>
