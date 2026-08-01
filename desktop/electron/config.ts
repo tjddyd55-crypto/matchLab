@@ -42,8 +42,9 @@ export function getDesktopEnvironmentName(): DesktopEnvironmentName {
 /**
  * 허용 host SSOT.
  * - Production 패키지: Production host만 (allowlist 확대 금지)
- * - QA 패키지: MATCHON_DESKTOP_QA_ALLOW_PREVIEW=1 일 때만 Preview host 추가
- * - 개발: localhost + Production + 선택적 Preview
+ * - QA 패키지: MATCHON_DESKTOP_QA_ALLOW_PREVIEW=1 일 때만 Development(구 Preview) host 추가
+ * - 개발: localhost + Production + 선택적 Development host
+ * - Railway 환경명 SSOT는 development / production (docs/deployment-environments.md)
  */
 export function getAllowedHosts(): readonly string[] {
   if (app.isPackaged) {

@@ -294,6 +294,12 @@
     "verify:desktop-window-security": "tsx scripts/verify-desktop-manager.ts window-security",
     "verify:desktop-single-instance": "tsx scripts/verify-desktop-manager.ts single-instance",
     "verify:desktop-environment": "tsx scripts/verify-desktop-manager.ts environment",
+    "verify:deployment-environment-mapping": "tsx scripts/verify-deployment-environments.ts mapping",
+    "verify:desktop-environment-allowlist": "tsx scripts/verify-deployment-environments.ts allowlist",
+    "verify:production-url-contract": "tsx scripts/verify-deployment-environments.ts prod-url",
+    "verify:development-real-send-disabled": "tsx scripts/verify-deployment-environments.ts real-send",
+    "verify:no-preview-environment-reference": "tsx scripts/verify-deployment-environments.ts no-preview-name",
+    "verify:deployment-environments": "tsx scripts/verify-deployment-environments.ts all",
     "verify:desktop-no-secrets": "tsx scripts/verify-desktop-manager.ts no-secrets",
     "verify:desktop-ui-contract": "tsx scripts/verify-desktop-manager.ts ui-contract",
     "verify:desktop-manager": "tsx scripts/verify-desktop-manager.ts"
