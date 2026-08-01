@@ -1,0 +1,11 @@
+# Keep Railway web deploys free of Electron build artifacts
+desktop/out-*/
+desktop/out-*/
+desktop/dist/
+desktop/**/win-unpacked/
+**/node_modules/
+.next/
+test-results/
+tmp-*.json
+tmp-*.txt
+tmp-*.raw.json

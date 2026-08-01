@@ -66,3 +66,7 @@ next-env.d.ts
 
 /desktop/out-pc3
 /desktop/update-feed
+
+/desktop/out-preview-qa
+/desktop/out-v102
+
