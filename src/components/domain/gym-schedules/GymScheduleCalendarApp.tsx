@@ -1060,7 +1060,10 @@ function DayTimeline({
   );
 
   return (
-    <div className="overflow-hidden rounded-xl border border-matchon-border bg-white shadow-sm">
+    <div
+      className="overflow-auto rounded-xl border border-matchon-border bg-white shadow-sm"
+      data-testid="schedule-day-scroll"
+    >
       <div className="border-b border-matchon-border px-3 py-2 text-sm font-medium">
         {dateKey}
         <button
