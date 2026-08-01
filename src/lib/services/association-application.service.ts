@@ -76,7 +76,7 @@ function assertAttachmentPaths(
     if (!attachments.some((a) => a.attachmentType === required)) {
       throw new AppError(
         "VALIDATION_ERROR",
-        "고유번호증 또는 사업자등록증을 첨부해 주세요.",
+        "사업자등록증을 첨부해 주세요.",
       );
     }
   }

@@ -10,7 +10,7 @@ export default function JoinAssociationPage() {
   return (
     <AuthLoginShell
       title="협회 가입 신청"
-      description="신청서를 제출하면 슈퍼어드민 검토 후 협회 관리자 계정이 초대됩니다. 즉시 활성 계정은 생성되지 않습니다."
+      description="협회 정보를 입력하고 가입 신청을 제출해 주세요."
       footer={
         <p className={cn(authLoginFooterClass, "mt-6")}>
           <Link

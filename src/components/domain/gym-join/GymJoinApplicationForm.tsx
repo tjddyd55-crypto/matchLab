@@ -310,11 +310,10 @@ export function GymJoinApplicationForm({
     return (
       <div className="space-y-4 text-center">
         <p className="text-base font-semibold text-matchon-text-primary">
-          체육관 가입 신청이 완료되었습니다.
+          가입 신청이 완료되었습니다.
         </p>
         <p className={authLoginSecondaryNoteClass}>
-          관리자 확인 후 가입 결과를 안내해 드립니다. 협회 연결은 가입 완료 후
-          별도로 신청할 수 있습니다.
+          관리자 확인 후 결과를 안내해 드립니다.
         </p>
         <Link
           href="/login"
@@ -330,12 +329,16 @@ export function GymJoinApplicationForm({
     return (
       <div className="space-y-4 text-center">
         <p className="text-base font-semibold text-matchon-text-primary">
-          체육관 가입 신청이 완료되었습니다.
+          가입 신청이 완료되었습니다.
         </p>
         <p className={authLoginSecondaryNoteClass}>
-          승인 후 {associationInvite?.organizerName}와 연결됩니다.
+          관리자 확인 후 결과를 안내해 드립니다.
         </p>
-        <p className={authLoginSecondaryNoteClass}>{inviteDone}</p>
+        {associationInvite?.organizerName ? (
+          <p className={authLoginSecondaryNoteClass}>
+            승인 후 {associationInvite.organizerName}와 연결됩니다.
+          </p>
+        ) : null}
       </div>
     );
   }
@@ -680,12 +683,6 @@ export function GymJoinApplicationForm({
           <span className="font-medium text-matchon-text-primary">(필수)</span>
         </label>
       </section>
-
-      {mode === "independent" ? (
-        <p className={authLoginSecondaryNoteClass}>
-          협회와의 연결은 체육관 가입 완료 후 별도로 신청할 수 있습니다.
-        </p>
-      ) : null}
 
       {submitError ? (
         <p className={authLoginErrorClass} role="alert">

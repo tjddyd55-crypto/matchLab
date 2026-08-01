@@ -45,8 +45,8 @@ const ATTACHMENT_SLOTS = [
   },
   {
     type: AssociationApplicationAttachmentType.business_registration,
-    label: "고유번호증 / 사업자등록증",
-    description: "협회 가입 신청을 위한 필수 서류입니다.",
+    label: "사업자등록증",
+    description: "사업자등록증은 필수 첨부입니다.",
     required: true,
     accept: "image/jpeg,image/png,image/webp,application/pdf",
     acceptHint: "JPEG, PNG, WebP, PDF",
@@ -201,9 +201,16 @@ export function AssociationApplicationForm() {
   if (state?.ok) {
     return (
       <div className="space-y-4 text-center">
-        <p className="text-base font-semibold text-matchon-text-primary">협회 가입 신청이 접수되었습니다.</p>
-        <p className={authLoginSecondaryNoteClass}>슈퍼어드민 검토 후 담당자 이메일로 계정 초대가 진행됩니다.</p>
-        <Link href="/login" className="font-semibold text-matchon-primary underline-offset-2 hover:underline">
+        <p className="text-base font-semibold text-matchon-text-primary">
+          가입 신청이 완료되었습니다.
+        </p>
+        <p className={authLoginSecondaryNoteClass}>
+          관리자 확인 후 결과를 안내해 드립니다.
+        </p>
+        <Link
+          href="/login"
+          className="font-semibold text-matchon-primary underline-offset-2 hover:underline"
+        >
           로그인으로 이동
         </Link>
       </div>
@@ -221,7 +228,7 @@ export function AssociationApplicationForm() {
           return;
         }
         if (!hasBusinessRegistration) {
-          setSubmitError("고유번호증 또는 사업자등록증을 첨부해 주세요.");
+          setSubmitError("사업자등록증을 첨부해 주세요.");
           return;
         }
         setSubmitError(null);

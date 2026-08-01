@@ -84,6 +84,18 @@ function main() {
     svc,
     /REQUIRED_ATTACHMENT_TYPES[\s\S]*?AssociationApplicationAttachmentType\.business_registration/,
   );
+  assert.ok(appForm.includes('label: "사업자등록증"'));
+  assert.ok(appForm.includes("사업자등록증은 필수 첨부입니다."));
+  assert.ok(appForm.includes("사업자등록증을 첨부해 주세요."));
+  assert.ok(svc.includes("사업자등록증을 첨부해 주세요."));
+  assert.match(
+    appForm,
+    /AssociationApplicationAttachmentType\.logo[\s\S]*?required: false/,
+  );
+  assert.match(
+    appForm,
+    /AssociationApplicationAttachmentType\.business_registration[\s\S]*?required: true/,
+  );
 
   console.log("verify:association-application-flow: OK");
 }

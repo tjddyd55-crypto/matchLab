@@ -6,7 +6,7 @@ import { Button } from "@/components/ui/button";
 
 const TYPE_LABEL: Record<string, string> = {
   logo: "협회 로고",
-  business_registration: "고유번호증 / 사업자등록증",
+  business_registration: "사업자등록증",
   establishment_proof: "설립·등록 증빙",
   other: "기타 서류",
 };

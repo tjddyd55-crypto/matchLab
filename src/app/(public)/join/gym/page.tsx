@@ -14,7 +14,7 @@ export default function JoinGymPage() {
   return (
     <AuthLoginShell
       title="체육관 가입"
-      description="체육관 정보를 입력하고 가입 신청을 제출해 주세요. 승인 후 회원과 선수를 관리하고 대회에 참가할 수 있습니다."
+      description="체육관 정보를 입력하고 가입 신청을 제출해 주세요."
       footer={
         <p className={cn(authLoginFooterClass, "mt-6")}>
           <Link
