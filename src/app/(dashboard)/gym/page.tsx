@@ -60,6 +60,7 @@ export default async function GymHomePage() {
   const access = await resolveGymPortalAccess(actor).catch(() => null);
   const canCreate = access?.canCreateFighter ?? true;
   const canUpdate = access?.canUpdateFighter ?? true;
+  const canManageSales = access?.canManageSales ?? false;
   const isStaffViewer = actor.role === "gym_staff";
 
   const [
@@ -91,9 +92,9 @@ export default async function GymHomePage() {
     isStaffViewer
       ? Promise.resolve(null)
       : gymAttendanceService.getHomeAttendanceSnippet(actor),
-    isStaffViewer
-      ? Promise.resolve(null)
-      : gymSalesService.getHomeSalesSnippet(actor),
+    canManageSales
+      ? gymSalesService.getHomeSalesSnippet(actor)
+      : Promise.resolve(null),
     gymScheduleService
       .getSummary(actor, { myOnly: isStaffViewer })
       .catch(() => null),
@@ -400,12 +401,14 @@ export default async function GymHomePage() {
           >
             출석 관리
           </Link>
-          <Link
-            href="/gym/sales"
-            className={cn(buttonVariants({ variant: "outline", size: "sm" }))}
-          >
-            매출 관리
-          </Link>
+          {canManageSales ? (
+            <Link
+              href="/gym/sales"
+              className={cn(buttonVariants({ variant: "outline", size: "sm" }))}
+            >
+              매출 관리
+            </Link>
+          ) : null}
           <Link
             href="/gym/attendance/kiosks"
             className={cn(buttonVariants({ variant: "outline", size: "sm" }))}
