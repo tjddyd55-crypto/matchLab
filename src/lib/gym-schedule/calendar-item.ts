@@ -27,5 +27,7 @@ export type GymCalendarItem = {
   /** personal schedule fields */
   scheduleType?: string;
   scheduleTypeLabel?: string;
+  memo?: string | null;
+  location?: string | null;
   canManage: boolean;
 };
