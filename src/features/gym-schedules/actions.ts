@@ -119,6 +119,28 @@ export async function updateGymScheduleAction(
   });
 }
 
+export async function rescheduleGymScheduleAction(
+  scheduleId: string,
+  formData: FormData,
+): Promise<ActionResult<{ scheduleId: string }>> {
+  return mapCaught(async () => {
+    const actor = await requireActorFromMutation();
+    const dateKey = String(formData.get("dateKey") ?? "").trim();
+    const startHm = String(formData.get("startHm") ?? "").trim();
+    const endHm = String(formData.get("endHm") ?? "").trim();
+    if (!dateKey || !startHm || !endHm) {
+      return actionFailure("VALIDATION_ERROR", "일정 시간을 확인해 주세요.");
+    }
+    const result = await gymScheduleService.rescheduleSchedule(
+      actor,
+      scheduleId,
+      { dateKey, startHm, endHm },
+    );
+    revalidateSchedulePaths();
+    return actionSuccess(result);
+  });
+}
+
 export async function completeGymScheduleAction(
   scheduleId: string,
 ): Promise<ActionResult<{ scheduleId: string; status: string }>> {

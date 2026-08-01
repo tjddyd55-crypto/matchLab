@@ -328,7 +328,7 @@ export const gymScheduleService = {
   async getCalendar(
     actor: ActorContext,
     input: {
-      view: "month" | "week" | "day";
+      view: "month" | "week" | "day" | "list";
       dateKey: string;
       gymStaffId?: string | null;
       gymMemberId?: string | null;
@@ -345,7 +345,7 @@ export const gymScheduleService = {
       const { year, month } = getSeoulYmdParts(anchor);
       ({ start: rangeStart, endExclusive: rangeEndExclusive } =
         getSeoulScheduleMonthRange(year, month));
-    } else if (input.view === "week") {
+    } else if (input.view === "week" || input.view === "list") {
       ({ start: rangeStart, endExclusive: rangeEndExclusive } =
         getSeoulScheduleWeekRange(anchor));
     } else {
@@ -390,6 +390,8 @@ export const gymScheduleService = {
         colorKey: v.colorKey,
         scheduleType: v.scheduleType,
         scheduleTypeLabel: v.scheduleTypeLabel,
+        memo: v.memo,
+        location: v.location,
         canManage: v.canManage,
       }));
 
@@ -809,6 +811,35 @@ export const gymScheduleService = {
     });
 
     return { scheduleId };
+  },
+
+  /**
+   * 보드 드래그/리사이즈용 — 기존 필드 유지하고 시간만 변경.
+   * overlap·권한 검증은 updateSchedule SSOT를 그대로 탄다.
+   */
+  async rescheduleSchedule(
+    actor: ActorContext,
+    scheduleId: string,
+    slot: { dateKey: string; startHm: string; endHm: string },
+  ): Promise<{ scheduleId: string }> {
+    const access = await requireGymScheduleWrite(actor);
+    const existing = await gymScheduleRepository.findById(
+      scheduleId,
+      access.gymId,
+    );
+    if (!existing) throw new AppError("NOT_FOUND", "일정을 찾을 수 없습니다.");
+    return this.updateSchedule(actor, scheduleId, {
+      gymStaffId: existing.gymStaffId,
+      gymMemberId: existing.gymMemberId,
+      dateKey: slot.dateKey,
+      startHm: slot.startHm,
+      endHm: slot.endHm,
+      scheduleType: existing.scheduleType,
+      title: existing.title,
+      location: existing.location ?? "",
+      memo: existing.memo ?? "",
+      colorKey: existing.colorKey ?? "",
+    });
   },
 
   async completeSchedule(actor: ActorContext, scheduleId: string) {

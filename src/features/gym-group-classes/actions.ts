@@ -117,6 +117,28 @@ export async function updateGymGroupClassAction(
   });
 }
 
+export async function rescheduleGymGroupClassAction(
+  classId: string,
+  formData: FormData,
+): Promise<ActionResult<{ classId: string }>> {
+  return mapCaught(async () => {
+    const actor = await requireActorFromMutation();
+    const dateKey = String(formData.get("dateKey") ?? "").trim();
+    const startHm = String(formData.get("startHm") ?? "").trim();
+    const endHm = String(formData.get("endHm") ?? "").trim();
+    if (!dateKey || !startHm || !endHm) {
+      return actionFailure("VALIDATION_ERROR", "수업 시간을 확인해 주세요.");
+    }
+    const result = await gymGroupClassService.rescheduleClass(actor, classId, {
+      dateKey,
+      startHm,
+      endHm,
+    });
+    revalidateGroupPaths({ classId });
+    return actionSuccess(result);
+  });
+}
+
 export async function completeGymGroupClassAction(
   classId: string,
 ): Promise<ActionResult<{ classId: string }>> {

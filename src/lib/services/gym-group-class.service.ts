@@ -334,7 +334,7 @@ export const gymGroupClassService = {
   async getCalendarItems(
     actor: ActorContext,
     input: {
-      view: "month" | "week" | "day";
+      view: "month" | "week" | "day" | "list";
       dateKey: string;
       instructorStaffId?: string | null;
       status?: string | null;
@@ -350,7 +350,7 @@ export const gymGroupClassService = {
       const m = getSeoulScheduleMonthRange(year, month);
       rangeStart = m.start;
       rangeEndExclusive = m.endExclusive;
-    } else if (input.view === "week") {
+    } else if (input.view === "week" || input.view === "list") {
       const w = getSeoulScheduleWeekRange(at);
       rangeStart = w.start;
       rangeEndExclusive = w.endExclusive;
@@ -612,6 +612,31 @@ export const gymGroupClassService = {
       }
     }, GROUP_CLASS_TX);
     return { classId };
+  },
+
+  /**
+   * 보드 드래그/리사이즈용 — 기존 필드 유지하고 시간만 변경.
+   */
+  async rescheduleClass(
+    actor: ActorContext,
+    classId: string,
+    slot: { dateKey: string; startHm: string; endHm: string },
+  ) {
+    const access = await requireGymGroupClassWrite(actor);
+    const existing = await gymGroupClassRepository.findById(classId, access.gymId);
+    if (!existing) throw new AppError("NOT_FOUND", "그룹수업을 찾을 수 없습니다.");
+    return this.updateClass(actor, classId, {
+      title: existing.title,
+      description: existing.description ?? "",
+      instructorStaffId: existing.instructorStaffId ?? "",
+      dateKey: slot.dateKey,
+      startHm: slot.startHm,
+      endHm: slot.endHm,
+      capacity: existing.capacity,
+      location: existing.location ?? "",
+      visibility: existing.visibility,
+      colorKey: existing.colorKey ?? "",
+    });
   },
 
   async completeClass(actor: ActorContext, classId: string) {

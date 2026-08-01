@@ -1,24 +1,38 @@
 "use client";
 
 import Link from "next/link";
-import { useMemo, useRef, useState, useTransition, type RefObject } from "react";
+import {
+  useCallback,
+  useMemo,
+  useRef,
+  useState,
+  useTransition,
+  type RefObject,
+} from "react";
 import { usePathname, useRouter, useSearchParams } from "next/navigation";
-import { GymMemberAvatar } from "@/components/domain/gym-members/GymMemberAvatar";
 import { GymScheduleFormDialog } from "@/components/domain/gym-schedules/GymScheduleFormDialog";
 import { GymScheduleDetailSheet } from "@/components/domain/gym-schedules/GymScheduleDetailSheet";
 import { GymCalendarGroupClassDetailDialog } from "@/components/domain/gym-schedules/GymCalendarGroupClassDetailDialog";
+import {
+  ScheduleBoardCard,
+  type BoardTimePatch,
+} from "@/components/domain/gym-schedules/ScheduleBoardCard";
+import type { ScheduleBoardMenuAction } from "@/components/domain/gym-schedules/ScheduleBoardCardMenu";
+import { ScheduleNowLine } from "@/components/domain/gym-schedules/ScheduleNowLine";
 import { Button, buttonVariants } from "@/components/ui/button";
+import { rescheduleGymScheduleAction } from "@/features/gym-schedules/actions";
+import { rescheduleGymGroupClassAction } from "@/features/gym-group-classes/actions";
 import { gymStaffColorClass } from "@/lib/gym-schedule/labels";
 import { TEN_MINUTE_TIME_OPTIONS } from "@/lib/gym-schedule/hours";
+import { durationLabel } from "@/lib/gym-schedule/board-geometry";
 import {
   SCHEDULE_GRID_END_HOUR,
   SCHEDULE_GRID_START_HOUR,
   SCHEDULE_PX_PER_MINUTE,
   createSeoulDateTime,
+  formatSeoulScheduleTime,
   getSeoulScheduleWeekRange,
   getSeoulYmdParts,
-  scheduleBlockHeightPx,
-  scheduleBlockTopPx,
   scheduleGridTotalHeightPx,
   toSeoulDateKey,
 } from "@/lib/gym-schedule/seoul-schedule";
@@ -50,7 +64,7 @@ export type ScheduleMemberOption = {
   planLabel: string | null;
 };
 
-type ViewMode = "month" | "week" | "day";
+type ViewMode = "month" | "week" | "day" | "list";
 
 const WEEKDAY_LABELS = ["월", "화", "수", "목", "금", "토", "일"];
 
@@ -76,9 +90,7 @@ function monthCells(dateKey: string) {
   const { year, month } = getSeoulYmdParts(createSeoulDateTime(dateKey, "12:00"));
   const firstKey = `${year}-${String(month).padStart(2, "0")}-01`;
   const first = createSeoulDateTime(firstKey, "12:00");
-  const dow = new Date(
-    Date.UTC(year, month - 1, 1),
-  ).getUTCDay();
+  const dow = new Date(Date.UTC(year, month - 1, 1)).getUTCDay();
   const daysFromMonday = dow === 0 ? 6 : dow - 1;
   const start = new Date(first.getTime() - daysFromMonday * 24 * 60 * 60 * 1000);
   const cells: { dateKey: string; inMonth: boolean }[] = [];
@@ -89,6 +101,16 @@ function monthCells(dateKey: string) {
     cells.push({ dateKey: key, inMonth: parts.month === month });
   }
   return { year, month, cells };
+}
+
+function slotHmFromDoubleClick(clientY: number, columnTop: number): string {
+  const raw =
+    SCHEDULE_GRID_START_HOUR * 60 +
+    (clientY - columnTop) / SCHEDULE_PX_PER_MINUTE;
+  const snapped = Math.round(raw / 10) * 10;
+  const h = Math.floor(snapped / 60);
+  const m = snapped % 60;
+  return `${String(Math.max(SCHEDULE_GRID_START_HOUR, Math.min(23, h))).padStart(2, "0")}:${String(m).padStart(2, "0")}`;
 }
 
 export function GymScheduleCalendarApp({
@@ -122,14 +144,22 @@ export function GymScheduleCalendarApp({
   const searchParams = useSearchParams();
   const [, startTransition] = useTransition();
 
-  const view = (searchParams.get("view") as ViewMode) || (viewer === "staff" ? "day" : "week");
-  const dateKey =
-    searchParams.get("date") || toSeoulDateKey(new Date());
-  const staffFilter =
-    fixedStaffId || searchParams.get("staffId") || "";
+  const viewRaw = searchParams.get("view") as ViewMode | null;
+  const view: ViewMode =
+    viewRaw === "month" ||
+    viewRaw === "week" ||
+    viewRaw === "day" ||
+    viewRaw === "list"
+      ? viewRaw
+      : viewer === "staff"
+        ? "day"
+        : "week";
+  const dateKey = searchParams.get("date") || toSeoulDateKey(new Date());
+  const staffFilter = fixedStaffId || searchParams.get("staffId") || "";
   const statusFilter = searchParams.get("status") || "active";
   const itemKindFilter =
     (searchParams.get("kind") as "all" | "personal" | "group_class") || "all";
+  const [q, setQ] = useState(searchParams.get("q") || "");
 
   const [selected, setSelected] = useState<GymCalendarItem | null>(null);
   const [selectedGroup, setSelectedGroup] = useState<GymCalendarItem | null>(
@@ -144,6 +174,10 @@ export function GymScheduleCalendarApp({
     scheduleId?: string;
   } | null>(null);
   const [mobileWeekDay, setMobileWeekDay] = useState(dateKey);
+  const [boardError, setBoardError] = useState<string | null>(null);
+  const [optimistic, setOptimistic] = useState<
+    Record<string, BoardTimePatch>
+  >({});
   const weekScrollRef = useRef<HTMLDivElement | null>(null);
   const scrollPositionRef = useRef<{ week: number; windowY: number }>({
     week: 0,
@@ -161,12 +195,8 @@ export function GymScheduleCalendarApp({
   function restoreScrollPosition() {
     const { week, windowY } = scrollPositionRef.current;
     requestAnimationFrame(() => {
-      if (weekScrollRef.current) {
-        weekScrollRef.current.scrollTop = week;
-      }
-      if (typeof window !== "undefined") {
-        window.scrollTo(0, windowY);
-      }
+      if (weekScrollRef.current) weekScrollRef.current.scrollTop = week;
+      if (typeof window !== "undefined") window.scrollTo(0, windowY);
     });
   }
 
@@ -182,25 +212,60 @@ export function GymScheduleCalendarApp({
   }
 
   const items = useMemo(() => {
-    return initialItems.filter((item) => {
-      if (itemKindFilter === "personal" && item.itemType !== "personal") {
-        return false;
-      }
-      if (itemKindFilter === "group_class" && item.itemType !== "group_class") {
-        return false;
-      }
-      if (staffFilter && item.staffId !== staffFilter) return false;
-      if (statusFilter === "active" && item.status === "cancelled") return false;
-      if (
-        statusFilter !== "all" &&
-        statusFilter !== "active" &&
-        item.status !== statusFilter
-      ) {
-        return false;
-      }
-      return true;
-    });
-  }, [initialItems, staffFilter, statusFilter, itemKindFilter]);
+    const needle = q.trim().toLowerCase();
+    return initialItems
+      .map((item) => {
+        const patch = optimistic[item.id];
+        if (!patch) return item;
+        return {
+          ...item,
+          dateKey: patch.dateKey,
+          startsAt: patch.startsAt,
+          endsAt: patch.endsAt,
+          timeRangeLabel: `${patch.startHm}–${patch.endHm}`,
+        };
+      })
+      .filter((item) => {
+        if (itemKindFilter === "personal" && item.itemType !== "personal") {
+          return false;
+        }
+        if (
+          itemKindFilter === "group_class" &&
+          item.itemType !== "group_class"
+        ) {
+          return false;
+        }
+        if (staffFilter && item.staffId !== staffFilter) return false;
+        if (statusFilter === "active" && item.status === "cancelled") {
+          return false;
+        }
+        if (
+          statusFilter !== "all" &&
+          statusFilter !== "active" &&
+          item.status !== statusFilter
+        ) {
+          return false;
+        }
+        if (!needle) return true;
+        const hay = [
+          item.title,
+          item.memberName,
+          item.staffName,
+          item.scheduleTypeLabel,
+        ]
+          .filter(Boolean)
+          .join(" ")
+          .toLowerCase();
+        return hay.includes(needle);
+      });
+  }, [
+    initialItems,
+    staffFilter,
+    statusFilter,
+    itemKindFilter,
+    q,
+    optimistic,
+  ]);
 
   const byDate = useMemo(() => {
     const map = new Map<string, GymCalendarItem[]>();
@@ -221,7 +286,7 @@ export function GymScheduleCalendarApp({
           );
           return `${year}년 ${month}월`;
         })()
-      : view === "week"
+      : view === "week" || view === "list"
         ? (() => {
             const w = getSeoulScheduleWeekRange(
               createSeoulDateTime(dateKey, "12:00"),
@@ -250,7 +315,7 @@ export function GymScheduleCalendarApp({
     pendingReopenPersonalIdRef.current = item.id;
     setFormDefaults({
       dateKey: item.dateKey,
-      startHm: item.timeRangeLabel.slice(0, 5),
+      startHm: formatSeoulScheduleTime(item.startsAt),
       staffId: item.staffId ?? "",
       memberId: item.memberId ?? undefined,
       scheduleId: item.id,
@@ -285,7 +350,9 @@ export function GymScheduleCalendarApp({
       gymStaffId: item.staffId ?? "",
       gymMemberId: item.memberId ?? "",
       title: item.title,
-      scheduleType: (item.scheduleType as GymScheduleVM["scheduleType"]) || "personal_training",
+      scheduleType:
+        (item.scheduleType as GymScheduleVM["scheduleType"]) ||
+        "personal_training",
       scheduleTypeLabel: item.scheduleTypeLabel || "",
       startsAt: item.startsAt,
       endsAt: item.endsAt,
@@ -293,8 +360,8 @@ export function GymScheduleCalendarApp({
       timeRangeLabel: item.timeRangeLabel,
       status: item.status as GymScheduleVM["status"],
       statusLabel: item.statusLabel,
-      location: null,
-      memo: null,
+      location: item.location ?? null,
+      memo: item.memo ?? null,
       colorKey: item.colorKey,
       staffName: item.staffName || "",
       staffTitle: null,
@@ -308,18 +375,96 @@ export function GymScheduleCalendarApp({
     };
   }
 
+  const requestReschedule = useCallback(
+    async (item: GymCalendarItem, patch: BoardTimePatch) => {
+      setBoardError(null);
+      setOptimistic((prev) => ({ ...prev, [item.id]: patch }));
+      const fd = new FormData();
+      fd.set("dateKey", patch.dateKey);
+      fd.set("startHm", patch.startHm);
+      fd.set("endHm", patch.endHm);
+      const result =
+        item.itemType === "group_class"
+          ? await rescheduleGymGroupClassAction(item.id, fd)
+          : await rescheduleGymScheduleAction(item.id, fd);
+      if (!result.ok) {
+        setOptimistic((prev) => {
+          const next = { ...prev };
+          delete next[item.id];
+          return next;
+        });
+        setBoardError(result.error.message);
+        return false;
+      }
+      setOptimistic((prev) => {
+        const next = { ...prev };
+        delete next[item.id];
+        return next;
+      });
+      startTransition(() => router.refresh());
+      return true;
+    },
+    [router, startTransition],
+  );
+
+  function buildMenuActions(item: GymCalendarItem): ScheduleBoardMenuAction[] {
+    const actions: ScheduleBoardMenuAction[] = [];
+    if (item.itemType === "personal") {
+      if (item.canManage && item.status === "scheduled") {
+        actions.push({
+          id: "edit",
+          label: "일정 수정",
+          onSelect: () => openEdit(item),
+        });
+        actions.push({
+          id: "detail",
+          label: "상세 보기",
+          onSelect: () => onItemClick(item),
+        });
+      } else {
+        actions.push({
+          id: "detail",
+          label: "상세 보기",
+          onSelect: () => onItemClick(item),
+        });
+      }
+      if (item.memberId) {
+        actions.push({
+          id: "member",
+          label: "회원 상세 보기",
+          onSelect: () => {
+            router.push(`/gym/members/${item.memberId}`);
+          },
+        });
+      }
+    } else {
+      actions.push({
+        id: "detail",
+        label: "수업 상세",
+        onSelect: () => onItemClick(item),
+      });
+      if (item.canManage && item.status === "scheduled") {
+        actions.push({
+          id: "edit",
+          label: "수업 상세·상태",
+          onSelect: () => onItemClick(item),
+        });
+      }
+      actions.push({
+        id: "participants",
+        label: "참석자 관리",
+        onSelect: () => {
+          router.push(`/gym/group-classes/${item.id}`);
+        },
+      });
+    }
+    return actions;
+  }
+
   const weekDays = useMemo(() => {
     const w = getSeoulScheduleWeekRange(createSeoulDateTime(dateKey, "12:00"));
     return Array.from({ length: 7 }, (_, i) => shiftDateKey(w.startKey, i));
   }, [dateKey]);
-
-  const nowLineTop = (() => {
-    const now = new Date();
-    if (toSeoulDateKey(now) !== (view === "week" ? mobileWeekDay : dateKey) && view === "day") {
-      /* still compute for day */
-    }
-    return scheduleBlockTopPx(now);
-  })();
 
   return (
     <div className="space-y-4">
@@ -330,6 +475,28 @@ export function GymScheduleCalendarApp({
         <SummaryChip label="이번 주 노쇼" value={summary.weekNoShow} />
         <SummaryChip label="이번 주 취소" value={summary.weekCancelled} />
       </div>
+
+      <p className="text-xs text-matchon-text-secondary">
+        {myOnly
+          ? "내 일정: 로그인한 선생님의 개인 일정과 담당 그룹수업만 표시합니다."
+          : "전체 일정: 체육관 전체 선생님의 일정과 그룹수업을 표시합니다."}
+      </p>
+
+      {boardError ? (
+        <div
+          role="alert"
+          className="rounded-lg border border-destructive/30 bg-destructive/5 px-3 py-2 text-sm text-destructive"
+        >
+          {boardError}
+          <button
+            type="button"
+            className="ml-2 underline"
+            onClick={() => setBoardError(null)}
+          >
+            닫기
+          </button>
+        </div>
+      ) : null}
 
       <div className="flex flex-col gap-3">
         <div className="flex flex-wrap items-center gap-2">
@@ -342,7 +509,10 @@ export function GymScheduleCalendarApp({
                 date:
                   view === "month"
                     ? shiftMonth(dateKey, -1)
-                    : shiftDateKey(dateKey, view === "week" ? -7 : -1),
+                    : shiftDateKey(
+                        dateKey,
+                        view === "week" || view === "list" ? -7 : -1,
+                      ),
               })
             }
           >
@@ -365,14 +535,17 @@ export function GymScheduleCalendarApp({
                 date:
                   view === "month"
                     ? shiftMonth(dateKey, 1)
-                    : shiftDateKey(dateKey, view === "week" ? 7 : 1),
+                    : shiftDateKey(
+                        dateKey,
+                        view === "week" || view === "list" ? 7 : 1,
+                      ),
               })
             }
           >
             다음
           </Button>
           <div className={matchonToolbarSegmentClass}>
-            {(["month", "week", "day"] as ViewMode[]).map((v) => (
+            {(["month", "week", "day", "list"] as ViewMode[]).map((v) => (
               <button
                 key={v}
                 type="button"
@@ -384,7 +557,13 @@ export function GymScheduleCalendarApp({
                 )}
                 onClick={() => pushQuery({ view: v })}
               >
-                {v === "month" ? "월간" : v === "week" ? "주간" : "일간"}
+                {v === "month"
+                  ? "월"
+                  : v === "week"
+                    ? "주"
+                    : v === "day"
+                      ? "일"
+                      : "목록"}
               </button>
             ))}
           </div>
@@ -433,6 +612,14 @@ export function GymScheduleCalendarApp({
             <option value="no_show">노쇼</option>
             <option value="cancelled">취소</option>
           </select>
+          <input
+            type="search"
+            className={cn(matchonToolbarControlClass, "min-w-[160px]")}
+            placeholder="일정명·회원 검색"
+            value={q}
+            onChange={(e) => setQ(e.target.value)}
+            aria-label="일정 검색"
+          />
           <Button
             type="button"
             className={matchonToolbarButtonClass}
@@ -463,16 +650,21 @@ export function GymScheduleCalendarApp({
               weekDays={weekDays}
               byDate={byDate}
               todayKey={todayKey}
-              nowTop={nowLineTop}
               scrollRef={weekScrollRef}
               onItemClick={onItemClick}
+              onRequestEdit={(item) => {
+                if (item.itemType === "personal") openEdit(item);
+                else onItemClick(item);
+              }}
+              onRequestReschedule={requestReschedule}
+              buildMenuActions={buildMenuActions}
               onSlotClick={(dk, hm) => {
                 captureScrollPosition();
                 openCreate({ dateKey: dk, startHm: hm });
               }}
             />
           </div>
-          <div className="md:hidden space-y-3">
+          <div className="space-y-3 md:hidden">
             <div className="flex gap-1 overflow-x-auto pb-1">
               {weekDays.map((dk, i) => {
                 const count = byDate.get(dk)?.length ?? 0;
@@ -502,8 +694,13 @@ export function GymScheduleCalendarApp({
             <DayTimeline
               dateKey={mobileWeekDay || dateKey}
               items={byDate.get(mobileWeekDay || dateKey) ?? []}
-              nowTop={nowLineTop}
               onItemClick={onItemClick}
+              onRequestEdit={(item) => {
+                if (item.itemType === "personal") openEdit(item);
+                else onItemClick(item);
+              }}
+              onRequestReschedule={requestReschedule}
+              buildMenuActions={buildMenuActions}
               onSlotClick={(hm) =>
                 openCreate({ dateKey: mobileWeekDay || dateKey, startHm: hm })
               }
@@ -516,12 +713,24 @@ export function GymScheduleCalendarApp({
         <DayTimeline
           dateKey={dateKey}
           items={byDate.get(dateKey) ?? []}
-          nowTop={nowLineTop}
           onItemClick={onItemClick}
+          onRequestEdit={(item) => {
+            if (item.itemType === "personal") openEdit(item);
+            else onItemClick(item);
+          }}
+          onRequestReschedule={requestReschedule}
+          buildMenuActions={buildMenuActions}
           onSlotClick={(hm) => {
             captureScrollPosition();
             openCreate({ dateKey, startHm: hm });
           }}
+        />
+      ) : null}
+
+      {view === "list" ? (
+        <ListView
+          items={items}
+          onItemClick={onItemClick}
         />
       ) : null}
 
@@ -544,6 +753,11 @@ export function GymScheduleCalendarApp({
         open={Boolean(selectedGroup)}
         onOpenChange={(open) => {
           if (!open) closeGroupDetail();
+        }}
+        onChanged={() => {
+          setSelectedGroup(null);
+          restoreScrollPosition();
+          router.refresh();
         }}
       />
 
@@ -587,11 +801,15 @@ export function GymScheduleCalendarApp({
 
       <p className="text-xs text-matchon-text-secondary">
         시작·종료는 10분 단위입니다. 같은 선생님·같은 회원 일정은 겹칠 수
-        없습니다.
+        없습니다. 카드를 드래그하거나 상·하단을 조절해 시간을 변경할 수
+        있습니다.
         {myOnly ? " (내 일정 범위)" : " (전체 일정 범위)"}
       </p>
       <div className="flex flex-wrap gap-2 text-xs">
-        <Link href="/gym/members" className={buttonVariants({ variant: "link", size: "sm" })}>
+        <Link
+          href="/gym/members"
+          className={buttonVariants({ variant: "link", size: "sm" })}
+        >
           회원 목록
         </Link>
         {TEN_MINUTE_TIME_OPTIONS.length ? null : null}
@@ -624,7 +842,7 @@ function MonthView({
 }) {
   const { cells } = monthCells(dateKey);
   return (
-    <div className="overflow-hidden rounded-xl border border-matchon-border">
+    <div className="overflow-hidden rounded-xl border border-matchon-border bg-white shadow-sm">
       <div className="grid grid-cols-7 border-b border-matchon-border bg-matchon-surface/50 text-center text-xs font-medium">
         {WEEKDAY_LABELS.map((d) => (
           <div key={d} className="px-1 py-2">
@@ -659,7 +877,7 @@ function MonthView({
                     tabIndex={0}
                     data-testid="schedule-block"
                     className={cn(
-                      "truncate rounded px-1 py-0.5 text-[10px] ring-1 ring-inset md:text-[11px]",
+                      "truncate rounded-md px-1 py-0.5 text-[10px] shadow-sm ring-1 ring-inset md:text-[11px]",
                       gymStaffColorClass(item.colorKey),
                       item.itemType === "group_class" && "font-medium",
                       item.status === "cancelled" && "opacity-50 line-through",
@@ -706,17 +924,24 @@ function WeekDesktop({
   weekDays,
   byDate,
   todayKey,
-  nowTop,
   scrollRef,
   onItemClick,
+  onRequestEdit,
+  onRequestReschedule,
+  buildMenuActions,
   onSlotClick,
 }: {
   weekDays: string[];
   byDate: Map<string, GymCalendarItem[]>;
   todayKey: string;
-  nowTop: number;
   scrollRef: RefObject<HTMLDivElement | null>;
   onItemClick: (item: GymCalendarItem) => void;
+  onRequestEdit: (item: GymCalendarItem) => void;
+  onRequestReschedule: (
+    item: GymCalendarItem,
+    patch: BoardTimePatch,
+  ) => Promise<boolean>;
+  buildMenuActions: (item: GymCalendarItem) => ScheduleBoardMenuAction[];
   onSlotClick: (dateKey: string, hm: string) => void;
 }) {
   const height = scheduleGridTotalHeightPx();
@@ -727,7 +952,7 @@ function WeekDesktop({
   return (
     <div
       ref={scrollRef}
-      className="overflow-auto rounded-xl border border-matchon-border"
+      className="overflow-auto rounded-xl border border-matchon-border bg-white shadow-sm"
       data-testid="schedule-week-scroll"
     >
       <div className="sticky top-0 z-10 grid grid-cols-[56px_repeat(7,minmax(0,1fr))] border-b border-matchon-border bg-background">
@@ -748,13 +973,16 @@ function WeekDesktop({
         className="grid grid-cols-[56px_repeat(7,minmax(0,1fr))]"
         style={{ height }}
       >
-        <div className="relative border-r border-matchon-border">
+        <div className="relative border-r border-matchon-border bg-matchon-surface/20">
           {hours.map((h) => (
             <div
               key={h}
               className="absolute right-1 -translate-y-1/2 text-[10px] text-matchon-text-secondary"
               style={{
-                top: (h - SCHEDULE_GRID_START_HOUR) * 60 * SCHEDULE_PX_PER_MINUTE,
+                top:
+                  (h - SCHEDULE_GRID_START_HOUR) *
+                  60 *
+                  SCHEDULE_PX_PER_MINUTE,
               }}
             >
               {String(h).padStart(2, "0")}:00
@@ -764,61 +992,39 @@ function WeekDesktop({
         {weekDays.map((dk) => (
           <div
             key={dk}
-            className="relative border-l border-matchon-border"
-            onDoubleClick={() => onSlotClick(dk, "15:00")}
+            data-schedule-day={dk}
+            className="relative border-l border-matchon-border bg-[linear-gradient(to_bottom,transparent_calc(100%-1px),rgba(0,0,0,0.03)_calc(100%-1px))]"
+            onDoubleClick={(e) => {
+              const rect = (
+                e.currentTarget as HTMLElement
+              ).getBoundingClientRect();
+              onSlotClick(dk, slotHmFromDoubleClick(e.clientY, rect.top));
+            }}
           >
             {hours.map((h) => (
               <div
                 key={h}
-                className="absolute inset-x-0 border-t border-dashed border-matchon-border/60"
+                className="absolute inset-x-0 border-t border-dashed border-matchon-border/50"
                 style={{
-                  top: (h - SCHEDULE_GRID_START_HOUR) * 60 * SCHEDULE_PX_PER_MINUTE,
+                  top:
+                    (h - SCHEDULE_GRID_START_HOUR) *
+                    60 *
+                    SCHEDULE_PX_PER_MINUTE,
                 }}
               />
             ))}
-            {dk === todayKey ? (
-              <div
-                className="pointer-events-none absolute inset-x-0 z-20 border-t-2 border-red-500"
-                style={{ top: nowTop }}
-              />
-            ) : null}
+            <ScheduleNowLine dateKey={dk} />
             {(byDate.get(dk) ?? []).map((item) => (
-              <button
+              <ScheduleBoardCard
                 key={item.id}
-                type="button"
-                data-testid="schedule-block"
-                className={cn(
-                  "absolute inset-x-1 z-10 overflow-hidden rounded-md px-1.5 py-1 text-left text-[11px] ring-1 ring-inset",
-                  gymStaffColorClass(item.colorKey),
-                  item.itemType === "group_class" && "border-l-2 border-l-primary",
-                  item.status === "cancelled" && "opacity-50",
-                )}
-                style={{
-                  top: scheduleBlockTopPx(item.startsAt),
-                  height: scheduleBlockHeightPx(item.startsAt, item.endsAt),
-                }}
-                onClick={() => onItemClick(item)}
-              >
-                <div className="font-medium">{item.timeRangeLabel}</div>
-                <div className="truncate">
-                  {item.itemType === "group_class" ? item.title : item.memberName}
-                </div>
-                <div className="truncate text-[10px] opacity-80">
-                  {item.itemType === "group_class"
-                    ? `${item.staffName || "미정"}${
-                        item.capacity != null
-                          ? ` · ${item.participantCount ?? 0}/${item.capacity}`
-                          : item.participantCount != null
-                            ? ` · ${item.participantCount}명`
-                            : ""
-                      }${
-                        item.waitlistCount
-                          ? ` · 대기 ${item.waitlistCount}`
-                          : ""
-                      }`
-                    : `${item.staffName} · ${item.scheduleTypeLabel}`}
-                </div>
-              </button>
+                item={item}
+                dateKey={dk}
+                compact
+                onSelect={onItemClick}
+                onRequestEdit={onRequestEdit}
+                onRequestReschedule={onRequestReschedule}
+                menuActions={buildMenuActions(item)}
+              />
             ))}
           </div>
         ))}
@@ -830,14 +1036,21 @@ function WeekDesktop({
 function DayTimeline({
   dateKey,
   items,
-  nowTop,
   onItemClick,
+  onRequestEdit,
+  onRequestReschedule,
+  buildMenuActions,
   onSlotClick,
 }: {
   dateKey: string;
   items: GymCalendarItem[];
-  nowTop: number;
   onItemClick: (item: GymCalendarItem) => void;
+  onRequestEdit: (item: GymCalendarItem) => void;
+  onRequestReschedule: (
+    item: GymCalendarItem,
+    patch: BoardTimePatch,
+  ) => Promise<boolean>;
+  buildMenuActions: (item: GymCalendarItem) => ScheduleBoardMenuAction[];
   onSlotClick: (hm: string) => void;
 }) {
   const height = scheduleGridTotalHeightPx();
@@ -845,10 +1058,9 @@ function DayTimeline({
     { length: SCHEDULE_GRID_END_HOUR - SCHEDULE_GRID_START_HOUR },
     (_, i) => SCHEDULE_GRID_START_HOUR + i,
   );
-  const isToday = dateKey === toSeoulDateKey(new Date());
 
   return (
-    <div className="overflow-hidden rounded-xl border border-matchon-border">
+    <div className="overflow-hidden rounded-xl border border-matchon-border bg-white shadow-sm">
       <div className="border-b border-matchon-border px-3 py-2 text-sm font-medium">
         {dateKey}
         <button
@@ -859,95 +1071,138 @@ function DayTimeline({
           빈 시간에 등록
         </button>
       </div>
-      <div className="relative grid grid-cols-[56px_minmax(0,1fr)]" style={{ height }}>
-        <div className="relative border-r border-matchon-border">
+      <div
+        className="relative grid grid-cols-[56px_minmax(0,1fr)]"
+        style={{ height }}
+      >
+        <div className="relative border-r border-matchon-border bg-matchon-surface/20">
           {hours.map((h) => (
             <div
               key={h}
               className="absolute right-1 -translate-y-1/2 text-[10px] text-matchon-text-secondary"
               style={{
-                top: (h - SCHEDULE_GRID_START_HOUR) * 60 * SCHEDULE_PX_PER_MINUTE,
+                top:
+                  (h - SCHEDULE_GRID_START_HOUR) *
+                  60 *
+                  SCHEDULE_PX_PER_MINUTE,
               }}
             >
               {String(h).padStart(2, "0")}:00
             </div>
           ))}
         </div>
-        <div className="relative">
+        <div
+          className="relative"
+          data-schedule-day={dateKey}
+          onDoubleClick={(e) => {
+            const rect = (
+              e.currentTarget as HTMLElement
+            ).getBoundingClientRect();
+            onSlotClick(slotHmFromDoubleClick(e.clientY, rect.top));
+          }}
+        >
           {hours.map((h) => (
             <div
               key={h}
-              className="absolute inset-x-0 border-t border-dashed border-matchon-border/60"
+              className="absolute inset-x-0 border-t border-dashed border-matchon-border/50"
               style={{
-                top: (h - SCHEDULE_GRID_START_HOUR) * 60 * SCHEDULE_PX_PER_MINUTE,
+                top:
+                  (h - SCHEDULE_GRID_START_HOUR) *
+                  60 *
+                  SCHEDULE_PX_PER_MINUTE,
               }}
             />
           ))}
-          {isToday ? (
-            <div
-              className="pointer-events-none absolute inset-x-0 z-20 border-t-2 border-red-500"
-              style={{ top: nowTop }}
-            />
-          ) : null}
+          <ScheduleNowLine dateKey={dateKey} />
           {items.length === 0 ? (
             <p className="absolute left-3 top-3 text-sm text-matchon-text-secondary">
               등록된 일정이 없습니다.
             </p>
           ) : null}
           {items.map((item) => (
-            <button
+            <ScheduleBoardCard
               key={item.id}
-              type="button"
-              data-testid="schedule-block"
-              className={cn(
-                "absolute inset-x-2 z-10 flex gap-2 overflow-hidden rounded-lg px-2 py-1.5 text-left text-xs ring-1 ring-inset",
-                gymStaffColorClass(item.colorKey),
-                item.itemType === "group_class" && "border-l-2 border-l-primary",
-                item.status === "cancelled" && "opacity-50",
-              )}
-              style={{
-                top: scheduleBlockTopPx(item.startsAt),
-                height: Math.max(
-                  48,
-                  scheduleBlockHeightPx(item.startsAt, item.endsAt),
-                ),
-              }}
-              onClick={() => onItemClick(item)}
-            >
-              {item.itemType === "personal" ? (
-                <GymMemberAvatar
-                  name={item.memberName || ""}
-                  src={item.memberProfileImageUrl}
-                  className="size-8"
-                />
-              ) : (
-                <div className="flex size-8 shrink-0 items-center justify-center rounded-full bg-primary/15 text-[10px] font-semibold text-primary">
-                  그룹
-                </div>
-              )}
-              <div className="min-w-0">
-                <div className="font-medium">{item.timeRangeLabel}</div>
-                <div className="truncate">
-                  {item.itemType === "group_class" ? item.title : item.memberName}
-                </div>
-                <div className="truncate opacity-80">
-                  {item.itemType === "group_class"
-                    ? `${item.staffName || "미정"}${
-                        item.capacity != null
-                          ? ` · ${item.participantCount ?? 0}/${item.capacity}`
-                          : ""
-                      }${
-                        item.waitlistCount
-                          ? ` · 대기 ${item.waitlistCount}`
-                          : ""
-                      } · ${item.statusLabel}`
-                    : `${item.scheduleTypeLabel} · ${item.staffName} · ${item.statusLabel}`}
-                </div>
-              </div>
-            </button>
+              item={item}
+              dateKey={dateKey}
+              insetClassName="inset-x-2"
+              minHeightPx={48}
+              onSelect={onItemClick}
+              onRequestEdit={onRequestEdit}
+              onRequestReschedule={onRequestReschedule}
+              menuActions={buildMenuActions(item)}
+            />
           ))}
         </div>
       </div>
+    </div>
+  );
+}
+
+function ListView({
+  items,
+  onItemClick,
+}: {
+  items: GymCalendarItem[];
+  onItemClick: (item: GymCalendarItem) => void;
+}) {
+  return (
+    <div className="overflow-hidden rounded-xl border border-matchon-border bg-white shadow-sm">
+      <table className="w-full text-left text-sm">
+        <thead className="border-b border-matchon-border bg-matchon-surface/40 text-xs text-matchon-text-secondary">
+          <tr>
+            <th className="px-3 py-2 font-medium">날짜·시간</th>
+            <th className="px-3 py-2 font-medium">일정</th>
+            <th className="px-3 py-2 font-medium">선생님</th>
+            <th className="px-3 py-2 font-medium">상태</th>
+            <th className="px-3 py-2 font-medium">소요</th>
+          </tr>
+        </thead>
+        <tbody>
+          {items.length === 0 ? (
+            <tr>
+              <td
+                colSpan={5}
+                className="px-3 py-8 text-center text-matchon-text-secondary"
+              >
+                표시할 일정이 없습니다.
+              </td>
+            </tr>
+          ) : (
+            items.map((item) => (
+              <tr
+                key={item.id}
+                data-testid="schedule-block"
+                className="cursor-pointer border-b border-matchon-border/70 hover:bg-matchon-surface/40"
+                onClick={() => onItemClick(item)}
+              >
+                <td className="px-3 py-2 tabular-nums">
+                  <div>{item.dateKey}</div>
+                  <div className="text-xs text-matchon-text-secondary">
+                    {item.timeRangeLabel}
+                  </div>
+                </td>
+                <td className="px-3 py-2">
+                  <div className="font-medium">
+                    {item.itemType === "group_class"
+                      ? item.title
+                      : item.memberName}
+                  </div>
+                  <div className="text-xs text-matchon-text-secondary">
+                    {item.itemType === "group_class"
+                      ? "그룹수업"
+                      : item.scheduleTypeLabel}
+                  </div>
+                </td>
+                <td className="px-3 py-2">{item.staffName || "—"}</td>
+                <td className="px-3 py-2">{item.statusLabel}</td>
+                <td className="px-3 py-2 tabular-nums">
+                  {durationLabel(item.startsAt, item.endsAt)}
+                </td>
+              </tr>
+            ))
+          )}
+        </tbody>
+      </table>
     </div>
   );
 }

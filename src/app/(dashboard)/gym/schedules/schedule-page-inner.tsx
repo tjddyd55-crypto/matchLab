@@ -40,7 +40,10 @@ export async function SchedulePageInner({
   const sp = await searchParams;
   const viewRaw = typeof sp.view === "string" ? sp.view : "";
   const view =
-    viewRaw === "month" || viewRaw === "week" || viewRaw === "day"
+    viewRaw === "month" ||
+    viewRaw === "week" ||
+    viewRaw === "day" ||
+    viewRaw === "list"
       ? viewRaw
       : actor.role === "gym_staff"
         ? "day"
