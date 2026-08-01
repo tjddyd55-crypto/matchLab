@@ -329,8 +329,8 @@ function assertGymScope() {
     join(root, "src/lib/services/gym-sales.service.ts"),
     "utf8",
   );
-  assert.match(service, /requireGymPortalRead/);
-  assert.match(service, /requireGymPortalWrite/);
+  assert.match(service, /requireGymPortalSalesManage/);
+  assert.doesNotMatch(service, /requireGymPortalRead\(/);
   assert.match(service, /access\.gymId/);
   assert.doesNotMatch(service, /clientGymId/);
   console.log("verify:gym-sales-gym-scope: OK");
@@ -341,12 +341,26 @@ function assertPermissions() {
     join(root, "src/lib/services/gym-sales.service.ts"),
     "utf8",
   );
-  assert.match(service, /requireGymPortalWrite\(actor\)/);
+  const access = readFileSync(
+    join(root, "src/lib/gym-portal-access.ts"),
+    "utf8",
+  );
+  assert.match(access, /requireGymPortalSalesManage/);
+  assert.match(access, /canManageSales/);
+  assert.match(service, /requireGymPortalSalesManage\(actor\)/);
+  assert.doesNotMatch(service, /requireGymPortalRead\(/);
   const page = readFileSync(
     join(root, "src/app/(dashboard)/gym/sales/page.tsx"),
     "utf8",
   );
-  assert.match(page, /requireActor/);
+  const receivables = readFileSync(
+    join(root, "src/app/(dashboard)/gym/sales/receivables/page.tsx"),
+    "utf8",
+  );
+  assert.match(page, /requireGymPortalSalesManage/);
+  assert.match(page, /notFound\(\)/);
+  assert.match(receivables, /requireGymPortalSalesManage/);
+  assert.match(receivables, /notFound\(\)/);
   console.log("verify:gym-sales-permissions: OK");
 }
 

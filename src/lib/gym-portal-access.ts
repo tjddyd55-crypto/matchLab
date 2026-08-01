@@ -313,3 +313,17 @@ export async function requireGymPortalOwnerManage(
   }
   return access;
 }
+
+/**
+ * 매출·미수금 조회/관리 (관장·admin만).
+ * gym_staff 직접 URL·서비스 호출 차단 SSOT.
+ */
+export async function requireGymPortalSalesManage(
+  actor: ActorContext,
+): Promise<GymPortalAccess> {
+  const access = await requireGymPortalWrite(actor);
+  if (!access.canManageSales) {
+    throw new PermissionError("FORBIDDEN", "매출 관리 권한이 없습니다.");
+  }
+  return access;
+}

@@ -1,5 +1,9 @@
 import Link from "next/link";
+import { notFound } from "next/navigation";
 import { requireActor } from "@/lib/auth/actor";
+import { PermissionError } from "@/lib/auth/permission-error";
+import { AppError } from "@/lib/errors/app-error";
+import { requireGymPortalSalesManage } from "@/lib/gym-portal-access";
 import { gymSalesService } from "@/lib/services/gym-sales.service";
 import { gymMemberService } from "@/lib/services/gym-member.service";
 import { GymReceivablesPanel } from "@/components/domain/gym-sales/GymSalesDashboardPanel";
@@ -25,6 +29,14 @@ export default async function GymSalesReceivablesPage() {
         </div>
       </div>
     );
+  }
+
+  try {
+    await requireGymPortalSalesManage(actor);
+  } catch (e) {
+    if (e instanceof PermissionError) notFound();
+    if (e instanceof AppError && e.code === "FORBIDDEN") notFound();
+    throw e;
   }
 
   const [rows, membersResult] = await Promise.all([

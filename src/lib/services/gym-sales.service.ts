@@ -32,10 +32,7 @@ import {
   toSeoulAttendanceDate,
 } from "@/lib/gym-attendance/seoul-date";
 import { maskPhoneForAdminList } from "@/lib/gym-attendance/privacy";
-import {
-  requireGymPortalRead,
-  requireGymPortalWrite,
-} from "@/lib/gym-portal-access";
+import { requireGymPortalSalesManage } from "@/lib/gym-portal-access";
 import { prisma } from "@/lib/prisma";
 import { auditRepository } from "@/lib/repositories/audit.repository";
 import { gymMemberRepository } from "@/lib/repositories/gym-member.repository";
@@ -179,7 +176,7 @@ export const gymSalesService = {
       sort?: "recent" | "amount_desc" | "amount_asc";
     } = {},
   ) {
-    const access = await requireGymPortalRead(actor);
+    const access = await requireGymPortalSalesManage(actor);
     const periodKey = input.period ?? "this_month";
     const range = getSalesPeriodRange(periodKey, input.from, input.to);
     const { payments, manualSales, refunds } = await loadSalesSourceRows(
@@ -504,7 +501,7 @@ export const gymSalesService = {
 
   async getHomeSalesSnippet(actor: ActorContext) {
     try {
-      const access = await requireGymPortalRead(actor);
+      const access = await requireGymPortalSalesManage(actor);
       const { payments, manualSales, refunds } = await loadSalesSourceRows(
         access.gymId,
       );
@@ -561,7 +558,7 @@ export const gymSalesService = {
   },
 
   async getMemberSalesSummary(actor: ActorContext, memberId: string) {
-    const access = await requireGymPortalRead(actor);
+    const access = await requireGymPortalSalesManage(actor);
     const member = await gymMemberRepository.findByIdForGym(
       memberId,
       access.gymId,
@@ -652,7 +649,7 @@ export const gymSalesService = {
       memo?: string;
     },
   ) {
-    const access = await requireGymPortalWrite(actor);
+    const access = await requireGymPortalSalesManage(actor);
     assertPositiveInt(input.amount, "금액");
     const discount = input.discountAmount ?? 0;
     assertNonNegInt(discount, "할인금액");
@@ -717,7 +714,7 @@ export const gymSalesService = {
   },
 
   async cancelManualSale(actor: ActorContext, saleId: string, memo?: string) {
-    const access = await requireGymPortalWrite(actor);
+    const access = await requireGymPortalSalesManage(actor);
     const sale = await prisma.gymManualSale.findFirst({
       where: { id: saleId, gymId: access.gymId },
     });
@@ -760,7 +757,7 @@ export const gymSalesService = {
       memo?: string;
     },
   ) {
-    const access = await requireGymPortalWrite(actor);
+    const access = await requireGymPortalSalesManage(actor);
     assertPositiveInt(input.amount, "환불금액");
     if (!input.paymentId && !input.manualSaleId) {
       throw new AppError("VALIDATION_ERROR", "환불 대상을 지정해 주세요.");
@@ -878,7 +875,7 @@ export const gymSalesService = {
       memo?: string;
     },
   ) {
-    const access = await requireGymPortalWrite(actor);
+    const access = await requireGymPortalSalesManage(actor);
     assertPositiveInt(input.totalAmount, "청구금액");
     const member = await gymMemberRepository.findByIdForGym(
       input.gymMemberId,
@@ -922,7 +919,7 @@ export const gymSalesService = {
   },
 
   async listReceivables(actor: ActorContext) {
-    const access = await requireGymPortalRead(actor);
+    const access = await requireGymPortalSalesManage(actor);
     const rows = await prisma.gymReceivable.findMany({
       where: { gymId: access.gymId },
       orderBy: [{ dueDate: "asc" }, { createdAt: "desc" }],
@@ -969,7 +966,7 @@ export const gymSalesService = {
       memo?: string;
     },
   ) {
-    const access = await requireGymPortalWrite(actor);
+    const access = await requireGymPortalSalesManage(actor);
     assertPositiveInt(input.amount, "납부금액");
     const paidAt = parsePaidAt(input.paidAt ?? null);
     assertNotFutureSeoulDate(paidAt, "결제일");
@@ -1055,7 +1052,7 @@ export const gymSalesService = {
     receivableId: string,
     memo?: string,
   ) {
-    const access = await requireGymPortalWrite(actor);
+    const access = await requireGymPortalSalesManage(actor);
     const row = await prisma.gymReceivable.findFirst({
       where: { id: receivableId, gymId: access.gymId },
     });

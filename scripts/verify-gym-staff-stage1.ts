@@ -169,12 +169,30 @@ function verifyStaffPermissions() {
   const nav = read("src/lib/navigation/gym-portal-navigation.ts");
   const layout = read("src/app/(dashboard)/gym/layout.tsx");
   const map = read("src/lib/auth/map-profile-to-actor.ts");
+  const sales = read("src/lib/services/gym-sales.service.ts");
+  const salesPage = read("src/app/(dashboard)/gym/sales/page.tsx");
+  const receivablesPage = read(
+    "src/app/(dashboard)/gym/sales/receivables/page.tsx",
+  );
 
   assertIncludes(permissions, "requireGymStaff", "helper");
   assertIncludes(permissions, "isGymPortalOwner", "owner helper");
   assertIncludes(access, "gym_staff", "access mode");
   assertIncludes(access, "canManageStaff: false", "staff blocked manage");
   assertIncludes(access, "canManageSales: false", "staff blocked sales");
+  assertIncludes(access, "requireGymPortalSalesManage", "sales manage helper");
+  assertIncludes(sales, "requireGymPortalSalesManage", "sales service guard");
+  assert.equal(
+    sales.includes("requireGymPortalRead("),
+    false,
+    "sales must not use portal read for staff leak",
+  );
+  assertIncludes(salesPage, "requireGymPortalSalesManage", "sales page guard");
+  assertIncludes(
+    receivablesPage,
+    "requireGymPortalSalesManage",
+    "receivables page guard",
+  );
   assertIncludes(nav, "GymPortalNavViewer", "viewer");
   assertIncludes(nav, '"staff"', "staff viewer");
   assertIncludes(layout, "gym_staff", "layout allows staff");
