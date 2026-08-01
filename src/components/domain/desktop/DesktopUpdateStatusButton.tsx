@@ -16,6 +16,33 @@ import type { MatchonDesktopUpdateStatus } from "@/types/matchon-desktop";
 import { cn } from "@/lib/utils";
 
 /**
+ * 저장되지 않은 입력 위험 여부.
+ * - data-dirty="true" 명시 시만 form dirty로 판단
+ * - 읽기 전용 modal은 경고하지 않음
+ * - 현재 포커스가 편집 가능한 필드일 때만 추가 경고
+ */
+function hasUnsavedRisk(): boolean {
+  if (typeof document === "undefined") return false;
+  if (document.querySelector('[data-dirty="true"]')) return true;
+
+  const active = document.activeElement;
+  if (!(active instanceof HTMLElement)) return false;
+  if (active.isContentEditable) return true;
+  if (active instanceof HTMLTextAreaElement) {
+    return !active.readOnly && !active.disabled;
+  }
+  if (active instanceof HTMLInputElement) {
+    if (active.type === "hidden" || active.readOnly || active.disabled) {
+      return false;
+    }
+    return ["text", "search", "email", "tel", "url", "password", "number"].includes(
+      active.type,
+    );
+  }
+  return false;
+}
+
+/**
  * MATCHON Manager 업데이트 상태 버튼.
  * Header · /desktop/login 공통. 사용자 문구는 update-display SSOT.
  */
@@ -25,7 +52,8 @@ export function DesktopUpdateStatusButton({
   className?: string;
 }) {
   const [status, setStatus] = useState<MatchonDesktopUpdateStatus | null>(null);
-  const [confirmOpen, setConfirmOpen] = useState(false);
+  const [nativeConfirmOpen, setNativeConfirmOpen] = useState(false);
+  const [webConfirmOpen, setWebConfirmOpen] = useState(false);
   const [flash, setFlash] = useState<string | null>(null);
 
   useEffect(() => {
@@ -62,39 +90,48 @@ export function DesktopUpdateStatusButton({
     return next ?? null;
   }
 
-  async function runInstall() {
-    setConfirmOpen(false);
-    await window.matchonDesktop?.installUpdate?.();
+  async function runNativeInstall() {
+    setNativeConfirmOpen(false);
+    await window.matchonDesktop?.installDesktopUpdate?.();
+  }
+
+  async function runWebApply() {
+    setWebConfirmOpen(false);
+    const ok = await window.matchonDesktop?.applyWebUpdate?.();
+    if (ok === false) {
+      setFlash("업데이트를 적용하지 못했습니다. 다시 시도해 주세요.");
+    }
   }
 
   async function onClick() {
-    const current = status;
-    if (!current) return;
+    if (display.action === "none") return;
 
-    if (current.state === "checking" || current.state === "downloading") {
+    if (display.action === "install_native") {
+      setNativeConfirmOpen(true);
       return;
     }
 
-    if (current.state === "ready") {
-      setConfirmOpen(true);
+    if (display.action === "apply_web") {
+      if (hasUnsavedRisk()) {
+        setWebConfirmOpen(true);
+        return;
+      }
+      await runWebApply();
       return;
     }
 
-    if (current.state === "disabled") {
-      setFlash("최신 버전입니다");
+    if (display.action === "flash_latest") {
+      setFlash("최신 버전입니다.");
       return;
     }
 
-    if (current.state === "available") {
-      return;
-    }
-
-    const next = await runCheck();
-    if (
-      next &&
-      (next.state === "up_to_date" || next.state === "disabled")
-    ) {
-      setFlash("최신 버전입니다");
+    if (display.action === "check") {
+      const next = await runCheck();
+      if (!next) return;
+      const nextDisplay = getDesktopUpdateDisplayState(next);
+      if (nextDisplay.label === "최신 버전입니다") {
+        setFlash("최신 버전입니다.");
+      }
     }
   }
 
@@ -126,25 +163,49 @@ export function DesktopUpdateStatusButton({
         </span>
       ) : null}
 
-      <Dialog open={confirmOpen} onOpenChange={setConfirmOpen}>
+      <Dialog open={nativeConfirmOpen} onOpenChange={setNativeConfirmOpen}>
         <DialogContent className="sm:max-w-sm" showCloseButton={false}>
           <DialogHeader>
-            <DialogTitle>업데이트 적용</DialogTitle>
+            <DialogTitle>프로그램 업데이트</DialogTitle>
             <DialogDescription>
-              업데이트를 적용하면 프로그램이 재시작됩니다. 저장되지 않은 작업이
-              있으면 먼저 저장해 주세요.
+              프로그램 업데이트를 적용하면 MATCHON Manager가 한 번 재시작됩니다.
+              저장되지 않은 작업이 있으면 먼저 저장해 주세요.
             </DialogDescription>
           </DialogHeader>
           <DialogFooter className="gap-2">
             <Button
               type="button"
               variant="outline"
-              onClick={() => setConfirmOpen(false)}
+              onClick={() => setNativeConfirmOpen(false)}
             >
               취소
             </Button>
-            <Button type="button" onClick={() => void runInstall()}>
-              업데이트 적용
+            <Button type="button" onClick={() => void runNativeInstall()}>
+              재시작하여 업데이트
+            </Button>
+          </DialogFooter>
+        </DialogContent>
+      </Dialog>
+
+      <Dialog open={webConfirmOpen} onOpenChange={setWebConfirmOpen}>
+        <DialogContent className="sm:max-w-sm" showCloseButton={false}>
+          <DialogHeader>
+            <DialogTitle>화면 업데이트</DialogTitle>
+            <DialogDescription>
+              화면을 새로고침하면 저장하지 않은 내용이 사라질 수 있습니다.
+              업데이트를 적용할까요?
+            </DialogDescription>
+          </DialogHeader>
+          <DialogFooter className="gap-2">
+            <Button
+              type="button"
+              variant="outline"
+              onClick={() => setWebConfirmOpen(false)}
+            >
+              취소
+            </Button>
+            <Button type="button" onClick={() => void runWebApply()}>
+              새로고침하여 적용
             </Button>
           </DialogFooter>
         </DialogContent>

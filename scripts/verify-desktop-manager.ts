@@ -195,6 +195,98 @@ function environment() {
   console.log("verify:desktop-environment: OK");
 }
 
+function verifyDesktopWebUpdateVersion() {
+  const route = read("src/app/api/desktop/version/route.ts");
+  const lib = read("src/lib/desktop/web-version.ts");
+  assertIncludes(route, "Cache-Control", "no-store header");
+  assertIncludes(route, "no-store", "no-store");
+  assertIncludes(lib, "webVersion", "webVersion field");
+  assertIncludes(lib, "desktopMinimumVersion", "min desktop");
+  assertIncludes(lib, "RAILWAY_GIT_COMMIT_SHA", "commit env");
+  assertIncludes(lib, "NEXT_PUBLIC_BUILD_ID", "build id fallback");
+  assertNotIncludes(lib, "DATABASE_URL", "no db secret");
+  assertNotIncludes(lib, "SUPABASE_SERVICE_ROLE", "no supabase secret");
+  assertNotIncludes(lib, "environment:", "no env field in payload");
+  assertNotIncludes(route, "process.env", "route uses helper only");
+  console.log("verify:desktop-web-update-version: OK");
+}
+
+function verifyDesktopWebUpdateReload() {
+  const autoUpdate = read("desktop/electron/auto-update.ts");
+  const store = read("desktop/electron/web-version-store.ts");
+  assertIncludes(autoUpdate, "applyWebUpdateNow", "apply web");
+  assertIncludes(autoUpdate, "webContents.reload", "reload");
+  assertIncludes(store, "desktop-web-version.json", "store filename");
+  assertNotIncludes(store, "password", "no password");
+  assertNotIncludes(store, "cookie", "no cookie");
+  assertNotIncludes(store, "sessionToken", "no session token");
+  // applyWebUpdate must not call quitAndInstall
+  const applyIdx = autoUpdate.indexOf("export async function applyWebUpdateNow");
+  const installIdx = autoUpdate.indexOf("export function installDesktopUpdateNow");
+  assert.ok(applyIdx >= 0 && installIdx > applyIdx, "apply before install");
+  const applyBody = autoUpdate.slice(applyIdx, installIdx);
+  assert.equal(
+    applyBody.includes("quitAndInstall"),
+    false,
+    "web apply must not quitAndInstall",
+  );
+  assertIncludes(autoUpdate, "lastAutoReloadedVersion", "loop guard memory");
+  assertIncludes(autoUpdate, "startupWebReloadDone", "startup once guard");
+  console.log("verify:desktop-web-update-reload: OK");
+}
+
+function verifyDesktopUpdateChannelSeparation() {
+  const autoUpdate = read("desktop/electron/auto-update.ts");
+  const display = read("src/lib/desktop/update-display.ts");
+  const types = read("src/types/matchon-desktop.d.ts");
+  assertIncludes(autoUpdate, "native:", "native channel");
+  assertIncludes(autoUpdate, "web:", "web channel");
+  assertIncludes(types, "native:", "types native");
+  assertIncludes(types, "web:", "types web");
+  assertIncludes(display, "install_native", "native priority");
+  assertIncludes(display, "apply_web", "web priority");
+  assertIncludes(autoUpdate, "quitAndInstall(true, true)", "native restart");
+  console.log("verify:desktop-update-channel-separation: OK");
+}
+
+function verifyDesktopWebUpdateSession() {
+  const main = read("desktop/electron/main.ts");
+  const config = read("desktop/electron/config.ts");
+  assertIncludes(config, "persist:matchon-manager", "partition");
+  assertIncludes(main, "SESSION_PARTITION", "main partition");
+  assert.equal(
+    main.includes("clearStorageData"),
+    false,
+    "must not clear session on update",
+  );
+  assert.equal(
+    main.includes("clearCache"),
+    false,
+    "must not clear cache wholesale",
+  );
+  console.log("verify:desktop-web-update-session: OK");
+}
+
+function verifyDesktopNativeUpdateRestart() {
+  const autoUpdate = read("desktop/electron/auto-update.ts");
+  assertIncludes(autoUpdate, "installDesktopUpdateNow", "native install fn");
+  assertIncludes(autoUpdate, "native.status !== \"ready\"", "ready guard");
+  assertIncludes(autoUpdate, "quitAndInstall(true, true)", "silent restart");
+  console.log("verify:desktop-native-update-restart: OK");
+}
+
+function verifyDesktopUpdatePreloadMinimal() {
+  const preload = read("desktop/electron/preload.ts");
+  assertIncludes(preload, "applyWebUpdate", "web apply api");
+  assertIncludes(preload, "installDesktopUpdate", "native install api");
+  assertIncludes(preload, "checkForUpdates", "check api");
+  assertNotIncludes(preload, "process.env", "no env");
+  assertNotIncludes(preload, "MATCHON_DESKTOP_UPDATE_FEED_URL", "no feed env");
+  assertNotIncludes(preload, "shell.openPath", "no shell path");
+  assertNotIncludes(preload, "readFileSync", "no fs read");
+  console.log("verify:desktop-update-preload-minimal: OK");
+}
+
 function packagingPc2() {
   const pkg = JSON.parse(read("desktop/package.json"));
   const main = read("desktop/electron/main.ts");
@@ -238,8 +330,21 @@ function packagingPc2() {
   const updateDisplay = read("src/lib/desktop/update-display.ts");
   assertIncludes(updateBtn, "getDesktopUpdateDisplayState", "display SSOT");
   assertIncludes(updateDisplay, "최신 버전입니다", "up to date / disabled copy");
-  assertIncludes(updateDisplay, "업데이트 적용", "ready copy");
+  assertIncludes(updateDisplay, "프로그램 업데이트", "native ready copy");
+  assertIncludes(updateDisplay, "업데이트", "web available copy");
   assertIncludes(updateDisplay, "다시 확인", "error copy");
+  assertIncludes(updateDisplay, "apply_web", "web action");
+  assertIncludes(updateDisplay, "install_native", "native action");
+  assertIncludes(autoUpdate, "applyWebUpdateNow", "web reload path");
+  assertIncludes(autoUpdate, "installDesktopUpdateNow", "native install path");
+  assertIncludes(autoUpdate, "webContents.reload", "reload only for web");
+  assert.equal(
+    (autoUpdate.match(/autoUpdater\.quitAndInstall\(true, true\)/g) ?? []).length,
+    1,
+    "quitAndInstall only once (native)",
+  );
+  assertIncludes(preload, "applyWebUpdate", "preload web apply");
+  assertIncludes(preload, "installDesktopUpdate", "preload native install");
   assert.equal(
     updateBtn.includes("flex-col items-end"),
     false,
@@ -268,8 +373,10 @@ function packagingPc2() {
   console.log("verify:desktop-update-user-copy: OK");
   console.log("verify:desktop-update-no-env-leak: OK");
   console.log("verify:desktop-update-state-display: OK");
+  console.log("verify:desktop-update-channel-separation: OK");
+  console.log("verify:desktop-update-copy: OK");
   assertIncludes(preload, "getUpdateStatus", "preload update api");
-  assertIncludes(preload, "installUpdate", "preload install api");
+  assertIncludes(preload, "installUpdate", "preload install api compat");
   assertIncludes(header, "DesktopUpdateStatusButton", "header update button");
   assertIncludes(header, "flex-nowrap", "header desktop single-line");
   console.log("verify:desktop-update-header-layout: OK");
@@ -386,6 +493,12 @@ const runners: Record<string, () => void> = {
   environment,
   "no-secrets": noSecrets,
   "ui-contract": uiContract,
+  "web-update-version": verifyDesktopWebUpdateVersion,
+  "web-update-reload": verifyDesktopWebUpdateReload,
+  "update-channel-separation": verifyDesktopUpdateChannelSeparation,
+  "web-update-session": verifyDesktopWebUpdateSession,
+  "native-update-restart": verifyDesktopNativeUpdateRestart,
+  "update-preload-minimal": verifyDesktopUpdatePreloadMinimal,
   "packaging-pc2": packagingPc2,
   "support-inquiry-pc3": supportInquiryPc3,
 };

@@ -1,4 +1,4 @@
-export type MatchonDesktopUpdateState =
+export type MatchonNativeUpdateStatus =
   | "disabled"
   | "idle"
   | "checking"
@@ -8,7 +8,34 @@ export type MatchonDesktopUpdateState =
   | "up_to_date"
   | "error";
 
+export type MatchonWebUpdateStatus =
+  | "idle"
+  | "checking"
+  | "available"
+  | "refreshing"
+  | "up_to_date"
+  | "error";
+
+/** @deprecated 파생 state — native/web 필드를 우선 사용 */
+export type MatchonDesktopUpdateState =
+  | MatchonNativeUpdateStatus
+  | "web_available"
+  | "web_refreshing";
+
 export type MatchonDesktopUpdateStatus = {
+  native: {
+    status: MatchonNativeUpdateStatus;
+    enabled: boolean;
+    currentVersion: string;
+    availableVersion: string | null;
+    progressPercent: number | null;
+  };
+  web: {
+    status: MatchonWebUpdateStatus;
+    currentVersion: string | null;
+    availableVersion: string | null;
+  };
+  /** UI 우선순위 파생 (하위 호환) */
   state: MatchonDesktopUpdateState;
   enabled: boolean;
   currentVersion: string;
@@ -16,7 +43,6 @@ export type MatchonDesktopUpdateStatus = {
   progressPercent: number | null;
   /**
    * @deprecated UI에 사용하지 않음. main은 항상 null을 전달한다.
-   * 내부 오류·환경변수명은 renderer로 보내지 않는다.
    */
   message: string | null;
 };
@@ -29,6 +55,11 @@ export type MatchonDesktopBridge = {
   isDesktopApp: () => boolean;
   getUpdateStatus?: () => Promise<MatchonDesktopUpdateStatus>;
   checkForUpdates?: () => Promise<MatchonDesktopUpdateStatus>;
+  /** 웹 화면만 reload. quitAndInstall 호출 안 함 */
+  applyWebUpdate?: () => Promise<boolean>;
+  /** Desktop binary silent install + restart */
+  installDesktopUpdate?: () => Promise<boolean>;
+  /** @deprecated installDesktopUpdate 와 동일 */
   installUpdate?: () => Promise<boolean>;
   subscribeUpdateStatus?: (
     callback: (status: MatchonDesktopUpdateStatus) => void,

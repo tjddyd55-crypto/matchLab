@@ -2,10 +2,12 @@ import { app, BrowserWindow, ipcMain, session, nativeImage } from "electron";
 import { existsSync } from "node:fs";
 import { join } from "node:path";
 import {
+  applyWebUpdateNow,
+  attachWebUpdateLifecycle,
   checkForUpdatesNow,
   getUpdateStatus,
   initAutoUpdate,
-  installUpdateNow,
+  installDesktopUpdateNow,
 } from "./auto-update";
 import {
   DESKTOP_ENTRY_PATH,
@@ -168,7 +170,12 @@ function registerIpc(): void {
   });
   ipcMain.handle("desktop:get-update-status", () => getUpdateStatus());
   ipcMain.handle("desktop:check-for-updates", async () => checkForUpdatesNow());
-  ipcMain.handle("desktop:install-update", () => installUpdateNow());
+  ipcMain.handle("desktop:apply-web-update", async () => applyWebUpdateNow());
+  ipcMain.handle("desktop:install-desktop-update", () =>
+    installDesktopUpdateNow(),
+  );
+  // 하위 호환: 구 renderer installUpdate → native only
+  ipcMain.handle("desktop:install-update", () => installDesktopUpdateNow());
 }
 
 const gotLock = app.requestSingleInstanceLock();
@@ -183,6 +190,7 @@ if (!gotLock) {
     registerIpc();
     initAutoUpdate();
     mainWindow = createMainWindow();
+    attachWebUpdateLifecycle(() => mainWindow);
 
     app.on("activate", () => {
       if (BrowserWindow.getAllWindows().length === 0) {

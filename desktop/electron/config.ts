@@ -39,10 +39,34 @@ export function getDesktopEnvironmentName(): DesktopEnvironmentName {
   return app.isPackaged ? "production" : "development";
 }
 
-/** 허용 host SSOT — 개발에서만 localhost. Production 빌드는 Production만. */
+/**
+ * 허용 host SSOT.
+ * - Production 패키지: Production host만 (allowlist 확대 금지)
+ * - QA 패키지: MATCHON_DESKTOP_QA_ALLOW_PREVIEW=1 일 때만 Preview host 추가
+ * - 개발: localhost + Production + 선택적 Preview
+ */
 export function getAllowedHosts(): readonly string[] {
   if (app.isPackaged) {
-    return [PRODUCTION_HOST];
+    const hosts = new Set<string>([PRODUCTION_HOST]);
+    if (process.env.MATCHON_DESKTOP_QA_ALLOW_PREVIEW === "1") {
+      const fromEnv = process.env.MATCHON_DESKTOP_BASE_URL?.trim();
+      if (fromEnv) {
+        try {
+          const host = new URL(fromEnv).hostname;
+          if (
+            host.endsWith(PREVIEW_HOST_SUFFIX) &&
+            host !== PRODUCTION_HOST
+          ) {
+            hosts.add(host);
+          }
+        } catch {
+          /* ignore */
+        }
+      }
+      const preview = process.env.MATCHON_DESKTOP_PREVIEW_HOST?.trim();
+      if (preview && preview !== PRODUCTION_HOST) hosts.add(preview);
+    }
+    return [...hosts];
   }
 
   const hosts = new Set<string>(["localhost", "127.0.0.1", PRODUCTION_HOST]);

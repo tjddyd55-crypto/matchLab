@@ -3,7 +3,8 @@ import type { UpdateStatusSnapshot } from "./auto-update";
 
 /**
  * Renderer에 노출하는 최소 bridge.
- * 파일시스템·shell 임의 실행·env·cookie 원문 접근 금지.
+ * 파일시스템·shell 임의 실행·env·원문 인증정보 접근 금지.
+ * 임의 URL reload / update feed 변경 API 없음.
  */
 const bridge = {
   getAppVersion: (): Promise<string> =>
@@ -19,8 +20,13 @@ const bridge = {
     ipcRenderer.invoke("desktop:get-update-status"),
   checkForUpdates: (): Promise<UpdateStatusSnapshot> =>
     ipcRenderer.invoke("desktop:check-for-updates"),
+  applyWebUpdate: (): Promise<boolean> =>
+    ipcRenderer.invoke("desktop:apply-web-update"),
+  installDesktopUpdate: (): Promise<boolean> =>
+    ipcRenderer.invoke("desktop:install-desktop-update"),
+  /** @deprecated native install alias */
   installUpdate: (): Promise<boolean> =>
-    ipcRenderer.invoke("desktop:install-update"),
+    ipcRenderer.invoke("desktop:install-desktop-update"),
   subscribeUpdateStatus: (
     callback: (status: UpdateStatusSnapshot) => void,
   ): (() => void) => {
