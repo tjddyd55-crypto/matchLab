@@ -173,10 +173,10 @@ function verifyCalendar() {
     "src/components/domain/gym-schedules/GymCalendarGroupClassDetailDialog.tsx",
   );
   assertIncludes(groupModal, "/gym/group-classes/", "detail manage link path");
-  assert.equal(
-    calendarApp.includes('router.push(`/gym/group-classes/${item.id}`)'),
-    false,
-    "block click must open modal not navigate",
+  assertIncludes(
+    calendarApp,
+    'if (item.itemType === "group_class") {\n      setSelectedGroup(item);',
+    "block click opens group modal",
   );
   console.log("verify:gym-group-class-calendar: OK");
 }

@@ -97,6 +97,9 @@ export function GymScheduleDetailSheet({
             <p>
               {item.dateKey} · {item.timeRangeLabel}
             </p>
+            <p className="text-matchon-text-secondary">
+              소요 {Math.round((item.endsAt.getTime() - item.startsAt.getTime()) / 60000)}분
+            </p>
             <p>
               {item.scheduleTypeLabel} · {item.statusLabel}
             </p>

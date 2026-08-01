@@ -149,6 +149,10 @@ function verifyCalendarUi() {
   assertIncludes(app, "MonthView", "month");
   assertIncludes(app, "WeekDesktop", "week desktop");
   assertIncludes(app, "DayTimeline", "day");
+  assertIncludes(app, "ListView", "list");
+  assertIncludes(app, "ScheduleNowLine", "now line");
+  assertIncludes(app, "ScheduleBoardCard", "board card");
+  assertIncludes(app, "rescheduleGymScheduleAction", "drag reschedule");
   assertIncludes(app, "md:hidden", "mobile week");
   assertIncludes(app, "SCHEDULE_PX_PER_MINUTE", "block geometry");
   assertIncludes(app, "matchonToolbarControlClass", "toolbar control height");
@@ -156,10 +160,12 @@ function verifyCalendarUi() {
   assertIncludes(app, "scrollPositionRef", "scroll restore");
   assertIncludes(app, "GymCalendarGroupClassDetailDialog", "group modal");
   assertIncludes(app, "setSelectedGroup", "group modal state");
-  assert.equal(
-    app.includes('router.push(`/gym/group-classes/${item.id}`)'),
-    false,
-    "group block must not navigate on click",
+  assertIncludes(app, "일정명·회원 검색", "search");
+  assertIncludes(app, "setSelectedGroup(item)", "group click opens modal");
+  assertIncludes(
+    app,
+    'if (item.itemType === "group_class") {\n      setSelectedGroup(item);',
+    "group click branches to modal",
   );
   assertIncludes(dialog, "dismissible = false", "dialog non-dismissible default");
   assertIncludes(dialog, "disablePointerDismissal", "pointer dismissal gate");
