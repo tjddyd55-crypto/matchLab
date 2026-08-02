@@ -47,6 +47,10 @@ export function getOrganizerGlobalNavGroups(input: {
       items: [
         { href: "/organizer/member-gyms/overview", label: "회원사 현황" },
         { href: "/organizer/member-gyms/applications", label: "가입 신청" },
+        {
+          href: "/organizer/member-gyms/connection-requests",
+          label: "연결 요청",
+        },
         { href: "/organizer/member-gyms", label: "회원사 목록" },
         { href: "/organizer/member-gyms/settings", label: "환경 설정" },
       ],
@@ -103,6 +107,7 @@ export function isOrganizerGlobalNavItemActive(
         !pathname.startsWith("/organizer/member-gyms/overview") &&
         !pathname.startsWith("/organizer/member-gyms/links") &&
         !pathname.startsWith("/organizer/member-gyms/applications") &&
+        !pathname.startsWith("/organizer/member-gyms/connection-requests") &&
         !pathname.startsWith("/organizer/member-gyms/settings"))
     );
   }

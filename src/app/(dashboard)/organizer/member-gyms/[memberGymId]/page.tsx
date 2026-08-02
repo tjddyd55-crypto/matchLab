@@ -1,10 +1,12 @@
 import Link from "next/link";
 import { notFound } from "next/navigation";
+import { OrganizerDashboardPageHeader } from "@/components/dashboard/OrganizerDashboardPageHeader";
 import { MemberGymAccountSection } from "@/components/domain/member-gyms/MemberGymAccountSection";
+import { MemberGymDisconnectButton } from "@/components/domain/member-gyms/MemberGymDisconnectButton";
 import { MemberGymFightersReadonlySection } from "@/components/domain/member-gyms/MemberGymFightersReadonlySection";
 import { MemberGymSubNav } from "@/components/domain/member-gyms/MemberGymSubNav";
-import { OrganizerDashboardPageHeader } from "@/components/dashboard/OrganizerDashboardPageHeader";
 import { requireActor, redirectUnlessDashboardRole } from "@/lib/auth/actor";
+import { AssociationMemberGymStatus } from "@/lib/enums";
 import { AppError } from "@/lib/errors/app-error";
 import { requireAssociationOrganizerPage } from "@/lib/permissions";
 import { formatPhoneDisplay } from "@/lib/phone";
@@ -79,6 +81,14 @@ export default async function MemberGymDetailPage({
                   제출 서류·가입 신청 원본
                 </Link>
               </p>
+            ) : null}
+            {row.status !== AssociationMemberGymStatus.withdrawn ? (
+              <div className="pt-2">
+                <MemberGymDisconnectButton
+                  memberGymId={row.id}
+                  gymName={row.gym.name}
+                />
+              </div>
             ) : null}
           </section>
         </div>

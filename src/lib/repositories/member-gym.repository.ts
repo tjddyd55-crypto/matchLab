@@ -8,6 +8,7 @@ import {
   AssociationMemberGymStatus,
   GymStatus,
 } from "@/generated/prisma";
+import { pickMembershipForPortalGate } from "@/lib/member-gym/portal-membership-gate";
 import { prisma } from "@/lib/prisma";
 
 function db(tx?: Prisma.TransactionClient) {
@@ -439,12 +440,17 @@ export const memberGymRepository = {
     });
   },
 
-  /** 협회 membership 존재 여부(일반 Gym 게이트용). 다수면 최신 1건. */
+  /**
+   * 포털 게이트용 membership 선택.
+   * - withdrawn만 있으면 null (독립 체육관)
+   * - 복수 협회면 접근 가능한 연결을 우선 (다른 협회 해제가 포털을 잠그지 않음)
+   */
   async findMemberGymByGymId(gymId: string) {
-    return prisma.associationMemberGym.findFirst({
+    const rows = await prisma.associationMemberGym.findMany({
       where: { gymId },
       orderBy: { updatedAt: "desc" },
     });
+    return pickMembershipForPortalGate(rows);
   },
 
   async findMemberGymByOwnerInviteTokenHash(tokenHash: string) {

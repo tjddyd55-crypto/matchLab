@@ -6,9 +6,7 @@ import { readFileSync } from "node:fs";
 import { dirname, join } from "node:path";
 import { fileURLToPath } from "node:url";
 import { AssociationMemberGymStatus, AuditAction } from "../src/lib/enums";
-import {
-  decideGymPortalAccessFromMembership,
-} from "../src/lib/gym-portal-access";
+import { decideGymPortalAccessFromMembership } from "../src/lib/member-gym/portal-membership-gate";
 import {
   isPlaceholderGymOwnerUser,
   resolveMemberGymOwnerAccountStatus,
@@ -74,9 +72,10 @@ function assertPortalModes() {
     status: AssociationMemberGymStatus.withdrawn,
     ownerAccessSuspendedAt: null,
   });
-  assert.equal(withdrawn.accessMode, "association_withdrawn");
-  assert.equal(withdrawn.canEnterPortal, false);
-  assert.equal(withdrawn.canRead, false);
+  // 연결 해제 후에도 독립 체육관으로 포털 사용 가능
+  assert.equal(withdrawn.accessMode, "normal_gym");
+  assert.equal(withdrawn.canEnterPortal, true);
+  assert.equal(withdrawn.canRead, true);
 
   const ownerSuspended = decideGymPortalAccessFromMembership({
     status: AssociationMemberGymStatus.active,
@@ -199,6 +198,8 @@ function assertGymPortalNav() {
     "신청 내역",
     "대진표 확인",
     "체육관 정보",
+    "가입 협회",
+    "회원 전용 페이지",
   ]);
   assert.deepEqual(hrefs, [
     "/gym",
@@ -220,6 +221,8 @@ function assertGymPortalNav() {
     "/gym/applications",
     "/gym/brackets",
     "/gym/profile",
+    "/gym/associations",
+    "/gym/member-portal",
   ]);
 
   for (const hidden of GYM_PORTAL_HIDDEN_EVENT_HREFS) {

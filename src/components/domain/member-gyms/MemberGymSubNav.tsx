@@ -7,6 +7,10 @@ import { cn } from "@/lib/utils";
 const ITEMS = [
   { href: "/organizer/member-gyms/overview", label: "현황" },
   { href: "/organizer/member-gyms/applications", label: "가입 신청" },
+  {
+    href: "/organizer/member-gyms/connection-requests",
+    label: "연결 요청",
+  },
   { href: "/organizer/member-gyms", label: "회원사 목록" },
   { href: "/organizer/member-gyms/settings", label: "환경 설정" },
 ] as const;
@@ -17,7 +21,9 @@ function isActive(pathname: string, href: string): boolean {
       pathname === href ||
       (/^\/organizer\/member-gyms\/[^/]+$/.test(pathname) &&
         !ITEMS.some(
-          (i) => i.href !== href && pathname.startsWith(i.href),
+          (i) =>
+            i.href !== href &&
+            (pathname === i.href || pathname.startsWith(`${i.href}/`)),
         ))
     );
   }
