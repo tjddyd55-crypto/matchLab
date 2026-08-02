@@ -3,6 +3,7 @@
 import Link from "next/link";
 import {
   useCallback,
+  useEffect,
   useMemo,
   useRef,
   useState,
@@ -138,6 +139,8 @@ export function GymScheduleCalendarApp({
   fixedStaffId,
   myOnly,
   defaultStaffId,
+  initialDateKey,
+  initialTodayKey,
 }: {
   initialItems: GymCalendarItem[];
   summary: {
@@ -154,6 +157,10 @@ export function GymScheduleCalendarApp({
   fixedStaffId: string | null;
   myOnly: boolean;
   defaultStaffId: string | null;
+  /** 서버가 조회에 사용한 Seoul 날짜 — URL date 없을 때 SSR/CSR 공통 fallback */
+  initialDateKey: string;
+  /** 서버 시각 기준 오늘(Seoul) — 첫 hydration에 client Date.now()를 쓰지 않음 */
+  initialTodayKey: string;
 }) {
   const router = useRouter();
   const pathname = usePathname();
@@ -170,12 +177,21 @@ export function GymScheduleCalendarApp({
       : viewer === "staff"
         ? "day"
         : "week";
-  const dateKey = searchParams.get("date") || toSeoulDateKey(new Date());
+  const dateParam = searchParams.get("date");
+  const dateKey =
+    dateParam && /^\d{4}-\d{2}-\d{2}$/.test(dateParam)
+      ? dateParam
+      : initialDateKey;
   const staffFilter = fixedStaffId || searchParams.get("staffId") || "";
   const statusFilter = searchParams.get("status") || "active";
   const itemKindFilter =
     (searchParams.get("kind") as "all" | "personal" | "group_class") || "all";
   const [q, setQ] = useState(searchParams.get("q") || "");
+  const [todayKey, setTodayKey] = useState(initialTodayKey);
+
+  useEffect(() => {
+    setTodayKey(toSeoulDateKey(new Date()));
+  }, []);
 
   const [selected, setSelected] = useState<GymCalendarItem | null>(null);
   const [selectedGroup, setSelectedGroup] = useState<GymCalendarItem | null>(
@@ -307,7 +323,6 @@ export function GymScheduleCalendarApp({
     return map;
   }, [items]);
 
-  const todayKey = toSeoulDateKey(new Date());
   const title =
     view === "month"
       ? (() => {

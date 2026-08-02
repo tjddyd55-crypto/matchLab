@@ -13,6 +13,9 @@ import { cn } from "@/lib/utils";
  * 주/일 보드 현재 시간선.
  * - day: 해당 컬럼(또는 일간 보드) 너비
  * - week: 시간축 오른쪽~일요일까지 주간 전체 너비 (오늘이 주에 포함될 때만)
+ *
+ * Hydration: SSR과 client 첫 렌더는 동일하게 null.
+ * mount 이후에만 `Date`를 읽어 표시한다 (서버/브라우저 시각 차로 #418 방지).
  */
 export function ScheduleNowLine({
   dateKey,
@@ -27,12 +30,15 @@ export function ScheduleNowLine({
   variant?: "day" | "week";
   className?: string;
 }) {
-  const [now, setNow] = useState(() => new Date());
+  const [now, setNow] = useState<Date | null>(null);
 
   useEffect(() => {
+    setNow(new Date());
     const id = window.setInterval(() => setNow(new Date()), 30_000);
     return () => window.clearInterval(id);
   }, []);
+
+  if (now == null) return null;
 
   const todayKey = toSeoulDateKey(now);
   const visible =

@@ -298,6 +298,22 @@ function verifyBoardUx() {
   assertIncludes(optimistic, "applyOptimisticScheduleRange", "helper apply");
   assertIncludes(optimistic, "rollbackOptimisticScheduleRange", "helper rollback");
 
+  // Hydration: now line must not call Date on first SSR/CSR render.
+  assertIncludes(nowLine, "useState<Date | null>(null)", "now starts null");
+  assert.doesNotMatch(
+    nowLine,
+    /useState\(\(\) => new Date\(\)\)/,
+    "now must not initialize from Date during render",
+  );
+  assertIncludes(nowLine, "if (now == null) return null", "null until mount");
+  assertIncludes(app, "initialDateKey", "server date key prop");
+  assertIncludes(app, "initialTodayKey", "server today key prop");
+  assert.doesNotMatch(
+    app.replace(/useEffect\(\(\) => \{\s*setTodayKey\(toSeoulDateKey\(new Date\(\)\)\);\s*\}, \[\]\);/g, ""),
+    /const todayKey = toSeoulDateKey\(new Date\(\)\)/,
+    "todayKey must not recompute Date during first render",
+  );
+
   assert.equal(formatScheduleAxisTimeKorean(7), "오전 7:00");
   assert.equal(formatScheduleAxisTimeKorean(9), "오전 9:00");
   assert.equal(formatScheduleAxisTimeKorean(12), "오후 12:00");
@@ -319,6 +335,8 @@ function verifyBoardUx() {
   console.log("verify:schedule-week-now-line-full-width: OK");
   console.log("verify:schedule-day-now-line: OK");
   console.log("verify:schedule-drag-click-suppression: OK");
+  console.log("verify:schedule-now-line-hydration: OK");
+  console.log("verify:schedule-hydration: OK");
 }
 
 function verifyMemberStaffDetail() {
