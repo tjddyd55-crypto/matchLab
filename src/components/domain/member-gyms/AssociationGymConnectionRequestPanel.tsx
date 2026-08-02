@@ -7,7 +7,6 @@ import {
   rejectGymAssociationMembershipAction,
 } from "@/features/gym-association-connection/actions";
 import { AssociationGymConnectionRequestStatus } from "@/lib/enums";
-import { format } from "date-fns";
 import { cn } from "@/lib/utils";
 
 const STATUS_LABEL: Record<AssociationGymConnectionRequestStatus, string> = {
@@ -24,6 +23,8 @@ export type AssociationGymConnectionRequestRow = {
   memo: string | null;
   createdAt: string;
   reviewedAt: string | null;
+  createdAtLabel: string;
+  reviewedAtLabel: string | null;
   gym: {
     id: string;
     name: string;
@@ -91,10 +92,9 @@ export function AssociationGymConnectionRequestPanel({
                     {row.gym.ownerPhone ? ` · ${row.gym.ownerPhone}` : ""}
                   </p>
                   <p className="text-xs text-matchon-text-secondary">
-                    요청일{" "}
-                    {format(new Date(row.createdAt), "yyyy.MM.dd HH:mm")}
-                    {row.reviewedAt
-                      ? ` · 처리일 ${format(new Date(row.reviewedAt), "yyyy.MM.dd HH:mm")}`
+                    요청일 {row.createdAtLabel}
+                    {row.reviewedAtLabel
+                      ? ` · 처리일 ${row.reviewedAtLabel}`
                       : ""}
                   </p>
                   {row.memo ? (
