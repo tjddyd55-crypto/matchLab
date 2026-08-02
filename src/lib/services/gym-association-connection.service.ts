@@ -25,6 +25,22 @@ function formatMemberCode(prefix: string, padding: number, n: number): string {
   return `${prefix}${String(n).padStart(padding, "0")}`;
 }
 
+/** 협회 요청 UI용 고정 타임존 라벨 (Asia/Seoul) */
+function formatKstDateTime(date: Date): string {
+  return new Intl.DateTimeFormat("sv-SE", {
+    timeZone: "Asia/Seoul",
+    year: "numeric",
+    month: "2-digit",
+    day: "2-digit",
+    hour: "2-digit",
+    minute: "2-digit",
+    hour12: false,
+  })
+    .format(date)
+    .replace(" ", " ")
+    .replace(/-/g, ".");
+}
+
 export type GymAssociationMembershipView = {
   kind: "membership" | "request";
   id: string;
@@ -384,6 +400,9 @@ export const gymAssociationConnectionService = {
       memo: r.memo,
       createdAt: r.createdAt.toISOString(),
       reviewedAt: r.reviewedAt?.toISOString() ?? null,
+      // SSR/CSR 타임존 불일치(#418) 방지 — 서버에서 KST 라벨 고정
+      createdAtLabel: formatKstDateTime(r.createdAt),
+      reviewedAtLabel: r.reviewedAt ? formatKstDateTime(r.reviewedAt) : null,
       gym: {
         id: r.gym.id,
         name: r.gym.name,
