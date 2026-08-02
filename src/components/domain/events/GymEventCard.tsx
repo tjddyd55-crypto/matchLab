@@ -30,6 +30,7 @@ export function GymEventCard({ event }: { event: GymDashboardEventItemDTO }) {
       posterHref={publicHref}
       titleHref={publicHref}
       posterSizes={eventAnnouncementCardPosterSizesDesktop}
+      showOrganizerUnderTitle={false}
       meta={
         <EventMetaList
           eventDate={event.eventDate}
@@ -40,6 +41,7 @@ export function GymEventCard({ event }: { event: GymDashboardEventItemDTO }) {
           primarySport={event.primarySport}
           divisionSummary={event.divisionSummary}
           compact
+          density="summary"
         />
       }
       extraSummary={<GymEventApplicationSummary event={event} />}
