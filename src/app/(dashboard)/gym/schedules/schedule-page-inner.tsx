@@ -48,10 +48,11 @@ export async function SchedulePageInner({
       : actor.role === "gym_staff"
         ? "day"
         : "week";
+  const todayKey = toSeoulDateKey(new Date());
   const dateKey =
     typeof sp.date === "string" && /^\d{4}-\d{2}-\d{2}$/.test(sp.date)
       ? sp.date
-      : toSeoulDateKey(new Date());
+      : todayKey;
   const staffIdParam = typeof sp.staffId === "string" ? sp.staffId : null;
   const status = typeof sp.status === "string" ? sp.status : "active";
 
@@ -162,6 +163,8 @@ export async function SchedulePageInner({
           fixedStaffId={forceMyOnly ? access.gymStaffId : null}
           myOnly={forceMyOnly}
           defaultStaffId={access.gymStaffId ?? staffOptions[0]?.id ?? null}
+          initialDateKey={dateKey}
+          initialTodayKey={todayKey}
         />
       </div>
     </div>
