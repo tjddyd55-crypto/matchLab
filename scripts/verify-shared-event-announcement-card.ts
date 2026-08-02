@@ -56,6 +56,18 @@ function assertSharedCardWiring() {
     );
   }
 
+  assert.match(publicDesktop, /density="summary"/);
+  assert.match(publicDesktop, /showOrganizerUnderTitle=\{false\}/);
+  assert.match(gymCard, /density="summary"/);
+  assert.match(gymCard, /showOrganizerUnderTitle=\{false\}/);
+
+  const metaList = read("src/components/domain/events/EventMetaList.tsx");
+  assert.match(metaList, /density === "summary"/);
+  assert.match(metaList, /line-clamp-2/);
+  // summary 분기에서는 주최·종목을 렌더하지 않는다
+  assert.match(metaList, /\{!summary \? \(/);
+  assert.match(metaList, /주최 /);
+
   const gymPage = read("src/app/(dashboard)/gym/events/page.tsx");
   assert.match(gymPage, /GymEventCard/);
   assert.match(gymPage, /eventAnnouncementCardGridClass/);

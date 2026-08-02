@@ -31,24 +31,19 @@ export function PublicEventCardDesktop({
       priorityImage={priorityImage}
       posterSizes={eventAnnouncementCardPosterSizesDesktop}
       titleSize="lg"
+      showOrganizerUnderTitle={false}
       meta={
-        <>
-          <EventMetaList
-            eventDate={event.eventDate}
-            location={event.location}
-            registrationStartDate={event.registrationStartDate}
-            registrationEndDate={event.registrationEndDate}
-            organizerName={event.organizerName}
-            primarySport={event.primarySport}
-            divisionSummary={event.divisionSummary}
-            compact
-          />
-          {event.liveStreamingEnabled ? (
-            <p className="mt-2.5 line-clamp-1 shrink-0 text-xs font-semibold text-matchon-primary">
-              라이브 스트리밍 예정
-            </p>
-          ) : null}
-        </>
+        <EventMetaList
+          eventDate={event.eventDate}
+          location={event.location}
+          registrationStartDate={event.registrationStartDate}
+          registrationEndDate={event.registrationEndDate}
+          organizerName={event.organizerName}
+          primarySport={event.primarySport}
+          divisionSummary={event.divisionSummary}
+          compact
+          density="summary"
+        />
       }
       actions={
         <Link
