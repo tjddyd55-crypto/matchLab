@@ -7,6 +7,9 @@ import { readFileSync } from "node:fs";
 import { join } from "node:path";
 import { intervalsOverlap } from "../src/lib/gym-schedule/overlap";
 import {
+  formatScheduleAxisTimeKorean,
+} from "../src/lib/gym-schedule/board-geometry";
+import {
   assertTenMinuteInstant,
   createSeoulDateTime,
   getSeoulDayRange,
@@ -186,6 +189,7 @@ function verifyCalendarUi() {
   assertIncludes(shell, "matchonControlHeightMdClass", "control height SSOT");
   assertIncludes(shell, "h-10 min-h-10", "40px control");
   assertIncludes(portal, "resolveOwnerLinkedGymStaffId", "owner staff link");
+  verifyBoardUx();
   console.log("verify:dialog-non-dismissible: OK");
   console.log("verify:schedule-toolbar-control-height: OK");
   console.log("verify:schedule-all-vs-my-scope: OK");
@@ -199,6 +203,122 @@ function verifyCalendarUi() {
   console.log("verify:gym-schedule-calendar-week: OK");
   console.log("verify:gym-schedule-calendar-day: OK");
   console.log("verify:gym-schedule-mobile-layout: OK");
+}
+
+function verifyBoardUx() {
+  const app = read(
+    "src/components/domain/gym-schedules/GymScheduleCalendarApp.tsx",
+  );
+  const card = read(
+    "src/components/domain/gym-schedules/ScheduleBoardCard.tsx",
+  );
+  const nowLine = read(
+    "src/components/domain/gym-schedules/ScheduleNowLine.tsx",
+  );
+  const geometry = read("src/lib/gym-schedule/board-geometry.ts");
+  const layout = read("src/lib/gym-schedule/board-layout.ts");
+  const autoScroll = read("src/lib/gym-schedule/board-auto-scroll.ts");
+  const optimistic = read(
+    "src/lib/gym-schedule/optimistic-schedule-range.ts",
+  );
+
+  assertIncludes(card, "schedule-drag-overlay", "drag overlay");
+  assertIncludes(card, "createPortal", "fixed overlay portal");
+  assertIncludes(card, "DRAG_THRESHOLD_PX", "drag threshold");
+  assertIncludes(card, "suppressClickRef", "click suppression");
+  assertIncludes(card, "onDragPreviewChange", "drag preview callback");
+  assertIncludes(card, "isDragCapablePointer", "touch drag guard");
+  assertIncludes(card, "createBoardAutoScroll", "drag auto scroll");
+  assertIncludes(card, "originScrollTop", "scroll-aware move delta");
+  assertIncludes(
+    autoScroll,
+    "scrollTop",
+    "auto scroll uses vertical scroll only",
+  );
+  assertIncludes(
+    autoScroll,
+    "VERTICAL_INTENT_PX",
+    "horizontal drag does not auto-scroll",
+  );
+  assert.doesNotMatch(
+    autoScroll,
+    /scrollLeft/,
+    "auto scroll must not touch horizontal scroll",
+  );
+
+  assertIncludes(app, "applyOptimisticScheduleRange", "optimistic apply");
+  assertIncludes(
+    app,
+    "reconcileOptimisticScheduleRanges",
+    "optimistic reconcile",
+  );
+  assertIncludes(app, "settleOptimisticScheduleRange", "optimistic settle");
+  assertIncludes(app, "rollbackOptimisticScheduleRange", "optimistic rollback");
+  assert.doesNotMatch(
+    app,
+    /useEffect\(\(\) => \{\s*setOptimistic/,
+    "optimistic reconcile must not run in an effect",
+  );
+  assertIncludes(
+    app,
+    "Keep optimistic until refreshed server props match",
+    "no early optimistic clear",
+  );
+  assert.doesNotMatch(
+    app.replace(/\/\*[\s\S]*?\*\//g, "").replace(/\/\/.*$/gm, ""),
+    /delete next\[item\.id\];\s*return next;\s*\}\);\s*startTransition\(\(\) => router\.refresh\(\)\)/,
+  );
+  assertIncludes(app, "schedule-drop-target-day", "target day highlight");
+  assertIncludes(app, "formatScheduleAxisTimeKorean", "axis korean formatter");
+  assertIncludes(app, "SCHEDULE_WEEK_GRID_COLS_CLASS", "axis width SSOT");
+  assertIncludes(app, "data-schedule-scroll", "auto scroll container");
+  assertIncludes(app, 'variant="week"', "week now line");
+  assertIncludes(
+    app,
+    "SCHEDULE_WEEK_NOW_LINE_INSET_CLASS",
+    "week now line offset SSOT",
+  );
+  assertIncludes(
+    layout,
+    "grid-cols-[84px_repeat(7,minmax(0,1fr))]",
+    "axis width 84 defined once",
+  );
+  assertIncludes(layout, "left-[84px]", "week now line inset defined once");
+  assertIncludes(layout, "SCHEDULE_BOARD_LAYER", "z-index layer policy");
+  assert.doesNotMatch(
+    app,
+    /grid-cols-\[84px_repeat/,
+    "week grid columns must come from board-layout",
+  );
+
+  assertIncludes(nowLine, 'variant === "week"', "week variant");
+  assertIncludes(nowLine, "weekDateKeys", "week date keys");
+  assertIncludes(geometry, "formatScheduleAxisTimeKorean", "geometry helper");
+  assertIncludes(geometry, "formatScheduleAxisDateTimeKorean", "datetime helper");
+  assertIncludes(optimistic, "applyOptimisticScheduleRange", "helper apply");
+  assertIncludes(optimistic, "rollbackOptimisticScheduleRange", "helper rollback");
+
+  assert.equal(formatScheduleAxisTimeKorean(7), "오전 7:00");
+  assert.equal(formatScheduleAxisTimeKorean(9), "오전 9:00");
+  assert.equal(formatScheduleAxisTimeKorean(12), "오후 12:00");
+  assert.equal(formatScheduleAxisTimeKorean(14), "오후 2:00");
+  assert.equal(formatScheduleAxisTimeKorean(23), "오후 11:00");
+  assert.equal(formatScheduleAxisTimeKorean(0), "오전 12:00");
+  assertIncludes(layout, "text-[13px] font-medium", "axis font size");
+  assertIncludes(app, "SCHEDULE_AXIS_LABEL_CLASS", "axis label SSOT");
+  assertIncludes(app, 'variant="day"', "day now line usage");
+  assertIncludes(nowLine, "data-now-variant", "now variant attr");
+  assertIncludes(nowLine, "SCHEDULE_BOARD_LAYER.nowLine", "now line layer token");
+
+  console.log("verify:schedule-horizontal-drag-preview: OK");
+  console.log("verify:schedule-optimistic-drop: OK");
+  console.log("verify:schedule-drop-no-snapback: OK");
+  console.log("verify:schedule-drag-rollback: OK");
+  console.log("verify:schedule-axis-korean-time: OK");
+  console.log("verify:schedule-axis-font-size: OK");
+  console.log("verify:schedule-week-now-line-full-width: OK");
+  console.log("verify:schedule-day-now-line: OK");
+  console.log("verify:schedule-drag-click-suppression: OK");
 }
 
 function verifyMemberStaffDetail() {
@@ -244,6 +364,7 @@ const runners: Record<string, () => void> = {
   permissions: verifyScopeAndPermissions,
   crud: verifyCrudStatus,
   calendar: verifyCalendarUi,
+  "board-ux": verifyBoardUx,
   detail: verifyMemberStaffDetail,
   navigation: verifyNavigation,
 };

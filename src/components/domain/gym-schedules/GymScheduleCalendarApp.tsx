@@ -13,10 +13,7 @@ import { usePathname, useRouter, useSearchParams } from "next/navigation";
 import { GymScheduleFormDialog } from "@/components/domain/gym-schedules/GymScheduleFormDialog";
 import { GymScheduleDetailSheet } from "@/components/domain/gym-schedules/GymScheduleDetailSheet";
 import { GymCalendarGroupClassDetailDialog } from "@/components/domain/gym-schedules/GymCalendarGroupClassDetailDialog";
-import {
-  ScheduleBoardCard,
-  type BoardTimePatch,
-} from "@/components/domain/gym-schedules/ScheduleBoardCard";
+import { ScheduleBoardCard } from "@/components/domain/gym-schedules/ScheduleBoardCard";
 import type { ScheduleBoardMenuAction } from "@/components/domain/gym-schedules/ScheduleBoardCardMenu";
 import { ScheduleNowLine } from "@/components/domain/gym-schedules/ScheduleNowLine";
 import { Button, buttonVariants } from "@/components/ui/button";
@@ -24,7 +21,26 @@ import { rescheduleGymScheduleAction } from "@/features/gym-schedules/actions";
 import { rescheduleGymGroupClassAction } from "@/features/gym-group-classes/actions";
 import { gymStaffColorClass } from "@/lib/gym-schedule/labels";
 import { TEN_MINUTE_TIME_OPTIONS } from "@/lib/gym-schedule/hours";
-import { durationLabel } from "@/lib/gym-schedule/board-geometry";
+import {
+  durationLabel,
+  formatScheduleAxisTimeKorean,
+  type BoardTimePatch,
+} from "@/lib/gym-schedule/board-geometry";
+import {
+  SCHEDULE_AXIS_LABEL_CLASS,
+  SCHEDULE_BOARD_LAYER,
+  SCHEDULE_DAY_AXIS_LABEL_CLASS,
+  SCHEDULE_DAY_GRID_COLS_CLASS,
+  SCHEDULE_WEEK_GRID_COLS_CLASS,
+  SCHEDULE_WEEK_NOW_LINE_INSET_CLASS,
+} from "@/lib/gym-schedule/board-layout";
+import {
+  applyOptimisticScheduleRange,
+  reconcileOptimisticScheduleRanges,
+  rollbackOptimisticScheduleRange,
+  settleOptimisticScheduleRange,
+  type OptimisticScheduleRange,
+} from "@/lib/gym-schedule/optimistic-schedule-range";
 import {
   SCHEDULE_GRID_END_HOUR,
   SCHEDULE_GRID_START_HOUR,
@@ -176,8 +192,12 @@ export function GymScheduleCalendarApp({
   const [mobileWeekDay, setMobileWeekDay] = useState(dateKey);
   const [boardError, setBoardError] = useState<string | null>(null);
   const [optimistic, setOptimistic] = useState<
-    Record<string, BoardTimePatch>
+    Record<string, OptimisticScheduleRange>
   >({});
+  const [dragPreview, setDragPreview] = useState<{
+    itemId: string;
+    patch: BoardTimePatch;
+  } | null>(null);
   const weekScrollRef = useRef<HTMLDivElement | null>(null);
   const scrollPositionRef = useRef<{ week: number; windowY: number }>({
     week: 0,
@@ -209,6 +229,16 @@ export function GymScheduleCalendarApp({
     startTransition(() => {
       router.push(`${pathname}?${next.toString()}`);
     });
+  }
+
+  // 새 server props 가 도착한 렌더에서 바로 정리한다.
+  // effect 로 미루면 이전 서버 값이 한 프레임 보여 원위치 깜빡임이 생긴다.
+  const [reconciledItems, setReconciledItems] = useState(initialItems);
+  if (reconciledItems !== initialItems) {
+    setReconciledItems(initialItems);
+    setOptimistic((prev) =>
+      reconcileOptimisticScheduleRanges(prev, initialItems),
+    );
   }
 
   const items = useMemo(() => {
@@ -375,34 +405,52 @@ export function GymScheduleCalendarApp({
     };
   }
 
+  const onDragPreviewChange = useCallback(
+    (itemId: string, patch: BoardTimePatch | null) => {
+      setDragPreview(patch ? { itemId, patch } : null);
+    },
+    [],
+  );
+
   const requestReschedule = useCallback(
     async (item: GymCalendarItem, patch: BoardTimePatch) => {
       setBoardError(null);
-      setOptimistic((prev) => ({ ...prev, [item.id]: patch }));
+      setOptimistic((prev) => ({
+        ...prev,
+        [item.id]: applyOptimisticScheduleRange(item, patch),
+      }));
       const fd = new FormData();
       fd.set("dateKey", patch.dateKey);
       fd.set("startHm", patch.startHm);
       fd.set("endHm", patch.endHm);
-      const result =
-        item.itemType === "group_class"
-          ? await rescheduleGymGroupClassAction(item.id, fd)
-          : await rescheduleGymScheduleAction(item.id, fd);
-      if (!result.ok) {
-        setOptimistic((prev) => {
-          const next = { ...prev };
-          delete next[item.id];
-          return next;
-        });
-        setBoardError(result.error.message);
+      try {
+        const result =
+          item.itemType === "group_class"
+            ? await rescheduleGymGroupClassAction(item.id, fd)
+            : await rescheduleGymScheduleAction(item.id, fd);
+        if (!result.ok) {
+          setOptimistic((prev) =>
+            rollbackOptimisticScheduleRange(prev, item.id),
+          );
+          setBoardError(result.error.message);
+          return false;
+        }
+        // Keep optimistic until refreshed server props match — avoids snapback.
+        setOptimistic((prev) => settleOptimisticScheduleRange(prev, item.id));
+        startTransition(() => router.refresh());
+        return true;
+      } catch (error) {
+        // 네트워크/직렬화 예외에서도 optimistic 이 남지 않게 한다.
+        setOptimistic((prev) =>
+          rollbackOptimisticScheduleRange(prev, item.id),
+        );
+        setBoardError(
+          error instanceof Error
+            ? error.message
+            : "일정 저장 중 오류가 발생했습니다.",
+        );
         return false;
       }
-      setOptimistic((prev) => {
-        const next = { ...prev };
-        delete next[item.id];
-        return next;
-      });
-      startTransition(() => router.refresh());
-      return true;
     },
     [router, startTransition],
   );
@@ -651,12 +699,16 @@ export function GymScheduleCalendarApp({
               byDate={byDate}
               todayKey={todayKey}
               scrollRef={weekScrollRef}
+              dragTargetDateKey={dragPreview?.patch.dateKey ?? null}
+              dragTargetPatch={dragPreview?.patch ?? null}
+              pendingIds={optimistic}
               onItemClick={onItemClick}
               onRequestEdit={(item) => {
                 if (item.itemType === "personal") openEdit(item);
                 else onItemClick(item);
               }}
               onRequestReschedule={requestReschedule}
+              onDragPreviewChange={onDragPreviewChange}
               buildMenuActions={buildMenuActions}
               onSlotClick={(dk, hm) => {
                 captureScrollPosition();
@@ -694,12 +746,14 @@ export function GymScheduleCalendarApp({
             <DayTimeline
               dateKey={mobileWeekDay || dateKey}
               items={byDate.get(mobileWeekDay || dateKey) ?? []}
+              pendingIds={optimistic}
               onItemClick={onItemClick}
               onRequestEdit={(item) => {
                 if (item.itemType === "personal") openEdit(item);
                 else onItemClick(item);
               }}
               onRequestReschedule={requestReschedule}
+              onDragPreviewChange={onDragPreviewChange}
               buildMenuActions={buildMenuActions}
               onSlotClick={(hm) =>
                 openCreate({ dateKey: mobileWeekDay || dateKey, startHm: hm })
@@ -713,12 +767,14 @@ export function GymScheduleCalendarApp({
         <DayTimeline
           dateKey={dateKey}
           items={byDate.get(dateKey) ?? []}
+          pendingIds={optimistic}
           onItemClick={onItemClick}
           onRequestEdit={(item) => {
             if (item.itemType === "personal") openEdit(item);
             else onItemClick(item);
           }}
           onRequestReschedule={requestReschedule}
+          onDragPreviewChange={onDragPreviewChange}
           buildMenuActions={buildMenuActions}
           onSlotClick={(hm) => {
             captureScrollPosition();
@@ -925,9 +981,13 @@ function WeekDesktop({
   byDate,
   todayKey,
   scrollRef,
+  dragTargetDateKey,
+  dragTargetPatch,
+  pendingIds,
   onItemClick,
   onRequestEdit,
   onRequestReschedule,
+  onDragPreviewChange,
   buildMenuActions,
   onSlotClick,
 }: {
@@ -935,12 +995,19 @@ function WeekDesktop({
   byDate: Map<string, GymCalendarItem[]>;
   todayKey: string;
   scrollRef: RefObject<HTMLDivElement | null>;
+  dragTargetDateKey: string | null;
+  dragTargetPatch: BoardTimePatch | null;
+  pendingIds: Record<string, OptimisticScheduleRange>;
   onItemClick: (item: GymCalendarItem) => void;
   onRequestEdit: (item: GymCalendarItem) => void;
   onRequestReschedule: (
     item: GymCalendarItem,
     patch: BoardTimePatch,
   ) => Promise<boolean>;
+  onDragPreviewChange: (
+    itemId: string,
+    patch: BoardTimePatch | null,
+  ) => void;
   buildMenuActions: (item: GymCalendarItem) => ScheduleBoardMenuAction[];
   onSlotClick: (dateKey: string, hm: string) => void;
 }) {
@@ -954,80 +1021,116 @@ function WeekDesktop({
       ref={scrollRef}
       className="overflow-auto rounded-xl border border-matchon-border bg-white shadow-sm"
       data-testid="schedule-week-scroll"
+      data-schedule-scroll
     >
-      <div className="sticky top-0 z-10 grid grid-cols-[56px_repeat(7,minmax(0,1fr))] border-b border-matchon-border bg-background">
+      <div
+        className={cn(
+          "sticky top-0 grid border-b border-matchon-border bg-background",
+          SCHEDULE_BOARD_LAYER.stickyHeader,
+          SCHEDULE_WEEK_GRID_COLS_CLASS,
+        )}
+      >
         <div />
         {weekDays.map((dk, i) => (
           <div
             key={dk}
+            data-testid={
+              dragTargetDateKey === dk ? "schedule-drop-target-header" : undefined
+            }
             className={cn(
               "border-l border-matchon-border px-2 py-2 text-center text-xs",
               dk === todayKey && "bg-primary/5 font-semibold",
+              dragTargetDateKey === dk &&
+                "bg-matchon-primary/10 font-semibold text-matchon-primary ring-1 ring-inset ring-matchon-primary/30",
             )}
           >
-            {WEEKDAY_LABELS[i]} {Number(dk.slice(-2))}
+            <div>
+              {WEEKDAY_LABELS[i]} {Number(dk.slice(-2))}
+            </div>
+            {dragTargetDateKey === dk && dragTargetPatch ? (
+              <div className="mt-0.5 text-[10px] tabular-nums">
+                이동 {dragTargetPatch.startHm}~{dragTargetPatch.endHm}
+              </div>
+            ) : null}
           </div>
         ))}
       </div>
-      <div
-        className="grid grid-cols-[56px_repeat(7,minmax(0,1fr))]"
-        style={{ height }}
-      >
-        <div className="relative border-r border-matchon-border bg-matchon-surface/20">
-          {hours.map((h) => (
-            <div
-              key={h}
-              className="absolute right-1 -translate-y-1/2 text-[10px] text-matchon-text-secondary"
-              style={{
-                top:
-                  (h - SCHEDULE_GRID_START_HOUR) *
-                  60 *
-                  SCHEDULE_PX_PER_MINUTE,
-              }}
-            >
-              {String(h).padStart(2, "0")}:00
-            </div>
-          ))}
-        </div>
-        {weekDays.map((dk) => (
+      <div className="relative" style={{ height }} data-testid="schedule-week-board">
+        <div className={cn("grid h-full", SCHEDULE_WEEK_GRID_COLS_CLASS)}>
           <div
-            key={dk}
-            data-schedule-day={dk}
-            className="relative border-l border-matchon-border bg-[linear-gradient(to_bottom,transparent_calc(100%-1px),rgba(0,0,0,0.03)_calc(100%-1px))]"
-            onDoubleClick={(e) => {
-              const rect = (
-                e.currentTarget as HTMLElement
-              ).getBoundingClientRect();
-              onSlotClick(dk, slotHmFromDoubleClick(e.clientY, rect.top));
-            }}
+            className="relative border-r border-matchon-border bg-matchon-surface/20"
+            data-testid="schedule-time-axis"
           >
             {hours.map((h) => (
               <div
                 key={h}
-                className="absolute inset-x-0 border-t border-dashed border-matchon-border/50"
+                className={cn(
+                  "absolute right-1.5 -translate-y-1/2",
+                  SCHEDULE_AXIS_LABEL_CLASS,
+                )}
                 style={{
                   top:
                     (h - SCHEDULE_GRID_START_HOUR) *
                     60 *
                     SCHEDULE_PX_PER_MINUTE,
                 }}
-              />
-            ))}
-            <ScheduleNowLine dateKey={dk} />
-            {(byDate.get(dk) ?? []).map((item) => (
-              <ScheduleBoardCard
-                key={item.id}
-                item={item}
-                dateKey={dk}
-                compact
-                onSelect={onItemClick}
-                onRequestEdit={onRequestEdit}
-                onRequestReschedule={onRequestReschedule}
-                menuActions={buildMenuActions(item)}
-              />
+              >
+                {formatScheduleAxisTimeKorean(h)}
+              </div>
             ))}
           </div>
-        ))}
+          {weekDays.map((dk) => (
+            <div
+              key={dk}
+              data-schedule-day={dk}
+              data-testid={
+                dragTargetDateKey === dk ? "schedule-drop-target-day" : undefined
+              }
+              className={cn(
+                "relative border-l border-matchon-border bg-[linear-gradient(to_bottom,transparent_calc(100%-1px),rgba(0,0,0,0.03)_calc(100%-1px))]",
+                dragTargetDateKey === dk && "bg-matchon-primary/5",
+              )}
+              onDoubleClick={(e) => {
+                const rect = (
+                  e.currentTarget as HTMLElement
+                ).getBoundingClientRect();
+                onSlotClick(dk, slotHmFromDoubleClick(e.clientY, rect.top));
+              }}
+            >
+              {hours.map((h) => (
+                <div
+                  key={h}
+                  className="absolute inset-x-0 border-t border-dashed border-matchon-border/50"
+                  style={{
+                    top:
+                      (h - SCHEDULE_GRID_START_HOUR) *
+                      60 *
+                      SCHEDULE_PX_PER_MINUTE,
+                  }}
+                />
+              ))}
+              {(byDate.get(dk) ?? []).map((item) => (
+                <ScheduleBoardCard
+                  key={item.id}
+                  item={item}
+                  dateKey={dk}
+                  compact
+                  pending={Boolean(pendingIds[item.id]?.pending)}
+                  onSelect={onItemClick}
+                  onRequestEdit={onRequestEdit}
+                  onRequestReschedule={onRequestReschedule}
+                  onDragPreviewChange={onDragPreviewChange}
+                  menuActions={buildMenuActions(item)}
+                />
+              ))}
+            </div>
+          ))}
+        </div>
+        <ScheduleNowLine
+          variant="week"
+          weekDateKeys={weekDays}
+          className={SCHEDULE_WEEK_NOW_LINE_INSET_CLASS}
+        />
       </div>
     </div>
   );
@@ -1036,20 +1139,27 @@ function WeekDesktop({
 function DayTimeline({
   dateKey,
   items,
+  pendingIds,
   onItemClick,
   onRequestEdit,
   onRequestReschedule,
+  onDragPreviewChange,
   buildMenuActions,
   onSlotClick,
 }: {
   dateKey: string;
   items: GymCalendarItem[];
+  pendingIds: Record<string, OptimisticScheduleRange>;
   onItemClick: (item: GymCalendarItem) => void;
   onRequestEdit: (item: GymCalendarItem) => void;
   onRequestReschedule: (
     item: GymCalendarItem,
     patch: BoardTimePatch,
   ) => Promise<boolean>;
+  onDragPreviewChange: (
+    itemId: string,
+    patch: BoardTimePatch | null,
+  ) => void;
   buildMenuActions: (item: GymCalendarItem) => ScheduleBoardMenuAction[];
   onSlotClick: (hm: string) => void;
 }) {
@@ -1063,6 +1173,7 @@ function DayTimeline({
     <div
       className="overflow-auto rounded-xl border border-matchon-border bg-white shadow-sm"
       data-testid="schedule-day-scroll"
+      data-schedule-scroll
     >
       <div className="border-b border-matchon-border px-3 py-2 text-sm font-medium">
         {dateKey}
@@ -1075,14 +1186,20 @@ function DayTimeline({
         </button>
       </div>
       <div
-        className="relative grid grid-cols-[56px_minmax(0,1fr)]"
+        className={cn("relative grid", SCHEDULE_DAY_GRID_COLS_CLASS)}
         style={{ height }}
       >
-        <div className="relative border-r border-matchon-border bg-matchon-surface/20">
+        <div
+          className="relative border-r border-matchon-border bg-matchon-surface/20"
+          data-testid="schedule-time-axis"
+        >
           {hours.map((h) => (
             <div
               key={h}
-              className="absolute right-1 -translate-y-1/2 text-[10px] text-matchon-text-secondary"
+              className={cn(
+                "absolute right-1 -translate-y-1/2 md:right-1.5",
+                SCHEDULE_DAY_AXIS_LABEL_CLASS,
+              )}
               style={{
                 top:
                   (h - SCHEDULE_GRID_START_HOUR) *
@@ -1090,7 +1207,7 @@ function DayTimeline({
                   SCHEDULE_PX_PER_MINUTE,
               }}
             >
-              {String(h).padStart(2, "0")}:00
+              {formatScheduleAxisTimeKorean(h)}
             </div>
           ))}
         </div>
@@ -1116,7 +1233,7 @@ function DayTimeline({
               }}
             />
           ))}
-          <ScheduleNowLine dateKey={dateKey} />
+          <ScheduleNowLine variant="day" dateKey={dateKey} />
           {items.length === 0 ? (
             <p className="absolute left-3 top-3 text-sm text-matchon-text-secondary">
               등록된 일정이 없습니다.
@@ -1129,9 +1246,11 @@ function DayTimeline({
               dateKey={dateKey}
               insetClassName="inset-x-2"
               minHeightPx={48}
+              pending={Boolean(pendingIds[item.id]?.pending)}
               onSelect={onItemClick}
               onRequestEdit={onRequestEdit}
               onRequestReschedule={onRequestReschedule}
+              onDragPreviewChange={onDragPreviewChange}
               menuActions={buildMenuActions(item)}
             />
           ))}
