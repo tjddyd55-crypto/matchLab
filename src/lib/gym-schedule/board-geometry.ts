@@ -10,10 +10,38 @@ import {
   SCHEDULE_PX_PER_MINUTE,
   createSeoulDateTime,
   formatSeoulScheduleTime,
-  toSeoulDateKey,
 } from "@/lib/gym-schedule/seoul-schedule";
 
 export const SCHEDULE_SNAP_MINUTES = 10;
+
+/** 주/일 보드 시간축 폭 (PC). `오전 10:00` 한 줄 기준. */
+export const SCHEDULE_BOARD_AXIS_WIDTH_PX = 84;
+
+export type BoardTimePatch = {
+  dateKey: string;
+  startHm: string;
+  endHm: string;
+  startsAt: Date;
+  endsAt: Date;
+};
+
+/** 보드 시간축: `오전 7:00` / `오후 2:00` / `오후 12:00` / `오전 12:00` */
+export function formatScheduleAxisTimeKorean(hour24: number): string {
+  const hour = ((Math.floor(hour24) % 24) + 24) % 24;
+  const period = hour < 12 ? "오전" : "오후";
+  const h12 = hour % 12 === 0 ? 12 : hour % 12;
+  return `${period} ${h12}:00`;
+}
+
+/** 현재 시간선 등 분 포함: `오후 2:28` */
+export function formatScheduleAxisDateTimeKorean(at: Date): string {
+  const hm = formatSeoulScheduleTime(at);
+  const [hStr, mStr] = hm.split(":");
+  const hour = Number(hStr);
+  const period = hour < 12 ? "오전" : "오후";
+  const h12 = hour % 12 === 0 ? 12 : hour % 12;
+  return `${period} ${h12}:${mStr}`;
+}
 
 export function minutesToHm(totalMinutes: number): string {
   const clamped = Math.max(
@@ -46,9 +74,7 @@ export function pointerYToSnappedMinutes(
 }
 
 export function minutesFromDate(at: Date): number {
-  const key = toSeoulDateKey(at);
-  const hm = formatSeoulScheduleTime(at);
-  return hmToMinutes(hm);
+  return hmToMinutes(formatSeoulScheduleTime(at));
 }
 
 export function clampDurationMs(ms: number): number {
@@ -114,5 +140,5 @@ export function nowLineTopPx(now = new Date()): number | null {
 }
 
 export function nowHmLabel(now = new Date()): string {
-  return formatSeoulScheduleTime(now);
+  return formatScheduleAxisDateTimeKorean(now);
 }
