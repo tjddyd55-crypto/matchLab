@@ -1,10 +1,11 @@
 import type { ActorContext } from "@/lib/auth/actor-context";
 import { AppError } from "@/lib/errors/app-error";
 import { PermissionError } from "@/lib/auth/permission-error";
+import type { AssociationMemberGymStatus as MemberStatus } from "@/lib/enums";
 import {
-  AssociationMemberGymStatus,
-  type AssociationMemberGymStatus as MemberStatus,
-} from "@/lib/enums";
+  decideGymPortalAccessFromMembership,
+  type MembershipGateDecision,
+} from "@/lib/member-gym/portal-membership-gate";
 import {
   isGymPortalOwner,
   requireGymOwner,
@@ -14,13 +15,7 @@ import {
 import { memberGymRepository } from "@/lib/repositories/member-gym.repository";
 import { prisma } from "@/lib/prisma";
 
-export type GymPortalAccessMode =
-  | "normal_gym"
-  | "association_active"
-  | "association_suspended"
-  | "association_withdrawn"
-  | "association_owner_suspended"
-  | "gym_staff";
+export type GymPortalAccessMode = MembershipGateDecision["accessMode"];
 
 export type GymPortalAccess = {
   gymId: string;
@@ -64,86 +59,8 @@ function isPlaceholderOwner(user: {
 
 export { isPlaceholderOwner };
 
-type MembershipGateInput = {
-  status: MemberStatus;
-  ownerAccessSuspendedAt: Date | null;
-};
-
-type MembershipGateDecision = Pick<
-  GymPortalAccess,
-  | "accessMode"
-  | "canEnterPortal"
-  | "canRead"
-  | "canCreateFighter"
-  | "canUpdateFighter"
-  | "canReleaseFighter"
-  | "bannerMessage"
->;
-
-/** AssociationMemberGym 유무·상태에 따른 포털 권한 (순수 로직, 검증용). */
-export function decideGymPortalAccessFromMembership(
-  memberGym: MembershipGateInput | null,
-): MembershipGateDecision {
-  if (!memberGym) {
-    return {
-      accessMode: "normal_gym",
-      canEnterPortal: true,
-      canRead: true,
-      canCreateFighter: true,
-      canUpdateFighter: true,
-      canReleaseFighter: true,
-      bannerMessage: null,
-    };
-  }
-
-  if (memberGym.status === AssociationMemberGymStatus.withdrawn) {
-    return {
-      accessMode: "association_withdrawn",
-      canEnterPortal: false,
-      canRead: false,
-      canCreateFighter: false,
-      canUpdateFighter: false,
-      canReleaseFighter: false,
-      bannerMessage: "탈퇴 처리된 회원사입니다. 협회에 문의해 주세요.",
-    };
-  }
-
-  if (memberGym.ownerAccessSuspendedAt) {
-    return {
-      accessMode: "association_owner_suspended",
-      canEnterPortal: false,
-      canRead: false,
-      canCreateFighter: false,
-      canUpdateFighter: false,
-      canReleaseFighter: false,
-      bannerMessage:
-        "회원사 계정 접근이 중지되었습니다. 협회에 문의해 주세요.",
-    };
-  }
-
-  if (memberGym.status === AssociationMemberGymStatus.suspended) {
-    return {
-      accessMode: "association_suspended",
-      canEnterPortal: true,
-      canRead: true,
-      canCreateFighter: false,
-      canUpdateFighter: false,
-      canReleaseFighter: false,
-      bannerMessage:
-        "현재 회원사 활동이 중지되어 선수 정보를 조회만 할 수 있습니다.",
-    };
-  }
-
-  return {
-    accessMode: "association_active",
-    canEnterPortal: true,
-    canRead: true,
-    canCreateFighter: true,
-    canUpdateFighter: true,
-    canReleaseFighter: true,
-    bannerMessage: null,
-  };
-}
+/** @deprecated import from portal-membership-gate — re-export for 기존 verify 호환 */
+export { decideGymPortalAccessFromMembership };
 
 function ownerCapabilityFlags(decision: MembershipGateDecision) {
   const writeOk =
