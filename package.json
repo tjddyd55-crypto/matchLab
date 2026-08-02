@@ -312,7 +312,10 @@
     "verify:deployment-environments": "tsx scripts/verify-deployment-environments.ts all",
     "verify:desktop-no-secrets": "tsx scripts/verify-desktop-manager.ts no-secrets",
     "verify:desktop-ui-contract": "tsx scripts/verify-desktop-manager.ts ui-contract",
-    "verify:desktop-manager": "tsx scripts/verify-desktop-manager.ts"
+    "verify:desktop-manager": "tsx scripts/verify-desktop-manager.ts",
+    "verify:schedule-hydration": "tsx scripts/verify-gym-schedule.ts board-ux",
+    "verify:schedule-now-line-hydration": "tsx scripts/verify-gym-schedule.ts board-ux",
+    "verify:schedule-responsive-hydration": "tsx scripts/verify-gym-schedule.ts board-ux"
   },
   "prisma": {
     "seed": "tsx prisma/seed.ts"
