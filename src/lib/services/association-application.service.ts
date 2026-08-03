@@ -102,14 +102,30 @@ export const associationApplicationService = {
     assertAttachmentPaths(attachments);
     const bucket = memberGymFilesBucket();
 
-    const { matchonPhoneVerificationService } = await import(
-      "@/server/phone-verification/services/matchon-phone-verification.service"
+    const { loadMatchonPhoneVerificationConfig } = await import(
+      "@/server/phone-verification/config/matchon-phone-verification-config"
     );
-    const verified = await matchonPhoneVerificationService.consumeSignupToken({
-      token: String(input.signupVerificationToken ?? ""),
-      phone: requireText(input.contactPhone, "담당자 연락처"),
-      accountType: "association",
-    });
+    const phoneConfig = loadMatchonPhoneVerificationConfig();
+    const contactPhoneRaw = requireText(input.contactPhone, "담당자 연락처");
+    let contactPhoneNormalized = contactPhoneRaw;
+    if (phoneConfig.signupPhoneVerificationEnabled) {
+      const { matchonPhoneVerificationService } = await import(
+        "@/server/phone-verification/services/matchon-phone-verification.service"
+      );
+      const verified = await matchonPhoneVerificationService.consumeSignupToken({
+        token: String(input.signupVerificationToken ?? ""),
+        phone: contactPhoneRaw,
+        accountType: "association",
+      });
+      contactPhoneNormalized = verified.phoneNormalized;
+    } else {
+      const { validateKrMobile } = await import("@/lib/phone");
+      const phone = validateKrMobile(contactPhoneRaw);
+      if (!phone.ok) {
+        throw new AppError("VALIDATION_ERROR", phone.message);
+      }
+      contactPhoneNormalized = phone.normalized;
+    }
 
     return prisma.$transaction(async (tx) => {
       const created = await tx.associationApplication.create({
@@ -118,7 +134,7 @@ export const associationApplicationService = {
           associationNameEn: input.associationNameEn?.trim() || null,
           representativeName: requireText(input.representativeName, "대표자명"),
           contactName: requireText(input.contactName, "담당자명"),
-          contactPhone: verified.phoneNormalized,
+          contactPhone: contactPhoneNormalized,
           contactEmail: requireText(input.contactEmail, "담당자 이메일"),
           postalCode: normalizePostalCode(input.postalCode),
           address: input.address?.trim() || null,

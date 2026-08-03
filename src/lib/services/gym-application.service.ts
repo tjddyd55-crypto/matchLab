@@ -102,14 +102,30 @@ export const gymApplicationService = {
     const bucket = memberGymFilesBucket();
     const postalCode = normalizePostalCode(input.postalCode);
 
-    const { matchonPhoneVerificationService } = await import(
-      "@/server/phone-verification/services/matchon-phone-verification.service"
+    const { loadMatchonPhoneVerificationConfig } = await import(
+      "@/server/phone-verification/config/matchon-phone-verification-config"
     );
-    const verified = await matchonPhoneVerificationService.consumeSignupToken({
-      token: String(input.signupVerificationToken ?? ""),
-      phone: requireText(input.mobilePhone, "연락처"),
-      accountType: "gym",
-    });
+    const phoneConfig = loadMatchonPhoneVerificationConfig();
+    const mobilePhoneRaw = requireText(input.mobilePhone, "연락처");
+    let mobilePhoneNormalized = mobilePhoneRaw;
+    if (phoneConfig.signupPhoneVerificationEnabled) {
+      const { matchonPhoneVerificationService } = await import(
+        "@/server/phone-verification/services/matchon-phone-verification.service"
+      );
+      const verified = await matchonPhoneVerificationService.consumeSignupToken({
+        token: String(input.signupVerificationToken ?? ""),
+        phone: mobilePhoneRaw,
+        accountType: "gym",
+      });
+      mobilePhoneNormalized = verified.phoneNormalized;
+    } else {
+      const { validateKrMobile } = await import("@/lib/phone");
+      const phone = validateKrMobile(mobilePhoneRaw);
+      if (!phone.ok) {
+        throw new AppError("VALIDATION_ERROR", phone.message);
+      }
+      mobilePhoneNormalized = phone.normalized;
+    }
 
     return prisma.$transaction(async (tx) => {
       const created = await tx.gymApplication.create({
@@ -118,7 +134,7 @@ export const gymApplicationService = {
           representativeName: requireText(input.representativeName, "대표자명"),
           contactName: requireText(input.contactName, "담당자명"),
           phone: input.phone?.trim() || null,
-          mobilePhone: verified.phoneNormalized,
+          mobilePhone: mobilePhoneNormalized,
           email: requireText(input.email, "이메일"),
           postalCode,
           address: input.address?.trim() || null,

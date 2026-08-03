@@ -2,6 +2,12 @@ export {
   loadMatchonPhoneVerificationConfig,
   canMatchonAuthSmsRealSend,
   isMatchonProductionRuntime,
+  getMatchonPhoneVerificationRuntimeStatus,
+  assertProductionUserOtpAllowed,
+} from "./config/matchon-phone-verification-config";
+export type {
+  MatchonPhoneVerificationConfig,
+  MatchonPhoneVerificationRuntimeStatus,
 } from "./config/matchon-phone-verification-config";
 export { matchonPhoneVerificationService } from "./services/matchon-phone-verification.service";
 export {
