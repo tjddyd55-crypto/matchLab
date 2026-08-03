@@ -79,4 +79,6 @@ export {
   PhoneVerificationPurpose,
   PhoneVerificationAccountType,
   PhoneVerificationStatus,
+  AdminPasswordResetAccountType,
+  AdminPasswordResetLinkStatus,
 } from "@/generated/prisma";

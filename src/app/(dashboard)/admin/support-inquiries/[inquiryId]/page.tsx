@@ -1,6 +1,7 @@
 import Link from "next/link";
 import { notFound } from "next/navigation";
 import { AdminPageHeader } from "@/components/domain/admin/AdminPageHeader";
+import { AdminPasswordResetLinkPanel } from "@/components/domain/admin/AdminPasswordResetLinkPanel";
 import { AdminSupportInquiryStatusForm } from "@/components/domain/admin/AdminSupportInquiryStatusForm";
 import { requireActor } from "@/lib/auth/actor";
 import {
@@ -8,7 +9,9 @@ import {
   DESKTOP_SUPPORT_STATUS_LABELS,
 } from "@/lib/desktop/support-inquiry";
 import { AppError } from "@/lib/errors/app-error";
+import { DesktopSupportInquiryCategory } from "@/lib/enums";
 import { desktopSupportInquiryService } from "@/lib/services/desktop-support-inquiry.service";
+import { loadMatchonAdminPasswordResetLinkConfig } from "@/server/admin-password-reset/config";
 import {
   adminContentCardClass,
   adminPageContainerClass,
@@ -24,6 +27,7 @@ export default async function AdminSupportInquiryDetailPage({
 }) {
   const actor = await requireActor();
   const { inquiryId } = await params;
+  const adminResetEnabled = loadMatchonAdminPasswordResetLinkConfig().enabled;
 
   let row;
   try {
@@ -32,6 +36,9 @@ export default async function AdminSupportInquiryDetailPage({
     if (e instanceof AppError && e.code === "NOT_FOUND") notFound();
     throw e;
   }
+
+  const isPasswordHelp =
+    row.category === DesktopSupportInquiryCategory.password_help;
 
   return (
     <div className={adminPageContainerClass}>
@@ -78,6 +85,16 @@ export default async function AdminSupportInquiryDetailPage({
             </p>
           </div>
         </div>
+
+        {isPasswordHelp && adminResetEnabled ? (
+          <div className={adminContentCardClass}>
+            <AdminPasswordResetLinkPanel
+              initialLoginId={row.loginId ?? ""}
+              inquiryId={row.id}
+              inquiryConnected
+            />
+          </div>
+        ) : null}
 
         <div className={adminContentCardClass}>
           <AdminSupportInquiryStatusForm
