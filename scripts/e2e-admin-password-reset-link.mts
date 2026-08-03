@@ -1,4 +1,4 @@
-﻿/**
+/**
  * Development Auth E2E: admin-issued password reset link.
  * Uses ephemeral Dev Supabase + Dev DB only. Never touches Production Auth.
  *
