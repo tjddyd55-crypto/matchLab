@@ -450,6 +450,10 @@ enum AuditAction {
   gym_member_portal_token_rotated
   gym_member_portal_revoked
   desktop_support_inquiry_status_changed
+  phone_verification_code_sent
+  phone_verification_succeeded
+  phone_verification_failed
+  password_reset_by_phone_completed
 }
 
 enum GymMemberAttendanceSource {
@@ -557,6 +561,7 @@ model User {
 
   notifications Notification[]
   auditLogs     AuditLog[] @relation("AuditLogActor")
+  phoneVerifications PhoneVerification[] @relation("PhoneVerificationUser")
 
   paymentsConfirmed       EventApplicationPayment[] @relation("PaymentConfirmer")
   inviteLinksCreated      GymInviteLink[]           @relation("InviteLinkCreator")
@@ -3038,4 +3043,56 @@ model DesktopSupportInquiry {
   @@index([category, createdAt])
   @@index([source, createdAt])
   @@index([deletedAt])
+}
+
+/// 휴대폰 OTP 인증 (회원가입 신청·비밀번호 재설정). 코드 원문 저장 금지.
+enum PhoneVerificationPurpose {
+  signup
+  password_reset
+}
+
+enum PhoneVerificationAccountType {
+  association
+  gym
+}
+
+enum PhoneVerificationStatus {
+  pending
+  verified
+  consumed
+  expired
+  locked
+  cancelled
+}
+
+model PhoneVerification {
+  id                         String                        @id @default(cuid())
+  phoneNormalized            String
+  purpose                    PhoneVerificationPurpose
+  accountType                PhoneVerificationAccountType?
+  /// HMAC-SHA256(code + purpose + phone + pepper) — 원문 금지
+  codeHash                   String
+  status                     PhoneVerificationStatus       @default(pending)
+  expiresAt                  DateTime
+  verifiedAt                 DateTime?
+  consumedAt                 DateTime?
+  attemptCount               Int                           @default(0)
+  sendCount                  Int                           @default(0)
+  lastSentAt                 DateTime?
+  /// 인증 완료 후 단기 토큰 해시 (원문 금지)
+  verificationTokenHash      String?                       @unique
+  verificationTokenExpiresAt DateTime?
+  /// password_reset 바인딩 (normalizeLoginId)
+  loginIdNormalized          String?
+  userId                     String?
+  requestIpHash              String?
+  createdAt                  DateTime                      @default(now())
+  updatedAt                  DateTime                      @updatedAt
+
+  user User? @relation("PhoneVerificationUser", fields: [userId], references: [id], onDelete: SetNull)
+
+  @@index([phoneNormalized, purpose, status])
+  @@index([loginIdNormalized, purpose, status])
+  @@index([expiresAt])
+  @@index([userId])
 }
