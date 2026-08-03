@@ -16,6 +16,7 @@ import {
 } from "../src/server/phone-verification/utils/matchon-phone-otp-crypto";
 import {
   canMatchonAuthSmsRealSend,
+  isMatchonProductionRuntime,
   loadMatchonPhoneVerificationConfig,
 } from "../src/server/phone-verification/config/matchon-phone-verification-config";
 import {
@@ -161,6 +162,27 @@ function main() {
     "prisma/migrations/20260803100000_baseline_existing_schema/migration.sql",
   );
   assert.match(baseline, /Baseline marker/);
+
+  assert.equal(
+    isMatchonProductionRuntime({
+      NODE_ENV: "production",
+      RAILWAY_ENVIRONMENT_NAME: "development",
+    } as NodeJS.ProcessEnv),
+    false,
+  );
+  assert.equal(
+    isMatchonProductionRuntime({
+      NODE_ENV: "production",
+      RAILWAY_ENVIRONMENT_NAME: "production",
+    } as NodeJS.ProcessEnv),
+    true,
+  );
+  assert.equal(
+    isMatchonProductionRuntime({
+      NODE_ENV: "production",
+    } as NodeJS.ProcessEnv),
+    true,
+  );
 
   console.log("verify:phone-verification ALL_PASS");
 }
