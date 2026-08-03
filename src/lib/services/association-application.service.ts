@@ -89,7 +89,9 @@ function requireText(value: string | undefined, label: string): string {
 }
 
 export const associationApplicationService = {
-  async submit(input: AssociationApplicationInput) {
+  async submit(input: AssociationApplicationInput & {
+    signupVerificationToken?: string;
+  }) {
     if (!input.termsAccepted || !input.privacyAccepted) {
       throw new AppError(
         "VALIDATION_ERROR",
@@ -100,6 +102,15 @@ export const associationApplicationService = {
     assertAttachmentPaths(attachments);
     const bucket = memberGymFilesBucket();
 
+    const { matchonPhoneVerificationService } = await import(
+      "@/server/phone-verification/services/matchon-phone-verification.service"
+    );
+    const verified = await matchonPhoneVerificationService.consumeSignupToken({
+      token: String(input.signupVerificationToken ?? ""),
+      phone: requireText(input.contactPhone, "담당자 연락처"),
+      accountType: "association",
+    });
+
     return prisma.$transaction(async (tx) => {
       const created = await tx.associationApplication.create({
         data: {
@@ -107,7 +118,7 @@ export const associationApplicationService = {
           associationNameEn: input.associationNameEn?.trim() || null,
           representativeName: requireText(input.representativeName, "대표자명"),
           contactName: requireText(input.contactName, "담당자명"),
-          contactPhone: requireText(input.contactPhone, "담당자 연락처"),
+          contactPhone: verified.phoneNormalized,
           contactEmail: requireText(input.contactEmail, "담당자 이메일"),
           postalCode: normalizePostalCode(input.postalCode),
           address: input.address?.trim() || null,

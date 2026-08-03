@@ -88,7 +88,9 @@ function requireText(value: string | undefined, label: string): string {
 }
 
 export const gymApplicationService = {
-  async submit(input: GymApplicationInput) {
+  async submit(input: GymApplicationInput & {
+    signupVerificationToken?: string;
+  }) {
     if (!input.privacyConsent || !input.registrationConsent) {
       throw new AppError("VALIDATION_ERROR", "필수 동의 항목에 동의해 주세요.");
     }
@@ -100,6 +102,15 @@ export const gymApplicationService = {
     const bucket = memberGymFilesBucket();
     const postalCode = normalizePostalCode(input.postalCode);
 
+    const { matchonPhoneVerificationService } = await import(
+      "@/server/phone-verification/services/matchon-phone-verification.service"
+    );
+    const verified = await matchonPhoneVerificationService.consumeSignupToken({
+      token: String(input.signupVerificationToken ?? ""),
+      phone: requireText(input.mobilePhone, "연락처"),
+      accountType: "gym",
+    });
+
     return prisma.$transaction(async (tx) => {
       const created = await tx.gymApplication.create({
         data: {
@@ -107,7 +118,7 @@ export const gymApplicationService = {
           representativeName: requireText(input.representativeName, "대표자명"),
           contactName: requireText(input.contactName, "담당자명"),
           phone: input.phone?.trim() || null,
-          mobilePhone: requireText(input.mobilePhone, "연락처"),
+          mobilePhone: verified.phoneNormalized,
           email: requireText(input.email, "이메일"),
           postalCode,
           address: input.address?.trim() || null,

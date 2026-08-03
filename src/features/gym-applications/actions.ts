@@ -83,6 +83,7 @@ export async function submitGymApplicationAction(
       signatureName: formReq(formData, "signatureName"),
       signatureConsent: formData.get("signatureConsent") === "on",
       uploadBatchId: formReq(formData, "uploadBatchId") || undefined,
+      signupVerificationToken: formReq(formData, "signupVerificationToken"),
       attachments: parseAttachments(formData),
     });
     return actionSuccess({ applicationId: created.id });

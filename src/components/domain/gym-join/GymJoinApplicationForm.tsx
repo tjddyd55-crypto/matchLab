@@ -12,6 +12,7 @@ import {
   type DocumentUploadStatus,
 } from "@/components/shared/DocumentUploadField";
 import { AppDateInput } from "@/components/shared/AppDateInput";
+import { PhoneVerificationPanel } from "@/components/domain/phone-verification/PhoneVerificationPanel";
 import { BusinessNoInput, PhoneInput } from "@/components/shared/PhoneInput";
 import { Button } from "@/components/ui/button";
 import { submitGymApplicationAction } from "@/features/gym-applications/actions";
@@ -141,6 +142,10 @@ export function GymJoinApplicationForm({
   const [signatureDataUrl, setSignatureDataUrl] = useState<string | null>(null);
   const [submitError, setSubmitError] = useState<string | null>(null);
   const [inviteDone, setInviteDone] = useState<string | null>(null);
+  const [mobilePhone, setMobilePhone] = useState("");
+  const [signupVerificationToken, setSignupVerificationToken] = useState<
+    string | null
+  >(null);
   const [invitePending, startInvite] = useTransition();
   const [independentState, independentAction, independentPending] =
     useActionState(submitGymApplicationAction, null as IndependentState);
@@ -379,11 +384,20 @@ export function GymJoinApplicationForm({
               setSubmitError("손서명을 완료해 주세요.");
               return;
             }
+            if (mode === "independent" && !signupVerificationToken) {
+              setSubmitError("휴대폰 인증을 완료한 후 제출해 주세요.");
+              return;
+            }
             const nextAttachments = await ensureSignatureAttachment();
 
             if (mode === "independent") {
               fd.set("uploadBatchId", uploadBatchId);
               fd.set("attachmentsJson", JSON.stringify(nextAttachments));
+              fd.set("mobilePhone", mobilePhone);
+              fd.set(
+                "signupVerificationToken",
+                signupVerificationToken ?? "",
+              );
               if (!fd.get("contactName")) {
                 fd.set(
                   "contactName",
@@ -569,11 +583,31 @@ export function GymJoinApplicationForm({
         ) : (
           <TextField name="contactName" label="담당자명" />
         )}
-        <PhoneInput
-          name="mobilePhone"
-          label={mode === "independent" ? "대표자 연락처" : "개인 연락처"}
-          required
-        />
+        {mode === "independent" ? (
+          <>
+            <PhoneVerificationPanel
+              accountType="gym"
+              phone={mobilePhone}
+              onPhoneChange={setMobilePhone}
+              verificationToken={signupVerificationToken}
+              onVerified={setSignupVerificationToken}
+              onReset={() => setSignupVerificationToken(null)}
+              disabled={pending || isUploading}
+            />
+            <input type="hidden" name="mobilePhone" value={mobilePhone} />
+            <input
+              type="hidden"
+              name="signupVerificationToken"
+              value={signupVerificationToken ?? ""}
+            />
+          </>
+        ) : (
+          <PhoneInput
+            name="mobilePhone"
+            label="개인 연락처"
+            required
+          />
+        )}
         <TextField name="email" label="이메일" type="email" required />
       </section>
 
@@ -699,7 +733,11 @@ export function GymJoinApplicationForm({
         type="submit"
         size="field"
         className="w-full font-bold"
-        disabled={pending || isUploading}
+        disabled={
+          pending ||
+          isUploading ||
+          (mode === "independent" && !signupVerificationToken)
+        }
       >
         {pending
           ? "제출 중…"
