@@ -7,7 +7,6 @@ import { prisma } from "@/lib/prisma";
 import { auditRepository } from "@/lib/repositories/audit.repository";
 import { normalizeLoginId } from "@/lib/validators/login-id.validator";
 import { passwordSchema } from "@/lib/validators/password.validator";
-import { createSupabaseAdminClient } from "@/lib/supabase/admin";
 import {
   AuditAction,
   PhoneVerificationAccountType,
@@ -687,48 +686,33 @@ export const matchonPhoneVerificationService = {
       throw new AppError("NOT_FOUND", "계정을 찾을 수 없습니다.");
     }
 
-    const admin = createSupabaseAdminClient();
-    // admin.updateUserById(password) 는 Auth 측에서 기존 refresh session을 폐기한다.
-    // admin.signOut 은 JWT 인자라 userId로 전체 세션 폐기에 쓸 수 없다.
-    const updated = await admin.auth.admin.updateUserById(user.authUserId, {
-      password: parsed.data,
-    });
-    if (updated.error) {
-      throw new AppError("INTERNAL", "비밀번호 변경에 실패했습니다.");
-    }
-
-    const consumed = await prisma.phoneVerification.updateMany({
-      where: {
-        id: row.id,
-        status: PhoneVerificationStatus.verified,
-      },
-      data: {
-        status: PhoneVerificationStatus.consumed,
-        consumedAt: new Date(),
-        verificationTokenHash: null,
-        verificationTokenExpiresAt: null,
-      },
-    });
-    if (consumed.count !== 1) {
-      throw new AppError("CONFLICT", "이미 사용된 인증입니다.");
-    }
-
-    await prisma.user.update({
-      where: { id: user.id },
-      data: {
-        mustChangePassword: false,
-        passwordResetAt: new Date(),
-      },
-    });
-
-    await auditRepository.createAuditLog({
-      actorUserId: user.id,
-      action: AuditAction.password_reset_by_phone_completed,
-      targetType: "User",
-      targetId: user.id,
-      afterData: {
-        verificationId: row.id,
-        sessionInvalidation: "admin_password_update_revokes_sessions",
+    const { completePasswordReset } = await import(
+      "@/server/auth/complete-password-reset"
+    );
+    await completePasswordReset({
+      userId: user.id,
+      authUserId: user.authUserId,
+      newPassword: parsed.data,
+      resetMethod: "phone_verification",
+      credentialId: row.id,
+      auditAction: AuditAction.password_reset_by_phone_completed,
+      auditAfterData: { verificationId: row.id },
+      consumeCredential: async () => {
+        const consumed = await prisma.phoneVerification.updateMany({
+          where: {
+            id: row.id,
+            status: PhoneVerificationStatus.verified,
+          },
+          data: {
+            status: PhoneVerificationStatus.consumed,
+            consumedAt: new Date(),
+            verificationTokenHash: null,
+            verificationTokenExpiresAt: null,
+          },
+        });
+        if (consumed.count !== 1) {
+          throw new AppError("CONFLICT", "이미 사용된 인증입니다.");
+        }
       },
     });
 

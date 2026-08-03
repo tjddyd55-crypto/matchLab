@@ -454,6 +454,10 @@ enum AuditAction {
   phone_verification_succeeded
   phone_verification_failed
   password_reset_by_phone_completed
+  admin_password_reset_link_issued
+  admin_password_reset_link_revoked
+  password_reset_by_admin_link_completed
+  admin_password_reset_link_failed
 }
 
 enum GymMemberAttendanceSource {
@@ -605,6 +609,10 @@ model User {
   gymMemberPortalsCreated GymMemberPortal[] @relation("GymMemberPortalCreator")
 
   desktopSupportInquiriesResolved DesktopSupportInquiry[] @relation("DesktopSupportInquiryResolver")
+
+  adminPasswordResetLinks         AdminPasswordResetLink[] @relation("AdminPasswordResetLinkUser")
+  adminPasswordResetLinksIssued   AdminPasswordResetLink[] @relation("AdminPasswordResetLinkIssuer")
+  adminPasswordResetLinksRevoked  AdminPasswordResetLink[] @relation("AdminPasswordResetLinkRevoker")
 }
 
 model Organizer {
@@ -3095,4 +3103,52 @@ model PhoneVerification {
   @@index([loginIdNormalized, purpose, status])
   @@index([expiresAt])
   @@index([userId])
+}
+
+/// 최고 관리자 발급형 일회용 비밀번호 재설정 링크. 원본 token 저장 금지.
+enum AdminPasswordResetAccountType {
+  association
+  gym
+}
+
+enum AdminPasswordResetLinkStatus {
+  active
+  consumed
+  expired
+  revoked
+}
+
+model AdminPasswordResetLink {
+  id                    String                        @id @default(cuid())
+  userId                String
+  authUserId            String
+  accountType           AdminPasswordResetAccountType
+  organizerId           String?
+  gymId                 String?
+  /// SHA-256(token) — 원문 금지
+  tokenHash             String                        @unique
+  /// URL token → HttpOnly challenge 교환용
+  challengeTokenHash    String?                       @unique
+  challengeExpiresAt    DateTime?
+  status                AdminPasswordResetLinkStatus  @default(active)
+  expiresAt             DateTime
+  consumedAt            DateTime?
+  revokedAt             DateTime?
+  issuedByUserId        String
+  revokedByUserId       String?
+  consumedIpHash        String?
+  consumedUserAgentHash String?
+  inquiryId             String?
+  createdAt             DateTime                      @default(now())
+  updatedAt             DateTime                      @updatedAt
+
+  user          User  @relation("AdminPasswordResetLinkUser", fields: [userId], references: [id], onDelete: Cascade)
+  issuedByUser  User  @relation("AdminPasswordResetLinkIssuer", fields: [issuedByUserId], references: [id], onDelete: Restrict)
+  revokedByUser User? @relation("AdminPasswordResetLinkRevoker", fields: [revokedByUserId], references: [id], onDelete: SetNull)
+
+  @@index([userId, status])
+  @@index([expiresAt])
+  @@index([issuedByUserId])
+  @@index([inquiryId])
+  @@index([status, createdAt])
 }
