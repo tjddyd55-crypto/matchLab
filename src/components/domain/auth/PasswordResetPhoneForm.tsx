@@ -175,7 +175,7 @@ export function PasswordResetPhoneForm() {
       ) : null}
 
       {step === "verify" ? (
-        <>
+        <div data-e2e-request-id={requestId ?? undefined}>
           <div className={authLoginFieldStackClass}>
             <label htmlFor="reset-code" className={authLoginLabelClass}>
               인증번호
@@ -212,7 +212,7 @@ export function PasswordResetPhoneForm() {
                 : "인증번호 재발송"}
             </button>
           </div>
-        </>
+        </div>
       ) : null}
 
       {step === "password" ? (
