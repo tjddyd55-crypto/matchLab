@@ -3,6 +3,48 @@ export function normalizePhoneDigits(phone: string): string {
   return phone.replace(/\D/g, "");
 }
 
+/**
+ * 한국 휴대폰 canonical 정규화 (인증·가입·비밀번호 찾기 SSOT).
+ * 허용 입력: 01012345678 / 010-1234-5678 / +82 10-1234-5678 / +821012345678
+ * 결과: 01012345678 형태 (숫자만). 일반 유선번호는 숫자만 반환.
+ */
+export function normalizeKrMobileCanonical(
+  input: string | null | undefined,
+): string {
+  let d = normalizePhoneDigits(input ?? "");
+  if (!d) return "";
+  if (d.startsWith("82") && d.length >= 11) {
+    d = `0${d.slice(2)}`;
+  }
+  // +82 10… → 8210… → 010…
+  if (d.startsWith("820") && d.length >= 12) {
+    d = d.slice(2);
+  }
+  return d;
+}
+
+/** 휴대폰(01x) 검증. 실패 시 한글 메시지. */
+export function validateKrMobile(
+  input: string | null | undefined,
+): { ok: true; normalized: string } | { ok: false; normalized: string; message: string } {
+  const normalized = normalizeKrMobileCanonical(input);
+  if (!normalized) {
+    return {
+      ok: false,
+      normalized: "",
+      message: "휴대폰 번호를 입력해 주세요.",
+    };
+  }
+  if (!/^01[016789]\d{7,8}$/.test(normalized)) {
+    return {
+      ok: false,
+      normalized,
+      message: "올바른 휴대폰 번호 형식이 아닙니다.",
+    };
+  }
+  return { ok: true, normalized };
+}
+
 /** 사업자등록번호 숫자만 (최대 10자리) */
 export function normalizeBusinessRegistrationNumber(value: string): string {
   return value.replace(/\D/g, "").slice(0, 10);

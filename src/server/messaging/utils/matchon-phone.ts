@@ -1,11 +1,11 @@
 import {
   formatPhoneNumber,
-  normalizePhoneDigits,
+  normalizeKrMobileCanonical,
 } from "@/lib/phone";
 
 /** MATCHON 메시징용 — 기존 phone helper 위임 (타 프로젝트 import 금지) */
 export function normalizeMatchonPhone(input: string | null | undefined): string {
-  return normalizePhoneDigits(input ?? "");
+  return normalizeKrMobileCanonical(input);
 }
 
 export function validateMatchonPhone(input: string | null | undefined): {

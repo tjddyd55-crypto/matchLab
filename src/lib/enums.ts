@@ -76,4 +76,7 @@ export {
   DesktopSupportInquiryCategory,
   DesktopSupportInquirySource,
   DesktopSupportInquiryStatus,
+  PhoneVerificationPurpose,
+  PhoneVerificationAccountType,
+  PhoneVerificationStatus,
 } from "@/generated/prisma";
