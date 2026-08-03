@@ -15,6 +15,7 @@ import {
   PhoneVerificationStatus,
 } from "@/generated/prisma";
 import {
+  assertProductionUserOtpAllowed,
   canMatchonAuthSmsRealSend,
   loadMatchonPhoneVerificationConfig,
   type MatchonPhoneVerificationConfig,
@@ -118,6 +119,13 @@ export const matchonPhoneVerificationService = {
     requestIp?: string | null;
   }): Promise<GenericRequestResult> {
     const config = loadMatchonPhoneVerificationConfig();
+    if (!config.signupPhoneVerificationEnabled) {
+      throw new AppError(
+        "FORBIDDEN",
+        "휴대폰 본인인증 기능은 준비 중입니다.",
+      );
+    }
+    assertProductionUserOtpAllowed(config);
     const phone = validateKrMobile(input.phone);
     if (!phone.ok) {
       throw new AppError("VALIDATION_ERROR", phone.message);
@@ -237,6 +245,13 @@ export const matchonPhoneVerificationService = {
     code: string;
   }): Promise<{ signupVerificationToken: string; expiresAt: string }> {
     const config = loadMatchonPhoneVerificationConfig();
+    if (!config.signupPhoneVerificationEnabled) {
+      throw new AppError(
+        "FORBIDDEN",
+        "휴대폰 본인인증 기능은 준비 중입니다.",
+      );
+    }
+    assertProductionUserOtpAllowed(config);
     const phone = validateKrMobile(input.phone);
     if (!phone.ok) {
       throw new AppError("VALIDATION_ERROR", phone.message);
@@ -333,6 +348,12 @@ export const matchonPhoneVerificationService = {
     accountType: "association" | "gym";
   }): Promise<{ phoneNormalized: string; verificationId: string }> {
     const config = loadMatchonPhoneVerificationConfig();
+    if (!config.signupPhoneVerificationEnabled) {
+      throw new AppError(
+        "FORBIDDEN",
+        "휴대폰 본인인증 기능은 준비 중입니다.",
+      );
+    }
     const phone = validateKrMobile(input.phone);
     if (!phone.ok) {
       throw new AppError("VALIDATION_ERROR", phone.message);
@@ -403,6 +424,13 @@ export const matchonPhoneVerificationService = {
     requestIp?: string | null;
   }): Promise<GenericRequestResult> {
     const config = loadMatchonPhoneVerificationConfig();
+    if (!config.passwordResetPhoneEnabled) {
+      throw new AppError(
+        "FORBIDDEN",
+        "휴대폰 비밀번호 재설정 기능은 준비 중입니다. 관리자에게 문의해 주세요.",
+      );
+    }
+    assertProductionUserOtpAllowed(config);
     const started = Date.now();
     const loginId = normalizeLoginId(String(input.loginId ?? ""));
     const phone = validateKrMobile(input.phone);
@@ -434,20 +462,25 @@ export const matchonPhoneVerificationService = {
       return generic();
     }
 
-    const user = await prisma.user.findFirst({
+    // loginId + normalized phone + authUserId 로 정확히 1계정만 허용
+    const candidates = await prisma.user.findMany({
       where: { loginId },
       select: { id: true, phone: true, authUserId: true, role: true },
+      take: 5,
     });
-    const userPhone = user?.phone ? validateKrMobile(user.phone) : null;
-    const matched =
-      Boolean(user?.authUserId) &&
-      userPhone?.ok === true &&
-      userPhone.normalized === phone.normalized;
+    const matches = candidates.filter((u) => {
+      if (!u.authUserId) return false;
+      const userPhone = u.phone ? validateKrMobile(u.phone) : null;
+      return (
+        userPhone?.ok === true && userPhone.normalized === phone.normalized
+      );
+    });
 
-    if (!matched) {
+    if (matches.length !== 1) {
       await sleep(Math.max(0, 500 - (Date.now() - started)));
       return generic();
     }
+    const user = matches[0]!;
 
     await invalidatePending(
       phone.normalized,
@@ -472,7 +505,7 @@ export const matchonPhoneVerificationService = {
         sendCount: 1,
         lastSentAt: new Date(),
         loginIdNormalized: loginId,
-        userId: user!.id,
+        userId: user.id,
         requestIpHash: ipHash,
       },
     });
@@ -489,7 +522,7 @@ export const matchonPhoneVerificationService = {
       code,
     });
     await auditRepository.createAuditLog({
-      actorUserId: user!.id,
+      actorUserId: user.id,
       action: AuditAction.phone_verification_code_sent,
       targetType: "PhoneVerification",
       targetId: row.id,
@@ -514,6 +547,13 @@ export const matchonPhoneVerificationService = {
     code: string;
   }): Promise<{ passwordResetToken: string; expiresAt: string }> {
     const config = loadMatchonPhoneVerificationConfig();
+    if (!config.passwordResetPhoneEnabled) {
+      throw new AppError(
+        "FORBIDDEN",
+        "휴대폰 비밀번호 재설정 기능은 준비 중입니다. 관리자에게 문의해 주세요.",
+      );
+    }
+    assertProductionUserOtpAllowed(config);
     const loginId = normalizeLoginId(String(input.loginId ?? ""));
     const phone = validateKrMobile(input.phone);
     if (!loginId || !phone.ok) {
@@ -598,6 +638,13 @@ export const matchonPhoneVerificationService = {
     confirmPassword: string;
   }): Promise<{ ok: true }> {
     const config = loadMatchonPhoneVerificationConfig();
+    if (!config.passwordResetPhoneEnabled) {
+      throw new AppError(
+        "FORBIDDEN",
+        "휴대폰 비밀번호 재설정 기능은 준비 중입니다. 관리자에게 문의해 주세요.",
+      );
+    }
+    assertProductionUserOtpAllowed(config);
     const token = String(input.passwordResetToken ?? "").trim();
     if (!token) {
       throw new AppError("VALIDATION_ERROR", "인증이 필요합니다.");

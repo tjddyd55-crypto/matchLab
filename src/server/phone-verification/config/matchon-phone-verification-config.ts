@@ -7,6 +7,10 @@
 export type MatchonAuthSmsProviderName = "mock" | "aligo";
 
 export type MatchonPhoneVerificationConfig = {
+  /** 가입 신청 OTP 게이트 (협회/독립 체육관) */
+  signupPhoneVerificationEnabled: boolean;
+  /** 휴대폰 비밀번호 재설정 */
+  passwordResetPhoneEnabled: boolean;
   provider: MatchonAuthSmsProviderName;
   dryRun: boolean;
   allowRealSend: boolean;
@@ -26,6 +30,20 @@ export type MatchonPhoneVerificationConfig = {
     sender: string;
     baseUrl: string;
   };
+};
+
+export type MatchonPhoneVerificationRuntimeStatus = {
+  signupEnabled: boolean;
+  passwordResetEnabled: boolean;
+  provider: MatchonAuthSmsProviderName;
+  dryRun: boolean;
+  realSendAllowed: boolean;
+  credentialsComplete: boolean;
+  e2eInboxEnabled: boolean;
+  isProductionRuntime: boolean;
+  /** Production에서 실사용자 OTP 허용 가능 여부 */
+  productionReady: boolean;
+  blockingReason: string | null;
 };
 
 function envBool(raw: string | undefined, fallback: boolean): boolean {
@@ -65,6 +83,10 @@ export function isMatchonProductionRuntime(
 export function loadMatchonPhoneVerificationConfig(
   env: NodeJS.ProcessEnv = process.env,
 ): MatchonPhoneVerificationConfig {
+  const isProd = isMatchonProductionRuntime(env);
+  // Production 기본 OFF (알리고 미개통 보호). Development 기본 ON.
+  const featureDefault = !isProd;
+
   const providerRaw = envStr(env.MATCHON_AUTH_SMS_PROVIDER).toLowerCase();
   const provider: MatchonAuthSmsProviderName =
     providerRaw === "aligo" ? "aligo" : "mock";
@@ -75,6 +97,14 @@ export function loadMatchonPhoneVerificationConfig(
     envStr(env.SUPABASE_SERVICE_ROLE_KEY).slice(0, 48);
 
   return {
+    signupPhoneVerificationEnabled: envBool(
+      env.MATCHON_PHONE_VERIFICATION_ENABLED,
+      featureDefault,
+    ),
+    passwordResetPhoneEnabled: envBool(
+      env.MATCHON_PASSWORD_RESET_PHONE_ENABLED,
+      featureDefault,
+    ),
     provider,
     dryRun: envBool(env.MATCHON_AUTH_SMS_DRY_RUN, true),
     allowRealSend: envBool(env.MATCHON_AUTH_SMS_ALLOW_REAL_SEND, false),
@@ -95,7 +125,6 @@ export function loadMatchonPhoneVerificationConfig(
     ),
     pepper,
     aligo: {
-      // MATCHON 전용 Aligo — 메시징과 동일 credential 키 재사용 가능 (보험 CRM 분리)
       apiKey:
         envStr(env.MATCHON_AUTH_ALIGO_API_KEY) ||
         envStr(env.MATCHON_ALIGO_SMS_API_KEY),
@@ -135,5 +164,79 @@ export function assertMatchonAuthSmsProviderConfigured(
         "MATCHON_AUTH_SMS_PROVIDER=aligo 이지만 Aligo credential이 없습니다.",
       );
     }
+  }
+}
+
+/**
+ * 진단/게이트용 런타임 상태. credential 원문은 포함하지 않는다.
+ */
+export function getMatchonPhoneVerificationRuntimeStatus(
+  env: NodeJS.ProcessEnv = process.env,
+): MatchonPhoneVerificationRuntimeStatus {
+  const config = loadMatchonPhoneVerificationConfig(env);
+  const isProductionRuntime = isMatchonProductionRuntime(env);
+  const credentialsComplete = Boolean(
+    config.aligo.apiKey && config.aligo.userId && config.aligo.sender,
+  );
+  const realSendAllowed = canMatchonAuthSmsRealSend(config);
+  const e2eAllowed =
+    !isProductionRuntime &&
+    config.e2eInboxEnabled &&
+    config.provider === "mock";
+
+  let blockingReason: string | null = null;
+  let productionReady = false;
+
+  if (isProductionRuntime) {
+    if (!config.signupPhoneVerificationEnabled && !config.passwordResetPhoneEnabled) {
+      blockingReason = "feature_flags_disabled";
+    } else if (config.provider !== "aligo") {
+      blockingReason = "provider_not_aligo";
+    } else if (config.dryRun) {
+      blockingReason = "dry_run_enabled";
+    } else if (!config.allowRealSend) {
+      blockingReason = "real_send_disabled";
+    } else if (!credentialsComplete) {
+      blockingReason = "credentials_incomplete";
+    } else if (config.e2eInboxEnabled) {
+      blockingReason = "e2e_inbox_must_be_disabled";
+    } else if (!realSendAllowed) {
+      blockingReason = "real_send_gate_failed";
+    } else {
+      productionReady = true;
+      blockingReason = null;
+    }
+  } else if (config.provider === "mock" || config.dryRun) {
+    blockingReason = "non_production_mock_or_dry_run";
+  }
+
+  return {
+    signupEnabled: config.signupPhoneVerificationEnabled,
+    passwordResetEnabled: config.passwordResetPhoneEnabled,
+    provider: config.provider,
+    dryRun: config.dryRun,
+    realSendAllowed,
+    credentialsComplete,
+    e2eInboxEnabled: e2eAllowed,
+    isProductionRuntime,
+    productionReady,
+    blockingReason,
+  };
+}
+
+/** Production에서 mock으로 사용자 OTP를 허용하면 안 된다. */
+export function assertProductionUserOtpAllowed(
+  config: MatchonPhoneVerificationConfig,
+  env: NodeJS.ProcessEnv = process.env,
+): void {
+  if (!isMatchonProductionRuntime(env)) return;
+  const status = getMatchonPhoneVerificationRuntimeStatus(env);
+  if (!status.productionReady) {
+    throw new Error(
+      status.blockingReason || "production_phone_otp_not_ready",
+    );
+  }
+  if (config.provider === "mock") {
+    throw new Error("production_mock_otp_forbidden");
   }
 }

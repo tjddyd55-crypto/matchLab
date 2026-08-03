@@ -122,6 +122,7 @@ function TextField({
 export function GymJoinApplicationForm({
   mode,
   associationInvite,
+  phoneVerificationEnabled = true,
 }: {
   mode: "independent" | "association_invite";
   associationInvite?: {
@@ -131,6 +132,8 @@ export function GymJoinApplicationForm({
     settings: MemberGymSettingsV1;
     guideFiles: GuideFile[];
   };
+  /** 독립 체육관 가입 OTP. Production 미개통 시 false */
+  phoneVerificationEnabled?: boolean;
 }) {
   const uploadBatchId = useMemo(() => crypto.randomUUID(), []);
   const [attachments, setAttachments] = useState<PendingAttachment[]>([]);
@@ -384,7 +387,11 @@ export function GymJoinApplicationForm({
               setSubmitError("손서명을 완료해 주세요.");
               return;
             }
-            if (mode === "independent" && !signupVerificationToken) {
+            if (
+              mode === "independent" &&
+              phoneVerificationEnabled &&
+              !signupVerificationToken
+            ) {
               setSubmitError("휴대폰 인증을 완료한 후 제출해 주세요.");
               return;
             }
@@ -393,11 +400,13 @@ export function GymJoinApplicationForm({
             if (mode === "independent") {
               fd.set("uploadBatchId", uploadBatchId);
               fd.set("attachmentsJson", JSON.stringify(nextAttachments));
-              fd.set("mobilePhone", mobilePhone);
-              fd.set(
-                "signupVerificationToken",
-                signupVerificationToken ?? "",
-              );
+              if (phoneVerificationEnabled) {
+                fd.set("mobilePhone", mobilePhone);
+                fd.set(
+                  "signupVerificationToken",
+                  signupVerificationToken ?? "",
+                );
+              }
               if (!fd.get("contactName")) {
                 fd.set(
                   "contactName",
@@ -584,23 +593,33 @@ export function GymJoinApplicationForm({
           <TextField name="contactName" label="담당자명" />
         )}
         {mode === "independent" ? (
-          <>
-            <PhoneVerificationPanel
-              accountType="gym"
-              phone={mobilePhone}
-              onPhoneChange={setMobilePhone}
-              verificationToken={signupVerificationToken}
-              onVerified={setSignupVerificationToken}
-              onReset={() => setSignupVerificationToken(null)}
-              disabled={pending || isUploading}
-            />
-            <input type="hidden" name="mobilePhone" value={mobilePhone} />
-            <input
-              type="hidden"
-              name="signupVerificationToken"
-              value={signupVerificationToken ?? ""}
-            />
-          </>
+          phoneVerificationEnabled ? (
+            <>
+              <PhoneVerificationPanel
+                accountType="gym"
+                phone={mobilePhone}
+                onPhoneChange={setMobilePhone}
+                verificationToken={signupVerificationToken}
+                onVerified={setSignupVerificationToken}
+                onReset={() => setSignupVerificationToken(null)}
+                disabled={pending || isUploading}
+              />
+              <input type="hidden" name="mobilePhone" value={mobilePhone} />
+              <input
+                type="hidden"
+                name="signupVerificationToken"
+                value={signupVerificationToken ?? ""}
+              />
+            </>
+          ) : (
+            <div className="space-y-2">
+              <PhoneInput name="mobilePhone" label="개인 연락처" required />
+              <p className={authLoginSecondaryNoteClass} role="status">
+                휴대폰 본인인증은 준비 중입니다. 현재는 기존 방식으로 가입
+                신청할 수 있습니다.
+              </p>
+            </div>
+          )
         ) : (
           <PhoneInput
             name="mobilePhone"
@@ -736,7 +755,9 @@ export function GymJoinApplicationForm({
         disabled={
           pending ||
           isUploading ||
-          (mode === "independent" && !signupVerificationToken)
+          (mode === "independent" &&
+            phoneVerificationEnabled &&
+            !signupVerificationToken)
         }
       >
         {pending

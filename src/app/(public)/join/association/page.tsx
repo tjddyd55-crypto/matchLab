@@ -1,12 +1,14 @@
 import Link from "next/link";
 import { AssociationApplicationForm } from "@/components/domain/association-applications/AssociationApplicationForm";
 import { AuthLoginShell } from "@/components/domain/auth/AuthLoginShell";
+import { loadMatchonPhoneVerificationConfig } from "@/server/phone-verification/config/matchon-phone-verification-config";
 import { authLoginFooterClass } from "@/lib/ui/auth-login-ui";
 import { cn } from "@/lib/utils";
 
 export const dynamic = "force-dynamic";
 
 export default function JoinAssociationPage() {
+  const phoneConfig = loadMatchonPhoneVerificationConfig();
   return (
     <AuthLoginShell
       title="협회 가입 신청"
@@ -22,7 +24,9 @@ export default function JoinAssociationPage() {
         </p>
       }
     >
-      <AssociationApplicationForm />
+      <AssociationApplicationForm
+        phoneVerificationEnabled={phoneConfig.signupPhoneVerificationEnabled}
+      />
     </AuthLoginShell>
   );
 }

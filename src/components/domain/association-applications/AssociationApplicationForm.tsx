@@ -8,6 +8,7 @@ import {
   type DocumentUploadStatus,
 } from "@/components/shared/DocumentUploadField";
 import { PhoneVerificationPanel } from "@/components/domain/phone-verification/PhoneVerificationPanel";
+import { PhoneInput } from "@/components/shared/PhoneInput";
 import { Button } from "@/components/ui/button";
 import { submitAssociationApplicationAction } from "@/features/association-applications/actions";
 import { AssociationApplicationAttachmentType } from "@/lib/enums";
@@ -118,7 +119,11 @@ function validateAttachment(
   return null;
 }
 
-export function AssociationApplicationForm() {
+export function AssociationApplicationForm({
+  phoneVerificationEnabled = true,
+}: {
+  phoneVerificationEnabled?: boolean;
+}) {
   const uploadBatchId = useMemo(() => crypto.randomUUID(), []);
   const [attachments, setAttachments] = useState<PendingAttachment[]>([]);
   const [uploadStatuses, setUploadStatuses] = useState<
@@ -236,14 +241,16 @@ export function AssociationApplicationForm() {
           setSubmitError("사업자등록증을 첨부해 주세요.");
           return;
         }
-        if (!signupVerificationToken) {
+        if (phoneVerificationEnabled && !signupVerificationToken) {
           setSubmitError("휴대폰 인증을 완료한 후 제출해 주세요.");
           return;
         }
         setSubmitError(null);
         formData.set("attachmentsJson", JSON.stringify(attachments));
-        formData.set("contactPhone", contactPhone);
-        formData.set("signupVerificationToken", signupVerificationToken);
+        if (phoneVerificationEnabled) {
+          formData.set("contactPhone", contactPhone);
+          formData.set("signupVerificationToken", signupVerificationToken ?? "");
+        }
         formAction(formData);
       }}
       className={authLoginFormClass}
@@ -253,21 +260,33 @@ export function AssociationApplicationForm() {
       <Field id="associationNameEn" name="associationNameEn" label="영문명 / 약칭" />
       <Field id="representativeName" name="representativeName" label="대표자명" required />
       <Field id="contactName" name="contactName" label="담당자명" required />
-      <PhoneVerificationPanel
-        accountType="association"
-        phone={contactPhone}
-        onPhoneChange={setContactPhone}
-        verificationToken={signupVerificationToken}
-        onVerified={setSignupVerificationToken}
-        onReset={() => setSignupVerificationToken(null)}
-        disabled={pending || isUploading}
-      />
-      <input type="hidden" name="contactPhone" value={contactPhone} />
-      <input
-        type="hidden"
-        name="signupVerificationToken"
-        value={signupVerificationToken ?? ""}
-      />
+      {phoneVerificationEnabled ? (
+        <>
+          <PhoneVerificationPanel
+            accountType="association"
+            phone={contactPhone}
+            onPhoneChange={setContactPhone}
+            verificationToken={signupVerificationToken}
+            onVerified={setSignupVerificationToken}
+            onReset={() => setSignupVerificationToken(null)}
+            disabled={pending || isUploading}
+          />
+          <input type="hidden" name="contactPhone" value={contactPhone} />
+          <input
+            type="hidden"
+            name="signupVerificationToken"
+            value={signupVerificationToken ?? ""}
+          />
+        </>
+      ) : (
+        <div className="space-y-2">
+          <PhoneInput name="contactPhone" label="담당자 연락처" required />
+          <p className={authLoginSecondaryNoteClass} role="status">
+            휴대폰 본인인증은 준비 중입니다. 현재는 기존 방식으로 가입 신청할 수
+            있습니다.
+          </p>
+        </div>
+      )}
       <Field id="contactEmail" name="contactEmail" label="담당자 이메일" type="email" required />
       <AddressSearchField
         label="주소"
@@ -327,7 +346,11 @@ export function AssociationApplicationForm() {
         type="submit"
         size="field"
         className="w-full font-bold"
-        disabled={pending || isUploading || !signupVerificationToken}
+        disabled={
+          pending ||
+          isUploading ||
+          (phoneVerificationEnabled && !signupVerificationToken)
+        }
       >
         {pending ? "제출 중…" : isUploading ? "파일 업로드 중…" : "가입 신청 제출"}
       </Button>

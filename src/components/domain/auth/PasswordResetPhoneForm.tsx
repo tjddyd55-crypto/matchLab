@@ -20,7 +20,11 @@ import { cn } from "@/lib/utils";
 
 type Step = "request" | "verify" | "password" | "done";
 
-export function PasswordResetPhoneForm() {
+export function PasswordResetPhoneForm({
+  passwordResetPhoneEnabled = true,
+}: {
+  passwordResetPhoneEnabled?: boolean;
+}) {
   const [inquiryOpen, setInquiryOpen] = useState(false);
   const [step, setStep] = useState<Step>("request");
   const [loginId, setLoginId] = useState("");
@@ -124,6 +128,36 @@ export function PasswordResetPhoneForm() {
         >
           로그인으로 이동
         </Link>
+      </div>
+    );
+  }
+
+  if (!passwordResetPhoneEnabled) {
+    return (
+      <div className={cn(authLoginFormClass, "space-y-4")}>
+        <p className="text-sm text-matchon-text-secondary" role="status">
+          휴대폰 비밀번호 재설정 기능은 준비 중입니다. 관리자에게 문의해 주세요.
+        </p>
+        <button
+          type="button"
+          className="w-full rounded-md bg-matchon-primary px-3 py-2.5 text-sm font-bold text-white"
+          onClick={() => setInquiryOpen(true)}
+        >
+          관리자에게 문의
+        </button>
+        <p className={authLoginSecondaryNoteClass}>
+          <Link
+            href="/login"
+            className="font-semibold text-matchon-primary underline-offset-2 hover:underline"
+          >
+            로그인으로 돌아가기
+          </Link>
+        </p>
+        <DesktopSupportInquiryModal
+          open={inquiryOpen}
+          onOpenChange={setInquiryOpen}
+          defaultCategory="password_help"
+        />
       </div>
     );
   }

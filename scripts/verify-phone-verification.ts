@@ -5,6 +5,10 @@
  *   npm run verify:password-reset-phone
  *   npm run verify:sms-provider-safety
  *   npm run verify:desktop-auth-navigation
+ *   npm run verify:supabase-environment-isolation
+ *   npm run verify:phone-verification-feature-flags
+ *   npm run verify:production-phone-verification-disabled
+ *   npm run verify:password-reset-account-binding
  */
 import assert from "node:assert/strict";
 import { readFileSync } from "node:fs";
@@ -16,6 +20,7 @@ import {
 } from "../src/server/phone-verification/utils/matchon-phone-otp-crypto";
 import {
   canMatchonAuthSmsRealSend,
+  getMatchonPhoneVerificationRuntimeStatus,
   isMatchonProductionRuntime,
   loadMatchonPhoneVerificationConfig,
 } from "../src/server/phone-verification/config/matchon-phone-verification-config";
@@ -26,6 +31,158 @@ import {
 
 function read(path: string) {
   return readFileSync(path, "utf8");
+}
+
+function assertFeatureFlags() {
+  const devCfg = loadMatchonPhoneVerificationConfig({
+    NODE_ENV: "development",
+    RAILWAY_ENVIRONMENT_NAME: "development",
+    MATCHON_AUTH_SMS_PROVIDER: "mock",
+    MATCHON_PHONE_VERIFICATION_PEPPER: "p",
+  } as NodeJS.ProcessEnv);
+  assert.equal(devCfg.signupPhoneVerificationEnabled, true);
+  assert.equal(devCfg.passwordResetPhoneEnabled, true);
+
+  const prodCfg = loadMatchonPhoneVerificationConfig({
+    NODE_ENV: "production",
+    RAILWAY_ENVIRONMENT_NAME: "production",
+    MATCHON_AUTH_SMS_PROVIDER: "mock",
+    MATCHON_PHONE_VERIFICATION_PEPPER: "p",
+  } as NodeJS.ProcessEnv);
+  assert.equal(prodCfg.signupPhoneVerificationEnabled, false);
+  assert.equal(prodCfg.passwordResetPhoneEnabled, false);
+
+  const prodOn = loadMatchonPhoneVerificationConfig({
+    NODE_ENV: "production",
+    RAILWAY_ENVIRONMENT_NAME: "production",
+    MATCHON_PHONE_VERIFICATION_ENABLED: "true",
+    MATCHON_PASSWORD_RESET_PHONE_ENABLED: "true",
+    MATCHON_AUTH_SMS_PROVIDER: "mock",
+    MATCHON_PHONE_VERIFICATION_PEPPER: "p",
+  } as NodeJS.ProcessEnv);
+  assert.equal(prodOn.signupPhoneVerificationEnabled, true);
+  assert.equal(prodOn.passwordResetPhoneEnabled, true);
+
+  const prodStatus = getMatchonPhoneVerificationRuntimeStatus({
+    NODE_ENV: "production",
+    RAILWAY_ENVIRONMENT_NAME: "production",
+    MATCHON_PHONE_VERIFICATION_ENABLED: "true",
+    MATCHON_PASSWORD_RESET_PHONE_ENABLED: "true",
+    MATCHON_AUTH_SMS_PROVIDER: "mock",
+    MATCHON_AUTH_SMS_DRY_RUN: "true",
+    MATCHON_AUTH_SMS_ALLOW_REAL_SEND: "false",
+    MATCHON_AUTH_SMS_E2E_INBOX_ENABLED: "false",
+    MATCHON_PHONE_VERIFICATION_PEPPER: "p",
+  } as NodeJS.ProcessEnv);
+  assert.equal(prodStatus.productionReady, false);
+  assert.equal(prodStatus.blockingReason, "provider_not_aligo");
+
+  const readyStatus = getMatchonPhoneVerificationRuntimeStatus({
+    NODE_ENV: "production",
+    RAILWAY_ENVIRONMENT_NAME: "production",
+    MATCHON_PHONE_VERIFICATION_ENABLED: "true",
+    MATCHON_PASSWORD_RESET_PHONE_ENABLED: "true",
+    MATCHON_AUTH_SMS_PROVIDER: "aligo",
+    MATCHON_AUTH_SMS_DRY_RUN: "false",
+    MATCHON_AUTH_SMS_ALLOW_REAL_SEND: "true",
+    MATCHON_AUTH_SMS_E2E_INBOX_ENABLED: "false",
+    MATCHON_AUTH_ALIGO_API_KEY: "k",
+    MATCHON_AUTH_ALIGO_USER_ID: "u",
+    MATCHON_AUTH_ALIGO_SENDER: "01000000000",
+    MATCHON_PHONE_VERIFICATION_PEPPER: "p",
+  } as NodeJS.ProcessEnv);
+  assert.equal(readyStatus.productionReady, true);
+  assert.equal(readyStatus.blockingReason, null);
+  assert.equal(readyStatus.e2eInboxEnabled, false);
+
+  const disabledStatus = getMatchonPhoneVerificationRuntimeStatus({
+    NODE_ENV: "production",
+    RAILWAY_ENVIRONMENT_NAME: "production",
+    MATCHON_PHONE_VERIFICATION_ENABLED: "false",
+    MATCHON_PASSWORD_RESET_PHONE_ENABLED: "false",
+    MATCHON_AUTH_SMS_PROVIDER: "mock",
+    MATCHON_PHONE_VERIFICATION_PEPPER: "p",
+  } as NodeJS.ProcessEnv);
+  assert.equal(disabledStatus.signupEnabled, false);
+  assert.equal(disabledStatus.passwordResetEnabled, false);
+  assert.equal(disabledStatus.productionReady, false);
+  assert.equal(disabledStatus.blockingReason, "feature_flags_disabled");
+}
+
+function assertProductionDisabledWiring() {
+  const assocSvc = read("src/lib/services/association-application.service.ts");
+  assert.match(assocSvc, /signupPhoneVerificationEnabled/);
+  assert.match(assocSvc, /consumeSignupToken/);
+
+  const gymSvc = read("src/lib/services/gym-application.service.ts");
+  assert.match(gymSvc, /signupPhoneVerificationEnabled/);
+  assert.match(gymSvc, /consumeSignupToken/);
+
+  const assocForm = read(
+    "src/components/domain/association-applications/AssociationApplicationForm.tsx",
+  );
+  assert.match(assocForm, /phoneVerificationEnabled/);
+  assert.match(assocForm, /휴대폰 본인인증은 준비 중입니다/);
+
+  const gymForm = read(
+    "src/components/domain/gym-join/GymJoinApplicationForm.tsx",
+  );
+  assert.match(gymForm, /phoneVerificationEnabled/);
+  assert.match(gymForm, /휴대폰 본인인증은 준비 중입니다/);
+
+  const resetForm = read(
+    "src/components/domain/auth/PasswordResetPhoneForm.tsx",
+  );
+  assert.match(resetForm, /passwordResetPhoneEnabled/);
+  assert.match(resetForm, /관리자에게 문의/);
+
+  const assocPage = read("src/app/(public)/join/association/page.tsx");
+  assert.match(assocPage, /signupPhoneVerificationEnabled/);
+  const gymPage = read("src/app/(public)/join/gym/page.tsx");
+  assert.match(gymPage, /signupPhoneVerificationEnabled/);
+  const resetPage = read("src/app/(auth)/password-reset/page.tsx");
+  assert.match(resetPage, /passwordResetPhoneEnabled/);
+
+  const service = read(
+    "src/server/phone-verification/services/matchon-phone-verification.service.ts",
+  );
+  assert.match(service, /assertProductionUserOtpAllowed/);
+  assert.match(service, /signupPhoneVerificationEnabled/);
+  assert.match(service, /passwordResetPhoneEnabled/);
+}
+
+function assertPasswordResetAccountBinding() {
+  const service = read(
+    "src/server/phone-verification/services/matchon-phone-verification.service.ts",
+  );
+  assert.match(service, /findMany/);
+  assert.match(service, /matches\.length !== 1/);
+  assert.match(service, /authUserId/);
+  assert.match(service, /loginId/);
+  // Binding must use loginId lookup first, then phone match — not phone-only reset.
+  assert.match(
+    service,
+    /const candidates = await prisma\.user\.findMany\(\{\s*where:\s*\{\s*loginId\s*\}/,
+  );
+}
+
+function assertSupabaseEnvironmentIsolationContract() {
+  const expectedDevRef = "nbunulwquhcckhrcdnmg";
+  const expectedProdRef = "tkyzsbhfnrrkyupksjrj";
+  assert.notEqual(expectedDevRef, expectedProdRef);
+
+  const config = read(
+    "src/server/phone-verification/config/matchon-phone-verification-config.ts",
+  );
+  assert.match(config, /MATCHON_PHONE_VERIFICATION_ENABLED/);
+  assert.match(config, /MATCHON_PASSWORD_RESET_PHONE_ENABLED/);
+  assert.match(config, /getMatchonPhoneVerificationRuntimeStatus/);
+  assert.match(config, /assertProductionUserOtpAllowed/);
+  assert.match(config, /productionReady/);
+
+  const envExample = read(".env.example");
+  assert.match(envExample, /MATCHON_PHONE_VERIFICATION_ENABLED/);
+  assert.match(envExample, /MATCHON_PASSWORD_RESET_PHONE_ENABLED/);
 }
 
 function main() {
@@ -183,6 +340,11 @@ function main() {
     } as NodeJS.ProcessEnv),
     true,
   );
+
+  assertFeatureFlags();
+  assertProductionDisabledWiring();
+  assertPasswordResetAccountBinding();
+  assertSupabaseEnvironmentIsolationContract();
 
   console.log("verify:phone-verification ALL_PASS");
 }

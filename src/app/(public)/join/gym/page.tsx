@@ -1,6 +1,7 @@
 import Link from "next/link";
 import { GymJoinApplicationForm } from "@/components/domain/gym-join/GymJoinApplicationForm";
 import { AuthLoginShell } from "@/components/domain/auth/AuthLoginShell";
+import { loadMatchonPhoneVerificationConfig } from "@/server/phone-verification/config/matchon-phone-verification-config";
 import { authLoginFooterClass } from "@/lib/ui/auth-login-ui";
 import { cn } from "@/lib/utils";
 
@@ -11,6 +12,7 @@ export const dynamic = "force-dynamic";
  * 협회 초대 가입은 /member-gym-register/[token] 유지.
  */
 export default function JoinGymPage() {
+  const phoneConfig = loadMatchonPhoneVerificationConfig();
   return (
     <AuthLoginShell
       title="체육관 가입"
@@ -26,7 +28,10 @@ export default function JoinGymPage() {
         </p>
       }
     >
-      <GymJoinApplicationForm mode="independent" />
+      <GymJoinApplicationForm
+        mode="independent"
+        phoneVerificationEnabled={phoneConfig.signupPhoneVerificationEnabled}
+      />
     </AuthLoginShell>
   );
 }
