@@ -38,26 +38,31 @@ export function LoginForm({
       secondaryNote="관리자, 주최자, 체육관, 선수 모두 발급받은 아이디로 로그인합니다."
       footer={
         <div className={cn(authLoginFooterClass, "space-y-2")}>
-          <p>
-            비밀번호를 잊으셨나요?{" "}
+          <p className="flex flex-wrap items-center justify-center gap-x-3 gap-y-1">
             <Link
-              href="/fighter/forgot-password"
+              href="/join"
+              className="font-semibold text-matchon-primary underline-offset-2 hover:underline"
+            >
+              회원가입
+            </Link>
+            <span className="text-matchon-border" aria-hidden>
+              |
+            </span>
+            <Link
+              href="/password-reset"
               className="font-semibold text-matchon-primary underline-offset-2 hover:underline"
             >
               비밀번호 찾기
             </Link>
           </p>
           <p className="text-[0.8125rem] leading-relaxed">
-            체육관에서 받은 계정 설정 링크가 있다면 링크로 먼저 아이디와
-            비밀번호를 만들어 주세요.
-          </p>
-          <p>
-            계정이 없으신가요?{" "}
+            선수·직원 계정은 체육관에서 받은 설정 링크로 아이디와 비밀번호를
+            만들 수 있습니다.{" "}
             <Link
-              href="/join"
+              href="/fighter/forgot-password"
               className="font-semibold text-matchon-primary underline-offset-2 hover:underline"
             >
-              안내 보기
+              선수 안내
             </Link>
           </p>
         </div>
