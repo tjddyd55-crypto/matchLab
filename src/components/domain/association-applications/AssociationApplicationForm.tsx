@@ -7,6 +7,7 @@ import {
   DocumentUploadField,
   type DocumentUploadStatus,
 } from "@/components/shared/DocumentUploadField";
+import { PhoneVerificationPanel } from "@/components/domain/phone-verification/PhoneVerificationPanel";
 import { Button } from "@/components/ui/button";
 import { submitAssociationApplicationAction } from "@/features/association-applications/actions";
 import { AssociationApplicationAttachmentType } from "@/lib/enums";
@@ -127,6 +128,10 @@ export function AssociationApplicationForm() {
     Partial<Record<AssociationApplicationAttachmentType, string>>
   >({});
   const [submitError, setSubmitError] = useState<string | null>(null);
+  const [contactPhone, setContactPhone] = useState("");
+  const [signupVerificationToken, setSignupVerificationToken] = useState<
+    string | null
+  >(null);
   const [state, formAction, pending] = useActionState(
     submitAssociationApplicationAction,
     null as State,
@@ -231,8 +236,14 @@ export function AssociationApplicationForm() {
           setSubmitError("사업자등록증을 첨부해 주세요.");
           return;
         }
+        if (!signupVerificationToken) {
+          setSubmitError("휴대폰 인증을 완료한 후 제출해 주세요.");
+          return;
+        }
         setSubmitError(null);
         formData.set("attachmentsJson", JSON.stringify(attachments));
+        formData.set("contactPhone", contactPhone);
+        formData.set("signupVerificationToken", signupVerificationToken);
         formAction(formData);
       }}
       className={authLoginFormClass}
@@ -242,7 +253,21 @@ export function AssociationApplicationForm() {
       <Field id="associationNameEn" name="associationNameEn" label="영문명 / 약칭" />
       <Field id="representativeName" name="representativeName" label="대표자명" required />
       <Field id="contactName" name="contactName" label="담당자명" required />
-      <Field id="contactPhone" name="contactPhone" label="담당자 연락처" required />
+      <PhoneVerificationPanel
+        accountType="association"
+        phone={contactPhone}
+        onPhoneChange={setContactPhone}
+        verificationToken={signupVerificationToken}
+        onVerified={setSignupVerificationToken}
+        onReset={() => setSignupVerificationToken(null)}
+        disabled={pending || isUploading}
+      />
+      <input type="hidden" name="contactPhone" value={contactPhone} />
+      <input
+        type="hidden"
+        name="signupVerificationToken"
+        value={signupVerificationToken ?? ""}
+      />
       <Field id="contactEmail" name="contactEmail" label="담당자 이메일" type="email" required />
       <AddressSearchField
         label="주소"
@@ -298,7 +323,12 @@ export function AssociationApplicationForm() {
       {state?.ok === false ? (
         <p className={authLoginErrorClass} role="alert" aria-live="assertive">{state.error.message}</p>
       ) : null}
-      <Button type="submit" size="field" className="w-full font-bold" disabled={pending || isUploading}>
+      <Button
+        type="submit"
+        size="field"
+        className="w-full font-bold"
+        disabled={pending || isUploading || !signupVerificationToken}
+      >
         {pending ? "제출 중…" : isUploading ? "파일 업로드 중…" : "가입 신청 제출"}
       </Button>
     </form>

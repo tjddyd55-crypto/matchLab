@@ -78,6 +78,7 @@ export async function submitAssociationApplicationAction(
       description: formReq(formData, "description") || undefined,
       termsAccepted: formData.get("termsAccepted") === "on",
       privacyAccepted: formData.get("privacyAccepted") === "on",
+      signupVerificationToken: formReq(formData, "signupVerificationToken"),
       attachments: parseAttachments(formData),
     });
     return actionSuccess({ id: row.id });
