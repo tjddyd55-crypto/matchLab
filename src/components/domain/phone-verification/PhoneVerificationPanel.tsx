@@ -167,7 +167,12 @@ export function PhoneVerificationPanel({
       ) : null}
 
       {requestId && !verified ? (
-        <div className={authLoginFieldStackClass}>
+        <div
+          className={authLoginFieldStackClass}
+          data-e2e-request-id={
+            deliveryMode === "mock" ? requestId : undefined
+          }
+        >
           <label htmlFor="phone-verify-code" className={authLoginLabelClass}>
             인증번호
           </label>
