@@ -45,13 +45,21 @@ function envInt(raw: string | undefined, fallback: number): number {
   return Number.isFinite(n) && n > 0 ? Math.floor(n) : fallback;
 }
 
-export function isMatchonProductionRuntime(): boolean {
-  return (
-    process.env.NODE_ENV === "production" ||
-    String(process.env.RAILWAY_ENVIRONMENT_NAME ?? "")
-      .trim()
-      .toLowerCase() === "production"
-  );
+/**
+ * Production 런타임 판별.
+ * Railway Development/Preview는 NODE_ENV=production 으로 빌드되지만
+ * RAILWAY_ENVIRONMENT_NAME=development 이므로 E2E inbox를 허용할 수 있다.
+ * Production 환경명일 때만 강제 차단한다.
+ */
+export function isMatchonProductionRuntime(
+  env: NodeJS.ProcessEnv = process.env,
+): boolean {
+  const railwayEnv = String(env.RAILWAY_ENVIRONMENT_NAME ?? "")
+    .trim()
+    .toLowerCase();
+  if (railwayEnv === "production") return true;
+  if (railwayEnv && railwayEnv !== "production") return false;
+  return env.NODE_ENV === "production";
 }
 
 export function loadMatchonPhoneVerificationConfig(
