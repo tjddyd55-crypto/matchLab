@@ -259,9 +259,13 @@ function main() {
   );
   assert.match(service, /codeHash/);
   assert.match(service, /consumeSignupToken/);
-  assert.match(service, /updateUserById/);
+  assert.match(service, /completePasswordReset/);
   assert.match(service, /password_reset_by_phone_completed/);
   assert.doesNotMatch(service, /console\.log\([^\n]*\bcode\b/);
+
+  const completeReset = read("src/server/auth/complete-password-reset.ts");
+  assert.match(completeReset, /updateUserById/);
+  assert.match(completeReset, /admin_password_update_revokes_sessions/);
 
   const e2eRoute = read(
     "src/app/api/internal/phone-verification/e2e-inbox/route.ts",
