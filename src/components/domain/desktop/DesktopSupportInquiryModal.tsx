@@ -26,16 +26,28 @@ export function DesktopSupportInquiryModal({
   open,
   onOpenChange,
   defaultCategory,
+  initialLoginId = "",
+  roleHint = "desktop_login",
 }: {
   open: boolean;
   onOpenChange: (open: boolean) => void;
   defaultCategory: DesktopSupportInquiryCategoryCode;
+  initialLoginId?: string;
+  roleHint?: string;
 }) {
   const [appVersion, setAppVersion] = useState("");
+  const [category, setCategory] = useState(defaultCategory);
+  const [loginId, setLoginId] = useState(initialLoginId.trim());
   const [state, formAction, pending] = useActionState(
     createDesktopSupportInquiryAction,
     null as CreateState,
   );
+
+  useEffect(() => {
+    if (!open) return;
+    setCategory(defaultCategory);
+    setLoginId(initialLoginId.trim());
+  }, [open, defaultCategory, initialLoginId]);
 
   useEffect(() => {
     if (!open) return;
@@ -59,7 +71,6 @@ export function DesktopSupportInquiryModal({
     defaultCategory === "password_help"
       ? "비밀번호 찾기"
       : "관리자에게 문의하기";
-
   return (
     <Dialog open={open} onOpenChange={onOpenChange}>
       <DialogContent className="max-h-[90vh] overflow-y-auto sm:max-w-md">
@@ -83,7 +94,7 @@ export function DesktopSupportInquiryModal({
             aria-busy={pending || undefined}
           >
             <input type="hidden" name="appVersion" value={appVersion} />
-            <input type="hidden" name="roleHint" value="desktop_login" />
+            <input type="hidden" name="roleHint" value={roleHint} />
 
             <label className="block space-y-1.5">
               <span className="text-sm font-semibold text-matchon-text-primary">
@@ -92,7 +103,10 @@ export function DesktopSupportInquiryModal({
               <select
                 name="category"
                 className={matchonFieldInputClass}
-                defaultValue={defaultCategory}
+                value={category}
+                onChange={(e) =>
+                  setCategory(e.target.value as DesktopSupportInquiryCategoryCode)
+                }
                 disabled={pending}
                 required
               >
@@ -120,16 +134,22 @@ export function DesktopSupportInquiryModal({
 
             <label className="block space-y-1.5">
               <span className="text-sm font-semibold text-matchon-text-primary">
-                아이디 (알고 있으면)
+                로그인 아이디 (선택)
               </span>
               <input
                 name="loginId"
                 className={matchonFieldInputClass}
+                value={loginId}
+                onChange={(e) => setLoginId(e.target.value)}
                 maxLength={80}
                 disabled={pending}
                 autoComplete="username"
-                placeholder="선택"
+                placeholder="알고 있다면 입력"
               />
+              <span className="block text-xs text-matchon-text-secondary">
+                로그인 아이디를 알고 있다면 입력해 주세요. 기억나지 않는 경우
+                비워 두고 문의할 수 있습니다.
+              </span>
             </label>
 
             <label className="block space-y-1.5">

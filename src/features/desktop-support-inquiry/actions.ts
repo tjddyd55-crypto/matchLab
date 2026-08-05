@@ -7,7 +7,8 @@ import {
   actionSuccess,
   type ActionResult,
 } from "@/lib/action-result";
-import { requireActor } from "@/lib/auth/actor";
+import { getCurrentActor, requireActor } from "@/lib/auth/actor";
+import { prisma } from "@/lib/prisma";
 import {
   isDesktopSupportInquiryCategory,
   isDesktopSupportInquiryStatus,
@@ -70,10 +71,22 @@ export async function createDesktopSupportInquiryAction(
       );
     }
 
+    let loginId = formReq(formData, "loginId") || null;
+    const actor = await getCurrentActor();
+    if (actor) {
+      const sessionUser = await prisma.user.findFirst({
+        where: { id: actor.userId },
+        select: { loginId: true },
+      });
+      if (sessionUser?.loginId) {
+        loginId = sessionUser.loginId;
+      }
+    }
+
     const created = await desktopSupportInquiryService.createPublic({
       category: categoryRaw,
       name: formReq(formData, "name"),
-      loginId: formReq(formData, "loginId") || null,
+      loginId,
       contact,
       message,
       appVersion: formReq(formData, "appVersion") || null,

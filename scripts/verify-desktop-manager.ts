@@ -417,7 +417,7 @@ function supportInquiryPc3() {
   assertIncludes(service, "createPublic", "public create");
   assertIncludes(service, "assertAdmin", "admin gate");
   assertIncludes(service, "비밀번호·인증번호·토큰", "no secret paste");
-  assertIncludes(service, 'source: "desktop"', "source server-fixed");
+  assertIncludes(service, 'roleHintRaw.startsWith("web_") ? "web" : "desktop"', "source server-fixed");
   assertIncludes(service, 'status: "open"', "status server-fixed");
   assertIncludes(actions, "createDesktopSupportInquiryAction", "public action");
   assertIncludes(actions, "checkDesktopSupportInquiryRateLimit", "rate limit");

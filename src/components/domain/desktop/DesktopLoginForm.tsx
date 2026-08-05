@@ -15,6 +15,7 @@ import { cn } from "@/lib/utils";
  */
 export function DesktopLoginForm() {
   const [modalOpen, setModalOpen] = useState(false);
+  const [identifier, setIdentifier] = useState("");
   const [defaultCategory, setDefaultCategory] =
     useState<DesktopSupportInquiryCategoryCode>("general");
 
@@ -30,6 +31,7 @@ export function DesktopLoginForm() {
         identifierLabel="아이디"
         identifierPlaceholder="아이디를 입력하세요"
         action={signInWithPasswordDesktopAction}
+        onIdentifierChange={setIdentifier}
         footer={
           <div
             className={cn(
@@ -68,6 +70,8 @@ export function DesktopLoginForm() {
         open={modalOpen}
         onOpenChange={setModalOpen}
         defaultCategory={defaultCategory}
+        initialLoginId={identifier}
+        roleHint="desktop_login"
       />
     </>
   );

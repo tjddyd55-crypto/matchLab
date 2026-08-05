@@ -157,6 +157,8 @@ export function PasswordResetPhoneForm({
           open={inquiryOpen}
           onOpenChange={setInquiryOpen}
           defaultCategory="password_help"
+          initialLoginId={loginId}
+          roleHint="web_password_reset"
         />
       </div>
     );
@@ -328,6 +330,8 @@ export function PasswordResetPhoneForm({
         open={inquiryOpen}
         onOpenChange={setInquiryOpen}
         defaultCategory="password_help"
+        initialLoginId={loginId}
+        roleHint="web_password_reset"
       />
     </div>
   );

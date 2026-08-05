@@ -11,6 +11,7 @@ import { AppError } from "@/lib/errors/app-error";
 import { AuditAction } from "@/lib/enums";
 import { prisma } from "@/lib/prisma";
 import { auditRepository } from "@/lib/repositories/audit.repository";
+import { loginIdSchema } from "@/lib/validators/login-id.validator";
 
 const NAME_MIN = 2;
 const NAME_MAX = 50;
@@ -22,7 +23,13 @@ const MESSAGE_MAX = 2000;
 const APP_VERSION_MAX = 50;
 const ADMIN_NOTE_MAX = 2000;
 
-const ALLOWED_ROLE_HINTS = new Set(["desktop_login", "desktop_header", ""]);
+const ALLOWED_ROLE_HINTS = new Set([
+  "desktop_login",
+  "desktop_header",
+  "web_login",
+  "web_password_reset",
+  "",
+]);
 
 export type CreateDesktopSupportInquiryInput = {
   category: DesktopSupportInquiryCategoryCode;
@@ -179,19 +186,30 @@ export const desktopSupportInquiryService = {
     );
     assertNoSecrets(message);
 
-    const loginId = normalizeOptional(input.loginId, LOGIN_ID_MAX);
+    let loginId = normalizeOptional(input.loginId, LOGIN_ID_MAX);
+    if (loginId) {
+      const parsed = loginIdSchema.safeParse(loginId);
+      if (!parsed.success) {
+        throw new AppError(
+          "VALIDATION_ERROR",
+          "로그인 아이디 형식이 올바르지 않습니다.",
+        );
+      }
+      loginId = parsed.data;
+    }
+
     const appVersion = normalizeOptional(input.appVersion, APP_VERSION_MAX);
     const roleHintRaw = normalizeOptional(input.roleHint, 40) ?? "";
     if (!ALLOWED_ROLE_HINTS.has(roleHintRaw)) {
       throw new AppError("VALIDATION_ERROR", "요청 정보가 올바르지 않습니다.");
     }
     const roleHint = roleHintRaw || null;
+    const source = roleHintRaw.startsWith("web_") ? "web" : "desktop";
 
-    // source/status는 서버 고정 — 클라이언트 값 무시
     const created = await prisma.desktopSupportInquiry.create({
       data: {
         category: input.category,
-        source: "desktop",
+        source,
         name,
         loginId,
         contact,

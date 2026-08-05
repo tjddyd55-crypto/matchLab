@@ -35,6 +35,7 @@ export type AuthLoginFormProps = {
   secondaryNote?: ReactNode;
   footer?: ReactNode;
   hiddenFields?: Record<string, string>;
+  onIdentifierChange?: (value: string) => void;
 };
 
 /**
@@ -55,6 +56,7 @@ export function AuthLoginForm({
   secondaryNote,
   footer,
   hiddenFields,
+  onIdentifierChange,
 }: AuthLoginFormProps) {
   const router = useRouter();
   const [state, formAction, pending] = useActionState(action, null as RedirectState);
@@ -88,6 +90,7 @@ export function AuthLoginForm({
         defaultValue={defaultIdentifier ?? ""}
         placeholder={identifierPlaceholder}
         disabled={pending}
+        onValueChange={onIdentifierChange}
       />
 
       {hiddenFields
