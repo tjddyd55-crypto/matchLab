@@ -1,10 +1,10 @@
 import { createHash, randomBytes, timingSafeEqual } from "node:crypto";
 
-/** 회원 포털 공개 토큰 — 48 hex = 24 bytes (출석 키오스크와 동일 entropy) */
-const TOKEN_BYTES = 24;
+/** 회원 포털 공용 진입 식별자 — 32 bytes entropy, base64url (URL-safe) */
+const TOKEN_BYTES = 32;
 
 export function generateGymMemberPortalToken(): string {
-  return randomBytes(TOKEN_BYTES).toString("hex");
+  return randomBytes(TOKEN_BYTES).toString("base64url");
 }
 
 export function hashGymMemberPortalToken(token: string): string {
