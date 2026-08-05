@@ -11,6 +11,7 @@ import { PhoneVerificationPanel } from "@/components/domain/phone-verification/P
 import { PhoneInput } from "@/components/shared/PhoneInput";
 import { Button } from "@/components/ui/button";
 import { submitAssociationApplicationAction } from "@/features/association-applications/actions";
+import { RequestedLoginIdField } from "@/components/domain/auth/RequestedLoginIdField";
 import { AssociationApplicationAttachmentType } from "@/lib/enums";
 import {
   authLoginErrorClass,
@@ -288,6 +289,7 @@ export function AssociationApplicationForm({
         </div>
       )}
       <Field id="contactEmail" name="contactEmail" label="담당자 이메일" type="email" required />
+      <RequestedLoginIdField disabled={pending || isUploading} />
       <AddressSearchField
         label="주소"
         postalName="postalCode"

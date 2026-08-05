@@ -71,6 +71,7 @@ export async function submitAssociationApplicationAction(
       contactName: formReq(formData, "contactName"),
       contactPhone: formReq(formData, "contactPhone"),
       contactEmail: formReq(formData, "contactEmail"),
+      requestedLoginId: formReq(formData, "requestedLoginId"),
       address: formReq(formData, "address") || undefined,
       addressDetail: formReq(formData, "addressDetail") || undefined,
       postalCode: formReq(formData, "postalCode") || undefined,

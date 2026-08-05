@@ -2746,6 +2746,8 @@ model AssociationApplication {
   deletedAt            DateTime?
   createdAt            DateTime                      @default(now())
   updatedAt            DateTime                      @updatedAt
+  /// 신청 시 희망 로그인 아이디 (canonical lowercase). 승인·활성화 후 User.loginId와 일치해야 함.
+  requestedLoginId     String?
 
   reviewedByUser   User?      @relation("AssociationApplicationReviewer", fields: [reviewedByUserId], references: [id], onDelete: SetNull)
   createdOrganizer Organizer? @relation("AssociationApplicationCreatedOrganizer", fields: [createdOrganizerId], references: [id], onDelete: SetNull)
@@ -2754,6 +2756,8 @@ model AssociationApplication {
   @@index([status])
   @@index([submittedAt])
   @@index([deletedAt])
+  @@index([requestedLoginId])
+  @@index([status, requestedLoginId])
 }
 
 model AssociationApplicationAttachment {
@@ -2836,6 +2840,8 @@ model GymApplication {
   deletedAt            DateTime?
   createdAt            DateTime             @default(now())
   updatedAt            DateTime             @updatedAt
+  /// 신청 시 희망 로그인 아이디 (canonical lowercase). 승인·활성화 후 User.loginId와 일치해야 함.
+  requestedLoginId     String?
 
   reviewedByUser User? @relation("GymApplicationReviewer", fields: [reviewedByUserId], references: [id], onDelete: SetNull)
   createdGym     Gym?  @relation("GymApplicationCreatedGym", fields: [createdGymId], references: [id], onDelete: SetNull)
@@ -2844,6 +2850,8 @@ model GymApplication {
   @@index([status])
   @@index([submittedAt])
   @@index([deletedAt])
+  @@index([requestedLoginId])
+  @@index([status, requestedLoginId])
 }
 
 model GymApplicationAttachment {

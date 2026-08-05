@@ -47,6 +47,7 @@ export default async function AssociationOwnerInvitePage({
         associationName={ctx.associationName}
         contactName={ctx.contactName}
         contactEmail={ctx.contactEmail}
+        lockedLoginId={ctx.requestedLoginId}
       />
     </AuthLoginShell>
   );

@@ -19,6 +19,11 @@ import { createSupabaseAdminClient } from "@/lib/supabase/admin";
 import { loginIdSchema } from "@/lib/validators/login-id.validator";
 import { passwordSchema } from "@/lib/validators/password.validator";
 import { normalizePostalCode } from "@/lib/postal-address";
+import {
+  assertApplicationRequestedLoginIdAvailable,
+  checkApplicationRequestedLoginIdAvailability,
+  parseRequiredRequestedLoginId,
+} from "@/lib/services/application-requested-login-id";
 import { assertAssociationAttachmentMimeAndSize } from "./association-application-upload.service";
 
 export const ASSOCIATION_OWNER_INVITE_TTL_MS = 7 * 24 * 60 * 60 * 1000;
@@ -56,6 +61,7 @@ export type AssociationApplicationInput = {
   description?: string;
   termsAccepted: boolean;
   privacyAccepted: boolean;
+  requestedLoginId: string;
   attachments?: AssociationApplicationAttachmentInput[];
 };
 
@@ -127,7 +133,14 @@ export const associationApplicationService = {
       contactPhoneNormalized = phone.normalized;
     }
 
+    const requestedLoginId = parseRequiredRequestedLoginId(
+      input.requestedLoginId,
+    );
+
     return prisma.$transaction(async (tx) => {
+      await assertApplicationRequestedLoginIdAvailable(requestedLoginId, {
+        client: tx,
+      });
       const created = await tx.associationApplication.create({
         data: {
           associationName: requireText(input.associationName, "협회명"),
@@ -141,6 +154,7 @@ export const associationApplicationService = {
           addressDetail: input.addressDetail?.trim() || null,
           website: input.website?.trim() || null,
           description: input.description?.trim() || null,
+          requestedLoginId,
           status: AssociationApplicationStatus.pending,
           termsAcceptedAt: new Date(),
           privacyAcceptedAt: new Date(),
@@ -174,6 +188,7 @@ export const associationApplicationService = {
       select: {
         id: true,
         associationName: true,
+        representativeName: true,
         contactName: true,
         contactEmail: true,
         contactPhone: true,
@@ -181,6 +196,12 @@ export const associationApplicationService = {
         submittedAt: true,
         reviewedAt: true,
         createdOrganizerId: true,
+        requestedLoginId: true,
+        createdOrganizer: {
+          select: {
+            user: { select: { id: true, loginId: true, authUserId: true } },
+          },
+        },
       },
     });
   },
@@ -189,7 +210,14 @@ export const associationApplicationService = {
     requireRole(actor, [UserRole.admin]);
     const row = await prisma.associationApplication.findFirst({
       where: { id, deletedAt: null },
-      include: { attachments: { where: { deletedAt: null } } },
+      include: {
+        attachments: { where: { deletedAt: null } },
+        createdOrganizer: {
+          select: {
+            user: { select: { id: true, loginId: true, authUserId: true } },
+          },
+        },
+      },
     });
     if (!row) throw new AppError("NOT_FOUND", "신청을 찾을 수 없습니다.");
     return row;
@@ -247,15 +275,25 @@ export const associationApplicationService = {
     const inviteToken = randomBytes(24).toString("hex");
     const tokenHash = hashAssociationOwnerInviteToken(inviteToken);
     const expiresAt = new Date(Date.now() + ASSOCIATION_OWNER_INVITE_TTL_MS);
+    const requestedLoginId = row.requestedLoginId
+      ? parseRequiredRequestedLoginId(row.requestedLoginId)
+      : null;
 
     const result = await prisma.$transaction(async (tx) => {
+      if (requestedLoginId) {
+        await assertApplicationRequestedLoginIdAvailable(requestedLoginId, {
+          excludeAssociationApplicationId: row.id,
+          client: tx,
+        });
+      }
+
       const user = await tx.user.create({
         data: {
           name: row.contactName,
           email: null,
           phone: row.contactPhone,
           role: UserRole.organizer,
-          loginId: null,
+          loginId: requestedLoginId,
           authUserId: null,
         },
       });
@@ -343,43 +381,17 @@ export const associationApplicationService = {
       associationName: row.associationName,
       contactName: row.contactName,
       contactEmail: row.contactEmail,
+      requestedLoginId: row.requestedLoginId,
       expiresAt: row.ownerInviteExpiresAt!,
     };
   },
 
-  async isLoginIdAvailableForInvite(loginIdRaw: string) {
-    const parsed = loginIdSchema.safeParse(loginIdRaw);
-    if (!parsed.success) {
-      return {
-        available: false,
-        loginId: loginIdRaw.trim().toLowerCase(),
-        message:
-          parsed.error.issues[0]?.message ??
-          "영문 소문자, 숫자, _, -를 사용해 4~20자로 입력해 주세요.",
-      };
-    }
-    const loginId = parsed.data;
-    if (await prisma.user.findFirst({ where: { loginId }, select: { id: true } })) {
-      return {
-        available: false,
-        loginId,
-        message: "이미 사용 중인 아이디입니다.\n다른 아이디를 입력해 주세요.",
-      };
-    }
-    const authEmail = loginIdToAuthEmail(loginId);
-    if (
-      await prisma.user.findFirst({
-        where: { email: { equals: authEmail, mode: "insensitive" } },
-        select: { id: true },
-      })
-    ) {
-      return {
-        available: false,
-        loginId,
-        message: "이미 사용 중인 아이디입니다.\n다른 아이디를 입력해 주세요.",
-      };
-    }
-    return { available: true, loginId, message: "사용 가능한 아이디입니다." };
+  async isLoginIdAvailableForInvite(loginIdRaw: string, options?: {
+    excludeUserId?: string;
+  }) {
+    return checkApplicationRequestedLoginIdAvailability(loginIdRaw, {
+      excludeUserId: options?.excludeUserId,
+    });
   },
 
   async acceptOwnerInvite(
@@ -403,7 +415,24 @@ export const associationApplicationService = {
       throw new AppError("FORBIDDEN", "유효하지 않은 초대 링크입니다.");
     }
 
-    const loginParsed = loginIdSchema.safeParse(input.loginId);
+    const tokenHash = hashAssociationOwnerInviteToken(token);
+    const app = await prisma.associationApplication.findFirst({
+      where: { ownerInviteTokenHash: tokenHash },
+      include: { createdOrganizer: { include: { user: true } } },
+    });
+    const user = app?.createdOrganizer?.user;
+    if (!app || !user) {
+      throw new AppError("FORBIDDEN", "유효하지 않은 초대 링크입니다.");
+    }
+
+    const reservedLoginId =
+      app.requestedLoginId ??
+      (user.loginId && !user.loginId.startsWith("pending-gym-")
+        ? user.loginId
+        : null);
+    const loginParsed = loginIdSchema.safeParse(
+      reservedLoginId ?? input.loginId,
+    );
     if (!loginParsed.success) {
       throw new AppError(
         "VALIDATION_ERROR",
@@ -412,6 +441,12 @@ export const associationApplicationService = {
       );
     }
     const loginId = loginParsed.data;
+    if (reservedLoginId && loginId !== reservedLoginId) {
+      throw new AppError(
+        "VALIDATION_ERROR",
+        "신청 시 선택한 로그인 아이디만 사용할 수 있습니다.",
+      );
+    }
     if (input.password !== input.passwordConfirm) {
       throw new AppError("VALIDATION_ERROR", "비밀번호가 일치하지 않습니다.");
     }
@@ -425,15 +460,6 @@ export const associationApplicationService = {
     }
     const password = passwordParsed.data;
 
-    const tokenHash = hashAssociationOwnerInviteToken(token);
-    const app = await prisma.associationApplication.findFirst({
-      where: { ownerInviteTokenHash: tokenHash },
-      include: { createdOrganizer: { include: { user: true } } },
-    });
-    const user = app?.createdOrganizer?.user;
-    if (!app || !user) {
-      throw new AppError("FORBIDDEN", "유효하지 않은 초대 링크입니다.");
-    }
     if (user.loginId && user.authUserId) {
       await prisma.associationApplication.update({
         where: { id: app.id },
@@ -445,12 +471,10 @@ export const associationApplicationService = {
       return { loginId: user.loginId, alreadyActive: true as const };
     }
 
-    if (await prisma.user.findFirst({ where: { loginId } })) {
-      throw new AppError(
-        "CONFLICT",
-        "이미 사용 중인 아이디입니다.\n다른 아이디를 입력해 주세요.",
-      );
-    }
+    await assertApplicationRequestedLoginIdAvailable(loginId, {
+      excludeAssociationApplicationId: app.id,
+      excludeUserId: user.id,
+    });
     const authEmail = loginIdToAuthEmail(loginId);
     if (
       await prisma.user.findFirst({

@@ -47,6 +47,7 @@ export default async function GymApplicationInvitePage({
         gymName={ctx.gymName}
         contactName={ctx.contactName}
         email={ctx.email}
+        lockedLoginId={ctx.requestedLoginId}
       />
     </AuthLoginShell>
   );
