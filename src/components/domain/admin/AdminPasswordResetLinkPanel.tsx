@@ -1,11 +1,12 @@
 "use client";
 
-import { useState, useTransition } from "react";
+import { useEffect, useState, useTransition } from "react";
 import {
   issueAdminPasswordResetLinkAction,
   resolveAdminPasswordResetTargetAction,
   revokeAdminPasswordResetLinkAction,
 } from "@/features/admin-password-reset/actions";
+import type { AdminPasswordResetClientTarget } from "@/lib/admin/admin-password-reset-client";
 import { Button } from "@/components/ui/button";
 import {
   Dialog,
@@ -15,24 +16,6 @@ import {
   DialogHeader,
   DialogTitle,
 } from "@/components/ui/dialog";
-
-type Target = {
-  userId: string;
-  loginId: string;
-  name: string;
-  emailMasked: string | null;
-  phoneMasked: string | null;
-  accountType: string;
-  accountLabel: string;
-  representativeName: string | null;
-  accountStatus: string;
-  activeLink: {
-    id: string;
-    expiresAt: string;
-    createdAt: string;
-  } | null;
-  lastIssuedAt: string | null;
-};
 
 type Issued = {
   resetUrl: string;
@@ -52,32 +35,52 @@ function formatKo(iso: string): string {
 
 export function AdminPasswordResetLinkPanel({
   initialLoginId = "",
+  initialUserId = null,
+  initialTarget = null,
   inquiryId = null,
   inquiryConnected = false,
+  unresolvedHint = null,
 }: {
   initialLoginId?: string;
+  initialUserId?: string | null;
+  initialTarget?: AdminPasswordResetClientTarget | null;
   inquiryId?: string | null;
   inquiryConnected?: boolean;
+  unresolvedHint?: string | null;
 }) {
   const [loginId, setLoginId] = useState(initialLoginId);
-  const [target, setTarget] = useState<Target | null>(null);
+  const [target, setTarget] = useState<AdminPasswordResetClientTarget | null>(
+    initialTarget,
+  );
+  const [showManualLookup, setShowManualLookup] = useState(!initialTarget);
   const [error, setError] = useState<string | null>(null);
   const [confirmOpen, setConfirmOpen] = useState(false);
   const [issued, setIssued] = useState<Issued | null>(null);
   const [copied, setCopied] = useState(false);
   const [pending, startTransition] = useTransition();
 
-  function lookup() {
+  useEffect(() => {
+    if (initialTarget || !initialUserId) return;
+    lookup({ userId: initialUserId });
+    // 최초 userId prefill만 수행한다.
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [initialUserId, initialTarget]);
+
+  function lookup(input?: { loginId?: string; userId?: string }) {
     setError(null);
     setIssued(null);
     startTransition(async () => {
-      const res = await resolveAdminPasswordResetTargetAction({ loginId });
+      const res = await resolveAdminPasswordResetTargetAction({
+        loginId: input?.loginId ?? loginId,
+        userId: input?.userId,
+      });
       if (!res.ok) {
         setTarget(null);
         setError(res.error.message);
         return;
       }
-      setTarget(res.data as Target);
+      setTarget(res.data);
+      setShowManualLookup(false);
     });
   }
 
@@ -86,7 +89,7 @@ export function AdminPasswordResetLinkPanel({
     setError(null);
     startTransition(async () => {
       const res = await issueAdminPasswordResetLinkAction({
-        loginId: target.loginId,
+        userId: target.userId,
         inquiryId,
       });
       if (!res.ok) {
@@ -97,11 +100,10 @@ export function AdminPasswordResetLinkPanel({
       setIssued(res.data);
       setConfirmOpen(false);
       setCopied(false);
-      // refresh target active link metadata without raw URL
       const refreshed = await resolveAdminPasswordResetTargetAction({
-        loginId: target.loginId,
+        userId: target.userId,
       });
-      if (refreshed.ok) setTarget(refreshed.data as Target);
+      if (refreshed.ok) setTarget(refreshed.data);
     });
   }
 
@@ -118,9 +120,9 @@ export function AdminPasswordResetLinkPanel({
       }
       setIssued(null);
       const refreshed = await resolveAdminPasswordResetTargetAction({
-        loginId: target.loginId,
+        userId: target.userId,
       });
-      if (refreshed.ok) setTarget(refreshed.data as Target);
+      if (refreshed.ok) setTarget(refreshed.data);
     });
   }
 
@@ -151,26 +153,49 @@ export function AdminPasswordResetLinkPanel({
         ) : null}
       </div>
 
-      <div className="flex flex-wrap items-end gap-2">
-        <label className="block min-w-[12rem] flex-1">
-          <span className="mb-1 block text-xs font-semibold">로그인 아이디</span>
-          <input
-            value={loginId}
-            onChange={(e) => setLoginId(e.target.value)}
-            className="w-full rounded-md border border-matchon-border px-3 py-2"
-            disabled={pending}
-            autoComplete="off"
-          />
-        </label>
+      {!target ? (
+        <div className="space-y-2 rounded-md border border-amber-200 bg-amber-50 p-3 text-amber-950">
+          <p className="font-semibold">계정을 자동으로 확인하지 못했습니다.</p>
+          <p>
+            {unresolvedHint ??
+              "로그인 아이디를 직접 입력한 뒤 계정을 확인해 주세요."}
+          </p>
+        </div>
+      ) : null}
+
+      {showManualLookup ? (
+        <div className="flex flex-wrap items-end gap-2">
+          <label className="block min-w-[12rem] flex-1">
+            <span className="mb-1 block text-xs font-semibold">
+              로그인 아이디 직접 입력
+            </span>
+            <input
+              value={loginId}
+              onChange={(e) => setLoginId(e.target.value)}
+              className="w-full rounded-md border border-matchon-border px-3 py-2"
+              disabled={pending}
+              autoComplete="off"
+            />
+          </label>
+          <Button
+            type="button"
+            variant="outline"
+            disabled={pending || !loginId.trim()}
+            onClick={() => lookup()}
+          >
+            계정 확인
+          </Button>
+        </div>
+      ) : (
         <Button
           type="button"
           variant="outline"
-          disabled={pending || !loginId.trim()}
-          onClick={lookup}
+          disabled={pending}
+          onClick={() => setShowManualLookup(true)}
         >
-          계정 확인
+          로그인 아이디 직접 입력
         </Button>
-      </div>
+      )}
 
       {error ? (
         <p className="text-sm text-red-600" role="alert">
@@ -191,26 +216,26 @@ export function AdminPasswordResetLinkPanel({
             : {target.accountLabel}
           </p>
           <p>
-            <span className="font-semibold">대표자명</span>:{" "}
+            <span className="font-semibold">대표자</span>:{" "}
             {target.representativeName ?? target.name}
           </p>
-          <p>
+          <p className="break-all">
             <span className="font-semibold">로그인 아이디</span>: {target.loginId}
           </p>
           <p>
             <span className="font-semibold">이메일</span>:{" "}
-            {target.emailMasked ?? "-"}
+            {target.emailMasked ?? "확인 불가"}
           </p>
           <p>
-            <span className="font-semibold">휴대폰</span>:{" "}
-            {target.phoneMasked ?? "-"}
+            <span className="font-semibold">연락처</span>:{" "}
+            {target.phoneMasked ?? "확인 불가"}
           </p>
           <p>
             <span className="font-semibold">계정 상태</span>: {target.accountStatus}
           </p>
           <p>
             <span className="font-semibold">최근 발급</span>:{" "}
-            {target.lastIssuedAt ? formatKo(target.lastIssuedAt) : "-"}
+            {target.lastIssuedAt ? formatKo(target.lastIssuedAt) : "확인 불가"}
           </p>
           {target.activeLink ? (
             <div className="rounded-md border border-amber-200 bg-amber-50 p-2">
@@ -238,7 +263,7 @@ export function AdminPasswordResetLinkPanel({
             disabled={pending}
             onClick={() => setConfirmOpen(true)}
           >
-            재설정 링크 발급
+            비밀번호 재설정 링크 발급
           </Button>
         </div>
       ) : null}
@@ -254,7 +279,7 @@ export function AdminPasswordResetLinkPanel({
             <DialogTitle>비밀번호 재설정 링크를 발급할까요?</DialogTitle>
             <DialogDescription className="whitespace-pre-line">
               {target
-                ? `${target.accountLabel}의 ${target.loginId} 계정에 사용할\n일회용 비밀번호 재설정 링크를 발급합니다.\n\n기존에 발급된 미사용 링크는 즉시 취소되며,\n새 링크는 30분 동안 한 번만 사용할 수 있습니다.`
+                ? `${target.accountLabel}의 ${target.loginId} 계정에 사용할\n일회용 재설정 링크를 발급합니다.\n\n기존 미사용 링크는 즉시 취소되며,\n새 링크는 30분 동안 한 번만 사용할 수 있습니다.`
                 : ""}
             </DialogDescription>
           </DialogHeader>

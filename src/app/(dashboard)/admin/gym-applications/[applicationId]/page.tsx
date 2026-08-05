@@ -1,9 +1,14 @@
 import Link from "next/link";
 import { GymApplicationReviewActions } from "@/components/domain/gym-applications/GymApplicationReviewActions";
 import { AdminPageHeader } from "@/components/domain/admin/AdminPageHeader";
+import { AdminPasswordResetLinkPanel } from "@/components/domain/admin/AdminPasswordResetLinkPanel";
+import { resolveAdminAccountIdentityFromGymApplication } from "@/lib/admin/admin-account-identity";
+import { describeApplicationLoginIds } from "@/lib/admin/application-login-id-display";
+import { tryResolveAdminResetClientTarget } from "@/lib/admin/try-resolve-admin-reset-target";
 import { requireActor } from "@/lib/auth/actor";
 import { formatPostalAddress } from "@/lib/postal-address";
 import { gymApplicationService } from "@/lib/services/gym-application.service";
+import { loadMatchonAdminPasswordResetLinkConfig } from "@/server/admin-password-reset/config";
 import {
   adminContentCardClass,
   adminPageContainerClass,
@@ -31,7 +36,21 @@ export default async function AdminGymApplicationDetailPage({
 }) {
   const actor = await requireActor();
   const { applicationId } = await params;
+  const adminResetEnabled = loadMatchonAdminPasswordResetLinkConfig().enabled;
   const row = await gymApplicationService.getForAdmin(actor, applicationId);
+  const identity = await resolveAdminAccountIdentityFromGymApplication({
+    createdGymId: row.createdGymId,
+    requestedLoginId: row.requestedLoginId,
+  });
+  const display = describeApplicationLoginIds({
+    requestedLoginId: row.requestedLoginId,
+    currentLoginId: row.createdGym?.ownerUser.loginId ?? identity.loginId,
+    authUserId: row.createdGym?.ownerUser.authUserId,
+    approved: row.status === "approved",
+  });
+  const resetTarget = identity.resetEligible
+    ? await tryResolveAdminResetClientTarget(actor, identity.userId)
+    : null;
 
   return (
     <div className={adminPageContainerClass}>
@@ -69,13 +88,30 @@ export default async function AdminGymApplicationDetailPage({
               <dt className="text-matchon-text-secondary">이메일</dt>
               <dd className="font-medium">{row.email}</dd>
             </div>
+            <div className="sm:col-span-2 rounded-md border border-matchon-border bg-matchon-surface p-3">
+              <dt className="font-semibold text-matchon-text-primary">계정 정보</dt>
+              <dd className="mt-2 space-y-1">
+                <p className="break-all font-medium">
+                  신청 로그인 아이디: {display.requestedLoginIdLabel}
+                </p>
+                <p className="break-all font-medium">
+                  현재 로그인 아이디: {display.currentLoginIdLabel}
+                </p>
+                <p className="font-medium">이메일: {row.email}</p>
+                <p className="font-medium">연락처: {row.mobilePhone}</p>
+                <p className="font-medium">계정 상태: {display.accountStatusLabel}</p>
+                {display.mismatchWarning ? (
+                  <p className="text-xs text-amber-800">{display.mismatchWarning}</p>
+                ) : null}
+              </dd>
+            </div>
             <div>
               <dt className="text-matchon-text-secondary">사업자등록번호</dt>
-              <dd className="font-medium">{row.businessNo || "—"}</dd>
+              <dd className="font-medium">{row.businessNo || "확인 불가"}</dd>
             </div>
             <div>
               <dt className="text-matchon-text-secondary">운영 종목</dt>
-              <dd className="font-medium">{row.sportType || "—"}</dd>
+              <dd className="font-medium">{row.sportType || "확인 불가"}</dd>
             </div>
             <div className="sm:col-span-2">
               <dt className="text-matchon-text-secondary">주소</dt>
@@ -84,18 +120,18 @@ export default async function AdminGymApplicationDetailPage({
                   postalCode: row.postalCode,
                   address: row.address,
                   addressDetail: row.addressDetail,
-                }) || "—"}
+                }) || "확인 불가"}
               </dd>
             </div>
             <div className="sm:col-span-2">
               <dt className="text-matchon-text-secondary">소개</dt>
               <dd className="font-medium whitespace-pre-wrap">
-                {row.description || "—"}
+                {row.description || "확인 불가"}
               </dd>
             </div>
             <div>
               <dt className="text-matchon-text-secondary">신청인</dt>
-              <dd className="font-medium">{row.signatureName || "—"}</dd>
+              <dd className="font-medium">{row.signatureName || "확인 불가"}</dd>
             </div>
             <div>
               <dt className="text-matchon-text-secondary">협회 연결</dt>
@@ -107,7 +143,7 @@ export default async function AdminGymApplicationDetailPage({
             </div>
             <div>
               <dt className="text-matchon-text-secondary">생성 Gym</dt>
-              <dd className="font-medium">{row.createdGymId || "—"}</dd>
+              <dd className="font-medium">{row.createdGymId || "확인 불가"}</dd>
             </div>
           </dl>
 
@@ -134,6 +170,25 @@ export default async function AdminGymApplicationDetailPage({
             }
           />
         </div>
+
+        {adminResetEnabled ? (
+          <div className={adminContentCardClass}>
+            {identity.resetEligible ? (
+              <AdminPasswordResetLinkPanel
+                initialUserId={identity.userId}
+                initialTarget={resetTarget}
+                initialLoginId={identity.loginId ?? ""}
+                unresolvedHint={identity.hint}
+              />
+            ) : (
+              <p className="text-sm text-matchon-text-secondary">
+                계정이 아직 활성화되지 않아 비밀번호 재설정 링크를 발급할 수
+                {" "}
+                없습니다.
+              </p>
+            )}
+          </div>
+        ) : null}
       </div>
     </div>
   );
