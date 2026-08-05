@@ -175,6 +175,10 @@ export function GymMemberPortalOwnerManager({
   async function runCopyNotice() {
     setError(null);
     setMessage(null);
+    if (!linkUrl) {
+      setError("복사할 활성 링크가 없습니다.");
+      return;
+    }
     const ok = await copyToClipboard(notice);
     if (!ok) {
       setError("안내 문구 복사에 실패했습니다.");
@@ -291,7 +295,7 @@ export function GymMemberPortalOwnerManager({
             type="button"
             variant="outline"
             className="min-h-11"
-            disabled={pending}
+            disabled={pending || !linkUrl}
             onClick={() => void runCopyNotice()}
           >
             안내 문구 복사
