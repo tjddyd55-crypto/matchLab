@@ -219,6 +219,7 @@ function verifyGroupClasses() {
   assertIncludes(service, "listGroupClasses", "list");
   assertIncludes(service, "members_only", "visibility");
   assertIncludes(service, "myWaitlistOrder", "own wait order");
+  assertIncludes(service, "from: Date; toExclusive: Date", "range");
   console.log("verify:gym-member-portal-group-classes: OK");
 }
 

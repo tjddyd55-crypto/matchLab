@@ -1,100 +1,87 @@
 import { MemberPortalAppShell } from "@/components/domain/gym-member-portal/MemberPortalAppShell";
-import { MemberPortalClassCard } from "@/components/domain/gym-member-portal/MemberPortalClassCard";
+import { MemberPortalClassesSchedule } from "@/components/domain/gym-member-portal/MemberPortalClassesSchedule";
+import {
+  getMonthCalendarFetchRange,
+  getWeekRangeForDateKey,
+  parseMemberPortalClassView,
+  parseMemberPortalDateKey,
+  seoulDateKeyParts,
+} from "@/lib/gym-member-portal/class-calendar";
 import { requireMemberPortalPageSession } from "@/lib/gym-member-portal/require-member-session";
 import { gymMemberPortalService } from "@/lib/services/gym-member-portal.service";
+import { toSeoulDateKey } from "@/lib/gym-schedule/seoul-schedule";
 
 export const dynamic = "force-dynamic";
 
-const WEEKDAY_KO = ["일", "월", "화", "수", "목", "금", "토"] as const;
-
-function weekdayLabel(dateKey: string): string {
-  const [y, m, d] = dateKey.split("-").map(Number);
-  if (!y || !m || !d) return dateKey;
-  const dt = new Date(Date.UTC(y, m - 1, d, 3, 0, 0));
-  return `${WEEKDAY_KO[dt.getUTCDay()]}요일`;
-}
-
 export default async function MemberPortalClassesPage({
   params,
+  searchParams,
 }: {
   params: Promise<{ token: string }>;
+  searchParams: Promise<Record<string, string | string[] | undefined>>;
 }) {
   const { token } = await params;
+  const sp = await searchParams;
+  const viewRaw = typeof sp.view === "string" ? sp.view : undefined;
+  const dateRaw = typeof sp.date === "string" ? sp.date : undefined;
+  const classIdRaw = typeof sp.classId === "string" ? sp.classId : null;
+
+  const now = new Date();
+  const view = parseMemberPortalClassView(viewRaw);
+  const selectedDateKey = parseMemberPortalDateKey(dateRaw, now);
+  const todayKey = toSeoulDateKey(now);
+
+  const range =
+    view === "week"
+      ? (() => {
+          const week = getWeekRangeForDateKey(selectedDateKey);
+          return { from: week.start, toExclusive: week.endExclusive };
+        })()
+      : (() => {
+          const { year, month } = seoulDateKeyParts(selectedDateKey);
+          const monthRange = getMonthCalendarFetchRange(year, month);
+          return {
+            from: monthRange.start,
+            toExclusive: monthRange.endExclusive,
+          };
+        })();
+
   const session = await requireMemberPortalPageSession(token);
   const [classes, myParts] = await Promise.all([
-    gymMemberPortalService.listGroupClasses(session),
+    gymMemberPortalService.listGroupClasses(session, range),
     gymMemberPortalService.listMyParticipations(session),
   ]);
 
-  const byDay = new Map<string, typeof classes>();
-  for (const cls of classes) {
-    const list = byDay.get(cls.dateKey) ?? [];
-    list.push(cls);
-    byDay.set(cls.dateKey, list);
-  }
+  let mergedClasses = classes;
+  let resolvedClassId: string | null = null;
 
-  const dayKeys = Array.from(byDay.keys()).sort();
-  const activeParts = myParts.filter(
-    (p) => p.bucket === "attending" || p.bucket === "waitlisted",
-  );
+  if (classIdRaw) {
+    const inRange = classes.find((c) => c.id === classIdRaw);
+    if (inRange) {
+      resolvedClassId = classIdRaw;
+    } else {
+      const extra = await gymMemberPortalService.getGroupClass(
+        session,
+        classIdRaw,
+      );
+      if (extra) {
+        mergedClasses = [...classes, extra];
+        resolvedClassId = classIdRaw;
+      }
+    }
+  }
 
   return (
     <MemberPortalAppShell token={token} gymName={session.gymName}>
-      <h2 className="text-lg font-bold text-[#001C7A]">이번 주 프로그램</h2>
-      <p className="mt-1 text-sm text-[#64748B]">그룹수업</p>
-
-      <div className="mt-4 space-y-6">
-        {dayKeys.length === 0 ? (
-          <p className="rounded-xl border border-[#E2E8F0] bg-white p-4 text-sm text-[#64748B]">
-            이번 주 표시할 그룹수업이 없습니다.
-          </p>
-        ) : (
-          dayKeys.map((dateKey) => (
-            <section key={dateKey} className="space-y-3">
-              <h3 className="text-sm font-semibold text-[#0F172A]">
-                {weekdayLabel(dateKey)} · {dateKey}
-              </h3>
-              {(byDay.get(dateKey) ?? []).map((item) => (
-                <MemberPortalClassCard key={item.id} token={token} item={item} />
-              ))}
-            </section>
-          ))
-        )}
-      </div>
-
-      <section className="mt-8 space-y-3">
-        <h3 className="text-sm font-semibold text-[#001C7A]">내 신청</h3>
-        {activeParts.length === 0 ? (
-          <p className="rounded-xl border border-[#E2E8F0] bg-white p-4 text-sm text-[#64748B]">
-            진행 중인 신청이 없습니다.
-          </p>
-        ) : (
-          activeParts.map((p) => (
-            <article
-              key={`${p.classId}-${p.status}`}
-              className="rounded-xl border border-[#E2E8F0] bg-white p-4"
-            >
-              <p className="text-xs text-[#64748B]">
-                {p.dateKey} · {p.timeRangeLabel}
-              </p>
-              <p className="mt-1 font-semibold text-[#0F172A] break-keep">
-                {p.title}
-              </p>
-              <p className="mt-1 text-sm text-[#64748B]">
-                {p.instructorName ? `${p.instructorName} 선생님` : ""}
-                {p.location ? ` · ${p.location}` : ""}
-              </p>
-              <p className="mt-1 text-sm font-medium text-[#001C7A]">
-                {p.status === "attending"
-                  ? "참석 예정"
-                  : p.waitlistOrder != null
-                    ? `대기 ${p.waitlistOrder}번째`
-                    : "대기 중"}
-              </p>
-            </article>
-          ))
-        )}
-      </section>
+      <MemberPortalClassesSchedule
+        token={token}
+        view={view}
+        selectedDateKey={selectedDateKey}
+        todayKey={todayKey}
+        initialClassId={resolvedClassId}
+        classes={mergedClasses}
+        myParts={myParts}
+      />
     </MemberPortalAppShell>
   );
 }
