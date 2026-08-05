@@ -16,6 +16,7 @@ export type AuthLoginFieldProps = {
   disabled?: boolean;
   required?: boolean;
   className?: string;
+  onValueChange?: (value: string) => void;
 };
 
 export function AuthLoginField({
@@ -29,6 +30,7 @@ export function AuthLoginField({
   disabled,
   required = true,
   className,
+  onValueChange,
 }: AuthLoginFieldProps) {
   return (
     <div className={cn(authLoginFieldStackClass, className)}>
@@ -45,6 +47,9 @@ export function AuthLoginField({
         defaultValue={defaultValue}
         placeholder={placeholder}
         className={authLoginInputClass}
+        onChange={
+          onValueChange ? (e) => onValueChange(e.target.value) : undefined
+        }
       />
     </div>
   );

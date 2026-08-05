@@ -98,7 +98,7 @@ export default async function AdminSupportInquiriesPage({
                   </p>
                   <p className="text-sm text-matchon-text-secondary">
                     {row.contact}
-                    {row.loginId ? ` · 아이디 ${row.loginId}` : ""}
+                    {row.loginId ? ` · 로그인 아이디 ${row.loginId}` : " · 로그인 아이디 확인 불가"}
                     {row.appVersion ? ` · v${row.appVersion}` : ""}
                   </p>
                   <p className="line-clamp-2 text-sm text-matchon-text-primary">
