@@ -8,6 +8,10 @@ import {
 } from "@/lib/action-result";
 import { requireActorFromMutation } from "@/lib/auth/actor";
 import { AppError } from "@/lib/errors/app-error";
+import {
+  toClientAdminPasswordResetTarget,
+  type AdminPasswordResetClientTarget,
+} from "@/lib/admin/admin-password-reset-client";
 import { adminPasswordResetLinkService } from "@/lib/services/admin-password-reset-link.service";
 import { loadMatchonAdminPasswordResetLinkConfig } from "@/server/admin-password-reset/config";
 import { ADMIN_PASSWORD_RESET_CHALLENGE_COOKIE } from "@/server/admin-password-reset/token";
@@ -40,20 +44,27 @@ async function clientUa(): Promise<string | null> {
 }
 
 export async function resolveAdminPasswordResetTargetAction(input: {
-  loginId: string;
-}): Promise<ActionResult<Awaited<ReturnType<typeof adminPasswordResetLinkService.resolveTargetForAdmin>>>> {
+  loginId?: string;
+  userId?: string;
+}): Promise<ActionResult<AdminPasswordResetClientTarget>> {
   return mapCaught(async () => {
     const actor = await requireActorFromMutation();
-    const data = await adminPasswordResetLinkService.resolveTargetForAdmin(
-      actor,
-      input.loginId,
-    );
-    return actionSuccess(data);
+    const data = input.userId
+      ? await adminPasswordResetLinkService.resolveTargetForAdminByUserId(
+          actor,
+          input.userId,
+        )
+      : await adminPasswordResetLinkService.resolveTargetForAdmin(
+          actor,
+          input.loginId ?? "",
+        );
+    return actionSuccess(toClientAdminPasswordResetTarget(data));
   });
 }
 
 export async function issueAdminPasswordResetLinkAction(input: {
-  loginId: string;
+  loginId?: string;
+  userId?: string;
   inquiryId?: string | null;
 }): Promise<
   ActionResult<{

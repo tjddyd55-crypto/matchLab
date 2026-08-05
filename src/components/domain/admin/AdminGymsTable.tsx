@@ -1,4 +1,6 @@
+import Link from "next/link";
 import type { AdminGymListItemDTO } from "@/lib/dto/admin";
+import { formatStoredAdminLoginId } from "@/lib/admin/admin-login-id-label";
 import { AdminListEmptyState } from "@/components/domain/admin/AdminListEmptyState";
 import { formatAdminDateTime } from "@/components/domain/admin/admin-format";
 import { MatchonStatusBadge } from "@/components/shared/MatchonStatusBadge";
@@ -43,15 +45,20 @@ export function AdminGymsTable({ rows }: { rows: AdminGymListItemDTO[] }) {
           <TableHeader>
             <TableRow>
               <TableHead>이름</TableHead>
+              <TableHead>로그인 아이디</TableHead>
               <TableHead>상태</TableHead>
               <TableHead>선수 수</TableHead>
               <TableHead>등록</TableHead>
+              <TableHead />
             </TableRow>
           </TableHeader>
           <TableBody>
             {rows.map((g) => (
               <TableRow key={g.id}>
                 <TableCell className="font-medium break-words">{g.name}</TableCell>
+                <TableCell className="max-w-[10rem] break-all font-mono text-xs">
+                  {formatStoredAdminLoginId(g.loginId)}
+                </TableCell>
                 <TableCell>
                   <MatchonStatusBadge
                     status={resolveAdminGymStatusMatchon(g.status)}
@@ -62,6 +69,16 @@ export function AdminGymsTable({ rows }: { rows: AdminGymListItemDTO[] }) {
                 <TableCell className="tabular-nums">{g.fighterCount}</TableCell>
                 <TableCell className={`${adminMutedTextClass} whitespace-nowrap text-xs`}>
                   {formatAdminDateTime(g.createdAt)}
+                </TableCell>
+                <TableCell>
+                  {g.loginId && !g.loginId.startsWith("pending-gym-") ? (
+                    <Link
+                      href={`/admin/password-reset-links?userId=${g.ownerUserId}`}
+                      className="text-xs font-semibold text-matchon-primary underline-offset-2 hover:underline"
+                    >
+                      재설정
+                    </Link>
+                  ) : null}
                 </TableCell>
               </TableRow>
             ))}
@@ -83,10 +100,23 @@ export function AdminGymsTable({ rows }: { rows: AdminGymListItemDTO[] }) {
                 </div>
               </CardHeader>
               <CardContent className="pt-3 text-xs">
+                <p className={`${adminMutedTextClass} break-all`}>
+                  로그인 아이디: {formatStoredAdminLoginId(g.loginId)}
+                </p>
                 <p className={adminMutedTextClass}>선수 {g.fighterCount}명</p>
                 <p className={`${adminMutedTextClass} mt-1`}>
                   {formatAdminDateTime(g.createdAt)}
                 </p>
+                {g.loginId && !g.loginId.startsWith("pending-gym-") ? (
+                  <p className="mt-2">
+                    <Link
+                      href={`/admin/password-reset-links?userId=${g.ownerUserId}`}
+                      className="font-semibold text-matchon-primary underline-offset-2 hover:underline"
+                    >
+                      비밀번호 재설정 링크 발급
+                    </Link>
+                  </p>
+                ) : null}
               </CardContent>
             </Card>
           </li>

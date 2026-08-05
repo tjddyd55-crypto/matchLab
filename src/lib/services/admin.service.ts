@@ -60,6 +60,8 @@ function mapOrganizerRow(
     status: r.status,
     eventCount: r._count.events,
     createdAt: toIso(r.createdAt),
+    ownerUserId: r.userId,
+    loginId: r.user.loginId,
   };
 }
 
@@ -73,6 +75,8 @@ function mapGymRow(
     fighterCount: r._count.fighters,
     applicationCount: r._count.applications,
     createdAt: toIso(r.createdAt),
+    ownerUserId: r.ownerUserId,
+    loginId: r.ownerUser.loginId,
   };
 }
 

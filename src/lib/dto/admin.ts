@@ -47,6 +47,8 @@ export type AdminOrganizerListItemDTO = {
   status: OrganizerStatus;
   eventCount: number;
   createdAt: string;
+  ownerUserId: string;
+  loginId: string | null;
 };
 
 export type AdminGymListItemDTO = {
@@ -56,6 +58,8 @@ export type AdminGymListItemDTO = {
   fighterCount: number;
   applicationCount: number;
   createdAt: string;
+  ownerUserId: string;
+  loginId: string | null;
 };
 
 export type AdminFighterListItemDTO = {

@@ -15,7 +15,7 @@ export default async function AdminGymsPage() {
       <div className={adminPageStackClass}>
         <AdminPageHeader
           title="전체 체육관"
-          description="전화번호·주소는 MVP 관리자 목록에서 제외합니다."
+          description="체육관 계정 목록입니다. 로그인 아이디는 최고 관리자만 볼 수 있습니다."
         />
         <div className={adminContentCardClass}>
           <AdminGymsTable rows={rows} />

@@ -299,9 +299,25 @@ export const adminPasswordResetLinkService = {
     return resolveEligibleTargetByLoginId(loginId);
   },
 
+  async resolveTargetForAdminByUserId(
+    actor: ActorContext,
+    userId: string,
+  ): Promise<AdminPasswordResetTargetAccount> {
+    requirePlatformAdmin(actor);
+    assertFeatureEnabled();
+    const user = await prisma.user.findFirst({
+      where: { id: userId },
+      select: { loginId: true },
+    });
+    if (!user?.loginId) {
+      throw new AppError("NOT_FOUND", "대상 계정을 찾을 수 없습니다.");
+    }
+    return resolveEligibleTargetByLoginId(user.loginId);
+  },
+
   async issueLink(
     actor: ActorContext,
-    input: { loginId: string; inquiryId?: string | null },
+    input: { loginId?: string; userId?: string; inquiryId?: string | null },
   ): Promise<{
     resetUrl: string;
     expiresAt: string;
@@ -312,7 +328,9 @@ export const adminPasswordResetLinkService = {
   }> {
     requirePlatformAdmin(actor);
     const config = assertFeatureEnabled();
-    const target = await resolveEligibleTargetByLoginId(input.loginId);
+    const target = input.userId
+      ? await this.resolveTargetForAdminByUserId(actor, input.userId)
+      : await resolveEligibleTargetByLoginId(input.loginId ?? "");
 
     assertIssueRateLimits({
       adminUserId: actor.userId,

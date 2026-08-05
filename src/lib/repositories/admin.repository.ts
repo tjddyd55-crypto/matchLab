@@ -107,6 +107,8 @@ export const adminRepository = {
         type: true,
         status: true,
         createdAt: true,
+        userId: true,
+        user: { select: { loginId: true } },
         _count: { select: { events: true } },
       },
     });
@@ -121,6 +123,8 @@ export const adminRepository = {
         name: true,
         status: true,
         createdAt: true,
+        ownerUserId: true,
+        ownerUser: { select: { loginId: true } },
         _count: { select: { fighters: true, applications: true } },
       },
     });
