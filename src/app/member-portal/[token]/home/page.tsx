@@ -1,5 +1,6 @@
 import Link from "next/link";
 import { MemberPortalAppShell } from "@/components/domain/gym-member-portal/MemberPortalAppShell";
+import { MemberPortalHomeGroupClassCard } from "@/components/domain/gym-member-portal/MemberPortalHomeGroupClassCard";
 import { requireMemberPortalPageSession } from "@/lib/gym-member-portal/require-member-session";
 import { gymMemberPortalService } from "@/lib/services/gym-member-portal.service";
 
@@ -66,15 +67,13 @@ export default async function MemberPortalHomePage({
             <p className="mt-1 text-sm text-[#64748B]">예정된 PT가 없습니다.</p>
           )}
         </Link>
-        <Link
-          href={`/member-portal/${token}/classes`}
-          className="rounded-xl border border-[#E2E8F0] bg-white p-4"
-        >
-          <p className="text-sm font-semibold text-[#0F172A]">이번 주 그룹수업</p>
-          <p className="mt-1 text-sm text-[#64748B]">
-            {home.weekClassCount}개 수업
-          </p>
-        </Link>
+
+        <MemberPortalHomeGroupClassCard
+          token={token}
+          weekClassCount={home.weekClassCount}
+          items={home.weekClassSummaryItems}
+        />
+
         <Link
           href={`/member-portal/${token}/classes`}
           className="rounded-xl border border-[#E2E8F0] bg-white p-4"

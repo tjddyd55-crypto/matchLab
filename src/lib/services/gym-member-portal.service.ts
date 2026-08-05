@@ -40,7 +40,13 @@ import {
   maskPortalPhoneDisplay,
 } from "@/lib/gym-member-portal/token";
 import {
+  assertClassRangeWithinLimit,
+  formatSeoulDateKeyLongKo,
+} from "@/lib/gym-member-portal/class-calendar";
+import type { MemberPortalGroupClassItem } from "@/lib/gym-member-portal/class-types";
+import {
   formatSeoulScheduleRange,
+  formatSeoulScheduleTime,
   getSeoulDayRange,
   getSeoulScheduleWeekRange,
   toSeoulDateKey,
@@ -88,6 +94,103 @@ const PT_STATUS_LABEL: Record<GymPersonalScheduleStatus, string> = {
   no_show: "노쇼",
   cancelled: "취소",
 };
+
+export type { MemberPortalGroupClassItem } from "@/lib/gym-member-portal/class-types";
+
+type ClassRowForPortal = {
+  id: string;
+  title: string;
+  description: string | null;
+  startsAt: Date;
+  endsAt: Date;
+  capacity: number | null;
+  location: string | null;
+  status: "scheduled" | "completed" | "cancelled";
+  instructorStaff: { name: string } | null;
+  participations: Array<{
+    status: GymGroupClassParticipationStatus;
+    gymMemberId: string;
+    waitlistOrder: number | null;
+  }>;
+};
+
+function mapGroupClassForPortal(
+  cls: ClassRowForPortal,
+  session: PortalSessionContext,
+  now: Date,
+): MemberPortalGroupClassItem {
+  const attendingCount = cls.participations.filter(
+    (p) => p.status === GymGroupClassParticipationStatus.attending,
+  ).length;
+  const waitlistCount = cls.participations.filter(
+    (p) => p.status === GymGroupClassParticipationStatus.waitlisted,
+  ).length;
+  const mine = cls.participations.find(
+    (p) => p.gymMemberId === session.gymMemberId,
+  );
+  const started = cls.startsAt.getTime() <= now.getTime();
+  const hasSpace = cls.capacity == null || attendingCount < cls.capacity;
+  let action: MemberPortalGroupClassItem["action"] = "none";
+  let statusLabel = "신청 가능";
+  if (cls.status === "cancelled") {
+    statusLabel = "취소됨";
+    action = "closed";
+  } else if (cls.status === "completed") {
+    statusLabel = "종료됨";
+    action = "closed";
+  } else if (mine?.status === GymGroupClassParticipationStatus.attending) {
+    statusLabel = "신청 완료";
+    action = started ? "closed" : "cancel_attending";
+  } else if (mine?.status === GymGroupClassParticipationStatus.waitlisted) {
+    statusLabel =
+      mine.waitlistOrder != null
+        ? `대기 신청 (${mine.waitlistOrder}번째)`
+        : "대기 신청";
+    action = started ? "closed" : "cancel_waitlist";
+  } else if (started) {
+    statusLabel = "신청 마감";
+    action = "closed";
+  } else if (hasSpace) {
+    statusLabel = "신청 가능";
+    action = "join";
+  } else {
+    statusLabel = "정원 마감";
+    action = "waitlist";
+  }
+
+  const myStatus: MemberPortalGroupClassItem["myStatus"] =
+    mine?.status === GymGroupClassParticipationStatus.attending
+      ? "attending"
+      : mine?.status === GymGroupClassParticipationStatus.waitlisted
+        ? "waitlisted"
+        : null;
+
+  return {
+    id: cls.id,
+    title: cls.title,
+    description: cls.description,
+    dateKey: toSeoulDateKey(cls.startsAt),
+    dateLabel: formatSeoulDateKeyLongKo(toSeoulDateKey(cls.startsAt)),
+    timeRangeLabel: formatSeoulScheduleRange(cls.startsAt, cls.endsAt),
+    startTimeLabel: formatSeoulScheduleTime(cls.startsAt),
+    endTimeLabel: formatSeoulScheduleTime(cls.endsAt),
+    instructorName: cls.instructorStaff?.name ?? null,
+    location: cls.location,
+    capacity: cls.capacity,
+    attendingCount,
+    waitlistCount,
+    myStatus,
+    myWaitlistOrder: mine?.waitlistOrder ?? null,
+    classStatus: cls.status,
+    statusLabel,
+    canApply: action === "join" || action === "waitlist",
+    canCancel:
+      action === "cancel_attending" || action === "cancel_waitlist",
+    action,
+    started,
+    isMine: myStatus != null,
+  };
+}
 
 async function findActivePortalByTokenHash(tokenHash: string) {
   return prisma.gymMemberPortal.findFirst({
@@ -474,7 +577,7 @@ export const gymMemberPortalService = {
     const today = getSeoulDayRange(now);
     const week = getSeoulScheduleWeekRange(now);
 
-    const [ptToday, partsToday, weekClasses, myParts] = await Promise.all([
+    const [ptToday, partsToday, weekClassRows, myParts] = await Promise.all([
       prisma.gymPersonalSchedule.findMany({
         where: {
           gymId: session.gymId,
@@ -506,7 +609,7 @@ export const gymMemberPortalService = {
           },
         },
       }),
-      prisma.gymGroupClass.count({
+      prisma.gymGroupClass.findMany({
         where: {
           gymId: session.gymId,
           deletedAt: null,
@@ -514,6 +617,13 @@ export const gymMemberPortalService = {
           visibility: { in: ["members_only", "public"] },
           startsAt: { gte: week.start, lt: week.endExclusive },
         },
+        select: {
+          id: true,
+          title: true,
+          startsAt: true,
+          endsAt: true,
+        },
+        orderBy: { startsAt: "asc" },
       }),
       prisma.gymGroupClassParticipation.count({
         where: {
@@ -573,6 +683,21 @@ export const gymMemberPortalService = {
       })),
     ].sort((a, b) => a.startsAt.getTime() - b.startsAt.getTime());
 
+    const remainingWeekClasses = weekClassRows.filter(
+      (row) => row.startsAt.getTime() >= now.getTime(),
+    );
+    const weekClassSummaryItems = remainingWeekClasses.slice(0, 3).map((row) => {
+      const dateKey = toSeoulDateKey(row.startsAt);
+      return {
+        id: row.id,
+        title: row.title,
+        dateKey,
+        dateLabel: formatSeoulDateKeyLongKo(dateKey),
+        timeRangeLabel: formatSeoulScheduleRange(row.startsAt, row.endsAt),
+        startTimeLabel: formatSeoulScheduleTime(row.startsAt),
+      };
+    });
+
     return {
       gymName: session.gymName,
       memberName: session.memberName,
@@ -593,7 +718,9 @@ export const gymMemberPortalService = {
             location: nextPt.location,
           }
         : null,
-      weekClassCount: weekClasses,
+      /** 이번 주 남은(시작 전) scheduled 그룹수업 수 */
+      weekClassCount: remainingWeekClasses.length,
+      weekClassSummaryItems,
       myActiveParticipationCount: myParts,
     };
   },
@@ -639,15 +766,23 @@ export const gymMemberPortalService = {
     }));
   },
 
-  async listGroupClasses(session: PortalSessionContext) {
+  async listGroupClasses(
+    session: PortalSessionContext,
+    range?: { from: Date; toExclusive: Date },
+  ) {
     const now = new Date();
-    const week = getSeoulScheduleWeekRange(now);
+    const resolved = range ?? (() => {
+      const week = getSeoulScheduleWeekRange(now);
+      return { from: week.start, toExclusive: week.endExclusive };
+    })();
+    assertClassRangeWithinLimit(resolved.from, resolved.toExclusive);
+
     const classes = await prisma.gymGroupClass.findMany({
       where: {
         gymId: session.gymId,
         deletedAt: null,
         visibility: { in: ["members_only", "public"] },
-        startsAt: { gte: week.start, lt: week.endExclusive },
+        startsAt: { gte: resolved.from, lt: resolved.toExclusive },
         status: { in: ["scheduled", "completed", "cancelled"] },
       },
       include: {
@@ -671,71 +806,43 @@ export const gymMemberPortalService = {
       orderBy: { startsAt: "asc" },
     });
 
-    return classes.map((cls) => {
-      const attendingCount = cls.participations.filter(
-        (p) => p.status === "attending",
-      ).length;
-      const waitlistCount = cls.participations.filter(
-        (p) => p.status === "waitlisted",
-      ).length;
-      const mine = cls.participations.find(
-        (p) => p.gymMemberId === session.gymMemberId,
-      );
-      const started = cls.startsAt.getTime() <= now.getTime();
-      const hasSpace =
-        cls.capacity == null || attendingCount < cls.capacity;
-      let action:
-        | "join"
-        | "waitlist"
-        | "cancel_attending"
-        | "cancel_waitlist"
-        | "closed"
-        | "none" = "none";
-      let statusLabel = "신청 가능";
-      if (cls.status === "cancelled") {
-        statusLabel = "수업 취소";
-        action = "closed";
-      } else if (cls.status === "completed") {
-        statusLabel = "완료";
-        action = "closed";
-      } else if (mine?.status === "attending") {
-        statusLabel = "참석 예정";
-        action = started ? "closed" : "cancel_attending";
-      } else if (mine?.status === "waitlisted") {
-        statusLabel =
-          mine.waitlistOrder != null
-            ? `대기 ${mine.waitlistOrder}번째`
-            : "대기 중";
-        action = started ? "closed" : "cancel_waitlist";
-      } else if (started) {
-        statusLabel = "신청 마감";
-        action = "closed";
-      } else if (hasSpace) {
-        statusLabel = "참석 가능";
-        action = "join";
-      } else {
-        statusLabel = "마감";
-        action = "waitlist";
-      }
+    return classes.map((cls) => mapGroupClassForPortal(cls, session, now));
+  },
 
-      return {
-        id: cls.id,
-        title: cls.title,
-        dateKey: toSeoulDateKey(cls.startsAt),
-        timeRangeLabel: formatSeoulScheduleRange(cls.startsAt, cls.endsAt),
-        instructorName: cls.instructorStaff?.name ?? null,
-        location: cls.location,
-        capacity: cls.capacity,
-        attendingCount,
-        waitlistCount,
-        myStatus: mine?.status ?? null,
-        myWaitlistOrder: mine?.waitlistOrder ?? null,
-        classStatus: cls.status,
-        statusLabel,
-        action,
-        started,
-      };
+  /** 단일 수업 상세 — gym scope 강제 */
+  async getGroupClass(
+    session: PortalSessionContext,
+    classId: string,
+  ): Promise<MemberPortalGroupClassItem | null> {
+    const now = new Date();
+    const cls = await prisma.gymGroupClass.findFirst({
+      where: {
+        id: classId,
+        gymId: session.gymId,
+        deletedAt: null,
+        visibility: { in: ["members_only", "public"] },
+      },
+      include: {
+        instructorStaff: { select: { name: true } },
+        participations: {
+          where: {
+            status: {
+              in: [
+                GymGroupClassParticipationStatus.attending,
+                GymGroupClassParticipationStatus.waitlisted,
+              ],
+            },
+          },
+          select: {
+            status: true,
+            gymMemberId: true,
+            waitlistOrder: true,
+          },
+        },
+      },
     });
+    if (!cls) return null;
+    return mapGroupClassForPortal(cls, session, now);
   },
 
   async listMyParticipations(session: PortalSessionContext) {

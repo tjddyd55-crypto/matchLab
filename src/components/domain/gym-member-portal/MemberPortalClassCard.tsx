@@ -7,34 +7,41 @@ import {
   joinGymMemberPortalClassAction,
 } from "@/features/gym-member-portal/member-actions";
 import { Button } from "@/components/ui/button";
+import type { MemberPortalGroupClassItem } from "@/lib/gym-member-portal/class-types";
 
-export type MemberPortalClassCardData = {
-  id: string;
-  title: string;
-  dateKey: string;
-  timeRangeLabel: string;
-  instructorName: string | null;
-  location: string | null;
-  capacity: number | null;
-  attendingCount: number;
-  waitlistCount: number;
-  statusLabel: string;
-  action:
-    | "join"
-    | "waitlist"
-    | "cancel_attending"
-    | "cancel_waitlist"
-    | "closed"
-    | "none";
-  myWaitlistOrder: number | null;
-};
+export type MemberPortalClassCardData = Pick<
+  MemberPortalGroupClassItem,
+  | "id"
+  | "title"
+  | "dateKey"
+  | "dateLabel"
+  | "timeRangeLabel"
+  | "instructorName"
+  | "location"
+  | "capacity"
+  | "attendingCount"
+  | "waitlistCount"
+  | "statusLabel"
+  | "action"
+  | "myWaitlistOrder"
+  | "isMine"
+>;
 
-export function MemberPortalClassCard({
+function capacityLabel(item: MemberPortalClassCardData): string {
+  if (item.capacity == null) {
+    return `${item.attendingCount}명 신청`;
+  }
+  return `신청 ${item.attendingCount} / ${item.capacity}명`;
+}
+
+export function MemberPortalClassActions({
   token,
   item,
+  compact = false,
 }: {
   token: string;
-  item: MemberPortalClassCardData;
+  item: Pick<MemberPortalClassCardData, "id" | "action">;
+  compact?: boolean;
 }) {
   const router = useRouter();
   const [pending, startTransition] = useTransition();
@@ -81,46 +88,25 @@ export function MemberPortalClassCard({
     });
   }
 
-  const capacityLabel =
-    item.capacity == null
-      ? `${item.attendingCount}명 신청`
-      : `${item.attendingCount} / ${item.capacity}명`;
+  const btnClass = compact ? "min-h-10 flex-1" : "min-h-11 w-full";
 
   return (
-    <article className="rounded-xl border border-[#E2E8F0] bg-white p-4">
-      <p className="text-xs text-[#64748B]">
-        {item.dateKey} · {item.timeRangeLabel}
-      </p>
-      <h3 className="mt-1 text-base font-semibold text-[#0F172A] break-keep">
-        {item.title}
-      </h3>
-      <p className="mt-1 text-sm text-[#64748B]">
-        {item.instructorName
-          ? `${item.instructorName} 선생님`
-          : "담당 선생님 미지정"}
-        {item.location ? ` · ${item.location}` : ""}
-      </p>
-      <p className="mt-2 text-sm text-[#0F172A]">
-        {capacityLabel}
-        {item.waitlistCount > 0 ? ` · 대기 ${item.waitlistCount}명` : ""}
-      </p>
-      <p className="mt-1 text-sm font-medium text-[#001C7A]">{item.statusLabel}</p>
-
-      <div className="mt-3">
+    <div>
+      <div className={compact ? "flex gap-2" : undefined}>
         {item.action === "join" ? (
           <Button
             type="button"
-            className="min-h-11 w-full"
+            className={btnClass}
             disabled={pending}
             onClick={runJoin}
           >
-            참석하기
+            참석 신청
           </Button>
         ) : null}
         {item.action === "waitlist" ? (
           <Button
             type="button"
-            className="min-h-11 w-full"
+            className={btnClass}
             disabled={pending}
             onClick={runJoin}
           >
@@ -132,26 +118,91 @@ export function MemberPortalClassCard({
           <Button
             type="button"
             variant="outline"
-            className="min-h-11 w-full"
+            className={btnClass}
             disabled={pending}
             onClick={runCancel}
           >
-            {item.action === "cancel_attending" ? "참석 취소" : "대기 취소"}
+            신청 취소
           </Button>
         ) : null}
         {item.action === "closed" ? (
-          <p className="min-h-11 rounded-lg bg-[#F8FAFC] px-3 py-3 text-center text-sm text-[#64748B]">
-            신청 마감
+          <p className="min-h-10 flex-1 rounded-lg bg-[#F8FAFC] px-3 py-2.5 text-center text-sm text-[#64748B]">
+            신청 불가
           </p>
         ) : null}
       </div>
-
       {message ? (
         <p className="mt-2 text-sm text-[#0A47FF]">{message}</p>
       ) : null}
       {error ? (
         <p className="mt-2 whitespace-pre-line text-sm text-red-600">{error}</p>
       ) : null}
+    </div>
+  );
+}
+
+export function MemberPortalClassCard({
+  token,
+  item,
+  onOpenDetail,
+  showDate = true,
+}: {
+  token: string;
+  item: MemberPortalClassCardData;
+  onOpenDetail?: () => void;
+  showDate?: boolean;
+}) {
+  return (
+    <article className="rounded-xl border border-[#E2E8F0] bg-white p-4">
+      <button
+        type="button"
+        className="w-full text-left"
+        onClick={onOpenDetail}
+        disabled={!onOpenDetail}
+      >
+        <p className="text-xs text-[#64748B]">
+          {showDate ? `${item.dateLabel} · ` : null}
+          {item.timeRangeLabel}
+        </p>
+        <h3 className="mt-1 truncate text-base font-semibold text-[#0F172A]">
+          {item.title}
+        </h3>
+        <p className="mt-1 text-sm text-[#64748B]">
+          {item.instructorName
+            ? `담당 강사: ${item.instructorName}`
+            : "담당 강사 미지정"}
+          {item.location ? ` · ${item.location}` : ""}
+        </p>
+        <p className="mt-2 text-sm text-[#0F172A]">
+          {capacityLabel(item)}
+          {item.waitlistCount > 0 ? ` · 대기 ${item.waitlistCount}명` : ""}
+        </p>
+        <p className="mt-1 text-sm font-medium text-[#001C7A]">
+          {item.statusLabel}
+        </p>
+      </button>
+
+      <div className="mt-3 flex flex-wrap gap-2">
+        {onOpenDetail ? (
+          <Button
+            type="button"
+            variant="outline"
+            className="min-h-10 flex-1"
+            onClick={onOpenDetail}
+          >
+            수업 보기
+          </Button>
+        ) : null}
+        {item.action !== "closed" && item.action !== "none" ? (
+          <div className={onOpenDetail ? "min-w-[46%] flex-1" : "w-full"}>
+            <MemberPortalClassActions
+              token={token}
+              item={item}
+              compact={Boolean(onOpenDetail)}
+            />
+          </div>
+        ) : null}
+      </div>
     </article>
   );
 }
