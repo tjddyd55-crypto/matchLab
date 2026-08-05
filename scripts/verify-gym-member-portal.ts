@@ -66,7 +66,8 @@ function verifyToken() {
   const a = generateGymMemberPortalToken();
   const b = generateGymMemberPortalToken();
   assert.notEqual(a, b);
-  assert.equal(a.length, 48);
+  assert.equal(a.length, 43, "32-byte base64url length");
+  assert.match(a, /^[A-Za-z0-9_-]+$/);
   const hash = hashGymMemberPortalToken(a);
   assert.equal(hash.length, 64);
   assert.equal(
@@ -76,11 +77,17 @@ function verifyToken() {
   assert.equal(buildGymMemberPortalUrl(a), `/member-portal/${a}`);
   const service = read("src/lib/services/gym-member-portal.service.ts");
   assertIncludes(service, "publicTokenHash", "hash store");
+  assertIncludes(service, "publicToken: rawToken", "persist public token");
   assertIncludes(service, "hashGymMemberPortalToken(rawToken)", "hash before store");
   assertNotIncludes(
     read("prisma/schema.prisma"),
     "rawToken",
     "schema has no rawToken column",
+  );
+  assertIncludes(
+    read("prisma/schema.prisma"),
+    "publicToken",
+    "public token column",
   );
   console.log("verify:gym-member-portal-token: OK");
 }

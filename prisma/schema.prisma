@@ -1043,7 +1043,9 @@ model GymAttendanceKiosk {
 model GymMemberPortal {
   id              String    @id @default(cuid())
   gymId           String
-  /// raw token은 생성 응답·URL에만 — DB에는 sha256 hex
+  /// URL 공용 진입 식별자 — 관리자 화면에서 반복 조회·복사 가능 (회원 인증 secret 아님)
+  publicToken     String?   @unique
+  /// 조회용 SHA-256 hex (기존 resolvePortal SSOT)
   publicTokenHash String    @unique
   isActive        Boolean   @default(true)
   createdByUserId String

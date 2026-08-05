@@ -35,7 +35,12 @@ function revalidateOwnerPaths() {
 }
 
 export async function createGymMemberPortalAction(): Promise<
-  ActionResult<{ portalId: string; path: string; rawToken: string }>
+  ActionResult<{
+    portalId: string;
+    path: string;
+    url: string;
+    rawToken: string;
+  }>
 > {
   return mapCaught(async () => {
     const actor = await requireActorFromMutation();
@@ -46,7 +51,12 @@ export async function createGymMemberPortalAction(): Promise<
 }
 
 export async function rotateGymMemberPortalAction(): Promise<
-  ActionResult<{ portalId: string; path: string; rawToken: string }>
+  ActionResult<{
+    portalId: string;
+    path: string;
+    url: string;
+    rawToken: string;
+  }>
 > {
   return mapCaught(async () => {
     const actor = await requireActorFromMutation();

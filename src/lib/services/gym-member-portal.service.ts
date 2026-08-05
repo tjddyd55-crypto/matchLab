@@ -39,6 +39,7 @@ import {
   hashPortalPhoneKey,
   maskPortalPhoneDisplay,
 } from "@/lib/gym-member-portal/token";
+import { getAppBaseUrl } from "@/lib/app-url";
 import {
   assertClassRangeWithinLimit,
   formatSeoulDateKeyLongKo,
@@ -63,6 +64,56 @@ function hashSessionToken(raw: string): string {
 
 function generateSessionToken(): string {
   return randomBytes(32).toString("hex");
+}
+
+const PUBLIC_TOKEN_UNIQUE_RETRIES = 5;
+
+async function allocateUniquePublicToken(): Promise<{
+  rawToken: string;
+  publicTokenHash: string;
+}> {
+  for (let attempt = 0; attempt < PUBLIC_TOKEN_UNIQUE_RETRIES; attempt += 1) {
+    const rawToken = generateGymMemberPortalToken();
+    const publicTokenHash = hashGymMemberPortalToken(rawToken);
+    const clash = await prisma.gymMemberPortal.findFirst({
+      where: {
+        OR: [{ publicToken: rawToken }, { publicTokenHash }],
+      },
+      select: { id: true },
+    });
+    if (!clash) {
+      return { rawToken, publicTokenHash };
+    }
+  }
+  throw new AppError("INTERNAL", "공용 링크 토큰 발급에 실패했습니다. 다시 시도해 주세요.");
+}
+
+/** 관리자 화면용 — publicToken이 있을 때만 URL 재표시 (레거시는 null) */
+function mapOwnerPortalLink(portal: {
+  id: string;
+  isActive: boolean;
+  createdAt: Date;
+  lastRotatedAt: Date | null;
+  revokedAt: Date | null;
+  publicToken: string | null;
+}) {
+  const hasDisplayableLink = Boolean(portal.publicToken);
+  const path = portal.publicToken
+    ? buildGymMemberPortalUrl(portal.publicToken)
+    : null;
+  const url =
+    path != null ? `${getAppBaseUrl().replace(/\/$/, "")}${path}` : null;
+  return {
+    id: portal.id,
+    isActive: portal.isActive,
+    createdAt: portal.createdAt,
+    lastRotatedAt: portal.lastRotatedAt,
+    revokedAt: portal.revokedAt,
+    path,
+    url,
+    hasDisplayableLink,
+    isLegacyHashOnly: !hasDisplayableLink,
+  };
 }
 
 export type ResolvedPortal = {
@@ -256,13 +307,7 @@ export const gymMemberPortalService = {
     return {
       gymId: access.gymId,
       gymName: gym?.name ?? access.gym.name,
-      portal: {
-        id: portal.id,
-        isActive: portal.isActive,
-        createdAt: portal.createdAt,
-        lastRotatedAt: portal.lastRotatedAt,
-        revokedAt: portal.revokedAt,
-      },
+      portal: mapOwnerPortalLink(portal),
     };
   },
 
@@ -281,11 +326,11 @@ export const gymMemberPortalService = {
         "이미 활성 회원 전용 링크가 있습니다. 다시 만들기를 사용해 주세요.",
       );
     }
-    const rawToken = generateGymMemberPortalToken();
-    const publicTokenHash = hashGymMemberPortalToken(rawToken);
+    const { rawToken, publicTokenHash } = await allocateUniquePublicToken();
     const portal = await prisma.gymMemberPortal.create({
       data: {
         gymId: access.gymId,
+        publicToken: rawToken,
         publicTokenHash,
         isActive: true,
         createdByUserId: actor.userId,
@@ -298,9 +343,11 @@ export const gymMemberPortalService = {
       targetId: portal.id,
       afterData: { gymId: access.gymId },
     });
+    const path = buildGymMemberPortalUrl(rawToken);
     return {
       portalId: portal.id,
-      path: buildGymMemberPortalUrl(rawToken),
+      path,
+      url: `${getAppBaseUrl().replace(/\/$/, "")}${path}`,
       rawToken,
     };
   },
@@ -320,8 +367,7 @@ export const gymMemberPortalService = {
         "활성 회원 전용 링크가 없습니다. 먼저 링크를 만들어 주세요.",
       );
     }
-    const rawToken = generateGymMemberPortalToken();
-    const publicTokenHash = hashGymMemberPortalToken(rawToken);
+    const { rawToken, publicTokenHash } = await allocateUniquePublicToken();
     const now = new Date();
 
     await prisma.$transaction(async (tx) => {
@@ -342,6 +388,7 @@ export const gymMemberPortalService = {
       await tx.gymMemberPortal.create({
         data: {
           gymId: access.gymId,
+          publicToken: rawToken,
           publicTokenHash,
           isActive: true,
           createdByUserId: actor.userId,
@@ -371,9 +418,11 @@ export const gymMemberPortalService = {
     if (!created) {
       throw new AppError("INTERNAL", "링크 재발급에 실패했습니다.");
     }
+    const path = buildGymMemberPortalUrl(rawToken);
     return {
       portalId: created.id,
-      path: buildGymMemberPortalUrl(rawToken),
+      path,
+      url: `${getAppBaseUrl().replace(/\/$/, "")}${path}`,
       rawToken,
     };
   },
