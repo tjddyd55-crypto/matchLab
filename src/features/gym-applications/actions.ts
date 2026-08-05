@@ -70,6 +70,7 @@ export async function submitGymApplicationAction(
       phone: formReq(formData, "phone") || undefined,
       mobilePhone: formReq(formData, "mobilePhone"),
       email: formReq(formData, "email"),
+      requestedLoginId: formReq(formData, "requestedLoginId"),
       postalCode: formReq(formData, "postalCode") || undefined,
       address: formReq(formData, "address") || undefined,
       addressDetail: formReq(formData, "addressDetail") || undefined,

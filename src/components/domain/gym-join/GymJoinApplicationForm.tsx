@@ -16,6 +16,7 @@ import { PhoneVerificationPanel } from "@/components/domain/phone-verification/P
 import { BusinessNoInput, PhoneInput } from "@/components/shared/PhoneInput";
 import { Button } from "@/components/ui/button";
 import { submitGymApplicationAction } from "@/features/gym-applications/actions";
+import { RequestedLoginIdField } from "@/components/domain/auth/RequestedLoginIdField";
 import { submitMemberGymJoinApplicationAction } from "@/features/member-gyms/actions";
 import {
   GYM_JOIN_ATTACHMENT_HINT,
@@ -628,6 +629,9 @@ export function GymJoinApplicationForm({
           />
         )}
         <TextField name="email" label="이메일" type="email" required />
+        {mode === "independent" ? (
+          <RequestedLoginIdField disabled={pending} />
+        ) : null}
       </section>
 
       <section className="space-y-3 rounded-xl border border-matchon-border bg-white p-4 shadow-sm">

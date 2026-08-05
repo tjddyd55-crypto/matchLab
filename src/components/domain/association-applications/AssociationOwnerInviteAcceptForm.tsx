@@ -1,6 +1,6 @@
 "use client";
 
-import { useRef, useState, useTransition } from "react";
+import { useEffect, useRef, useState, useTransition } from "react";
 
 type AcceptStatus = "idle" | "submitting" | "success" | "error";
 type LoginIdCheckStatus =
@@ -15,37 +15,52 @@ export function AssociationOwnerInviteAcceptForm({
   associationName,
   contactName,
   contactEmail,
+  lockedLoginId = null,
 }: {
   token: string;
   associationName: string;
   contactName: string;
   contactEmail: string;
+  lockedLoginId?: string | null;
 }) {
   const submittingRef = useRef(false);
   const [status, setStatus] = useState<AcceptStatus>("idle");
   const [error, setError] = useState<string | null>(null);
-  const [loginId, setLoginId] = useState("");
+  const [loginId, setLoginId] = useState(lockedLoginId ?? "");
   const [loginIdCheck, setLoginIdCheck] =
-    useState<LoginIdCheckStatus>("idle");
-  const [loginIdMessage, setLoginIdMessage] = useState<string | null>(null);
-  const [checkedLoginId, setCheckedLoginId] = useState<string | null>(null);
+    useState<LoginIdCheckStatus>(lockedLoginId ? "available" : "idle");
+  const [loginIdMessage, setLoginIdMessage] = useState<string | null>(
+    lockedLoginId ? "신청 시 선택한 로그인 아이디입니다." : null,
+  );
+  const [checkedLoginId, setCheckedLoginId] = useState<string | null>(
+    lockedLoginId,
+  );
   const [password, setPassword] = useState("");
   const [passwordConfirm, setPasswordConfirm] = useState("");
   const [, startTransition] = useTransition();
+
+  useEffect(() => {
+    if (!lockedLoginId) return;
+    setLoginId(lockedLoginId);
+    setCheckedLoginId(lockedLoginId);
+    setLoginIdCheck("available");
+  }, [lockedLoginId]);
 
   const formLocked = status === "submitting" || status === "success";
   const passwordsMatch =
     password.length > 0 &&
     passwordConfirm.length > 0 &&
     password === passwordConfirm;
-  const loginIdReady =
-    loginIdCheck === "available" &&
-    checkedLoginId !== null &&
-    checkedLoginId === loginId.trim().toLowerCase();
+  const loginIdReady = lockedLoginId
+    ? Boolean(lockedLoginId)
+    : loginIdCheck === "available" &&
+      checkedLoginId !== null &&
+      checkedLoginId === loginId.trim().toLowerCase();
   const canSubmit =
     !formLocked && loginIdReady && password.length >= 8 && passwordsMatch;
 
   async function runDuplicateCheck(rawLoginId = loginId) {
+    if (lockedLoginId) return;
     const candidate = rawLoginId.trim();
     setLoginIdCheck("checking");
     try {
@@ -94,7 +109,7 @@ export function AssociationOwnerInviteAcceptForm({
                 headers: { "Content-Type": "application/json" },
                 body: JSON.stringify({
                   token,
-                  loginId,
+                  loginId: lockedLoginId ?? loginId,
                   password,
                   passwordConfirm,
                 }),
@@ -134,7 +149,8 @@ export function AssociationOwnerInviteAcceptForm({
           <input
             name="loginId"
             value={loginId}
-            disabled={formLocked}
+            readOnly={Boolean(lockedLoginId)}
+            disabled={formLocked || Boolean(lockedLoginId)}
             onChange={(e) => {
               setLoginId(e.target.value);
               setLoginIdCheck("idle");
@@ -144,19 +160,16 @@ export function AssociationOwnerInviteAcceptForm({
             autoComplete="username"
             required
           />
-          <button
-            type="button"
-            disabled={formLocked || loginIdCheck === "checking"}
-            onClick={() => {
-              const input = document.querySelector(
-                'input[name="loginId"]',
-              ) as HTMLInputElement | null;
-              void runDuplicateCheck(input?.value || loginId);
-            }}
-            className="rounded-lg border px-3 text-sm font-semibold"
-          >
-            중복확인
-          </button>
+          {!lockedLoginId ? (
+            <button
+              type="button"
+              disabled={formLocked || loginIdCheck === "checking"}
+              onClick={() => void runDuplicateCheck(loginId)}
+              className="rounded-lg border px-3 text-sm font-semibold"
+            >
+              중복확인
+            </button>
+          ) : null}
         </div>
         {loginIdMessage ? (
           <span
