@@ -1,31 +1,20 @@
 import Link from "next/link";
 import { requireActor } from "@/lib/auth/actor";
 import { GymMemberStatus } from "@/lib/enums";
-import { formatPhoneNumber } from "@/lib/phone";
-import { formatUtcDateOnly } from "@/lib/date-only";
 import { gymMemberService } from "@/lib/services/gym-member.service";
-import { getGymMemberStoredStatusLabel } from "@/lib/gym-member-membership-status";
-import { GymMemberAvatar } from "@/components/domain/gym-members/GymMemberAvatar";
 import { GymProfileMissingBanner } from "@/components/domain/gym/GymProfileMissingBanner";
+import { MemberPageHeader } from "@/components/domain/gym-members/MemberPageHeader";
+import { MemberMetricCard } from "@/components/domain/gym-members/MemberMetricCard";
+import { MemberFilterBar } from "@/components/domain/gym-members/MemberFilterBar";
+import { MemberTable } from "@/components/domain/gym-members/MemberTable";
+import { MemberMobileCard } from "@/components/domain/gym-members/MemberMobileCard";
 import { MatchonEmptyState } from "@/components/shared/MatchonEmptyState";
 import { buttonVariants } from "@/components/ui/button";
 import {
   matchonPageContainerClass,
-  matchonPageDescClass,
   matchonPageStackClass,
-  matchonPageTitleClass,
 } from "@/lib/ui/matchon-layout";
-import {
-  matchonCompactActionBarClass,
-  matchonCompactTableWrapClass,
-  matchonFieldInputClass,
-  matchonFilterBarClass,
-  matchonMobileCardListClass,
-  matchonStatCardClass,
-  matchonStatLabelClass,
-  matchonStatValueClass,
-  matchonStatsGridClass,
-} from "@/lib/ui/matchon-shell-ui";
+import { matchonMemberMetricsGridClass } from "@/lib/ui/matchon-shell-ui";
 import { cn } from "@/lib/utils";
 
 export const dynamic = "force-dynamic";
@@ -80,6 +69,10 @@ function buildQuery(params: Record<string, string | undefined>): string {
   return s ? `?${s}` : "";
 }
 
+function filterHref(patch: Record<string, string | undefined>): string {
+  return `/gym/members${buildQuery(patch)}`;
+}
+
 export default async function GymMembersPage({
   searchParams,
 }: {
@@ -104,6 +97,10 @@ export default async function GymMembersPage({
   const expirationFilter = parseExpiration(sp.expiration) ?? "all";
   const page = Math.max(1, Number(sp.page) || 1);
 
+  const hasListFilter = Boolean(
+    q || status || fighterFilter !== "all" || expirationFilter !== "all",
+  );
+
   const [summary, list] = await Promise.all([
     gymMemberService.getSummary(actor),
     gymMemberService.listMembers(actor, {
@@ -124,247 +121,222 @@ export default async function GymMembersPage({
     expiration: expirationFilter === "all" ? undefined : expirationFilter,
   };
 
+  const emptyTitle = q
+    ? "검색 결과가 없습니다."
+    : hasListFilter
+      ? "선택한 조건에 해당하는 회원이 없습니다."
+      : "등록된 회원이 없습니다.";
+  const emptyDescription = q
+    ? "검색어를 바꿔 다시 시도해 보세요."
+    : hasListFilter
+      ? "필터를 초기화하거나 다른 조건을 선택해 보세요."
+      : "첫 회원을 등록해 보세요.";
+
   return (
-    <div className={matchonPageContainerClass}>
+    <div className={cn(matchonPageContainerClass, "bg-matchon-surface")}>
       <div className={matchonPageStackClass}>
-        <div className="min-w-0 space-y-1">
-          <h1 className={matchonPageTitleClass}>전체 회원</h1>
-          <p className={matchonPageDescClass}>
-            체육관 회원을 등록·검색하고 이용권·선수 연결을 관리합니다.
+        <MemberPageHeader
+          title="회원관리"
+          description="회원 현황과 오늘 처리할 업무를 확인하세요."
+          actions={
+            <>
+              <Link
+                href="/gym/members/new"
+                className={cn(buttonVariants({ size: "sm" }), "min-h-11")}
+              >
+                신규 회원 등록
+              </Link>
+              <Link
+                href="/gym/membership-plans"
+                className={cn(
+                  buttonVariants({ variant: "outline", size: "sm" }),
+                  "min-h-11",
+                )}
+              >
+                이용권 관리
+              </Link>
+            </>
+          }
+        />
+
+        {/* 홈 지표 — countSummary SSOT. 오늘 PT·receivable은 loader 확장 후속. */}
+        <div className={matchonMemberMetricsGridClass}>
+          <MemberMetricCard
+            label="전체 회원"
+            value={summary.total}
+            href={filterHref({})}
+          />
+          <MemberMetricCard
+            label="이용 중"
+            value={summary.inUse}
+            href={filterHref({ expiration: "active" })}
+          />
+          <MemberMetricCard
+            label="만료 예정"
+            value={summary.expiring}
+            href={filterHref({ expiration: "expiring" })}
+          />
+          <MemberMetricCard
+            label="휴회 중"
+            value={summary.paused}
+            href={filterHref({ status: GymMemberStatus.paused })}
+          />
+          <MemberMetricCard
+            label="이번 달 신규"
+            value={summary.newThisMonth}
+          />
+        </div>
+
+        <div className="grid gap-4 lg:grid-cols-[minmax(0,1.6fr)_minmax(0,1fr)]">
+          <section className="rounded-[10px] border border-matchon-border bg-white p-3.5">
+            <h2 className="mb-3 text-[15px] font-bold text-matchon-text-primary">
+              오늘 확인할 업무
+            </h2>
+            <ul className="space-y-2">
+              <li>
+                <Link
+                  href={filterHref({ expiration: "expiring" })}
+                  className="flex min-h-12 items-center justify-between gap-3 rounded-lg border border-matchon-border bg-amber-50 px-3 py-2 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-matchon-primary/30"
+                >
+                  <span>
+                    <span className="block text-[13px] font-semibold">
+                      7일 이내 회원권 만료
+                    </span>
+                    <span className="text-[11px] text-matchon-text-secondary">
+                      {summary.expiring}명 · endsAt 기준
+                    </span>
+                  </span>
+                  <span className="text-xs font-medium text-matchon-primary">
+                    보기
+                  </span>
+                </Link>
+              </li>
+              <li>
+                <Link
+                  href={filterHref({ status: GymMemberStatus.paused })}
+                  className="flex min-h-12 items-center justify-between gap-3 rounded-lg border border-matchon-border bg-amber-50/70 px-3 py-2 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-matchon-primary/30"
+                >
+                  <span>
+                    <span className="block text-[13px] font-semibold">
+                      휴회 중 회원
+                    </span>
+                    <span className="text-[11px] text-matchon-text-secondary">
+                      {summary.paused}명 · status=paused
+                    </span>
+                  </span>
+                  <span className="text-xs font-medium text-matchon-primary">
+                    보기
+                  </span>
+                </Link>
+              </li>
+              <li className="flex min-h-12 items-center justify-between gap-3 rounded-lg border border-matchon-border px-3 py-2">
+                <span>
+                  <span className="block text-[13px] font-semibold">
+                    이번 달 등록
+                  </span>
+                  <span className="text-[11px] text-matchon-text-secondary">
+                    {summary.newThisMonth}명 · newThisMonth
+                  </span>
+                </span>
+              </li>
+            </ul>
+            {/* 미수금·오늘 PT·휴회 종료 예정: getSummary 미제공 → 1차 숨김 */}
+          </section>
+
+          <section className="rounded-[10px] border border-matchon-border bg-white p-3.5">
+            <h2 className="mb-3 text-[15px] font-bold text-matchon-text-primary">
+              빠른 작업
+            </h2>
+            <ul className="space-y-2">
+              <li>
+                <Link
+                  href="/gym/members/new"
+                  className="block min-h-11 rounded-lg border border-matchon-border bg-matchon-surface px-3 py-3 text-[13px] font-medium focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-matchon-primary/30"
+                >
+                  신규 회원 등록
+                </Link>
+              </li>
+              <li>
+                <a
+                  href="#member-search"
+                  className="block min-h-11 rounded-lg border border-matchon-border bg-matchon-surface px-3 py-3 text-[13px] font-medium focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-matchon-primary/30"
+                >
+                  회원 검색
+                </a>
+              </li>
+              <li>
+                <Link
+                  href="/gym/member-portal"
+                  className="block min-h-11 rounded-lg border border-matchon-border bg-matchon-surface px-3 py-3 text-[13px] font-medium focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-matchon-primary/30"
+                >
+                  회원 전용 페이지
+                </Link>
+              </li>
+              <li>
+                <Link
+                  href="/gym/membership-plans"
+                  className="block min-h-11 rounded-lg border border-matchon-border bg-matchon-surface px-3 py-3 text-[13px] font-medium focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-matchon-primary/30"
+                >
+                  이용권 상품 관리
+                </Link>
+              </li>
+            </ul>
+          </section>
+        </div>
+
+        <div className="space-y-1">
+          <h2 className="text-lg font-semibold text-matchon-text-primary">
+            회원 목록
+          </h2>
+          <p className="text-sm text-matchon-text-secondary">
+            전체 {summary.total}명
+            {hasListFilter ? ` · 필터 결과 ${list.total}명` : ""}
           </p>
         </div>
 
-        <div className={matchonStatsGridClass}>
-          <div className={matchonStatCardClass}>
-            <p className={matchonStatLabelClass}>전체</p>
-            <p className={matchonStatValueClass}>{summary.total}</p>
-          </div>
-          <div className={matchonStatCardClass}>
-            <p className={matchonStatLabelClass}>일반</p>
-            <p className={matchonStatValueClass}>{summary.withoutFighter}</p>
-          </div>
-          <div className={matchonStatCardClass}>
-            <p className={matchonStatLabelClass}>선수</p>
-            <p className={matchonStatValueClass}>{summary.withFighter}</p>
-          </div>
-          <div className={matchonStatCardClass}>
-            <p className={matchonStatLabelClass}>이용 중</p>
-            <p className={matchonStatValueClass}>{summary.inUse}</p>
-          </div>
-          <div className={matchonStatCardClass}>
-            <p className={matchonStatLabelClass}>만료 예정</p>
-            <p className={matchonStatValueClass}>{summary.expiring}</p>
-          </div>
-          <div className={matchonStatCardClass}>
-            <p className={matchonStatLabelClass}>이번 달 신규</p>
-            <p className={matchonStatValueClass}>{summary.newThisMonth}</p>
-          </div>
-        </div>
-
-        <div className={matchonCompactActionBarClass}>
-          <Link
-            href="/gym/members/new"
-            className={cn(buttonVariants({ size: "sm" }))}
-          >
-            회원 등록
-          </Link>
-          <Link
-            href="/gym/membership-plans"
-            className={cn(buttonVariants({ variant: "outline", size: "sm" }))}
-          >
-            이용권 관리
-          </Link>
-        </div>
-
-        <form method="get" className={cn(matchonFilterBarClass, "space-y-3")}>
-          <div className="grid gap-3 sm:grid-cols-2 lg:grid-cols-4">
-            <label className="block space-y-1 text-sm">
-              <span className="font-medium">검색</span>
-              <input
-                name="q"
-                defaultValue={q ?? ""}
-                placeholder="이름, 연락처, 회원번호"
-                className={matchonFieldInputClass}
-              />
-            </label>
-            <label className="block space-y-1 text-sm">
-              <span className="font-medium">상태</span>
-              <select
-                name="status"
-                defaultValue={status ?? ""}
-                className={matchonFieldInputClass}
-              >
-                <option value="">전체</option>
-                <option value={GymMemberStatus.active}>이용 중</option>
-                <option value={GymMemberStatus.paused}>휴회</option>
-                <option value={GymMemberStatus.withdrawn}>퇴회</option>
-              </select>
-            </label>
-            <label className="block space-y-1 text-sm">
-              <span className="font-medium">선수</span>
-              <select
-                name="fighter"
-                defaultValue={fighterFilter}
-                className={matchonFieldInputClass}
-              >
-                <option value="all">전체</option>
-                <option value="non_fighter">일반</option>
-                <option value="fighter">선수</option>
-              </select>
-            </label>
-            <label className="block space-y-1 text-sm">
-              <span className="font-medium">만료</span>
-              <select
-                name="expiration"
-                defaultValue={expirationFilter}
-                className={matchonFieldInputClass}
-              >
-                <option value="all">전체</option>
-                <option value="active">이용 중</option>
-                <option value="expiring">만료 예정</option>
-                <option value="expired">만료</option>
-                <option value="no_plan">이용권 없음</option>
-              </select>
-            </label>
-          </div>
-          <div className="flex flex-wrap gap-2">
-            <button type="submit" className={cn(buttonVariants({ size: "sm" }))}>
-              필터 적용
-            </button>
-            <Link
-              href="/gym/members"
-              className={cn(buttonVariants({ variant: "outline", size: "sm" }))}
-            >
-              초기화
-            </Link>
-          </div>
-        </form>
+        <MemberFilterBar
+          query={{
+            q,
+            status: status ?? undefined,
+            fighter: fighterFilter,
+            expiration: expirationFilter,
+          }}
+        />
 
         {list.items.length === 0 ? (
           <MatchonEmptyState
-            title="회원이 없습니다"
-            description="회원을 등록하면 이용권·선수 연결을 함께 관리할 수 있습니다."
+            title={emptyTitle}
+            description={emptyDescription}
             action={
-              <Link
-                href="/gym/members/new"
-                className={cn(buttonVariants({ size: "sm" }))}
-              >
-                회원 등록
-              </Link>
+              !hasListFilter ? (
+                <Link
+                  href="/gym/members/new"
+                  className={cn(buttonVariants({ size: "sm" }), "min-h-11")}
+                >
+                  신규 회원 등록
+                </Link>
+              ) : (
+                <Link
+                  href="/gym/members"
+                  className={cn(
+                    buttonVariants({ variant: "outline", size: "sm" }),
+                    "min-h-11",
+                  )}
+                >
+                  필터 초기화
+                </Link>
+              )
             }
           />
         ) : (
           <>
-            <p className="text-sm text-matchon-text-secondary">
-              총 {list.total}명 · {list.page}/{totalPages} 페이지
-            </p>
-
-            <div className={matchonMobileCardListClass}>
+            <div className="flex flex-col gap-3 lg:hidden">
               {list.items.map((m) => (
-                <Link
-                  key={m.id}
-                  href={`/gym/members/${m.id}`}
-                  className="block space-y-2 rounded-xl border border-matchon-border bg-white p-4 shadow-sm"
-                >
-                  <div className="flex items-start justify-between gap-2">
-                    <div className="flex min-w-0 items-center gap-3">
-                      <GymMemberAvatar src={m.profileImageUrl} name={m.name} />
-                      <div className="min-w-0">
-                        <p className="font-semibold text-matchon-text-primary">
-                          {m.name}
-                        </p>
-                        <p className="font-mono text-xs text-matchon-text-secondary">
-                          {m.memberNumber}
-                        </p>
-                      </div>
-                    </div>
-                    <span className="text-xs font-medium text-matchon-primary">
-                      {m.membershipStatusLabel}
-                    </span>
-                  </div>
-                  <p className="text-sm text-matchon-text-secondary">
-                    {formatPhoneNumber(m.phone)}
-                  </p>
-                  <p className="text-xs text-matchon-text-secondary">
-                    {m.planName ?? "이용권 없음"}
-                    {m.endsAt
-                      ? ` · ${formatUtcDateOnly(m.endsAt)} (${m.expirationDisplay})`
-                      : ""}
-                    {m.isFighter ? " · 선수" : " · 일반"}
-                  </p>
-                </Link>
+                <MemberMobileCard key={m.id} member={m} />
               ))}
             </div>
 
-            <div className={matchonCompactTableWrapClass}>
-              <table className="w-full min-w-[880px] text-left text-sm">
-                <thead className="border-b border-matchon-border bg-matchon-surface/50 text-xs font-medium text-matchon-text-secondary">
-                  <tr>
-                    <th className="px-3 py-2">#</th>
-                    <th className="px-3 py-2">회원번호</th>
-                    <th className="px-3 py-2">이름</th>
-                    <th className="px-3 py-2">연락처</th>
-                    <th className="px-3 py-2">상태</th>
-                    <th className="px-3 py-2">이용권</th>
-                    <th className="px-3 py-2">만료</th>
-                    <th className="px-3 py-2">구분</th>
-                    <th className="px-3 py-2" />
-                  </tr>
-                </thead>
-                <tbody>
-                  {list.items.map((m) => (
-                    <tr
-                      key={m.id}
-                      className="border-b border-matchon-border last:border-0"
-                    >
-                      <td className="px-3 py-3 text-matchon-text-secondary">
-                        {m.rowNumber}
-                      </td>
-                      <td className="px-3 py-3 font-mono text-xs">
-                        {m.memberNumber}
-                      </td>
-                      <td className="px-3 py-3 font-medium">
-                        <span className="flex items-center gap-2">
-                          <GymMemberAvatar
-                            src={m.profileImageUrl}
-                            name={m.name}
-                            className="size-8"
-                          />
-                          {m.name}
-                        </span>
-                      </td>
-                      <td className="px-3 py-3 whitespace-nowrap">
-                        {formatPhoneNumber(m.phone)}
-                      </td>
-                      <td className="px-3 py-3">
-                        {getGymMemberStoredStatusLabel(m.status)}
-                        <span className="mt-0.5 block text-xs text-matchon-text-secondary">
-                          {m.membershipStatusLabel}
-                        </span>
-                      </td>
-                      <td className="px-3 py-3">{m.planName ?? "—"}</td>
-                      <td className="px-3 py-3 whitespace-nowrap">
-                        {m.endsAt ? formatUtcDateOnly(m.endsAt) : "—"}
-                        <span className="mt-0.5 block text-xs text-matchon-text-secondary">
-                          {m.expirationDisplay}
-                        </span>
-                      </td>
-                      <td className="px-3 py-3">
-                        {m.isFighter ? "선수" : "일반"}
-                      </td>
-                      <td className="px-3 py-3 text-right">
-                        <Link
-                          href={`/gym/members/${m.id}`}
-                          className="text-xs font-semibold text-matchon-primary underline"
-                        >
-                          상세
-                        </Link>
-                      </td>
-                    </tr>
-                  ))}
-                </tbody>
-              </table>
-            </div>
+            <MemberTable members={list.items} />
 
             {totalPages > 1 ? (
               <div className="flex flex-wrap items-center justify-center gap-2">
@@ -376,6 +348,7 @@ export default async function GymMembersPage({
                     })}`}
                     className={cn(
                       buttonVariants({ variant: "outline", size: "sm" }),
+                      "min-h-11",
                     )}
                   >
                     이전
@@ -392,6 +365,7 @@ export default async function GymMembersPage({
                     })}`}
                     className={cn(
                       buttonVariants({ variant: "outline", size: "sm" }),
+                      "min-h-11",
                     )}
                   >
                     다음

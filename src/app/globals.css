@@ -1,4 +1,6 @@
-@import "tailwindcss";
+@import "tailwindcss" source(none);
+/* app·components 등 src 전체만 스캔 — 루트/scripts tmp·desktop 산출물 스캔으로 PostCSS worker hang 방지 */
+@source "..";
 @import "tw-animate-css";
 @import "shadcn/tailwind.css";
 

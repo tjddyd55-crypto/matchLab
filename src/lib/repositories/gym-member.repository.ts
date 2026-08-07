@@ -14,6 +14,21 @@ function db(tx?: Prisma.TransactionClient) {
   return tx ?? prisma;
 }
 
+/** 이름·번호·회원번호 검색. 숫자 없는 q에서 phone contains "" 전건 매칭을 막는다. */
+function gymMemberTextSearchOr(q: string): Prisma.GymMemberWhereInput[] {
+  const phoneDigits = normalizePhoneDigits(q);
+  return [
+    { name: { contains: q, mode: "insensitive" } },
+    { memberNumber: { contains: q, mode: "insensitive" } },
+    ...(phoneDigits
+      ? ([
+          { phone: { contains: phoneDigits } },
+          { normalizedPhone: { contains: phoneDigits } },
+        ] as Prisma.GymMemberWhereInput[])
+      : []),
+  ];
+}
+
 export type GymMemberListFilters = {
   gymId: string;
   q?: string;
@@ -232,16 +247,7 @@ export const gymMemberRepository = {
             },
           }
         : {}),
-      ...(q
-        ? {
-            OR: [
-              { name: { contains: q, mode: "insensitive" } },
-              { phone: { contains: normalizePhoneDigits(q) } },
-              { normalizedPhone: { contains: normalizePhoneDigits(q) } },
-              { memberNumber: { contains: q, mode: "insensitive" } },
-            ],
-          }
-        : {}),
+      ...(q ? { OR: gymMemberTextSearchOr(q) } : {}),
     };
 
     const [rows, total] = await Promise.all([
@@ -393,15 +399,7 @@ export const gymMemberRepository = {
         deletedAt: null,
         status: { not: GymMemberStatus.withdrawn },
         fighter: { is: null },
-        ...(q
-          ? {
-              OR: [
-                { name: { contains: q, mode: "insensitive" } },
-                { phone: { contains: normalizePhoneDigits(q) } },
-                { memberNumber: { contains: q, mode: "insensitive" } },
-              ],
-            }
-          : {}),
+        ...(q ? { OR: gymMemberTextSearchOr(q) } : {}),
       },
       take: 30,
       orderBy: { name: "asc" },
