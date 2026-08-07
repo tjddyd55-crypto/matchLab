@@ -53,9 +53,13 @@ export const matchonUnderlineTabInactiveClass =
   "text-matchon-text-secondary hover:text-matchon-text-primary";
 
 export const matchonCompactTableWrapClass =
-  "hidden overflow-x-auto rounded-xl border border-matchon-border bg-white md:block";
+  "hidden overflow-x-auto rounded-xl border border-matchon-border bg-white lg:block";
 
-export const matchonMobileCardListClass = "flex flex-col gap-3 md:hidden";
+export const matchonMobileCardListClass = "flex flex-col gap-3 lg:hidden";
+
+/** 회원관리 V2 지표 — 최대 5열, 카드 과대 금지 */
+export const matchonMemberMetricsGridClass =
+  "grid gap-3 grid-cols-2 sm:grid-cols-3 xl:grid-cols-5";
 
 export const matchonStatsGridClass = "grid gap-3 sm:grid-cols-2 lg:grid-cols-4";
 
