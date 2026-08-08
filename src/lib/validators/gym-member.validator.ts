@@ -128,6 +128,25 @@ export const gymMemberCreateSchema = z.object({
   paymentAmount: optionalPositiveInt(),
   paymentMethod: optionalPaymentMethod(),
   paymentMemo: optionalTrimmedString(500),
+  /** 그룹 id — form에서 반복 키 groupIds */
+  groupIds: z
+    .union([z.array(z.string()), z.string()])
+    .optional()
+    .transform((v) => {
+      if (!v) return [] as string[];
+      if (Array.isArray(v)) return v.map((s) => s.trim()).filter(Boolean);
+      return v
+        .split(",")
+        .map((s) => s.trim())
+        .filter(Boolean);
+    }),
+  /** 사물함 이용 */
+  lockerEnabled: optionalBoolFlag().transform((v) => v === "true"),
+  lockerLabel: optionalTrimmedString(40),
+  lockerStartedAt: optionalDateOnly,
+  lockerEndsAt: optionalDateOnly,
+  lockerAmount: optionalPositiveInt(),
+  lockerMemo: optionalTrimmedString(500),
   /** 선수로 함께 등록 */
   registerAsFighter: optionalBoolFlag().transform((v) => v === "true"),
   height: optionalPositiveFloat(),
@@ -169,6 +188,17 @@ export const gymMemberUpdateSchema = z.object({
   removeProfileImage: optionalBoolFlag().transform((v) => v === "true"),
   smsOptOut: optionalBoolFlag().transform((v) => v === "true"),
   joinedAt: optionalDateOnly,
+  groupIds: z
+    .union([z.array(z.string()), z.string()])
+    .optional()
+    .transform((v) => {
+      if (!v) return undefined;
+      if (Array.isArray(v)) return v.map((s) => s.trim()).filter(Boolean);
+      return v
+        .split(",")
+        .map((s) => s.trim())
+        .filter(Boolean);
+    }),
 });
 
 export type GymMemberUpdateInput = z.infer<typeof gymMemberUpdateSchema>;

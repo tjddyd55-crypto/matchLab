@@ -19,6 +19,9 @@ import { gymMemberService } from "@/lib/services/gym-member.service";
 import { gymMembershipPlanService } from "@/lib/services/gym-membership-plan.service";
 import { gymMemberSubscriptionService } from "@/lib/services/gym-member-subscription.service";
 import { gymMemberPaymentService } from "@/lib/services/gym-member-payment.service";
+import { gymMemberGroupService } from "@/lib/services/gym-member-group.service";
+import { gymMemberLockerService } from "@/lib/services/gym-member-locker.service";
+import { gymMemberExcelService } from "@/lib/services/gym-member-excel.service";
 import {
   gymMemberCreateSchema,
   gymMemberUpdateSchema,
@@ -81,8 +84,12 @@ export async function createGymMemberAction(
 > {
   return mapCaught(async () => {
     const actor = await requireActorFromMutation();
-    const parsed = gymMemberCreateSchema.safeParse(
-      formObj(formData, [
+    const groupIds = formData
+      .getAll("groupIds")
+      .filter((v): v is string => typeof v === "string" && v.trim().length > 0)
+      .map((v) => v.trim());
+    const parsed = gymMemberCreateSchema.safeParse({
+      ...formObj(formData, [
         "name",
         "phone",
         "joinedAt",
@@ -108,6 +115,12 @@ export async function createGymMemberAction(
         "paymentAmount",
         "paymentMethod",
         "paymentMemo",
+        "lockerEnabled",
+        "lockerLabel",
+        "lockerStartedAt",
+        "lockerEndsAt",
+        "lockerAmount",
+        "lockerMemo",
         "registerAsFighter",
         "height",
         "weight",
@@ -116,7 +129,8 @@ export async function createGymMemberAction(
         "loginId",
         "password",
       ]),
-    );
+      groupIds,
+    });
     if (!parsed.success) {
       return actionFailure(
         "VALIDATION_ERROR",
@@ -135,8 +149,12 @@ export async function updateGymMemberAction(
 ): Promise<ActionResult<{ ok: true }>> {
   return mapCaught(async () => {
     const actor = await requireActorFromMutation();
-    const parsed = gymMemberUpdateSchema.safeParse(
-      formObj(formData, [
+    const groupIds = formData
+      .getAll("groupIds")
+      .filter((v): v is string => typeof v === "string" && v.trim().length > 0)
+      .map((v) => v.trim());
+    const parsed = gymMemberUpdateSchema.safeParse({
+      ...formObj(formData, [
         "name",
         "phone",
         "joinedAt",
@@ -157,7 +175,8 @@ export async function updateGymMemberAction(
         "removeProfileImage",
         "smsOptOut",
       ]),
-    );
+      groupIds,
+    });
     if (!parsed.success) {
       return actionFailure(
         "VALIDATION_ERROR",
@@ -450,5 +469,181 @@ export async function cancelGymMemberPaymentAction(
     await gymMemberPaymentService.cancelPayment(actor, memberId, paymentId);
     revalidateMemberPaths(memberId);
     return actionSuccess({ ok: true });
+  });
+}
+
+export async function reorderGymMembershipPlansAction(
+  orderedIds: string[],
+): Promise<ActionResult<{ ok: true }>> {
+  return mapCaught(async () => {
+    const actor = await requireActorFromMutation();
+    await gymMembershipPlanService.reorderPlans(actor, orderedIds);
+    revalidatePath("/gym/membership-plans");
+    return actionSuccess({ ok: true });
+  });
+}
+
+export async function createGymMemberGroupAction(
+  formData: FormData,
+): Promise<ActionResult<{ groupId: string }>> {
+  return mapCaught(async () => {
+    const actor = await requireActorFromMutation();
+    const name = formStr(formData, "name");
+    const sortOrderRaw = formStr(formData, "sortOrder");
+    const isActiveRaw = formData.get("isActive");
+    const isActive =
+      isActiveRaw === null || isActiveRaw === ""
+        ? true
+        : isActiveRaw === "true";
+    const group = await gymMemberGroupService.createGroup(actor, {
+      name,
+      sortOrder: sortOrderRaw ? Number(sortOrderRaw) : undefined,
+      isActive,
+    });
+    revalidatePath("/gym/member-groups");
+    revalidatePath("/gym/members");
+    return actionSuccess({ groupId: group.id });
+  });
+}
+
+export async function updateGymMemberGroupAction(
+  groupId: string,
+  formData: FormData,
+): Promise<ActionResult<{ ok: true }>> {
+  return mapCaught(async () => {
+    const actor = await requireActorFromMutation();
+    await gymMemberGroupService.updateGroup(actor, groupId, {
+      name: formStr(formData, "name"),
+      sortOrder: formStr(formData, "sortOrder")
+        ? Number(formStr(formData, "sortOrder"))
+        : undefined,
+      isActive: formData.get("isActive") === "true",
+    });
+    revalidatePath("/gym/member-groups");
+    revalidatePath("/gym/members");
+    return actionSuccess({ ok: true });
+  });
+}
+
+export async function reorderGymMemberGroupsAction(
+  orderedIds: string[],
+): Promise<ActionResult<{ ok: true }>> {
+  return mapCaught(async () => {
+    const actor = await requireActorFromMutation();
+    await gymMemberGroupService.reorderGroups(actor, orderedIds);
+    revalidatePath("/gym/member-groups");
+    return actionSuccess({ ok: true });
+  });
+}
+
+export async function deleteGymMemberGroupAction(
+  groupId: string,
+): Promise<ActionResult<{ ok: true }>> {
+  return mapCaught(async () => {
+    const actor = await requireActorFromMutation();
+    await gymMemberGroupService.softDeleteGroup(actor, groupId);
+    revalidatePath("/gym/member-groups");
+    revalidatePath("/gym/members");
+    return actionSuccess({ ok: true });
+  });
+}
+
+export async function createGymMemberLockerRentalAction(
+  memberId: string,
+  formData: FormData,
+): Promise<ActionResult<{ rentalId: string }>> {
+  return mapCaught(async () => {
+    const actor = await requireActorFromMutation();
+    const amount = Number(formStr(formData, "amount") || "0");
+    const rental = await gymMemberLockerService.createRental(actor, memberId, {
+      lockerLabel: formStr(formData, "lockerLabel"),
+      startedAt: new Date(formStr(formData, "startedAt") || Date.now()),
+      endsAt: formStr(formData, "endsAt")
+        ? new Date(formStr(formData, "endsAt"))
+        : null,
+      amount: Number.isFinite(amount) ? amount : 0,
+      memo: formStr(formData, "memo") || null,
+      createPayment: formStr(formData, "createPayment") === "true",
+      paymentMethod:
+        (formStr(formData, "paymentMethod") as GymMemberPaymentMethod) ||
+        GymMemberPaymentMethod.cash,
+    });
+    revalidateMemberPaths(memberId);
+    return actionSuccess({ rentalId: rental.id });
+  });
+}
+
+export async function extendGymMemberLockerRentalAction(
+  memberId: string,
+  rentalId: string,
+  formData: FormData,
+): Promise<ActionResult<{ ok: true }>> {
+  return mapCaught(async () => {
+    const actor = await requireActorFromMutation();
+    const additionalAmount = Number(
+      formStr(formData, "additionalAmount") || "0",
+    );
+    await gymMemberLockerService.extendRental(actor, rentalId, {
+      newEndsAt: new Date(formStr(formData, "newEndsAt")),
+      additionalAmount: Number.isFinite(additionalAmount)
+        ? additionalAmount
+        : 0,
+      paymentMethod:
+        (formStr(formData, "paymentMethod") as GymMemberPaymentMethod) ||
+        undefined,
+      memo: formStr(formData, "memo") || null,
+    });
+    revalidateMemberPaths(memberId);
+    return actionSuccess({ ok: true });
+  });
+}
+
+export async function endGymMemberLockerRentalAction(
+  memberId: string,
+  rentalId: string,
+): Promise<ActionResult<{ ok: true }>> {
+  return mapCaught(async () => {
+    const actor = await requireActorFromMutation();
+    await gymMemberLockerService.endRental(actor, rentalId);
+    revalidateMemberPaths(memberId);
+    return actionSuccess({ ok: true });
+  });
+}
+
+export async function exportGymMembersExcelAction(filters: {
+  q?: string;
+  status?: string;
+  fighter?: string;
+  joined?: string;
+  groupId?: string;
+}): Promise<ActionResult<{ base64: string; filename: string }>> {
+  return mapCaught(async () => {
+    const actor = await requireActorFromMutation();
+    const status =
+      filters.status === GymMemberStatus.active ||
+      filters.status === GymMemberStatus.paused ||
+      filters.status === GymMemberStatus.withdrawn
+        ? filters.status
+        : undefined;
+    const fighterFilter =
+      filters.fighter === "fighter" || filters.fighter === "non_fighter"
+        ? filters.fighter
+        : "all";
+    const joinedFilter =
+      filters.joined === "this-month" ? "this-month" : "all";
+    const { buffer, filename } = await gymMemberExcelService.buildWorkbook(
+      actor,
+      {
+        q: filters.q,
+        status,
+        fighterFilter,
+        joinedFilter,
+        groupId: filters.groupId,
+      },
+    );
+    return actionSuccess({
+      base64: buffer.toString("base64"),
+      filename,
+    });
   });
 }

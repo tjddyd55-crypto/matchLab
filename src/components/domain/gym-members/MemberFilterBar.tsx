@@ -13,6 +13,8 @@ export type MemberListQuery = {
   status?: string;
   fighter?: string;
   expiration?: string;
+  joined?: string;
+  groupId?: string;
 };
 
 function hrefFor(
@@ -27,14 +29,28 @@ function hrefFor(
   if (next.expiration && next.expiration !== "all") {
     sp.set("expiration", next.expiration);
   }
+  if (next.joined && next.joined !== "all") sp.set("joined", next.joined);
+  if (next.groupId) sp.set("groupId", next.groupId);
   const s = sp.toString();
   return s ? `/gym/members?${s}` : "/gym/members";
 }
 
+function hasNoListChipFilter(query: MemberListQuery): boolean {
+  return (
+    !query.status &&
+    (!query.expiration || query.expiration === "all") &&
+    (!query.fighter || query.fighter === "all") &&
+    (!query.joined || query.joined === "all") &&
+    !query.groupId
+  );
+}
+
 export function MemberFilterBar({
   query,
+  groups = [],
 }: {
   query: MemberListQuery;
+  groups?: { id: string; name: string }[];
 }) {
   const chips: {
     label: string;
@@ -43,11 +59,13 @@ export function MemberFilterBar({
   }[] = [
     {
       label: "전체",
-      active: !query.status && (!query.expiration || query.expiration === "all") && (!query.fighter || query.fighter === "all"),
+      active: hasNoListChipFilter(query),
       href: hrefFor(query, {
         status: undefined,
         expiration: undefined,
         fighter: undefined,
+        joined: undefined,
+        groupId: undefined,
         q: query.q,
       }),
     },
@@ -57,7 +75,9 @@ export function MemberFilterBar({
       href: hrefFor(query, {
         expiration: "active",
         status: undefined,
+        joined: undefined,
         fighter: query.fighter,
+        groupId: query.groupId,
       }),
     },
     {
@@ -66,7 +86,9 @@ export function MemberFilterBar({
       href: hrefFor(query, {
         expiration: "expiring",
         status: undefined,
+        joined: undefined,
         fighter: query.fighter,
+        groupId: query.groupId,
       }),
     },
     {
@@ -75,7 +97,9 @@ export function MemberFilterBar({
       href: hrefFor(query, {
         status: "paused",
         expiration: undefined,
+        joined: undefined,
         fighter: query.fighter,
+        groupId: query.groupId,
       }),
     },
     {
@@ -84,7 +108,20 @@ export function MemberFilterBar({
       href: hrefFor(query, {
         expiration: "expired",
         status: undefined,
+        joined: undefined,
         fighter: query.fighter,
+        groupId: query.groupId,
+      }),
+    },
+    {
+      label: "이번 달 신규",
+      active: query.joined === "this-month",
+      href: hrefFor(query, {
+        joined: "this-month",
+        status: undefined,
+        expiration: undefined,
+        fighter: query.fighter,
+        groupId: query.groupId,
       }),
     },
     {
@@ -94,13 +131,29 @@ export function MemberFilterBar({
         fighter: "fighter",
         status: query.status,
         expiration: query.expiration,
+        joined: query.joined,
+        groupId: query.groupId,
       }),
     },
+    ...groups.map((g) => ({
+      label: g.name,
+      active: query.groupId === g.id,
+      href: hrefFor(query, {
+        groupId: query.groupId === g.id ? undefined : g.id,
+        status: query.status,
+        expiration: query.expiration,
+        joined: query.joined,
+        fighter: query.fighter,
+      }),
+    })),
   ];
 
   return (
     <div className="space-y-3" id="member-list">
-      <form method="get" className="flex flex-col gap-2 sm:flex-row sm:items-center">
+      <form
+        method="get"
+        className="flex flex-col gap-2 sm:flex-row sm:items-center"
+      >
         {query.status ? (
           <input type="hidden" name="status" value={query.status} />
         ) : null}
@@ -109,6 +162,12 @@ export function MemberFilterBar({
         ) : null}
         {query.expiration && query.expiration !== "all" ? (
           <input type="hidden" name="expiration" value={query.expiration} />
+        ) : null}
+        {query.joined && query.joined !== "all" ? (
+          <input type="hidden" name="joined" value={query.joined} />
+        ) : null}
+        {query.groupId ? (
+          <input type="hidden" name="groupId" value={query.groupId} />
         ) : null}
         <label className="sr-only" htmlFor="member-search">
           이름·전화번호 검색
@@ -131,7 +190,7 @@ export function MemberFilterBar({
       <div className={matchonScrollablePillsClass} role="list">
         {chips.map((chip) => (
           <Link
-            key={chip.label}
+            key={`${chip.label}-${chip.href}`}
             href={chip.href}
             role="listitem"
             className={cn(

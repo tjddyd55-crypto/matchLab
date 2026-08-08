@@ -2,6 +2,7 @@
  * 회원관리 UI V2 1차 — 열/상태/필터 SSOT 검증 (DB 불필요)
  */
 import assert from "node:assert/strict";
+import { readFileSync } from "node:fs";
 import {
   computeGymMemberMembershipStatus,
   getGymMemberMembershipStatusLabel,
@@ -33,6 +34,13 @@ function main() {
     assert.equal(LIST_COLUMNS.includes(h as never), false);
   }
   assert.equal(DETAIL_TABS.length, 5);
+
+  const page = readFileSync(
+    "src/app/(dashboard)/gym/members/page.tsx",
+    "utf8",
+  );
+  assert.match(page, /joined:\s*"this-month"/);
+  assert.match(page, /MemberMetricCard[\s\S]*이번 달 신규[\s\S]*href=/);
 
   const today = new Date(Date.UTC(2026, 7, 5));
   const expiring = computeGymMemberMembershipStatus({

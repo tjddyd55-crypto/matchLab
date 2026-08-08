@@ -4,6 +4,7 @@ import { requireActor } from "@/lib/auth/actor";
 import { AppError } from "@/lib/errors/app-error";
 import { PermissionError } from "@/lib/auth/permission-error";
 import { gymMemberService } from "@/lib/services/gym-member.service";
+import { gymMemberGroupService } from "@/lib/services/gym-member-group.service";
 import { GymMemberEditForm } from "@/components/domain/gym-members/GymMemberEditForm";
 import { GymProfileMissingBanner } from "@/components/domain/gym/GymProfileMissingBanner";
 import { buttonVariants } from "@/components/ui/button";
@@ -36,8 +37,14 @@ export default async function GymMemberEditPage({
   }
 
   let detail;
+  let groups;
+  let assignments;
   try {
-    detail = await gymMemberService.getMemberDetail(actor, memberId);
+    [detail, groups, assignments] = await Promise.all([
+      gymMemberService.getMemberDetail(actor, memberId),
+      gymMemberGroupService.listGroups(actor, false),
+      gymMemberGroupService.listMemberAssignments(actor, memberId),
+    ]);
   } catch (e) {
     if (e instanceof AppError && e.code === "NOT_FOUND") notFound();
     if (e instanceof AppError && e.code === "FORBIDDEN") notFound();
@@ -49,7 +56,7 @@ export default async function GymMemberEditPage({
 
   return (
     <div className={matchonPageContainerClass}>
-      <div className={cn(matchonPageStackClass, "max-w-2xl")}>
+      <div className={cn(matchonPageStackClass, "max-w-5xl")}>
         <div className="min-w-0">
           <Link
             href={`/gym/members/${member.id}`}
@@ -69,6 +76,7 @@ export default async function GymMemberEditPage({
         <GymMemberEditForm
           memberId={member.id}
           profileImageUrl={detail.profileImageUrl}
+          groups={groups.map((g) => ({ id: g.id, name: g.name }))}
           initial={{
             name: member.name,
             phone: member.phone,
@@ -87,6 +95,7 @@ export default async function GymMemberEditPage({
             rankName: member.rankName,
             memo: member.memo,
             smsOptOut: member.smsOptOut,
+            groupIds: assignments.map((a) => a.groupId),
           }}
         />
       </div>

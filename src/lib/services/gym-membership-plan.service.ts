@@ -116,4 +116,20 @@ export const gymMembershipPlanService = {
       data: { deletedAt: new Date(), isActive: false },
     });
   },
+
+  async reorderPlans(actor: ActorContext, orderedIds: string[]) {
+    const access = await requireGymPortalWrite(actor);
+    let order = 0;
+    for (const id of orderedIds) {
+      const existing = await prisma.gymMembershipPlan.findFirst({
+        where: { id, gymId: access.gymId, deletedAt: null },
+        select: { id: true },
+      });
+      if (!existing) continue;
+      await prisma.gymMembershipPlan.update({
+        where: { id },
+        data: { sortOrder: order++ },
+      });
+    }
+  },
 };

@@ -6,13 +6,16 @@ import {
   GymMemberPaymentStatus,
   GymMemberStatus,
   GymMemberSubscriptionStatus,
-  GymMembershipDurationType,
+  GymSalesCategory,
 } from "@/lib/enums";
 import type { ActorContext } from "@/lib/auth/actor-context";
 import { AppError } from "@/lib/errors/app-error";
 import { toUtcDateOnly, todayUtcDateOnlyString } from "@/lib/date-only";
 import { normalizePhoneDigits } from "@/lib/phone";
 import { assertGymMemberImagePath } from "@/lib/constants/gym-member-image-upload";
+
+/** Remote Railway Postgres proxy: member create may include groups/locker/payment. */
+const GYM_MEMBER_TX = { maxWait: 15_000, timeout: 30_000 } as const;
 import { normalizeGymFighterPhone } from "@/lib/gym-fighter-management";
 import {
   createGymMemberImageSignedReadUrlForPath,
@@ -26,6 +29,8 @@ import {
 import { prisma } from "@/lib/prisma";
 import { auditRepository } from "@/lib/repositories/audit.repository";
 import { gymMemberRepository } from "@/lib/repositories/gym-member.repository";
+import { gymMemberGroupRepository } from "@/lib/repositories/gym-member-group.repository";
+import { gymMemberLockerRepository } from "@/lib/repositories/gym-member-locker.repository";
 import { fighterRepository } from "@/lib/repositories/fighter.repository";
 import { fighterService } from "@/lib/services/fighter.service";
 import { isPrismaUniqueViolation } from "@/lib/prisma-errors";
@@ -41,26 +46,35 @@ import type {
   GymMemberCreateInput,
   GymMemberUpdateInput,
 } from "@/lib/validators/gym-member.validator";
+import { addMembershipDuration } from "@/lib/gym-member/membership-duration";
+import {
+  lockerRangesOverlap,
+  normalizeLockerLabel,
+} from "@/lib/gym-member/locker-label";
 
 export type { GymMemberCreateInput, GymMemberUpdateInput };
 
-function addDuration(
-  start: Date,
-  durationType: GymMembershipDurationType,
-  durationValue: number | null | undefined,
-): Date | null {
-  if (durationType === GymMembershipDurationType.fixed_end) return null;
-  if (!durationValue || durationValue <= 0) return null;
-  const d = new Date(start.getTime());
-  if (durationType === GymMembershipDurationType.days) {
-    d.setUTCDate(d.getUTCDate() + durationValue);
-    return d;
-  }
-  // months
-  const y = d.getUTCFullYear();
-  const m = d.getUTCMonth() + durationValue;
-  const day = d.getUTCDate();
-  return new Date(Date.UTC(y + Math.floor(m / 12), m % 12, day));
+function resolveGuardianFields(input: {
+  guardianName?: string | null;
+  guardianPhone?: string | null;
+  emergencyContactName?: string | null;
+  emergencyContactPhone?: string | null;
+}) {
+  const name =
+    (input.guardianName?.trim() ||
+      input.emergencyContactName?.trim() ||
+      "") || null;
+  const phoneRaw =
+    input.guardianPhone?.trim() ||
+    input.emergencyContactPhone?.trim() ||
+    "";
+  const phone = phoneRaw ? normalizeGymFighterPhone(phoneRaw) : null;
+  return {
+    guardianName: name,
+    guardianPhone: phone,
+    emergencyContactName: name,
+    emergencyContactPhone: phone,
+  };
 }
 
 async function assertMemberOwned(
@@ -163,7 +177,9 @@ export const gymMemberService = {
       status?: GymMemberStatus;
       fighterFilter?: "all" | "fighter" | "non_fighter";
       expirationFilter?: "all" | "active" | "expiring" | "expired" | "no_plan";
+      joinedFilter?: "all" | "this-month";
       planId?: string;
+      groupId?: string;
       page?: number;
       pageSize?: number;
     } = {},
@@ -183,7 +199,9 @@ export const gymMemberService = {
       q: filters.q,
       status: filters.status,
       fighterFilter: filters.fighterFilter,
+      joinedFilter: filters.joinedFilter,
       planId: filters.planId,
+      groupId: filters.groupId,
       skip,
       take: pageSize,
     });
@@ -319,12 +337,23 @@ export const gymMemberService = {
       gymId,
       input.profileImagePath,
     );
+    const guardian = resolveGuardianFields(input);
 
     if (input.registerAsFighter) {
       if (!input.birthDate || !input.gender) {
         throw new AppError(
           "VALIDATION_ERROR",
           "선수로 등록하려면 생년월일과 성별이 필요합니다.",
+        );
+      }
+    }
+
+    if (input.lockerEnabled) {
+      const label = input.lockerLabel?.trim();
+      if (!label) {
+        throw new AppError(
+          "VALIDATION_ERROR",
+          "사물함 번호를 입력해 주세요.",
         );
       }
     }
@@ -350,14 +379,10 @@ export const gymMemberService = {
               postalCode: input.postalCode ?? null,
               address: input.address ?? null,
               addressDetail: input.addressDetail ?? null,
-              emergencyContactName: input.emergencyContactName ?? null,
-              emergencyContactPhone: input.emergencyContactPhone
-                ? normalizePhoneDigits(input.emergencyContactPhone)
-                : null,
-              guardianName: input.guardianName ?? null,
-              guardianPhone: input.guardianPhone
-                ? normalizeGymFighterPhone(input.guardianPhone)
-                : null,
+              emergencyContactName: guardian.emergencyContactName,
+              emergencyContactPhone: guardian.emergencyContactPhone,
+              guardianName: guardian.guardianName,
+              guardianPhone: guardian.guardianPhone,
               joinedAt: input.joinedAt
                 ? toUtcDateOnly(input.joinedAt)
                 : toUtcDateOnly(new Date()),
@@ -391,6 +416,15 @@ export const gymMemberService = {
         throw new AppError("INTERNAL", "회원 생성에 실패했습니다.");
       }
 
+      if (input.groupIds.length > 0) {
+        await gymMemberGroupRepository.replaceMemberGroups(
+          gymId,
+          member.id,
+          input.groupIds,
+          tx,
+        );
+      }
+
       let fighterId: string | undefined;
 
       if (input.registerAsFighter && input.birthDate && input.gender) {
@@ -407,10 +441,8 @@ export const gymMemberService = {
             weight: input.weight ?? null,
             primarySport:
               input.fighterPrimarySport ?? input.primarySport ?? null,
-            guardianName: input.guardianName ?? null,
-            guardianPhone: input.guardianPhone
-              ? normalizeGymFighterPhone(input.guardianPhone)
-              : null,
+            guardianName: guardian.guardianName,
+            guardianPhone: guardian.guardianPhone,
             currentGymId: gymId,
             gymMemberId: member.id,
           },
@@ -433,10 +465,13 @@ export const gymMemberService = {
         const startedAt = input.subscriptionStartedAt
           ? toUtcDateOnly(input.subscriptionStartedAt)
           : toUtcDateOnly(new Date());
-        const endsAt =
-          input.subscriptionEndsAt
-            ? toUtcDateOnly(input.subscriptionEndsAt)
-            : addDuration(startedAt, plan.durationType, plan.durationValue);
+        const endsAt = input.subscriptionEndsAt
+          ? toUtcDateOnly(input.subscriptionEndsAt)
+          : addMembershipDuration(
+              startedAt,
+              plan.durationType,
+              plan.durationValue,
+            );
 
         const sub = await tx.gymMemberSubscription.create({
           data: {
@@ -463,11 +498,85 @@ export const gymMemberService = {
               paymentMethod:
                 input.paymentMethod ?? GymMemberPaymentMethod.cash,
               status: GymMemberPaymentStatus.paid,
+              category: GymSalesCategory.membership,
               memo: input.paymentMemo ?? null,
               createdByUserId: actor.userId,
             },
           });
         }
+      }
+
+      if (input.lockerEnabled && input.lockerLabel?.trim()) {
+        const label = normalizeLockerLabel(input.lockerLabel);
+        const lockerStarted = input.lockerStartedAt
+          ? toUtcDateOnly(input.lockerStartedAt)
+          : toUtcDateOnly(new Date());
+        const lockerEnds = input.lockerEndsAt
+          ? toUtcDateOnly(input.lockerEndsAt)
+          : null;
+        const lockerAmount = input.lockerAmount ?? 0;
+        if (lockerAmount < 0) {
+          throw new AppError(
+            "VALIDATION_ERROR",
+            "사물함 이용금액이 올바르지 않습니다.",
+          );
+        }
+        if (lockerEnds && lockerEnds.getTime() < lockerStarted.getTime()) {
+          throw new AppError(
+            "VALIDATION_ERROR",
+            "사물함 종료일은 시작일 이후여야 합니다.",
+          );
+        }
+        const openSameLabel =
+          await gymMemberLockerRepository.findOpenByLabel(gymId, label, tx);
+        const conflict = openSameLabel.find((row) =>
+          lockerRangesOverlap(
+            { startedAt: row.startedAt, endsAt: row.endsAt },
+            { startedAt: lockerStarted, endsAt: lockerEnds },
+          ),
+        );
+        if (conflict) {
+          throw new AppError(
+            "CONFLICT",
+            "같은 기간에 이미 사용 중인 사물함 번호입니다.",
+          );
+        }
+
+        let paymentId: string | undefined;
+        if (lockerAmount > 0) {
+          const payment = await tx.gymMemberPayment.create({
+            data: {
+              gymId,
+              gymMemberId: member.id,
+              paidAt: lockerStarted,
+              amount: lockerAmount,
+              paymentMethod:
+                input.paymentMethod ?? GymMemberPaymentMethod.cash,
+              status: GymMemberPaymentStatus.paid,
+              category: GymSalesCategory.locker,
+              memo: `사물함 ${label}`,
+              createdByUserId: actor.userId,
+            },
+          });
+          paymentId = payment.id;
+        }
+
+        // Unchecked scalar FKs — nested connect can fail under interactive tx + pg adapter.
+        await gymMemberLockerRepository.createUnchecked(
+          {
+            gymId,
+            gymMemberId: member.id,
+            lockerLabel: label,
+            startedAt: lockerStarted,
+            endsAt: lockerEnds,
+            amount: lockerAmount,
+            memo: input.lockerMemo ?? null,
+            createdByUserId: actor.userId,
+            updatedByUserId: actor.userId,
+            paymentId: paymentId ?? null,
+          },
+          tx,
+        );
       }
 
       await auditRepository.createAuditLog(
@@ -481,13 +590,15 @@ export const gymMemberService = {
             name: input.name.trim(),
             fighterId: fighterId ?? null,
             hasProfileImage: Boolean(profileImagePath),
+            groupCount: input.groupIds.length,
+            lockerEnabled: Boolean(input.lockerEnabled),
           },
         },
         tx,
       );
 
       return { memberId: member.id, memberNumber: member.memberNumber, fighterId };
-    });
+    }, GYM_MEMBER_TX);
 
     let loginCredentials:
       | { loginId: string; temporaryPassword: string }
@@ -520,6 +631,7 @@ export const gymMemberService = {
     if (!phone) {
       throw new AppError("VALIDATION_ERROR", "휴대전화번호를 입력해 주세요.");
     }
+    const guardian = resolveGuardianFields(input);
 
     const uploadedImagePath = assertOwnedImagePath(
       access.gymId,
@@ -551,14 +663,10 @@ export const gymMemberService = {
           postalCode: input.postalCode ?? null,
           address: input.address ?? null,
           addressDetail: input.addressDetail ?? null,
-          emergencyContactName: input.emergencyContactName ?? null,
-          emergencyContactPhone: input.emergencyContactPhone
-            ? normalizePhoneDigits(input.emergencyContactPhone)
-            : null,
-          guardianName: input.guardianName ?? null,
-          guardianPhone: input.guardianPhone
-            ? normalizeGymFighterPhone(input.guardianPhone)
-            : null,
+          emergencyContactName: guardian.emergencyContactName,
+          emergencyContactPhone: guardian.emergencyContactPhone,
+          guardianName: guardian.guardianName,
+          guardianPhone: guardian.guardianPhone,
           primarySport: input.primarySport ?? null,
           rankName: input.rankName ?? null,
           memo: input.memo ?? null,
@@ -572,6 +680,15 @@ export const gymMemberService = {
         tx,
       );
 
+      if (input.groupIds !== undefined) {
+        await gymMemberGroupRepository.replaceMemberGroups(
+          access.gymId,
+          memberId,
+          input.groupIds,
+          tx,
+        );
+      }
+
       if (member.fighter) {
         await tx.fighter.update({
           where: { id: member.fighter.id },
@@ -582,10 +699,8 @@ export const gymMemberService = {
               : member.birthDate,
             gender: input.gender ?? member.gender,
             phone,
-            guardianName: input.guardianName ?? null,
-            guardianPhone: input.guardianPhone
-              ? normalizeGymFighterPhone(input.guardianPhone)
-              : null,
+            guardianName: guardian.guardianName,
+            guardianPhone: guardian.guardianPhone,
             primarySport: input.primarySport ?? null,
           }),
         });

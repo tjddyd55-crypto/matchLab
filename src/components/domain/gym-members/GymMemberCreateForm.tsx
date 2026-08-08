@@ -9,11 +9,25 @@ import { GymMemberProfileImageUpload } from "@/components/domain/gym-members/Gym
 import { PhoneInput } from "@/components/shared/PhoneInput";
 import { Button, buttonVariants } from "@/components/ui/button";
 import { createGymMemberAction } from "@/features/gym-members/actions";
-import { todayUtcDateOnlyString, formatUtcDateOnly } from "@/lib/date-only";
+import {
+  todayUtcDateOnlyString,
+  formatUtcDateOnly,
+} from "@/lib/date-only";
+import { addMembershipDuration } from "@/lib/gym-member/membership-duration";
+import { GymMembershipDurationType } from "@/lib/enums";
+import { matchonFieldInputClass } from "@/lib/ui/matchon-shell-ui";
 import { cn } from "@/lib/utils";
 import { formatPhoneNumber } from "@/lib/phone";
 
-type PlanOption = { id: string; name: string; price: number };
+type PlanOption = {
+  id: string;
+  name: string;
+  price: number;
+  durationType: GymMembershipDurationType;
+  durationValue: number | null;
+};
+
+type GroupOption = { id: string; name: string };
 
 type DuplicateCandidate = {
   id: string;
@@ -23,11 +37,18 @@ type DuplicateCandidate = {
   birthDate: Date | string | null;
 };
 
+function toYmd(d: Date | null): string {
+  if (!d) return "";
+  return formatUtcDateOnly(d, "-");
+}
+
 export function GymMemberCreateForm({
   plans,
+  groups = [],
   defaultRegisterAsFighter = false,
 }: {
   plans: PlanOption[];
+  groups?: GroupOption[];
   defaultRegisterAsFighter?: boolean;
 }) {
   const router = useRouter();
@@ -42,14 +63,51 @@ export function GymMemberCreateForm({
   );
   const [createLogin, setCreateLogin] = useState(false);
   const [profileImagePath, setProfileImagePath] = useState("");
+  const [planId, setPlanId] = useState("");
+  const [subscriptionStartedAt, setSubscriptionStartedAt] = useState(
+    () => todayUtcDateOnlyString(),
+  );
+  const [subscriptionEndsAt, setSubscriptionEndsAt] = useState("");
+  const [paymentAmount, setPaymentAmount] = useState("");
+  const [lockerEnabled, setLockerEnabled] = useState(false);
+  const [selectedGroupIds, setSelectedGroupIds] = useState<string[]>([]);
 
   const joinedDefault = useMemo(() => todayUtcDateOnlyString(), []);
+
+  function applyPlanAutofill(nextPlanId: string, startedAt: string) {
+    setPlanId(nextPlanId);
+    if (!nextPlanId) {
+      setPaymentAmount("");
+      setSubscriptionEndsAt("");
+      return;
+    }
+    const plan = plans.find((p) => p.id === nextPlanId);
+    if (!plan) return;
+    setPaymentAmount(String(plan.price));
+    const start = startedAt ? new Date(`${startedAt}T00:00:00.000Z`) : null;
+    if (!start || Number.isNaN(start.getTime())) return;
+    const ends = addMembershipDuration(
+      start,
+      plan.durationType,
+      plan.durationValue,
+    );
+    setSubscriptionEndsAt(toYmd(ends));
+  }
+
+  function toggleGroup(id: string) {
+    setSelectedGroupIds((prev) =>
+      prev.includes(id) ? prev.filter((x) => x !== id) : [...prev, id],
+    );
+  }
 
   function submit(formData: FormData) {
     setError(null);
     if (confirmDuplicate) formData.set("confirmDuplicate", "true");
     formData.set("registerAsFighter", registerAsFighter ? "true" : "false");
     formData.set("createLoginAccount", createLogin ? "true" : "false");
+    formData.set("lockerEnabled", lockerEnabled ? "true" : "false");
+    formData.set("smsOptOut", formData.get("smsOptOut") === "true" ? "true" : "false");
+    for (const gid of selectedGroupIds) formData.append("groupIds", gid);
 
     startTransition(async () => {
       const result = await createGymMemberAction(formData);
@@ -73,7 +131,13 @@ export function GymMemberCreateForm({
   }
 
   return (
-    <form action={submit} className="mx-auto max-w-2xl space-y-6">
+    <form
+      onSubmit={(e) => {
+        e.preventDefault();
+        submit(new FormData(e.currentTarget));
+      }}
+      className="mx-auto max-w-5xl space-y-6"
+    >
       {error ? (
         <p className="rounded-lg border border-red-200 bg-red-50 px-3 py-2 text-sm text-red-700">
           {error}
@@ -111,146 +175,218 @@ export function GymMemberCreateForm({
         </div>
       ) : null}
 
-      <section className="space-y-3">
-        <h2 className="text-base font-semibold">기본 정보</h2>
-        <GymMemberProfileImageUpload
-          memberId={null}
-          initialImageUrl={null}
-          imagePath={profileImagePath}
-          onImagePathChange={setProfileImagePath}
-        />
-        <label className="block space-y-1 text-sm">
-          <span>이름 *</span>
-          <input
-            name="name"
-            required
-            className="w-full rounded-lg border px-3 py-2"
+      <GymMemberProfileImageUpload
+        memberId={null}
+        initialImageUrl={null}
+        imagePath={profileImagePath}
+        onImagePathChange={setProfileImagePath}
+      />
+      {profileImagePath ? (
+        <input type="hidden" name="profileImagePath" value={profileImagePath} />
+      ) : null}
+
+      <div className="grid gap-6 lg:grid-cols-2">
+        <section className="space-y-3">
+          <h2 className="text-base font-semibold">기본 정보</h2>
+          <label className="block space-y-1 text-sm">
+            <span>이름 *</span>
+            <input name="name" required className={matchonFieldInputClass} />
+          </label>
+          <PhoneInput name="phone" label="휴대전화번호" required />
+          <label className="block space-y-1 text-sm">
+            <span>등록일 *</span>
+            <AppDateInput
+              name="joinedAt"
+              defaultValue={joinedDefault}
+              required
+            />
+          </label>
+          <label className="block space-y-1 text-sm">
+            <span>생년월일</span>
+            <AppDateInput name="birthDate" />
+          </label>
+          <label className="block space-y-1 text-sm">
+            <span>성별</span>
+            <select name="gender" className={matchonFieldInputClass}>
+              <option value="">선택</option>
+              <option value="남">남</option>
+              <option value="여">여</option>
+            </select>
+          </label>
+          <label className="block space-y-1 text-sm">
+            <span>이메일</span>
+            <input
+              name="email"
+              type="email"
+              className={matchonFieldInputClass}
+            />
+          </label>
+          <AddressSearchField
+            label="주소"
+            addressName="address"
+            detailName="addressDetail"
+            postalName="postalCode"
           />
-        </label>
-        <PhoneInput name="phone" label="휴대전화번호" required />
-        <label className="block space-y-1 text-sm">
-          <span>등록일 *</span>
-          <AppDateInput name="joinedAt" defaultValue={joinedDefault} required />
-        </label>
-        <label className="block space-y-1 text-sm">
-          <span>생년월일</span>
-          <AppDateInput name="birthDate" />
-        </label>
-        <label className="block space-y-1 text-sm">
-          <span>성별</span>
-          <select name="gender" className="w-full rounded-lg border px-3 py-2">
-            <option value="">선택</option>
-            <option value="남">남</option>
-            <option value="여">여</option>
-          </select>
-        </label>
-        <label className="block space-y-1 text-sm">
-          <span>이메일</span>
-          <input
-            name="email"
-            type="email"
-            className="w-full rounded-lg border px-3 py-2"
-          />
-        </label>
-        <AddressSearchField
-          label="주소"
-          addressName="address"
-          detailName="addressDetail"
-          postalName="postalCode"
-        />
-        <PhoneInput name="emergencyContactPhone" label="비상 연락처 전화" />
-        <label className="block space-y-1 text-sm">
-          <span>비상 연락처 이름</span>
-          <input
-            name="emergencyContactName"
-            className="w-full rounded-lg border px-3 py-2"
-          />
-        </label>
-        <label className="block space-y-1 text-sm">
-          <span>보호자명</span>
-          <input
-            name="guardianName"
-            className="w-full rounded-lg border px-3 py-2"
-          />
-        </label>
-        <PhoneInput name="guardianPhone" label="보호자 연락처" />
-        <label className="block space-y-1 text-sm">
-          <span>주 수련 종목</span>
-          <input
-            name="primarySport"
-            className="w-full rounded-lg border px-3 py-2"
-          />
-        </label>
-        <label className="block space-y-1 text-sm">
-          <span>등급/띠</span>
-          <input
-            name="rankName"
-            className="w-full rounded-lg border px-3 py-2"
-          />
-        </label>
-        <label className="block space-y-1 text-sm">
-          <span>메모</span>
-          <textarea
-            name="memo"
-            rows={3}
-            className="w-full rounded-lg border px-3 py-2"
-          />
-        </label>
-      </section>
+        </section>
+
+        <section className="space-y-3">
+          <h2 className="text-base font-semibold">보호자·등급·그룹</h2>
+          <label className="block space-y-1 text-sm">
+            <span>보호자(비상연락처) 이름</span>
+            <input name="guardianName" className={matchonFieldInputClass} />
+          </label>
+          <PhoneInput name="guardianPhone" label="보호자(비상연락처) 전화" />
+          <label className="block space-y-1 text-sm">
+            <span>회원 등급</span>
+            <input name="rankName" className={matchonFieldInputClass} />
+          </label>
+          {groups.length > 0 ? (
+            <fieldset className="space-y-2">
+              <legend className="text-sm font-medium">회원 그룹</legend>
+              <div className="flex flex-wrap gap-2">
+                {groups.map((g) => (
+                  <label
+                    key={g.id}
+                    className="inline-flex items-center gap-1.5 rounded-lg border border-matchon-border px-2.5 py-1.5 text-sm"
+                  >
+                    <input
+                      type="checkbox"
+                      checked={selectedGroupIds.includes(g.id)}
+                      onChange={() => toggleGroup(g.id)}
+                    />
+                    {g.name}
+                  </label>
+                ))}
+              </div>
+            </fieldset>
+          ) : null}
+          <label className="flex items-center gap-2 text-sm">
+            <input type="checkbox" name="smsOptOut" value="true" />
+            출석 문자 수신 거부
+          </label>
+        </section>
+      </div>
 
       <section className="space-y-3">
         <h2 className="text-base font-semibold">이용권·결제 (선택)</h2>
-        <label className="block space-y-1 text-sm">
-          <span>이용권</span>
-          <select name="planId" className="w-full rounded-lg border px-3 py-2">
-            <option value="">선택 안 함</option>
-            {plans.map((p) => (
-              <option key={p.id} value={p.id}>
-                {p.name} ({p.price.toLocaleString("ko-KR")}원)
-              </option>
-            ))}
-          </select>
-        </label>
-        <label className="block space-y-1 text-sm">
-          <span>시작일</span>
-          <AppDateInput
-            name="subscriptionStartedAt"
-            defaultValue={joinedDefault}
-          />
-        </label>
-        <label className="block space-y-1 text-sm">
-          <span>종료일 (비우면 이용권 기간으로 계산)</span>
-          <AppDateInput name="subscriptionEndsAt" />
-        </label>
-        <label className="block space-y-1 text-sm">
-          <span>결제 금액</span>
-          <input
-            name="paymentAmount"
-            inputMode="numeric"
-            className="w-full rounded-lg border px-3 py-2"
-          />
-        </label>
-        <label className="block space-y-1 text-sm">
-          <span>결제 수단</span>
-          <select
-            name="paymentMethod"
-            className="w-full rounded-lg border px-3 py-2"
-            defaultValue="cash"
-          >
-            <option value="cash">현금</option>
-            <option value="card">카드</option>
-            <option value="transfer">계좌이체</option>
-            <option value="other">기타</option>
-          </select>
-        </label>
-        <label className="block space-y-1 text-sm">
-          <span>결제 메모</span>
-          <input
-            name="paymentMemo"
-            className="w-full rounded-lg border px-3 py-2"
-          />
-        </label>
+        <div className="grid gap-3 sm:grid-cols-2">
+          <label className="block space-y-1 text-sm sm:col-span-2">
+            <span>이용권</span>
+            <select
+              name="planId"
+              className={matchonFieldInputClass}
+              value={planId}
+              onChange={(e) =>
+                applyPlanAutofill(e.target.value, subscriptionStartedAt)
+              }
+            >
+              <option value="">선택 안 함</option>
+              {plans.map((p) => (
+                <option key={p.id} value={p.id}>
+                  {p.name} ({p.price.toLocaleString("ko-KR")}원)
+                </option>
+              ))}
+            </select>
+          </label>
+          <label className="block space-y-1 text-sm">
+            <span>시작일</span>
+            <AppDateInput
+              name="subscriptionStartedAt"
+              value={subscriptionStartedAt}
+              onValueChange={(v) => {
+                setSubscriptionStartedAt(v);
+                if (planId) applyPlanAutofill(planId, v);
+              }}
+            />
+          </label>
+          <label className="block space-y-1 text-sm">
+            <span>종료일</span>
+            <AppDateInput
+              name="subscriptionEndsAt"
+              value={subscriptionEndsAt}
+              onValueChange={setSubscriptionEndsAt}
+            />
+          </label>
+          <label className="block space-y-1 text-sm">
+            <span>결제 금액</span>
+            <input
+              name="paymentAmount"
+              inputMode="numeric"
+              className={matchonFieldInputClass}
+              value={paymentAmount}
+              onChange={(e) => setPaymentAmount(e.target.value)}
+            />
+          </label>
+          <label className="block space-y-1 text-sm">
+            <span>결제 수단</span>
+            <select
+              name="paymentMethod"
+              className={matchonFieldInputClass}
+              defaultValue="cash"
+            >
+              <option value="cash">현금</option>
+              <option value="card">카드</option>
+              <option value="transfer">계좌이체</option>
+              <option value="other">기타</option>
+            </select>
+          </label>
+        </div>
       </section>
+
+      <section className="space-y-3">
+        <label className="flex items-center gap-2 text-sm font-medium">
+          <input
+            type="checkbox"
+            checked={lockerEnabled}
+            onChange={(e) => setLockerEnabled(e.target.checked)}
+          />
+          사물함 이용
+        </label>
+        {lockerEnabled ? (
+          <div className="grid gap-3 rounded-xl border border-matchon-border p-4 sm:grid-cols-2">
+            <label className="block space-y-1 text-sm">
+              <span>사물함 번호 *</span>
+              <input
+                name="lockerLabel"
+                required={lockerEnabled}
+                className={matchonFieldInputClass}
+              />
+            </label>
+            <label className="block space-y-1 text-sm">
+              <span>금액</span>
+              <input
+                name="lockerAmount"
+                inputMode="numeric"
+                className={matchonFieldInputClass}
+              />
+            </label>
+            <label className="block space-y-1 text-sm">
+              <span>시작일</span>
+              <AppDateInput
+                name="lockerStartedAt"
+                defaultValue={joinedDefault}
+              />
+            </label>
+            <label className="block space-y-1 text-sm">
+              <span>종료일</span>
+              <AppDateInput name="lockerEndsAt" />
+            </label>
+            <label className="block space-y-1 text-sm sm:col-span-2">
+              <span>사물함 메모</span>
+              <input name="lockerMemo" className={matchonFieldInputClass} />
+            </label>
+          </div>
+        ) : null}
+      </section>
+
+      <label className="block space-y-1 text-sm">
+        <span>메모</span>
+        <textarea
+          name="memo"
+          rows={3}
+          className={cn(matchonFieldInputClass, "min-h-[5rem] py-2")}
+        />
+      </label>
 
       <section className="space-y-3">
         <label className="flex items-center gap-2 text-sm font-medium">
@@ -262,8 +398,8 @@ export function GymMemberCreateForm({
           선수로 등록
         </label>
         {registerAsFighter ? (
-          <div className="space-y-3 rounded-xl border p-4">
-            <p className="text-xs text-muted-foreground">
+          <div className="space-y-3 rounded-xl border p-4 sm:grid sm:grid-cols-2 sm:gap-3 sm:space-y-0">
+            <p className="text-xs text-muted-foreground sm:col-span-2">
               생년월일·성별이 필요합니다. 회원 정보를 그대로 사용합니다.
             </p>
             <label className="block space-y-1 text-sm">
@@ -271,7 +407,7 @@ export function GymMemberCreateForm({
               <input
                 name="height"
                 inputMode="decimal"
-                className="w-full rounded-lg border px-3 py-2"
+                className={matchonFieldInputClass}
               />
             </label>
             <label className="block space-y-1 text-sm">
@@ -279,17 +415,10 @@ export function GymMemberCreateForm({
               <input
                 name="weight"
                 inputMode="decimal"
-                className="w-full rounded-lg border px-3 py-2"
+                className={matchonFieldInputClass}
               />
             </label>
-            <label className="block space-y-1 text-sm">
-              <span>주 종목 (선수)</span>
-              <input
-                name="fighterPrimarySport"
-                className="w-full rounded-lg border px-3 py-2"
-              />
-            </label>
-            <label className="flex items-center gap-2 text-sm">
+            <label className="flex items-center gap-2 text-sm sm:col-span-2">
               <input
                 type="checkbox"
                 checked={createLogin}
@@ -301,17 +430,14 @@ export function GymMemberCreateForm({
               <>
                 <label className="block space-y-1 text-sm">
                   <span>로그인 아이디</span>
-                  <input
-                    name="loginId"
-                    className="w-full rounded-lg border px-3 py-2"
-                  />
+                  <input name="loginId" className={matchonFieldInputClass} />
                 </label>
                 <label className="block space-y-1 text-sm">
                   <span>초기 비밀번호 (비우면 자동 생성)</span>
                   <input
                     name="password"
                     type="password"
-                    className="w-full rounded-lg border px-3 py-2"
+                    className={matchonFieldInputClass}
                   />
                 </label>
               </>

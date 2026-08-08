@@ -9,9 +9,21 @@ import {
 import { prisma } from "@/lib/prisma";
 import { normalizePhoneDigits } from "@/lib/phone";
 import { toUtcDateOnly } from "@/lib/date-only";
+import { getSeoulCurrentMonthRange } from "@/lib/gym-attendance/seoul-date";
 
 function db(tx?: Prisma.TransactionClient) {
   return tx ?? prisma;
+}
+
+/**
+ * 이번 달 신규 — GymMember.joinedAt(UTC date-only) SSOT.
+ * Asia/Seoul 달력 월 [start, endExclusive).
+ */
+export function gymMemberJoinedThisMonthFilter(
+  at: Date = new Date(),
+): Prisma.DateTimeFilter {
+  const { start, endExclusive } = getSeoulCurrentMonthRange(at);
+  return { gte: start, lt: endExclusive };
 }
 
 /** 이름·번호·회원번호 검색. 숫자 없는 q에서 phone contains "" 전건 매칭을 막는다. */
@@ -37,6 +49,10 @@ export type GymMemberListFilters = {
   fighterFilter?: "all" | "fighter" | "non_fighter";
   /** active | expiring | expired | no_plan | all — computed against today */
   expirationFilter?: "all" | "active" | "expiring" | "expired" | "no_plan";
+  /** this-month | all — joinedAt vs Seoul calendar month */
+  joinedFilter?: "all" | "this-month";
+  /** 회원 그룹 필터 */
+  groupId?: string;
   planId?: string;
   skip?: number;
   take?: number;
@@ -223,7 +239,7 @@ export const gymMemberRepository = {
     const take = filters.take ?? 30;
     const q = filters.q?.trim();
 
-      const where: Prisma.GymMemberWhereInput = {
+    const where: Prisma.GymMemberWhereInput = {
       gymId: filters.gymId,
       deletedAt: null,
       ...(filters.status ? { status: filters.status } : {}),
@@ -232,6 +248,19 @@ export const gymMemberRepository = {
         : filters.fighterFilter === "non_fighter"
           ? { fighter: { is: null } }
           : {}),
+      ...(filters.joinedFilter === "this-month"
+        ? { joinedAt: gymMemberJoinedThisMonthFilter() }
+        : {}),
+      ...(filters.groupId
+        ? {
+            groupAssignments: {
+              some: {
+                groupId: filters.groupId,
+                deletedAt: null,
+              },
+            },
+          }
+        : {}),
       ...(filters.planId
         ? {
             subscriptions: {
@@ -270,9 +299,7 @@ export const gymMemberRepository = {
       Date.UTC(now.getFullYear(), now.getMonth(), now.getDate()),
     );
     const in7 = new Date(today.getTime() + 7 * 86_400_000);
-    const monthStart = new Date(
-      Date.UTC(now.getFullYear(), now.getMonth(), 1),
-    );
+    const joinedThisMonth = gymMemberJoinedThisMonthFilter(now);
 
     const base = { gymId, deletedAt: null as Date | null };
 
@@ -301,7 +328,7 @@ export const gymMemberRepository = {
         where: { ...base, fighter: { isNot: null } },
       }),
       prisma.gymMember.count({
-        where: { ...base, joinedAt: { gte: monthStart } },
+        where: { ...base, joinedAt: joinedThisMonth },
       }),
       prisma.gymMember.count({
         where: {

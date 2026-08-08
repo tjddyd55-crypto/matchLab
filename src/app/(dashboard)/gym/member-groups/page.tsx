@@ -1,8 +1,7 @@
 import Link from "next/link";
 import { requireActor } from "@/lib/auth/actor";
-import { gymMembershipPlanService } from "@/lib/services/gym-membership-plan.service";
 import { gymMemberGroupService } from "@/lib/services/gym-member-group.service";
-import { GymMemberCreateForm } from "@/components/domain/gym-members/GymMemberCreateForm";
+import { GymMemberGroupManager } from "@/components/domain/gym-members/GymMemberGroupManager";
 import { GymProfileMissingBanner } from "@/components/domain/gym/GymProfileMissingBanner";
 import { buttonVariants } from "@/components/ui/button";
 import {
@@ -15,14 +14,8 @@ import { cn } from "@/lib/utils";
 
 export const dynamic = "force-dynamic";
 
-export default async function GymMemberNewPage({
-  searchParams,
-}: {
-  searchParams: Promise<{ asFighter?: string }>;
-}) {
+export default async function GymMemberGroupsPage() {
   const actor = await requireActor();
-  const { asFighter } = await searchParams;
-  const registerAsFighter = asFighter === "1" || asFighter === "true";
 
   if (!actor.gymId) {
     return (
@@ -34,10 +27,7 @@ export default async function GymMemberNewPage({
     );
   }
 
-  const [plans, groups] = await Promise.all([
-    gymMembershipPlanService.listPlans(actor, false),
-    gymMemberGroupService.listGroups(actor, false),
-  ]);
+  const groups = await gymMemberGroupService.listGroups(actor, true);
 
   return (
     <div className={matchonPageContainerClass}>
@@ -52,26 +42,20 @@ export default async function GymMemberNewPage({
           >
             ← 전체 회원
           </Link>
-          <h1 className={matchonPageTitleClass}>
-            {registerAsFighter ? "회원·선수 등록" : "회원 등록"}
-          </h1>
+          <h1 className={matchonPageTitleClass}>회원 그룹 관리</h1>
           <p className={matchonPageDescClass}>
-            {registerAsFighter
-              ? "회원 정보를 등록하면서 선수로도 함께 등록합니다."
-              : "체육관 회원을 등록합니다. 이용권·결제는 선택 사항입니다."}
+            성인·초등·오전반 등 체육관 맞춤 그룹을 만들고 회원에게 복수 배정할 수
+            있습니다.
           </p>
         </div>
-
-        <GymMemberCreateForm
-          plans={plans.map((p) => ({
-            id: p.id,
-            name: p.name,
-            price: p.price,
-            durationType: p.durationType,
-            durationValue: p.durationValue,
+        <GymMemberGroupManager
+          groups={groups.map((g) => ({
+            id: g.id,
+            name: g.name,
+            sortOrder: g.sortOrder,
+            isActive: g.isActive,
+            memberCount: g._count.assignments,
           }))}
-          groups={groups.map((g) => ({ id: g.id, name: g.name }))}
-          defaultRegisterAsFighter={registerAsFighter}
         />
       </div>
     </div>
