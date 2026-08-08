@@ -1,10 +1,11 @@
 "use client";
 
-import { useState, useTransition } from "react";
+import { useEffect, useState, useTransition } from "react";
 import { useRouter } from "next/navigation";
 import {
   createGymMembershipPlanAction,
   deleteGymMembershipPlanAction,
+  reorderGymMembershipPlansAction,
   updateGymMembershipPlanAction,
 } from "@/features/gym-members/actions";
 import { GymMembershipDurationType } from "@/lib/enums";
@@ -42,7 +43,7 @@ function durationText(plan: GymMembershipPlanRow): string {
 }
 
 export function GymMembershipPlanManager({
-  plans,
+  plans: initialPlans,
 }: {
   plans: GymMembershipPlanRow[];
 }) {
@@ -50,6 +51,12 @@ export function GymMembershipPlanManager({
   const [pending, startTransition] = useTransition();
   const [error, setError] = useState<string | null>(null);
   const [editingId, setEditingId] = useState<string | null>(null);
+  const [plans, setPlans] = useState(initialPlans);
+  const [dragId, setDragId] = useState<string | null>(null);
+
+  useEffect(() => {
+    setPlans(initialPlans);
+  }, [initialPlans]);
 
   function run(
     fn: () => Promise<{ ok: boolean; error?: { message: string } }>,
@@ -65,6 +72,39 @@ export function GymMembershipPlanManager({
       onOk?.();
       router.refresh();
     });
+  }
+
+  function persistOrder(next: GymMembershipPlanRow[]) {
+    setPlans(next);
+    run(() => reorderGymMembershipPlansAction(next.map((p) => p.id)));
+  }
+
+  function move(index: number, dir: -1 | 1) {
+    const next = [...plans];
+    const j = index + dir;
+    if (j < 0 || j >= next.length) return;
+    const tmp = next[index]!;
+    next[index] = next[j]!;
+    next[j] = tmp;
+    persistOrder(next);
+  }
+
+  function onDrop(targetId: string) {
+    if (!dragId || dragId === targetId) {
+      setDragId(null);
+      return;
+    }
+    const from = plans.findIndex((p) => p.id === dragId);
+    const to = plans.findIndex((p) => p.id === targetId);
+    if (from < 0 || to < 0) {
+      setDragId(null);
+      return;
+    }
+    const next = [...plans];
+    const [row] = next.splice(from, 1);
+    next.splice(to, 0, row!);
+    setDragId(null);
+    persistOrder(next);
   }
 
   return (
@@ -148,22 +188,50 @@ export function GymMembershipPlanManager({
       ) : (
         <>
           <div className={matchonMobileCardListClass}>
-            {plans.map((plan) => (
+            {plans.map((plan, idx) => (
               <div
                 key={plan.id}
                 className="space-y-2 rounded-xl border border-matchon-border bg-white p-4"
+                draggable
+                onDragStart={() => setDragId(plan.id)}
+                onDragOver={(e) => e.preventDefault()}
+                onDrop={() => onDrop(plan.id)}
               >
                 <div className="flex items-start justify-between gap-2">
                   <div>
-                    <p className="font-semibold">{plan.name}</p>
+                    <p className="font-semibold">
+                      <span className="mr-2 cursor-grab text-matchon-text-secondary">
+                        ⋮⋮
+                      </span>
+                      {plan.name}
+                    </p>
                     <p className="text-xs text-matchon-text-secondary">
                       {durationText(plan)} · {formatWon(plan.price)}
                       {!plan.isActive ? " · 비활성" : ""}
                     </p>
                   </div>
-                  <p className="text-xs text-matchon-text-secondary">
-                    이용 {plan.activeSubscriptionCount}
-                  </p>
+                  <div className="flex gap-1">
+                    <Button
+                      type="button"
+                      size="xs"
+                      variant="ghost"
+                      disabled={pending || idx === 0}
+                      onClick={() => move(idx, -1)}
+                      aria-label="위로"
+                    >
+                      ↑
+                    </Button>
+                    <Button
+                      type="button"
+                      size="xs"
+                      variant="ghost"
+                      disabled={pending || idx === plans.length - 1}
+                      onClick={() => move(idx, 1)}
+                      aria-label="아래로"
+                    >
+                      ↓
+                    </Button>
+                  </div>
                 </div>
                 <PlanEditBlock
                   plan={plan}
@@ -192,6 +260,7 @@ export function GymMembershipPlanManager({
             <table className="w-full min-w-[720px] text-left text-sm">
               <thead className="border-b border-matchon-border bg-matchon-surface/50 text-xs font-medium text-matchon-text-secondary">
                 <tr>
+                  <th className="w-10 px-3 py-2">정렬</th>
                   <th className="px-3 py-2">이용권</th>
                   <th className="px-3 py-2">기간</th>
                   <th className="px-3 py-2">가격</th>
@@ -201,11 +270,42 @@ export function GymMembershipPlanManager({
                 </tr>
               </thead>
               <tbody>
-                {plans.map((plan) => (
+                {plans.map((plan, idx) => (
                   <tr
                     key={plan.id}
                     className="border-b border-matchon-border align-top last:border-0"
+                    draggable
+                    onDragStart={() => setDragId(plan.id)}
+                    onDragOver={(e) => e.preventDefault()}
+                    onDrop={() => onDrop(plan.id)}
                   >
+                    <td className="px-3 py-3">
+                      <div className="flex flex-col gap-1">
+                        <span className="cursor-grab text-matchon-text-secondary">
+                          ⋮⋮
+                        </span>
+                        <Button
+                          type="button"
+                          size="xs"
+                          variant="ghost"
+                          disabled={pending || idx === 0}
+                          onClick={() => move(idx, -1)}
+                          aria-label="위로"
+                        >
+                          ↑
+                        </Button>
+                        <Button
+                          type="button"
+                          size="xs"
+                          variant="ghost"
+                          disabled={pending || idx === plans.length - 1}
+                          onClick={() => move(idx, 1)}
+                          aria-label="아래로"
+                        >
+                          ↓
+                        </Button>
+                      </div>
+                    </td>
                     <td className="px-3 py-3">
                       <p className="font-medium">{plan.name}</p>
                       {plan.description ? (
@@ -347,9 +447,12 @@ function PlanEditFields({
   onCancel: () => void;
 }) {
   return (
-    <form action={onUpdate} className="grid gap-2 sm:grid-cols-2">
-      <label className="block space-y-1 text-xs sm:col-span-2">
-        <span>이용권명</span>
+    <form
+      action={onUpdate}
+      className="grid gap-3 rounded-lg border border-matchon-border bg-matchon-surface/40 p-3 sm:grid-cols-2"
+    >
+      <label className="block space-y-1 text-sm sm:col-span-2">
+        <span>이용권명 *</span>
         <input
           name="name"
           required
@@ -357,12 +460,12 @@ function PlanEditFields({
           className={matchonFieldInputClass}
         />
       </label>
-      <label className="block space-y-1 text-xs">
+      <label className="block space-y-1 text-sm">
         <span>기간 유형</span>
         <select
           name="durationType"
-          defaultValue={plan.durationType}
           className={matchonFieldInputClass}
+          defaultValue={plan.durationType}
         >
           <option value={GymMembershipDurationType.months}>개월</option>
           <option value={GymMembershipDurationType.days}>일</option>
@@ -371,7 +474,7 @@ function PlanEditFields({
           </option>
         </select>
       </label>
-      <label className="block space-y-1 text-xs">
+      <label className="block space-y-1 text-sm">
         <span>기간 값</span>
         <input
           name="durationValue"
@@ -380,7 +483,7 @@ function PlanEditFields({
           className={matchonFieldInputClass}
         />
       </label>
-      <label className="block space-y-1 text-xs">
+      <label className="block space-y-1 text-sm">
         <span>가격</span>
         <input
           name="price"
@@ -389,7 +492,7 @@ function PlanEditFields({
           className={matchonFieldInputClass}
         />
       </label>
-      <label className="block space-y-1 text-xs">
+      <label className="block space-y-1 text-sm">
         <span>정렬</span>
         <input
           name="sortOrder"
@@ -398,7 +501,7 @@ function PlanEditFields({
           className={matchonFieldInputClass}
         />
       </label>
-      <label className="block space-y-1 text-xs sm:col-span-2">
+      <label className="block space-y-1 text-sm sm:col-span-2">
         <span>설명</span>
         <input
           name="description"
@@ -406,24 +509,23 @@ function PlanEditFields({
           className={matchonFieldInputClass}
         />
       </label>
-      <label className="block space-y-1 text-xs sm:col-span-2">
-        <span>상태</span>
-        <select
+      <label className="flex items-center gap-2 text-sm sm:col-span-2">
+        <input type="hidden" name="isActive" value="false" />
+        <input
+          type="checkbox"
           name="isActive"
-          defaultValue={plan.isActive ? "true" : "false"}
-          className={matchonFieldInputClass}
-        >
-          <option value="true">활성</option>
-          <option value="false">비활성</option>
-        </select>
+          value="true"
+          defaultChecked={plan.isActive}
+        />
+        활성
       </label>
       <div className="flex flex-wrap gap-2 sm:col-span-2">
-        <Button type="submit" size="xs" disabled={pending}>
+        <Button type="submit" size="sm" disabled={pending}>
           저장
         </Button>
         <Button
           type="button"
-          size="xs"
+          size="sm"
           variant="outline"
           disabled={pending}
           onClick={onCancel}

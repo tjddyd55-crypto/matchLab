@@ -2,10 +2,12 @@ import Link from "next/link";
 import { requireActor } from "@/lib/auth/actor";
 import { GymMemberStatus } from "@/lib/enums";
 import { gymMemberService } from "@/lib/services/gym-member.service";
+import { gymMemberGroupService } from "@/lib/services/gym-member-group.service";
 import { GymProfileMissingBanner } from "@/components/domain/gym/GymProfileMissingBanner";
 import { MemberPageHeader } from "@/components/domain/gym-members/MemberPageHeader";
 import { MemberMetricCard } from "@/components/domain/gym-members/MemberMetricCard";
 import { MemberFilterBar } from "@/components/domain/gym-members/MemberFilterBar";
+import { MemberExcelDownloadButton } from "@/components/domain/gym-members/MemberExcelDownloadButton";
 import { MemberTable } from "@/components/domain/gym-members/MemberTable";
 import { MemberMobileCard } from "@/components/domain/gym-members/MemberMobileCard";
 import { MatchonEmptyState } from "@/components/shared/MatchonEmptyState";
@@ -24,6 +26,8 @@ type Search = {
   status?: string;
   fighter?: string;
   expiration?: string;
+  joined?: string;
+  groupId?: string;
   page?: string;
 };
 
@@ -57,6 +61,11 @@ function parseExpiration(
   ) {
     return raw;
   }
+  return undefined;
+}
+
+function parseJoined(raw?: string): "all" | "this-month" | undefined {
+  if (raw === "this-month" || raw === "all") return raw;
   return undefined;
 }
 
@@ -95,22 +104,32 @@ export default async function GymMembersPage({
   const status = parseStatus(sp.status);
   const fighterFilter = parseFighter(sp.fighter) ?? "all";
   const expirationFilter = parseExpiration(sp.expiration) ?? "all";
+  const joinedFilter = parseJoined(sp.joined) ?? "all";
+  const groupId = sp.groupId?.trim() || undefined;
   const page = Math.max(1, Number(sp.page) || 1);
 
   const hasListFilter = Boolean(
-    q || status || fighterFilter !== "all" || expirationFilter !== "all",
+    q ||
+      status ||
+      fighterFilter !== "all" ||
+      expirationFilter !== "all" ||
+      joinedFilter !== "all" ||
+      groupId,
   );
 
-  const [summary, list] = await Promise.all([
+  const [summary, list, groups] = await Promise.all([
     gymMemberService.getSummary(actor),
     gymMemberService.listMembers(actor, {
       q,
       status,
       fighterFilter,
       expirationFilter,
+      joinedFilter,
+      groupId,
       page,
       pageSize: 30,
     }),
+    gymMemberGroupService.listGroups(actor, false).catch(() => []),
   ]);
 
   const totalPages = Math.max(1, Math.ceil(list.total / list.pageSize));
@@ -119,6 +138,8 @@ export default async function GymMembersPage({
     status: status ?? undefined,
     fighter: fighterFilter === "all" ? undefined : fighterFilter,
     expiration: expirationFilter === "all" ? undefined : expirationFilter,
+    joined: joinedFilter === "all" ? undefined : joinedFilter,
+    groupId,
   };
 
   const emptyTitle = q
@@ -140,11 +161,21 @@ export default async function GymMembersPage({
           description="회원 현황과 오늘 처리할 업무를 확인하세요."
           actions={
             <>
+              <MemberExcelDownloadButton filters={baseParams} />
               <Link
                 href="/gym/members/new"
                 className={cn(buttonVariants({ size: "sm" }), "min-h-11")}
               >
                 신규 회원 등록
+              </Link>
+              <Link
+                href="/gym/member-groups"
+                className={cn(
+                  buttonVariants({ variant: "outline", size: "sm" }),
+                  "min-h-11",
+                )}
+              >
+                그룹 관리
               </Link>
               <Link
                 href="/gym/membership-plans"
@@ -184,6 +215,7 @@ export default async function GymMembersPage({
           <MemberMetricCard
             label="이번 달 신규"
             value={summary.newThisMonth}
+            href={filterHref({ joined: "this-month" })}
           />
         </div>
 
@@ -229,15 +261,23 @@ export default async function GymMembersPage({
                   </span>
                 </Link>
               </li>
-              <li className="flex min-h-12 items-center justify-between gap-3 rounded-lg border border-matchon-border px-3 py-2">
-                <span>
-                  <span className="block text-[13px] font-semibold">
-                    이번 달 등록
+              <li>
+                <Link
+                  href={filterHref({ joined: "this-month" })}
+                  className="flex min-h-12 items-center justify-between gap-3 rounded-lg border border-matchon-border px-3 py-2 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-matchon-primary/30"
+                >
+                  <span>
+                    <span className="block text-[13px] font-semibold">
+                      이번 달 등록
+                    </span>
+                    <span className="text-[11px] text-matchon-text-secondary">
+                      {summary.newThisMonth}명 · joinedAt · Seoul 월
+                    </span>
                   </span>
-                  <span className="text-[11px] text-matchon-text-secondary">
-                    {summary.newThisMonth}명 · newThisMonth
+                  <span className="text-xs font-medium text-matchon-primary">
+                    보기
                   </span>
-                </span>
+                </Link>
               </li>
             </ul>
             {/* 미수금·오늘 PT·휴회 종료 예정: getSummary 미제공 → 1차 숨김 */}
@@ -300,7 +340,10 @@ export default async function GymMembersPage({
             status: status ?? undefined,
             fighter: fighterFilter,
             expiration: expirationFilter,
+            joined: joinedFilter,
+            groupId,
           }}
+          groups={groups.map((g) => ({ id: g.id, name: g.name }))}
         />
 
         {list.items.length === 0 ? (

@@ -50,6 +50,7 @@ export function getGymPortalNavGroups(
         ...(viewer === "owner"
           ? [
               { href: "/gym/members/new", label: "회원 등록" },
+              { href: "/gym/member-groups", label: "회원 그룹" },
               { href: "/gym/membership-plans", label: "이용권 관리" },
             ]
           : []),

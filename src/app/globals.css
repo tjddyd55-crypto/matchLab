@@ -1,5 +1,9 @@
 @import "tailwindcss" source(none);
-/* app·components 등 src 전체만 스캔 — 루트/scripts tmp·desktop 산출물 스캔으로 PostCSS worker hang 방지 */
+/*
+ * Scan root = src/ (globals.css가 src/app 에 있으므로 @source ".." → src).
+ * production Next UI는 src 아래만 사용. desktop Electron HTML은 inline CSS.
+ * repo 루트 tmp/scripts/tmp 전역 스캔은 PostCSS worker hang을 유발하므로 금지.
+ */
 @source "..";
 @import "tw-animate-css";
 @import "shadcn/tailwind.css";

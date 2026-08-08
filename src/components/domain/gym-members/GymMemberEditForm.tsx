@@ -31,30 +31,62 @@ export type GymMemberEditInitial = {
   rankName: string | null;
   memo: string | null;
   smsOptOut: boolean;
+  groupIds?: string[];
 };
+
+type GroupOption = { id: string; name: string };
 
 function dateDefault(value: Date | string | null | undefined): string {
   if (!value) return "";
   return formatUtcDateOnly(value, "-");
 }
 
+function resolveGuardian(initial: GymMemberEditInitial) {
+  return {
+    name:
+      initial.guardianName?.trim() ||
+      initial.emergencyContactName?.trim() ||
+      "",
+    phone:
+      initial.guardianPhone?.trim() ||
+      initial.emergencyContactPhone?.trim() ||
+      "",
+  };
+}
+
 export function GymMemberEditForm({
   memberId,
   initial,
+  groups = [],
   profileImageUrl = null,
 }: {
   memberId: string;
   initial: GymMemberEditInitial;
-  /** 서버에서 발급한 signed read URL (private 버킷) */
+  groups?: GroupOption[];
   profileImageUrl?: string | null;
 }) {
   const router = useRouter();
   const [pending, startTransition] = useTransition();
   const [error, setError] = useState<string | null>(null);
   const [profileImagePath, setProfileImagePath] = useState("");
+  const guardian = resolveGuardian(initial);
+  const [selectedGroupIds, setSelectedGroupIds] = useState<string[]>(
+    initial.groupIds ?? [],
+  );
+
+  function toggleGroup(id: string) {
+    setSelectedGroupIds((prev) =>
+      prev.includes(id) ? prev.filter((x) => x !== id) : [...prev, id],
+    );
+  }
 
   function submit(formData: FormData) {
     setError(null);
+    formData.set(
+      "smsOptOut",
+      formData.get("smsOptOut") === "true" ? "true" : "false",
+    );
+    for (const gid of selectedGroupIds) formData.append("groupIds", gid);
     startTransition(async () => {
       const result = await updateGymMemberAction(memberId, formData);
       if (!result.ok) {
@@ -67,7 +99,13 @@ export function GymMemberEditForm({
   }
 
   return (
-    <form action={submit} className="mx-auto max-w-2xl space-y-4">
+    <form
+      onSubmit={(e) => {
+        e.preventDefault();
+        submit(new FormData(e.currentTarget));
+      }}
+      className="mx-auto max-w-5xl space-y-6"
+    >
       {error ? (
         <p className="rounded-lg border border-red-200 bg-red-50 px-3 py-2 text-sm text-red-700">
           {error}
@@ -80,109 +118,132 @@ export function GymMemberEditForm({
         imagePath={profileImagePath}
         onImagePathChange={setProfileImagePath}
       />
+      {profileImagePath ? (
+        <input type="hidden" name="profileImagePath" value={profileImagePath} />
+      ) : null}
 
-      <label className="block space-y-1 text-sm">
-        <span>이름 *</span>
-        <input
-          name="name"
-          required
-          defaultValue={initial.name}
-          className={matchonFieldInputClass}
-        />
-      </label>
-      <PhoneInput
-        name="phone"
-        label="휴대전화번호"
-        required
-        defaultValue={initial.phone}
-      />
-      <label className="block space-y-1 text-sm">
-        <span>등록일</span>
-        <AppDateInput
-          name="joinedAt"
-          defaultValue={dateDefault(initial.joinedAt)}
-        />
-      </label>
-      <label className="block space-y-1 text-sm">
-        <span>생년월일</span>
-        <AppDateInput
-          name="birthDate"
-          defaultValue={dateDefault(initial.birthDate)}
-          disallowFuture
-        />
-      </label>
-      <label className="block space-y-1 text-sm">
-        <span>성별</span>
-        <select
-          name="gender"
-          defaultValue={initial.gender ?? ""}
-          className={matchonFieldInputClass}
-        >
-          <option value="">선택</option>
-          <option value="남">남</option>
-          <option value="여">여</option>
-        </select>
-      </label>
-      <label className="block space-y-1 text-sm">
-        <span>이메일</span>
-        <input
-          name="email"
-          type="email"
-          defaultValue={initial.email ?? ""}
-          className={matchonFieldInputClass}
-        />
-      </label>
-      <AddressSearchField
-        label="주소"
-        addressName="address"
-        detailName="addressDetail"
-        postalName="postalCode"
-        defaultAddress={initial.address ?? ""}
-        defaultDetail={initial.addressDetail ?? ""}
-        defaultPostal={initial.postalCode ?? ""}
-      />
-      <label className="block space-y-1 text-sm">
-        <span>비상 연락처 이름</span>
-        <input
-          name="emergencyContactName"
-          defaultValue={initial.emergencyContactName ?? ""}
-          className={matchonFieldInputClass}
-        />
-      </label>
-      <PhoneInput
-        name="emergencyContactPhone"
-        label="비상 연락처 전화"
-        defaultValue={initial.emergencyContactPhone ?? ""}
-      />
-      <label className="block space-y-1 text-sm">
-        <span>보호자명</span>
-        <input
-          name="guardianName"
-          defaultValue={initial.guardianName ?? ""}
-          className={matchonFieldInputClass}
-        />
-      </label>
-      <PhoneInput
-        name="guardianPhone"
-        label="보호자 연락처"
-        defaultValue={initial.guardianPhone ?? ""}
-      />
-      <label className="block space-y-1 text-sm">
-        <span>주 수련 종목</span>
-        <input
-          name="primarySport"
-          defaultValue={initial.primarySport ?? ""}
-          className={matchonFieldInputClass}
-        />
-      </label>
-      <label className="block space-y-1 text-sm">
-        <span>등급/띠</span>
-        <input
-          name="rankName"
-          defaultValue={initial.rankName ?? ""}
-          className={matchonFieldInputClass}
-        />
-      </label>
+      <div className="grid gap-6 lg:grid-cols-2">
+        <section className="space-y-3">
+          <h2 className="text-base font-semibold">기본 정보</h2>
+          <label className="block space-y-1 text-sm">
+            <span>이름 *</span>
+            <input
+              name="name"
+              required
+              defaultValue={initial.name}
+              className={matchonFieldInputClass}
+            />
+          </label>
+          <PhoneInput
+            name="phone"
+            label="휴대전화번호"
+            required
+            defaultValue={initial.phone}
+          />
+          <label className="block space-y-1 text-sm">
+            <span>등록일</span>
+            <AppDateInput
+              name="joinedAt"
+              defaultValue={dateDefault(initial.joinedAt)}
+            />
+          </label>
+          <label className="block space-y-1 text-sm">
+            <span>생년월일</span>
+            <AppDateInput
+              name="birthDate"
+              defaultValue={dateDefault(initial.birthDate)}
+              disallowFuture
+            />
+          </label>
+          <label className="block space-y-1 text-sm">
+            <span>성별</span>
+            <select
+              name="gender"
+              defaultValue={initial.gender ?? ""}
+              className={matchonFieldInputClass}
+            >
+              <option value="">선택</option>
+              <option value="남">남</option>
+              <option value="여">여</option>
+            </select>
+          </label>
+          <label className="block space-y-1 text-sm">
+            <span>이메일</span>
+            <input
+              name="email"
+              type="email"
+              defaultValue={initial.email ?? ""}
+              className={matchonFieldInputClass}
+            />
+          </label>
+          <AddressSearchField
+            label="주소"
+            addressName="address"
+            detailName="addressDetail"
+            postalName="postalCode"
+            defaultAddress={initial.address ?? ""}
+            defaultDetail={initial.addressDetail ?? ""}
+            defaultPostal={initial.postalCode ?? ""}
+          />
+        </section>
+
+        <section className="space-y-3">
+          <h2 className="text-base font-semibold">보호자·등급·그룹</h2>
+          <label className="block space-y-1 text-sm">
+            <span>보호자(비상연락처) 이름</span>
+            <input
+              name="guardianName"
+              defaultValue={guardian.name}
+              className={matchonFieldInputClass}
+            />
+          </label>
+          <PhoneInput
+            name="guardianPhone"
+            label="보호자(비상연락처) 전화"
+            defaultValue={guardian.phone}
+          />
+          <label className="block space-y-1 text-sm">
+            <span>회원 등급</span>
+            <input
+              name="rankName"
+              defaultValue={initial.rankName ?? ""}
+              className={matchonFieldInputClass}
+            />
+          </label>
+          {groups.length > 0 ? (
+            <fieldset className="space-y-2">
+              <legend className="text-sm font-medium">회원 그룹</legend>
+              <div className="flex flex-wrap gap-2">
+                {groups.map((g) => (
+                  <label
+                    key={g.id}
+                    className="inline-flex items-center gap-1.5 rounded-lg border border-matchon-border px-2.5 py-1.5 text-sm"
+                  >
+                    <input
+                      type="checkbox"
+                      checked={selectedGroupIds.includes(g.id)}
+                      onChange={() => toggleGroup(g.id)}
+                    />
+                    {g.name}
+                  </label>
+                ))}
+              </div>
+            </fieldset>
+          ) : (
+            <input type="hidden" name="groupIds" value="" />
+          )}
+          <label className="flex items-center gap-2 text-sm">
+            <input
+              type="checkbox"
+              name="smsOptOut"
+              value="true"
+              defaultChecked={initial.smsOptOut}
+            />
+            출석 문자 수신 거부
+          </label>
+        </section>
+      </div>
+
       <label className="block space-y-1 text-sm">
         <span>메모</span>
         <textarea
@@ -191,15 +252,6 @@ export function GymMemberEditForm({
           defaultValue={initial.memo ?? ""}
           className={cn(matchonFieldInputClass, "min-h-[5rem] py-2")}
         />
-      </label>
-      <label className="flex items-center gap-2 text-sm">
-        <input
-          type="checkbox"
-          name="smsOptOut"
-          value="true"
-          defaultChecked={initial.smsOptOut}
-        />
-        SMS 수신 거부
       </label>
 
       <div className="flex flex-wrap gap-2 pt-2">

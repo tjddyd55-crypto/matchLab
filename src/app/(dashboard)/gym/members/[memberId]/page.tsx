@@ -15,12 +15,15 @@ import { getSeoulYmdParts } from "@/lib/gym-attendance/seoul-date";
 import { gymAttendanceService } from "@/lib/services/gym-attendance.service";
 import { gymMemberService } from "@/lib/services/gym-member.service";
 import { gymMembershipPlanService } from "@/lib/services/gym-membership-plan.service";
+import { gymMemberLockerService } from "@/lib/services/gym-member-locker.service";
+import { gymMemberGroupService } from "@/lib/services/gym-member-group.service";
 import { gymSalesService } from "@/lib/services/gym-sales.service";
 import { GymMemberAttendanceCalendar } from "@/components/domain/gym-attendance/GymMemberAttendanceCalendar";
 import { GymMemberAvatar } from "@/components/domain/gym-members/GymMemberAvatar";
 import { GymMemberAssignedStaffSection } from "@/components/domain/gym-members/GymMemberAssignedStaffSection";
 import { GymMemberUpcomingSchedulesSection } from "@/components/domain/gym-members/GymMemberUpcomingSchedulesSection";
 import { GymMemberDetailActions } from "@/components/domain/gym-members/GymMemberDetailActions";
+import { GymMemberLockerPanel } from "@/components/domain/gym-members/GymMemberLockerPanel";
 import { GymProfileMissingBanner } from "@/components/domain/gym/GymProfileMissingBanner";
 import { buttonVariants } from "@/components/ui/button";
 import { resolveGymPortalAccess } from "@/lib/gym-portal-access";
@@ -130,6 +133,12 @@ export default async function GymMemberDetailPage({
   let attendanceSummary;
   let attendanceCalendar;
   let salesSummary;
+  let lockerRentals: Awaited<
+    ReturnType<typeof gymMemberLockerService.listRentals>
+  > = [];
+  let memberGroups: Awaited<
+    ReturnType<typeof gymMemberGroupService.listMemberAssignments>
+  > = [];
   let assignedStaff: Awaited<
     ReturnType<typeof gymStaffService.listAssignmentsForMember>
   > = [];
@@ -147,6 +156,8 @@ export default async function GymMemberDetailPage({
       attendanceSummary,
       attendanceCalendar,
       salesSummary,
+      lockerRentals,
+      memberGroups,
       assignedStaff,
       upcomingSchedules,
       upcomingGroupClasses,
@@ -161,6 +172,8 @@ export default async function GymMemberDetailPage({
         calMonth,
       ),
       gymSalesService.getMemberSalesSummary(actor, memberId).catch(() => null),
+      gymMemberLockerService.listRentals(actor, memberId).catch(() => []),
+      gymMemberGroupService.listMemberAssignments(actor, memberId).catch(() => []),
       gymStaffService.listAssignmentsForMember(actor, memberId).catch(() => []),
       gymScheduleService.getMemberUpcoming(actor, memberId, 30).catch(() => []),
       gymGroupClassService.getMemberUpcoming(actor, memberId, 30).catch(() => []),
@@ -372,6 +385,28 @@ export default async function GymMemberDetailPage({
               <InfoRow label="성별" value={member.gender ?? "—"} />
               <InfoRow label="이메일" value={member.email ?? "—"} />
               <InfoRow
+                label="보호자(비상연락처)"
+                value={
+                  [
+                    member.guardianName?.trim() ||
+                      member.emergencyContactName?.trim(),
+                    member.guardianPhone?.trim() ||
+                      member.emergencyContactPhone?.trim(),
+                  ]
+                    .filter(Boolean)
+                    .join(" · ") || "—"
+                }
+              />
+              <InfoRow label="등급" value={member.rankName ?? "—"} />
+              <InfoRow
+                label="그룹"
+                value={
+                  memberGroups.length
+                    ? memberGroups.map((a) => a.group.name).join(", ")
+                    : "—"
+                }
+              />
+              <InfoRow
                 label="주소"
                 value={
                   addressLine
@@ -417,6 +452,13 @@ export default async function GymMemberDetailPage({
                 </p>
               )}
             </section>
+
+            <div className="lg:col-span-2">
+              <GymMemberLockerPanel
+                memberId={member.id}
+                rentals={lockerRentals}
+              />
+            </div>
 
             <div className="lg:col-span-2">
               <GymMemberAssignedStaffSection

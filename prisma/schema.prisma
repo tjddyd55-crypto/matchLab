@@ -128,6 +128,7 @@ enum GymSalesCategory {
   group_class
   product
   event
+  locker
   other
 }
 
@@ -683,6 +684,9 @@ model Gym {
   gymManualSales      GymManualSale[]
   gymPaymentRefunds   GymPaymentRefund[]
   gymReceivables      GymReceivable[]
+  gymMemberGroups     GymMemberGroup[]
+  gymMemberGroupAssignments GymMemberGroupAssignment[]
+  gymMemberLockerRentals GymMemberLockerRental[]
 
   matchonMessageTemplates  MatchonMessageTemplate[]
   matchonMessageDispatches MatchonMessageDispatch[]
@@ -798,6 +802,8 @@ model GymMember {
   personalSchedules  GymPersonalSchedule[]
   groupClassParticipations GymGroupClassParticipation[]
   portalSessions     GymMemberPortalSession[]
+  groupAssignments   GymMemberGroupAssignment[]
+  lockerRentals      GymMemberLockerRental[]
 
   @@unique([gymId, memberNumber])
   @@index([gymId, deletedAt])
@@ -805,6 +811,72 @@ model GymMember {
   @@index([gymId, phone])
   @@index([gymId, normalizedPhone])
   @@index([gymId, name])
+}
+
+/// 체육관별 사용자 정의 회원 그룹 (성인/초등/오전반 등 — enum 고정 금지)
+model GymMemberGroup {
+  id        String    @id @default(cuid())
+  gymId     String
+  name      String
+  sortOrder Int       @default(0)
+  isActive  Boolean   @default(true)
+  deletedAt DateTime?
+  createdAt DateTime  @default(now())
+  updatedAt DateTime  @updatedAt
+
+  gym         Gym                        @relation(fields: [gymId], references: [id], onDelete: Cascade)
+  assignments GymMemberGroupAssignment[]
+
+  @@index([gymId, deletedAt])
+  @@index([gymId, isActive, sortOrder])
+}
+
+/// 회원 ↔ 그룹 M:N
+model GymMemberGroupAssignment {
+  id          String    @id @default(cuid())
+  gymId       String
+  gymMemberId String
+  groupId     String
+  deletedAt   DateTime?
+  createdAt   DateTime  @default(now())
+  updatedAt   DateTime  @updatedAt
+
+  gym    Gym           @relation(fields: [gymId], references: [id], onDelete: Cascade)
+  member GymMember     @relation(fields: [gymMemberId], references: [id], onDelete: Cascade)
+  group  GymMemberGroup @relation(fields: [groupId], references: [id], onDelete: Cascade)
+
+  @@unique([gymMemberId, groupId])
+  @@index([gymId, groupId, deletedAt])
+  @@index([gymMemberId, deletedAt])
+}
+
+/// 회원 사물함 이용 이력 (현재값 단일 필드가 아닌 rental row)
+model GymMemberLockerRental {
+  id          String    @id @default(cuid())
+  gymId       String
+  gymMemberId String
+  /// 사물함 번호 또는 명칭
+  lockerLabel String
+  startedAt   DateTime
+  endsAt      DateTime?
+  amount      Int       @default(0)
+  memo        String?
+  /// null = 이용 중, 값 있으면 종료 처리됨
+  endedAt     DateTime?
+  paymentId   String?
+  createdByUserId String?
+  updatedByUserId String?
+  deletedAt   DateTime?
+  createdAt   DateTime  @default(now())
+  updatedAt   DateTime  @updatedAt
+
+  gym     Gym               @relation(fields: [gymId], references: [id], onDelete: Cascade)
+  member  GymMember         @relation(fields: [gymMemberId], references: [id], onDelete: Cascade)
+  payment GymMemberPayment? @relation(fields: [paymentId], references: [id], onDelete: SetNull)
+
+  @@index([gymId, gymMemberId, deletedAt])
+  @@index([gymMemberId, endedAt, deletedAt])
+  @@index([paymentId])
 }
 
 /// 체육관 선생님·강사·데스크 직원 (User role=gym_staff 와 선택적 연결)
@@ -1213,6 +1285,7 @@ model GymMemberPayment {
   subscription GymMemberSubscription? @relation(fields: [subscriptionId], references: [id], onDelete: SetNull)
   receivable   GymReceivable?         @relation(fields: [receivableId], references: [id], onDelete: SetNull)
   refunds      GymPaymentRefund[]
+  lockerRentals GymMemberLockerRental[]
 
   @@index([gymMemberId, paidAt])
   @@index([gymId, paidAt])
