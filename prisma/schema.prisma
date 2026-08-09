@@ -132,6 +132,15 @@ enum GymSalesCategory {
   other
 }
 
+/// 상품 마스터 분류 (매출 GymSalesCategory와 분리)
+enum GymProductCategory {
+  equipment
+  apparel
+  protective_gear
+  goods
+  other
+}
+
 enum GymReceivableStatus {
   pending
   partial
@@ -687,6 +696,7 @@ model Gym {
   gymMemberGroups     GymMemberGroup[]
   gymMemberGroupAssignments GymMemberGroupAssignment[]
   gymMemberLockerRentals GymMemberLockerRental[]
+  gymProducts         GymProduct[]
 
   matchonMessageTemplates  MatchonMessageTemplate[]
   matchonMessageDispatches MatchonMessageDispatch[]
@@ -1298,6 +1308,8 @@ model GymManualSale {
   id              String                 @id @default(cuid())
   gymId           String
   gymMemberId     String?
+  /// 상품 마스터 선택 시 (직접 입력이면 null)
+  productId       String?
   title           String
   category        GymSalesCategory       @default(other)
   soldAt          DateTime
@@ -1314,10 +1326,35 @@ model GymManualSale {
 
   gym     Gym                @relation(fields: [gymId], references: [id], onDelete: Cascade)
   member  GymMember?         @relation(fields: [gymMemberId], references: [id], onDelete: SetNull)
+  product GymProduct?        @relation(fields: [productId], references: [id], onDelete: SetNull)
   refunds GymPaymentRefund[]
 
   @@index([gymId, soldAt])
   @@index([gymId, status, soldAt])
+  @@index([productId])
+}
+
+/// 체육관 판매 상품 마스터 (회원권과 분리)
+model GymProduct {
+  id           String             @id @default(cuid())
+  gymId        String
+  name         String
+  category     GymProductCategory @default(goods)
+  defaultPrice Int                @default(0)
+  isActive     Boolean            @default(true)
+  sortOrder    Int                @default(0)
+  memo         String?
+  deletedAt    DateTime?
+  createdAt    DateTime           @default(now())
+  updatedAt    DateTime           @updatedAt
+
+  gym          Gym             @relation(fields: [gymId], references: [id], onDelete: Cascade)
+  manualSales  GymManualSale[]
+  receivables  GymReceivable[]
+
+  @@index([gymId, deletedAt])
+  @@index([gymId, isActive, sortOrder])
+  @@index([gymId, name])
 }
 
 /// 환불 — 원결제/수기매출에 귀속. 환불일 기준 매출 차감
@@ -1350,6 +1387,8 @@ model GymReceivable {
   id              String              @id @default(cuid())
   gymId           String
   gymMemberId     String
+  /// 상품 마스터 선택 시 (직접 입력이면 null)
+  productId       String?
   title           String
   category        GymSalesCategory?
   totalAmount     Int
@@ -1365,11 +1404,13 @@ model GymReceivable {
 
   gym      Gym                @relation(fields: [gymId], references: [id], onDelete: Cascade)
   member   GymMember          @relation(fields: [gymMemberId], references: [id], onDelete: Cascade)
+  product  GymProduct?        @relation(fields: [productId], references: [id], onDelete: SetNull)
   payments GymMemberPayment[]
 
   @@index([gymId, status])
   @@index([gymMemberId, status])
   @@index([gymId, dueDate])
+  @@index([productId])
 }
 
 /// 선수 공개 개인 프로필 (주최자 공개 풀·체육관 DB와 별도)

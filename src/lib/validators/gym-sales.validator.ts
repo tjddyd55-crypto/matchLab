@@ -45,6 +45,37 @@ export const gymManualSaleCreateSchema = z.object({
     .trim()
     .optional()
     .transform((s) => (s === "" ? undefined : s)),
+  productId: z
+    .string()
+    .trim()
+    .optional()
+    .transform((s) => (s === "" ? undefined : s)),
+  memo: z
+    .string()
+    .trim()
+    .max(500)
+    .optional()
+    .transform((s) => (s === "" ? undefined : s)),
+});
+
+/** 통합 매출 등록 (판매금액/결제금액 → ManualSale 또는 Receivable) */
+export const gymSalesEntryCreateSchema = z.object({
+  title: z.string().trim().min(1, "항목명을 입력해 주세요.").max(120),
+  saleAmount: wonInt.pipe(z.number().int().positive("판매금액을 입력해 주세요.")),
+  paidAmount: wonIntOrZero,
+  soldAt: optionalDateOnly,
+  paymentMethod: paymentMethodEnum.optional().default(GymMemberPaymentMethod.cash),
+  category: categoryEnum.optional().default(GymSalesCategory.other),
+  gymMemberId: z
+    .string()
+    .trim()
+    .optional()
+    .transform((s) => (s === "" ? undefined : s)),
+  productId: z
+    .string()
+    .trim()
+    .optional()
+    .transform((s) => (s === "" ? undefined : s)),
   memo: z
     .string()
     .trim()
@@ -91,6 +122,11 @@ export const gymReceivableCreateSchema = z.object({
     categoryEnum.optional(),
   ),
   subscriptionId: z
+    .string()
+    .trim()
+    .optional()
+    .transform((s) => (s === "" ? undefined : s)),
+  productId: z
     .string()
     .trim()
     .optional()

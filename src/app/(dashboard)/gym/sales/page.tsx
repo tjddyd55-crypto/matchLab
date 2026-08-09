@@ -1,4 +1,3 @@
-import Link from "next/link";
 import { notFound } from "next/navigation";
 import { requireActor } from "@/lib/auth/actor";
 import { PermissionError } from "@/lib/auth/permission-error";
@@ -6,16 +5,16 @@ import { AppError } from "@/lib/errors/app-error";
 import { requireGymPortalSalesManage } from "@/lib/gym-portal-access";
 import { gymSalesService } from "@/lib/services/gym-sales.service";
 import { gymMemberService } from "@/lib/services/gym-member.service";
+import { gymProductService } from "@/lib/services/gym-product.service";
+import { gymProductCategoryLabel } from "@/lib/gym-products/labels";
 import { GymSalesDashboardPanel } from "@/components/domain/gym-sales/GymSalesDashboardPanel";
+import { GymSalesRegisterCta } from "@/components/domain/gym-sales/GymSalesRegisterCta";
 import { GymProfileMissingBanner } from "@/components/domain/gym/GymProfileMissingBanner";
-import { buttonVariants } from "@/components/ui/button";
+import { MemberPageHeader } from "@/components/domain/gym-members/MemberPageHeader";
 import {
   matchonPageContainerClass,
-  matchonPageDescClass,
   matchonPageStackClass,
-  matchonPageTitleClass,
 } from "@/lib/ui/matchon-layout";
-import { cn } from "@/lib/utils";
 import type { SalesPeriodKey } from "@/lib/gym-sales/calc";
 
 export const dynamic = "force-dynamic";
@@ -63,36 +62,38 @@ export default async function GymSalesPage({
     sort: pick("sort") as "recent" | "amount_desc" | "amount_asc" | undefined,
   };
 
-  const [data, membersResult] = await Promise.all([
+  const [data, membersResult, products] = await Promise.all([
     gymSalesService.getDashboard(actor, filters),
     gymMemberService.listMembers(actor, { page: 1, pageSize: 300 }),
+    gymProductService.listProducts(actor, { activeOnly: true }),
   ]);
+
+  const memberOptions = membersResult.items.map((m) => ({
+    id: m.id,
+    name: m.name,
+  }));
+  const productOptions = products.map((p) => ({
+    id: p.id,
+    name: p.name,
+    category: p.category,
+    categoryLabel: gymProductCategoryLabel(p.category),
+    defaultPrice: p.defaultPrice,
+  }));
 
   return (
     <div className={matchonPageContainerClass}>
       <div className={matchonPageStackClass}>
-        <div className="min-w-0">
-          <h1 className={matchonPageTitleClass}>매출 관리</h1>
-          <p className={matchonPageDescClass}>
-            회원 결제 내역을 기준으로 체육관 매출과 미수금을 확인할 수 있습니다.
-          </p>
-        </div>
-        <div className="flex flex-wrap gap-2">
-          <Link
-            href="/gym/sales/receivables"
-            className={cn(buttonVariants({ variant: "outline", size: "sm" }))}
-          >
-            미수금
-          </Link>
-        </div>
-        <GymSalesDashboardPanel
-          data={data}
-          members={membersResult.items.map((m) => ({
-            id: m.id,
-            name: m.name,
-          }))}
-          filters={filters}
+        <MemberPageHeader
+          title="매출 현황"
+          description="기간별 매출·수납·미수를 확인합니다. 등록은 매출 등록에서 진행하세요."
+          actions={
+            <GymSalesRegisterCta
+              members={memberOptions}
+              products={productOptions}
+            />
+          }
         />
+        <GymSalesDashboardPanel data={data} filters={filters} />
       </div>
     </div>
   );

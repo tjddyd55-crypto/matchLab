@@ -81,7 +81,8 @@ export function getGymPortalNavGroups(
         label: "매출 관리",
         items: [
           { href: "/gym/sales", label: "매출 현황" },
-          { href: "/gym/sales/receivables", label: "미수금" },
+          { href: "/gym/sales/receivables", label: "매출 등록" },
+          { href: "/gym/products", label: "상품 관리" },
         ],
       },
       {
@@ -252,6 +253,11 @@ export function isGymPortalNavItemActive(
     return (
       pathname === "/gym/sales/receivables" ||
       pathname.startsWith("/gym/sales/receivables/")
+    );
+  }
+  if (href === "/gym/products") {
+    return (
+      pathname === "/gym/products" || pathname.startsWith("/gym/products/")
     );
   }
   return pathname === href || pathname.startsWith(`${href}/`);
