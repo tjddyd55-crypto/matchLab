@@ -318,6 +318,8 @@ export function salesCategoryLabel(category: string | null | undefined): string 
       return "용품";
     case "event":
       return "대회";
+    case "locker":
+      return "사물함";
     case "other":
       return "기타";
     case "unclassified":

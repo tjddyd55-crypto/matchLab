@@ -646,6 +646,7 @@ export const gymSalesService = {
       listPrice?: number | null;
       discountAmount?: number;
       gymMemberId?: string | null;
+      productId?: string | null;
       memo?: string;
     },
   ) {
@@ -673,6 +674,21 @@ export const gymSalesService = {
       if (!member) throw new AppError("NOT_FOUND", "회원을 찾을 수 없습니다.");
     }
 
+    let productId: string | null = null;
+    if (input.productId) {
+      const product = await prisma.gymProduct.findFirst({
+        where: {
+          id: input.productId,
+          gymId: access.gymId,
+          deletedAt: null,
+        },
+      });
+      if (!product) {
+        throw new AppError("NOT_FOUND", "상품을 찾을 수 없습니다.");
+      }
+      productId = product.id;
+    }
+
     const title = input.title.trim();
     if (!title) {
       throw new AppError("VALIDATION_ERROR", "항목명을 입력해 주세요.");
@@ -683,6 +699,7 @@ export const gymSalesService = {
         data: {
           gymId: access.gymId,
           gymMemberId: input.gymMemberId ?? null,
+          productId,
           title,
           category: input.category ?? GymSalesCategory.other,
           soldAt,
@@ -705,6 +722,7 @@ export const gymSalesService = {
             amount: created.amount,
             category: created.category,
             source: "MANUAL_SALE",
+            productId,
           },
         },
         tx,
@@ -872,6 +890,7 @@ export const gymSalesService = {
       dueDate?: Date | string | null;
       category?: GymSalesCategory | null;
       subscriptionId?: string | null;
+      productId?: string | null;
       memo?: string;
     },
   ) {
@@ -888,11 +907,27 @@ export const gymSalesService = {
     }
     const dueDate = input.dueDate ? parsePaidAt(input.dueDate) : null;
 
+    let productId: string | null = null;
+    if (input.productId) {
+      const product = await prisma.gymProduct.findFirst({
+        where: {
+          id: input.productId,
+          gymId: access.gymId,
+          deletedAt: null,
+        },
+      });
+      if (!product) {
+        throw new AppError("NOT_FOUND", "상품을 찾을 수 없습니다.");
+      }
+      productId = product.id;
+    }
+
     return prisma.$transaction(async (tx) => {
       const created = await tx.gymReceivable.create({
         data: {
           gymId: access.gymId,
           gymMemberId: input.gymMemberId,
+          productId,
           title,
           category: input.category ?? null,
           totalAmount: input.totalAmount,
@@ -910,12 +945,103 @@ export const gymSalesService = {
           action: AuditAction.gym_receivable_created,
           targetType: "GymReceivable",
           targetId: created.id,
-          afterData: { totalAmount: created.totalAmount },
+          afterData: { totalAmount: created.totalAmount, productId },
         },
         tx,
       );
       return created;
     });
+  },
+
+  /**
+   * 통합 매출 등록.
+   * - 결제금액 >= 판매금액 → GymManualSale (즉시 매출)
+   * - 결제금액 < 판매금액 → GymReceivable (+ 일부 납부 시 Payment)
+   * 미수/일부결제는 회원 필수 (기존 Receivable SSOT).
+   */
+  async createSalesEntry(
+    actor: ActorContext,
+    input: {
+      title: string;
+      saleAmount: number;
+      paidAmount: number;
+      soldAt?: Date | string;
+      paymentMethod?: GymMemberPaymentMethod;
+      category?: GymSalesCategory;
+      gymMemberId?: string | null;
+      productId?: string | null;
+      memo?: string;
+    },
+  ): Promise<
+    | { kind: "manual_sale"; id: string }
+    | { kind: "receivable"; id: string; outstanding: number }
+  > {
+    const saleAmount = Math.trunc(input.saleAmount);
+    const paidAmount = Math.trunc(input.paidAmount);
+    if (!Number.isFinite(saleAmount) || saleAmount <= 0) {
+      throw new AppError("VALIDATION_ERROR", "판매금액을 입력해 주세요.");
+    }
+    if (!Number.isFinite(paidAmount) || paidAmount < 0) {
+      throw new AppError("VALIDATION_ERROR", "결제금액이 올바르지 않습니다.");
+    }
+    if (paidAmount > saleAmount) {
+      throw new AppError(
+        "VALIDATION_ERROR",
+        "결제금액은 판매금액을 초과할 수 없습니다.",
+      );
+    }
+
+    const title = input.title.trim();
+    if (!title) {
+      throw new AppError("VALIDATION_ERROR", "항목명을 입력해 주세요.");
+    }
+
+    if (paidAmount >= saleAmount) {
+      const created = await this.createManualSale(actor, {
+        title,
+        amount: saleAmount,
+        listPrice: saleAmount,
+        soldAt: input.soldAt,
+        paymentMethod: input.paymentMethod,
+        category: input.category ?? GymSalesCategory.other,
+        gymMemberId: input.gymMemberId,
+        productId: input.productId,
+        memo: input.memo,
+      });
+      return { kind: "manual_sale", id: created.id };
+    }
+
+    if (!input.gymMemberId) {
+      throw new AppError(
+        "VALIDATION_ERROR",
+        "미수·일부 결제는 회원을 선택해 주세요.",
+      );
+    }
+
+    const receivable = await this.createReceivable(actor, {
+      gymMemberId: input.gymMemberId,
+      title,
+      totalAmount: saleAmount,
+      category: input.category ?? GymSalesCategory.other,
+      productId: input.productId,
+      memo: input.memo,
+      dueDate: input.soldAt,
+    });
+
+    if (paidAmount > 0) {
+      await this.collectReceivablePayment(actor, receivable.id, {
+        amount: paidAmount,
+        paidAt: input.soldAt,
+        paymentMethod: input.paymentMethod,
+        memo: input.memo,
+      });
+    }
+
+    return {
+      kind: "receivable",
+      id: receivable.id,
+      outstanding: Math.max(0, saleAmount - paidAmount),
+    };
   },
 
   async listReceivables(actor: ActorContext) {
@@ -954,6 +1080,126 @@ export const gymSalesService = {
         memo: r.memo,
       };
     });
+  },
+
+  /**
+   * 매출 등록 작업 목록 = 수기매출 + 미수(Receivable) 통합 ViewModel.
+   * DB 변환 없이 표시만 합친다.
+   */
+  async listSalesEntries(
+    actor: ActorContext,
+    opts?: { paymentStatus?: "all" | "paid" | "partial" | "unpaid" },
+  ) {
+    const access = await requireGymPortalSalesManage(actor);
+    const paymentStatus = opts?.paymentStatus ?? "all";
+    const [manualSales, receivables] = await Promise.all([
+      prisma.gymManualSale.findMany({
+        where: { gymId: access.gymId, cancelledAt: null },
+        orderBy: [{ soldAt: "desc" }, { createdAt: "desc" }],
+        include: {
+          member: { select: { id: true, name: true, phone: true } },
+          product: { select: { id: true, name: true } },
+        },
+        take: 500,
+      }),
+      prisma.gymReceivable.findMany({
+        where: {
+          gymId: access.gymId,
+          cancelledAt: null,
+          status: { not: GymReceivableStatus.cancelled },
+        },
+        orderBy: [{ createdAt: "desc" }],
+        include: {
+          member: { select: { id: true, name: true, phone: true } },
+          product: { select: { id: true, name: true } },
+        },
+        take: 500,
+      }),
+    ]);
+
+    const today = toSeoulAttendanceDate(new Date());
+
+    type Entry = {
+      id: string;
+      kind: "manual_sale" | "receivable";
+      soldAt: Date;
+      memberId: string | null;
+      memberName: string | null;
+      maskedPhone: string | null;
+      title: string;
+      categoryLabel: string;
+      productName: string | null;
+      saleAmount: number;
+      paidAmount: number;
+      remaining: number;
+      paymentStatus: "paid" | "partial" | "unpaid";
+      paymentStatusLabel: string;
+      overdueDays: number;
+    };
+
+    const fromManual: Entry[] = manualSales.map((s) => ({
+      id: s.id,
+      kind: "manual_sale" as const,
+      soldAt: s.soldAt,
+      memberId: s.gymMemberId,
+      memberName: s.member?.name ?? null,
+      maskedPhone: s.member
+        ? maskPhoneForAdminList(s.member.phone)
+        : null,
+      title: s.title,
+      categoryLabel: salesCategoryLabel(s.category),
+      productName: s.product?.name ?? null,
+      saleAmount: s.amount,
+      paidAmount: s.amount,
+      remaining: 0,
+      paymentStatus: "paid" as const,
+      paymentStatusLabel: "결제 완료",
+      overdueDays: 0,
+    }));
+
+    const fromReceivable: Entry[] = receivables.map((r) => {
+      const remaining = receivableRemaining(r.totalAmount, r.paidAmount);
+      const paymentStatus =
+        remaining <= 0
+          ? ("paid" as const)
+          : r.paidAmount <= 0
+            ? ("unpaid" as const)
+            : ("partial" as const);
+      const due = r.dueDate ? toSeoulAttendanceDate(r.dueDate) : null;
+      const overdueDays =
+        due && remaining > 0 && due.getTime() < today.getTime()
+          ? Math.floor((today.getTime() - due.getTime()) / 86_400_000)
+          : 0;
+      return {
+        id: r.id,
+        kind: "receivable" as const,
+        soldAt: r.dueDate ?? r.createdAt,
+        memberId: r.gymMemberId,
+        memberName: r.member.name,
+        maskedPhone: maskPhoneForAdminList(r.member.phone),
+        title: r.title,
+        categoryLabel: salesCategoryLabel(r.category),
+        productName: r.product?.name ?? null,
+        saleAmount: r.totalAmount,
+        paidAmount: r.paidAmount,
+        remaining,
+        paymentStatus,
+        paymentStatusLabel:
+          paymentStatus === "paid"
+            ? "결제 완료"
+            : paymentStatus === "partial"
+              ? "일부 결제"
+              : "미수",
+        overdueDays,
+      };
+    });
+
+    const merged = [...fromManual, ...fromReceivable].sort(
+      (a, b) => b.soldAt.getTime() - a.soldAt.getTime(),
+    );
+
+    if (paymentStatus === "all") return merged;
+    return merged.filter((e) => e.paymentStatus === paymentStatus);
   },
 
   async collectReceivablePayment(

@@ -16,6 +16,7 @@ import {
   gymReceivableCollectSchema,
   gymReceivableCreateSchema,
   gymRefundCreateSchema,
+  gymSalesEntryCreateSchema,
 } from "@/lib/validators/gym-sales.validator";
 
 function mapCaught<T>(
@@ -50,7 +51,43 @@ function revalidateSalesPaths(memberId?: string) {
   revalidatePath("/gym");
   revalidatePath("/gym/sales");
   revalidatePath("/gym/sales/receivables");
+  revalidatePath("/gym/products");
   if (memberId) revalidatePath(`/gym/members/${memberId}`);
+}
+
+export async function createGymSalesEntryAction(
+  formData: FormData,
+): Promise<
+  ActionResult<
+    | { kind: "manual_sale"; id: string }
+    | { kind: "receivable"; id: string; outstanding: number }
+  >
+> {
+  return mapCaught(async () => {
+    const actor = await requireActorFromMutation();
+    const parsed = gymSalesEntryCreateSchema.safeParse(
+      formObj(formData, [
+        "title",
+        "saleAmount",
+        "paidAmount",
+        "soldAt",
+        "paymentMethod",
+        "category",
+        "gymMemberId",
+        "productId",
+        "memo",
+      ]),
+    );
+    if (!parsed.success) {
+      return actionFailure(
+        "VALIDATION_ERROR",
+        parsed.error.issues[0]?.message ?? "입력값을 확인해 주세요.",
+      );
+    }
+    const created = await gymSalesService.createSalesEntry(actor, parsed.data);
+    revalidateSalesPaths(parsed.data.gymMemberId);
+    return actionSuccess(created);
+  });
 }
 
 export async function createGymManualSaleAction(
@@ -68,6 +105,7 @@ export async function createGymManualSaleAction(
         "paymentMethod",
         "category",
         "gymMemberId",
+        "productId",
         "memo",
       ]),
     );
@@ -127,6 +165,7 @@ export async function createGymReceivableAction(
         "dueDate",
         "category",
         "subscriptionId",
+        "productId",
         "memo",
       ]),
     );

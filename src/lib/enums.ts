@@ -38,6 +38,7 @@ export {
   GymMembershipDurationType,
   GymReceivableStatus,
   GymSalesCategory,
+  GymProductCategory,
   GymStatus,
   GymStaffAssignmentType,
   GymStaffRole,

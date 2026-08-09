@@ -7,9 +7,6 @@ import { Button, buttonVariants } from "@/components/ui/button";
 import { AppDateInput } from "@/components/shared/AppDateInput";
 import {
   cancelGymManualSaleAction,
-  collectGymReceivableAction,
-  createGymManualSaleAction,
-  createGymReceivableAction,
   createGymRefundAction,
 } from "@/features/gym-sales/actions";
 import { GymMemberPaymentMethod, GymSalesCategory } from "@/lib/enums";
@@ -26,8 +23,6 @@ import {
 } from "@/lib/ui/matchon-shell-ui";
 import { matchonSectionTitleClass } from "@/lib/ui/matchon-layout";
 import { cn } from "@/lib/utils";
-
-type MemberOption = { id: string; name: string };
 
 const PERIODS = [
   { key: "today", label: "오늘" },
@@ -58,6 +53,7 @@ function CategoryOptions({ includeEmpty }: { includeEmpty?: boolean }) {
       <option value={GymSalesCategory.group_class}>그룹 수업</option>
       <option value={GymSalesCategory.product}>용품</option>
       <option value={GymSalesCategory.event}>대회</option>
+      <option value={GymSalesCategory.locker}>사물함</option>
       <option value={GymSalesCategory.other}>기타</option>
     </>
   );
@@ -65,11 +61,9 @@ function CategoryOptions({ includeEmpty }: { includeEmpty?: boolean }) {
 
 export function GymSalesDashboardPanel({
   data,
-  members,
   filters,
 }: {
   data: GymSalesDashboard;
-  members: MemberOption[];
   filters: {
     period: string;
     from?: string;
@@ -143,7 +137,7 @@ export function GymSalesDashboardPanel({
           href="/gym/sales/receivables"
           className={cn(buttonVariants({ size: "sm", variant: "outline" }))}
         >
-          미수금
+          매출 등록
         </Link>
       </div>
 
@@ -341,74 +335,6 @@ export function GymSalesDashboardPanel({
           </ul>
         </section>
       </div>
-
-      <section className="rounded-xl border border-matchon-border bg-white p-4">
-        <h2 className={matchonSectionTitleClass}>수기 매출 등록</h2>
-        <form
-          className="mt-3 grid gap-2 sm:grid-cols-2"
-          action={(fd) =>
-            run(
-              () => createGymManualSaleAction(fd),
-              "수기 매출을 등록했습니다.",
-            )
-          }
-        >
-          <label className="block space-y-1 text-sm sm:col-span-2">
-            <span>항목명 *</span>
-            <input name="title" required className={matchonFieldInputClass} />
-          </label>
-          <label className="block space-y-1 text-sm">
-            <span>금액 *</span>
-            <input
-              name="amount"
-              inputMode="numeric"
-              required
-              className={matchonFieldInputClass}
-            />
-          </label>
-          <AppDateInput name="soldAt" label="매출일" defaultValue={today} />
-          <label className="block space-y-1 text-sm">
-            <span>결제수단</span>
-            <select
-              name="paymentMethod"
-              className={matchonFieldInputClass}
-              defaultValue={GymMemberPaymentMethod.cash}
-            >
-              <PaymentMethodOptions />
-            </select>
-          </label>
-          <label className="block space-y-1 text-sm">
-            <span>매출 유형</span>
-            <select
-              name="category"
-              className={matchonFieldInputClass}
-              defaultValue={GymSalesCategory.other}
-            >
-              <CategoryOptions />
-            </select>
-          </label>
-          <label className="block space-y-1 text-sm sm:col-span-2">
-            <span>회원 연결 (선택)</span>
-            <select name="gymMemberId" className={matchonFieldInputClass} defaultValue="">
-              <option value="">없음</option>
-              {members.map((m) => (
-                <option key={m.id} value={m.id}>
-                  {m.name}
-                </option>
-              ))}
-            </select>
-          </label>
-          <label className="block space-y-1 text-sm sm:col-span-2">
-            <span>메모</span>
-            <input name="memo" className={matchonFieldInputClass} />
-          </label>
-          <div className="sm:col-span-2">
-            <Button type="submit" size="sm" disabled={pending}>
-              수기 매출 등록
-            </Button>
-          </div>
-        </form>
-      </section>
 
       <section className="rounded-xl border border-matchon-border bg-white p-4">
         <div className="flex flex-wrap items-center justify-between gap-2">
@@ -650,205 +576,6 @@ function SummaryMini({ label, value }: { label: string; value: string }) {
     <div className="rounded-lg border border-matchon-border bg-white px-3 py-2">
       <p className="text-xs text-matchon-text-secondary">{label}</p>
       <p className="text-sm font-semibold">{value}</p>
-    </div>
-  );
-}
-
-export function GymReceivablesPanel({
-  rows,
-  members,
-}: {
-  rows: Array<{
-    id: string;
-    memberId: string;
-    memberName: string;
-    maskedPhone: string;
-    title: string;
-    totalAmount: number;
-    paidAmount: number;
-    remaining: number;
-    dueDate: Date | null;
-    overdueDays: number;
-    status: string;
-    categoryLabel: string;
-  }>;
-  members: MemberOption[];
-}) {
-  const router = useRouter();
-  const [pending, startTransition] = useTransition();
-  const [error, setError] = useState<string | null>(null);
-  const [message, setMessage] = useState<string | null>(null);
-  const today = toSeoulDateOnlyString();
-
-  function run(
-    fn: () => Promise<{ ok: boolean; error?: { message?: string } }>,
-    okMsg: string,
-  ) {
-    setError(null);
-    setMessage(null);
-    startTransition(async () => {
-      const res = await fn();
-      if (!res.ok) {
-        setError(res.error?.message ?? "처리에 실패했습니다.");
-        return;
-      }
-      setMessage(okMsg);
-      router.refresh();
-    });
-  }
-
-  const statusLabel: Record<string, string> = {
-    pending: "납부 예정",
-    partial: "일부 납부",
-    overdue: "연체",
-    paid: "완납",
-    cancelled: "취소",
-  };
-
-  return (
-    <div className="space-y-6">
-      {error ? (
-        <p className="text-sm text-red-600" role="alert">
-          {error}
-        </p>
-      ) : null}
-      {message ? (
-        <p className="text-sm text-emerald-700" role="status">
-          {message}
-        </p>
-      ) : null}
-      <section className="rounded-xl border border-matchon-border bg-white p-4">
-        <h2 className={matchonSectionTitleClass}>미수금 등록</h2>
-        <form
-          className="mt-3 grid gap-2 sm:grid-cols-2"
-          action={(fd) =>
-            run(
-              () => createGymReceivableAction(fd),
-              "미수금을 등록했습니다.",
-            )
-          }
-        >
-          <label className="block space-y-1 text-sm sm:col-span-2">
-            <span>회원 *</span>
-            <select name="gymMemberId" required className={matchonFieldInputClass}>
-              <option value="">선택</option>
-              {members.map((m) => (
-                <option key={m.id} value={m.id}>
-                  {m.name}
-                </option>
-              ))}
-            </select>
-          </label>
-          <label className="block space-y-1 text-sm">
-            <span>결제 항목 *</span>
-            <input name="title" required className={matchonFieldInputClass} />
-          </label>
-          <label className="block space-y-1 text-sm">
-            <span>청구금액 *</span>
-            <input
-              name="totalAmount"
-              inputMode="numeric"
-              required
-              className={matchonFieldInputClass}
-            />
-          </label>
-          <AppDateInput name="dueDate" label="납부기한" />
-          <label className="block space-y-1 text-sm">
-            <span>유형</span>
-            <select name="category" className={matchonFieldInputClass} defaultValue="">
-              <CategoryOptions includeEmpty />
-            </select>
-          </label>
-          <div className="sm:col-span-2">
-            <Button type="submit" size="sm" disabled={pending}>
-              미수금 등록
-            </Button>
-          </div>
-        </form>
-      </section>
-
-      <ul className="space-y-3">
-        {rows.length === 0 ? (
-          <li className="text-sm text-matchon-text-secondary">
-            미수금이 없습니다.
-          </li>
-        ) : (
-          rows.map((r) => (
-            <li
-              key={r.id}
-              className="rounded-xl border border-matchon-border bg-white p-4"
-            >
-              <div className="flex flex-wrap items-start justify-between gap-2">
-                <div>
-                  <p className="font-medium">
-                    {r.memberName}{" "}
-                    <span className="text-xs text-matchon-text-secondary">
-                      {r.maskedPhone}
-                    </span>
-                  </p>
-                  <p className="text-sm text-matchon-text-secondary">
-                    {r.title} · {r.categoryLabel}
-                  </p>
-                </div>
-                <p className="text-sm font-semibold">
-                  {statusLabel[r.status] ?? r.status}
-                </p>
-              </div>
-              <div className="mt-2 grid grid-cols-2 gap-2 text-sm sm:grid-cols-4">
-                <div>
-                  <p className="text-xs text-matchon-text-secondary">청구</p>
-                  <p>{formatWon(r.totalAmount)}</p>
-                </div>
-                <div>
-                  <p className="text-xs text-matchon-text-secondary">납부</p>
-                  <p>{formatWon(r.paidAmount)}</p>
-                </div>
-                <div>
-                  <p className="text-xs text-matchon-text-secondary">남은 금액</p>
-                  <p>{formatWon(r.remaining)}</p>
-                </div>
-                <div>
-                  <p className="text-xs text-matchon-text-secondary">납부기한</p>
-                  <p>
-                    {r.dueDate ? formatUtcDateOnly(r.dueDate) : "—"}
-                    {r.overdueDays > 0 ? ` · ${r.overdueDays}일 경과` : ""}
-                  </p>
-                </div>
-              </div>
-              {r.remaining > 0 && r.status !== "cancelled" ? (
-                <form
-                  className="mt-3 grid gap-2 border-t border-matchon-border pt-3 sm:grid-cols-4"
-                  action={(fd) =>
-                    run(
-                      () => collectGymReceivableAction(r.id, fd),
-                      "납부를 등록했습니다.",
-                    )
-                  }
-                >
-                  <input
-                    name="amount"
-                    inputMode="numeric"
-                    required
-                    placeholder={`납부금액 (최대 ${r.remaining})`}
-                    className={matchonFieldInputClass}
-                  />
-                  <AppDateInput name="paidAt" label="결제일" defaultValue={today} />
-                  <select
-                    name="paymentMethod"
-                    className={matchonFieldInputClass}
-                    defaultValue={GymMemberPaymentMethod.cash}
-                  >
-                    <PaymentMethodOptions />
-                  </select>
-                  <Button type="submit" size="sm" disabled={pending}>
-                    결제 받기
-                  </Button>
-                </form>
-              ) : null}
-            </li>
-          ))
-        )}
-      </ul>
     </div>
   );
 }
