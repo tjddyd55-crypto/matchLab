@@ -12,19 +12,12 @@ import { requireGymPortalWrite } from "@/lib/gym-portal-access";
 import { prisma } from "@/lib/prisma";
 import { auditRepository } from "@/lib/repositories/audit.repository";
 import { gymMemberRepository } from "@/lib/repositories/gym-member.repository";
-import { GymMembershipDurationType } from "@/lib/enums";
+import { addMembershipDuration } from "@/lib/gym-member/membership-duration";
 
 function addDays(date: Date, days: number): Date {
   const d = new Date(date.getTime());
   d.setUTCDate(d.getUTCDate() + days);
   return d;
-}
-
-function addMonths(date: Date, months: number): Date {
-  const y = date.getUTCFullYear();
-  const m = date.getUTCMonth() + months;
-  const day = date.getUTCDate();
-  return new Date(Date.UTC(y + Math.floor(m / 12), m % 12, day));
 }
 
 export const gymMemberSubscriptionService = {
@@ -62,12 +55,12 @@ export const gymMemberSubscriptionService = {
     let endsAt: Date | null = input.endsAt
       ? toUtcDateOnly(input.endsAt)
       : null;
-    if (!endsAt && plan.durationValue) {
-      if (plan.durationType === GymMembershipDurationType.days) {
-        endsAt = addDays(startedAt, plan.durationValue);
-      } else if (plan.durationType === GymMembershipDurationType.months) {
-        endsAt = addMonths(startedAt, plan.durationValue);
-      }
+    if (!endsAt) {
+      endsAt = addMembershipDuration(
+        startedAt,
+        plan.durationType,
+        plan.durationValue,
+      );
     }
 
     const sub = await prisma.$transaction(async (tx) => {

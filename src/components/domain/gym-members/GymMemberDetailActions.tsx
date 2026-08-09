@@ -5,59 +5,25 @@ import { useRouter } from "next/navigation";
 import { AppDateInput } from "@/components/shared/AppDateInput";
 import { Button } from "@/components/ui/button";
 import {
-  assignGymMemberSubscriptionAction,
-  cancelGymMemberPaymentAction,
-  createGymMemberPaymentAction,
-  extendGymMemberSubscriptionAction,
   pauseGymMemberAction,
   promoteGymMemberToFighterAction,
   resumeGymMemberAction,
   setGymMemberStatusAction,
   softDeleteGymMemberAction,
 } from "@/features/gym-members/actions";
-import {
-  GymMemberPaymentMethod,
-  GymMemberStatus,
-} from "@/lib/enums";
+import { GymMemberStatus } from "@/lib/enums";
 import { todayUtcDateOnlyString } from "@/lib/date-only";
-import { formatWon } from "@/lib/format-won";
 import { matchonFieldInputClass } from "@/lib/ui/matchon-shell-ui";
-import { cn } from "@/lib/utils";
-
-type PlanOption = { id: string; name: string; price: number };
-
-type PaymentRow = {
-  id: string;
-  amount: number;
-  status: string;
-  paymentMethod: string;
-  paidAt: Date | string;
-  memo: string | null;
-};
-
-type SubscriptionOption = {
-  id: string;
-  planNameSnapshot: string;
-  status: string;
-};
 
 export function GymMemberDetailActions({
   memberId,
   memberStatus,
   hasFighter,
-  currentSubscriptionId,
-  plans,
-  subscriptions,
-  payments,
   defaultPrimarySport,
 }: {
   memberId: string;
   memberStatus: GymMemberStatus;
   hasFighter: boolean;
-  currentSubscriptionId: string | null;
-  plans: PlanOption[];
-  subscriptions: SubscriptionOption[];
-  payments: PaymentRow[];
   defaultPrimarySport?: string | null;
 }) {
   const router = useRouter();
@@ -155,10 +121,7 @@ export function GymMemberDetailActions({
                   </label>
                   <label className="block space-y-1 text-sm">
                     <span>사유</span>
-                    <input
-                      name="reason"
-                      className={matchonFieldInputClass}
-                    />
+                    <input name="reason" className={matchonFieldInputClass} />
                   </label>
                   <Button type="submit" size="sm" disabled={pending}>
                     휴회 적용
@@ -215,204 +178,6 @@ export function GymMemberDetailActions({
           </div>
         </section>
       ) : null}
-
-      <section className="space-y-3 rounded-xl border border-matchon-border bg-white p-4">
-        <h3 className="text-sm font-semibold text-matchon-text-primary">
-          이용권 배정
-        </h3>
-        <form
-          action={onFormAction(
-            (fd) => assignGymMemberSubscriptionAction(memberId, fd),
-            "이용권을 배정했습니다.",
-          )}
-          className="space-y-2"
-        >
-          <label className="block space-y-1 text-sm">
-            <span>이용권</span>
-            <select
-              name="planId"
-              required
-              className={matchonFieldInputClass}
-              defaultValue=""
-            >
-              <option value="" disabled>
-                선택
-              </option>
-              {plans.map((p) => (
-                <option key={p.id} value={p.id}>
-                  {p.name} ({formatWon(p.price)})
-                </option>
-              ))}
-            </select>
-          </label>
-          <AppDateInput
-            name="startedAt"
-            label="시작일"
-            defaultValue={today}
-          />
-          <AppDateInput name="endsAt" label="종료일 (선택)" />
-          <label className="block space-y-1 text-sm">
-            <span>메모</span>
-            <input name="memo" className={matchonFieldInputClass} />
-          </label>
-          <Button type="submit" size="sm" disabled={pending || plans.length === 0}>
-            배정
-          </Button>
-        </form>
-
-        {currentSubscriptionId ? (
-          <form
-            action={onFormAction(
-              (fd) =>
-                extendGymMemberSubscriptionAction(
-                  memberId,
-                  currentSubscriptionId,
-                  fd,
-                ),
-              "이용권을 연장했습니다.",
-            )}
-            className="flex flex-wrap items-end gap-2 border-t border-matchon-border pt-3"
-          >
-            <label className="space-y-1 text-sm">
-              <span>연장 일수</span>
-              <input
-                name="extendDays"
-                inputMode="numeric"
-                required
-                defaultValue={30}
-                className={cn(matchonFieldInputClass, "w-28")}
-              />
-            </label>
-            <Button type="submit" size="sm" variant="outline" disabled={pending}>
-              연장
-            </Button>
-          </form>
-        ) : null}
-      </section>
-
-      <section className="space-y-3 rounded-xl border border-matchon-border bg-white p-4">
-        <h3 className="text-sm font-semibold text-matchon-text-primary">
-          결제 등록
-        </h3>
-        <form
-          action={onFormAction(
-            (fd) => createGymMemberPaymentAction(memberId, fd),
-            "결제를 등록했습니다.",
-          )}
-          className="space-y-2"
-        >
-          <label className="block space-y-1 text-sm">
-            <span>정가</span>
-            <input
-              name="listPrice"
-              inputMode="numeric"
-              className={matchonFieldInputClass}
-            />
-          </label>
-          <label className="block space-y-1 text-sm">
-            <span>할인금액</span>
-            <input
-              name="discountAmount"
-              inputMode="numeric"
-              defaultValue={0}
-              className={matchonFieldInputClass}
-            />
-          </label>
-          <label className="block space-y-1 text-sm">
-            <span>실제 결제금액 *</span>
-            <input
-              name="amount"
-              inputMode="numeric"
-              required
-              className={matchonFieldInputClass}
-            />
-          </label>
-          <AppDateInput name="paidAt" label="결제일" defaultValue={today} />
-          <label className="block space-y-1 text-sm">
-            <span>결제 수단</span>
-            <select
-              name="paymentMethod"
-              className={matchonFieldInputClass}
-              defaultValue={GymMemberPaymentMethod.cash}
-            >
-              <option value={GymMemberPaymentMethod.card}>카드</option>
-              <option value={GymMemberPaymentMethod.cash}>현금</option>
-              <option value={GymMemberPaymentMethod.transfer}>계좌이체</option>
-              <option value={GymMemberPaymentMethod.easy_pay}>간편결제</option>
-              <option value={GymMemberPaymentMethod.other}>기타</option>
-            </select>
-          </label>
-          <label className="block space-y-1 text-sm">
-            <span>매출 유형</span>
-            <select name="category" className={matchonFieldInputClass} defaultValue="">
-              <option value="">미분류</option>
-              <option value="membership">회원권</option>
-              <option value="personal_lesson">개인 레슨</option>
-              <option value="group_class">그룹 수업</option>
-              <option value="product">용품</option>
-              <option value="event">대회</option>
-              <option value="other">기타</option>
-            </select>
-          </label>
-          <label className="block space-y-1 text-sm">
-            <span>연결 이용권</span>
-            <select
-              name="subscriptionId"
-              className={matchonFieldInputClass}
-              defaultValue={currentSubscriptionId ?? ""}
-            >
-              <option value="">없음</option>
-              {subscriptions.map((s) => (
-                <option key={s.id} value={s.id}>
-                  {s.planNameSnapshot} ({s.status})
-                </option>
-              ))}
-            </select>
-          </label>
-          <label className="block space-y-1 text-sm">
-            <span>메모</span>
-            <input name="memo" className={matchonFieldInputClass} />
-          </label>
-          <Button type="submit" size="sm" disabled={pending}>
-            결제 등록
-          </Button>
-        </form>
-
-        {payments.some((p) => p.status === "paid") ? (
-          <ul className="space-y-2 border-t border-matchon-border pt-3 text-sm">
-            {payments
-              .filter((p) => p.status === "paid")
-              .slice(0, 5)
-              .map((p) => (
-                <li
-                  key={p.id}
-                  className="flex flex-wrap items-center justify-between gap-2"
-                >
-                  <span>
-                    {formatWon(p.amount)} · {p.paymentMethod}
-                  </span>
-                  <Button
-                    type="button"
-                    size="xs"
-                    variant="outline"
-                    disabled={pending}
-                    onClick={() => {
-                      if (!window.confirm("이 결제를 취소하시겠습니까?")) {
-                        return;
-                      }
-                      run(
-                        () => cancelGymMemberPaymentAction(memberId, p.id),
-                        "결제를 취소했습니다.",
-                      );
-                    }}
-                  >
-                    취소
-                  </Button>
-                </li>
-              ))}
-          </ul>
-        ) : null}
-      </section>
 
       {!hasFighter && !isWithdrawn ? (
         <section className="space-y-3 rounded-xl border border-matchon-border bg-white p-4">

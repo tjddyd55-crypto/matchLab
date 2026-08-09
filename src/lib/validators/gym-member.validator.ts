@@ -276,6 +276,40 @@ export const gymMemberPaymentCreateSchema = z.object({
   memo: optionalTrimmedString(500),
 });
 
+/** 이용권+결제 통합 등록 */
+export const gymMembershipSaleSchema = z.object({
+  planId: z.string().trim().min(1, "이용권을 선택해 주세요."),
+  startedAt: optionalDateOnly,
+  endsAt: optionalDateOnly,
+  listPrice: z.preprocess((val) => {
+    const n = Number(val);
+    return Number.isFinite(n) ? Math.trunc(n) : undefined;
+  }, z.number().int().nonnegative("정상가를 입력해 주세요.")),
+  discountAmount: z.preprocess((val) => {
+    if (val === "" || val === undefined || val === null) return 0;
+    const n = Number(val);
+    return Number.isFinite(n) ? Math.trunc(n) : undefined;
+  }, z.number().int().nonnegative().default(0)),
+  discountReason: optionalTrimmedString(200),
+  paidAmount: z.preprocess((val) => {
+    if (val === "" || val === undefined || val === null) return 0;
+    const n = Number(val);
+    return Number.isFinite(n) ? Math.trunc(n) : undefined;
+  }, z.number().int().nonnegative().default(0)),
+  paidAt: optionalDateOnly,
+  paymentMethod: optionalPaymentMethod().transform((v) => v ?? "cash"),
+  memo: optionalTrimmedString(500),
+  op: z.enum(["sell", "renew"]).optional().default("sell"),
+});
+
+export const gymMemberSubscriptionCorrectSchema = z.object({
+  startedAt: optionalDateOnly,
+  endsAt: optionalDateOnly,
+  memo: optionalTrimmedString(500),
+});
+
+export type GymMembershipSaleInput = z.infer<typeof gymMembershipSaleSchema>;
+
 export const gymMemberPromoteFighterSchema = z.object({
   height: optionalPositiveFloat(),
   weight: optionalPositiveFloat(),
