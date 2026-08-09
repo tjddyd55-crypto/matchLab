@@ -498,6 +498,7 @@ export const gymMembershipSaleService = {
             ],
           },
         },
+        orderBy: [{ paidAt: "desc" }, { createdAt: "desc" }],
       }),
       prisma.gymReceivable.findMany({
         where: {
