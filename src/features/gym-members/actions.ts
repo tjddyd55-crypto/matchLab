@@ -19,9 +19,11 @@ import { gymMemberService } from "@/lib/services/gym-member.service";
 import { gymMembershipPlanService } from "@/lib/services/gym-membership-plan.service";
 import { gymMemberSubscriptionService } from "@/lib/services/gym-member-subscription.service";
 import { gymMemberPaymentService } from "@/lib/services/gym-member-payment.service";
+import { gymMembershipSaleService } from "@/lib/services/gym-membership-sale.service";
 import { gymMemberGroupService } from "@/lib/services/gym-member-group.service";
 import { gymMemberLockerService } from "@/lib/services/gym-member-locker.service";
 import { gymMemberExcelService } from "@/lib/services/gym-member-excel.service";
+import { gymSalesService } from "@/lib/services/gym-sales.service";
 import {
   gymMemberCreateSchema,
   gymMemberUpdateSchema,
@@ -31,8 +33,11 @@ import {
   gymMemberPauseSchema,
   gymMemberSubscriptionAssignSchema,
   gymMemberSubscriptionExtendSchema,
+  gymMemberSubscriptionCorrectSchema,
+  gymMembershipSaleSchema,
   gymMemberLinkFighterSchema,
 } from "@/lib/validators/gym-member.validator";
+import { gymReceivableCollectSchema, gymRefundCreateSchema } from "@/lib/validators/gym-sales.validator";
 
 function mapCaught<T>(
   fn: () => Promise<ActionResult<T>>,
@@ -361,6 +366,159 @@ export async function assignGymMemberSubscriptionAction(
     await gymMemberSubscriptionService.assignPlan(actor, memberId, parsed.data);
     revalidateMemberPaths(memberId);
     return actionSuccess({ ok: true });
+  });
+}
+
+export async function sellGymMembershipAction(
+  memberId: string,
+  formData: FormData,
+): Promise<
+  ActionResult<{
+    subscriptionId: string;
+    paymentId: string | null;
+    receivableId: string | null;
+    outstanding: number;
+  }>
+> {
+  return mapCaught(async () => {
+    const actor = await requireActorFromMutation();
+    const parsed = gymMembershipSaleSchema.safeParse(
+      formObj(formData, [
+        "planId",
+        "startedAt",
+        "endsAt",
+        "listPrice",
+        "discountAmount",
+        "discountReason",
+        "paidAmount",
+        "paidAt",
+        "paymentMethod",
+        "memo",
+        "op",
+      ]),
+    );
+    if (!parsed.success) {
+      return actionFailure(
+        "VALIDATION_ERROR",
+        parsed.error.issues[0]?.message ?? "입력값을 확인해 주세요.",
+      );
+    }
+    const result = await gymMembershipSaleService.sellMembership(
+      actor,
+      memberId,
+      parsed.data,
+    );
+    revalidateMemberPaths(memberId);
+    revalidatePath("/gym/sales");
+    revalidatePath("/gym/sales/receivables");
+    return actionSuccess(result);
+  });
+}
+
+export async function correctGymMemberSubscriptionAction(
+  memberId: string,
+  subscriptionId: string,
+  formData: FormData,
+): Promise<ActionResult<{ ok: true }>> {
+  return mapCaught(async () => {
+    const actor = await requireActorFromMutation();
+    const parsed = gymMemberSubscriptionCorrectSchema.safeParse(
+      formObj(formData, ["startedAt", "endsAt", "memo"]),
+    );
+    if (!parsed.success) {
+      return actionFailure(
+        "VALIDATION_ERROR",
+        parsed.error.issues[0]?.message ?? "입력값을 확인해 주세요.",
+      );
+    }
+    await gymMembershipSaleService.correctSubscription(
+      actor,
+      memberId,
+      subscriptionId,
+      parsed.data,
+    );
+    revalidateMemberPaths(memberId);
+    return actionSuccess({ ok: true });
+  });
+}
+
+export async function cancelGymMemberSubscriptionAction(
+  memberId: string,
+  subscriptionId: string,
+): Promise<ActionResult<{ ok: true }>> {
+  return mapCaught(async () => {
+    const actor = await requireActorFromMutation();
+    await gymMembershipSaleService.cancelSubscription(
+      actor,
+      memberId,
+      subscriptionId,
+    );
+    revalidateMemberPaths(memberId);
+    return actionSuccess({ ok: true });
+  });
+}
+
+export async function collectGymMemberReceivableAction(
+  memberId: string,
+  receivableId: string,
+  formData: FormData,
+): Promise<ActionResult<{ paymentId: string; remaining: number }>> {
+  return mapCaught(async () => {
+    const actor = await requireActorFromMutation();
+    const parsed = gymReceivableCollectSchema.safeParse(
+      formObj(formData, ["amount", "paidAt", "paymentMethod", "memo"]),
+    );
+    if (!parsed.success) {
+      return actionFailure(
+        "VALIDATION_ERROR",
+        parsed.error.issues[0]?.message ?? "입력값을 확인해 주세요.",
+      );
+    }
+    const result = await gymSalesService.collectReceivablePayment(
+      actor,
+      receivableId,
+      parsed.data,
+    );
+    revalidateMemberPaths(memberId);
+    revalidatePath("/gym/sales");
+    revalidatePath("/gym/sales/receivables");
+    return actionSuccess({
+      paymentId: result.payment.id,
+      remaining: result.remaining,
+    });
+  });
+}
+
+export async function refundGymMemberPaymentAction(
+  memberId: string,
+  formData: FormData,
+): Promise<ActionResult<{ refundId: string }>> {
+  return mapCaught(async () => {
+    const actor = await requireActorFromMutation();
+    const parsed = gymRefundCreateSchema.safeParse(
+      formObj(formData, [
+        "paymentId",
+        "manualSaleId",
+        "amount",
+        "refundedAt",
+        "refundMethod",
+        "reason",
+        "memo",
+      ]),
+    );
+    if (!parsed.success) {
+      return actionFailure(
+        "VALIDATION_ERROR",
+        parsed.error.issues[0]?.message ?? "입력값을 확인해 주세요.",
+      );
+    }
+    if (!parsed.data.paymentId) {
+      return actionFailure("VALIDATION_ERROR", "환불 대상 결제를 지정해 주세요.");
+    }
+    const created = await gymSalesService.createRefund(actor, parsed.data);
+    revalidateMemberPaths(memberId);
+    revalidatePath("/gym/sales");
+    return actionSuccess({ refundId: created.id });
   });
 }
 

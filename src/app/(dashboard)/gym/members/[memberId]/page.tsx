@@ -18,11 +18,13 @@ import { gymMembershipPlanService } from "@/lib/services/gym-membership-plan.ser
 import { gymMemberLockerService } from "@/lib/services/gym-member-locker.service";
 import { gymMemberGroupService } from "@/lib/services/gym-member-group.service";
 import { gymSalesService } from "@/lib/services/gym-sales.service";
+import { gymMembershipSaleService } from "@/lib/services/gym-membership-sale.service";
 import { GymMemberAttendanceCalendar } from "@/components/domain/gym-attendance/GymMemberAttendanceCalendar";
 import { GymMemberAvatar } from "@/components/domain/gym-members/GymMemberAvatar";
 import { GymMemberAssignedStaffSection } from "@/components/domain/gym-members/GymMemberAssignedStaffSection";
 import { GymMemberUpcomingSchedulesSection } from "@/components/domain/gym-members/GymMemberUpcomingSchedulesSection";
 import { GymMemberDetailActions } from "@/components/domain/gym-members/GymMemberDetailActions";
+import { GymMemberMembershipPanel } from "@/components/domain/gym-members/GymMemberMembershipPanel";
 import { GymMemberLockerPanel } from "@/components/domain/gym-members/GymMemberLockerPanel";
 import { GymProfileMissingBanner } from "@/components/domain/gym/GymProfileMissingBanner";
 import { buttonVariants } from "@/components/ui/button";
@@ -211,30 +213,38 @@ export default async function GymMemberDetailPage({
       typeof sp.attendanceMonth === "string" ? sp.attendanceMonth : undefined,
   };
 
+  let membershipMoney = null as Awaited<
+    ReturnType<typeof gymMembershipSaleService.getSubscriptionMoneySummary>
+  > | null;
+  let membershipTimeline: Awaited<
+    ReturnType<typeof gymMembershipSaleService.buildTimeline>
+  > = [];
+  if (currentSubscription) {
+    try {
+      membershipMoney =
+        await gymMembershipSaleService.getSubscriptionMoneySummary(
+          actor,
+          memberId,
+          currentSubscription.id,
+        );
+    } catch {
+      membershipMoney = null;
+    }
+  }
+  try {
+    membershipTimeline = await gymMembershipSaleService.buildTimeline(
+      actor,
+      memberId,
+    );
+  } catch {
+    membershipTimeline = [];
+  }
+
   const detailActions = (
     <GymMemberDetailActions
       memberId={member.id}
       memberStatus={member.status}
       hasFighter={Boolean(member.fighter)}
-      currentSubscriptionId={currentSubscription?.id ?? null}
-      plans={plans.map((p) => ({
-        id: p.id,
-        name: p.name,
-        price: p.price,
-      }))}
-      subscriptions={member.subscriptions.map((s) => ({
-        id: s.id,
-        planNameSnapshot: s.planNameSnapshot,
-        status: s.status,
-      }))}
-      payments={member.payments.map((p) => ({
-        id: p.id,
-        amount: p.amount,
-        status: p.status,
-        paymentMethod: p.paymentMethod,
-        paidAt: p.paidAt,
-        memo: p.memo,
-      }))}
       defaultPrimarySport={member.primarySport}
     />
   );
@@ -481,131 +491,34 @@ export default async function GymMemberDetailPage({
         ) : null}
 
         {tab === "membership" ? (
-          <div className="grid gap-6 lg:grid-cols-[minmax(0,1.2fr)_minmax(0,1fr)]">
-            <div className="space-y-6">
-              <section className="rounded-[10px] border border-matchon-border bg-white p-4">
-                <h2 className={cn(matchonSectionTitleClass, "mb-3")}>이용권</h2>
-                {currentSubscription ? (
-                  <>
-                    <InfoRow
-                      label="이용권"
-                      value={currentSubscription.planNameSnapshot}
-                    />
-                    <InfoRow label="상태" value={currentSubscription.status} />
-                    <InfoRow
-                      label="시작"
-                      value={formatUtcDateOnly(currentSubscription.startedAt)}
-                    />
-                    <InfoRow
-                      label="종료"
-                      value={
-                        currentSubscription.endsAt
-                          ? `${formatUtcDateOnly(currentSubscription.endsAt)} (${expirationDisplay})`
-                          : "—"
-                      }
-                    />
-                    <InfoRow
-                      label="가격"
-                      value={formatWon(currentSubscription.priceSnapshot)}
-                    />
-                  </>
-                ) : (
-                  <p className="text-sm text-matchon-text-secondary">
-                    배정된 이용권이 없습니다.
-                  </p>
-                )}
-
-                {member.subscriptions.length > 1 ? (
-                  <div className="mt-4 space-y-2 border-t border-matchon-border pt-3">
-                    <p className="text-xs font-medium text-matchon-text-secondary">
-                      이력
-                    </p>
-                    <ul className="space-y-1 text-sm">
-                      {member.subscriptions.map((s) => (
-                        <li key={s.id} className="text-matchon-text-secondary">
-                          {s.planNameSnapshot} · {s.status}
-                          {s.endsAt
-                            ? ` · ${formatUtcDateOnly(s.endsAt)}`
-                            : ""}
-                        </li>
-                      ))}
-                    </ul>
-                  </div>
-                ) : null}
-              </section>
-
-              {salesSummary ? (
-                <section className="rounded-[10px] border border-matchon-border bg-white p-4">
-                  <h2 className={cn(matchonSectionTitleClass, "mb-3")}>결제</h2>
-                  <div className="mb-3 grid grid-cols-2 gap-2 text-sm sm:grid-cols-4">
-                    <div>
-                      <p className="text-xs text-matchon-text-secondary">
-                        총 결제
-                      </p>
-                      <p className="font-medium">
-                        {formatWon(salesSummary.grossPaid)}
-                      </p>
-                    </div>
-                    <div>
-                      <p className="text-xs text-matchon-text-secondary">
-                        총 환불
-                      </p>
-                      <p className="font-medium">
-                        {formatWon(salesSummary.refundTotal)}
-                      </p>
-                    </div>
-                    <div>
-                      <p className="text-xs text-matchon-text-secondary">
-                        미수금
-                      </p>
-                      <p className="font-medium">
-                        {formatWon(salesSummary.outstanding)}
-                      </p>
-                    </div>
-                    <div>
-                      <p className="text-xs text-matchon-text-secondary">
-                        최근 결제
-                      </p>
-                      <p className="font-medium">
-                        {salesSummary.latestPaidAt
-                          ? formatUtcDateOnly(salesSummary.latestPaidAt)
-                          : "—"}
-                      </p>
-                    </div>
-                  </div>
-                  {salesSummary.payments.length === 0 ? (
-                    <p className="text-sm text-matchon-text-secondary">
-                      결제 기록이 없습니다.
-                    </p>
-                  ) : (
-                    <ul className="divide-y divide-matchon-border">
-                      {salesSummary.payments.map((p) => (
-                        <li
-                          key={p.id}
-                          className="flex flex-wrap items-center justify-between gap-2 py-2 text-sm"
-                        >
-                          <div>
-                            <p className="font-medium">
-                              {formatWon(p.amount)}
-                            </p>
-                            <p className="text-xs text-matchon-text-secondary">
-                              {formatUtcDateOnly(p.paidAt)} ·{" "}
-                              {p.paymentMethodLabel} · {p.status}
-                              {p.categoryLabel ? ` · ${p.categoryLabel}` : ""}
-                            </p>
-                          </div>
-                          {p.memo ? (
-                            <p className="text-xs text-matchon-text-secondary">
-                              {p.memo}
-                            </p>
-                          ) : null}
-                        </li>
-                      ))}
-                    </ul>
-                  )}
-                </section>
-              ) : null}
-            </div>
+          <div className="grid gap-6 lg:grid-cols-[minmax(0,1.35fr)_minmax(0,0.9fr)]">
+            <GymMemberMembershipPanel
+              memberId={member.id}
+              plans={plans.map((p) => ({
+                id: p.id,
+                name: p.name,
+                price: p.price,
+                durationType: p.durationType,
+                durationValue: p.durationValue,
+              }))}
+              currentSubscription={
+                currentSubscription
+                  ? {
+                      id: currentSubscription.id,
+                      planId: currentSubscription.planId,
+                      planNameSnapshot: currentSubscription.planNameSnapshot,
+                      status: currentSubscription.status,
+                      startedAt: currentSubscription.startedAt,
+                      endsAt: currentSubscription.endsAt,
+                      priceSnapshot: currentSubscription.priceSnapshot,
+                      memo: currentSubscription.memo,
+                    }
+                  : null
+              }
+              money={membershipMoney}
+              timeline={membershipTimeline}
+              statusLabel={membershipStatusLabel}
+            />
             {detailActions}
           </div>
         ) : null}
