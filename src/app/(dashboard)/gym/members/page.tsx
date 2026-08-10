@@ -221,113 +221,51 @@ export default async function GymMembersPage({
           />
         </div>
 
-        <div className="grid gap-4 lg:grid-cols-[minmax(0,1.6fr)_minmax(0,1fr)]">
-          <section className="rounded-[10px] border border-matchon-border bg-white p-3.5">
-            <h2 className="mb-3 text-[15px] font-bold text-matchon-text-primary">
-              오늘 확인할 업무
-            </h2>
-            <ul className="space-y-2">
-              <li>
-                <Link
-                  href={filterHref({ expiration: "expiring" })}
-                  className="flex min-h-12 items-center justify-between gap-3 rounded-lg border border-matchon-border bg-amber-50 px-3 py-2 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-matchon-primary/30"
-                >
-                  <span>
-                    <span className="block text-[13px] font-semibold">
-                      7일 이내 회원권 만료
-                    </span>
-                    <span className="text-[11px] text-matchon-text-secondary">
-                      {summary.expiring}명 · endsAt 기준
-                    </span>
-                  </span>
-                  <span className="text-xs font-medium text-matchon-primary">
-                    보기
-                  </span>
-                </Link>
-              </li>
-              <li>
-                <Link
-                  href={filterHref({ status: GymMemberStatus.paused })}
-                  className="flex min-h-12 items-center justify-between gap-3 rounded-lg border border-matchon-border bg-amber-50/70 px-3 py-2 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-matchon-primary/30"
-                >
-                  <span>
-                    <span className="block text-[13px] font-semibold">
-                      휴회 중 회원
-                    </span>
-                    <span className="text-[11px] text-matchon-text-secondary">
-                      {summary.paused}명 · status=paused
-                    </span>
-                  </span>
-                  <span className="text-xs font-medium text-matchon-primary">
-                    보기
-                  </span>
-                </Link>
-              </li>
-              <li>
-                <Link
-                  href={filterHref({ joined: "this-month" })}
-                  className="flex min-h-12 items-center justify-between gap-3 rounded-lg border border-matchon-border px-3 py-2 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-matchon-primary/30"
-                >
-                  <span>
-                    <span className="block text-[13px] font-semibold">
-                      이번 달 등록
-                    </span>
-                    <span className="text-[11px] text-matchon-text-secondary">
-                      {summary.newThisMonth}명 · joinedAt · Seoul 월
-                    </span>
-                  </span>
-                  <span className="text-xs font-medium text-matchon-primary">
-                    보기
-                  </span>
-                </Link>
-              </li>
-            </ul>
-            {/* 미수금·오늘 PT·휴회 종료 예정: getSummary 미제공 → 1차 숨김 */}
-          </section>
-
-          <section className="rounded-[10px] border border-matchon-border bg-white p-3.5">
-            <h2 className="mb-3 text-[15px] font-bold text-matchon-text-primary">
-              빠른 작업
-            </h2>
-            <ul className="space-y-2">
-              <li>
-                <Link
-                  href="/gym/members/new"
-                  className="block min-h-11 rounded-lg border border-matchon-border bg-matchon-surface px-3 py-3 text-[13px] font-medium focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-matchon-primary/30"
-                >
-                  신규 회원 등록
-                </Link>
-              </li>
-              <li>
-                <a
-                  href="#member-search"
-                  className="block min-h-11 rounded-lg border border-matchon-border bg-matchon-surface px-3 py-3 text-[13px] font-medium focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-matchon-primary/30"
-                >
-                  회원 검색
-                </a>
-              </li>
-              <li>
-                <Link
-                  href="/gym/member-portal"
-                  className="block min-h-11 rounded-lg border border-matchon-border bg-matchon-surface px-3 py-3 text-[13px] font-medium focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-matchon-primary/30"
-                >
-                  회원 전용 페이지
-                </Link>
-              </li>
-              <li>
-                <Link
-                  href="/gym/membership-plans"
-                  className="block min-h-11 rounded-lg border border-matchon-border bg-matchon-surface px-3 py-3 text-[13px] font-medium focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-matchon-primary/30"
-                >
-                  이용권 상품 관리
-                </Link>
-              </li>
-            </ul>
-          </section>
+        <div className="flex flex-wrap items-center gap-x-3 gap-y-1 rounded-md border border-matchon-border bg-white px-2.5 py-1.5 text-[11px] text-matchon-text-secondary">
+          <span className="font-semibold text-matchon-text-primary">업무</span>
+          <Link
+            href={filterHref({ expiration: "expiring" })}
+            className="hover:text-matchon-primary hover:underline"
+          >
+            만료임박 {summary.expiring}
+          </Link>
+          <Link
+            href={filterHref({ status: GymMemberStatus.paused })}
+            className="hover:text-matchon-primary hover:underline"
+          >
+            휴회 {summary.paused}
+          </Link>
+          <Link
+            href={filterHref({ joined: "this-month" })}
+            className="hover:text-matchon-primary hover:underline"
+          >
+            이번달등록 {summary.newThisMonth}
+          </Link>
+          <span aria-hidden className="text-matchon-border">
+            |
+          </span>
+          <Link
+            href="/gym/members/new"
+            className="hover:text-matchon-primary hover:underline"
+          >
+            신규등록
+          </Link>
+          <Link
+            href="/gym/member-portal"
+            className="hover:text-matchon-primary hover:underline"
+          >
+            회원전용
+          </Link>
+          <Link
+            href="/gym/membership-plans"
+            className="hover:text-matchon-primary hover:underline"
+          >
+            이용권상품
+          </Link>
         </div>
 
         <div className="space-y-1">
-          <h2 className="text-lg font-semibold text-matchon-text-primary">
+          <h2 className="text-base font-semibold text-matchon-text-primary">
             회원 목록
           </h2>
           <p className="text-sm text-matchon-text-secondary">

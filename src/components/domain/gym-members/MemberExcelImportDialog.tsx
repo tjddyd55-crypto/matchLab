@@ -30,6 +30,7 @@ type ImportPreviewRow = {
   excelRow: number;
   name: string;
   phone: string;
+  memberNumber: string;
   planName: string;
   planId: string | null;
   planNeedsCreate: boolean;
@@ -37,7 +38,15 @@ type ImportPreviewRow = {
   decisionLabel: string;
   matchedMemberId: string | null;
   matchedMemberName: string | null;
+  sourceRegistrationLabel: string;
+  startedAt: string | null;
+  endsAt: string | null;
   amount: number | null;
+  remainingSessionsText: string;
+  reservedSessionsText: string;
+  usedSessionsText: string;
+  excelGradeLabel: string;
+  groupName: string;
   errors: string[];
   warnings: string[];
 };
@@ -45,6 +54,7 @@ type ImportPreviewRow = {
 type ImportPreview = {
   batchId: string;
   fileName: string;
+  headerRow: number;
   totalRows: number;
   counts: {
     createMember: number;
@@ -53,6 +63,9 @@ type ImportPreview = {
     skipIdempotent: number;
     error: number;
     planNeedsCreate: number;
+    sourceNew: number;
+    sourceRenewal: number;
+    groupNames: Record<string, number>;
     planNames: Record<string, number>;
     amountSum: number;
   };
@@ -123,28 +136,54 @@ function CountGrid({ preview }: { preview: ImportPreview }) {
   const { counts } = preview;
   const items = [
     { label: "전체", value: preview.totalRows },
-    { label: "신규 생성", value: counts.createMember },
-    { label: "기존 매칭", value: counts.matchExisting },
+    { label: "신규(Excel)", value: counts.sourceNew },
+    { label: "재등록(Excel)", value: counts.sourceRenewal },
     { label: "중복 검토", value: counts.duplicateReview },
+    { label: "이미 등록", value: counts.skipIdempotent },
     { label: "오류", value: counts.error },
     { label: "이용권 생성 필요", value: counts.planNeedsCreate },
     { label: "강습료 합계", value: formatAmount(counts.amountSum) },
   ];
+  const groups = Object.entries(counts.groupNames).sort((a, b) =>
+    a[0].localeCompare(b[0], "ko"),
+  );
   return (
-    <div className="grid grid-cols-2 gap-2 sm:grid-cols-4">
-      {items.map((item) => (
-        <div
-          key={item.label}
-          className="rounded border border-matchon-border bg-matchon-surface px-2.5 py-2"
-        >
-          <div className="text-[11px] text-matchon-text-secondary">
-            {item.label}
+    <div className="space-y-2">
+      <div className="grid grid-cols-2 gap-1.5 sm:grid-cols-4">
+        {items.map((item) => (
+          <div
+            key={item.label}
+            className="rounded border border-matchon-border bg-matchon-surface px-2 py-1.5"
+          >
+            <div className="text-[10px] text-matchon-text-secondary">
+              {item.label}
+            </div>
+            <div className="text-sm font-semibold tabular-nums">{item.value}</div>
           </div>
-          <div className="text-sm font-semibold tabular-nums">{item.value}</div>
-        </div>
-      ))}
+        ))}
+      </div>
+      {groups.length > 0 ? (
+        <p className="text-[11px] text-matchon-text-secondary">
+          그룹:{" "}
+          {groups
+            .map(([name, n]) => `${name || "(빈값)"} ${n}`)
+            .join(" · ")}
+        </p>
+      ) : null}
+      <p className="text-[10px] text-matchon-text-secondary">
+        Excel 「신규/재등록」은 과거 원본 구분이며 MATCHON 재등록 횟수에 포함되지
+        않습니다.
+      </p>
     </div>
   );
+}
+
+function decisionTone(decision: string): string {
+  if (decision === "error") return "bg-red-100 text-red-800";
+  if (decision === "duplicate_review") return "bg-amber-100 text-amber-900";
+  if (decision === "skip_idempotent") return "bg-slate-100 text-slate-700";
+  if (decision === "match_existing") return "bg-sky-100 text-sky-900";
+  return "bg-emerald-100 text-emerald-900";
 }
 
 export function MemberExcelImportDialog({
@@ -371,11 +410,12 @@ export function MemberExcelImportDialog({
         {step === "preview" && preview ? (
           <div className="space-y-3">
             <p className="text-sm text-matchon-text-secondary">
-              {preview.fileName} · {preview.totalRows}행
+              {preview.fileName} · header {preview.headerRow}행 ·{" "}
+              {preview.totalRows}행
             </p>
             <CountGrid preview={preview} />
             {preview.counts.error > 0 ? (
-              <div className="max-h-32 overflow-y-auto rounded border border-red-200 bg-red-50/50 p-2 text-xs">
+              <div className="max-h-24 overflow-y-auto rounded border border-red-200 bg-red-50/50 p-2 text-xs">
                 {preview.rows
                   .filter((r) => r.decision === "error")
                   .slice(0, 20)
@@ -387,6 +427,68 @@ export function MemberExcelImportDialog({
                   ))}
               </div>
             ) : null}
+            <div className="max-h-56 overflow-auto rounded border border-matchon-border">
+              <table className="w-full min-w-[720px] text-left text-[11px]">
+                <thead className="sticky top-0 bg-matchon-surface text-matchon-text-secondary">
+                  <tr>
+                    <th className="px-1.5 py-1 font-medium">행</th>
+                    <th className="px-1.5 py-1 font-medium">처리</th>
+                    <th className="px-1.5 py-1 font-medium">회원명</th>
+                    <th className="px-1.5 py-1 font-medium">연락처</th>
+                    <th className="px-1.5 py-1 font-medium">회원번호</th>
+                    <th className="px-1.5 py-1 font-medium">구분</th>
+                    <th className="px-1.5 py-1 font-medium">회원권</th>
+                    <th className="px-1.5 py-1 font-medium">시작</th>
+                    <th className="px-1.5 py-1 font-medium">종료</th>
+                    <th className="px-1.5 py-1 font-medium">금액</th>
+                  </tr>
+                </thead>
+                <tbody>
+                  {preview.rows.map((row) => (
+                    <tr
+                      key={row.excelRow}
+                      className="border-t border-matchon-border"
+                    >
+                      <td className="px-1.5 py-0.5 tabular-nums">
+                        {row.excelRow}
+                      </td>
+                      <td className="px-1.5 py-0.5">
+                        <span
+                          className={cn(
+                            "inline-block rounded px-1 py-0.5 text-[10px] font-medium",
+                            decisionTone(row.decision),
+                          )}
+                        >
+                          {row.decisionLabel}
+                        </span>
+                      </td>
+                      <td className="px-1.5 py-0.5 font-medium">{row.name}</td>
+                      <td className="px-1.5 py-0.5 whitespace-nowrap">
+                        {row.phone}
+                      </td>
+                      <td className="px-1.5 py-0.5 font-mono tabular-nums">
+                        {row.memberNumber || "—"}
+                      </td>
+                      <td className="px-1.5 py-0.5">
+                        {row.sourceRegistrationLabel}
+                      </td>
+                      <td className="max-w-[140px] truncate px-1.5 py-0.5">
+                        {row.planName}
+                      </td>
+                      <td className="px-1.5 py-0.5 whitespace-nowrap">
+                        {row.startedAt ?? "—"}
+                      </td>
+                      <td className="px-1.5 py-0.5 whitespace-nowrap">
+                        {row.endsAt ?? "—"}
+                      </td>
+                      <td className="px-1.5 py-0.5 tabular-nums">
+                        {row.amount != null ? formatAmount(row.amount) : "—"}
+                      </td>
+                    </tr>
+                  ))}
+                </tbody>
+              </table>
+            </div>
           </div>
         ) : null}
 
@@ -593,7 +695,20 @@ export function MemberExcelImportDialog({
               </Button>
               <Button
                 type="button"
-                onClick={() => setStep("plan-mapping")}
+                onClick={() => {
+                  setPlanNameBindings((prev) => {
+                    const next = { ...prev };
+                    for (const name of uniquePlanNames) {
+                      if (next[name]) continue;
+                      const existing = preview?.plans.find(
+                        (p) => p.name === name,
+                      );
+                      next[name] = existing?.id ?? CREATE_PLAN;
+                    }
+                    return next;
+                  });
+                  setStep("plan-mapping");
+                }}
                 disabled={pending}
               >
                 이용권 매핑
@@ -613,11 +728,11 @@ export function MemberExcelImportDialog({
               </Button>
               <Button
                 type="button"
-                onClick={confirmPlanMappings}
-                disabled={
-                  pending ||
-                  uniquePlanNames.some((n) => !planNameBindings[n])
-                }
+                onClick={() => {
+                  // 미선택 plan은 매핑 확정 시 자동 채움
+                  confirmPlanMappings();
+                }}
+                disabled={pending}
               >
                 매핑 확정
               </Button>

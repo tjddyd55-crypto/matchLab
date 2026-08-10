@@ -88,6 +88,8 @@ export type ImportPreviewResult = {
     skipIdempotent: number;
     error: number;
     planNeedsCreate: number;
+    sourceNew: number;
+    sourceRenewal: number;
     groupNames: Record<string, number>;
     planNames: Record<string, number>;
     amountSum: number;
@@ -265,6 +267,8 @@ export const gymMemberImportService = {
       skipIdempotent: 0,
       error: 0,
       planNeedsCreate: 0,
+      sourceNew: 0,
+      sourceRenewal: 0,
       groupNames: {} as Record<string, number>,
       planNames: {} as Record<string, number>,
       amountSum: 0,
@@ -276,6 +280,8 @@ export const gymMemberImportService = {
       if (r.decision === "skip_idempotent") counts.skipIdempotent += 1;
       if (r.decision === "error") counts.error += 1;
       if (r.planNeedsCreate) counts.planNeedsCreate += 1;
+      if (r.sourceRegistrationLabel === "신규") counts.sourceNew += 1;
+      if (r.sourceRegistrationLabel === "재등록") counts.sourceRenewal += 1;
       if (r.groupName) {
         counts.groupNames[r.groupName] =
           (counts.groupNames[r.groupName] ?? 0) + 1;
