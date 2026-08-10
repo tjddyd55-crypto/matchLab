@@ -136,8 +136,8 @@ function CountGrid({ preview }: { preview: ImportPreview }) {
   const { counts } = preview;
   const items = [
     { label: "전체", value: preview.totalRows },
-    { label: "신규(Excel)", value: counts.sourceNew },
-    { label: "재등록(Excel)", value: counts.sourceRenewal },
+    { label: "신규", value: counts.sourceNew },
+    { label: "재등록", value: counts.sourceRenewal },
     { label: "중복 검토", value: counts.duplicateReview },
     { label: "이미 등록", value: counts.skipIdempotent },
     { label: "오류", value: counts.error },
