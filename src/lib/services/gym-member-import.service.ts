@@ -556,12 +556,30 @@ async function buildPreviewRow(input: {
     decision = "error";
     decisionLabel = "오류";
   } else if (fileDup || phoneHits.length > 1 || noHits.length > 1) {
-    decision = "duplicate_review";
-    decisionLabel = "중복 의심";
-    warnings.push("동일 전화번호/회원번호 충돌 — 수동 확인");
-    if (phoneHits.length === 1) {
-      matchedMemberId = phoneHits[0]!.id;
-      matchedMemberName = phoneHits[0]!.name;
+    // 같은 전화/파일 중복이라도 이름까지 유일하게 맞으면 자동 매칭.
+    // (고지윤/고시윤처럼 의도적 별도 회원 재업로드 시 멱등 skip 가능)
+    const nameOnPhone = phoneHits.filter((m) => m.name === name);
+    const nameOnMemberNo = noHits.filter((m) => m.name === name);
+    if (nameOnPhone.length === 1) {
+      decision = "match_existing";
+      decisionLabel = "기존 회원 매칭";
+      matchedMemberId = nameOnPhone[0]!.id;
+      matchedMemberName = nameOnPhone[0]!.name;
+      warnings.push("동일 전화번호 다수 — 이름 일치로 매칭");
+    } else if (nameOnMemberNo.length === 1 && phoneHits.length <= 1) {
+      decision = "match_existing";
+      decisionLabel = "기존 회원 매칭";
+      matchedMemberId = nameOnMemberNo[0]!.id;
+      matchedMemberName = nameOnMemberNo[0]!.name;
+      warnings.push("동일 회원번호 다수 — 이름 일치로 매칭");
+    } else {
+      decision = "duplicate_review";
+      decisionLabel = "중복 의심";
+      warnings.push("동일 전화번호/회원번호 충돌 — 수동 확인");
+      if (phoneHits.length === 1) {
+        matchedMemberId = phoneHits[0]!.id;
+        matchedMemberName = phoneHits[0]!.name;
+      }
     }
   } else if (phoneHits.length === 1) {
     decision = "match_existing";
