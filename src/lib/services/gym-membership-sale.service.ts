@@ -7,6 +7,8 @@ import {
   GymMemberPaymentMethod,
   GymMemberPaymentStatus,
   GymMemberStatus,
+  GymMemberSubscriptionCreationSource,
+  GymMemberImportSourceRegistrationType,
   GymMemberSubscriptionStatus,
   GymReceivableStatus,
   GymSalesCategory,
@@ -73,6 +75,27 @@ export type MembershipTimelineItem = {
   title: string;
   detail: string;
   actorLabel: string | null;
+};
+
+export type SubscriptionHistoryRow = {
+  id: string;
+  sequence: number;
+  status: string;
+  planName: string;
+  sourceLabel: string;
+  paidAt: Date | null;
+  startedAt: Date;
+  endsAt: Date | null;
+  periodText: string | null;
+  usedSessionsText: string | null;
+  amount: number;
+  isImport: boolean;
+};
+
+export type SubscriptionHistoryVM = {
+  totalCount: number;
+  matchonRenewalCount: number;
+  rows: SubscriptionHistoryRow[];
 };
 
 export const gymMembershipSaleService = {
@@ -182,6 +205,11 @@ export const gymMembershipSaleService = {
         },
       });
 
+      const creationSource =
+        op === "renew"
+          ? GymMemberSubscriptionCreationSource.renew
+          : GymMemberSubscriptionCreationSource.sell;
+
       const subscription = await tx.gymMemberSubscription.create({
         data: {
           gymId: access.gymId,
@@ -192,6 +220,7 @@ export const gymMembershipSaleService = {
           startedAt,
           endsAt,
           status: GymMemberSubscriptionStatus.active,
+          creationSource,
           memo: input.memo?.trim() || null,
           createdByUserId: actor.userId,
         },
@@ -721,5 +750,78 @@ export const gymMembershipSaleService = {
 
     items.sort((a, b) => b.at.getTime() - a.at.getTime());
     return items;
+  },
+
+  async listSubscriptionHistory(actor: ActorContext, memberId: string) {
+    const access = await requireGymPortalWrite(actor);
+    const member = await gymMemberRepository.findByIdForGym(
+      memberId,
+      access.gymId,
+    );
+    if (!member) throw new AppError("NOT_FOUND", "회원을 찾을 수 없습니다.");
+
+    const subs = await prisma.gymMemberSubscription.findMany({
+      where: {
+        gymMemberId: memberId,
+        gymId: access.gymId,
+        status: { not: GymMemberSubscriptionStatus.cancelled },
+      },
+      orderBy: [{ startedAt: "asc" }, { createdAt: "asc" }, { id: "asc" }],
+      include: {
+        payments: {
+          where: { cancelledAt: null },
+          orderBy: [{ paidAt: "asc" }, { createdAt: "asc" }],
+          take: 1,
+        },
+      },
+    });
+
+    const matchonRenewalCount = subs.filter(
+      (s) => s.creationSource === GymMemberSubscriptionCreationSource.renew,
+    ).length;
+
+    const rows = subs.map((s, idx) => {
+      const meta = (s.importMeta ?? {}) as Record<string, unknown>;
+      const sourceLabel =
+        s.sourceRegistrationType ===
+        GymMemberImportSourceRegistrationType.renewal
+          ? "재등록(가져오기)"
+          : s.sourceRegistrationType ===
+              GymMemberImportSourceRegistrationType.new_member
+            ? "신규(가져오기)"
+            : s.creationSource === GymMemberSubscriptionCreationSource.renew
+              ? "재등록"
+              : s.creationSource ===
+                  GymMemberSubscriptionCreationSource.excel_import
+                ? "가져오기"
+                : "등록";
+      return {
+        id: s.id,
+        sequence: idx + 1,
+        status: s.status,
+        planName: s.planNameSnapshot,
+        sourceLabel,
+        creationSource: s.creationSource,
+        paidAt: s.payments[0]?.paidAt ?? null,
+        startedAt: s.startedAt,
+        endsAt: s.endsAt,
+        periodText:
+          typeof meta.periodText === "string" ? meta.periodText : null,
+        usedSessionsText:
+          typeof meta.usedSessionsText === "string"
+            ? meta.usedSessionsText
+            : null,
+        amount: s.payments[0]?.amount ?? s.priceSnapshot,
+        isImport:
+          s.creationSource ===
+          GymMemberSubscriptionCreationSource.excel_import,
+      };
+    });
+
+    return {
+      totalCount: rows.length,
+      matchonRenewalCount,
+      rows: [...rows].reverse(),
+    };
   },
 };

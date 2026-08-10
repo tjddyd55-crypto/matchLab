@@ -23,6 +23,10 @@ import { gymMembershipSaleService } from "@/lib/services/gym-membership-sale.ser
 import { gymMemberGroupService } from "@/lib/services/gym-member-group.service";
 import { gymMemberLockerService } from "@/lib/services/gym-member-locker.service";
 import { gymMemberExcelService } from "@/lib/services/gym-member-excel.service";
+import {
+  gymMemberImportService,
+  type ImportPreviewResult,
+} from "@/lib/services/gym-member-import.service";
 import { gymSalesService } from "@/lib/services/gym-sales.service";
 import {
   gymMemberCreateSchema,
@@ -765,6 +769,91 @@ export async function endGymMemberLockerRentalAction(
     await gymMemberLockerService.endRental(actor, rentalId);
     revalidateMemberPaths(memberId);
     return actionSuccess({ ok: true });
+  });
+}
+
+export async function analyzeGymMemberExcelImportAction(
+  formData: FormData,
+): Promise<ActionResult<ImportPreviewResult>> {
+  return mapCaught(async () => {
+    const actor = await requireActorFromMutation();
+    const file = formData.get("file");
+    if (!(file instanceof File) || file.size === 0) {
+      return actionFailure("VALIDATION_ERROR", "Excel 파일을 선택해 주세요.");
+    }
+    const buffer = Buffer.from(await file.arrayBuffer());
+    const preview = await gymMemberImportService.analyzeWorkbook(actor, {
+      fileName: file.name,
+      buffer,
+    });
+    return actionSuccess(preview);
+  });
+}
+
+export async function commitGymMemberExcelImportAction(
+  formData: FormData,
+): Promise<
+  ActionResult<{
+    batchId: string;
+    success: number;
+    failed: number;
+    skipped: number;
+    total: number;
+  }>
+> {
+  return mapCaught(async () => {
+    const actor = await requireActorFromMutation();
+    const batchId = formStr(formData, "batchId");
+    if (!batchId) {
+      return actionFailure("VALIDATION_ERROR", "Import 배치 ID가 필요합니다.");
+    }
+
+    const file = formData.get("file");
+    let buffer: Buffer;
+    if (file instanceof File && file.size > 0) {
+      buffer = Buffer.from(await file.arrayBuffer());
+    } else {
+      const base64 = formStr(formData, "fileBase64");
+      if (!base64) {
+        return actionFailure("VALIDATION_ERROR", "Excel 파일을 다시 첨부해 주세요.");
+      }
+      buffer = Buffer.from(base64, "base64");
+    }
+
+    let planBindings: Record<string, string> = {};
+    let memberBindings: Record<string, string> = {};
+    let skipRows: number[] = [];
+    try {
+      planBindings = JSON.parse(formStr(formData, "planBindings") || "{}") as Record<
+        string,
+        string
+      >;
+      memberBindings = JSON.parse(
+        formStr(formData, "memberBindings") || "{}",
+      ) as Record<string, string>;
+      skipRows = JSON.parse(formStr(formData, "skipRows") || "[]") as number[];
+    } catch {
+      return actionFailure(
+        "VALIDATION_ERROR",
+        "매핑 데이터 형식이 올바르지 않습니다.",
+      );
+    }
+
+    const createMissingGroups = formStr(formData, "createMissingGroups") !== "false";
+    const fileName = formStr(formData, "fileName") || "import.xlsx";
+
+    const result = await gymMemberImportService.commitImport(actor, {
+      batchId,
+      fileName,
+      buffer,
+      planBindings,
+      memberBindings,
+      skipRows,
+      createMissingGroups,
+    });
+
+    revalidatePath("/gym/members");
+    return actionSuccess(result);
   });
 }
 

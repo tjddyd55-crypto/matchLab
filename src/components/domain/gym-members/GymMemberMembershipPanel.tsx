@@ -20,7 +20,7 @@ import {
   refundGymMemberPaymentAction,
   sellGymMembershipAction,
 } from "@/features/gym-members/actions";
-import { GymMemberPaymentMethod, GymMembershipDurationType } from "@/lib/enums";
+import { GymMemberPaymentMethod, GymMembershipDurationType, GymMemberSubscriptionStatus } from "@/lib/enums";
 import { addMembershipDuration } from "@/lib/gym-member/membership-duration";
 import {
   formatUtcDateOnly,
@@ -31,7 +31,10 @@ import { formatWon } from "@/lib/format-won";
 import { matchonFieldInputClass } from "@/lib/ui/matchon-shell-ui";
 import { matchonSectionTitleClass } from "@/lib/ui/matchon-layout";
 import { cn } from "@/lib/utils";
-import type { MembershipTimelineItem } from "@/lib/services/gym-membership-sale.service";
+import type {
+  MembershipTimelineItem,
+  SubscriptionHistoryVM,
+} from "@/lib/services/gym-membership-sale.service";
 
 type PlanOption = {
   id: string;
@@ -106,12 +109,41 @@ function toYmd(d: Date | null): string {
   return formatUtcDateOnly(d, "-");
 }
 
+const SUBSCRIPTION_STATUS_LABEL: Record<string, string> = {
+  [GymMemberSubscriptionStatus.active]: "이용중",
+  [GymMemberSubscriptionStatus.paused]: "휴회",
+  [GymMemberSubscriptionStatus.ended]: "종료",
+  [GymMemberSubscriptionStatus.cancelled]: "취소",
+};
+
+function subscriptionStatusLabel(status: string): string {
+  return SUBSCRIPTION_STATUS_LABEL[status] ?? status;
+}
+
+function periodOrSessionsText(
+  periodText: string | null,
+  usedSessionsText: string | null,
+): string {
+  const parts = [periodText, usedSessionsText].filter(Boolean);
+  return parts.length > 0 ? parts.join(" · ") : "—";
+}
+
+function formatDateRange(
+  startedAt: Date | string,
+  endsAt: Date | string | null,
+): string {
+  const start = formatUtcDateOnly(startedAt);
+  if (!endsAt) return start;
+  return `${start} ~ ${formatUtcDateOnly(endsAt)}`;
+}
+
 export function GymMemberMembershipPanel({
   memberId,
   plans,
   currentSubscription,
   money,
   timeline,
+  subscriptionHistory,
   statusLabel,
 }: {
   memberId: string;
@@ -119,6 +151,7 @@ export function GymMemberMembershipPanel({
   currentSubscription: CurrentSub | null;
   money: MoneySummary | null;
   timeline: MembershipTimelineItem[];
+  subscriptionHistory: SubscriptionHistoryVM;
   statusLabel: string;
 }) {
   const router = useRouter();
@@ -148,7 +181,7 @@ export function GymMemberMembershipPanel({
   }
 
   return (
-    <div className="space-y-6">
+    <div className="space-y-4">
       {error ? (
         <p className="rounded-lg border border-red-200 bg-red-50 px-3 py-2 text-sm text-red-700">
           {error}
@@ -160,50 +193,71 @@ export function GymMemberMembershipPanel({
         </p>
       ) : null}
 
-      <section className="rounded-[10px] border border-matchon-border bg-white p-4">
-        <div className="flex flex-wrap items-start justify-between gap-3">
-          <div>
-            <h2 className={matchonSectionTitleClass}>현재 이용권</h2>
+      <section className="rounded-[10px] border border-matchon-border bg-white p-3">
+        <div className="flex flex-wrap items-start justify-between gap-2">
+          <div className="min-w-0 flex-1 space-y-1">
+            <h2 className={cn(matchonSectionTitleClass, "text-sm")}>
+              현재 이용권
+            </h2>
             {currentSubscription ? (
               <>
-                <p className="mt-2 text-lg font-semibold text-matchon-text-primary">
-                  {currentSubscription.planNameSnapshot}
+                <p className="text-xs text-matchon-text-primary">
+                  <span className="font-semibold text-matchon-primary">
+                    {statusLabel}
+                  </span>
+                  <span className="text-matchon-text-secondary"> | </span>
+                  <span className="font-medium">
+                    {currentSubscription.planNameSnapshot}
+                  </span>
+                  <span className="text-matchon-text-secondary"> | </span>
+                  <span className="text-matchon-text-secondary">
+                    {formatDateRange(
+                      currentSubscription.startedAt,
+                      currentSubscription.endsAt,
+                    )}
+                  </span>
                 </p>
-                <p className="text-sm text-matchon-text-secondary">
-                  {formatUtcDateOnly(currentSubscription.startedAt)}
-                  {currentSubscription.endsAt
-                    ? ` ~ ${formatUtcDateOnly(currentSubscription.endsAt)}`
-                    : ""}
-                </p>
-                <p className="mt-1 text-xs font-medium text-matchon-primary">
-                  {statusLabel}
-                </p>
+                {money ? (
+                  <p className="text-xs text-matchon-text-secondary">
+                    <span className="font-medium text-matchon-text-primary">
+                      {formatWon(money.paidAmount)}
+                    </span>
+                    <span> | 미수 </span>
+                    <span
+                      className={cn(
+                        "font-medium",
+                        money.outstanding > 0
+                          ? "text-amber-700"
+                          : "text-matchon-text-primary",
+                      )}
+                    >
+                      {formatWon(money.outstanding)}
+                    </span>
+                  </p>
+                ) : null}
               </>
             ) : (
-              <p className="mt-2 text-sm text-matchon-text-secondary">
+              <p className="text-xs text-matchon-text-secondary">
                 배정된 이용권이 없습니다.
               </p>
             )}
           </div>
-          <Button type="button" size="sm" onClick={() => setModal("sale")}>
+          <Button
+            type="button"
+            size="sm"
+            className="h-7 px-2.5 text-xs"
+            onClick={() => setModal("sale")}
+          >
             이용권·결제 등록
           </Button>
         </div>
 
-        {currentSubscription && money ? (
-          <div className="mt-4 grid grid-cols-2 gap-2 border-t border-matchon-border pt-3 text-sm sm:grid-cols-4">
-            <MoneyCell label="정상가" value={formatWon(money.listPrice)} />
-            <MoneyCell label="할인" value={formatWon(money.discountAmount)} />
-            <MoneyCell label="결제" value={formatWon(money.paidAmount)} />
-            <MoneyCell label="미수" value={formatWon(money.outstanding)} />
-          </div>
-        ) : null}
-
         {currentSubscription ? (
-          <div className="mt-4 flex flex-wrap gap-2">
+          <div className="mt-2.5 flex flex-wrap gap-1.5 border-t border-matchon-border pt-2.5">
             <Button
               type="button"
               size="sm"
+              className="h-7 px-2.5 text-xs"
               disabled={pending}
               onClick={() => setModal("renew")}
             >
@@ -213,6 +267,7 @@ export function GymMemberMembershipPanel({
               type="button"
               size="sm"
               variant="outline"
+              className="h-7 px-2.5 text-xs"
               disabled={pending}
               onClick={() => setModal("extend")}
             >
@@ -222,7 +277,7 @@ export function GymMemberMembershipPanel({
               type="button"
               size="sm"
               variant="outline"
-              className="hidden sm:inline-flex"
+              className="hidden h-7 px-2.5 text-xs sm:inline-flex"
               disabled={pending}
               onClick={() => setModal("correct")}
             >
@@ -232,7 +287,7 @@ export function GymMemberMembershipPanel({
               type="button"
               size="sm"
               variant="outline"
-              className="hidden sm:inline-flex"
+              className="hidden h-7 px-2.5 text-xs sm:inline-flex"
               disabled={pending || !money?.primaryPaymentId}
               onClick={() => setModal("refund")}
             >
@@ -243,6 +298,7 @@ export function GymMemberMembershipPanel({
                 type="button"
                 size="sm"
                 variant="outline"
+                className="h-7 px-2.5 text-xs"
                 disabled={pending || !money.primaryReceivableId}
                 onClick={() => setModal("collect")}
               >
@@ -253,6 +309,7 @@ export function GymMemberMembershipPanel({
               type="button"
               size="sm"
               variant="outline"
+              className="h-7 px-2.5 text-xs"
               onClick={() => setModal("more")}
             >
               더보기
@@ -261,21 +318,155 @@ export function GymMemberMembershipPanel({
         ) : null}
       </section>
 
-      <section className="rounded-[10px] border border-matchon-border bg-white p-4">
-        <h2 className={cn(matchonSectionTitleClass, "mb-3")}>처리 이력</h2>
+      <section className="rounded-[10px] border border-matchon-border bg-white p-3">
+        <h2
+          className={cn(matchonSectionTitleClass, "mb-2 text-sm")}
+          title="재등록 횟수는 MATCHON에서 처리한 내역부터 집계됩니다."
+        >
+          이용권 이력 {subscriptionHistory.totalCount}건 · 재등록{" "}
+          {subscriptionHistory.matchonRenewalCount}회
+        </h2>
+        {subscriptionHistory.rows.length === 0 ? (
+          <p className="text-xs text-matchon-text-secondary">
+            이용권 이력이 없습니다.
+          </p>
+        ) : (
+          <>
+            <div className="hidden overflow-x-auto md:block">
+              <table className="w-full min-w-[640px] table-fixed text-left text-xs">
+                <thead className="border-b border-matchon-border text-[10px] font-semibold text-matchon-text-secondary">
+                  <tr>
+                    <th scope="col" className="w-8 px-1.5 py-1.5 text-center">
+                      #
+                    </th>
+                    <th scope="col" className="w-[9%] px-1.5 py-1.5">
+                      상태
+                    </th>
+                    <th scope="col" className="w-[11%] px-1.5 py-1.5">
+                      구분
+                    </th>
+                    <th scope="col" className="w-[16%] px-1.5 py-1.5">
+                      회원권
+                    </th>
+                    <th
+                      scope="col"
+                      className="hidden w-[10%] px-1.5 py-1.5 lg:table-cell"
+                    >
+                      거래일
+                    </th>
+                    <th scope="col" className="w-[10%] px-1.5 py-1.5">
+                      시작일
+                    </th>
+                    <th scope="col" className="w-[10%] px-1.5 py-1.5">
+                      종료일
+                    </th>
+                    <th
+                      scope="col"
+                      className="hidden w-[12%] px-1.5 py-1.5 xl:table-cell"
+                    >
+                      기간/횟수
+                    </th>
+                    <th scope="col" className="w-[11%] px-1.5 py-1.5 text-right">
+                      결제금액
+                    </th>
+                  </tr>
+                </thead>
+                <tbody>
+                  {subscriptionHistory.rows.map((row) => (
+                    <tr
+                      key={row.id}
+                      className="border-b border-matchon-border last:border-0"
+                    >
+                      <td className="px-1.5 py-1 text-center tabular-nums text-matchon-text-secondary">
+                        {row.sequence}
+                      </td>
+                      <td className="px-1.5 py-1 whitespace-nowrap">
+                        {subscriptionStatusLabel(row.status)}
+                      </td>
+                      <td className="px-1.5 py-1">
+                        <span className="inline-flex flex-wrap items-center gap-1">
+                          <span className="break-words">{row.sourceLabel}</span>
+                          {row.isImport ? (
+                            <span className="rounded bg-matchon-surface px-1 py-0.5 text-[10px] font-medium text-matchon-text-secondary">
+                              가져오기
+                            </span>
+                          ) : null}
+                        </span>
+                      </td>
+                      <td className="px-1.5 py-1 break-words">
+                        {row.planName}
+                      </td>
+                      <td className="hidden px-1.5 py-1 whitespace-nowrap lg:table-cell">
+                        {row.paidAt ? formatUtcDateOnly(row.paidAt) : "—"}
+                      </td>
+                      <td className="px-1.5 py-1 whitespace-nowrap">
+                        {formatUtcDateOnly(row.startedAt)}
+                      </td>
+                      <td className="px-1.5 py-1 whitespace-nowrap">
+                        {row.endsAt ? formatUtcDateOnly(row.endsAt) : "—"}
+                      </td>
+                      <td className="hidden px-1.5 py-1 xl:table-cell">
+                        {periodOrSessionsText(
+                          row.periodText,
+                          row.usedSessionsText,
+                        )}
+                      </td>
+                      <td className="px-1.5 py-1 text-right font-medium tabular-nums">
+                        {formatWon(row.amount)}
+                      </td>
+                    </tr>
+                  ))}
+                </tbody>
+              </table>
+            </div>
+            <ul className="space-y-2 md:hidden">
+              {subscriptionHistory.rows.map((row) => (
+                <li
+                  key={row.id}
+                  className="rounded-lg border border-matchon-border px-2.5 py-2"
+                >
+                  <p className="text-xs font-medium text-matchon-text-primary">
+                    #{row.sequence} · {row.sourceLabel} ·{" "}
+                    {subscriptionStatusLabel(row.status)}
+                    {row.isImport ? (
+                      <span className="ml-1 rounded bg-matchon-surface px-1 py-0.5 text-[10px] font-normal text-matchon-text-secondary">
+                        가져오기
+                      </span>
+                    ) : null}
+                  </p>
+                  <p className="mt-0.5 truncate text-xs text-matchon-text-primary">
+                    {row.planName}
+                  </p>
+                  <p className="mt-0.5 text-[11px] text-matchon-text-secondary">
+                    {formatDateRange(row.startedAt, row.endsAt)}
+                  </p>
+                  <p className="mt-0.5 text-xs font-medium text-matchon-text-primary">
+                    {formatWon(row.amount)}
+                  </p>
+                </li>
+              ))}
+            </ul>
+          </>
+        )}
+      </section>
+
+      <section className="rounded-[10px] border border-matchon-border bg-matchon-surface/40 p-3">
+        <h2 className={cn(matchonSectionTitleClass, "mb-2 text-xs")}>
+          처리 이력
+        </h2>
         {timeline.length === 0 ? (
-          <p className="text-sm text-matchon-text-secondary">
+          <p className="text-xs text-matchon-text-secondary">
             처리 이력이 없습니다.
           </p>
         ) : (
-          <ol className="relative space-y-4 border-l border-matchon-border pl-4">
+          <ol className="relative space-y-2 border-l border-matchon-border pl-3">
             {timeline.map((item) => (
               <li key={item.id} className="relative">
-                <span className="absolute -left-[1.35rem] top-1.5 size-2 rounded-full bg-matchon-primary" />
-                <p className="text-sm font-medium text-matchon-text-primary">
+                <span className="absolute -left-[1.15rem] top-1 size-1.5 rounded-full bg-matchon-primary/70" />
+                <p className="text-xs font-medium text-matchon-text-primary">
                   {item.title}
                 </p>
-                <p className="text-xs text-matchon-text-secondary">
+                <p className="text-[11px] text-matchon-text-secondary">
                   {formatUtcDateOnly(item.at)}
                   {item.detail ? ` · ${item.detail}` : ""}
                 </p>

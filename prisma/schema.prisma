@@ -405,6 +405,7 @@ enum AuditAction {
   gym_member_subscription_changed
   gym_member_payment_created
   gym_member_payment_cancelled
+  gym_member_import_completed
   gym_attendance_kiosk_created
   gym_attendance_kiosk_updated
   gym_attendance_kiosk_revoked
@@ -697,6 +698,7 @@ model Gym {
   gymMemberGroupAssignments GymMemberGroupAssignment[]
   gymMemberLockerRentals GymMemberLockerRental[]
   gymProducts         GymProduct[]
+  gymMemberImportBatches GymMemberImportBatch[]
 
   matchonMessageTemplates  MatchonMessageTemplate[]
   matchonMessageDispatches MatchonMessageDispatch[]
@@ -1220,6 +1222,50 @@ model GymMembershipPlan {
   @@index([gymId, isActive])
 }
 
+/// 구독 생성 경로 — MATCHON 재등록 횟수는 `renew`만 집계
+enum GymMemberSubscriptionCreationSource {
+  sell
+  renew
+  excel_import
+}
+
+/// Excel 원본 구분(신규/재등록) — MATCHON renewal count와 분리
+enum GymMemberImportSourceRegistrationType {
+  new_member
+  renewal
+  unknown
+}
+
+enum GymMemberImportBatchStatus {
+  preview
+  completed
+  failed
+  cancelled
+}
+
+/// 회원 Excel 일괄 Import 배치
+model GymMemberImportBatch {
+  id               String                     @id @default(cuid())
+  gymId            String
+  originalFileName String
+  status           GymMemberImportBatchStatus @default(preview)
+  totalRows        Int                        @default(0)
+  successRows      Int                        @default(0)
+  failedRows       Int                        @default(0)
+  skippedRows      Int                        @default(0)
+  /// plan/group mapping·요약 통계 (행별 원본 JSON 전체 저장 금지)
+  meta             Json?
+  createdByUserId  String?
+  createdAt        DateTime                   @default(now())
+  completedAt      DateTime?
+
+  gym           Gym                     @relation(fields: [gymId], references: [id], onDelete: Cascade)
+  subscriptions GymMemberSubscription[]
+  payments      GymMemberPayment[]
+
+  @@index([gymId, createdAt])
+}
+
 /// 회원에게 적용된 이용권 (상품명·가격 snapshot)
 model GymMemberSubscription {
   id                String                      @id @default(cuid())
@@ -1235,18 +1281,28 @@ model GymMemberSubscription {
   resumedAt         DateTime?
   cancelledAt       DateTime?
   memo              String?
+  /// sell | renew | excel_import — 재등록 횟수는 renew만
+  creationSource    GymMemberSubscriptionCreationSource @default(sell)
+  /// Excel 구분 원본 (MATCHON renewal count 미포함)
+  sourceRegistrationType GymMemberImportSourceRegistrationType?
+  importBatchId     String?
+  /// 수업명·횟수·등급라벨·기간텍스트 등 import metadata
+  importMeta        Json?
   createdByUserId   String?
   createdAt         DateTime                    @default(now())
   updatedAt         DateTime                    @updatedAt
 
-  gym     Gym                        @relation(fields: [gymId], references: [id], onDelete: Cascade)
-  member  GymMember                  @relation(fields: [gymMemberId], references: [id], onDelete: Cascade)
-  plan    GymMembershipPlan?         @relation(fields: [planId], references: [id], onDelete: SetNull)
-  pauses  GymMemberSubscriptionPause[]
-  payments GymMemberPayment[]
+  gym         Gym                        @relation(fields: [gymId], references: [id], onDelete: Cascade)
+  member      GymMember                  @relation(fields: [gymMemberId], references: [id], onDelete: Cascade)
+  plan        GymMembershipPlan?         @relation(fields: [planId], references: [id], onDelete: SetNull)
+  importBatch GymMemberImportBatch?      @relation(fields: [importBatchId], references: [id], onDelete: SetNull)
+  pauses      GymMemberSubscriptionPause[]
+  payments    GymMemberPayment[]
 
   @@index([gymMemberId, status, endsAt])
   @@index([gymId, status])
+  @@index([gymMemberId, creationSource])
+  @@index([importBatchId])
 }
 
 /// 이용권 휴회 이력
@@ -1280,11 +1336,14 @@ model GymMemberPayment {
   /// 정가(선택) — 없으면 amount만 사용
   listPrice       Int?
   discountAmount  Int                    @default(0)
+  /// Excel 세액 등 — additive
+  taxAmount       Int?
   paymentMethod   GymMemberPaymentMethod @default(cash)
   status          GymMemberPaymentStatus @default(paid)
   /// null = 미분류
   category        GymSalesCategory?
   memo            String?
+  importBatchId   String?
   cancelledAt     DateTime?
   createdByUserId String?
   createdAt       DateTime               @default(now())
@@ -1294,6 +1353,7 @@ model GymMemberPayment {
   member       GymMember              @relation(fields: [gymMemberId], references: [id], onDelete: Cascade)
   subscription GymMemberSubscription? @relation(fields: [subscriptionId], references: [id], onDelete: SetNull)
   receivable   GymReceivable?         @relation(fields: [receivableId], references: [id], onDelete: SetNull)
+  importBatch  GymMemberImportBatch?  @relation(fields: [importBatchId], references: [id], onDelete: SetNull)
   refunds      GymPaymentRefund[]
   lockerRentals GymMemberLockerRental[]
 
@@ -1301,6 +1361,7 @@ model GymMemberPayment {
   @@index([gymId, paidAt])
   @@index([gymId, status, paidAt])
   @@index([receivableId])
+  @@index([importBatchId])
 }
 
 /// 회원 미연결 가능 수기 매출
