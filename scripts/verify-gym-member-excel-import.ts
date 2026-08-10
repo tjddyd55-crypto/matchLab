@@ -61,8 +61,9 @@ function main() {
   assert.match(dialog, /엑셀 회원 업로드/);
   assert.match(dialog, /analyzeGymMemberExcelImportAction/);
   assert.match(dialog, /commitGymMemberExcelImportAction/);
-  assert.match(dialog, /신규\(Excel\)/);
-  assert.match(dialog, /재등록\(Excel\)/);
+  assert.match(dialog, /label: \"신규\"/);
+  assert.match(dialog, /label: \"재등록\"/);
+  assert.match(dialog, /sourceNew|counts\.sourceNew/);
   assert.match(dialog, /sticky top-0/);
   assert.match(dialog, /memberNumber/);
   assert.match(dialog, /__create__/);
