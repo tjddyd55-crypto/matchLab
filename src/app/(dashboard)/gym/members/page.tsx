@@ -8,6 +8,7 @@ import { MemberPageHeader } from "@/components/domain/gym-members/MemberPageHead
 import { MemberMetricCard } from "@/components/domain/gym-members/MemberMetricCard";
 import { MemberFilterBar } from "@/components/domain/gym-members/MemberFilterBar";
 import { MemberExcelDownloadButton } from "@/components/domain/gym-members/MemberExcelDownloadButton";
+import { MemberExcelImportButton } from "@/components/domain/gym-members/MemberExcelImportDialog";
 import { MemberTable } from "@/components/domain/gym-members/MemberTable";
 import { MemberMobileCard } from "@/components/domain/gym-members/MemberMobileCard";
 import { MatchonEmptyState } from "@/components/shared/MatchonEmptyState";
@@ -162,6 +163,7 @@ export default async function GymMembersPage({
           actions={
             <>
               <MemberExcelDownloadButton filters={baseParams} />
+              <MemberExcelImportButton />
               <Link
                 href="/gym/members/new"
                 className={cn(buttonVariants({ size: "sm" }), "min-h-11")}

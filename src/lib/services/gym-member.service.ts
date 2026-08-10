@@ -157,6 +157,8 @@ export type GymMemberListItemVM = {
   isFighter: boolean;
   fighterId: string | null;
   rowNumber: number;
+  groupNames: string[];
+  rankName: string | null;
 };
 
 export const gymMemberService = {
@@ -237,6 +239,10 @@ export const gymMemberService = {
         isFighter: Boolean(row.fighter),
         fighterId: row.fighter?.id ?? null,
         rowNumber: skip + idx + 1,
+        groupNames: (row.groupAssignments ?? [])
+          .map((a) => a.group?.name)
+          .filter((n): n is string => Boolean(n)),
+        rankName: row.rankName ?? null,
       };
     });
 

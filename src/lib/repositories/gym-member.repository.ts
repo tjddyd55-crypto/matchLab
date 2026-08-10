@@ -72,6 +72,13 @@ const memberListSelect = {
   rankName: true,
   profileImagePath: true,
   createdAt: true,
+  groupAssignments: {
+    where: { deletedAt: null },
+    select: {
+      group: { select: { id: true, name: true } },
+    },
+    take: 3,
+  },
   fighter: {
     select: {
       id: true,

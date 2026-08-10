@@ -40,7 +40,6 @@ import {
   type MemberDetailTabId,
 } from "@/components/domain/gym-members/MemberDetailTabs";
 import { MemberStatusBadge } from "@/components/domain/gym-members/MemberStatusBadge";
-import { MemberSummaryCard } from "@/components/domain/gym-members/MemberSummaryCard";
 import {
   matchonPageContainerClass,
   matchonPageStackClass,
@@ -52,11 +51,37 @@ export const dynamic = "force-dynamic";
 
 function InfoRow({ label, value }: { label: string; value: ReactNode }) {
   return (
-    <div className="flex flex-wrap justify-between gap-2 border-b border-matchon-border py-2 text-sm last:border-0">
+    <div className="flex flex-wrap justify-between gap-2 border-b border-matchon-border py-1.5 text-xs last:border-0">
       <span className="text-matchon-text-secondary">{label}</span>
       <span className="max-w-[70%] text-right text-matchon-text-primary break-words">
         {value}
       </span>
+    </div>
+  );
+}
+
+function OverviewStat({
+  label,
+  value,
+  hint,
+}: {
+  label: string;
+  value: string;
+  hint?: string;
+}) {
+  return (
+    <div className="border-b border-matchon-border px-2 py-2 last:border-0 sm:border-b-0 sm:border-r sm:last:border-r-0">
+      <p className="text-[10px] font-medium text-matchon-text-secondary">
+        {label}
+      </p>
+      <p className="mt-0.5 truncate text-sm font-semibold text-matchon-text-primary">
+        {value}
+      </p>
+      {hint ? (
+        <p className="mt-0.5 truncate text-[11px] text-matchon-text-secondary">
+          {hint}
+        </p>
+      ) : null}
     </div>
   );
 }
@@ -219,6 +244,9 @@ export default async function GymMemberDetailPage({
   let membershipTimeline: Awaited<
     ReturnType<typeof gymMembershipSaleService.buildTimeline>
   > = [];
+  let subscriptionHistory: Awaited<
+    ReturnType<typeof gymMembershipSaleService.listSubscriptionHistory>
+  > = { totalCount: 0, matchonRenewalCount: 0, rows: [] };
   if (currentSubscription) {
     try {
       membershipMoney =
@@ -238,6 +266,21 @@ export default async function GymMemberDetailPage({
     );
   } catch {
     membershipTimeline = [];
+  }
+  if (tab === "membership") {
+    try {
+      subscriptionHistory =
+        await gymMembershipSaleService.listSubscriptionHistory(
+          actor,
+          memberId,
+        );
+    } catch {
+      subscriptionHistory = {
+        totalCount: 0,
+        matchonRenewalCount: 0,
+        rows: [],
+      };
+    }
   }
 
   const detailActions = (
@@ -263,16 +306,16 @@ export default async function GymMemberDetailPage({
             ← 회원 목록
           </Link>
 
-          <div className="flex flex-col gap-4 lg:flex-row lg:items-start lg:justify-between">
-            <div className="flex min-w-0 items-start gap-3">
+          <div className="flex flex-col gap-3 lg:flex-row lg:items-start lg:justify-between">
+            <div className="flex min-w-0 items-start gap-2.5">
               <GymMemberAvatar
                 src={detail.profileImageUrl}
                 name={member.name}
-                className="size-14 shrink-0 sm:size-16"
+                className="size-10 shrink-0 sm:size-11"
               />
-              <div className="min-w-0 space-y-1.5">
-                <div className="flex flex-wrap items-center gap-2">
-                  <h1 className="truncate text-[22px] font-bold tracking-tight text-matchon-text-primary">
+              <div className="min-w-0 space-y-0.5">
+                <div className="flex flex-wrap items-center gap-1.5">
+                  <h1 className="truncate text-lg font-bold tracking-tight text-matchon-text-primary sm:text-xl">
                     {member.name}
                   </h1>
                   <MemberStatusBadge
@@ -332,42 +375,44 @@ export default async function GymMemberDetailPage({
         {alert ? <MemberAlert tone={alert.tone}>{alert.text}</MemberAlert> : null}
 
         {tab === "overview" ? (
-          <div className="grid gap-3 sm:grid-cols-2 xl:grid-cols-4">
-            <MemberSummaryCard
-              label="현재 회원권"
-              value={currentSubscription?.planNameSnapshot ?? "회원권 없음"}
-              hint={
-                currentSubscription
-                  ? daysRemaining != null && daysRemaining >= 0
-                    ? `잔여 ${daysRemaining}일`
-                    : expirationDisplay
-                  : undefined
-              }
-            />
-            {nextPt ? (
-              <MemberSummaryCard
-                label="다음 PT"
-                value={nextPt.timeRangeLabel}
-                hint={`${nextPt.scheduleTypeLabel} · ${nextPt.staffName}`}
+          <section className="rounded-[10px] border border-matchon-border bg-white p-3">
+            <div className="grid gap-0 sm:grid-cols-2 xl:grid-cols-4">
+              <OverviewStat
+                label="현재 회원권"
+                value={currentSubscription?.planNameSnapshot ?? "회원권 없음"}
+                hint={
+                  currentSubscription
+                    ? daysRemaining != null && daysRemaining >= 0
+                      ? `잔여 ${daysRemaining}일`
+                      : expirationDisplay
+                    : undefined
+                }
               />
-            ) : null}
-            {nextGroup ? (
-              <MemberSummaryCard
-                label="다음 그룹수업"
-                value={nextGroup.title}
-                hint={nextGroup.timeRangeLabel}
-              />
-            ) : null}
-            {latestPayment ? (
-              <MemberSummaryCard
-                label="최근 결제"
-                value={formatWon(latestPayment.amount)}
-                hint={`${formatUtcDateOnly(latestPayment.paidAt)} · ${latestPayment.paymentMethodLabel} · ${latestPayment.status}`}
-              />
-            ) : salesSummary ? (
-              <MemberSummaryCard label="최근 결제" value="결제 기록 없음" />
-            ) : null}
-          </div>
+              {nextPt ? (
+                <OverviewStat
+                  label="다음 PT"
+                  value={nextPt.timeRangeLabel}
+                  hint={`${nextPt.scheduleTypeLabel} · ${nextPt.staffName}`}
+                />
+              ) : null}
+              {nextGroup ? (
+                <OverviewStat
+                  label="다음 그룹수업"
+                  value={nextGroup.title}
+                  hint={nextGroup.timeRangeLabel}
+                />
+              ) : null}
+              {latestPayment ? (
+                <OverviewStat
+                  label="최근 결제"
+                  value={formatWon(latestPayment.amount)}
+                  hint={`${formatUtcDateOnly(latestPayment.paidAt)} · ${latestPayment.paymentMethodLabel}`}
+                />
+              ) : salesSummary ? (
+                <OverviewStat label="최근 결제" value="결제 기록 없음" />
+              ) : null}
+            </div>
+          </section>
         ) : null}
 
         <MemberDetailTabs
@@ -377,9 +422,9 @@ export default async function GymMemberDetailPage({
         />
 
         {tab === "overview" ? (
-          <div className="grid gap-4 lg:grid-cols-2">
-            <section className="rounded-[10px] border border-matchon-border bg-white p-4">
-              <h2 className={cn(matchonSectionTitleClass, "mb-3 text-sm")}>
+          <div className="grid gap-3 lg:grid-cols-2">
+            <section className="rounded-[10px] border border-matchon-border bg-white p-3">
+              <h2 className={cn(matchonSectionTitleClass, "mb-2 text-xs")}>
                 기본정보
               </h2>
               <InfoRow
@@ -427,8 +472,8 @@ export default async function GymMemberDetailPage({
               <InfoRow label="메모" value={member.memo ?? "—"} />
             </section>
 
-            <section className="rounded-[10px] border border-matchon-border bg-white p-4">
-              <h2 className={cn(matchonSectionTitleClass, "mb-3 text-sm")}>
+            <section className="rounded-[10px] border border-matchon-border bg-white p-3">
+              <h2 className={cn(matchonSectionTitleClass, "mb-2 text-xs")}>
                 현재 회원권
               </h2>
               {currentSubscription ? (
@@ -517,6 +562,7 @@ export default async function GymMemberDetailPage({
               }
               money={membershipMoney}
               timeline={membershipTimeline}
+              subscriptionHistory={subscriptionHistory}
               statusLabel={membershipStatusLabel}
             />
             {detailActions}
