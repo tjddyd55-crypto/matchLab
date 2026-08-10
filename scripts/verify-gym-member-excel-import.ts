@@ -26,6 +26,8 @@ function main() {
   assert.match(svc, /수강:\s*GymMemberStatus\.active/);
   assert.doesNotMatch(svc, /rankName:\s*row\.excelGradeLabel/);
   assert.match(svc, /excelGradeLabel/);
+  assert.match(svc, /sourceNew/);
+  assert.match(svc, /sourceRenewal/);
   assert.match(svc, /countMatchonRenewals/);
   assert.doesNotMatch(svc, /max\(0,\s*total/);
 
@@ -59,6 +61,10 @@ function main() {
   assert.match(dialog, /엑셀 회원 업로드/);
   assert.match(dialog, /analyzeGymMemberExcelImportAction/);
   assert.match(dialog, /commitGymMemberExcelImportAction/);
+  assert.match(dialog, /신규\(Excel\)/);
+  assert.match(dialog, /재등록\(Excel\)/);
+  assert.match(dialog, /sticky top-0/);
+  assert.match(dialog, /memberNumber/);
   assert.match(dialog, /__create__/);
 
   const page = read("src/app/(dashboard)/gym/members/page.tsx");

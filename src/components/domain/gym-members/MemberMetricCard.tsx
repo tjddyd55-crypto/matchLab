@@ -14,20 +14,17 @@ export function MemberMetricCard({
 }) {
   const body = (
     <>
-      <p className="text-[11px] font-medium text-matchon-text-secondary">
+      <p className="text-[10px] font-medium leading-tight text-matchon-text-secondary">
         {label}
       </p>
-      <p className="text-[22px] font-bold tracking-tight text-matchon-text-primary">
+      <p className="text-lg font-bold tracking-tight tabular-nums text-matchon-text-primary md:text-xl">
         {value}
       </p>
-      {href ? (
-        <p className="text-[10px] text-matchon-primary">목록 필터 →</p>
-      ) : null}
     </>
   );
 
   const classes = cn(
-    "flex min-h-[88px] flex-col gap-1 rounded-[10px] border border-matchon-border bg-white p-3.5 transition-colors",
+    "flex min-h-0 flex-col justify-center gap-0.5 rounded-md border border-matchon-border bg-white px-2.5 py-2 transition-colors",
     href &&
       "hover:border-matchon-primary/40 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-matchon-primary/30",
     className,
