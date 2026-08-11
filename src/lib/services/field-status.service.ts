@@ -28,6 +28,7 @@ import { eventRepository } from "@/lib/repositories/event.repository";
 import { safeNotify } from "@/lib/notifications/safe-dispatch";
 import { notificationService } from "@/lib/services/notification.service";
 import { evaluateWeighInWeight } from "@/lib/weigh-in-eval";
+import { resolveApplicationGymDisplayName } from "@/lib/gym/external-registration-placeholder-gym";
 import { resolveWeighInWeightLabel } from "@/lib/event-division-fields";
 import {
   buildFighterBracketAssignmentMap,
@@ -64,7 +65,10 @@ function mapRow(row: FieldStatusApplicationRow) {
     fighterId: row.fighterId,
     fighterName: row.fighter.name || readSnapshotName(row.fighterSnapshot),
     gymId: row.gymId,
-    gymName: row.gym.name,
+    gymName: resolveApplicationGymDisplayName({
+      gymSnapshot: row.gymSnapshot,
+      gymRelationName: row.gym.name,
+    }),
     divisionId: row.divisionId,
     divisionLabel: formatDivisionNameLabel(row.division),
     division: {

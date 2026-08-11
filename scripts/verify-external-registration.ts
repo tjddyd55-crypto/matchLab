@@ -21,8 +21,67 @@ import {
   buildOrganizerManualAgreementExtras,
   readApplicationEntrySource,
 } from "../src/lib/application-form/organizer-manual-entry.ts";
+import {
+  EXTERNAL_REGISTRATION_GYM_LOGIN_PREFIX,
+  EXTERNAL_REGISTRATION_GYM_NAME_PREFIX,
+  excludeExternalRegistrationPlaceholderGymWhere,
+  isExternalRegistrationPlaceholderGymName,
+  isExternalRegistrationPlaceholderOwnerLoginId,
+  resolveApplicationGymDisplayName,
+} from "../src/lib/gym/external-registration-placeholder-gym.ts";
+import { assertDevelopmentYamanoteDatabaseUrl } from "../src/lib/db/assert-development-yamanote.ts";
 
 function main() {
+  assert.equal(
+    isExternalRegistrationPlaceholderOwnerLoginId("ext-reg-abc"),
+    true,
+  );
+  assert.equal(
+    isExternalRegistrationPlaceholderOwnerLoginId("gym1"),
+    false,
+  );
+  assert.equal(
+    isExternalRegistrationPlaceholderGymName("MATCHON 외부등록 (주최자)"),
+    true,
+  );
+  assert.equal(
+    resolveApplicationGymDisplayName({
+      gymSnapshot: { gymId: "g1", name: "QA 외부체육관 A" },
+      gymRelationName: "MATCHON 외부등록 (주최자)",
+    }),
+    "QA 외부체육관 A",
+  );
+  assert.equal(
+    resolveApplicationGymDisplayName({
+      gymSnapshot: null,
+      gymRelationName: "MATCHON 외부등록 (주최자)",
+    }),
+    "—",
+  );
+  assert.ok(
+    EXTERNAL_REGISTRATION_GYM_LOGIN_PREFIX.startsWith("ext-reg"),
+  );
+  assert.ok(
+    EXTERNAL_REGISTRATION_GYM_NAME_PREFIX.startsWith("MATCHON"),
+  );
+  assert.ok(excludeExternalRegistrationPlaceholderGymWhere.NOT);
+  console.log("verify:external-registration-placeholder-gym OK");
+
+  // fail-closed helper shape only (no live DATABASE_URL required here)
+  try {
+    assertDevelopmentYamanoteDatabaseUrl(
+      "postgresql://u:p@yamabiko.proxy.rlwy.net:1/railway",
+    );
+    assert.fail("yamabiko should throw");
+  } catch (e) {
+    assert.ok(String(e).includes("REFUSING"));
+  }
+  const fp = assertDevelopmentYamanoteDatabaseUrl(
+    "postgresql://u:p@yamanote.proxy.rlwy.net:45288/railway",
+  );
+  assert.ok(fp.host.includes("yamanote"));
+  console.log("verify:external-registration-db-preflight OK");
+
   const raw = generateExternalRegistrationRawToken();
   assert.equal(raw.length, 48);
   const hash = hashExternalRegistrationToken(raw);

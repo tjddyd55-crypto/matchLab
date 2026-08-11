@@ -5,6 +5,7 @@ import { randomBytes } from "node:crypto";
 import type { Prisma } from "@/generated/prisma";
 import { GymStatus, UserRole } from "@/generated/prisma";
 import { prisma } from "@/lib/prisma";
+import { excludeExternalRegistrationPlaceholderGymWhere } from "@/lib/gym/external-registration-placeholder-gym";
 
 function db(tx?: Prisma.TransactionClient) {
   return tx ?? prisma;
@@ -13,7 +14,10 @@ function db(tx?: Prisma.TransactionClient) {
 export const gymRepository = {
   async listActiveGymsForPicker(): Promise<{ id: string; name: string }[]> {
     return prisma.gym.findMany({
-      where: { status: GymStatus.active },
+      where: {
+        status: GymStatus.active,
+        ...excludeExternalRegistrationPlaceholderGymWhere,
+      },
       orderBy: { name: "asc" },
       select: { id: true, name: true },
     });
@@ -21,7 +25,11 @@ export const gymRepository = {
 
   async findActiveGymById(gymId: string, tx?: Prisma.TransactionClient) {
     return db(tx).gym.findFirst({
-      where: { id: gymId, status: GymStatus.active },
+      where: {
+        id: gymId,
+        status: GymStatus.active,
+        ...excludeExternalRegistrationPlaceholderGymWhere,
+      },
       select: { id: true, name: true },
     });
   },
@@ -36,6 +44,7 @@ export const gymRepository = {
       where: {
         status: GymStatus.active,
         name: { equals: trimmed, mode: "insensitive" },
+        ...excludeExternalRegistrationPlaceholderGymWhere,
       },
       select: { id: true, name: true },
     });

@@ -65,6 +65,7 @@ import type { ApplyToEventInput } from "@/lib/validators/application.validator";
 import type { BulkApplyToEventInput } from "@/lib/validators/bulk-application.validator";
 import type { OrganizerManualApplicationInput } from "@/lib/validators/organizer-manual-application.validator";
 import type { ExternalRegistrationBatchInput } from "@/lib/validators/external-registration.validator";
+import { resolveApplicationGymDisplayName } from "@/lib/gym/external-registration-placeholder-gym";
 import {
   parseExternalRegistrationPublicToken,
   verifyExternalRegistrationPublicToken,
@@ -721,7 +722,10 @@ export const applicationService = {
 
       const paymentRow = row.payments[0] ?? null;
 
-      const gymName = row.gym?.name ?? "—";
+      const gymName = resolveApplicationGymDisplayName({
+        gymSnapshot: row.gymSnapshot,
+        gymRelationName: row.gym?.name,
+      });
       const summary = consentSummaryFields(policyRequires, consent);
 
       results.push({

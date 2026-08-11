@@ -10,6 +10,7 @@ import {
 } from "@/generated/prisma";
 import { pickMembershipForPortalGate } from "@/lib/member-gym/portal-membership-gate";
 import { prisma } from "@/lib/prisma";
+import { excludeExternalRegistrationPlaceholderGymWhere } from "@/lib/gym/external-registration-placeholder-gym";
 
 function db(tx?: Prisma.TransactionClient) {
   return tx ?? prisma;
@@ -518,7 +519,11 @@ export const memberGymRepository = {
     }
     if (ors.length === 0) return [];
     return prisma.gym.findMany({
-      where: { status: GymStatus.active, OR: ors },
+      where: {
+        status: GymStatus.active,
+        OR: ors,
+        ...excludeExternalRegistrationPlaceholderGymWhere,
+      },
       take: 20,
       select: {
         id: true,
