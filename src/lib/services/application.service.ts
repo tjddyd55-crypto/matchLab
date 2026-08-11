@@ -26,9 +26,11 @@ import { fighterRepository } from "@/lib/repositories/fighter.repository";
 import { gymEventFeeRepository } from "@/lib/repositories/gym-event-fee.repository";
 import { bracketRepository } from "@/lib/repositories/bracket.repository";
 import { registrationRepository } from "@/lib/repositories/registration.repository";
+import { gymRepository } from "@/lib/repositories/gym.repository";
 import { safeNotify } from "@/lib/notifications/safe-dispatch";
 import { notificationService } from "@/lib/services/notification.service";
 import { creditService } from "@/lib/services/credit.service";
+import { fighterService } from "@/lib/services/fighter.service";
 import {
   buildCustomFormSnapshot,
   parseManualFieldsConfig,
@@ -40,9 +42,13 @@ import {
   type CustomFormSnapshot,
 } from "@/lib/application-form/custom-form";
 import {
+  buildExternalLinkAgreementExtras,
   buildOrganizerManualAgreementExtras,
   buildOrganizerManualCustomFormAnswers,
+  EXTERNAL_LINK_ENTRY_SOURCE,
+  readApplicationEntrySource,
   readOrganizerManualEntryFromAgreementSnapshot,
+  type ManualEntrySource,
 } from "@/lib/application-form/organizer-manual-entry";
 import { formatFighterGenderLabel } from "@/lib/applications/division-fighter-match";
 import type { EventDivisionDisplayInput } from "@/lib/event-division-fields";
@@ -58,8 +64,11 @@ import { publicAgeGroupFromBirthDate } from "@/lib/public-fighter/age-group";
 import type { ApplyToEventInput } from "@/lib/validators/application.validator";
 import type { BulkApplyToEventInput } from "@/lib/validators/bulk-application.validator";
 import type { OrganizerManualApplicationInput } from "@/lib/validators/organizer-manual-application.validator";
-import { gymRepository } from "@/lib/repositories/gym.repository";
-import { fighterService } from "@/lib/services/fighter.service";
+import type { ExternalRegistrationBatchInput } from "@/lib/validators/external-registration.validator";
+import {
+  parseExternalRegistrationPublicToken,
+  verifyExternalRegistrationPublicToken,
+} from "@/lib/external-registration/token";
 
 /** 신청 동의 스냅샷 버전 — 문구·정책 변경 시 함께 올릴 것. */
 const APPLICATION_AGREEMENT_SNAPSHOT_VERSION = "v1";
@@ -134,7 +143,7 @@ type GymApplicationCreateContext = {
   };
   agreements: ApplyToEventInput["agreements"];
   streamingAgreementRequired: boolean;
-  appliedByUserId: string;
+  appliedByUserId: string | null;
   appliedAt: Date;
   feeAmount: number;
   applicationProfileImageUrl?: string | null;
@@ -143,6 +152,8 @@ type GymApplicationCreateContext = {
   organizerManualEntry?: {
     manualCreatedByUserId: string;
   };
+  /** 공개 외부링크 등 — agreement snapshot entrySource 확장 */
+  applicationEntryExtras?: Record<string, unknown>;
   initialApplicationStatus?: ApplicationStatus;
   initialPaymentStatus?: PaymentStatus;
 };
@@ -236,6 +247,9 @@ async function createGymEventApplication(
         ctx.organizerManualEntry.manualCreatedByUserId,
       ),
     );
+  }
+  if (ctx.applicationEntryExtras) {
+    Object.assign(applicationAgreementSnapshot, ctx.applicationEntryExtras);
   }
   if (ctx.customFormSnapshot) {
     applicationAgreementSnapshot.customForm = ctx.customFormSnapshot;
@@ -379,6 +393,7 @@ export type OrganizerApplicationListRowDTO = {
   customFormSnapshot: CustomFormSnapshot | null;
   applicationFormMode: ApplicationFormMode;
   isOrganizerManualEntry: boolean;
+  entrySource: ManualEntrySource | null;
 };
 
 export type OrganizerManualRegistrationOptionsDTO = {
@@ -748,6 +763,9 @@ export const applicationService = {
           readOrganizerManualEntryFromAgreementSnapshot(
             row.applicationAgreementSnapshot,
           ) != null,
+        entrySource: readApplicationEntrySource(
+          row.applicationAgreementSnapshot,
+        ),
       });
     }
 
@@ -1702,5 +1720,331 @@ export const applicationService = {
       });
       throw error;
     }
+  },
+
+  /**
+   * 공개 외부 체육관 링크 — 다중 선수 atomic batch.
+   * Gym 계정은 주최자 공용 external gym만 재사용하고, 표시명은 snapshot에 저장.
+   */
+  async createExternalLinkBatchApplications(
+    input: ExternalRegistrationBatchInput,
+  ): Promise<{
+    submissionId: string;
+    athleteCount: number;
+    gymName: string;
+    results: Array<{
+      applicationId: string;
+      fighterName: string;
+      divisionId: string;
+    }>;
+    idempotentReplay: boolean;
+  }> {
+    const parsed = parseExternalRegistrationPublicToken(input.token);
+    if (!parsed) {
+      throw new AppError("NOT_FOUND", "유효하지 않은 등록 링크입니다.");
+    }
+
+    const link = await prisma.eventExternalRegistrationLink.findUnique({
+      where: { id: parsed.linkId },
+      include: {
+        event: {
+          include: {
+            divisions: true,
+            applicationFormTemplate: true,
+            organizer: { select: { id: true, name: true, userId: true } },
+          },
+        },
+      },
+    });
+    if (!link) {
+      throw new AppError("NOT_FOUND", "유효하지 않은 등록 링크입니다.");
+    }
+    if (
+      !verifyExternalRegistrationPublicToken({
+        linkId: link.id,
+        tokenHash: link.tokenHash,
+        signature: parsed.signature,
+      })
+    ) {
+      throw new AppError("NOT_FOUND", "유효하지 않은 등록 링크입니다.");
+    }
+    if (link.status !== "active" || link.revokedAt) {
+      throw new AppError("FORBIDDEN", "사용이 중지된 등록 링크입니다.");
+    }
+    if (link.expiresAt && link.expiresAt.getTime() < Date.now()) {
+      throw new AppError("FORBIDDEN", "만료된 등록 링크입니다.");
+    }
+
+    assertRegistrationWindow(link.event);
+
+    const existingSubmission =
+      await prisma.eventExternalRegistrationSubmission.findUnique({
+        where: {
+          linkId_clientSubmissionId: {
+            linkId: link.id,
+            clientSubmissionId: input.clientSubmissionId,
+          },
+        },
+      });
+    if (existingSubmission) {
+      const ids = Array.isArray(existingSubmission.applicationIds)
+        ? (existingSubmission.applicationIds as string[])
+        : [];
+      return {
+        submissionId: existingSubmission.id,
+        athleteCount: existingSubmission.athleteCount,
+        gymName: existingSubmission.gymNameSnapshot,
+        results: ids.map((applicationId) => ({
+          applicationId,
+          fighterName: "",
+          divisionId: "",
+        })),
+        idempotentReplay: true,
+      };
+    }
+
+    const divisionById = new Map(link.event.divisions.map((d) => [d.id, d]));
+    for (let i = 0; i < input.athletes.length; i += 1) {
+      const athlete = input.athletes[i]!;
+      if (!divisionById.has(athlete.divisionId)) {
+        throw new AppError(
+          "VALIDATION_ERROR",
+          `${i + 1}번 선수: 유효하지 않은 체급입니다.`,
+        );
+      }
+    }
+
+    const paymentSetting = await eventRepository.findEventPaymentSettingFull(
+      link.eventId,
+    );
+    const feeAmount = paymentSetting?.feeAmount ?? 0;
+    const appliedAt = new Date();
+    const streamingAgreementRequired =
+      link.event.liveStreamingEnabled || link.event.streamingConsentRequired;
+
+    const manualConfig = parseManualFieldsConfig(
+      link.event.applicationFormTemplate?.manualFieldsJson,
+    );
+    const applicationFormMode = resolveApplicationFormMode(
+      link.event.applicationFormTemplate
+        ? {
+            templateId: link.event.applicationFormTemplateId,
+            fieldsJson: link.event.applicationFormTemplate.fieldsJson,
+            manualFieldsJson: link.event.applicationFormTemplate.manualFieldsJson,
+          }
+        : null,
+    );
+
+    const creditActor: ActorContext = {
+      userId: link.event.organizer.userId,
+      role: "organizer",
+      email: "",
+      organizerId: link.organizerId,
+    };
+
+    const result = await prisma.$transaction(async (tx) => {
+      const replay = await tx.eventExternalRegistrationSubmission.findUnique({
+        where: {
+          linkId_clientSubmissionId: {
+            linkId: link.id,
+            clientSubmissionId: input.clientSubmissionId,
+          },
+        },
+      });
+      if (replay) {
+        return {
+          submissionId: replay.id,
+          athleteCount: replay.athleteCount,
+          gymName: replay.gymNameSnapshot,
+          results: [] as Array<{
+            applicationId: string;
+            fighterName: string;
+            divisionId: string;
+          }>,
+          idempotentReplay: true,
+        };
+      }
+
+      const gymBucket = await gymRepository.ensureOrganizerExternalRegistrationGym(
+        {
+          organizerId: link.organizerId,
+          organizerName: link.event.organizer.name,
+        },
+        tx,
+      );
+
+      const entryExtras = buildExternalLinkAgreementExtras({
+        externalLinkId: link.id,
+        clientSubmissionId: input.clientSubmissionId,
+        contactName: input.gymInfo.contactName,
+        contactPhone: input.gymInfo.contactPhone,
+        contactEmail: input.gymInfo.contactEmail,
+      });
+
+      const created: Array<{
+        applicationId: string;
+        fighterName: string;
+        divisionId: string;
+      }> = [];
+
+      for (const athlete of input.athletes) {
+        const division = divisionById.get(athlete.divisionId)!;
+        const phone = normalizeGymFighterPhone(athlete.phone) || "-";
+        const birthDate = toUtcDateOnly(athlete.birthDate);
+
+        const fighterCode = await fighterService.generateFighterCode(tx);
+        const createdFighter = await fighterRepository.createFighterWithGymHistory(
+          tx,
+          {
+            fighterCode,
+            name: athlete.fighterName.trim(),
+            birthDate,
+            gender: athlete.gender,
+            phone,
+            guardianName: athlete.guardianName ?? null,
+            guardianPhone: athlete.guardianPhone ?? null,
+            currentGymId: gymBucket.id,
+          },
+        );
+        const fighter = buildFighterForManualApplication({
+          id: createdFighter.id,
+          fighterCode: createdFighter.fighterCode,
+          name: athlete.fighterName.trim(),
+        });
+
+        await assertNoDuplicateManualApplication({
+          eventId: link.eventId,
+          divisionId: athlete.divisionId,
+          fighterIds: [fighter.id],
+          tx,
+        });
+
+        let customFormSnapshot: CustomFormSnapshot | null = null;
+        if (
+          applicationFormMode === "custom" &&
+          manualConfig.fields.length > 0 &&
+          link.event.applicationFormTemplate
+        ) {
+          const answers = buildOrganizerManualCustomFormAnswers(
+            manualConfig.fields,
+            "외부 체육관 등록",
+          );
+          customFormSnapshot = buildCustomFormSnapshot(
+            manualConfig.fields,
+            answers,
+            {
+              eventTitle: link.event.title,
+              gymName: input.gymInfo.gymName,
+              divisionLabel: formatDivisionLabel(division),
+              division,
+              fighter: {
+                name: fighter.name,
+                gender: athlete.gender,
+                birthDate,
+                weightKg: null,
+                primarySport: null,
+                guardianName: athlete.guardianName ?? null,
+                guardianPhone: athlete.guardianPhone ?? null,
+              },
+            },
+            {
+              templateId: link.event.applicationFormTemplate.id,
+              templateTitle: link.event.applicationFormTemplate.title,
+              capturedAt: appliedAt.toISOString(),
+            },
+          );
+        }
+
+        const memoParts = [
+          `[외부링크 등록] ${input.gymInfo.gymName}`,
+          `담당 ${input.gymInfo.contactName} ${input.gymInfo.contactPhone}`,
+        ];
+        if (input.gymInfo.memo?.trim()) memoParts.push(input.gymInfo.memo.trim());
+        if (athlete.memo?.trim()) memoParts.push(athlete.memo.trim());
+
+        const { applicationId } = await createGymEventApplication(
+          {
+            eventId: link.eventId,
+            divisionId: athlete.divisionId,
+            gymId: gymBucket.id,
+            gymDisplayName: input.gymInfo.gymName,
+            fighter,
+            agreements: {
+              rulesAgreed: true,
+              privacyAgreed: true,
+              resultDisclosureAgreed: true,
+              photoVideoAgreed: true,
+              streamingAgreed: streamingAgreementRequired ? true : undefined,
+            },
+            streamingAgreementRequired,
+            appliedByUserId: null,
+            appliedAt,
+            feeAmount,
+            memo: memoParts.join("\n"),
+            customFormSnapshot,
+            applicationEntryExtras: entryExtras,
+            initialApplicationStatus: ApplicationStatus.approved,
+            initialPaymentStatus: PaymentStatus.unpaid,
+          },
+          tx,
+        );
+
+        await creditService.debitParticipantFee(
+          {
+            organizerId: link.organizerId,
+            eventId: link.eventId,
+            eventApplicationId: applicationId,
+            actor: creditActor,
+          },
+          tx,
+        );
+
+        created.push({
+          applicationId,
+          fighterName: fighter.name,
+          divisionId: athlete.divisionId,
+        });
+      }
+
+      const submission = await tx.eventExternalRegistrationSubmission.create({
+        data: {
+          linkId: link.id,
+          clientSubmissionId: input.clientSubmissionId,
+          athleteCount: created.length,
+          gymNameSnapshot: input.gymInfo.gymName,
+          contactNameSnapshot: input.gymInfo.contactName,
+          applicationIds: created.map((c) => c.applicationId),
+        },
+      });
+
+      await tx.eventExternalRegistrationLink.update({
+        where: { id: link.id },
+        data: {
+          lastSubmittedAt: appliedAt,
+          submissionCount: { increment: 1 },
+          athleteCount: { increment: created.length },
+        },
+      });
+
+      return {
+        submissionId: submission.id,
+        athleteCount: created.length,
+        gymName: input.gymInfo.gymName,
+        results: created,
+        idempotentReplay: false,
+      };
+    });
+
+    if (!result.idempotentReplay) {
+      safeNotify(`application-external-batch:${result.submissionId}`, () =>
+        notificationService.notifyApplicationSubmitted({
+          eventId: link.eventId,
+          eventTitle: link.event.title,
+          count: result.athleteCount,
+        }),
+      );
+    }
+
+    return result;
   },
 };

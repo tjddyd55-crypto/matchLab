@@ -22,7 +22,9 @@ import {
 } from "@/lib/division-sport-grouping";
 import { OrganizerApplicationsGymSummaryTable } from "@/components/domain/applications/OrganizerApplicationsGymSummaryTable";
 import { OrganizerManualApplicationPanel } from "@/components/domain/applications/OrganizerManualApplicationPanel";
+import { ExternalRegistrationLinkPanel } from "@/components/domain/applications/ExternalRegistrationLinkPanel";
 import type { OrganizerManualRegistrationOptionsDTO } from "@/lib/services/application.service";
+import type { ExternalRegistrationLinkVM } from "@/lib/services/external-registration-link.service";
 import {
   inferSummaryFilter,
   summaryFilterToFilters,
@@ -43,10 +45,12 @@ export function OrganizerApplicationsBoard({
   eventId,
   rows,
   manualRegistrationOptions,
+  externalRegistrationLink,
 }: {
   eventId: string;
   rows: OrganizerApplicationRowVM[];
   manualRegistrationOptions: OrganizerManualRegistrationOptionsDTO;
+  externalRegistrationLink: ExternalRegistrationLinkVM | null;
 }) {
   const listRef = useRef<HTMLDivElement>(null);
   const [filters, setFilters] =
@@ -233,6 +237,10 @@ export function OrganizerApplicationsBoard({
       <OrganizerManualApplicationPanel
         eventId={eventId}
         options={manualRegistrationOptions}
+      />
+      <ExternalRegistrationLinkPanel
+        eventId={eventId}
+        initialLink={externalRegistrationLink}
       />
 
       <OrganizerApplicationsSummaryCards

@@ -198,7 +198,7 @@ export const applicationRepository = {
       fighterSnapshot: Prisma.InputJsonValue;
       gymSnapshot: Prisma.InputJsonValue;
       applicationAgreementSnapshot: Prisma.InputJsonValue;
-      appliedByUserId: string;
+      appliedByUserId: string | null;
       appliedAt: Date;
       applicationProfileImageUrl?: string | null;
       memo?: string | null;

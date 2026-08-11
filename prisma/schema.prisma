@@ -588,6 +588,7 @@ model User {
   applicationBatchesSubmitted     EventApplicationBatch[]   @relation("BatchSubmitter")
 
   associationJoinLinksCreated            AssociationJoinLink[]                   @relation("AssociationJoinLinkCreator")
+  eventExternalRegistrationLinksCreated  EventExternalRegistrationLink[]         @relation("EventExternalRegistrationLinkCreator")
   associationMemberGymApplicationReviews AssociationMemberGymApplicationReview[] @relation("MemberGymApplicationReviewer")
   associationJoinLinkAttachmentsUploaded AssociationJoinLinkAttachment[]         @relation("JoinLinkAttachmentUploader")
   associationMemberGymApplicationsCreated AssociationMemberGymApplication[]      @relation("MemberGymApplicationCreator")
@@ -655,6 +656,7 @@ model Organizer {
   associationMemberGymSettings     AssociationMemberGymSettings?
   associationApplicationsCreated   AssociationApplication[] @relation("AssociationApplicationCreatedOrganizer")
   associationGymConnectionRequests AssociationGymConnectionRequest[]
+  eventExternalRegistrationLinks   EventExternalRegistrationLink[]
 }
 
 model Gym {
@@ -1618,6 +1620,7 @@ model Event {
   judgeAssignments  JudgeMatchAssignment[]
   judgeScorecards   JudgeScorecard[]
   courts            EventCourt[]
+  externalRegistrationLink EventExternalRegistrationLink?
 
   @@index([organizerId])
   @@index([status])
@@ -2567,6 +2570,56 @@ model JudgeRoundScore {
 
   @@unique([scorecardId, roundNumber])
   @@index([scorecardId])
+}
+
+// --- Event external gym multi-registration (additive) -----------------------
+
+enum EventExternalRegistrationLinkStatus {
+  active
+  revoked
+}
+
+/// 대회당 공통 외부 체육관 공개 등록 링크 — raw token 미저장, tokenHash만 보관
+model EventExternalRegistrationLink {
+  id              String                             @id @default(cuid())
+  eventId         String                             @unique
+  organizerId     String
+  tokenHash       String                             @unique
+  label           String?
+  status          EventExternalRegistrationLinkStatus @default(active)
+  expiresAt       DateTime?
+  revokedAt       DateTime?
+  createdByUserId String
+  lastSubmittedAt DateTime?
+  submissionCount Int                                @default(0)
+  athleteCount    Int                                @default(0)
+  createdAt       DateTime                           @default(now())
+  updatedAt       DateTime                           @updatedAt
+
+  event         Event                                @relation(fields: [eventId], references: [id], onDelete: Cascade)
+  organizer     Organizer                            @relation(fields: [organizerId], references: [id], onDelete: Cascade)
+  createdByUser User                                 @relation("EventExternalRegistrationLinkCreator", fields: [createdByUserId], references: [id], onDelete: Cascade)
+  submissions   EventExternalRegistrationSubmission[]
+
+  @@index([organizerId])
+  @@index([status])
+}
+
+/// 공개 배치 제출 멱등 — (linkId, clientSubmissionId) unique
+model EventExternalRegistrationSubmission {
+  id                 String   @id @default(cuid())
+  linkId             String
+  clientSubmissionId String
+  athleteCount       Int
+  gymNameSnapshot    String
+  contactNameSnapshot String?
+  applicationIds     Json?
+  createdAt          DateTime @default(now())
+
+  link EventExternalRegistrationLink @relation(fields: [linkId], references: [id], onDelete: Cascade)
+
+  @@unique([linkId, clientSubmissionId])
+  @@index([linkId])
 }
 
 // --- Association member gym (additive) --------------------------------------

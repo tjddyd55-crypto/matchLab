@@ -65,6 +65,7 @@ export type OrganizerApplicationRowVM = {
   customFormSnapshot: CustomFormSnapshot | null;
   applicationFormMode: ApplicationFormMode;
   isOrganizerManualEntry: boolean;
+  entrySource?: "organizer_manual" | "external_link" | null;
 };
 
 export function OrganizerApplicationsTable({
@@ -146,7 +147,10 @@ export function OrganizerApplicationsTable({
                   </span>
                   <DivisionGenderBadge gender={row.division.gender} short />
                 </div>
-                <OrganizerManualEntryHint show={row.isOrganizerManualEntry} />
+                <OrganizerManualEntryHint
+                  show={row.isOrganizerManualEntry}
+                  entrySource={row.entrySource}
+                />
               </TableCell>
               <TableCell className="align-top">
                 <DivisionCompactDisplay

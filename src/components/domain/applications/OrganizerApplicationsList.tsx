@@ -82,7 +82,10 @@ export function OrganizerApplicationsList({
                 <span className="truncate">{row.fighterName}</span>
                 <DivisionGenderBadge gender={row.division.gender} short />
               </div>
-              <OrganizerManualEntryHint show={row.isOrganizerManualEntry} />
+              <OrganizerManualEntryHint
+                show={row.isOrganizerManualEntry}
+                entrySource={row.entrySource}
+              />
             </div>
 
             <div className="min-w-0" title={row.divisionLabel}>
