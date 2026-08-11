@@ -4,6 +4,8 @@ import type {
   DivisionTemplateGender,
 } from "@/lib/division-template/division-template-constants";
 
+export type WeightLimitOperator = "under" | "over";
+
 export type ParsedQuickWeightRow = {
   weightClassName: string;
   weightLimitText: string | null;
@@ -11,6 +13,21 @@ export type ParsedQuickWeightRow = {
   limitType: "under" | "over" | "range" | null;
   parseError?: string;
 };
+
+/** 소수(63.5)를 문자열로 안정 보존한다. */
+export function formatWeightKgNumber(kg: number): string {
+  if (!Number.isFinite(kg)) return "";
+  // toString은 63.5를 유지하고, 불필요한 trailing zero를 만들지 않는다.
+  return String(kg);
+}
+
+export function formatWeightLimitText(
+  kg: number,
+  operator: WeightLimitOperator,
+): string {
+  const n = formatWeightKgNumber(kg);
+  return operator === "over" ? `+${n}kg` : `-${n}kg`;
+}
 
 const WEIGHT_ENTRY_RE =
   /^(.+?)\s*([+-]?\d+(?:\.\d+)?)\s*kg\s*$/i;
@@ -88,15 +105,15 @@ export function parseSingleWeightEntry(raw: string): ParsedQuickWeightRow {
   if (numRaw.startsWith("+")) {
     limitType = "over";
     weightLimitKg = Math.abs(numeric);
-    weightLimitText = `+${weightLimitKg}kg`;
+    weightLimitText = formatWeightLimitText(weightLimitKg, "over");
   } else if (numRaw.startsWith("-")) {
     limitType = "under";
     weightLimitKg = Math.abs(numeric);
-    weightLimitText = `-${weightLimitKg}kg`;
+    weightLimitText = formatWeightLimitText(weightLimitKg, "under");
   } else {
     limitType = signed ? "under" : "under";
     weightLimitKg = Math.abs(numeric);
-    weightLimitText = `-${weightLimitKg}kg`;
+    weightLimitText = formatWeightLimitText(weightLimitKg, "under");
   }
 
   return {
