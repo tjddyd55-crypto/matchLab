@@ -3,6 +3,7 @@
 import { useState, useTransition } from "react";
 import { useRouter } from "next/navigation";
 import { archiveApplicationFormTemplateAction } from "@/features/application-form-templates/actions";
+import { useAppConfirmDialog } from "@/components/shared/app-confirm-dialog";
 import { Button } from "@/components/ui/button";
 
 export function ApplicationFormTemplateArchiveButton({
@@ -15,6 +16,7 @@ export function ApplicationFormTemplateArchiveButton({
   isActive: boolean;
 }) {
   const router = useRouter();
+  const { confirm, alert } = useAppConfirmDialog();
   const [pending, startTransition] = useTransition();
   const [error, setError] = useState<string | null>(null);
 
@@ -22,14 +24,14 @@ export function ApplicationFormTemplateArchiveButton({
     return null;
   }
 
-  function handleArchive() {
-    if (
-      !window.confirm(
-        `"${title}" 템플릿을 보관하시겠습니까? 보관된 템플릿은 대회에 새로 연결할 수 없습니다.`,
-      )
-    ) {
-      return;
-    }
+  async function handleArchive() {
+    const ok = await confirm({
+      title: "템플릿을 보관할까요?",
+      description: `"${title}" 템플릿을 보관하시겠습니까? 보관된 템플릿은 대회에 새로 연결할 수 없습니다.`,
+      confirmLabel: "보관",
+      variant: "danger",
+    });
+    if (!ok) return;
 
     setError(null);
     startTransition(async () => {
@@ -38,7 +40,10 @@ export function ApplicationFormTemplateArchiveButton({
       const res = await archiveApplicationFormTemplateAction(fd);
       if (!res.ok) {
         setError(res.error.message);
-        window.alert(res.error.message);
+        await alert({
+          title: "처리 실패",
+          description: res.error.message,
+        });
         return;
       }
       router.refresh();
@@ -52,7 +57,7 @@ export function ApplicationFormTemplateArchiveButton({
         size="sm"
         variant="outline"
         disabled={pending}
-        onClick={handleArchive}
+        onClick={() => void handleArchive()}
       >
         {pending ? "보관 중…" : "보관"}
       </Button>

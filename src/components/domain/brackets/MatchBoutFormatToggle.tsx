@@ -7,6 +7,7 @@ import { BracketType } from "@/lib/enums";
 import { resolveMatchIsPublicSparring } from "@/lib/match-bout-settings";
 import { resolveBoutFormatKind } from "@/lib/bout-format";
 import { BoutFormatBadge } from "@/components/domain/shared/BoutFormatBadge";
+import { useAppConfirmDialog } from "@/components/shared/app-confirm-dialog";
 import { cn } from "@/lib/utils";
 
 export function MatchBoutFormatToggle({
@@ -23,6 +24,7 @@ export function MatchBoutFormatToggle({
   disabled?: boolean;
 }) {
   const router = useRouter();
+  const { alert } = useAppConfirmDialog();
   const [pending, startTransition] = useTransition();
   const isPublic = resolveMatchIsPublicSparring({
     bracketType,
@@ -44,7 +46,7 @@ export function MatchBoutFormatToggle({
       fd.set("isPublicSparring", isPublic ? "false" : "true");
       const res = await updateMatchBoutSettingsAction(fd);
       if (!res.ok) {
-        window.alert(res.error.message);
+        await alert(res.error.message);
         return;
       }
       router.refresh();

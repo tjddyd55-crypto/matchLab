@@ -2,6 +2,7 @@
 
 import { useMemo, useState, useTransition } from "react";
 import { cancelGymAttendanceAction } from "@/features/gym-attendance/actions";
+import { useAppConfirmDialog } from "@/components/shared/app-confirm-dialog";
 import { Button } from "@/components/ui/button";
 import {
   formatSeoulTimeAria,
@@ -42,6 +43,7 @@ export function GymMemberAttendanceCalendar({
     latestAttendedAt: Date | string | null;
   };
 }) {
+  const { confirm } = useAppConfirmDialog();
   const [selectedDay, setSelectedDay] = useState<number | null>(null);
   const [pending, startTransition] = useTransition();
   const [error, setError] = useState<string | null>(null);
@@ -75,16 +77,15 @@ export function GymMemberAttendanceCalendar({
     return `?attendanceYear=${y}&attendanceMonth=${m}#attendance`;
   }
 
-  function cancelSelected() {
+  async function cancelSelected() {
     if (!selected) return;
     const dateLabel = `${year}-${String(month).padStart(2, "0")}-${String(selected.day).padStart(2, "0")}`;
-    if (
-      !window.confirm(
-        `출석 기록을 취소할까요?\n\n${memberName} 회원의 ${dateLabel} 출석 기록이 취소됩니다.`,
-      )
-    ) {
-      return;
-    }
+    const ok = await confirm({
+      title: "출석 기록을 취소할까요?",
+      description: `${memberName} 회원의 ${dateLabel} 출석 기록이 취소됩니다.`,
+      variant: "danger",
+    });
+    if (!ok) return;
     setError(null);
     const fd = new FormData();
     fd.set("attendanceId", selected.id);
@@ -248,7 +249,7 @@ export function GymMemberAttendanceCalendar({
               variant="outline"
               className="mt-2"
               disabled={pending}
-              onClick={cancelSelected}
+              onClick={() => void cancelSelected()}
             >
               출석 취소
             </Button>

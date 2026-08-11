@@ -10,6 +10,7 @@ import {
 } from "@/features/gym-members/actions";
 import { GymMembershipDurationType } from "@/lib/enums";
 import { formatWon } from "@/lib/format-won";
+import { useAppConfirmDialog } from "@/components/shared/app-confirm-dialog";
 import { Button } from "@/components/ui/button";
 import {
   matchonCompactTableWrapClass,
@@ -48,6 +49,7 @@ export function GymMembershipPlanManager({
   plans: GymMembershipPlanRow[];
 }) {
   const router = useRouter();
+  const { confirm } = useAppConfirmDialog();
   const [pending, startTransition] = useTransition();
   const [error, setError] = useState<string | null>(null);
   const [editingId, setEditingId] = useState<string | null>(null);
@@ -246,10 +248,14 @@ export function GymMembershipPlanManager({
                     )
                   }
                   onDelete={() => {
-                    if (!window.confirm(`「${plan.name}」을(를) 삭제할까요?`)) {
-                      return;
-                    }
-                    run(() => deleteGymMembershipPlanAction(plan.id));
+                    void (async () => {
+                      const ok = await confirm({
+                        title: `「${plan.name}」을(를) 삭제할까요?`,
+                        variant: "danger",
+                      });
+                      if (!ok) return;
+                      run(() => deleteGymMembershipPlanAction(plan.id));
+                    })();
                   }}
                 />
               </div>
@@ -361,14 +367,14 @@ export function GymMembershipPlanManager({
                           variant="destructive"
                           disabled={pending}
                           onClick={() => {
-                            if (
-                              !window.confirm(
-                                `「${plan.name}」을(를) 삭제할까요?`,
-                              )
-                            ) {
-                              return;
-                            }
-                            run(() => deleteGymMembershipPlanAction(plan.id));
+                            void (async () => {
+                              const ok = await confirm({
+                                title: `「${plan.name}」을(를) 삭제할까요?`,
+                                variant: "danger",
+                              });
+                              if (!ok) return;
+                              run(() => deleteGymMembershipPlanAction(plan.id));
+                            })();
                           }}
                         >
                           삭제

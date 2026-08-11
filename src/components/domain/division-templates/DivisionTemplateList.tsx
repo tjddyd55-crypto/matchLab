@@ -1,7 +1,7 @@
 "use client";
 
 import Link from "next/link";
-import { useActionState, useEffect } from "react";
+import { useActionState, useEffect, useRef } from "react";
 import { useRouter } from "next/navigation";
 import type { DivisionTemplateListItemVM } from "@/lib/services/division-template.service";
 import type { ActionResult } from "@/lib/action-result";
@@ -10,6 +10,7 @@ import {
   type DivisionTemplateSportType,
 } from "@/lib/division-template/division-template-constants";
 import { Button, buttonVariants } from "@/components/ui/button";
+import { useAppConfirmDialog } from "@/components/shared/app-confirm-dialog";
 import { cn } from "@/lib/utils";
 import { deleteDivisionTemplateAction } from "@/features/division-templates/actions";
 import { formatPublicDateTime } from "@/lib/date-display";
@@ -22,6 +23,8 @@ export function DivisionTemplateList({
   showOrganizer?: boolean;
 }) {
   const router = useRouter();
+  const { confirm } = useAppConfirmDialog();
+  const deleteConfirmedRef = useRef(false);
   const [delState, delAction, delPending] = useActionState(
     deleteDivisionTemplateAction,
     null as ActionResult<{ ok: true }> | null,
@@ -92,10 +95,20 @@ export function DivisionTemplateList({
             <form
               action={delAction}
               className="inline"
-              onSubmit={(e) => {
-                if (!window.confirm("이 템플릿을 삭제할까요?")) {
-                  e.preventDefault();
+              onSubmit={async (e) => {
+                if (deleteConfirmedRef.current) {
+                  deleteConfirmedRef.current = false;
+                  return;
                 }
+                e.preventDefault();
+                const form = e.currentTarget;
+                const ok = await confirm({
+                  title: "이 템플릿을 삭제할까요?",
+                  variant: "danger",
+                });
+                if (!ok) return;
+                deleteConfirmedRef.current = true;
+                form.requestSubmit();
               }}
             >
               <input type="hidden" name="templateId" value={t.id} />

@@ -2,6 +2,7 @@
 
 import { useEffect, useState, useTransition } from "react";
 import { useRouter } from "next/navigation";
+import { useAppConfirmDialog } from "@/components/shared/app-confirm-dialog";
 import { Button } from "@/components/ui/button";
 import {
   createGymMemberGroupAction,
@@ -25,6 +26,7 @@ export function GymMemberGroupManager({
   groups: GymMemberGroupRow[];
 }) {
   const router = useRouter();
+  const { confirm } = useAppConfirmDialog();
   const [pending, startTransition] = useTransition();
   const [error, setError] = useState<string | null>(null);
   const [groups, setGroups] = useState(initialGroups);
@@ -181,14 +183,15 @@ export function GymMemberGroupManager({
                       variant="outline"
                       disabled={pending}
                       onClick={() => {
-                        if (
-                          !window.confirm(
-                            `"${g.name}" 그룹을 삭제할까요? (배정은 해제됩니다)`,
-                          )
-                        ) {
-                          return;
-                        }
-                        run(() => deleteGymMemberGroupAction(g.id));
+                        void (async () => {
+                          const ok = await confirm({
+                            title: `"${g.name}" 그룹을 삭제할까요?`,
+                            description: "배정은 해제됩니다",
+                            variant: "danger",
+                          });
+                          if (!ok) return;
+                          run(() => deleteGymMemberGroupAction(g.id));
+                        })();
                       }}
                     >
                       삭제

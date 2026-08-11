@@ -6,6 +6,7 @@ import {
   GymStaffFormFields,
   type GymStaffFormInitial,
 } from "@/components/domain/gym-staff/GymStaffFormFields";
+import { useAppConfirmDialog } from "@/components/shared/app-confirm-dialog";
 import { Button } from "@/components/ui/button";
 import {
   deactivateGymStaffAction,
@@ -22,6 +23,7 @@ export function GymStaffEditForm({
   isActive: boolean;
 }) {
   const router = useRouter();
+  const { confirm } = useAppConfirmDialog();
   const [pending, startTransition] = useTransition();
   const [error, setError] = useState<string | null>(null);
   const [saved, setSaved] = useState(false);
@@ -41,14 +43,14 @@ export function GymStaffEditForm({
     });
   }
 
-  function deactivate() {
-    if (
-      !window.confirm(
-        "재직 종료로 처리할까요?\n\n담당 회원 배정도 함께 해제됩니다. 출석·매출 이력은 유지됩니다.",
-      )
-    ) {
-      return;
-    }
+  async function deactivate() {
+    const ok = await confirm({
+      title: "재직 종료로 처리할까요?",
+      description:
+        "담당 회원 배정도 함께 해제됩니다. 출석·매출 이력은 유지됩니다.",
+      variant: "danger",
+    });
+    if (!ok) return;
     setError(null);
     startTransition(async () => {
       const result = await deactivateGymStaffAction(staffId);
@@ -86,7 +88,7 @@ export function GymStaffEditForm({
             size="sm"
             variant="outline"
             disabled={pending}
-            onClick={deactivate}
+            onClick={() => void deactivate()}
           >
             재직 종료
           </Button>

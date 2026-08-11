@@ -12,6 +12,7 @@ import {
   BracketFighterCompactCard,
 } from "@/components/domain/brackets/BracketFighterCompactCard";
 import { FeedbackMessage } from "@/components/shared/FeedbackMessage";
+import { useAppConfirmDialog } from "@/components/shared/app-confirm-dialog";
 import { resolveSlotFighterDisplay } from "@/lib/bracket-fighter-compact-display";
 import type { OrganizerApprovedFighterOptionVM } from "@/lib/services/bracket.service";
 import type { OrganizerBracketMatchVM } from "@/lib/services/bracket.service";
@@ -71,6 +72,7 @@ export function OrganizerMatchEditSlot({
   className?: string;
 }) {
   const router = useRouter();
+  const { confirm, alert } = useAppConfirmDialog();
   const [pending, startTransition] = useTransition();
   const [error, setError] = useState<string | null>(null);
 
@@ -100,20 +102,19 @@ export function OrganizerMatchEditSlot({
         const res = await removeFighterFromMatchAction(fd);
         if (!res.ok) {
           setError(res.error.message);
-          window.alert(res.error.message);
+          await alert(res.error.message);
           return;
         }
         router.refresh();
         return;
       }
 
-      if (
-        fighterNeedsMoveConfirm(matches, nextId, matchId) &&
-        !window.confirm(
-          "이 선수는 다른 경기에 배정되어 있습니다. 이동하면 기존 슬롯은 비워집니다. 계속할까요?",
-        )
-      ) {
-        return;
+      if (fighterNeedsMoveConfirm(matches, nextId, matchId)) {
+        const ok = await confirm({
+          title:
+            "이 선수는 다른 경기에 배정되어 있습니다. 이동하면 기존 슬롯은 비워집니다. 계속할까요?",
+        });
+        if (!ok) return;
       }
 
       const fd = new FormData();
@@ -127,7 +128,7 @@ export function OrganizerMatchEditSlot({
       const res = await assignFighterToMatchAction(fd);
       if (!res.ok) {
         setError(res.error.message);
-        window.alert(res.error.message);
+        await alert(res.error.message);
         return;
       }
       router.refresh();

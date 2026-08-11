@@ -3,6 +3,7 @@
 import { useState, useTransition } from "react";
 import { useRouter } from "next/navigation";
 import { AppDateInput } from "@/components/shared/AppDateInput";
+import { useAppConfirmDialog } from "@/components/shared/app-confirm-dialog";
 import { Button } from "@/components/ui/button";
 import {
   pauseGymMemberAction,
@@ -27,6 +28,7 @@ export function GymMemberDetailActions({
   defaultPrimarySport?: string | null;
 }) {
   const router = useRouter();
+  const { confirm } = useAppConfirmDialog();
   const [pending, startTransition] = useTransition();
   const [error, setError] = useState<string | null>(null);
   const [message, setMessage] = useState<string | null>(null);
@@ -135,21 +137,22 @@ export function GymMemberDetailActions({
               variant="destructive"
               disabled={pending}
               onClick={() => {
-                if (
-                  !window.confirm(
-                    "퇴회 처리하시겠습니까? 이용권도 종료됩니다.",
-                  )
-                ) {
-                  return;
-                }
-                run(
-                  () =>
-                    setGymMemberStatusAction(
-                      memberId,
-                      GymMemberStatus.withdrawn,
-                    ),
-                  "퇴회 처리했습니다.",
-                );
+                void (async () => {
+                  const ok = await confirm({
+                    title: "퇴회 처리하시겠습니까?",
+                    description: "이용권도 종료됩니다.",
+                    variant: "danger",
+                  });
+                  if (!ok) return;
+                  run(
+                    () =>
+                      setGymMemberStatusAction(
+                        memberId,
+                        GymMemberStatus.withdrawn,
+                      ),
+                    "퇴회 처리했습니다.",
+                  );
+                })();
               }}
             >
               퇴회
@@ -160,17 +163,21 @@ export function GymMemberDetailActions({
               variant="outline"
               disabled={pending}
               onClick={() => {
-                if (!window.confirm("회원을 삭제(소프트)하시겠습니까?")) {
-                  return;
-                }
-                run(async () => {
-                  const result = await softDeleteGymMemberAction(memberId);
-                  if (result.ok) {
-                    router.push("/gym/members");
-                    router.refresh();
-                  }
-                  return result;
-                });
+                void (async () => {
+                  const ok = await confirm({
+                    title: "회원을 삭제(소프트)하시겠습니까?",
+                    variant: "danger",
+                  });
+                  if (!ok) return;
+                  run(async () => {
+                    const result = await softDeleteGymMemberAction(memberId);
+                    if (result.ok) {
+                      router.push("/gym/members");
+                      router.refresh();
+                    }
+                    return result;
+                  });
+                })();
               }}
             >
               삭제

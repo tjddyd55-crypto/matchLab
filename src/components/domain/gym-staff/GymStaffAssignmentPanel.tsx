@@ -3,6 +3,7 @@
 import Link from "next/link";
 import { useRouter } from "next/navigation";
 import { useState, useTransition } from "react";
+import { useAppConfirmDialog } from "@/components/shared/app-confirm-dialog";
 import { Button } from "@/components/ui/button";
 import {
   assignGymStaffMemberAction,
@@ -41,6 +42,7 @@ export function GymStaffAssignmentPanel({
   assignments: GymStaffAssignmentItem[];
 }) {
   const router = useRouter();
+  const { confirm } = useAppConfirmDialog();
   const [pending, startTransition] = useTransition();
   const [error, setError] = useState<string | null>(null);
   const [query, setQuery] = useState("");
@@ -91,14 +93,13 @@ export function GymStaffAssignmentPanel({
     });
   }
 
-  function unassign(assignment: GymStaffAssignmentItem) {
-    if (
-      !window.confirm(
-        `${assignment.memberName} 회원의 담당을 해제할까요?\n\n배정 이력은 보관됩니다.`,
-      )
-    ) {
-      return;
-    }
+  async function unassign(assignment: GymStaffAssignmentItem) {
+    const ok = await confirm({
+      title: `${assignment.memberName} 회원의 담당을 해제할까요?`,
+      description: "배정 이력은 보관됩니다.",
+      variant: "danger",
+    });
+    if (!ok) return;
     setError(null);
     startTransition(async () => {
       const result = await unassignGymStaffMemberAction(staffId, assignment.id);
@@ -146,7 +147,7 @@ export function GymStaffAssignmentPanel({
                 size="sm"
                 variant="ghost"
                 disabled={pending}
-                onClick={() => unassign(assignment)}
+                onClick={() => void unassign(assignment)}
               >
                 담당 해제
               </Button>

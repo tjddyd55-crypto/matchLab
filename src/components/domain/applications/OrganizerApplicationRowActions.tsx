@@ -11,6 +11,7 @@ import {
 import { findBulkApplicationFailureReason } from "@/lib/bulk-application-result-feedback";
 import type { BulkApplicationAction } from "@/lib/services/application-organizer-bulk.service";
 import { bulkApplicationActionFormAction } from "@/features/applications/bulk-actions";
+import { useAppConfirmDialog } from "@/components/shared/app-confirm-dialog";
 import { FeedbackMessage } from "@/components/shared/FeedbackMessage";
 import { Button } from "@/components/ui/button";
 import { cn } from "@/lib/utils";
@@ -57,6 +58,7 @@ export function OrganizerApplicationRowActions({
   touchFriendly?: boolean;
 }) {
   const router = useRouter();
+  const { confirm } = useAppConfirmDialog();
   const [pending, startTransition] = useTransition();
   const [feedback, setFeedback] = useState<{
     tone: "success" | "error";
@@ -69,11 +71,17 @@ export function OrganizerApplicationRowActions({
   });
   const statusLabel = getOrganizerApplicationDisplayStatusLabel(display);
 
-  function run(action: BulkApplicationAction) {
+  async function run(action: BulkApplicationAction) {
     const label = ACTION_LABELS[action];
-    if (!window.confirm(`${row.fighterName} 선수를 「${label}」 처리하시겠습니까?`)) {
-      return;
-    }
+    const isDanger =
+      action === "organizer_cancel" || action === "mark_gym_cancelled";
+    const ok = await confirm({
+      title: `「${label}」 처리할까요?`,
+      description: `${row.fighterName} 선수를 「${label}」 처리하시겠습니까?`,
+      confirmLabel: action === "organizer_cancel" ? "취소" : "확인",
+      variant: isDanger ? "danger" : "default",
+    });
+    if (!ok) return;
     setFeedback(null);
     const fd = new FormData();
     fd.set("eventId", eventId);
@@ -143,7 +151,7 @@ export function OrganizerApplicationRowActions({
               variant="default"
               className={btnClass}
               disabled={pending}
-              onClick={() => run(action)}
+              onClick={() => void run(action)}
             >
               {ACTION_LABELS[action]}
             </Button>
@@ -167,7 +175,7 @@ export function OrganizerApplicationRowActions({
               variant="destructive"
               className={btnClass}
               disabled={pending}
-              onClick={() => run(action)}
+              onClick={() => void run(action)}
             >
               {ACTION_LABELS[action]}
             </Button>

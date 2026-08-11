@@ -5,6 +5,7 @@ import { useRouter } from "next/navigation";
 import { useState, useTransition } from "react";
 import { Button, buttonVariants } from "@/components/ui/button";
 import { AppDateInput } from "@/components/shared/AppDateInput";
+import { useAppConfirmDialog } from "@/components/shared/app-confirm-dialog";
 import {
   cancelGymManualSaleAction,
   createGymRefundAction,
@@ -77,6 +78,7 @@ export function GymSalesDashboardPanel({
   };
 }) {
   const router = useRouter();
+  const { confirm } = useAppConfirmDialog();
   const [pending, startTransition] = useTransition();
   const [error, setError] = useState<string | null>(null);
   const [message, setMessage] = useState<string | null>(null);
@@ -524,13 +526,17 @@ export function GymSalesDashboardPanel({
                         className="mt-1"
                         disabled={pending}
                         onClick={() => {
-                          if (!window.confirm("수기 매출을 취소하시겠습니까?")) {
-                            return;
-                          }
-                          run(
-                            () => cancelGymManualSaleAction(t.id),
-                            "수기 매출을 취소했습니다.",
-                          );
+                          void (async () => {
+                            const ok = await confirm({
+                              title: "수기 매출을 취소하시겠습니까?",
+                              variant: "danger",
+                            });
+                            if (!ok) return;
+                            run(
+                              () => cancelGymManualSaleAction(t.id),
+                              "수기 매출을 취소했습니다.",
+                            );
+                          })();
                         }}
                       >
                         취소

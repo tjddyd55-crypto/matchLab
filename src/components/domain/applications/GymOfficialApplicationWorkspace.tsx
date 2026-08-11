@@ -7,6 +7,7 @@ import type { ApplicationDocumentRowVM } from "@/lib/services/application-docume
 import type { EventApplicationFormDTO } from "@/lib/services/application.service";
 import { createApplicationDocumentAction } from "@/features/application-documents/actions";
 import { submitBatchAction } from "@/features/application-batches/actions";
+import { useAppConfirmDialog } from "@/components/shared/app-confirm-dialog";
 import { FeedbackMessage } from "@/components/shared/FeedbackMessage";
 import { MatchonStatusBadge } from "@/components/shared/MatchonStatusBadge";
 import { Button } from "@/components/ui/button";
@@ -37,6 +38,7 @@ export function GymOfficialApplicationWorkspace({
   fighters: EventApplicationFormDTO["fighters"];
 }) {
   const router = useRouter();
+  const { alert } = useAppConfirmDialog();
   const batchId = workspace.batch?.id;
   const [fighterId, setFighterId] = useState("");
   const [divisionId, setDivisionId] = useState(divisions[0]?.id ?? "");
@@ -96,9 +98,15 @@ export function GymOfficialApplicationWorkspace({
     if (!url) return;
     try {
       await navigator.clipboard.writeText(url);
-      window.alert("링크가 복사되었습니다.");
+      await alert({
+        title: "복사 완료",
+        description: "링크가 복사되었습니다.",
+      });
     } catch {
-      window.alert("복사에 실패했습니다.");
+      await alert({
+        title: "처리 실패",
+        description: "복사에 실패했습니다.",
+      });
     }
   }
 

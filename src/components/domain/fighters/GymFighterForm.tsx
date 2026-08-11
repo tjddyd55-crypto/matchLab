@@ -9,6 +9,7 @@ import {
   updateGymFighterAction,
 } from "@/features/fighters/actions";
 import { AppDateInput } from "@/components/shared/AppDateInput";
+import { useAppConfirmDialog } from "@/components/shared/app-confirm-dialog";
 import { Button, buttonVariants } from "@/components/ui/button";
 import { FighterStatus } from "@/lib/enums";
 import type { GymFighterFormInitialValues } from "@/lib/fighters/gym-fighter-form-initial";
@@ -44,6 +45,7 @@ export function GymFighterForm({
   returnTo?: string;
 }) {
   const router = useRouter();
+  const { confirm } = useAppConfirmDialog();
   const [pending, setPending] = useState(false);
   const [error, setError] = useState<string | null>(null);
   const [duplicates, setDuplicates] = useState<DuplicateCandidate[] | null>(
@@ -398,13 +400,12 @@ export function GymFighterForm({
             disabled={pending}
             onClick={() => {
               void (async () => {
-                if (
-                  !window.confirm(
-                    "이 선수의 체육관 소속을 해제할까요? 목록에서 제외됩니다.",
-                  )
-                ) {
-                  return;
-                }
+                const ok = await confirm({
+                  title: "이 선수의 체육관 소속을 해제할까요?",
+                  description: "목록에서 제외됩니다.",
+                  variant: "danger",
+                });
+                if (!ok) return;
                 setPending(true);
                 const fd = new FormData();
                 fd.set("fighterId", fighterId);

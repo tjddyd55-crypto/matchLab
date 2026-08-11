@@ -34,6 +34,7 @@ import {
   type CustomFormFieldDefinition,
 } from "@/lib/application-form/custom-form";
 import { isTemplateEditorDevMode } from "@/lib/application-form/template-editor-flags";
+import { useAppConfirmDialog } from "@/components/shared/app-confirm-dialog";
 import { Button, buttonVariants } from "@/components/ui/button";
 import { cn } from "@/lib/utils";
 
@@ -124,6 +125,7 @@ export function ApplicationFormTemplateEditor({
   editorContext?: ApplicationFormTemplateEditorContext;
 }) {
   const router = useRouter();
+  const { confirm } = useAppConfirmDialog();
   const showDevAdvanced = isTemplateEditorDevMode();
   const [pending, setPending] = useState(false);
   const [error, setError] = useState<string | null>(null);
@@ -231,11 +233,14 @@ export function ApplicationFormTemplateEditor({
     };
   }, [initial?.id, originalPdfFileName, originalPdfPath, pdfBytes, templateFormMode]);
 
-  function handleFormModeChange(next: ApplicationFormMode) {
+  async function handleFormModeChange(next: ApplicationFormMode) {
     if (next === templateFormMode) return;
-    const confirmed = window.confirm(
-      "신청서 방식을 변경해도 기존 편집 내용은 화면에 유지됩니다. 저장 시 선택한 방식만 반영됩니다. 계속할까요?",
-    );
+    const confirmed = await confirm({
+      title: "신청서 방식을 변경할까요?",
+      description:
+        "기존 편집 내용은 화면에 유지됩니다.\n저장하면 선택한 신청서 방식으로 반영됩니다.",
+      confirmLabel: "변경",
+    });
     if (!confirmed) return;
     setTemplateFormMode(next);
     setError(null);
@@ -464,7 +469,7 @@ export function ApplicationFormTemplateEditor({
                 name="templateFormMode"
                 className="sr-only"
                 checked={templateFormMode === opt.value}
-                onChange={() => handleFormModeChange(opt.value)}
+                onChange={() => void handleFormModeChange(opt.value)}
               />
               <p className="text-sm font-medium">{opt.title}</p>
               <p className="text-muted-foreground mt-1 text-xs leading-relaxed">
