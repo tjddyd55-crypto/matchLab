@@ -37,6 +37,17 @@ import { bracketRepository,
 import { eventCourtRepository } from "@/lib/repositories/event-court.repository";
 import { eventRepository } from "@/lib/repositories/event.repository";
 import type { GenerateAutoBracketMatchesInput } from "@/lib/validators/bracket-auto-match.validator";
+import { resolveApplicationGymDisplayName } from "@/lib/gym/external-registration-placeholder-gym";
+
+function displayGymName(row: {
+  gymSnapshot: unknown;
+  gym: { name: string };
+}): string {
+  return resolveApplicationGymDisplayName({
+    gymSnapshot: row.gymSnapshot,
+    gymRelationName: row.gym.name,
+  });
+}
 
 export type AutoBracketDivisionSummary = {
   divisionLabel: string;
@@ -126,7 +137,7 @@ function toAutoMatchCandidate(
     fighterId: row.fighterId,
     divisionId: row.divisionId,
     gymId: row.gymId,
-    gymName: row.gym.name,
+    gymName: displayGymName(row),
     fighterName: row.fighter.name,
     appliedAt: row.appliedAt ?? row.createdAt,
     isEligibleForBracket: eligibility.isEligibleForBracket,
@@ -141,7 +152,7 @@ function toPlacementRow(row: AutoMatchApplicationRow) {
     divisionId: row.divisionId,
     fighter: row.fighter,
     division: row.division,
-    gym: { name: row.gym.name },
+    gym: { name: displayGymName(row) },
   };
 }
 
@@ -271,7 +282,7 @@ function pushCourtCapacityUnmatched(
     if (row) {
       unmatchedDetails.push({
         fighterName: row.fighter.name,
-        gymName: row.gym.name,
+        gymName: displayGymName(row),
         divisionLabel: formatDivisionNameLabel(row.division),
         reasonLabel: REASON_LABELS.court_capacity_full,
       });
@@ -521,7 +532,7 @@ export const bracketAutoMatchService = {
         if (row) {
           unmatchedDetails.push({
             fighterName: row.fighter.name,
-            gymName: row.gym.name,
+            gymName: displayGymName(row),
             divisionLabel: formatDivisionNameLabel(row.division),
             reasonLabel: REASON_LABELS[u.reason],
           });
@@ -874,7 +885,10 @@ export const bracketAutoMatchService = {
         "ko",
       );
       if (divCmp !== 0) return divCmp;
-      const gymCmp = a.row.gym.name.localeCompare(b.row.gym.name, "ko");
+      const gymCmp = displayGymName(a.row).localeCompare(
+        displayGymName(b.row),
+        "ko",
+      );
       if (gymCmp !== 0) return gymCmp;
       return a.row.fighter.name.localeCompare(b.row.fighter.name, "ko");
     });
@@ -882,7 +896,7 @@ export const bracketAutoMatchService = {
     return waitingRows.map(({ row, reason }, index) => ({
       order: index + 1,
       fighterName: row.fighter.name,
-      gymName: row.gym.name,
+      gymName: displayGymName(row),
       gender: row.division.gender ?? row.fighter.gender,
       ageGroup: row.division.ageGroup,
       weightClass: row.division.weightClass,
@@ -903,7 +917,7 @@ function mapUnmatchedRow(
     applicationId: row.id,
     fighterId: row.fighterId,
     fighterName: row.fighter.name,
-    gymName: row.gym.name,
+    gymName: displayGymName(row),
     division,
     divisionLabel: formatDivisionNameLabel(row.division),
     gender: row.division.gender ?? row.fighter.gender,

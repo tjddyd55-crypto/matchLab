@@ -58,6 +58,7 @@ import { notificationRepository } from "@/lib/repositories/notification.reposito
 import { safeNotify, tryNotify } from "@/lib/notifications/safe-dispatch";
 import { notificationService } from "@/lib/services/notification.service";
 import { fieldStatusService } from "@/lib/services/field-status.service";
+import { resolveApplicationGymDisplayName } from "@/lib/gym/external-registration-placeholder-gym";
 import { eventCourtService } from "@/lib/services/event-court.service";
 import type {
   AssignFighterToMatchInput,
@@ -486,11 +487,17 @@ export const bracketService = {
         return {
           applicationId: a.id,
           fighterId: a.fighter.id,
-          label: `${a.fighter.name} · ${a.gym.name}`,
+          label: `${a.fighter.name} · ${resolveApplicationGymDisplayName({
+            gymSnapshot: a.gymSnapshot,
+            gymRelationName: a.gym.name,
+          })}`,
           divisionLabel: formatDivisionNameLabel(a.division),
           division: toEventDivisionDisplayInput(a.division)!,
           fighterName: a.fighter.name,
-          gymName: a.gym.name,
+          gymName: resolveApplicationGymDisplayName({
+            gymSnapshot: a.gymSnapshot,
+            gymRelationName: a.gym.name,
+          }),
           isEligibleForBracket: fieldEligibility?.isEligibleForBracket ?? false,
           eligibilityLabel: fieldEligibility?.eligibilityLabel ?? "현장 미확인",
           eligibilityReason:

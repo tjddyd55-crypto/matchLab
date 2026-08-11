@@ -54,6 +54,7 @@ export type ApprovedApplicationForBracketRow = {
   weighInFailureResolution: WeighInFailureResolution;
   cancellationSource: ApplicationCancellationSource | null;
   weighInWeightKg: number | null;
+  gymSnapshot: unknown;
   fighter: {
     id: string;
     fighterCode: string;
@@ -89,6 +90,7 @@ export type AutoMatchApplicationRow = {
   weighInWeightKg: number | null;
   appliedAt: Date | null;
   createdAt: Date;
+  gymSnapshot: unknown;
   fighter: {
     id: string;
     fighterCode: string;
@@ -448,6 +450,7 @@ export const bracketRepository = {
         division: {
           select: EVENT_DIVISION_DISPLAY_SELECT,
         },
+        gymSnapshot: true,
         gym: { select: { name: true } },
       },
     });
@@ -476,6 +479,7 @@ export const bracketRepository = {
         weighInFailureResolution: true,
         cancellationSource: true,
         weighInWeightKg: true,
+        gymSnapshot: true,
         fighter: {
           select: {
             id: true,
@@ -791,6 +795,7 @@ export const bracketRepository = {
         weighInWeightKg: true,
         appliedAt: true,
         createdAt: true,
+        gymSnapshot: true,
         fighter: {
           select: {
             id: true,

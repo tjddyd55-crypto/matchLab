@@ -25,6 +25,7 @@ const applicationSelect = {
   disqualificationReason: true,
   fieldMemo: true,
   fighterSnapshot: true,
+  gymSnapshot: true,
   fighter: {
     select: {
       id: true,

@@ -8,6 +8,7 @@ import {
   type Prisma,
 } from "@/generated/prisma";
 import { prisma } from "@/lib/prisma";
+import { excludeExternalRegistrationPlaceholderGymWhere } from "@/lib/gym/external-registration-placeholder-gym";
 
 const ACTIVE_HISTORY = {
   status: "active",
@@ -262,7 +263,10 @@ export const publicFighterRepository = {
 
   async listFilterOptions() {
     const gyms = await prisma.gym.findMany({
-      where: { status: GymStatus.active },
+      where: {
+        status: GymStatus.active,
+        ...excludeExternalRegistrationPlaceholderGymWhere,
+      },
       orderBy: { name: "asc" },
       select: { id: true, name: true, address: true },
       take: 300,
