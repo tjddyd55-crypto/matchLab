@@ -1846,7 +1846,8 @@ export const applicationService = {
       organizerId: link.organizerId,
     };
 
-    const result = await prisma.$transaction(async (tx) => {
+    const result = await prisma.$transaction(
+      async (tx) => {
       const replay = await tx.eventExternalRegistrationSubmission.findUnique({
         where: {
           linkId_clientSubmissionId: {
@@ -1894,7 +1895,11 @@ export const applicationService = {
       for (const athlete of input.athletes) {
         const division = divisionById.get(athlete.divisionId)!;
         const phone = normalizeGymFighterPhone(athlete.phone) || "-";
-        const birthDate = toUtcDateOnly(athlete.birthDate);
+        const birthDate = toUtcDateOnly(
+          athlete.birthDate instanceof Date
+            ? athlete.birthDate
+            : new Date(athlete.birthDate),
+        );
 
         const fighterCode = await fighterService.generateFighterCode(tx);
         const createdFighter = await fighterRepository.createFighterWithGymHistory(
@@ -2037,7 +2042,13 @@ export const applicationService = {
         results: created,
         idempotentReplay: false,
       };
-    });
+      },
+      {
+        // 최대 50명 batch + credit debit — remote DB에서 기본 5s 부족
+        maxWait: 15_000,
+        timeout: 120_000,
+      },
+    );
 
     if (!result.idempotentReplay) {
       safeNotify(`application-external-batch:${result.submissionId}`, () =>
