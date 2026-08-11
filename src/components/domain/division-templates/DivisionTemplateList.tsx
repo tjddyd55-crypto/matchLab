@@ -12,6 +12,7 @@ import {
 import { Button, buttonVariants } from "@/components/ui/button";
 import { cn } from "@/lib/utils";
 import { deleteDivisionTemplateAction } from "@/features/division-templates/actions";
+import { formatPublicDateTime } from "@/lib/date-display";
 
 export function DivisionTemplateList({
   templates,
@@ -73,7 +74,7 @@ export function DivisionTemplateList({
                   } · `
                 : ""}
               체급 {t.itemCount}개 · 마지막 수정{" "}
-              {new Date(t.updatedAt).toLocaleString("ko-KR")}
+              {formatPublicDateTime(t.updatedAt)}
             </div>
             {t.description ? (
               <p className="text-muted-foreground line-clamp-2 text-xs">
