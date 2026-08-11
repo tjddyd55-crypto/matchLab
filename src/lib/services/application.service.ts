@@ -70,6 +70,7 @@ import {
   parseExternalRegistrationPublicToken,
   verifyExternalRegistrationPublicToken,
 } from "@/lib/external-registration/token";
+import { assertExternalRegistrationEligible } from "@/lib/external-registration/eligibility";
 
 /** 신청 동의 스냅샷 버전 — 문구·정책 변경 시 함께 올릴 것. */
 const APPLICATION_AGREEMENT_SNAPSHOT_VERSION = "v1";
@@ -1779,7 +1780,7 @@ export const applicationService = {
       throw new AppError("FORBIDDEN", "만료된 등록 링크입니다.");
     }
 
-    assertRegistrationWindow(link.event);
+    assertExternalRegistrationEligible(link.event);
 
     const existingSubmission =
       await prisma.eventExternalRegistrationSubmission.findUnique({
