@@ -9,6 +9,7 @@ import {
   DivisionTemplatePreview,
   WeightClassRowsEditor,
 } from "@/components/domain/division-templates/WeightClassRowsEditor";
+import { DivisionTemplateExcelToolbar } from "@/components/domain/division-templates/DivisionTemplateExcelImportDialog";
 import { Button } from "@/components/ui/button";
 import { cn } from "@/lib/utils";
 import {
@@ -97,8 +98,8 @@ export function DivisionTemplateEditor({
         <p className="text-muted-foreground text-sm leading-relaxed">
           체급표는 대회 경기구분을 빠르게 생성하기 위한 템플릿입니다.
           <br />
-          &ldquo;묶음 생성&rdquo;으로 원하는 연령부/부문 블럭을 만들고, 각
-          블럭에 남성/여성 체급을 입력해 저장하세요.
+          &ldquo;묶음 생성&rdquo;으로 개별 입력하거나, 엑셀 샘플을 내려받아
+          일괄 업로드할 수 있습니다.
           <br />
           저장된 체급표는 대회 생성 또는 수정 시 불러와 경기구분으로 생성할 수
           있습니다.
@@ -147,7 +148,40 @@ export function DivisionTemplateEditor({
       </section>
 
       <section className="space-y-4">
-        <h2 className="text-lg font-semibold">체급 입력</h2>
+        <div className="flex flex-col gap-2 sm:flex-row sm:items-center sm:justify-between">
+          <h2 className="text-lg font-semibold">체급 입력</h2>
+          <DivisionTemplateExcelToolbar
+            sportType={sportType}
+            items={items}
+            onApplyItems={setItems}
+            persistAfterApply={
+              mode === "edit" && initial
+                ? async (next) => {
+                    const fd = new FormData();
+                    fd.set("templateId", initial.id);
+                    fd.set("title", title.trim() || initial.title);
+                    fd.set("sportType", sportType);
+                    fd.set("description", description);
+                    fd.set(
+                      "itemsJson",
+                      JSON.stringify(
+                        sanitizeTemplateItems(next, sportType).filter(
+                          (i) => i.isActive !== false,
+                        ),
+                      ),
+                    );
+                    if (isActive) fd.set("isActive", "on");
+                    const res = await updateDivisionTemplateAction(fd);
+                    if (!res.ok) {
+                      return { ok: false, message: res.error.message };
+                    }
+                    router.refresh();
+                    return { ok: true };
+                  }
+                : undefined
+            }
+          />
+        </div>
         <WeightClassRowsEditor
           sportType={sportType}
           items={items}
