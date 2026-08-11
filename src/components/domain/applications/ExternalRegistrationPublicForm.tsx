@@ -6,6 +6,7 @@ import { EXTERNAL_REGISTRATION_MAX_ATHLETES } from "@/lib/validators/external-re
 import { AppDateInput } from "@/components/shared/AppDateInput";
 import { Button } from "@/components/ui/button";
 import { cn } from "@/lib/utils";
+import { ExternalRegistrationStatusScreen } from "@/components/domain/applications/ExternalRegistrationStatusScreen";
 
 type DivisionOption = {
   id: string;
@@ -257,10 +258,11 @@ export function ExternalRegistrationPublicForm({
 
   if (closedReason) {
     return (
-      <div className="rounded-lg border border-destructive/30 bg-destructive/5 p-4 text-sm">
-        <p className="font-medium">선수 접수를 할 수 없습니다</p>
-        <p className="text-muted-foreground mt-1">{closedReason}</p>
-      </div>
+      <ExternalRegistrationStatusScreen
+        eventTitle={eventTitle}
+        title="선수 등록을 할 수 없습니다"
+        description={closedReason}
+      />
     );
   }
 
@@ -329,19 +331,19 @@ export function ExternalRegistrationPublicForm({
 
   return (
     <div className="space-y-5">
-      <header className="space-y-1">
-        <p className="text-muted-foreground text-xs tracking-wide">MATCHON</p>
+      <header className="space-y-1.5">
         <h1 className="text-xl font-semibold tracking-tight sm:text-2xl">
           {eventTitle}
         </h1>
+        <p className="text-sm font-medium">외부 체육관 선수 등록</p>
         <p className="text-muted-foreground text-sm">
           {eventDateLabel}
           {locationLabel ? ` · ${locationLabel}` : ""}
         </p>
-        <p className="text-sm">접수마감 {registrationEndLabel}</p>
+        <p className="text-sm">신청마감 {registrationEndLabel}</p>
         <p className="text-muted-foreground pt-1 text-sm leading-relaxed">
-          MATCHON에 가입하지 않은 체육관도 선수 여러 명을 한 번에 신청할 수
-          있습니다.
+          외부 체육관은 회원가입 없이 참가 선수를 여러 명 등록할 수 있습니다.
+          체육관 정보를 입력하고 출전 선수를 추가해 주세요.
         </p>
       </header>
 

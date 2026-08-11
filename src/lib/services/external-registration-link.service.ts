@@ -16,6 +16,7 @@ import {
   verifyExternalRegistrationPublicToken,
 } from "@/lib/external-registration/token";
 import { formatPublicDateTime } from "@/lib/date-display";
+import { resolveExternalRegistrationClosedReason } from "@/lib/external-registration/eligibility";
 
 export type ExternalRegistrationLinkVM = {
   id: string;
@@ -269,15 +270,11 @@ export const externalRegistrationLinkService = {
       return { ok: false, reason: "expired" };
     }
 
-    const now = Date.now();
-    let closedReason: string | null = null;
-    if (link.event.status !== EventStatus.open) {
-      closedReason = "선수 접수가 열려 있지 않습니다.";
-    } else if (link.event.registrationStartDate.getTime() > now) {
-      closedReason = "선수 접수가 아직 시작되지 않았습니다.";
-    } else if (link.event.registrationEndDate.getTime() < now) {
-      closedReason = "선수 접수가 마감되었습니다.";
-    }
+    const closedReason = resolveExternalRegistrationClosedReason({
+      status: link.event.status,
+      registrationStartDate: link.event.registrationStartDate,
+      registrationEndDate: link.event.registrationEndDate,
+    });
 
     const locationLabel =
       link.event.locationName?.trim() ||

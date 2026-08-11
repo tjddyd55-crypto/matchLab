@@ -30,8 +30,67 @@ import {
   resolveApplicationGymDisplayName,
 } from "../src/lib/gym/external-registration-placeholder-gym.ts";
 import { assertDevelopmentYamanoteDatabaseUrl } from "../src/lib/db/assert-development-yamanote.ts";
+import { resolveExternalRegistrationClosedReason } from "../src/lib/external-registration/eligibility.ts";
+import { EventStatus } from "../src/generated/prisma/index.js";
 
 function main() {
+  const now = new Date("2026-08-11T12:00:00.000Z");
+  const window = {
+    registrationStartDate: new Date("2026-07-01T00:00:00.000Z"),
+    registrationEndDate: new Date("2026-08-20T12:00:00.000Z"),
+    now,
+  };
+  assert.equal(
+    resolveExternalRegistrationClosedReason({
+      status: EventStatus.draft,
+      ...window,
+    }),
+    null,
+    "draft + in-window must allow (Production hotfix)",
+  );
+  assert.equal(
+    resolveExternalRegistrationClosedReason({
+      status: EventStatus.open,
+      ...window,
+    }),
+    null,
+  );
+  assert.ok(
+    resolveExternalRegistrationClosedReason({
+      status: EventStatus.cancelled,
+      ...window,
+    }),
+  );
+  assert.ok(
+    resolveExternalRegistrationClosedReason({
+      status: EventStatus.closed,
+      ...window,
+    }),
+  );
+  assert.ok(
+    resolveExternalRegistrationClosedReason({
+      status: EventStatus.finished,
+      ...window,
+    }),
+  );
+  assert.ok(
+    resolveExternalRegistrationClosedReason({
+      status: EventStatus.draft,
+      registrationStartDate: new Date("2026-09-01T00:00:00.000Z"),
+      registrationEndDate: new Date("2026-09-20T00:00:00.000Z"),
+      now,
+    })?.includes("시작"),
+  );
+  assert.ok(
+    resolveExternalRegistrationClosedReason({
+      status: EventStatus.draft,
+      registrationStartDate: new Date("2026-07-01T00:00:00.000Z"),
+      registrationEndDate: new Date("2026-08-01T00:00:00.000Z"),
+      now,
+    })?.includes("마감"),
+  );
+  console.log("verify:external-registration-eligibility OK");
+
   assert.equal(
     isExternalRegistrationPlaceholderOwnerLoginId("ext-reg-abc"),
     true,
