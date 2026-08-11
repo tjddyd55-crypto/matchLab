@@ -44,6 +44,13 @@ function newId(): string {
   return `id-${Math.random().toString(36).slice(2)}`;
 }
 
+/** SSR/CSR hydration 일치용 — 초기 derive에만 사용 */
+function stableId(parts: Array<string | number | null | undefined>): string {
+  return parts
+    .map((p) => String(p ?? "").trim().replace(/\s+/g, "_") || "_")
+    .join("__");
+}
+
 function emptyRow(): WeightRow {
   return { id: newId(), weightClassName: "", weightLimitText: "" };
 }
@@ -70,16 +77,27 @@ function deriveBlocks(items: DivisionTemplateItemInput[]): GroupBlock[] {
     const ageGroup = item.ageGroup?.trim() ?? "";
     let block = byAgeGroup.get(ageGroup);
     if (!block) {
-      block = emptyBlock();
-      block.ageGroup = ageGroup;
+      block = {
+        id: stableId(["block", ageGroup || `i${blocks.length}`]),
+        ageGroup,
+        rows: { male: [], female: [] },
+      };
       byAgeGroup.set(ageGroup, block);
       blocks.push(block);
     }
 
     const gender = bucketGender(item.gender);
     const normalized = normalizeTemplateItemWeight(item);
+    const rowIndex = block.rows[gender].length;
     block.rows[gender].push({
-      id: newId(),
+      id: stableId([
+        "row",
+        ageGroup,
+        gender,
+        rowIndex,
+        normalized.weightClassName,
+        normalized.weightLimitText,
+      ]),
       weightClassName: normalized.weightClassName?.trim() ?? "",
       weightLimitText: normalized.weightLimitText?.trim() ?? "",
     });
