@@ -2,6 +2,7 @@
 
 import { useId, useState } from "react";
 import Script from "next/script";
+import { useAppConfirmDialog } from "@/components/shared/app-confirm-dialog";
 import { cn } from "@/lib/utils";
 
 declare global {
@@ -43,6 +44,7 @@ export function EventAddressInput({
   namePrefix?: string;
   fieldErrors?: Record<string, string[]>;
 }) {
+  const { alert } = useAppConfirmDialog();
   const pk = (k: string) => (namePrefix ? `${namePrefix}${k}` : k);
   const fieldError = (name: string) => fieldErrors?.[name]?.[0];
 
@@ -60,9 +62,11 @@ export function EventAddressInput({
 
   const openSearch = () => {
     if (typeof window === "undefined" || !window.daum?.Postcode) {
-      window.alert(
-        "주소 검색 스크립트를 불러오는 중입니다. 잠시 후 다시 시도해 주세요.",
-      );
+      void alert({
+        title: "알림",
+        description:
+          "주소 검색 스크립트를 불러오는 중입니다. 잠시 후 다시 시도해 주세요.",
+      });
       return;
     }
     new window.daum.Postcode({

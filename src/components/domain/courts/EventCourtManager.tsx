@@ -12,6 +12,7 @@ import {
 import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { FeedbackMessage } from "@/components/shared/FeedbackMessage";
+import { useAppConfirmDialog } from "@/components/shared/app-confirm-dialog";
 import { MatchonStatusBadge } from "@/components/shared/MatchonStatusBadge";
 import { BracketsEmptyState } from "@/components/domain/brackets/BracketsEmptyState";
 import type { EventCourtVM } from "@/lib/services/event-court.service";
@@ -25,6 +26,7 @@ export function EventCourtManager({
   courts: EventCourtVM[];
 }) {
   const router = useRouter();
+  const { confirm } = useAppConfirmDialog();
   const [pending, startTransition] = useTransition();
   const [courts, setCourts] = useState(initialCourts);
   const [newName, setNewName] = useState("");
@@ -216,18 +218,17 @@ export function EventCourtManager({
                           variant="outline"
                           className="h-7 px-2 text-xs"
                           disabled={pending}
-                          onClick={() => {
+                          onClick={async () => {
                             const matchNote =
                               court.assignedMatchCount > 0
-                                ? `\n\n이 경기장에 배정된 경기 ${court.assignedMatchCount}건이 있습니다. 비활성화해도 경기 배정은 유지되며, 대진표 보기 탭에서는 숨겨집니다.`
-                                : "";
-                            if (
-                              !window.confirm(
-                                `${court.name}을 비활성 처리할까요?${matchNote}`,
-                              )
-                            ) {
-                              return;
-                            }
+                                ? `이 경기장에 배정된 경기 ${court.assignedMatchCount}건이 있습니다. 비활성화해도 경기 배정은 유지되며, 대진표 보기 탭에서는 숨겨집니다.`
+                                : undefined;
+                            const ok = await confirm({
+                              title: `${court.name}을 비활성 처리할까요?`,
+                              description: matchNote,
+                              variant: "danger",
+                            });
+                            if (!ok) return;
                             const fd = new FormData();
                             fd.set("eventId", eventId);
                             fd.set("courtId", court.id);
@@ -244,14 +245,11 @@ export function EventCourtManager({
                         variant="secondary"
                         className="h-7 px-2 text-xs"
                         disabled={pending}
-                        onClick={() => {
-                          if (
-                            !window.confirm(
-                              `${court.name}을 다시 활성화할까요?`,
-                            )
-                          ) {
-                            return;
-                          }
+                        onClick={async () => {
+                          const ok = await confirm({
+                            title: `${court.name}을 다시 활성화할까요?`,
+                          });
+                          if (!ok) return;
                           const fd = new FormData();
                           fd.set("eventId", eventId);
                           fd.set("courtId", court.id);

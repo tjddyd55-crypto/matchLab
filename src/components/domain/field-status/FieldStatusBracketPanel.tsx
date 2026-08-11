@@ -2,6 +2,7 @@
 
 import { Fragment, useState } from "react";
 import { applyFieldBracketOutcomeFormActionVoid } from "@/features/field-status/actions";
+import { useAppConfirmDialog } from "@/components/shared/app-confirm-dialog";
 import { Button } from "@/components/ui/button";
 import type { FieldStatusRowDTO } from "@/lib/services/field-status.service";
 import { BracketMatchOutcomeStyle } from "@/generated/prisma";
@@ -22,6 +23,8 @@ function OutcomeForm({
   variant?: "outline" | "destructive" | "secondary" | "default";
   confirmMessage: string;
 }) {
+  const { confirm } = useAppConfirmDialog();
+
   if (assignment.hasOfficialResult) {
     return null;
   }
@@ -29,7 +32,11 @@ function OutcomeForm({
   return (
     <form
       action={async (formData) => {
-        if (!window.confirm(confirmMessage)) return;
+        const ok = await confirm({
+          title: confirmMessage,
+          variant: "danger",
+        });
+        if (!ok) return;
         await applyFieldBracketOutcomeFormActionVoid(formData);
       }}
     >

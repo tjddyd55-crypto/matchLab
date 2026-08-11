@@ -10,6 +10,7 @@ import {
   searchMemberGymOwnerUsersAction,
   setMemberGymOwnerAccessSuspendedAction,
 } from "@/features/gym-owner-account/actions";
+import { useAppConfirmDialog } from "@/components/shared/app-confirm-dialog";
 import { MEMBER_GYM_OWNER_ACCOUNT_STATUS_LABEL } from "@/lib/ui-labels/member-gym-owner";
 import type { MemberGymOwnerAccountStatus } from "@/lib/member-gym/owner-account";
 import { formatPhoneDisplay, formatPhoneNumber } from "@/lib/phone";
@@ -57,6 +58,7 @@ export function MemberGymAccountSection({
   account: OwnerView;
 }) {
   const router = useRouter();
+  const { confirm } = useAppConfirmDialog();
   const [pending, start] = useTransition();
   const [message, setMessage] = useState<string | null>(null);
   const [error, setError] = useState<string | null>(null);
@@ -198,18 +200,20 @@ export function MemberGymAccountSection({
           disabled={pending}
           className="w-full rounded-md border border-red-200 px-3 py-2 text-xs text-red-700 sm:w-auto"
           onClick={() => {
-            if (
-              !window.confirm(
-                "대표 계정을 임시 계정으로 되돌릴까요? (owner는 비울 수 없어 placeholder로 교체됩니다.)",
-              )
-            ) {
-              return;
-            }
-            start(async () => {
-              const res = await disconnectMemberGymOwnerAction(memberGymId);
-              if (!res.ok) setError(res.error.message);
-              else refreshMsg("임시 계정으로 전환했습니다.");
-            });
+            void (async () => {
+              const ok = await confirm({
+                title: "대표 계정을 임시 계정으로 되돌릴까요?",
+                description:
+                  "owner는 비울 수 없어 placeholder로 교체됩니다.",
+                variant: "danger",
+              });
+              if (!ok) return;
+              start(async () => {
+                const res = await disconnectMemberGymOwnerAction(memberGymId);
+                if (!res.ok) setError(res.error.message);
+                else refreshMsg("임시 계정으로 전환했습니다.");
+              });
+            })();
           }}
         >
           연결 해제

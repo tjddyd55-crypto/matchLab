@@ -16,6 +16,7 @@ import {
   WeighInFailureResolutionForm,
 } from "@/components/domain/field-status/WeighInFailureResolutionForm";
 import { Button } from "@/components/ui/button";
+import { useAppConfirmDialog } from "@/components/shared/app-confirm-dialog";
 import { markDisqualifiedFormAction } from "@/features/field-status/actions";
 import { formatDivisionMainLabel } from "@/lib/event-division-fields";
 import {
@@ -61,6 +62,7 @@ export function OrganizerFieldStatusDetailPane({
   onBack?: () => void;
 }) {
   const router = useRouter();
+  const { alert } = useAppConfirmDialog();
   const [pending, startTransition] = useTransition();
   const relatedMatch = row.bracketAssignments[0];
   const showReason = shouldShowFieldReasonSection(row);
@@ -153,7 +155,7 @@ export function OrganizerFieldStatusDetailPane({
                     fd.set("applicationId", row.applicationId);
                     const res = await markDisqualifiedFormAction(fd);
                     if (!res.ok) {
-                      window.alert(
+                      await alert(
                         res.error?.message ?? "실격 처리에 실패했습니다.",
                       );
                       return;

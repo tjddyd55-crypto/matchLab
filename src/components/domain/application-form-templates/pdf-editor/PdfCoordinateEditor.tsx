@@ -12,6 +12,7 @@ import { PdfPageCanvas } from "@/components/domain/application-form-templates/pd
 import { PdfFieldToolbar } from "@/components/domain/application-form-templates/pdf-editor/PdfFieldToolbar";
 import { PdfFieldInspector } from "@/components/domain/application-form-templates/pdf-editor/PdfFieldInspector";
 import { PdfFieldList } from "@/components/domain/application-form-templates/pdf-editor/PdfFieldList";
+import { useAppConfirmDialog } from "@/components/shared/app-confirm-dialog";
 
 /**
  * 관리자 PDF 좌표 편집기.
@@ -26,6 +27,7 @@ export function PdfCoordinateEditor({
   fields: ApplicationPdfField[];
   onChange: (next: ApplicationPdfField[]) => void;
 }) {
+  const { confirm } = useAppConfirmDialog();
   const [pageIndex, setPageIndex] = useState(0);
   const [pageCount, setPageCount] = useState(1);
   const [selectedFieldId, setSelectedFieldId] = useState<string | null>(null);
@@ -107,9 +109,16 @@ export function PdfCoordinateEditor({
           }}
           onDelete={() => {
             if (!selectedFieldId) return;
-            if (!window.confirm("이 필드를 삭제할까요?")) return;
-            onChange(fields.filter((f) => f.id !== selectedFieldId));
-            setSelectedFieldId(null);
+            void (async () => {
+              const ok = await confirm({
+                title: "이 필드를 삭제할까요?",
+                confirmLabel: "삭제",
+                variant: "danger",
+              });
+              if (!ok) return;
+              onChange(fields.filter((f) => f.id !== selectedFieldId));
+              setSelectedFieldId(null);
+            })();
           }}
           onDuplicate={() => {
             if (!selectedField) return;

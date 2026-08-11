@@ -6,6 +6,7 @@ import {
   approveRegistrationSubmissionAction,
   rejectRegistrationSubmissionAction,
 } from "@/features/registrations/actions";
+import { useAppConfirmDialog } from "@/components/shared/app-confirm-dialog";
 import { Button } from "@/components/ui/button";
 import type { FighterRegistrationSubmissionStatus } from "@/lib/enums";
 import type { ActionResult } from "@/lib/action-result";
@@ -18,6 +19,7 @@ export function RegistrationRequestActions({
   status: FighterRegistrationSubmissionStatus;
 }) {
   const router = useRouter();
+  const { alert } = useAppConfirmDialog();
   const [pending, startTransition] = useTransition();
   const [actionError, setActionError] = useState<string | null>(null);
 
@@ -30,9 +32,9 @@ export function RegistrationRequestActions({
     );
   }
 
-  function showFailure(message: string) {
+  async function showFailure(message: string) {
     setActionError(message);
-    window.alert(message);
+    await alert(message);
   }
 
   function run(fn: (fd: FormData) => Promise<ActionResult<unknown>>) {
@@ -46,7 +48,7 @@ export function RegistrationRequestActions({
           res.error.message?.trim() ||
           "처리 중 오류가 발생했습니다.";
         console.error("[registration request]", res.error.code, msg);
-        showFailure(msg);
+        await showFailure(msg);
         return;
       }
       setActionError(null);

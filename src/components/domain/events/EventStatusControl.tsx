@@ -1,12 +1,13 @@
 "use client";
 
-import { useActionState, useEffect } from "react";
+import { useActionState, useEffect, useRef } from "react";
 import { useRouter } from "next/navigation";
 import { changeEventStatusAction } from "@/features/events/actions";
 import type { ActionResult } from "@/lib/action-result";
 import { EventStatus } from "@/lib/enums";
 import type { OrganizerEventDetailVM } from "@/lib/services/event.service";
 import { Button } from "@/components/ui/button";
+import { useAppConfirmDialog } from "@/components/shared/app-confirm-dialog";
 import { cn } from "@/lib/utils";
 
 type Transition = { next: EventStatus; label: string; warn?: string };
@@ -49,6 +50,8 @@ export function EventStatusControl({
   event: OrganizerEventDetailVM;
 }) {
   const router = useRouter();
+  const { confirm } = useAppConfirmDialog();
+  const statusConfirmedRef = useRef(false);
   const [state, action, pending] = useActionState(
     changeEventStatusAction,
     null as ActionResult<{ ok: true }> | null,
@@ -86,12 +89,26 @@ export function EventStatusControl({
               action={action}
               className="inline"
               onSubmit={(e) => {
-                const msg =
-                  t.warn ??
-                  `상태를 "${t.label}"(으)로 변경할까요?`;
-                if (!window.confirm(msg)) {
-                  e.preventDefault();
+                if (statusConfirmedRef.current) {
+                  statusConfirmedRef.current = false;
+                  return;
                 }
+                e.preventDefault();
+                const form = e.currentTarget;
+                const isCancel = t.next === EventStatus.cancelled;
+                void (async () => {
+                  const ok = await confirm({
+                    title: isCancel
+                      ? "대회를 취소할까요?"
+                      : `상태를 "${t.label}"(으)로 변경할까요?`,
+                    description: t.warn,
+                    confirmLabel: isCancel ? "취소" : "변경",
+                    variant: isCancel ? "danger" : "default",
+                  });
+                  if (!ok) return;
+                  statusConfirmedRef.current = true;
+                  form.requestSubmit();
+                })();
               }}
             >
               <input type="hidden" name="eventId" value={event.id} />

@@ -6,6 +6,7 @@ import {
   cancelGymMemberPortalClassAction,
   joinGymMemberPortalClassAction,
 } from "@/features/gym-member-portal/member-actions";
+import { useAppConfirmDialog } from "@/components/shared/app-confirm-dialog";
 import { Button } from "@/components/ui/button";
 import type { MemberPortalGroupClassItem } from "@/lib/gym-member-portal/class-types";
 
@@ -44,6 +45,7 @@ export function MemberPortalClassActions({
   compact?: boolean;
 }) {
   const router = useRouter();
+  const { confirm } = useAppConfirmDialog();
   const [pending, startTransition] = useTransition();
   const [error, setError] = useState<string | null>(null);
   const [message, setMessage] = useState<string | null>(null);
@@ -65,12 +67,16 @@ export function MemberPortalClassActions({
     });
   }
 
-  function runCancel() {
+  async function runCancel() {
     const confirmMessage =
       item.action === "cancel_attending"
         ? "참석 신청을 취소할까요?"
         : "대기 신청을 취소할까요?";
-    if (!window.confirm(confirmMessage)) return;
+    const ok = await confirm({
+      title: confirmMessage,
+      variant: "danger",
+    });
+    if (!ok) return;
 
     setError(null);
     setMessage(null);
@@ -120,7 +126,7 @@ export function MemberPortalClassActions({
             variant="outline"
             className={btnClass}
             disabled={pending}
-            onClick={runCancel}
+            onClick={() => void runCancel()}
           >
             신청 취소
           </Button>

@@ -1,10 +1,11 @@
 "use client";
 
-import { useActionState, useEffect, useState } from "react";
+import { useActionState, useEffect, useRef, useState } from "react";
 import { useRouter } from "next/navigation";
 import { generateAutoBracketMatchesAction } from "@/features/brackets/actions";
 import type { ActionResult } from "@/lib/action-result";
 import { FeedbackMessage } from "@/components/shared/FeedbackMessage";
+import { useAppConfirmDialog } from "@/components/shared/app-confirm-dialog";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { formatCourtTabLabel } from "@/lib/court-tab-label";
 import type { AutoBracketGenerationSummary } from "@/lib/services/bracket-auto-match.service";
@@ -96,6 +97,8 @@ export function AutoBracketGenerationPanel({
   matchesWithResults: number;
 }) {
   const router = useRouter();
+  const { confirm } = useAppConfirmDialog();
+  const applyConfirmedRef = useRef(false);
   const activeCourts = courts.filter((c) => c.isActive);
   const [autoMatchScope, setAutoMatchScope] = useState<"all" | "court">("all");
   const [targetCourtId, setTargetCourtId] = useState<string>("all");
@@ -340,19 +343,26 @@ export function AutoBracketGenerationPanel({
         </form>
         <form
           action={applyAction}
-          onSubmit={(e) => {
+          onSubmit={async (e) => {
             if (activeCourts.length === 0 || courtScopeInvalid) {
               e.preventDefault();
               return;
             }
-            if (
-              resetExisting &&
-              !window.confirm(
-                "기존 대진을 초기화한 뒤 자동매칭을 적용합니다. 계속할까요?",
-              )
-            ) {
-              e.preventDefault();
+            if (!resetExisting) return;
+            if (applyConfirmedRef.current) {
+              applyConfirmedRef.current = false;
+              return;
             }
+            e.preventDefault();
+            const form = e.currentTarget;
+            const ok = await confirm({
+              title:
+                "기존 대진을 초기화한 뒤 자동매칭을 적용합니다. 계속할까요?",
+              variant: "danger",
+            });
+            if (!ok) return;
+            applyConfirmedRef.current = true;
+            form.requestSubmit();
           }}
         >
           {buildHiddenFields(false)}

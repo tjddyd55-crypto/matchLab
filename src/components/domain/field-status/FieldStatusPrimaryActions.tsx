@@ -8,6 +8,7 @@ import {
   weighInPassFormAction,
 } from "@/features/field-status/actions";
 import { Button } from "@/components/ui/button";
+import { useAppConfirmDialog } from "@/components/shared/app-confirm-dialog";
 import type { FieldStatusRowDTO } from "@/lib/services/field-status.service";
 
 export function FieldStatusPrimaryActions({
@@ -19,6 +20,7 @@ export function FieldStatusPrimaryActions({
   showDisqualify?: boolean;
 }) {
   const router = useRouter();
+  const { alert } = useAppConfirmDialog();
   const [pending, startTransition] = useTransition();
   const [showDisqualifyHint, setShowDisqualifyHint] = useState(false);
 
@@ -29,7 +31,7 @@ export function FieldStatusPrimaryActions({
     fd.set("applicationId", row.applicationId);
     const res = await action(fd);
     if (!res.ok) {
-      window.alert(res.error?.message ?? "처리에 실패했습니다.");
+      await alert(res.error?.message ?? "처리에 실패했습니다.");
       return;
     }
     router.refresh();

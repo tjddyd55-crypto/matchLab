@@ -7,6 +7,7 @@ import {
   regenerateGymAttendanceKioskTokenAction,
   setGymAttendanceKioskActiveAction,
 } from "@/features/gym-attendance/actions";
+import { useAppConfirmDialog } from "@/components/shared/app-confirm-dialog";
 import { Button } from "@/components/ui/button";
 import { formatSeoulDateTime } from "@/lib/gym-attendance/seoul-date";
 
@@ -29,6 +30,7 @@ export function GymAttendanceKioskManager({
 }: {
   initialKiosks: KioskRow[];
 }) {
+  const { confirm } = useAppConfirmDialog();
   const [pending, startTransition] = useTransition();
   const [error, setError] = useState<string | null>(null);
   const [freshLink, setFreshLink] = useState<{
@@ -65,14 +67,12 @@ export function GymAttendanceKioskManager({
     });
   }
 
-  function runRegenerate(kioskId: string) {
-    if (
-      !window.confirm(
-        "토큰을 재발급하면 기존 출석 링크는 더 이상 사용할 수 없습니다. 계속할까요?",
-      )
-    ) {
-      return;
-    }
+  async function runRegenerate(kioskId: string) {
+    const ok = await confirm({
+      title: "토큰을 재발급하면 기존 출석 링크는 더 이상 사용할 수 없습니다. 계속할까요?",
+      variant: "danger",
+    });
+    if (!ok) return;
     setError(null);
     const fd = new FormData();
     fd.set("kioskId", kioskId);
@@ -201,7 +201,7 @@ export function GymAttendanceKioskManager({
                       size="sm"
                       variant="outline"
                       disabled={pending}
-                      onClick={() => runRegenerate(k.id)}
+                      onClick={() => void runRegenerate(k.id)}
                     >
                       재발급
                     </Button>

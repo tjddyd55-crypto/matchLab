@@ -2,6 +2,7 @@
 
 import { useRouter } from "next/navigation";
 import { useState, useTransition } from "react";
+import { useAppConfirmDialog } from "@/components/shared/app-confirm-dialog";
 import {
   cancelGymAssociationMembershipRequestAction,
   disconnectGymAssociationMembershipAction,
@@ -31,6 +32,7 @@ export function GymAssociationMembershipPanel({
   canManage: boolean;
 }) {
   const router = useRouter();
+  const { confirm } = useAppConfirmDialog();
   const [pending, startTransition] = useTransition();
   const [error, setError] = useState<string | null>(null);
   const [selectedAssociationId, setSelectedAssociationId] = useState(
@@ -149,16 +151,18 @@ export function GymAssociationMembershipPanel({
                       disabled={pending}
                       className="rounded-md border border-rose-200 px-3 py-1.5 text-xs text-rose-700 disabled:opacity-60"
                       onClick={() => {
-                        if (
-                          !window.confirm(
-                            `${row.associationName} 연결을 해제할까요? 다른 협회 가입에는 영향이 없습니다.`,
-                          )
-                        ) {
-                          return;
-                        }
-                        run(() =>
-                          disconnectGymAssociationMembershipAction(row.id),
-                        );
+                        void (async () => {
+                          const ok = await confirm({
+                            title: `${row.associationName} 연결을 해제할까요?`,
+                            description:
+                              "다른 협회 가입에는 영향이 없습니다.",
+                            variant: "danger",
+                          });
+                          if (!ok) return;
+                          run(() =>
+                            disconnectGymAssociationMembershipAction(row.id),
+                          );
+                        })();
                       }}
                     >
                       연결 해제

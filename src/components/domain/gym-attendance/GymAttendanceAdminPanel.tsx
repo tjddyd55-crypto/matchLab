@@ -7,6 +7,7 @@ import {
   createManualGymAttendanceAction,
 } from "@/features/gym-attendance/actions";
 import { GymMemberAvatar } from "@/components/domain/gym-members/GymMemberAvatar";
+import { useAppConfirmDialog } from "@/components/shared/app-confirm-dialog";
 import { Button, buttonVariants } from "@/components/ui/button";
 import {
   formatSeoulDateTime,
@@ -63,6 +64,7 @@ export function GymAttendanceAdminPanel({
     source?: string;
   };
 }) {
+  const { confirm } = useAppConfirmDialog();
   const [pending, startTransition] = useTransition();
   const [error, setError] = useState<string | null>(null);
   const [showManual, setShowManual] = useState(false);
@@ -101,15 +103,14 @@ export function GymAttendanceAdminPanel({
     });
   }
 
-  function cancelRow(row: AttendanceRow) {
+  async function cancelRow(row: AttendanceRow) {
     const dateLabel = toSeoulDateOnlyString(new Date(row.attendanceDate));
-    if (
-      !window.confirm(
-        `출석 기록을 취소할까요?\n\n${row.memberName} 회원의 ${dateLabel} 출석 기록이 취소됩니다.`,
-      )
-    ) {
-      return;
-    }
+    const ok = await confirm({
+      title: "출석 기록을 취소할까요?",
+      description: `${row.memberName} 회원의 ${dateLabel} 출석 기록이 취소됩니다.`,
+      variant: "danger",
+    });
+    if (!ok) return;
     setError(null);
     const fd = new FormData();
     fd.set("attendanceId", row.id);
@@ -317,7 +318,7 @@ export function GymAttendanceAdminPanel({
                   size="sm"
                   variant="outline"
                   disabled={pending}
-                  onClick={() => cancelRow(row)}
+                  onClick={() => void cancelRow(row)}
                 >
                   출석 취소
                 </Button>

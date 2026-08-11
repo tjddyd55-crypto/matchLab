@@ -7,6 +7,7 @@ import {
   unassignJudgeFromMatchAction,
 } from "@/features/judges/actions";
 import { Button } from "@/components/ui/button";
+import { useAppConfirmDialog } from "@/components/shared/app-confirm-dialog";
 import type { JudgeAssignmentVM } from "@/lib/services/judge-assignment.service";
 import type { JudgeCredentialListItemVM } from "@/lib/services/judge-credential.service";
 import type { OrganizerEventMatchListItemVM } from "@/lib/services/match.service";
@@ -24,6 +25,7 @@ export function OrganizerJudgeAssignmentSection({
   assignments: JudgeAssignmentVM[];
 }) {
   const router = useRouter();
+  const { confirm } = useAppConfirmDialog();
   const [pending, startTransition] = useTransition();
   const [selectedMatchId, setSelectedMatchId] = useState(matches[0]?.matchId ?? "");
   const [assignFormKey, setAssignFormKey] = useState(0);
@@ -150,14 +152,14 @@ export function OrganizerJudgeAssignmentSection({
                 size="sm"
                 variant="outline"
                 disabled={pending}
-                onClick={() => {
-                  if (
-                    a.hasSubmittedScorecard &&
-                    !window.confirm(
-                      "제출된 채점표가 있어 해제해도 기록은 남습니다. 계속할까요?",
-                    )
-                  ) {
-                    return;
+                onClick={async () => {
+                  if (a.hasSubmittedScorecard) {
+                    const ok = await confirm({
+                      title:
+                        "제출된 채점표가 있어 해제해도 기록은 남습니다. 계속할까요?",
+                      variant: "danger",
+                    });
+                    if (!ok) return;
                   }
                   const fd = new FormData();
                   fd.set("assignmentId", a.id);

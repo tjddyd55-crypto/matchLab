@@ -3,6 +3,7 @@
 import { useEffect, useState, useTransition } from "react";
 import { useRouter } from "next/navigation";
 import { AppDateInput } from "@/components/shared/AppDateInput";
+import { useAppConfirmDialog } from "@/components/shared/app-confirm-dialog";
 import { Button } from "@/components/ui/button";
 import {
   Dialog,
@@ -155,6 +156,7 @@ export function GymMemberMembershipPanel({
   statusLabel: string;
 }) {
   const router = useRouter();
+  const { confirm } = useAppConfirmDialog();
   const [pending, startTransition] = useTransition();
   const [error, setError] = useState<string | null>(null);
   const [message, setMessage] = useState<string | null>(null);
@@ -759,20 +761,22 @@ export function GymMemberMembershipPanel({
               className="justify-start"
               disabled={pending || !currentSubscription}
               onClick={() => {
-                if (
-                  !currentSubscription ||
-                  !window.confirm("이 이용권을 취소하시겠습니까?")
-                ) {
-                  return;
-                }
-                run(
-                  () =>
-                    cancelGymMemberSubscriptionAction(
-                      memberId,
-                      currentSubscription.id,
-                    ),
-                  "이용권을 취소했습니다.",
-                );
+                void (async () => {
+                  if (!currentSubscription) return;
+                  const ok = await confirm({
+                    title: "이 이용권을 취소하시겠습니까?",
+                    variant: "danger",
+                  });
+                  if (!ok) return;
+                  run(
+                    () =>
+                      cancelGymMemberSubscriptionAction(
+                        memberId,
+                        currentSubscription.id,
+                      ),
+                    "이용권을 취소했습니다.",
+                  );
+                })();
               }}
             >
               이용권 취소

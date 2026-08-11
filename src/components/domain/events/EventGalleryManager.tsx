@@ -7,6 +7,7 @@ import type { OrganizerEventDetailVM } from "@/lib/services/event.service";
 import { putFileToEventSignedUploadUrl } from "@/lib/client/event-image-storage-upload";
 import { EVENT_IMAGE_MAX_BYTES } from "@/lib/constants/event-image-upload";
 import { Button } from "@/components/ui/button";
+import { useAppConfirmDialog } from "@/components/shared/app-confirm-dialog";
 import {
   deleteEventGalleryImageAction,
   finalizeEventGalleryUploadAction,
@@ -24,6 +25,7 @@ export function EventGalleryManager({
   images: Row[];
 }) {
   const router = useRouter();
+  const { confirm } = useAppConfirmDialog();
   const inputRef = useRef<HTMLInputElement>(null);
   const [pending, startTransition] = useTransition();
   const [error, setError] = useState<string | null>(null);
@@ -82,8 +84,13 @@ export function EventGalleryManager({
     if (file) void uploadFile(file);
   }
 
-  function remove(imageId: string) {
-    if (!window.confirm("이 상세 이미지를 삭제할까요?")) return;
+  async function remove(imageId: string) {
+    const ok = await confirm({
+      title: "이 상세 이미지를 삭제할까요?",
+      confirmLabel: "삭제",
+      variant: "danger",
+    });
+    if (!ok) return;
     startTransition(async () => {
       const fd = new FormData();
       fd.set("imageId", imageId);
@@ -177,7 +184,7 @@ export function EventGalleryManager({
               variant="outline"
               size="sm"
               disabled={pending}
-              onClick={() => remove(im.id)}
+              onClick={() => void remove(im.id)}
             >
               삭제
             </Button>

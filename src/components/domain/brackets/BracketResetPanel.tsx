@@ -3,6 +3,7 @@
 import { useTransition } from "react";
 import { useRouter } from "next/navigation";
 import { resetEventBracketsAction } from "@/features/brackets/actions";
+import { useAppConfirmDialog } from "@/components/shared/app-confirm-dialog";
 import { Button } from "@/components/ui/button";
 
 export function BracketResetPanel({
@@ -15,19 +16,21 @@ export function BracketResetPanel({
   matchesWithResults: number;
 }) {
   const router = useRouter();
+  const { confirm, alert } = useAppConfirmDialog();
   const [pending, startTransition] = useTransition();
 
-  function handleReset() {
+  async function handleReset() {
     if (!canResetSafely) return;
 
-    const ok = window.confirm(
-      [
-        "대진표를 초기화하면 생성된 경기 목록이 삭제됩니다.",
+    const ok = await confirm({
+      title: "대진표를 초기화하면 생성된 경기 목록이 삭제됩니다.",
+      description: [
         "신청자 정보는 삭제되지 않습니다.",
         "",
         "계속하시겠습니까?",
       ].join("\n"),
-    );
+      variant: "danger",
+    });
     if (!ok) return;
 
     startTransition(async () => {
@@ -35,7 +38,7 @@ export function BracketResetPanel({
       fd.set("eventId", eventId);
       const res = await resetEventBracketsAction(fd);
       if (!res.ok) {
-        window.alert(res.error.message);
+        await alert(res.error.message);
         return;
       }
       router.refresh();

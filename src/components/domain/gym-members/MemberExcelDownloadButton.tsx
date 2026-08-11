@@ -2,6 +2,7 @@
 
 import { useTransition } from "react";
 import { exportGymMembersExcelAction } from "@/features/gym-members/actions";
+import { useAppConfirmDialog } from "@/components/shared/app-confirm-dialog";
 import { Button } from "@/components/ui/button";
 
 export function MemberExcelDownloadButton({
@@ -15,6 +16,7 @@ export function MemberExcelDownloadButton({
     groupId?: string;
   };
 }) {
+  const { alert } = useAppConfirmDialog();
   const [pending, startTransition] = useTransition();
 
   return (
@@ -27,7 +29,7 @@ export function MemberExcelDownloadButton({
         startTransition(async () => {
           const result = await exportGymMembersExcelAction(filters);
           if (!result.ok) {
-            window.alert(result.error.message);
+            await alert(result.error.message);
             return;
           }
           const binary = atob(result.data.base64);

@@ -7,6 +7,7 @@ import type { DivisionTemplateDetailVM } from "@/lib/services/division-template.
 import type { ApplyDivisionTemplateMode } from "@/lib/validators/division-template.validator";
 import { DIVISION_TEMPLATE_SPORT_LABELS } from "@/lib/division-template/division-template-constants";
 import { DivisionTemplatePreview } from "@/components/domain/division-templates/WeightClassRowsEditor";
+import { useAppConfirmDialog } from "@/components/shared/app-confirm-dialog";
 import { Button } from "@/components/ui/button";
 import { applyDivisionTemplateToEventAction } from "@/features/division-templates/actions";
 
@@ -20,6 +21,7 @@ export function ApplyDivisionTemplatePanel({
   templateDetails: DivisionTemplateDetailVM[];
 }) {
   const router = useRouter();
+  const { confirm } = useAppConfirmDialog();
   const [templateId, setTemplateId] = useState("");
   const [mode, setMode] = useState<ApplyDivisionTemplateMode>("append_skip");
   const [pending, startTransition] = useTransition();
@@ -43,20 +45,20 @@ export function ApplyDivisionTemplatePanel({
     );
   }
 
-  function apply() {
+  async function apply() {
     setMessage(null);
     setError(null);
     if (!templateId) {
       setError("적용할 체급표 템플릿을 선택해 주세요.");
       return;
     }
-    if (
-      mode === "replace" &&
-      !window.confirm(
-        "기존 경기구분을 모두 삭제한 뒤 체급표로 다시 생성합니다. 신청·대진표가 있는 경기구분이 있으면 취소됩니다. 계속할까요?",
-      )
-    ) {
-      return;
+    if (mode === "replace") {
+      const ok = await confirm({
+        title:
+          "기존 경기구분을 모두 삭제한 뒤 체급표로 다시 생성합니다. 신청·대진표가 있는 경기구분이 있으면 취소됩니다. 계속할까요?",
+        variant: "danger",
+      });
+      if (!ok) return;
     }
 
     startTransition(async () => {

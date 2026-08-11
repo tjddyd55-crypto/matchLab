@@ -18,6 +18,7 @@ import {
   matchOperationalControlsRowClass,
   matchRoundSelectClass,
 } from "@/lib/ui/match-grid-layout";
+import { useAppConfirmDialog } from "@/components/shared/app-confirm-dialog";
 import { cn } from "@/lib/utils";
 
 function RoundSelect({
@@ -113,6 +114,7 @@ export function MatchOperationalSettingsSelect({
   inline?: boolean;
 }) {
   const router = useRouter();
+  const { alert } = useAppConfirmDialog();
   const [pending, startTransition] = useTransition();
   const { settings } = parseMatchOperationalSettings(resultMemo);
   const roundCount = settings.roundCount ?? DEFAULT_MATCH_OPERATIONAL_SETTINGS.roundCount;
@@ -128,7 +130,7 @@ export function MatchOperationalSettingsSelect({
     startTransition(async () => {
       const res = await updateMatchOperationalSettingsAction(fd);
       if (!res.ok) {
-        window.alert(res.error.message);
+        await alert(res.error.message);
         return;
       }
       router.refresh();

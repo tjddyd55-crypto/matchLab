@@ -15,6 +15,12 @@ const eslintConfig = defineConfig([
     "src/generated/**",
     "prisma/**",
   ]),
+  {
+    rules: {
+      // MATCHON Modal SSOT: window.alert/confirm/prompt 금지
+      "no-alert": "error",
+    },
+  },
 ]);
 
 export default eslintConfig;

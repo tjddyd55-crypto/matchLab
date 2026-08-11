@@ -1,6 +1,6 @@
 "use client";
 
-import { useActionState, useEffect, useMemo } from "react";
+import { useActionState, useEffect, useMemo, useRef } from "react";
 import { useRouter } from "next/navigation";
 import {
   deleteEventDivisionAction,
@@ -35,6 +35,7 @@ import {
   type DivisionGenderTone,
 } from "@/lib/ui/division-gender-ui";
 import { Button } from "@/components/ui/button";
+import { useAppConfirmDialog } from "@/components/shared/app-confirm-dialog";
 import { cn } from "@/lib/utils";
 
 type Div = OrganizerEventDetailVM["divisions"][number];
@@ -126,6 +127,8 @@ function DivisionDeleteButton({
   compact?: boolean;
 }) {
   const router = useRouter();
+  const { confirm } = useAppConfirmDialog();
+  const deleteConfirmedRef = useRef(false);
   const [state, action, pending] = useActionState(
     deleteEventDivisionAction,
     null as ActionResult<{ ok: true }> | null,
@@ -140,13 +143,24 @@ function DivisionDeleteButton({
       action={action}
       className="inline"
       onSubmit={(e) => {
-        if (
-          !window.confirm(
-            "이 경기구분을 삭제할까요? 신청·대진표가 연결된 경기구분은 삭제되지 않습니다.",
-          )
-        ) {
-          e.preventDefault();
+        if (deleteConfirmedRef.current) {
+          deleteConfirmedRef.current = false;
+          return;
         }
+        e.preventDefault();
+        const form = e.currentTarget;
+        void (async () => {
+          const ok = await confirm({
+            title: "이 경기구분을 삭제할까요?",
+            description:
+              "신청·대진표가 연결된 경기구분은 삭제되지 않습니다.",
+            confirmLabel: "삭제",
+            variant: "danger",
+          });
+          if (!ok) return;
+          deleteConfirmedRef.current = true;
+          form.requestSubmit();
+        })();
       }}
     >
       <input type="hidden" name="eventId" value={eventId} />

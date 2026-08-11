@@ -3,6 +3,7 @@
 import { useState, useTransition } from "react";
 import { useRouter } from "next/navigation";
 import { FeedbackMessage } from "@/components/shared/FeedbackMessage";
+import { useAppConfirmDialog } from "@/components/shared/app-confirm-dialog";
 import { updateMatchStatusAction } from "@/features/matches/actions";
 import { Button } from "@/components/ui/button";
 import type { ActionResult } from "@/lib/action-result";
@@ -38,6 +39,7 @@ export function OrganizerOperationActions({
   onOpenView?: () => void;
 }) {
   const router = useRouter();
+  const { confirm } = useAppConfirmDialog();
   const [pending, startTransition] = useTransition();
   const [error, setError] = useState<string | null>(null);
   const [success, setSuccess] = useState<string | null>(null);
@@ -74,13 +76,12 @@ export function OrganizerOperationActions({
     });
   };
 
-  const handleAdvance = () => {
+  const handleAdvance = async () => {
     if (canRecoverCancelled) {
-      if (
-        !window.confirm("취소된 경기를 다시 진행 상태로 변경할까요?")
-      ) {
-        return;
-      }
+      const ok = await confirm({
+        title: "취소된 경기를 다시 진행 상태로 변경할까요?",
+      });
+      if (!ok) return;
       runStatusUpdate(
         BracketMatchStatus.called,
         "경기준비 상태로 복구되었습니다.",

@@ -23,6 +23,7 @@ import {
 import { FieldStatusBracketPanel } from "@/components/domain/field-status/FieldStatusBracketPanel";
 import { WeighInStatusBadge } from "@/components/domain/field-status/WeighInStatusBadge";
 import { FeedbackMessage } from "@/components/shared/FeedbackMessage";
+import { useAppConfirmDialog } from "@/components/shared/app-confirm-dialog";
 import { Button } from "@/components/ui/button";
 import type { FieldStatusRowDTO } from "@/lib/services/field-status.service";
 import { cn } from "@/lib/utils";
@@ -112,6 +113,7 @@ function ActionButton({
   onClick,
   disabled,
   confirmMessage,
+  confirmDanger = false,
   touchFriendly = false,
 }: {
   label: string;
@@ -119,8 +121,10 @@ function ActionButton({
   onClick: () => void | Promise<void>;
   disabled?: boolean;
   confirmMessage?: string;
+  confirmDanger?: boolean;
   touchFriendly?: boolean;
 }) {
+  const { confirm } = useAppConfirmDialog();
   const [pending, startTransition] = useTransition();
 
   return (
@@ -132,7 +136,13 @@ function ActionButton({
       className={touchFriendly ? "w-full sm:w-auto" : "h-7 text-xs"}
       onClick={() => {
         startTransition(async () => {
-          if (confirmMessage && !window.confirm(confirmMessage)) return;
+          if (confirmMessage) {
+            const ok = await confirm({
+              title: confirmMessage,
+              variant: confirmDanger ? "danger" : "default",
+            });
+            if (!ok) return;
+          }
           await onClick();
         });
       }}
@@ -145,12 +155,13 @@ function ActionButton({
 async function runAction(
   applicationId: string,
   action: (fd: FormData) => Promise<{ ok: boolean; error?: { message: string } }>,
+  alert: (message: string) => Promise<void>,
 ): Promise<void> {
   const fd = new FormData();
   fd.set("applicationId", applicationId);
   const result = await action(fd);
   if (!result.ok) {
-    window.alert(result.error?.message ?? "처리에 실패했습니다.");
+    await alert(result.error?.message ?? "처리에 실패했습니다.");
   }
 }
 
@@ -161,9 +172,14 @@ export function FieldStatusRowActions({
   row: FieldStatusRowDTO;
   layout?: "stack" | "compact";
 }) {
+  const { alert } = useAppConfirmDialog();
   const id = row.applicationId;
   const name = row.fighterName;
   const inline = layout === "compact";
+  const run = (
+    applicationId: string,
+    action: (fd: FormData) => Promise<{ ok: boolean; error?: { message: string } }>,
+  ) => runAction(applicationId, action, alert);
 
   return (
     <div
@@ -177,35 +193,38 @@ export function FieldStatusRowActions({
         <ActionButton
           label="현장 확인"
           variant="default"
-          onClick={() => runAction(id, checkInActionFormAction)}
+          onClick={() => run(id, checkInActionFormAction)}
         />
         <ActionButton
           label="미출석"
-          onClick={() => runAction(id, markNoShowFormAction)}
+          onClick={() => run(id, markNoShowFormAction)}
           confirmMessage={`${name} 선수를 미출석 처리할까요?`}
+          confirmDanger
         />
         <ActionButton
           label="철회"
-          onClick={() => runAction(id, markWithdrawnFormAction)}
+          onClick={() => run(id, markWithdrawnFormAction)}
           confirmMessage={`${name} 선수를 철회 처리할까요?`}
+          confirmDanger
         />
         <ActionButton
           label="실격"
           variant="destructive"
-          onClick={() => runAction(id, markDisqualifiedFormAction)}
+          onClick={() => run(id, markDisqualifiedFormAction)}
           confirmMessage={`${name} 선수를 실격 처리할까요?`}
+          confirmDanger
         />
       </ActionGroup>
 
       <ActionGroup title="계체" inline={inline}>
         <ActionButton
           label="계체 통과"
-          onClick={() => runAction(id, weighInPassFormAction)}
+          onClick={() => run(id, weighInPassFormAction)}
         />
         <ActionButton
           label="계체 실패"
           variant="destructive"
-          onClick={() => runAction(id, weighInFailFormAction)}
+          onClick={() => run(id, weighInFailFormAction)}
         />
       </ActionGroup>
 
@@ -214,7 +233,7 @@ export function FieldStatusRowActions({
           label="출전 확정"
           variant="secondary"
           disabled={row.isEligibleForBracket}
-          onClick={() => runAction(id, quickConfirmEligibilityFormAction)}
+          onClick={() => run(id, quickConfirmEligibilityFormAction)}
           confirmMessage={
             row.isEligibleForBracket
               ? undefined

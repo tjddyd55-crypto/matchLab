@@ -7,6 +7,7 @@ import {
   setWeighInFailureResolutionFormAction,
 } from "@/features/field-status/actions";
 import { FeedbackMessage } from "@/components/shared/FeedbackMessage";
+import { useAppConfirmDialog } from "@/components/shared/app-confirm-dialog";
 import { Button } from "@/components/ui/button";
 import type { FieldStatusRowDTO } from "@/lib/services/field-status.service";
 import { WeighInFailureResolution } from "@/generated/prisma";
@@ -49,6 +50,7 @@ export function WeighInFailureResolutionForm({
   touchFriendly?: boolean;
 }) {
   const router = useRouter();
+  const { confirm } = useAppConfirmDialog();
   const [pending, startTransition] = useTransition();
   const [feedback, setFeedback] = useState<{
     tone: "success" | "error";
@@ -123,11 +125,15 @@ export function WeighInFailureResolutionForm({
         variant="destructive"
         className={btnClass}
         disabled={pending}
-        onClick={() => {
+        onClick={async () => {
           const message = isFailed
             ? `${row.fighterName} 선수의 계체 실패를 경기취소로 처리할까요?`
             : `${row.fighterName} 선수를 경기취소 처리할까요?`;
-          if (window.confirm(message)) {
+          const ok = await confirm({
+            title: message,
+            variant: "danger",
+          });
+          if (ok) {
             run(WeighInFailureResolution.cancel_match);
           }
         }}
@@ -152,6 +158,7 @@ export function DisqualificationReasonForm({
   touchFriendly?: boolean;
 }) {
   const router = useRouter();
+  const { alert } = useAppConfirmDialog();
   const [pending, startTransition] = useTransition();
   const [feedback, setFeedback] = useState<{
     tone: "success" | "error";
@@ -166,7 +173,7 @@ export function DisqualificationReasonForm({
       : "",
   );
 
-  function handleSubmit(e: FormEvent<HTMLFormElement>) {
+  async function handleSubmit(e: FormEvent<HTMLFormElement>) {
     e.preventDefault();
 
     let reason = "";
@@ -174,13 +181,13 @@ export function DisqualificationReasonForm({
     if (preset === "other") {
       reason = otherReason.trim();
       if (!reason) {
-        window.alert("기타 사유를 입력해 주세요.");
+        await alert("기타 사유를 입력해 주세요.");
         return;
       }
     } else if (presetMeta?.reason) {
       reason = presetMeta.reason;
     } else {
-      window.alert("실격 사유를 선택해 주세요.");
+      await alert("실격 사유를 선택해 주세요.");
       return;
     }
 

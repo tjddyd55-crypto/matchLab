@@ -2,6 +2,7 @@
 
 import { useId, useRef, useState } from "react";
 import Script from "next/script";
+import { useAppConfirmDialog } from "@/components/shared/app-confirm-dialog";
 import { cn } from "@/lib/utils";
 
 /**
@@ -35,6 +36,7 @@ export function AddressSearchField({
   inputClassName?: string;
   error?: string | null;
 }) {
+  const { alert } = useAppConfirmDialog();
   const fieldId = useId();
   const detailRef = useRef<HTMLInputElement>(null);
   const [postal, setPostal] = useState(defaultPostal);
@@ -52,11 +54,12 @@ export function AddressSearchField({
   const openSearch = () => {
     if (typeof window === "undefined") return;
     if (!window.daum?.Postcode) {
-      window.alert(
-        scriptFailed
+      void alert({
+        title: "알림",
+        description: scriptFailed
           ? "주소 검색을 불러오지 못했습니다. 잠시 후 다시 시도하거나 직접 입력해 주세요."
           : "주소 검색을 불러오는 중입니다. 잠시 후 다시 시도해 주세요.",
-      );
+      });
       return;
     }
     new window.daum.Postcode({

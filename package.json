@@ -343,6 +343,7 @@
     "verify:gym-bracket-application-link": "tsx scripts/verify-gym-fighter-edit-events-brackets.ts",
     "verify:date-input-four-digit-year": "tsx scripts/verify-date-input-four-digit-year.ts",
     "verify:typography-tokens": "tsx scripts/verify-typography-tokens.ts",
+    "verify:no-native-dialogs": "tsx scripts/verify-no-native-dialogs.ts",
     "verify:gym-owner-account-service": "tsx scripts/verify-gym-owner-account-service.ts",
     "verify:fighter-account-setup-token": "tsx scripts/verify-fighter-account-setup.ts setup-token",
     "verify:fighter-account-setup-login-id": "tsx scripts/verify-fighter-account-setup.ts setup-login-id",

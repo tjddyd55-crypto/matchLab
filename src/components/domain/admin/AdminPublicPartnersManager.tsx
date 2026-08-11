@@ -10,6 +10,7 @@ import {
   updatePublicPartnerAction,
 } from "@/features/public-partners/actions";
 import { PublicPartnerLogoGrid } from "@/components/domain/events/public/PublicPartnerLogoGrid";
+import { useAppConfirmDialog } from "@/components/shared/app-confirm-dialog";
 import { Button } from "@/components/ui/button";
 import { putFileToEventSignedUploadUrl } from "@/lib/client/event-image-storage-upload";
 import {
@@ -55,6 +56,7 @@ export function AdminPublicPartnersManager({
 }: {
   initialRows: PartnerRow[];
 }) {
+  const { confirm } = useAppConfirmDialog();
   const [pending, startTransition] = useTransition();
   const [error, setError] = useState<string | null>(null);
   const [logoPath, setLogoPath] = useState("");
@@ -309,14 +311,14 @@ export function AdminPublicPartnersManager({
                 </Button>
               </form>
               <form
-                action={(fd) => {
-                  if (
-                    !window.confirm(
-                      "파트너 로고를 삭제할까요?\n\n메인 페이지에서 더 이상 표시되지 않습니다.\n기존 업로드 파일은 사용 여부를 확인한 뒤 정리됩니다.",
-                    )
-                  ) {
-                    return;
-                  }
+                action={async (fd) => {
+                  const ok = await confirm({
+                    title: "파트너 로고를 삭제할까요?",
+                    description:
+                      "메인 페이지에서 더 이상 표시되지 않습니다.\n기존 업로드 파일은 사용 여부를 확인한 뒤 정리됩니다.",
+                    variant: "danger",
+                  });
+                  if (!ok) return;
                   run(async () => {
                     await softDeletePublicPartnerAction(fd);
                   });

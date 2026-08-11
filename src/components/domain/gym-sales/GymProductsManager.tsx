@@ -2,6 +2,7 @@
 
 import { useEffect, useState, useTransition } from "react";
 import { useRouter } from "next/navigation";
+import { useAppConfirmDialog } from "@/components/shared/app-confirm-dialog";
 import { Button } from "@/components/ui/button";
 import {
   Dialog,
@@ -51,6 +52,7 @@ export function GymProductsManager({
   initialProducts: GymProductRow[];
 }) {
   const router = useRouter();
+  const { confirm } = useAppConfirmDialog();
   const [products, setProducts] = useState(initialProducts);
   const [dragId, setDragId] = useState<string | null>(null);
   const [pending, startTransition] = useTransition();
@@ -222,15 +224,21 @@ export function GymProductsManager({
                         variant="outline"
                         disabled={pending}
                         onClick={() => {
-                          if (!window.confirm("이 상품을 삭제할까요?")) return;
-                          run(
-                            () => deleteGymProductAction(p.id),
-                            "상품을 삭제했습니다.",
-                            () =>
-                              setProducts((prev) =>
-                                prev.filter((x) => x.id !== p.id),
-                              ),
-                          );
+                          void (async () => {
+                            const ok = await confirm({
+                              title: "이 상품을 삭제할까요?",
+                              variant: "danger",
+                            });
+                            if (!ok) return;
+                            run(
+                              () => deleteGymProductAction(p.id),
+                              "상품을 삭제했습니다.",
+                              () =>
+                                setProducts((prev) =>
+                                  prev.filter((x) => x.id !== p.id),
+                                ),
+                            );
+                          })();
                         }}
                       >
                         삭제
@@ -301,13 +309,19 @@ export function GymProductsManager({
                 className="flex-1"
                 disabled={pending}
                 onClick={() => {
-                  if (!window.confirm("이 상품을 삭제할까요?")) return;
-                  run(
-                    () => deleteGymProductAction(p.id),
-                    "상품을 삭제했습니다.",
-                    () =>
-                      setProducts((prev) => prev.filter((x) => x.id !== p.id)),
-                  );
+                  void (async () => {
+                    const ok = await confirm({
+                      title: "이 상품을 삭제할까요?",
+                      variant: "danger",
+                    });
+                    if (!ok) return;
+                    run(
+                      () => deleteGymProductAction(p.id),
+                      "상품을 삭제했습니다.",
+                      () =>
+                        setProducts((prev) => prev.filter((x) => x.id !== p.id)),
+                    );
+                  })();
                 }}
               >
                 삭제

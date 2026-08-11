@@ -14,6 +14,7 @@ import {
 import { Button } from "@/components/ui/button";
 import { Card, CardContent } from "@/components/ui/card";
 import { FeedbackMessage } from "@/components/shared/FeedbackMessage";
+import { useAppConfirmDialog } from "@/components/shared/app-confirm-dialog";
 import type { ActionResult } from "@/lib/action-result";
 import {
   BracketMatchOutcomeStyle,
@@ -65,6 +66,7 @@ function MatchOpsStatusSection({
   actionSize: "xs" | "sm" | "field";
   onStatus: (status: BracketMatchStatus) => void;
 }) {
+  const { confirm } = useAppConfirmDialog();
   const finishedTerminal = status === BracketMatchStatus.finished;
   const cancelledNeedsVoid =
     status === BracketMatchStatus.cancelled && hasOfficialResults;
@@ -124,12 +126,12 @@ function MatchOpsStatusSection({
                   }),
               )}
               aria-pressed={isCurrent ? "true" : "false"}
-              onClick={() => {
+              onClick={async () => {
                 if (isCurrent || disabled) return;
                 if (status === BracketMatchStatus.cancelled) {
-                  const ok = window.confirm(
-                    "취소된 경기를 다시 진행 상태로 변경할까요?",
-                  );
+                  const ok = await confirm({
+                    title: "취소된 경기를 다시 진행 상태로 변경할까요?",
+                  });
                   if (!ok) return;
                 }
                 onStatus(option.value);

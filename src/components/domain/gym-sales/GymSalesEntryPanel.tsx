@@ -3,6 +3,7 @@
 import { useMemo, useState, useTransition } from "react";
 import { useRouter } from "next/navigation";
 import { AppDateInput } from "@/components/shared/AppDateInput";
+import { useAppConfirmDialog } from "@/components/shared/app-confirm-dialog";
 import { Button } from "@/components/ui/button";
 import {
   Dialog,
@@ -78,6 +79,7 @@ export function GymSalesEntryPanel({
   initialFilter?: "all" | "paid" | "partial" | "unpaid";
 }) {
   const router = useRouter();
+  const { confirm } = useAppConfirmDialog();
   const [pending, startTransition] = useTransition();
   const [error, setError] = useState<string | null>(null);
   const [message, setMessage] = useState<string | null>(null);
@@ -220,13 +222,17 @@ export function GymSalesEntryPanel({
                           variant="outline"
                           disabled={pending}
                           onClick={() => {
-                            if (!window.confirm("이 미수 거래를 취소할까요?")) {
-                              return;
-                            }
-                            run(
-                              () => cancelGymReceivableAction(r.id),
-                              "미수 거래를 취소했습니다.",
-                            );
+                            void (async () => {
+                              const ok = await confirm({
+                                title: "이 미수 거래를 취소할까요?",
+                                variant: "danger",
+                              });
+                              if (!ok) return;
+                              run(
+                                () => cancelGymReceivableAction(r.id),
+                                "미수 거래를 취소했습니다.",
+                              );
+                            })();
                           }}
                         >
                           취소
@@ -239,13 +245,17 @@ export function GymSalesEntryPanel({
                           variant="outline"
                           disabled={pending}
                           onClick={() => {
-                            if (!window.confirm("이 매출을 취소할까요?")) {
-                              return;
-                            }
-                            run(
-                              () => cancelGymManualSaleAction(r.id),
-                              "매출을 취소했습니다.",
-                            );
+                            void (async () => {
+                              const ok = await confirm({
+                                title: "이 매출을 취소할까요?",
+                                variant: "danger",
+                              });
+                              if (!ok) return;
+                              run(
+                                () => cancelGymManualSaleAction(r.id),
+                                "매출을 취소했습니다.",
+                              );
+                            })();
                           }}
                         >
                           취소
