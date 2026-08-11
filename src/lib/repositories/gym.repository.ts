@@ -92,4 +92,61 @@ export const gymRepository = {
 
     return { ...gym, created: true };
   },
+
+  /**
+   * 주최자당 공용 외부등록 Gym 1개 — 제출마다 Gym/User를 새로 만들지 않는다.
+   * loginId = ext-reg-{organizerId}
+   */
+  async ensureOrganizerExternalRegistrationGym(
+    input: { organizerId: string; organizerName: string },
+    tx?: Prisma.TransactionClient,
+  ): Promise<{ id: string; name: string }> {
+    const client = db(tx);
+    const loginId = `ext-reg-${input.organizerId}`;
+    const existingOwner = await client.user.findUnique({
+      where: { loginId },
+      select: {
+        id: true,
+        ownedGym: { select: { id: true, name: true, status: true } },
+      },
+    });
+    if (existingOwner?.ownedGym?.status === GymStatus.active) {
+      return {
+        id: existingOwner.ownedGym.id,
+        name: existingOwner.ownedGym.name,
+      };
+    }
+
+    const displayName = `MATCHON 외부등록 (${input.organizerName.trim() || "주최자"})`;
+    if (existingOwner && !existingOwner.ownedGym) {
+      const gym = await client.gym.create({
+        data: {
+          ownerUserId: existingOwner.id,
+          name: displayName,
+          status: GymStatus.active,
+        },
+        select: { id: true, name: true },
+      });
+      return gym;
+    }
+
+    const owner = await client.user.create({
+      data: {
+        loginId,
+        email: `${loginId}@internal.invalid`,
+        name: displayName,
+        role: UserRole.gym,
+      },
+      select: { id: true },
+    });
+    const gym = await client.gym.create({
+      data: {
+        ownerUserId: owner.id,
+        name: displayName,
+        status: GymStatus.active,
+      },
+      select: { id: true, name: true },
+    });
+    return gym;
+  },
 };

@@ -69,7 +69,10 @@ export function OrganizerApplicationsCards({
                   </CardTitle>
                   <DivisionGenderBadge gender={row.division.gender} short />
                 </div>
-                <OrganizerManualEntryHint show={row.isOrganizerManualEntry} />
+                <OrganizerManualEntryHint
+                  show={row.isOrganizerManualEntry}
+                  entrySource={row.entrySource}
+                />
               </div>
             </div>            <div className="flex flex-wrap gap-1.5 pl-8">
               <OrganizerPaymentDisplayBadge paymentStatus={row.paymentStatus} />
