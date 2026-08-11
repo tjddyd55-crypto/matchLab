@@ -8,7 +8,8 @@ function signingSecret(): string {
   const secret =
     process.env.EXTERNAL_REGISTRATION_URL_SECRET?.trim() ||
     process.env.AUTH_SECRET?.trim() ||
-    process.env.NEXTAUTH_SECRET?.trim();
+    process.env.NEXTAUTH_SECRET?.trim() ||
+    process.env.MEMBER_GYM_JOIN_URL_SECRET?.trim();
   if (!secret) {
     if (process.env.NODE_ENV === "production") {
       throw new Error(
