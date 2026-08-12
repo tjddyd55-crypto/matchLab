@@ -3,8 +3,7 @@
 import type { GymEventApplicationStatusSummaryDTO } from "@/lib/services/gym-event-status.service";
 import type { GymEventStatusSummaryFilter } from "@/lib/gym-event-status-filters";
 import { MatchonStatCardButton } from "@/components/shared/MatchonStatCardButton";
-import { matchonStatsGridClass } from "@/lib/ui/matchon-shell-ui";
-import { cn } from "@/lib/utils";
+import { eventManagementStatGridClass } from "@/lib/ui/event-management-ui";
 
 export function GymEventStatusSummaryCards({
   summary,
@@ -31,12 +30,7 @@ export function GymEventStatusSummaryCards({
   ];
 
   return (
-    <div
-      className={cn(
-        "grid sm:grid-cols-2 lg:grid-cols-4 xl:grid-cols-8",
-        matchonStatsGridClass,
-      )}
-    >
+    <div className={eventManagementStatGridClass}>
       {items.map((item) => (
         <MatchonStatCardButton
           key={item.filter}

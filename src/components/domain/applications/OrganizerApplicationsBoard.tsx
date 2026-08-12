@@ -291,6 +291,15 @@ export function OrganizerApplicationsBoard({
             }}
             onLinkChange={setExternalLink}
           />
+          <Button
+            type="button"
+            size="sm"
+            className="h-9"
+            variant="outline"
+            onClick={() => setGroupByGym((v) => !v)}
+          >
+            체육관별 그룹 보기
+          </Button>
         </div>
       </EventManagementPageHeader>
 
@@ -319,38 +328,25 @@ export function OrganizerApplicationsBoard({
         onFilterChange={handleSummaryFilterChange}
       />
 
-      <div className="flex min-w-0 flex-col gap-2 md:flex-row md:items-start md:gap-3">
-        <div className="min-w-0 flex-1">
-          <OrganizerApplicationsFilterBar
-            filters={filters}
-            onChange={setFilters}
-            divisionOptions={divisionOptions}
-            gymOptions={gymOptions}
-          />
-        </div>
-        <div className="flex shrink-0 flex-wrap items-center gap-2 md:pt-1">
+      <OrganizerApplicationsFilterBar
+        filters={filters}
+        onChange={setFilters}
+        divisionOptions={divisionOptions}
+        gymOptions={gymOptions}
+      />
+      {filters.gymId !== "all" ? (
+        <div className="flex shrink-0 flex-wrap items-center gap-2">
           <Button
             type="button"
             size="sm"
-            className="h-8"
-            variant={groupByGym ? "default" : "outline"}
-            onClick={() => setGroupByGym((v) => !v)}
+            className="h-9"
+            variant="outline"
+            onClick={() => selectAllInGym(filters.gymId)}
           >
-            체육관별 그룹 보기
+            필터된 체육관 전체 선택
           </Button>
-          {filters.gymId !== "all" ? (
-            <Button
-              type="button"
-              size="sm"
-              className="h-8"
-              variant="outline"
-              onClick={() => selectAllInGym(filters.gymId)}
-            >
-              필터된 체육관 전체 선택
-            </Button>
-          ) : null}
         </div>
-      </div>
+      ) : null}
 
       <OrganizerApplicationsBulkToolbar
         eventId={eventId}

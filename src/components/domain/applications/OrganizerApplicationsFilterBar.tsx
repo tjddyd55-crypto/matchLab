@@ -3,9 +3,11 @@
 import type { OrganizerApplicationDisplayStatus } from "@/lib/application-display-status";
 import {
   CompactFilterResetButton,
+  compactApplicantFilterBarClass,
   compactApplicantFilterRowClass,
-  compactApplicantSearchClass,
   compactApplicantSelectWidths,
+  compactOrganizerApplicantControlClass,
+  compactOrganizerApplicantSearchClass,
 } from "@/components/domain/shared/CompactApplicantFilterBar";
 import {
   ORGANIZER_FIELD_INPUT_CLASS,
@@ -54,14 +56,18 @@ export function OrganizerApplicationsFilterBar({
   }
 
   return (
-    <div className="rounded-[10px] border border-[#E2E8F0] bg-matchon-surface/70 p-2.5 md:p-3">
+    <div className={compactApplicantFilterBarClass}>
       <div className={compactApplicantFilterRowClass}>
         <input
           id="f-fighter"
           type="search"
           placeholder="선수명·체육관·경기구분·체급 검색"
           aria-label="선수 검색"
-          className={cn(ORGANIZER_FIELD_INPUT_CLASS, compactApplicantSearchClass, "h-9")}
+          className={cn(
+            ORGANIZER_FIELD_INPUT_CLASS,
+            compactOrganizerApplicantSearchClass,
+            compactOrganizerApplicantControlClass,
+          )}
           value={filters.fighterName}
           onChange={(e) => patch("fighterName", e.target.value)}
         />
@@ -71,7 +77,7 @@ export function OrganizerApplicationsFilterBar({
             className={cn(
               ORGANIZER_FIELD_SELECT_CLASS,
               compactApplicantSelectWidths.gym,
-              "h-9",
+              compactOrganizerApplicantControlClass,
             )}
             value={filters.gymId}
             onChange={(e) => patch("gymId", e.target.value)}
@@ -89,7 +95,7 @@ export function OrganizerApplicationsFilterBar({
             className={cn(
               ORGANIZER_FIELD_SELECT_CLASS,
               compactApplicantSelectWidths.division,
-              "h-9",
+              compactOrganizerApplicantControlClass,
             )}
             value={filters.divisionId}
             onChange={(e) => patch("divisionId", e.target.value)}
@@ -107,7 +113,7 @@ export function OrganizerApplicationsFilterBar({
             className={cn(
               ORGANIZER_FIELD_SELECT_CLASS,
               compactApplicantSelectWidths.status,
-              "h-9",
+              compactOrganizerApplicantControlClass,
             )}
             value={filters.displayStatus}
             onChange={(e) =>
@@ -129,7 +135,7 @@ export function OrganizerApplicationsFilterBar({
             className={cn(
               ORGANIZER_FIELD_SELECT_CLASS,
               compactApplicantSelectWidths.payment,
-              "h-9",
+              compactOrganizerApplicantControlClass,
             )}
             value={filters.paymentDisplay}
             onChange={(e) =>
@@ -149,7 +155,7 @@ export function OrganizerApplicationsFilterBar({
             className={cn(
               ORGANIZER_FIELD_SELECT_CLASS,
               compactApplicantSelectWidths.consent,
-              "h-9",
+              compactOrganizerApplicantControlClass,
             )}
             value={filters.consent}
             onChange={(e) => patch("consent", e.target.value)}
@@ -164,7 +170,7 @@ export function OrganizerApplicationsFilterBar({
           </select>
           <CompactFilterResetButton
             onClick={reset}
-            className="col-span-2 h-9 w-full md:col-span-1 md:w-auto"
+            className="col-span-2 h-9 min-h-9 w-full shrink-0 px-2.5 text-xs md:col-span-1 md:w-auto"
           />
         </div>
       </div>

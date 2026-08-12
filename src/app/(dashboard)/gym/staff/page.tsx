@@ -14,16 +14,14 @@ import {
   matchonPageStackClass,
   matchonPageTitleClass,
 } from "@/lib/ui/matchon-layout";
+import { MatchonStatCardButton } from "@/components/shared/MatchonStatCardButton";
+import { eventManagementStatGrid4Class } from "@/lib/ui/event-management-ui";
 import {
   matchonCompactActionBarClass,
   matchonCompactTableWrapClass,
   matchonFieldInputClass,
   matchonFilterBarClass,
   matchonMobileCardListClass,
-  matchonStatCardClass,
-  matchonStatLabelClass,
-  matchonStatValueClass,
-  matchonStatsGridClass,
 } from "@/lib/ui/matchon-shell-ui";
 import { cn } from "@/lib/utils";
 
@@ -75,23 +73,17 @@ export default async function GymStaffListPage({
           </p>
         </div>
 
-        <div className={matchonStatsGridClass}>
-          <div className={matchonStatCardClass}>
-            <p className={matchonStatLabelClass}>전체</p>
-            <p className={matchonStatValueClass}>{summary.total}</p>
-          </div>
-          <div className={matchonStatCardClass}>
-            <p className={matchonStatLabelClass}>재직 중</p>
-            <p className={matchonStatValueClass}>{summary.active}</p>
-          </div>
-          <div className={matchonStatCardClass}>
-            <p className={matchonStatLabelClass}>계정 사용</p>
-            <p className={matchonStatValueClass}>{summary.withAccount}</p>
-          </div>
-          <div className={matchonStatCardClass}>
-            <p className={matchonStatLabelClass}>계정 미설정</p>
-            <p className={matchonStatValueClass}>{summary.withoutAccount}</p>
-          </div>
+        <div className={eventManagementStatGrid4Class}>
+          <MatchonStatCardButton label="전체" value={summary.total} />
+          <MatchonStatCardButton label="재직 중" value={summary.active} />
+          <MatchonStatCardButton
+            label="계정 사용"
+            value={summary.withAccount}
+          />
+          <MatchonStatCardButton
+            label="계정 미설정"
+            value={summary.withoutAccount}
+          />
         </div>
 
         <div className={matchonCompactActionBarClass}>

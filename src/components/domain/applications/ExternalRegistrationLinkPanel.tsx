@@ -56,7 +56,7 @@ export function ExternalRegistrationLinkTrigger({
         type="button"
         size="sm"
         className="h-9"
-        variant={open ? "secondary" : "outline"}
+        variant="outline"
         disabled={pending}
         onClick={handleClick}
       >

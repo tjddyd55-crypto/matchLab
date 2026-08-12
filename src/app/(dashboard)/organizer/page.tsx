@@ -33,6 +33,7 @@ export default async function OrganizerHomePage() {
               label={action.label}
               value="바로가기"
               hint={action.hint}
+              density="relaxed"
               className="h-full hover:border-matchon-primary/40"
             />
           </Link>

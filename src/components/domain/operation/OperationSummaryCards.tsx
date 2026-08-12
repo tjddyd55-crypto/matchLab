@@ -2,7 +2,7 @@
 
 import type { OperationBoardFilter, OperationBoardSummary } from "@/lib/match-operation-display";
 import { MatchonStatCardButton } from "@/components/shared/MatchonStatCardButton";
-import { organizerOperationStatsGridClass } from "@/lib/ui/organizer-operation-ui";
+import { eventManagementStatGrid5Class } from "@/lib/ui/event-management-ui";
 
 export function OperationSummaryCards({
   summary,
@@ -14,7 +14,7 @@ export function OperationSummaryCards({
   onFilterChange: (filter: OperationBoardFilter) => void;
 }) {
   return (
-    <div className={organizerOperationStatsGridClass}>
+    <div className={eventManagementStatGrid5Class}>
       <MatchonStatCardButton
         label="전체 경기"
         value={summary.total}

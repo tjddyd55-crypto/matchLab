@@ -196,7 +196,7 @@ export function OrganizerFieldStatusBoard({
   );
 
   return (
-    <div className="flex flex-col gap-6">
+    <div className="flex flex-col gap-3 md:gap-3.5">
       <FieldStatusSummaryCards
         summary={summary}
         activeFilter={summaryFilter}
@@ -211,11 +211,19 @@ export function OrganizerFieldStatusBoard({
             onChange={(e) => setSearchQuery(e.target.value)}
             placeholder="선수명·체육관·경기구분·체급 검색"
             aria-label="선수 검색"
-            className={cn(ORGANIZER_FIELD_INPUT_CLASS, compactApplicantSearchClass)}
+            className={cn(
+              ORGANIZER_FIELD_INPUT_CLASS,
+              compactApplicantSearchClass,
+              "h-9 min-h-9",
+            )}
           />
           <div className="grid grid-cols-2 gap-2.5 md:contents">
             <select
-              className={cn(selectClass, compactApplicantSelectWidths.gym)}
+              className={cn(
+                selectClass,
+                compactApplicantSelectWidths.gym,
+                "h-9 min-h-9",
+              )}
               value={gymFilter}
               onChange={(e) => setGymFilter(e.target.value)}
               aria-label="체육관 필터"
@@ -228,7 +236,11 @@ export function OrganizerFieldStatusBoard({
               ))}
             </select>
             <select
-              className={cn(selectClass, compactApplicantSelectWidths.division)}
+              className={cn(
+                selectClass,
+                compactApplicantSelectWidths.division,
+                "h-9 min-h-9",
+              )}
               value={divisionFilter}
               onChange={(e) => setDivisionFilter(e.target.value)}
               aria-label="경기구분 필터"
@@ -241,7 +253,11 @@ export function OrganizerFieldStatusBoard({
               ))}
             </select>
             <select
-              className={cn(selectClass, compactApplicantSelectWidths.status)}
+              className={cn(
+                selectClass,
+                compactApplicantSelectWidths.status,
+                "h-9 min-h-9",
+              )}
               value={weighInFilter}
               onChange={(e) => handleWeighInDropdown(e.target.value)}
               aria-label="계체 상태 필터"

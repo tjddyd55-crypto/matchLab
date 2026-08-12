@@ -114,21 +114,44 @@ export const eventManagementSectionHeaderClass =
 export const eventManagementSectionTitleClass =
   "text-sm font-semibold text-[#0F172A]";
 
+/** 운영 현황/KPI strip — 신청자 compact 56px SSOT */
 export const eventManagementStatGridClass =
-  "grid gap-3 sm:grid-cols-2 xl:grid-cols-5";
+  "grid grid-cols-2 gap-2 sm:grid-cols-4 lg:grid-cols-8";
 
-export const eventManagementStatCardClass = `rounded-[14px] border ${eventManagementBorderColorClass} ${eventManagementContentSurfaceClass} p-4 text-left transition-colors focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[#0A47FF]/30`;
+export const eventManagementStatGrid4Class =
+  "grid grid-cols-2 gap-2 lg:grid-cols-4";
+
+export const eventManagementStatGrid5Class =
+  "grid grid-cols-2 gap-2 sm:grid-cols-3 lg:grid-cols-5";
+
+export const eventManagementStatGrid6Class =
+  "grid grid-cols-2 gap-2 sm:grid-cols-3 lg:grid-cols-6";
+
+export const eventManagementStatCardClass = `flex h-[56px] w-full flex-col justify-center overflow-hidden rounded-[10px] border ${eventManagementBorderColorClass} ${eventManagementContentSurfaceClass} px-3 py-2 text-left shadow-none transition-colors focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[#0A47FF]/30`;
 
 export const eventManagementStatCardInteractiveClass =
   "cursor-pointer hover:border-[#BFD0FF]/80";
 
 export const eventManagementStatCardSelectedClass = `${eventManagementSelectedSurfaceClass} border-[#0A47FF]`;
 
-export const eventManagementStatLabelClass = "text-xs text-[#64748B]";
+export const eventManagementStatLabelClass =
+  "line-clamp-2 text-[11px] leading-none text-[#64748B]";
 
-export const eventManagementStatLabelSelectedClass = "text-xs text-[#0A47FF]";
+export const eventManagementStatLabelSelectedClass =
+  "line-clamp-2 text-[11px] leading-none text-[#0A47FF]";
 
 export const eventManagementStatValueClass =
+  "mt-0.5 text-lg font-bold tabular-nums leading-none text-[#0F172A]";
+
+/** 바로가기/히어로 등 운영 KPI가 아닌 카드 */
+export const eventManagementStatCardRelaxedClass = `rounded-[14px] border ${eventManagementBorderColorClass} ${eventManagementContentSurfaceClass} p-4 text-left transition-colors focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[#0A47FF]/30`;
+
+export const eventManagementStatLabelRelaxedClass = "text-xs text-[#64748B]";
+
+export const eventManagementStatLabelRelaxedSelectedClass =
+  "text-xs text-[#0A47FF]";
+
+export const eventManagementStatValueRelaxedClass =
   "mt-1 text-2xl font-black tabular-nums text-[#0F172A]";
 
 export const eventManagementCourtCardGridClass =

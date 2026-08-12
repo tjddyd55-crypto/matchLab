@@ -3,6 +3,7 @@
 import type { FieldStatusSummaryDTO } from "@/lib/services/field-status.service";
 import type { FieldStatusSummaryFilter } from "@/components/domain/field-status/field-status-filters";
 import { MatchonStatCardButton } from "@/components/shared/MatchonStatCardButton";
+import { eventManagementStatGridClass } from "@/lib/ui/event-management-ui";
 
 export function FieldStatusSummaryCards({
   summary,
@@ -14,7 +15,7 @@ export function FieldStatusSummaryCards({
   onFilterChange: (filter: FieldStatusSummaryFilter) => void;
 }) {
   return (
-    <div className="grid gap-3 sm:grid-cols-2 lg:grid-cols-4 xl:grid-cols-8">
+    <div className={eventManagementStatGridClass}>
       <MatchonStatCardButton
         label="전체 승인 신청자"
         value={summary.totalApproved}

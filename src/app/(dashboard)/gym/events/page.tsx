@@ -13,12 +13,8 @@ import {
   matchonPageStackClass,
   matchonPageTitleClass,
 } from "@/lib/ui/matchon-layout";
-import {
-  matchonStatCardClass,
-  matchonStatLabelClass,
-  matchonStatValueClass,
-  matchonStatsGridClass,
-} from "@/lib/ui/matchon-shell-ui";
+import { MatchonStatCardButton } from "@/components/shared/MatchonStatCardButton";
+import { eventManagementStatGrid5Class } from "@/lib/ui/event-management-ui";
 import { cn } from "@/lib/utils";
 
 export const dynamic = "force-dynamic";
@@ -50,27 +46,12 @@ export default async function GymEventsPage() {
           </p>
         </div>
 
-        <div className={matchonStatsGridClass}>
-          <div className={matchonStatCardClass}>
-            <p className={matchonStatLabelClass}>모집 중</p>
-            <p className={matchonStatValueClass}>{openCount}</p>
-          </div>
-          <div className={matchonStatCardClass}>
-            <p className={matchonStatLabelClass}>모집 예정</p>
-            <p className={matchonStatValueClass}>{scheduledCount}</p>
-          </div>
-          <div className={matchonStatCardClass}>
-            <p className={matchonStatLabelClass}>신청 완료</p>
-            <p className={matchonStatValueClass}>{appliedCount}</p>
-          </div>
-          <div className={matchonStatCardClass}>
-            <p className={matchonStatLabelClass}>마감</p>
-            <p className={matchonStatValueClass}>{closedCount}</p>
-          </div>
-          <div className={matchonStatCardClass}>
-            <p className={matchonStatLabelClass}>진행 중</p>
-            <p className={matchonStatValueClass}>{ongoingCount}</p>
-          </div>
+        <div className={eventManagementStatGrid5Class}>
+          <MatchonStatCardButton label="모집 중" value={openCount} />
+          <MatchonStatCardButton label="모집 예정" value={scheduledCount} />
+          <MatchonStatCardButton label="신청 완료" value={appliedCount} />
+          <MatchonStatCardButton label="마감" value={closedCount} />
+          <MatchonStatCardButton label="진행 중" value={ongoingCount} />
         </div>
 
         {events.length === 0 ? (
