@@ -21,8 +21,14 @@ import {
   resolveSingleSportSectionTitle,
 } from "@/lib/division-sport-grouping";
 import { OrganizerApplicationsGymSummaryTable } from "@/components/domain/applications/OrganizerApplicationsGymSummaryTable";
-import { OrganizerManualApplicationPanel } from "@/components/domain/applications/OrganizerManualApplicationPanel";
-import { ExternalRegistrationLinkPanel } from "@/components/domain/applications/ExternalRegistrationLinkPanel";
+import {
+  OrganizerManualApplicationPanel,
+  OrganizerManualApplicationTrigger,
+} from "@/components/domain/applications/OrganizerManualApplicationPanel";
+import {
+  ExternalRegistrationLinkPanel,
+  ExternalRegistrationLinkTrigger,
+} from "@/components/domain/applications/ExternalRegistrationLinkPanel";
 import type { OrganizerManualRegistrationOptionsDTO } from "@/lib/services/application.service";
 import type { ExternalRegistrationLinkVM } from "@/lib/services/external-registration-link.service";
 import {
@@ -30,6 +36,7 @@ import {
   summaryFilterToFilters,
   type OrganizerApplicationSummaryFilter,
 } from "@/components/domain/applications/organizer-application-filters";
+import { EventManagementPageHeader } from "@/components/domain/events/EventManagementPageHeader";
 import { Button } from "@/components/ui/button";
 
 const DEFAULT_FILTERS: OrganizerApplicationFiltersState = {
@@ -57,6 +64,9 @@ export function OrganizerApplicationsBoard({
     useState<OrganizerApplicationFiltersState>(DEFAULT_FILTERS);
   const [selectedIds, setSelectedIds] = useState<Set<string>>(new Set());
   const [groupByGym, setGroupByGym] = useState(false);
+  const [manualOpen, setManualOpen] = useState(false);
+  const [linkOpen, setLinkOpen] = useState(false);
+  const [externalLink, setExternalLink] = useState(externalRegistrationLink);
 
   const summaryFilter = useMemo(() => inferSummaryFilter(filters), [filters]);
 
@@ -170,6 +180,11 @@ export function OrganizerApplicationsBoard({
         ? "조건에 맞는 신청자가 없습니다."
         : "아직 신청자가 없습니다.";
 
+  const emptyDescription =
+    rows.length === 0
+      ? "선수 직접 등록 또는 외부 체육관 등록 링크로 신청자를 추가할 수 있습니다."
+      : undefined;
+
   function toggleSelect(applicationId: string, checked: boolean) {
     setSelectedIds((prev) => {
       const next = new Set(prev);
@@ -203,6 +218,7 @@ export function OrganizerApplicationsBoard({
     selectedIds,
     onToggleSelect: toggleSelect,
     emptyMessage,
+    emptyDescription,
   };
 
   function renderApplicationViews(
@@ -233,14 +249,45 @@ export function OrganizerApplicationsBoard({
   let sequenceOffset = 0;
 
   return (
-    <div className="flex min-w-0 flex-col gap-6 overflow-x-hidden">
+    <div className="flex min-w-0 flex-col gap-3 overflow-x-hidden md:gap-3.5">
+      <EventManagementPageHeader
+        title="신청자 관리"
+        description="신청자 및 입금 상태를 관리합니다."
+        className="gap-2 sm:items-center"
+      >
+        <div className="flex flex-wrap items-center gap-2">
+          <OrganizerManualApplicationTrigger
+            open={manualOpen}
+            onOpenChange={(next) => {
+              setManualOpen(next);
+              if (next) setLinkOpen(false);
+            }}
+          />
+          <ExternalRegistrationLinkTrigger
+            eventId={eventId}
+            link={externalLink}
+            open={linkOpen}
+            onOpenChange={(next) => {
+              setLinkOpen(next);
+              if (next) setManualOpen(false);
+            }}
+            onLinkChange={setExternalLink}
+          />
+        </div>
+      </EventManagementPageHeader>
+
       <OrganizerManualApplicationPanel
         eventId={eventId}
         options={manualRegistrationOptions}
+        open={manualOpen}
+        onOpenChange={setManualOpen}
       />
       <ExternalRegistrationLinkPanel
         eventId={eventId}
-        initialLink={externalRegistrationLink}
+        link={externalLink}
+        open={linkOpen}
+        onOpenChange={setLinkOpen}
+        onLinkChange={setExternalLink}
       />
 
       <OrganizerApplicationsSummaryCards
@@ -257,32 +304,35 @@ export function OrganizerApplicationsBoard({
         }
       />
 
-      <OrganizerApplicationsFilterBar
-        filters={filters}
-        onChange={setFilters}
-        divisionOptions={divisionOptions}
-        gymOptions={gymOptions}
-      />
-
-      <div className="flex flex-wrap items-center gap-2">
-        <Button
-          type="button"
-          size="sm"
-          variant={groupByGym ? "default" : "outline"}
-          onClick={() => setGroupByGym((v) => !v)}
-        >
-          체육관별 그룹 보기
-        </Button>
-        {filters.gymId !== "all" ? (
+      <div className="flex min-w-0 flex-col gap-2">
+        <OrganizerApplicationsFilterBar
+          filters={filters}
+          onChange={setFilters}
+          divisionOptions={divisionOptions}
+          gymOptions={gymOptions}
+        />
+        <div className="flex flex-wrap items-center gap-2">
           <Button
             type="button"
             size="sm"
-            variant="outline"
-            onClick={() => selectAllInGym(filters.gymId)}
+            className="h-8"
+            variant={groupByGym ? "default" : "outline"}
+            onClick={() => setGroupByGym((v) => !v)}
           >
-            필터된 체육관 전체 선택
+            체육관별 그룹 보기
           </Button>
-        ) : null}
+          {filters.gymId !== "all" ? (
+            <Button
+              type="button"
+              size="sm"
+              className="h-8"
+              variant="outline"
+              onClick={() => selectAllInGym(filters.gymId)}
+            >
+              필터된 체육관 전체 선택
+            </Button>
+          ) : null}
+        </div>
       </div>
 
       <OrganizerApplicationsBulkToolbar
@@ -294,22 +344,23 @@ export function OrganizerApplicationsBoard({
       />
 
       {groupByGym && singleSportTitle ? (
-        <DivisionSportSectionHeader title={singleSportTitle} className="mb-1" />
+        <DivisionSportSectionHeader title={singleSportTitle} className="mb-0" />
       ) : null}
 
-      <div ref={listRef} className="min-w-0 flex flex-col gap-6">
+      <div ref={listRef} className="min-w-0 flex flex-col gap-4">
         {groupByGym && groupedRows
           ? groupedRows.length > 0
             ? groupedRows.map((group) => {
                 const start = sequenceOffset;
                 sequenceOffset += group.rows.length;
                 return (
-                  <section key={group.gymName} className="flex flex-col gap-3">
+                  <section key={group.gymName} className="flex flex-col gap-2.5">
                     <div className="flex flex-wrap items-center justify-between gap-2">
                       <h3 className="text-sm font-semibold">{group.gymName}</h3>
                       <Button
                         type="button"
                         size="sm"
+                        className="h-8"
                         variant="outline"
                         onClick={() => {
                           const gymId = group.rows[0]?.gymId;
@@ -332,7 +383,10 @@ export function OrganizerApplicationsBoard({
                 const start = sequenceOffset;
                 sequenceOffset += group.items.length;
                 return (
-                  <section key={group.sportTitle} className="flex flex-col gap-3">
+                  <section
+                    key={group.sportTitle}
+                    className="flex flex-col gap-2.5"
+                  >
                     <DivisionSportSectionHeader title={group.sportTitle} />
                     {renderApplicationViews(group.items, start)}
                   </section>

@@ -27,6 +27,7 @@ export function OrganizerApplicationsList({
   onToggleSelect,
   sequenceStart = 0,
   emptyMessage = "아직 신청자가 없습니다.",
+  emptyDescription,
 }: {
   eventId: string;
   rows: OrganizerApplicationRowVM[];
@@ -34,11 +35,15 @@ export function OrganizerApplicationsList({
   onToggleSelect: (applicationId: string, checked: boolean) => void;
   sequenceStart?: number;
   emptyMessage?: string;
+  emptyDescription?: string;
 }) {
   if (rows.length === 0) {
     return (
       <div className="hidden min-w-0 md:block 2xl:hidden">
-        <OrganizerApplicationsEmptyState message={emptyMessage} />
+        <OrganizerApplicationsEmptyState
+          message={emptyMessage}
+          description={emptyDescription}
+        />
       </div>
     );
   }
