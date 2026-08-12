@@ -35,6 +35,13 @@ assert.ok(bar.includes('aria-label="선수 검색"'));
 assert.ok(bar.includes('aria-label="신청상태 필터"'));
 assert.ok(!bar.includes("선수 이름 검색"));
 
+const boardExcel = read(
+  "src/components/domain/applications/OrganizerApplicationsBoard.tsx",
+);
+assert.ok(boardExcel.includes("OrganizerApplicantExcelTrigger"));
+assert.ok(boardExcel.includes("OrganizerManualApplicationTrigger"));
+assert.ok(boardExcel.includes("ExternalRegistrationLinkTrigger"));
+
 const table = read(
   "src/components/domain/applications/OrganizerApplicationsTable.tsx",
 );

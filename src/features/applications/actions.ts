@@ -5,6 +5,7 @@ import {
   actionFailure,
   actionSuccess,
   permissionReasonToActionCode,
+  type ActionFailure,
   type ActionResult,
 } from "@/lib/action-result";
 import { PermissionError } from "@/lib/auth/permission-error";
@@ -22,6 +23,10 @@ import type {
   BulkApplyToEventSuccessDTO,
   CreateOrganizerManualApplicationResultDTO,
 } from "@/lib/services/application.service";
+import type {
+  ApplicantExcelCommitResult,
+  ApplicantExcelPreview,
+} from "@/lib/applicant-excel/types";
 import {
   organizerManualApplicationSchema,
 } from "@/lib/validators/organizer-manual-application.validator";
@@ -295,6 +300,72 @@ export async function createOrganizerManualApplicationAction(
       gymId: result.gymId,
     });
 
+    return actionSuccess(result);
+  });
+}
+
+async function readExcelBuffer(formData: FormData): Promise<{
+  fileName: string;
+  buffer: Buffer;
+} | ActionFailure> {
+  const eventId = formReq(formData, "eventId");
+  if (!eventId) {
+    return actionFailure("VALIDATION_ERROR", "대회 정보가 없습니다.");
+  }
+  const file = formData.get("file");
+  if (!(file instanceof File) || file.size <= 0) {
+    return actionFailure("VALIDATION_ERROR", "Excel 파일을 선택해 주세요.");
+  }
+  return {
+    fileName: file.name || "import.xlsx",
+    buffer: Buffer.from(await file.arrayBuffer()),
+  };
+}
+
+export async function downloadOrganizerApplicantExcelSampleAction(
+  eventId: string,
+): Promise<ActionResult<{ filename: string; base64: string }>> {
+  return mapCaught(async () => {
+    const actor = await requireActorFromMutation();
+    const data = await applicationService.buildOrganizerApplicantExcelSample(
+      actor,
+      eventId,
+    );
+    return actionSuccess(data);
+  });
+}
+
+export async function analyzeOrganizerApplicantExcelAction(
+  formData: FormData,
+): Promise<ActionResult<ApplicantExcelPreview>> {
+  return mapCaught(async () => {
+    const eventId = formReq(formData, "eventId");
+    const file = await readExcelBuffer(formData);
+    if ("ok" in file && file.ok === false) return file;
+    const actor = await requireActorFromMutation();
+    const preview = await applicationService.analyzeOrganizerApplicantExcel(
+      actor,
+      { eventId, ...(file as { fileName: string; buffer: Buffer }) },
+    );
+    return actionSuccess(preview);
+  });
+}
+
+export async function commitOrganizerApplicantExcelAction(
+  formData: FormData,
+): Promise<ActionResult<ApplicantExcelCommitResult>> {
+  return mapCaught(async () => {
+    const eventId = formReq(formData, "eventId");
+    const file = await readExcelBuffer(formData);
+    if ("ok" in file && file.ok === false) return file;
+    const actor = await requireActorFromMutation();
+    const result = await applicationService.commitOrganizerApplicantExcel(
+      actor,
+      { eventId, ...(file as { fileName: string; buffer: Buffer }) },
+    );
+    revalidatePath(`/organizer/events/${eventId}/applications`);
+    revalidatePath(`/organizer/events/${eventId}/check-in`);
+    revalidatePath(`/organizer/events/${eventId}/brackets`);
     return actionSuccess(result);
   });
 }

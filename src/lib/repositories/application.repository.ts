@@ -189,6 +189,20 @@ export const applicationRepository = {
     });
   },
 
+  async listImportIdentitiesForEvent(eventId: string) {
+    return prisma.eventApplication.findMany({
+      where: { eventId },
+      select: {
+        id: true,
+        divisionId: true,
+        gymSnapshot: true,
+        fighter: {
+          select: { name: true, birthDate: true, gender: true },
+        },
+      },
+    });
+  },
+
   async createEventApplicationWithPayment(
     data: {
       eventId: string;
