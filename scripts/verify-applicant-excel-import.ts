@@ -515,26 +515,80 @@ async function verifyHeaderAliases() {
     "운동경력",
     "비고",
   ];
-  await assert.rejects(() =>
-    bufferFromRows(
-      [
+  await assert.rejects(
+    () =>
+      bufferFromRows(
         [
-          "1",
-          "팀라펠 짐",
-          "백지후",
-          "남",
-          "20100708",
-          "고1",
-          "",
-          "67.3",
-          "무전",
-          "",
-          "",
+          [
+            "1",
+            "팀라펠 짐",
+            "백지후",
+            "남",
+            "20100708",
+            "고1",
+            "",
+            "67.3",
+            "무전",
+            "",
+            "",
+          ],
         ],
-      ],
-      opsOnly,
-    ).then(parseApplicantExcelWorkbook),
+        opsOnly,
+      ).then(parseApplicantExcelWorkbook),
+    /필수 컬럼이 없습니다: 경기구분, 체급/,
   );
+
+  // 빈 1열 헤더 → 번호
+  const emptyFirst = [
+    "",
+    "체육관명",
+    "이름",
+    "성별",
+    "생년월일",
+    "나이",
+    "키",
+    "무게",
+    "전적",
+    "운동경력",
+    "경기구분",
+    "체급",
+    "체중기준",
+    "종목",
+    "연락처",
+    "보호자이름",
+    "보호자연락처",
+    "비고",
+  ];
+  const emptyFirstPreview = await previewFromRows(
+    [
+      [
+        "1",
+        "마포킥복싱",
+        "빈헤더선수",
+        "남",
+        "2008-05-12",
+        "18",
+        "175",
+        "62.8",
+        "무전",
+        "",
+        "고등부",
+        "라이트급 -60kg",
+        "",
+        "",
+        "",
+        "",
+        "",
+        "",
+      ],
+    ],
+    [],
+    emptyFirst,
+  );
+  assert.equal(emptyFirstPreview.counts.create, 1);
+  assert.equal(emptyFirstPreview.rows[0]?.rowNumber, "1");
+  assert.equal(parseOptionalHeightCm("중1").ok, false);
+  assert.equal(parseOptionalHeightCm("175cm").cm, 175);
   console.log("verify:applicant-excel-header-aliases OK");
 }
 

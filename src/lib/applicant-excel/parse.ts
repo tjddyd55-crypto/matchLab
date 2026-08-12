@@ -94,6 +94,10 @@ function mapHeaderIndex(cells: string[]): {
       index.set(resolved, idx);
     }
   });
+  // 운영 파일처럼 1열 헤더가 비어 있고 순번만 있는 경우 → 번호로 안전 매핑
+  if (!index.has("번호") && cells.length > 0 && !cells[0]?.trim()) {
+    index.set("번호", 0);
+  }
   return { index, kindIndex };
 }
 
@@ -140,10 +144,11 @@ export async function parseApplicantExcelWorkbook(
 
   const headerCells = rowCells(sheet.getRow(headerRow), colCount);
   const { index, kindIndex } = mapHeaderIndex(headerCells);
-  for (const required of APPLICANT_EXCEL_REQUIRED_HEADERS) {
-    if (!index.has(required)) {
-      throw new Error(`필수 컬럼이 없습니다: ${required}`);
-    }
+  const missingRequired = APPLICANT_EXCEL_REQUIRED_HEADERS.filter(
+    (required) => !index.has(required),
+  );
+  if (missingRequired.length > 0) {
+    throw new Error(`필수 컬럼이 없습니다: ${missingRequired.join(", ")}`);
   }
 
   const rows: ParsedApplicantExcelRow[] = [];

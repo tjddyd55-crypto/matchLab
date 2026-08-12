@@ -80,7 +80,7 @@ export function parseOptionalWeightKg(raw: string): {
   return { ok: true, kg: n };
 }
 
-/** 키(cm). `175` / `175cm` 허용. 비우면 null. */
+/** 키(cm). `175` / `175cm` 허용. 비우면 null. `중1` 등 비정규 값 거부. */
 export function parseOptionalHeightCm(raw: string): {
   ok: boolean;
   cm: number | null;
@@ -88,7 +88,11 @@ export function parseOptionalHeightCm(raw: string): {
 } {
   const trimmed = compactText(raw);
   if (!trimmed) return { ok: true, cm: null };
-  const n = Number.parseFloat(trimmed.replace(/cm$/i, "").trim());
+  const cleaned = trimmed.replace(/cm$/i, "").trim();
+  if (!/^\d+(?:\.\d+)?$/.test(cleaned)) {
+    return { ok: false, cm: null, error: "키가 올바른 숫자가 아닙니다." };
+  }
+  const n = Number.parseFloat(cleaned);
   if (!Number.isFinite(n) || n < 50 || n > 250) {
     return { ok: false, cm: null, error: "키가 올바른 숫자가 아닙니다." };
   }
