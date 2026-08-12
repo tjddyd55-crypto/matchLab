@@ -7,6 +7,10 @@ import {
   commitOrganizerApplicantExcelAction,
   downloadOrganizerApplicantExcelSampleAction,
 } from "@/features/applications/actions";
+import {
+  APPLICANT_EXCEL_MAX_BYTES,
+  APPLICANT_EXCEL_MAX_ROWS,
+} from "@/lib/applicant-excel/columns";
 import type {
   ApplicantExcelCommitResult,
   ApplicantExcelPreview,
@@ -21,6 +25,7 @@ import {
   DialogHeader,
   DialogTitle,
 } from "@/components/ui/dialog";
+import { FileDropzone } from "@/components/shared/FileDropzone";
 import { cn } from "@/lib/utils";
 
 type Step = "upload" | "preview" | "result";
@@ -157,30 +162,42 @@ export function OrganizerApplicantExcelImportDialog({
         ) : null}
 
         {step === "upload" ? (
-          <div className="space-y-3">
-            <Button
-              type="button"
-              variant="outline"
-              size="sm"
-              className="h-9"
-              disabled={pending}
-              onClick={() => void downloadSample()}
-            >
-              샘플 엑셀 다운로드
-            </Button>
-            <label className="block space-y-1.5">
-              <span className="text-sm font-medium">Excel 파일 선택</span>
-              <input
-                type="file"
-                accept=".xlsx,application/vnd.openxmlformats-officedocument.spreadsheetml.sheet"
+          <div className="space-y-4">
+            <div className="space-y-2 rounded-[10px] border border-[#E2E8F0] bg-[#F8FAFC] px-3 py-3">
+              <p className="text-sm text-matchon-text-secondary">
+                샘플 파일을 먼저 내려받아 작성한 뒤 업로드하세요.
+              </p>
+              <Button
+                type="button"
+                variant="outline"
+                size="sm"
+                className="h-9"
                 disabled={pending}
-                className="block w-full text-sm"
-                onChange={(e) => {
-                  const selected = e.target.files?.[0];
-                  if (selected) analyze(selected);
+                onClick={() => void downloadSample()}
+              >
+                샘플 엑셀 다운로드
+              </Button>
+            </div>
+
+            <div className="space-y-2">
+              <p className="text-sm font-medium text-[#0F172A]">
+                Excel 파일 업로드
+              </p>
+              <FileDropzone
+                accept=".xlsx,application/vnd.openxmlformats-officedocument.spreadsheetml.sheet"
+                maxBytes={APPLICANT_EXCEL_MAX_BYTES}
+                disabled={pending}
+                busy={pending}
+                file={file}
+                hint={`.xlsx · 최대 ${Math.round(APPLICANT_EXCEL_MAX_BYTES / (1024 * 1024))}MB · ${APPLICANT_EXCEL_MAX_ROWS}명`}
+                onFile={(selected) => analyze(selected)}
+                onClear={() => {
+                  setFile(null);
+                  setError(null);
                 }}
+                onReject={(message) => setError(message)}
               />
-            </label>
+            </div>
           </div>
         ) : null}
 
