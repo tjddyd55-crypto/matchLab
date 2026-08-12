@@ -376,12 +376,15 @@ export function OrganizerApplicationsBoard({
             ? sportGroups.map((group) => {
                 const start = sequenceOffset;
                 sequenceOffset += group.items.length;
+                const showSportHeader = sportGroups.length > 1;
                 return (
                   <section
                     key={group.sportTitle}
                     className="flex flex-col gap-2.5"
                   >
-                    <DivisionSportSectionHeader title={group.sportTitle} />
+                    {showSportHeader ? (
+                      <DivisionSportSectionHeader title={group.sportTitle} />
+                    ) : null}
                     {renderApplicationViews(group.items, start)}
                   </section>
                 );
