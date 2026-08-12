@@ -214,14 +214,21 @@ export async function buildApplicantExcelSampleWorkbook(input: {
     "체중기준=신청 체급 기준(-63.5kg). 체중=선수 실측(62.8).",
   ]);
   guide.addRow([]);
-  guide.addRow(["현재 대회 사용 가능 경기구분/체급"]);
-  const lookupHeader = guide.addRow(["경기구분", "성별", "체급", "종목"]);
+  guide.addRow(["현재 대회 사용 가능 값"]);
+  const lookupHeader = guide.addRow([
+    "경기구분",
+    "성별",
+    "체급",
+    "체중기준",
+    "종목",
+  ]);
   applyHeaderStyle(lookupHeader);
   for (const d of input.divisions) {
     guide.addRow([
       sanitizePlainCell(d.ageGroup ?? "-"),
       sanitizePlainCell(formatDivisionGenderLabel(d.gender) ?? "-"),
       sanitizePlainCell(weightChip(d) || "-"),
+      sanitizePlainCell(weightLimit(d) || "-"),
       sanitizePlainCell(formatDivisionSportTitle(d) ?? "-"),
     ]);
   }
