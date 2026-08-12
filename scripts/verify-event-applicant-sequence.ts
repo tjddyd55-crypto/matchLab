@@ -31,9 +31,34 @@ const bar = read(
   "src/components/domain/applications/OrganizerApplicationsFilterBar.tsx",
 );
 assert.ok(bar.includes("compactApplicantFilterBarClass"));
+assert.ok(bar.includes("compactApplicantFilterRowClass"));
 assert.ok(bar.includes('aria-label="선수 검색"'));
 assert.ok(bar.includes('aria-label="신청상태 필터"'));
 assert.ok(!bar.includes("선수 이름 검색"));
+assert.ok(bar.includes("CompactFilterResetButton"));
+
+const filterSsot = read(
+  "src/components/domain/shared/CompactApplicantFilterBar.tsx",
+);
+assert.ok(filterSsot.includes("max-[1365px]:flex-wrap"));
+
+const summary = read(
+  "src/components/domain/applications/OrganizerApplicationsSummaryCards.tsx",
+);
+assert.ok(summary.includes("MatchonStatCardButton"));
+assert.ok(summary.includes("eventManagementStatGridClass"));
+assert.ok(!summary.includes("CompactKpiButton"));
+
+const kpiSsot = read("src/lib/ui/event-management-ui.ts");
+assert.ok(kpiSsot.includes("h-[56px]"));
+assert.ok(kpiSsot.includes("rounded-[10px]"));
+assert.ok(kpiSsot.includes("text-lg font-bold"));
+
+const trigger = read(
+  "src/components/domain/applications/OrganizerManualApplicationPanel.tsx",
+);
+assert.ok(trigger.includes('variant="outline"'));
+assert.ok(!trigger.includes('variant={open ? "outline" : "default"}'));
 
 const table = read(
   "src/components/domain/applications/OrganizerApplicationsTable.tsx",

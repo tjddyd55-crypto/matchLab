@@ -14,12 +14,11 @@ import { gymSalesService } from "@/lib/services/gym-sales.service";
 import { gymScheduleService } from "@/lib/services/gym-schedule.service";
 import { gymGroupClassService } from "@/lib/services/gym-group-class.service";
 import { formatWon } from "@/lib/format-won";
+import { MatchonStatCardButton } from "@/components/shared/MatchonStatCardButton";
+import { eventManagementStatGridClass } from "@/lib/ui/event-management-ui";
 import {
   matchonCompactActionBarClass,
-  matchonStatCardClass,
   matchonStatLabelClass,
-  matchonStatValueClass,
-  matchonStatsGridClass,
 } from "@/lib/ui/matchon-shell-ui";
 import {
   matchonPageContainerClass,
@@ -117,49 +116,39 @@ export default async function GymHomePage() {
         </div>
 
         {memberSummary ? (
-          <div className={matchonStatsGridClass}>
-            <div className={matchonStatCardClass}>
-              <p className={matchonStatLabelClass}>전체 회원</p>
-              <p className={matchonStatValueClass}>{memberSummary.total}</p>
-            </div>
-            <div className={matchonStatCardClass}>
-              <p className={matchonStatLabelClass}>일반 회원</p>
-              <p className={matchonStatValueClass}>
-                {memberSummary.withoutFighter}
-              </p>
-            </div>
-            <div className={matchonStatCardClass}>
-              <p className={matchonStatLabelClass}>선수</p>
-              <p className={matchonStatValueClass}>
-                {memberSummary.withFighter}
-              </p>
-            </div>
-            <div className={matchonStatCardClass}>
-              <p className={matchonStatLabelClass}>이용 중</p>
-              <p className={matchonStatValueClass}>{memberSummary.inUse}</p>
-            </div>
-            <div className={matchonStatCardClass}>
-              <p className={matchonStatLabelClass}>만료 예정</p>
-              <p className={matchonStatValueClass}>{memberSummary.expiring}</p>
-            </div>
-            <div className={matchonStatCardClass}>
-              <p className={matchonStatLabelClass}>이번 달 신규</p>
-              <p className={matchonStatValueClass}>
-                {memberSummary.newThisMonth}
-              </p>
-            </div>
-            <div className={matchonStatCardClass}>
-              <p className={matchonStatLabelClass}>신청 가능 대회</p>
-              <p className={matchonStatValueClass}>
-                {eventSummary?.openCount ?? 0}
-              </p>
-            </div>
-            <div className={matchonStatCardClass}>
-              <p className={matchonStatLabelClass}>신청 선수</p>
-              <p className={matchonStatValueClass}>
-                {eventSummary?.appliedFighterCount ?? 0}
-              </p>
-            </div>
+          <div className={eventManagementStatGridClass}>
+            <MatchonStatCardButton
+              label="전체 회원"
+              value={memberSummary.total}
+            />
+            <MatchonStatCardButton
+              label="일반 회원"
+              value={memberSummary.withoutFighter}
+            />
+            <MatchonStatCardButton
+              label="선수"
+              value={memberSummary.withFighter}
+            />
+            <MatchonStatCardButton
+              label="이용 중"
+              value={memberSummary.inUse}
+            />
+            <MatchonStatCardButton
+              label="만료 예정"
+              value={memberSummary.expiring}
+            />
+            <MatchonStatCardButton
+              label="이번 달 신규"
+              value={memberSummary.newThisMonth}
+            />
+            <MatchonStatCardButton
+              label="신청 가능 대회"
+              value={eventSummary?.openCount ?? 0}
+            />
+            <MatchonStatCardButton
+              label="신청 선수"
+              value={eventSummary?.appliedFighterCount ?? 0}
+            />
           </div>
         ) : null}
 

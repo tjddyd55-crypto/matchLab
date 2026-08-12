@@ -38,7 +38,7 @@ export function OrganizerManualApplicationTrigger({
       type="button"
       size="sm"
       className={cn("h-9", className)}
-      variant={open ? "outline" : "default"}
+      variant="outline"
       onClick={() => onOpenChange(!open)}
     >
       {open ? "등록 닫기" : "선수 직접 등록"}

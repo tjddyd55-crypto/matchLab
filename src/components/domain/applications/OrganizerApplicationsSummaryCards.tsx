@@ -6,52 +6,8 @@ import {
   isPaidForOrganizerDisplay,
 } from "@/lib/application-display-status";
 import type { OrganizerApplicationSummaryFilter } from "@/components/domain/applications/organizer-application-filters";
-import {
-  eventManagementBorderColorClass,
-  eventManagementContentSurfaceClass,
-  eventManagementSelectedSurfaceClass,
-} from "@/lib/ui/event-management-ui";
-import { cn } from "@/lib/utils";
-
-function CompactKpiButton({
-  label,
-  value,
-  active,
-  onClick,
-}: {
-  label: string;
-  value: string | number;
-  active?: boolean;
-  onClick: () => void;
-}) {
-  return (
-    <button
-      type="button"
-      aria-pressed={active}
-      onClick={onClick}
-      className={cn(
-        "flex min-h-[56px] w-full flex-col justify-center rounded-[10px] border px-2.5 py-2 text-left transition-colors",
-        "focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[#0A47FF]/30",
-        eventManagementBorderColorClass,
-        eventManagementContentSurfaceClass,
-        "hover:border-[#BFD0FF]/80",
-        active && `${eventManagementSelectedSurfaceClass} border-[#0A47FF]`,
-      )}
-    >
-      <span
-        className={cn(
-          "text-[11px] leading-tight text-[#64748B]",
-          active && "text-[#0A47FF]",
-        )}
-      >
-        {label}
-      </span>
-      <span className="mt-0.5 text-lg font-bold tabular-nums leading-none text-[#0F172A]">
-        {value}
-      </span>
-    </button>
-  );
-}
+import { MatchonStatCardButton } from "@/components/shared/MatchonStatCardButton";
+import { eventManagementStatGridClass } from "@/lib/ui/event-management-ui";
 
 export function OrganizerApplicationsSummaryCards({
   rows,
@@ -97,50 +53,50 @@ export function OrganizerApplicationsSummaryCards({
   ).length;
 
   return (
-    <section className="grid grid-cols-2 gap-2 sm:grid-cols-4 lg:grid-cols-8">
-      <CompactKpiButton
+    <section className={eventManagementStatGridClass}>
+      <MatchonStatCardButton
         label="전체 신청"
         value={fighterCount}
         active={activeFilter === "all"}
         onClick={() => onFilterChange("all")}
       />
-      <CompactKpiButton
+      <MatchonStatCardButton
         label="승인"
         value={approvedCount}
         active={activeFilter === "approved"}
         onClick={() => onFilterChange("approved")}
       />
-      <CompactKpiButton
+      <MatchonStatCardButton
         label="미승인"
         value={pendingCount}
         active={activeFilter === "pending"}
         onClick={() => onFilterChange("pending")}
       />
-      <CompactKpiButton
+      <MatchonStatCardButton
         label="입금완료"
         value={paidCount}
         active={activeFilter === "paid"}
         onClick={() => onFilterChange("paid")}
       />
-      <CompactKpiButton
+      <MatchonStatCardButton
         label="미입금"
         value={unpaidCount}
         active={activeFilter === "unpaid"}
         onClick={() => onFilterChange("unpaid")}
       />
-      <CompactKpiButton
+      <MatchonStatCardButton
         label="체육관취소"
         value={gymCancelledCount}
         active={activeFilter === "gym_cancelled"}
         onClick={() => onFilterChange("gym_cancelled")}
       />
-      <CompactKpiButton
+      <MatchonStatCardButton
         label="주최측취소"
         value={organizerCancelledCount}
         active={activeFilter === "organizer_cancelled"}
         onClick={() => onFilterChange("organizer_cancelled")}
       />
-      <CompactKpiButton
+      <MatchonStatCardButton
         label="입금율"
         value={
           fighterCount > 0
