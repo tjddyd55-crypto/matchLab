@@ -127,6 +127,10 @@ export const eventManagementStatGrid5Class =
 export const eventManagementStatGrid6Class =
   "grid grid-cols-2 gap-2 sm:grid-cols-3 lg:grid-cols-6";
 
+/** 관리자 개요 등 다수 KPI — 카드 높이는 56px, 열만 4~5로 조절 */
+export const eventManagementStatGridAdminClass =
+  "grid grid-cols-2 gap-2 sm:grid-cols-3 lg:grid-cols-4 xl:grid-cols-5";
+
 export const eventManagementStatCardClass = `flex h-[56px] w-full flex-col justify-center overflow-hidden rounded-[10px] border ${eventManagementBorderColorClass} ${eventManagementContentSurfaceClass} px-3 py-2 text-left shadow-none transition-colors focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[#0A47FF]/30`;
 
 export const eventManagementStatCardInteractiveClass =

@@ -161,6 +161,7 @@
     "verify:applicant-excel-idempotency": "tsx scripts/verify-applicant-excel-import.ts",
     "verify:applicant-excel-batch": "tsx scripts/verify-applicant-excel-import.ts",
     "verify:applicant-excel-scope": "tsx scripts/verify-applicant-excel-import.ts",
+    "verify:operational-kpi-style": "tsx scripts/verify-operational-kpi-style.ts",
     "e2e:gym-member-excel-import-qa": "tsx scripts/e2e-gym-member-excel-import-qa.mts",
     "verify:gym-member-gym-scope": "tsx scripts/verify-gym-member-gym-scope.ts",
     "verify:tailwind-source-scope": "tsx scripts/verify-tailwind-source-scope.ts",

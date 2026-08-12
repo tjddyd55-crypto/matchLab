@@ -163,19 +163,28 @@ async function verifyParser() {
   });
   assert.ok(sample.getWorksheet(APPLICANT_EXCEL_SHEET_DATA));
   assert.ok(sample.getWorksheet(APPLICANT_EXCEL_SHEET_GUIDE));
+  const dataSheet = sample.getWorksheet(APPLICANT_EXCEL_SHEET_DATA)!;
+  assert.equal(String(dataSheet.getRow(2).getCell(1).value), "선수명");
   const buf = await workbookToBuffer(sample);
   const parsed = await parseApplicantExcelWorkbook(buf);
-  assert.equal(parsed.rows.length, 1);
-  assert.equal(parsed.rows[0]?.values.선수명, "홍길동");
-  const samplePreview = analyzeApplicantExcelRows({
-    fileName: "sample.xlsx",
-    headerRow: parsed.headerRow,
-    rows: parsed.rows,
-    divisions: DIVISIONS,
-    existing: [],
+  assert.equal(parsed.rows.length, 0, "upload sheet must not include fake athletes");
+
+  const guide = sample.getWorksheet(APPLICANT_EXCEL_SHEET_GUIDE)!;
+  const guideText: string[] = [];
+  guide.eachRow((row) => {
+    row.eachCell((cell) => guideText.push(String(cell.value ?? "")));
   });
-  assert.equal(samplePreview.counts.create, 1);
-  assert.equal(samplePreview.counts.error, 0);
+  const guideJoined = guideText.join(" | ");
+  assert.match(guideJoined, /남성/);
+  assert.match(guideJoined, /여성/);
+  assert.match(guideJoined, /2008-05-12/);
+  assert.match(guideJoined, /-63\.5kg/);
+  assert.match(guideJoined, /\+91kg/);
+  assert.match(guideJoined, /62\.8/);
+  assert.match(guideJoined, /체중기준/);
+  assert.match(guideJoined, /숫자만/);
+  assert.match(guideJoined, /고등부/);
+  assert.doesNotMatch(guideJoined, /eventDivisionId|gymId/);
 
   const one = await previewFromRows([athleteRow({ name: "김하나" })]);
   assert.equal(one.totalRows, 1);
@@ -354,8 +363,20 @@ function verifyScope() {
   );
   assert.match(dialog, /엑셀 일괄 등록/);
   assert.match(dialog, /샘플 엑셀 다운로드/);
+  assert.match(dialog, /FileDropzone/);
   assert.match(dialog, /counts\.error === 0/);
   assert.doesNotMatch(dialog, /window\.alert/);
+  assert.doesNotMatch(
+    dialog,
+    /className="block w-full text-sm"/,
+    "native visible file input must be replaced",
+  );
+
+  const dropzone = read("src/components/shared/FileDropzone.tsx");
+  assert.match(dropzone, /onDrop/);
+  assert.match(dropzone, /dragOver/);
+  assert.match(dropzone, /파일 선택/);
+  assert.match(dropzone, /1개의 Excel 파일만/);
 
   assert.equal(sanitizePlainCell("=CMD()"), "'=CMD()");
   console.log("verify:applicant-excel-scope OK");
