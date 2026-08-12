@@ -1,15 +1,21 @@
 import ExcelJS from "exceljs";
 import {
+  APPLICANT_EXCEL_EXAMPLE_KIND,
+  APPLICANT_EXCEL_EXAMPLE_NUMBER_LABEL,
   APPLICANT_EXCEL_HEADERS,
+  APPLICANT_EXCEL_INTERNAL_KIND_HEADER,
   APPLICANT_EXCEL_MAX_ROWS,
   APPLICANT_EXCEL_REQUIRED_HEADERS,
   APPLICANT_EXCEL_SHEET_DATA,
+  resolveApplicantExcelHeader,
   type ApplicantExcelHeader,
 } from "@/lib/applicant-excel/columns";
+import { foldKey } from "@/lib/applicant-excel/normalize";
 
 export type ParsedApplicantExcelRow = {
   excelRow: number;
   values: Record<ApplicantExcelHeader, string>;
+  isSampleExample: boolean;
 };
 
 export type ParsedApplicantExcelWorkbook = {
@@ -17,9 +23,10 @@ export type ParsedApplicantExcelWorkbook = {
   headerRow: number;
   headers: string[];
   rows: ParsedApplicantExcelRow[];
+  skippedExampleRows: number;
 };
 
-function cellText(v: unknown): string {
+export function cellText(v: unknown): string {
   if (v == null) return "";
   if (v instanceof Date) {
     const y = v.getUTCFullYear();
@@ -58,7 +65,11 @@ function rowCells(row: ExcelJS.Row, colCount: number): string[] {
 }
 
 function scoreHeaderRow(cells: string[]): number {
-  const set = new Set(cells.map((c) => c.trim()).filter(Boolean));
+  const set = new Set(
+    cells
+      .map((c) => resolveApplicantExcelHeader(c))
+      .filter((h): h is ApplicantExcelHeader => Boolean(h)),
+  );
   let hit = 0;
   for (const h of APPLICANT_EXCEL_HEADERS) {
     if (set.has(h)) hit += 1;
@@ -66,15 +77,34 @@ function scoreHeaderRow(cells: string[]): number {
   return hit;
 }
 
-function mapHeaderIndex(cells: string[]): Map<ApplicantExcelHeader, number> {
-  const map = new Map<ApplicantExcelHeader, number>();
+function mapHeaderIndex(cells: string[]): {
+  index: Map<ApplicantExcelHeader, number>;
+  kindIndex: number | null;
+} {
+  const index = new Map<ApplicantExcelHeader, number>();
+  let kindIndex: number | null = null;
   cells.forEach((cell, idx) => {
-    const name = cell.trim() as ApplicantExcelHeader;
-    if ((APPLICANT_EXCEL_HEADERS as readonly string[]).includes(name)) {
-      map.set(name, idx);
+    const trimmed = cell.trim();
+    if (trimmed === APPLICANT_EXCEL_INTERNAL_KIND_HEADER) {
+      kindIndex = idx;
+      return;
+    }
+    const resolved = resolveApplicantExcelHeader(trimmed);
+    if (resolved && !index.has(resolved)) {
+      index.set(resolved, idx);
     }
   });
-  return map;
+  return { index, kindIndex };
+}
+
+function isExampleRow(input: {
+  kindValue: string;
+  numberValue: string;
+}): boolean {
+  if (foldKey(input.kindValue) === foldKey(APPLICANT_EXCEL_EXAMPLE_KIND)) {
+    return true;
+  }
+  return foldKey(input.numberValue) === foldKey(APPLICANT_EXCEL_EXAMPLE_NUMBER_LABEL);
 }
 
 export async function parseApplicantExcelWorkbook(
@@ -109,7 +139,7 @@ export async function parseApplicantExcelWorkbook(
   }
 
   const headerCells = rowCells(sheet.getRow(headerRow), colCount);
-  const index = mapHeaderIndex(headerCells);
+  const { index, kindIndex } = mapHeaderIndex(headerCells);
   for (const required of APPLICANT_EXCEL_REQUIRED_HEADERS) {
     if (!index.has(required)) {
       throw new Error(`필수 컬럼이 없습니다: ${required}`);
@@ -117,6 +147,7 @@ export async function parseApplicantExcelWorkbook(
   }
 
   const rows: ParsedApplicantExcelRow[] = [];
+  let skippedExampleRows = 0;
   for (let r = headerRow + 1; r <= (sheet.rowCount || headerRow); r += 1) {
     const cells = rowCells(sheet.getRow(r), colCount);
     const values = {} as Record<ApplicantExcelHeader, string>;
@@ -128,7 +159,19 @@ export async function parseApplicantExcelWorkbook(
       if (v) empty = false;
     }
     if (empty) continue;
-    rows.push({ excelRow: r, values });
+
+    const kindValue =
+      kindIndex == null ? "" : (cells[kindIndex] ?? "").trim();
+    const sampleExample = isExampleRow({
+      kindValue,
+      numberValue: values.번호 ?? "",
+    });
+    if (sampleExample) {
+      skippedExampleRows += 1;
+      continue;
+    }
+
+    rows.push({ excelRow: r, values, isSampleExample: false });
     if (rows.length > APPLICANT_EXCEL_MAX_ROWS) {
       throw new Error(
         `한 번에 최대 ${APPLICANT_EXCEL_MAX_ROWS}명까지 등록할 수 있습니다.`,
@@ -141,5 +184,6 @@ export async function parseApplicantExcelWorkbook(
     headerRow,
     headers: headerCells,
     rows,
+    skippedExampleRows,
   };
 }

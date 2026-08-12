@@ -10,6 +10,7 @@ import {
   genderLabel,
   parseApplicantBirthDate,
   parseApplicantGender,
+  parseOptionalHeightCm,
   parseOptionalWeightKg,
 } from "@/lib/applicant-excel/normalize";
 import type { ApplicantDivisionCandidate } from "@/lib/applicant-excel/match-division";
@@ -84,6 +85,10 @@ function analyzeOneRow(
   const guardianName = compactText(v.보호자이름);
   const guardianPhone = compactText(v.보호자연락처);
   const memo = compactText(v.메모);
+  const rowNumber = compactText(v.번호);
+  const ageNote = compactText(v.나이);
+  const recordText = compactText(v.전적);
+  const careerText = compactText(v.운동경력);
 
   if (!fighterName) errors.push("선수명이 없습니다.");
   if (!gymName) errors.push("체육관명이 없습니다.");
@@ -96,6 +101,8 @@ function analyzeOneRow(
   if (!birthDate) errors.push("생년월일이 올바르지 않습니다.");
   const weight = parseOptionalWeightKg(v.체중);
   if (!weight.ok) errors.push(weight.error ?? "체중이 올바르지 않습니다.");
+  const height = parseOptionalHeightCm(v.키);
+  if (!height.ok) errors.push(height.error ?? "키가 올바르지 않습니다.");
 
   let divisionId: string | null = null;
   let divisionLabel = "";
@@ -136,13 +143,20 @@ function analyzeOneRow(
     fighterName,
     gymName,
     gender: genderParsed.ok ? genderParsed.gender : null,
-    genderLabel: genderParsed.ok ? genderLabel(genderParsed.gender) : compactText(v.성별),
+    genderLabel: genderParsed.ok
+      ? genderLabel(genderParsed.gender)
+      : compactText(v.성별),
     birthDate: birthDate ?? compactText(v.생년월일),
     ageGroup,
     weightClass,
     weightLimit,
     sport,
     weightKg: weight.kg,
+    heightCm: height.cm,
+    rowNumber,
+    ageNote,
+    recordText,
+    careerText,
     phone,
     guardianName,
     guardianPhone,
@@ -205,7 +219,9 @@ export function analyzeApplicantExcelRows(input: {
 
 export function assertPreviewReadyToCommit(preview: ApplicantExcelPreview): void {
   if (preview.counts.error > 0) {
-    throw new Error("오류 행이 있어 등록할 수 없습니다. Excel을 수정한 뒤 다시 올려 주세요.");
+    throw new Error(
+      "오류 행이 있어 등록할 수 없습니다. Excel을 수정한 뒤 다시 올려 주세요.",
+    );
   }
 }
 

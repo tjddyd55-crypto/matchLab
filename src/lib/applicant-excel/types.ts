@@ -15,6 +15,11 @@ export type ApplicantExcelPreviewRow = {
   weightLimit: string;
   sport: string;
   weightKg: number | null;
+  heightCm: number | null;
+  rowNumber: string;
+  ageNote: string;
+  recordText: string;
+  careerText: string;
   phone: string;
   guardianName: string;
   guardianPhone: string;

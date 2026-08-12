@@ -2228,6 +2228,8 @@ export const applicationService = {
               birthDate,
               gender: row.gender,
               phone,
+              height: row.heightCm,
+              weight: row.weightKg,
               guardianName: row.guardianName || null,
               guardianPhone: row.guardianPhone || null,
               currentGymId: gymBucket.id,
@@ -2283,6 +2285,9 @@ export const applicationService = {
 
           const memoParts = [`[엑셀 일괄 등록] ${row.gymName}`];
           if (row.weightKg != null) memoParts.push(`체중 ${row.weightKg}kg`);
+          if (row.heightCm != null) memoParts.push(`키 ${row.heightCm}cm`);
+          if (row.recordText) memoParts.push(`전적 ${row.recordText}`);
+          if (row.careerText) memoParts.push(`운동경력 ${row.careerText}`);
           if (row.memo) memoParts.push(row.memo);
 
           const { applicationId } = await createGymEventApplication(
@@ -2312,6 +2317,11 @@ export const applicationService = {
                 importChannel: "excel",
                 excelFileName: compactText(input.fileName),
                 excelRow: row.excelRow,
+                importRowNumber: row.rowNumber || undefined,
+                importAgeNote: row.ageNote || undefined,
+                importHeightCm: row.heightCm ?? undefined,
+                importRecordText: row.recordText || undefined,
+                importCareerText: row.careerText || undefined,
               },
               initialApplicationStatus: ApplicationStatus.approved,
               initialPaymentStatus: PaymentStatus.unpaid,

@@ -80,6 +80,21 @@ export function parseOptionalWeightKg(raw: string): {
   return { ok: true, kg: n };
 }
 
+/** 키(cm). `175` / `175cm` 허용. 비우면 null. */
+export function parseOptionalHeightCm(raw: string): {
+  ok: boolean;
+  cm: number | null;
+  error?: string;
+} {
+  const trimmed = compactText(raw);
+  if (!trimmed) return { ok: true, cm: null };
+  const n = Number.parseFloat(trimmed.replace(/cm$/i, "").trim());
+  if (!Number.isFinite(n) || n < 50 || n > 250) {
+    return { ok: false, cm: null, error: "키가 올바른 숫자가 아닙니다." };
+  }
+  return { ok: true, cm: n };
+}
+
 const SIGNED_WEIGHT_LIMIT_RE = /^[+-]\d+(?:\.\d+)?(?:\s*kg)?$/i;
 const UNSIGNED_WEIGHT_RE = /^\d+(?:\.\d+)?(?:\s*kg)?$/i;
 const INSIGNIFICANT_CLASS_NAMES = new Set(["-", "–", "—", "−", "+", "·", "•"]);
