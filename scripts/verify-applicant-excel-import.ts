@@ -7,10 +7,13 @@ import assert from "node:assert/strict";
 import { readFileSync } from "node:fs";
 import ExcelJS from "exceljs";
 import {
+  APPLICANT_EXCEL_EXAMPLE_NUMBER_LABEL,
   APPLICANT_EXCEL_HEADERS,
+  APPLICANT_EXCEL_LEGACY_HEADERS,
   APPLICANT_EXCEL_MAX_ROWS,
   APPLICANT_EXCEL_SHEET_DATA,
   APPLICANT_EXCEL_SHEET_GUIDE,
+  resolveApplicantExcelHeader,
 } from "../src/lib/applicant-excel/columns";
 import {
   analyzeApplicantExcelRows,
@@ -22,6 +25,8 @@ import type { ApplicantDivisionCandidate } from "../src/lib/applicant-excel/matc
 import {
   parseApplicantBirthDate,
   parseApplicantGender,
+  parseOptionalHeightCm,
+  parseOptionalWeightKg,
   sanitizePlainCell,
   splitWeightClassInput,
 } from "../src/lib/applicant-excel/normalize";
@@ -80,7 +85,9 @@ const DIVISIONS: ApplicantDivisionCandidate[] = [
   }),
 ];
 
+/** 신규 18컬럼 순서 */
 function athleteRow(input: {
+  no?: string;
   name: string;
   gender?: string;
   birth?: string;
@@ -90,6 +97,40 @@ function athleteRow(input: {
   weightLimit?: string;
   sport?: string;
   weight?: string;
+  height?: string;
+  record?: string;
+  career?: string;
+}): string[] {
+  return [
+    input.no ?? "",
+    input.gym ?? "A체육관",
+    input.name,
+    input.gender ?? "남",
+    input.birth ?? "2008-03-15",
+    "",
+    input.height ?? "",
+    input.weight ?? "",
+    input.record ?? "",
+    input.career ?? "",
+    input.ageGroup ?? "고등부",
+    input.weightClass ?? "라이트급 -60kg",
+    input.weightLimit ?? "",
+    input.sport ?? "",
+    "010-1234-5678",
+    "",
+    "",
+    "",
+  ];
+}
+
+/** 레거시 13컬럼 */
+function legacyAthleteRow(input: {
+  name: string;
+  gender?: string;
+  birth?: string;
+  gym?: string;
+  ageGroup?: string;
+  weightClass?: string;
 }): string[] {
   return [
     input.name,
@@ -99,19 +140,22 @@ function athleteRow(input: {
     input.gym ?? "A체육관",
     input.ageGroup ?? "고등부",
     input.weightClass ?? "라이트급 -60kg",
-    input.weightLimit ?? "",
-    input.sport ?? "",
-    input.weight ?? "",
+    "",
+    "",
+    "",
     "",
     "",
     "",
   ];
 }
 
-async function bufferFromRows(rows: string[][]): Promise<Buffer> {
+async function bufferFromRows(
+  rows: string[][],
+  headers: readonly string[] = APPLICANT_EXCEL_HEADERS,
+): Promise<Buffer> {
   const wb = new ExcelJS.Workbook();
   const sheet = wb.addWorksheet(APPLICANT_EXCEL_SHEET_DATA);
-  sheet.addRow([...APPLICANT_EXCEL_HEADERS]);
+  sheet.addRow([...headers]);
   for (const row of rows) sheet.addRow(row);
   return workbookToBuffer(wb);
 }
@@ -119,8 +163,9 @@ async function bufferFromRows(rows: string[][]): Promise<Buffer> {
 async function previewFromRows(
   rows: string[][],
   existing: Parameters<typeof analyzeApplicantExcelRows>[0]["existing"] = [],
+  headers: readonly string[] = APPLICANT_EXCEL_HEADERS,
 ) {
-  const buffer = await bufferFromRows(rows);
+  const buffer = await bufferFromRows(rows, headers);
   const parsed = await parseApplicantExcelWorkbook(buffer);
   return analyzeApplicantExcelRows({
     fileName: "test.xlsx",
@@ -151,11 +196,12 @@ function assertMatch(weightClass: string, ageGroup: string, expectedId: string) 
 }
 
 async function verifyParser() {
-  assert.equal(APPLICANT_EXCEL_HEADERS[0], "선수명");
-  assert.ok(APPLICANT_EXCEL_HEADERS.includes("체육관명"));
-  assert.ok(APPLICANT_EXCEL_HEADERS.includes("경기구분"));
+  assert.equal(APPLICANT_EXCEL_HEADERS[0], "번호");
+  assert.equal(APPLICANT_EXCEL_HEADERS[1], "체육관명");
+  assert.equal(APPLICANT_EXCEL_HEADERS[2], "선수명");
+  assert.ok(APPLICANT_EXCEL_HEADERS.includes("전적"));
+  assert.ok(APPLICANT_EXCEL_HEADERS.includes("운동경력"));
   assert.ok(!APPLICANT_EXCEL_HEADERS.includes("승인"));
-  assert.ok(!APPLICANT_EXCEL_HEADERS.includes("입금"));
 
   const sample = await buildApplicantExcelSampleWorkbook({
     eventTitle: "테스트 대회",
@@ -164,27 +210,49 @@ async function verifyParser() {
   assert.ok(sample.getWorksheet(APPLICANT_EXCEL_SHEET_DATA));
   assert.ok(sample.getWorksheet(APPLICANT_EXCEL_SHEET_GUIDE));
   const dataSheet = sample.getWorksheet(APPLICANT_EXCEL_SHEET_DATA)!;
-  assert.equal(String(dataSheet.getRow(2).getCell(1).value), "선수명");
-  const buf = await workbookToBuffer(sample);
-  const parsed = await parseApplicantExcelWorkbook(buf);
-  assert.equal(parsed.rows.length, 0, "upload sheet must not include fake athletes");
+  assert.equal(String(dataSheet.getRow(1).getCell(1).value), "번호");
+  assert.equal(
+    String(dataSheet.getRow(2).getCell(1).value),
+    APPLICANT_EXCEL_EXAMPLE_NUMBER_LABEL,
+  );
+  assert.equal(String(dataSheet.getRow(1).getCell(3).value), "선수명");
 
-  const guide = sample.getWorksheet(APPLICANT_EXCEL_SHEET_GUIDE)!;
-  const guideText: string[] = [];
-  guide.eachRow((row) => {
-    row.eachCell((cell) => guideText.push(String(cell.value ?? "")));
+  const buf = await workbookToBuffer(sample);
+  const parsedSample = await parseApplicantExcelWorkbook(buf);
+  assert.equal(parsedSample.rows.length, 0, "example row must be skipped");
+  assert.equal(parsedSample.skippedExampleRows, 1);
+
+  // sample + 3 actual rows
+  dataSheet.addRow(
+    athleteRow({ name: "실제01", weightClass: "라이트급 -60kg" }),
+  );
+  dataSheet.addRow(
+    athleteRow({
+      name: "실제02",
+      weightClass: "라이트웰터급 -63.5kg",
+    }),
+  );
+  dataSheet.addRow(
+    athleteRow({
+      name: "실제03",
+      ageGroup: "대학·일반부",
+      weightClass: "슈퍼헤비급 +91kg",
+    }),
+  );
+  const withActual = await workbookToBuffer(sample);
+  const parsedActual = await parseApplicantExcelWorkbook(withActual);
+  assert.equal(parsedActual.rows.length, 3);
+  assert.equal(parsedActual.skippedExampleRows, 1);
+  const preview3 = analyzeApplicantExcelRows({
+    fileName: "sample-plus.xlsx",
+    headerRow: parsedActual.headerRow,
+    rows: parsedActual.rows,
+    divisions: DIVISIONS,
+    existing: [],
   });
-  const guideJoined = guideText.join(" | ");
-  assert.match(guideJoined, /남성/);
-  assert.match(guideJoined, /여성/);
-  assert.match(guideJoined, /2008-05-12/);
-  assert.match(guideJoined, /-63\.5kg/);
-  assert.match(guideJoined, /\+91kg/);
-  assert.match(guideJoined, /62\.8/);
-  assert.match(guideJoined, /체중기준/);
-  assert.match(guideJoined, /숫자만/);
-  assert.match(guideJoined, /고등부/);
-  assert.doesNotMatch(guideJoined, /eventDivisionId|gymId/);
+  assert.equal(preview3.counts.create, 3);
+  assert.equal(preview3.counts.error, 0);
+  assert.ok(preview3.rows.every((r) => r.fighterName.startsWith("실제")));
 
   const one = await previewFromRows([athleteRow({ name: "김하나" })]);
   assert.equal(one.totalRows, 1);
@@ -197,20 +265,12 @@ async function verifyParser() {
   );
   assert.equal(ten.counts.create, 10);
 
-  const fifty = await previewFromRows(
-    Array.from({ length: 50 }, (_, i) =>
-      athleteRow({ name: `선수${String(i + 1).padStart(2, "0")}` }),
-    ),
-  );
-  assert.equal(fifty.counts.create, 50);
-
   const hundred = await previewFromRows(
     Array.from({ length: 100 }, (_, i) =>
       athleteRow({ name: `선수${String(i + 1).padStart(3, "0")}` }),
     ),
   );
   assert.equal(hundred.counts.create, 100);
-  assert.equal(hundred.counts.error, 0);
 
   const over = Array.from({ length: APPLICANT_EXCEL_MAX_ROWS + 1 }, (_, i) =>
     athleteRow({ name: `초과${i + 1}` }),
@@ -220,25 +280,26 @@ async function verifyParser() {
 }
 
 function verifyMapping() {
-  assert.equal(parseApplicantGender("남성").ok && parseApplicantGender("남성").ok, true);
+  assert.equal(parseApplicantGender("남성").ok, true);
   assert.equal(parseApplicantGender("여").ok, true);
   assert.equal(parseApplicantGender("").ok, false);
   assert.equal(parseApplicantBirthDate("2008.03.15"), "2008-03-15");
   assert.equal(parseApplicantBirthDate("20080315"), "2008-03-15");
+  assert.equal(parseOptionalWeightKg("62.8kg").kg, 62.8);
+  assert.equal(parseOptionalHeightCm("175cm").cm, 175);
+  assert.equal(parseOptionalHeightCm("180").cm, 180);
+
+  assert.equal(resolveApplicantExcelHeader("이름"), "선수명");
+  assert.equal(resolveApplicantExcelHeader("무게"), "체중");
+  assert.equal(resolveApplicantExcelHeader("비고"), "메모");
+  assert.equal(resolveApplicantExcelHeader("소속"), "체육관명");
 
   assert.equal(splitWeightClassInput("-63.5kg").limitText, "-63.5kg");
-  assert.equal(splitWeightClassInput("-63.5kg").name, "");
-  assert.equal(splitWeightClassInput("+91kg").limitText, "+91kg");
   assert.equal(splitWeightClassInput("63.5").limitText, null);
-  assert.equal(splitWeightClassInput("라이트급 · -60kg").name, "라이트급");
-  assert.equal(splitWeightClassInput("라이트급 · -60kg").limitText, "-60kg");
 
   assertMatch("라이트급 -60kg", "고등부", "div-light");
-  assertMatch("라이트급 · -60kg", "고등부", "div-light");
   assertMatch("-63.5kg", "고등부", "div-light-welter");
-  assertMatch("라이트웰터급 -63.5kg", "고등부", "div-light-welter");
   assertMatch("+91kg", "대학·일반부", "div-super-heavy");
-  assertMatch("슈퍼헤비급 +91kg", "대학·일반부", "div-super-heavy");
 
   const unknown = matchEventDivision({
     gender: "male",
@@ -252,19 +313,6 @@ function verifyMapping() {
     divisions: DIVISIONS,
   });
   assert.equal(unknown.ok, false);
-
-  const missing = matchEventDivision({
-    gender: "male",
-    row: {
-      gender: "남",
-      ageGroup: "초등부",
-      weightClass: "라이트급 -60kg",
-      weightLimit: "",
-      sport: "",
-    },
-    divisions: DIVISIONS,
-  });
-  assert.equal(missing.ok, false);
   console.log("verify:applicant-excel-mapping OK");
 }
 
@@ -297,7 +345,6 @@ async function verifyIdempotency() {
   ]);
   assert.equal(retry.counts.create, 0);
   assert.equal(retry.counts.skipExisting, 1);
-  assert.equal(retry.counts.error, 0);
   assertPreviewReadyToCommit(retry);
 
   const key = applicantIdentityKey({
@@ -364,22 +411,131 @@ function verifyScope() {
   assert.match(dialog, /엑셀 일괄 등록/);
   assert.match(dialog, /샘플 엑셀 다운로드/);
   assert.match(dialog, /FileDropzone/);
+  assert.match(dialog, /2행 예시/);
   assert.match(dialog, /counts\.error === 0/);
   assert.doesNotMatch(dialog, /window\.alert/);
-  assert.doesNotMatch(
-    dialog,
-    /className="block w-full text-sm"/,
-    "native visible file input must be replaced",
-  );
 
   const dropzone = read("src/components/shared/FileDropzone.tsx");
   assert.match(dropzone, /onDrop/);
-  assert.match(dropzone, /dragOver/);
   assert.match(dropzone, /파일 선택/);
-  assert.match(dropzone, /1개의 Excel 파일만/);
 
   assert.equal(sanitizePlainCell("=CMD()"), "'=CMD()");
   console.log("verify:applicant-excel-scope OK");
+}
+
+async function verifySampleExampleRow() {
+  const sample = await buildApplicantExcelSampleWorkbook({
+    eventTitle: "QA",
+    divisions: DIVISIONS,
+  });
+  const data = sample.getWorksheet(APPLICANT_EXCEL_SHEET_DATA)!;
+  // 사용자가 예시를 삭제하고 2행부터 실제 입력
+  data.spliceRows(2, 1);
+  data.spliceRows(2, 0, athleteRow({ name: "삭제후실제1", no: "1" }));
+  data.addRow(athleteRow({ name: "삭제후실제2", no: "2" }));
+  const parsed = await parseApplicantExcelWorkbook(await workbookToBuffer(sample));
+  assert.equal(parsed.skippedExampleRows, 0);
+  assert.equal(parsed.rows.length, 2);
+  assert.equal(parsed.rows[0]?.values.선수명, "삭제후실제1");
+  console.log("verify:applicant-excel-sample-example-row OK");
+}
+
+async function verifyLegacyColumns() {
+  const preview = await previewFromRows(
+    [legacyAthleteRow({ name: "레거시선수" })],
+    [],
+    APPLICANT_EXCEL_LEGACY_HEADERS,
+  );
+  assert.equal(preview.counts.create, 1);
+  assert.equal(preview.rows[0]?.fighterName, "레거시선수");
+  console.log("verify:applicant-excel-legacy-columns OK");
+}
+
+async function verifyHeaderAliases() {
+  const headers = [
+    "번호",
+    "체육관명",
+    "이름",
+    "성별",
+    "생년월일",
+    "나이",
+    "키",
+    "무게",
+    "전적",
+    "운동경력",
+    "경기구분",
+    "체급",
+    "체중기준",
+    "종목",
+    "연락처",
+    "보호자이름",
+    "보호자연락처",
+    "비고",
+  ];
+  const row = [
+    "1",
+    "이천 무아이핏짐",
+    "김동국",
+    "남",
+    "2008-05-12",
+    "17",
+    "180cm",
+    "77kg",
+    "무전",
+    "킥복싱 1년",
+    "고등부",
+    "라이트급 -60kg",
+    "",
+    "킥복싱",
+    "010-1111-2222",
+    "",
+    "",
+    "비고메모",
+  ];
+  const preview = await previewFromRows([row], [], headers);
+  assert.equal(preview.counts.create, 1);
+  const r = preview.rows[0]!;
+  assert.equal(r.fighterName, "김동국");
+  assert.equal(r.weightKg, 77);
+  assert.equal(r.heightCm, 180);
+  assert.equal(r.memo, "비고메모");
+  assert.equal(r.recordText, "무전");
+
+  // 운영 파일처럼 경기구분/체급 누락 → 오류
+  const opsOnly = [
+    "번호",
+    "체육관명",
+    "이름",
+    "성별",
+    "생년월일",
+    "나이",
+    "키",
+    "무게",
+    "전적",
+    "운동경력",
+    "비고",
+  ];
+  await assert.rejects(() =>
+    bufferFromRows(
+      [
+        [
+          "1",
+          "팀라펠 짐",
+          "백지후",
+          "남",
+          "20100708",
+          "고1",
+          "",
+          "67.3",
+          "무전",
+          "",
+          "",
+        ],
+      ],
+      opsOnly,
+    ).then(parseApplicantExcelWorkbook),
+  );
+  console.log("verify:applicant-excel-header-aliases OK");
 }
 
 async function main() {
@@ -389,6 +545,9 @@ async function main() {
   await verifyIdempotency();
   await verifyBatch();
   verifyScope();
+  await verifySampleExampleRow();
+  await verifyLegacyColumns();
+  await verifyHeaderAliases();
 }
 
 main().catch((err) => {

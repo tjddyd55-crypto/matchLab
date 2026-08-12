@@ -150,7 +150,7 @@ export function OrganizerApplicantExcelImportDialog({
         <DialogHeader>
           <DialogTitle>선수 신청 엑셀 일괄 등록</DialogTitle>
           <DialogDescription>
-            샘플 파일을 내려받아 작성한 뒤 업로드하세요. 파일 선택만으로
+            샘플의 2행 예시를 참고해 3행부터 작성하세요. 파일 선택만으로
             저장되지 않습니다.
           </DialogDescription>
         </DialogHeader>
@@ -165,7 +165,8 @@ export function OrganizerApplicantExcelImportDialog({
           <div className="space-y-4">
             <div className="space-y-2 rounded-[10px] border border-[#E2E8F0] bg-[#F8FAFC] px-3 py-3">
               <p className="text-sm text-matchon-text-secondary">
-                샘플 파일을 먼저 내려받아 작성한 뒤 업로드하세요.
+                샘플의 2행 예시를 참고해 3행부터 실제 선수를 입력하세요.
+                예시행은 등록되지 않습니다.
               </p>
               <Button
                 type="button"
