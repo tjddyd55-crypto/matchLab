@@ -2119,7 +2119,14 @@ export const applicationService = {
     if (!event) {
       throw new AppError("NOT_FOUND", "대회를 찾을 수 없습니다.");
     }
-    const parsed = await parseApplicantExcelWorkbook(input.buffer);
+    const parsed = await parseApplicantExcelWorkbook(input.buffer).catch(
+      (e: unknown) => {
+        throw new AppError(
+          "VALIDATION_ERROR",
+          e instanceof Error ? e.message : "Excel을 읽지 못했습니다.",
+        );
+      },
+    );
     const existingRows =
       await applicationRepository.listImportIdentitiesForEvent(input.eventId);
     return analyzeApplicantExcelRows({
