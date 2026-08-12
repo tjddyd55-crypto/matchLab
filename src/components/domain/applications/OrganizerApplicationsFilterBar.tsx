@@ -164,7 +164,7 @@ export function OrganizerApplicationsFilterBar({
           />
         </div>
       </div>
-      <p className="text-matchon-text-secondary mt-2 text-xs md:mt-2.5">
+      <p className="text-matchon-text-secondary mt-1.5 text-[11px] leading-snug md:mt-2">
         체육관 필터 후 「전체 선택」으로 일괄 입금확인(승인)이 가능합니다.
       </p>
     </div>

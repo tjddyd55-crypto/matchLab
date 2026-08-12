@@ -5,7 +5,6 @@ import {
   isPaidForOrganizerDisplay,
   resolveOrganizerApplicationDisplayStatus,
 } from "@/lib/application-display-status";
-import { OrganizerApplicationsEmptyState } from "@/components/domain/applications/OrganizerApplicationsEmptyState";
 import { matchonCompactTableWrapClass } from "@/lib/ui/matchon-shell-ui";
 import { listTableHeaderRowClass } from "@/lib/ui/list-table-styles";
 import { cn } from "@/lib/utils";
@@ -71,66 +70,87 @@ export function OrganizerApplicationsGymSummaryTable({
 }) {
   const summaries = buildGymSummaries(rows);
 
+  // Empty는 신청자 리스트 empty state 한 곳에서만 표시한다.
   if (summaries.length === 0) {
-    return (
-      <OrganizerApplicationsEmptyState message="신청 데이터가 없습니다." />
-    );
+    return null;
   }
 
   return (
-    <div className="overflow-hidden rounded-xl border border-matchon-border bg-white shadow-sm">
-      <div className="border-b border-matchon-border px-4 py-3">
-        <h3 className="text-sm font-bold text-matchon-text-primary">
+    <details className="overflow-hidden rounded-[10px] border border-matchon-border bg-white open:shadow-sm">
+      <summary className="cursor-pointer list-none px-3 py-2.5 text-sm font-semibold text-matchon-text-primary marker:content-none [&::-webkit-details-marker]:hidden">
+        <span className="inline-flex items-center gap-2">
           체육관별 현황
-        </h3>
-        <p className="text-matchon-text-secondary mt-1 text-xs">
+          <span className="text-matchon-text-secondary text-xs font-normal">
+            {summaries.length}곳 · 클릭 시 펼침
+          </span>
+        </span>
+      </summary>
+      <div className="border-t border-matchon-border px-3 pb-2 pt-1">
+        <p className="text-matchon-text-secondary mb-2 text-[11px]">
           체육관을 클릭하면 해당 체육관 선수만 필터됩니다.
         </p>
-      </div>
-      <div className={cn(matchonCompactTableWrapClass, "rounded-none border-0 shadow-none")}>
-      <table className="w-full min-w-[52rem] text-left text-sm">
-        <thead className={listTableHeaderRowClass}>
-          <tr>
-            <th className="px-3 py-2 font-medium">체육관</th>
-            <th className="px-3 py-2 font-medium text-center">참가선수</th>
-            <th className="px-3 py-2 font-medium text-center">입금완료</th>
-            <th className="px-3 py-2 font-medium text-center">미입금</th>
-            <th className="px-3 py-2 font-medium text-center">승인</th>
-            <th className="px-3 py-2 font-medium text-center">미승인</th>
-            <th className="px-3 py-2 font-medium text-center">체육관취소</th>
-            <th className="px-3 py-2 font-medium text-center">주최측취소</th>
-          </tr>
-        </thead>
-        <tbody>
-          {summaries.map((gym) => {
-            const isSelected = selectedGymId === gym.gymId;
-            return (
-              <tr
-                key={gym.gymId}
-                className={cn(
-                  "border-t",
-                  onSelectGym && "cursor-pointer hover:bg-muted/30",
-                  isSelected && "bg-primary/5",
-                )}
-                onClick={() => onSelectGym?.(isSelected ? null : gym.gymId)}
-              >
-                <td className="px-3 py-2.5 font-medium">{gym.gymName}</td>
-                <td className="px-3 py-2.5 text-center tabular-nums">{gym.fighterCount}</td>
-                <td className="px-3 py-2.5 text-center tabular-nums text-emerald-700">
-                  {gym.paidCount}
-                </td>
-                <td className="px-3 py-2.5 text-center tabular-nums">{gym.unpaidCount}</td>
-                <td className="px-3 py-2.5 text-center tabular-nums">{gym.approvedCount}</td>
-                <td className="px-3 py-2.5 text-center tabular-nums">{gym.pendingCount}</td>
-                <td className="px-3 py-2.5 text-center tabular-nums">{gym.gymCancelledCount}</td>
-                <td className="px-3 py-2.5 text-center tabular-nums">{gym.organizerCancelledCount}</td>
+        <div
+          className={cn(
+            matchonCompactTableWrapClass,
+            "rounded-none border-0 shadow-none",
+          )}
+        >
+          <table className="w-full min-w-[52rem] text-left text-sm">
+            <thead className={listTableHeaderRowClass}>
+              <tr>
+                <th className="px-3 py-2 font-medium">체육관</th>
+                <th className="px-3 py-2 text-center font-medium">참가선수</th>
+                <th className="px-3 py-2 text-center font-medium">입금완료</th>
+                <th className="px-3 py-2 text-center font-medium">미입금</th>
+                <th className="px-3 py-2 text-center font-medium">승인</th>
+                <th className="px-3 py-2 text-center font-medium">미승인</th>
+                <th className="px-3 py-2 text-center font-medium">체육관취소</th>
+                <th className="px-3 py-2 text-center font-medium">주최측취소</th>
               </tr>
-            );
-          })}
-        </tbody>
-      </table>
+            </thead>
+            <tbody>
+              {summaries.map((gym) => {
+                const isSelected = selectedGymId === gym.gymId;
+                return (
+                  <tr
+                    key={gym.gymId}
+                    className={cn(
+                      "border-t",
+                      onSelectGym && "cursor-pointer hover:bg-muted/30",
+                      isSelected && "bg-primary/5",
+                    )}
+                    onClick={() => onSelectGym?.(isSelected ? null : gym.gymId)}
+                  >
+                    <td className="px-3 py-2 font-medium">{gym.gymName}</td>
+                    <td className="px-3 py-2 text-center tabular-nums">
+                      {gym.fighterCount}
+                    </td>
+                    <td className="px-3 py-2 text-center tabular-nums text-emerald-700">
+                      {gym.paidCount}
+                    </td>
+                    <td className="px-3 py-2 text-center tabular-nums">
+                      {gym.unpaidCount}
+                    </td>
+                    <td className="px-3 py-2 text-center tabular-nums">
+                      {gym.approvedCount}
+                    </td>
+                    <td className="px-3 py-2 text-center tabular-nums">
+                      {gym.pendingCount}
+                    </td>
+                    <td className="px-3 py-2 text-center tabular-nums">
+                      {gym.gymCancelledCount}
+                    </td>
+                    <td className="px-3 py-2 text-center tabular-nums">
+                      {gym.organizerCancelledCount}
+                    </td>
+                  </tr>
+                );
+              })}
+            </tbody>
+          </table>
+        </div>
       </div>
-    </div>
+    </details>
   );
 }
 
