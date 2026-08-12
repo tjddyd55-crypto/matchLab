@@ -97,7 +97,7 @@ export function OrganizerApplicationsSummaryCards({
   ).length;
 
   return (
-    <section className="grid grid-cols-2 gap-2 sm:grid-cols-4 xl:grid-cols-8">
+    <section className="grid grid-cols-2 gap-2 sm:grid-cols-4 lg:grid-cols-8">
       <CompactKpiButton
         label="전체 신청"
         value={fighterCount}
