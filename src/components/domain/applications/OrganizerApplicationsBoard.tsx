@@ -26,6 +26,10 @@ import {
   OrganizerManualApplicationTrigger,
 } from "@/components/domain/applications/OrganizerManualApplicationPanel";
 import {
+  OrganizerApplicantExcelImportDialog,
+  OrganizerApplicantExcelTrigger,
+} from "@/components/domain/applications/OrganizerApplicantExcelImportDialog";
+import {
   ExternalRegistrationLinkPanel,
   ExternalRegistrationLinkTrigger,
 } from "@/components/domain/applications/ExternalRegistrationLinkPanel";
@@ -66,6 +70,7 @@ export function OrganizerApplicationsBoard({
   const [groupByGym, setGroupByGym] = useState(false);
   const [manualOpen, setManualOpen] = useState(false);
   const [linkOpen, setLinkOpen] = useState(false);
+  const [excelOpen, setExcelOpen] = useState(false);
   const [externalLink, setExternalLink] = useState(externalRegistrationLink);
 
   const summaryFilter = useMemo(() => inferSummaryFilter(filters), [filters]);
@@ -260,7 +265,17 @@ export function OrganizerApplicationsBoard({
             open={manualOpen}
             onOpenChange={(next) => {
               setManualOpen(next);
-              if (next) setLinkOpen(false);
+              if (next) {
+                setLinkOpen(false);
+                setExcelOpen(false);
+              }
+            }}
+          />
+          <OrganizerApplicantExcelTrigger
+            onOpen={() => {
+              setExcelOpen(true);
+              setManualOpen(false);
+              setLinkOpen(false);
             }}
           />
           <ExternalRegistrationLinkTrigger
@@ -269,7 +284,10 @@ export function OrganizerApplicationsBoard({
             open={linkOpen}
             onOpenChange={(next) => {
               setLinkOpen(next);
-              if (next) setManualOpen(false);
+              if (next) {
+                setManualOpen(false);
+                setExcelOpen(false);
+              }
             }}
             onLinkChange={setExternalLink}
           />
@@ -290,6 +308,11 @@ export function OrganizerApplicationsBoard({
         options={manualRegistrationOptions}
         open={manualOpen}
         onOpenChange={setManualOpen}
+      />
+      <OrganizerApplicantExcelImportDialog
+        eventId={eventId}
+        open={excelOpen}
+        onOpenChange={setExcelOpen}
       />
       <ExternalRegistrationLinkPanel
         eventId={eventId}

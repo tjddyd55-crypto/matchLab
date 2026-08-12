@@ -32,6 +32,26 @@ import { notificationService } from "@/lib/services/notification.service";
 import { creditService } from "@/lib/services/credit.service";
 import { fighterService } from "@/lib/services/fighter.service";
 import {
+  analyzeApplicantExcelRows,
+  assertPreviewReadyToCommit,
+  birthDateToUtc,
+  identityFromExistingApplication,
+} from "@/lib/applicant-excel/analyze";
+import {
+  APPLICANT_EXCEL_MAX_BYTES,
+} from "@/lib/applicant-excel/columns";
+import { parseApplicantExcelWorkbook } from "@/lib/applicant-excel/parse";
+import {
+  buildApplicantExcelSampleWorkbook,
+  workbookToBuffer,
+} from "@/lib/applicant-excel/sample";
+import type {
+  ApplicantExcelCommitResult,
+  ApplicantExcelPreview,
+} from "@/lib/applicant-excel/types";
+import { compactText } from "@/lib/applicant-excel/normalize";
+import { normalizeGymFighterPhone } from "@/lib/gym-fighter-management";
+import {
   buildCustomFormSnapshot,
   parseManualFieldsConfig,
   readCustomFormFromAgreementSnapshot,
@@ -59,7 +79,6 @@ import {
   maskPhoneLast4,
 } from "@/lib/applications/manual-application-create-log";
 import { toUtcDateOnly } from "@/lib/date-only";
-import { normalizeGymFighterPhone } from "@/lib/gym-fighter-management";
 import { publicAgeGroupFromBirthDate } from "@/lib/public-fighter/age-group";
 import type { ApplyToEventInput } from "@/lib/validators/application.validator";
 import type { BulkApplyToEventInput } from "@/lib/validators/bulk-application.validator";
@@ -2062,5 +2081,267 @@ export const applicationService = {
     }
 
     return result;
+  },
+
+  async buildOrganizerApplicantExcelSample(
+    actor: ActorContext,
+    eventId: string,
+  ): Promise<{ filename: string; base64: string }> {
+    requireRole(actor, ["organizer", "admin"]);
+    await requireOrganizerForEvent(actor, eventId);
+    const event =
+      await eventRepository.findEventWithDivisionsForApplication(eventId);
+    if (!event) {
+      throw new AppError("NOT_FOUND", "대회를 찾을 수 없습니다.");
+    }
+    const wb = await buildApplicantExcelSampleWorkbook({
+      eventTitle: event.title,
+      divisions: event.divisions.map((d) => ({ ...d, id: d.id })),
+    });
+    const buffer = await workbookToBuffer(wb);
+    return {
+      filename: "MATCHON_선수신청_업로드_샘플.xlsx",
+      base64: buffer.toString("base64"),
+    };
+  },
+
+  async analyzeOrganizerApplicantExcel(
+    actor: ActorContext,
+    input: { eventId: string; fileName: string; buffer: Buffer },
+  ): Promise<ApplicantExcelPreview> {
+    requireRole(actor, ["organizer", "admin"]);
+    await requireOrganizerForEvent(actor, input.eventId);
+    if (input.buffer.byteLength > APPLICANT_EXCEL_MAX_BYTES) {
+      throw new AppError("VALIDATION_ERROR", "파일이 너무 큽니다. 2MB 이하로 올려 주세요.");
+    }
+    const event =
+      await eventRepository.findEventWithDivisionsForApplication(input.eventId);
+    if (!event) {
+      throw new AppError("NOT_FOUND", "대회를 찾을 수 없습니다.");
+    }
+    const parsed = await parseApplicantExcelWorkbook(input.buffer);
+    const existingRows =
+      await applicationRepository.listImportIdentitiesForEvent(input.eventId);
+    return analyzeApplicantExcelRows({
+      fileName: input.fileName,
+      headerRow: parsed.headerRow,
+      rows: parsed.rows,
+      divisions: event.divisions,
+      existing: existingRows.map(identityFromExistingApplication),
+    });
+  },
+
+  async commitOrganizerApplicantExcel(
+    actor: ActorContext,
+    input: { eventId: string; fileName: string; buffer: Buffer },
+  ): Promise<ApplicantExcelCommitResult> {
+    requireRole(actor, ["organizer", "admin"]);
+    await requireOrganizerForEvent(actor, input.eventId);
+    const preview = await applicationService.analyzeOrganizerApplicantExcel(
+      actor,
+      input,
+    );
+    try {
+      assertPreviewReadyToCommit(preview);
+    } catch (e) {
+      throw new AppError(
+        "VALIDATION_ERROR",
+        e instanceof Error ? e.message : "오류 행이 있어 등록할 수 없습니다.",
+      );
+    }
+
+    const createRows = preview.rows.filter((r) => r.decision === "create");
+    if (createRows.length === 0) {
+      return {
+        created: 0,
+        skipped: preview.counts.skipExisting,
+        failed: 0,
+        applicationIds: [],
+      };
+    }
+
+    const event =
+      await eventRepository.findEventWithDivisionsForApplication(input.eventId);
+    if (!event) {
+      throw new AppError("NOT_FOUND", "대회를 찾을 수 없습니다.");
+    }
+
+    const paymentSetting = await eventRepository.findEventPaymentSettingFull(
+      input.eventId,
+    );
+    const feeAmount = paymentSetting?.feeAmount ?? 0;
+    const appliedAt = new Date();
+    const streamingAgreementRequired =
+      event.liveStreamingEnabled || event.streamingConsentRequired;
+    const manualConfig = parseManualFieldsConfig(
+      event.applicationFormTemplate?.manualFieldsJson,
+    );
+    const applicationFormMode = resolveApplicationFormMode(
+      event.applicationFormTemplate
+        ? {
+            templateId: event.applicationFormTemplateId,
+            fieldsJson: event.applicationFormTemplate.fieldsJson,
+            manualFieldsJson: event.applicationFormTemplate.manualFieldsJson,
+          }
+        : null,
+    );
+    const divisionById = new Map(event.divisions.map((d) => [d.id, d]));
+
+    const result = await prisma.$transaction(
+      async (tx) => {
+        const gymBucket =
+          await gymRepository.ensureOrganizerExternalRegistrationGym(
+            {
+              organizerId: event.organizerId,
+              organizerName: event.organizer.name,
+            },
+            tx,
+          );
+        const createdIds: string[] = [];
+
+        for (const row of createRows) {
+          if (!row.divisionId || !row.gender) {
+            throw new AppError("VALIDATION_ERROR", `${row.excelRow}행 데이터가 올바르지 않습니다.`);
+          }
+          const division = divisionById.get(row.divisionId);
+          if (!division) {
+            throw new AppError(
+              "VALIDATION_ERROR",
+              `${row.excelRow}행: 유효하지 않은 체급입니다.`,
+            );
+          }
+
+          const phone = normalizeGymFighterPhone(row.phone) || "-";
+          const birthDate = birthDateToUtc(row.birthDate);
+          const fighterCode = await fighterService.generateFighterCode(tx);
+          const createdFighter =
+            await fighterRepository.createFighterWithGymHistory(tx, {
+              fighterCode,
+              name: row.fighterName,
+              birthDate,
+              gender: row.gender,
+              phone,
+              guardianName: row.guardianName || null,
+              guardianPhone: row.guardianPhone || null,
+              currentGymId: gymBucket.id,
+            });
+          const fighter = buildFighterForManualApplication({
+            id: createdFighter.id,
+            fighterCode: createdFighter.fighterCode,
+            name: row.fighterName,
+          });
+
+          await assertNoDuplicateManualApplication({
+            eventId: input.eventId,
+            divisionId: row.divisionId,
+            fighterIds: [fighter.id],
+            tx,
+          });
+
+          let customFormSnapshot: CustomFormSnapshot | null = null;
+          if (
+            applicationFormMode === "custom" &&
+            manualConfig.fields.length > 0 &&
+            event.applicationFormTemplate
+          ) {
+            const answers = buildOrganizerManualCustomFormAnswers(
+              manualConfig.fields,
+              "엑셀 일괄 등록",
+            );
+            customFormSnapshot = buildCustomFormSnapshot(
+              manualConfig.fields,
+              answers,
+              {
+                eventTitle: event.title,
+                gymName: row.gymName,
+                divisionLabel: formatDivisionSearchLabel(division),
+                division,
+                fighter: {
+                  name: fighter.name,
+                  gender: row.gender,
+                  birthDate,
+                  weightKg: row.weightKg,
+                  primarySport: null,
+                  guardianName: row.guardianName || null,
+                  guardianPhone: row.guardianPhone || null,
+                },
+              },
+              {
+                templateId: event.applicationFormTemplate.id,
+                templateTitle: event.applicationFormTemplate.title,
+                capturedAt: appliedAt.toISOString(),
+              },
+            );
+          }
+
+          const memoParts = [`[엑셀 일괄 등록] ${row.gymName}`];
+          if (row.weightKg != null) memoParts.push(`체중 ${row.weightKg}kg`);
+          if (row.memo) memoParts.push(row.memo);
+
+          const { applicationId } = await createGymEventApplication(
+            {
+              eventId: input.eventId,
+              divisionId: row.divisionId,
+              gymId: gymBucket.id,
+              gymDisplayName: row.gymName,
+              fighter,
+              agreements: {
+                rulesAgreed: true,
+                privacyAgreed: true,
+                resultDisclosureAgreed: true,
+                photoVideoAgreed: true,
+                streamingAgreed: streamingAgreementRequired ? true : undefined,
+              },
+              streamingAgreementRequired,
+              appliedByUserId: actor.userId,
+              appliedAt,
+              feeAmount,
+              memo: memoParts.join("\n"),
+              customFormSnapshot,
+              organizerManualEntry: {
+                manualCreatedByUserId: actor.userId,
+              },
+              applicationEntryExtras: {
+                importChannel: "excel",
+                excelFileName: compactText(input.fileName),
+                excelRow: row.excelRow,
+              },
+              initialApplicationStatus: ApplicationStatus.approved,
+              initialPaymentStatus: PaymentStatus.unpaid,
+            },
+            tx,
+          );
+
+          await creditService.debitParticipantFee(
+            {
+              organizerId: event.organizerId,
+              eventId: input.eventId,
+              eventApplicationId: applicationId,
+              actor,
+            },
+            tx,
+          );
+          createdIds.push(applicationId);
+        }
+
+        return createdIds;
+      },
+      { maxWait: 15_000, timeout: 120_000 },
+    );
+
+    safeNotify(`application-excel-batch:${input.eventId}:${result[0] ?? "none"}`, () =>
+      notificationService.notifyApplicationSubmitted({
+        eventId: input.eventId,
+        eventTitle: event.title,
+        count: result.length,
+      }),
+    );
+
+    return {
+      created: result.length,
+      skipped: preview.counts.skipExisting,
+      failed: 0,
+      applicationIds: result,
+    };
   },
 };

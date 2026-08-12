@@ -60,6 +60,13 @@ const trigger = read(
 assert.ok(trigger.includes('variant="outline"'));
 assert.ok(!trigger.includes('variant={open ? "outline" : "default"}'));
 
+const boardExcel = read(
+  "src/components/domain/applications/OrganizerApplicationsBoard.tsx",
+);
+assert.ok(boardExcel.includes("OrganizerApplicantExcelTrigger"));
+assert.ok(boardExcel.includes("OrganizerManualApplicationTrigger"));
+assert.ok(boardExcel.includes("ExternalRegistrationLinkTrigger"));
+
 const table = read(
   "src/components/domain/applications/OrganizerApplicationsTable.tsx",
 );
