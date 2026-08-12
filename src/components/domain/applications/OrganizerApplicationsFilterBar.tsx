@@ -3,7 +3,6 @@
 import type { OrganizerApplicationDisplayStatus } from "@/lib/application-display-status";
 import {
   CompactFilterResetButton,
-  compactApplicantFilterBarClass,
   compactApplicantFilterRowClass,
   compactApplicantSearchClass,
   compactApplicantSelectWidths,
@@ -55,23 +54,24 @@ export function OrganizerApplicationsFilterBar({
   }
 
   return (
-    <div className={compactApplicantFilterBarClass}>
+    <div className="rounded-[10px] border border-[#E2E8F0] bg-matchon-surface/70 p-2.5 md:p-3">
       <div className={compactApplicantFilterRowClass}>
         <input
           id="f-fighter"
           type="search"
           placeholder="선수명·체육관·경기구분·체급 검색"
           aria-label="선수 검색"
-          className={cn(ORGANIZER_FIELD_INPUT_CLASS, compactApplicantSearchClass)}
+          className={cn(ORGANIZER_FIELD_INPUT_CLASS, compactApplicantSearchClass, "h-9")}
           value={filters.fighterName}
           onChange={(e) => patch("fighterName", e.target.value)}
         />
-        <div className="grid grid-cols-2 gap-2.5 md:contents">
+        <div className="grid grid-cols-2 gap-2 md:contents">
           <select
             id="f-gym"
             className={cn(
               ORGANIZER_FIELD_SELECT_CLASS,
               compactApplicantSelectWidths.gym,
+              "h-9",
             )}
             value={filters.gymId}
             onChange={(e) => patch("gymId", e.target.value)}
@@ -89,6 +89,7 @@ export function OrganizerApplicationsFilterBar({
             className={cn(
               ORGANIZER_FIELD_SELECT_CLASS,
               compactApplicantSelectWidths.division,
+              "h-9",
             )}
             value={filters.divisionId}
             onChange={(e) => patch("divisionId", e.target.value)}
@@ -106,6 +107,7 @@ export function OrganizerApplicationsFilterBar({
             className={cn(
               ORGANIZER_FIELD_SELECT_CLASS,
               compactApplicantSelectWidths.status,
+              "h-9",
             )}
             value={filters.displayStatus}
             onChange={(e) =>
@@ -127,6 +129,7 @@ export function OrganizerApplicationsFilterBar({
             className={cn(
               ORGANIZER_FIELD_SELECT_CLASS,
               compactApplicantSelectWidths.payment,
+              "h-9",
             )}
             value={filters.paymentDisplay}
             onChange={(e) =>
@@ -146,6 +149,7 @@ export function OrganizerApplicationsFilterBar({
             className={cn(
               ORGANIZER_FIELD_SELECT_CLASS,
               compactApplicantSelectWidths.consent,
+              "h-9",
             )}
             value={filters.consent}
             onChange={(e) => patch("consent", e.target.value)}
@@ -160,11 +164,11 @@ export function OrganizerApplicationsFilterBar({
           </select>
           <CompactFilterResetButton
             onClick={reset}
-            className="col-span-2 w-full md:col-span-1 md:w-auto"
+            className="col-span-2 h-9 w-full md:col-span-1 md:w-auto"
           />
         </div>
       </div>
-      <p className="text-matchon-text-secondary mt-1.5 text-[11px] leading-snug md:mt-2">
+      <p className="text-matchon-text-secondary mt-1.5 text-[11px] leading-snug">
         체육관 필터 후 「전체 선택」으로 일괄 입금확인(승인)이 가능합니다.
       </p>
     </div>

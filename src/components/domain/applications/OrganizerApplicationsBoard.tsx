@@ -296,22 +296,16 @@ export function OrganizerApplicationsBoard({
         onFilterChange={handleSummaryFilterChange}
       />
 
-      <OrganizerApplicationsGymSummaryTable
-        rows={rows}
-        selectedGymId={filters.gymId === "all" ? null : filters.gymId}
-        onSelectGym={(gymId) =>
-          setFilters((prev) => ({ ...prev, gymId: gymId ?? "all" }))
-        }
-      />
-
-      <div className="flex min-w-0 flex-col gap-2">
-        <OrganizerApplicationsFilterBar
-          filters={filters}
-          onChange={setFilters}
-          divisionOptions={divisionOptions}
-          gymOptions={gymOptions}
-        />
-        <div className="flex flex-wrap items-center gap-2">
+      <div className="flex min-w-0 flex-col gap-2 md:flex-row md:items-start md:gap-3">
+        <div className="min-w-0 flex-1">
+          <OrganizerApplicationsFilterBar
+            filters={filters}
+            onChange={setFilters}
+            divisionOptions={divisionOptions}
+            gymOptions={gymOptions}
+          />
+        </div>
+        <div className="flex shrink-0 flex-wrap items-center gap-2 md:pt-1">
           <Button
             type="button"
             size="sm"
@@ -395,6 +389,14 @@ export function OrganizerApplicationsBoard({
             : renderApplicationViews(filtered, 0)
           : null}
       </div>
+
+      <OrganizerApplicationsGymSummaryTable
+        rows={rows}
+        selectedGymId={filters.gymId === "all" ? null : filters.gymId}
+        onSelectGym={(gymId) =>
+          setFilters((prev) => ({ ...prev, gymId: gymId ?? "all" }))
+        }
+      />
     </div>
   );
 }
