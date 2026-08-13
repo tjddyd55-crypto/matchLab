@@ -146,7 +146,21 @@ function verifyMembershipEndDate() {
     GymMembershipDurationType.months,
     1,
   );
-  assert.equal(monthEnd!.toISOString().slice(0, 10), "2026-03-02");
+  assert.equal(monthEnd!.toISOString().slice(0, 10), "2026-02-27");
+
+  const jan30 = calculateMembershipEndDate(
+    new Date(Date.UTC(2026, 0, 30)),
+    GymMembershipDurationType.months,
+    1,
+  );
+  assert.equal(jan30!.toISOString().slice(0, 10), "2026-02-27");
+
+  const leapStart = calculateMembershipEndDate(
+    new Date(Date.UTC(2024, 0, 31)),
+    GymMembershipDurationType.months,
+    1,
+  );
+  assert.equal(leapStart!.toISOString().slice(0, 10), "2024-02-28");
 
   const leap = calculateMembershipEndDate(
     new Date(Date.UTC(2024, 1, 29)),
@@ -154,6 +168,13 @@ function verifyMembershipEndDate() {
     1,
   );
   assert.equal(leap!.toISOString().slice(0, 10), "2024-03-28");
+
+  const mar31 = calculateMembershipEndDate(
+    new Date(Date.UTC(2026, 2, 31)),
+    GymMembershipDurationType.months,
+    1,
+  );
+  assert.equal(mar31!.toISOString().slice(0, 10), "2026-04-29");
 
   const days = addMembershipDuration(
     new Date(Date.UTC(2026, 5, 1)),
