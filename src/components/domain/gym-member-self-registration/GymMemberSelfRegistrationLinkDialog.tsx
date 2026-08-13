@@ -69,13 +69,13 @@ export function GymMemberSelfRegistrationLinkButton() {
     window.setTimeout(() => setCopied(false), 1500);
   }
 
-  function regenerate() {
+  async function regenerate() {
+    const ok = await confirm({
+      title: "링크를 재발급하면 기존 QR/링크는 사용할 수 없습니다. 계속할까요?",
+      variant: "danger",
+    });
+    if (!ok) return;
     startTransition(async () => {
-      const ok = await confirm({
-        title: "링크를 재발급하면 기존 QR/링크는 사용할 수 없습니다. 계속할까요?",
-        variant: "danger",
-      });
-      if (!ok) return;
       const result = await regenerateSelfRegistrationLinkAction();
       if (!result.ok) {
         setError(result.error.message);
@@ -88,13 +88,13 @@ export function GymMemberSelfRegistrationLinkButton() {
     });
   }
 
-  function revoke() {
+  async function revoke() {
+    const ok = await confirm({
+      title: "셀프등록 링크를 사용 중지할까요?",
+      variant: "danger",
+    });
+    if (!ok) return;
     startTransition(async () => {
-      const ok = await confirm({
-        title: "셀프등록 링크를 사용 중지할까요?",
-        variant: "danger",
-      });
-      if (!ok) return;
       const result = await revokeSelfRegistrationLinkAction();
       if (!result.ok) {
         setError(result.error.message);
