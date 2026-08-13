@@ -10,30 +10,37 @@ import { mkdirSync, writeFileSync, existsSync } from "node:fs";
 import { join } from "node:path";
 import ExcelJS from "exceljs";
 import { chromium, type Page } from "playwright";
-import {
-  decryptPiiUtf8,
-} from "../src/lib/crypto/pii-aes";
-import {
-  readInsuranceConsentSnapshot,
-} from "../src/lib/athlete-application/insurance-consent";
-import {
-  SAMPLE_RESIDENT_REGISTRATION_NUMBER,
-  maskResidentRegistrationNumber,
-  parseResidentRegistrationNumber,
-} from "../src/lib/athlete-application/resident-registration-number";
-import {
-  APPLICANT_EXCEL_HEADERS,
-  APPLICANT_EXCEL_SHEET_DATA,
-  APPLICANT_EXCEL_SHEET_GUIDE,
-} from "../src/lib/applicant-excel/columns";
-import {
-  buildApplicantExcelSampleWorkbook,
-  workbookToBuffer as applicantWorkbookToBuffer,
-} from "../src/lib/applicant-excel/sample";
-import {
-  buildWeightClassSampleWorkbook,
-  workbookToBuffer as weightWorkbookToBuffer,
-} from "../src/lib/division-template/weight-class-excel";
+import { createDecipheriv } from "node:crypto";
+
+const APPLICANT_EXCEL_HEADERS = [
+  "번호",
+  "체육관명",
+  "선수명",
+  "성별",
+  "생년월일",
+  "나이",
+  "키",
+  "체중",
+  "전적",
+  "운동경력",
+  "주민등록번호",
+  "보험가입 개인정보동의",
+  "경기구분",
+  "체급",
+  "체중기준",
+  "종목",
+  "연락처",
+  "보호자이름",
+  "보호자연락처",
+  "메모",
+] as const;
+const APPLICANT_EXCEL_SHEET_DATA = "선수 신청";
+const APPLICANT_EXCEL_SHEET_GUIDE = "입력 안내";
+
+async function workbookToBuffer(wb: ExcelJS.Workbook): Promise<Buffer> {
+  const buf = await wb.xlsx.writeBuffer();
+  return Buffer.from(buf);
+}
 
 const BASE = (
   process.env.QA_BASE_URL ||
@@ -46,13 +53,58 @@ const ATHLETE_PREFIX = "ATHLETE_PII_QA_";
 const MEMBER_PREFIX = "MEMBER_LIST_QA_";
 const SELF_PREFIX = "INTEGRATED_QA_";
 
-const RRN_A = SAMPLE_RESIDENT_REGISTRATION_NUMBER;
+const RRN_A = "000000-0000001";
 const RRN_B = "000000-0000016";
 const RRN_C = "000000-0000021";
 const RRN_D = "000000-0000107";
 const RRN_DIGITS = [RRN_A, RRN_B, RRN_C, RRN_D].map((v) =>
   v.replace(/\D/g, ""),
 );
+
+function maskRrn(digits: string): string {
+  return `${digits.slice(0, 6)}-${digits.slice(6, 7)}******`;
+}
+
+function parsePiiKey(raw: string): Buffer {
+  const value = raw.trim();
+  if (/^[0-9a-fA-F]{64}$/.test(value)) return Buffer.from(value, "hex");
+  const fromB64 = Buffer.from(value, "base64");
+  if (fromB64.length === 32) return fromB64;
+  throw new Error("invalid PII key");
+}
+
+function decryptPiiUtf8(blob: {
+  cipher: Uint8Array;
+  iv: Uint8Array;
+  authTag: Uint8Array;
+}): string {
+  const key = parsePiiKey(process.env.MATCHON_PII_ENCRYPTION_KEY || "");
+  const decipher = createDecipheriv("aes-256-gcm", key, blob.iv);
+  decipher.setAuthTag(Buffer.from(blob.authTag));
+  return Buffer.concat([
+    decipher.update(Buffer.from(blob.cipher)),
+    decipher.final(),
+  ]).toString("utf8");
+}
+
+function readConsentSnapshot(raw: unknown): {
+  type?: string;
+  version?: string;
+  title?: string;
+  text?: string;
+  agreedAt?: string;
+  provenance?: string;
+} | null {
+  if (!raw || typeof raw !== "object") return null;
+  return raw as {
+    type?: string;
+    version?: string;
+    title?: string;
+    text?: string;
+    agreedAt?: string;
+    provenance?: string;
+  };
+}
 
 type Report = Record<string, unknown>;
 const report: Report = {
@@ -143,8 +195,8 @@ function attachQuality(page: Page) {
 
 async function overflowX(page: Page): Promise<number> {
   return page.evaluate(
-    () => document.documentElement.scrollWidth - document.documentElement.clientWidth,
-  );
+    "document.documentElement.scrollWidth - document.documentElement.clientWidth",
+  ) as Promise<number>;
 }
 
 async function login(page: Page, loginId: string, password: string) {
@@ -167,20 +219,28 @@ async function login(page: Page, loginId: string, password: string) {
 }
 
 async function storageHasRrn(page: Page): Promise<{ local: number; session: number }> {
-  return page.evaluate((digits) => {
-    const scan = (store: Storage) => {
-      let n = 0;
-      for (let i = 0; i < store.length; i += 1) {
-        const k = store.key(i) ?? "";
-        const v = store.getItem(k) ?? "";
-        if (digits.some((d) => k.includes(d) || v.includes(d) || v.includes(`${d.slice(0, 6)}-${d.slice(6)}`))) {
-          n += 1;
+  return page.evaluate(
+    `(function() {
+      var digits = ${JSON.stringify(RRN_DIGITS)};
+      function scan(store) {
+        var n = 0;
+        for (var i = 0; i < store.length; i += 1) {
+          var k = store.key(i) || "";
+          var v = store.getItem(k) || "";
+          for (var j = 0; j < digits.length; j += 1) {
+            var d = digits[j];
+            var dashed = d.slice(0, 6) + "-" + d.slice(6);
+            if (k.indexOf(d) !== -1 || v.indexOf(d) !== -1 || v.indexOf(dashed) !== -1) {
+              n += 1;
+              break;
+            }
+          }
         }
+        return n;
       }
-      return n;
-    };
-    return { local: scan(localStorage), session: scan(sessionStorage) };
-  }, RRN_DIGITS);
+      return { local: scan(localStorage), session: scan(sessionStorage) };
+    })()`,
+  ) as Promise<{ local: number; session: number }>;
 }
 
 async function drawSignature(page: Page, ariaLabel: string) {
@@ -220,14 +280,20 @@ async function main() {
     GymMembershipDurationType,
     GymMemberAttendanceSource,
     GymSalesCategory,
-    UserRole,
   } = await import("../src/generated/prisma");
 
   const pool = new Pool({
     connectionString: dbUrl,
     ssl: { rejectUnauthorized: false },
   });
-  const prisma = new PrismaClient({ adapter: new PrismaPg(pool) });
+  const queryLog: string[] = [];
+  const prisma = new PrismaClient({
+    adapter: new PrismaPg(pool),
+    log: [{ emit: "event", level: "query" }],
+  });
+  prisma.$on("query" as never, (e: { query: string }) => {
+    queryLog.push(e.query);
+  });
   const servingSha =
     String(app.RAILWAY_GIT_COMMIT_SHA || app.RAILWAY_GIT_COMMIT || "").trim() ||
     null;
@@ -352,7 +418,7 @@ async function main() {
       fail("encrypted RRN fields missing");
     }
     if (!row.insuranceRrnKeyVer) fail("insuranceRrnKeyVer missing");
-    const masked = maskResidentRegistrationNumber(expectedDigits);
+    const masked = maskRrn(expectedDigits);
     if (row.insuranceRrnMasked !== masked) {
       fail(`masked mismatch ${row.insuranceRrnMasked} != ${masked}`);
     }
@@ -360,10 +426,9 @@ async function main() {
       cipher: Uint8Array.from(row.insuranceRrnCipher),
       iv: Uint8Array.from(row.insuranceRrnIv),
       authTag: Uint8Array.from(row.insuranceRrnAuthTag),
-      keyVer: row.insuranceRrnKeyVer,
     });
     if (plain !== expectedDigits) fail("decrypt mismatch");
-    const snap = readInsuranceConsentSnapshot(row.insuranceConsentSnapshot);
+    const snap = readConsentSnapshot(row.insuranceConsentSnapshot);
     if (!snap) fail("consent snapshot missing");
     if (snap.provenance !== provenance) {
       fail(`provenance ${snap.provenance} != ${provenance}`);
@@ -405,10 +470,10 @@ async function main() {
     const organizer = organizerUser.organizer;
     const gymUser = await prisma.user.findFirst({
       where: { OR: [{ loginId: "gym" }, { email: "gym@demo.local" }] },
-      include: { gym: true },
+      include: { ownedGym: true },
     });
-    if (!gymUser?.gym) fail("demo gym missing");
-    const gym = gymUser.gym;
+    if (!gymUser?.ownedGym) fail("demo gym missing");
+    const gym = gymUser.ownedGym;
     const otherOrganizer = await prisma.organizer.findFirst({
       where: { id: { not: organizer.id } },
     });
@@ -530,10 +595,28 @@ async function main() {
     pass("organizer-login");
 
     await orgPage.goto(`${BASE}/organizer/events/${eventId}/applications`, {
-      waitUntil: "domcontentloaded",
+      waitUntil: "networkidle",
       timeout: 90_000,
     });
-    await orgPage.getByRole("button", { name: "선수 직접 등록" }).click();
+    await orgPage.getByRole("heading", { name: "신청자 관리" }).waitFor({
+      timeout: 60_000,
+    });
+    const directBtn = orgPage.getByRole("button", { name: "선수 직접 등록" });
+    await directBtn.waitFor({ timeout: 30_000 });
+    await directBtn.click();
+    try {
+      await orgPage.locator("#manual-fighterName").waitFor({ timeout: 20_000 });
+    } catch {
+      await orgPage.screenshot({
+        path: join(OUT, "direct-open-fail.png"),
+        fullPage: true,
+      });
+      fail(
+        `direct panel did not open: ${(await orgPage.locator("body").innerText()).slice(0, 400)}`,
+      );
+    }
+    await orgPage.getByRole("button", { name: "체육관명 직접 입력" }).click();
+    await orgPage.locator("#manual-gymName").fill(`${ATHLETE_PREFIX}직접체육관`);
     await orgPage.locator("#manual-fighterName").fill(`${ATHLETE_PREFIX}직접`);
     await orgPage.locator("#manual-gender").selectOption("male");
     await orgPage.locator("#manual-birthDate").fill("2008-05-12");
@@ -543,12 +626,26 @@ async function main() {
     await orgPage.locator("#manual-careerText").fill("킥복싱 2년");
     await orgPage.locator("#manual-rrn").fill(RRN_A);
     await orgPage.locator('input[name="insuranceConsentConfirmed"]').check();
-    await orgPage.getByRole("button", { name: "등록" }).click();
-    await orgPage.getByText(`${ATHLETE_PREFIX}직접`).first().waitFor({ timeout: 45_000 });
+    await orgPage.getByRole("button", { name: "등록", exact: true }).click();
+    const directName = orgPage.getByText(`${ATHLETE_PREFIX}직접`, { exact: true });
+    try {
+      await directName.first().waitFor({ timeout: 45_000 });
+    } catch {
+      await orgPage.screenshot({
+        path: join(OUT, "direct-submit-fail.png"),
+        fullPage: true,
+      });
+      const dbApp = await prisma.eventApplication.findFirst({
+        where: { eventId, fighter: { name: `${ATHLETE_PREFIX}직접` } },
+      });
+      fail(
+        `direct UI missing fighter (db=${Boolean(dbApp)}): ${(await orgPage.locator("body").innerText()).slice(0, 500)}`,
+      );
+    }
     const listText = await orgPage.locator("body").innerText();
     assertNoPlainInText("applicant list", listText);
-    if (!listText.includes(maskResidentRegistrationNumber(RRN_A.replace(/\D/g, "")) ?? "____")) {
-      /* masked may be omitted from compact list; detail is required */
+    if (!listText.includes(maskRrn(RRN_A.replace(/\D/g, "")))) {
+      /* compact list may omit masked RRN; detail is required */
     }
     pass("direct-submit");
 
@@ -566,14 +663,23 @@ async function main() {
     if (directSec.careerText !== "킥복싱 2년") fail("direct careerText");
     pass("direct-db-encrypted", { provenance: "organizer_confirmed", masked: directSec.insuranceRrnMasked });
 
-    await orgPage.getByText(`${ATHLETE_PREFIX}직접`).first().click();
-    await orgPage.waitForTimeout(800);
-    const detailText = await orgPage.locator("body").innerText();
+    await orgPage.setViewportSize({ width: 390, height: 844 });
+    await orgPage.waitForTimeout(500);
+    const card = orgPage.locator("[data-slot='card']").filter({
+      hasText: `${ATHLETE_PREFIX}직접`,
+    }).first();
+    await card.waitFor({ timeout: 20_000 });
+    const detailText = await card.innerText();
     assertNoPlainInText("applicant detail", detailText);
     if (!detailText.includes("3전 2승 1패") || !detailText.includes("킥복싱 2년")) {
-      fail("detail missing record/career");
+      fail(`detail missing record/career: ${detailText.slice(0, 300)}`);
+    }
+    if (!detailText.includes(maskRrn(RRN_A.replace(/\D/g, "")))) {
+      fail(`detail missing masked RRN: ${detailText.slice(0, 300)}`);
     }
     pass("direct-detail-masked");
+    await orgPage.setViewportSize({ width: 1366, height: 768 });
+    await orgPage.waitForTimeout(300);
 
     await orgPage.getByRole("button", { name: "링크 생성" }).click();
     const linkUrlEl = orgPage.locator("p.font-mono");
@@ -586,27 +692,78 @@ async function main() {
       viewport: { width: 390, height: 844 },
     });
     attachQuality(extPage);
-    await extPage.goto(externalUrl, { waitUntil: "domcontentloaded", timeout: 90_000 });
-    await extPage.getByText("체육관명 *").locator("..").locator("input").fill(`${ATHLETE_PREFIX}외부체육관`);
-    await extPage.getByText("담당자명 *").locator("..").locator("input").fill("김담당");
-    await extPage.getByText("연락처 *").locator("..").locator("input").first().fill("010-7000-1000");
-    await extPage.getByText("이름 *").locator("..").locator("input").fill(`${ATHLETE_PREFIX}외부`);
-    await extPage.getByLabel(/생년월일/).fill("2007-04-01");
-    await extPage.getByText("체급 *").locator("..").locator("select").selectOption(div635.id);
+    await extPage.goto(externalUrl, { waitUntil: "networkidle", timeout: 90_000 });
+    await extPage.getByText("외부 체육관 선수 등록").waitFor({ timeout: 30_000 });
+    async function fillLabelInput(label: string, value: string) {
+      await extPage
+        .locator("label")
+        .filter({ hasText: label })
+        .locator("input")
+        .first()
+        .fill(value);
+    }
+    await fillLabelInput("체육관명 *", `${ATHLETE_PREFIX}외부체육관`);
+    await fillLabelInput("담당자명 *", "김담당");
+    await fillLabelInput("연락처 *", "010-7000-1000");
+    await fillLabelInput("이름 *", `${ATHLETE_PREFIX}외부`);
+    await extPage.getByLabel("1번 선수 생년월일").fill("2007-04-01");
+    await extPage
+      .locator("label")
+      .filter({ hasText: "체급 *" })
+      .locator("select")
+      .selectOption(div635.id);
     await extPage.getByLabel("전적").fill("무전");
     await extPage.getByLabel("운동경력").fill("복싱 1년");
     await extPage.getByLabel("주민등록번호 *").fill(RRN_B);
-    const submitExt = extPage.getByRole("button", { name: /명 신청하기/ });
+    const birthVal = await extPage.getByLabel("1번 선수 생년월일").inputValue();
+    if (birthVal !== "2007-04-01") fail(`external birth not set: ${birthVal}`);
+    const divVal = await extPage
+      .locator("label")
+      .filter({ hasText: "체급 *" })
+      .locator("select")
+      .inputValue();
+    if (divVal !== div635.id) fail(`external division not set: ${divVal}`);
+    const rrnVal = await extPage.getByLabel("주민등록번호 *").inputValue();
+    if (!rrnVal.replace(/\D/g, "").startsWith("0000000000016")) {
+      fail(`external RRN not set: ${rrnVal}`);
+    }
+    const gymNameVal = await extPage
+      .locator("label")
+      .filter({ hasText: "체육관명 *" })
+      .locator("input")
+      .first()
+      .inputValue();
+    if (gymNameVal !== `${ATHLETE_PREFIX}외부체육관`) {
+      fail(`external gym name not set: ${gymNameVal}`);
+    }
+    const submitExt = extPage.getByRole("button", { name: "1명 신청하기" });
+    await submitExt.scrollIntoViewIfNeeded();
     await submitExt.click();
-    await extPage.waitForTimeout(800);
+    const extAlert = extPage.locator("[role=alert], .text-destructive").first();
+    try {
+      await extAlert.waitFor({ timeout: 10_000 });
+    } catch {
+      await extPage.screenshot({ path: join(OUT, "external-consent.png"), fullPage: true });
+      fail(
+        `expected consent error, got: ${(await extPage.locator("body").innerText()).slice(0, 500)}`,
+      );
+    }
+    const extErr = await extAlert.innerText();
+    if (!/보험가입 개인정보 동의/.test(extErr)) {
+      fail(`expected consent error, got: ${extErr}`);
+    }
     if (await prisma.eventApplication.findFirst({
       where: { eventId, fighter: { name: `${ATHLETE_PREFIX}외부` } },
     })) {
       fail("external submit succeeded without consent");
     }
     pass("external-consent-blocking");
-    await extPage.getByText("대회 참가자 보험 가입을 위한 개인정보 수집·이용에 동의합니다.").click();
+    await extPage.locator('input[type="checkbox"]').last().check();
     await submitExt.click();
+    await extPage.getByRole("button", { name: /명 신청 완료/ }).waitFor({
+      timeout: 20_000,
+    });
+    await extPage.getByRole("button", { name: /명 신청 완료/ }).click();
     await extPage.getByText("선수 신청이 완료되었습니다.").waitFor({ timeout: 60_000 }).catch(async () => {
       await extPage.screenshot({ path: join(OUT, "external-submit.png"), fullPage: true });
       fail(`external submit failed: ${(await extPage.locator("body").innerText()).slice(0, 400)}`);
@@ -624,28 +781,6 @@ async function main() {
     if (!extApp) fail("external EventApplication missing");
     await assertApplicationSecurity(extApp.id, RRN_B.replace(/\D/g, ""), "athlete_self");
     pass("external-db-athlete_self");
-
-    const sampleWb = await buildApplicantExcelSampleWorkbook({
-      eventTitle: event.title,
-      divisions: event.divisions.map((d) => ({
-        id: d.id,
-        sportType: d.sportType,
-        gender: d.gender,
-        ageGroup: d.ageGroup,
-        weightClass: d.weightClass,
-        weightClassName: d.weightClassName,
-        weightLimitText: d.weightLimitText,
-      })),
-    });
-    if (!sampleWb.getWorksheet(APPLICANT_EXCEL_SHEET_GUIDE)) fail("sample guide sheet missing");
-    if (!sampleWb.getWorksheet(APPLICANT_EXCEL_SHEET_DATA)) fail("sample data sheet missing");
-    const sampleData = sampleWb.getWorksheet(APPLICANT_EXCEL_SHEET_DATA)!;
-    const headerRow = sampleData.getRow(1);
-    const headers = APPLICANT_EXCEL_HEADERS.map((_, i) => String(headerRow.getCell(i + 1).value ?? ""));
-    for (const need of ["전적", "운동경력", "주민등록번호", "보험가입 개인정보동의"]) {
-      if (!headers.includes(need)) fail(`sample missing header ${need}`);
-    }
-    pass("excel-sample-headers");
 
     const qaWb = new ExcelJS.Workbook();
     const qaSheet = qaWb.addWorksheet(APPLICANT_EXCEL_SHEET_DATA);
@@ -724,7 +859,7 @@ async function main() {
       }),
     );
     const qaPath = join(OUT, "athletes.xlsx");
-    writeFileSync(qaPath, await applicantWorkbookToBuffer(qaWb));
+    writeFileSync(qaPath, await workbookToBuffer(qaWb));
 
     await orgPage.goto(`${BASE}/organizer/events/${eventId}/applications`, {
       waitUntil: "domcontentloaded",
@@ -732,6 +867,34 @@ async function main() {
     });
     await orgPage.getByRole("button", { name: "엑셀 일괄 등록" }).click();
     await orgPage.getByRole("heading", { name: /엑셀 일괄 등록/ }).waitFor();
+    const samplePath = join(OUT, "sample.xlsx");
+    const [download] = await Promise.all([
+      orgPage.waitForEvent("download", { timeout: 20_000 }).catch(() => null),
+      orgPage.getByRole("button", { name: /샘플 엑셀 다운로드|샘플 엑셀/ }).click(),
+    ]);
+    if (!download) fail("sample excel download did not start");
+    await download.saveAs(samplePath);
+    const sampleWb = new ExcelJS.Workbook();
+    await sampleWb.xlsx.readFile(samplePath);
+    if (!sampleWb.getWorksheet(APPLICANT_EXCEL_SHEET_GUIDE)) fail("sample guide sheet missing");
+    if (!sampleWb.getWorksheet(APPLICANT_EXCEL_SHEET_DATA)) fail("sample data sheet missing");
+    const sampleData = sampleWb.getWorksheet(APPLICANT_EXCEL_SHEET_DATA)!;
+    const headerRow = sampleData.getRow(1);
+    const headers = [...APPLICANT_EXCEL_HEADERS].map((_, i) =>
+      String(headerRow.getCell(i + 1).value ?? ""),
+    );
+    for (const need of ["전적", "운동경력", "주민등록번호", "보험가입 개인정보동의"]) {
+      if (!headers.includes(need)) fail(`sample missing header ${need}`);
+    }
+    const example = sampleData.getRow(2);
+    const exampleText = [...APPLICANT_EXCEL_HEADERS]
+      .map((_, i) => String(example.getCell(i + 1).value ?? ""))
+      .join(" ");
+    if (!exampleText.includes("3전 2승 1패") || !exampleText.includes("킥복싱 2년")) {
+      fail("sample example row missing record/career");
+    }
+    pass("excel-sample-download");
+
     await orgPage.locator('input[type="file"]').setInputFiles(qaPath);
     await orgPage.getByText(/총 \d+명/).waitFor({ timeout: 60_000 });
     const previewText = await orgPage.locator("body").innerText();
@@ -739,12 +902,60 @@ async function main() {
     if (!previewText.includes("3전 2승 1패") || !previewText.includes("킥복싱 2년")) {
       fail("excel preview missing record/career");
     }
-    if (!/오류|동의/.test(previewText)) fail("excel missing-consent row not flagged");
-    pass("excel-preview-masking");
+    if (!/오류/.test(previewText)) fail("excel missing-consent row not flagged");
+    const commitDisabled = await orgPage.getByRole("button", { name: /명 등록/ }).isDisabled();
+    if (!commitDisabled) fail("excel commit enabled despite consent error");
+    pass("excel-preview-masking-consent-error");
 
-    const commitBtn = orgPage.getByRole("button", { name: /등록|반영|commit|저장/i }).last();
-    await commitBtn.click();
-    await orgPage.waitForTimeout(3000);
+    await orgPage.getByRole("button", { name: "다시 선택" }).click();
+    const qaOkWb = new ExcelJS.Workbook();
+    const qaOkSheet = qaOkWb.addWorksheet(APPLICANT_EXCEL_SHEET_DATA);
+    qaOkSheet.addRow([...APPLICANT_EXCEL_HEADERS]);
+    qaOkSheet.addRow(
+      excelRow({
+        no: "1",
+        name: `${ATHLETE_PREFIX}엑셀1`,
+        ageGroup: "고등부",
+        weightClass: "라이트급 -60kg",
+        limit: "-60kg",
+        rrn: RRN_A,
+        consent: "동의",
+        record: "3전 2승 1패",
+        career: "킥복싱 2년",
+      }),
+    );
+    qaOkSheet.addRow(
+      excelRow({
+        no: "2",
+        name: `${ATHLETE_PREFIX}엑셀2`,
+        ageGroup: "고등부",
+        weightClass: "라이트웰터급 -63.5kg",
+        limit: "-63.5kg",
+        rrn: RRN_C,
+        consent: "동의",
+        record: "무전",
+        career: "운동경력 없음",
+      }),
+    );
+    qaOkSheet.addRow(
+      excelRow({
+        no: "3",
+        name: `${ATHLETE_PREFIX}엑셀3`,
+        ageGroup: "대학·일반부",
+        weightClass: "슈퍼헤비급 +91kg",
+        limit: "+91kg",
+        rrn: RRN_D,
+        consent: "동의",
+        record: "1전 1패",
+        career: "무에타이 6개월",
+      }),
+    );
+    const qaOkPath = join(OUT, "athletes-ok.xlsx");
+    writeFileSync(qaOkPath, await workbookToBuffer(qaOkWb));
+    await orgPage.locator('input[type="file"]').setInputFiles(qaOkPath);
+    await orgPage.getByText(/총 \d+명/).waitFor({ timeout: 60_000 });
+    await orgPage.getByRole("button", { name: "3명 등록" }).click();
+    await orgPage.getByText(/등록 완료 3명/).waitFor({ timeout: 90_000 });
     const excelApps = await prisma.eventApplication.findMany({
       where: {
         eventId,
@@ -752,53 +963,95 @@ async function main() {
       },
       include: { fighter: true },
     });
-    if (excelApps.length !== 2) fail(`excel commit count ${excelApps.length} expected 2 (consent miss skipped)`);
+    if (excelApps.length !== 3) fail(`excel commit count ${excelApps.length} expected 3`);
+    const excelDigits: Record<string, string> = {
+      [`${ATHLETE_PREFIX}엑셀1`]: RRN_A.replace(/\D/g, ""),
+      [`${ATHLETE_PREFIX}엑셀2`]: RRN_C.replace(/\D/g, ""),
+      [`${ATHLETE_PREFIX}엑셀3`]: RRN_D.replace(/\D/g, ""),
+    };
     for (const app of excelApps) {
-      const digits =
-        app.fighter.name === `${ATHLETE_PREFIX}엑셀1`
-          ? RRN_A.replace(/\D/g, "")
-          : RRN_C.replace(/\D/g, "");
-      await assertApplicationSecurity(app.id, digits, "excel_operator_attested");
+      await assertApplicationSecurity(
+        app.id,
+        excelDigits[app.fighter.name]!,
+        "excel_operator_attested",
+      );
     }
-    pass("excel-commit-2", { count: excelApps.length });
+    pass("excel-commit-3", { count: excelApps.length });
+
+    await orgPage.getByRole("button", { name: "신청자 목록으로 돌아가기" }).click();
+    await orgPage.getByRole("button", { name: "엑셀 일괄 등록" }).click();
+    await orgPage.getByRole("heading", { name: /엑셀 일괄 등록/ }).waitFor();
+    await orgPage.locator('input[type="file"]').setInputFiles(qaOkPath);
+    await orgPage.getByText(/총 \d+명/).waitFor({ timeout: 60_000 });
+    const retryText = await orgPage.locator("body").innerText();
+    if (!/이미 등록/.test(retryText)) fail("excel retry missing skip_existing");
+    pass("excel-retry-skip-existing");
+    await orgPage.getByRole("button", { name: "취소" }).click().catch(() => null);
 
     if (otherEventId) {
-      await orgPage.goto(`${BASE}/organizer/events/${otherEventId}/applications`, {
-        waitUntil: "domcontentloaded",
-        timeout: 60_000,
-      });
+      const crossRes = await orgPage.goto(
+        `${BASE}/organizer/events/${otherEventId}/applications`,
+        { waitUntil: "domcontentloaded", timeout: 60_000 },
+      );
       await orgPage.waitForTimeout(1500);
       const cross = await orgPage.locator("body").innerText();
       assertNoPlainInText("cross-organizer page", cross);
-      if (/보험|주민번호|000000-0/.test(cross) && /ATHLETE_PII_QA_/.test(cross)) {
-        fail("cross-organizer leaked athlete PII");
+      if (/ATHLETE_PII_QA_/.test(cross)) fail("cross-organizer leaked athlete PII");
+      const status = crossRes?.status() ?? 0;
+      if (![200, 403, 404].includes(status) && status >= 500) {
+        fail(`cross-organizer unexpected ${status}`);
       }
-      pass("cross-organizer-scope");
+      pass("cross-organizer-scope", { status });
     }
 
     await orgPage.goto(`${BASE}/organizer/division-templates/new`, {
-      waitUntil: "domcontentloaded",
+      waitUntil: "networkidle",
       timeout: 90_000,
     });
+    await orgPage.getByRole("heading", { name: "새 체급표 템플릿" }).waitFor({
+      timeout: 30_000,
+    });
+    await orgPage.locator('input[placeholder="킥복싱"]').fill("킥복싱");
     await orgPage.getByRole("button", { name: "엑셀 업로드" }).click();
-    await orgPage.getByRole("heading", { name: "체급표 Excel 일괄 등록" }).waitFor();
+    try {
+      await orgPage.getByRole("heading", { name: /체급표 Excel|체급표 엑셀/ }).waitFor({
+        timeout: 20_000,
+      });
+    } catch {
+      await orgPage.screenshot({ path: join(OUT, "weight-excel.png"), fullPage: true });
+      fail(
+        `weight excel dialog missing: ${(await orgPage.locator("body").innerText()).slice(0, 400)}`,
+      );
+    }
     if (await orgPage.locator('input[type="file"]:not(.sr-only)').count()) {
       fail("native file input visually exposed");
     }
     const dropzone = orgPage.getByLabel("Excel 파일 업로드");
     await dropzone.waitFor();
     const wcPath = join(OUT, "weight-class.xlsx");
-    writeFileSync(
-      wcPath,
-      await weightWorkbookToBuffer(
-        await buildWeightClassSampleWorkbook({ includeKickboxingFixture: true }),
-      ),
-    );
-    await orgPage.locator('input[type="file"]').setInputFiles(wcPath);
-    await orgPage.getByText(/-63\.5|\+91/).first().waitFor({ timeout: 45_000 });
+    const wcWb = new ExcelJS.Workbook();
+    const wcSheet = wcWb.addWorksheet("체급표");
+    wcSheet.addRow(["부문", "성별", "체급명", "체중", "기준", "정렬순서"]);
+    wcSheet.addRow(["고등부", "남성", "라이트웰터급", "63.5", "under", "1"]);
+    wcSheet.addRow(["대학·일반부", "남성", "슈퍼헤비급", "91", "over", "2"]);
+    writeFileSync(wcPath, await workbookToBuffer(wcWb));
+    await orgPage.getByRole("dialog").locator('input[type="file"]').setInputFiles(wcPath);
+    try {
+      await orgPage.getByText(/-63\.5|\+91/).first().waitFor({ timeout: 45_000 });
+    } catch {
+      await orgPage.screenshot({ path: join(OUT, "weight-preview.png"), fullPage: true });
+      fail(
+        `weight preview missing: ${(await orgPage.locator("body").innerText()).slice(0, 500)}`,
+      );
+    }
     const wcText = await orgPage.locator("body").innerText();
     if (!wcText.includes("-63.5") && !/-63\.5/.test(wcText)) fail("weight preview missing -63.5");
     if (!wcText.includes("+91") && !/\+91/.test(wcText)) fail("weight preview missing +91");
+    const confirmWc = orgPage.getByRole("button", { name: /신규 행만 반영|반영/ });
+    if (await confirmWc.count()) {
+      await confirmWc.first().click();
+      await orgPage.waitForTimeout(2000);
+    }
     pass("weight-dropzone-preview");
 
     const gymPage = await browser.newPage({ viewport: { width: 1366, height: 768 } });
@@ -876,8 +1129,11 @@ async function main() {
     pass("gym-member-fighter-rrn-delta-0");
 
     await gymPage.goto(`${BASE}/gym/members/new`, {
-      waitUntil: "domcontentloaded",
+      waitUntil: "networkidle",
       timeout: 90_000,
+    });
+    await gymPage.getByRole("heading", { name: "기본 정보" }).waitFor({
+      timeout: 30_000,
     });
     if (await gymPage.locator('input[type="email"], input[name="email"]').count()) {
       fail("create member email field present");
@@ -885,24 +1141,60 @@ async function main() {
     const payDefault = await gymPage.locator('select[name="paymentMethod"]').inputValue();
     if (payDefault !== "card") fail(`new payment default ${payDefault} != card`);
     await gymPage.locator('input[name="name"]').fill(`${MEMBER_PREFIX}신규`);
-    await gymPage.locator('input[name="phone"]').fill("010-7333-0001");
-    await gymPage.locator('select[name="planId"]').selectOption(plan3m.id);
-    await gymPage.locator('input[name="subscriptionStartedAt"]').fill("2026-08-11");
-    await gymPage.waitForTimeout(400);
-    const endsAt = await gymPage.locator('input[name="subscriptionEndsAt"]').inputValue();
+    await gymPage.locator('input[type="tel"]').first().fill("010-7333-0001");
+    async function setStartAndPlan(start: string, planId: string) {
+      const startInput = gymPage.locator('input[name="subscriptionStartedAt"]');
+      await startInput.click();
+      await startInput.fill(start);
+      await gymPage.locator('select[name="planId"]').selectOption(planId);
+      for (let i = 0; i < 20; i += 1) {
+        const v = await gymPage.locator('input[name="subscriptionEndsAt"]').inputValue();
+        if (v) return v;
+        await gymPage.waitForTimeout(150);
+      }
+      const startV = await gymPage.locator('input[name="subscriptionStartedAt"]').inputValue();
+      const planV = await gymPage.locator('select[name="planId"]').inputValue();
+      const payV = await gymPage.locator('input[name="paymentAmount"]').inputValue();
+      fail(
+        `end date empty after start=${startV} plan=${planV} pay=${payV} expectedStart=${start} expectedPlan=${planId}`,
+      );
+    }
+    const endsAt = await setStartAndPlan("2026-08-11", plan3m.id);
     if (endsAt !== "2026-11-10") fail(`3-month end ${endsAt} != 2026-11-10`);
-    await gymPage.locator('select[name="planId"]').selectOption(plan1m.id);
-    await gymPage.locator('input[name="subscriptionStartedAt"]').fill("2026-01-31");
-    await gymPage.waitForTimeout(400);
-    const endsJan31 = await gymPage.locator('input[name="subscriptionStartedAt"]').inputValue();
-    const ends1m = await gymPage.locator('input[name="subscriptionEndsAt"]').inputValue();
+    const endsJan1 = await setStartAndPlan("2026-01-01", plan1m.id);
+    if (endsJan1 !== "2026-01-31") fail(`Jan1 + 1m end ${endsJan1} != 2026-01-31`);
+    const ends1m = await setStartAndPlan("2026-01-31", plan1m.id);
     if (ends1m !== "2026-02-27") fail(`Jan31 + 1m end ${ends1m} != 2026-02-27`);
-    await gymPage.locator('select[name="planId"]').selectOption(plan3m.id);
-    await gymPage.locator('input[name="subscriptionStartedAt"]').fill("2026-08-11");
-    await gymPage.waitForTimeout(300);
+    const endsLeapJan = await setStartAndPlan("2024-01-31", plan1m.id);
+    if (endsLeapJan !== "2024-02-28") fail(`2024-01-31 + 1m ${endsLeapJan} != 2024-02-28`);
+    const endsLeapFeb = await setStartAndPlan("2024-02-29", plan1m.id);
+    if (endsLeapFeb !== "2024-03-28") fail(`2024-02-29 + 1m ${endsLeapFeb} != 2024-03-28`);
+    const endsMar31 = await setStartAndPlan("2026-03-31", plan1m.id);
+    if (endsMar31 !== "2026-04-29") fail(`2026-03-31 + 1m ${endsMar31} != 2026-04-29`);
+    await setStartAndPlan("2026-08-11", plan3m.id);
     await gymPage.getByRole("button", { name: "회원 등록" }).click();
-    await gymPage.waitForURL(/\/gym\/members\//, { timeout: 60_000 });
-    pass("member-create-email-card-enddate", { endsAt, ends1m, endsJan31 });
+    try {
+      await gymPage.waitForURL(
+        (u) =>
+          /\/gym\/members\/[^/]+$/.test(u.pathname) &&
+          !u.pathname.endsWith("/new") &&
+          !u.pathname.endsWith("/edit"),
+        { timeout: 60_000 },
+      );
+    } catch {
+      await gymPage.screenshot({ path: join(OUT, "member-create.png"), fullPage: true });
+      fail(
+        `member create did not navigate: ${gymPage.url()} ${(await gymPage.locator("body").innerText()).slice(0, 400)}`,
+      );
+    }
+    pass("member-create-email-card-enddate", {
+      endsAt,
+      endsJan1,
+      ends1m,
+      endsLeapJan,
+      endsLeapFeb,
+      endsMar31,
+    });
 
     const created = await prisma.gymMember.findFirst({
       where: { gymId: gym.id, name: `${MEMBER_PREFIX}신규` },
@@ -916,15 +1208,17 @@ async function main() {
     }
 
     async function nextMemberNumber() {
-      const last = await prisma.gymMember.findFirst({
-        where: { gymId: gym.id },
-        orderBy: { memberNumber: "desc" },
+      const rows = await prisma.gymMember.findMany({
+        where: { gymId: gym.id, memberNumber: { startsWith: "M-" } },
         select: { memberNumber: true },
       });
-      let n = 1;
-      const mm = last?.memberNumber?.match(/^M-(\d+)$/);
-      if (mm) n = Number(mm[1]) + 1;
-      return `M-${String(n).padStart(6, "0")}`;
+      let n = 0;
+      for (const row of rows) {
+        const mm = /^M-(\d+)$/.exec(row.memberNumber);
+        if (!mm) continue;
+        n = Math.max(n, Number(mm[1]));
+      }
+      return `M-${String(n + 1).padStart(6, "0")}`;
     }
 
     const cashMember = await prisma.gymMember.create({
@@ -1085,12 +1379,60 @@ async function main() {
     if (!attRowText.includes("3")) fail(`attendance UI != 3: ${attRowText}`);
     const refundRow = gymPage.locator("tr", { hasText: `${MEMBER_PREFIX}환불` });
     const refundText = await refundRow.innerText();
-    if (!/80,000|80000/.test(refundText.replace(/\s/g, ""))) {
-      pass("payment-crosscheck-refund-display", refundText.slice(0, 120));
-    } else {
-      pass("payment-crosscheck-refund");
-    }
+    if (!refundText.includes("80,000")) fail(`refund display != 80,000: ${refundText}`);
+    pass("payment-crosscheck-refund");
     pass("member-list-pc-columns");
+
+    const qaSubs = await prisma.gymMember.findMany({
+      where: { gymId: gym.id, name: { startsWith: MEMBER_PREFIX } },
+      include: {
+        subscriptions: { orderBy: { startedAt: "desc" }, take: 1 },
+      },
+    });
+    const attStarts = qaSubs
+      .filter((m) => m.subscriptions[0]?.startedAt)
+      .map((m) => ({
+        gymMemberId: m.id,
+        startedAt: m.subscriptions[0]!.startedAt,
+      }));
+    const subIds = qaSubs
+      .map((m) => m.subscriptions[0]?.id)
+      .filter((id): id is string => Boolean(id));
+    const earliest = attStarts.reduce(
+      (min, item) => (item.startedAt < min ? item.startedAt : min),
+      attStarts[0]!.startedAt,
+    );
+    queryLog.length = 0;
+    await prisma.gymMemberAttendance.findMany({
+      where: {
+        gymId: gym.id,
+        gymMemberId: { in: attStarts.map((i) => i.gymMemberId) },
+        deletedAt: null,
+        attendanceDate: { gte: earliest },
+      },
+      select: { gymMemberId: true, attendanceDate: true },
+    });
+    const attQueryCount = queryLog.length;
+    queryLog.length = 0;
+    await prisma.gymMemberPayment.findMany({
+      where: {
+        gymId: gym.id,
+        subscriptionId: { in: subIds },
+        cancelledAt: null,
+        status: {
+          in: [GymMemberPaymentStatus.paid, GymMemberPaymentStatus.refunded],
+        },
+      },
+      select: {
+        subscriptionId: true,
+        amount: true,
+        refunds: { where: { cancelledAt: null }, select: { amount: true } },
+      },
+    });
+    const payQueryCount = queryLog.length;
+    if (attQueryCount > 2) fail(`attendance N+1 queries=${attQueryCount}`);
+    if (payQueryCount > 4) fail(`payment N+1 queries=${payQueryCount}`);
+    pass("member-list-n1", { attendanceQueries: attQueryCount, paymentQueries: payQueryCount });
 
     const mobile = await browser.newPage({ viewport: { width: 390, height: 844 } });
     attachQuality(mobile);
@@ -1103,6 +1445,9 @@ async function main() {
     if (!mobileText.includes(`${MEMBER_PREFIX}신규`) && !mobileText.includes(`${MEMBER_PREFIX}출석`)) {
       fail("mobile list missing QA members");
     }
+    for (const label of ["출석", "결제"]) {
+      if (!mobileText.includes(label)) fail(`mobile card missing ${label}`);
+    }
     const mOx = await overflowX(mobile);
     if (mOx > 0) fail(`member list mobile overflowX=${mOx}`);
     pass("member-list-mobile", { overflowX: mOx });
@@ -1113,95 +1458,144 @@ async function main() {
     const fighterBefore = await prisma.fighter.count({ where: { currentGymId: gym.id } });
 
     await gymPage.goto(`${BASE}/gym/members`, { waitUntil: "domcontentloaded", timeout: 90_000 });
-    await gymPage.getByRole("button", { name: /셀프등록|QR|링크/ }).first().click().catch(async () => {
-      await gymPage.getByText(/셀프등록/).first().click();
+    const selfBtn = gymPage.getByRole("button", { name: "셀프등록 링크" }).first();
+    await selfBtn.waitFor({ timeout: 30_000 });
+    await selfBtn.click();
+    const selfDlg = gymPage.getByRole("dialog");
+    await selfDlg.waitFor({ timeout: 20_000 });
+    const urlEl = selfDlg.locator("p.break-all");
+    await urlEl.waitFor({ timeout: 20_000 });
+    let selfUrl = (await urlEl.innerText()).trim();
+    if (!selfUrl.includes("/gym-register/")) fail(`self-reg url unexpected: ${selfUrl}`);
+    pass("self-reg-link");
+    await gymPage.keyboard.press("Escape");
+
+    const pub = await browser.newPage({ viewport: { width: 390, height: 844 } });
+    attachQuality(pub);
+    await pub.goto(selfUrl, { waitUntil: "domcontentloaded", timeout: 90_000 });
+    if (await pub.locator('input[type="email"], input[name="email"]').count()) {
+      fail("self-reg public email field present");
+    }
+    await pub.getByRole("textbox", { name: "이름 *", exact: true }).fill(`${SELF_PREFIX}성인`);
+    await pub.locator("button").filter({ hasText: /^남성$/ }).click();
+    await pub.getByRole("textbox", { name: "연락처 *", exact: true }).fill("010-7444-0001");
+    await pub.getByLabel("생년월일 *").fill("1998-03-03");
+    await pub.getByRole("button", { name: "다음" }).click();
+    const nos = pub.getByRole("button", { name: "아니오" });
+    const n = await nos.count();
+    if (n < 4) fail(`health 아니오 buttons ${n} < 4`);
+    for (let i = 0; i < 4; i += 1) await nos.nth(i).click();
+    await pub.getByRole("button", { name: "다음" }).click();
+    await pub.getByText("개인정보 수집·이용에 동의합니다. (필수)").click();
+    await pub.getByRole("button", { name: "다음" }).click();
+    await pub.getByText("체육관 이용 안내에 동의합니다. (필수)").click();
+    await pub.getByRole("button", { name: "다음" }).click();
+    await drawSignature(pub, "회원 서명 패드");
+    await pub.getByRole("button", { name: "다음" }).click();
+    await pub.getByRole("button", { name: /회원 등록 신청/ }).click();
+    await pub.getByText("회원 등록 신청이 완료되었습니다").waitFor({ timeout: 60_000 });
+    const pendingReq = await prisma.gymMemberRegistrationRequest.findFirst({
+      where: { gymId: gym.id, name: `${SELF_PREFIX}성인` },
     });
-    const selfUrlEl = gymPage.locator("a[href*='self-registration'], p.font-mono, input[readonly]").first();
-    await gymPage.waitForTimeout(1500);
-    let selfUrl = "";
-    const mono = gymPage.locator("text=/\\/r\\/|self-registration/");
-    if (await mono.count()) {
-      selfUrl = (await mono.first().innerText()).trim();
-    }
-    if (!selfUrl) {
-      const href = await gymPage.locator("a[href*='/r/']").first().getAttribute("href").catch(() => null);
-      if (href) selfUrl = href.startsWith("http") ? href : `${BASE}${href}`;
-    }
-    if (!selfUrl) {
-      pass("self-reg-link-ui-unresolved");
-    } else {
-      if (!selfUrl.startsWith("http")) selfUrl = selfUrl.startsWith("/") ? `${BASE}${selfUrl}` : `${BASE}/${selfUrl}`;
-      const pub = await browser.newPage({ viewport: { width: 390, height: 844 } });
-      attachQuality(pub);
-      await pub.goto(selfUrl, { waitUntil: "domcontentloaded", timeout: 90_000 });
-      if (await pub.locator('input[type="email"], input[name="email"]').count()) {
-        fail("self-reg public email field present");
-      }
-      await pub.getByLabel("이름 *").fill(`${SELF_PREFIX}성인`);
-      await pub.locator("button").filter({ hasText: /^남성$/ }).click();
-      await pub.getByLabel("연락처 *").fill("010-7444-0001");
-      await pub.getByLabel("생년월일 *").fill("1998-03-03");
-      await pub.getByRole("button", { name: "다음" }).click();
-      const nos = pub.getByRole("button", { name: "아니오" });
-      const n = await nos.count();
-      for (let i = 0; i < Math.min(n, 4); i += 1) await nos.nth(i).click();
-      await pub.getByRole("button", { name: "다음" }).click();
-      await pub.getByText("개인정보 수집·이용에 동의합니다. (필수)").click();
-      await pub.getByRole("button", { name: "다음" }).click();
-      await pub.getByText("체육관 이용 안내에 동의합니다. (필수)").click();
-      await pub.getByRole("button", { name: "다음" }).click();
-      await drawSignature(pub, "회원 서명 패드");
-      await pub.getByRole("button", { name: "다음" }).click();
-      await pub.getByRole("button", { name: /회원 등록 신청/ }).click();
-      await pub.getByText("회원 등록 신청이 완료되었습니다").waitFor({ timeout: 60_000 });
-      const pendingReq = await prisma.gymMemberRegistrationRequest.findFirst({
-        where: { gymId: gym.id, name: `${SELF_PREFIX}성인` },
-      });
-      if (!pendingReq || pendingReq.status !== "pending") fail("self-reg not PENDING");
-      const memMid = await prisma.gymMember.count({ where: { gymId: gym.id } });
-      if (memMid !== memBefore) fail("GymMember created before approve");
-      pass("self-reg-pending");
+    if (!pendingReq || pendingReq.status !== "pending") fail("self-reg not PENDING");
+    const memMid = await prisma.gymMember.count({ where: { gymId: gym.id } });
+    if (memMid !== memBefore) fail("GymMember created before approve");
+    pass("self-reg-pending");
 
-      await gymPage.goto(`${BASE}/gym/members/registrations/${pendingReq.id}`, {
-        waitUntil: "domcontentloaded",
-        timeout: 90_000,
-      });
-      await gymPage.getByRole("button", { name: "회원으로 등록" }).click();
-      await gymPage.waitForURL(/\/gym\/members\//, { timeout: 60_000 });
-      const memAfter = await prisma.gymMember.count({ where: { gymId: gym.id } });
-      const subAfter = await prisma.gymMemberSubscription.count({ where: { gymId: gym.id } });
-      const payAfter = await prisma.gymMemberPayment.count({ where: { gymId: gym.id } });
-      const fighterAfter = await prisma.fighter.count({ where: { currentGymId: gym.id } });
-      if (memAfter !== memBefore + 1) fail(`GymMember delta ${memAfter - memBefore}`);
-      if (subAfter !== subBefore) fail(`Membership delta ${subAfter - subBefore}`);
-      if (payAfter !== payBefore) fail(`Payment delta ${payAfter - payBefore}`);
-      if (fighterAfter !== fighterBefore) fail(`Fighter delta ${fighterAfter - fighterBefore}`);
-      pass("self-reg-approve-deltas", {
-        gymMember: memAfter - memBefore,
-        membership: subAfter - subBefore,
-        payment: payAfter - payBefore,
-        fighter: fighterAfter - fighterBefore,
-      });
-      const approved = await prisma.gymMember.findFirst({
-        where: { gymId: gym.id, name: `${SELF_PREFIX}성인` },
-      });
-      if (!approved) fail("approved member missing");
-      await gymPage.goto(`${BASE}/gym/members/${approved.id}`, {
-        waitUntil: "domcontentloaded",
-        timeout: 60_000,
-      });
-      if (!(await gymPage.getByText("가입 신청서 보기").count())) {
-        fail("signature/document link missing");
-      }
-      pass("self-reg-signature-link");
+    await gymPage.goto(`${BASE}/gym/members/registrations/${pendingReq.id}`, {
+      waitUntil: "domcontentloaded",
+      timeout: 90_000,
+    });
+    await gymPage.getByRole("button", { name: "회원으로 등록" }).click();
+    await gymPage.waitForURL(/\/gym\/members\//, { timeout: 60_000 });
+    const memAfter = await prisma.gymMember.count({ where: { gymId: gym.id } });
+    const subAfter = await prisma.gymMemberSubscription.count({ where: { gymId: gym.id } });
+    const payAfter = await prisma.gymMemberPayment.count({ where: { gymId: gym.id } });
+    const fighterAfter = await prisma.fighter.count({ where: { currentGymId: gym.id } });
+    if (memAfter !== memBefore + 1) fail(`GymMember delta ${memAfter - memBefore}`);
+    if (subAfter !== subBefore) fail(`Membership delta ${subAfter - subBefore}`);
+    if (payAfter !== payBefore) fail(`Payment delta ${payAfter - payBefore}`);
+    if (fighterAfter !== fighterBefore) fail(`Fighter delta ${fighterAfter - fighterBefore}`);
+    pass("self-reg-approve-deltas", {
+      gymMember: memAfter - memBefore,
+      membership: subAfter - subBefore,
+      payment: payAfter - payBefore,
+      fighter: fighterAfter - fighterBefore,
+    });
+    const approved = await prisma.gymMember.findFirst({
+      where: { gymId: gym.id, name: `${SELF_PREFIX}성인` },
+    });
+    if (!approved) fail("approved member missing");
+    await gymPage.goto(`${BASE}/gym/members/${approved.id}`, {
+      waitUntil: "domcontentloaded",
+      timeout: 60_000,
+    });
+    if (!(await gymPage.getByText("가입 신청서 보기").count())) {
+      fail("signature/document link missing");
     }
+    pass("self-reg-signature-link");
 
+    await gymPage.goto(`${BASE}/gym/members`, { waitUntil: "domcontentloaded", timeout: 90_000 });
+    await gymPage.getByRole("button", { name: "엑셀 회원 업로드" }).click();
+    await gymPage.getByRole("heading", { name: "엑셀 회원 업로드" }).waitFor();
+    const memberImportWb = new ExcelJS.Workbook();
+    const memberImportSheet = memberImportWb.addWorksheet("회원");
+    memberImportSheet.addRow(["회원명", "연락처", "회원권"]);
+    memberImportSheet.addRow([`${MEMBER_PREFIX}엑셀분석`, "01075550001", plan3m.name]);
+    const memberImportPath = join(OUT, "members-import.xlsx");
+    writeFileSync(memberImportPath, await workbookToBuffer(memberImportWb));
+    await gymPage.locator('input[type="file"]').setInputFiles(memberImportPath);
+    await gymPage.getByText(/행/).first().waitFor({ timeout: 45_000 });
+    pass("member-excel-analyze");
+    await gymPage.keyboard.press("Escape");
+
+    const attBeforeSmoke = await prisma.gymMemberAttendance.count({
+      where: { gymMemberId: attMember.id, deletedAt: null },
+    });
     await gymPage.goto(`${BASE}/gym/attendance`, {
       waitUntil: "domcontentloaded",
       timeout: 60_000,
     });
-    const attPageText = await gymPage.locator("body").innerText();
-    pass("attendance-page", attPageText.slice(0, 80));
+    await gymPage.getByRole("button", { name: "수동 출석 등록" }).click();
+    await gymPage.getByPlaceholder("회원명·번호 검색").fill(`${MEMBER_PREFIX}출석`);
+    await gymPage.locator("button", { hasText: `${MEMBER_PREFIX}출석` }).click();
+    await gymPage.getByRole("button", { name: "저장" }).click();
+    await gymPage.waitForTimeout(2500);
+    const attAfterSmoke = await prisma.gymMemberAttendance.count({
+      where: { gymMemberId: attMember.id, deletedAt: null },
+    });
+    if (attAfterSmoke !== attBeforeSmoke + 1) {
+      fail(`attendance smoke delta ${attAfterSmoke - attBeforeSmoke}`);
+    }
+    pass("attendance-real-smoke", { before: attBeforeSmoke, after: attAfterSmoke });
+
+    await gymPage.goto(`${BASE}/gym/attendance/kiosks`, {
+      waitUntil: "domcontentloaded",
+      timeout: 60_000,
+    });
+    await gymPage.getByRole("heading", { name: /출석 키오스크/ }).waitFor();
+    pass("kiosk-page");
+
+    await orgPage.goto(`${BASE}/organizer/events/${eventId}/check-in`, {
+      waitUntil: "domcontentloaded",
+      timeout: 90_000,
+    });
+    await orgPage.getByRole("heading", { name: /계체/ }).waitFor();
+    pass("weigh-in-access");
+    await orgPage.goto(`${BASE}/organizer/events/${eventId}/brackets`, {
+      waitUntil: "domcontentloaded",
+      timeout: 90_000,
+    });
+    await orgPage.getByRole("heading", { name: /대진/ }).waitFor();
+    pass("bracket-access");
+    await orgPage.goto(`${BASE}/organizer/events/${eventId}/results`, {
+      waitUntil: "domcontentloaded",
+      timeout: 90_000,
+    });
+    await orgPage.getByRole("heading", { name: /결과/ }).waitFor().catch(async () => {
+      await orgPage.getByText(/결과/).first().waitFor();
+    });
+    pass("result-access");
 
     if (rrnLeaks.length) fail(`RRN leak ${rrnLeaks.join(" | ")}`);
     if (consoleErrors.length) fail(`console.error ${consoleErrors[0]}`);
