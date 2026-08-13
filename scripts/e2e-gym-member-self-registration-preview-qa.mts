@@ -161,9 +161,12 @@ async function overflowX(page: Page): Promise<number> {
 }
 
 async function confirmDanger(page: Page) {
-  const dialog = page.getByRole("dialog").last();
-  await dialog.waitFor({ timeout: 10_000 });
-  await dialog.getByRole("button", { name: /삭제|확인/ }).click();
+  const title = page.getByRole("heading", {
+    name: /할까요\?$/,
+  });
+  await title.waitFor({ timeout: 15_000 });
+  const dialog = page.getByRole("dialog").filter({ has: title }).last();
+  await dialog.getByRole("button", { name: "삭제" }).click();
 }
 
 async function fillBasic(
@@ -674,6 +677,12 @@ async function main() {
         }
         await dlg.getByText(gymNameA).waitFor({ timeout: 20_000 });
         await dlg.getByRole("button", { name: "이용규정 관리" }).waitFor();
+        const regenBtn = dlg.getByRole("button", { name: "링크 재발급" });
+        await regenBtn.waitFor();
+        for (let i = 0; i < 20; i += 1) {
+          if (await regenBtn.isEnabled()) break;
+          await admin.waitForTimeout(250);
+        }
         return dlg;
       }
       const dlg = await openSelfRegDialog();
