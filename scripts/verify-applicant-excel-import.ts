@@ -85,7 +85,7 @@ const DIVISIONS: ApplicantDivisionCandidate[] = [
   }),
 ];
 
-/** 신규 18컬럼 순서 */
+/** 신규 20컬럼 순서 */
 function athleteRow(input: {
   no?: string;
   name: string;
@@ -100,6 +100,8 @@ function athleteRow(input: {
   height?: string;
   record?: string;
   career?: string;
+  rrn?: string;
+  consent?: string;
 }): string[] {
   return [
     input.no ?? "",
@@ -112,6 +114,8 @@ function athleteRow(input: {
     input.weight ?? "",
     input.record ?? "",
     input.career ?? "",
+    input.rrn ?? "000000-0000001",
+    input.consent ?? "동의",
     input.ageGroup ?? "고등부",
     input.weightClass ?? "라이트급 -60kg",
     input.weightLimit ?? "",
@@ -201,6 +205,8 @@ async function verifyParser() {
   assert.equal(APPLICANT_EXCEL_HEADERS[2], "선수명");
   assert.ok(APPLICANT_EXCEL_HEADERS.includes("전적"));
   assert.ok(APPLICANT_EXCEL_HEADERS.includes("운동경력"));
+  assert.ok(APPLICANT_EXCEL_HEADERS.includes("주민등록번호"));
+  assert.ok(APPLICANT_EXCEL_HEADERS.includes("보험가입 개인정보동의"));
   assert.ok(!APPLICANT_EXCEL_HEADERS.includes("승인"));
 
   const sample = await buildApplicantExcelSampleWorkbook({
@@ -216,6 +222,10 @@ async function verifyParser() {
     APPLICANT_EXCEL_EXAMPLE_NUMBER_LABEL,
   );
   assert.equal(String(dataSheet.getRow(1).getCell(3).value), "선수명");
+  assert.equal(String(dataSheet.getRow(2).getCell(9).value), "3전 2승 1패");
+  assert.equal(String(dataSheet.getRow(2).getCell(10).value), "킥복싱 2년");
+  assert.equal(String(dataSheet.getRow(2).getCell(11).value), "000000-0000001");
+  assert.equal(String(dataSheet.getRow(2).getCell(12).value), "동의");
 
   const buf = await workbookToBuffer(sample);
   const parsedSample = await parseApplicantExcelWorkbook(buf);
@@ -293,6 +303,8 @@ function verifyMapping() {
   assert.equal(resolveApplicantExcelHeader("무게"), "체중");
   assert.equal(resolveApplicantExcelHeader("비고"), "메모");
   assert.equal(resolveApplicantExcelHeader("소속"), "체육관명");
+  assert.equal(resolveApplicantExcelHeader("주민번호"), "주민등록번호");
+  assert.equal(resolveApplicantExcelHeader("보험동의"), "보험가입 개인정보동의");
 
   assert.equal(splitWeightClassInput("-63.5kg").limitText, "-63.5kg");
   assert.equal(splitWeightClassInput("63.5").limitText, null);
@@ -446,8 +458,10 @@ async function verifyLegacyColumns() {
     [],
     APPLICANT_EXCEL_LEGACY_HEADERS,
   );
-  assert.equal(preview.counts.create, 1);
-  assert.equal(preview.rows[0]?.fighterName, "레거시선수");
+  assert.equal(preview.counts.error, 1);
+  assert.ok(
+    preview.rows[0]?.errors.some((e) => e.includes("주민등록번호")),
+  );
   console.log("verify:applicant-excel-legacy-columns OK");
 }
 
@@ -463,6 +477,8 @@ async function verifyHeaderAliases() {
     "무게",
     "전적",
     "운동경력",
+    "주민번호",
+    "보험동의",
     "경기구분",
     "체급",
     "체중기준",
@@ -483,6 +499,8 @@ async function verifyHeaderAliases() {
     "77kg",
     "무전",
     "킥복싱 1년",
+    "000000-0000001",
+    "동의",
     "고등부",
     "라이트급 -60kg",
     "",
@@ -550,6 +568,8 @@ async function verifyHeaderAliases() {
     "무게",
     "전적",
     "운동경력",
+    "주민등록번호",
+    "보험가입 개인정보동의",
     "경기구분",
     "체급",
     "체중기준",
@@ -572,6 +592,8 @@ async function verifyHeaderAliases() {
         "62.8",
         "무전",
         "",
+        "000000-0000001",
+        "동의",
         "고등부",
         "라이트급 -60kg",
         "",

@@ -45,6 +45,12 @@ import {
   buildApplicantExcelSampleWorkbook,
   workbookToBuffer,
 } from "@/lib/applicant-excel/sample";
+import { encryptInsuranceResidentNumber } from "@/lib/athlete-application/encrypt-insurance-rrn";
+import {
+  buildInsuranceConsentSnapshot,
+  insuranceConsentDisplayLabel,
+  readInsuranceConsentSnapshot,
+} from "@/lib/athlete-application/insurance-consent";
 import type {
   ApplicantExcelCommitResult,
   ApplicantExcelPreview,
@@ -169,6 +175,10 @@ type GymApplicationCreateContext = {
   feeAmount: number;
   applicationProfileImageUrl?: string | null;
   memo?: string | null;
+  recordText?: string | null;
+  careerText?: string | null;
+  insuranceRrnDigits?: string | null;
+  insuranceConsent?: import("@/lib/athlete-application/insurance-consent").InsuranceConsentSnapshot | null;
   customFormSnapshot?: CustomFormSnapshot | null;
   organizerManualEntry?: {
     manualCreatedByUserId: string;
@@ -236,6 +246,8 @@ async function createGymEventApplication(
     ctx.fighter.profileImageUrl ||
     null;
 
+  const recordText = ctx.recordText?.trim() || null;
+  const careerText = ctx.careerText?.trim() || null;
   const fighterSnapshot = {
     fighterId: ctx.fighter.id,
     fighterCode: ctx.fighter.fighterCode,
@@ -243,6 +255,8 @@ async function createGymEventApplication(
     gymName: ctx.gymDisplayName,
     profileImageUrl: profileUrl,
     recordSummary: formatRecordSummary(ctx.fighter),
+    ...(recordText ? { recordText } : {}),
+    ...(careerText ? { careerText } : {}),
   };
 
   const gymSnapshot = {
@@ -276,6 +290,21 @@ async function createGymEventApplication(
     applicationAgreementSnapshot.customForm = ctx.customFormSnapshot;
   }
 
+  if (!ctx.insuranceRrnDigits?.trim()) {
+    throw new AppError(
+      "VALIDATION_ERROR",
+      "보험가입용 주민등록번호를 입력해 주세요.",
+    );
+  }
+  if (!ctx.insuranceConsent) {
+    throw new AppError(
+      "VALIDATION_ERROR",
+      "보험가입 개인정보 수집·이용 동의가 필요합니다.",
+    );
+  }
+
+  const encrypted = encryptInsuranceResidentNumber(ctx.insuranceRrnDigits);
+
   const persist = async (client: Prisma.TransactionClient) =>
     applicationRepository.createEventApplicationWithPayment(
       {
@@ -291,6 +320,14 @@ async function createGymEventApplication(
         appliedAt: ctx.appliedAt,
         applicationProfileImageUrl: profileUrl,
         memo: ctx.memo?.trim() || null,
+        recordText,
+        careerText,
+        insuranceRrnCipher: encrypted.cipher,
+        insuranceRrnIv: encrypted.iv,
+        insuranceRrnAuthTag: encrypted.authTag,
+        insuranceRrnKeyVer: encrypted.keyVer,
+        insuranceRrnMasked: encrypted.masked,
+        insuranceConsentSnapshot: ctx.insuranceConsent as Prisma.InputJsonValue,
         feeAmount: ctx.feeAmount,
         initialApplicationStatus: ctx.initialApplicationStatus,
         initialPaymentStatus: ctx.initialPaymentStatus,
@@ -371,6 +408,10 @@ export type OrganizerApplicationPrintVM = {
   applicationStatus: ApplicationStatus;
   paymentStatus: PaymentStatus;
   appliedAt: string;
+  recordText: string | null;
+  careerText: string | null;
+  insuranceRrnMasked: string | null;
+  insuranceConsentLabel: string | null;
   customFormSnapshot: CustomFormSnapshot;
   agreementSnapshot: {
     rulesAgreed: boolean;
@@ -415,6 +456,11 @@ export type OrganizerApplicationListRowDTO = {
   applicationFormMode: ApplicationFormMode;
   isOrganizerManualEntry: boolean;
   entrySource: ManualEntrySource | null;
+  recordText: string | null;
+  careerText: string | null;
+  insuranceRrnMasked: string | null;
+  insuranceConsentAgreed: boolean;
+  insuranceConsentLabel: string;
 };
 
 export type OrganizerManualRegistrationOptionsDTO = {
@@ -664,6 +710,9 @@ export const applicationService = {
         ? (row.applicationAgreementSnapshot as Record<string, unknown>)
         : null;
 
+    const insuranceConsent = readInsuranceConsentSnapshot(
+      row.insuranceConsentSnapshot,
+    );
     return {
       eventTitle: row.event.title,
       fighterName,
@@ -672,6 +721,10 @@ export const applicationService = {
       applicationStatus: row.status,
       paymentStatus: row.paymentStatus,
       appliedAt: row.appliedAt ? toIso(row.appliedAt) : toIso(row.createdAt),
+      recordText: row.recordText ?? null,
+      careerText: row.careerText ?? null,
+      insuranceRrnMasked: row.insuranceRrnMasked ?? null,
+      insuranceConsentLabel: insuranceConsentDisplayLabel(insuranceConsent),
       customFormSnapshot,
       agreementSnapshot: agreement
         ? {
@@ -789,6 +842,14 @@ export const applicationService = {
           ) != null,
         entrySource: readApplicationEntrySource(
           row.applicationAgreementSnapshot,
+        ),
+        recordText: row.recordText ?? null,
+        careerText: row.careerText ?? null,
+        insuranceRrnMasked: row.insuranceRrnMasked ?? null,
+        insuranceConsentAgreed:
+          readInsuranceConsentSnapshot(row.insuranceConsentSnapshot) != null,
+        insuranceConsentLabel: insuranceConsentDisplayLabel(
+          readInsuranceConsentSnapshot(row.insuranceConsentSnapshot),
         ),
       });
     }
@@ -984,6 +1045,14 @@ export const applicationService = {
       feeAmount,
       applicationProfileImageUrl: input.applicationProfileImageUrl,
       memo: input.memo,
+      recordText: input.recordText,
+      careerText: input.careerText,
+      insuranceRrnDigits: input.residentRegistrationNumber,
+      insuranceConsent: buildInsuranceConsentSnapshot({
+        agreedAt: appliedAt,
+        appliedByUserId: actor.userId,
+        provenance: "gym_operator_attested",
+      }),
     });
 
     safeNotify(`application-submitted:${applicationId}`, () =>
@@ -1194,6 +1263,14 @@ export const applicationService = {
           appliedAt,
           feeAmount,
           memo: input.memo,
+          recordText: row.recordText,
+          careerText: row.careerText,
+          insuranceRrnDigits: row.residentRegistrationNumber,
+          insuranceConsent: buildInsuranceConsentSnapshot({
+            agreedAt: appliedAt,
+            appliedByUserId: actor.userId,
+            provenance: "gym_operator_attested",
+          }),
           customFormSnapshot,
         });
         items.push({
@@ -1677,6 +1754,14 @@ export const applicationService = {
             appliedAt,
             feeAmount,
             memo: memoParts.join("\n"),
+            recordText: input.recordText,
+            careerText: input.careerText,
+            insuranceRrnDigits: input.residentRegistrationNumber,
+            insuranceConsent: buildInsuranceConsentSnapshot({
+              agreedAt: appliedAt,
+              appliedByUserId: actor.userId,
+              provenance: "organizer_confirmed",
+            }),
             customFormSnapshot,
             organizerManualEntry: {
               manualCreatedByUserId: actor.userId,
@@ -2010,6 +2095,14 @@ export const applicationService = {
             appliedAt,
             feeAmount,
             memo: memoParts.join("\n"),
+            recordText: athlete.recordText,
+            careerText: athlete.careerText,
+            insuranceRrnDigits: athlete.residentRegistrationNumber,
+            insuranceConsent: buildInsuranceConsentSnapshot({
+              agreedAt: appliedAt,
+              appliedByUserId: null,
+              provenance: "athlete_self",
+            }),
             customFormSnapshot,
             applicationEntryExtras: entryExtras,
             initialApplicationStatus: ApplicationStatus.approved,
@@ -2309,6 +2402,14 @@ export const applicationService = {
               appliedAt,
               feeAmount,
               memo: memoParts.join("\n"),
+              recordText: row.recordText || null,
+              careerText: row.careerText || null,
+              insuranceRrnDigits: row.insuranceRrnDigits,
+              insuranceConsent: buildInsuranceConsentSnapshot({
+                agreedAt: appliedAt,
+                appliedByUserId: actor.userId,
+                provenance: "excel_operator_attested",
+              }),
               customFormSnapshot,
               organizerManualEntry: {
                 manualCreatedByUserId: actor.userId,

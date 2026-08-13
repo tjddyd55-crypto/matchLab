@@ -7,6 +7,8 @@ import type { OrganizerManualRegistrationOptionsDTO } from "@/lib/services/appli
 import { ApplicationStatus, PaymentStatus } from "@/generated/prisma";
 import { AppDateInput } from "@/components/shared/AppDateInput";
 import { Button } from "@/components/ui/button";
+import { AthleteInsuranceProfileFields } from "@/components/domain/applications/AthleteInsuranceProfileFields";
+import { INSURANCE_PII_ORGANIZER_CONFIRM_LABEL } from "@/lib/athlete-application/insurance-consent";
 import { ORGANIZER_FIELD_INPUT_CLASS } from "@/lib/organizer-dashboard-layout";
 import { cn } from "@/lib/utils";
 
@@ -323,6 +325,25 @@ export function OrganizerManualApplicationPanel({
                 </select>
               </div>
             </div>
+
+            <AthleteInsuranceProfileFields idPrefix="manual" />
+            <label className="flex cursor-pointer gap-2 text-sm">
+              <input
+                type="checkbox"
+                name="insuranceConsentConfirmed"
+                className="mt-0.5 size-5 accent-primary"
+                required
+              />
+              <span>
+                <span className="block font-medium">
+                  {INSURANCE_PII_ORGANIZER_CONFIRM_LABEL}
+                </span>
+                <span className="text-muted-foreground mt-0.5 block text-[11px]">
+                  선수를 대신 등록할 때, 보험가입 개인정보 동의를 확인한 경우에만
+                  체크하세요. 선수 본인 동의처럼 표시되지 않습니다.
+                </span>
+              </span>
+            </label>
 
             <div>
               <label className={labelClass} htmlFor="manual-memo">

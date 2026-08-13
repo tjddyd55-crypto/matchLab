@@ -66,6 +66,30 @@ export function PrintCustomFormApplication({
               <dt className="text-xs text-matchon-text-secondary">제출일</dt>
               <dd className="text-matchon-text-primary">{appliedLabel}</dd>
             </div>
+            {data.recordText ? (
+              <div>
+                <dt className="text-xs text-matchon-text-secondary">전적</dt>
+                <dd className="text-matchon-text-primary">{data.recordText}</dd>
+              </div>
+            ) : null}
+            {data.careerText ? (
+              <div>
+                <dt className="text-xs text-matchon-text-secondary">운동경력</dt>
+                <dd className="text-matchon-text-primary">{data.careerText}</dd>
+              </div>
+            ) : null}
+            <div>
+              <dt className="text-xs text-matchon-text-secondary">보험정보 수집 동의</dt>
+              <dd className="text-matchon-text-primary">
+                {data.insuranceConsentLabel ?? "—"}
+              </dd>
+            </div>
+            {data.insuranceRrnMasked ? (
+              <div>
+                <dt className="text-xs text-matchon-text-secondary">주민등록번호</dt>
+                <dd className="text-matchon-text-primary">{data.insuranceRrnMasked}</dd>
+              </div>
+            ) : null}
           </dl>
         </header>
 

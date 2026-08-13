@@ -34,6 +34,8 @@ const COLUMN_WIDTHS: Record<string, number> = {
   체중: 10,
   전적: 20,
   운동경력: 24,
+  주민등록번호: 18,
+  "보험가입 개인정보동의": 22,
   경기구분: 16,
   체급: 25,
   체중기준: 14,
@@ -131,6 +133,8 @@ export async function buildApplicantExcelSampleWorkbook(input: {
     "62.8",
     "3전 2승 1패",
     "킥복싱 2년",
+    "000000-0000001",
+    "동의",
     exampleAge,
     exampleWeight || "라이트급 -60kg",
     exampleLimit,
@@ -166,6 +170,7 @@ export async function buildApplicantExcelSampleWorkbook(input: {
   setTextColumn(data, "보호자연락처");
   setTextColumn(data, "생년월일");
   setTextColumn(data, "번호");
+  setTextColumn(data, "주민등록번호");
 
   const guide = wb.addWorksheet(APPLICANT_EXCEL_SHEET_GUIDE);
   guide.addRow(["대회", sanitizePlainCell(input.eventTitle)]);
@@ -190,6 +195,18 @@ export async function buildApplicantExcelSampleWorkbook(input: {
     ["체중", "선택", "숫자만 권장. 62.8 / 62.8kg 허용", "62.8"],
     ["전적", "선택", "자유 문장 그대로 보존", "3전 2승 1패"],
     ["운동경력", "선택", "자유 문장 그대로 보존", "킥복싱 2년"],
+    [
+      "주민등록번호",
+      "필수",
+      "보험가입용. 000000-0000001 형식. 실제 개인번호 예시 금지",
+      "000000-0000001",
+    ],
+    [
+      "보험가입 개인정보동의",
+      "필수",
+      "동의를 받은 선수만 「동의」 입력",
+      "동의",
+    ],
     ["경기구분", "필수", "아래 목록과 동일", exampleAge],
     ["체급", "필수", "아래 목록과 동일 (체급명+기준 권장)", exampleWeight || exampleLimit],
     [
@@ -209,6 +226,10 @@ export async function buildApplicantExcelSampleWorkbook(input: {
   }
 
   guide.addRow([]);
+  guide.addRow([
+    "보험가입 개인정보 동의",
+    "보험가입 개인정보 동의를 받은 선수만 입력하세요.",
+  ]);
   guide.addRow([
     "체중기준 vs 체중",
     "체중기준=신청 체급 기준(-63.5kg). 체중=선수 실측(62.8).",

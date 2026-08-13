@@ -1,4 +1,10 @@
 import { z } from "zod";
+import {
+  athleteCareerTextSchema,
+  athleteRecordTextSchema,
+  insuranceConsentMustAgreeSchema,
+  residentRegistrationNumberFieldSchema,
+} from "@/lib/athlete-application/profile-input";
 
 const mustAgree = z.boolean().refine((v) => v === true, {
   message: "동의가 필요합니다.",
@@ -7,6 +13,9 @@ const mustAgree = z.boolean().refine((v) => v === true, {
 export const bulkApplicationItemSchema = z.object({
   fighterId: z.string().min(1),
   divisionId: z.string().min(1),
+  recordText: athleteRecordTextSchema,
+  careerText: athleteCareerTextSchema,
+  residentRegistrationNumber: residentRegistrationNumberFieldSchema,
   formAnswers: z.record(z.string(), z.unknown()).optional(),
 });
 
@@ -17,6 +26,7 @@ export const bulkApplyToEventSchema = z.object({
     .min(1, "신청할 선수를 1명 이상 선택해 주세요.")
     .max(50),
   memo: z.string().max(2000).optional(),
+  insuranceConsentAgreed: insuranceConsentMustAgreeSchema,
   agreements: z.object({
     rulesAgreed: mustAgree,
     privacyAgreed: mustAgree,

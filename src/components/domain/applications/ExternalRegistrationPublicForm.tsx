@@ -6,7 +6,12 @@ import { EXTERNAL_REGISTRATION_MAX_ATHLETES } from "@/lib/validators/external-re
 import { AppDateInput } from "@/components/shared/AppDateInput";
 import { Button } from "@/components/ui/button";
 import { cn } from "@/lib/utils";
+import { AthleteInsuranceProfileFields } from "@/components/domain/applications/AthleteInsuranceProfileFields";
 import { ExternalRegistrationStatusScreen } from "@/components/domain/applications/ExternalRegistrationStatusScreen";
+import {
+  INSURANCE_PII_CONSENT_CHECKBOX_LABEL,
+} from "@/lib/athlete-application/insurance-consent";
+import { parseResidentRegistrationNumber } from "@/lib/athlete-application/resident-registration-number";
 
 type DivisionOption = {
   id: string;
@@ -25,6 +30,10 @@ type AthleteDraft = {
   guardianPhone: string;
   divisionId: string;
   memo: string;
+  recordText: string;
+  careerText: string;
+  residentRegistrationNumber: string;
+  insuranceConsentAgreed: boolean;
 };
 
 type GymDraft = {
@@ -64,6 +73,10 @@ function emptyAthlete(): AthleteDraft {
     guardianPhone: "",
     divisionId: "",
     memo: "",
+    recordText: "",
+    careerText: "",
+    residentRegistrationNumber: "",
+    insuranceConsentAgreed: false,
   };
 }
 
@@ -104,7 +117,16 @@ export function ExternalRegistrationPublicForm({
       if (!raw) return;
       const parsed = JSON.parse(raw) as { gym?: GymDraft; athletes?: AthleteDraft[] };
       if (parsed.gym) setGym(parsed.gym);
-      if (parsed.athletes?.length) setAthletes(parsed.athletes);
+      if (parsed.athletes?.length) {
+        setAthletes(
+          parsed.athletes.map((a) => ({
+            ...emptyAthlete(),
+            ...a,
+            residentRegistrationNumber: "",
+            insuranceConsentAgreed: false,
+          })),
+        );
+      }
     } catch {
       /* ignore */
     }
@@ -115,7 +137,14 @@ export function ExternalRegistrationPublicForm({
     try {
       sessionStorage.setItem(
         DRAFT_PREFIX + token,
-        JSON.stringify({ gym, athletes }),
+        JSON.stringify({
+          gym,
+          athletes: athletes.map((a) => ({
+            ...a,
+            residentRegistrationNumber: "",
+            insuranceConsentAgreed: false,
+          })),
+        }),
       );
     } catch {
       /* ignore */
@@ -179,6 +208,8 @@ export function ExternalRegistrationPublicForm({
       guardianName: "",
       guardianPhone: "",
       memo: "",
+      residentRegistrationNumber: "",
+      insuranceConsentAgreed: false,
     };
     setAthletes((prev) => {
       const idx = prev.findIndex((a) => a.key === key);
@@ -198,6 +229,11 @@ export function ExternalRegistrationPublicForm({
       if (!a.gender) return `${i + 1}번 선수: 성별을 선택해 주세요.`;
       if (!a.birthDate) return `${i + 1}번 선수: 생년월일을 입력해 주세요.`;
       if (!a.divisionId) return `${i + 1}번 선수: 체급을 선택해 주세요.`;
+      const rrn = parseResidentRegistrationNumber(a.residentRegistrationNumber);
+      if (!rrn.ok) return `${i + 1}번 선수: ${rrn.error}`;
+      if (!a.insuranceConsentAgreed) {
+        return `${i + 1}번 선수: 보험가입 개인정보 동의가 필요합니다.`;
+      }
     }
     return null;
   }
@@ -228,6 +264,10 @@ export function ExternalRegistrationPublicForm({
           guardianPhone: a.guardianPhone || undefined,
           divisionId: a.divisionId,
           memo: a.memo || undefined,
+          recordText: a.recordText || undefined,
+          careerText: a.careerText || undefined,
+          residentRegistrationNumber: a.residentRegistrationNumber,
+          insuranceConsentAgreed: a.insuranceConsentAgreed,
         })),
       });
       if (!res.ok) {
@@ -505,6 +545,30 @@ export function ExternalRegistrationPublicForm({
                 </select>
               </label>
             </div>
+            <AthleteInsuranceProfileFields
+              idPrefix={`ext-${a.key}`}
+              recordValue={a.recordText}
+              careerValue={a.careerText}
+              rrnValue={a.residentRegistrationNumber}
+              onRecordChange={(v) => updateAthlete(a.key, { recordText: v })}
+              onCareerChange={(v) => updateAthlete(a.key, { careerText: v })}
+              onRrnChange={(v) =>
+                updateAthlete(a.key, { residentRegistrationNumber: v })
+              }
+            />
+            <label className="flex cursor-pointer gap-2 text-sm">
+              <input
+                type="checkbox"
+                className="mt-0.5 size-5 accent-primary"
+                checked={a.insuranceConsentAgreed}
+                onChange={(e) =>
+                  updateAthlete(a.key, {
+                    insuranceConsentAgreed: e.target.checked,
+                  })
+                }
+              />
+              {INSURANCE_PII_CONSENT_CHECKBOX_LABEL}
+            </label>
           </div>
         ))}
       </section>

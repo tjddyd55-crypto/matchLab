@@ -12,6 +12,7 @@ import type {
 import type { CustomFormFieldDefinition } from "@/lib/application-form/custom-form";
 import type { MatchonStatus } from "@/lib/ui/matchon-status";
 import { ApplicationAgreementChecklist } from "@/components/domain/applications/ApplicationAgreementChecklist";
+import { AthleteInsuranceProfileFields } from "@/components/domain/applications/AthleteInsuranceProfileFields";
 import {
   GymBulkApplicationCard,
   GymBulkApplicationTableRow,
@@ -57,7 +58,14 @@ function initialRowStates(
 ): Record<string, FighterRowState> {
   const map: Record<string, FighterRowState> = {};
   for (const fighter of fighters) {
-    map[fighter.id] = { checked: false, divisionId: "", formAnswers: {} };
+    map[fighter.id] = {
+      checked: false,
+      divisionId: "",
+      formAnswers: {},
+      recordText: "",
+      careerText: "",
+      residentRegistrationNumber: "",
+    };
   }
   return map;
 }
@@ -71,6 +79,9 @@ function buildApplicationsPayload(
   const applications: Array<{
     fighterId: string;
     divisionId: string;
+    recordText?: string;
+    careerText?: string;
+    residentRegistrationNumber?: string;
     formAnswers?: Record<string, unknown>;
   }> = [];
   for (const fighter of fighters) {
@@ -87,6 +98,9 @@ function buildApplicationsPayload(
     applications.push({
       fighterId: fighter.id,
       divisionId: state.divisionId,
+      recordText: state.recordText || undefined,
+      careerText: state.careerText || undefined,
+      residentRegistrationNumber: state.residentRegistrationNumber,
       formAnswers:
         requireCustomForm && customFields.length > 0
           ? state.formAnswers
@@ -297,6 +311,45 @@ export function GymBulkApplicationForm(props: GymBulkApplicationFormProps) {
       </div>
         </CardContent>
       </Card>
+
+      {selectedRows.length > 0 ? (
+        <Card>
+          <CardHeader>
+            <CardTitle className="text-base">선택 선수 출전 정보</CardTitle>
+            <CardDescription>
+              전적·운동경력·보험가입 주민번호는 이번 대회 신청에만 저장됩니다.
+            </CardDescription>
+          </CardHeader>
+          <CardContent className="space-y-4">
+            {selectedRows.map((fighter) => {
+              const rowState = rowStates[fighter.id]!;
+              return (
+                <div
+                  key={fighter.id}
+                  className="rounded-xl border border-border/70 bg-muted/20 p-4"
+                >
+                  <p className="mb-3 text-sm font-medium">{fighter.name}</p>
+                  <AthleteInsuranceProfileFields
+                    idPrefix={`bulk-${fighter.id}`}
+                    recordValue={rowState.recordText}
+                    careerValue={rowState.careerText}
+                    rrnValue={rowState.residentRegistrationNumber}
+                    onRecordChange={(v) =>
+                      updateRow(fighter.id, { recordText: v })
+                    }
+                    onCareerChange={(v) =>
+                      updateRow(fighter.id, { careerText: v })
+                    }
+                    onRrnChange={(v) =>
+                      updateRow(fighter.id, { residentRegistrationNumber: v })
+                    }
+                  />
+                </div>
+              );
+            })}
+          </CardContent>
+        </Card>
+      ) : null}
 
       {requireCustomForm && customFields.length > 0 && selectedRows.length > 0 ? (
         <Card>

@@ -26,6 +26,9 @@ export type FighterRowState = {
   checked: boolean;
   divisionId: string;
   formAnswers: Record<string, unknown>;
+  recordText: string;
+  careerText: string;
+  residentRegistrationNumber: string;
 };
 
 type GymBulkApplicationRowProps = {

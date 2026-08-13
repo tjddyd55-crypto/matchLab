@@ -1,4 +1,10 @@
 import { z } from "zod";
+import {
+  athleteCareerTextSchema,
+  athleteRecordTextSchema,
+  insuranceConsentMustAgreeSchema,
+  residentRegistrationNumberFieldSchema,
+} from "@/lib/athlete-application/profile-input";
 
 const mustAgree = z.boolean().refine((v) => v === true, {
   message: "동의가 필요합니다.",
@@ -6,6 +12,7 @@ const mustAgree = z.boolean().refine((v) => v === true, {
 
 /**
  * 신청 시 휴대폰·생년월일 등은 클라이언트에서 새로 받지 않으며 Fighter 원본 기준 스냅샷만 서버가 생성한다.
+ * 전적/운동경력/보험 주민번호는 대회 신청 단위로 받는다.
  */
 export const applyToEventSchema = z.object({
   eventId: z.string().min(1),
@@ -15,6 +22,10 @@ export const applyToEventSchema = z.object({
     .union([z.string().url(), z.literal("")])
     .optional(),
   memo: z.string().max(2000).optional(),
+  recordText: athleteRecordTextSchema,
+  careerText: athleteCareerTextSchema,
+  residentRegistrationNumber: residentRegistrationNumberFieldSchema,
+  insuranceConsentAgreed: insuranceConsentMustAgreeSchema,
   agreements: z.object({
     rulesAgreed: mustAgree,
     privacyAgreed: mustAgree,

@@ -66,6 +66,11 @@ export type OrganizerApplicationRowVM = {
   applicationFormMode: ApplicationFormMode;
   isOrganizerManualEntry: boolean;
   entrySource?: "organizer_manual" | "external_link" | null;
+  recordText?: string | null;
+  careerText?: string | null;
+  insuranceRrnMasked?: string | null;
+  insuranceConsentAgreed?: boolean;
+  insuranceConsentLabel?: string;
 };
 
 export function OrganizerApplicationsTable({

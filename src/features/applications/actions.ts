@@ -36,6 +36,8 @@ import {
   logManualApplicationCreateError,
   maskPhoneLast4,
 } from "@/lib/applications/manual-application-create-log";
+import { sanitizeApplicantExcelPreviewForClient } from "@/lib/applicant-excel/analyze";
+import { sanitizePiiForLog } from "@/lib/athlete-application/sanitize-pii-log";
 import {
   bulkApplyToEventSchema,
   type BulkApplyToEventInput,
@@ -87,6 +89,10 @@ export async function applyToEventAction(
       applicationProfileImageUrl:
         formReq(formData, "applicationProfileImageUrl") || undefined,
       memo: formReq(formData, "memo") || undefined,
+      recordText: formReq(formData, "recordText") || undefined,
+      careerText: formReq(formData, "careerText") || undefined,
+      residentRegistrationNumber: formReq(formData, "residentRegistrationNumber"),
+      insuranceConsentAgreed: formData.get("insuranceConsentAgreed") === "on",
       agreements,
     };
 
@@ -149,6 +155,7 @@ export async function createBulkEventApplicationsAction(
       eventId: formReq(formData, "eventId"),
       applications,
       memo: formReq(formData, "memo") || undefined,
+      insuranceConsentAgreed: formData.get("insuranceConsentAgreed") === "on",
       agreements: parseAgreementsFromFormData(formData, streamingRequired),
     };
 
@@ -261,16 +268,23 @@ export async function createOrganizerManualApplicationAction(
       paymentStatus:
         formReq(formData, "paymentStatus") || PaymentStatus.paid,
       memo: formReq(formData, "memo") || undefined,
+      recordText: formReq(formData, "recordText") || undefined,
+      careerText: formReq(formData, "careerText") || undefined,
+      residentRegistrationNumber: formReq(formData, "residentRegistrationNumber"),
+      insuranceConsentConfirmed: parseCheckboxOn(
+        formData,
+        "insuranceConsentConfirmed",
+      ),
       confirmDuplicate: parseCheckboxOn(formData, "confirmDuplicate"),
       linkFighterId: formReq(formData, "linkFighterId") || undefined,
     };
 
-    logManualApplicationCreate("action_received", {
+    logManualApplicationCreate("action_received", sanitizePiiForLog({
       eventId: raw.eventId,
       divisionId: raw.divisionId,
       gymMode: raw.gymMode,
       phoneLast4: maskPhoneLast4(raw.phone),
-    });
+    }) as Record<string, unknown>);
 
     const parsed = organizerManualApplicationSchema.safeParse(raw);
     if (!parsed.success) {
@@ -347,7 +361,7 @@ export async function analyzeOrganizerApplicantExcelAction(
       actor,
       { eventId, ...(file as { fileName: string; buffer: Buffer }) },
     );
-    return actionSuccess(preview);
+    return actionSuccess(sanitizeApplicantExcelPreviewForClient(preview));
   });
 }
 

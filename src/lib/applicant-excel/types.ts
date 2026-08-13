@@ -20,6 +20,10 @@ export type ApplicantExcelPreviewRow = {
   ageNote: string;
   recordText: string;
   careerText: string;
+  insuranceRrnMasked: string;
+  insuranceConsentLabel: string;
+  /** 서버 commit 전용. analyze action 응답에서는 제거한다. */
+  insuranceRrnDigits?: string;
   phone: string;
   guardianName: string;
   guardianPhone: string;
