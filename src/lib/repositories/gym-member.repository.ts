@@ -3,6 +3,7 @@
  */
 import type { Prisma } from "@/generated/prisma";
 import {
+  GymMemberPaymentStatus,
   GymMemberStatus,
   GymMemberSubscriptionStatus,
 } from "@/generated/prisma";
@@ -107,6 +108,10 @@ const memberListSelect = {
       endsAt: true,
       status: true,
       priceSnapshot: true,
+      importMeta: true,
+      plan: {
+        select: { durationType: true, durationValue: true },
+      },
     },
   },
 } satisfies Prisma.GymMemberSelect;
@@ -446,5 +451,41 @@ export const gymMemberRepository = {
         gender: true,
       },
     });
+  },
+
+  async sumNetPaidBySubscriptionIds(
+    gymId: string,
+    subscriptionIds: string[],
+    tx?: Prisma.TransactionClient,
+  ): Promise<Map<string, number>> {
+    const totals = new Map<string, number>();
+    if (subscriptionIds.length === 0) return totals;
+    const payments = await db(tx).gymMemberPayment.findMany({
+      where: {
+        gymId,
+        subscriptionId: { in: subscriptionIds },
+        cancelledAt: null,
+        status: {
+          in: [GymMemberPaymentStatus.paid, GymMemberPaymentStatus.refunded],
+        },
+      },
+      select: {
+        subscriptionId: true,
+        amount: true,
+        refunds: {
+          where: { cancelledAt: null },
+          select: { amount: true },
+        },
+      },
+    });
+    for (const payment of payments) {
+      if (!payment.subscriptionId) continue;
+      const refundTotal = payment.refunds.reduce((sum, r) => sum + r.amount, 0);
+      totals.set(
+        payment.subscriptionId,
+        (totals.get(payment.subscriptionId) ?? 0) + payment.amount - refundTotal,
+      );
+    }
+    return totals;
   },
 };

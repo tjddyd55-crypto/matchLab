@@ -327,6 +327,40 @@ export const gymAttendanceRepository = {
     });
   },
 
+  async countAttendancesSinceStarts(
+    input: {
+      gymId: string;
+      items: Array<{ gymMemberId: string; startedAt: Date }>;
+    },
+    tx?: Prisma.TransactionClient,
+  ): Promise<Map<string, number>> {
+    const counts = new Map<string, number>();
+    if (input.items.length === 0) return counts;
+    const memberIds = input.items.map((item) => item.gymMemberId);
+    const earliestStart = input.items.reduce(
+      (min, item) => (item.startedAt < min ? item.startedAt : min),
+      input.items[0]!.startedAt,
+    );
+    const rows = await db(tx).gymMemberAttendance.findMany({
+      where: {
+        gymId: input.gymId,
+        gymMemberId: { in: memberIds },
+        deletedAt: null,
+        attendanceDate: { gte: earliestStart },
+      },
+      select: { gymMemberId: true, attendanceDate: true },
+    });
+    const startByMember = new Map(
+      input.items.map((item) => [item.gymMemberId, item.startedAt] as const),
+    );
+    for (const row of rows) {
+      const startedAt = startByMember.get(row.gymMemberId);
+      if (!startedAt || row.attendanceDate < startedAt) continue;
+      counts.set(row.gymMemberId, (counts.get(row.gymMemberId) ?? 0) + 1);
+    }
+    return counts;
+  },
+
   async countMemberAttendances(
     gymId: string,
     gymMemberId: string,
