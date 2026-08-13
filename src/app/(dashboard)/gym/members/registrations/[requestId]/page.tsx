@@ -1,6 +1,8 @@
 import Link from "next/link";
 import { notFound } from "next/navigation";
 import { requireActor } from "@/lib/auth/actor";
+import { AppError } from "@/lib/errors/app-error";
+import { PermissionError } from "@/lib/auth/permission-error";
 import { gymMemberSelfRegistrationService } from "@/lib/services/gym-member-self-registration.service";
 import { formatPhoneNumber } from "@/lib/phone";
 import { formatUtcDateOnly } from "@/lib/date-only";
@@ -26,10 +28,19 @@ export default async function GymMemberRegistrationDetailPage({
   const actor = await requireActor();
   if (!actor.gymId) notFound();
   const { requestId } = await params;
-  const row = await gymMemberSelfRegistrationService.getRequestDetail(
-    actor,
-    requestId,
-  );
+  let row;
+  try {
+    row = await gymMemberSelfRegistrationService.getRequestDetail(
+      actor,
+      requestId,
+    );
+  } catch (e) {
+    if (e instanceof AppError && (e.code === "NOT_FOUND" || e.code === "FORBIDDEN")) {
+      notFound();
+    }
+    if (e instanceof PermissionError) notFound();
+    throw e;
+  }
   const health = row.healthSnapshot as HealthSnapshot;
   const genderLabel =
     row.gender === "남" || row.gender === "여"
