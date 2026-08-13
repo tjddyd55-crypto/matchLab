@@ -4,7 +4,8 @@ import { GymMemberSelfRegistrationPrintClient } from "@/components/domain/gym-me
 
 export const dynamic = "force-dynamic";
 
-export default async function GymMemberSelfRegistrationPrintPage() {
+/** Dashboard shell 없이 QR 인쇄 용지만 렌더한다. */
+export default async function SelfRegistrationPrintPage() {
   const actor = await requireActor();
   if (!actor.gymId) {
     return (
