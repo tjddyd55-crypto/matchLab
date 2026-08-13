@@ -84,6 +84,8 @@ export function GymMemberSelfRegistrationPublicForm({
   const [pending, startTransition] = useTransition();
   const memberPadRef = useRef<SignaturePadHandle | null>(null);
   const guardianPadRef = useRef<SignaturePadHandle | null>(null);
+  const [memberSignatureBlob, setMemberSignatureBlob] = useState<Blob | null>(null);
+  const [guardianSignatureBlob, setGuardianSignatureBlob] = useState<Blob | null>(null);
 
   const birth = parseDateOnlyString(form.birthDate);
   const minor = birth ? isMinorBirthDate(birth) : false;
@@ -96,6 +98,8 @@ export function GymMemberSelfRegistrationPublicForm({
     setDone(false);
     setClientSubmissionId(newClientId());
     setFormKey((k) => k + 1);
+    setMemberSignatureBlob(null);
+    setGuardianSignatureBlob(null);
     memberPadRef.current?.clear();
     guardianPadRef.current?.clear();
   }
@@ -140,28 +144,68 @@ export function GymMemberSelfRegistrationPublicForm({
     return null;
   }
 
-  function goNext() {
+  async function captureSignatures(): Promise<string | null> {
+    const memberBlob = await memberPadRef.current?.toBlob();
+    if (!memberBlob || memberPadRef.current?.isEmpty()) {
+      return "회원 서명을 입력해 주세요.";
+    }
+    setMemberSignatureBlob(memberBlob);
+    if (!minor) {
+      setGuardianSignatureBlob(null);
+      return null;
+    }
+    const guardianBlob = await guardianPadRef.current?.toBlob();
+    if (!guardianBlob || guardianPadRef.current?.isEmpty()) {
+      return "보호자 서명을 입력해 주세요.";
+    }
+    setGuardianSignatureBlob(guardianBlob);
+    return null;
+  }
+
+  async function goNext() {
     const msg = validateStep(step);
     if (msg) {
       setError(msg);
       return;
+    }
+    if (step === 3) {
+      const sigMsg = await captureSignatures();
+      if (sigMsg) {
+        setError(sigMsg);
+        return;
+      }
     }
     setError(null);
     setStep((s) => (s < 4 ? ((s + 1) as Step) : s));
   }
 
   function submit() {
-    const msg = validateStep(3) ?? validateStep(1) ?? validateStep(2);
+    const msg = validateStep(1) ?? validateStep(2);
     if (msg) {
       setError(msg);
       return;
     }
+    if (!form.privacyAgreed) {
+      setError("개인정보 수집·이용에 동의해 주세요.");
+      return;
+    }
+    if (!form.termsAgreed) {
+      setError("이용 안내에 동의해 주세요.");
+      return;
+    }
+    if (!memberSignatureBlob) {
+      setError("회원 서명을 입력해 주세요.");
+      return;
+    }
+    if (minor && !form.guardianConsentAgreed) {
+      setError("보호자 동의가 필요합니다.");
+      return;
+    }
+    if (minor && !guardianSignatureBlob) {
+      setError("보호자 서명을 입력해 주세요.");
+      return;
+    }
     startTransition(async () => {
-      const memberBlob = await memberPadRef.current?.toBlob();
-      if (!memberBlob) {
-        setError("회원 서명을 입력해 주세요.");
-        return;
-      }
       const fd = new FormData();
       fd.set(
         "payload",
@@ -186,14 +230,9 @@ export function GymMemberSelfRegistrationPublicForm({
           guardianConsentAgreed: minor ? true : undefined,
         }),
       );
-      fd.set("memberSignature", memberBlob, "member.png");
-      if (minor) {
-        const guardianBlob = await guardianPadRef.current?.toBlob();
-        if (!guardianBlob) {
-          setError("보호자 서명을 입력해 주세요.");
-          return;
-        }
-        fd.set("guardianSignature", guardianBlob, "guardian.png");
+      fd.set("memberSignature", memberSignatureBlob, "member.png");
+      if (minor && guardianSignatureBlob) {
+        fd.set("guardianSignature", guardianSignatureBlob, "guardian.png");
       }
       const result = await submitGymMemberSelfRegistrationAction(fd);
       if (!result.ok) {
@@ -201,6 +240,8 @@ export function GymMemberSelfRegistrationPublicForm({
         return;
       }
       setForm(emptyForm());
+      setMemberSignatureBlob(null);
+      setGuardianSignatureBlob(null);
       memberPadRef.current?.clear();
       guardianPadRef.current?.clear();
       setDone(true);
@@ -265,15 +306,17 @@ export function GymMemberSelfRegistrationPublicForm({
         />
       ) : null}
       {step === 2 ? <HealthStep form={form} onChange={setForm} /> : null}
-      {step === 3 ? (
-        <ConsentStep
-          form={form}
-          minor={minor}
-          terms={terms}
-          memberPadRef={memberPadRef}
-          guardianPadRef={guardianPadRef}
-          onChange={setForm}
-        />
+      {step === 3 || step === 4 ? (
+        <div className={step === 4 ? "hidden" : undefined}>
+          <ConsentStep
+            form={form}
+            minor={minor}
+            terms={terms}
+            memberPadRef={memberPadRef}
+            guardianPadRef={guardianPadRef}
+            onChange={setForm}
+          />
+        </div>
       ) : null}
       {step === 4 ? (
         <ConfirmStep form={form} minor={minor} ageLabel={ageLabel} />

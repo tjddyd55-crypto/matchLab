@@ -16,7 +16,6 @@ import {
   DialogDescription,
   DialogHeader,
   DialogTitle,
-  DialogTrigger,
 } from "@/components/ui/dialog";
 import { matchonFieldInputClass } from "@/lib/ui/matchon-shell-ui";
 
@@ -135,14 +134,17 @@ export function GymMemberSelfRegistrationLinkButton() {
   const active = data?.status === "active";
 
   return (
-    <Dialog open={open} onOpenChange={setOpen}>
-      <DialogTrigger
-        render={
-          <Button type="button" variant="outline" size="sm" className="min-h-11">
-            셀프등록 링크
-          </Button>
-        }
-      />
+    <>
+      <Button
+        type="button"
+        variant="outline"
+        size="sm"
+        className="min-h-11"
+        onClick={() => setOpen(true)}
+      >
+        셀프등록 링크
+      </Button>
+      <Dialog open={open} onOpenChange={setOpen}>
       <DialogContent className="max-h-[90dvh] overflow-y-auto sm:max-w-lg">
         <DialogHeader>
           <DialogTitle>회원 셀프등록</DialogTitle>
@@ -263,5 +265,6 @@ export function GymMemberSelfRegistrationLinkButton() {
         )}
       </DialogContent>
     </Dialog>
+    </>
   );
 }
