@@ -44,6 +44,12 @@ function main() {
     3,
   );
   assert.equal(three!.toISOString().slice(0, 10), "2026-11-10");
+  const monthEnd = calculateMembershipEndDate(
+    new Date(Date.UTC(2026, 0, 31)),
+    GymMembershipDurationType.months,
+    1,
+  );
+  assert.equal(monthEnd!.toISOString().slice(0, 10), "2026-02-27");
 
   console.log("verify:gym-member-membership-autofill OK");
 }
