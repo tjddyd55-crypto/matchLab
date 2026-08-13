@@ -156,8 +156,8 @@ async function drawSignature(page: Page, ariaLabel: string) {
 
 async function overflowX(page: Page): Promise<number> {
   return page.evaluate(
-    () => document.documentElement.scrollWidth - document.documentElement.clientWidth,
-  );
+    "document.documentElement.scrollWidth - document.documentElement.clientWidth",
+  ) as Promise<number>;
 }
 
 async function confirmDanger(page: Page) {
@@ -179,15 +179,19 @@ async function fillBasic(
     guardianPhone?: string;
   },
 ) {
-  await page.getByLabel("이름 *").fill(input.name);
+  await page.getByRole("textbox", { name: "이름 *", exact: true }).fill(input.name);
   await page.locator("button").filter({ hasText: new RegExp(`^${input.gender}$`) }).click();
-  await page.getByLabel("생년월일 *").fill(input.birth);
-  await page.getByLabel("연락처 *").fill(input.phone);
+  await page.getByRole("textbox", { name: "연락처 *", exact: true }).fill(input.phone);
   if (input.address) await page.getByLabel(/^주소$/).fill(input.address);
   if (input.occupation) await page.getByLabel("직업/학교").fill(input.occupation);
+  await page.getByLabel("생년월일 *").fill(input.birth);
   if (input.guardianName) {
-    await page.getByLabel("보호자 이름 *").fill(input.guardianName);
-    await page.getByLabel("보호자 연락처 *").fill(input.guardianPhone ?? "");
+    await page.getByRole("textbox", { name: "보호자 이름 *", exact: true }).fill(
+      input.guardianName,
+    );
+    await page.getByRole("textbox", { name: "보호자 연락처 *", exact: true }).fill(
+      input.guardianPhone ?? "",
+    );
   }
 }
 
@@ -316,18 +320,18 @@ async function submitPublicFlow(
 }
 
 async function piiStorage(page: Page) {
-  return page.evaluate(() => {
-    const scan = (store: Storage) => {
-      const out: Record<string, string> = {};
-      for (let i = 0; i < store.length; i += 1) {
+  return page.evaluate(`(() => {
+    const dump = (store) => {
+      const out = {};
+      for (let i = 0; i < store.length; i++) {
         const k = store.key(i);
         if (!k) continue;
-        out[k] = store.getItem(k) ?? "";
+        out[k] = store.getItem(k) || "";
       }
       return out;
     };
-    return { local: scan(localStorage), session: scan(sessionStorage) };
-  });
+    return { local: dump(localStorage), session: dump(sessionStorage) };
+  })()`) as Promise<{ local: Record<string, string>; session: Record<string, string> }>;
 }
 
 function hasPii(store: Record<string, string>, needles: string[]) {
@@ -668,6 +672,8 @@ async function main() {
           await btn.click({ force: true });
           await dlg.waitFor({ timeout: 20_000 });
         }
+        await dlg.getByText(gymNameA).waitFor({ timeout: 20_000 });
+        await dlg.getByRole("button", { name: "이용규정 관리" }).waitFor();
         return dlg;
       }
       const dlg = await openSelfRegDialog();
@@ -885,9 +891,10 @@ async function main() {
       await admin.getByText(/회원권/).first().waitFor({ timeout: 20_000 });
       pass("membership-regression-panel");
 
-      if (!(await admin.getByRole("button", { name: "선수로 등록" }).count())) {
-        fail("fighter extension action missing");
-      }
+      await admin.getByRole("heading", { name: "선수로 등록" }).waitFor({
+        timeout: 20_000,
+      });
+      await admin.getByRole("button", { name: "선수 등록" }).waitFor();
       pass("fighter-extension-available");
 
       await submitPublicFlow(pub, displayedUrl, {
@@ -953,15 +960,27 @@ async function main() {
       });
       const termsDlg = await openSelfRegDialog();
       await termsDlg.getByRole("button", { name: "이용규정 관리" }).click();
-      await termsDlg.locator("input").fill(`${PREFIX}TERMS_V2`);
+      const titleInput = termsDlg.getByPlaceholder("제목");
+      await titleInput.waitFor({ timeout: 10_000 });
+      await titleInput.fill(`${PREFIX}TERMS_V2`);
       await termsDlg.locator("textarea").fill(`${PREFIX}TERMS_V2_CONTENT`);
-      await termsDlg.getByRole("button", { name: "저장 (버전 증가)" }).click();
-      await termsDlg.getByText(/v2|버전/).first().waitFor({ timeout: 20_000 }).catch(() => null);
+      const saveTermsBtn = termsDlg.getByRole("button", { name: "저장 (버전 증가)" });
+      await saveTermsBtn.click();
+      let v2 = null as Awaited<
+        ReturnType<typeof prisma.gymMemberRegistrationTerms.findFirst>
+      >;
+      for (let i = 0; i < 15; i += 1) {
+        v2 = await prisma.gymMemberRegistrationTerms.findFirst({
+          where: { gymId: gymAId!, version: 2 },
+        });
+        if (v2) break;
+        await admin.waitForTimeout(500);
+      }
+      if (!v2) {
+        const errText = await termsDlg.locator("p.text-red-700").innerText().catch(() => "");
+        fail(`terms v2 not created ${errText}`);
+      }
       await admin.keyboard.press("Escape");
-      const v2 = await prisma.gymMemberRegistrationTerms.findFirst({
-        where: { gymId: gymAId!, version: 2 },
-      });
-      if (!v2) fail("terms v2 not created");
       pass("terms-v2-created", { version: v2.version, title: v2.title });
 
       await submitPublicFlow(pub, displayedUrl, {
@@ -1062,7 +1081,9 @@ async function main() {
       });
       await admin.getByRole("button", { name: "반려" }).click();
       await confirmDanger(admin);
-      await admin.waitForURL(/\/gym\/members\/registrations/, { timeout: 30_000 });
+      await admin.getByRole("heading", { name: "회원 등록 요청" }).waitFor({
+        timeout: 30_000,
+      });
       const rejected = await prisma.gymMemberRegistrationRequest.findUnique({
         where: { id: rejectReq.id },
       });
@@ -1138,22 +1159,22 @@ async function main() {
       await pub.getByText("체육관 이용 안내에 동의합니다. (필수)").click();
       const canvas = pub.locator('canvas[aria-label="회원 서명 패드"]');
       await canvas.waitFor();
-      await pub.evaluate(() => window.scrollTo(0, 0));
-      const scrollBefore = await pub.evaluate(() => window.scrollY);
+      await pub.evaluate("window.scrollTo(0, 0)");
+      const scrollBefore = (await pub.evaluate("window.scrollY")) as number;
       await drawSignature(pub, "회원 서명 패드");
-      const scrollAfterDraw = await pub.evaluate(() => window.scrollY);
+      const scrollAfterDraw = (await pub.evaluate("window.scrollY")) as number;
       if (Math.abs(scrollAfterDraw - scrollBefore) > 8) {
         fail(`canvas drag scrolled page ${scrollBefore} -> ${scrollAfterDraw}`);
       }
-      const canScroll = await pub.evaluate(
-        () => document.documentElement.scrollHeight > window.innerHeight + 40,
-      );
+      const canScroll = (await pub.evaluate(
+        "document.documentElement.scrollHeight > window.innerHeight + 40",
+      )) as boolean;
       if (canScroll) {
         await pub.mouse.move(20, 700);
         await pub.mouse.down();
         await pub.mouse.move(20, 120, { steps: 12 });
         await pub.mouse.up();
-        const outside = await pub.evaluate(() => window.scrollY);
+        const outside = (await pub.evaluate("window.scrollY")) as number;
         if (outside <= 0) {
           report.signatureOutsideScroll = "page did not scroll outside canvas (soft)";
         } else {
@@ -1186,7 +1207,10 @@ async function main() {
         fail("print preview missing content");
       }
       await admin.locator("svg").first().waitFor();
-      if (/회원관리|사이드|출석 키오스크/.test(printText) && (await admin.locator("nav, aside").count())) {
+      if (
+        /출석 키오스크|그룹 관리|이용권 관리/.test(printText) ||
+        (await admin.locator("aside").count()) > 0
+      ) {
         fail("print includes admin chrome");
       }
       pass("print-preview");
