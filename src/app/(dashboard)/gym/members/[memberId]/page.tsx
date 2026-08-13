@@ -14,6 +14,7 @@ import {
 import { getSeoulYmdParts } from "@/lib/gym-attendance/seoul-date";
 import { gymAttendanceService } from "@/lib/services/gym-attendance.service";
 import { gymMemberService } from "@/lib/services/gym-member.service";
+import { gymMemberSelfRegistrationService } from "@/lib/services/gym-member-self-registration.service";
 import { gymMembershipPlanService } from "@/lib/services/gym-membership-plan.service";
 import { gymMemberLockerService } from "@/lib/services/gym-member-locker.service";
 import { gymMemberGroupService } from "@/lib/services/gym-member-group.service";
@@ -212,6 +213,11 @@ export default async function GymMemberDetailPage({
     throw e;
   }
 
+  const selfRegistrationDocument =
+    await gymMemberSelfRegistrationService
+      .getDocumentForMember(actor, memberId)
+      .catch(() => null);
+
   const {
     member,
     currentSubscription,
@@ -284,12 +290,25 @@ export default async function GymMemberDetailPage({
   }
 
   const detailActions = (
-    <GymMemberDetailActions
-      memberId={member.id}
-      memberStatus={member.status}
-      hasFighter={Boolean(member.fighter)}
-      defaultPrimarySport={member.primarySport}
-    />
+    <>
+      {selfRegistrationDocument ? (
+        <Link
+          href={`/gym/members/registrations/${selfRegistrationDocument.id}`}
+          className={cn(
+            buttonVariants({ variant: "outline", size: "sm" }),
+            "min-h-11",
+          )}
+        >
+          가입 신청서 보기
+        </Link>
+      ) : null}
+      <GymMemberDetailActions
+        memberId={member.id}
+        memberStatus={member.status}
+        hasFighter={Boolean(member.fighter)}
+        defaultPrimarySport={member.primarySport}
+      />
+    </>
   );
 
   return (

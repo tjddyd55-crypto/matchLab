@@ -22,10 +22,12 @@ export type SignaturePadHandle = {
 
 type SignaturePadProps = {
   className?: string;
+  ariaLabel?: string;
+  hint?: string;
 };
 
 export const SignaturePad = forwardRef<SignaturePadHandle, SignaturePadProps>(
-  function SignaturePad({ className }, ref) {
+  function SignaturePad({ className, ariaLabel, hint }, ref) {
     const canvasRef = useRef<HTMLCanvasElement>(null);
     const drawingRef = useRef(false);
     const lastRef = useRef<{ x: number; y: number } | null>(null);
@@ -120,13 +122,13 @@ export const SignaturePad = forwardRef<SignaturePadHandle, SignaturePadProps>(
     return (
       <div className={className}>
         <p className="text-muted-foreground mb-2 text-xs leading-relaxed">
-          터치펜·손가락으로 서명란에 그려 주세요. 서명 내용은 저장 버튼을 누를 때까지
-          기기에만 남습니다.
+          {hint ??
+            "터치펜·손가락으로 서명란에 그려 주세요. 서명 내용은 제출할 때까지 기기에만 남습니다."}
         </p>
         <canvas
           ref={canvasRef}
           role="img"
-          aria-label="보호자 서명 패드"
+          aria-label={ariaLabel ?? "서명 패드"}
           className="touch-none border-input bg-background h-40 w-full rounded-md border md:h-44"
           onPointerDown={handlePointerDown}
           onPointerMove={handlePointerMove}

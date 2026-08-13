@@ -469,6 +469,13 @@ enum AuditAction {
   admin_password_reset_link_revoked
   password_reset_by_admin_link_completed
   admin_password_reset_link_failed
+  gym_member_self_registration_link_created
+  gym_member_self_registration_link_revoked
+  gym_member_self_registration_link_regenerated
+  gym_member_self_registration_terms_updated
+  gym_member_self_registration_submitted
+  gym_member_self_registration_approved
+  gym_member_self_registration_rejected
 }
 
 enum GymMemberAttendanceSource {
@@ -713,6 +720,9 @@ model Gym {
   gymGroupClassParticipations GymGroupClassParticipation[]
   gymMemberPortals          GymMemberPortal[]
   gymMemberPortalSessions   GymMemberPortalSession[]
+  gymMemberSelfRegistrationLinks GymMemberSelfRegistrationLink[]
+  gymMemberRegistrationTerms     GymMemberRegistrationTerms[]
+  gymMemberRegistrationRequests  GymMemberRegistrationRequest[]
 }
 
 model Fighter {
@@ -818,6 +828,7 @@ model GymMember {
   portalSessions     GymMemberPortalSession[]
   groupAssignments   GymMemberGroupAssignment[]
   lockerRentals      GymMemberLockerRental[]
+  selfRegistrationRequest GymMemberRegistrationRequest?
 
   @@unique([gymId, memberNumber])
   @@index([gymId, deletedAt])
@@ -1168,6 +1179,104 @@ model GymMemberPortalSession {
   @@index([gymMemberPortalId, revokedAt])
   @@index([gymMemberId, expiresAt])
   @@index([gymId, expiresAt])
+}
+
+enum GymMemberSelfRegistrationLinkStatus {
+  active
+  revoked
+}
+
+enum GymMemberRegistrationRequestStatus {
+  pending
+  approved
+  rejected
+}
+
+/// 체육관당 공용 회원 셀프등록 링크 — raw token 미저장, tokenHash만
+model GymMemberSelfRegistrationLink {
+  id              String                               @id @default(cuid())
+  gymId           String                               @unique
+  tokenHash       String                               @unique
+  status          GymMemberSelfRegistrationLinkStatus  @default(active)
+  revokedAt       DateTime?
+  createdByUserId String?
+  lastSubmittedAt DateTime?
+  submissionCount Int                                  @default(0)
+  createdAt       DateTime                             @default(now())
+  updatedAt       DateTime                             @updatedAt
+
+  gym      Gym                            @relation(fields: [gymId], references: [id], onDelete: Cascade)
+  requests GymMemberRegistrationRequest[]
+
+  @@index([status])
+}
+
+/// 체육관별 이용규정 — active version snapshot 원본
+model GymMemberRegistrationTerms {
+  id        String   @id @default(cuid())
+  gymId     String
+  version   Int
+  title     String
+  content   String
+  isActive  Boolean  @default(true)
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+
+  gym Gym @relation(fields: [gymId], references: [id], onDelete: Cascade)
+
+  @@unique([gymId, version])
+  @@index([gymId, isActive])
+}
+
+/// 공개 셀프등록 신청 — 승인 전까지 GymMember 아님
+model GymMemberRegistrationRequest {
+  id                    String                               @id @default(cuid())
+  gymId                 String
+  linkId                String
+  status                GymMemberRegistrationRequestStatus   @default(pending)
+  name                  String
+  phone                 String
+  normalizedPhone       String
+  birthDate             DateTime
+  gender                String?
+  postalCode            String?
+  address               String?
+  addressDetail         String?
+  occupationOrSchool    String?
+  guardianName          String?
+  guardianPhone         String?
+  preferredTimeBand     String?
+  purposeText           String?
+  experienceText        String?
+  healthHasAnyYes       Boolean                              @default(false)
+  formSnapshot          Json
+  healthSnapshot        Json
+  consentSnapshot       Json
+  signaturePath         String
+  signatureSignedAt     DateTime
+  guardianSignaturePath String?
+  guardianSignedAt      DateTime?
+  termsVersion          Int
+  termsTitle            String
+  termsContent          String
+  privacyAgreedAt       DateTime
+  termsAgreedAt         DateTime
+  clientSubmissionId    String
+  submittedAt           DateTime                             @default(now())
+  reviewedAt            DateTime?
+  reviewedByUserId      String?
+  rejectReason          String?
+  approvedGymMemberId   String?                              @unique
+  createdAt             DateTime                             @default(now())
+  updatedAt             DateTime                             @updatedAt
+
+  gym               Gym                             @relation(fields: [gymId], references: [id], onDelete: Cascade)
+  link              GymMemberSelfRegistrationLink   @relation(fields: [linkId], references: [id], onDelete: Cascade)
+  approvedGymMember GymMember?                      @relation(fields: [approvedGymMemberId], references: [id], onDelete: SetNull)
+
+  @@unique([linkId, clientSubmissionId])
+  @@index([gymId, status, submittedAt])
+  @@index([gymId, normalizedPhone])
 }
 
 /// 체육관 회원 출석 — GymMember 귀속 (Fighter 비SSOT)

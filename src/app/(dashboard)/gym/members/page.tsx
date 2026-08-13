@@ -9,6 +9,8 @@ import { MemberMetricCard } from "@/components/domain/gym-members/MemberMetricCa
 import { MemberFilterBar } from "@/components/domain/gym-members/MemberFilterBar";
 import { MemberExcelDownloadButton } from "@/components/domain/gym-members/MemberExcelDownloadButton";
 import { MemberExcelImportButton } from "@/components/domain/gym-members/MemberExcelImportDialog";
+import { GymMemberSelfRegistrationLinkButton } from "@/components/domain/gym-member-self-registration/GymMemberSelfRegistrationLinkDialog";
+import { gymMemberSelfRegistrationService } from "@/lib/services/gym-member-self-registration.service";
 import { MemberTable } from "@/components/domain/gym-members/MemberTable";
 import { MemberMobileCard } from "@/components/domain/gym-members/MemberMobileCard";
 import { MatchonEmptyState } from "@/components/shared/MatchonEmptyState";
@@ -118,7 +120,7 @@ export default async function GymMembersPage({
       groupId,
   );
 
-  const [summary, list, groups] = await Promise.all([
+  const [summary, list, groups, pendingSelfReg] = await Promise.all([
     gymMemberService.getSummary(actor),
     gymMemberService.listMembers(actor, {
       q,
@@ -131,6 +133,7 @@ export default async function GymMembersPage({
       pageSize: 30,
     }),
     gymMemberGroupService.listGroups(actor, false).catch(() => []),
+    gymMemberSelfRegistrationService.countPending(actor).catch(() => 0),
   ]);
 
   const totalPages = Math.max(1, Math.ceil(list.total / list.pageSize));
@@ -169,6 +172,16 @@ export default async function GymMembersPage({
                 className={cn(buttonVariants({ size: "sm" }), "min-h-11")}
               >
                 신규 회원 등록
+              </Link>
+              <GymMemberSelfRegistrationLinkButton />
+              <Link
+                href="/gym/members/registrations?status=pending"
+                className={cn(
+                  buttonVariants({ variant: "outline", size: "sm" }),
+                  "min-h-11",
+                )}
+              >
+                등록 요청{pendingSelfReg > 0 ? ` ${pendingSelfReg}` : ""}
               </Link>
               <Link
                 href="/gym/member-groups"
