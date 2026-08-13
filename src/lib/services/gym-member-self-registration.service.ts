@@ -476,7 +476,7 @@ export const gymMemberSelfRegistrationService = {
     const access = await requireGymPortalRead(actor);
     const row = await repo.findRequestByApprovedMember(access.gymId, gymMemberId);
     if (!row) return null;
-    return this.getRequestDetail(actor, row.id);
+    return { id: row.id };
   },
 
   async approveRequest(

@@ -214,9 +214,10 @@ export default async function GymMemberDetailPage({
   }
 
   const selfRegistrationDocument =
-    await gymMemberSelfRegistrationService
-      .getDocumentForMember(actor, memberId)
-      .catch(() => null);
+    await gymMemberSelfRegistrationService.getDocumentForMember(
+      actor,
+      memberId,
+    );
 
   const {
     member,
@@ -291,17 +292,6 @@ export default async function GymMemberDetailPage({
 
   const detailActions = (
     <>
-      {selfRegistrationDocument ? (
-        <Link
-          href={`/gym/members/registrations/${selfRegistrationDocument.id}`}
-          className={cn(
-            buttonVariants({ variant: "outline", size: "sm" }),
-            "min-h-11",
-          )}
-        >
-          가입 신청서 보기
-        </Link>
-      ) : null}
       <GymMemberDetailActions
         memberId={member.id}
         memberStatus={member.status}
@@ -360,6 +350,17 @@ export default async function GymMemberDetailPage({
             </div>
 
             <div className="flex flex-wrap items-center gap-2">
+              {selfRegistrationDocument ? (
+                <Link
+                  href={`/gym/members/registrations/${selfRegistrationDocument.id}`}
+                  className={cn(
+                    buttonVariants({ variant: "outline", size: "sm" }),
+                    "min-h-11",
+                  )}
+                >
+                  가입 신청서 보기
+                </Link>
+              ) : null}
               <Link
                 href={`/gym/members/${member.id}/edit`}
                 className={cn(
