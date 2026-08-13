@@ -110,6 +110,11 @@ async function main() {
   );
   assert.match(editor, /DivisionTemplateExcelToolbar/);
   assert.match(editor, /엑셀/);
+  const dialog = read(
+    "src/components/domain/division-templates/DivisionTemplateExcelImportDialog.tsx",
+  );
+  assert.match(dialog, /FileDropzone/);
+  assert.match(dialog, /체급표 Excel 일괄 등록/);
   const svc = read("src/lib/services/division-template.service.ts");
   assert.match(svc, /assertTemplateOwned/);
   assert.match(svc, /organizerId/);

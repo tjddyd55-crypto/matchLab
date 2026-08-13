@@ -6,10 +6,12 @@ import {
   analyzeWeightClassWorkbook,
   buildWeightClassSampleWorkbook,
   mergeWeightClassImportIntoItems,
+  WEIGHT_CLASS_EXCEL_MAX_BYTES,
   workbookToBuffer,
   type WeightClassImportPreview,
 } from "@/lib/division-template/weight-class-excel";
 import { DIVISION_TEMPLATE_AGE_GROUPS } from "@/lib/division-template/division-template-constants";
+import { FileDropzone } from "@/components/shared/FileDropzone";
 import { Button } from "@/components/ui/button";
 import {
   Dialog,
@@ -116,6 +118,7 @@ export function DivisionTemplateExcelImportDialog({
 }) {
   const [step, setStep] = useState<Step>("upload");
   const [error, setError] = useState<string | null>(null);
+  const [file, setFile] = useState<File | null>(null);
   const [preview, setPreview] = useState<WeightClassImportPreview | null>(null);
   const [resultMsg, setResultMsg] = useState<string | null>(null);
   const [pending, setPending] = useState(false);
@@ -123,6 +126,7 @@ export function DivisionTemplateExcelImportDialog({
   function reset() {
     setStep("upload");
     setError(null);
+    setFile(null);
     setPreview(null);
     setResultMsg(null);
   }
@@ -132,13 +136,30 @@ export function DivisionTemplateExcelImportDialog({
     onOpenChange(next);
   }
 
-  async function onFile(file: File) {
+  async function downloadSample() {
+    const wb = await buildWeightClassSampleWorkbook({
+      includeKickboxingFixture: true,
+    });
+    const buf = await workbookToBuffer(wb);
+    const blob = new Blob([new Uint8Array(buf)], {
+      type: "application/vnd.openxmlformats-officedocument.spreadsheetml.sheet",
+    });
+    const url = URL.createObjectURL(blob);
+    const a = document.createElement("a");
+    a.href = url;
+    a.download = "MATCHON_체급표_업로드_샘플.xlsx";
+    a.click();
+    URL.revokeObjectURL(url);
+  }
+
+  async function onFile(selected: File) {
     setError(null);
+    setFile(selected);
     setPreview(null);
     try {
-      const buffer = await file.arrayBuffer();
+      const buffer = await selected.arrayBuffer();
       const analyzed = await analyzeWeightClassWorkbook({
-        fileName: file.name,
+        fileName: selected.name,
         buffer,
         sportType,
         existingItems,
@@ -186,10 +207,10 @@ export function DivisionTemplateExcelImportDialog({
     <Dialog open={open} onOpenChange={handleOpenChange}>
       <DialogContent className="flex max-h-[90vh] max-w-4xl flex-col gap-0 overflow-hidden p-0">
         <DialogHeader className="border-b px-4 py-3">
-          <DialogTitle>엑셀 체급 일괄 업로드</DialogTitle>
+          <DialogTitle>체급표 Excel 일괄 등록</DialogTitle>
           <DialogDescription>
-            파일을 분석한 뒤 Preview에서 확인하고 확정합니다. 선택만으로 DB에
-            저장되지 않습니다.
+            샘플을 내려받아 작성한 뒤 업로드하세요. 파일 선택만으로 저장되지
+            않습니다.
           </DialogDescription>
         </DialogHeader>
 
@@ -223,19 +244,41 @@ export function DivisionTemplateExcelImportDialog({
           ) : null}
 
           {step === "upload" ? (
-            <div className="space-y-3">
-              <p className="text-muted-foreground text-sm">
-                샘플 Excel을 내려받아 부문·성별·체급명·체중·기준·정렬순서를
-                작성한 뒤 업로드하세요.
-              </p>
-              <input
-                type="file"
-                accept=".xlsx,application/vnd.openxmlformats-officedocument.spreadsheetml.sheet"
-                onChange={(e) => {
-                  const f = e.target.files?.[0];
-                  if (f) void onFile(f);
-                }}
-              />
+            <div className="space-y-4">
+              <div className="space-y-2 rounded-[10px] border border-[#E2E8F0] bg-[#F8FAFC] px-3 py-3">
+                <p className="text-sm text-matchon-text-secondary">
+                  부문·성별·체급명·체중·기준·정렬순서를 작성한 뒤 업로드하세요.
+                </p>
+                <Button
+                  type="button"
+                  variant="outline"
+                  size="sm"
+                  className="h-9"
+                  disabled={pending}
+                  onClick={() => void downloadSample()}
+                >
+                  샘플 엑셀 다운로드
+                </Button>
+              </div>
+              <div className="space-y-2">
+                <p className="text-sm font-medium text-[#0F172A]">
+                  Excel 파일 업로드
+                </p>
+                <FileDropzone
+                  accept=".xlsx,application/vnd.openxmlformats-officedocument.spreadsheetml.sheet"
+                  maxBytes={WEIGHT_CLASS_EXCEL_MAX_BYTES}
+                  disabled={pending}
+                  busy={pending}
+                  file={file}
+                  hint={`.xlsx · 최대 ${Math.round(WEIGHT_CLASS_EXCEL_MAX_BYTES / (1024 * 1024))}MB`}
+                  onFile={(selected) => void onFile(selected)}
+                  onClear={() => {
+                    setFile(null);
+                    setError(null);
+                  }}
+                  onReject={(message) => setError(message)}
+                />
+              </div>
             </div>
           ) : null}
 
