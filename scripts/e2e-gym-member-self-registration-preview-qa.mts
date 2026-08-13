@@ -807,7 +807,7 @@ async function main() {
       });
       await admin.getByRole("link", { name: /등록 요청/ }).first().click();
       await admin.waitForURL(/\/gym\/members\/registrations/, { timeout: 30_000 });
-      await admin.getByText(NAMES.adult).waitFor();
+      await admin.getByText(NAMES.adult).first().waitFor();
       const listText = await admin.locator("body").innerText();
       if (listText.includes("건강정보 확인 필요") && !listText.includes(NAMES.health)) {
         const adultRow = admin.locator("tr", { hasText: NAMES.adult });
@@ -874,8 +874,8 @@ async function main() {
         timeout: 20_000,
       });
       await admin.getByRole("link", { name: "가입 신청서 보기" }).click();
-      await admin.getByText("동의내역").waitFor();
-      await admin.getByRole("img", { name: "회원 서명" }).waitFor();
+      await admin.getByText("동의내역").first().waitFor();
+      await admin.getByRole("img", { name: "회원 서명" }).first().waitFor();
       pass("registration-document-view");
 
       await admin.goto(`${BASE}/gym/members/${adultMember.id}?tab=membership`, {
@@ -1001,7 +1001,7 @@ async function main() {
         waitUntil: "domcontentloaded",
         timeout: 60_000,
       });
-      await admin.getByText("MEMBER_SELF_REG_QA 건강 상세").first().waitFor();
+      await admin.getByText("MEMBER_SELF_REG_QA 건강 상세").first().waitFor({ timeout: 20_000 });
       pass("health-detail-privacy");
 
       await submitPublicFlow(pub, displayedUrl, {
@@ -1074,8 +1074,8 @@ async function main() {
         waitUntil: "domcontentloaded",
         timeout: 60_000,
       });
-      await admin.getByText("반려됨").waitFor();
-      await admin.getByText("동의내역").waitFor();
+      await admin.getByText("반려됨").first().waitFor();
+      await admin.getByText("동의내역").first().waitFor();
       pass("reject-retained", { requestId: rejectReq.id });
 
       await pub.setViewportSize({ width: 768, height: 1024 });
