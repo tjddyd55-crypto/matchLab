@@ -20,6 +20,8 @@ import {
 } from "@/lib/division-template/division-template-row";
 import { getKickboxingWeightClassFixtureSeeds } from "@/lib/division-template/kickboxing-weight-classes.fixture";
 
+export const WEIGHT_CLASS_EXCEL_MAX_BYTES = 2 * 1024 * 1024;
+
 export const WEIGHT_CLASS_EXCEL_HEADERS = [
   "부문",
   "성별",
