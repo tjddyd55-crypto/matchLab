@@ -47,6 +47,8 @@ import type {
   GymMemberUpdateInput,
 } from "@/lib/validators/gym-member.validator";
 import { addMembershipDuration } from "@/lib/gym-member/membership-duration";
+import { formatMembershipPeriodRemaining } from "@/lib/gym-member/membership-list-metrics";
+import { gymAttendanceRepository } from "@/lib/repositories/gym-attendance.repository";
 import {
   lockerRangesOverlap,
   normalizeLockerLabel,
@@ -154,6 +156,9 @@ export type GymMemberListItemVM = {
   startedAt: Date | null;
   endsAt: Date | null;
   expirationDisplay: string;
+  periodRemainingLabel: string | null;
+  attendanceCount: number | null;
+  paymentAmount: number | null;
   isFighter: boolean;
   fighterId: string | null;
   rowNumber: number;
@@ -213,6 +218,28 @@ export const gymMemberService = {
       access.gymId,
       rows.map((row) => row.profileImagePath),
     );
+    const attendanceStarts = rows
+      .map((row) => {
+        const sub = row.subscriptions[0];
+        if (!sub?.startedAt) return null;
+        return { gymMemberId: row.id, startedAt: sub.startedAt };
+      })
+      .filter((item): item is { gymMemberId: string; startedAt: Date } =>
+        Boolean(item),
+      );
+    const subscriptionIds = rows
+      .map((row) => row.subscriptions[0]?.id)
+      .filter((id): id is string => Boolean(id));
+    const [attendanceCounts, paymentTotals] = await Promise.all([
+      gymAttendanceRepository.countAttendancesSinceStarts({
+        gymId: access.gymId,
+        items: attendanceStarts,
+      }),
+      gymMemberRepository.sumNetPaidBySubscriptionIds(
+        access.gymId,
+        subscriptionIds,
+      ),
+    ]);
     let items: GymMemberListItemVM[] = rows.map((row, idx) => {
       const sub = row.subscriptions[0] ?? null;
       const membershipStatus = computeGymMemberMembershipStatus({
@@ -236,6 +263,15 @@ export const gymMemberService = {
         startedAt: sub?.startedAt ?? null,
         endsAt: sub?.endsAt ?? null,
         expirationDisplay: getGymMemberExpirationDisplay(sub?.endsAt, today),
+        periodRemainingLabel: formatMembershipPeriodRemaining({
+          durationType: sub?.plan?.durationType ?? null,
+          durationValue: sub?.plan?.durationValue ?? null,
+          endsAt: sub?.endsAt ?? null,
+          importMeta: sub?.importMeta,
+          todayUtc: today,
+        }),
+        attendanceCount: sub ? (attendanceCounts.get(row.id) ?? 0) : null,
+        paymentAmount: sub?.id ? (paymentTotals.get(sub.id) ?? 0) : null,
         isFighter: Boolean(row.fighter),
         fighterId: row.fighter?.id ?? null,
         rowNumber: skip + idx + 1,
@@ -502,7 +538,7 @@ export const gymMemberService = {
               paidAt: startedAt,
               amount: input.paymentAmount,
               paymentMethod:
-                input.paymentMethod ?? GymMemberPaymentMethod.cash,
+                input.paymentMethod ?? GymMemberPaymentMethod.card,
               status: GymMemberPaymentStatus.paid,
               category: GymSalesCategory.membership,
               memo: input.paymentMemo ?? null,
@@ -557,7 +593,7 @@ export const gymMemberService = {
               paidAt: lockerStarted,
               amount: lockerAmount,
               paymentMethod:
-                input.paymentMethod ?? GymMemberPaymentMethod.cash,
+                input.paymentMethod ?? GymMemberPaymentMethod.card,
               status: GymMemberPaymentStatus.paid,
               category: GymSalesCategory.locker,
               memo: `사물함 ${label}`,

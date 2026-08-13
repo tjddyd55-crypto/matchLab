@@ -1,5 +1,7 @@
 import Link from "next/link";
 import type { GymMemberListItemVM } from "@/lib/services/gym-member.service";
+import { formatUtcDateOnly } from "@/lib/date-only";
+import { formatWon } from "@/lib/format-won";
 import { formatPhoneNumber } from "@/lib/phone";
 import { GymMemberAvatar } from "@/components/domain/gym-members/GymMemberAvatar";
 import { MemberStatusBadge } from "@/components/domain/gym-members/MemberStatusBadge";
@@ -40,17 +42,23 @@ export function MemberMobileCard({
           </div>
           <p className="mt-0.5 text-[11px] text-matchon-text-secondary">
             {formatPhoneNumber(member.phone)}
-            {member.rankName ? ` · ${member.rankName}` : ""}
+            {groupText ? ` · ${groupText}` : ""}
           </p>
-          {groupText ? (
-            <p className="mt-0.5 truncate text-[11px] text-matchon-text-secondary">
-              {groupText}
-            </p>
-          ) : null}
           <p className="mt-0.5 truncate text-[11px] text-matchon-text-secondary">
             {member.planName ?? "회원권 없음"}
+          </p>
+          <p className="mt-0.5 text-[11px] text-matchon-text-secondary">
+            {member.startedAt ? formatUtcDateOnly(member.startedAt) : "—"}
+            {" ~ "}
+            {member.endsAt ? formatUtcDateOnly(member.endsAt) : "—"}
+            {member.periodRemainingLabel
+              ? ` · ${member.periodRemainingLabel}`
+              : ""}
+          </p>
+          <p className="mt-0.5 text-[11px] text-matchon-text-secondary">
+            출석 {member.attendanceCount == null ? "—" : `${member.attendanceCount}회`}
             {" · "}
-            {member.expirationDisplay}
+            결제 {member.paymentAmount == null ? "—" : formatWon(member.paymentAmount)}
           </p>
         </div>
       </div>

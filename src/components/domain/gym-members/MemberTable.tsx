@@ -1,5 +1,7 @@
 import Link from "next/link";
 import type { GymMemberListItemVM } from "@/lib/services/gym-member.service";
+import { formatUtcDateOnly } from "@/lib/date-only";
+import { formatWon } from "@/lib/format-won";
 import { formatPhoneNumber } from "@/lib/phone";
 import { GymMemberAvatar } from "@/components/domain/gym-members/GymMemberAvatar";
 import { MemberStatusBadge } from "@/components/domain/gym-members/MemberStatusBadge";
@@ -17,7 +19,7 @@ function ExpirationCell({ member }: { member: GymMemberListItemVM }) {
         member.membershipStatus === "expired" && "text-matchon-danger",
       )}
     >
-      {member.expirationDisplay}
+      {member.endsAt ? formatUtcDateOnly(member.endsAt) : "—"}
     </span>
   );
 }
@@ -44,34 +46,40 @@ export function MemberTable({
         <caption className="sr-only">회원 목록</caption>
         <thead className="border-b border-matchon-border bg-matchon-surface text-[10px] font-semibold text-matchon-text-secondary">
           <tr>
-            <th scope="col" className="w-9 px-2 py-2 text-center">
+            <th scope="col" className="w-8 px-1.5 py-2 text-center">
               #
             </th>
-            <th scope="col" className="w-[14%] px-2 py-2">
+            <th scope="col" className="w-[11%] px-1.5 py-2">
               회원명
             </th>
-            <th scope="col" className="w-[11%] px-2 py-2">
+            <th scope="col" className="w-[10%] px-1.5 py-2">
               연락처
             </th>
-            <th scope="col" className="w-[12%] px-2 py-2">
+            <th scope="col" className="w-[9%] px-1.5 py-2">
               그룹
             </th>
-            <th
-              scope="col"
-              className="hidden w-[8%] px-2 py-2 xl:table-cell"
-            >
-              등급
-            </th>
-            <th scope="col" className="w-[8%] px-2 py-2">
+            <th scope="col" className="w-[8%] px-1.5 py-2">
               상태
             </th>
-            <th scope="col" className="w-[16%] px-2 py-2">
+            <th scope="col" className="w-[12%] px-1.5 py-2">
               회원권
             </th>
-            <th scope="col" className="w-[10%] px-2 py-2">
-              만료일
+            <th scope="col" className="w-[8%] px-1.5 py-2">
+              이용시작일
             </th>
-            <th scope="col" className="w-[11%] px-2 py-2">
+            <th scope="col" className="w-[8%] px-1.5 py-2">
+              이용종료일
+            </th>
+            <th scope="col" className="w-[11%] px-1.5 py-2">
+              이용기간/잔여
+            </th>
+            <th scope="col" className="w-[7%] px-1.5 py-2 text-right">
+              출석횟수
+            </th>
+            <th scope="col" className="w-[8%] px-1.5 py-2 text-right">
+              결제금액
+            </th>
+            <th scope="col" className="w-[8%] px-1.5 py-2">
               관리
             </th>
           </tr>
@@ -82,10 +90,10 @@ export function MemberTable({
               key={m.id}
               className="border-b border-matchon-border last:border-0 hover:bg-matchon-surface/60"
             >
-              <td className="px-2 py-1 text-center text-[11px] tabular-nums text-matchon-text-secondary">
+              <td className="px-1.5 py-1 text-center text-[11px] tabular-nums text-matchon-text-secondary">
                 {m.rowNumber}
               </td>
-              <td className="px-2 py-1">
+              <td className="px-1.5 py-1">
                 <div className="flex min-w-0 items-center gap-1.5">
                   <GymMemberAvatar
                     src={m.profileImageUrl}
@@ -104,32 +112,41 @@ export function MemberTable({
                   </div>
                 </div>
               </td>
-              <td className="px-2 py-1 whitespace-nowrap text-matchon-text-secondary">
+              <td className="px-1.5 py-1 whitespace-nowrap text-matchon-text-secondary">
                 {formatPhoneNumber(m.phone)}
               </td>
-              <td className="px-2 py-1">
+              <td className="px-1.5 py-1">
                 <GroupCell names={m.groupNames} />
               </td>
-              <td className="hidden px-2 py-1 xl:table-cell">
-                <span className="line-clamp-1 text-xs text-matchon-text-primary">
-                  {m.rankName ?? "—"}
-                </span>
-              </td>
-              <td className="px-2 py-1">
+              <td className="px-1.5 py-1">
                 <MemberStatusBadge
                   label={m.membershipStatusLabel}
                   tone={m.membershipStatus}
                 />
               </td>
-              <td className="px-2 py-1">
+              <td className="px-1.5 py-1">
                 <span className="line-clamp-2 break-words text-xs">
                   {m.planName ?? "회원권 없음"}
                 </span>
               </td>
-              <td className="px-2 py-1 whitespace-nowrap">
+              <td className="px-1.5 py-1 whitespace-nowrap text-matchon-text-secondary">
+                {m.startedAt ? formatUtcDateOnly(m.startedAt) : "—"}
+              </td>
+              <td className="px-1.5 py-1 whitespace-nowrap">
                 <ExpirationCell member={m} />
               </td>
-              <td className="px-2 py-1">
+              <td className="px-1.5 py-1">
+                <span className="line-clamp-2 text-xs text-matchon-text-primary">
+                  {m.periodRemainingLabel ?? "—"}
+                </span>
+              </td>
+              <td className="px-1.5 py-1 text-right tabular-nums text-matchon-text-primary">
+                {m.attendanceCount == null ? "—" : `${m.attendanceCount}회`}
+              </td>
+              <td className="px-1.5 py-1 text-right tabular-nums text-matchon-text-primary">
+                {m.paymentAmount == null ? "—" : formatWon(m.paymentAmount)}
+              </td>
+              <td className="px-1.5 py-1">
                 <div className="flex flex-wrap items-center gap-1.5">
                   <Link
                     href={`/gym/members/${m.id}`}

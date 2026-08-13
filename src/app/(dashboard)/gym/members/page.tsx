@@ -95,7 +95,7 @@ export default async function GymMembersPage({
 
   if (!actor.gymId) {
     return (
-      <div className={matchonPageContainerClass}>
+      <div className={cn(matchonPageContainerClass, "overflow-x-hidden")}>
         <div className={matchonPageStackClass}>
           <GymProfileMissingBanner />
         </div>
@@ -158,7 +158,7 @@ export default async function GymMembersPage({
       : "첫 회원을 등록해 보세요.";
 
   return (
-    <div className={cn(matchonPageContainerClass, "bg-matchon-surface")}>
+    <div className={cn(matchonPageContainerClass, "overflow-x-hidden bg-matchon-surface")}>
       <div className={matchonPageStackClass}>
         <MemberPageHeader
           title="회원관리"
@@ -326,7 +326,7 @@ export default async function GymMembersPage({
           />
         ) : (
           <>
-            <div className="flex flex-col gap-3 lg:hidden">
+            <div className="flex flex-col gap-3 overflow-x-hidden lg:hidden">
               {list.items.map((m) => (
                 <MemberMobileCard key={m.id} member={m} />
               ))}
