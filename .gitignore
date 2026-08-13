@@ -30,6 +30,9 @@ yarn-debug.log*
 yarn-error.log*
 .pnpm-debug.log*
 
+# local DB dumps (never commit)
+.local-backups/
+
 # env files (로컬 비밀 유지 — 예시는 예외)
 .env
 .env.local

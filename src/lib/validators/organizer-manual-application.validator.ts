@@ -1,5 +1,11 @@
 import { z } from "zod";
 import { ApplicationStatus, PaymentStatus } from "@/generated/prisma";
+import {
+  athleteCareerTextSchema,
+  athleteRecordTextSchema,
+  insuranceConsentMustAgreeSchema,
+  residentRegistrationNumberFieldSchema,
+} from "@/lib/athlete-application/profile-input";
 
 const genderSchema = z.string().trim().min(1, "성별을 선택해 주세요.");
 
@@ -48,6 +54,10 @@ export const organizerManualApplicationSchema = z
       .max(2000)
       .optional()
       .transform((s) => (s === "" ? undefined : s)),
+    recordText: athleteRecordTextSchema,
+    careerText: athleteCareerTextSchema,
+    residentRegistrationNumber: residentRegistrationNumberFieldSchema,
+    insuranceConsentConfirmed: insuranceConsentMustAgreeSchema,
     confirmDuplicate: z.boolean().optional().default(false),
     linkFighterId: z.string().trim().optional(),
   })

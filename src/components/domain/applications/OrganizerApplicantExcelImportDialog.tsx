@@ -315,7 +315,7 @@ function PreviewBody({ preview }: { preview: ApplicantExcelPreview }) {
         <table className="w-full text-left text-xs">
           <thead className="bg-muted/40 sticky top-0">
             <tr>
-              {["상태", "선수명", "체육관", "성별", "생년월일", "경기구분", "체급", "결과"].map(
+              {["상태", "선수명", "체육관", "전적", "운동경력", "주민번호", "보험동의", "경기구분", "체급", "결과"].map(
                 (h) => (
                   <th key={h} className="px-2 py-1.5 font-medium">
                     {h}
@@ -360,7 +360,10 @@ function PreviewTableRow({ row }: { row: ApplicantExcelPreviewRow }) {
       <td className="px-2 py-1">{row.fighterName || "—"}</td>
       <td className="px-2 py-1">{row.gymName || "—"}</td>
       <td className="px-2 py-1">{row.genderLabel || "—"}</td>
-      <td className="px-2 py-1 tabular-nums">{row.birthDate || "—"}</td>
+      <td className="px-2 py-1">{row.recordText || "—"}</td>
+      <td className="px-2 py-1">{row.careerText || "—"}</td>
+      <td className="px-2 py-1 tabular-nums">{row.insuranceRrnMasked || "—"}</td>
+      <td className="px-2 py-1">{row.insuranceConsentLabel || "—"}</td>
       <td className="px-2 py-1">{row.ageGroup || "—"}</td>
       <td className="px-2 py-1">{row.weightClass || "—"}</td>
       <td className="px-2 py-1 text-red-700">
@@ -386,6 +389,12 @@ function PreviewMobileCard({ row }: { row: ApplicantExcelPreviewRow }) {
       </div>
       <p className="mt-1 text-matchon-text-secondary">
         {row.gymName} · {row.genderLabel} · {row.birthDate}
+      </p>
+      <p className="text-matchon-text-secondary">
+        {row.recordText || "전적 없음"} · {row.careerText || "경력 없음"}
+      </p>
+      <p className="text-matchon-text-secondary">
+        {row.insuranceRrnMasked || "주민번호 없음"} · {row.insuranceConsentLabel || "동의 없음"}
       </p>
       <p className="text-matchon-text-secondary">
         {row.ageGroup} {row.weightClass}

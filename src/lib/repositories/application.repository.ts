@@ -12,6 +12,15 @@ function db(tx?: Prisma.TransactionClient) {
   return tx ?? prisma;
 }
 
+function toPrismaBytes(
+  value: Uint8Array | null | undefined,
+): Uint8Array<ArrayBuffer> | null {
+  if (!value) return null;
+  const copy = new Uint8Array(new ArrayBuffer(value.byteLength));
+  copy.set(value);
+  return copy;
+}
+
 const organizerApplicationSelect = {
   id: true,
   status: true,
@@ -23,6 +32,10 @@ const organizerApplicationSelect = {
   fighterSnapshot: true,
   gymSnapshot: true,
   applicationAgreementSnapshot: true,
+  recordText: true,
+  careerText: true,
+  insuranceRrnMasked: true,
+  insuranceConsentSnapshot: true,
   fighter: {
     select: {
       id: true,
@@ -216,6 +229,14 @@ export const applicationRepository = {
       appliedAt: Date;
       applicationProfileImageUrl?: string | null;
       memo?: string | null;
+      recordText?: string | null;
+      careerText?: string | null;
+      insuranceRrnCipher?: Uint8Array | null;
+      insuranceRrnIv?: Uint8Array | null;
+      insuranceRrnAuthTag?: Uint8Array | null;
+      insuranceRrnKeyVer?: string | null;
+      insuranceRrnMasked?: string | null;
+      insuranceConsentSnapshot?: Prisma.InputJsonValue | null;
       feeAmount: number;
       initialApplicationStatus?: ApplicationStatus;
       initialPaymentStatus?: PaymentStatus;
@@ -239,6 +260,14 @@ export const applicationRepository = {
         appliedAt: data.appliedAt,
         applicationProfileImageUrl: data.applicationProfileImageUrl ?? null,
         memo: data.memo ?? null,
+        recordText: data.recordText?.trim() || null,
+        careerText: data.careerText?.trim() || null,
+        insuranceRrnCipher: toPrismaBytes(data.insuranceRrnCipher),
+        insuranceRrnIv: toPrismaBytes(data.insuranceRrnIv),
+        insuranceRrnAuthTag: toPrismaBytes(data.insuranceRrnAuthTag),
+        insuranceRrnKeyVer: data.insuranceRrnKeyVer ?? null,
+        insuranceRrnMasked: data.insuranceRrnMasked ?? null,
+        insuranceConsentSnapshot: data.insuranceConsentSnapshot ?? undefined,
         status: applicationStatus,
         paymentStatus,
       },

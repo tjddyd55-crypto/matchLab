@@ -4,6 +4,7 @@ import { useActionState, useMemo, useState } from "react";
 import type { ActionResult } from "@/lib/action-result";
 import { applyToEventAction } from "@/features/applications/actions";
 import { ApplicationAgreementChecklist } from "@/components/domain/applications/ApplicationAgreementChecklist";
+import { AthleteInsuranceProfileFields } from "@/components/domain/applications/AthleteInsuranceProfileFields";
 import { PaymentInstructionCard } from "@/components/domain/payments/PaymentInstructionCard";
 import { FeedbackMessage } from "@/components/shared/FeedbackMessage";
 import { MatchonStatusBadge } from "@/components/shared/MatchonStatusBadge";
@@ -200,6 +201,18 @@ export function EventApplicationForm(props: EventApplicationFormProps) {
               );
             })}
           </div>
+        </CardContent>
+      </Card>
+
+      <Card>
+        <CardHeader>
+          <CardTitle className="text-base">출전 정보</CardTitle>
+          <CardDescription>
+            전적·운동경력·보험가입 정보는 이번 대회 신청에만 저장됩니다.
+          </CardDescription>
+        </CardHeader>
+        <CardContent>
+          <AthleteInsuranceProfileFields idPrefix="apply" />
         </CardContent>
       </Card>
 

@@ -2,7 +2,8 @@
 // 격투기 대회 운영 플랫폼 — Prisma 스키마 (database.md / status-machine.md / api-contract.md 정합)
 // - 전적 원천: MatchResult / Fighter.record* 는 캐시
 // - 입금 진실: EventApplicationPayment / EventApplication.paymentStatus 는 집계 캐시
-// - 주민번호·스트림 키 필드 없음
+// - 보험용 주민번호는 EventApplication encrypted 컬럼만 (GymMember/Fighter 금지)
+// - 스트림 키 필드 없음
 // - GuardianConsent.signatureImagePath: private storage 객체 경로(URL 아님)
 // =============================================================================
 
@@ -1903,6 +1904,19 @@ model EventApplication {
   cancellationSource         ApplicationCancellationSource?
   applicationBatchId         String?
   applicationDocumentId      String?            @unique
+  /// 신청 시점 자유문장 전적. Fighter.record* / MatchResult와 별개
+  recordText                 String?
+  /// 신청 시점 자유문장 운동경력. GymMember/Fighter에 복사하지 않음
+  careerText                 String?
+  /// 보험가입용 주민번호 암호문 (EventApplication scope only)
+  insuranceRrnCipher         Bytes?
+  insuranceRrnIv             Bytes?
+  insuranceRrnAuthTag        Bytes?
+  insuranceRrnKeyVer         String?
+  /// 목록/상세 기본 표시용 마스크 (예: 900101-1******)
+  insuranceRrnMasked         String?
+  /// 보험가입 목적 개인정보 동의 snapshot (번호 포함 금지)
+  insuranceConsentSnapshot   Json?
   /// 참가 승인 시 크레딧 차감 추적
   creditChargedAt            DateTime?
   creditChargeLedgerId       String?

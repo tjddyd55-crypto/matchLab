@@ -9,6 +9,8 @@ export const APPLICANT_EXCEL_HEADERS = [
   "체중",
   "전적",
   "운동경력",
+  "주민등록번호",
+  "보험가입 개인정보동의",
   "경기구분",
   "체급",
   "체중기준",
@@ -38,6 +40,8 @@ export const APPLICANT_EXCEL_HEADER_ALIASES: Record<string, ApplicantExcelHeader
     비고: "메모",
     "비고/메모": "메모",
     소속: "체육관명",
+    주민번호: "주민등록번호",
+    보험동의: "보험가입 개인정보동의",
   };
 
 /** 샘플 예시행 식별용 숨김 컬럼 (일반 Excel에는 없음) */

@@ -1,17 +1,19 @@
+import { sanitizePiiForLog } from "@/lib/athlete-application/sanitize-pii-log";
+
 const LOG_PREFIX = "[manual-application-create]";
 
 export function logManualApplicationCreate(
   step: string,
   data?: Record<string, unknown>,
 ): void {
-  console.info(LOG_PREFIX, step, data ?? {});
+  console.info(LOG_PREFIX, step, sanitizePiiForLog(data ?? {}));
 }
 
 export function logManualApplicationCreateError(
   step: string,
   data?: Record<string, unknown>,
 ): void {
-  console.error(LOG_PREFIX, step, data ?? {});
+  console.error(LOG_PREFIX, step, sanitizePiiForLog(data ?? {}));
 }
 
 export function maskPhoneLast4(phone?: string | null): string | undefined {

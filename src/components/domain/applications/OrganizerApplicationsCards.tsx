@@ -105,6 +105,22 @@ export function OrganizerApplicationsCards({
                 신청일 {formatPublicDateTime(row.appliedAt)}
               </p>
             ) : null}
+            {row.recordText ? (
+              <p className="text-muted-foreground text-xs">전적 {row.recordText}</p>
+            ) : null}
+            {row.careerText ? (
+              <p className="text-muted-foreground text-xs">
+                운동경력 {row.careerText}
+              </p>
+            ) : null}
+            <p className="text-muted-foreground text-xs">
+              보험동의 {row.insuranceConsentLabel ?? (row.insuranceConsentAgreed ? "동의" : "미동의")}
+            </p>
+            {row.insuranceRrnMasked ? (
+              <p className="text-muted-foreground text-xs">
+                주민번호 {row.insuranceRrnMasked}
+              </p>
+            ) : null}
             <OrganizerApplicationRowActions
               eventId={eventId}
               row={row}
