@@ -183,6 +183,7 @@
     "verify:member-self-registration-idempotency": "tsx scripts/verify-gym-member-self-registration.ts",
     "verify:operational-kpi-style": "tsx scripts/verify-operational-kpi-style.ts",
     "e2e:gym-member-excel-import-qa": "tsx scripts/e2e-gym-member-excel-import-qa.mts",
+    "e2e:integrated-preview-qa": "tsx scripts/e2e-integrated-preview-qa.mts",
     "verify:gym-member-gym-scope": "tsx scripts/verify-gym-member-gym-scope.ts",
     "verify:tailwind-source-scope": "tsx scripts/verify-tailwind-source-scope.ts",
     "verify:gym-member-home-summary": "tsx scripts/verify-gym-member-ui-v2-phase1.ts",
