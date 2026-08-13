@@ -33,6 +33,8 @@ export {
   GymMemberAttendanceSource,
   GymMemberPaymentMethod,
   GymMemberPaymentStatus,
+  GymMemberRegistrationRequestStatus,
+  GymMemberSelfRegistrationLinkStatus,
   GymMemberStatus,
   GymMemberSubscriptionStatus,
   GymMemberSubscriptionCreationSource,
