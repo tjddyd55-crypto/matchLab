@@ -285,7 +285,7 @@ export const gymMembershipSaleService = {
               listPrice,
               discountAmount,
               paymentMethod:
-                input.paymentMethod ?? GymMemberPaymentMethod.cash,
+                input.paymentMethod ?? GymMemberPaymentMethod.card,
               status: GymMemberPaymentStatus.paid,
               category: GymSalesCategory.membership,
               memo: paymentMemo,
@@ -320,7 +320,7 @@ export const gymMembershipSaleService = {
             amount: saleAmount,
             listPrice,
             discountAmount,
-            paymentMethod: input.paymentMethod ?? GymMemberPaymentMethod.cash,
+            paymentMethod: input.paymentMethod ?? GymMemberPaymentMethod.card,
             status: GymMemberPaymentStatus.paid,
             category: GymSalesCategory.membership,
             memo: paymentMemo,

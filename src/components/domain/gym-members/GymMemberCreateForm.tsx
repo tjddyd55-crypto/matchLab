@@ -213,14 +213,6 @@ export function GymMemberCreateForm({
               <option value="여">여</option>
             </select>
           </label>
-          <label className="block space-y-1 text-sm">
-            <span>이메일</span>
-            <input
-              name="email"
-              type="email"
-              className={matchonFieldInputClass}
-            />
-          </label>
           <AddressSearchField
             label="주소"
             addressName="address"
@@ -322,7 +314,7 @@ export function GymMemberCreateForm({
             <select
               name="paymentMethod"
               className={matchonFieldInputClass}
-              defaultValue="cash"
+              defaultValue="card"
             >
               <option value="cash">현금</option>
               <option value="card">카드</option>
