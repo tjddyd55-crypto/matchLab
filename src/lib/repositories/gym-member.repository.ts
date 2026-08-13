@@ -125,17 +125,17 @@ export const gymMemberRepository = {
     gymId: string,
     tx?: Prisma.TransactionClient,
   ): Promise<string> {
-    const last = await db(tx).gymMember.findFirst({
-      where: { gymId },
-      orderBy: { memberNumber: "desc" },
+    const rows = await db(tx).gymMember.findMany({
+      where: { gymId, memberNumber: { startsWith: "M-" } },
       select: { memberNumber: true },
     });
-    let seq = 1;
-    if (last?.memberNumber) {
-      const m = /^M-(\d+)$/.exec(last.memberNumber);
-      if (m) seq = Number(m[1]) + 1;
+    let seq = 0;
+    for (const row of rows) {
+      const m = /^M-(\d+)$/.exec(row.memberNumber);
+      if (!m) continue;
+      seq = Math.max(seq, Number(m[1]));
     }
-    return `M-${String(seq).padStart(6, "0")}`;
+    return `M-${String(seq + 1).padStart(6, "0")}`;
   },
 
   async findByIdForGym(memberId: string, gymId: string, tx?: Prisma.TransactionClient) {
