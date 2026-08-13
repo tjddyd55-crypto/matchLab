@@ -31,6 +31,34 @@ import { cn } from "@/lib/utils";
 
 export const dynamic = "force-dynamic";
 
+const HOME_SNIPPET_TIMEOUT_MS = 8_000;
+
+async function loadHomeSnippet<T>(
+  label: string,
+  task: Promise<T>,
+): Promise<T | null> {
+  let timer: ReturnType<typeof setTimeout> | undefined;
+  try {
+    const timeout = new Promise<T>((_, reject) => {
+      timer = setTimeout(
+        () => reject(new Error(`${label} timeout`)),
+        HOME_SNIPPET_TIMEOUT_MS,
+      );
+    });
+    const result = await Promise.race([task, timeout]);
+    void task.catch((error) => {
+      console.error(`[gym-home] ${label} late`, error);
+    });
+    return result;
+  } catch (error) {
+    console.error(`[gym-home] ${label}`, error);
+    void task.catch(() => undefined);
+    return null;
+  } finally {
+    if (timer) clearTimeout(timer);
+  }
+}
+
 function GymProfileShell({ children }: { children: ReactNode }) {
   return (
     <div className={matchonPageContainerClass}>
@@ -71,9 +99,10 @@ export default async function GymHomePage() {
     scheduleSummary,
     groupClassSummary,
   ] = await Promise.all([
-    gymMemberService.getSummary(actor).catch(() => null),
-    prisma.gymMember
-      .findMany({
+    loadHomeSnippet("memberSummary", gymMemberService.getSummary(actor)),
+    loadHomeSnippet(
+      "recentMembers",
+      prisma.gymMember.findMany({
         where: { gymId: actor.gymId, deletedAt: null },
         orderBy: { createdAt: "desc" },
         take: 5,
@@ -85,21 +114,32 @@ export default async function GymHomePage() {
           memberNumber: true,
           fighter: { select: { id: true } },
         },
-      })
-      .catch(() => []),
-    eventService.getGymHomeEventSummary(actor).catch(() => null),
+      }),
+    ).then((rows) => rows ?? []),
+    loadHomeSnippet(
+      "eventSummary",
+      eventService.getGymHomeEventSummary(actor),
+    ),
     isStaffViewer
       ? Promise.resolve(null)
-      : gymAttendanceService.getHomeAttendanceSnippet(actor),
+      : loadHomeSnippet(
+          "attendanceSummary",
+          gymAttendanceService.getHomeAttendanceSnippet(actor),
+        ),
     canManageSales
-      ? gymSalesService.getHomeSalesSnippet(actor)
+      ? loadHomeSnippet(
+          "salesSummary",
+          gymSalesService.getHomeSalesSnippet(actor),
+        )
       : Promise.resolve(null),
-    gymScheduleService
-      .getSummary(actor, { myOnly: isStaffViewer })
-      .catch(() => null),
-    gymGroupClassService
-      .getSummary(actor, { myOnly: isStaffViewer })
-      .catch(() => null),
+    loadHomeSnippet(
+      "scheduleSummary",
+      gymScheduleService.getSummary(actor, { myOnly: isStaffViewer }),
+    ),
+    loadHomeSnippet(
+      "groupClassSummary",
+      gymGroupClassService.getSummary(actor, { myOnly: isStaffViewer }),
+    ),
   ]);
 
   const hasMembers = (memberSummary?.total ?? 0) > 0;
