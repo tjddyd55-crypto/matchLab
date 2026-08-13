@@ -1198,7 +1198,7 @@ async function main() {
         pass(`responsive-${vp.w}`, { overflowX: ox });
       }
 
-      await admin.goto(`${BASE}/gym/members/self-registration/print`, {
+      await admin.goto(`${BASE}/self-registration-print`, {
         waitUntil: "domcontentloaded",
         timeout: 60_000,
       });

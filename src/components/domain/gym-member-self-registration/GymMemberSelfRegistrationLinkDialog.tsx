@@ -190,7 +190,7 @@ export function GymMemberSelfRegistrationLinkButton() {
                     QR 크게 보기
                   </Button>
                   <a
-                    href="/gym/members/self-registration/print"
+                    href="/self-registration-print"
                     target="_blank"
                     rel="noreferrer"
                     className="inline-flex min-h-11 items-center rounded-md border border-matchon-border px-3 text-sm"

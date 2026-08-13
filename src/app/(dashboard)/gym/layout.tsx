@@ -1,6 +1,7 @@
 import { GymPortalStatusBanner } from "@/components/domain/gym/GymPortalStatusBanner";
 import { GymStaffPasswordChangeGate } from "@/components/domain/gym/GymStaffPasswordChangeGate";
-import { GymDashboardChrome } from "@/components/domain/gym-member-self-registration/GymDashboardChrome";
+import { AppShell } from "@/components/layout/AppShell";
+import { DashboardShell } from "@/components/layout/DashboardShell";
 import { redirectUnlessDashboardRole, requireActor } from "@/lib/auth/actor";
 import { resolveGymPortalAccess } from "@/lib/gym-portal-access";
 
@@ -28,39 +29,43 @@ export default async function GymDashboardLayout({
 
   if (access && !access.canEnterPortal) {
     return (
-      <GymDashboardChrome
+      <AppShell>
+        <DashboardShell
+          role="gym"
+          actorUserId={actor.userId}
+          actorEmail={actor.email || ""}
+          gymNavViewer={gymNavViewer}
+        >
+          <div className="mx-auto max-w-lg px-4 py-16">
+            <h1 className="text-xl font-bold text-matchon-text-primary">
+              회원사 포털 이용 불가
+            </h1>
+            <p className="mt-3 text-sm text-matchon-text-secondary">
+              {access.bannerMessage}
+            </p>
+          </div>
+        </DashboardShell>
+      </AppShell>
+    );
+  }
+
+  return (
+    <AppShell>
+      <DashboardShell
         role="gym"
         actorUserId={actor.userId}
         actorEmail={actor.email || ""}
         gymNavViewer={gymNavViewer}
       >
-        <div className="mx-auto max-w-lg px-4 py-16">
-          <h1 className="text-xl font-bold text-matchon-text-primary">
-            회원사 포털 이용 불가
-          </h1>
-          <p className="mt-3 text-sm text-matchon-text-secondary">
-            {access.bannerMessage}
-          </p>
-        </div>
-      </GymDashboardChrome>
-    );
-  }
-
-  return (
-    <GymDashboardChrome
-      role="gym"
-      actorUserId={actor.userId}
-      actorEmail={actor.email || ""}
-      gymNavViewer={gymNavViewer}
-    >
-      <GymStaffPasswordChangeGate mustChangePassword={mustChangePassword}>
-        {access && !mustChangePassword ? (
-          <div className="px-4 pt-4 md:px-6">
-            <GymPortalStatusBanner access={access} />
-          </div>
-        ) : null}
-        {children}
-      </GymStaffPasswordChangeGate>
-    </GymDashboardChrome>
+        <GymStaffPasswordChangeGate mustChangePassword={mustChangePassword}>
+          {access && !mustChangePassword ? (
+            <div className="px-4 pt-4 md:px-6">
+              <GymPortalStatusBanner access={access} />
+            </div>
+          ) : null}
+          {children}
+        </GymStaffPasswordChangeGate>
+      </DashboardShell>
+    </AppShell>
   );
 }
