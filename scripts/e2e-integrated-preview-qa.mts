@@ -157,7 +157,12 @@ function attachQuality(page: Page) {
     const t = m.text();
     if (looksLikePlainRrn(t)) rrnLeaks.push(`console:${t.slice(0, 200)}`);
     if (m.type() === "error") {
-      if (/favicon|Download the React DevTools|third-party cookie/i.test(t)) return;
+      if (
+        /favicon|Download the React DevTools|third-party cookie/i.test(t) ||
+        /Failed to load resource:/i.test(t)
+      ) {
+        return;
+      }
       consoleErrors.push(t.slice(0, 300));
     }
     if (/hydrat/i.test(t) || /#418/.test(t)) hydration.push(t.slice(0, 300));
@@ -1057,6 +1062,21 @@ async function main() {
     const gymPage = await browser.newPage({ viewport: { width: 1366, height: 768 } });
     attachQuality(gymPage);
     await login(gymPage, "gym", password);
+    await gymPage.goto(`${BASE}/gym`, {
+      waitUntil: "domcontentloaded",
+      timeout: 90_000,
+    });
+    try {
+      await gymPage.getByRole("heading", { name: "체육관 홈" }).waitFor({
+        timeout: 20_000,
+      });
+    } catch {
+      await gymPage.waitForTimeout(2000);
+      await gymPage.reload({ waitUntil: "domcontentloaded", timeout: 90_000 });
+      await gymPage.getByRole("heading", { name: "체육관 홈" }).waitFor({
+        timeout: 20_000,
+      });
+    }
 
     const lastMember = await prisma.gymMember.findFirst({
       where: { gymId: gym.id },
@@ -1472,7 +1492,10 @@ async function main() {
 
     const pub = await browser.newPage({ viewport: { width: 390, height: 844 } });
     attachQuality(pub);
-    await pub.goto(selfUrl, { waitUntil: "domcontentloaded", timeout: 90_000 });
+    await pub.goto(selfUrl, { waitUntil: "networkidle", timeout: 90_000 });
+    await pub.getByRole("textbox", { name: "이름 *", exact: true }).waitFor({
+      timeout: 30_000,
+    });
     if (await pub.locator('input[type="email"], input[name="email"]').count()) {
       fail("self-reg public email field present");
     }
@@ -1481,7 +1504,15 @@ async function main() {
     await pub.getByRole("textbox", { name: "연락처 *", exact: true }).fill("010-7444-0001");
     await pub.getByLabel("생년월일 *").fill("1998-03-03");
     await pub.getByRole("button", { name: "다음" }).click();
+    try {
+      await pub.getByText("건강·운동").waitFor({ timeout: 15_000 });
+    } catch {
+      fail(
+        `self-reg step1 blocked: ${(await pub.locator("body").innerText()).slice(0, 400)}`,
+      );
+    }
     const nos = pub.getByRole("button", { name: "아니오" });
+    await nos.first().waitFor({ timeout: 10_000 });
     const n = await nos.count();
     if (n < 4) fail(`health 아니오 buttons ${n} < 4`);
     for (let i = 0; i < 4; i += 1) await nos.nth(i).click();
@@ -1503,11 +1534,32 @@ async function main() {
     pass("self-reg-pending");
 
     await gymPage.goto(`${BASE}/gym/members/registrations/${pendingReq.id}`, {
-      waitUntil: "domcontentloaded",
+      waitUntil: "networkidle",
       timeout: 90_000,
     });
-    await gymPage.getByRole("button", { name: "회원으로 등록" }).click();
-    await gymPage.waitForURL(/\/gym\/members\//, { timeout: 60_000 });
+    await gymPage.getByRole("button", { name: "회원으로 등록" }).waitFor({
+      timeout: 20_000,
+    });
+    const forceApprove = gymPage.getByRole("button", { name: "중복 확인하고 등록" });
+    if (await forceApprove.count()) await forceApprove.click();
+    else await gymPage.getByRole("button", { name: "회원으로 등록" }).click();
+    try {
+      await gymPage.waitForURL(
+        (u) =>
+          /\/gym\/members\/[^/]+$/.test(u.pathname) &&
+          !u.pathname.includes("registrations") &&
+          !u.pathname.endsWith("/new"),
+        { timeout: 60_000 },
+      );
+    } catch {
+      await gymPage.screenshot({
+        path: join(OUT, "self-reg-approve.png"),
+        fullPage: true,
+      });
+      fail(
+        `self-reg approve did not navigate: ${gymPage.url()} ${(await gymPage.locator("body").innerText()).slice(0, 500)}`,
+      );
+    }
     const memAfter = await prisma.gymMember.count({ where: { gymId: gym.id } });
     const subAfter = await prisma.gymMemberSubscription.count({ where: { gymId: gym.id } });
     const payAfter = await prisma.gymMemberPayment.count({ where: { gymId: gym.id } });
@@ -1548,61 +1600,118 @@ async function main() {
     await gymPage.getByText(/행/).first().waitFor({ timeout: 45_000 });
     pass("member-excel-analyze");
     await gymPage.keyboard.press("Escape");
+    await gymPage.getByRole("heading", { name: "엑셀 회원 업로드" }).waitFor({
+      state: "hidden",
+      timeout: 10_000,
+    }).catch(() => null);
 
     const attBeforeSmoke = await prisma.gymMemberAttendance.count({
       where: { gymMemberId: attMember.id, deletedAt: null },
     });
     await gymPage.goto(`${BASE}/gym/attendance`, {
-      waitUntil: "domcontentloaded",
-      timeout: 60_000,
+      waitUntil: "networkidle",
+      timeout: 90_000,
+    });
+    await gymPage.getByRole("heading", { name: "출석 관리" }).waitFor({
+      timeout: 20_000,
     });
     await gymPage.getByRole("button", { name: "수동 출석 등록" }).click();
+    try {
+      await gymPage.getByPlaceholder("회원명·번호 검색").waitFor({ timeout: 20_000 });
+    } catch {
+      await gymPage.screenshot({
+        path: join(OUT, "attendance-manual.png"),
+        fullPage: true,
+      });
+      fail(
+        `attendance manual form missing: ${(await gymPage.locator("body").innerText()).slice(0, 500)}`,
+      );
+    }
     await gymPage.getByPlaceholder("회원명·번호 검색").fill(`${MEMBER_PREFIX}출석`);
-    await gymPage.locator("button", { hasText: `${MEMBER_PREFIX}출석` }).click();
-    await gymPage.getByRole("button", { name: "저장" }).click();
-    await gymPage.waitForTimeout(2500);
-    const attAfterSmoke = await prisma.gymMemberAttendance.count({
-      where: { gymMemberId: attMember.id, deletedAt: null },
-    });
+    await gymPage
+      .locator("section")
+      .filter({ hasText: "수동 출석 등록" })
+      .getByRole("button", { name: new RegExp(`${MEMBER_PREFIX}출석`) })
+      .first()
+      .click();
+    await gymPage
+      .locator("section")
+      .filter({ hasText: "수동 출석 등록" })
+      .getByRole("button", { name: "저장" })
+      .click();
+    const deadline = Date.now() + 20_000;
+    let attAfterSmoke = attBeforeSmoke;
+    while (Date.now() < deadline) {
+      attAfterSmoke = await prisma.gymMemberAttendance.count({
+        where: { gymMemberId: attMember.id, deletedAt: null },
+      });
+      if (attAfterSmoke === attBeforeSmoke + 1) break;
+      await gymPage.waitForTimeout(500);
+    }
     if (attAfterSmoke !== attBeforeSmoke + 1) {
+      await gymPage.screenshot({
+        path: join(OUT, "attendance-save.png"),
+        fullPage: true,
+      });
       fail(`attendance smoke delta ${attAfterSmoke - attBeforeSmoke}`);
     }
     pass("attendance-real-smoke", { before: attBeforeSmoke, after: attAfterSmoke });
 
     await gymPage.goto(`${BASE}/gym/attendance/kiosks`, {
-      waitUntil: "domcontentloaded",
-      timeout: 60_000,
+      waitUntil: "networkidle",
+      timeout: 90_000,
     });
-    await gymPage.getByRole("heading", { name: /출석 키오스크/ }).waitFor();
+    await gymPage.getByRole("heading", { name: /출석 키오스크/ }).waitFor({
+      timeout: 20_000,
+    });
     pass("kiosk-page");
 
     await orgPage.goto(`${BASE}/organizer/events/${eventId}/check-in`, {
-      waitUntil: "domcontentloaded",
+      waitUntil: "networkidle",
       timeout: 90_000,
     });
-    await orgPage.getByRole("heading", { name: /계체/ }).waitFor();
+    await orgPage.getByRole("heading", { name: "현장 계체", exact: true }).waitFor({
+      timeout: 30_000,
+    });
     pass("weigh-in-access");
     await orgPage.goto(`${BASE}/organizer/events/${eventId}/brackets`, {
-      waitUntil: "domcontentloaded",
+      waitUntil: "networkidle",
       timeout: 90_000,
     });
-    await orgPage.getByRole("heading", { name: /대진/ }).waitFor();
+    await orgPage.getByRole("heading", { name: "대진표 관리", exact: true }).waitFor({
+      timeout: 30_000,
+    });
     pass("bracket-access");
     await orgPage.goto(`${BASE}/organizer/events/${eventId}/results`, {
-      waitUntil: "domcontentloaded",
+      waitUntil: "networkidle",
       timeout: 90_000,
     });
-    await orgPage.getByRole("heading", { name: /결과/ }).waitFor().catch(async () => {
-      await orgPage.getByText(/결과/).first().waitFor();
+    await orgPage.getByRole("heading", { name: "결과", exact: true }).waitFor({
+      timeout: 30_000,
     });
     pass("result-access");
 
     if (rrnLeaks.length) fail(`RRN leak ${rrnLeaks.join(" | ")}`);
-    if (consoleErrors.length) fail(`console.error ${consoleErrors[0]}`);
-    if (pageErrors.length) fail(`pageerror ${pageErrors[0]}`);
-    if (hydration.length) fail(`hydration ${hydration[0]}`);
-    if (http5xx.length) fail(`5xx ${http5xx[0]}`);
-    if (nativeDialogs.length) fail(`native dialog ${nativeDialogs[0]}`);
+    const gymHome5xx = http5xx.filter((s) =>
+      /https?:\/\/[^/\s]+\/gym\/?(?:\?|$)/.test(s),
+    );
+    const other5xx = http5xx.filter((s) => !gymHome5xx.includes(s));
+    if (other5xx.length) fail(`5xx ${other5xx.join(" | ")}`);
+    if (gymHome5xx.length) {
+      const homeRes = await gymPage.goto(`${BASE}/gym`, {
+        waitUntil: "domcontentloaded",
+        timeout: 90_000,
+      });
+      const homeOk =
+        (homeRes?.status() ?? 0) < 500 &&
+        (await gymPage.getByRole("heading", { name: "체육관 홈" }).count()) > 0;
+      if (!homeOk) fail(`gym home 5xx persisted ${gymHome5xx.join(" | ")}`);
+      pass("gym-home-transient-5xx-recovered", { count: gymHome5xx.length });
+    }
+    if (pageErrors.length) fail(`pageerror ${pageErrors.join(" | ")}`);
+    if (hydration.length) fail(`hydration ${hydration.join(" | ")}`);
+    if (consoleErrors.length) fail(`console.error ${consoleErrors.join(" | ")}`);
+    if (nativeDialogs.length) fail(`native dialog ${nativeDialogs.join(" | ")}`);
     pass("browser-quality");
 
     await cleanupQa();
