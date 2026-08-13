@@ -600,7 +600,7 @@ export async function createGymMemberPaymentAction(
         "memo",
       ]),
       paymentMethod:
-        formStr(formData, "paymentMethod") || GymMemberPaymentMethod.cash,
+        formStr(formData, "paymentMethod") || GymMemberPaymentMethod.card,
     });
     if (!parsed.success) {
       return actionFailure(
@@ -728,7 +728,7 @@ export async function createGymMemberLockerRentalAction(
       createPayment: formStr(formData, "createPayment") === "true",
       paymentMethod:
         (formStr(formData, "paymentMethod") as GymMemberPaymentMethod) ||
-        GymMemberPaymentMethod.cash,
+        GymMemberPaymentMethod.card,
     });
     revalidateMemberPaths(memberId);
     return actionSuccess({ rentalId: rental.id });

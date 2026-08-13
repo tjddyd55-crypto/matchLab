@@ -257,7 +257,7 @@ export const gymMemberPaymentCreateSchema = z.object({
     return Number.isFinite(n) ? Math.trunc(n) : undefined;
   }, z.number().int().nonnegative().default(0)),
   paidAt: optionalDateOnly,
-  paymentMethod: optionalPaymentMethod().transform((v) => v ?? "cash"),
+  paymentMethod: optionalPaymentMethod().transform((v) => v ?? "card"),
   subscriptionId: optionalTrimmedString(40),
   category: z
     .preprocess(
@@ -297,7 +297,7 @@ export const gymMembershipSaleSchema = z.object({
     return Number.isFinite(n) ? Math.trunc(n) : undefined;
   }, z.number().int().nonnegative().default(0)),
   paidAt: optionalDateOnly,
-  paymentMethod: optionalPaymentMethod().transform((v) => v ?? "cash"),
+  paymentMethod: optionalPaymentMethod().transform((v) => v ?? "card"),
   memo: optionalTrimmedString(500),
   op: z.enum(["sell", "renew"]).optional().default("sell"),
 });

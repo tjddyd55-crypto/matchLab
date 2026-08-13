@@ -639,7 +639,7 @@ export function GymMemberMembershipPanel({
                 <select
                   name="paymentMethod"
                   className={matchonFieldInputClass}
-                  defaultValue={GymMemberPaymentMethod.cash}
+                  defaultValue={GymMemberPaymentMethod.card}
                 >
                   <PaymentMethodOptions />
                 </select>
@@ -984,7 +984,7 @@ function MembershipSaleDialog({
               <select
                 name="paymentMethod"
                 className={matchonFieldInputClass}
-                defaultValue={GymMemberPaymentMethod.cash}
+                defaultValue={GymMemberPaymentMethod.card}
               >
                 <PaymentMethodOptions />
               </select>

@@ -101,7 +101,7 @@ export const gymMemberPaymentService = {
           amount: input.amount,
           listPrice: input.listPrice ?? null,
           discountAmount: discount,
-          paymentMethod: input.paymentMethod ?? GymMemberPaymentMethod.cash,
+          paymentMethod: input.paymentMethod ?? GymMemberPaymentMethod.card,
           status: GymMemberPaymentStatus.paid,
           category:
             input.category ??

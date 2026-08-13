@@ -38,7 +38,7 @@ export const gymManualSaleCreateSchema = z.object({
   listPrice: optionalWonInt,
   discountAmount: wonIntOrZero,
   soldAt: optionalDateOnly,
-  paymentMethod: paymentMethodEnum.optional().default(GymMemberPaymentMethod.cash),
+  paymentMethod: paymentMethodEnum.optional().default(GymMemberPaymentMethod.card),
   category: categoryEnum.optional().default(GymSalesCategory.other),
   gymMemberId: z
     .string()
@@ -64,7 +64,7 @@ export const gymSalesEntryCreateSchema = z.object({
   saleAmount: wonInt.pipe(z.number().int().positive("판매금액을 입력해 주세요.")),
   paidAmount: wonIntOrZero,
   soldAt: optionalDateOnly,
-  paymentMethod: paymentMethodEnum.optional().default(GymMemberPaymentMethod.cash),
+  paymentMethod: paymentMethodEnum.optional().default(GymMemberPaymentMethod.card),
   category: categoryEnum.optional().default(GymSalesCategory.other),
   gymMemberId: z
     .string()
@@ -142,7 +142,7 @@ export const gymReceivableCreateSchema = z.object({
 export const gymReceivableCollectSchema = z.object({
   amount: wonInt.pipe(z.number().int().positive("납부금액을 입력해 주세요.")),
   paidAt: optionalDateOnly,
-  paymentMethod: paymentMethodEnum.optional().default(GymMemberPaymentMethod.cash),
+  paymentMethod: paymentMethodEnum.optional().default(GymMemberPaymentMethod.card),
   memo: z
     .string()
     .trim()

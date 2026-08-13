@@ -386,7 +386,7 @@ export function GymSalesEntryPanel({
                 <select
                   name="paymentMethod"
                   className={matchonFieldInputClass}
-                  defaultValue={GymMemberPaymentMethod.cash}
+                  defaultValue={GymMemberPaymentMethod.card}
                 >
                   <PaymentMethodOptions />
                 </select>
