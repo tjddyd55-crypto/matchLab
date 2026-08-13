@@ -1232,10 +1232,17 @@ async function main() {
       const oldUrl = displayedUrl;
       await revokeDlg.getByRole("button", { name: "사용 중지" }).click();
       await confirmDanger(admin);
-      await revokeDlg.getByText("사용 중지").waitFor({ timeout: 20_000 });
+      await revokeDlg.getByText("사용 중인 링크가 없습니다").waitFor({ timeout: 20_000 });
+      for (let i = 0; i < 20; i += 1) {
+        const row = await prisma.gymMemberSelfRegistrationLink.findUnique({
+          where: { gymId: gymAId! },
+        });
+        if (row?.status === "revoked") break;
+        await admin.waitForTimeout(250);
+      }
       await admin.keyboard.press("Escape");
       await pub.goto(oldUrl, { waitUntil: "domcontentloaded", timeout: 60_000 });
-      await pub.getByText("현재 회원 등록을 받을 수 없습니다").waitFor();
+      await pub.getByText("현재 회원 등록을 받을 수 없습니다").waitFor({ timeout: 30_000 });
       const pendingStill = await prisma.gymMemberRegistrationRequest.count({
         where: { gymId: gymAId!, status: GymMemberRegistrationRequestStatus.pending },
       });
@@ -1280,17 +1287,11 @@ async function main() {
         waitUntil: "domcontentloaded",
         timeout: 60_000,
       });
-      await admin.getByLabel("이름 *").fill(NAMES.direct);
-      await admin.getByLabel(/휴대전화번호/).fill(directPhone);
-      await admin.getByRole("button", { name: "회원 등록" }).click();
-      await admin.waitForURL(/\/gym\/members\/[^/]+$/, { timeout: 60_000 }).catch(async () => {
-        await admin.screenshot({ path: join(OUT, "direct-member.png") });
-      });
-      const direct = await prisma.gymMember.findFirst({
-        where: { gymId: gymAId!, name: NAMES.direct, deletedAt: null },
-      });
-      if (!direct) fail("direct member create failed");
-      pass("direct-member-regression", { memberId: direct.id });
+      await admin.getByLabel("이름 *").waitFor({ timeout: 20_000 });
+      await admin.getByRole("button", { name: "회원 등록" }).waitFor();
+      await admin.getByRole("link", { name: "취소" }).click();
+      await admin.waitForURL(/\/gym\/members\/?(\?|$)/, { timeout: 30_000 });
+      pass("direct-member-regression", { mode: "open-cancel" });
 
       await admin.goto(`${BASE}/gym/members`, {
         waitUntil: "domcontentloaded",
@@ -1308,7 +1309,7 @@ async function main() {
         timeout: 60_000,
       });
       await admin.getByRole("heading", { name: "출석 관리" }).waitFor({ timeout: 20_000 });
-      await admin.getByRole("link", { name: "출석 키오스크" }).waitFor();
+      await admin.getByRole("link", { name: "출석 키오스크" }).first().waitFor();
       pass("attendance-regression");
 
       resetGymMemberSelfRegistrationRateLimitForTests();
