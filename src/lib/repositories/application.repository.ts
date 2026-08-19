@@ -231,6 +231,12 @@ export const applicationRepository = {
       memo?: string | null;
       recordText?: string | null;
       careerText?: string | null;
+      totalBoutsSnapshot?: number | null;
+      winsSnapshot?: number | null;
+      drawsSnapshot?: number | null;
+      lossesSnapshot?: number | null;
+      schoolLevelSnapshot?: string | null;
+      schoolGradeSnapshot?: number | null;
       insuranceRrnCipher?: Uint8Array | null;
       insuranceRrnIv?: Uint8Array | null;
       insuranceRrnAuthTag?: Uint8Array | null;
@@ -262,6 +268,12 @@ export const applicationRepository = {
         memo: data.memo ?? null,
         recordText: data.recordText?.trim() || null,
         careerText: data.careerText?.trim() || null,
+        totalBoutsSnapshot: data.totalBoutsSnapshot ?? null,
+        winsSnapshot: data.winsSnapshot ?? null,
+        drawsSnapshot: data.drawsSnapshot ?? null,
+        lossesSnapshot: data.lossesSnapshot ?? null,
+        schoolLevelSnapshot: data.schoolLevelSnapshot ?? null,
+        schoolGradeSnapshot: data.schoolGradeSnapshot ?? null,
         insuranceRrnCipher: toPrismaBytes(data.insuranceRrnCipher),
         insuranceRrnIv: toPrismaBytes(data.insuranceRrnIv),
         insuranceRrnAuthTag: toPrismaBytes(data.insuranceRrnAuthTag),

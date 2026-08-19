@@ -167,6 +167,9 @@ type GymApplicationCreateContext = {
     recordWin: number;
     recordLoss: number;
     recordDraw: number;
+    recordTotalBouts?: number;
+    schoolLevel?: string | null;
+    schoolGrade?: number | null;
   };
   agreements: ApplyToEventInput["agreements"];
   streamingAgreementRequired: boolean;
@@ -177,6 +180,13 @@ type GymApplicationCreateContext = {
   memo?: string | null;
   recordText?: string | null;
   careerText?: string | null;
+  /** 구조화 전적 snapshot — Fighter.recordTotalBouts 보다 이 값 우선 */
+  totalBoutsSnapshot?: number | null;
+  winsSnapshot?: number | null;
+  drawsSnapshot?: number | null;
+  lossesSnapshot?: number | null;
+  schoolLevelSnapshot?: string | null;
+  schoolGradeSnapshot?: number | null;
   insuranceRrnDigits?: string | null;
   insuranceConsent?: import("@/lib/athlete-application/insurance-consent").InsuranceConsentSnapshot | null;
   customFormSnapshot?: CustomFormSnapshot | null;
@@ -322,6 +332,15 @@ async function createGymEventApplication(
         memo: ctx.memo?.trim() || null,
         recordText,
         careerText,
+        totalBoutsSnapshot:
+          ctx.totalBoutsSnapshot ?? ctx.fighter.recordTotalBouts ?? null,
+        winsSnapshot: ctx.winsSnapshot ?? null,
+        drawsSnapshot: ctx.drawsSnapshot ?? null,
+        lossesSnapshot: ctx.lossesSnapshot ?? null,
+        schoolLevelSnapshot:
+          ctx.schoolLevelSnapshot ?? ctx.fighter.schoolLevel ?? null,
+        schoolGradeSnapshot:
+          ctx.schoolGradeSnapshot ?? ctx.fighter.schoolGrade ?? null,
         insuranceRrnCipher: encrypted.cipher,
         insuranceRrnIv: encrypted.iv,
         insuranceRrnAuthTag: encrypted.authTag,
@@ -1047,6 +1066,13 @@ export const applicationService = {
       memo: input.memo,
       recordText: input.recordText,
       careerText: input.careerText,
+      // 신청 시점 Fighter 구조화 전적 snapshot 자동 저장
+      totalBoutsSnapshot: fighter.recordTotalBouts ?? null,
+      winsSnapshot: fighter.recordWin ?? null,
+      drawsSnapshot: fighter.recordDraw ?? null,
+      lossesSnapshot: fighter.recordLoss ?? null,
+      schoolLevelSnapshot: fighter.schoolLevel ?? null,
+      schoolGradeSnapshot: fighter.schoolGrade ?? null,
       insuranceRrnDigits: input.residentRegistrationNumber,
       insuranceConsent: buildInsuranceConsentSnapshot({
         agreedAt: appliedAt,

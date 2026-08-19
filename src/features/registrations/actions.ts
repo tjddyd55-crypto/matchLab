@@ -70,6 +70,12 @@ function payloadFromFighterRegistrationForm(
     if (typeof v !== "string") return "";
     return v.trim();
   };
+  const totalBouts = formData.get("totalBouts");
+  const wins = formData.get("wins");
+  const draws = formData.get("draws");
+  const losses = formData.get("losses");
+  const hasRecord =
+    totalBouts != null || wins != null || draws != null || losses != null;
   return {
     name: req("name"),
     birthDate: req("birthDate"),
@@ -82,6 +88,9 @@ function payloadFromFighterRegistrationForm(
     grade: gv("grade"),
     guardianName: gv("guardianName"),
     guardianPhone: gv("guardianPhone"),
+    ...(hasRecord
+      ? { structuredRecord: { totalBouts, wins, draws, losses } }
+      : {}),
   };
 }
 

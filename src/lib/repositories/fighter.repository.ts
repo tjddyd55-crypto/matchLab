@@ -364,10 +364,13 @@ export const fighterRepository = {
     recordWin: number;
     recordLoss: number;
     recordDraw: number;
+    recordTotalBouts: number;
     weight: number | null;
     status: FighterStatus;
     schoolName: string | null;
     grade: string | null;
+    schoolLevel: string | null;
+    schoolGrade: number | null;
     guardianName: string | null;
     guardianPhone: string | null;
   } | null> {
@@ -387,10 +390,13 @@ export const fighterRepository = {
         recordWin: true,
         recordLoss: true,
         recordDraw: true,
+        recordTotalBouts: true,
         weight: true,
         status: true,
         schoolName: true,
         grade: true,
+        schoolLevel: true,
+        schoolGrade: true,
         guardianName: true,
         guardianPhone: true,
       },
@@ -461,6 +467,11 @@ export const fighterRepository = {
       gymInternalMemo?: string | null;
       currentGymId: string;
       gymMemberId?: string | null;
+      recordTotalBouts?: number;
+      recordWin?: number;
+      recordDraw?: number;
+      recordLoss?: number;
+      recordText?: string | null;
     },
   ): Promise<{ id: string; fighterCode: string }> {
     const fighter = await tx.fighter.create({
@@ -480,6 +491,11 @@ export const fighterRepository = {
         primarySport: params.primarySport ?? null,
         currentGymId: params.currentGymId,
         gymMemberId: params.gymMemberId ?? null,
+        recordTotalBouts: params.recordTotalBouts ?? 0,
+        recordWin: params.recordWin ?? 0,
+        recordDraw: params.recordDraw ?? 0,
+        recordLoss: params.recordLoss ?? 0,
+        recordText: params.recordText ?? null,
       },
       select: { id: true, fighterCode: true },
     });
@@ -571,6 +587,11 @@ export const fighterRepository = {
       guardianName?: string | null;
       guardianPhone?: string | null;
       status?: FighterStatus;
+      recordTotalBouts?: number;
+      recordWin?: number;
+      recordDraw?: number;
+      recordLoss?: number;
+      recordText?: string | null;
     },
   ): Promise<void> {
     await tx.fighter.update({
@@ -586,6 +607,15 @@ export const fighterRepository = {
         guardianName: data.guardianName ?? null,
         guardianPhone: data.guardianPhone ?? null,
         ...(data.status ? { status: data.status } : {}),
+        ...(data.recordTotalBouts != null
+          ? {
+              recordTotalBouts: data.recordTotalBouts,
+              recordWin: data.recordWin ?? 0,
+              recordDraw: data.recordDraw ?? 0,
+              recordLoss: data.recordLoss ?? 0,
+              recordText: data.recordText ?? null,
+            }
+          : {}),
       },
     });
   },
@@ -723,12 +753,15 @@ export const fighterRepository = {
     cache: { recordWin: number; recordLoss: number; recordDraw: number },
     tx?: Prisma.TransactionClient,
   ): Promise<void> {
+    // recordTotalBouts = MATCHON 내 확정 경기 수 (idempotent 재집계)
+    const recordTotalBouts = cache.recordWin + cache.recordLoss + cache.recordDraw;
     await db(tx).fighter.update({
       where: { id: fighterId },
       data: {
         recordWin: cache.recordWin,
         recordLoss: cache.recordLoss,
         recordDraw: cache.recordDraw,
+        recordTotalBouts,
       },
     });
   },

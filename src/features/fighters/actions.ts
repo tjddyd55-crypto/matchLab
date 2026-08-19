@@ -47,6 +47,15 @@ function formOpt(formData: FormData, key: string): string | undefined {
 }
 
 /** 등록 전용 — fighterId/status/releaseAffiliation 포함 금지 */
+function extractStructuredRecord(formData: FormData): unknown {
+  const totalBouts = formData.get("totalBouts");
+  const wins = formData.get("wins");
+  const draws = formData.get("draws");
+  const losses = formData.get("losses");
+  if (totalBouts == null && wins == null && draws == null && losses == null) return undefined;
+  return { totalBouts, wins, draws, losses };
+}
+
 function buildCreateGymFighterPayload(formData: FormData): unknown {
   return {
     name: formReq(formData, "name"),
@@ -59,6 +68,7 @@ function buildCreateGymFighterPayload(formData: FormData): unknown {
     guardianName: formOpt(formData, "guardianName"),
     guardianPhone: formOpt(formData, "guardianPhone"),
     gymInternalMemo: formOpt(formData, "gymInternalMemo"),
+    structuredRecord: extractStructuredRecord(formData),
     confirmDuplicateLink: formOpt(formData, "confirmDuplicateLink"),
     linkFighterId: formOpt(formData, "linkFighterId"),
     createLoginAccount: formOpt(formData, "createLoginAccount"),
@@ -82,6 +92,7 @@ function buildUpdateGymFighterPayload(formData: FormData): unknown {
     guardianName: formOpt(formData, "guardianName"),
     guardianPhone: formOpt(formData, "guardianPhone"),
     gymInternalMemo: formOpt(formData, "gymInternalMemo"),
+    structuredRecord: extractStructuredRecord(formData),
     status: formOpt(formData, "status"),
   };
 }

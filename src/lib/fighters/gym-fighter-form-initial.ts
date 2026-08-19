@@ -17,6 +17,10 @@ export type GymFighterFormInitialValues = {
   guardianPhone: string;
   gymInternalMemo: string;
   status?: FighterStatus;
+  recordTotalBouts?: number;
+  recordWin?: number;
+  recordDraw?: number;
+  recordLoss?: number;
 };
 
 export function gymFighterFormInitialFromEdit(row: {
@@ -31,6 +35,10 @@ export function gymFighterFormInitialFromEdit(row: {
   guardianPhone: string | null;
   gymInternalMemo: string | null;
   status: FighterStatus;
+  recordTotalBouts?: number | null;
+  recordWin?: number | null;
+  recordDraw?: number | null;
+  recordLoss?: number | null;
 }): GymFighterFormInitialValues {
   return {
     name: row.name ?? "",
@@ -44,5 +52,9 @@ export function gymFighterFormInitialFromEdit(row: {
     guardianPhone: row.guardianPhone ?? "",
     gymInternalMemo: row.gymInternalMemo ?? "",
     status: row.status,
+    recordTotalBouts: row.recordTotalBouts ?? 0,
+    recordWin: row.recordWin ?? 0,
+    recordDraw: row.recordDraw ?? 0,
+    recordLoss: row.recordLoss ?? 0,
   };
 }

@@ -269,6 +269,7 @@ export const fighterService = {
       );
 
       let fighter: { id: string; fighterCode: string } | null = null;
+      const rec = input.structuredRecord;
       const payload = {
         name: input.name.trim(),
         birthDate,
@@ -282,6 +283,15 @@ export const fighterService = {
         gymInternalMemo: input.gymInternalMemo ?? null,
         currentGymId: gymId,
         gymMemberId: member.id,
+        ...(rec
+          ? {
+              recordTotalBouts: rec.totalBouts,
+              recordWin: rec.wins,
+              recordDraw: rec.draws,
+              recordLoss: rec.losses,
+              recordText: `${rec.totalBouts}전 ${rec.wins}승 ${rec.draws}무 ${rec.losses}패`,
+            }
+          : {}),
       };
 
       const maxCodeAttempts = 3;
@@ -406,6 +416,7 @@ export const fighterService = {
       );
     }
 
+    const updateRec = input.structuredRecord;
     await prisma.$transaction(async (tx) => {
       await fighterRepository.updateFighterProfile(tx, input.fighterId, {
         name: input.name.trim(),
@@ -418,6 +429,15 @@ export const fighterService = {
         guardianName: input.guardianName ?? null,
         guardianPhone: input.guardianPhone ?? null,
         status: input.status,
+        ...(updateRec
+          ? {
+              recordTotalBouts: updateRec.totalBouts,
+              recordWin: updateRec.wins,
+              recordDraw: updateRec.draws,
+              recordLoss: updateRec.losses,
+              recordText: `${updateRec.totalBouts}전 ${updateRec.wins}승 ${updateRec.draws}무 ${updateRec.losses}패`,
+            }
+          : {}),
       });
 
       await fighterRepository.updateGymHistoryMemo(

@@ -1,0 +1,207 @@
+/**
+ * 공개 대회 상세 레이아웃·공유·상태 배지 중복 제거 검증.
+ *
+ *   npm run verify:public-event-detail-layout
+ *   npm run verify:public-event-detail-share
+ *   npm run verify:public-event-instagram-share
+ *   npm run verify:public-event-detail-status-deduplication
+ */
+import assert from "node:assert/strict";
+import { readFileSync } from "node:fs";
+import { join } from "node:path";
+
+const root = process.cwd();
+
+function read(rel: string): string {
+  return readFileSync(join(root, rel), "utf8");
+}
+
+function assertLayout() {
+  const desktop = read(
+    "src/components/domain/events/public/EventDetailHeroDesktop.tsx",
+  );
+  assert.match(desktop, /lg:items-stretch/, "desktop hero must stretch columns");
+  assert.match(
+    desktop,
+    /lg:h-0 lg:min-h-full/,
+    "right column must lock to poster-driven row height",
+  );
+  assert.match(desktop, /mt-auto/, "share section must pin to column bottom");
+  assert.match(desktop, /flex-1/, "info card must fill remaining height");
+  assert.match(
+    desktop,
+    /EventPosterImage/,
+    "poster SSOT EventPosterImage must remain",
+  );
+  assert.match(desktop, /object-cover/, "poster cover policy retained");
+  assert.doesNotMatch(
+    desktop,
+    /h-\[\d+px\]|min-h-\[\d+px\]/,
+    "no fixed px height hardcoding",
+  );
+
+  const mobile = read(
+    "src/components/domain/events/public/EventDetailHeroMobile.tsx",
+  );
+  assert.match(mobile, /md:hidden/, "mobile hero remains separate");
+  assert.doesNotMatch(
+    mobile,
+    /lg:h-0|min-h-full/,
+    "mobile must not force poster/info height match",
+  );
+
+  const meta = read("src/components/domain/events/EventMetaList.tsx");
+  assert.match(meta, /allowLongLocation/, "long location option required");
+  assert.match(meta, /line-clamp-3/, "detail location allows up to 3 lines");
+  assert.match(meta, /break-words/, "location must wrap");
+  assert.match(meta, /title=\{locationText\}/, "full address via title");
+
+  console.log("verify:public-event-detail-layout: OK");
+}
+
+function assertShareSsot() {
+  const share = read("src/lib/share/event-share.ts");
+  assert.match(share, /export function buildEventPublicSharePayload/);
+  assert.match(share, /export async function shareEventPublicLink/);
+  assert.match(share, /export async function copyEventPublicLink/);
+  assert.match(share, /export function openFacebookEventShare/);
+  assert.match(share, /buildEventPublicUrl/);
+  assert.match(share, /AbortError/, "user cancel must be recognized");
+  assert.match(share, /navigator\.share/);
+  assert.match(share, /clipboard\.writeText/);
+  assert.match(
+    share,
+    /EVENT_PUBLIC_INSTAGRAM_COPIED_MESSAGE/,
+    "instagram clipboard fallback message SSOT",
+  );
+  assert.match(
+    share,
+    /EVENT_PUBLIC_LINK_COPIED_MESSAGE/,
+    "link copy success message SSOT",
+  );
+  assert.match(
+    share,
+    /facebook\.com\/sharer\/sharer\.php/,
+    "facebook sharer URL retained",
+  );
+
+  const buttons = read(
+    "src/components/domain/events/public/EventShareButtons.tsx",
+  );
+  assert.match(buttons, /"use client"/);
+  assert.match(buttons, /Instagram 공유/);
+  assert.match(buttons, /Facebook 공유/);
+  assert.match(buttons, /링크 복사/);
+  assert.match(buttons, /shareEventPublicLink/);
+  assert.match(buttons, /copyEventPublicLink/);
+  assert.match(buttons, /openFacebookEventShare/);
+  assert.match(buttons, /buildEventPublicSharePayload/);
+  assert.doesNotMatch(
+    buttons,
+    /window\.location\.href/,
+    "must not copy raw browser URL with query/admin paths",
+  );
+  assert.doesNotMatch(
+    buttons,
+    /instagram:\/\//i,
+    "no fragile instagram deep link",
+  );
+  assert.match(buttons, /aria-live/);
+  assert.match(buttons, /aria-label="Instagram으로 대회 공유"/);
+
+  const desktop = read(
+    "src/components/domain/events/public/EventDetailHeroDesktop.tsx",
+  );
+  const mobile = read(
+    "src/components/domain/events/public/EventDetailHeroMobile.tsx",
+  );
+  assert.match(desktop, /<EventShareButtons event=\{event\}/);
+  assert.match(mobile, /<EventShareButtons[\s\S]*event=\{event\}/);
+
+  console.log("verify:public-event-detail-share: OK");
+  console.log("verify:public-event-instagram-share: OK");
+}
+
+function assertStatusDedup() {
+  const tabs = read(
+    "src/components/domain/events/public/PublicEventDetailTabs.tsx",
+  );
+  assert.doesNotMatch(
+    tabs,
+    /PublicEventTrustBadges/,
+    "tabs must not re-render trust badges below poster",
+  );
+
+  const summary = read(
+    "src/components/domain/events/public/PublicEventInfoSummaryCard.tsx",
+  );
+  assert.doesNotMatch(
+    summary,
+    /PublicEventTrustBadges/,
+    "overview summary must not duplicate hero trust badges",
+  );
+
+  const desktop = read(
+    "src/components/domain/events/public/EventDetailHeroDesktop.tsx",
+  );
+  const mobile = read(
+    "src/components/domain/events/public/EventDetailHeroMobile.tsx",
+  );
+  const desktopHits = (desktop.match(/<PublicEventTrustBadges\b/g) ?? []).length;
+  const mobileHits = (mobile.match(/<PublicEventTrustBadges\b/g) ?? []).length;
+  assert.equal(
+    desktopHits,
+    1,
+    "desktop hero: single JSX render of TrustBadges",
+  );
+  assert.equal(
+    mobileHits,
+    1,
+    "mobile hero: single JSX render of TrustBadges",
+  );
+  assert.match(desktop, /import \{ PublicEventTrustBadges \}/);
+  assert.match(mobile, /import \{ PublicEventTrustBadges \}/);
+
+  const shell = read(
+    "src/components/domain/events/public/PublicEventDetailShell.tsx",
+  );
+  const tabsJsx = shell.match(
+    /<PublicEventDetailTabs[\s\S]*?\/>/,
+  )?.[0];
+  assert.ok(tabsJsx, "PublicEventDetailTabs JSX required");
+  assert.doesNotMatch(
+    tabsJsx,
+    /\bevent=\{event\}/,
+    "shell must not pass event into tabs for badge re-render",
+  );
+  assert.match(tabsJsx, /showLive=\{event\.liveStreamingEnabled\}/);
+
+  const announcement = read(
+    "src/components/domain/events/announcement/EventAnnouncementCardBadges.tsx",
+  );
+  assert.match(
+    announcement,
+    /PublicEventTrustBadges/,
+    "list card badges must remain unaffected",
+  );
+
+  console.log("verify:public-event-detail-status-deduplication: OK");
+}
+
+function assertNoSchemaChange() {
+  // Guard: this feature must not touch prisma schema in the same change set intent.
+  // Runtime check only ensures share/layout files do not import prisma mutations.
+  const share = read("src/lib/share/event-share.ts");
+  assert.doesNotMatch(share, /prisma|@\/generated\/prisma/i);
+  console.log("verify:public-event-detail: schema-touch-free helpers OK");
+}
+
+function main() {
+  assertLayout();
+  assertShareSsot();
+  assertStatusDedup();
+  assertNoSchemaChange();
+  console.log("verify:public-event-detail: ALL_PASS");
+}
+
+main();
