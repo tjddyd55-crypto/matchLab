@@ -19,6 +19,11 @@ export type DivisionTemplateItemInput = z.infer<
   typeof divisionTemplateItemSchema
 >;
 
+/** Excel import preview — 빈 템플릿(0행)도 허용 */
+export const divisionTemplateExistingItemsSchema = z.array(
+  divisionTemplateItemSchema,
+);
+
 export const divisionTemplateItemsSchema = z
   .array(divisionTemplateItemSchema)
   .min(1, "체급표 항목을 하나 이상 추가해 주세요.")

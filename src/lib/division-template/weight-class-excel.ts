@@ -232,6 +232,9 @@ export async function workbookToBuffer(
   return Buffer.from(buf);
 }
 
+export const WEIGHT_CLASS_EXCEL_READ_ERROR_MESSAGE =
+  "Excel 파일을 읽을 수 없습니다. 샘플 형식과 파일 내용을 확인해주세요.";
+
 export async function analyzeWeightClassWorkbook(input: {
   fileName: string;
   buffer: Buffer | ArrayBuffer | Uint8Array;
@@ -239,7 +242,16 @@ export async function analyzeWeightClassWorkbook(input: {
   existingItems: DivisionTemplateItemInput[];
 }): Promise<WeightClassImportPreview> {
   const wb = new ExcelJS.Workbook();
-  await wb.xlsx.load(input.buffer as never);
+  try {
+    await wb.xlsx.load(input.buffer as ExcelJS.Buffer);
+  } catch (e) {
+    console.error("[weight-class-excel] workbook load failed", {
+      fileName: input.fileName,
+      byteLength: input.buffer.byteLength,
+      error: e instanceof Error ? e.message : String(e),
+    });
+    throw new Error(WEIGHT_CLASS_EXCEL_READ_ERROR_MESSAGE);
+  }
   const sheet =
     wb.worksheets.find((s) => /체급|입력|weight/i.test(s.name)) ??
     wb.worksheets[0];
