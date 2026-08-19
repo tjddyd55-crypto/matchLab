@@ -96,6 +96,10 @@ import {
   verifyExternalRegistrationPublicToken,
 } from "@/lib/external-registration/token";
 import { assertExternalRegistrationEligible } from "@/lib/external-registration/eligibility";
+import { parseApplicationWeightKg } from "@/lib/applications/application-weight";
+import { parseApplicantGender } from "@/lib/applicant-excel/normalize";
+import { resolveEventDivisionByApplicationWeight } from "@/lib/applications/resolve-event-division";
+import type { NormalizedCompetitionCategory } from "@/lib/applications/competition-category";
 
 /** 신청 동의 스냅샷 버전 — 문구·정책 변경 시 함께 올릴 것. */
 const APPLICATION_AGREEMENT_SNAPSHOT_VERSION = "v1";
@@ -106,6 +110,65 @@ function toIso(d: Date): string {
 
 function formatDivisionLabel(d: EventDivisionDisplayInput): string {
   return formatDivisionSearchLabel(d);
+}
+
+function toApplicationDivisionRow(
+  d: EventDivisionDisplayInput & { id: string },
+): EventApplicationDivisionRowDTO {
+  return {
+    id: d.id,
+    label: formatDivisionLabel(d),
+    sportType: d.sportType,
+    ruleType: d.ruleType,
+    gender: d.gender,
+    ageGroup: d.ageGroup,
+    weightClass: d.weightClass,
+    weightClassName: d.weightClassName ?? null,
+    weightLimitText: d.weightLimitText ?? null,
+    skillLevel: d.skillLevel,
+  };
+}
+
+function resolveDivisionForApplicationWeight<
+  T extends EventDivisionDisplayInput & { id: string },
+>(input: {
+  gender: string;
+  competitionCategory: string;
+  discipline?: string | null;
+  applicationWeightKg: number | string;
+  divisions: T[];
+}): {
+  division: T;
+  applicationWeightKg: number;
+  category: NormalizedCompetitionCategory;
+} {
+  const gender = parseApplicantGender(input.gender);
+  if (!gender.ok) {
+    throw new AppError("VALIDATION_ERROR", "성별을 남/여로 입력해 주세요.");
+  }
+  const weight = parseApplicationWeightKg(input.applicationWeightKg);
+  if (!weight.ok) {
+    throw new AppError("VALIDATION_ERROR", weight.error);
+  }
+  const resolved = resolveEventDivisionByApplicationWeight({
+    gender: gender.gender,
+    competitionCategory: input.competitionCategory,
+    discipline: input.discipline,
+    applicationWeightKg: weight.kg,
+    divisions: input.divisions,
+  });
+  if (!resolved.ok) {
+    throw new AppError("VALIDATION_ERROR", resolved.reason);
+  }
+  const division = input.divisions.find((d) => d.id === resolved.division.id);
+  if (!division) {
+    throw new AppError("VALIDATION_ERROR", "유효하지 않은 체급입니다.");
+  }
+  return {
+    division,
+    applicationWeightKg: weight.kg,
+    category: resolved.category,
+  };
 }
 
 function formatRecordSummary(row: {
@@ -187,6 +250,7 @@ type GymApplicationCreateContext = {
   lossesSnapshot?: number | null;
   schoolLevelSnapshot?: string | null;
   schoolGradeSnapshot?: number | null;
+  applicationWeightKg?: number | null;
   insuranceRrnDigits?: string | null;
   insuranceConsent?: import("@/lib/athlete-application/insurance-consent").InsuranceConsentSnapshot | null;
   customFormSnapshot?: CustomFormSnapshot | null;
@@ -267,6 +331,9 @@ async function createGymEventApplication(
     recordSummary: formatRecordSummary(ctx.fighter),
     ...(recordText ? { recordText } : {}),
     ...(careerText ? { careerText } : {}),
+    ...(ctx.applicationWeightKg != null
+      ? { applicationWeightKg: ctx.applicationWeightKg }
+      : {}),
   };
 
   const gymSnapshot = {
@@ -523,6 +590,8 @@ export type EventApplicationDivisionRowDTO = {
   gender: string | null;
   ageGroup: string | null;
   weightClass: string | null;
+  weightClassName: string | null;
+  weightLimitText: string | null;
   skillLevel: string | null;
 };
 
@@ -966,16 +1035,7 @@ export const applicationService = {
         gymAthleteFeeGuidance: gymFeeRow?.athleteFeeAmount ?? null,
         gymAthleteFeeNote: gymFeeRow?.note ?? null,
       },
-      divisions: event.divisions.map((d) => ({
-        id: d.id,
-        label: formatDivisionLabel(d),
-        sportType: d.sportType,
-        ruleType: d.ruleType,
-        gender: d.gender,
-        ageGroup: d.ageGroup,
-        weightClass: d.weightClass,
-        skillLevel: d.skillLevel,
-      })),
+      divisions: event.divisions.map((d) => toApplicationDivisionRow(d)),
       fighters: fighterRows,
       applicationForm: {
         mode: applicationFormMode,
@@ -999,14 +1059,6 @@ export const applicationService = {
     }
     assertRegistrationWindow(event);
 
-    const belongs = await eventRepository.findDivisionBelongsToEvent(
-      input.divisionId,
-      input.eventId,
-    );
-    if (!belongs) {
-      throw new AppError("NOT_FOUND", "유효하지 않은 부문입니다.");
-    }
-
     const streamingAgreementRequired =
       event.liveStreamingEnabled || event.streamingConsentRequired;
     if (streamingAgreementRequired) {
@@ -1029,10 +1081,19 @@ export const applicationService = {
       );
     }
 
+    const { division, applicationWeightKg, category } =
+      resolveDivisionForApplicationWeight({
+        gender: fighter.gender,
+        competitionCategory: input.competitionCategory,
+        discipline: input.discipline,
+        applicationWeightKg: input.applicationWeightKg,
+        divisions: event.divisions,
+      });
+
     const existing = await applicationRepository.findExistingApplication(
       input.eventId,
       fighter.id,
-      input.divisionId,
+      division.id,
     );
     if (existing) {
       throw new AppError(
@@ -1053,7 +1114,7 @@ export const applicationService = {
 
     const { applicationId } = await createGymEventApplication({
       eventId: input.eventId,
-      divisionId: input.divisionId,
+      divisionId: division.id,
       gymId,
       gymDisplayName,
       fighter,
@@ -1066,13 +1127,13 @@ export const applicationService = {
       memo: input.memo,
       recordText: input.recordText,
       careerText: input.careerText,
-      // 신청 시점 Fighter 구조화 전적 snapshot 자동 저장
       totalBoutsSnapshot: fighter.recordTotalBouts ?? null,
       winsSnapshot: fighter.recordWin ?? null,
       drawsSnapshot: fighter.recordDraw ?? null,
       lossesSnapshot: fighter.recordLoss ?? null,
-      schoolLevelSnapshot: fighter.schoolLevel ?? null,
-      schoolGradeSnapshot: fighter.schoolGrade ?? null,
+      schoolLevelSnapshot: fighter.schoolLevel ?? category.schoolLevel,
+      schoolGradeSnapshot: fighter.schoolGrade ?? category.schoolGrade,
+      applicationWeightKg,
       insuranceRrnDigits: input.residentRegistrationNumber,
       insuranceConsent: buildInsuranceConsentSnapshot({
         agreedAt: appliedAt,
@@ -1136,7 +1197,6 @@ export const applicationService = {
     const gymMeta = await registrationRepository.findGymNameById(gymId);
     const gymDisplayName = gymMeta?.name ?? "체육관";
 
-    const divisionIds = new Set(event.divisions.map((d) => d.id));
     const divisionById = new Map(event.divisions.map((d) => [d.id, d]));
     const fighterNameById = new Map(
       (await fighterRepository.listActiveFightersForEventApplication(gymId)).map(
@@ -1166,33 +1226,6 @@ export const applicationService = {
 
     for (const row of input.applications) {
       const fighterName = fighterNameById.get(row.fighterId) ?? "선수";
-      const dedupeKey = `${row.fighterId}:${row.divisionId}`;
-
-      if (seenKeys.has(dedupeKey)) {
-        items.push({
-          fighterId: row.fighterId,
-          fighterName,
-          divisionId: row.divisionId,
-          outcome: "skipped",
-          message: "요청 목록에 중복된 선수·경기구분 조합이 있습니다.",
-        });
-        skippedCount += 1;
-        continue;
-      }
-      seenKeys.add(dedupeKey);
-
-      if (!divisionIds.has(row.divisionId)) {
-        items.push({
-          fighterId: row.fighterId,
-          fighterName,
-          divisionId: row.divisionId,
-          outcome: "failed",
-          message: "유효하지 않은 부문입니다.",
-        });
-        failedCount += 1;
-        continue;
-      }
-
       const fighter = await fighterRepository.findFighterForGymApplication(
         row.fighterId,
         gymId,
@@ -1201,7 +1234,7 @@ export const applicationService = {
         items.push({
           fighterId: row.fighterId,
           fighterName,
-          divisionId: row.divisionId,
+          divisionId: "",
           outcome: "failed",
           message: "신청할 수 있는 소속 선수가 아닙니다.",
         });
@@ -1209,16 +1242,52 @@ export const applicationService = {
         continue;
       }
 
+      let resolved;
+      try {
+        resolved = resolveDivisionForApplicationWeight({
+          gender: fighter.gender,
+          competitionCategory: row.competitionCategory,
+          discipline: row.discipline,
+          applicationWeightKg: row.applicationWeightKg,
+          divisions: event.divisions,
+        });
+      } catch (e) {
+        items.push({
+          fighterId: row.fighterId,
+          fighterName: fighter.name,
+          divisionId: "",
+          outcome: "failed",
+          message: e instanceof AppError ? e.message : "체급 자동배정에 실패했습니다.",
+        });
+        failedCount += 1;
+        continue;
+      }
+      const divisionId = resolved.division.id;
+      const dedupeKey = `${row.fighterId}:${divisionId}`;
+
+      if (seenKeys.has(dedupeKey)) {
+        items.push({
+          fighterId: row.fighterId,
+          fighterName,
+          divisionId,
+          outcome: "skipped",
+          message: "요청 목록에 중복된 선수·경기구분 조합이 있습니다.",
+        });
+        skippedCount += 1;
+        continue;
+      }
+      seenKeys.add(dedupeKey);
+
       const existing = await applicationRepository.findExistingApplication(
         input.eventId,
         fighter.id,
-        row.divisionId,
+        divisionId,
       );
       if (existing) {
         items.push({
           fighterId: row.fighterId,
           fighterName: fighter.name,
-          divisionId: row.divisionId,
+          divisionId,
           outcome: "skipped",
           message: "이미 해당 부문에 신청되어 있습니다.",
         });
@@ -1236,14 +1305,14 @@ export const applicationService = {
           items.push({
             fighterId: row.fighterId,
             fighterName: fighter.name,
-            divisionId: row.divisionId,
+            divisionId,
             outcome: "failed",
             message: formError,
           });
           failedCount += 1;
           continue;
         }
-        const division = divisionById.get(row.divisionId);
+        const division = divisionById.get(divisionId);
         customFormSnapshot = buildCustomFormSnapshot(
           customFormFields,
           row.formAnswers ?? {},
@@ -1279,7 +1348,7 @@ export const applicationService = {
       try {
         const { applicationId } = await createGymEventApplication({
           eventId: input.eventId,
-          divisionId: row.divisionId,
+          divisionId,
           gymId,
           gymDisplayName,
           fighter,
@@ -1291,6 +1360,9 @@ export const applicationService = {
           memo: input.memo,
           recordText: row.recordText,
           careerText: row.careerText,
+          schoolLevelSnapshot: resolved.category.schoolLevel,
+          schoolGradeSnapshot: resolved.category.schoolGrade,
+          applicationWeightKg: resolved.applicationWeightKg,
           insuranceRrnDigits: row.residentRegistrationNumber,
           insuranceConsent: buildInsuranceConsentSnapshot({
             agreedAt: appliedAt,
@@ -1302,7 +1374,7 @@ export const applicationService = {
         items.push({
           fighterId: row.fighterId,
           fighterName: fighter.name,
-          divisionId: row.divisionId,
+          divisionId,
           outcome: "created",
           applicationId,
         });
@@ -1315,7 +1387,7 @@ export const applicationService = {
         items.push({
           fighterId: row.fighterId,
           fighterName: fighter.name,
-          divisionId: row.divisionId,
+          divisionId,
           outcome: "failed",
           message,
         });
@@ -1509,16 +1581,7 @@ export const applicationService = {
     const gyms = await gymRepository.listActiveGymsForPicker();
 
     return {
-      divisions: event.divisions.map((d) => ({
-        id: d.id,
-        label: formatDivisionLabel(d),
-        sportType: d.sportType,
-        ruleType: d.ruleType,
-        gender: d.gender,
-        ageGroup: d.ageGroup,
-        weightClass: d.weightClass,
-        skillLevel: d.skillLevel,
-      })),
+      divisions: event.divisions.map((d) => toApplicationDivisionRow(d)),
       gyms,
       feeAmount: paymentSetting?.feeAmount ?? 0,
       applicationFormMode,
@@ -1549,7 +1612,32 @@ export const applicationService = {
         throw new AppError("NOT_FOUND", "대회를 찾을 수 없습니다.");
       }
 
-      const division = event.divisions.find((d) => d.id === input.divisionId);
+      let division = event.divisions.find((d) => d.id === input.divisionId);
+      let applicationWeightKg: number;
+      let category: ReturnType<
+        typeof resolveDivisionForApplicationWeight
+      >["category"] | null = null;
+      if (input.manualDivisionOverride) {
+        const parsedWeight = parseApplicationWeightKg(input.applicationWeightKg);
+        if (!parsedWeight.ok) {
+          throw new AppError("VALIDATION_ERROR", parsedWeight.error);
+        }
+        if (!division) {
+          throw new AppError("NOT_FOUND", "유효하지 않은 경기구분/체급입니다.");
+        }
+        applicationWeightKg = parsedWeight.kg;
+      } else {
+        const auto = resolveDivisionForApplicationWeight({
+          gender: input.gender,
+          competitionCategory: input.competitionCategory,
+          discipline: input.discipline,
+          applicationWeightKg: input.applicationWeightKg,
+          divisions: event.divisions,
+        });
+        division = auto.division;
+        applicationWeightKg = auto.applicationWeightKg;
+        category = auto.category;
+      }
       if (!division) {
         throw new AppError("NOT_FOUND", "유효하지 않은 경기구분/체급입니다.");
       }
@@ -1589,7 +1677,7 @@ export const applicationService = {
           : duplicates.map((d) => d.id);
         await assertNoDuplicateManualApplication({
           eventId: input.eventId,
-          divisionId: input.divisionId,
+          divisionId: division.id,
           fighterIds: fighterIdsToCheck,
         });
       }
@@ -1714,7 +1802,7 @@ export const applicationService = {
 
         await assertNoDuplicateManualApplication({
           eventId: input.eventId,
-          divisionId: input.divisionId,
+          divisionId: division.id,
           fighterIds: [fighter.id],
           tx,
         });
@@ -1764,7 +1852,7 @@ export const applicationService = {
         const { applicationId } = await createGymEventApplication(
           {
             eventId: input.eventId,
-            divisionId: input.divisionId,
+            divisionId: division.id,
             gymId: gym.id,
             gymDisplayName: gym.name,
             fighter,
@@ -1782,6 +1870,9 @@ export const applicationService = {
             memo: memoParts.join("\n"),
             recordText: input.recordText,
             careerText: input.careerText,
+            schoolLevelSnapshot: category?.schoolLevel ?? null,
+            schoolGradeSnapshot: category?.schoolGrade ?? null,
+            applicationWeightKg,
             insuranceRrnDigits: input.residentRegistrationNumber,
             insuranceConsent: buildInsuranceConsentSnapshot({
               agreedAt: appliedAt,
@@ -1939,15 +2030,23 @@ export const applicationService = {
     }
 
     const divisionById = new Map(link.event.divisions.map((d) => [d.id, d]));
-    for (let i = 0; i < input.athletes.length; i += 1) {
-      const athlete = input.athletes[i]!;
-      if (!divisionById.has(athlete.divisionId)) {
+    const resolvedAthletes = input.athletes.map((athlete, i) => {
+      try {
+        const resolved = resolveDivisionForApplicationWeight({
+          gender: athlete.gender,
+          competitionCategory: athlete.competitionCategory,
+          discipline: athlete.discipline,
+          applicationWeightKg: athlete.applicationWeightKg,
+          divisions: link.event.divisions,
+        });
+        return { athlete, resolved };
+      } catch (e) {
         throw new AppError(
           "VALIDATION_ERROR",
-          `${i + 1}번 선수: 유효하지 않은 체급입니다.`,
+          `${i + 1}번 선수: ${e instanceof AppError ? e.message : "체급 자동배정에 실패했습니다."}`,
         );
       }
-    }
+    });
 
     const paymentSetting = await eventRepository.findEventPaymentSettingFull(
       link.eventId,
@@ -2023,8 +2122,8 @@ export const applicationService = {
         divisionId: string;
       }> = [];
 
-      for (const athlete of input.athletes) {
-        const division = divisionById.get(athlete.divisionId)!;
+      for (const { athlete, resolved } of resolvedAthletes) {
+        const division = divisionById.get(resolved.division.id)!;
         const phone = normalizeGymFighterPhone(athlete.phone) || "-";
         const birthDate = toUtcDateOnly(
           athlete.birthDate instanceof Date
@@ -2054,7 +2153,7 @@ export const applicationService = {
 
         await assertNoDuplicateManualApplication({
           eventId: link.eventId,
-          divisionId: athlete.divisionId,
+          divisionId: resolved.division.id,
           fighterIds: [fighter.id],
           tx,
         });
@@ -2105,7 +2204,7 @@ export const applicationService = {
         const { applicationId } = await createGymEventApplication(
           {
             eventId: link.eventId,
-            divisionId: athlete.divisionId,
+            divisionId: resolved.division.id,
             gymId: gymBucket.id,
             gymDisplayName: input.gymInfo.gymName,
             fighter,
@@ -2123,6 +2222,13 @@ export const applicationService = {
             memo: memoParts.join("\n"),
             recordText: athlete.recordText,
             careerText: athlete.careerText,
+            totalBoutsSnapshot: athlete.structuredRecord?.totalBouts ?? null,
+            winsSnapshot: athlete.structuredRecord?.wins ?? null,
+            drawsSnapshot: athlete.structuredRecord?.draws ?? null,
+            lossesSnapshot: athlete.structuredRecord?.losses ?? null,
+            schoolLevelSnapshot: resolved.category.schoolLevel,
+            schoolGradeSnapshot: resolved.category.schoolGrade,
+            applicationWeightKg: resolved.applicationWeightKg,
             insuranceRrnDigits: athlete.residentRegistrationNumber,
             insuranceConsent: buildInsuranceConsentSnapshot({
               agreedAt: appliedAt,
@@ -2150,7 +2256,7 @@ export const applicationService = {
         created.push({
           applicationId,
           fighterName: fighter.name,
-          divisionId: athlete.divisionId,
+          divisionId: resolved.division.id,
         });
       }
 
@@ -2403,7 +2509,7 @@ export const applicationService = {
           }
 
           const memoParts = [`[엑셀 일괄 등록] ${row.gymName}`];
-          if (row.weightKg != null) memoParts.push(`체중 ${row.weightKg}kg`);
+          if (row.weightKg != null) memoParts.push(`신청체중 ${row.weightKg}kg`);
           if (row.heightCm != null) memoParts.push(`키 ${row.heightCm}cm`);
           if (row.recordText) memoParts.push(`전적 ${row.recordText}`);
           if (row.careerText) memoParts.push(`운동경력 ${row.careerText}`);
@@ -2430,6 +2536,13 @@ export const applicationService = {
               memo: memoParts.join("\n"),
               recordText: row.recordText || null,
               careerText: row.careerText || null,
+              totalBoutsSnapshot: row.totalBoutsSnapshot,
+              winsSnapshot: row.winsSnapshot,
+              drawsSnapshot: row.drawsSnapshot,
+              lossesSnapshot: row.lossesSnapshot,
+              schoolLevelSnapshot: row.schoolLevelSnapshot,
+              schoolGradeSnapshot: row.schoolGradeSnapshot,
+              applicationWeightKg: row.applicationWeightKg ?? row.weightKg,
               insuranceRrnDigits: row.insuranceRrnDigits,
               insuranceConsent: buildInsuranceConsentSnapshot({
                 agreedAt: appliedAt,

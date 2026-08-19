@@ -7,6 +7,7 @@ import type { OrganizerManualRegistrationOptionsDTO } from "@/lib/services/appli
 import { ApplicationStatus, PaymentStatus } from "@/generated/prisma";
 import { AppDateInput } from "@/components/shared/AppDateInput";
 import { Button } from "@/components/ui/button";
+import { ApplicationWeightAutoAssign } from "@/components/domain/applications/ApplicationWeightAutoAssign";
 import { AthleteInsuranceProfileFields } from "@/components/domain/applications/AthleteInsuranceProfileFields";
 import { INSURANCE_PII_ORGANIZER_CONFIRM_LABEL } from "@/lib/athlete-application/insurance-consent";
 import { ORGANIZER_FIELD_INPUT_CLASS } from "@/lib/organizer-dashboard-layout";
@@ -66,6 +67,12 @@ export function OrganizerManualApplicationPanel({
     DuplicateCandidate[] | null
   >(null);
   const [linkFighterId, setLinkFighterId] = useState("");
+  const [gender, setGender] = useState("");
+  const [competitionCategory, setCompetitionCategory] = useState("");
+  const [discipline, setDiscipline] = useState("");
+  const [applicationWeightKg, setApplicationWeightKg] = useState("");
+  const [manualOverride, setManualOverride] = useState(false);
+  const [manualDivisionId, setManualDivisionId] = useState("");
 
   const [gymMode, setGymMode] = useState<"existing" | "manual">(
     options.gyms.length > 0 ? "existing" : "manual",
@@ -203,7 +210,8 @@ export function OrganizerManualApplicationPanel({
                   name="gender"
                   required
                   className={fieldClass}
-                  defaultValue=""
+                  value={gender}
+                  onChange={(e) => setGender(e.target.value)}
                 >
                   <option value="" disabled>
                     선택
@@ -270,25 +278,30 @@ export function OrganizerManualApplicationPanel({
             <p className="text-sm font-medium">경기 · 입금 · 상태</p>
 
             <div>
-              <label className={labelClass} htmlFor="manual-divisionId">
-                경기구분/체급 *
-              </label>
-              <select
-                id="manual-divisionId"
-                name="divisionId"
-                required
-                className={fieldClass}
-                defaultValue=""
-              >
-                <option value="" disabled>
-                  부문 선택
-                </option>
-                {options.divisions.map((d) => (
-                  <option key={d.id} value={d.id}>
-                    {d.label}
-                  </option>
-                ))}
-              </select>
+              <p className={labelClass}>신청체중 · 자동 배정 체급 *</p>
+              <ApplicationWeightAutoAssign
+                divisions={options.divisions}
+                gender={gender === "female" ? "female" : gender === "male" ? "male" : ""}
+                competitionCategory={competitionCategory}
+                discipline={discipline}
+                applicationWeightKg={applicationWeightKg}
+                onCompetitionCategoryChange={setCompetitionCategory}
+                onDisciplineChange={setDiscipline}
+                onApplicationWeightChange={setApplicationWeightKg}
+                fieldClass={fieldClass}
+                labelClass={labelClass}
+                hiddenInputNames={{
+                  competitionCategory: "competitionCategory",
+                  discipline: "discipline",
+                  applicationWeightKg: "applicationWeightKg",
+                  divisionId: "divisionId",
+                }}
+                showManualOverride
+                manualOverride={manualOverride}
+                onManualOverrideChange={setManualOverride}
+                manualDivisionId={manualDivisionId}
+                onManualDivisionIdChange={setManualDivisionId}
+              />
             </div>
 
             <div className="grid gap-3 sm:grid-cols-2">

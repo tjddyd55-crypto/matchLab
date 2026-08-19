@@ -51,7 +51,9 @@ export const externalRegistrationAthleteSchema = z.object({
     .max(20)
     .optional()
     .transform((s) => (s === "" ? undefined : s)),
-  divisionId: z.string().min(1, "체급을 선택해 주세요."),
+  applicationWeightKg: z.coerce.number().gt(0).lte(300),
+  competitionCategory: z.string().trim().min(1, "경기구분을 선택해 주세요."),
+  discipline: z.string().trim().optional(),
   memo: z
     .string()
     .trim()

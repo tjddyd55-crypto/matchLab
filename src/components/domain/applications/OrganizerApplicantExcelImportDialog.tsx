@@ -150,8 +150,9 @@ export function OrganizerApplicantExcelImportDialog({
         <DialogHeader>
           <DialogTitle>선수 신청 엑셀 일괄 등록</DialogTitle>
           <DialogDescription>
-            샘플의 2행 예시를 참고해 3행부터 작성하세요. 파일 선택만으로
-            저장되지 않습니다.
+            샘플의 2행 예시를 참고해 3행부터 작성하세요. 체급명/체중기준은
+            입력하지 않습니다. 신청체중으로 대회 체급표에 자동 배정된 뒤
+            미리보기에서 확인합니다.
           </DialogDescription>
         </DialogHeader>
 
@@ -315,13 +316,22 @@ function PreviewBody({ preview }: { preview: ApplicantExcelPreview }) {
         <table className="w-full text-left text-xs">
           <thead className="bg-muted/40 sticky top-0">
             <tr>
-              {["상태", "선수명", "체육관", "전적", "운동경력", "주민번호", "보험동의", "경기구분", "체급", "결과"].map(
-                (h) => (
+              {[
+                "행",
+                "선수명",
+                "성별",
+                "경기구분 입력값",
+                "인식 경기구분",
+                "신청체중",
+                "자동배정 체급",
+                "체급기준",
+                "종목",
+                "상태",
+              ].map((h) => (
                   <th key={h} className="px-2 py-1.5 font-medium">
                     {h}
                   </th>
-                ),
-              )}
+              ))}
             </tr>
           </thead>
           <tbody>
@@ -352,22 +362,27 @@ function CountCard({ label, value }: { label: string; value: number }) {
 function PreviewTableRow({ row }: { row: ApplicantExcelPreviewRow }) {
   return (
     <tr className={cn(row.decision === "error" && "bg-red-50")}>
+      <td className="px-2 py-1 tabular-nums">{row.excelRow}</td>
+      <td className="px-2 py-1">{row.fighterName || "—"}</td>
+      <td className="px-2 py-1">{row.genderLabel || "—"}</td>
+      <td className="px-2 py-1">{row.ageGroup || "—"}</td>
+      <td className="px-2 py-1">{row.normalizedAgeGroup || "—"}</td>
+      <td className="px-2 py-1 tabular-nums">
+        {row.applicationWeightKg != null ? `${row.applicationWeightKg}kg` : "—"}
+      </td>
+      <td className="px-2 py-1">{row.resolvedWeightClassName || "—"}</td>
+      <td className="px-2 py-1">{row.resolvedWeightLimit || "—"}</td>
+      <td className="px-2 py-1">{row.sport || "—"}</td>
       <td className="px-2 py-1">
         <span className={cn("rounded px-1.5 py-0.5", decisionClass(row.decision))}>
           {row.decisionLabel}
         </span>
-      </td>
-      <td className="px-2 py-1">{row.fighterName || "—"}</td>
-      <td className="px-2 py-1">{row.gymName || "—"}</td>
-      <td className="px-2 py-1">{row.genderLabel || "—"}</td>
-      <td className="px-2 py-1">{row.recordText || "—"}</td>
-      <td className="px-2 py-1">{row.careerText || "—"}</td>
-      <td className="px-2 py-1 tabular-nums">{row.insuranceRrnMasked || "—"}</td>
-      <td className="px-2 py-1">{row.insuranceConsentLabel || "—"}</td>
-      <td className="px-2 py-1">{row.ageGroup || "—"}</td>
-      <td className="px-2 py-1">{row.weightClass || "—"}</td>
-      <td className="px-2 py-1 text-red-700">
-        {row.errors.join(", ") || row.divisionLabel || "—"}
+        {row.errors.length > 0 ? (
+          <p className="mt-0.5 text-red-700">{row.errors.join(", ")}</p>
+        ) : null}
+        {row.warnings.length > 0 ? (
+          <p className="mt-0.5 text-amber-700">{row.warnings.join(", ")}</p>
+        ) : null}
       </td>
     </tr>
   );
@@ -397,8 +412,16 @@ function PreviewMobileCard({ row }: { row: ApplicantExcelPreviewRow }) {
         {row.insuranceRrnMasked || "주민번호 없음"} · {row.insuranceConsentLabel || "동의 없음"}
       </p>
       <p className="text-matchon-text-secondary">
-        {row.ageGroup} {row.weightClass}
+        입력 {row.ageGroup || "—"} → 인식 {row.normalizedAgeGroup || "—"}
       </p>
+      <p className="text-matchon-text-secondary">
+        신청체중 {row.applicationWeightKg != null ? `${row.applicationWeightKg}kg` : "—"} ·{" "}
+        {row.resolvedWeightClassName || "—"} {row.resolvedWeightLimit || ""}
+        {row.sport ? ` · ${row.sport}` : ""}
+      </p>
+      {row.warnings.length > 0 ? (
+        <p className="mt-1 text-amber-700">{row.warnings.join(", ")}</p>
+      ) : null}
       {row.errors.length > 0 ? (
         <p className="mt-1 text-red-700">{row.errors.join(", ")}</p>
       ) : null}

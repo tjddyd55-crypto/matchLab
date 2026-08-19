@@ -3,6 +3,7 @@
 import { useActionState, useMemo, useState } from "react";
 import type { ActionResult } from "@/lib/action-result";
 import { applyToEventAction } from "@/features/applications/actions";
+import { ApplicationWeightAutoAssign } from "@/components/domain/applications/ApplicationWeightAutoAssign";
 import { ApplicationAgreementChecklist } from "@/components/domain/applications/ApplicationAgreementChecklist";
 import { AthleteInsuranceProfileFields } from "@/components/domain/applications/AthleteInsuranceProfileFields";
 import { PaymentInstructionCard } from "@/components/domain/payments/PaymentInstructionCard";
@@ -22,18 +23,28 @@ import {
 } from "@/lib/ui/public-application-ui";
 import { cn } from "@/lib/utils";
 
+type DivisionRow = {
+  id: string;
+  label: string;
+  gender: string | null;
+  ageGroup: string | null;
+  sportType: string | null;
+  weightClass: string | null;
+  weightClassName: string | null;
+  weightLimitText: string | null;
+};
+
 type FighterRow = {
   id: string;
   fighterCode: string;
   name: string;
   profileImageUrl: string | null;
   recordSummary: string;
+  gender: string;
   appliedDivisionIds: string[];
   guardianPolicyRequires: boolean;
   guardianConsentOk: boolean;
 };
-
-type DivisionRow = { id: string; label: string };
 
 type EventApplicationFormProps = {
   eventId: string;
@@ -55,20 +66,11 @@ type ApplySuccess = {
   } | null;
 };
 
-function fighterDivisionBlockReason(
-  fighter: FighterRow,
-  divisionId: string,
-): string | null {
-  if (!divisionId) return "경기구분을 선택해 주세요.";
-  if (fighter.appliedDivisionIds.includes(divisionId)) {
-    return "이미 이 경기구분에 신청했습니다.";
-  }
-  return null;
-}
-
 export function EventApplicationForm(props: EventApplicationFormProps) {
-  const [divisionId, setDivisionId] = useState(props.divisions[0]?.id ?? "");
   const [fighterId, setFighterId] = useState<string>("");
+  const [competitionCategory, setCompetitionCategory] = useState("");
+  const [discipline, setDiscipline] = useState("");
+  const [applicationWeightKg, setApplicationWeightKg] = useState("");
 
   const [state, formAction] = useActionState(
     applyToEventAction,
@@ -80,17 +82,14 @@ export function EventApplicationForm(props: EventApplicationFormProps) {
     [fighterId, props.fighters],
   );
 
-  const blockReason =
-    selectedFighter && divisionId
-      ? fighterDivisionBlockReason(selectedFighter, divisionId)
+  const gender =
+    selectedFighter?.gender === "female" || selectedFighter?.gender === "여"
+      ? "female"
       : selectedFighter
-        ? null
-        : fighterId
-          ? "선수를 선택해 주세요."
-          : null;
+        ? "male"
+        : "";
 
-  const disabledSubmit =
-    Boolean(blockReason) || !divisionId || !fighterId || state?.ok === true;
+  const disabledSubmit = !fighterId || !competitionCategory || !applicationWeightKg || state?.ok === true;
 
   if (state?.ok) {
     return (
@@ -126,31 +125,6 @@ export function EventApplicationForm(props: EventApplicationFormProps) {
 
       <Card>
         <CardHeader>
-          <CardTitle className="text-base">경기구분 선택</CardTitle>
-        </CardHeader>
-        <CardContent>
-          <label className="grid gap-2 text-sm" htmlFor="divisionId">
-            <span className="font-medium">경기구분</span>
-            <select
-              id="divisionId"
-              name="divisionId"
-              required
-              value={divisionId}
-              onChange={(e) => setDivisionId(e.target.value)}
-              className={publicApplicationFieldSelectClass}
-            >
-              {props.divisions.map((d) => (
-                <option key={d.id} value={d.id}>
-                  {d.label}
-                </option>
-              ))}
-            </select>
-          </label>
-        </CardContent>
-      </Card>
-
-      <Card>
-        <CardHeader>
           <CardTitle className="text-base">선수 선택</CardTitle>
           <CardDescription>신청할 선수를 선택해 주세요.</CardDescription>
         </CardHeader>
@@ -158,20 +132,17 @@ export function EventApplicationForm(props: EventApplicationFormProps) {
           <input type="hidden" name="fighterId" value={fighterId} />
           <div className="grid gap-3 md:grid-cols-2">
             {props.fighters.map((f) => {
-              const reason = fighterDivisionBlockReason(f, divisionId);
               const selected = fighterId === f.id;
               return (
                 <button
                   key={f.id}
                   type="button"
                   onClick={() => setFighterId(f.id)}
-                  disabled={Boolean(reason)}
                   className={cn(
                     "flex gap-3 rounded-xl border p-3 text-left text-sm transition",
                     selected
                       ? "border-primary ring-primary/40 ring-2"
                       : "border-border hover:bg-muted/40",
-                    reason ? "cursor-not-allowed opacity-60" : "",
                   )}
                 >
                   <div className="relative size-12 shrink-0 overflow-hidden rounded-lg bg-muted">
@@ -194,13 +165,42 @@ export function EventApplicationForm(props: EventApplicationFormProps) {
                       {f.fighterCode} · {f.recordSummary}
                     </div>
                     <div className="text-muted-foreground mt-1 text-xs">
-                      {reason ?? "신청 가능"}
+                      신청 가능
                     </div>
                   </div>
                 </button>
               );
             })}
           </div>
+        </CardContent>
+      </Card>
+
+      <Card>
+        <CardHeader>
+          <CardTitle className="text-base">신청체중 · 체급 자동배정</CardTitle>
+          <CardDescription>
+            체급명과 체중기준은 입력하지 않습니다. 신청체중으로 대회 체급표에
+            맞춰 배정됩니다.
+          </CardDescription>
+        </CardHeader>
+        <CardContent>
+          <ApplicationWeightAutoAssign
+            divisions={props.divisions}
+            gender={gender}
+            competitionCategory={competitionCategory}
+            discipline={discipline}
+            applicationWeightKg={applicationWeightKg}
+            onCompetitionCategoryChange={setCompetitionCategory}
+            onDisciplineChange={setDiscipline}
+            onApplicationWeightChange={setApplicationWeightKg}
+            fieldClass={publicApplicationFieldSelectClass}
+            labelClass="text-muted-foreground mb-1 block text-xs font-medium"
+            hiddenInputNames={{
+              competitionCategory: "competitionCategory",
+              discipline: "discipline",
+              applicationWeightKg: "applicationWeightKg",
+            }}
+          />
         </CardContent>
       </Card>
 
@@ -243,12 +243,6 @@ export function EventApplicationForm(props: EventApplicationFormProps) {
           />
         </CardContent>
       </Card>
-
-      {blockReason && fighterId ? (
-        <FeedbackMessage tone="warning" role="alert">
-          {blockReason}
-        </FeedbackMessage>
-      ) : null}
 
       {state && !state.ok ? (
         <FeedbackMessage tone="error" role="alert">

@@ -11,10 +11,16 @@ export type ApplicantExcelPreviewRow = {
   genderLabel: string;
   birthDate: string;
   ageGroup: string;
+  normalizedAgeGroup: string;
   weightClass: string;
   weightLimit: string;
   sport: string;
   weightKg: number | null;
+  applicationWeightKg: number | null;
+  resolvedWeightClassName: string;
+  resolvedWeightLimit: string;
+  legacyWeightClass: string;
+  categoryStatus: "ok" | "unknown";
   heightCm: number | null;
   rowNumber: string;
   ageNote: string;
@@ -25,6 +31,8 @@ export type ApplicantExcelPreviewRow = {
   winsSnapshot: number | null;
   drawsSnapshot: number | null;
   lossesSnapshot: number | null;
+  schoolLevelSnapshot: string | null;
+  schoolGradeSnapshot: number | null;
   /** 전적 파싱 경고 (레거시 전적 문자열이 있으나 파싱 불확실) */
   recordParseWarning: string | null;
   insuranceRrnMasked: string;
@@ -41,6 +49,7 @@ export type ApplicantExcelPreviewRow = {
   decision: ApplicantExcelDecision;
   decisionLabel: string;
   errors: string[];
+  warnings: string[];
 };
 
 export type ApplicantExcelPreview = {

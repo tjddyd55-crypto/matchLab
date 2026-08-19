@@ -13,7 +13,9 @@ const mustAgree = z.boolean().refine((v) => v === true, {
 
 export const bulkApplicationItemSchema = z.object({
   fighterId: z.string().min(1),
-  divisionId: z.string().min(1),
+  applicationWeightKg: z.coerce.number().gt(0).lte(300),
+  competitionCategory: z.string().trim().min(1, "경기구분을 선택해 주세요."),
+  discipline: z.string().trim().optional(),
   recordText: athleteRecordTextSchema,
   structuredRecord: structuredRecordSchema,
   careerText: athleteCareerTextSchema,

@@ -235,6 +235,7 @@ export const externalRegistrationLinkService = {
       weightClass: string | null;
       weightClassName: string | null;
       weightLimitText: string | null;
+      sportType: string | null;
     }>;
     closedReason: string | null;
   } | { ok: false; reason: "invalid" | "revoked" | "expired" | "closed" }> {
@@ -309,6 +310,7 @@ export const externalRegistrationLinkService = {
         weightClass: d.weightClass,
         weightClassName: d.weightClassName,
         weightLimitText: d.weightLimitText,
+        sportType: d.sportType,
       })),
     };
   },
