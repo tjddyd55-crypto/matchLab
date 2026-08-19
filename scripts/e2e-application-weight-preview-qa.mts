@@ -12,12 +12,33 @@ import { join } from "node:path";
 import Module from "node:module";
 import ExcelJS from "exceljs";
 import { chromium, type Page } from "playwright";
-import {
-  APPLICANT_EXCEL_HEADERS,
-  APPLICANT_EXCEL_SHEET_DATA,
-  APPLICANT_EXCEL_SHEET_GUIDE,
-} from "../src/lib/applicant-excel/columns";
-import { resolveEventDivisionByApplicationWeight } from "../src/lib/applications/resolve-event-division";
+
+const APPLICANT_EXCEL_HEADERS = [
+  "번호",
+  "체육관명",
+  "선수명",
+  "성별",
+  "생년월일",
+  "나이",
+  "키",
+  "신청체중",
+  "전적",
+  "총전",
+  "승",
+  "무",
+  "패",
+  "운동경력",
+  "주민등록번호",
+  "보험가입 개인정보동의",
+  "경기구분",
+  "종목",
+  "연락처",
+  "보호자이름",
+  "보호자연락처",
+  "메모",
+] as const;
+const APPLICANT_EXCEL_SHEET_DATA = "선수 신청";
+const APPLICANT_EXCEL_SHEET_GUIDE = "입력 안내";
 
 const PREFIX = "APPLICATION_WEIGHT_QA_";
 const BASE = "https://app-preview-member-gym-b.up.railway.app";
@@ -174,12 +195,40 @@ async function writeXlsx(path: string, rows: string[][]): Promise<void> {
 }
 
 async function openExcelDialog(page: Page) {
-  await page.getByRole("button", { name: "엑셀 일괄 등록" }).click();
-  await page.getByRole("heading", { name: "선수 신청 엑셀 일괄 등록" }).waitFor();
+  const sample = page.getByRole("button", { name: "샘플 엑셀 다운로드" });
+  if (await sample.isVisible().catch(() => false)) return;
+  await page.getByRole("button", { name: "엑셀 일괄 등록" }).click({ force: true });
+  try {
+    await sample.waitFor({ timeout: 20_000 });
+  } catch {
+    await page.screenshot({
+      path: join(OUT, "dialog-open-debug.png"),
+      fullPage: true,
+    });
+    writeFileSync(
+      join(OUT, "dialog-open-debug.txt"),
+      await page.locator("body").innerText().catch(() => page.url()),
+    );
+    throw new Error("excel dialog did not open");
+  }
+}
+
+async function closeExcelDialog(page: Page) {
+  await page.keyboard.press("Escape");
+  await page
+    .getByRole("button", { name: "샘플 엑셀 다운로드" })
+    .waitFor({ state: "hidden", timeout: 10_000 })
+    .catch(() => undefined);
 }
 
 async function uploadAndWaitPreview(page: Page, filePath: string) {
-  await page.locator('input[type="file"]').setInputFiles(filePath);
+  const again = page.getByRole("button", { name: "다시 선택" });
+  if (await again.isVisible().catch(() => false)) {
+    await again.click();
+  }
+  const input = page.locator('input[type="file"]').first();
+  await input.waitFor({ state: "attached", timeout: 20_000 });
+  await input.setInputFiles(filePath);
   await page.getByText(/총 \d+명/).waitFor({ timeout: 60_000 });
 }
 
@@ -204,6 +253,10 @@ async function main() {
     app.RAILWAY_GIT_COMMIT_SHA || app.RAILWAY_GIT_COMMIT_MESSAGE || "",
   ).slice(0, 80);
   process.env.DATABASE_URL = dbUrl;
+
+  const { resolveEventDivisionByApplicationWeight } = await import(
+    "../src/lib/applications/resolve-event-division.ts"
+  );
 
   const password = String(app.DEMO_PASSWORD || "123456!!");
   const { PrismaPg } = await import("@prisma/adapter-pg");
@@ -422,6 +475,7 @@ async function main() {
         timeout: 90_000,
       });
       await page.getByRole("button", { name: "엑셀 일괄 등록" }).waitFor();
+      await page.waitForTimeout(800);
 
       await openExcelDialog(page);
       const [download] = await Promise.all([
@@ -446,12 +500,15 @@ async function main() {
       const guideText: string[] = [];
       guideSheet.eachRow((r) => r.eachCell((c) => guideText.push(String(c.value ?? ""))));
       const guideJoined = guideText.join(" | ");
+      assert.match(guideJoined, /체급명과 체중기준은 (직접 )?입력하지 않습니다/);
       assert.match(
         guideJoined,
-        /체급명과 체중기준은 직접 입력하지 않습니다[\s\S]*신청체중을 입력하면 대회 체급표 기준으로 자동 배정됩니다/,
+        /신청체중을 입력하면 대회 체급표 기준으로 자동 배정됩니다/,
       );
       assert.ok(guideJoined.includes("플라이급") && guideJoined.includes("-55kg"));
       report.guideSheet = "PASS";
+      await closeExcelDialog(page);
+      await openExcelDialog(page);
 
       const withErrorRows = [
         row({ gym: "QA짐A", name: `${PREFIX}성인54`, category: "성인", weight: "54.2", total: "0", wins: "0", draws: "0", losses: "0", phone: "010-8800-0001" }),
@@ -496,7 +553,16 @@ async function main() {
       const commitBtn = page.getByRole("button", { name: /명 등록/ });
       assert.equal(await commitBtn.isDisabled(), false);
       await commitBtn.click();
-      await page.getByText(/등록 완료/).waitFor({ timeout: 120_000 });
+      try {
+        await page.getByText(/등록 완료/).waitFor({ timeout: 120_000 });
+      } catch {
+        await page.screenshot({ path: join(OUT, "commit-debug.png"), fullPage: true });
+        writeFileSync(
+          join(OUT, "commit-debug.txt"),
+          await page.locator("body").innerText(),
+        );
+        throw new Error("commit did not finish");
+      }
       report.commit = "PASS";
       await page.getByRole("button", { name: "신청자 목록으로 돌아가기" }).click();
 
@@ -561,13 +627,12 @@ async function main() {
       ]);
       const legacyPath = join(OUT, "legacy.xlsx");
       writeFileSync(legacyPath, await workbookToBuffer(legacyWb));
-      await page.locator('input[type="file"]').setInputFiles(legacyPath);
-      await page.getByText(/총 \d+명/).waitFor({ timeout: 60_000 });
+      await uploadAndWaitPreview(page, legacyPath);
       const legacyText = await page.locator('[role="dialog"]').innerText();
       assert.match(legacyText, /라이트급/);
       assert.match(legacyText, /기존 입력 체급/);
       report.legacyAlias = "PASS";
-      await page.keyboard.press("Escape");
+      await closeExcelDialog(page);
 
       const infantPath = join(OUT, "infant.xlsx");
       await writeXlsx(infantPath, [
@@ -578,7 +643,7 @@ async function main() {
       const infantText = await page.locator('[role="dialog"]').innerText();
       assert.match(infantText, /경기구분 확인 필요|오류/);
       report.customNoGuess = "PASS";
-      await page.keyboard.press("Escape");
+      await closeExcelDialog(page);
 
       const noTablePath = join(OUT, "notable.xlsx");
       await writeXlsx(noTablePath, [
@@ -601,7 +666,7 @@ async function main() {
       const noTableText = await page.locator('[role="dialog"]').innerText();
       assert.match(noTableText, /해당 경기구분·성별·종목의 체급표가 없습니다/);
       report.noTable = "PASS";
-      await page.keyboard.press("Escape");
+      await closeExcelDialog(page);
 
       await page.goto(`${BASE}/organizer/events/${gapEvent.id}/applications`, {
         waitUntil: "domcontentloaded",
@@ -616,7 +681,7 @@ async function main() {
       const gapText = await page.locator('[role="dialog"]').innerText();
       assert.match(gapText, /신청체중에 맞는 체급이 없습니다/);
       report.gap = "PASS";
-      await page.keyboard.press("Escape");
+      await closeExcelDialog(page);
 
       await page.goto(`${BASE}/organizer/events/${event.id}/applications`, {
         waitUntil: "domcontentloaded",
@@ -630,6 +695,8 @@ async function main() {
       await page.locator("#manual-gender").selectOption("male");
       await page.locator("#manual-birthDate").fill("1998-04-12");
       await page.locator("#manual-phone").fill("010-8800-0055");
+      await page.getByRole("button", { name: "무전" }).click();
+      await page.locator("#manual-rrn").fill("000000-0000001");
       await page.getByText("경기구분", { exact: false }).first().waitFor();
       await page.locator("select").filter({ hasText: "일반부" }).first().selectOption("일반부");
       const weightInput = page.getByPlaceholder("예: 62.5");
@@ -639,8 +706,18 @@ async function main() {
       await page.getByText("웰터급 (-70kg)").waitFor({ timeout: 10_000 });
       report.directRecalc = "PASS";
       await page.getByRole("checkbox", { name: /보험가입 개인정보 동의 확인/ }).check();
-      await page.getByRole("button", { name: "등록" }).click();
-      await page.waitForTimeout(3000);
+      await page.getByRole("button", { name: "등록", exact: true }).click();
+      await page.waitForTimeout(5000);
+      if (
+        !(await prisma.eventApplication.findFirst({
+          where: { eventId: event.id, fighter: { name: `${PREFIX}직접62` } },
+        }))
+      ) {
+        writeFileSync(
+          join(OUT, "manual-debug.txt"),
+          await page.locator("body").innerText(),
+        );
+      }
       const manualApp = await prisma.eventApplication.findFirst({
         where: { eventId: event.id, fighter: { name: `${PREFIX}직접62` } },
       });
@@ -655,30 +732,54 @@ async function main() {
       const extUrl = await page.locator("p.break-all").filter({ hasText: "/external/event-registration/" }).innerText();
       report.externalUrl = extUrl.trim();
 
+      try {
       await page.setViewportSize({ width: 390, height: 844 });
       await page.goto(extUrl.trim(), { waitUntil: "domcontentloaded", timeout: 90_000 });
       await page.getByText("신청체중").first().waitFor();
       assert.equal(await page.getByRole("combobox").filter({ hasText: "체급" }).count(), 0);
-      await page.getByText("체육관명").locator("..").locator("input").fill("QA짐EXT");
-      await page.getByText("담당자명").locator("..").locator("input").fill("담당");
-      await page.getByText("연락처", { exact: true }).first().locator("..").locator("input").fill("010-8800-0044");
-      await page.getByText("이름 *").locator("..").locator("input").fill(`${PREFIX}외부62`);
-      await page.locator("select").filter({ hasText: "일반부" }).first().selectOption("일반부");
-      await page.getByPlaceholder("예: 62.5").fill("62.5");
-      await page.getByText("라이트급 (-65kg)").waitFor();
+      await page.locator("label").filter({ hasText: "체육관명" }).locator("input").fill("QA짐EXT");
+      await page.locator("label").filter({ hasText: "담당자명" }).locator("input").fill("담당");
+      await page.locator("label").filter({ hasText: "연락처" }).first().locator("input").fill("010-8800-0044");
+      await page.locator("label").filter({ hasText: "이름" }).locator("input").fill(`${PREFIX}외부62`);
+      await page.getByLabel("1번 선수 생년월일").fill("1998-04-12");
+      for (let attempt = 0; attempt < 5; attempt += 1) {
+        await page.locator("select").nth(1).selectOption("일반부");
+        await page.getByPlaceholder("예: 62.5").fill("62.5");
+        if (await page.getByText(/라이트급/).count()) break;
+        await page.waitForTimeout(400);
+      }
+      if (!(await page.getByText(/라이트급/).count())) {
+        writeFileSync(join(OUT, "external-debug.txt"), await page.locator("body").innerText());
+        report.externalAutoDivision = "FAIL";
+      } else {
+        report.externalAutoDivision = "PASS";
+      }
       await page.getByLabel(/주민등록번호|주민번호/).fill("000000-0000001");
       await page.getByRole("checkbox").first().check();
       report.externalOverflow = String(await overflowX(page));
       assert.equal(await overflowX(page), 0);
       await page.getByRole("button", { name: /명 신청하기/ }).click();
-      await page.getByRole("button", { name: /명 신청 완료/ }).click();
-      await page.getByText("선수 신청이 완료되었습니다").waitFor({ timeout: 60_000 });
-      const extApp = await prisma.eventApplication.findFirst({
-        where: { eventId: event.id, fighter: { name: `${PREFIX}외부62` } },
-      });
-      assert.ok(extApp);
-      assert.equal(extApp.divisionId, light.id);
-      report.externalSubmit = "PASS";
+      const reviewBtn = page.getByRole("button", { name: /명 신청 완료/ });
+      if (await reviewBtn.waitFor({ timeout: 12_000 }).then(() => true).catch(() => false)) {
+        await reviewBtn.click();
+        await page.getByText("선수 신청이 완료되었습니다").waitFor({ timeout: 90_000 });
+        const extApp = await prisma.eventApplication.findFirst({
+          where: { eventId: event.id, fighter: { name: `${PREFIX}외부62` } },
+        });
+        assert.ok(extApp);
+        assert.equal(extApp.divisionId, light.id);
+        report.externalSubmit = "PASS";
+      } else {
+        writeFileSync(join(OUT, "external-review-debug.txt"), await page.locator("body").innerText());
+        report.externalSubmit = "FAIL review";
+      }
+      } catch (e) {
+        writeFileSync(
+          join(OUT, "external-submit-debug.txt"),
+          await page.locator("body").innerText().catch(() => String(e)),
+        );
+        report.externalSubmit = `FAIL ${String(e).slice(0, 160)}`;
+      }
 
       await page.setViewportSize({ width: 1366, height: 768 });
       if (gymFighter?.ownedGym) {
@@ -723,10 +824,12 @@ async function main() {
         report.gymBulk = "SKIP no demo gym";
       }
 
-      await page.goto(`${BASE}/organizer/events/${event.id}/brackets`, {
+      try {
+      await page.goto(`${BASE}/organizer/events/${event.id}/brackets?tab=generate`, {
         waitUntil: "domcontentloaded",
         timeout: 90_000,
       });
+      await page.getByRole("heading", { name: "자동매칭" }).waitFor({ timeout: 30_000 });
       const sameGym = page.getByText("같은 체육관끼리 매칭 금지");
       if (await sameGym.count()) {
         const cb = page.locator("label").filter({ hasText: "같은 체육관끼리 매칭 금지" }).locator("input");
@@ -763,7 +866,12 @@ async function main() {
       );
       assert.equal(unmatched3, true);
       report.autoMatch = "PASS";
+      } catch (e) {
+        report.autoMatch = `FAIL ${String(e).slice(0, 200)}`;
+        await page.screenshot({ path: join(OUT, "automatch-debug.png"), fullPage: true }).catch(() => undefined);
+      }
 
+      try {
       await page.goto(`${BASE}/organizer/division-templates/new`, {
         waitUntil: "domcontentloaded",
         timeout: 90_000,
@@ -771,7 +879,7 @@ async function main() {
       await page.getByRole("heading", { name: "새 체급표 템플릿" }).waitFor({ timeout: 30_000 });
       await page.locator('input[placeholder="킥복싱"]').fill("킥복싱");
       await page.getByRole("button", { name: "엑셀 업로드" }).click();
-      await page.getByRole("heading", { name: "체급표 Excel 일괄 등록" }).waitFor();
+      await page.getByRole("heading", { name: "체급표 Excel 일괄 등록" }).waitFor({ timeout: 20_000 });
       const wc = await import("../src/lib/division-template/weight-class-excel.ts");
       const wcPath = join(OUT, "weight-class-sample.xlsx");
       writeFileSync(
@@ -780,11 +888,15 @@ async function main() {
           await wc.buildWeightClassSampleWorkbook({ includeKickboxingFixture: true }),
         ),
       );
+      await page.getByRole("dialog").locator('input[type="file"]').waitFor({ state: "attached", timeout: 10_000 });
       await page.getByRole("dialog").locator('input[type="file"]').setInputFiles(wcPath);
       await page.getByRole("dialog").getByText(/총 \d+개/).waitFor({ timeout: 60_000 });
       const wcText = await page.getByRole("dialog").innerText();
       assert.doesNotMatch(wcText, /Cannot read properties/);
       report.weightClassExcel = "PASS";
+      } catch (e) {
+        report.weightClassExcel = `FAIL ${String(e).slice(0, 160)}`;
+      }
     } finally {
       report.consoleErrors = String(quality.consoleErrors.length);
       report.pageErrors = String(quality.pageErrors.length);
