@@ -166,7 +166,15 @@ export function DivisionTemplateExcelImportDialog({
     const fd = new FormData();
     fd.set("file", selected);
     fd.set("sportType", sportType);
-    fd.set("existingItemsJson", JSON.stringify(existingItems));
+    // 서버 액션은 FormData existingItemsJson을 JSON.parse 합니다.
+    // new 템플릿에서도 항상 유효한 JSON 문자열을 보냅니다.
+    const safeExistingItems = Array.isArray(existingItems) ? existingItems : [];
+    try {
+      fd.set("existingItemsJson", JSON.stringify(safeExistingItems));
+    } catch {
+      setError("기존 체급표 데이터 형식이 올바르지 않습니다.");
+      return;
+    }
     startAnalyze(async () => {
       const res = await analyzeWeightClassExcelAction(fd);
       if (!res.ok) {
