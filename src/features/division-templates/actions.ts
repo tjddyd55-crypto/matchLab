@@ -11,6 +11,13 @@ import { PermissionError } from "@/lib/auth/permission-error";
 import { AppError } from "@/lib/errors/app-error";
 import { divisionTemplateService } from "@/lib/services/division-template.service";
 import {
+  analyzeWeightClassWorkbook,
+  buildWeightClassSampleWorkbook,
+  WEIGHT_CLASS_EXCEL_MAX_BYTES,
+  workbookToBuffer,
+  type WeightClassImportPreview,
+} from "@/lib/division-template/weight-class-excel";
+import {
   applyDivisionTemplateSchema,
   createDivisionTemplateSchema,
   deleteDivisionTemplateSchema,
@@ -193,6 +200,93 @@ export async function deleteDivisionTemplateAction(
       parsed.data.templateId,
     );
     return actionSuccess({ ok: true as const });
+  });
+}
+
+async function readWeightClassExcelFile(formData: FormData): Promise<
+  | {
+      fileName: string;
+      buffer: Buffer;
+    }
+  | ReturnType<typeof actionFailure>
+> {
+  const file = formData.get("file");
+  if (!(file instanceof File) || file.size <= 0) {
+    return actionFailure("VALIDATION_ERROR", "Excel 파일을 선택해 주세요.");
+  }
+  if (file.size > WEIGHT_CLASS_EXCEL_MAX_BYTES) {
+    return actionFailure(
+      "VALIDATION_ERROR",
+      `파일 크기는 최대 ${Math.round(WEIGHT_CLASS_EXCEL_MAX_BYTES / (1024 * 1024))}MB까지 가능합니다.`,
+    );
+  }
+  return {
+    fileName: file.name || "import.xlsx",
+    buffer: Buffer.from(await file.arrayBuffer()),
+  };
+}
+
+export async function downloadWeightClassExcelSampleAction(): Promise<
+  ActionResult<{ filename: string; base64: string }>
+> {
+  return mapCaught(async () => {
+    await requireActorFromMutation();
+    const wb = await buildWeightClassSampleWorkbook({
+      includeKickboxingFixture: true,
+    });
+    const buf = await workbookToBuffer(wb);
+    return actionSuccess({
+      filename: "MATCHON_체급표_업로드_샘플.xlsx",
+      base64: buf.toString("base64"),
+    });
+  });
+}
+
+export async function analyzeWeightClassExcelAction(
+  formData: FormData,
+): Promise<ActionResult<WeightClassImportPreview>> {
+  return mapCaught(async () => {
+    const fileResult = await readWeightClassExcelFile(formData);
+    if ("ok" in fileResult) {
+      return fileResult;
+    }
+
+    const sportType = formReq(formData, "sportType");
+    const existingItemsRaw = formReq(formData, "existingItemsJson") || "[]";
+    let existingItemsJson: unknown;
+    try {
+      existingItemsJson = JSON.parse(existingItemsRaw) as unknown;
+    } catch {
+      return actionFailure(
+        "VALIDATION_ERROR",
+        "기존 체급표 데이터 형식이 올바르지 않습니다.",
+      );
+    }
+    const existingItemsParsed =
+      divisionTemplateItemsSchema.safeParse(existingItemsJson);
+    if (!existingItemsParsed.success) {
+      return actionFailure(
+        "VALIDATION_ERROR",
+        "기존 체급표 데이터를 확인해 주세요.",
+        existingItemsParsed.error.flatten(),
+      );
+    }
+
+    await requireActorFromMutation();
+    const preview = await analyzeWeightClassWorkbook({
+      fileName: fileResult.fileName,
+      buffer: fileResult.buffer,
+      sportType,
+      existingItems: existingItemsParsed.data,
+    }).catch((e: unknown) => {
+      throw new AppError(
+        "VALIDATION_ERROR",
+        e instanceof Error
+          ? e.message
+          : "Excel 파일을 읽을 수 없습니다. 샘플 형식과 파일 내용을 확인해주세요.",
+      );
+    });
+    return actionSuccess(preview);
   });
 }
 

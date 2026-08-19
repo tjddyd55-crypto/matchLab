@@ -1,15 +1,16 @@
 "use client";
 
-import { useMemo, useState } from "react";
+import { useMemo, useState, useTransition } from "react";
 import type { DivisionTemplateItemInput } from "@/lib/validators/division-template.validator";
 import {
-  analyzeWeightClassWorkbook,
-  buildWeightClassSampleWorkbook,
   mergeWeightClassImportIntoItems,
   WEIGHT_CLASS_EXCEL_MAX_BYTES,
-  workbookToBuffer,
   type WeightClassImportPreview,
 } from "@/lib/division-template/weight-class-excel";
+import {
+  analyzeWeightClassExcelAction,
+  downloadWeightClassExcelSampleAction,
+} from "@/features/division-templates/actions";
 import { DIVISION_TEMPLATE_AGE_GROUPS } from "@/lib/division-template/division-template-constants";
 import { FileDropzone } from "@/components/shared/FileDropzone";
 import { Button } from "@/components/ui/button";
@@ -48,17 +49,19 @@ export function DivisionTemplateExcelToolbar({
   const [open, setOpen] = useState(false);
 
   async function downloadSample() {
-    const wb = await buildWeightClassSampleWorkbook({
-      includeKickboxingFixture: true,
-    });
-    const buf = await workbookToBuffer(wb);
-    const blob = new Blob([new Uint8Array(buf)], {
+    const res = await downloadWeightClassExcelSampleAction();
+    if (!res.ok) {
+      console.error("[weight-class-excel] sample download failed", res.error);
+      return;
+    }
+    const bytes = Uint8Array.from(atob(res.data.base64), (c) => c.charCodeAt(0));
+    const blob = new Blob([bytes], {
       type: "application/vnd.openxmlformats-officedocument.spreadsheetml.sheet",
     });
     const url = URL.createObjectURL(blob);
     const a = document.createElement("a");
     a.href = url;
-    a.download = "MATCHON_체급표_업로드_샘플.xlsx";
+    a.download = res.data.filename;
     a.click();
     URL.revokeObjectURL(url);
   }
@@ -122,6 +125,7 @@ export function DivisionTemplateExcelImportDialog({
   const [preview, setPreview] = useState<WeightClassImportPreview | null>(null);
   const [resultMsg, setResultMsg] = useState<string | null>(null);
   const [pending, setPending] = useState(false);
+  const [analyzing, startAnalyze] = useTransition();
 
   function reset() {
     setStep("upload");
@@ -137,38 +141,41 @@ export function DivisionTemplateExcelImportDialog({
   }
 
   async function downloadSample() {
-    const wb = await buildWeightClassSampleWorkbook({
-      includeKickboxingFixture: true,
-    });
-    const buf = await workbookToBuffer(wb);
-    const blob = new Blob([new Uint8Array(buf)], {
+    setError(null);
+    const res = await downloadWeightClassExcelSampleAction();
+    if (!res.ok) {
+      setError(res.error.message);
+      return;
+    }
+    const bytes = Uint8Array.from(atob(res.data.base64), (c) => c.charCodeAt(0));
+    const blob = new Blob([bytes], {
       type: "application/vnd.openxmlformats-officedocument.spreadsheetml.sheet",
     });
     const url = URL.createObjectURL(blob);
     const a = document.createElement("a");
     a.href = url;
-    a.download = "MATCHON_체급표_업로드_샘플.xlsx";
+    a.download = res.data.filename;
     a.click();
     URL.revokeObjectURL(url);
   }
 
-  async function onFile(selected: File) {
+  function onFile(selected: File) {
     setError(null);
     setFile(selected);
     setPreview(null);
-    try {
-      const buffer = await selected.arrayBuffer();
-      const analyzed = await analyzeWeightClassWorkbook({
-        fileName: selected.name,
-        buffer,
-        sportType,
-        existingItems,
-      });
-      setPreview(analyzed);
+    const fd = new FormData();
+    fd.set("file", selected);
+    fd.set("sportType", sportType);
+    fd.set("existingItemsJson", JSON.stringify(existingItems));
+    startAnalyze(async () => {
+      const res = await analyzeWeightClassExcelAction(fd);
+      if (!res.ok) {
+        setError(res.error.message);
+        return;
+      }
+      setPreview(res.data);
       setStep("preview");
-    } catch (e) {
-      setError(e instanceof Error ? e.message : "파일을 읽지 못했습니다.");
-    }
+    });
   }
 
   const canCommit = useMemo(() => {
@@ -268,7 +275,7 @@ export function DivisionTemplateExcelImportDialog({
                   accept=".xlsx,application/vnd.openxmlformats-officedocument.spreadsheetml.sheet"
                   maxBytes={WEIGHT_CLASS_EXCEL_MAX_BYTES}
                   disabled={pending}
-                  busy={pending}
+                  busy={pending || analyzing}
                   file={file}
                   hint={`.xlsx · 최대 ${Math.round(WEIGHT_CLASS_EXCEL_MAX_BYTES / (1024 * 1024))}MB`}
                   onFile={(selected) => void onFile(selected)}

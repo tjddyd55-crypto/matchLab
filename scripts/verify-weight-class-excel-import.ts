@@ -115,9 +115,11 @@ async function main() {
   );
   assert.match(dialog, /FileDropzone/);
   assert.match(dialog, /체급표 Excel 일괄 등록/);
-  const svc = read("src/lib/services/division-template.service.ts");
-  assert.match(svc, /assertTemplateOwned/);
-  assert.match(svc, /organizerId/);
+  assert.match(dialog, /analyzeWeightClassExcelAction/);
+  assert.doesNotMatch(dialog, /analyzeWeightClassWorkbook/);
+  const actions = read("src/features/division-templates/actions.ts");
+  assert.match(actions, /analyzeWeightClassExcelAction/);
+  assert.match(actions, /downloadWeightClassExcelSampleAction/);
   console.log("verify:weight-class-import-scope OK");
 
   // schema still JSON items — no separate WeightClass table required

@@ -217,7 +217,9 @@ function verifyWeightClassDropzone() {
   assert.match(dialog, /FileDropzone/);
   assert.match(dialog, /체급표 Excel 일괄 등록/);
   assert.match(dialog, /샘플 엑셀 다운로드/);
+  assert.match(dialog, /analyzeWeightClassExcelAction/);
   assert.doesNotMatch(dialog, /<input\s+type="file"/);
+  assert.doesNotMatch(dialog, /analyzeWeightClassWorkbook/);
   console.log("verify:weight-class-dropzone OK");
 }
 
