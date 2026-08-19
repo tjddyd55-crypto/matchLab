@@ -423,7 +423,9 @@
     "verify:desktop-manager": "tsx scripts/verify-desktop-manager.ts",
     "verify:schedule-hydration": "tsx scripts/verify-gym-schedule.ts board-ux",
     "verify:schedule-now-line-hydration": "tsx scripts/verify-gym-schedule.ts board-ux",
-    "verify:schedule-responsive-hydration": "tsx scripts/verify-gym-schedule.ts board-ux"
+    "verify:schedule-responsive-hydration": "tsx scripts/verify-gym-schedule.ts board-ux",
+    "verify:athlete-record-structured": "tsx scripts/verify-athlete-record-structured.ts",
+    "verify:auto-match-record-priority": "tsx scripts/verify-auto-match-record-priority.ts"
   },
   "prisma": {
     "seed": "tsx prisma/seed.ts"

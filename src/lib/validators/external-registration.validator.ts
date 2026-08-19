@@ -4,6 +4,7 @@ import {
   athleteRecordTextSchema,
   insuranceConsentMustAgreeSchema,
   residentRegistrationNumberFieldSchema,
+  structuredRecordSchema,
 } from "@/lib/athlete-application/profile-input";
 
 export const EXTERNAL_REGISTRATION_MAX_ATHLETES = 50;
@@ -58,6 +59,7 @@ export const externalRegistrationAthleteSchema = z.object({
     .optional()
     .transform((s) => (s === "" ? undefined : s)),
   recordText: athleteRecordTextSchema,
+  structuredRecord: structuredRecordSchema,
   careerText: athleteCareerTextSchema,
   residentRegistrationNumber: residentRegistrationNumberFieldSchema,
   insuranceConsentAgreed: insuranceConsentMustAgreeSchema,
