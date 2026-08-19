@@ -91,6 +91,14 @@ export type AutoMatchApplicationRow = {
   appliedAt: Date | null;
   createdAt: Date;
   gymSnapshot: unknown;
+  /** 신청 시점 구조화 전적 snapshot — 자동대진 SSOT */
+  totalBoutsSnapshot: number | null;
+  winsSnapshot: number | null;
+  drawsSnapshot: number | null;
+  lossesSnapshot: number | null;
+  /** 신청 시점 구조화 학년 snapshot */
+  schoolLevelSnapshot: string | null;
+  schoolGradeSnapshot: number | null;
   fighter: {
     id: string;
     fighterCode: string;
@@ -100,6 +108,7 @@ export type AutoMatchApplicationRow = {
     recordWin: number;
     recordLoss: number;
     recordDraw: number;
+    recordTotalBouts: number;
     status: FighterStatus;
   };
   division: {
@@ -796,6 +805,12 @@ export const bracketRepository = {
         appliedAt: true,
         createdAt: true,
         gymSnapshot: true,
+        totalBoutsSnapshot: true,
+        winsSnapshot: true,
+        drawsSnapshot: true,
+        lossesSnapshot: true,
+        schoolLevelSnapshot: true,
+        schoolGradeSnapshot: true,
         fighter: {
           select: {
             id: true,
@@ -806,6 +821,7 @@ export const bracketRepository = {
             recordWin: true,
             recordLoss: true,
             recordDraw: true,
+            recordTotalBouts: true,
             status: true,
           },
         },

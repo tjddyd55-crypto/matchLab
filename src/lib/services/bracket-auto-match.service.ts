@@ -20,6 +20,12 @@ import {
   type AutoMatchCandidate,
   type UnmatchedReason,
 } from "@/lib/brackets/auto-match";
+import {
+  pairWithRecordAndGrade,
+  type RecordMatchCandidate,
+  type RecordUnmatchedReason,
+} from "@/lib/brackets/record-auto-match";
+import { SCHOOL_LEVEL } from "@/lib/fighter/record";
 import { formatCourtTabLabel } from "@/lib/court-tab-label";
 import { computeBracketAssignability } from "@/lib/bracket-assignability";
 import { computeFieldEligibility } from "@/lib/field-eligibility";
@@ -145,6 +151,73 @@ function toAutoMatchCandidate(
   };
 }
 
+/**
+ * AutoMatchApplicationRow → RecordMatchCandidate.
+ * totalBoutsSnapshot 우선 사용, 없으면 Fighter 캐시 값을 fallback.
+ * schoolGradeSnapshot이 없는 초등부는 null (자동대진에서 elementary_grade_missing 처리).
+ */
+function toRecordMatchCandidate(
+  row: AutoMatchApplicationRow,
+): RecordMatchCandidate {
+  const eligibility = computeFieldEligibility({
+    checkInStatus: row.checkInStatus,
+    weighInStatus: row.weighInStatus,
+    weighInFailureResolution: row.weighInFailureResolution,
+  });
+  const assignability = computeBracketAssignability({
+    checkInStatus: row.checkInStatus,
+    weighInStatus: row.weighInStatus,
+    weighInFailureResolution: row.weighInFailureResolution,
+    applicationStatus: row.status,
+    cancellationSource: row.cancellationSource,
+    weighInWeightKg: row.weighInWeightKg,
+  });
+
+  // 전적: 신청 시점 snapshot 우선, 없으면 Fighter 캐시 fallback
+  const totalBouts =
+    row.totalBoutsSnapshot ??
+    (row.fighter.recordTotalBouts > 0 ||
+    row.fighter.recordWin > 0 ||
+    row.fighter.recordLoss > 0 ||
+    row.fighter.recordDraw > 0
+      ? row.fighter.recordTotalBouts ||
+        row.fighter.recordWin + row.fighter.recordLoss + row.fighter.recordDraw
+      : null);
+
+  return {
+    applicationId: row.id,
+    fighterId: row.fighterId,
+    divisionId: row.divisionId,
+    gymId: row.gymId,
+    gymName: displayGymName(row),
+    fighterName: row.fighter.name,
+    appliedAt: row.appliedAt ?? row.createdAt,
+    isEligibleForBracket: eligibility.isEligibleForBracket,
+    isAssignableForBracket: assignability.isAssignable,
+    totalBouts,
+    schoolLevel: row.schoolLevelSnapshot ?? null,
+    schoolGrade: row.schoolGradeSnapshot ?? null,
+  };
+}
+
+/** RecordUnmatchedReason → 관리자 표시 문구 */
+function formatRecordUnmatchedReason(reason: RecordUnmatchedReason): string {
+  switch (reason) {
+    case "zero_vs_nonzero": return "무전 — 무전 상대 없음";
+    case "record_diff_too_large": return "전적 차이 허용 범위 초과";
+    case "elementary_band_mismatch": return "초등부 학년대 불일치";
+    case "unknown_record": return "전적 정보 없음 (구조화 필요)";
+    case "same_gym_only_remaining": return "같은 체육관 선수만 남음";
+    case "not_field_eligible": return "출전 조건 미충족";
+    case "odd_count": return "홀수 인원";
+    case "no_opponent_in_division": return "동일 체급 상대 없음";
+    case "already_placed": return "이미 대진 배치됨";
+    case "missing_division": return "체급 정보 없음";
+    case "court_capacity_full": return "코트 정원 초과";
+    default: return "미확정";
+  }
+}
+
 function toPlacementRow(row: AutoMatchApplicationRow) {
   return {
     id: row.id,
@@ -268,8 +341,8 @@ function normalizeAutoMatchCourtTarget(
 
 function pushCourtCapacityUnmatched(
   pair: {
-    red: AutoMatchCandidate;
-    blue: AutoMatchCandidate;
+    red: { applicationId: string; fighterId: string; gymId: string };
+    blue: { applicationId: string; fighterId: string; gymId: string };
   },
   divisionId: string,
   appByFighterDivision: Map<string, AutoMatchApplicationRow>,
@@ -380,8 +453,8 @@ export const bracketAutoMatchService = {
     }
 
     for (const [, group] of unplacedByDivision) {
-      const candidates = group.map(toAutoMatchCandidate);
-      const pairing = pairCandidatesWithinDivision(candidates, {
+      const candidates = group.map(toRecordMatchCandidate);
+      const pairing = pairWithRecordAndGrade(candidates, {
         forbidSameGym: true,
       });
       for (const u of pairing.unmatched) {
@@ -453,13 +526,13 @@ export const bracketAutoMatchService = {
       placedIds = new Set();
     }
 
-    const matchable: AutoMatchCandidate[] = [];
+    const matchable: RecordMatchCandidate[] = [];
     for (const row of applications) {
       if (placedIds.has(row.fighterId)) {
         summary.excludedAlreadyPlaced += 1;
         continue;
       }
-      const candidate = toAutoMatchCandidate(row);
+      const candidate = toRecordMatchCandidate(row);
       if (!candidate.isAssignableForBracket) {
         summary.ineligibleWarningCount += 1;
         continue;
@@ -487,20 +560,27 @@ export const bracketAutoMatchService = {
       );
     }
 
-    const byDivision = groupCandidatesByDivision(matchable);
+    // 전적·학년 기반 V2 페어링 (division은 기존 groupCandidatesByDivision 유지)
+    const recordCandidatesByDivision = new Map<string, RecordMatchCandidate[]>();
+    for (const c of matchable) {
+      const arr = recordCandidatesByDivision.get(c.divisionId) ?? [];
+      arr.push(c);
+      recordCandidatesByDivision.set(c.divisionId, arr);
+    }
     const appByFighterDivision = new Map(
       applications.map((a) => [`${a.fighterId}:${a.divisionId}`, a]),
     );
     const placedFighterIds: string[] = [];
     const unmatchedGymIds: string[] = [];
     const unmatchedDetails: AutoBracketUnmatchedDetail[] = [];
+    // pairingByDivision을 RecordDivisionPairingResult 기반으로 교체
     const pairingByDivision = new Map<
       string,
-      ReturnType<typeof pairCandidatesWithinDivision>
+      ReturnType<typeof pairWithRecordAndGrade>
     >();
 
-    for (const [divisionId, group] of byDivision) {
-      const pairing = pairCandidatesWithinDivision(group, {
+    for (const [divisionId, group] of recordCandidatesByDivision) {
+      const pairing = pairWithRecordAndGrade(group, {
         forbidSameGym: input.forbidSameGym !== false,
       });
       pairingByDivision.set(divisionId, pairing);
@@ -534,7 +614,7 @@ export const bracketAutoMatchService = {
             fighterName: row.fighter.name,
             gymName: displayGymName(row),
             divisionLabel: formatDivisionNameLabel(row.division),
-            reasonLabel: REASON_LABELS[u.reason],
+            reasonLabel: formatRecordUnmatchedReason(u.reason),
           });
         }
       }
@@ -643,7 +723,7 @@ export const bracketAutoMatchService = {
         matchInput,
       )!;
 
-      for (const [divisionId, group] of byDivision) {
+      for (const [divisionId, group] of recordCandidatesByDivision) {
         const pairing = pairingByDivision.get(divisionId)!;
         if (pairing.pairs.length === 0) continue;
 
@@ -658,9 +738,10 @@ export const bracketAutoMatchService = {
           );
 
         if (!bracket) {
-          const sampleRow = appByFighterDivision.get(
+          const sampleApp = appByFighterDivision.get(
             `${group[0]!.fighterId}:${divisionId}`,
           );
+          const sampleRow = sampleApp;
           const autoTitle = sampleRow
             ? formatAutoBracketGroupTitle(sampleRow.division)
             : `자동 생성 · ${divisionId}`;
@@ -845,7 +926,7 @@ export const bracketAutoMatchService = {
     const unplacedByDivision = new Map<string, AutoMatchApplicationRow[]>();
     const waitingRows: Array<{
       row: AutoMatchApplicationRow;
-      reason: UnmatchedReason;
+      reason: UnmatchedReason | RecordUnmatchedReason;
     }> = [];
 
     for (const row of applications) {
@@ -868,8 +949,8 @@ export const bracketAutoMatchService = {
     }
 
     for (const [, group] of unplacedByDivision) {
-      const candidates = group.map(toAutoMatchCandidate);
-      const pairing = pairCandidatesWithinDivision(candidates, {
+      const candidates = group.map(toRecordMatchCandidate);
+      const pairing = pairWithRecordAndGrade(candidates, {
         forbidSameGym: true,
       });
       for (const u of pairing.unmatched) {
@@ -893,6 +974,12 @@ export const bracketAutoMatchService = {
       return a.row.fighter.name.localeCompare(b.row.fighter.name, "ko");
     });
 
+    const totalBoutsLabel = (row: AutoMatchApplicationRow): string => {
+      const t = row.totalBoutsSnapshot ?? row.fighter.recordTotalBouts;
+      if (t == null || t === 0) return "무전";
+      return `${t}전`;
+    };
+
     return waitingRows.map(({ row, reason }, index) => ({
       order: index + 1,
       fighterName: row.fighter.name,
@@ -901,8 +988,11 @@ export const bracketAutoMatchService = {
       ageGroup: row.division.ageGroup,
       weightClass: row.division.weightClass,
       divisionLabel: formatDivisionNameLabel(row.division),
-      recordSummary: `${row.fighter.recordWin}승 ${row.fighter.recordLoss}패 ${row.fighter.recordDraw}무`,
-      reasonLabel: REASON_LABELS[reason],
+      recordSummary: `${row.fighter.recordWin}승 ${row.fighter.recordLoss}패 ${row.fighter.recordDraw}무 (${totalBoutsLabel(row)})`,
+      reasonLabel:
+        reason in REASON_LABELS
+          ? REASON_LABELS[reason as UnmatchedReason]
+          : formatRecordUnmatchedReason(reason as RecordUnmatchedReason),
     }));
   },
 };
@@ -910,9 +1000,13 @@ export const bracketAutoMatchService = {
 function mapUnmatchedRow(
   row: AutoMatchApplicationRow,
   eligibility: ReturnType<typeof computeFieldEligibility>,
-  reason: UnmatchedReason,
+  reason: UnmatchedReason | RecordUnmatchedReason,
 ): UnmatchedBracketCandidateVM {
   const division = toEventDivisionDisplayInput(row.division)!;
+  const reasonLabel =
+    reason in REASON_LABELS
+      ? REASON_LABELS[reason as UnmatchedReason]
+      : formatRecordUnmatchedReason(reason as RecordUnmatchedReason);
   return {
     applicationId: row.id,
     fighterId: row.fighterId,
@@ -925,7 +1019,7 @@ function mapUnmatchedRow(
     applicationStatus: row.status,
     isEligibleForBracket: eligibility.isEligibleForBracket,
     eligibilityLabel: eligibility.eligibilityLabel,
-    reason,
-    reasonLabel: REASON_LABELS[reason],
+    reason: reason as UnmatchedReason,
+    reasonLabel,
   };
 }

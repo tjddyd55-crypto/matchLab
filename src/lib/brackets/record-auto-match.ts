@@ -52,7 +52,8 @@ export type RecordUnmatchedReason =
   | "zero_vs_nonzero"
   | "record_diff_too_large"
   | "elementary_band_mismatch"
-  | "unknown_record";
+  | "unknown_record"
+  | "court_capacity_full";
 
 export type RecordMatchPair = {
   red: RecordMatchCandidate;

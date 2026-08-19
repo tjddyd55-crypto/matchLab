@@ -1,6 +1,6 @@
 "use client";
 
-import { useActionState } from "react";
+import { useActionState, useState, useRef } from "react";
 import { submitFighterRegistrationFormAction } from "@/features/registrations/actions";
 import { AppDateInput } from "@/components/shared/AppDateInput";
 import { FeedbackMessage } from "@/components/shared/FeedbackMessage";
@@ -13,6 +13,10 @@ import {
   CardTitle,
 } from "@/components/ui/card";
 import { publicApplicationFieldInputClass, publicApplicationFieldSelectClass } from "@/lib/ui/public-application-ui";
+import {
+  StructuredRecordFields,
+  type StructuredRecordValue,
+} from "@/components/domain/fighters/StructuredRecordFields";
 
 export function FighterRegistrationForm({
   token,
@@ -25,6 +29,10 @@ export function FighterRegistrationForm({
     submitFighterRegistrationFormAction,
     null,
   );
+  const [record, setRecord] = useState<StructuredRecordValue>({
+    totalBouts: 0, wins: 0, draws: 0, losses: 0,
+  });
+  const formRef = useRef<HTMLFormElement>(null);
 
   if (state?.ok === true) {
     const dup = state.data.duplicateSuspected;
@@ -43,8 +51,13 @@ export function FighterRegistrationForm({
         </FeedbackMessage>
       ) : null}
 
-      <form action={formAction} className="space-y-6">
+      <form ref={formRef} action={formAction} className="space-y-6">
         <input type="hidden" name="token" value={token} />
+        {/* 구조화 전적 hidden inputs — StructuredRecordFields controlled 값과 동기화 */}
+        <input type="hidden" name="totalBouts" value={record.totalBouts} />
+        <input type="hidden" name="wins" value={record.wins} />
+        <input type="hidden" name="draws" value={record.draws} />
+        <input type="hidden" name="losses" value={record.losses} />
 
         <Card>
           <CardHeader>
@@ -122,6 +135,22 @@ export function FighterRegistrationForm({
               <span className="font-medium">학년</span>
               <input name="grade" className={publicApplicationFieldInputClass} />
             </label>
+          </CardContent>
+        </Card>
+
+        <Card>
+          <CardHeader>
+            <CardTitle className="text-base">전적</CardTitle>
+            <CardDescription>
+              전적이 없으면 '무전' 버튼을 누르거나 그냥 두세요.
+            </CardDescription>
+          </CardHeader>
+          <CardContent>
+            <StructuredRecordFields
+              idPrefix="registration-record"
+              value={record}
+              onChange={setRecord}
+            />
           </CardContent>
         </Card>
 

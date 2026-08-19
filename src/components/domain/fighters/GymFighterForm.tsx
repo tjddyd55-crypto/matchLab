@@ -14,6 +14,10 @@ import { Button, buttonVariants } from "@/components/ui/button";
 import { FighterStatus } from "@/lib/enums";
 import type { GymFighterFormInitialValues } from "@/lib/fighters/gym-fighter-form-initial";
 import { cn } from "@/lib/utils";
+import {
+  StructuredRecordFields,
+  type StructuredRecordValue,
+} from "@/components/domain/fighters/StructuredRecordFields";
 
 type DuplicateCandidate = {
   id: string;
@@ -59,6 +63,12 @@ export function GymFighterForm({
     loginId: string;
     temporaryPassword: string;
   } | null>(null);
+  const [record, setRecord] = useState<StructuredRecordValue>({
+    totalBouts: initial?.recordTotalBouts ?? 0,
+    wins: initial?.recordWin ?? 0,
+    draws: initial?.recordDraw ?? 0,
+    losses: initial?.recordLoss ?? 0,
+  });
 
   const inputClass =
     "border-input bg-background h-10 w-full rounded-md border px-3 text-sm";
@@ -68,6 +78,12 @@ export function GymFighterForm({
     setPending(true);
     setError(null);
     const fd = new FormData(e.currentTarget);
+
+    // 구조화 전적 값 명시 설정 (controlled 모드 — form input value가 React state에 있음)
+    fd.set("totalBouts", String(record.totalBouts));
+    fd.set("wins", String(record.wins));
+    fd.set("draws", String(record.draws));
+    fd.set("losses", String(record.losses));
 
     if (mode === "create" && duplicates?.length && selectedLinkId) {
       fd.set("confirmDuplicateLink", "true");
@@ -307,6 +323,13 @@ export function GymFighterForm({
             defaultValue={initial?.gymInternalMemo ?? ""}
           />
         </label>
+        <div className="sm:col-span-2">
+          <StructuredRecordFields
+            idPrefix="gym-fighter-record"
+            value={record}
+            onChange={setRecord}
+          />
+        </div>
       </div>
 
       {mode === "create" ? (
