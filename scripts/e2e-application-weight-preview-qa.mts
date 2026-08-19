@@ -115,6 +115,7 @@ async function overflowX(page: Page): Promise<number> {
 
 async function login(page: Page, identifier: string, password: string) {
   await page.goto(`${BASE}/login`, { waitUntil: "domcontentloaded", timeout: 90_000 });
+  if (!page.url().includes("/login")) return;
   const idBox = page.locator("#login-identifier, input[name='identifier']");
   if (await idBox.count()) await idBox.first().fill(identifier);
   else await page.getByLabel("아이디").fill(identifier);
@@ -519,7 +520,7 @@ async function main() {
       const withErrorRows = [
         row({ gym: "QA짐A", name: `${PREFIX}성인54`, category: "성인", weight: "54.2", total: "0", wins: "0", draws: "0", losses: "0", phone: "010-8800-0001" }),
         row({ gym: "QA짐B", name: `${PREFIX}성인58`, category: "일반부", weight: "58.7", total: "1", wins: "1", draws: "0", losses: "0", phone: "010-8800-0002" }),
-        row({ gym: "QA짐C", name: `${PREFIX}성인62`, category: "성인", weight: "62.5", total: "2", wins: "1", draws: "0", losses: "1", phone: "010-8800-0003" }),
+        row({ gym: "QA짐C", name: `${PREFIX}성인62`, category: "성인", weight: "62.5", total: "4", wins: "2", draws: "0", losses: "2", phone: "010-8800-0003" }),
         row({ gym: "QA짐D", name: `${PREFIX}초3`, category: "초3", weight: "38", total: "1", wins: "1", draws: "0", losses: "0", birth: "2016-03-01", phone: "010-8800-0004" }),
         row({ gym: "QA짐E", name: `${PREFIX}초5`, category: "초5", weight: "38", total: "2", wins: "1", draws: "0", losses: "1", birth: "2014-03-01", phone: "010-8800-0005" }),
         row({ gym: "QA짐F", name: `${PREFIX}학생부`, category: "학생부", weight: "60", total: "0", wins: "0", draws: "0", losses: "0", phone: "010-8800-0006" }),
