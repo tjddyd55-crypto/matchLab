@@ -8,6 +8,22 @@ export const athleteRecordTextSchema = z
   .optional()
   .transform((s) => (s === "" ? undefined : s));
 
+/** 구조화 전적 스냅샷 스키마 — totalBouts = wins + draws + losses 검증 포함 */
+const nonNegInt = z.number().int().min(0);
+
+export const structuredRecordSchema = z
+  .object({
+    totalBouts: nonNegInt,
+    wins: nonNegInt,
+    draws: nonNegInt,
+    losses: nonNegInt,
+  })
+  .refine(
+    (r) => r.totalBouts === r.wins + r.draws + r.losses,
+    { message: "총 경기수와 승·무·패 합계가 일치하지 않습니다." },
+  )
+  .optional();
+
 export const athleteCareerTextSchema = z
   .string()
   .trim()

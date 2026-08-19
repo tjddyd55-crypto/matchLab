@@ -13,6 +13,7 @@ import type { CustomFormFieldDefinition } from "@/lib/application-form/custom-fo
 import type { MatchonStatus } from "@/lib/ui/matchon-status";
 import { ApplicationAgreementChecklist } from "@/components/domain/applications/ApplicationAgreementChecklist";
 import { AthleteInsuranceProfileFields } from "@/components/domain/applications/AthleteInsuranceProfileFields";
+import type { StructuredRecordValue } from "@/components/domain/applications/AthleteInsuranceProfileFields";
 import {
   GymBulkApplicationCard,
   GymBulkApplicationTableRow,
@@ -62,7 +63,7 @@ function initialRowStates(
       checked: false,
       divisionId: "",
       formAnswers: {},
-      recordText: "",
+      structuredRecord: { totalBouts: 0, wins: 0, draws: 0, losses: 0 },
       careerText: "",
       residentRegistrationNumber: "",
     };
@@ -79,7 +80,10 @@ function buildApplicationsPayload(
   const applications: Array<{
     fighterId: string;
     divisionId: string;
-    recordText?: string;
+    totalBoutsSnapshot?: number;
+    winsSnapshot?: number;
+    drawsSnapshot?: number;
+    lossesSnapshot?: number;
     careerText?: string;
     residentRegistrationNumber?: string;
     formAnswers?: Record<string, unknown>;
@@ -98,7 +102,10 @@ function buildApplicationsPayload(
     applications.push({
       fighterId: fighter.id,
       divisionId: state.divisionId,
-      recordText: state.recordText || undefined,
+      totalBoutsSnapshot: state.structuredRecord.totalBouts,
+      winsSnapshot: state.structuredRecord.wins,
+      drawsSnapshot: state.structuredRecord.draws,
+      lossesSnapshot: state.structuredRecord.losses,
       careerText: state.careerText || undefined,
       residentRegistrationNumber: state.residentRegistrationNumber,
       formAnswers:
@@ -331,11 +338,11 @@ export function GymBulkApplicationForm(props: GymBulkApplicationFormProps) {
                   <p className="mb-3 text-sm font-medium">{fighter.name}</p>
                   <AthleteInsuranceProfileFields
                     idPrefix={`bulk-${fighter.id}`}
-                    recordValue={rowState.recordText}
+                    recordValue={rowState.structuredRecord}
                     careerValue={rowState.careerText}
                     rrnValue={rowState.residentRegistrationNumber}
                     onRecordChange={(v) =>
-                      updateRow(fighter.id, { recordText: v })
+                      updateRow(fighter.id, { structuredRecord: v })
                     }
                     onCareerChange={(v) =>
                       updateRow(fighter.id, { careerText: v })

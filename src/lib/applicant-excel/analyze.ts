@@ -22,6 +22,12 @@ import type {
   ApplicantExcelPreview,
   ApplicantExcelPreviewRow,
 } from "@/lib/applicant-excel/types";
+import {
+  parseRecordText,
+  buildRecordText,
+  validateRecord,
+  type StructuredRecord,
+} from "@/lib/fighter/record";
 
 export function applicantIdentityKey(input: {
   fighterName: string;
@@ -89,8 +95,12 @@ function analyzeOneRow(
   const memo = compactText(v.메모);
   const rowNumber = compactText(v.번호);
   const ageNote = compactText(v.나이);
-  const recordText = compactText(v.전적);
+  const recordTextRaw = compactText(v.전적);
   const careerText = compactText(v.운동경력);
+
+  // 구조화 전적: 신규 컬럼(총전/승/무/패) SSOT, 없으면 레거시 전적 문자열 파싱
+  const structuredRecord = resolveStructuredRecord(v, recordTextRaw);
+  const recordText = structuredRecord.recordText;
   const rrnParsed = parseResidentRegistrationNumber(v.주민등록번호);
   const consentParsed = parseExcelInsuranceConsent(v["보험가입 개인정보동의"]);
   if (!rrnParsed.ok) errors.push(rrnParsed.error);
@@ -176,6 +186,11 @@ function analyzeOneRow(
     decision: hasError ? "error" : "create",
     decisionLabel: hasError ? "오류" : "등록 가능",
     errors,
+    totalBoutsSnapshot: structuredRecord.record?.totalBouts ?? null,
+    winsSnapshot: structuredRecord.record?.wins ?? null,
+    drawsSnapshot: structuredRecord.record?.draws ?? null,
+    lossesSnapshot: structuredRecord.record?.losses ?? null,
+    recordParseWarning: structuredRecord.warning ?? null,
   };
 }
 
@@ -247,3 +262,76 @@ export function assertPreviewReadyToCommit(preview: ApplicantExcelPreview): void
 }
 
 export { birthDateToUtc };
+
+// ────────────────────────────────────────────────────
+// 구조화 전적 해석 헬퍼
+// ────────────────────────────────────────────────────
+
+type ResolvedRecord = {
+  record: StructuredRecord | null;
+  recordText: string;
+  warning: string | null;
+};
+
+function parseOptionalInt(raw: unknown): number | null {
+  if (raw == null || raw === "") return null;
+  const n = typeof raw === "number" ? raw : Number.parseInt(String(raw).trim(), 10);
+  return Number.isFinite(n) && n >= 0 ? n : null;
+}
+
+/**
+ * 총전/승/무/패 컬럼이 있으면 SSOT로 사용.
+ * 없으면 전적 자유문장 파싱 시도.
+ * 파싱 불확실하면 warning 반환.
+ */
+function resolveStructuredRecord(
+  v: Record<string, unknown>,
+  recordTextRaw: string,
+): ResolvedRecord {
+  const total = parseOptionalInt(v["총전"]);
+  const wins = parseOptionalInt(v["승"]);
+  const draws = parseOptionalInt(v["무"]);
+  const losses = parseOptionalInt(v["패"]);
+
+  // 신규 구조화 컬럼이 하나라도 있으면 SSOT
+  if (total != null || wins != null || draws != null || losses != null) {
+    const record: StructuredRecord = {
+      totalBouts: total ?? 0,
+      wins: wins ?? 0,
+      draws: draws ?? 0,
+      losses: losses ?? 0,
+    };
+    const validation = validateRecord(record);
+    if (!validation.ok) {
+      return {
+        record: null,
+        recordText: recordTextRaw,
+        warning: validation.error,
+      };
+    }
+    return {
+      record,
+      recordText: buildRecordText(record),
+      warning: null,
+    };
+  }
+
+  // 레거시: 자유문장 파싱
+  if (!recordTextRaw) {
+    return {
+      record: { totalBouts: 0, wins: 0, draws: 0, losses: 0 },
+      recordText: "무전",
+      warning: null,
+    };
+  }
+
+  const parsed = parseRecordText(recordTextRaw);
+  if (parsed.ok) {
+    return { record: parsed.record, recordText: parsed.recordText, warning: null };
+  }
+  return {
+    record: null,
+    recordText: recordTextRaw,
+    warning: parsed.error,
+  };
+}

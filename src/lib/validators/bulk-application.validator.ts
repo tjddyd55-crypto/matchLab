@@ -4,6 +4,7 @@ import {
   athleteRecordTextSchema,
   insuranceConsentMustAgreeSchema,
   residentRegistrationNumberFieldSchema,
+  structuredRecordSchema,
 } from "@/lib/athlete-application/profile-input";
 
 const mustAgree = z.boolean().refine((v) => v === true, {
@@ -14,6 +15,7 @@ export const bulkApplicationItemSchema = z.object({
   fighterId: z.string().min(1),
   divisionId: z.string().min(1),
   recordText: athleteRecordTextSchema,
+  structuredRecord: structuredRecordSchema,
   careerText: athleteCareerTextSchema,
   residentRegistrationNumber: residentRegistrationNumberFieldSchema,
   formAnswers: z.record(z.string(), z.unknown()).optional(),

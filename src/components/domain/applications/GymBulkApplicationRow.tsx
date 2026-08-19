@@ -20,13 +20,14 @@ import {
   publicApplicationFieldSelectClass,
   resolveBulkApplicationRowMatchonStatus,
 } from "@/lib/ui/public-application-ui";
+import type { StructuredRecordValue } from "@/components/domain/applications/AthleteInsuranceProfileFields";
 import { cn } from "@/lib/utils";
 
 export type FighterRowState = {
   checked: boolean;
   divisionId: string;
   formAnswers: Record<string, unknown>;
-  recordText: string;
+  structuredRecord: StructuredRecordValue;
   careerText: string;
   residentRegistrationNumber: string;
 };

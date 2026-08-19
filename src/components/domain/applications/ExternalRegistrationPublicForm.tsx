@@ -7,6 +7,7 @@ import { AppDateInput } from "@/components/shared/AppDateInput";
 import { Button } from "@/components/ui/button";
 import { cn } from "@/lib/utils";
 import { AthleteInsuranceProfileFields } from "@/components/domain/applications/AthleteInsuranceProfileFields";
+import type { StructuredRecordValue } from "@/components/domain/applications/AthleteInsuranceProfileFields";
 import { ExternalRegistrationStatusScreen } from "@/components/domain/applications/ExternalRegistrationStatusScreen";
 import {
   INSURANCE_PII_CONSENT_CHECKBOX_LABEL,
@@ -30,7 +31,7 @@ type AthleteDraft = {
   guardianPhone: string;
   divisionId: string;
   memo: string;
-  recordText: string;
+  structuredRecord: StructuredRecordValue;
   careerText: string;
   residentRegistrationNumber: string;
   insuranceConsentAgreed: boolean;
@@ -73,7 +74,7 @@ function emptyAthlete(): AthleteDraft {
     guardianPhone: "",
     divisionId: "",
     memo: "",
-    recordText: "",
+    structuredRecord: { totalBouts: 0, wins: 0, draws: 0, losses: 0 },
     careerText: "",
     residentRegistrationNumber: "",
     insuranceConsentAgreed: false,
@@ -264,7 +265,10 @@ export function ExternalRegistrationPublicForm({
           guardianPhone: a.guardianPhone || undefined,
           divisionId: a.divisionId,
           memo: a.memo || undefined,
-          recordText: a.recordText || undefined,
+          totalBoutsSnapshot: a.structuredRecord.totalBouts,
+          winsSnapshot: a.structuredRecord.wins,
+          drawsSnapshot: a.structuredRecord.draws,
+          lossesSnapshot: a.structuredRecord.losses,
           careerText: a.careerText || undefined,
           residentRegistrationNumber: a.residentRegistrationNumber,
           insuranceConsentAgreed: a.insuranceConsentAgreed,
@@ -547,10 +551,10 @@ export function ExternalRegistrationPublicForm({
             </div>
             <AthleteInsuranceProfileFields
               idPrefix={`ext-${a.key}`}
-              recordValue={a.recordText}
+              recordValue={a.structuredRecord}
               careerValue={a.careerText}
               rrnValue={a.residentRegistrationNumber}
-              onRecordChange={(v) => updateAthlete(a.key, { recordText: v })}
+              onRecordChange={(v) => updateAthlete(a.key, { structuredRecord: v })}
               onCareerChange={(v) => updateAthlete(a.key, { careerText: v })}
               onRrnChange={(v) =>
                 updateAthlete(a.key, { residentRegistrationNumber: v })

@@ -20,6 +20,13 @@ export type ApplicantExcelPreviewRow = {
   ageNote: string;
   recordText: string;
   careerText: string;
+  /** 구조화 전적 snapshot (총전/승/무/패 컬럼 또는 레거시 parser 결과) */
+  totalBoutsSnapshot: number | null;
+  winsSnapshot: number | null;
+  drawsSnapshot: number | null;
+  lossesSnapshot: number | null;
+  /** 전적 파싱 경고 (레거시 전적 문자열이 있으나 파싱 불확실) */
+  recordParseWarning: string | null;
   insuranceRrnMasked: string;
   insuranceConsentLabel: string;
   /** 서버 commit 전용. analyze action 응답에서는 제거한다. */

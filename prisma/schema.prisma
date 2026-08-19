@@ -744,13 +744,24 @@ model Fighter {
   /// 등록 제출 시점 보존 — 보호자 동의 정책 판단용 (미입력 시 연령만으로 판단)
   schoolName       String?
   grade            String?
+  /// 자동대진·학년밴드용 구조화 학교급 (예: ELEMENTARY / MIDDLE / HIGH / ADULT)
+  schoolLevel      String?
+  /// 자동대진용 구조화 학년 숫자 (초3 → 3, 고1 → 1, 성인 → null)
+  schoolGrade      Int?
   guardianName     String?
   guardianPhone    String?
   /// 체육관 등록 시 참고용 주 종목 (대회 부문과 별도)
   primarySport     String?
+  /// MatchResult 재집계 캐시 — Fighter.recordWin/recordLoss/recordDraw 유지
   recordWin        Int           @default(0)
   recordLoss       Int           @default(0)
   recordDraw       Int           @default(0)
+  /// 총 경기수 캐시 = recordWin + recordLoss + recordDraw (재집계 시 자동 계산)
+  recordTotalBouts Int           @default(0)
+  /// 화면 표시·원문 호환용 자유문장 전적 (예: "3전 2승 1패", "무전")
+  recordText       String?
+  /// 운동경력 참고 텍스트 (자동대진 1차 조건 미사용)
+  careerText       String?
   status           FighterStatus @default(active)
   createdAt        DateTime      @default(now())
   updatedAt        DateTime      @updatedAt
@@ -1908,6 +1919,15 @@ model EventApplication {
   recordText                 String?
   /// 신청 시점 자유문장 운동경력. GymMember/Fighter에 복사하지 않음
   careerText                 String?
+  /// 신청 시점 구조화 전적 snapshot — 자동대진 SSOT (나중에 Fighter 전적이 바뀌어도 불변)
+  totalBoutsSnapshot         Int?
+  winsSnapshot               Int?
+  drawsSnapshot              Int?
+  lossesSnapshot             Int?
+  /// 신청 시점 구조화 학교급 snapshot (예: ELEMENTARY / MIDDLE / HIGH / ADULT)
+  schoolLevelSnapshot        String?
+  /// 신청 시점 구조화 학년 snapshot (초3 → 3, 고1 → 1, 성인 → null)
+  schoolGradeSnapshot        Int?
   /// 보험가입용 주민번호 암호문 (EventApplication scope only)
   insuranceRrnCipher         Bytes?
   insuranceRrnIv             Bytes?
