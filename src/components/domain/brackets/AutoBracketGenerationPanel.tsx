@@ -184,7 +184,9 @@ export function AutoBracketGenerationPanel({
   return (
     <Card variant="default" className="py-4">
       <CardHeader className="px-4 pb-2">
-        <CardTitle className="text-lg">자동매칭</CardTitle>
+        <CardTitle className="text-lg" data-auto-match-panel="">
+          자동매칭
+        </CardTitle>
         <p className="text-muted-foreground mt-1 text-sm font-normal">
           미리보기로 결과를 확인한 뒤 적용하세요. 같은 체육관끼리 매칭 금지가
           기본 적용됩니다.

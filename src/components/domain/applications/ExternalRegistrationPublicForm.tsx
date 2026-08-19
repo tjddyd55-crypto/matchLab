@@ -125,14 +125,16 @@ export function ExternalRegistrationPublicForm({
   const [clientSubmissionId, setClientSubmissionId] = useState(() =>
     crypto.randomUUID(),
   );
+  const [formReady, setFormReady] = useState(false);
 
   useEffect(() => {
+    setFormReady(true);
     try {
       const raw = sessionStorage.getItem(DRAFT_PREFIX + token);
       if (!raw) return;
       const parsed = JSON.parse(raw) as { gym?: GymDraft; athletes?: AthleteDraft[] };
-      if (parsed.gym) setGym(parsed.gym);
-      if (parsed.athletes?.length) {
+      if (parsed.gym?.gymName?.trim()) setGym(parsed.gym);
+      if (parsed.athletes?.some((a) => a.fighterName?.trim())) {
         setAthletes(
           parsed.athletes.map((a) => ({
             ...emptyAthlete(),
@@ -149,6 +151,9 @@ export function ExternalRegistrationPublicForm({
 
   useEffect(() => {
     if (step === "success") return;
+    if (!gym.gymName.trim() && athletes.every((a) => !a.fighterName.trim())) {
+      return;
+    }
     try {
       sessionStorage.setItem(
         DRAFT_PREFIX + token,
@@ -402,7 +407,7 @@ export function ExternalRegistrationPublicForm({
   }
 
   return (
-    <div className="space-y-5">
+    <div className="space-y-5" data-ext-form-ready={formReady ? "true" : "false"}>
       <header className="space-y-1.5">
         <h1 className="text-xl font-semibold tracking-tight sm:text-2xl">
           {eventTitle}
@@ -422,18 +427,20 @@ export function ExternalRegistrationPublicForm({
       <section className="space-y-3 rounded-lg border bg-muted/10 p-3">
         <h2 className="text-sm font-semibold">체육관 정보</h2>
         <div className="grid gap-3 sm:grid-cols-2">
-          <label className="block text-xs">
+          <label className="block text-xs" htmlFor="ext-gym-name">
             <span className={labelClass}>체육관명 *</span>
             <input
+              id="ext-gym-name"
               className={fieldClass}
               value={gym.gymName}
               maxLength={120}
               onChange={(e) => setGym((g) => ({ ...g, gymName: e.target.value }))}
             />
           </label>
-          <label className="block text-xs">
+          <label className="block text-xs" htmlFor="ext-gym-contact-name">
             <span className={labelClass}>담당자명 *</span>
             <input
+              id="ext-gym-contact-name"
               className={fieldClass}
               value={gym.contactName}
               maxLength={80}
@@ -442,9 +449,10 @@ export function ExternalRegistrationPublicForm({
               }
             />
           </label>
-          <label className="block text-xs">
+          <label className="block text-xs" htmlFor="ext-gym-contact-phone">
             <span className={labelClass}>연락처 *</span>
             <input
+              id="ext-gym-contact-phone"
               className={fieldClass}
               value={gym.contactPhone}
               maxLength={20}
