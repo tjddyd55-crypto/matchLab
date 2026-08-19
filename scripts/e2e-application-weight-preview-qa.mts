@@ -520,7 +520,7 @@ async function main() {
       const withErrorRows = [
         row({ gym: "QA짐A", name: `${PREFIX}성인54`, category: "성인", weight: "54.2", total: "0", wins: "0", draws: "0", losses: "0", phone: "010-8800-0001" }),
         row({ gym: "QA짐B", name: `${PREFIX}성인58`, category: "일반부", weight: "58.7", total: "1", wins: "1", draws: "0", losses: "0", phone: "010-8800-0002" }),
-        row({ gym: "QA짐C", name: `${PREFIX}성인62`, category: "성인", weight: "62.5", total: "4", wins: "2", draws: "0", losses: "2", phone: "010-8800-0003" }),
+        row({ gym: "QA짐C", name: `${PREFIX}성인62`, category: "성인", weight: "62.5", total: "6", wins: "3", draws: "0", losses: "3", phone: "010-8800-0003" }),
         row({ gym: "QA짐D", name: `${PREFIX}초3`, category: "초3", weight: "38", total: "1", wins: "1", draws: "0", losses: "0", birth: "2016-03-01", phone: "010-8800-0004" }),
         row({ gym: "QA짐E", name: `${PREFIX}초5`, category: "초5", weight: "38", total: "2", wins: "1", draws: "0", losses: "1", birth: "2014-03-01", phone: "010-8800-0005" }),
         row({ gym: "QA짐F", name: `${PREFIX}학생부`, category: "학생부", weight: "60", total: "0", wins: "0", draws: "0", losses: "0", phone: "010-8800-0006" }),
@@ -605,10 +605,10 @@ async function main() {
       const snap62 = a62.fighterSnapshot as Record<string, unknown>;
       assert.equal(snap62.applicationWeightKg, 62.5);
       assert.equal(a62.weighInWeightKg, null);
-      assert.equal(a62.totalBoutsSnapshot, 4);
-      assert.equal(a62.winsSnapshot, 2);
+      assert.equal(a62.totalBoutsSnapshot, 6);
+      assert.equal(a62.winsSnapshot, 3);
       assert.equal(a62.drawsSnapshot, 0);
-      assert.equal(a62.lossesSnapshot, 2);
+      assert.equal(a62.lossesSnapshot, 3);
       assert.equal(a3.schoolLevelSnapshot, "ELEMENTARY");
       assert.equal(a3.schoolGradeSnapshot, 3);
       assert.equal(a5.schoolLevelSnapshot, "ELEMENTARY");
@@ -888,45 +888,57 @@ async function main() {
       const pairs = matches.map((m) =>
         pairKey(m.fighterRed?.name, m.fighterBlue?.name),
       );
+      report.autoMatchPairs = pairs.join(" || ");
+      const pairDump = pairs.join(",");
       const light0 = pairKey(`${PREFIX}라이트0a`, `${PREFIX}라이트0b`);
       const light12 = pairKey(`${PREFIX}라이트1`, `${PREFIX}라이트2`);
       const elemLow = pairKey(`${PREFIX}초1`, `${PREFIX}초3`);
       const elemHigh = pairKey(`${PREFIX}초5`, `${PREFIX}초6`);
-      assert.ok(pairs.includes(light0), `missing 0-0 pair ${pairs.join(",")}`);
-      assert.ok(pairs.includes(light12), `missing 1-2 pair ${pairs.join(",")}`);
-      assert.ok(pairs.includes(elemLow), `missing LOW pair ${pairs.join(",")}`);
-      assert.ok(pairs.includes(elemHigh), `missing HIGH pair ${pairs.join(",")}`);
+      assert.ok(pairs.includes(light0), `missing 0-0 pair ${pairDump}`);
+      assert.ok(pairs.includes(light12), `missing 1-2 pair ${pairDump}`);
+      assert.ok(pairs.includes(elemLow), `missing LOW pair ${pairDump}`);
+      assert.ok(pairs.includes(elemHigh), `missing HIGH pair ${pairDump}`);
       assert.equal(
         pairs.some((p) => p.includes(`${PREFIX}초3`) && p.includes(`${PREFIX}초5`)),
         false,
+        `cross-band 초3-초5 ${pairDump}`,
       );
       assert.equal(
         pairs.some((p) => p.includes(`${PREFIX}초1`) && p.includes(`${PREFIX}초5`)),
         false,
+        `cross-band 초1-초5 ${pairDump}`,
       );
       assert.equal(
         pairs.some((p) => p.includes(`${PREFIX}동짐A`) && p.includes(`${PREFIX}동짐B`)),
         false,
+        `same-gym pair ${pairDump}`,
       );
       assert.equal(
-        pairs.some((p) => p.includes(`${PREFIX}성인54`) && p.includes("라이트")),
+        pairs.some(
+          (p) =>
+            p.includes(`${PREFIX}성인54`) &&
+            (p.includes(`${PREFIX}라이트`) || p.includes(`${PREFIX}성인62`)),
+        ),
         false,
+        `fly crossed light ${pairDump}`,
       );
       const unmatched3 = matches.every(
         (m) =>
           m.fighterRed?.name !== `${PREFIX}라이트3` &&
           m.fighterBlue?.name !== `${PREFIX}라이트3`,
       );
-      assert.equal(unmatched3, true);
+      assert.equal(unmatched3, true, `라이트3 should be unmatched ${pairDump}`);
       const bantam11 = pairKey(`${PREFIX}성인58`, `${PREFIX}밴텀1b`);
-      assert.ok(pairs.includes(bantam11), `missing 1-1 pair ${pairs.join(",")}`);
+      assert.ok(pairs.includes(bantam11), `missing 1-1 pair ${pairDump}`);
       assert.equal(
         pairs.some((p) => p.includes(`${PREFIX}밴텀2`) && p.includes(`${PREFIX}성인58`)),
         false,
+        `1-2 bantam leftover ${pairDump}`,
       );
       assert.equal(
         pairs.some((p) => p.includes(`${PREFIX}헤비1`) && p.includes(`${PREFIX}헤비3`)),
         false,
+        `1-3 heavy pair ${pairDump}`,
       );
       report.autoMatch = "PASS";
       } catch (e) {
@@ -957,9 +969,9 @@ async function main() {
         timeout: 90_000,
       });
       await page.getByRole("heading", { name: "새 체급표 템플릿" }).waitFor({ timeout: 30_000 });
-      await page.locator('input[placeholder="킥복싱"]').fill("킥복싱");
+      await page.getByLabel("종목").fill("킥복싱");
       await page.getByRole("button", { name: "엑셀 업로드" }).click();
-      await page.getByRole("dialog").waitFor({ timeout: 20_000 });
+      await page.locator("[role='dialog']").waitFor({ state: "attached", timeout: 20_000 });
       const wc = await import("../src/lib/division-template/weight-class-excel.ts");
       const wcPath = join(OUT, "weight-class-sample.xlsx");
       writeFileSync(
@@ -984,6 +996,8 @@ async function main() {
       report.status5xx = String(quality.status5xx.length);
       report.nativeDialogs = String(quality.nativeDialogs.length);
       if (quality.consoleErrors.length) report.consoleSample = quality.consoleErrors[0]!;
+      if (quality.pageErrors.length) report.pageErrorSample = quality.pageErrors[0]!;
+      if (quality.hydration.length) report.hydrationSample = quality.hydration[0]!;
       await browser.close();
     }
 
