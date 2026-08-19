@@ -178,7 +178,7 @@ export async function buildApplicantExcelSampleWorkbook(input: {
   ]);
   guide.addRow([
     "체급 입력",
-    "체급명과 체중기준은 입력하지 않습니다. 신청체중을 입력하면 대회 체급표 기준으로 자동 배정됩니다.",
+    "체급명과 체중기준은 직접 입력하지 않습니다. 신청체중을 입력하면 대회 체급표 기준으로 자동 배정됩니다.",
   ]);
   guide.addRow([
     "경기구분 예",
