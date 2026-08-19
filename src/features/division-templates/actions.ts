@@ -22,6 +22,8 @@ import {
   createDivisionTemplateSchema,
   deleteDivisionTemplateSchema,
   divisionTemplateItemsSchema,
+  divisionTemplateExistingItemsSchema,
+  type DivisionTemplateItemInput,
   updateDivisionTemplateSchema,
 } from "@/lib/validators/division-template.validator";
 
@@ -253,31 +255,22 @@ export async function analyzeWeightClassExcelAction(
 
     const sportType = formReq(formData, "sportType");
     const existingItemsRaw = formReq(formData, "existingItemsJson") || "[]";
-    let existingItemsJson: unknown;
+    let existingItemsJson: unknown = [];
     try {
       existingItemsJson = JSON.parse(existingItemsRaw) as unknown;
     } catch {
-      return actionFailure(
-        "VALIDATION_ERROR",
-        "기존 체급표 데이터 형식이 올바르지 않습니다.",
-      );
+      // client adapter가 잘못된 existingItemsJson을 보내도
+      // excel 분석 자체는 막지 않는다.
+      existingItemsJson = [];
     }
-    const existingItemsParsed =
-      divisionTemplateItemsSchema.safeParse(existingItemsJson);
-    if (!existingItemsParsed.success) {
-      return actionFailure(
-        "VALIDATION_ERROR",
-        "기존 체급표 데이터를 확인해 주세요.",
-        existingItemsParsed.error.flatten(),
-      );
-    }
+    const existingItems = coerceExistingTemplateItems(existingItemsJson);
 
     await requireActorFromMutation();
     const preview = await analyzeWeightClassWorkbook({
       fileName: fileResult.fileName,
       buffer: fileResult.buffer,
       sportType,
-      existingItems: existingItemsParsed.data,
+      existingItems,
     }).catch((e: unknown) => {
       throw new AppError(
         "VALIDATION_ERROR",
@@ -288,6 +281,72 @@ export async function analyzeWeightClassExcelAction(
     });
     return actionSuccess(preview);
   });
+}
+
+function coerceExistingTemplateItems(
+  raw: unknown,
+): DivisionTemplateItemInput[] {
+  if (!Array.isArray(raw)) return [];
+  const asMaybeString = (v: unknown): string | null => {
+    if (typeof v !== "string") return null;
+    const t = v.trim();
+    return t ? t : null;
+  };
+  const asMaybeNumber = (v: unknown): number | null => {
+    if (typeof v === "number" && Number.isFinite(v)) return v;
+    if (typeof v === "string") {
+      const n = Number.parseFloat(v.replace(/,/g, "").trim());
+      return Number.isFinite(n) ? n : null;
+    }
+    return null;
+  };
+  const asMaybeInt = (v: unknown): number | null => {
+    if (typeof v === "number" && Number.isFinite(v)) return v;
+    if (typeof v === "string") {
+      const n = Number.parseInt(v.trim(), 10);
+      return Number.isFinite(n) ? n : null;
+    }
+    return null;
+  };
+
+  const validLimitTypes = new Set(["under", "over", "range"]);
+
+  return raw
+    .map((it): DivisionTemplateItemInput | null => {
+      if (!it || typeof it !== "object") return null;
+      const o = it as Record<string, unknown>;
+
+      const limitTypeRaw = o.limitType;
+      const limitType =
+        typeof limitTypeRaw === "string" && validLimitTypes.has(limitTypeRaw)
+          ? (limitTypeRaw as DivisionTemplateItemInput["limitType"])
+          : null;
+
+      const weightLimitKg = asMaybeNumber(o.weightLimitKg);
+      const displayOrder = asMaybeInt(o.displayOrder);
+
+      // 중복 판별(identity key)에 필요한 필드만 최대한 보존
+      return {
+        sportType: asMaybeString(o.sportType),
+        ruleType: asMaybeString(o.ruleType),
+        gender: asMaybeString(o.gender),
+        ageGroup: asMaybeString(o.ageGroup),
+        weightClass: asMaybeString(o.weightClass),
+        weightClassName: asMaybeString(o.weightClassName),
+        weightLimitText: asMaybeString(o.weightLimitText),
+        weightLimitKg,
+        limitType,
+        displayOrder,
+        isActive:
+          typeof o.isActive === "boolean"
+            ? o.isActive
+            : typeof o.isActive === "string"
+              ? o.isActive === "on" || o.isActive === "true"
+              : undefined,
+        skillLevel: asMaybeString(o.skillLevel),
+      };
+    })
+    .filter((x): x is DivisionTemplateItemInput => x != null);
 }
 
 export async function applyDivisionTemplateToEventAction(
