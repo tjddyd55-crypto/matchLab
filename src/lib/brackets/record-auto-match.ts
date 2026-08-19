@@ -14,6 +14,7 @@
  * 7. 같은 학년 우선 (score 기반)
  */
 
+import { isSameGym } from "@/lib/brackets/gym-match-key";
 import {
   getElementaryMatchBand,
   SCHOOL_LEVEL,
@@ -78,8 +79,11 @@ export type RecordDivisionPairingResult = {
 // 내부 유틸
 // ────────────────────────────────────────────────────
 
-function isSameGymById(a: RecordMatchCandidate, b: RecordMatchCandidate): boolean {
-  return a.gymId === b.gymId;
+function isSameGymCandidate(
+  a: RecordMatchCandidate,
+  b: RecordMatchCandidate,
+): boolean {
+  return isSameGym(a, b);
 }
 
 /** 초등부 band 비교. 비초등부는 null 반환 */
@@ -185,10 +189,12 @@ export function pairWithRecordAndGrade(
   const unmatched: RecordUnmatchedCandidate[] = [];
   let sameGymPairCount = 0;
 
-  // Step 1: eligibility
+  // Step 1: 대진 배치 가능만 필터.
+  // 계체 전(isEligibleForBracket=false)은 신청자 기준 자동대진에 포함한다.
+  // 계체 완료 선수만 쓰려면 generate 쪽 eligibleOnly를 켠다.
   const eligible: RecordMatchCandidate[] = [];
   for (const c of candidates) {
-    if (!c.isEligibleForBracket || !c.isAssignableForBracket) {
+    if (!c.isAssignableForBracket) {
       unmatched.push({ ...c, reason: "not_field_eligible", reasonLabel: "출전 조건 미충족" });
       continue;
     }
@@ -284,34 +290,35 @@ function pairWithinPool(
 ): PoolPairResult {
   const working = [...pool];
   const pairs: RecordMatchPair[] = [];
+  const sameGymOnly: RecordMatchCandidate[] = [];
   let sameGymCount = 0;
 
   while (working.length >= 2) {
     const first = working.shift()!;
 
-    // 초등부 band 호환 + 체육관 회피를 고려한 최적 상대 탐색
     const candidates = working
       .map((c, idx) => ({ c, idx }))
       .filter(({ c }) => isElementaryBandCompatible(first, c));
 
     if (candidates.length === 0) {
-      // 호환 상대 없음 → unmatched (caller가 처리)
       working.unshift(first);
       break;
     }
 
-    // 학년차 최소 + 체육관 회피 우선
-    const diffGymCandidates = candidates.filter(({ c }) => !isSameGymById(first, c));
-    const pool2 = (forbidSameGym && diffGymCandidates.length > 0)
-      ? diffGymCandidates
-      : candidates;
+    const diffGymCandidates = candidates.filter(({ c }) => !isSameGymCandidate(first, c));
+    if (forbidSameGym && diffGymCandidates.length === 0) {
+      sameGymOnly.push(first);
+      continue;
+    }
+
+    const pool2 = forbidSameGym ? diffGymCandidates : candidates;
 
     pool2.sort((a, b) => gradeDiffScore(first, a.c) - gradeDiffScore(first, b.c));
 
     const best = pool2[0]!;
     working.splice(best.idx, 1);
 
-    const sameGym = isSameGymById(first, best.c);
+    const sameGym = isSameGymCandidate(first, best.c);
     if (sameGym) sameGymCount += 1;
 
     pairs.push({
@@ -322,9 +329,7 @@ function pairWithinPool(
     });
   }
 
-  // forbidSameGym 후처리: 남은 것 중 같은 체육관만 있으면 same_gym_only_remaining
-  const remaining = [...working];
-  return { pairs, remaining, sameGymCount };
+  return { pairs, remaining: [...working, ...sameGymOnly], sameGymCount };
 }
 
 /**
@@ -364,14 +369,14 @@ function pairLeftoverByOneDiff(
         if (idx === i) return false;
         if (Math.abs(c.totalBouts! - firstBouts) !== 1) return false;
         if (!isElementaryBandCompatible(first, c)) return false;
-        if (isSameGymById(first, c)) return false;
+        if (isSameGymCandidate(first, c)) return false;
         return true;
       });
       return diffGym >= 0 ? diffGym : compatIdx;
     })();
 
     const partner = working[partnerIdx]!;
-    const sameGym = isSameGymById(first, partner);
+    const sameGym = isSameGymCandidate(first, partner);
     if (sameGym) sameGymCount += 1;
 
     pairs.push({
