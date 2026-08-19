@@ -84,8 +84,10 @@ export async function applyToEventAction(
 
     const raw: ApplyToEventInput = {
       eventId: formReq(formData, "eventId"),
-      divisionId: formReq(formData, "divisionId"),
       fighterId: formReq(formData, "fighterId"),
+      applicationWeightKg: Number(formReq(formData, "applicationWeightKg")),
+      competitionCategory: formReq(formData, "competitionCategory"),
+      discipline: formReq(formData, "discipline") || undefined,
       applicationProfileImageUrl:
         formReq(formData, "applicationProfileImageUrl") || undefined,
       memo: formReq(formData, "memo") || undefined,
@@ -253,7 +255,11 @@ export async function createOrganizerManualApplicationAction(
 
     const raw = {
       eventId: formReq(formData, "eventId"),
-      divisionId: formReq(formData, "divisionId"),
+      applicationWeightKg: Number(formReq(formData, "applicationWeightKg")),
+      competitionCategory: formReq(formData, "competitionCategory"),
+      discipline: formReq(formData, "discipline") || undefined,
+      manualDivisionOverride: parseCheckboxOn(formData, "manualDivisionOverride"),
+      divisionId: formReq(formData, "divisionId") || undefined,
       gymMode,
       gymId: formReq(formData, "gymId") || undefined,
       gymName: formReq(formData, "gymName") || undefined,

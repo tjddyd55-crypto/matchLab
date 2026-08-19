@@ -5,6 +5,7 @@ import {
   APPLICANT_EXCEL_HEADERS,
   APPLICANT_EXCEL_INTERNAL_KIND_HEADER,
   APPLICANT_EXCEL_MAX_ROWS,
+  APPLICANT_EXCEL_OPTIONAL_HEADERS,
   APPLICANT_EXCEL_REQUIRED_HEADERS,
   APPLICANT_EXCEL_SHEET_DATA,
   resolveApplicantExcelHeader,
@@ -138,7 +139,7 @@ export async function parseApplicantExcelWorkbook(
   }
   if (bestScore < APPLICANT_EXCEL_REQUIRED_HEADERS.length) {
     throw new Error(
-      "필수 컬럼(선수명, 성별, 생년월일, 체육관명, 경기구분, 체급)을 찾지 못했습니다.",
+      "필수 컬럼(선수명, 성별, 생년월일, 체육관명, 경기구분, 신청체중)을 찾지 못했습니다.",
     );
   }
 
@@ -157,7 +158,11 @@ export async function parseApplicantExcelWorkbook(
     const cells = rowCells(sheet.getRow(r), colCount);
     const values = {} as Record<ApplicantExcelHeader, string>;
     let empty = true;
-    for (const h of APPLICANT_EXCEL_HEADERS) {
+    const allHeaders = [
+      ...APPLICANT_EXCEL_HEADERS,
+      ...APPLICANT_EXCEL_OPTIONAL_HEADERS,
+    ];
+    for (const h of allHeaders) {
       const i = index.get(h);
       const v = i == null ? "" : (cells[i] ?? "").trim();
       values[h] = v;

@@ -1,11 +1,8 @@
 "use client";
 
 import type React from "react";
-import { useMemo } from "react";
-import {
-  divisionMismatchWarnings,
-  isDivisionRecommendedForFighter,
-} from "@/lib/applications/division-fighter-match";
+import { ApplicationWeightAutoAssign } from "@/components/domain/applications/ApplicationWeightAutoAssign";
+import { parseApplicantGender } from "@/lib/applicant-excel/normalize";
 import type {
   EventApplicationDivisionRowDTO,
   EventApplicationFighterRowDTO,
@@ -25,7 +22,9 @@ import { cn } from "@/lib/utils";
 
 export type FighterRowState = {
   checked: boolean;
-  divisionId: string;
+  competitionCategory: string;
+  discipline: string;
+  applicationWeightKg: string;
   formAnswers: Record<string, unknown>;
   structuredRecord: StructuredRecordValue;
   careerText: string;
@@ -37,7 +36,11 @@ type GymBulkApplicationRowProps = {
   divisions: EventApplicationDivisionRowDTO[];
   rowState: FighterRowState;
   onCheckedChange: (checked: boolean) => void;
-  onDivisionChange: (divisionId: string) => void;
+  onWeightFieldsChange: (patch: {
+    competitionCategory?: string;
+    discipline?: string;
+    applicationWeightKg?: string;
+  }) => void;
   formStatus?: React.ReactNode;
 };
 
@@ -46,94 +49,14 @@ function formatWeight(kg: number | null): string {
   return `${kg}kg`;
 }
 
-function buildDivisionOptions(
-  fighter: EventApplicationFighterRowDTO,
-  divisions: EventApplicationDivisionRowDTO[],
-) {
-  const recommended: EventApplicationDivisionRowDTO[] = [];
-  const others: EventApplicationDivisionRowDTO[] = [];
-
-  for (const division of divisions) {
-    if (isDivisionRecommendedForFighter(fighter, division)) {
-      recommended.push(division);
-    } else {
-      others.push(division);
-    }
-  }
-
-  return { recommended, others };
-}
-
 function rowStatusInput(fighter: EventApplicationFighterRowDTO, rowState: FighterRowState) {
   return {
-    alreadyApplied: Boolean(
-      rowState.divisionId && fighter.appliedDivisionIds.includes(rowState.divisionId),
-    ),
+    alreadyApplied: fighter.appliedDivisionIds.length > 0 && false,
     checked: rowState.checked,
-    hasDivision: Boolean(rowState.divisionId),
+    hasDivision: Boolean(
+      rowState.competitionCategory && rowState.applicationWeightKg,
+    ),
   };
-}
-
-function DivisionSelect({
-  fighter,
-  divisions,
-  value,
-  disabled,
-  onChange,
-}: {
-  fighter: EventApplicationFighterRowDTO;
-  divisions: EventApplicationDivisionRowDTO[];
-  value: string;
-  disabled?: boolean;
-  onChange: (divisionId: string) => void;
-}) {
-  const { recommended, others } = useMemo(
-    () => buildDivisionOptions(fighter, divisions),
-    [fighter, divisions],
-  );
-
-  const selectedDivision = divisions.find((d) => d.id === value);
-  const warnings =
-    selectedDivision && value
-      ? divisionMismatchWarnings(fighter, selectedDivision)
-      : [];
-
-  return (
-    <div className="grid gap-1">
-      <select
-        value={value}
-        disabled={disabled}
-        onChange={(e) => onChange(e.target.value)}
-        className={publicApplicationFieldSelectClass}
-        aria-label={`${fighter.name} 신청 경기구분`}
-      >
-        <option value="">경기구분 선택</option>
-        {recommended.length > 0 ? (
-          <optgroup label="추천 경기구분">
-            {recommended.map((d) => (
-              <option key={d.id} value={d.id}>
-                {d.label}
-              </option>
-            ))}
-          </optgroup>
-        ) : null}
-        {others.length > 0 ? (
-          <optgroup label="전체 경기구분">
-            {others.map((d) => (
-              <option key={d.id} value={d.id}>
-                {d.label}
-              </option>
-            ))}
-          </optgroup>
-        ) : null}
-      </select>
-      {warnings.length > 0 ? (
-        <p className="text-xs text-amber-700 dark:text-amber-300">
-          {warnings.join(" ")}
-        </p>
-      ) : null}
-    </div>
-  );
 }
 
 function FighterInfo({ fighter }: { fighter: EventApplicationFighterRowDTO }) {
@@ -164,11 +87,12 @@ export function GymBulkApplicationTableRow(props: GymBulkApplicationRowProps) {
     divisions,
     rowState,
     onCheckedChange,
-    onDivisionChange,
+    onWeightFieldsChange,
     formStatus,
   } = props;
   const statusInput = rowStatusInput(fighter, rowState);
   const alreadyApplied = statusInput.alreadyApplied;
+  const genderParsed = parseApplicantGender(fighter.gender);
 
   return (
     <TableRow>
@@ -188,13 +112,23 @@ export function GymBulkApplicationTableRow(props: GymBulkApplicationRowProps) {
       <TableCell>
         <FighterMeta fighter={fighter} />
       </TableCell>
-      <TableCell className="min-w-[220px] whitespace-normal">
-        <DivisionSelect
-          fighter={fighter}
+      <TableCell className="min-w-[240px] whitespace-normal">
+        <ApplicationWeightAutoAssign
           divisions={divisions}
-          value={rowState.divisionId}
-          disabled={!rowState.checked || alreadyApplied}
-          onChange={onDivisionChange}
+          gender={genderParsed.ok ? genderParsed.gender : ""}
+          competitionCategory={rowState.competitionCategory}
+          discipline={rowState.discipline}
+          applicationWeightKg={rowState.applicationWeightKg}
+          onCompetitionCategoryChange={(competitionCategory) =>
+            onWeightFieldsChange({ competitionCategory })
+          }
+          onDisciplineChange={(discipline) => onWeightFieldsChange({ discipline })}
+          onApplicationWeightChange={(applicationWeightKg) =>
+            onWeightFieldsChange({ applicationWeightKg })
+          }
+          fieldClass={publicApplicationFieldSelectClass}
+          labelClass="text-muted-foreground mb-1 block text-[11px] font-medium"
+          defaultWeightHintKg={fighter.weightKg}
         />
       </TableCell>
       {formStatus ? <TableCell>{formStatus}</TableCell> : null}
@@ -215,11 +149,12 @@ export function GymBulkApplicationCard(props: GymBulkApplicationRowProps) {
     divisions,
     rowState,
     onCheckedChange,
-    onDivisionChange,
+    onWeightFieldsChange,
     formStatus,
   } = props;
   const statusInput = rowStatusInput(fighter, rowState);
   const alreadyApplied = statusInput.alreadyApplied;
+  const genderParsed = parseApplicantGender(fighter.gender);
 
   return (
     <div
@@ -246,12 +181,22 @@ export function GymBulkApplicationCard(props: GymBulkApplicationRowProps) {
       </div>
 
       <div className="mt-4 grid gap-3">
-        <DivisionSelect
-          fighter={fighter}
+        <ApplicationWeightAutoAssign
           divisions={divisions}
-          value={rowState.divisionId}
-          disabled={!rowState.checked || alreadyApplied}
-          onChange={onDivisionChange}
+          gender={genderParsed.ok ? genderParsed.gender : ""}
+          competitionCategory={rowState.competitionCategory}
+          discipline={rowState.discipline}
+          applicationWeightKg={rowState.applicationWeightKg}
+          onCompetitionCategoryChange={(competitionCategory) =>
+            onWeightFieldsChange({ competitionCategory })
+          }
+          onDisciplineChange={(discipline) => onWeightFieldsChange({ discipline })}
+          onApplicationWeightChange={(applicationWeightKg) =>
+            onWeightFieldsChange({ applicationWeightKg })
+          }
+          fieldClass={publicApplicationFieldSelectClass}
+          labelClass="text-muted-foreground mb-1 block text-[11px] font-medium"
+          defaultWeightHintKg={fighter.weightKg}
         />
         <label className="flex cursor-pointer items-center gap-2 text-sm">
           <input

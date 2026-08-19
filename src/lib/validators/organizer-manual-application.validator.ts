@@ -12,7 +12,11 @@ const genderSchema = z.string().trim().min(1, "성별을 선택해 주세요.");
 export const organizerManualApplicationSchema = z
   .object({
     eventId: z.string().min(1),
-    divisionId: z.string().min(1),
+    applicationWeightKg: z.coerce.number().gt(0).lte(300),
+    competitionCategory: z.string().trim().min(1, "경기구분을 선택해 주세요."),
+    discipline: z.string().trim().optional(),
+    manualDivisionOverride: z.boolean().optional().default(false),
+    divisionId: z.string().trim().optional(),
     gymMode: z.enum(["existing", "manual"]),
     gymId: z.string().trim().optional(),
     gymName: z.string().trim().max(120).optional(),
@@ -62,6 +66,13 @@ export const organizerManualApplicationSchema = z
     linkFighterId: z.string().trim().optional(),
   })
   .superRefine((data, ctx) => {
+    if (data.manualDivisionOverride && !data.divisionId?.trim()) {
+      ctx.addIssue({
+        code: "custom",
+        message: "체급을 선택해 주세요.",
+        path: ["divisionId"],
+      });
+    }
     if (data.gymMode === "existing") {
       if (!data.gymId?.trim()) {
         ctx.addIssue({

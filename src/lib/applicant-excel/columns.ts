@@ -6,7 +6,7 @@ export const APPLICANT_EXCEL_HEADERS = [
   "생년월일",
   "나이",
   "키",
-  "체중",
+  "신청체중",
   "전적",
   "총전",
   "승",
@@ -16,8 +16,6 @@ export const APPLICANT_EXCEL_HEADERS = [
   "주민등록번호",
   "보험가입 개인정보동의",
   "경기구분",
-  "체급",
-  "체중기준",
   "종목",
   "연락처",
   "보호자이름",
@@ -25,7 +23,18 @@ export const APPLICANT_EXCEL_HEADERS = [
   "메모",
 ] as const;
 
-export type ApplicantExcelHeader = (typeof APPLICANT_EXCEL_HEADERS)[number];
+export type ApplicantExcelCanonicalHeader =
+  (typeof APPLICANT_EXCEL_HEADERS)[number];
+
+/** 레거시 파일 호환. 체급 결정은 신청체중+체급표로 다시 계산한다. */
+export const APPLICANT_EXCEL_OPTIONAL_HEADERS = [
+  "체급",
+  "체중기준",
+] as const;
+
+export type ApplicantExcelHeader =
+  | ApplicantExcelCanonicalHeader
+  | (typeof APPLICANT_EXCEL_OPTIONAL_HEADERS)[number];
 
 export const APPLICANT_EXCEL_REQUIRED_HEADERS = [
   "선수명",
@@ -33,14 +42,15 @@ export const APPLICANT_EXCEL_REQUIRED_HEADERS = [
   "생년월일",
   "체육관명",
   "경기구분",
-  "체급",
-] as const satisfies readonly ApplicantExcelHeader[];
+  "신청체중",
+] as const satisfies readonly ApplicantExcelCanonicalHeader[];
 
 /** 운영 파일·레거시 샘플 호환용 header alias → canonical */
 export const APPLICANT_EXCEL_HEADER_ALIASES: Record<string, ApplicantExcelHeader> =
   {
     이름: "선수명",
-    무게: "체중",
+    체중: "신청체중",
+    무게: "신청체중",
     비고: "메모",
     "비고/메모": "메모",
     소속: "체육관명",
@@ -77,7 +87,7 @@ export const APPLICANT_EXCEL_LEGACY_HEADERS = [
   "보호자이름",
   "보호자연락처",
   "메모",
-] as const satisfies readonly ApplicantExcelHeader[];
+] as const;
 
 export function normalizeApplicantExcelHeaderLabel(
   raw: string,
@@ -85,12 +95,17 @@ export function normalizeApplicantExcelHeaderLabel(
   return raw.trim().replace(/\*+$/g, "").trim();
 }
 
+const KNOWN_HEADERS = new Set<string>([
+  ...APPLICANT_EXCEL_HEADERS,
+  ...APPLICANT_EXCEL_OPTIONAL_HEADERS,
+]);
+
 export function resolveApplicantExcelHeader(
   raw: string,
 ): ApplicantExcelHeader | null {
   const normalized = normalizeApplicantExcelHeaderLabel(raw);
   if (!normalized) return null;
-  if ((APPLICANT_EXCEL_HEADERS as readonly string[]).includes(normalized)) {
+  if (KNOWN_HEADERS.has(normalized)) {
     return normalized as ApplicantExcelHeader;
   }
   const aliased = APPLICANT_EXCEL_HEADER_ALIASES[normalized];

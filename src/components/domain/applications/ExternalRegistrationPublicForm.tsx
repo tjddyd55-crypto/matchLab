@@ -1,11 +1,17 @@
 "use client";
 
-import { useEffect, useMemo, useState, useTransition } from "react";
+import { useEffect, useState, useTransition } from "react";
 import { submitExternalRegistrationBatchAction } from "@/features/external-registration/actions";
 import { EXTERNAL_REGISTRATION_MAX_ATHLETES } from "@/lib/validators/external-registration.validator";
 import { AppDateInput } from "@/components/shared/AppDateInput";
 import { Button } from "@/components/ui/button";
 import { cn } from "@/lib/utils";
+import { ApplicationWeightAutoAssign } from "@/components/domain/applications/ApplicationWeightAutoAssign";
+import { parseApplicationWeightKg } from "@/lib/applications/application-weight";
+import {
+  formatResolvedDivisionPreview,
+  resolveEventDivisionByApplicationWeight,
+} from "@/lib/applications/resolve-event-division";
 import { AthleteInsuranceProfileFields } from "@/components/domain/applications/AthleteInsuranceProfileFields";
 import type { StructuredRecordValue } from "@/components/domain/applications/AthleteInsuranceProfileFields";
 import { ExternalRegistrationStatusScreen } from "@/components/domain/applications/ExternalRegistrationStatusScreen";
@@ -19,6 +25,10 @@ type DivisionOption = {
   label: string;
   gender: string | null;
   ageGroup: string | null;
+  sportType: string | null;
+  weightClass: string | null;
+  weightClassName: string | null;
+  weightLimitText: string | null;
 };
 
 type AthleteDraft = {
@@ -29,7 +39,9 @@ type AthleteDraft = {
   phone: string;
   guardianName: string;
   guardianPhone: string;
-  divisionId: string;
+  competitionCategory: string;
+  discipline: string;
+  applicationWeightKg: string;
   memo: string;
   structuredRecord: StructuredRecordValue;
   careerText: string;
@@ -72,7 +84,9 @@ function emptyAthlete(): AthleteDraft {
     phone: "",
     guardianName: "",
     guardianPhone: "",
-    divisionId: "",
+    competitionCategory: "",
+    discipline: "",
+    applicationWeightKg: "",
     memo: "",
     structuredRecord: { totalBouts: 0, wins: 0, draws: 0, losses: 0 },
     careerText: "",
@@ -163,16 +177,17 @@ export function ExternalRegistrationPublicForm({
     return () => window.removeEventListener("beforeunload", onBeforeUnload);
   }, [gym, athletes, step]);
 
-  const divisionLabelById = useMemo(() => {
-    const m = new Map<string, string>();
-    for (const d of divisions) m.set(d.id, d.label);
-    return m;
-  }, [divisions]);
-
-  function filteredDivisions(gender: string) {
-    return divisions.filter(
-      (d) => !d.gender || d.gender === gender || d.gender === "mixed",
-    );
+  function resolvedFor(a: AthleteDraft) {
+    const gender = a.gender === "female" ? "female" : "male";
+    const weight = parseApplicationWeightKg(a.applicationWeightKg);
+    if (!weight.ok || !a.competitionCategory) return null;
+    return resolveEventDivisionByApplicationWeight({
+      gender,
+      competitionCategory: a.competitionCategory,
+      discipline: a.discipline,
+      applicationWeightKg: weight.kg,
+      divisions,
+    });
   }
 
   function updateAthlete(key: string, patch: Partial<AthleteDraft>) {
@@ -229,7 +244,13 @@ export function ExternalRegistrationPublicForm({
       if (!a.fighterName.trim()) return `${i + 1}번 선수: 이름을 입력해 주세요.`;
       if (!a.gender) return `${i + 1}번 선수: 성별을 선택해 주세요.`;
       if (!a.birthDate) return `${i + 1}번 선수: 생년월일을 입력해 주세요.`;
-      if (!a.divisionId) return `${i + 1}번 선수: 체급을 선택해 주세요.`;
+      if (!a.competitionCategory || !a.applicationWeightKg) {
+        return `${i + 1}번 선수: 경기구분과 신청체중을 입력해 주세요.`;
+      }
+      const resolved = resolvedFor(a);
+      if (!resolved?.ok) {
+        return `${i + 1}번 선수: ${resolved && !resolved.ok ? resolved.reason : "체급 자동배정이 필요합니다."}`;
+      }
       const rrn = parseResidentRegistrationNumber(a.residentRegistrationNumber);
       if (!rrn.ok) return `${i + 1}번 선수: ${rrn.error}`;
       if (!a.insuranceConsentAgreed) {
@@ -263,7 +284,9 @@ export function ExternalRegistrationPublicForm({
           phone: a.phone || undefined,
           guardianName: a.guardianName || undefined,
           guardianPhone: a.guardianPhone || undefined,
-          divisionId: a.divisionId,
+          competitionCategory: a.competitionCategory,
+          discipline: a.discipline || undefined,
+          applicationWeightKg: Number(a.applicationWeightKg),
           memo: a.memo || undefined,
           totalBoutsSnapshot: a.structuredRecord.totalBouts,
           winsSnapshot: a.structuredRecord.wins,
@@ -345,7 +368,12 @@ export function ExternalRegistrationPublicForm({
               <li key={a.key} className="flex justify-between gap-2 border-b py-1.5">
                 <span className="font-medium">{a.fighterName}</span>
                 <span className="text-muted-foreground text-right text-xs">
-                  {divisionLabelById.get(a.divisionId) ?? a.divisionId}
+                  {(() => {
+                    const resolved = resolvedFor(a);
+                    return resolved?.ok
+                      ? formatResolvedDivisionPreview(resolved.division)
+                      : "체급 미배정";
+                  })()}
                 </span>
               </li>
             ))}
@@ -503,7 +531,6 @@ export function ExternalRegistrationPublicForm({
                   onChange={(e) =>
                     updateAthlete(a.key, {
                       gender: e.target.value,
-                      divisionId: "",
                     })
                   }
                 >
@@ -531,23 +558,26 @@ export function ExternalRegistrationPublicForm({
                   }
                 />
               </label>
-              <label className="block text-xs sm:col-span-2">
-                <span className={labelClass}>체급 *</span>
-                <select
-                  className={fieldClass}
-                  value={a.divisionId}
-                  onChange={(e) =>
-                    updateAthlete(a.key, { divisionId: e.target.value })
+              <div className="sm:col-span-2 min-w-0">
+                <ApplicationWeightAutoAssign
+                  divisions={divisions}
+                  gender={a.gender === "female" ? "female" : "male"}
+                  competitionCategory={a.competitionCategory}
+                  discipline={a.discipline}
+                  applicationWeightKg={a.applicationWeightKg}
+                  onCompetitionCategoryChange={(competitionCategory) =>
+                    updateAthlete(a.key, { competitionCategory })
                   }
-                >
-                  <option value="">선택…</option>
-                  {filteredDivisions(a.gender).map((d) => (
-                    <option key={d.id} value={d.id}>
-                      {d.label}
-                    </option>
-                  ))}
-                </select>
-              </label>
+                  onDisciplineChange={(discipline) =>
+                    updateAthlete(a.key, { discipline })
+                  }
+                  onApplicationWeightChange={(applicationWeightKg) =>
+                    updateAthlete(a.key, { applicationWeightKg })
+                  }
+                  fieldClass={fieldClass}
+                  labelClass={labelClass}
+                />
+              </div>
             </div>
             <AthleteInsuranceProfileFields
               idPrefix={`ext-${a.key}`}

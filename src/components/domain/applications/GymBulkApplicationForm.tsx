@@ -61,7 +61,10 @@ function initialRowStates(
   for (const fighter of fighters) {
     map[fighter.id] = {
       checked: false,
-      divisionId: "",
+      competitionCategory: "",
+      discipline: "",
+      applicationWeightKg:
+        fighter.weightKg != null ? String(fighter.weightKg) : "",
       formAnswers: {},
       structuredRecord: { totalBouts: 0, wins: 0, draws: 0, losses: 0 },
       careerText: "",
@@ -79,19 +82,20 @@ function buildApplicationsPayload(
 ) {
   const applications: Array<{
     fighterId: string;
-    divisionId: string;
-    totalBoutsSnapshot?: number;
-    winsSnapshot?: number;
-    drawsSnapshot?: number;
-    lossesSnapshot?: number;
+    applicationWeightKg: number;
+    competitionCategory: string;
+    discipline?: string;
+    structuredRecord: StructuredRecordValue;
+    recordText?: string;
     careerText?: string;
     residentRegistrationNumber?: string;
     formAnswers?: Record<string, unknown>;
   }> = [];
   for (const fighter of fighters) {
     const state = rowStates[fighter.id];
-    if (!state?.checked || !state.divisionId) continue;
-    if (fighter.appliedDivisionIds.includes(state.divisionId)) continue;
+    if (!state?.checked || !state.competitionCategory || !state.applicationWeightKg) continue;
+    const kg = Number(state.applicationWeightKg);
+    if (!Number.isFinite(kg) || kg <= 0) continue;
     if (
       requireCustomForm &&
       customFields.length > 0 &&
@@ -101,11 +105,11 @@ function buildApplicationsPayload(
     }
     applications.push({
       fighterId: fighter.id,
-      divisionId: state.divisionId,
-      totalBoutsSnapshot: state.structuredRecord.totalBouts,
-      winsSnapshot: state.structuredRecord.wins,
-      drawsSnapshot: state.structuredRecord.draws,
-      lossesSnapshot: state.structuredRecord.losses,
+      applicationWeightKg: kg,
+      competitionCategory: state.competitionCategory,
+      discipline: state.discipline || undefined,
+      structuredRecord: state.structuredRecord,
+      recordText: undefined,
       careerText: state.careerText || undefined,
       residentRegistrationNumber: state.residentRegistrationNumber,
       formAnswers:
@@ -147,7 +151,7 @@ export function GymBulkApplicationForm(props: GymBulkApplicationFormProps) {
     () =>
       props.fighters.filter((f) => {
         const s = rowStates[f.id];
-        return s?.checked && s.divisionId;
+        return s?.checked && s.competitionCategory && s.applicationWeightKg;
       }),
     [props.fighters, rowStates],
   );
@@ -266,8 +270,8 @@ export function GymBulkApplicationForm(props: GymBulkApplicationFormProps) {
                   onCheckedChange={(checked) =>
                     updateRow(fighter.id, { checked })
                   }
-                  onDivisionChange={(divisionId) =>
-                    updateRow(fighter.id, { divisionId })
+                  onWeightFieldsChange={(patch) =>
+                    updateRow(fighter.id, patch)
                   }
                   formStatus={
                     requireCustomForm ? (
@@ -300,8 +304,8 @@ export function GymBulkApplicationForm(props: GymBulkApplicationFormProps) {
               divisions={props.divisions}
               rowState={rowState}
               onCheckedChange={(checked) => updateRow(fighter.id, { checked })}
-              onDivisionChange={(divisionId) =>
-                updateRow(fighter.id, { divisionId })
+              onWeightFieldsChange={(patch) =>
+                updateRow(fighter.id, patch)
               }
               formStatus={
                 requireCustomForm ? (

@@ -1,8 +1,6 @@
-import {
-  formatUtcDateOnly,
-} from "@/lib/date-only";
-import { formatDivisionSearchLabel } from "@/lib/event-division-fields";
-import { matchEventDivision } from "@/lib/applicant-excel/match-division";
+import { formatUtcDateOnly } from "@/lib/date-only";
+import { parseApplicationWeightKg } from "@/lib/applications/application-weight";
+import { resolveEventDivisionByApplicationWeight } from "@/lib/applications/resolve-event-division";
 import {
   birthDateToUtc,
   compactText,
@@ -11,7 +9,6 @@ import {
   parseApplicantBirthDate,
   parseApplicantGender,
   parseOptionalHeightCm,
-  parseOptionalWeightKg,
 } from "@/lib/applicant-excel/normalize";
 import type { ApplicantDivisionCandidate } from "@/lib/applicant-excel/match-division";
 import type { ParsedApplicantExcelRow } from "@/lib/applicant-excel/parse";
@@ -83,11 +80,12 @@ function analyzeOneRow(
 ): ApplicantExcelPreviewRow {
   const v = parsed.values;
   const errors: string[] = [];
+  const warnings: string[] = [];
   const fighterName = compactText(v.선수명);
   const gymName = compactText(v.체육관명);
   const ageGroup = compactText(v.경기구분);
-  const weightClass = compactText(v.체급);
-  const weightLimit = compactText(v.체중기준);
+  const legacyWeightClass = compactText(v.체급);
+  const legacyWeightLimit = compactText(v.체중기준);
   const sport = compactText(v.종목);
   const phone = compactText(v.연락처);
   const guardianName = compactText(v.보호자이름);
@@ -109,36 +107,59 @@ function analyzeOneRow(
   if (!fighterName) errors.push("선수명이 없습니다.");
   if (!gymName) errors.push("체육관명이 없습니다.");
   if (!ageGroup) errors.push("경기구분이 없습니다.");
-  if (!weightClass) errors.push("체급이 없습니다.");
 
   const genderParsed = parseApplicantGender(v.성별);
   if (!genderParsed.ok) errors.push("성별을 남/여로 입력해 주세요.");
   const birthDate = parseApplicantBirthDate(v.생년월일);
   if (!birthDate) errors.push("생년월일이 올바르지 않습니다.");
-  const weight = parseOptionalWeightKg(v.체중);
-  if (!weight.ok) errors.push(weight.error ?? "체중이 올바르지 않습니다.");
+  const weight = parseApplicationWeightKg(v.신청체중);
+  if (!weight.ok) errors.push(weight.error);
   const height = parseOptionalHeightCm(v.키);
   if (!height.ok) errors.push(height.error ?? "키가 올바르지 않습니다.");
 
   let divisionId: string | null = null;
   let divisionLabel = "";
-  if (genderParsed.ok && ageGroup && weightClass) {
-    const matched = matchEventDivision({
+  let resolvedWeightClassName = "";
+  let resolvedWeightLimit = "";
+  let normalizedAgeGroup = "";
+  let categoryStatus: "ok" | "unknown" = "unknown";
+  let schoolLevelSnapshot: string | null = null;
+  let schoolGradeSnapshot: number | null = null;
+
+  if (genderParsed.ok && ageGroup && weight.ok) {
+    const resolved = resolveEventDivisionByApplicationWeight({
       gender: genderParsed.gender,
-      row: {
-        gender: v.성별,
-        ageGroup,
-        weightClass,
-        weightLimit,
-        sport,
-      },
+      competitionCategory: ageGroup,
+      discipline: sport,
+      applicationWeightKg: weight.kg,
       divisions,
     });
-    if (matched.ok) {
-      divisionId = matched.division.id;
-      divisionLabel = formatDivisionSearchLabel(matched.division);
+    categoryStatus = resolved.category.status;
+    normalizedAgeGroup = resolved.category.displayLabel;
+    schoolLevelSnapshot = resolved.category.schoolLevel;
+    schoolGradeSnapshot = resolved.category.schoolGrade;
+    if (resolved.ok) {
+      divisionId = resolved.division.id;
+      divisionLabel = resolved.division.label;
+      resolvedWeightClassName = resolved.division.weightClassName ?? "";
+      resolvedWeightLimit = resolved.division.weightLimitText ?? "";
+      if (legacyWeightClass) {
+        const legacyFold = foldKey(legacyWeightClass);
+        const autoFold = foldKey(resolvedWeightClassName);
+        const same =
+          legacyFold &&
+          autoFold &&
+          (legacyFold === autoFold ||
+            legacyFold.includes(autoFold) ||
+            autoFold.includes(legacyFold));
+        if (legacyFold && autoFold && !same) {
+          warnings.push(
+            `기존 입력 체급: ${legacyWeightClass} → 자동배정: ${resolvedWeightClassName}`,
+          );
+        }
+      }
     } else {
-      errors.push(matched.reason);
+      errors.push(resolved.reason);
     }
   }
 
@@ -164,10 +185,16 @@ function analyzeOneRow(
       : compactText(v.성별),
     birthDate: birthDate ?? compactText(v.생년월일),
     ageGroup,
-    weightClass,
-    weightLimit,
+    normalizedAgeGroup,
+    weightClass: resolvedWeightClassName || legacyWeightClass,
+    weightLimit: resolvedWeightLimit || legacyWeightLimit,
     sport,
-    weightKg: weight.kg,
+    weightKg: weight.ok ? weight.kg : null,
+    applicationWeightKg: weight.ok ? weight.kg : null,
+    resolvedWeightClassName,
+    resolvedWeightLimit,
+    legacyWeightClass,
+    categoryStatus,
     heightCm: height.cm,
     rowNumber,
     ageNote,
@@ -186,10 +213,13 @@ function analyzeOneRow(
     decision: hasError ? "error" : "create",
     decisionLabel: hasError ? "오류" : "등록 가능",
     errors,
+    warnings,
     totalBoutsSnapshot: structuredRecord.record?.totalBouts ?? null,
     winsSnapshot: structuredRecord.record?.wins ?? null,
     drawsSnapshot: structuredRecord.record?.draws ?? null,
     lossesSnapshot: structuredRecord.record?.losses ?? null,
+    schoolLevelSnapshot,
+    schoolGradeSnapshot,
     recordParseWarning: structuredRecord.warning ?? null,
   };
 }
