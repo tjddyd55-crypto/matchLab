@@ -51,10 +51,14 @@ export function DivisionTemplateEditor({
     [items, sportType],
   );
 
-  async function onSubmit(e: React.FormEvent) {
-    e.preventDefault();
+  async function saveTemplate() {
     setPending(true);
     setError(null);
+    if (!title.trim()) {
+      setError("템플릿명을 입력해 주세요.");
+      setPending(false);
+      return;
+    }
 
     const fd = new FormData();
     if (mode === "edit" && initial) {
@@ -87,7 +91,7 @@ export function DivisionTemplateEditor({
   }
 
   return (
-    <form onSubmit={(e) => void onSubmit(e)} className="space-y-8">
+    <div className="space-y-8">
       {error ? (
         <p className="text-destructive text-sm" role="alert">
           {error}
@@ -194,9 +198,9 @@ export function DivisionTemplateEditor({
         <DivisionTemplatePreview items={items} sportType={sportType} />
       </section>
 
-      <Button type="submit" disabled={pending}>
+      <Button type="button" disabled={pending} onClick={() => void saveTemplate()}>
         {pending ? "저장 중…" : mode === "create" ? "템플릿 저장" : "변경 저장"}
       </Button>
-    </form>
+    </div>
   );
 }
