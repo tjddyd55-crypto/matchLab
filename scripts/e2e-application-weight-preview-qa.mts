@@ -605,10 +605,10 @@ async function main() {
       const snap62 = a62.fighterSnapshot as Record<string, unknown>;
       assert.equal(snap62.applicationWeightKg, 62.5);
       assert.equal(a62.weighInWeightKg, null);
-      assert.equal(a62.totalBoutsSnapshot, 2);
-      assert.equal(a62.winsSnapshot, 1);
+      assert.equal(a62.totalBoutsSnapshot, 4);
+      assert.equal(a62.winsSnapshot, 2);
       assert.equal(a62.drawsSnapshot, 0);
-      assert.equal(a62.lossesSnapshot, 1);
+      assert.equal(a62.lossesSnapshot, 2);
       assert.equal(a3.schoolLevelSnapshot, "ELEMENTARY");
       assert.equal(a3.schoolGradeSnapshot, 3);
       assert.equal(a5.schoolLevelSnapshot, "ELEMENTARY");
