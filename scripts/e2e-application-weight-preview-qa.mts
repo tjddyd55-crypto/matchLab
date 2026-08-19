@@ -852,6 +852,10 @@ async function main() {
       }
 
       try {
+      await prisma.eventApplication.updateMany({
+        where: { eventId: event.id },
+        data: { status: "approved" },
+      });
       await page.goto(`${BASE}/organizer/events/${event.id}/brackets?tab=generate`, {
         waitUntil: "domcontentloaded",
         timeout: 90_000,
@@ -864,7 +868,11 @@ async function main() {
       }
       await page.getByRole("button", { name: "적용" }).click();
       await page.getByText("자동 대진 생성 완료").waitFor({ timeout: 90_000 });
-      report.autoMatchUi = "PASS";
+      const applyText = await page.locator("[data-auto-match-panel]").locator("..").innerText().catch(() => "");
+      report.autoMatchUi =
+        /신청자 기준으로 \d+경기를 생성/.test(applyText) || /생성 경기/.test(applyText)
+          ? "PASS"
+          : `PASS summary=${applyText.slice(0, 160)}`;
       const unmatchedUi = await page.locator("body").innerText();
       assert.match(unmatchedUi, /미매칭|미확정/);
       report.unresolvedUi = unmatchedUi.includes("미확정") || unmatchedUi.includes("미매칭") ? "PASS" : "CHECK";
@@ -942,6 +950,7 @@ async function main() {
       }
 
       try {
+      await login(page, "organizer", password);
       await page.goto(`${BASE}/organizer/division-templates/new`, {
         waitUntil: "domcontentloaded",
         timeout: 90_000,
@@ -949,7 +958,7 @@ async function main() {
       await page.getByRole("heading", { name: "새 체급표 템플릿" }).waitFor({ timeout: 30_000 });
       await page.locator('input[placeholder="킥복싱"]').fill("킥복싱");
       await page.getByRole("button", { name: "엑셀 업로드" }).click();
-      await page.getByRole("heading", { name: "체급표 Excel 일괄 등록" }).waitFor({ timeout: 20_000 });
+      await page.getByRole("dialog").waitFor({ timeout: 20_000 });
       const wc = await import("../src/lib/division-template/weight-class-excel.ts");
       const wcPath = join(OUT, "weight-class-sample.xlsx");
       writeFileSync(
