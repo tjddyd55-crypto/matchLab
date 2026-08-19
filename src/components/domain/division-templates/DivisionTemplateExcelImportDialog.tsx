@@ -1,6 +1,6 @@
 "use client";
 
-import { useMemo, useState, useTransition } from "react";
+import { useEffect, useMemo, useState, useTransition } from "react";
 import type { DivisionTemplateItemInput } from "@/lib/validators/division-template.validator";
 import {
   mergeWeightClassImportIntoItems,
@@ -47,6 +47,11 @@ export function DivisionTemplateExcelToolbar({
   ) => Promise<{ ok: boolean; message?: string }>;
 }) {
   const [open, setOpen] = useState(false);
+  const [dialogMounted, setDialogMounted] = useState(false);
+
+  useEffect(() => {
+    setDialogMounted(true);
+  }, []);
 
   async function downloadSample() {
     const res = await downloadWeightClassExcelSampleAction();
@@ -84,6 +89,7 @@ export function DivisionTemplateExcelToolbar({
       >
         엑셀 업로드
       </Button>
+      {dialogMounted ? (
       <DivisionTemplateExcelImportDialog
         open={open}
         onOpenChange={setOpen}
@@ -100,6 +106,7 @@ export function DivisionTemplateExcelToolbar({
           return { ok: true };
         }}
       />
+      ) : null}
     </div>
   );
 }
