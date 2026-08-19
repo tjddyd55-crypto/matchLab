@@ -350,6 +350,34 @@ check("#46 [0,0,1,2,3] → 0↔0, 1↔2, 3 unresolved", () => {
   assert.ok(unmatched(r).includes("E"));
 });
 
+check("계체 전(isEligible=false)도 신청자 기준 페어", () => {
+  const c = [
+    { ...makeCandidate("A", 0, "g1"), isEligibleForBracket: false },
+    { ...makeCandidate("B", 0, "g2"), isEligibleForBracket: false },
+  ];
+  const r = pairWithRecordAndGrade(c);
+  assert.equal(r.pairs.length, 1);
+});
+
+check("같은 gymId라도 표시 체육관명이 다르면 페어 허용", () => {
+  const c = [
+    { ...makeCandidate("A", 0, "shared"), gymName: "QA짐G" },
+    { ...makeCandidate("B", 0, "shared"), gymName: "QA짐H" },
+  ];
+  const r = pairWithRecordAndGrade(c);
+  assert.equal(r.pairs.length, 1);
+});
+
+check("표시 체육관명이 같으면 gymId가 달라도 같은 체육관", () => {
+  const c = [
+    { ...makeCandidate("A", 0, "g1"), gymName: "QA짐SAME" },
+    { ...makeCandidate("B", 0, "g2"), gymName: "QA짐SAME" },
+  ];
+  const r = pairWithRecordAndGrade(c);
+  assert.equal(r.pairs.length, 0);
+  assert.equal(r.unmatched.length, 2);
+});
+
 // ──────────────────────────────────────────
 // Summary
 // ──────────────────────────────────────────
