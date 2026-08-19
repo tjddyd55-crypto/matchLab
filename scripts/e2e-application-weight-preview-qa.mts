@@ -971,7 +971,7 @@ async function main() {
       await page.getByRole("heading", { name: "새 체급표 템플릿" }).waitFor({ timeout: 30_000 });
       await page.getByLabel("종목").fill("킥복싱");
       await page.getByRole("button", { name: "엑셀 업로드" }).click();
-      await page.locator("[role='dialog']").waitFor({ state: "attached", timeout: 20_000 });
+      await page.locator("[data-slot='dialog-content']").waitFor({ state: "visible", timeout: 20_000 });
       const wc = await import("../src/lib/division-template/weight-class-excel.ts");
       const wcPath = join(OUT, "weight-class-sample.xlsx");
       writeFileSync(
