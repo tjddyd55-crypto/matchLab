@@ -274,6 +274,7 @@ async function main() {
       where: {
         OR: [
           { title: { startsWith: PREFIX } },
+          { title: { startsWith: "AUTO_MATCH_RECORD_QA_" } },
           { publicSlug: { startsWith: "application-weight-qa-" } },
         ],
       },
@@ -281,7 +282,12 @@ async function main() {
     });
     const eventIds = events.map((e) => e.id);
     const fighters = await prisma.fighter.findMany({
-      where: { name: { startsWith: PREFIX } },
+      where: {
+        OR: [
+          { name: { startsWith: PREFIX } },
+          { name: { startsWith: "AUTO_MATCH_RECORD_QA_" } },
+        ],
+      },
       select: { id: true },
     });
     const fighterIds = fighters.map((f) => f.id);
@@ -542,6 +548,14 @@ async function main() {
         row({ gym: "QA짐J", name: `${PREFIX}라이트2`, category: "성인", weight: "63.2", total: "2", wins: "1", draws: "0", losses: "1", phone: "010-8800-0013" }),
         row({ gym: "QA짐K", name: `${PREFIX}라이트3`, category: "성인", weight: "63.5", total: "3", wins: "2", draws: "0", losses: "1", phone: "010-8800-0014" }),
         row({ gym: "QA짐L", name: `${PREFIX}유치부`, category: "유치부", weight: "25", total: "0", wins: "0", draws: "0", losses: "0", birth: "2020-01-01", phone: "010-8800-0015" }),
+        row({ gym: "QA짐M", name: `${PREFIX}초1`, category: "초1", weight: "38", total: "1", wins: "1", draws: "0", losses: "0", birth: "2018-03-01", phone: "010-8800-0016" }),
+        row({ gym: "QA짐N", name: `${PREFIX}초6`, category: "초6", weight: "38", total: "2", wins: "1", draws: "0", losses: "1", birth: "2013-03-01", phone: "010-8800-0017" }),
+        row({ gym: "QA짐P", name: `${PREFIX}밴텀1b`, category: "성인", weight: "58.8", total: "1", wins: "1", draws: "0", losses: "0", phone: "010-8800-0018" }),
+        row({ gym: "QA짐Q", name: `${PREFIX}밴텀2`, category: "성인", weight: "59.0", total: "2", wins: "1", draws: "0", losses: "1", phone: "010-8800-0021" }),
+        row({ gym: "QA짐S", name: `${PREFIX}헤비1`, category: "성인", weight: "75", total: "1", wins: "1", draws: "0", losses: "0", phone: "010-8800-0022" }),
+        row({ gym: "QA짐T", name: `${PREFIX}헤비3`, category: "성인", weight: "80", total: "3", wins: "2", draws: "0", losses: "1", phone: "010-8800-0023" }),
+        row({ gym: "QA짐SAME", name: `${PREFIX}동짐A`, category: "성인", weight: "54.3", total: "0", wins: "0", draws: "0", losses: "0", phone: "010-8800-0019" }),
+        row({ gym: "QA짐SAME", name: `${PREFIX}동짐B`, category: "성인", weight: "54.4", total: "0", wins: "0", draws: "0", losses: "0", phone: "010-8800-0020" }),
       ];
       const validPath = join(OUT, "valid.xlsx");
       await writeXlsx(validPath, validRows);
@@ -735,50 +749,63 @@ async function main() {
       try {
       await page.setViewportSize({ width: 390, height: 844 });
       await page.goto(extUrl.trim(), { waitUntil: "domcontentloaded", timeout: 90_000 });
-      await page.getByText("신청체중").first().waitFor();
+      await page.getByText("외부 체육관 선수 등록").waitFor();
+      await page.locator('[data-ext-form-ready="true"]').waitFor({ timeout: 30_000 });
+      report.externalHydrationReady = "PASS";
       assert.equal(await page.getByRole("combobox").filter({ hasText: "체급" }).count(), 0);
-      await page.locator("label").filter({ hasText: "체육관명" }).locator("input").fill("QA짐EXT");
-      await page.locator("label").filter({ hasText: "담당자명" }).locator("input").fill("담당");
-      await page.locator("label").filter({ hasText: "연락처" }).first().locator("input").fill("010-8800-0044");
-      await page.locator("label").filter({ hasText: "이름" }).locator("input").fill(`${PREFIX}외부62`);
-      await page.getByLabel("1번 선수 생년월일").fill("1998-04-12");
-      for (let attempt = 0; attempt < 5; attempt += 1) {
-        await page.locator("select").nth(1).selectOption("일반부");
-        await page.getByPlaceholder("예: 62.5").fill("62.5");
-        if (await page.getByText(/라이트급/).count()) break;
-        await page.waitForTimeout(400);
-      }
-      if (!(await page.getByText(/라이트급/).count())) {
-        writeFileSync(join(OUT, "external-debug.txt"), await page.locator("body").innerText());
-        report.externalAutoDivision = "FAIL";
-      } else {
-        report.externalAutoDivision = "PASS";
-      }
-      await page.getByLabel(/주민등록번호|주민번호/).fill("000000-0000001");
-      await page.getByRole("checkbox").first().check();
+
+      await page.locator("#ext-gym-name").fill("QA짐EXT");
+      await page.locator("#ext-gym-contact-name").fill("담당");
+      await page.locator("#ext-gym-contact-phone").fill("010-8800-0044");
+      assert.equal(await page.locator("#ext-gym-name").inputValue(), "QA짐EXT");
+
+      await page.locator("label").filter({ hasText: "이름" }).locator("input").fill(`${PREFIX}외부66`);
+      await page.getByPlaceholder("YYYY-MM-DD").fill("1998-04-12");
+      await page.locator("select").nth(1).selectOption("일반부");
+      const weightBox = page.getByPlaceholder("예: 62.5");
+      await weightBox.fill("62.5");
+      await page.getByText(/라이트급/).first().waitFor({ timeout: 10_000 });
+      await weightBox.fill("66.0");
+      await page.getByText(/웰터급/).first().waitFor({ timeout: 10_000 });
+      report.externalAutoDivision = "PASS";
+      report.externalStaleDivision = "PASS";
+
+      await page.getByRole("button", { name: "무전" }).click();
+      await page.locator("#ext-gym-name").fill("QA짐EXT");
+      await page.getByLabel(/주민등록번호/).fill("000000-0000001");
+      await page.getByRole("checkbox", { name: /개인정보 수집·이용에 동의/ }).check();
       report.externalOverflow = String(await overflowX(page));
-      assert.equal(await overflowX(page), 0);
+      assert.equal(Number(report.externalOverflow), 0);
+
       await page.getByRole("button", { name: /명 신청하기/ }).click();
-      const reviewBtn = page.getByRole("button", { name: /명 신청 완료/ });
-      if (await reviewBtn.waitFor({ timeout: 12_000 }).then(() => true).catch(() => false)) {
-        await reviewBtn.click();
-        await page.getByText("선수 신청이 완료되었습니다").waitFor({ timeout: 90_000 });
-        const extApp = await prisma.eventApplication.findFirst({
-          where: { eventId: event.id, fighter: { name: `${PREFIX}외부62` } },
-        });
-        assert.ok(extApp);
-        assert.equal(extApp.divisionId, light.id);
-        report.externalSubmit = "PASS";
-      } else {
+      const reviewError = await page.locator("p[role='alert'], .text-destructive").first().textContent().catch(() => "");
+      if (reviewError && /체육관명|생년월일|경기구분/.test(reviewError)) {
         writeFileSync(join(OUT, "external-review-debug.txt"), await page.locator("body").innerText());
-        report.externalSubmit = "FAIL review";
+        throw new Error(`review blocked: ${reviewError}`);
       }
+      await page.getByRole("button", { name: /명 신청 완료/ }).waitFor({ timeout: 15_000 });
+      const reviewText = await page.locator("body").innerText();
+      assert.match(reviewText, /웰터급/);
+      assert.doesNotMatch(reviewText, /라이트급 \(-65/);
+      await page.getByRole("button", { name: /명 신청 완료/ }).click();
+      await page.getByText("선수 신청이 완료되었습니다").waitFor({ timeout: 90_000 });
+      const extApp = await prisma.eventApplication.findFirst({
+        where: { eventId: event.id, fighter: { name: `${PREFIX}외부66` } },
+      });
+      assert.ok(extApp, "external application missing");
+      assert.equal(extApp.divisionId, welter.id);
+      const extSnap = extApp.fighterSnapshot as Record<string, unknown>;
+      assert.equal(extSnap.applicationWeightKg, 66);
+      assert.equal(extApp.weighInWeightKg, null);
+      assert.ok(extApp.insuranceRrnCipher);
+      report.externalSubmit = "PASS";
+      report.externalPersist = "PASS";
       } catch (e) {
         writeFileSync(
           join(OUT, "external-submit-debug.txt"),
           await page.locator("body").innerText().catch(() => String(e)),
         );
-        report.externalSubmit = `FAIL ${String(e).slice(0, 160)}`;
+        report.externalSubmit = `FAIL ${String(e).slice(0, 220)}`;
       }
 
       await page.setViewportSize({ width: 1366, height: 768 });
@@ -829,14 +856,19 @@ async function main() {
         waitUntil: "domcontentloaded",
         timeout: 90_000,
       });
-      await page.getByRole("heading", { name: "자동매칭" }).waitFor({ timeout: 30_000 });
-      const sameGym = page.getByText("같은 체육관끼리 매칭 금지");
+      await page.getByRole("tab", { name: "대진표 생성" }).click();
+      await page.locator("[data-auto-match-panel]").waitFor({ timeout: 45_000 });
+      const sameGym = page.locator("label").filter({ hasText: "같은 체육관끼리 매칭 금지" }).locator("input");
       if (await sameGym.count()) {
-        const cb = page.locator("label").filter({ hasText: "같은 체육관끼리 매칭 금지" }).locator("input");
-        if (await cb.isChecked()) await cb.uncheck();
+        assert.equal(await sameGym.isChecked(), true);
       }
       await page.getByRole("button", { name: "적용" }).click();
       await page.getByText("자동 대진 생성 완료").waitFor({ timeout: 90_000 });
+      report.autoMatchUi = "PASS";
+      const unmatchedUi = await page.locator("body").innerText();
+      assert.match(unmatchedUi, /미매칭|미확정/);
+      report.unresolvedUi = unmatchedUi.includes("미확정") || unmatchedUi.includes("미매칭") ? "PASS" : "CHECK";
+      report.manualPairingUi = unmatchedUi.includes("대진표 그룹") || unmatchedUi.includes("수동") ? "PASS" : "CHECK";
       const matches = await prisma.bracketMatch.findMany({
         where: { bracket: { eventId: event.id } },
         include: { fighterRed: true, fighterBlue: true },
@@ -849,10 +881,22 @@ async function main() {
       );
       const light0 = pairKey(`${PREFIX}라이트0a`, `${PREFIX}라이트0b`);
       const light12 = pairKey(`${PREFIX}라이트1`, `${PREFIX}라이트2`);
+      const elemLow = pairKey(`${PREFIX}초1`, `${PREFIX}초3`);
+      const elemHigh = pairKey(`${PREFIX}초5`, `${PREFIX}초6`);
       assert.ok(pairs.includes(light0), `missing 0-0 pair ${pairs.join(",")}`);
       assert.ok(pairs.includes(light12), `missing 1-2 pair ${pairs.join(",")}`);
+      assert.ok(pairs.includes(elemLow), `missing LOW pair ${pairs.join(",")}`);
+      assert.ok(pairs.includes(elemHigh), `missing HIGH pair ${pairs.join(",")}`);
       assert.equal(
         pairs.some((p) => p.includes(`${PREFIX}초3`) && p.includes(`${PREFIX}초5`)),
+        false,
+      );
+      assert.equal(
+        pairs.some((p) => p.includes(`${PREFIX}초1`) && p.includes(`${PREFIX}초5`)),
+        false,
+      );
+      assert.equal(
+        pairs.some((p) => p.includes(`${PREFIX}동짐A`) && p.includes(`${PREFIX}동짐B`)),
         false,
       );
       assert.equal(
@@ -865,10 +909,36 @@ async function main() {
           m.fighterBlue?.name !== `${PREFIX}라이트3`,
       );
       assert.equal(unmatched3, true);
+      const bantam11 = pairKey(`${PREFIX}성인58`, `${PREFIX}밴텀1b`);
+      assert.ok(pairs.includes(bantam11), `missing 1-1 pair ${pairs.join(",")}`);
+      assert.equal(
+        pairs.some((p) => p.includes(`${PREFIX}밴텀2`) && p.includes(`${PREFIX}성인58`)),
+        false,
+      );
+      assert.equal(
+        pairs.some((p) => p.includes(`${PREFIX}헤비1`) && p.includes(`${PREFIX}헤비3`)),
+        false,
+      );
       report.autoMatch = "PASS";
       } catch (e) {
         report.autoMatch = `FAIL ${String(e).slice(0, 200)}`;
         await page.screenshot({ path: join(OUT, "automatch-debug.png"), fullPage: true }).catch(() => undefined);
+      }
+
+      try {
+        await page.goto(`${BASE}/organizer/events/${event.id}/field-status`, {
+          waitUntil: "domcontentloaded",
+          timeout: 90_000,
+        });
+        const fieldText = await page.locator("main").innerText();
+        report.weighInPage = /계체/.test(fieldText) ? "PASS" : fieldText.slice(0, 80);
+        await page.goto(`${BASE}/organizer/events/${event.id}/results`, {
+          waitUntil: "domcontentloaded",
+          timeout: 90_000,
+        });
+        report.resultsPage = (await page.locator("h1, h2").first().innerText()).slice(0, 40);
+      } catch (e) {
+        report.weighInResults = `SKIP ${String(e).slice(0, 120)}`;
       }
 
       try {
@@ -909,7 +979,12 @@ async function main() {
 
     await cleanupQa();
     const leftover = await prisma.fighter.count({
-      where: { name: { startsWith: PREFIX } },
+      where: {
+        OR: [
+          { name: { startsWith: PREFIX } },
+          { name: { startsWith: "AUTO_MATCH_RECORD_QA_" } },
+        ],
+      },
     });
     report.cleanup = leftover === 0 ? "PASS" : `FAIL leftover=${leftover}`;
   } catch (err) {
