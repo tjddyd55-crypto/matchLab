@@ -941,6 +941,7 @@ async function main() {
         `1-3 heavy pair ${pairDump}`,
       );
       report.autoMatch = "PASS";
+      report.hydrationAfterAutoMatch = String(quality.hydration.length);
       } catch (e) {
         report.autoMatch = `FAIL ${String(e).slice(0, 200)}`;
         await page.screenshot({ path: join(OUT, "automatch-debug.png"), fullPage: true }).catch(() => undefined);
