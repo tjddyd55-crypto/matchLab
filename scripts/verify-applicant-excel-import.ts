@@ -99,6 +99,30 @@ const DIVISIONS: ApplicantDivisionCandidate[] = [
     weightLimitText: "-45kg",
     sportType: "킥복싱",
   }),
+  division({
+    id: "div-elem-fly",
+    ageGroup: "초등부",
+    gender: "male",
+    weightClassName: "플라이급",
+    weightLimitText: "-40kg",
+    sportType: "킥복싱",
+  }),
+  division({
+    id: "div-elem-mid",
+    ageGroup: "초등부",
+    gender: "male",
+    weightClassName: "미들급",
+    weightLimitText: "-52kg",
+    sportType: "킥복싱",
+  }),
+  division({
+    id: "div-middle-light",
+    ageGroup: "중등부",
+    gender: "male",
+    weightClassName: "라이트급",
+    weightLimitText: "-55kg",
+    sportType: "킥복싱",
+  }),
 ];
 
 /** 신규 20컬럼 순서 */
@@ -151,6 +175,7 @@ function legacyAthleteRow(input: {
   gym?: string;
   ageGroup?: string;
   weightClass?: string;
+  weight?: string;
 }): string[] {
   return [
     input.name,
@@ -162,7 +187,7 @@ function legacyAthleteRow(input: {
     input.weightClass ?? "라이트급 -60kg",
     "",
     "",
-    "",
+    input.weight ?? "58",
     "",
     "",
     "",
@@ -241,8 +266,8 @@ async function verifyParser() {
   assert.equal(String(dataSheet.getRow(2).getCell(9).value), "3전 2승 1패");
   assert.equal(String(dataSheet.getRow(2).getCell(10).value), "3");
   assert.equal(String(dataSheet.getRow(2).getCell(14).value), "킥복싱 2년");
-  assert.equal(String(dataSheet.getRow(2).getCell(15).value), "000000-0000001");
-  assert.equal(String(dataSheet.getRow(2).getCell(16).value), "동의");
+  assert.equal(String(dataSheet.getRow(2).getCell(15).value ?? ""), "");
+  assert.equal(String(dataSheet.getRow(2).getCell(16).value ?? ""), "");
 
   const buf = await workbookToBuffer(sample);
   const parsedSample = await parseApplicantExcelWorkbook(buf);
@@ -475,10 +500,8 @@ async function verifyLegacyColumns() {
     [],
     APPLICANT_EXCEL_LEGACY_HEADERS,
   );
-  assert.equal(preview.counts.error, 1);
-  assert.ok(
-    preview.rows[0]?.errors.some((e) => e.includes("주민등록번호")),
-  );
+  assert.equal(preview.counts.create, 1);
+  assert.equal(preview.counts.error, 0);
   console.log("verify:applicant-excel-legacy-columns OK");
 }
 
@@ -656,6 +679,74 @@ async function verifyAutoDivision() {
   assert.equal(elem.counts.create, 1);
   assert.equal(elem.rows[0]?.schoolGradeSnapshot, 3);
   assert.equal(elem.rows[0]?.schoolLevelSnapshot, "ELEMENTARY");
+
+  const elem5 = await previewFromRows([
+    athleteRow({
+      name: "초5선수",
+      ageGroup: "초5",
+      weight: "43.5",
+      sport: "킥복싱",
+      rrn: "",
+      consent: "",
+    }),
+  ]);
+  assert.equal(elem5.counts.create, 1);
+  assert.equal(elem5.rows[0]?.schoolGradeSnapshot, 5);
+  assert.equal(elem5.rows[0]?.normalizedAgeGroup, "초등부 5학년");
+
+  const elem6 = await previewFromRows([
+    athleteRow({
+      name: "초6선수",
+      ageGroup: "초6",
+      weight: "51",
+      sport: "킥복싱",
+      rrn: "",
+      consent: "",
+    }),
+  ]);
+  assert.equal(elem6.counts.create, 1);
+  assert.equal(elem6.rows[0]?.schoolGradeSnapshot, 6);
+  assert.equal(elem6.rows[0]?.divisionId, "div-elem-mid");
+
+  const middle2 = await previewFromRows([
+    athleteRow({
+      name: "중2선수",
+      ageGroup: "중2",
+      weight: "54",
+      sport: "킥복싱",
+    }),
+  ]);
+  assert.equal(middle2.counts.create, 1);
+  assert.equal(middle2.rows[0]?.divisionId, "div-middle-light");
+  assert.equal(middle2.rows[0]?.normalizedAgeGroup, "중등부 2학년");
+
+  const high1 = await previewFromRows([
+    athleteRow({
+      name: "고1선수",
+      ageGroup: "고1",
+      weight: "58",
+      sport: "킥복싱",
+    }),
+  ]);
+  assert.equal(high1.counts.create, 1);
+  assert.equal(high1.rows[0]?.divisionId, "div-light");
+
+  const noPii = await previewFromRows([
+    athleteRow({
+      name: "개인정보미입력",
+      ageGroup: "초6",
+      weight: "51",
+      sport: "킥복싱",
+      rrn: "",
+      consent: "",
+      birth: "",
+    }),
+  ]);
+  assert.equal(noPii.counts.create, 1);
+  assert.equal(noPii.counts.error, 0);
+  assert.ok(
+    !noPii.rows[0]?.errors.some((e) => e.includes("주민등록번호")),
+  );
 
   const unknown = await previewFromRows([
     athleteRow({ name: "학생선수", ageGroup: "학생부", weight: "43.5" }),

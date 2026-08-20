@@ -9,6 +9,7 @@ import {
   APPLICANT_EXCEL_SHEET_DATA,
   APPLICANT_EXCEL_SHEET_GUIDE,
 } from "@/lib/applicant-excel/columns";
+import { MINIMAL_APPLICATION_GUIDE_LINES } from "@/lib/applications/minimal-application";
 import { sanitizePlainCell } from "@/lib/applicant-excel/normalize";
 import {
   formatDivisionGenderLabel,
@@ -133,8 +134,8 @@ export async function buildApplicantExcelSampleWorkbook(input: {
     "0",
     "1",
     "킥복싱 2년",
-    "000000-0000001",
-    "동의",
+    "",
+    "",
     exampleAge === "대학·일반부" ? "성인" : exampleAge,
     exampleSport,
     "010-1234-5678",
@@ -171,6 +172,12 @@ export async function buildApplicantExcelSampleWorkbook(input: {
   setTextColumn(data, "주민등록번호");
 
   const guide = wb.addWorksheet(APPLICANT_EXCEL_SHEET_GUIDE);
+  guide.addRow(["1차 신청 안내", MINIMAL_APPLICATION_GUIDE_LINES[0]!]);
+  guide.addRow([
+    "체급 자동배정",
+    "체급명과 체중기준은 직접 입력하지 않습니다. 신청체중을 입력하면 체급표 기준으로 자동 배정됩니다.",
+  ]);
+  guide.addRow([]);
   guide.addRow(["대회", sanitizePlainCell(input.eventTitle)]);
   guide.addRow([
     "작성 방법",
@@ -193,7 +200,7 @@ export async function buildApplicantExcelSampleWorkbook(input: {
     ["체육관명", "필수", "소속 체육관 표시명", "마포킥복싱"],
     ["선수명", "필수", "실제 선수명", "홍길동"],
     ["성별", "필수", "권장 남/여 (남성·여성·male·female 허용)", "남"],
-    ["생년월일", "필수", "YYYY-MM-DD 권장. Excel 날짜·YYYYMMDD도 인식", "2008-05-12"],
+    ["생년월일", "선택", "YYYY-MM-DD 권장. 경기구분으로 학년 판정 시 생략 가능", "2008-05-12"],
     ["나이", "선택", "참고값. 생년월일이 있으면 생년월일 우선", "18"],
     ["키", "선택", "숫자(cm). 175 또는 175cm", "175"],
     ["신청체중", "필수", "이번 대회 출전 신청 체중. 62.5 / 62.5kg", "62.5"],
@@ -205,14 +212,14 @@ export async function buildApplicantExcelSampleWorkbook(input: {
     ["운동경력", "선택", "자유 문장 그대로 보존", "킥복싱 2년"],
     [
       "주민등록번호",
-      "필수",
-      "보험가입용. 000000-0000001 형식. 실제 개인번호 예시 금지",
-      "000000-0000001",
+      "선택",
+      "1차 신청에서는 생략 가능. 추후 개인정보 수집 단계에서 요청",
+      "(비워두기 가능)",
     ],
     [
       "보험가입 개인정보동의",
-      "필수",
-      "동의를 받은 선수만 「동의」 입력",
+      "선택",
+      "1차 신청에서는 생략 가능. 동의 받은 경우만 「동의」 입력",
       "동의",
     ],
     ["경기구분", "필수", "초3 / 중2 / 고1 / 성인 등", exampleAge],
@@ -228,8 +235,8 @@ export async function buildApplicantExcelSampleWorkbook(input: {
 
   guide.addRow([]);
   guide.addRow([
-    "보험가입 개인정보 동의",
-    "보험가입 개인정보 동의를 받은 선수만 입력하세요.",
+    "개인정보(2차)",
+    MINIMAL_APPLICATION_GUIDE_LINES[1]!,
   ]);
   guide.addRow([
     "체급표 참고",

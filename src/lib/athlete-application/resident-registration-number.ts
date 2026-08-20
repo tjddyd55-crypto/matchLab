@@ -69,5 +69,16 @@ export function parseResidentRegistrationNumber(
   };
 }
 
+/** 1차 신청: 빈값 허용, 값이 있으면 형식 검증 */
+export function parseOptionalResidentRegistrationNumber(
+  raw: string | null | undefined,
+): ResidentRegistrationParseResult | { ok: true; digits: null; masked: null; formatted: null } {
+  const digits = normalizeResidentRegistrationNumber(raw);
+  if (!digits) {
+    return { ok: true, digits: null, masked: null, formatted: null };
+  }
+  return parseResidentRegistrationNumber(raw);
+}
+
 /** 샘플/QA 전용 — 실제 개인 번호로 오인되지 않는 checksum-valid 값 */
 export const SAMPLE_RESIDENT_REGISTRATION_NUMBER = "000000-0000001";

@@ -265,7 +265,7 @@ export async function createOrganizerManualApplicationAction(
       gymName: formReq(formData, "gymName") || undefined,
       fighterName: formReq(formData, "fighterName"),
       gender: formReq(formData, "gender"),
-      birthDate: formReq(formData, "birthDate"),
+      birthDate: formReq(formData, "birthDate") || undefined,
       phone: formReq(formData, "phone") || undefined,
       guardianName: formReq(formData, "guardianName") || undefined,
       guardianPhone: formReq(formData, "guardianPhone") || undefined,

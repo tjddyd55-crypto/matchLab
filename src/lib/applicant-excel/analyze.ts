@@ -12,8 +12,8 @@ import {
 } from "@/lib/applicant-excel/normalize";
 import type { ApplicantDivisionCandidate } from "@/lib/applicant-excel/match-division";
 import type { ParsedApplicantExcelRow } from "@/lib/applicant-excel/parse";
-import { parseExcelInsuranceConsent } from "@/lib/athlete-application/insurance-consent";
-import { parseResidentRegistrationNumber } from "@/lib/athlete-application/resident-registration-number";
+import { parseOptionalExcelInsuranceConsent } from "@/lib/athlete-application/insurance-consent";
+import { parseOptionalResidentRegistrationNumber } from "@/lib/athlete-application/resident-registration-number";
 import type {
   ApplicantExcelExistingIdentity,
   ApplicantExcelPreview,
@@ -62,13 +62,15 @@ export function identityFromExistingApplication(row: {
   id: string;
   divisionId: string;
   gymSnapshot: unknown;
-  fighter: { name: string; birthDate: Date; gender: string };
+  fighter: { name: string; birthDate: Date | null; gender: string };
 }): ApplicantExcelExistingIdentity {
   return {
     applicationId: row.id,
     divisionId: row.divisionId,
     fighterName: row.fighter.name,
-    birthDateIso: formatUtcDateOnly(row.fighter.birthDate, "-"),
+    birthDateIso: row.fighter.birthDate
+      ? formatUtcDateOnly(row.fighter.birthDate, "-")
+      : "",
     gender: row.fighter.gender,
     gymName: gymNameFromSnapshot(row.gymSnapshot),
   };
@@ -99,8 +101,11 @@ function analyzeOneRow(
   // 구조화 전적: 신규 컬럼(총전/승/무/패) SSOT, 없으면 레거시 전적 문자열 파싱
   const structuredRecord = resolveStructuredRecord(v, recordTextRaw);
   const recordText = structuredRecord.recordText;
-  const rrnParsed = parseResidentRegistrationNumber(v.주민등록번호);
-  const consentParsed = parseExcelInsuranceConsent(v["보험가입 개인정보동의"]);
+  if (structuredRecord.warning) {
+    errors.push(structuredRecord.warning);
+  }
+  const rrnParsed = parseOptionalResidentRegistrationNumber(v.주민등록번호);
+  const consentParsed = parseOptionalExcelInsuranceConsent(v["보험가입 개인정보동의"]);
   if (!rrnParsed.ok) errors.push(rrnParsed.error);
   if (!consentParsed.ok) errors.push(consentParsed.error);
 
@@ -111,7 +116,6 @@ function analyzeOneRow(
   const genderParsed = parseApplicantGender(v.성별);
   if (!genderParsed.ok) errors.push("성별을 남/여로 입력해 주세요.");
   const birthDate = parseApplicantBirthDate(v.생년월일);
-  if (!birthDate) errors.push("생년월일이 올바르지 않습니다.");
   const weight = parseApplicationWeightKg(v.신청체중);
   if (!weight.ok) errors.push(weight.error);
   const height = parseOptionalHeightCm(v.키);
@@ -200,9 +204,15 @@ function analyzeOneRow(
     ageNote,
     recordText,
     careerText,
-    insuranceRrnMasked: rrnParsed.ok ? rrnParsed.masked : "",
-    insuranceConsentLabel: consentParsed.ok ? "동의" : compactText(v["보험가입 개인정보동의"]),
-    insuranceRrnDigits: rrnParsed.ok ? rrnParsed.digits : undefined,
+    insuranceRrnMasked: rrnParsed.ok && rrnParsed.digits ? rrnParsed.masked : "",
+    insuranceConsentLabel:
+      consentParsed.ok && consentParsed.agreed
+        ? "동의"
+        : compactText(v["보험가입 개인정보동의"]) || "미입력",
+    insuranceRrnDigits:
+      rrnParsed.ok && rrnParsed.digits ? rrnParsed.digits : undefined,
+    insuranceConsentAgreed:
+      consentParsed.ok && consentParsed.agreed ? true : undefined,
     phone,
     guardianName,
     guardianPhone,
@@ -277,7 +287,7 @@ export function sanitizeApplicantExcelPreviewForClient(
   return {
     ...preview,
     rows: preview.rows.map((row) => {
-      const { insuranceRrnDigits: _digits, ...safe } = row;
+      const { insuranceRrnDigits: _digits, insuranceConsentAgreed: _consent, ...safe } = row;
       return safe;
     }),
   };

@@ -322,10 +322,13 @@ function PreviewBody({ preview }: { preview: ApplicantExcelPreview }) {
                 "성별",
                 "경기구분 입력값",
                 "인식 경기구분",
+                "학년",
                 "신청체중",
                 "자동배정 체급",
                 "체급기준",
                 "종목",
+                "전적",
+                "체육관",
                 "상태",
               ].map((h) => (
                   <th key={h} className="px-2 py-1.5 font-medium">
@@ -368,11 +371,16 @@ function PreviewTableRow({ row }: { row: ApplicantExcelPreviewRow }) {
       <td className="px-2 py-1">{row.ageGroup || "—"}</td>
       <td className="px-2 py-1">{row.normalizedAgeGroup || "—"}</td>
       <td className="px-2 py-1 tabular-nums">
+        {row.schoolGradeSnapshot ?? "—"}
+      </td>
+      <td className="px-2 py-1 tabular-nums">
         {row.applicationWeightKg != null ? `${row.applicationWeightKg}kg` : "—"}
       </td>
       <td className="px-2 py-1">{row.resolvedWeightClassName || "—"}</td>
       <td className="px-2 py-1">{row.resolvedWeightLimit || "—"}</td>
       <td className="px-2 py-1">{row.sport || "—"}</td>
+      <td className="px-2 py-1">{row.recordText || "—"}</td>
+      <td className="px-2 py-1">{row.gymName || "—"}</td>
       <td className="px-2 py-1">
         <span className={cn("rounded px-1.5 py-0.5", decisionClass(row.decision))}>
           {row.decisionLabel}
