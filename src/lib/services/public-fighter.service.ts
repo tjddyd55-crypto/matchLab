@@ -194,7 +194,7 @@ export const publicFighterService = {
 
     for (const h of eligible) {
       const region = parseRegionFromGymAddress(h.gym.address);
-      const ageGroup = publicAgeGroupFromBirthDate(h.fighter.birthDate);
+      const ageGroup = publicAgeGroupFromBirthDate(h.fighter.birthDate) ?? "—";
 
       const recent = recentMap.get(h.fighter.id);
       const recentEventTitle = recent?.eventTitle ?? null;
@@ -286,7 +286,7 @@ export const publicFighterService = {
       fighterId: history.fighter.id,
       name: profile?.displayName ?? history.fighter.name,
       gender: history.fighter.gender,
-      ageGroup: publicAgeGroupFromBirthDate(history.fighter.birthDate),
+      ageGroup: publicAgeGroupFromBirthDate(history.fighter.birthDate) ?? "—",
       weightClassLabel: weightLabel(history.fighter.weight),
       heightCm: history.fighter.height,
       recordSummary: formatRecord(

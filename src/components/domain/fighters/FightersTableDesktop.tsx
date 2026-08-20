@@ -1,5 +1,6 @@
 import Link from "next/link";
 import { formatUtcDateOnly } from "@/lib/date-only";
+import { formatFighterBirthDateDisplay } from "@/lib/fighter/birth-date";
 import type { GymFighterListRow } from "@/lib/repositories/fighter.repository";
 import type { GymFighterPublicSettingsRow } from "@/lib/services/public-fighter.service";
 import {
@@ -85,7 +86,7 @@ export function FightersTableDesktop({
               <TableCell>{f.gender}</TableCell>
               <TableCell>{f.ageGroup ?? "—"}</TableCell>
               <TableCell className="text-xs whitespace-nowrap">
-                {formatUtcDateOnly(f.birthDate)}
+                {formatFighterBirthDateDisplay(f.birthDate)}
               </TableCell>
               <TableCell className="text-xs">{f.phone || "—"}</TableCell>
               <TableCell className="text-right text-sm">

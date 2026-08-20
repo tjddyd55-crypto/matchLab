@@ -734,7 +734,7 @@ model Fighter {
   /// 체육관 회원(사람 SSOT)과의 선택적 1:1 — additive, nullable
   gymMemberId      String?       @unique
   name             String
-  birthDate        DateTime
+  birthDate        DateTime?
   /// MVP는 자유 문자열 — 추후 Gender enum 분리 가능
   gender           String
   phone            String

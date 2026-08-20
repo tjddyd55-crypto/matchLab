@@ -113,7 +113,7 @@ export const fighterProfileService = {
       regionLabel: parseRegionFromGymAddress(fighter.currentGym?.address ?? null)
         .label,
       gender: fighter.gender,
-      ageGroup: publicAgeGroupFromBirthDate(fighter.birthDate),
+      ageGroup: publicAgeGroupFromBirthDate(fighter.birthDate) ?? "—",
       weightLabel:
         fighter.weight != null ? `${fighter.weight}kg` : "미등록",
       primarySport: fighter.primarySport,
@@ -203,7 +203,7 @@ export const fighterProfileService = {
       regionLabel: parseRegionFromGymAddress(f.currentGym?.address ?? null)
         .label,
       gender: f.gender,
-      ageGroup: publicAgeGroupFromBirthDate(f.birthDate),
+      ageGroup: publicAgeGroupFromBirthDate(f.birthDate) ?? "—",
       weightLabel: f.weight != null ? `${f.weight}kg` : "—",
       primarySport: f.primarySport,
       recordSummary: `${f.recordWin}승 ${f.recordLoss}패 ${f.recordDraw}무`,

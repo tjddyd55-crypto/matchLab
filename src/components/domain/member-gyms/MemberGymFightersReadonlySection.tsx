@@ -1,11 +1,12 @@
 import Link from "next/link";
 import { format } from "date-fns";
+import { formatFighterBirthDateDisplay } from "@/lib/fighter/birth-date";
 
 type FighterRow = {
   id: string;
   name: string;
   gender: string;
-  birthDate: Date;
+  birthDate: Date | null;
   weight: number | null;
   status: string;
   createdAt: Date;
@@ -53,7 +54,7 @@ export function MemberGymFightersReadonlySection({
                 <td className="px-2 py-1.5 font-medium">{f.name}</td>
                 <td className="px-2 py-1.5">{f.gender}</td>
                 <td className="px-2 py-1.5">
-                  {format(f.birthDate, "yyyy-MM-dd")}
+                  {formatFighterBirthDateDisplay(f.birthDate)}
                 </td>
                 <td className="px-2 py-1.5">{f.weight ?? "-"}</td>
                 <td className="px-2 py-1.5">{f.status}</td>
@@ -87,7 +88,7 @@ export function MemberGymFightersReadonlySection({
             >
               <p className="font-semibold">{f.name}</p>
               <p className="mt-1 text-xs text-matchon-text-secondary">
-                {f.gender} · {f.status} · {format(f.birthDate, "yyyy-MM-dd")}
+                {f.gender} · {f.status} · {formatFighterBirthDateDisplay(f.birthDate)}
               </p>
             </Link>
           </li>

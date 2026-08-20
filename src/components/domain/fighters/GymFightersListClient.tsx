@@ -34,7 +34,7 @@ export function GymFightersListClient({
     () =>
       filtered.map((f) => ({
         ...f,
-        ageGroup: publicAgeGroupFromBirthDate(f.birthDate),
+        ageGroup: publicAgeGroupFromBirthDate(f.birthDate) ?? undefined,
       })),
     [filtered],
   );
