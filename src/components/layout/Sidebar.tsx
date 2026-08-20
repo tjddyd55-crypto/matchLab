@@ -1,22 +1,15 @@
 import {
-  DashboardSidebarNav,
   SidebarBrand,
   SidebarShell,
 } from "@/components/layout/dashboard-sidebar";
 import type { DashboardRole } from "@/components/layout/DashboardShell";
+import { FighterSidebarNav } from "@/components/layout/FighterSidebarNav";
 import { GymPortalNavGroups } from "@/components/layout/GymPortalNavGroups";
 import { OrganizerSidebarNav } from "@/components/layout/OrganizerSidebarNav";
+import { SidebarNav } from "@/components/layout/SidebarNav";
 import type { OrganizerType } from "@/lib/enums";
-import {
-  getAdminHomePaths,
-  getAdminNavGroups,
-  isAdminNavItemActive,
-} from "@/lib/navigation/admin-navigation";
-import {
-  getFighterHomePaths,
-  getFighterNavGroups,
-  isFighterNavItemActive,
-} from "@/lib/navigation/fighter-navigation";
+import { getAdminHomePaths } from "@/lib/navigation/admin-navigation";
+import { getFighterHomePaths } from "@/lib/navigation/fighter-navigation";
 import {
   getGymPortalNavGroups,
   type GymPortalNavViewer,
@@ -65,17 +58,9 @@ export function Sidebar({
           groups={getGymPortalNavGroups(gymNavViewer)}
         />
       ) : role === "admin" ? (
-        <DashboardSidebarNav
-          groups={getAdminNavGroups()}
-          isItemActive={isAdminNavItemActive}
-          ariaLabel="관리자 메뉴"
-        />
+        <SidebarNav density="desktop" />
       ) : (
-        <DashboardSidebarNav
-          groups={getFighterNavGroups()}
-          isItemActive={isFighterNavItemActive}
-          ariaLabel="선수 메뉴"
-        />
+        <FighterSidebarNav density="desktop" />
       )}
     </SidebarShell>
   );
