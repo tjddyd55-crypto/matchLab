@@ -378,7 +378,7 @@ async function verifyDuplicate() {
   assert.equal(preview.counts.error, 1);
   assert.equal(preview.counts.create, 1);
   assert.ok(preview.rows[1]?.errors.some((e) => e.includes("파일 내 중복")));
-  assert.throws(() => assertPreviewReadyToCommit(preview));
+  assertPreviewReadyToCommit(preview);
   console.log("verify:applicant-excel-duplicate OK");
 }
 
@@ -418,7 +418,8 @@ async function verifyBatch() {
     athleteRow({ name: "", gender: "남" }),
   ]);
   assert.ok(invalid.counts.error > 0);
-  assert.throws(() => assertPreviewReadyToCommit(invalid));
+  assert.equal(invalid.counts.create, 1);
+  assertPreviewReadyToCommit(invalid);
 
   const valid = await previewFromRows([
     athleteRow({ name: "A", gym: "A체육관" }),
@@ -466,7 +467,7 @@ function verifyScope() {
   assert.match(dialog, /샘플 엑셀 다운로드/);
   assert.match(dialog, /FileDropzone/);
   assert.match(dialog, /2행 예시/);
-  assert.match(dialog, /counts\.error === 0/);
+  assert.match(dialog, /counts\.create > 0/);
   assert.doesNotMatch(dialog, /window\.alert/);
 
   const dropzone = read("src/components/shared/FileDropzone.tsx");
