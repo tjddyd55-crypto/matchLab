@@ -250,7 +250,7 @@ export function EventApplicationForm(props: EventApplicationFormProps) {
         </FeedbackMessage>
       ) : null}
 
-      <Button type="submit" size="field" disabled={disabledSubmit} className="w-full">
+      <Button type="submit" size="default" disabled={disabledSubmit} className="w-full">
         신청하기
       </Button>
     </form>

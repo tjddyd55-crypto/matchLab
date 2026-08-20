@@ -122,7 +122,7 @@ export function CourtJudgeIdentityGate({
                   {error}
                 </FeedbackMessage>
               ) : null}
-              <Button type="submit" size="field" className="w-full">
+              <Button type="submit" size="default" className="w-full">
                 입장하기
               </Button>
             </form>

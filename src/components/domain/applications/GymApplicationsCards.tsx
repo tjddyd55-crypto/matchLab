@@ -71,7 +71,7 @@ export function GymApplicationsCards({
               <Dialog>
                 <DialogTrigger
                   render={
-                    <Button type="button" variant="outline" size="field" className="w-full">
+                    <Button type="button" variant="outline" size="default" className="w-full">
                       입금 안내 다시 보기
                     </Button>
                   }

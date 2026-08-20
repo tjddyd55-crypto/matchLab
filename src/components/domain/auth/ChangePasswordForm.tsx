@@ -57,7 +57,7 @@ export function ChangePasswordForm() {
           {state.error.message}
         </FeedbackMessage>
       ) : null}
-      <Button type="submit" size="field" className="w-full" disabled={pending}>
+      <Button type="submit" size="default" className="w-full" disabled={pending}>
         {pending ? "저장 중…" : "비밀번호 변경"}
       </Button>
     </form>

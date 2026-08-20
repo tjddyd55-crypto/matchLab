@@ -3,6 +3,7 @@
 import { useState, useTransition } from "react";
 import { Button } from "@/components/ui/button";
 import { putFileToEventSignedUploadUrl } from "@/lib/client/event-image-storage-upload";
+import { formControlFieldClass } from "@/lib/ui/form-control-ui";
 
 type Initial = {
   logoUrl: string | null;
@@ -106,7 +107,7 @@ export function AssociationPublicLogoForm({ initial }: { initial: Initial }) {
           type="url"
           value={websiteUrl}
           onChange={(e) => setWebsiteUrl(e.target.value)}
-          className="h-11 rounded-lg border border-matchon-border px-3"
+          className={formControlFieldClass}
         />
       </label>
       {error ? (

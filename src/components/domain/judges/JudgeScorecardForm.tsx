@@ -307,13 +307,13 @@ export function JudgeScorecardForm({
           <Button
             type="button"
             variant="outline"
-            size="field"
+            size="default"
             disabled={pending}
             onClick={() => save(false)}
           >
             임시 저장
           </Button>
-          <Button type="button" size="field" disabled={pending} onClick={() => save(true)}>
+          <Button type="button" size="default" disabled={pending} onClick={() => save(true)}>
             전송
           </Button>
         </div>

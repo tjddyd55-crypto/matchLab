@@ -111,7 +111,7 @@ export function JudgeIdentityForm({
         </FeedbackMessage>
       ) : null}
 
-      <Button type="submit" disabled={pending} size="field" className="w-full sm:w-auto">
+      <Button type="submit" disabled={pending} size="default" className="w-full sm:w-auto">
         {pending ? "저장 중…" : initial.identityConfirmed ? "정보 수정 후 계속" : "본인 확인 완료"}
       </Button>
 

@@ -99,7 +99,7 @@ export function EventDetailHeroMobile({
           <EventApplicationCta
             eventStatus={event.status}
             registrationStatus={event.registrationStatus}
-            size="field"
+            size="default"
           />
           <EventShareButtons
             url={buildEventPublicUrl(event)}

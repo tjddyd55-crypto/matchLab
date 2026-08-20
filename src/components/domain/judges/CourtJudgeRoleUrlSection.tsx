@@ -121,7 +121,7 @@ export function CourtJudgeRoleUrlSection({
       <div className="flex flex-col gap-2 sm:flex-row sm:flex-wrap">
         <Button
           type="button"
-          size="field"
+          size="default"
           variant="default"
           disabled={disabled || !url}
           className="w-full sm:w-auto"
@@ -131,7 +131,7 @@ export function CourtJudgeRoleUrlSection({
         </Button>
         <Button
           type="button"
-          size="field"
+          size="default"
           variant="outline"
           disabled={disabled || !url}
           className="w-full sm:w-auto"
@@ -141,7 +141,7 @@ export function CourtJudgeRoleUrlSection({
         </Button>
         <Button
           type="button"
-          size="field"
+          size="default"
           variant="outline"
           disabled={disabled || !url}
           className="w-full sm:w-auto"
@@ -151,7 +151,7 @@ export function CourtJudgeRoleUrlSection({
         </Button>
         <Button
           type="button"
-          size="field"
+          size="default"
           variant="secondary"
           disabled={disabled || !url}
           className="w-full sm:w-auto"

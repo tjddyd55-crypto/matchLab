@@ -298,7 +298,7 @@ function HeadMatchDetail({
             </FeedbackMessage>
             <Button
               type="button"
-              size="field"
+              size="default"
               className="mt-3 w-full sm:w-auto"
               disabled={pending}
               onClick={() => prepareMatch(match.matchId)}
@@ -316,7 +316,7 @@ function HeadMatchDetail({
             {operationalForm}
             <Button
               type="button"
-              size="field"
+              size="default"
               className="w-full sm:w-auto"
               disabled={pending || hasOtherOngoing}
               onClick={() => startMatch(match.matchId)}
@@ -398,7 +398,7 @@ function HeadMatchDetail({
               className={`${judgeFieldTextareaClass} md:col-span-3`}
             />
             <div className="md:col-span-3">
-              <Button type="submit" size="field" className="w-full sm:w-auto" disabled={pending}>
+              <Button type="submit" size="default" className="w-full sm:w-auto" disabled={pending}>
                 완료
               </Button>
             </div>
@@ -418,7 +418,7 @@ function HeadMatchDetail({
               <span className="text-muted-foreground text-xs">경기취소 사유</span>
               <input name="reason" className={inputClass} />
             </label>
-            <Button type="submit" variant="destructive" size="field" disabled={pending}>
+            <Button type="submit" variant="destructive" size="default" disabled={pending}>
               경기 취소
             </Button>
           </form>

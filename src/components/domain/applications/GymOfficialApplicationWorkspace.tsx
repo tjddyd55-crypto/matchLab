@@ -170,7 +170,7 @@ export function GymOfficialApplicationWorkspace({
               <Button
                 type="button"
                 variant="secondary"
-                size="field"
+                size="default"
                 disabled={pending || !fighterId}
                 onClick={() => void addDocument()}
               >
@@ -204,7 +204,7 @@ export function GymOfficialApplicationWorkspace({
             ) : null}
             <Button
               type="button"
-              size="field"
+              size="default"
               className="w-full sm:w-auto"
               disabled={pending || documents.some((d) => d.status !== "completed")}
               onClick={() => void submitBatch()}

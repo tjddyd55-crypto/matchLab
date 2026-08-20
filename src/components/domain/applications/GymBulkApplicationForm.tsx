@@ -429,7 +429,7 @@ export function GymBulkApplicationForm(props: GymBulkApplicationFormProps) {
         <div className="mt-4 flex flex-col gap-3 sm:flex-row sm:flex-wrap sm:items-center">
           <Button
             type="submit"
-            size="field"
+            size="default"
             className="w-full sm:w-auto"
             disabled={selectedCount === 0 || isPending}
           >

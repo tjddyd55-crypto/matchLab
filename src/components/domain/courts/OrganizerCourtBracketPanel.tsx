@@ -509,7 +509,7 @@ export function OrganizerCourtBracketPanel({
                           />
                           <Button
                             type="button"
-                            size="field"
+                            size="default"
                             variant="outline"
                             className="flex-1"
                             disabled={courtIdx <= 0 || pending}
@@ -519,7 +519,7 @@ export function OrganizerCourtBracketPanel({
                           </Button>
                           <Button
                             type="button"
-                            size="field"
+                            size="default"
                             variant="outline"
                             className="flex-1"
                             disabled={
@@ -548,7 +548,7 @@ export function OrganizerCourtBracketPanel({
             {canReorderOnTab ? (
               <Button
                 type="button"
-                size="field"
+                size="default"
                 className="w-full sm:w-auto"
                 disabled={pending}
                 onClick={saveOrder}

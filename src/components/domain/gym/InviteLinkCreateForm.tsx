@@ -61,7 +61,7 @@ export function InviteLinkCreateForm({ baseUrl }: { baseUrl: string }) {
             />
           </label>
           <div className="sm:col-span-2">
-            <Button type="submit" size="field" disabled={pending}>
+            <Button type="submit" size="default" disabled={pending}>
               {pending ? "생성 중…" : "링크 생성"}
             </Button>
           </div>

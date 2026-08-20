@@ -69,7 +69,7 @@ export function AdminCreditsPanel({
                 className={eventListFieldInputClass}
               />
             </label>
-            <Button type="submit" size="field" disabled={pending} className="w-full sm:w-auto">
+            <Button type="submit" size="default" disabled={pending} className="w-full sm:w-auto">
               충전 실행
             </Button>
           </form>

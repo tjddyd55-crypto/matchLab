@@ -10,6 +10,12 @@ import {
   resolveDivisionDisplayParts,
 } from "@/lib/event-division-fields";
 import { Button } from "@/components/ui/button";
+import {
+  formControlFieldStackClass,
+  formControlLabelMutedClass,
+  formControlSaveButtonClass,
+  formControlSelectClass,
+} from "@/lib/ui/form-control-ui";
 import { cn } from "@/lib/utils";
 
 export function BracketCreateForm({
@@ -58,17 +64,15 @@ export function BracketCreateForm({
       <form action={formAction} className="grid gap-4 md:grid-cols-2">
         <input type="hidden" name="eventId" value={eventId} />
         <div className="space-y-2 md:col-span-2">
-          <label className="block space-y-1 text-sm" htmlFor="bracket-division">
-            <span className="text-muted-foreground font-medium">경기구분 / 체급</span>
+          <label className={cn(formControlFieldStackClass, "md:col-span-2")} htmlFor="bracket-division">
+            <span className={formControlLabelMutedClass}>경기구분 / 체급</span>
             <select
               id="bracket-division"
               name="divisionId"
               required
               value={divisionId}
               onChange={(e) => setDivisionId(e.target.value)}
-              className={cn(
-                "border-input bg-background h-11 w-full rounded-md border px-3 text-base shadow-sm",
-              )}
+              className={formControlSelectClass}
             >
               {divisions.length === 0 ? (
                 <option value="">등록된 경기구분이 없습니다</option>
@@ -100,14 +104,12 @@ export function BracketCreateForm({
           ) : null}
         </div>
 
-        <label className="space-y-1 text-sm">
-          <span className="text-muted-foreground font-medium">대진 방식</span>
+        <label className={formControlFieldStackClass}>
+          <span className={formControlLabelMutedClass}>대진 방식</span>
           <select
             name="type"
             required
-            className={cn(
-              "border-input bg-background h-11 w-full rounded-md border px-3 text-base shadow-sm",
-            )}
+            className={formControlSelectClass}
             defaultValue={BracketType.single_elimination}
           >
             <option value={BracketType.single_elimination}>토너먼트</option>
@@ -118,8 +120,9 @@ export function BracketCreateForm({
         <div className="flex items-end md:col-span-1">
           <Button
             type="submit"
+            size="default"
             disabled={pending || divisions.length === 0}
-            className="h-11 w-full md:w-auto"
+            className={cn(formControlSaveButtonClass, "w-full md:w-auto")}
           >
             {pending ? "생성 중…" : "대진표 생성"}
           </Button>
