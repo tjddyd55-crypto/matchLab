@@ -3,7 +3,7 @@
  * 심판 로그인 가독성을 기준으로 `/login`과 `/judge/login`에 동일 적용.
  */
 
-import { matchonFieldInputClass } from "@/lib/ui/matchon-shell-ui";
+import { formControlLoginInputClass } from "@/lib/ui/form-control-ui";
 
 /** 중앙 정렬 셸 — header 없이 중앙 로고+카드만 */
 export const authLoginShellClass =
@@ -36,8 +36,8 @@ export const authLoginFieldStackClass = "flex flex-col gap-1.5";
 export const authLoginLabelClass =
   "text-[0.9375rem] font-semibold text-matchon-text-primary";
 
-/** 입력 높이 44px · font-size 16px (모바일 줌 방지) */
-export const authLoginInputClass = matchonFieldInputClass;
+/** 로그인 예외: 44px · font-size 16px (모바일 줌 방지) — 업무형 compact와 분리 */
+export const authLoginInputClass = formControlLoginInputClass;
 
 export const authLoginErrorClass =
   "text-sm leading-relaxed text-destructive";
