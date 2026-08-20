@@ -227,16 +227,21 @@ export function DivisionTemplateExcelImportDialog({
 
   return (
     <Dialog open={open} onOpenChange={handleOpenChange}>
-      <DialogContent className="flex max-h-[90vh] max-w-4xl flex-col gap-0 overflow-hidden p-0">
-        <DialogHeader className="border-b px-4 py-3">
+      <DialogContent
+        className={cn(
+          "flex max-h-[90vh] w-full max-w-[calc(100vw-2rem)] flex-col gap-0 overflow-hidden p-0 sm:max-w-[25rem]",
+          "[&_[data-slot=dialog-close]]:top-4 [&_[data-slot=dialog-close]]:right-4",
+        )}
+      >
+        <DialogHeader className="gap-1.5 border-b px-4 pb-3.5 pt-4">
           <DialogTitle>체급표 Excel 일괄 등록</DialogTitle>
-          <DialogDescription>
+          <DialogDescription className="leading-snug">
             샘플을 내려받아 작성한 뒤 업로드하세요. 파일 선택만으로 저장되지
             않습니다.
           </DialogDescription>
         </DialogHeader>
 
-        <div className="flex gap-2 border-b px-4 py-2 text-xs">
+        <div className="flex gap-2 border-b px-4 py-2">
           {(
             [
               ["upload", "업로드"],
@@ -247,7 +252,7 @@ export function DivisionTemplateExcelImportDialog({
             <span
               key={id}
               className={cn(
-                "rounded px-2 py-1",
+                "inline-flex h-8 items-center rounded-md px-3 text-xs font-medium",
                 step === id
                   ? "bg-matchon-brand-primary text-white"
                   : "bg-muted text-muted-foreground",
@@ -258,35 +263,36 @@ export function DivisionTemplateExcelImportDialog({
           ))}
         </div>
 
-        <div className="min-h-0 flex-1 space-y-3 overflow-auto px-4 py-3">
+        <div className="min-h-0 flex-1 overflow-x-hidden overflow-y-auto px-4 py-4">
           {error ? (
-            <p className="text-destructive text-sm" role="alert">
+            <p className="mb-4 text-sm text-destructive" role="alert">
               {error}
             </p>
           ) : null}
 
           {step === "upload" ? (
             <div className="space-y-4">
-              <div className="space-y-2 rounded-[10px] border border-[#E2E8F0] bg-[#F8FAFC] px-3 py-3">
-                <p className="text-sm text-matchon-text-secondary">
-                  부문·성별·체급명·체중·기준·정렬순서를 작성한 뒤 업로드하세요.
+              <div className="space-y-3 rounded-[10px] border border-matchon-border bg-matchon-primary-light/35 px-3.5 py-3.5">
+                <p className="text-sm leading-snug text-matchon-text-secondary">
+                  부문·성별·체급명·체중기준·정렬순서를 작성한 뒤 업로드하세요.
                 </p>
                 <Button
                   type="button"
                   variant="outline"
-                  size="sm"
-                  className="h-9"
+                  className="h-9 rounded-lg px-4"
                   disabled={pending}
                   onClick={() => void downloadSample()}
                 >
                   샘플 엑셀 다운로드
                 </Button>
               </div>
-              <div className="space-y-2">
-                <p className="text-sm font-medium text-[#0F172A]">
+              <div>
+                <p className="text-sm font-medium text-matchon-text-primary">
                   Excel 파일 업로드
                 </p>
                 <FileDropzone
+                  compact
+                  className="mt-2"
                   accept=".xlsx,application/vnd.openxmlformats-officedocument.spreadsheetml.sheet"
                   maxBytes={WEIGHT_CLASS_EXCEL_MAX_BYTES}
                   disabled={pending}
@@ -391,12 +397,13 @@ export function DivisionTemplateExcelImportDialog({
           ) : null}
         </div>
 
-        <DialogFooter className="border-t px-4 py-3">
+        <DialogFooter className="mx-0 mb-0 flex min-h-14 shrink-0 flex-row items-center justify-end gap-2 border-t bg-muted/50 px-4 py-2.5">
           {step === "preview" ? (
             <>
               <Button
                 type="button"
                 variant="outline"
+                className="h-9 px-4"
                 onClick={() => setStep("upload")}
                 disabled={pending}
               >
@@ -404,6 +411,7 @@ export function DivisionTemplateExcelImportDialog({
               </Button>
               <Button
                 type="button"
+                className="h-9 px-4"
                 disabled={!canCommit || pending}
                 onClick={() => void confirm()}
               >
@@ -412,7 +420,11 @@ export function DivisionTemplateExcelImportDialog({
             </>
           ) : null}
           {step === "result" ? (
-            <Button type="button" onClick={() => handleOpenChange(false)}>
+            <Button
+              type="button"
+              className="h-9 px-4"
+              onClick={() => handleOpenChange(false)}
+            >
               닫기
             </Button>
           ) : null}
@@ -420,6 +432,7 @@ export function DivisionTemplateExcelImportDialog({
             <Button
               type="button"
               variant="outline"
+              className="h-9 px-4"
               onClick={() => handleOpenChange(false)}
             >
               취소
