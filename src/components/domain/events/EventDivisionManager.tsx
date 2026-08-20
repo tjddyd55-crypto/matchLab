@@ -36,13 +36,12 @@ import {
 } from "@/lib/ui/division-gender-ui";
 import { Button } from "@/components/ui/button";
 import { useAppConfirmDialog } from "@/components/shared/app-confirm-dialog";
+import { formControlFieldCompactClass } from "@/lib/ui/form-control-ui";
 import { cn } from "@/lib/utils";
 
 type Div = OrganizerEventDetailVM["divisions"][number];
 
-const inputClass = cn(
-  "border-input bg-background h-8 w-full rounded-md border px-2 text-sm shadow-sm",
-);
+const inputClass = formControlFieldCompactClass;
 
 function resolveAgeGroupSportType(group: AgeGroupDivisionGroup): string {
   const all = [...group.male, ...group.female, ...group.unknown];
@@ -120,10 +119,10 @@ function DivisionRowEditor({ d }: { d: Div }) {
 function DivisionDeleteButton({
   eventId,
   divisionId,
-  compact = false,
 }: {
   eventId: string;
   divisionId: string;
+  /** @deprecated row actions always use Button size="sm" */
   compact?: boolean;
 }) {
   const router = useRouter();
@@ -173,7 +172,6 @@ function DivisionDeleteButton({
         size="sm"
         variant="outline"
         disabled={pending}
-        className={compact ? "h-8" : undefined}
       >
         삭제
       </Button>

@@ -18,6 +18,13 @@ import {
   formatRoundTimeLabel,
 } from "@/lib/match-operational-settings-options";
 import { Button } from "@/components/ui/button";
+import {
+  formControlCheckboxRowClass,
+  formControlFieldClass,
+  formControlFieldStackClass,
+  formControlLabelClass,
+  formControlSelectClass,
+} from "@/lib/ui/form-control-ui";
 
 type GenResult = ActionResult<AutoBracketGenerationSummary>;
 
@@ -212,11 +219,11 @@ export function AutoBracketGenerationPanel({
       </CardHeader>
       <CardContent className="px-4">
 
-      <div className="mt-4 grid gap-4 sm:grid-cols-2">
-        <label className="flex flex-col gap-1 text-sm">
-          <span className="font-medium">자동매칭 범위</span>
+      <div className="mt-4 grid gap-3 sm:grid-cols-2">
+        <label className={formControlFieldStackClass}>
+          <span className={formControlLabelClass}>자동매칭 범위</span>
           <select
-            className="border-input bg-background h-9 rounded-md border px-2 text-sm"
+            className={formControlSelectClass}
             value={autoMatchScope}
             onChange={(e) => {
               const nextScope = e.target.value as "all" | "court";
@@ -235,10 +242,10 @@ export function AutoBracketGenerationPanel({
           </select>
         </label>
 
-        <label className="flex flex-col gap-1 text-sm">
-          <span className="font-medium">대상 경기장</span>
+        <label className={formControlFieldStackClass}>
+          <span className={formControlLabelClass}>대상 경기장</span>
           <select
-            className="border-input bg-background h-9 rounded-md border px-2 text-sm"
+            className={formControlSelectClass}
             value={displayTargetCourtId}
             onChange={(e) => setTargetCourtId(e.target.value)}
             disabled={activeCourts.length === 0}
@@ -263,31 +270,32 @@ export function AutoBracketGenerationPanel({
           ) : null}
         </label>
 
-        <label className="flex flex-col gap-1 text-sm">
-          <span className="font-medium">경기장당 최대 경기 수</span>
+        <label className={formControlFieldStackClass}>
+          <span className={formControlLabelClass}>경기장당 최대 경기 수</span>
           <input
             type="number"
             min={1}
             placeholder="제한 없음"
-            className="border-input bg-background h-9 rounded-md border px-2 text-sm"
+            className={formControlFieldClass}
             value={maxMatchesPerCourt}
             onChange={(e) => setMaxMatchesPerCourt(e.target.value)}
           />
         </label>
 
-        <label className="flex items-center gap-2 text-sm">
+        <label className={formControlCheckboxRowClass}>
           <input
             type="checkbox"
+            className="size-4"
             checked={forbidSameGym}
             onChange={(e) => setForbidSameGym(e.target.checked)}
           />
           <span>같은 체육관끼리 매칭 금지 (기본 ON)</span>
         </label>
 
-        <label className="flex flex-col gap-1 text-sm">
-          <span className="font-medium">대진 방식</span>
+        <label className={formControlFieldStackClass}>
+          <span className={formControlLabelClass}>대진 방식</span>
           <select
-            className="border-input bg-background h-9 rounded-md border px-2 text-sm"
+            className={formControlSelectClass}
             value={autoBoutFormat}
             onChange={(e) =>
               setAutoBoutFormat(e.target.value as "tournament" | "one_match")
@@ -298,10 +306,10 @@ export function AutoBracketGenerationPanel({
           </select>
         </label>
 
-        <label className="flex flex-col gap-1 text-sm">
-          <span className="font-medium">라운드 수</span>
+        <label className={formControlFieldStackClass}>
+          <span className={formControlLabelClass}>라운드 수</span>
           <select
-            className="border-input bg-background h-9 rounded-md border px-2 text-sm"
+            className={formControlSelectClass}
             value={defaultRoundCount}
             onChange={(e) => setDefaultRoundCount(e.target.value)}
           >
@@ -313,10 +321,10 @@ export function AutoBracketGenerationPanel({
           </select>
         </label>
 
-        <label className="flex flex-col gap-1 text-sm">
-          <span className="font-medium">라운드 시간</span>
+        <label className={formControlFieldStackClass}>
+          <span className={formControlLabelClass}>라운드 시간</span>
           <select
-            className="border-input bg-background h-9 rounded-md border px-2 text-sm"
+            className={formControlSelectClass}
             value={defaultRoundTimeSec}
             onChange={(e) => setDefaultRoundTimeSec(e.target.value)}
           >
@@ -388,7 +396,7 @@ export function AutoBracketGenerationPanel({
           {buildHiddenFields(false)}
           <Button
             type="submit"
-            size="field"
+            size="default"
             disabled={isPending || activeCourts.length === 0 || courtScopeInvalid}
           >
             {applyPending ? "적용 중…" : "적용"}

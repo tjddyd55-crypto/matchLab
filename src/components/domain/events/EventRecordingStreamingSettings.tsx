@@ -6,6 +6,14 @@ import { updateEventAction } from "@/features/events/actions";
 import type { ActionResult } from "@/lib/action-result";
 import type { OrganizerEventDetailVM } from "@/lib/services/event.service";
 import { Button } from "@/components/ui/button";
+import {
+  formControlCheckboxRowClass,
+  formControlFieldStackClass,
+  formControlFormGapClass,
+  formControlLabelMutedClass,
+  formControlSaveButtonClass,
+  formControlTextareaClass,
+} from "@/lib/ui/form-control-ui";
 import { cn } from "@/lib/utils";
 
 function TogglePair({
@@ -18,7 +26,7 @@ function TogglePair({
   defaultChecked?: boolean;
 }) {
   return (
-    <label className="flex cursor-pointer items-center gap-2 text-sm">
+    <label className={formControlCheckboxRowClass}>
       <input
         type="checkbox"
         name={name}
@@ -48,7 +56,7 @@ export function EventRecordingStreamingSettings({
   }, [state, router]);
 
   return (
-    <div className="ring-foreground/10 space-y-4 rounded-xl border bg-card p-4 shadow-sm md:p-6">
+    <div className="ring-foreground/10 space-y-4 rounded-xl border bg-card p-4 shadow-sm md:p-5">
       <h2 className="text-lg font-semibold">촬영·영상·스트리밍</h2>
       <p className="text-muted-foreground text-sm">
         스트림 키·자체 스트리밍 서버·YouTube OAuth 연동은 저장하지 않습니다.
@@ -56,7 +64,7 @@ export function EventRecordingStreamingSettings({
       {state?.ok === false ? (
         <p className="text-destructive text-sm">{state.error.message}</p>
       ) : null}
-      <form action={action} className="grid gap-4">
+      <form action={action} className={cn("grid", formControlFormGapClass)}>
         <input type="hidden" name="intent" value="recording" />
         <input type="hidden" name="eventId" value={event.id} />
         <div className="grid gap-2 sm:grid-cols-2">
@@ -76,16 +84,14 @@ export function EventRecordingStreamingSettings({
             defaultChecked={event.liveStreamingEnabled}
           />
         </div>
-        <label className="space-y-1 text-sm">
-          <span className="text-muted-foreground">스트리밍 안내 문구</span>
+        <label className={formControlFieldStackClass}>
+          <span className={formControlLabelMutedClass}>스트리밍 안내 문구</span>
           <textarea
             name="streamingNoticeText"
             rows={3}
             maxLength={4000}
             defaultValue={event.streamingNoticeText ?? ""}
-            className={cn(
-              "border-input bg-background min-h-[72px] w-full rounded-md border px-3 py-2 text-sm shadow-sm",
-            )}
+            className={formControlTextareaClass}
           />
         </label>
         <TogglePair
@@ -93,9 +99,16 @@ export function EventRecordingStreamingSettings({
           label="신청 시 스트리밍 동의 필요"
           defaultChecked={event.streamingConsentRequired}
         />
-        <Button type="submit" disabled={pending}>
-          {pending ? "저장 중…" : "설정 저장"}
-        </Button>
+        <div>
+          <Button
+            type="submit"
+            size="default"
+            disabled={pending}
+            className={formControlSaveButtonClass}
+          >
+            {pending ? "저장 중…" : "설정 저장"}
+          </Button>
+        </div>
       </form>
     </div>
   );

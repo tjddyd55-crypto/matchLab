@@ -16,6 +16,11 @@ import { useAppConfirmDialog } from "@/components/shared/app-confirm-dialog";
 import { MatchonStatusBadge } from "@/components/shared/MatchonStatusBadge";
 import { BracketsEmptyState } from "@/components/domain/brackets/BracketsEmptyState";
 import type { EventCourtVM } from "@/lib/services/event-court.service";
+import {
+  formControlFieldClass,
+  formControlFieldCompactClass,
+  formControlInlineRowClass,
+} from "@/lib/ui/form-control-ui";
 import { cn } from "@/lib/utils";
 
 export function EventCourtManager({
@@ -79,7 +84,7 @@ export function EventCourtManager({
       <CardContent className="flex flex-col gap-4 px-4">
 
       <form
-        className="flex flex-wrap gap-2"
+        className={formControlInlineRowClass}
         onSubmit={(e) => {
           e.preventDefault();
           const fd = new FormData();
@@ -92,12 +97,10 @@ export function EventCourtManager({
           value={newName}
           onChange={(e) => setNewName(e.target.value)}
           placeholder="경기장 이름 (예: 1번 경기장)"
-          className={cn(
-            "border-input bg-background h-11 min-w-[12rem] flex-1 rounded-md border px-3 text-sm shadow-sm focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring",
-          )}
+          className={cn(formControlFieldClass, "min-w-[12rem] flex-1")}
           maxLength={100}
         />
-        <Button type="submit" size="field" disabled={pending || !newName.trim()}>
+        <Button type="submit" size="default" disabled={pending || !newName.trim()}>
           경기장 추가
         </Button>
       </form>
@@ -120,7 +123,7 @@ export function EventCourtManager({
                   <div className="min-w-0 flex-1">
                     {isEditing ? (
                       <form
-                        className="flex flex-wrap items-center gap-2"
+                        className={formControlInlineRowClass}
                         onSubmit={(e) => {
                           e.preventDefault();
                           const fd = new FormData();
@@ -134,18 +137,20 @@ export function EventCourtManager({
                         <input
                           value={editName}
                           onChange={(e) => setEditName(e.target.value)}
-                          className="border-input bg-background h-8 min-w-[10rem] flex-1 rounded-md border px-2 text-sm"
+                          className={cn(
+                            formControlFieldCompactClass,
+                            "min-w-[10rem] flex-1",
+                          )}
                           maxLength={100}
                           required
                         />
-                        <Button type="submit" size="sm" className="h-8" disabled={pending}>
+                        <Button type="submit" size="sm" disabled={pending}>
                           저장
                         </Button>
                         <Button
                           type="button"
                           size="sm"
                           variant="outline"
-                          className="h-8"
                           onClick={() => setEditingId(null)}
                         >
                           취소
@@ -179,23 +184,23 @@ export function EventCourtManager({
                       <>
                         <Button
                           type="button"
-                          size="sm"
+                          size="icon"
                           variant="outline"
-                          className="h-7 px-2 text-xs"
                           disabled={pending || activeIdx <= 0}
                           onClick={() => moveCourt(court.id, -1)}
+                          aria-label="위로"
                         >
                           ↑
                         </Button>
                         <Button
                           type="button"
-                          size="sm"
+                          size="icon"
                           variant="outline"
-                          className="h-7 px-2 text-xs"
                           disabled={
                             pending || activeIdx < 0 || activeIdx >= activeCourts.length - 1
                           }
                           onClick={() => moveCourt(court.id, 1)}
+                          aria-label="아래로"
                         >
                           ↓
                         </Button>
@@ -203,7 +208,6 @@ export function EventCourtManager({
                           type="button"
                           size="sm"
                           variant="outline"
-                          className="h-7 px-2 text-xs"
                           disabled={pending}
                           onClick={() => {
                             setEditingId(court.id);
@@ -216,7 +220,6 @@ export function EventCourtManager({
                           type="button"
                           size="sm"
                           variant="outline"
-                          className="h-7 px-2 text-xs"
                           disabled={pending}
                           onClick={async () => {
                             const matchNote =
@@ -243,7 +246,6 @@ export function EventCourtManager({
                         type="button"
                         size="sm"
                         variant="secondary"
-                        className="h-7 px-2 text-xs"
                         disabled={pending}
                         onClick={async () => {
                           const ok = await confirm({

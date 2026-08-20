@@ -156,7 +156,7 @@ export function EventQrPrintBoard({
               <Button
                 type="button"
                 variant="outline"
-                size="field"
+                size="default"
                 className="w-full sm:w-auto"
                 onClick={() => triggerEventQrPrint("judge-common")}
               >
@@ -165,7 +165,7 @@ export function EventQrPrintBoard({
               <Button
                 type="button"
                 variant="outline"
-                size="field"
+                size="default"
                 className="w-full sm:w-auto"
                 onClick={() => triggerEventQrPrint("judge-individual")}
               >
@@ -176,7 +176,7 @@ export function EventQrPrintBoard({
           <Button
             type="button"
             variant="outline"
-            size="field"
+            size="default"
             className="w-full sm:w-auto"
             onClick={() => triggerEventQrPrint("judge-court-score")}
           >
@@ -185,7 +185,7 @@ export function EventQrPrintBoard({
           <Button
             type="button"
             variant="outline"
-            size="field"
+            size="default"
             className="w-full sm:w-auto"
             onClick={() => triggerEventQrPrint("judge-court-head")}
           >
@@ -194,7 +194,7 @@ export function EventQrPrintBoard({
           <Button
             type="button"
             variant="outline"
-            size="field"
+            size="default"
             className="w-full sm:w-auto"
             onClick={() => triggerEventQrPrint("spectator-all")}
             disabled={!overviewQrEnabled}
@@ -204,7 +204,7 @@ export function EventQrPrintBoard({
           <Button
             type="button"
             variant="outline"
-            size="field"
+            size="default"
             className="w-full sm:w-auto"
             onClick={() => triggerEventQrPrint("spectator-brackets")}
             disabled={!isSpectatorTabQrEnabled(spectatorCtx, "brackets")}
@@ -214,7 +214,7 @@ export function EventQrPrintBoard({
           <Button
             type="button"
             variant="outline"
-            size="field"
+            size="default"
             className="w-full sm:w-auto"
             onClick={() => triggerEventQrPrint("spectator-results")}
             disabled={!isSpectatorTabQrEnabled(spectatorCtx, "results")}
@@ -224,7 +224,7 @@ export function EventQrPrintBoard({
           <Button
             type="button"
             variant="outline"
-            size="field"
+            size="default"
             className="w-full sm:w-auto"
             onClick={() => triggerEventQrPrint("spectator-live")}
             disabled={!isSpectatorTabQrEnabled(spectatorCtx, "live")}
@@ -233,7 +233,7 @@ export function EventQrPrintBoard({
           </Button>
           <Button
             type="button"
-            size="field"
+            size="default"
             className="w-full sm:w-auto"
             onClick={printAll}
           >

@@ -15,11 +15,10 @@ import {
   type DivisionGenderTone,
 } from "@/lib/ui/division-gender-ui";
 import { Button } from "@/components/ui/button";
+import { formControlFieldCompactClass } from "@/lib/ui/form-control-ui";
 import { cn } from "@/lib/utils";
 
-const inputClass = cn(
-  "border-input bg-background h-8 w-full rounded-md border px-2 text-sm shadow-sm",
-);
+const inputClass = formControlFieldCompactClass;
 
 const listAddGridClass = divisionListRowGridClass;
 
