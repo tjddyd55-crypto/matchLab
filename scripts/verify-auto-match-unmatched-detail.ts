@@ -1,6 +1,7 @@
 /**
  * verify:auto-match-unmatched-detail
  * 미매칭 설명 metadata — 알고리즘 pairing 결과는 바꾸지 않고 설명만 검증.
+ * Preview UX: 미리보기 → 바로 AutoBracketPreviewDialog (inline panel 없음)
  */
 import assert from "node:assert/strict";
 import { readFileSync } from "node:fs";
@@ -103,9 +104,25 @@ const panel = readFileSync(
   join(process.cwd(), "src/components/domain/brackets/AutoBracketGenerationPanel.tsx"),
   "utf8",
 );
-assert.ok(panel.includes("미매칭 상세 미리보기"));
+assert.ok(!panel.includes("미매칭 상세 미리보기"));
+assert.ok(!panel.includes("자동매칭 미리보기"));
 assert.ok(!panel.includes("max-h-40 space-y-1 overflow-y-auto"));
-assert.ok(panel.includes("UnmatchedAutoMatchDetailDialog"));
+assert.ok(panel.includes("AutoBracketPreviewDialog"));
+assert.ok(panel.includes("setPreviewDialogOpen(true)"));
+assert.ok(panel.includes('previewOnly'));
+
+const dialog = readFileSync(
+  join(
+    process.cwd(),
+    "src/components/domain/brackets/UnmatchedAutoMatchDetailDialog.tsx",
+  ),
+  "utf8",
+);
+assert.ok(dialog.includes("자동대진 미리보기"));
+assert.ok(dialog.includes("max-w-7xl"));
+assert.ok(dialog.includes("max-h-[88dvh]"));
+assert.ok(dialog.includes("w-[calc(100vw-4rem)]"));
+assert.ok(dialog.includes("formControlFieldClass"));
 
 const service = readFileSync(
   join(process.cwd(), "src/lib/services/bracket-auto-match.service.ts"),

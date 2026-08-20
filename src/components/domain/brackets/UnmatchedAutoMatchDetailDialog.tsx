@@ -1,7 +1,10 @@
 "use client";
 
-import { useMemo, useState } from "react";
-import type { AutoBracketUnmatchedDetail } from "@/lib/services/bracket-auto-match.service";
+import { useEffect, useMemo, useState } from "react";
+import type {
+  AutoBracketCourtAssignmentSummary,
+  AutoBracketUnmatchedDetail,
+} from "@/lib/services/bracket-auto-match.service";
 import type { UnmatchedDetailReasonCode } from "@/lib/brackets/explain-record-unmatched";
 import { Button } from "@/components/ui/button";
 import {
@@ -12,6 +15,10 @@ import {
   DialogHeader,
   DialogTitle,
 } from "@/components/ui/dialog";
+import {
+  formControlFieldClass,
+  formControlInlineRowClass,
+} from "@/lib/ui/form-control-ui";
 import { cn } from "@/lib/utils";
 
 const FILTERS: Array<{
@@ -51,23 +58,39 @@ function matchesFilter(
   return def.codes.includes(row.reasonCode);
 }
 
-export function UnmatchedAutoMatchDetailDialog({
-  open,
-  onOpenChange,
-  unmatchedDetails,
-  matchedFighterCount,
-  unmatchedCount,
-  totalFighterCount,
-}: {
+export type AutoBracketPreviewDialogProps = {
   open: boolean;
   onOpenChange: (open: boolean) => void;
-  unmatchedDetails: AutoBracketUnmatchedDetail[];
+  plannedMatches: number;
   matchedFighterCount: number;
   unmatchedCount: number;
   totalFighterCount: number;
-}) {
+  divisionsProcessed: number;
+  courtAssignments?: AutoBracketCourtAssignmentSummary[];
+  messages?: string[];
+  unmatchedDetails: AutoBracketUnmatchedDetail[];
+};
+
+export function AutoBracketPreviewDialog({
+  open,
+  onOpenChange,
+  plannedMatches,
+  matchedFighterCount,
+  unmatchedCount,
+  totalFighterCount,
+  divisionsProcessed,
+  courtAssignments = [],
+  messages = [],
+  unmatchedDetails,
+}: AutoBracketPreviewDialogProps) {
   const [filter, setFilter] = useState<(typeof FILTERS)[number]["id"]>("all");
   const [query, setQuery] = useState("");
+
+  useEffect(() => {
+    if (!open) return;
+    setFilter("all");
+    setQuery("");
+  }, [open, unmatchedDetails]);
 
   const rows = useMemo(() => {
     const q = query.trim().toLowerCase();
@@ -81,29 +104,76 @@ export function UnmatchedAutoMatchDetailDialog({
     });
   }, [unmatchedDetails, filter, query]);
 
+  const metrics = [
+    { label: "전체", value: `${totalFighterCount}명` },
+    { label: "자동매칭", value: `${matchedFighterCount}명` },
+    { label: "미매칭", value: `${unmatchedCount}명` },
+    { label: "생성 예정", value: `${plannedMatches}경기` },
+    { label: "처리 경기구분", value: `${divisionsProcessed}개` },
+  ];
+
   return (
     <Dialog open={open} onOpenChange={onOpenChange}>
       <DialogContent
-        className="flex max-h-[80dvh] w-full flex-col gap-0 overflow-hidden p-0 sm:max-w-5xl"
+        className={cn(
+          "flex max-h-[88dvh] w-[calc(100vw-4rem)] max-w-7xl flex-col gap-0 overflow-hidden p-0",
+          "sm:max-w-7xl",
+        )}
         showCloseButton
       >
-        <DialogHeader className="shrink-0 space-y-2 border-b px-4 py-4 sm:px-5">
-          <DialogTitle>자동대진 미매칭 상세</DialogTitle>
-          <DialogDescription>
-            매칭되지 않은 선수와 제외 사유를 확인할 수 있습니다.
-          </DialogDescription>
-          <p className="text-sm text-matchon-text-secondary">
-            전체 {totalFighterCount}명 · 자동매칭 {matchedFighterCount}명 ·
-            미매칭 {unmatchedCount}명
-          </p>
-          <div className="flex flex-wrap gap-1.5 pt-1">
+        <DialogHeader className="shrink-0 space-y-3 border-b border-matchon-border px-5 py-4 text-left">
+          <div className="space-y-1.5 pr-8">
+            <DialogTitle className="text-base font-semibold sm:text-lg">
+              자동대진 미리보기
+            </DialogTitle>
+            <DialogDescription className="text-sm text-muted-foreground">
+              생성 예정 경기와 미매칭 선수의 상세 사유를 확인할 수 있습니다.
+            </DialogDescription>
+          </div>
+
+          <div className="flex flex-wrap gap-x-4 gap-y-2 rounded-lg border border-matchon-border bg-muted/30 px-3 py-2.5">
+            {metrics.map((m) => (
+              <div key={m.label} className="min-w-[4.5rem]">
+                <p className="text-[11px] font-medium text-muted-foreground">
+                  {m.label}
+                </p>
+                <p className="text-sm font-semibold tabular-nums text-matchon-text-primary">
+                  {m.value}
+                </p>
+              </div>
+            ))}
+          </div>
+
+          {courtAssignments.length > 0 ? (
+            <div className="text-sm">
+              <span className="font-medium text-matchon-text-primary">
+                경기장 배정
+              </span>
+              <span className="text-muted-foreground"> · </span>
+              <span className="text-matchon-text-secondary">
+                {courtAssignments
+                  .map((c) => `${c.courtLabel} ${c.assignedCount}경기`)
+                  .join(" · ")}
+              </span>
+            </div>
+          ) : null}
+
+          {messages.length > 0 ? (
+            <ul className="space-y-1 text-xs text-amber-900 dark:text-amber-100">
+              {messages.map((m) => (
+                <li key={m}>⚠ {m}</li>
+              ))}
+            </ul>
+          ) : null}
+
+          <div className={cn(formControlInlineRowClass, "gap-1.5")}>
             {FILTERS.map((f) => (
               <button
                 key={f.id}
                 type="button"
                 onClick={() => setFilter(f.id)}
                 className={cn(
-                  "rounded-md border px-2.5 py-1 text-xs font-medium",
+                  "inline-flex h-8 items-center rounded-md border px-3 text-xs font-medium",
                   filter === f.id
                     ? "border-matchon-primary bg-matchon-primary/10 text-matchon-primary"
                     : "border-matchon-border bg-white text-matchon-text-secondary",
@@ -118,23 +188,31 @@ export function UnmatchedAutoMatchDetailDialog({
             value={query}
             onChange={(e) => setQuery(e.target.value)}
             placeholder="선수명 / 체육관 검색"
-            className="mt-1 h-9 w-full rounded-md border border-matchon-border bg-white px-3 text-sm outline-none focus-visible:ring-2 focus-visible:ring-matchon-primary/30"
+            className={formControlFieldClass}
           />
         </DialogHeader>
 
-        <div className="min-h-0 flex-1 overflow-y-auto px-4 py-3 sm:px-5">
-          {/* PC table */}
+        <div className="min-h-0 flex-1 overflow-y-auto px-5 py-3">
           <div className="hidden md:block">
             <table className="w-full table-fixed border-collapse text-left text-sm">
-              <thead className="sticky top-0 bg-popover text-xs text-matchon-text-secondary">
+              <colgroup>
+                <col className="w-[100px]" />
+                <col className="w-[170px]" />
+                <col className="w-[100px]" />
+                <col className="w-[90px]" />
+                <col className="w-[100px]" />
+                <col className="w-[64px]" />
+                <col />
+              </colgroup>
+              <thead className="sticky top-0 z-[1] bg-popover text-xs text-matchon-text-secondary">
                 <tr className="border-b border-matchon-border">
-                  <th className="w-[12%] py-2 pr-2 font-medium">선수</th>
-                  <th className="w-[16%] py-2 pr-2 font-medium">체육관</th>
-                  <th className="w-[10%] py-2 pr-2 font-medium">경기구분</th>
-                  <th className="w-[10%] py-2 pr-2 font-medium">체급</th>
-                  <th className="w-[12%] py-2 pr-2 font-medium">전적</th>
-                  <th className="w-[8%] py-2 pr-2 font-medium">후보</th>
-                  <th className="w-[32%] py-2 font-medium">미매칭 사유</th>
+                  <th className="py-2 pr-2 font-medium">선수</th>
+                  <th className="py-2 pr-2 font-medium">체육관</th>
+                  <th className="py-2 pr-2 font-medium">경기구분</th>
+                  <th className="py-2 pr-2 font-medium">체급</th>
+                  <th className="py-2 pr-2 font-medium">전적</th>
+                  <th className="py-2 pr-2 text-center font-medium">후보</th>
+                  <th className="py-2 font-medium">미매칭 사유</th>
                 </tr>
               </thead>
               <tbody>
@@ -143,21 +221,23 @@ export function UnmatchedAutoMatchDetailDialog({
                     key={`${row.fighterName}-${row.gymName}-${idx}`}
                     className="border-b border-matchon-border/70 align-top"
                   >
-                    <td className="py-2.5 pr-2 font-medium text-matchon-text-primary">
+                    <td className="py-3 pr-2 font-medium text-matchon-text-primary">
                       {row.fighterName}
                     </td>
-                    <td className="py-2.5 pr-2 break-words text-matchon-text-secondary">
+                    <td className="py-3 pr-2 break-words text-matchon-text-secondary">
                       {row.gymName}
                     </td>
-                    <td className="py-2.5 pr-2">{row.ageGroupLabel}</td>
-                    <td className="py-2.5 pr-2">{row.weightClassLabel}</td>
-                    <td className="py-2.5 pr-2">{row.recordText}</td>
-                    <td className="py-2.5 pr-2">{row.candidateCount}명</td>
-                    <td className="py-2.5">
-                      <p className="whitespace-pre-wrap break-words text-matchon-text-primary">
+                    <td className="py-3 pr-2">{row.ageGroupLabel}</td>
+                    <td className="py-3 pr-2">{row.weightClassLabel}</td>
+                    <td className="py-3 pr-2">{row.recordText}</td>
+                    <td className="py-3 pr-2 text-center tabular-nums">
+                      {row.candidateCount}명
+                    </td>
+                    <td className="py-3">
+                      <p className="leading-snug break-keep text-matchon-text-primary">
                         {row.reasonText}
                       </p>
-                      <p className="mt-1 text-xs text-matchon-text-secondary">
+                      <p className="mt-1 text-xs text-muted-foreground">
                         {row.candidateFlowText}
                       </p>
                     </td>
@@ -167,7 +247,6 @@ export function UnmatchedAutoMatchDetailDialog({
             </table>
           </div>
 
-          {/* Mobile cards */}
           <ul className="space-y-3 md:hidden">
             {rows.map((row, idx) => (
               <li
@@ -182,12 +261,14 @@ export function UnmatchedAutoMatchDetailDialog({
                   </span>
                 </p>
                 <p className="mt-1 text-xs text-matchon-text-secondary">
-                  {row.ageGroupLabel} / {row.weightClassLabel} · {row.recordText}
+                  {row.ageGroupLabel} · {row.weightClassLabel} · {row.recordText}
+                  {" · "}
+                  후보 {row.candidateCount}명
                 </p>
-                <p className="mt-2 text-sm whitespace-pre-wrap break-words">
+                <p className="mt-2 text-sm leading-snug break-keep">
                   {row.reasonText}
                 </p>
-                <p className="mt-1 text-xs text-matchon-text-secondary">
+                <p className="mt-1 text-xs text-muted-foreground">
                   {row.candidateFlowText}
                 </p>
               </li>
@@ -196,17 +277,18 @@ export function UnmatchedAutoMatchDetailDialog({
 
           {rows.length === 0 ? (
             <p className="py-8 text-center text-sm text-matchon-text-secondary">
-              조건에 맞는 미매칭 선수가 없습니다.
+              {unmatchedDetails.length === 0
+                ? "미매칭 선수가 없습니다. 생성 예정 경기만 요약에 표시됩니다."
+                : "조건에 맞는 미매칭 선수가 없습니다."}
             </p>
           ) : null}
         </div>
 
-        <DialogFooter className="shrink-0">
+        <DialogFooter className="shrink-0 border-t border-matchon-border px-5 py-3 sm:justify-end">
           <Button
             type="button"
             variant="outline"
-            size="sm"
-            className="h-9"
+            size="default"
             onClick={() => onOpenChange(false)}
           >
             닫기
@@ -216,3 +298,6 @@ export function UnmatchedAutoMatchDetailDialog({
     </Dialog>
   );
 }
+
+/** @deprecated 이름 호환 — AutoBracketPreviewDialog 사용 */
+export const UnmatchedAutoMatchDetailDialog = AutoBracketPreviewDialog;
