@@ -225,12 +225,11 @@ export function OrganizerManualApplicationPanel({
               </div>
               <div>
                 <label className={labelClass} htmlFor="manual-birthDate">
-                  생년월일 *
+                  생년월일
                 </label>
                 <AppDateInput
                   id="manual-birthDate"
                   name="birthDate"
-                  required
                   disallowFuture
                   aria-label="생년월일"
                   inputClassName={fieldClass}
@@ -339,13 +338,16 @@ export function OrganizerManualApplicationPanel({
               </div>
             </div>
 
-            <AthleteInsuranceProfileFields idPrefix="manual" />
+            <AthleteInsuranceProfileFields idPrefix="manual" required={false} />
+            <p className="text-muted-foreground text-[11px]">
+              1차 신청에서는 주민등록번호·보험 동의 없이도 등록할 수 있습니다. 추후
+              개인정보 수집 단계에서 다시 요청됩니다.
+            </p>
             <label className="flex cursor-pointer gap-2 text-sm">
               <input
                 type="checkbox"
                 name="insuranceConsentConfirmed"
                 className="mt-0.5 size-5 accent-primary"
-                required
               />
               <span>
                 <span className="block font-medium">

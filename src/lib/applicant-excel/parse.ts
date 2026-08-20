@@ -139,7 +139,7 @@ export async function parseApplicantExcelWorkbook(
   }
   if (bestScore < APPLICANT_EXCEL_REQUIRED_HEADERS.length) {
     throw new Error(
-      "필수 컬럼(선수명, 성별, 생년월일, 체육관명, 경기구분, 신청체중)을 찾지 못했습니다.",
+      "필수 컬럼(선수명, 성별, 체육관명, 경기구분, 신청체중)을 찾지 못했습니다.",
     );
   }
 

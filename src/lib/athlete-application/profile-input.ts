@@ -49,3 +49,20 @@ export const insuranceConsentMustAgreeSchema = z
   .refine((v) => v === true, {
     message: "보험가입 개인정보 수집·이용에 동의해 주세요.",
   });
+
+/** 1차 신청·주최자 직접등록: 미입력 허용 */
+export const optionalResidentRegistrationNumberFieldSchema = z
+  .string()
+  .trim()
+  .optional()
+  .transform((raw, ctx) => {
+    if (!raw) return undefined;
+    const parsed = parseResidentRegistrationNumber(raw);
+    if (!parsed.ok) {
+      ctx.addIssue({ code: "custom", message: parsed.error });
+      return z.NEVER;
+    }
+    return parsed.digits;
+  });
+
+export const optionalInsuranceConsentSchema = z.boolean().optional().default(false);

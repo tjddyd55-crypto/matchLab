@@ -1,3 +1,5 @@
+import { MINIMAL_APPLICATION_REQUIRED_FIELDS } from "@/lib/applications/minimal-application";
+
 export const APPLICANT_EXCEL_HEADERS = [
   "번호",
   "체육관명",
@@ -37,12 +39,7 @@ export type ApplicantExcelHeader =
   | (typeof APPLICANT_EXCEL_OPTIONAL_HEADERS)[number];
 
 export const APPLICANT_EXCEL_REQUIRED_HEADERS = [
-  "선수명",
-  "성별",
-  "생년월일",
-  "체육관명",
-  "경기구분",
-  "신청체중",
+  ...MINIMAL_APPLICATION_REQUIRED_FIELDS,
 ] as const satisfies readonly ApplicantExcelCanonicalHeader[];
 
 /** 운영 파일·레거시 샘플 호환용 header alias → canonical */

@@ -39,6 +39,8 @@ export type ApplicantExcelPreviewRow = {
   insuranceConsentLabel: string;
   /** 서버 commit 전용. analyze action 응답에서는 제거한다. */
   insuranceRrnDigits?: string;
+  /** commit 시 consent snapshot 생성 여부 (서버 전용) */
+  insuranceConsentAgreed?: boolean;
   phone: string;
   guardianName: string;
   guardianPhone: string;

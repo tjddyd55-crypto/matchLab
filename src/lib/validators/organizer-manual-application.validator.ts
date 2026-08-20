@@ -3,8 +3,8 @@ import { ApplicationStatus, PaymentStatus } from "@/generated/prisma";
 import {
   athleteCareerTextSchema,
   athleteRecordTextSchema,
-  insuranceConsentMustAgreeSchema,
-  residentRegistrationNumberFieldSchema,
+  optionalInsuranceConsentSchema,
+  optionalResidentRegistrationNumberFieldSchema,
 } from "@/lib/athlete-application/profile-input";
 
 const genderSchema = z.string().trim().min(1, "성별을 선택해 주세요.");
@@ -22,7 +22,10 @@ export const organizerManualApplicationSchema = z
     gymName: z.string().trim().max(120).optional(),
     fighterName: z.string().trim().min(1, "선수 이름을 입력해 주세요."),
     gender: genderSchema,
-    birthDate: z.coerce.date({ message: "생년월일을 선택해 주세요." }),
+    birthDate: z.coerce
+      .date({ message: "생년월일 형식이 올바르지 않습니다." })
+      .optional()
+      .nullable(),
     phone: z
       .string()
       .trim()
@@ -60,8 +63,8 @@ export const organizerManualApplicationSchema = z
       .transform((s) => (s === "" ? undefined : s)),
     recordText: athleteRecordTextSchema,
     careerText: athleteCareerTextSchema,
-    residentRegistrationNumber: residentRegistrationNumberFieldSchema,
-    insuranceConsentConfirmed: insuranceConsentMustAgreeSchema,
+    residentRegistrationNumber: optionalResidentRegistrationNumberFieldSchema,
+    insuranceConsentConfirmed: optionalInsuranceConsentSchema,
     confirmDuplicate: z.boolean().optional().default(false),
     linkFighterId: z.string().trim().optional(),
   })

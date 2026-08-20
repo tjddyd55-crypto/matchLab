@@ -34,7 +34,6 @@ import { fighterService } from "@/lib/services/fighter.service";
 import {
   analyzeApplicantExcelRows,
   assertPreviewReadyToCommit,
-  birthDateToUtc,
   identityFromExistingApplication,
 } from "@/lib/applicant-excel/analyze";
 import {
@@ -56,6 +55,7 @@ import type {
   ApplicantExcelPreview,
 } from "@/lib/applicant-excel/types";
 import { compactText } from "@/lib/applicant-excel/normalize";
+import { fighterBirthDateForPersist } from "@/lib/fighter/birth-date";
 import { normalizeGymFighterPhone } from "@/lib/gym-fighter-management";
 import {
   buildCustomFormSnapshot,
@@ -253,6 +253,8 @@ type GymApplicationCreateContext = {
   applicationWeightKg?: number | null;
   insuranceRrnDigits?: string | null;
   insuranceConsent?: import("@/lib/athlete-application/insurance-consent").InsuranceConsentSnapshot | null;
+  /** false면 RRN·보험동의 없이 저장 (1차 신청·엑셀·주최자 직접등록). 기본 true */
+  insurancePiiRequired?: boolean;
   customFormSnapshot?: CustomFormSnapshot | null;
   organizerManualEntry?: {
     manualCreatedByUserId: string;
@@ -367,20 +369,25 @@ async function createGymEventApplication(
     applicationAgreementSnapshot.customForm = ctx.customFormSnapshot;
   }
 
-  if (!ctx.insuranceRrnDigits?.trim()) {
-    throw new AppError(
-      "VALIDATION_ERROR",
-      "보험가입용 주민등록번호를 입력해 주세요.",
-    );
-  }
-  if (!ctx.insuranceConsent) {
-    throw new AppError(
-      "VALIDATION_ERROR",
-      "보험가입 개인정보 수집·이용 동의가 필요합니다.",
-    );
+  if (ctx.insurancePiiRequired !== false) {
+    if (!ctx.insuranceRrnDigits?.trim()) {
+      throw new AppError(
+        "VALIDATION_ERROR",
+        "보험가입용 주민등록번호를 입력해 주세요.",
+      );
+    }
+    if (!ctx.insuranceConsent) {
+      throw new AppError(
+        "VALIDATION_ERROR",
+        "보험가입 개인정보 수집·이용 동의가 필요합니다.",
+      );
+    }
   }
 
-  const encrypted = encryptInsuranceResidentNumber(ctx.insuranceRrnDigits);
+  const rrnDigits = ctx.insuranceRrnDigits?.trim() || null;
+  const encrypted = rrnDigits
+    ? encryptInsuranceResidentNumber(rrnDigits)
+    : null;
 
   const persist = async (client: Prisma.TransactionClient) =>
     applicationRepository.createEventApplicationWithPayment(
@@ -408,12 +415,14 @@ async function createGymEventApplication(
           ctx.schoolLevelSnapshot ?? ctx.fighter.schoolLevel ?? null,
         schoolGradeSnapshot:
           ctx.schoolGradeSnapshot ?? ctx.fighter.schoolGrade ?? null,
-        insuranceRrnCipher: encrypted.cipher,
-        insuranceRrnIv: encrypted.iv,
-        insuranceRrnAuthTag: encrypted.authTag,
-        insuranceRrnKeyVer: encrypted.keyVer,
-        insuranceRrnMasked: encrypted.masked,
-        insuranceConsentSnapshot: ctx.insuranceConsent as Prisma.InputJsonValue,
+        insuranceRrnCipher: encrypted?.cipher ?? null,
+        insuranceRrnIv: encrypted?.iv ?? null,
+        insuranceRrnAuthTag: encrypted?.authTag ?? null,
+        insuranceRrnKeyVer: encrypted?.keyVer ?? null,
+        insuranceRrnMasked: encrypted?.masked ?? null,
+        insuranceConsentSnapshot: ctx.insuranceConsent
+          ? (ctx.insuranceConsent as Prisma.InputJsonValue)
+          : undefined,
         feeAmount: ctx.feeAmount,
         initialApplicationStatus: ctx.initialApplicationStatus,
         initialPaymentStatus: ctx.initialPaymentStatus,
@@ -998,8 +1007,8 @@ export const applicationService = {
         recordSummary: formatRecordSummary(f),
         gender: f.gender,
         genderLabel: formatFighterGenderLabel(f.gender),
-        birthDate: toIso(f.birthDate),
-        ageGroup: publicAgeGroupFromBirthDate(f.birthDate),
+        birthDate: f.birthDate ? toIso(f.birthDate) : "",
+        ageGroup: publicAgeGroupFromBirthDate(f.birthDate) ?? "",
         weightKg: f.weight,
         primarySport: f.primarySport,
         appliedDivisionIds: appliedMap.get(f.id) ?? [],
@@ -1647,7 +1656,7 @@ export const applicationService = {
       });
 
       const phone = normalizeGymFighterPhone(input.phone) || "-";
-      const birthDate = toUtcDateOnly(input.birthDate);
+      const birthDate = input.birthDate ? toUtcDateOnly(input.birthDate) : null;
 
       const duplicates =
         await fighterRepository.findIdentityDuplicateCandidates({
@@ -1874,11 +1883,14 @@ export const applicationService = {
             schoolGradeSnapshot: category?.schoolGrade ?? null,
             applicationWeightKg,
             insuranceRrnDigits: input.residentRegistrationNumber,
-            insuranceConsent: buildInsuranceConsentSnapshot({
-              agreedAt: appliedAt,
-              appliedByUserId: actor.userId,
-              provenance: "organizer_confirmed",
-            }),
+            insuranceConsent: input.insuranceConsentConfirmed
+              ? buildInsuranceConsentSnapshot({
+                  agreedAt: appliedAt,
+                  appliedByUserId: actor.userId,
+                  provenance: "organizer_confirmed",
+                })
+              : undefined,
+            insurancePiiRequired: false,
             customFormSnapshot,
             organizerManualEntry: {
               manualCreatedByUserId: actor.userId,
@@ -2444,7 +2456,7 @@ export const applicationService = {
           }
 
           const phone = normalizeGymFighterPhone(row.phone) || "-";
-          const birthDate = birthDateToUtc(row.birthDate);
+          const birthDate = fighterBirthDateForPersist(row.birthDate || null);
           const fighterCode = await fighterService.generateFighterCode(tx);
           const createdFighter =
             await fighterRepository.createFighterWithGymHistory(tx, {
@@ -2509,6 +2521,7 @@ export const applicationService = {
           }
 
           const memoParts = [`[엑셀 일괄 등록] ${row.gymName}`];
+          if (!birthDate) memoParts.push("생년월일 미입력(1차 신청)");
           if (row.weightKg != null) memoParts.push(`신청체중 ${row.weightKg}kg`);
           if (row.heightCm != null) memoParts.push(`키 ${row.heightCm}cm`);
           if (row.recordText) memoParts.push(`전적 ${row.recordText}`);
@@ -2544,11 +2557,14 @@ export const applicationService = {
               schoolGradeSnapshot: row.schoolGradeSnapshot,
               applicationWeightKg: row.applicationWeightKg ?? row.weightKg,
               insuranceRrnDigits: row.insuranceRrnDigits,
-              insuranceConsent: buildInsuranceConsentSnapshot({
-                agreedAt: appliedAt,
-                appliedByUserId: actor.userId,
-                provenance: "excel_operator_attested",
-              }),
+              insuranceConsent: row.insuranceConsentAgreed
+                ? buildInsuranceConsentSnapshot({
+                    agreedAt: appliedAt,
+                    appliedByUserId: actor.userId,
+                    provenance: "excel_operator_attested",
+                  })
+                : undefined,
+              insurancePiiRequired: false,
               customFormSnapshot,
               organizerManualEntry: {
                 manualCreatedByUserId: actor.userId,

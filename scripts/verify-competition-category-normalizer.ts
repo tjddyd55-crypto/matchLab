@@ -28,12 +28,14 @@ function main() {
   }
   expectCanonical("초1", "ELEMENTARY", 1);
   expectCanonical("초3", "ELEMENTARY", 3);
+  expectCanonical("초5", "ELEMENTARY", 5);
   expectCanonical("초6", "ELEMENTARY", 6);
 
   for (const raw of ["중등부", "중학생", "중등"]) {
     expectCanonical(raw, "MIDDLE");
   }
   expectCanonical("중1", "MIDDLE", 1);
+  expectCanonical("중2", "MIDDLE", 2);
   expectCanonical("중3", "MIDDLE", 3);
 
   for (const raw of ["고등부", "고등학생", "고등"]) {

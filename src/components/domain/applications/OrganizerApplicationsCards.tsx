@@ -114,7 +114,7 @@ export function OrganizerApplicationsCards({
               </p>
             ) : null}
             <p className="text-muted-foreground text-xs">
-              보험동의 {row.insuranceConsentLabel ?? (row.insuranceConsentAgreed ? "동의" : "미동의")}
+              보험동의 {row.insuranceConsentLabel ?? (row.insuranceConsentAgreed ? "동의" : "미입력")}
             </p>
             {row.insuranceRrnMasked ? (
               <p className="text-muted-foreground text-xs">

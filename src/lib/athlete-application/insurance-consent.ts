@@ -91,7 +91,7 @@ export function readInsuranceConsentSnapshot(
 export function insuranceConsentDisplayLabel(
   snapshot: InsuranceConsentSnapshot | null,
 ): string {
-  if (!snapshot) return "미동의";
+  if (!snapshot) return "미입력";
   switch (snapshot.provenance) {
     case "organizer_confirmed":
       return "운영자 확인 완료";
@@ -123,4 +123,17 @@ export function parseExcelInsuranceConsent(
     ok: false,
     error: "보험가입 개인정보 동의는 「동의」만 허용합니다.",
   };
+}
+
+/** 1차 신청: 빈값 허용, 값이 있으면 형식 검증 */
+export function parseOptionalExcelInsuranceConsent(
+  raw: string | null | undefined,
+): { ok: true; agreed: boolean } | { ok: false; error: string } {
+  const folded = (raw ?? "").trim().toLowerCase().replace(/\s+/g, "");
+  if (!folded) {
+    return { ok: true, agreed: false };
+  }
+  const parsed = parseExcelInsuranceConsent(raw);
+  if (!parsed.ok) return parsed;
+  return { ok: true, agreed: true };
 }
