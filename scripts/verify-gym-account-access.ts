@@ -185,13 +185,15 @@ function assertGymPortalNav() {
     "그룹수업",
     "전체 회원",
     "회원 등록",
+    "회원 그룹",
     "이용권 관리",
     "출석 현황",
     "출석 키오스크",
     "선생님 목록",
     "선생님 등록",
     "매출 현황",
-    "미수금",
+    "매출 등록",
+    "상품 관리",
     "선수 목록",
     "선수 등록",
     "대회 목록",
@@ -208,6 +210,7 @@ function assertGymPortalNav() {
     "/gym/group-classes",
     "/gym/members",
     "/gym/members/new",
+    "/gym/member-groups",
     "/gym/membership-plans",
     "/gym/attendance",
     "/gym/attendance/kiosks",
@@ -215,6 +218,7 @@ function assertGymPortalNav() {
     "/gym/staff/new",
     "/gym/sales",
     "/gym/sales/receivables",
+    "/gym/products",
     "/gym/fighters",
     "/gym/fighters/new",
     "/gym/events",
@@ -237,7 +241,7 @@ function assertGymPortalNav() {
   assert.equal(memberGroup?.label, "회원 관리");
   assert.deepEqual(
     memberGroup?.items.map((i) => i.label),
-    ["전체 회원", "회원 등록", "이용권 관리"],
+    ["전체 회원", "회원 등록", "회원 그룹", "이용권 관리"],
   );
   const fighterGroup = groups.find((g) => g.id === "fighters");
   assert.equal(fighterGroup?.label, "선수 관리");

@@ -41,6 +41,7 @@ function assertNavSsotUnchanged() {
         items: [
           { href: "/gym/members", label: "전체 회원" },
           { href: "/gym/members/new", label: "회원 등록" },
+          { href: "/gym/member-groups", label: "회원 그룹" },
           { href: "/gym/membership-plans", label: "이용권 관리" },
         ],
       },
@@ -65,7 +66,8 @@ function assertNavSsotUnchanged() {
         label: "매출 관리",
         items: [
           { href: "/gym/sales", label: "매출 현황" },
-          { href: "/gym/sales/receivables", label: "미수금" },
+          { href: "/gym/sales/receivables", label: "매출 등록" },
+          { href: "/gym/products", label: "상품 관리" },
         ],
       },
       {
@@ -90,6 +92,7 @@ function assertNavSsotUnchanged() {
         label: "체육관",
         items: [
           { href: "/gym/profile", label: "체육관 정보" },
+          { href: "/gym/associations", label: "가입 협회" },
           { href: "/gym/member-portal", label: "회원 전용 페이지" },
         ],
       },
@@ -112,24 +115,32 @@ function assertHierarchyMarkup() {
     join(root, "src/components/layout/GymPortalNavGroups.tsx"),
     "utf8",
   );
+  const shared = readFileSync(
+    join(root, "src/components/layout/dashboard-sidebar/DashboardSidebarNav.tsx"),
+    "utf8",
+  );
+  const tokens = readFileSync(
+    join(root, "src/lib/ui/dashboard-sidebar-ui.ts"),
+    "utf8",
+  );
 
-  // Section labels are <p>, not <Link>
-  assert.match(nav, /group\.label \? \(\s*<p/);
-  assert.doesNotMatch(nav, /<Link[^>]*>\{group\.label\}/);
-
-  // No uppercase transform on section labels
+  assert.match(nav, /DashboardSidebarNav/);
+  assert.match(nav, /isGymPortalNavItemActive/);
   assert.doesNotMatch(nav, /uppercase/);
+  assert.doesNotMatch(nav, /bg-matchon-primary-light/);
 
-  // Indent hierarchy: section px-3, children with label use pl-7
-  assert.match(nav, /px-3 pb-1\.5 text-\[11px\] font-semibold/);
-  assert.match(nav, /group\.label \? "pl-7 pr-3" : "px-3"/);
+  // Section labels are not Links
+  assert.match(shared, /data-nav-level="section"/);
+  assert.doesNotMatch(shared, /<Link[^>]*>\{group\.label\}/);
+  assert.match(shared, /aria-current=\{active \? "page" : undefined\}/);
+  assert.match(shared, /dashboardSidebarItemTouchClass/);
+  assert.doesNotMatch(shared, /uppercase/);
 
-  // Active only on Link items via isGymPortalNavItemActive
-  assert.match(nav, /isGymPortalNavItemActive\(item\.href, pathname\)/);
-  assert.match(nav, /aria-current=\{active \? "page" : undefined\}/);
-
-  // Mobile tap target
-  assert.match(nav, /min-h-11/);
+  assert.match(tokens, /min-h-11/);
+  assert.match(tokens, /bg-white\/14/);
+  assert.match(tokens, /ml-\[18px\] space-y-0\.5 border-l border-white\/10 pl-2/);
+  assert.match(tokens, /text-\[11px\] font-bold/);
+  assert.doesNotMatch(tokens, /bg-matchon-primary/);
 }
 
 function assertActiveLeafOnly() {

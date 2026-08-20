@@ -446,7 +446,7 @@ function assertMobileLayout() {
   assert.equal(sales?.label, "매출 관리");
   assert.deepEqual(
     sales?.items.map((i) => i.label),
-    ["매출 현황", "미수금"],
+    ["매출 현황", "매출 등록", "상품 관리"],
   );
   console.log("verify:gym-sales-mobile-layout: OK");
 }
