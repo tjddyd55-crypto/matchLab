@@ -25,6 +25,11 @@ import {
   type RecordMatchCandidate,
   type RecordUnmatchedReason,
 } from "@/lib/brackets/record-auto-match";
+import {
+  explainRecordUnmatched,
+  formatAutoMatchRecordText,
+  type UnmatchedDetailReasonCode,
+} from "@/lib/brackets/explain-record-unmatched";
 import { SCHOOL_LEVEL } from "@/lib/fighter/record";
 import { formatCourtTabLabel } from "@/lib/court-tab-label";
 import { computeBracketAssignability } from "@/lib/bracket-assignability";
@@ -71,12 +76,28 @@ export type AutoBracketUnmatchedDetail = {
   fighterName: string;
   gymName: string;
   divisionLabel: string;
+  /** @deprecated UI는 reasonText 사용. 하위 호환용 */
   reasonLabel: string;
+  reasonCode: UnmatchedDetailReasonCode;
+  reasonText: string;
+  ageGroupLabel: string;
+  weightClassLabel: string;
+  recordText: string;
+  candidateCount: number;
+  excludedSameGymCount: number;
+  excludedRecordCount: number;
+  excludedAgeCount: number;
+  finalCandidateCount: number;
+  candidateFlowText: string;
 };
 
 export type AutoBracketGenerationSummary = {
   createdMatches: number;
   unmatchedCount: number;
+  /** 자동매칭된 선수 수 (경기 수 × 2) */
+  matchedFighterCount?: number;
+  /** 자동매칭 대상 집계(매칭+미매칭) */
+  totalFighterCount?: number;
   divisionsProcessed: number;
   excludedAlreadyPlaced: number;
   ineligibleWarningCount: number;
@@ -339,6 +360,65 @@ function normalizeAutoMatchCourtTarget(
   return input;
 }
 
+function weightClassLabelOf(division: AutoMatchApplicationRow["division"]): string {
+  return (
+    division.weightLimitText?.trim() ||
+    division.weightClassName?.trim() ||
+    division.weightClass?.trim() ||
+    "—"
+  );
+}
+
+function buildUnmatchedDetail(
+  row: AutoMatchApplicationRow,
+  unmatched: {
+    reason: RecordUnmatchedReason;
+    applicationId: string;
+    fighterId: string;
+    gymId: string;
+    gymName: string;
+    fighterName: string;
+    divisionId: string;
+    appliedAt: Date;
+    isEligibleForBracket: boolean;
+    isAssignableForBracket: boolean;
+    totalBouts: number | null;
+    schoolLevel: string | null;
+    schoolGrade: number | null;
+  },
+  divisionCandidates: RecordMatchCandidate[],
+  forbidSameGym: boolean,
+): AutoBracketUnmatchedDetail {
+  const explanation = explainRecordUnmatched(
+    { ...unmatched, reasonLabel: "" },
+    divisionCandidates,
+    { forbidSameGym },
+  );
+  const recordText = formatAutoMatchRecordText({
+    totalBouts: unmatched.totalBouts,
+    wins: row.winsSnapshot,
+    draws: row.drawsSnapshot,
+    losses: row.lossesSnapshot,
+  });
+  return {
+    fighterName: row.fighter.name,
+    gymName: displayGymName(row),
+    divisionLabel: formatDivisionNameLabel(row.division),
+    reasonLabel: explanation.reasonText,
+    reasonCode: explanation.reasonCode,
+    reasonText: explanation.reasonText,
+    ageGroupLabel: row.division.ageGroup?.trim() || "—",
+    weightClassLabel: weightClassLabelOf(row.division),
+    recordText,
+    candidateCount: explanation.candidateCount,
+    excludedSameGymCount: explanation.excludedSameGymCount,
+    excludedRecordCount: explanation.excludedRecordCount,
+    excludedAgeCount: explanation.excludedAgeCount,
+    finalCandidateCount: explanation.finalCandidateCount,
+    candidateFlowText: explanation.candidateFlowText,
+  };
+}
+
 function pushCourtCapacityUnmatched(
   pair: {
     red: { applicationId: string; fighterId: string; gymId: string };
@@ -346,20 +426,27 @@ function pushCourtCapacityUnmatched(
   },
   divisionId: string,
   appByFighterDivision: Map<string, AutoMatchApplicationRow>,
+  divisionCandidates: RecordMatchCandidate[],
   unmatchedDetails: AutoBracketUnmatchedDetail[],
   unmatchedGymIds: string[],
+  forbidSameGym: boolean,
 ) {
   for (const fighter of [pair.red, pair.blue]) {
     unmatchedGymIds.push(fighter.gymId);
     const row = appByFighterDivision.get(`${fighter.fighterId}:${divisionId}`);
-    if (row) {
-      unmatchedDetails.push({
-        fighterName: row.fighter.name,
-        gymName: displayGymName(row),
-        divisionLabel: formatDivisionNameLabel(row.division),
-        reasonLabel: REASON_LABELS.court_capacity_full,
-      });
-    }
+    if (!row) continue;
+    const candidate = toRecordMatchCandidate(row);
+    unmatchedDetails.push(
+      buildUnmatchedDetail(
+        row,
+        {
+          ...candidate,
+          reason: "court_capacity_full",
+        },
+        divisionCandidates,
+        forbidSameGym,
+      ),
+    );
   }
 }
 
@@ -610,12 +697,14 @@ export const bracketAutoMatchService = {
         unmatchedGymIds.push(u.gymId);
         const row = appByFighterDivision.get(`${u.fighterId}:${divisionId}`);
         if (row) {
-          unmatchedDetails.push({
-            fighterName: row.fighter.name,
-            gymName: displayGymName(row),
-            divisionLabel: formatDivisionNameLabel(row.division),
-            reasonLabel: formatRecordUnmatchedReason(u.reason),
-          });
+          unmatchedDetails.push(
+            buildUnmatchedDetail(
+              row,
+              u,
+              group,
+              input.forbidSameGym !== false,
+            ),
+          );
         }
       }
     }
@@ -676,8 +765,10 @@ export const bracketAutoMatchService = {
             pair,
             divisionId,
             appByFighterDivision,
+            recordCandidatesByDivision.get(divisionId) ?? [],
             unmatchedDetails,
             unmatchedGymIds,
+            matchInput.forbidSameGym !== false,
           );
           continue;
         }
@@ -691,6 +782,9 @@ export const bracketAutoMatchService = {
 
     summary.unmatchedCount += courtSkippedPairs * 2;
     summary.plannedMatches = plannedMatches;
+    summary.matchedFighterCount = plannedMatches * 2;
+    summary.totalFighterCount =
+      summary.matchedFighterCount + summary.unmatchedCount;
     summary.unmatchedDetails = unmatchedDetails;
     summary.courtAssignments = [...courtAssignmentCounts.entries()].map(
       ([courtId, assignedCount]) => ({
@@ -797,8 +891,10 @@ export const bracketAutoMatchService = {
               pair,
               divisionId,
               appByFighterDivision,
+              recordCandidatesByDivision.get(divisionId) ?? [],
               unmatchedDetails,
               unmatchedGymIds,
+              matchInput.forbidSameGym !== false,
             );
             continue;
           }
@@ -905,6 +1001,9 @@ export const bracketAutoMatchService = {
       }
     }
 
+    summary.matchedFighterCount = summary.createdMatches * 2;
+    summary.totalFighterCount =
+      summary.matchedFighterCount + summary.unmatchedCount;
     return summary;
   },
 

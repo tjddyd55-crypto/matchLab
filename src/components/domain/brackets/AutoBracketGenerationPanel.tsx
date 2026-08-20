@@ -6,6 +6,7 @@ import { generateAutoBracketMatchesAction } from "@/features/brackets/actions";
 import type { ActionResult } from "@/lib/action-result";
 import { FeedbackMessage } from "@/components/shared/FeedbackMessage";
 import { useAppConfirmDialog } from "@/components/shared/app-confirm-dialog";
+import { UnmatchedAutoMatchDetailDialog } from "@/components/domain/brackets/UnmatchedAutoMatchDetailDialog";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { formatCourtTabLabel } from "@/lib/court-tab-label";
 import type { AutoBracketGenerationSummary } from "@/lib/services/bracket-auto-match.service";
@@ -27,6 +28,18 @@ function SummaryBlock({
   summary: AutoBracketGenerationSummary;
   preview?: boolean;
 }) {
+  const [detailOpen, setDetailOpen] = useState(false);
+  const planned = preview
+    ? (summary.plannedMatches ?? summary.createdMatches)
+    : summary.createdMatches;
+  const matchedFighterCount =
+    summary.matchedFighterCount ?? planned * 2;
+  const unmatchedCount = summary.unmatchedCount;
+  const totalFighterCount =
+    summary.totalFighterCount ?? matchedFighterCount + unmatchedCount;
+  const hasUnmatched =
+    Boolean(summary.unmatchedDetails && summary.unmatchedDetails.length > 0);
+
   return (
     <FeedbackMessage tone={preview ? "info" : "success"}>
       <span className="font-semibold">
@@ -34,13 +47,10 @@ function SummaryBlock({
       </span>
       <ul className="mt-2 space-y-1 text-xs font-normal">
         <li>
-          {preview ? "생성 예정" : "생성"} 경기:{" "}
-          {preview
-            ? (summary.plannedMatches ?? summary.createdMatches)
-            : summary.createdMatches}
-          경기
+          {preview ? "생성 예정" : "생성"} 경기: {planned}경기
         </li>
-        <li>미매칭 선수: {summary.unmatchedCount}명</li>
+        <li>자동매칭 {matchedFighterCount}명</li>
+        <li>미매칭 {unmatchedCount}명</li>
         <li>처리 경기구분: {summary.divisionsProcessed}개</li>
         {!preview ? (
           <>
@@ -61,18 +71,26 @@ function SummaryBlock({
           ))}
         </ul>
       ) : null}
-      {summary.unmatchedDetails && summary.unmatchedDetails.length > 0 ? (
-        <ul className="mt-2 max-h-40 space-y-1 overflow-y-auto text-xs">
-          <li className="font-medium">미매칭 상세</li>
-          {summary.unmatchedDetails.slice(0, 20).map((u) => (
-            <li key={`${u.fighterName}-${u.reasonLabel}`}>
-              {u.fighterName} ({u.gymName}) — {u.reasonLabel}
-            </li>
-          ))}
-          {summary.unmatchedDetails.length > 20 ? (
-            <li>… 외 {summary.unmatchedDetails.length - 20}명</li>
-          ) : null}
-        </ul>
+      {hasUnmatched ? (
+        <div className="mt-3">
+          <Button
+            type="button"
+            variant="outline"
+            size="sm"
+            className="h-8"
+            onClick={() => setDetailOpen(true)}
+          >
+            미매칭 상세 미리보기
+          </Button>
+          <UnmatchedAutoMatchDetailDialog
+            open={detailOpen}
+            onOpenChange={setDetailOpen}
+            unmatchedDetails={summary.unmatchedDetails ?? []}
+            matchedFighterCount={matchedFighterCount}
+            unmatchedCount={unmatchedCount}
+            totalFighterCount={totalFighterCount}
+          />
+        </div>
       ) : null}
       {summary.messages.length > 0 ? (
         <ul className="mt-2 space-y-1 text-xs text-amber-900 dark:text-amber-100">
