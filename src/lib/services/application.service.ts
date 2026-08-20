@@ -1555,19 +1555,8 @@ export const applicationService = {
       );
     }
 
-    const organizerId = ctx.event.organizerId;
-
     await prisma.$transaction(async (tx) => {
-      await creditService.debitParticipantFee(
-        {
-          organizerId,
-          eventId: ctx.eventId,
-          eventApplicationId: applicationId,
-          actor,
-        },
-        tx,
-      );
-
+      // 크레딧은 승인 시 자동 차감하지 않는다. 잔액/원장은 유지하며 명시 사용만 허용.
       await applicationRepository.updateApplicationStatus(
         applicationId,
         ApplicationStatus.approved,
@@ -2019,17 +2008,7 @@ export const applicationService = {
           gymId,
         });
 
-        if (input.applicationStatus === ApplicationStatus.approved) {
-          await creditService.debitParticipantFee(
-            {
-              organizerId: event.organizerId,
-              eventId: input.eventId,
-              eventApplicationId: applicationId,
-              actor,
-            },
-            tx,
-          );
-        }
+        // approved 수동등록도 크레딧 자동 차감하지 않는다.
 
         return {
           applicationId,
@@ -2211,13 +2190,6 @@ export const applicationService = {
           }
         : null,
     );
-
-    const creditActor: ActorContext = {
-      userId: link.event.organizer.userId,
-      role: "organizer",
-      email: "",
-      organizerId: link.organizerId,
-    };
 
     const result = await prisma.$transaction(
       async (tx) => {
@@ -2411,15 +2383,7 @@ export const applicationService = {
           tx,
         );
 
-        await creditService.debitParticipantFee(
-          {
-            organizerId: link.organizerId,
-            eventId: link.eventId,
-            eventApplicationId: applicationId,
-            actor: creditActor,
-          },
-          tx,
-        );
+        // 외부링크 일괄 등록도 크레딧 자동 차감하지 않는다.
 
         created.push({
           applicationId,
@@ -2782,15 +2746,7 @@ export const applicationService = {
             tx,
           );
 
-          await creditService.debitParticipantFee(
-            {
-              organizerId: event.organizerId,
-              eventId: input.eventId,
-              eventApplicationId: applicationId,
-              actor,
-            },
-            tx,
-          );
+          // 엑셀 일괄 등록도 크레딧 자동 차감하지 않는다.
           createdIds.push(applicationId);
         }
 
