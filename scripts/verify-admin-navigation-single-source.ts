@@ -44,8 +44,8 @@ function staticChecks() {
 
   const sidebar = readSrc("src/components/layout/Sidebar.tsx");
   assert.ok(
-    sidebar.includes("getAdminNavItems"),
-    "Sidebar must use getAdminNavItems",
+    sidebar.includes("getAdminNavGroups"),
+    "Sidebar must use getAdminNavGroups",
   );
   assert.ok(
     sidebar.includes("from \"@/lib/navigation/admin-navigation\""),
@@ -85,6 +85,8 @@ function staticChecks() {
       "신청서 템플릿",
       "결과",
       "감사",
+      "Manager 문의",
+      "비밀번호 재설정 링크",
       "메시징 진단",
       "메시징 테스트",
       "발송 이력",

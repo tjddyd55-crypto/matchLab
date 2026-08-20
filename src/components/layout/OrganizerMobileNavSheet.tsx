@@ -39,11 +39,13 @@ export function OrganizerMobileNavSheet({
                 닫기
               </button>
             </div>
-            <OrganizerGlobalNavGroups
-              groups={groups}
-              density="touch"
-              onNavigate={() => setOpen(false)}
-            />
+            <div className="min-h-0 flex-1 overflow-y-auto overflow-x-hidden">
+              <OrganizerGlobalNavGroups
+                groups={groups}
+                density="touch"
+                onNavigate={() => setOpen(false)}
+              />
+            </div>
           </div>
         </div>
       ) : null}

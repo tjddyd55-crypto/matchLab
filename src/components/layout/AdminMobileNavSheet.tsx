@@ -48,8 +48,15 @@ export function AdminMobileNavSheet() {
                 <X className="h-4 w-4" />
               </button>
             </div>
-            <div onClick={() => setOpen(false)}>
-              <SidebarNav items={items} homePaths={homePaths} />
+            <div
+              className="min-h-0 flex-1 overflow-y-auto overflow-x-hidden"
+              onClick={() => setOpen(false)}
+            >
+              <SidebarNav
+                items={items}
+                homePaths={homePaths}
+                density="touch"
+              />
             </div>
           </div>
         </div>

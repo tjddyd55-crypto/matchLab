@@ -1,47 +1,32 @@
 "use client";
 
-import Link from "next/link";
-import { usePathname } from "next/navigation";
-import { cn } from "@/lib/utils";
+import { DashboardSidebarNav } from "@/components/layout/dashboard-sidebar";
+import {
+  getAdminHomePaths,
+  getAdminNavGroups,
+  isAdminNavItemActive,
+} from "@/lib/navigation/admin-navigation";
 
-type NavItem = { href: string; label: string };
-
-function isNavActive(href: string, pathname: string, homePaths: string[]): boolean {
-  if (homePaths.includes(href)) {
-    return pathname === href;
-  }
-  return pathname === href || pathname.startsWith(`${href}/`);
-}
-
+/**
+ * 관리자 글로벌 사이드바 엔트리.
+ * 항목 목록은 getAdminNavGroups SSOT이며, items prop은 하위 호환용으로 무시한다.
+ */
 export function SidebarNav({
-  items,
-  homePaths,
+  homePaths = getAdminHomePaths(),
+  density = "desktop",
 }: {
-  items: NavItem[];
-  homePaths: string[];
+  items?: { href: string; label: string }[];
+  homePaths?: string[];
+  density?: "desktop" | "touch";
 }) {
-  const pathname = usePathname();
-
   return (
-    <nav className="flex flex-col gap-0.5 text-sm" aria-label="주요 메뉴">
-      {items.map((item) => {
-        const active = isNavActive(item.href, pathname, homePaths);
-        return (
-          <Link
-            key={item.href}
-            href={item.href}
-            aria-current={active ? "page" : undefined}
-            className={cn(
-              "rounded-lg px-3 py-2 font-medium transition-colors",
-              active
-                ? "bg-matchon-primary-light text-matchon-primary"
-                : "text-white/70 hover:bg-white/6 hover:text-white",
-            )}
-          >
-            {item.label}
-          </Link>
-        );
-      })}
-    </nav>
+    <DashboardSidebarNav
+      groups={getAdminNavGroups()}
+      isItemActive={(href, pathname) =>
+        isAdminNavItemActive(href, pathname, homePaths)
+      }
+      density={density}
+      ariaLabel="주요 메뉴"
+    />
   );
 }

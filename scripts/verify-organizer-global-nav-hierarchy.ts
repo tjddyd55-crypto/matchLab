@@ -18,14 +18,28 @@ function assertGymPortalNavSsot() {
     items.map((i) => i.label),
     [
       "홈",
+      "전체 일정",
+      "내 일정",
+      "그룹수업",
       "전체 회원",
       "회원 등록",
+      "회원 그룹",
       "이용권 관리",
+      "출석 현황",
+      "출석 키오스크",
+      "선생님 목록",
+      "선생님 등록",
+      "매출 현황",
+      "매출 등록",
+      "상품 관리",
       "선수 목록",
       "선수 등록",
       "대회 목록",
       "신청 내역",
+      "대진표 확인",
       "체육관 정보",
+      "가입 협회",
+      "회원 전용 페이지",
     ],
   );
   assert.ok(items.some((i) => i.href === "/gym/events"));
@@ -61,7 +75,7 @@ function staticChecks() {
   assert.ok(memberGym, "member-gyms group");
   assert.deepEqual(
     memberGym!.items.map((i) => i.label),
-    ["회원사 현황", "가입 신청", "회원사 목록", "환경 설정"],
+    ["회원사 현황", "가입 신청", "연결 요청", "회원사 목록", "환경 설정"],
   );
   assert.ok(
     !memberGym!.items.some((i) => i.label === "가입 링크"),
