@@ -222,7 +222,7 @@ export function FighterRegistrationForm({
           </CardContent>
         </Card>
 
-        <Button type="submit" size="field" disabled={pending} className="w-full">
+        <Button type="submit" size="default" disabled={pending} className="w-full">
           {pending ? "제출 중…" : "등록 요청 제출"}
         </Button>
       </form>

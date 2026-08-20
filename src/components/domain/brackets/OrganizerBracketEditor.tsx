@@ -73,7 +73,7 @@ export function OrganizerBracketEditor({
               {!detail.isPublic ? (
                 <form action={publishBracketFormAction}>
                   <input type="hidden" name="bracketId" value={detail.id} />
-                  <Button type="submit" size="field" className="w-full sm:w-auto">
+                  <Button type="submit" size="default" className="w-full sm:w-auto">
                     공개하기
                   </Button>
                 </form>
@@ -83,7 +83,7 @@ export function OrganizerBracketEditor({
                   <Button
                     type="submit"
                     variant="secondary"
-                    size="field"
+                    size="default"
                     className="w-full sm:w-auto"
                   >
                     비공개

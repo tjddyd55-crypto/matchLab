@@ -21,6 +21,7 @@ import {
 } from "@/lib/public-partner-logo";
 import type { PublicPartnerType } from "@/lib/enums";
 import { toDateInputValue } from "@/lib/date-only";
+import { formControlFieldClass, formControlSelectClass } from "@/lib/ui/form-control-ui";
 
 type PartnerRow = {
   id: string;
@@ -188,37 +189,37 @@ export function AdminPublicPartnersManager({
         <h2 className="md:col-span-2 text-base font-bold">파트너 로고 등록</h2>
         <label className="flex flex-col gap-1 text-sm">
           이름
-          <input name="name" required className="h-11 rounded-lg border px-3" />
+          <input name="name" required className={formControlFieldClass} />
         </label>
         <label className="flex flex-col gap-1 text-sm">
           분류
-          <select name="type" defaultValue="partner" className="h-11 rounded-lg border px-3">
+          <select name="type" defaultValue="partner" className={formControlSelectClass}>
             <TypeOptions />
           </select>
         </label>
         <label className="flex flex-col gap-1 text-sm">
           홈페이지 URL
-          <input name="websiteUrl" type="url" className="h-11 rounded-lg border px-3" />
+          <input name="websiteUrl" type="url" className={formControlFieldClass} />
         </label>
         <label className="flex flex-col gap-1 text-sm">
           대체 텍스트
-          <input name="altText" className="h-11 rounded-lg border px-3" />
+          <input name="altText" className={formControlFieldClass} />
         </label>
         <label className="flex flex-col gap-1 text-sm md:col-span-2">
           설명
-          <input name="description" className="h-11 rounded-lg border px-3" />
+          <input name="description" className={formControlFieldClass} />
         </label>
         <label className="flex flex-col gap-1 text-sm">
           정렬 순서
-          <input name="sortOrder" type="number" min={0} defaultValue={0} className="h-11 rounded-lg border px-3" />
+          <input name="sortOrder" type="number" min={0} defaultValue={0} className={formControlFieldClass} />
         </label>
         <label className="flex flex-col gap-1 text-sm">
           노출 시작일
-          <input name="startsAt" type="date" className="h-11 rounded-lg border px-3" />
+          <input name="startsAt" type="date" className={formControlFieldClass} />
         </label>
         <label className="flex flex-col gap-1 text-sm">
           노출 종료일
-          <input name="endsAt" type="date" className="h-11 rounded-lg border px-3" />
+          <input name="endsAt" type="date" className={formControlFieldClass} />
         </label>
         <label className="flex items-center gap-2 text-sm">
           <input name="isActive" type="checkbox" defaultChecked />

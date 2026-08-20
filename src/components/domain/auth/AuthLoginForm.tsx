@@ -116,7 +116,7 @@ export function AuthLoginForm({
 
       <Button
         type="submit"
-        size="field"
+        size="lg"
         className="w-full font-bold"
         disabled={pending}
       >

@@ -82,7 +82,7 @@ export function GymAthleteFeePreflight({
             />
           </label>
           <div className="sm:col-span-2">
-            <Button type="submit" size="field" disabled={pending}>
+            <Button type="submit" size="default" disabled={pending}>
               {pending ? "저장 중…" : "선수 안내 참가비 저장"}
             </Button>
           </div>

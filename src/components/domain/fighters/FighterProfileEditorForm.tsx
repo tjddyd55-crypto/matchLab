@@ -257,7 +257,7 @@ export function FighterProfileEditorForm({
       <Button
         type="submit"
         disabled={pending}
-        size="field"
+        size="default"
         className="w-full sm:w-auto"
       >
         {pending ? "저장 중…" : "저장"}

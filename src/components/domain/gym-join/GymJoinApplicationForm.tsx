@@ -754,7 +754,7 @@ export function GymJoinApplicationForm({
 
       <Button
         type="submit"
-        size="field"
+        size="default"
         className="w-full font-bold"
         disabled={
           pending ||

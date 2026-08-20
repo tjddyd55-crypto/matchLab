@@ -163,7 +163,7 @@ export function EventQrCard({
         <Button
           type="button"
           variant="default"
-          size="field"
+          size="default"
           disabled={disabled || !url}
           className="w-full sm:w-auto"
           onClick={() => void copyUrl()}
@@ -173,7 +173,7 @@ export function EventQrCard({
         <Button
           type="button"
           variant="outline"
-          size="field"
+          size="default"
           disabled={disabled || !url}
           className="w-full sm:w-auto"
           onClick={downloadQr}
@@ -183,7 +183,7 @@ export function EventQrCard({
         <Button
           type="button"
           variant="secondary"
-          size="field"
+          size="default"
           disabled={disabled || !url}
           className="w-full sm:w-auto"
           onClick={printCard}

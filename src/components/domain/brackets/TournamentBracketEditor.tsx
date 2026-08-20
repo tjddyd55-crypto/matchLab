@@ -90,7 +90,7 @@ function MatchControls({ m }: { m: OrganizerBracketMatchVM }) {
           className={cn(organizerBracketFieldInputClass, "w-full sm:w-24")}
         />
       </label>
-      <Button type="submit" size="field" className="w-full sm:w-auto">
+      <Button type="submit" size="default" className="w-full sm:w-auto">
         순서·매트 적용
       </Button>
     </form>
@@ -138,7 +138,7 @@ function SlotAssignForms({
           placeholder={`${label} 선택`}
           className="max-w-none sm:min-w-[12rem] sm:flex-1"
         />
-        <Button type="submit" size="field" className="w-full sm:w-auto">
+        <Button type="submit" size="default" className="w-full sm:w-auto">
           {label} 배치
         </Button>
       </form>
@@ -146,7 +146,7 @@ function SlotAssignForms({
         <input type="hidden" name="bracketId" value={detail.id} />
         <input type="hidden" name="matchId" value={m.id} />
         <input type="hidden" name="slot" value={slot} />
-        <Button type="submit" variant="outline" size="field" className="w-full sm:w-auto">
+        <Button type="submit" variant="outline" size="default" className="w-full sm:w-auto">
           {label} 제거
         </Button>
       </form>
@@ -224,7 +224,7 @@ export function TournamentBracketEditor({
             <Button
               type="submit"
               variant="secondary"
-              size="field"
+              size="default"
               className="w-full sm:w-auto"
               disabled={activeCourts.length === 0}
             >
@@ -249,7 +249,7 @@ export function TournamentBracketEditor({
         <CardContent>
           <form action={resetBracketFormAction}>
             <input type="hidden" name="bracketId" value={detail.id} />
-            <Button type="submit" variant="destructive" size="field" className="w-full sm:w-auto">
+            <Button type="submit" variant="destructive" size="default" className="w-full sm:w-auto">
               매치 전체 초기화
             </Button>
           </form>

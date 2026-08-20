@@ -198,7 +198,7 @@ export function AthleteApplicationSignForm({
         </FeedbackMessage>
       ) : null}
 
-      <Button type="submit" size="field" disabled={pending} className="w-full">
+      <Button type="submit" size="default" disabled={pending} className="w-full">
         {pending ? "제출 중…" : "서명 제출"}
       </Button>
     </form>

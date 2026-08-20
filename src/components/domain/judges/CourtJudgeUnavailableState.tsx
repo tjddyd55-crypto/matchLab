@@ -98,7 +98,7 @@ export function CourtJudgeUnavailableState({
         <Button
           type="button"
           variant="outline"
-          size="field"
+          size="default"
           className="sm:w-auto"
           onClick={() => (onRefresh ? onRefresh() : router.refresh())}
         >
@@ -107,7 +107,7 @@ export function CourtJudgeUnavailableState({
         <Button
           type="button"
           variant="ghost"
-          size="field"
+          size="default"
           className="sm:w-auto"
           onClick={() => router.back()}
         >

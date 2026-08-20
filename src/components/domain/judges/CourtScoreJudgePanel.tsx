@@ -326,7 +326,7 @@ function ScoreForm({
         <FeedbackMessage tone="success">{message}</FeedbackMessage>
       ) : null}
       {!readOnly ? (
-        <Button type="submit" disabled={pending} size="field" className="w-full sm:w-auto">
+        <Button type="submit" disabled={pending} size="default" className="w-full sm:w-auto">
           {pending ? "전송 중…" : myScorecard ? "채점 재전송" : "채점 전송"}
         </Button>
       ) : (

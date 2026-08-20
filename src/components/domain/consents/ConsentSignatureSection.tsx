@@ -20,7 +20,7 @@ export function ConsentSignatureSection({
       <Button
         type="button"
         variant="outline"
-        size="field"
+        size="default"
         className="w-full sm:w-auto"
         onClick={() => padRef.current?.clear()}
       >
