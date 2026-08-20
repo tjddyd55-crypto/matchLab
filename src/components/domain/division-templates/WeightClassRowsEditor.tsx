@@ -17,6 +17,13 @@ import {
   formatDivisionSportTitle,
 } from "@/lib/event-division-fields";
 import { Button } from "@/components/ui/button";
+import {
+  formControlFieldClass,
+  formControlFieldCompactClass,
+  formControlFieldStackClass,
+  formControlLabelMutedClass,
+} from "@/lib/ui/form-control-ui";
+import { cn } from "@/lib/utils";
 
 /**
  * 블럭 생성형 체급표 에디터.
@@ -178,7 +185,7 @@ function GenderColumn({
               <tr key={row.id} className="border-b last:border-0">
                 <td className="px-1 py-1">
                   <input
-                    className="border-input bg-background h-8 w-full rounded border px-2"
+                    className={formControlFieldCompactClass}
                     value={row.weightClassName}
                     placeholder="라이트급"
                     onChange={(e) =>
@@ -188,7 +195,7 @@ function GenderColumn({
                 </td>
                 <td className="px-1 py-1">
                   <input
-                    className="border-input bg-background h-8 w-full rounded border px-2 font-mono"
+                    className={cn(formControlFieldCompactClass, "font-mono")}
                     value={row.weightLimitText}
                     placeholder="54"
                     onChange={(e) =>
@@ -293,12 +300,12 @@ export function WeightClassRowsEditor({
             className="space-y-3 rounded-xl border p-4"
           >
             <div className="flex items-end gap-2">
-              <label className="block flex-1 space-y-1 text-sm">
-                <span className="text-muted-foreground text-xs">묶음 이름</span>
+              <label className={cn(formControlFieldStackClass, "flex-1")}>
+                <span className={formControlLabelMutedClass}>묶음 이름</span>
                 <input
                   ref={nameInputRef}
                   data-block-id={block.id}
-                  className="border-input bg-background h-9 w-full rounded-md border px-3 text-sm"
+                  className={formControlFieldClass}
                   value={block.ageGroup}
                   placeholder="초등부"
                   onChange={(e) =>

@@ -6,7 +6,14 @@ import { useRouter } from "next/navigation";
 import type { ApplicationFormTemplateListItemVM } from "@/lib/services/application-form-template.service";
 import { linkEventApplicationFormTemplateAction } from "@/features/application-form-templates/actions";
 import type { ActionResult } from "@/lib/action-result";
-import { Button } from "@/components/ui/button";
+import { Button, buttonVariants } from "@/components/ui/button";
+import {
+  formControlFieldStackClass,
+  formControlInlineRowClass,
+  formControlLabelClass,
+  formControlSaveButtonClass,
+  formControlSelectClass,
+} from "@/lib/ui/form-control-ui";
 import { cn } from "@/lib/utils";
 
 function splitTemplates(templates: ApplicationFormTemplateListItemVM[]) {
@@ -71,30 +78,24 @@ export function EventApplicationFormTemplateSection({
         </p>
       )}
 
-      <div className="flex flex-wrap gap-2">
+      <div className={formControlInlineRowClass}>
         <Link
           href="/organizer/application-form-templates/new"
-          className={cn(
-            "inline-flex h-8 items-center rounded-md border px-3 text-xs font-medium hover:bg-muted",
-          )}
+          className={cn(buttonVariants({ variant: "outline", size: "sm" }))}
         >
           새 신청서 템플릿 만들기
         </Link>
         {selectedGlobal ? (
           <Link
             href={`/organizer/application-form-templates/new?copyFrom=${selectedGlobal.id}`}
-            className={cn(
-              "inline-flex h-8 items-center rounded-md border px-3 text-xs font-medium hover:bg-muted",
-            )}
+            className={cn(buttonVariants({ variant: "outline", size: "sm" }))}
           >
             선택한 공용 템플릿 복사
           </Link>
         ) : null}
         <Link
           href="/organizer/application-form-templates"
-          className={cn(
-            "inline-flex h-8 items-center rounded-md border px-3 text-xs font-medium hover:bg-muted",
-          )}
+          className={cn(buttonVariants({ variant: "outline", size: "sm" }))}
         >
           템플릿 관리
         </Link>
@@ -111,17 +112,15 @@ export function EventApplicationFormTemplateSection({
         </p>
       ) : null}
 
-      <form action={saveAction} className="flex flex-wrap items-end gap-3">
+      <form action={saveAction} className={cn(formControlInlineRowClass, "items-end")}>
         <input type="hidden" name="eventId" value={eventId} />
-        <label className="min-w-[240px] flex-1 space-y-1 text-sm">
-          <span className="font-medium">신청서 템플릿</span>
+        <label className={cn(formControlFieldStackClass, "min-w-[240px] flex-1")}>
+          <span className={formControlLabelClass}>신청서 템플릿</span>
           <select
             name="applicationFormTemplateId"
             value={selectedId}
             onChange={(e) => setSelectedId(e.target.value)}
-            className={cn(
-              "border-input bg-background h-9 w-full rounded-md border px-3 text-sm shadow-sm",
-            )}
+            className={formControlSelectClass}
           >
             <option value="">신청서 없음 (연결 해제)</option>
             {global.length > 0 ? (
@@ -146,7 +145,12 @@ export function EventApplicationFormTemplateSection({
             ) : null}
           </select>
         </label>
-        <Button type="submit" disabled={savePending}>
+        <Button
+          type="submit"
+          size="default"
+          disabled={savePending}
+          className={formControlSaveButtonClass}
+        >
           {savePending ? "저장 중…" : "템플릿 연결 저장"}
         </Button>
       </form>
