@@ -44,12 +44,22 @@ function staticChecks() {
 
   const sidebar = readSrc("src/components/layout/Sidebar.tsx");
   assert.ok(
-    sidebar.includes("getAdminNavGroups"),
-    "Sidebar must use getAdminNavGroups",
+    sidebar.includes("<SidebarNav"),
+    "Sidebar admin branch must use SidebarNav client wrapper",
   );
   assert.ok(
-    sidebar.includes("from \"@/lib/navigation/admin-navigation\""),
-    "Sidebar must import admin-navigation SSOT",
+    !sidebar.includes("isItemActive={isAdminNavItemActive}"),
+    "Sidebar must not pass isAdminNavItemActive function into Client Component",
+  );
+
+  const sidebarNav = readSrc("src/components/layout/SidebarNav.tsx");
+  assert.ok(
+    sidebarNav.includes("getAdminNavGroups"),
+    "SidebarNav must use getAdminNavGroups SSOT",
+  );
+  assert.ok(
+    sidebarNav.includes("from \"@/lib/navigation/admin-navigation\""),
+    "SidebarNav must import admin-navigation SSOT",
   );
 
   const mobileBottom = readSrc("src/components/layout/MobileBottomNav.tsx");

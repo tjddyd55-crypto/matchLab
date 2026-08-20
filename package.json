@@ -97,6 +97,8 @@
     "verify:gym-owner-password-confirm": "tsx scripts/verify-gym-owner-password-confirm.ts",
     "verify:organizer-global-nav": "tsx scripts/verify-organizer-global-nav-hierarchy.ts",
     "verify:admin-navigation-single-source": "tsx scripts/verify-admin-navigation-single-source.ts",
+    "verify:admin-sidebar-no-function-props": "tsx scripts/verify-admin-sidebar-no-function-props.ts",
+    "verify:no-auto-credit-application": "tsx scripts/verify-no-auto-credit-application.ts",
     "verify:event-check-in-compact-filters": "tsx scripts/verify-event-check-in-compact-filters.ts",
     "verify:event-check-in-master-detail": "tsx scripts/verify-event-check-in-master-detail.ts",
     "verify:event-applicant-sequence": "tsx scripts/verify-event-applicant-sequence.ts",
