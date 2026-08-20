@@ -294,9 +294,11 @@ export function sanitizeApplicantExcelPreviewForClient(
 }
 
 export function assertPreviewReadyToCommit(preview: ApplicantExcelPreview): void {
-  if (preview.counts.error > 0) {
+  if (preview.counts.create === 0 && preview.counts.skipExisting === 0) {
     throw new Error(
-      "오류 행이 있어 등록할 수 없습니다. Excel을 수정한 뒤 다시 올려 주세요.",
+      preview.counts.error > 0
+        ? "등록 가능한 행이 없습니다. Excel을 수정한 뒤 다시 올려 주세요."
+        : "새로 등록할 선수가 없습니다.",
     );
   }
 }

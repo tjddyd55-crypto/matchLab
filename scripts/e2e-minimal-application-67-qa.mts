@@ -30,6 +30,7 @@ const fileArg = argValue("--file") ?? DEFAULT_FILE;
 const eventIdArg = argValue("--event-id");
 const cleanupOnly = process.argv.includes("--cleanup");
 const skipBrowser = process.argv.includes("--local-only");
+const keepQa = process.argv.includes("--keep");
 
 type Report = Record<string, string>;
 
@@ -114,21 +115,34 @@ async function cleanupQa(prisma: import("@prisma/client").PrismaClient) {
     where: { title: { startsWith: PREFIX } },
     select: { id: true },
   });
-  for (const e of events) {
-    await prisma.bracketMatch.deleteMany({ where: { bracket: { eventId: e.id } } });
-    await prisma.bracket.deleteMany({ where: { eventId: e.id } });
-    await prisma.eventApplication.deleteMany({ where: { eventId: e.id } });
-    await prisma.eventDivision.deleteMany({ where: { eventId: e.id } });
-    await prisma.event.delete({ where: { id: e.id } });
+  const eventIds = events.map((e) => e.id);
+  const apps = eventIds.length
+    ? await prisma.eventApplication.findMany({
+        where: { eventId: { in: eventIds } },
+        select: { id: true, fighterId: true },
+      })
+    : [];
+  const appIds = apps.map((a) => a.id);
+  const fighterIds = [...new Set(apps.map((a) => a.fighterId))];
+  if (appIds.length) {
+    await prisma.eventApplicationPayment.deleteMany({
+      where: { eventApplicationId: { in: appIds } },
+    });
   }
-  const fighters = await prisma.fighter.findMany({
+  if (eventIds.length) {
+    await prisma.bracketMatch.deleteMany({ where: { bracket: { eventId: { in: eventIds } } } });
+    await prisma.bracket.deleteMany({ where: { eventId: { in: eventIds } } });
+    await prisma.eventApplication.deleteMany({ where: { eventId: { in: eventIds } } });
+    await prisma.event.deleteMany({ where: { id: { in: eventIds } } });
+  }
+  const named = await prisma.fighter.findMany({
     where: { name: { startsWith: PREFIX } },
     select: { id: true },
   });
-  for (const f of fighters) {
-    await prisma.eventApplication.deleteMany({ where: { fighterId: f.id } });
-    await prisma.fighterGymHistory.deleteMany({ where: { fighterId: f.id } });
-    await prisma.fighter.delete({ where: { id: f.id } });
+  const allFighterIds = [...new Set([...fighterIds, ...named.map((f) => f.id)])];
+  if (allFighterIds.length) {
+    await prisma.fighterGymHistory.deleteMany({ where: { fighterId: { in: allFighterIds } } });
+    await prisma.fighter.deleteMany({ where: { id: { in: allFighterIds } } });
   }
 }
 
@@ -172,20 +186,65 @@ async function main() {
 
   let eventId = eventIdArg ?? "";
   if (!eventId) {
-    const candidates = await prisma.event.findMany({
-      where: { status: { in: ["open", "closed", "bracket_ready", "ongoing"] } },
-      include: { divisions: true, _count: { select: { applications: true } } },
-      orderBy: { updatedAt: "desc" },
-      take: 20,
+    await cleanupQa(prisma);
+    const organizerUser = await prisma.user.findFirst({
+      where: { OR: [{ loginId: "organizer" }, { email: "organizer@demo.local" }] },
+      include: { organizer: true },
     });
-    const scored = candidates
-      .filter((e) => e.divisions.length >= 10)
-      .sort((a, b) => b.divisions.length - a.divisions.length);
-    const pick = scored[0] ?? candidates[0];
-    assert.ok(pick, "no event on preview DB");
-    eventId = pick.id;
-    report.eventTitle = pick.title;
-    report.eventDivisions = String(pick.divisions.length);
+    assert.ok(organizerUser?.organizer, "demo organizer missing");
+    const source = await prisma.event.findFirst({
+      where: {
+        title: { not: { startsWith: PREFIX } },
+        status: { in: ["open", "closed", "bracket_ready", "ongoing"] },
+      },
+      include: { divisions: true },
+      orderBy: { updatedAt: "desc" },
+    });
+    const ranked = await prisma.event.findMany({
+      where: { title: { not: { startsWith: PREFIX } } },
+      include: { divisions: true },
+      take: 30,
+      orderBy: { updatedAt: "desc" },
+    });
+    const template =
+      ranked.sort((a, b) => b.divisions.length - a.divisions.length)[0] ?? source;
+    assert.ok(template && template.divisions.length > 0, "no division template event");
+    report.divisionTemplateEvent = template.title;
+    const stamp = Date.now().toString(36);
+    const created = await prisma.event.create({
+      data: {
+        organizerId: organizerUser.organizer.id,
+        title: `${PREFIX}67 Excel`,
+        location: "QA",
+        eventDate: new Date("2026-12-01T00:00:00.000Z"),
+        registrationStartDate: new Date("2026-01-01T00:00:00.000Z"),
+        registrationEndDate: new Date("2026-12-31T00:00:00.000Z"),
+        status: "open",
+        publicSlug: `minimal-application-qa-${stamp}`,
+        courts: { create: [{ name: "QA코트1", sortOrder: 0 }] },
+        divisions: {
+          create: template.divisions.map((d) => ({
+            sportType: d.sportType,
+            ruleType: d.ruleType,
+            gender: d.gender,
+            ageGroup: d.ageGroup,
+            weightClass: d.weightClass,
+            weightClassName: d.weightClassName,
+            weightLimitText: d.weightLimitText,
+            skillLevel: d.skillLevel,
+          })),
+        },
+      },
+      include: { divisions: true },
+    });
+    await prisma.organizerCreditWallet.upsert({
+      where: { organizerId: organizerUser.organizer.id },
+      create: { organizerId: organizerUser.organizer.id, balance: 50_000 },
+      update: { balance: { increment: 5_000 } },
+    });
+    eventId = created.id;
+    report.eventTitle = created.title;
+    report.eventDivisions = String(created.divisions.length);
   }
 
   const event = await prisma.event.findUnique({
@@ -267,8 +326,20 @@ async function main() {
   );
 
   const rrnErrors = errors.filter((e) => /주민/.test(e.errors));
+  const consentErrors = errors.filter((e) => /보험가입 개인정보/.test(e.errors));
   report.rrnHardErrors = String(rrnErrors.length);
+  report.consentHardErrors = String(consentErrors.length);
+  report.errorGenderEmpty = String(
+    errors.filter((e) => e.errors.includes("성별을 남/여로 입력해 주세요.")).length,
+  );
+  report.errorAmbiguousDivision = String(
+    errors.filter((e) => e.errors.includes("체급이 여러 개")).length,
+  );
+  report.errorRecordMismatch = String(
+    errors.filter((e) => e.errors.includes("합계")).length,
+  );
   assert.equal(rrnErrors.length, 0, "RRN should not block preview");
+  assert.equal(consentErrors.length, 0, "consent missing should not block preview");
 
   const wrongAssignments = preview.rows.filter(
     (r) => r.decision === "create" && !r.divisionId,
@@ -299,10 +370,9 @@ async function main() {
     const dialogText = await page.locator('[role="dialog"]').innerText();
     writeFileSync(join(OUT, "browser-preview.txt"), dialogText);
     assert.doesNotMatch(dialogText, /주민등록번호를 입력해 주세요/);
+    assert.match(dialogText, /등록 가능/);
 
-    if (preview.counts.error > 0) {
-      report.browserCommit = "SKIP has preview errors";
-    } else if (preview.counts.create === 0) {
+    if (preview.counts.create === 0) {
       report.browserCommit = "SKIP nothing to create";
     } else {
       const commitBtn = page.getByRole("button", { name: /명 등록/ });
@@ -376,6 +446,11 @@ async function main() {
 
   writeFileSync(join(OUT, "report.json"), JSON.stringify(report, null, 2));
   console.log(JSON.stringify(report, null, 2));
+  if (!keepQa) {
+    await cleanupQa(prisma);
+    report.cleanup = "PASS";
+    writeFileSync(join(OUT, "report.json"), JSON.stringify(report, null, 2));
+  }
   await pool.end();
 }
 

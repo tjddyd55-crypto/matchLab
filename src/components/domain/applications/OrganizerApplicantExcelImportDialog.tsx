@@ -140,9 +140,7 @@ export function OrganizerApplicantExcelImportDialog({
     });
   }
 
-  const canCommit = Boolean(
-    preview && preview.counts.error === 0 && preview.counts.create > 0,
-  );
+  const canCommit = Boolean(preview && preview.counts.create > 0);
 
   return (
     <Dialog open={open} onOpenChange={handleOpenChange}>
@@ -303,9 +301,14 @@ function PreviewBody({ preview }: { preview: ApplicantExcelPreview }) {
           {gymEntries.map(([name, n]) => `${name} ${n}`).join(" · ")}
         </p>
       ) : null}
-      {preview.counts.error > 0 ? (
+      {preview.counts.error > 0 && preview.counts.create > 0 ? (
+        <p className="text-sm text-amber-800">
+          오류 {preview.counts.error}명은 건너뛰고, 등록 가능 {preview.counts.create}명만
+          등록합니다.
+        </p>
+      ) : preview.counts.error > 0 ? (
         <p className="text-sm text-red-700">
-          오류 행이 있어 등록할 수 없습니다. Excel을 수정한 뒤 다시 올려 주세요.
+          등록 가능한 행이 없습니다. Excel을 수정한 뒤 다시 올려 주세요.
         </p>
       ) : preview.counts.create === 0 ? (
         <p className="text-sm text-matchon-text-secondary">
