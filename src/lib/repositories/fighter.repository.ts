@@ -24,7 +24,7 @@ export type GymFighterListRow = {
   fighterCode: string;
   name: string;
   gender: string;
-  birthDate: Date;
+  birthDate: Date | null;
   phone: string;
   weight: number | null;
   primarySport: string | null;
@@ -48,7 +48,7 @@ export type GymFighterEditRow = {
   id: string;
   fighterCode: string;
   name: string;
-  birthDate: Date;
+  birthDate: Date | null;
   gender: string;
   phone: string;
   height: number | null;
@@ -253,12 +253,11 @@ export const fighterRepository = {
 
   async findIdentityDuplicateCandidates(input: {
     name: string;
-    birthDate: Date;
+    birthDate: Date | null;
     gender: string;
     phone?: string;
     excludeFighterId?: string;
   }): Promise<FighterDuplicateCandidate[]> {
-    const day = fighterIdentityDayRange(input.birthDate);
     const normalizedName = input.name.trim();
     const targetPhone = input.phone
       ? normalizePhoneDigits(input.phone)
@@ -267,7 +266,9 @@ export const fighterRepository = {
     const rows = await prisma.fighter.findMany({
       where: {
         gender: input.gender,
-        birthDate: day,
+        ...(input.birthDate
+          ? { birthDate: fighterIdentityDayRange(input.birthDate) }
+          : { birthDate: null }),
         ...(input.excludeFighterId
           ? { id: { not: input.excludeFighterId } }
           : {}),
@@ -320,10 +321,11 @@ export const fighterRepository = {
    * 생년월일(일 단위) + 성별 + 휴대폰(숫자만 동일) 기준 중복 후보.
    */
   async findPotentialDuplicateFighters(input: {
-    birthDate: Date;
+    birthDate: Date | null;
     gender: string;
     phone: string;
   }): Promise<FighterDuplicateCandidate[]> {
+    if (!input.birthDate) return [];
     const dayStart = toUtcDateOnly(input.birthDate);
     const dayEnd = new Date(dayStart.getTime() + 86400000);
     const targetPhone = normalizePhoneDigits(input.phone);
@@ -357,7 +359,7 @@ export const fighterRepository = {
     id: string;
     fighterCode: string;
     name: string;
-    birthDate: Date;
+    birthDate: Date | null;
     gender: string;
     phone: string;
     profileImageUrl: string | null;
@@ -409,7 +411,7 @@ export const fighterRepository = {
       id: string;
       fighterCode: string;
       name: string;
-      birthDate: Date;
+      birthDate: Date | null;
       gender: string;
       weight: number | null;
       primarySport: string | null;
@@ -453,7 +455,7 @@ export const fighterRepository = {
     params: {
       fighterCode: string;
       name: string;
-      birthDate: Date;
+      birthDate: Date | null;
       gender: string;
       phone: string;
       height?: number | null;
@@ -578,7 +580,7 @@ export const fighterRepository = {
     fighterId: string,
     data: {
       name: string;
-      birthDate: Date;
+      birthDate: Date | null;
       gender: string;
       phone: string;
       height?: number | null;

@@ -138,7 +138,7 @@ export const applicationDocumentService = {
       gym: { name: batch.gym.name },
       fighter: {
         name: fighter.name,
-        birthDate: fighter.birthDate.toISOString(),
+        birthDate: fighter.birthDate?.toISOString() ?? "",
         gender: fighter.gender,
         weight: fighter.weight,
         recordSummary: formatRecordSummary(fighter),
@@ -357,7 +357,7 @@ export const applicationDocumentService = {
         gym: { name: doc.gym.name },
         fighter: {
           name: doc.fighter.name,
-          birthDate: doc.fighter.birthDate.toISOString(),
+          birthDate: doc.fighter.birthDate?.toISOString() ?? "",
           gender: doc.fighter.gender,
           weight: doc.fighter.weight,
           recordSummary: formatRecordSummary(doc.fighter),

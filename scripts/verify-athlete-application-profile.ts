@@ -122,7 +122,8 @@ function verifyInsuranceConsent() {
   assert.equal(parseExcelInsuranceConsent("Y").ok, true);
   assert.equal(parseExcelInsuranceConsent("").ok, false);
   const sample = read("src/lib/applicant-excel/sample.ts");
-  assert.match(sample, /보험가입 개인정보 동의를 받은 선수만/);
+  assert.match(sample, /1차 신청에서는 생략 가능/);
+  assert.match(sample, /주민등록번호·개인정보 동의·서명은 추후 별도 요청/);
   console.log("verify:athlete-insurance-consent OK");
 }
 

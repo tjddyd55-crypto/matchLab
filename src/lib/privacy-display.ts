@@ -7,7 +7,8 @@ export function maskGymPublicLabel(gymName: string): string {
   return `${first}○○ 체육관`;
 }
 
-export function maskBirthYearOnly(date: Date): string {
+export function maskBirthYearOnly(date: Date | null | undefined): string {
+  if (!date) return "미입력";
   return `${date.getUTCFullYear()}년생`;
 }
 

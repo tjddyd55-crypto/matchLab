@@ -15,9 +15,10 @@ function completedAgeFromBirthDate(
 
 /** 대외 공개용 연령부 — 생년월일 전체는 노출하지 않음 */
 export function publicAgeGroupFromBirthDate(
-  birthDate: Date,
+  birthDate: Date | null | undefined,
   referenceDate?: Date,
-): string {
+): string | null {
+  if (!birthDate) return null;
   const age = completedAgeFromBirthDate(birthDate, referenceDate);
   if (age < 13) return "초등부";
   if (age < 16) return "중등부";

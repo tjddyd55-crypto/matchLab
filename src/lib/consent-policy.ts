@@ -33,7 +33,7 @@ function completedAgeFromBirthDate(
 }
 
 export type GuardianConsentPolicyInput = {
-  birthDate: Date;
+  birthDate: Date | null;
   schoolName: string | null;
   grade: string | null;
   guardianName: string | null;
@@ -46,8 +46,10 @@ export function requiresGuardianConsent(
 ): boolean {
   // TODO: 대회·체육관 정책별 성년/동의 기준을 설정으로 빼고 주입 가능하게 할 것.
 
-  const age = completedAgeFromBirthDate(row.birthDate, referenceDate);
-  if (age < MVP_ADULT_MIN_AGE) return true;
+  if (row.birthDate) {
+    const age = completedAgeFromBirthDate(row.birthDate, referenceDate);
+    if (age < MVP_ADULT_MIN_AGE) return true;
+  }
 
   if (hasMeaningfulText(row.schoolName) || hasMeaningfulText(row.grade)) {
     return true;

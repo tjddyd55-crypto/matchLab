@@ -59,7 +59,7 @@ export type CustomFormSourceContext = {
   fighter: {
     name: string;
     gender: string;
-    birthDate: Date;
+    birthDate: Date | null;
     weightKg: number | null;
     primarySport: string | null;
     guardianName: string | null;
@@ -159,10 +159,12 @@ function resolveSourceValue(
       if (key === "name") return ctx.fighter.name;
       if (key === "gender") return ctx.fighter.gender;
       if (key === "birthDate") {
-        return ctx.fighter.birthDate.toISOString().slice(0, 10);
+        return ctx.fighter.birthDate
+          ? ctx.fighter.birthDate.toISOString().slice(0, 10)
+          : "";
       }
       if (key === "ageGroup") {
-        return publicAgeGroupFromBirthDate(ctx.fighter.birthDate);
+        return publicAgeGroupFromBirthDate(ctx.fighter.birthDate) ?? "";
       }
       if (key === "weightKg") {
         return ctx.fighter.weightKg == null ? "" : String(ctx.fighter.weightKg);
