@@ -3,6 +3,11 @@ import {
   matchonPageTitleClass,
   matchonSectionTitleClass,
 } from "@/lib/ui/matchon-layout";
+import {
+  formControlFieldClass,
+  formControlHeightClass,
+  formControlSelectClass,
+} from "@/lib/ui/form-control-ui";
 
 /** MATCHON Figma Shell·목록·필터·탭·테이블 공통 SSOT */
 
@@ -14,10 +19,10 @@ export const matchonPageHeaderStackClass = "space-y-1";
 export { matchonPageTitleClass, matchonPageDescClass, matchonSectionTitleClass };
 
 export const matchonFilterBarClass =
-  "rounded-xl border border-matchon-border bg-matchon-primary-light/35 p-4";
+  "rounded-xl border border-matchon-border bg-matchon-primary-light/35 p-3 md:p-4";
 
 export const matchonFilterPillBaseClass =
-  "min-h-10 shrink-0 rounded-full border px-3.5 py-2 text-sm font-medium transition-colors";
+  "min-h-9 shrink-0 rounded-full border px-3 py-1.5 text-sm font-medium transition-colors md:min-h-8";
 
 export const matchonFilterPillActiveClass =
   "border-matchon-primary bg-matchon-primary text-white";
@@ -32,7 +37,7 @@ export const matchonSecondarySidebarSectionLabelClass =
   "mb-2 px-2 text-xs font-bold uppercase tracking-wide text-matchon-text-secondary";
 
 export const matchonSecondarySidebarLinkBaseClass =
-  "block rounded-lg px-3 py-2.5 text-[15px] font-medium transition-colors";
+  "block rounded-lg px-3 py-2 text-[15px] font-medium transition-colors";
 
 export const matchonSecondarySidebarLinkActiveClass =
   "bg-matchon-primary-light text-matchon-primary";
@@ -91,27 +96,27 @@ export const matchonInfoBannerClass =
   "rounded-xl border border-matchon-border bg-matchon-primary-light/30 px-4 py-3 text-base text-matchon-text-primary";
 
 /**
- * 툴바·필터 컨트롤 공통 높이 SSOT (40px).
- * Button / native select / input / segmented control 에 동일 적용.
+ * 툴바·필터 컨트롤 공통 높이 SSOT — form-control compact.
+ * Button / native select / input 에 동일 적용.
  */
-export const matchonControlHeightMdClass =
-  "box-border h-10 min-h-10 text-sm leading-none";
+export const matchonControlHeightMdClass = `${formControlHeightClass} text-sm leading-none`;
 
 /** 일정·그룹수업 상단 툴바용 input/select */
 export const matchonToolbarControlClass =
   `${matchonControlHeightMdClass} w-auto min-w-0 rounded-lg border border-matchon-border bg-white px-3 shadow-sm placeholder:text-matchon-text-secondary/80 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-matchon-primary/30`;
 
-/** 툴바 버튼 — Button size default(h-10)와 맞춤 */
+/** 툴바 버튼 — Button size default와 맞춤 */
 export const matchonToolbarButtonClass = matchonControlHeightMdClass;
 
-/** 월/주/일 segmented 컨테이너 — 내부 항목도 h-10으로 맞춤 */
+/** 월/주/일 segmented 컨테이너 */
 export const matchonToolbarSegmentClass =
-  "box-border flex h-10 min-h-10 items-center overflow-hidden rounded-lg border border-matchon-border";
+  `box-border flex ${formControlHeightClass} items-center overflow-hidden rounded-lg border border-matchon-border`;
 
 export const matchonToolbarSegmentItemClass =
-  "box-border flex h-10 min-h-10 items-center rounded-none px-3 text-sm first:rounded-l-[calc(0.5rem-1px)] last:rounded-r-[calc(0.5rem-1px)]";
+  `box-border flex ${formControlHeightClass} items-center rounded-none px-3 text-sm first:rounded-l-[calc(0.5rem-1px)] last:rounded-r-[calc(0.5rem-1px)]`;
 
-export const matchonFieldInputClass =
-  "box-border h-10 min-h-10 w-full rounded-lg border border-matchon-border bg-white px-3.5 text-sm shadow-sm placeholder:text-matchon-text-secondary/80 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-matchon-primary/30";
+/** @deprecated prefer formControlFieldClass — 하위 호환 alias */
+export const matchonFieldInputClass = formControlFieldClass;
 
-export const matchonFieldSelectClass = matchonFieldInputClass;
+/** @deprecated prefer formControlSelectClass */
+export const matchonFieldSelectClass = formControlSelectClass;

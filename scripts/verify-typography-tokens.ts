@@ -20,8 +20,14 @@ function main() {
     "utf8",
   );
   assert.ok(field.includes("matchonFieldInputClass"));
-  assert.ok(field.includes("text-base"));
-  assert.ok(field.includes("h-11"));
+  assert.ok(field.includes("formControlFieldClass"));
+
+  const formControl = readFileSync(
+    join(process.cwd(), "src/lib/ui/form-control-ui.ts"),
+    "utf8",
+  );
+  assert.ok(formControl.includes("text-sm"));
+  assert.ok(formControl.includes("formControlFieldClass"));
 
   console.log("verify:typography-tokens: OK");
 }
