@@ -68,11 +68,8 @@ export function OrganizerCreditsDashboard({
           {creditsToKrw(1).toLocaleString("ko-KR")}원)
         </p>
         <p className="text-muted-foreground mt-3 text-sm">
-          현재 잔액으로 약 {summary.approveableCount}명의 선수를 승인할 수
-          있습니다.
-        </p>
-        <p className="text-muted-foreground mt-1 text-sm">
-          선수 승인 1명당 {summary.participantFeeCredits}C가 차감됩니다.
+          참가 승인·등록 시 크레딧은 자동으로 차감되지 않습니다. 잔액과 충전
+          내역은 유지됩니다.
         </p>
       </section>
 
