@@ -24,6 +24,7 @@ export function FileDropzone({
   mobileTitle = "Excel 파일 업로드",
   hint,
   className,
+  compact = false,
 }: {
   accept?: string;
   maxBytes?: number;
@@ -38,6 +39,8 @@ export function FileDropzone({
   mobileTitle?: string;
   hint?: string;
   className?: string;
+  /** Dialog 등 좁은 영역 — Dropzone 높이·내부 간격 축소 */
+  compact?: boolean;
 }) {
   const inputRef = useRef<HTMLInputElement>(null);
   const [dragOver, setDragOver] = useState(false);
@@ -185,7 +188,10 @@ export function FileDropzone({
           onDragLeave={onDragLeave}
           onDrop={onDrop}
           className={cn(
-            "flex min-h-[148px] cursor-pointer flex-col items-center justify-center gap-3 rounded-[10px] border-2 border-dashed px-4 py-6 text-center transition-colors focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[#0A47FF]/30",
+            "flex cursor-pointer flex-col items-center justify-center rounded-[10px] border-2 border-dashed text-center transition-colors focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[#0A47FF]/30",
+            compact
+              ? "min-h-[156px] px-4 py-4"
+              : "min-h-[148px] gap-3 px-4 py-6",
             dragOver
               ? "border-[#0A47FF] bg-[#EFF4FF]"
               : "border-[#CBD5E1] bg-[#F8FAFC] hover:border-[#94A3B8]",
@@ -199,14 +205,20 @@ export function FileDropzone({
           <p className="hidden text-sm font-medium text-[#0F172A] md:block">
             {title}
           </p>
-          <p className="text-xs text-[#64748B] md:hidden">
-            파일을 선택해 업로드하세요
-          </p>
+          {!compact ? (
+            <p className="text-xs text-[#64748B] md:hidden">
+              파일을 선택해 업로드하세요
+            </p>
+          ) : null}
           <Button
             type="button"
             variant="outline"
             size="sm"
-            className="h-10 min-w-[7.5rem] md:h-9"
+            className={cn(
+              compact
+                ? "mt-3 h-9 min-w-[7.5rem] rounded-lg px-4"
+                : "h-10 min-w-[7.5rem] md:h-9",
+            )}
             disabled={blocked}
             onClick={(e) => {
               e.stopPropagation();
@@ -216,9 +228,21 @@ export function FileDropzone({
             파일 선택
           </Button>
           {hint ? (
-            <p className="text-[11px] leading-snug text-[#64748B]">{hint}</p>
+            <p
+              className={cn(
+                "text-xs leading-snug text-[#64748B]",
+                compact ? "mt-2.5" : "",
+              )}
+            >
+              {hint}
+            </p>
           ) : null}
-          <p className="hidden text-[11px] text-[#94A3B8] md:block">
+          <p
+            className={cn(
+              "hidden text-xs text-[#94A3B8] md:block",
+              compact ? "mt-2" : "",
+            )}
+          >
             드래그 앤 드롭도 가능합니다
           </p>
         </div>
