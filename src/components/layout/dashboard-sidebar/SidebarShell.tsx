@@ -1,5 +1,8 @@
 import type { ReactNode } from "react";
-import { dashboardSidebarAsideClass } from "@/lib/ui/dashboard-sidebar-ui";
+import {
+  dashboardSidebarAsideClass,
+  dashboardSidebarSpacerClass,
+} from "@/lib/ui/dashboard-sidebar-ui";
 import { cn } from "@/lib/utils";
 
 export function SidebarShell({
@@ -12,11 +15,19 @@ export function SidebarShell({
   children: ReactNode;
 }) {
   return (
-    <aside
-      className={cn(dashboardSidebarAsideClass, className)}
-      aria-label={ariaLabel}
-    >
-      {children}
-    </aside>
+    <>
+      <div
+        className={dashboardSidebarSpacerClass}
+        aria-hidden="true"
+        data-dashboard-global-sidebar-spacer=""
+      />
+      <aside
+        className={cn(dashboardSidebarAsideClass, className)}
+        aria-label={ariaLabel}
+        data-dashboard-global-sidebar=""
+      >
+        {children}
+      </aside>
+    </>
   );
 }

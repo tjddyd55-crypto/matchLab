@@ -140,7 +140,17 @@ function assertHierarchyMarkup() {
   assert.match(tokens, /bg-white\/14/);
   assert.match(tokens, /ml-\[18px\] space-y-0\.5 border-l border-white\/10 pl-2/);
   assert.match(tokens, /text-\[11px\] font-bold/);
+  assert.match(tokens, /fixed top-0 left-0/);
+  assert.match(tokens, /h-dvh/);
+  assert.match(tokens, /dashboardSidebarAsideClass =\s*"fixed/);
+  assert.doesNotMatch(tokens, /dashboardSidebarAsideClass =\s*"[^"]*sticky/);
   assert.doesNotMatch(tokens, /bg-matchon-primary/);
+
+  const eventUi = readFileSync(
+    join(root, "src/lib/ui/event-management-ui.ts"),
+    "utf8",
+  );
+  assert.match(eventUi, /md:sticky md:top-0 md:flex/);
 }
 
 function assertActiveLeafOnly() {
