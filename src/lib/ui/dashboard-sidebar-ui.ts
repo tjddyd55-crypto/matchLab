@@ -1,7 +1,19 @@
-/** 주최자 글로벌 사이드바 스타일 SSOT — 체육관/관리자/선수도 동일 토큰 사용 */
+/**
+ * 주최자 글로벌 사이드바 스타일 SSOT — 체육관/관리자/선수도 동일 토큰 사용
+ *
+ * AppShell(`overflow-x-clip`)이 sticky containing block이 되어
+ * document scroll 대비 sticky가 동작하지 않는다.
+ * 글로벌 메뉴만 viewport에 고정하려면 fixed + in-flow spacer가 필요하다.
+ * 대회 EventSidebar sticky는 의도적으로 그대로 둔다.
+ *
+ * z-20: 본문보다 위, Dialog(z-50)보다 아래.
+ */
+
+export const dashboardSidebarSpacerClass =
+  "hidden w-[var(--global-sidebar-width)] shrink-0 md:block";
 
 export const dashboardSidebarAsideClass =
-  "sticky top-0 flex h-screen max-h-screen w-[var(--global-sidebar-width)] shrink-0 flex-col overflow-hidden border-r border-white/8 bg-matchon-sidebar px-3 py-4";
+  "fixed top-0 left-0 z-20 hidden h-dvh max-h-dvh w-[var(--global-sidebar-width)] flex-col overflow-hidden border-r border-white/8 bg-matchon-sidebar px-3 py-4 md:flex";
 
 export const dashboardSidebarBrandClass = "mb-4 shrink-0 px-2";
 
