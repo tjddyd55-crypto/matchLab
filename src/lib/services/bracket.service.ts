@@ -1864,7 +1864,7 @@ export const bracketService = {
   async deleteBracketMatch(
     actor: ActorContext,
     input: DeleteBracketMatchInput,
-  ): Promise<void> {
+  ): Promise<{ eventId: string; bracketId: string }> {
     const ctx = await ensureBracketOrganizer(actor, input.bracketId);
     if (ctx.type !== BracketType.match_list) {
       throw new AppError(
@@ -1958,6 +1958,8 @@ export const bracketService = {
         );
       }
     });
+
+    return { eventId: ctx.eventId, bracketId: input.bracketId };
   },
 
   async resetBracket(actor: ActorContext, input: ResetBracketInput): Promise<void> {
