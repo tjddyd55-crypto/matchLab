@@ -70,6 +70,10 @@ export type AutoBracketPreviewDialogProps = {
   courtAssignments?: AutoBracketCourtAssignmentSummary[];
   messages?: string[];
   unmatchedDetails: AutoBracketUnmatchedDetail[];
+  /** 페이지의 적용 form id — Dialog footer 적용 버튼이 동일 handler 재사용 */
+  applyFormId?: string;
+  applyPending?: boolean;
+  applyDisabled?: boolean;
 };
 
 export function AutoBracketPreviewDialog({
@@ -83,6 +87,9 @@ export function AutoBracketPreviewDialog({
   courtAssignments = [],
   messages = [],
   unmatchedDetails,
+  applyFormId,
+  applyPending = false,
+  applyDisabled = false,
 }: AutoBracketPreviewDialogProps) {
   const [filter, setFilter] = useState<(typeof FILTERS)[number]["id"]>("all");
   const [query, setQuery] = useState("");
@@ -117,15 +124,15 @@ export function AutoBracketPreviewDialog({
     <Dialog open={open} onOpenChange={onOpenChange}>
       <DialogContent
         className={cn(
-          "flex max-h-[88dvh] w-[calc(100vw-4rem)] max-w-7xl flex-col gap-0 overflow-hidden p-0",
-          "sm:max-w-7xl",
+          "flex max-h-[85vh] flex-col gap-0 overflow-hidden p-0",
+          "!w-[min(1100px,calc(100vw-2rem))] !max-w-[1100px] sm:!max-w-[1100px]",
         )}
         showCloseButton
       >
         <DialogHeader className="shrink-0 space-y-3 border-b border-matchon-border px-5 py-4 text-left">
           <div className="space-y-1.5 pr-8">
             <DialogTitle className="text-base font-semibold sm:text-lg">
-              자동대진 미리보기
+              자동매칭 미리보기
             </DialogTitle>
             <DialogDescription className="text-sm text-muted-foreground">
               생성 예정 경기와 미매칭 선수의 상세 사유를 확인할 수 있습니다.
@@ -304,6 +311,16 @@ export function AutoBracketPreviewDialog({
           >
             닫기
           </Button>
+          {applyFormId ? (
+            <Button
+              type="submit"
+              form={applyFormId}
+              size="default"
+              disabled={applyDisabled || applyPending}
+            >
+              {applyPending ? "적용 중…" : "적용"}
+            </Button>
+          ) : null}
         </DialogFooter>
       </DialogContent>
     </Dialog>
