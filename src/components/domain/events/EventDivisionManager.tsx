@@ -468,6 +468,17 @@ export function EventDivisionManager({
           sportType: t.sportType,
         }))}
         templateDetails={templateDetails}
+        divisionsForResolve={divisions.map((d) => ({
+          id: d.id,
+          label: [d.ageGroup, d.gender, d.weightClassName ?? d.weightClass]
+            .filter(Boolean)
+            .join(" · "),
+          gender: d.gender,
+          ageGroup: d.ageGroup,
+          weightClass: d.weightClass,
+          weightClassName: d.weightClassName,
+          weightLimitText: d.weightLimitText,
+        }))}
       />
 
       <div className="space-y-4 border-t border-[var(--division-section-divider)] pt-6">

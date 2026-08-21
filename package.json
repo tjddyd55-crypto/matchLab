@@ -196,6 +196,7 @@
     "verify:auto-match-without-pii": "tsx scripts/verify-auto-match-without-pii.ts",
     "e2e:minimal-application-67-qa": "tsx scripts/e2e-minimal-application-67-qa.mts",
     "verify:application-weight-division-resolver": "tsx scripts/verify-application-weight-division-resolver.ts",
+    "verify:event-division-rebuild": "tsx scripts/verify-event-division-rebuild.ts",
     "verify:competition-category-normalizer": "tsx scripts/verify-competition-category-normalizer.ts",
     "verify:grade-category-normalization": "tsx scripts/verify-competition-category-normalizer.ts",
     "verify:application-weight-boundaries": "tsx scripts/verify-application-weight-division-resolver.ts",

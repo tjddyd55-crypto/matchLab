@@ -70,6 +70,7 @@ export function OrganizerResolveOtherDivisionDialog({
   recordText,
   careerText,
   divisions,
+  onSuccess,
 }: {
   open: boolean;
   onOpenChange: (open: boolean) => void;
@@ -82,6 +83,7 @@ export function OrganizerResolveOtherDivisionDialog({
   recordText?: string | null;
   careerText?: string | null;
   divisions: ResolveOtherDivisionOption[];
+  onSuccess?: () => void;
 }) {
   const router = useRouter();
   const [pending, startTransition] = useTransition();
@@ -139,6 +141,7 @@ export function OrganizerResolveOtherDivisionDialog({
         return;
       }
       handleOpenChange(false);
+      onSuccess?.();
       router.refresh();
     });
   }

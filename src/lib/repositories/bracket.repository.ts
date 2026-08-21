@@ -854,6 +854,26 @@ export const bracketRepository = {
     return deleted;
   },
 
+  /** Match 삭제 후 빈 Bracket shell까지 제거 (체급표 재구성용) */
+  async deleteAllEventBrackets(
+    eventId: string,
+    tx?: Prisma.TransactionClient,
+  ): Promise<{ deletedMatches: number; deletedBrackets: number }> {
+    const deletedMatches =
+      await bracketRepository.deleteAllEventBracketMatches(eventId, tx);
+    const result = await db(tx).bracket.deleteMany({ where: { eventId } });
+    return { deletedMatches, deletedBrackets: result.count };
+  },
+
+  async countMatchesByEvent(
+    eventId: string,
+    tx?: Prisma.TransactionClient,
+  ): Promise<number> {
+    return db(tx).bracketMatch.count({
+      where: { bracket: { eventId } },
+    });
+  },
+
   async findMatchListBracketByDivision(
     eventId: string,
     divisionId: string,

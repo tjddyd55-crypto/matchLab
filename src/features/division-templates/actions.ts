@@ -1,5 +1,6 @@
 "use server";
 
+import { revalidatePath } from "next/cache";
 import {
   actionFailure,
   actionSuccess,
@@ -10,6 +11,11 @@ import { requireActorFromMutation } from "@/lib/auth/actor";
 import { PermissionError } from "@/lib/auth/permission-error";
 import { AppError } from "@/lib/errors/app-error";
 import { divisionTemplateService } from "@/lib/services/division-template.service";
+import {
+  eventDivisionRebuildService,
+  type RebuildEventDivisionsPreviewVM,
+  type RebuildEventDivisionsResultVM,
+} from "@/lib/services/event-division-rebuild.service";
 import {
   analyzeWeightClassWorkbook,
   buildWeightClassSampleWorkbook,
@@ -23,6 +29,7 @@ import {
   deleteDivisionTemplateSchema,
   divisionTemplateItemsSchema,
   divisionTemplateExistingItemsSchema,
+  rebuildEventDivisionsFromTemplateSchema,
   type DivisionTemplateItemInput,
   updateDivisionTemplateSchema,
 } from "@/lib/validators/division-template.validator";
@@ -380,6 +387,68 @@ export async function applyDivisionTemplateToEventAction(
       actor,
       parsed.data,
     );
+    revalidatePath(`/organizer/events/${parsed.data.eventId}`);
+    return actionSuccess(result);
+  });
+}
+
+export async function previewRebuildEventDivisionsFromTemplateAction(
+  arg1: unknown,
+  arg2?: FormData,
+): Promise<ActionResult<RebuildEventDivisionsPreviewVM>> {
+  const formData = resolveFormData(arg1, arg2);
+  if (!formData) {
+    return actionFailure("VALIDATION_ERROR", "요청 본문이 올바르지 않습니다.");
+  }
+  return mapCaught(async () => {
+    const actor = await requireActorFromMutation();
+    const parsed = rebuildEventDivisionsFromTemplateSchema.safeParse({
+      eventId: formReq(formData, "eventId"),
+      templateId: formReq(formData, "templateId"),
+    });
+    if (!parsed.success) {
+      return actionFailure(
+        "VALIDATION_ERROR",
+        "요청 값을 확인해 주세요.",
+        parsed.error.flatten(),
+      );
+    }
+    const result = await eventDivisionRebuildService.previewRebuild(
+      actor,
+      parsed.data,
+    );
+    return actionSuccess(result);
+  });
+}
+
+export async function rebuildEventDivisionsFromTemplateAction(
+  arg1: unknown,
+  arg2?: FormData,
+): Promise<ActionResult<RebuildEventDivisionsResultVM>> {
+  const formData = resolveFormData(arg1, arg2);
+  if (!formData) {
+    return actionFailure("VALIDATION_ERROR", "요청 본문이 올바르지 않습니다.");
+  }
+  return mapCaught(async () => {
+    const actor = await requireActorFromMutation();
+    const parsed = rebuildEventDivisionsFromTemplateSchema.safeParse({
+      eventId: formReq(formData, "eventId"),
+      templateId: formReq(formData, "templateId"),
+    });
+    if (!parsed.success) {
+      return actionFailure(
+        "VALIDATION_ERROR",
+        "요청 값을 확인해 주세요.",
+        parsed.error.flatten(),
+      );
+    }
+    const result = await eventDivisionRebuildService.rebuild(
+      actor,
+      parsed.data,
+    );
+    revalidatePath(`/organizer/events/${parsed.data.eventId}`);
+    revalidatePath(`/organizer/events/${parsed.data.eventId}/applications`);
+    revalidatePath(`/organizer/events/${parsed.data.eventId}/brackets`);
     return actionSuccess(result);
   });
 }

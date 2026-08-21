@@ -564,6 +564,11 @@ export type OrganizerApplicationListRowDTO = {
   /** REGISTERED면 division id, OTHER면 null */
   divisionId: string | null;
   divisionLabel: string;
+  /**
+   * 현재 배정 체급 (EventDivision). null이면 미배정.
+   * divisionLabel과 다를 때만 UI에서 신청 체급/현재 배정으로 구분 표시.
+   */
+  currentDivisionLabel: string | null;
   /** 표시용 division 필드 — OTHER/미지정은 null. */
   division: EventDivisionDisplayInput | null;
   applicationStatus: ApplicationStatus;
@@ -988,6 +993,9 @@ export const applicationService = {
           divisionSelectionType: row.divisionSelectionType,
           requestedDivisionText: row.requestedDivisionText,
         }),
+        currentDivisionLabel: row.division
+          ? formatDivisionLabel(row.division)
+          : null,
         division: row.division
           ? {
               sportType: row.division.sportType,
