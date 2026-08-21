@@ -15,7 +15,8 @@ import { join } from "node:path";
 import { chromium, type Page } from "playwright";
 
 const PREFIX = "TWO_STAGE_QA_";
-const EXPECTED_SHA = "03443657fc2e997c5660ff433aa40b28dc16ddb9";
+const EXPECTED_SHA = "8c5f0dd70ffbd0b44e4d5f2e2a155697ca65fb58";
+// Pin bump commits may lag Preview; allow mismatch for SHA-only test pin commits via --allow-sha-mismatch
 const BASE = (
   process.env.QA_BASE_URL ||
   "https://app-preview-member-gym-b.up.railway.app"
@@ -787,7 +788,7 @@ async function main() {
       publicSlug: `${PREFIX.toLowerCase()}b-${stamp}`,
     },
   });
-  const sharedFighter = await prisma.fighter.create({
+  const sharedPhoneFighter = await prisma.fighter.create({
     data: {
       fighterCode: `QA${stamp}SH`,
       name: `${PREFIX}Shared`,
@@ -802,10 +803,10 @@ async function main() {
       divisionId: registered.id,
       divisionSelectionType: "REGISTERED",
       gymId: gymBucket.id,
-      fighterId: sharedFighter.id,
+      fighterId: sharedPhoneFighter.id,
       status: "approved",
       paymentStatus: "unpaid",
-      fighterSnapshot: { name: sharedFighter.name },
+      fighterSnapshot: { name: sharedPhoneFighter.name },
       gymSnapshot: { name: gymBucket.name },
       additionalInfoStatus: AdditionalInfoStatus.NOT_REQUESTED,
     },
@@ -817,10 +818,10 @@ async function main() {
       divisionSelectionType: "OTHER",
       requestedDivisionText: "임시",
       gymId: gymBucket.id,
-      fighterId: sharedFighter.id,
+      fighterId: sharedPhoneFighter.id,
       status: "approved",
       paymentStatus: "unpaid",
-      fighterSnapshot: { name: sharedFighter.name },
+      fighterSnapshot: { name: sharedPhoneFighter.name },
       gymSnapshot: { name: gymBucket.name },
       additionalInfoStatus: AdditionalInfoStatus.NOT_REQUESTED,
     },
@@ -852,7 +853,7 @@ async function main() {
   const reqA = await additionalInfoService.requestOne(actor, sharedAppA.id);
   assert.equal(reqA.ok, true);
   await prisma.fighter.update({
-    where: { id: sharedFighter.id },
+    where: { id: sharedPhoneFighter.id },
     data: { phone: "01070002222" },
   });
   const resendA = await additionalInfoService.requestOne(actor, sharedAppA.id, {
@@ -895,6 +896,15 @@ async function main() {
   });
 
   // OTHER resolve via service
+  const otherResolveFighter = await prisma.fighter.create({
+    data: {
+      fighterCode: `QA${stamp}OR`,
+      name: `${PREFIX}OtherResolve`,
+      gender: "male",
+      birthDate: new Date(`${ymdYearsAgo(24)}T00:00:00.000Z`),
+      phone: "01060003333",
+    },
+  });
   const otherResolveApp = await prisma.eventApplication.create({
     data: {
       eventId: event.id,
@@ -902,23 +912,23 @@ async function main() {
       divisionSelectionType: "OTHER",
       requestedDivisionText: "-52kg 희망",
       gymId: gymBucket.id,
-      fighterId: noPhoneFighter.id,
+      fighterId: otherResolveFighter.id,
       status: "approved",
       paymentStatus: "unpaid",
-      fighterSnapshot: { name: noPhoneFighter.name },
+      fighterSnapshot: { name: otherResolveFighter.name },
       gymSnapshot: { name: gymBucket.name },
       additionalInfoStatus: AdditionalInfoStatus.NOT_REQUESTED,
     },
   });
-  const resolved = await applicationService.resolveOtherDivisionApplication(actor, {
+  const otherResolved = await applicationService.resolveOtherDivisionApplication(actor, {
     applicationId: otherResolveApp.id,
     eventDivisionId: registered.id,
   });
-  assert.equal(resolved.divisionId, registered.id);
-  assert.equal(resolved.divisionSelectionType, "REGISTERED");
-  assert.equal(resolved.divisionReviewRequired, false);
-  assert.equal(resolved.requestedDivisionText, "-52kg 희망");
-  pass("otherDivisionResolve", resolved);
+  assert.equal(otherResolved.divisionId, registered.id);
+  assert.equal(otherResolved.divisionSelectionType, "REGISTERED");
+  assert.equal(otherResolved.divisionReviewRequired, false);
+  assert.equal(otherResolved.requestedDivisionText, "-52kg 희망");
+  pass("otherDivisionResolve", otherResolved);
   const noGuardFighter = await prisma.fighter.create({
     data: {
       fighterCode: `QA${stamp}NG`,
