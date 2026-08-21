@@ -67,7 +67,7 @@ function mapRow(row: FieldStatusApplicationRow) {
     gymId: row.gymId,
     gymName: resolveApplicationGymDisplayName({
       gymSnapshot: row.gymSnapshot,
-      gymRelationName: row.gym.name,
+      gymRelationName: row.gym?.name,
     }),
     divisionId: row.divisionId ?? "",
     divisionLabel: formatApplicationDivisionLabel({

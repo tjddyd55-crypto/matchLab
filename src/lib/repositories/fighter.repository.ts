@@ -467,7 +467,8 @@ export const fighterRepository = {
       guardianPhone?: string | null;
       primarySport?: string | null;
       gymInternalMemo?: string | null;
-      currentGymId: string;
+      /** MATCHON 등록 Gym만. 외부 소속 신청은 null */
+      currentGymId?: string | null;
       gymMemberId?: string | null;
       recordTotalBouts?: number;
       recordWin?: number;
@@ -491,7 +492,7 @@ export const fighterRepository = {
         guardianName: params.guardianName ?? null,
         guardianPhone: params.guardianPhone ?? null,
         primarySport: params.primarySport ?? null,
-        currentGymId: params.currentGymId,
+        currentGymId: params.currentGymId ?? null,
         gymMemberId: params.gymMemberId ?? null,
         recordTotalBouts: params.recordTotalBouts ?? 0,
         recordWin: params.recordWin ?? 0,
@@ -501,6 +502,10 @@ export const fighterRepository = {
       },
       select: { id: true, fighterCode: true },
     });
+
+    if (!params.currentGymId) {
+      return fighter;
+    }
 
     const existingHistory = await tx.fighterGymHistory.findFirst({
       where: {

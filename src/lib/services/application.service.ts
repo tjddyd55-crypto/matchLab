@@ -242,7 +242,8 @@ type GymApplicationCreateContext = {
   divisionId: string | null;
   divisionSelectionType?: "REGISTERED" | "OTHER";
   requestedDivisionText?: string | null;
-  gymId: string;
+  /** MATCHON 등록 Gym만. 외부/Excel 소속은 null */
+  gymId: string | null;
   gymDisplayName: string;
   fighter: {
     id: string;
@@ -421,6 +422,7 @@ async function createGymEventApplication(
           (ctx.divisionId ? "REGISTERED" : "OTHER"),
         requestedDivisionText: ctx.requestedDivisionText ?? null,
         gymId: ctx.gymId,
+        gymNameSnapshot: ctx.gymDisplayName.trim() || null,
         fighterId: ctx.fighter.id,
         fighterSnapshot,
         gymSnapshot,
@@ -691,7 +693,7 @@ export type BulkApplyItemResultDTO = {
 export type CreateOrganizerManualApplicationResultDTO = {
   applicationId: string;
   fighterId: string;
-  gymId: string;
+  gymId: string | null;
   fighterName: string;
   gymName: string;
 };
@@ -808,7 +810,9 @@ export const applicationService = {
       await applicationRepository.listApplicationsForFighter(fighterId);
     const feeRows = await Promise.all(
       rows.map((r) =>
-        gymEventFeeRepository.findByGymAndEvent(r.gymId, r.event.id),
+        r.gymId
+          ? gymEventFeeRepository.findByGymAndEvent(r.gymId, r.event.id)
+          : Promise.resolve(null),
       ),
     );
 
@@ -958,6 +962,7 @@ export const applicationService = {
       const paymentRow = row.payments[0] ?? null;
 
       const gymName = resolveApplicationGymDisplayName({
+        gymNameSnapshot: row.gymNameSnapshot,
         gymSnapshot: row.gymSnapshot,
         gymRelationName: row.gym?.name,
       });
@@ -1575,14 +1580,16 @@ export const applicationService = {
         applicationId,
       );
     if (nctxApproved?.event && nctxApproved.gym && nctxApproved.fighter) {
+      const gymOwnerUserId = nctxApproved.gym.ownerUserId;
+      const fighterUserId = nctxApproved.fighter.userId;
       safeNotify(`application-approved:${applicationId}`, () =>
         notificationService.notifyApplicationStatusChanged({
           applicationId,
           eventId: nctxApproved.eventId,
           eventTitle: nctxApproved.event.title,
           status: ApplicationStatus.approved,
-          gymOwnerUserId: nctxApproved.gym.ownerUserId,
-          fighterUserId: nctxApproved.fighter.userId,
+          gymOwnerUserId,
+          fighterUserId,
         }),
       );
     }
@@ -1643,14 +1650,16 @@ export const applicationService = {
         applicationId,
       );
     if (nctxRejected?.event && nctxRejected.gym && nctxRejected.fighter) {
+      const gymOwnerUserId = nctxRejected.gym.ownerUserId;
+      const fighterUserId = nctxRejected.fighter.userId;
       safeNotify(`application-rejected:${applicationId}`, () =>
         notificationService.notifyApplicationStatusChanged({
           applicationId,
           eventId: nctxRejected.eventId,
           eventTitle: nctxRejected.event.title,
           status: ApplicationStatus.rejected,
-          gymOwnerUserId: nctxRejected.gym.ownerUserId,
-          fighterUserId: nctxRejected.fighter.userId,
+          gymOwnerUserId,
+          fighterUserId,
         }),
       );
     }
@@ -1822,24 +1831,28 @@ export const applicationService = {
       }
 
       const result = await prisma.$transaction(async (tx) => {
-        let gym: { id: string; name: string };
+        let gymId: string | null = null;
+        let gymDisplayName: string;
         if (input.gymMode === "existing") {
           const row = await gymRepository.findActiveGymById(input.gymId!, tx);
           if (!row) {
             throw new AppError("VALIDATION_ERROR", "체육관을 찾을 수 없습니다.");
           }
-          gym = row;
+          gymId = row.id;
+          gymDisplayName = row.name;
         } else {
-          const created = await gymRepository.findOrCreateGymForOrganizerManualEntry(
-            input.gymName!,
-            tx,
-          );
-          gym = { id: created.id, name: created.name };
+          // 미가입 소속명 — Gym/User/loginId 생성 금지
+          gymDisplayName = (input.gymName ?? "").trim();
+          if (!gymDisplayName) {
+            throw new AppError("VALIDATION_ERROR", "체육관명을 입력해 주세요.");
+          }
+          gymId = null;
         }
         logManualApplicationCreate("gym_resolved", {
           ...logBase,
-          gymId: gym.id,
-          gymCreated: input.gymMode === "manual",
+          gymId,
+          gymCreated: false,
+          affiliationOnly: gymId == null,
         });
 
         let fighter: FighterForManualApplication;
@@ -1852,11 +1865,13 @@ export const applicationService = {
           if (!linked) {
             throw new AppError("NOT_FOUND", "연결할 선수를 찾을 수 없습니다.");
           }
-          await fighterRepository.linkExistingFighterToGym(tx, {
-            fighterId: linked.id,
-            gymId: gym.id,
-            gymInternalMemo: null,
-          });
+          if (gymId) {
+            await fighterRepository.linkExistingFighterToGym(tx, {
+              fighterId: linked.id,
+              gymId,
+              gymInternalMemo: null,
+            });
+          }
           await fighterRepository.updateFighterProfile(tx, linked.id, {
             name: input.fighterName.trim(),
             birthDate,
@@ -1891,7 +1906,7 @@ export const applicationService = {
               phone,
               guardianName: input.guardianName ?? null,
               guardianPhone: input.guardianPhone ?? null,
-              currentGymId: gym.id,
+              currentGymId: gymId,
             },
           );
           fighter = buildFighterForManualApplication({
@@ -1933,7 +1948,7 @@ export const applicationService = {
             answers,
             {
               eventTitle: event.title,
-              gymName: gym.name,
+              gymName: gymDisplayName,
               divisionLabel: formatDivisionLabel(division),
               division,
               fighter: {
@@ -1958,8 +1973,8 @@ export const applicationService = {
           {
             eventId: input.eventId,
             divisionId: division.id,
-            gymId: gym.id,
-            gymDisplayName: gym.name,
+            gymId,
+            gymDisplayName,
             fighter,
             agreements: {
               rulesAgreed: true,
@@ -2001,7 +2016,7 @@ export const applicationService = {
           ...logBase,
           applicationId,
           fighterId: fighter.id,
-          gymId: gym.id,
+          gymId,
         });
 
         if (input.applicationStatus === ApplicationStatus.approved) {
@@ -2019,9 +2034,9 @@ export const applicationService = {
         return {
           applicationId,
           fighterId: fighter.id,
-          gymId: gym.id,
+          gymId,
           fighterName: fighter.name,
-          gymName: gym.name,
+          gymName: gymDisplayName,
         };
       });
 
@@ -2228,14 +2243,7 @@ export const applicationService = {
         };
       }
 
-      const gymBucket = await gymRepository.ensureOrganizerExternalRegistrationGym(
-        {
-          organizerId: link.organizerId,
-          organizerName: link.event.organizer.name,
-        },
-        tx,
-      );
-
+      // 외부 소속명만 저장 — MATCHON Gym/User/loginId 생성 금지
       const entryExtras = buildExternalLinkAgreementExtras({
         externalLinkId: link.id,
         clientSubmissionId: input.clientSubmissionId,
@@ -2281,7 +2289,7 @@ export const applicationService = {
             phone,
             guardianName: validated.guardianName,
             guardianPhone: validated.guardianPhone,
-            currentGymId: gymBucket.id,
+            currentGymId: null,
             weight: validated.applicationWeightKg,
           },
         );
@@ -2362,7 +2370,7 @@ export const applicationService = {
             requestedDivisionText: isOther
               ? validated.selection.requestedDivisionText
               : null,
-            gymId: gymBucket.id,
+            gymId: null,
             gymDisplayName: input.gymInfo.gymName,
             fighter,
             agreements: {
@@ -2581,14 +2589,7 @@ export const applicationService = {
 
     const result = await prisma.$transaction(
       async (tx) => {
-        const gymBucket =
-          await gymRepository.ensureOrganizerExternalRegistrationGym(
-            {
-              organizerId: event.organizerId,
-              organizerName: event.organizer.name,
-            },
-            tx,
-          );
+        // Excel 소속명만 저장 — MATCHON Gym/User 생성 금지
         const createdIds: string[] = [];
 
         for (const row of createRows) {
@@ -2639,7 +2640,7 @@ export const applicationService = {
               weight: row.applicationWeightKg ?? row.weightKg,
               guardianName: row.guardianName || null,
               guardianPhone: row.guardianPhone || null,
-              currentGymId: gymBucket.id,
+              currentGymId: null,
             });
           const fighter = buildFighterForManualApplication({
             id: createdFighter.id,
@@ -2728,7 +2729,7 @@ export const applicationService = {
               requestedDivisionText: isOther
                 ? row.requestedDivisionText
                 : null,
-              gymId: gymBucket.id,
+              gymId: null,
               gymDisplayName: row.gymName,
               fighter,
               agreements: {

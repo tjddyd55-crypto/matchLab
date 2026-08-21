@@ -34,6 +34,7 @@ const organizerApplicationSelect = {
   appliedAt: true,
   fighterSnapshot: true,
   gymSnapshot: true,
+  gymNameSnapshot: true,
   applicationAgreementSnapshot: true,
   recordText: true,
   careerText: true,
@@ -247,7 +248,8 @@ export const applicationRepository = {
       divisionId: string | null;
       divisionSelectionType?: "REGISTERED" | "OTHER";
       requestedDivisionText?: string | null;
-      gymId: string;
+      gymId: string | null;
+      gymNameSnapshot?: string | null;
       fighterId: string;
       fighterSnapshot: Prisma.InputJsonValue;
       gymSnapshot: Prisma.InputJsonValue;
@@ -283,6 +285,15 @@ export const applicationRepository = {
     const selectionType =
       data.divisionSelectionType ??
       (data.divisionId ? "REGISTERED" : "OTHER");
+    const gymNameSnapshot =
+      data.gymNameSnapshot?.trim() ||
+      (typeof data.gymSnapshot === "object" &&
+      data.gymSnapshot &&
+      !Array.isArray(data.gymSnapshot) &&
+      typeof (data.gymSnapshot as Record<string, unknown>).name === "string"
+        ? String((data.gymSnapshot as Record<string, unknown>).name).trim()
+        : null) ||
+      null;
     const app = await client.eventApplication.create({
       data: {
         eventId: data.eventId,
@@ -290,6 +301,7 @@ export const applicationRepository = {
         divisionSelectionType: selectionType,
         requestedDivisionText: data.requestedDivisionText?.trim() || null,
         gymId: data.gymId,
+        gymNameSnapshot,
         fighterId: data.fighterId,
         fighterSnapshot: data.fighterSnapshot,
         gymSnapshot: data.gymSnapshot,
@@ -548,6 +560,8 @@ export const applicationRepository = {
         appliedAt: true,
         createdAt: true,
         fighterSnapshot: true,
+        gymSnapshot: true,
+        gymNameSnapshot: true,
         applicationAgreementSnapshot: true,
         applicationDocumentId: true,
         event: {

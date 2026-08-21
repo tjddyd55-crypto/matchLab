@@ -33,9 +33,10 @@ export type BracketFighterSnapshotSource = {
     skillLevel: string | null;
   };
   /** 이미 resolve된 표시명 또는 Gym.relation name */
-  gym: { name: string };
+  gym: { name: string } | null;
   /** EventApplication.gymSnapshot — 있으면 표시 SSOT 우선 */
   gymSnapshot?: unknown;
+  gymNameSnapshot?: string | null;
 };
 
 export function formatDivisionNameLabel(d: {
@@ -63,8 +64,9 @@ export function buildFighterBracketSnapshot(
   row: BracketFighterSnapshotSource,
 ): BracketFighterSnapshotPayload {
   const gymName = resolveApplicationGymDisplayName({
+    gymNameSnapshot: row.gymNameSnapshot,
     gymSnapshot: row.gymSnapshot,
-    gymRelationName: row.gym.name,
+    gymRelationName: row.gym?.name,
   });
   return {
     fighterId: row.fighter.id,

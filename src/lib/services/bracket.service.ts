@@ -495,8 +495,9 @@ export const bracketService = {
         unmatchedFighters.push({
           fighterName: app.fighter.name,
           gymName: resolveApplicationGymDisplayName({
+            gymNameSnapshot: app.gymNameSnapshot,
             gymSnapshot: app.gymSnapshot,
-            gymRelationName: app.gym.name,
+            gymRelationName: app.gym?.name,
           }),
         });
       }
@@ -664,15 +665,17 @@ export const bracketService = {
           applicationId: a.id,
           fighterId: a.fighter.id,
           label: `${resolveApplicationGymDisplayName({
+            gymNameSnapshot: a.gymNameSnapshot,
             gymSnapshot: a.gymSnapshot,
-            gymRelationName: a.gym.name,
+            gymRelationName: a.gym?.name,
           })} · ${a.fighter.name}`,
           divisionLabel: formatDivisionNameLabel(a.division),
           division: toEventDivisionDisplayInput(a.division)!,
           fighterName: a.fighter.name,
           gymName: resolveApplicationGymDisplayName({
+            gymNameSnapshot: a.gymNameSnapshot,
             gymSnapshot: a.gymSnapshot,
-            gymRelationName: a.gym.name,
+            gymRelationName: a.gym?.name,
           }),
           isEligibleForBracket: fieldEligibility?.isEligibleForBracket ?? false,
           eligibilityLabel: fieldEligibility?.eligibilityLabel ?? "현장 미확인",

@@ -8,7 +8,7 @@ export type AutoMatchCandidate = {
   applicationId: string;
   fighterId: string;
   divisionId: string;
-  gymId: string;
+  gymId: string | null;
   gymName: string;
   fighterName: string;
   appliedAt: Date;

@@ -47,12 +47,14 @@ import type { GenerateAutoBracketMatchesInput } from "@/lib/validators/bracket-a
 import { resolveApplicationGymDisplayName } from "@/lib/gym/external-registration-placeholder-gym";
 
 function displayGymName(row: {
+  gymNameSnapshot?: string | null;
   gymSnapshot: unknown;
-  gym: { name: string };
+  gym: { name: string } | null;
 }): string {
   return resolveApplicationGymDisplayName({
+    gymNameSnapshot: row.gymNameSnapshot,
     gymSnapshot: row.gymSnapshot,
-    gymRelationName: row.gym.name,
+    gymRelationName: row.gym?.name,
   });
 }
 
@@ -352,13 +354,13 @@ function normalizeAutoMatchCourtTarget(
 
 function pushCourtCapacityUnmatched(
   pair: {
-    red: { applicationId: string; fighterId: string; gymId: string };
-    blue: { applicationId: string; fighterId: string; gymId: string };
+    red: { applicationId: string; fighterId: string; gymId: string | null };
+    blue: { applicationId: string; fighterId: string; gymId: string | null };
   },
   divisionId: string,
   appByFighterDivision: Map<string, AutoMatchApplicationRow>,
   unmatchedDetails: AutoBracketUnmatchedDetail[],
-  unmatchedGymIds: string[],
+  unmatchedGymIds: Array<string | null>,
 ) {
   for (const fighter of [pair.red, pair.blue]) {
     unmatchedGymIds.push(fighter.gymId);
@@ -592,7 +594,7 @@ export const bracketAutoMatchService = {
       applications.map((a) => [`${a.fighterId}:${a.divisionId}`, a]),
     );
     const placedFighterIds: string[] = [];
-    const unmatchedGymIds: string[] = [];
+    const unmatchedGymIds: Array<string | null> = [];
     // pairingByDivision을 RecordDivisionPairingResult 기반으로 교체
     const pairingByDivision = new Map<
       string,
@@ -927,7 +929,11 @@ export const bracketAutoMatchService = {
             createdMatches: summary.createdMatches,
             unmatchedCount: summary.unmatchedCount,
             placedFighterIds: [...new Set(placedFighterIds)],
-            unmatchedGymIds: [...new Set(unmatchedGymIds)],
+            unmatchedGymIds: [
+              ...new Set(
+                unmatchedGymIds.filter((id): id is string => id != null),
+              ),
+            ],
           }),
         );
       }

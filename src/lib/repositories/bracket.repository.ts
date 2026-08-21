@@ -55,6 +55,7 @@ export type ApprovedApplicationForBracketRow = {
   cancellationSource: ApplicationCancellationSource | null;
   weighInWeightKg: number | null;
   gymSnapshot: unknown;
+  gymNameSnapshot?: string | null;
   fighter: {
     id: string;
     fighterCode: string;
@@ -74,7 +75,7 @@ export type ApprovedApplicationForBracketRow = {
     weightLimitText: string | null;
     skillLevel: string | null;
   };
-  gym: { name: string };
+  gym: { name: string } | null;
 };
 
 export type AutoMatchApplicationRow = {
@@ -83,7 +84,7 @@ export type AutoMatchApplicationRow = {
   divisionId: string | null;
   divisionSelectionType: "REGISTERED" | "OTHER";
   requestedDivisionText: string | null;
-  gymId: string;
+  gymId: string | null;
   status: ApplicationStatus;
   checkInStatus: CheckInStatus;
   weighInStatus: WeighInStatus;
@@ -93,6 +94,7 @@ export type AutoMatchApplicationRow = {
   appliedAt: Date | null;
   createdAt: Date;
   gymSnapshot: unknown;
+  gymNameSnapshot?: string | null;
   /** 신청 시점 구조화 전적 snapshot — 자동대진 SSOT */
   totalBoutsSnapshot: number | null;
   winsSnapshot: number | null;
@@ -124,7 +126,7 @@ export type AutoMatchApplicationRow = {
     weightLimitText: string | null;
     skillLevel: string | null;
   } | null;
-  gym: { id: string; name: string };
+  gym: { id: string; name: string } | null;
 };
 
 export const bracketRepository = {
@@ -462,6 +464,7 @@ export const bracketRepository = {
           select: EVENT_DIVISION_DISPLAY_SELECT,
         },
         gymSnapshot: true,
+        gymNameSnapshot: true,
         gym: { select: { name: true } },
       },
     });
@@ -491,6 +494,7 @@ export const bracketRepository = {
         cancellationSource: true,
         weighInWeightKg: true,
         gymSnapshot: true,
+        gymNameSnapshot: true,
         fighter: {
           select: {
             id: true,
@@ -718,6 +722,7 @@ export const bracketRepository = {
         cancellationSource: true,
         weighInWeightKg: true,
         gymSnapshot: true,
+        gymNameSnapshot: true,
         fighter: { select: { id: true, name: true } },
         gym: { select: { name: true } },
       },
@@ -896,7 +901,7 @@ export const bracketRepository = {
         },
         fighter: { status: FighterStatus.active },
       },
-      orderBy: [{ gym: { name: "asc" } }, { createdAt: "asc" }],
+      orderBy: [{ gymNameSnapshot: "asc" }, { createdAt: "asc" }],
       select: {
         id: true,
         fighterId: true,
@@ -913,6 +918,7 @@ export const bracketRepository = {
         appliedAt: true,
         createdAt: true,
         gymSnapshot: true,
+        gymNameSnapshot: true,
         totalBoutsSnapshot: true,
         winsSnapshot: true,
         drawsSnapshot: true,

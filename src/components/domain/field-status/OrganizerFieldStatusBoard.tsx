@@ -59,7 +59,10 @@ export function OrganizerFieldStatusBoard({
 
   const gymOptions = useMemo(() => {
     const map = new Map<string, string>();
-    for (const r of rows) map.set(r.gymId, r.gymName);
+    for (const r of rows) {
+      const key = r.gymId ?? `name:${r.gymName}`;
+      map.set(key, r.gymName);
+    }
     return [...map.entries()].map(([id, name]) => ({ id, name }));
   }, [rows]);
 
