@@ -15,7 +15,7 @@ import { join } from "node:path";
 import { chromium, type Page } from "playwright";
 
 const PREFIX = "TWO_STAGE_QA_";
-const EXPECTED_SHA = "61204c609c35dde3f400d818a262afa9dd67b8f1";
+const EXPECTED_SHA = "03443657fc2e997c5660ff433aa40b28dc16ddb9";
 const BASE = (
   process.env.QA_BASE_URL ||
   "https://app-preview-member-gym-b.up.railway.app"
