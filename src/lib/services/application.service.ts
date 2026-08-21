@@ -79,6 +79,9 @@ import {
 import { formatFighterGenderLabel } from "@/lib/applications/division-fighter-match";
 import type { EventDivisionDisplayInput } from "@/lib/event-division-fields";
 import { formatDivisionSearchLabel } from "@/lib/event-division-fields";
+import { formatApplicationDivisionLabel } from "@/lib/applications/application-division-label";
+import { additionalInfoService } from "@/lib/services/additional-info.service";
+import { isMinorBirthDate } from "@/lib/gym-member-self-registration/age";
 import {
   logManualApplicationCreate,
   logManualApplicationCreateError,
@@ -97,6 +100,7 @@ import {
 } from "@/lib/external-registration/token";
 import { assertExternalRegistrationEligible } from "@/lib/external-registration/eligibility";
 import { parseApplicationWeightKg } from "@/lib/applications/application-weight";
+import { validateFirstStageApplication } from "@/lib/applications/first-stage-application";
 import { parseApplicantGender } from "@/lib/applicant-excel/normalize";
 import { resolveEventDivisionByApplicationWeight } from "@/lib/applications/resolve-event-division";
 import type { NormalizedCompetitionCategory } from "@/lib/applications/competition-category";
@@ -219,7 +223,9 @@ async function assertGymApplicator(actor: ActorContext): Promise<string> {
 
 type GymApplicationCreateContext = {
   eventId: string;
-  divisionId: string;
+  divisionId: string | null;
+  divisionSelectionType?: "REGISTERED" | "OTHER";
+  requestedDivisionText?: string | null;
   gymId: string;
   gymDisplayName: string;
   fighter: {
@@ -293,7 +299,7 @@ function buildFighterForManualApplication(input: {
 
 async function assertNoDuplicateManualApplication(input: {
   eventId: string;
-  divisionId: string;
+  divisionId: string | null;
   fighterIds: string[];
   tx?: Prisma.TransactionClient;
 }): Promise<void> {
@@ -394,6 +400,10 @@ async function createGymEventApplication(
       {
         eventId: ctx.eventId,
         divisionId: ctx.divisionId,
+        divisionSelectionType:
+          ctx.divisionSelectionType ??
+          (ctx.divisionId ? "REGISTERED" : "OTHER"),
+        requestedDivisionText: ctx.requestedDivisionText ?? null,
         gymId: ctx.gymId,
         fighterId: ctx.fighter.id,
         fighterSnapshot,
@@ -527,10 +537,11 @@ export type OrganizerApplicationListRowDTO = {
   fighterName: string;
   gymId: string;
   gymName: string;
-  divisionId: string;
+  /** REGISTERED면 division id, OTHER면 null */
+  divisionId: string | null;
   divisionLabel: string;
-  /** 표시용 division 필드 — 공통 칩/라벨 helper 입력. */
-  division: EventDivisionDisplayInput;
+  /** 표시용 division 필드 — OTHER/미지정은 null. */
+  division: EventDivisionDisplayInput | null;
   applicationStatus: ApplicationStatus;
   cancellationSource: import("@/generated/prisma").ApplicationCancellationSource | null;
   paymentStatus: PaymentStatus;
@@ -556,6 +567,17 @@ export type OrganizerApplicationListRowDTO = {
   insuranceRrnMasked: string | null;
   insuranceConsentAgreed: boolean;
   insuranceConsentLabel: string;
+  additionalInfoStatus: import("@/generated/prisma").AdditionalInfoStatus;
+  additionalInfoLabel: string;
+  additionalInfoBadgeTone: import("@/lib/additional-info/completion").AdditionalInfoBadgeTone;
+  additionalInfoCompletedAt: string | null;
+  contactMissing: boolean;
+  additionalInfoContactCode:
+    | "MISSING_ATHLETE_PHONE"
+    | "MISSING_GUARDIAN_PHONE"
+    | null;
+  isMinor: boolean;
+  divisionReviewRequired: boolean;
 };
 
 export type OrganizerManualRegistrationOptionsDTO = {
@@ -714,7 +736,11 @@ export const applicationService = {
         eventId: row.event.id,
         eventTitle: row.event.title,
         eventSlug: row.event.publicSlug,
-        divisionLabel: formatDivisionLabel(row.division),
+        divisionLabel: formatApplicationDivisionLabel({
+          division: row.division,
+          divisionSelectionType: row.divisionSelectionType,
+          requestedDivisionText: row.requestedDivisionText,
+        }),
         fighterName: readSnapshotName(row.fighterSnapshot),
         applicationStatus: row.status,
         paymentStatus: row.paymentStatus,
@@ -761,7 +787,11 @@ export const applicationService = {
       eventTitle: row.event.title,
       eventSlug: row.event.publicSlug,
       eventStatus: row.event.status,
-      divisionLabel: formatDivisionLabel(row.division),
+      divisionLabel: formatApplicationDivisionLabel({
+        division: row.division,
+        divisionSelectionType: row.divisionSelectionType,
+        requestedDivisionText: row.requestedDivisionText,
+      }),
       fighterName: readSnapshotName(row.fighterSnapshot),
       applicationStatus: row.status,
       paymentStatus: row.paymentStatus,
@@ -814,7 +844,11 @@ export const applicationService = {
       eventTitle: row.event.title,
       fighterName,
       gymName,
-      divisionLabel: formatDivisionLabel(row.division),
+      divisionLabel: formatApplicationDivisionLabel({
+        division: row.division,
+        divisionSelectionType: row.divisionSelectionType,
+        requestedDivisionText: row.requestedDivisionText,
+      }),
       applicationStatus: row.status,
       paymentStatus: row.paymentStatus,
       appliedAt: row.appliedAt ? toIso(row.appliedAt) : toIso(row.createdAt),
@@ -906,18 +940,24 @@ export const applicationService = {
         fighterName,
         gymId: row.gym?.id ?? "",
         gymName,
-        divisionId: row.division.id,
-        divisionLabel: formatDivisionLabel(row.division),
-        division: {
-          sportType: row.division.sportType,
-          ruleType: row.division.ruleType,
-          gender: row.division.gender,
-          ageGroup: row.division.ageGroup,
-          weightClass: row.division.weightClass,
-          weightClassName: row.division.weightClassName ?? null,
-          weightLimitText: row.division.weightLimitText ?? null,
-          skillLevel: row.division.skillLevel,
-        },
+        divisionId: row.divisionId ?? null,
+        divisionLabel: formatApplicationDivisionLabel({
+          division: row.division,
+          divisionSelectionType: row.divisionSelectionType,
+          requestedDivisionText: row.requestedDivisionText,
+        }),
+        division: row.division
+          ? {
+              sportType: row.division.sportType,
+              ruleType: row.division.ruleType,
+              gender: row.division.gender,
+              ageGroup: row.division.ageGroup,
+              weightClass: row.division.weightClass,
+              weightClassName: row.division.weightClassName ?? null,
+              weightLimitText: row.division.weightLimitText ?? null,
+              skillLevel: row.division.skillLevel,
+            }
+          : null,
         applicationStatus: row.status,
         cancellationSource: row.cancellationSource ?? null,
         paymentStatus: row.paymentStatus,
@@ -948,6 +988,22 @@ export const applicationService = {
         insuranceConsentLabel: insuranceConsentDisplayLabel(
           readInsuranceConsentSnapshot(row.insuranceConsentSnapshot),
         ),
+        ...(() => {
+          const mapped = additionalInfoService.mapRowFields({
+            additionalInfoStatus: row.additionalInfoStatus,
+            additionalInfoCompletedAt: row.additionalInfoCompletedAt,
+            divisionSelectionType: row.divisionSelectionType,
+            fighter: {
+              birthDate: row.fighter.birthDate,
+              phone: row.fighter.phone,
+              guardianPhone: row.fighter.guardianPhone,
+            },
+          });
+          const isMinor = row.fighter.birthDate
+            ? isMinorBirthDate(row.fighter.birthDate)
+            : false;
+          return { ...mapped, isMinor };
+        })(),
       });
     }
 
@@ -976,7 +1032,7 @@ export const applicationService = {
     const appliedMap = new Map<string, string[]>();
     for (const app of applications) {
       const list = appliedMap.get(app.fighterId) ?? [];
-      list.push(app.divisionId);
+      if (app.divisionId) list.push(app.divisionId);
       appliedMap.set(app.fighterId, list);
     }
 
@@ -1973,7 +2029,7 @@ export const applicationService = {
     results: Array<{
       applicationId: string;
       fighterName: string;
-      divisionId: string;
+      divisionId: string | null;
     }>;
     idempotentReplay: boolean;
   }> {
@@ -2035,29 +2091,49 @@ export const applicationService = {
         results: ids.map((applicationId) => ({
           applicationId,
           fighterName: "",
-          divisionId: "",
+          divisionId: null,
         })),
         idempotentReplay: true,
       };
     }
 
     const divisionById = new Map(link.event.divisions.map((d) => [d.id, d]));
+    const divisionCandidates = link.event.divisions.map((d) => ({
+      id: d.id,
+      sportType: d.sportType,
+      ruleType: d.ruleType,
+      gender: d.gender,
+      ageGroup: d.ageGroup,
+      weightClass: d.weightClass,
+      weightClassName: d.weightClassName,
+      weightLimitText: d.weightLimitText,
+      skillLevel: d.skillLevel,
+    }));
+
     const resolvedAthletes = input.athletes.map((athlete, i) => {
-      try {
-        const resolved = resolveDivisionForApplicationWeight({
-          gender: athlete.gender,
-          competitionCategory: athlete.competitionCategory,
-          discipline: athlete.discipline,
-          applicationWeightKg: athlete.applicationWeightKg,
-          divisions: link.event.divisions,
-        });
-        return { athlete, resolved };
-      } catch (e) {
+      const firstStage = validateFirstStageApplication({
+        gymName: input.gymInfo.gymName,
+        fighterName: athlete.fighterName,
+        gender: athlete.gender,
+        birthDate: athlete.birthDate,
+        phone: athlete.phone,
+        guardianName: athlete.guardianName,
+        guardianPhone: athlete.guardianPhone,
+        competitionCategory: athlete.competitionCategory,
+        divisionSelection: athlete.divisionSelection,
+        record: athlete.structuredRecord,
+        applicationWeightKg: athlete.applicationWeightKg,
+        careerText: athlete.careerText,
+        memo: athlete.memo,
+        divisions: divisionCandidates,
+      });
+      if (!firstStage.ok) {
         throw new AppError(
           "VALIDATION_ERROR",
-          `${i + 1}번 선수: ${e instanceof AppError ? e.message : "체급 자동배정에 실패했습니다."}`,
+          `${i + 1}번 선수: ${firstStage.errors[0] ?? "입력값을 확인해 주세요."}`,
         );
       }
+      return { athlete, validated: firstStage.value };
     });
 
     const paymentSetting = await eventRepository.findEventPaymentSettingFull(
@@ -2106,7 +2182,7 @@ export const applicationService = {
           results: [] as Array<{
             applicationId: string;
             fighterName: string;
-            divisionId: string;
+            divisionId: string | null;
           }>,
           idempotentReplay: true,
         };
@@ -2131,44 +2207,60 @@ export const applicationService = {
       const created: Array<{
         applicationId: string;
         fighterName: string;
-        divisionId: string;
+        divisionId: string | null;
       }> = [];
 
-      for (const { athlete, resolved } of resolvedAthletes) {
-        const division = divisionById.get(resolved.division.id)!;
-        const phone = normalizeGymFighterPhone(athlete.phone) || "-";
-        const birthDate = toUtcDateOnly(
-          athlete.birthDate instanceof Date
-            ? athlete.birthDate
-            : new Date(athlete.birthDate),
-        );
+      for (const { validated } of resolvedAthletes) {
+        const isOther = validated.selection.selectionType === "OTHER";
+        const divisionId = isOther ? null : validated.selection.divisionId;
+        const division = divisionId ? divisionById.get(divisionId) : undefined;
+        if (!isOther && !division) {
+          throw new AppError("VALIDATION_ERROR", "유효하지 않은 체급입니다.");
+        }
+
+        const phone = normalizeGymFighterPhone(validated.phone);
+        if (!phone) {
+          throw new AppError("VALIDATION_ERROR", "연락처를 입력해 주세요.");
+        }
+        const birthDate = fighterBirthDateForPersist(validated.birthDateIso);
+        if (!birthDate) {
+          throw new AppError(
+            "VALIDATION_ERROR",
+            "생년월일 형식이 올바르지 않습니다.",
+          );
+        }
 
         const fighterCode = await fighterService.generateFighterCode(tx);
         const createdFighter = await fighterRepository.createFighterWithGymHistory(
           tx,
           {
             fighterCode,
-            name: athlete.fighterName.trim(),
+            name: validated.fighterName,
             birthDate,
-            gender: athlete.gender,
+            gender: validated.gender,
             phone,
-            guardianName: athlete.guardianName ?? null,
-            guardianPhone: athlete.guardianPhone ?? null,
+            guardianName: validated.guardianName,
+            guardianPhone: validated.guardianPhone,
             currentGymId: gymBucket.id,
+            weight: validated.applicationWeightKg,
           },
         );
         const fighter = buildFighterForManualApplication({
           id: createdFighter.id,
           fighterCode: createdFighter.fighterCode,
-          name: athlete.fighterName.trim(),
+          name: validated.fighterName,
         });
 
         await assertNoDuplicateManualApplication({
           eventId: link.eventId,
-          divisionId: resolved.division.id,
+          divisionId,
           fighterIds: [fighter.id],
           tx,
         });
+
+        const divisionLabel = isOther
+          ? `기타 · ${validated.selection.requestedDivisionText}`
+          : formatDivisionLabel(division!);
 
         let customFormSnapshot: CustomFormSnapshot | null = null;
         if (
@@ -2186,16 +2278,23 @@ export const applicationService = {
             {
               eventTitle: link.event.title,
               gymName: input.gymInfo.gymName,
-              divisionLabel: formatDivisionLabel(division),
-              division,
+              divisionLabel,
+              division: {
+                sportType: division?.sportType ?? null,
+                gender: division?.gender ?? validated.gender,
+                ageGroup:
+                  division?.ageGroup ??
+                  (validated.competitionCategory || null),
+                weightClass: division?.weightClass ?? null,
+              },
               fighter: {
                 name: fighter.name,
-                gender: athlete.gender,
+                gender: validated.gender,
                 birthDate,
-                weightKg: null,
+                weightKg: validated.applicationWeightKg,
                 primarySport: null,
-                guardianName: athlete.guardianName ?? null,
-                guardianPhone: athlete.guardianPhone ?? null,
+                guardianName: validated.guardianName,
+                guardianPhone: validated.guardianPhone,
               },
             },
             {
@@ -2206,17 +2305,23 @@ export const applicationService = {
           );
         }
 
-        const memoParts = [
-          `[외부링크 등록] ${input.gymInfo.gymName}`,
-          `담당 ${input.gymInfo.contactName} ${input.gymInfo.contactPhone}`,
-        ];
+        const memoParts = [`[외부링크 등록] ${input.gymInfo.gymName}`];
+        if (isOther) {
+          memoParts.push(
+            `체급 확인 필요 · 기타: ${validated.selection.requestedDivisionText}`,
+          );
+        }
         if (input.gymInfo.memo?.trim()) memoParts.push(input.gymInfo.memo.trim());
-        if (athlete.memo?.trim()) memoParts.push(athlete.memo.trim());
+        if (validated.memo) memoParts.push(validated.memo);
 
         const { applicationId } = await createGymEventApplication(
           {
             eventId: link.eventId,
-            divisionId: resolved.division.id,
+            divisionId,
+            divisionSelectionType: isOther ? "OTHER" : "REGISTERED",
+            requestedDivisionText: isOther
+              ? validated.selection.requestedDivisionText
+              : null,
             gymId: gymBucket.id,
             gymDisplayName: input.gymInfo.gymName,
             fighter,
@@ -2232,23 +2337,26 @@ export const applicationService = {
             appliedAt,
             feeAmount,
             memo: memoParts.join("\n"),
-            recordText: athlete.recordText,
-            careerText: athlete.careerText,
-            totalBoutsSnapshot: athlete.structuredRecord?.totalBouts ?? null,
-            winsSnapshot: athlete.structuredRecord?.wins ?? null,
-            drawsSnapshot: athlete.structuredRecord?.draws ?? null,
-            lossesSnapshot: athlete.structuredRecord?.losses ?? null,
-            schoolLevelSnapshot: resolved.category.schoolLevel,
-            schoolGradeSnapshot: resolved.category.schoolGrade,
-            applicationWeightKg: resolved.applicationWeightKg,
-            insuranceRrnDigits: athlete.residentRegistrationNumber,
-            insuranceConsent: buildInsuranceConsentSnapshot({
-              agreedAt: appliedAt,
-              appliedByUserId: null,
-              provenance: "athlete_self",
-            }),
+            recordText: validated.recordText,
+            careerText: validated.careerText,
+            totalBoutsSnapshot: validated.record.totalBouts,
+            winsSnapshot: validated.record.wins,
+            drawsSnapshot: validated.record.draws,
+            lossesSnapshot: validated.record.losses,
+            applicationWeightKg: validated.applicationWeightKg,
+            insuranceRrnDigits: undefined,
+            insuranceConsent: undefined,
+            insurancePiiRequired: false,
             customFormSnapshot,
-            applicationEntryExtras: entryExtras,
+            applicationEntryExtras: {
+              ...entryExtras,
+              entryStage: "first_stage",
+              divisionSelectionType: isOther ? "OTHER" : "REGISTERED",
+              requestedDivisionText: isOther
+                ? validated.selection.requestedDivisionText
+                : undefined,
+              reviewRequired: isOther,
+            },
             initialApplicationStatus: ApplicationStatus.approved,
             initialPaymentStatus: PaymentStatus.unpaid,
           },
@@ -2268,7 +2376,7 @@ export const applicationService = {
         created.push({
           applicationId,
           fighterName: fighter.name,
-          divisionId: resolved.division.id,
+          divisionId,
         });
       }
 
@@ -2278,7 +2386,7 @@ export const applicationService = {
           clientSubmissionId: input.clientSubmissionId,
           athleteCount: created.length,
           gymNameSnapshot: input.gymInfo.gymName,
-          contactNameSnapshot: input.gymInfo.contactName,
+          contactNameSnapshot: input.gymInfo.contactName ?? null,
           applicationIds: created.map((c) => c.applicationId),
         },
       });
@@ -2444,19 +2552,41 @@ export const applicationService = {
         const createdIds: string[] = [];
 
         for (const row of createRows) {
-          if (!row.divisionId || !row.gender) {
+          if (!row.gender) {
             throw new AppError("VALIDATION_ERROR", `${row.excelRow}행 데이터가 올바르지 않습니다.`);
           }
-          const division = divisionById.get(row.divisionId);
-          if (!division) {
+          const isOther =
+            row.divisionSelectionType === "OTHER" || !row.divisionId;
+          const division = row.divisionId
+            ? divisionById.get(row.divisionId)
+            : undefined;
+          if (!isOther && !division) {
             throw new AppError(
               "VALIDATION_ERROR",
               `${row.excelRow}행: 유효하지 않은 체급입니다.`,
             );
           }
+          if (isOther && !row.requestedDivisionText?.trim()) {
+            throw new AppError(
+              "VALIDATION_ERROR",
+              `${row.excelRow}행: 기타를 선택한 경우 체급 또는 요청사항을 입력해주세요.`,
+            );
+          }
 
-          const phone = normalizeGymFighterPhone(row.phone) || "-";
+          const phone = normalizeGymFighterPhone(row.phone);
+          if (!phone) {
+            throw new AppError(
+              "VALIDATION_ERROR",
+              `${row.excelRow}행: 연락처를 입력해 주세요.`,
+            );
+          }
           const birthDate = fighterBirthDateForPersist(row.birthDate || null);
+          if (!birthDate) {
+            throw new AppError(
+              "VALIDATION_ERROR",
+              `${row.excelRow}행: 생년월일을 입력해 주세요.`,
+            );
+          }
           const fighterCode = await fighterService.generateFighterCode(tx);
           const createdFighter =
             await fighterRepository.createFighterWithGymHistory(tx, {
@@ -2466,7 +2596,7 @@ export const applicationService = {
               gender: row.gender,
               phone,
               height: row.heightCm,
-              weight: row.weightKg,
+              weight: row.applicationWeightKg ?? row.weightKg,
               guardianName: row.guardianName || null,
               guardianPhone: row.guardianPhone || null,
               currentGymId: gymBucket.id,
@@ -2479,10 +2609,14 @@ export const applicationService = {
 
           await assertNoDuplicateManualApplication({
             eventId: input.eventId,
-            divisionId: row.divisionId,
+            divisionId: isOther ? null : row.divisionId,
             fighterIds: [fighter.id],
             tx,
           });
+
+          const divisionLabel = isOther
+            ? `기타 · ${row.requestedDivisionText}`
+            : formatDivisionSearchLabel(division!);
 
           let customFormSnapshot: CustomFormSnapshot | null = null;
           if (
@@ -2500,13 +2634,25 @@ export const applicationService = {
               {
                 eventTitle: event.title,
                 gymName: row.gymName,
-                divisionLabel: formatDivisionSearchLabel(division),
-                division,
+                divisionLabel,
+                division: division
+                  ? {
+                      sportType: division.sportType,
+                      gender: division.gender,
+                      ageGroup: division.ageGroup,
+                      weightClass: division.weightClass,
+                    }
+                  : {
+                      sportType: null,
+                      gender: row.gender,
+                      ageGroup: row.ageGroup || null,
+                      weightClass: null,
+                    },
                 fighter: {
                   name: fighter.name,
                   gender: row.gender,
                   birthDate,
-                  weightKg: row.weightKg,
+                  weightKg: row.applicationWeightKg ?? row.weightKg,
                   primarySport: null,
                   guardianName: row.guardianName || null,
                   guardianPhone: row.guardianPhone || null,
@@ -2521,8 +2667,14 @@ export const applicationService = {
           }
 
           const memoParts = [`[엑셀 일괄 등록] ${row.gymName}`];
-          if (!birthDate) memoParts.push("생년월일 미입력(1차 신청)");
-          if (row.weightKg != null) memoParts.push(`신청체중 ${row.weightKg}kg`);
+          if (isOther) {
+            memoParts.push(`체급 확인 필요 · 기타: ${row.requestedDivisionText}`);
+          }
+          if (row.applicationWeightKg != null || row.weightKg != null) {
+            memoParts.push(
+              `신청체중 ${row.applicationWeightKg ?? row.weightKg}kg`,
+            );
+          }
           if (row.heightCm != null) memoParts.push(`키 ${row.heightCm}cm`);
           if (row.recordText) memoParts.push(`전적 ${row.recordText}`);
           if (row.careerText) memoParts.push(`운동경력 ${row.careerText}`);
@@ -2531,7 +2683,11 @@ export const applicationService = {
           const { applicationId } = await createGymEventApplication(
             {
               eventId: input.eventId,
-              divisionId: row.divisionId,
+              divisionId: isOther ? null : row.divisionId,
+              divisionSelectionType: isOther ? "OTHER" : "REGISTERED",
+              requestedDivisionText: isOther
+                ? row.requestedDivisionText
+                : null,
               gymId: gymBucket.id,
               gymDisplayName: row.gymName,
               fighter,
@@ -2556,14 +2712,8 @@ export const applicationService = {
               schoolLevelSnapshot: row.schoolLevelSnapshot,
               schoolGradeSnapshot: row.schoolGradeSnapshot,
               applicationWeightKg: row.applicationWeightKg ?? row.weightKg,
-              insuranceRrnDigits: row.insuranceRrnDigits,
-              insuranceConsent: row.insuranceConsentAgreed
-                ? buildInsuranceConsentSnapshot({
-                    agreedAt: appliedAt,
-                    appliedByUserId: actor.userId,
-                    provenance: "excel_operator_attested",
-                  })
-                : undefined,
+              insuranceRrnDigits: undefined,
+              insuranceConsent: undefined,
               insurancePiiRequired: false,
               customFormSnapshot,
               organizerManualEntry: {
@@ -2571,6 +2721,7 @@ export const applicationService = {
               },
               applicationEntryExtras: {
                 importChannel: "excel",
+                entryStage: "first_stage",
                 excelFileName: compactText(input.fileName),
                 excelRow: row.excelRow,
                 importRowNumber: row.rowNumber || undefined,
@@ -2578,6 +2729,11 @@ export const applicationService = {
                 importHeightCm: row.heightCm ?? undefined,
                 importRecordText: row.recordText || undefined,
                 importCareerText: row.careerText || undefined,
+                divisionSelectionType: isOther ? "OTHER" : "REGISTERED",
+                requestedDivisionText: isOther
+                  ? row.requestedDivisionText
+                  : undefined,
+                reviewRequired: isOther,
               },
               initialApplicationStatus: ApplicationStatus.approved,
               initialPaymentStatus: PaymentStatus.unpaid,

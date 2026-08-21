@@ -14,6 +14,7 @@ import {
   type CustomFormSnapshot,
 } from "@/lib/application-form/custom-form";
 import { formatDivisionNameLabel } from "@/lib/bracket-snapshot";
+import { formatApplicationDivisionLabel } from "@/lib/applications/application-division-label";
 import { AppError } from "@/lib/errors/app-error";
 import {
   computeFieldEligibility,
@@ -41,7 +42,7 @@ export type GymEventApplicationStatusRowDTO = {
   applicationId: string;
   fighterId: string;
   fighterName: string;
-  divisionId: string;
+  divisionId: string | null;
   divisionLabel: string;
   applicationStatus: ApplicationStatus;
   paymentStatus: PaymentStatus;
@@ -122,25 +123,6 @@ function readSnapshotName(snapshot: unknown): string {
     return (snapshot as { name: string }).name;
   }
   return "—";
-}
-
-function formatDivisionLabel(d: {
-  sportType: string | null;
-  ruleType: string | null;
-  gender: string | null;
-  ageGroup: string | null;
-  weightClass: string | null;
-  skillLevel: string | null;
-}): string {
-  return [
-    d.sportType,
-    d.ruleType,
-    d.weightClass ?? d.ageGroup,
-    d.gender,
-    d.skillLevel,
-  ]
-    .filter((x): x is string => Boolean(x?.trim()))
-    .join(" · ");
 }
 
 function resolveApplicationFormStatus(
@@ -322,7 +304,11 @@ export const gymEventStatusService = {
 
     const rows: GymEventApplicationStatusRowDTO[] = applications.map((row) => {
       const fighterName = row.fighter.name || readSnapshotName(row.fighterSnapshot);
-      const divisionLabel = formatDivisionLabel(row.division);
+      const divisionLabel = formatApplicationDivisionLabel({
+        division: row.division,
+        divisionSelectionType: row.divisionSelectionType,
+        requestedDivisionText: row.requestedDivisionText,
+      });
       const eligibility = computeFieldEligibility({
         checkInStatus: row.checkInStatus,
         weighInStatus: row.weighInStatus,

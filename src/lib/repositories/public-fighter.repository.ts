@@ -254,7 +254,7 @@ export const publicFighterRepository = {
       if (!map.has(r.fighterId)) {
         map.set(r.fighterId, {
           eventTitle: r.event.title,
-          sportType: r.division.sportType,
+          sportType: r.division?.sportType ?? "",
         });
       }
     }

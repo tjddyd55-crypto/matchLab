@@ -11,6 +11,7 @@ const WAITING_REASONS = new Set([
   "no_opponent_in_division",
   "not_field_eligible",
   "missing_division",
+  "division_review_required",
 ]);
 
 export function UnmatchedBracketCandidatesPanel({
@@ -56,6 +57,7 @@ export function UnmatchedBracketCandidatesPanel({
                   <td className="px-2 py-2">
                     <DivisionCompactDisplay
                       division={c.division}
+                      fallbackLabel={c.divisionLabel}
                       mainClassName="text-xs"
                       secondaryClassName="text-[11px]"
                     />
@@ -90,6 +92,7 @@ export function UnmatchedBracketCandidatesPanel({
                 {c.fighterName} · {c.gymName} —{" "}
                 <DivisionCompactDisplay
                   division={c.division}
+                  fallbackLabel={c.divisionLabel}
                   mainClassName="inline text-xs"
                   secondaryClassName="inline text-[11px]"
                   className="inline-flex flex-row flex-wrap items-baseline gap-x-1"

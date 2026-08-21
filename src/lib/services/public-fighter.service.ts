@@ -83,7 +83,8 @@ function divisionLabel(d: {
   sportType: string;
   weightClass: string | null;
   ageGroup: string | null;
-}): string {
+} | null): string {
+  if (!d) return "체급 미지정";
   const parts = [d.sportType, d.ageGroup, d.weightClass].filter(Boolean);
   return parts.join(" · ") || "—";
 }

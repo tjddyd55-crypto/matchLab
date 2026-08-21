@@ -6,7 +6,7 @@ import {
   WeighInStatus,
 } from "@/generated/prisma";
 import type { ActorContext } from "@/lib/auth/actor-context";
-import { formatDivisionNameLabel } from "@/lib/bracket-snapshot";
+import { formatApplicationDivisionLabel } from "@/lib/applications/application-division-label";
 import {
   computeFieldEligibility,
   getCheckInStatusLabel,
@@ -69,19 +69,27 @@ function mapRow(row: FieldStatusApplicationRow) {
       gymSnapshot: row.gymSnapshot,
       gymRelationName: row.gym.name,
     }),
-    divisionId: row.divisionId,
-    divisionLabel: formatDivisionNameLabel(row.division),
-    division: {
-      sportType: row.division.sportType,
-      ruleType: row.division.ruleType,
-      gender: row.division.gender,
-      ageGroup: row.division.ageGroup,
-      weightClass: row.division.weightClass,
-      weightClassName: row.division.weightClassName ?? null,
-      weightLimitText: row.division.weightLimitText ?? null,
-      skillLevel: row.division.skillLevel,
-    },
-    weightClassLabel: resolveWeighInWeightLabel(row.division),
+    divisionId: row.divisionId ?? "",
+    divisionLabel: formatApplicationDivisionLabel({
+      division: row.division,
+      divisionSelectionType: row.divisionSelectionType,
+      requestedDivisionText: row.requestedDivisionText,
+    }),
+    division: row.division
+      ? {
+          sportType: row.division.sportType,
+          ruleType: row.division.ruleType,
+          gender: row.division.gender,
+          ageGroup: row.division.ageGroup,
+          weightClass: row.division.weightClass,
+          weightClassName: row.division.weightClassName ?? null,
+          weightLimitText: row.division.weightLimitText ?? null,
+          skillLevel: row.division.skillLevel,
+        }
+      : null,
+    weightClassLabel: row.division
+      ? resolveWeighInWeightLabel(row.division)
+      : null,
     checkInStatus: row.checkInStatus,
     checkInStatusLabel: getCheckInStatusLabel(row.checkInStatus),
     weighInStatus: row.weighInStatus,
@@ -457,7 +465,7 @@ export const fieldStatusService = {
 
     const evaluation = evaluateWeighInWeight(
       weightKg,
-      resolveWeighInWeightLabel(row.division),
+      row.division ? resolveWeighInWeightLabel(row.division) : null,
     );
 
     let weighInStatus: WeighInStatus | undefined;

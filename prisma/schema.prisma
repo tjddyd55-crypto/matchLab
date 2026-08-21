@@ -181,6 +181,25 @@ enum ApplicationStatus {
   cancelled
 }
 
+/// 1차 신청 체급 선택 — OTHER는 체급표 EventDivision이 아님
+enum DivisionSelectionType {
+  REGISTERED
+  OTHER
+}
+
+/// 대진 확정 후 2차 추가정보 요청 상태 (신청 status와 분리)
+enum AdditionalInfoStatus {
+  NOT_REQUESTED
+  REQUESTED
+  IN_PROGRESS
+  COMPLETED
+}
+
+enum AdditionalInfoRecipientType {
+  ATHLETE
+  GUARDIAN
+}
+
 /// 대회 당일 현장 확인(체크인) — 신청 승인과 별개
 enum CheckInStatus {
   pending
@@ -1888,7 +1907,12 @@ model EventCourtDivisionRule {
 model EventApplication {
   id                         String             @id @default(cuid())
   eventId                    String
-  divisionId                 String
+  /// REGISTERED면 필수. OTHER(기타 체급)면 null — 가짜 EventDivision 금지
+  divisionId                 String?
+  /// 체급표 선택 vs 기타(확인 필요)
+  divisionSelectionType      DivisionSelectionType @default(REGISTERED)
+  /// OTHER 선택 시 요청 체급/협의 내용
+  requestedDivisionText      String?
   gymId                      String
   fighterId                  String
   status                     ApplicationStatus  @default(pending)
@@ -1937,6 +1961,25 @@ model EventApplication {
   insuranceRrnMasked         String?
   /// 보험가입 목적 개인정보 동의 snapshot (번호 포함 금지)
   insuranceConsentSnapshot   Json?
+  /// 대회/보험용 주소 (GymMember 주소 overwrite 금지)
+  participantAddress         String?
+  participantAddressDetail   String?
+  /// 2차 추가정보(미성년) 보호자 관계 — Fighter와 분리된 application scope
+  additionalInfoGuardianRelation String?
+  /// 2차 추가정보 손서명 private object key (공개 익명 다운로드 금지)
+  additionalInfoSignatureObjectKey String?
+  /// 2차 추가정보 요청/작성 상태
+  additionalInfoStatus       AdditionalInfoStatus @default(NOT_REQUESTED)
+  additionalInfoRequestedAt  DateTime?
+  additionalInfoLastSentAt   DateTime?
+  additionalInfoCompletedAt  DateTime?
+  additionalInfoRecipientType AdditionalInfoRecipientType?
+  /// dry-run / send 결과 요약 (전화번호 plaintext 금지)
+  additionalInfoSendStatus   String?
+  additionalInfoRecipientMasked String?
+  /// public /application-info/[token] — raw token 저장 금지
+  additionalInfoTokenHash    String?            @unique
+  additionalInfoTokenExpiresAt DateTime?
   /// 참가 승인 시 크레딧 차감 추적
   creditChargedAt            DateTime?
   creditChargeLedgerId       String?
@@ -1947,7 +1990,7 @@ model EventApplication {
   updatedAt                  DateTime           @updatedAt
 
   event         Event          @relation(fields: [eventId], references: [id], onDelete: Cascade)
-  division      EventDivision  @relation(fields: [divisionId], references: [id], onDelete: Cascade)
+  division      EventDivision? @relation(fields: [divisionId], references: [id], onDelete: Cascade)
   gym           Gym            @relation(fields: [gymId], references: [id], onDelete: Cascade)
   fighter       Fighter        @relation(fields: [fighterId], references: [id], onDelete: Cascade)
   appliedByUser User?          @relation("ApplicationApplicator", fields: [appliedByUserId], references: [id], onDelete: SetNull)
@@ -1965,6 +2008,8 @@ model EventApplication {
   @@index([fighterId])
   @@index([appliedByUserId])
   @@index([applicationBatchId])
+  @@index([additionalInfoStatus])
+  @@index([divisionSelectionType])
 }
 
 model EventPaymentSetting {

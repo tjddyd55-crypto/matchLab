@@ -68,7 +68,9 @@ export function OrganizerFieldStatusDetailPane({
   const showReason = shouldShowFieldReasonSection(row);
   const [reasonExpanded, setReasonExpanded] = useState(false);
   const reasonVisible = showReason || reasonExpanded;
-  const divisionLine = formatDivisionMainLabel(row.division);
+  const divisionLine = row.division
+    ? formatDivisionMainLabel(row.division)
+    : row.divisionLabel;
   const statusLine = [row.weighInStatusLabel, row.eligibilityLabel]
     .filter(Boolean)
     .join(" · ");

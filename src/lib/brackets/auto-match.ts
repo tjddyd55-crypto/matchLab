@@ -30,6 +30,7 @@ export type UnmatchedReason =
   | "not_field_eligible"
   | "already_placed"
   | "missing_division"
+  | "division_review_required"
   | "same_gym_only_remaining"
   | "court_capacity_full";
 

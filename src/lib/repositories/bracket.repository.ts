@@ -80,7 +80,9 @@ export type ApprovedApplicationForBracketRow = {
 export type AutoMatchApplicationRow = {
   id: string;
   fighterId: string;
-  divisionId: string;
+  divisionId: string | null;
+  divisionSelectionType: "REGISTERED" | "OTHER";
+  requestedDivisionText: string | null;
   gymId: string;
   status: ApplicationStatus;
   checkInStatus: CheckInStatus;
@@ -121,7 +123,7 @@ export type AutoMatchApplicationRow = {
     weightClassName: string | null;
     weightLimitText: string | null;
     skillLevel: string | null;
-  };
+  } | null;
   gym: { id: string; name: string };
 };
 
@@ -795,6 +797,8 @@ export const bracketRepository = {
         id: true,
         fighterId: true,
         divisionId: true,
+        divisionSelectionType: true,
+        requestedDivisionText: true,
         gymId: true,
         status: true,
         checkInStatus: true,

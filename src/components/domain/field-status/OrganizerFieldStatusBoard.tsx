@@ -65,7 +65,7 @@ export function OrganizerFieldStatusBoard({
 
   const divisionOptions = useMemo(() => {
     const map = new Map<string, string>();
-    for (const r of rows) map.set(r.divisionId, r.divisionLabel);
+    for (const r of rows) map.set(r.divisionId ?? "", r.divisionLabel);
     return [...map.entries()].map(([id, label]) => ({ id, label }));
   }, [rows]);
 

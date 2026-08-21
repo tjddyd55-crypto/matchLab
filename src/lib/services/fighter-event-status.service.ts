@@ -7,10 +7,7 @@ import type {
 } from "@/generated/prisma";
 import type { ActorContext } from "@/lib/auth/actor-context";
 import { formatDivisionNameLabel } from "@/lib/bracket-snapshot";
-import {
-  formatDivisionSearchLabel,
-  type EventDivisionDisplayInput,
-} from "@/lib/event-division-fields";
+import { formatApplicationDivisionLabel } from "@/lib/applications/application-division-label";
 import { AppError } from "@/lib/errors/app-error";
 import {
   computeFieldEligibility,
@@ -71,10 +68,6 @@ export type FighterEventsPageDTO = {
   applications: FighterApplicationStatusRowDTO[];
   matches: FighterMatchRowDTO[];
 };
-
-function formatDivisionLabel(d: EventDivisionDisplayInput): string {
-  return formatDivisionSearchLabel(d);
-}
 
 function fighterPaymentDisplayLabel(status: PaymentStatus): string {
   switch (status) {
@@ -211,7 +204,11 @@ export const fighterEventStatusService = {
           eventSlug: row.event.publicSlug,
           eventStatus: row.event.status,
           gymName: row.gym.name,
-          divisionLabel: formatDivisionLabel(row.division),
+          divisionLabel: formatApplicationDivisionLabel({
+            division: row.division,
+            divisionSelectionType: row.divisionSelectionType,
+            requestedDivisionText: row.requestedDivisionText,
+          }),
           applicationStatus: row.status,
           paymentDisplayLabel: fighterPaymentDisplayLabel(row.paymentStatus),
           checkInStatusLabel: getCheckInStatusLabel(row.checkInStatus),
