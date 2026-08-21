@@ -119,6 +119,9 @@ export function OrganizerBracketEditor({
       <BracketApprovedCandidatesSection
         options={detail.approvedFighterOptions}
         matches={detail.matches}
+        bracketId={detail.id}
+        bracketType={detail.type}
+        defaultCourtId={courts.find((c) => c.isActive)?.id}
       />
 
       {detail.type === BracketType.match_list ? (

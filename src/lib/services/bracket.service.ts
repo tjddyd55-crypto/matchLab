@@ -14,6 +14,7 @@ import type { ActorContext } from "@/lib/auth/actor-context";
 import {
   buildFighterBracketSnapshot,
   formatDivisionNameLabel,
+  formatRecordSummary,
   parseBracketFighterSnapshot,
   type BracketFighterSnapshotPayload,
 } from "@/lib/bracket-snapshot";
@@ -99,6 +100,25 @@ function reasonFor(changeType: BracketChangeType, explicit?: string): string {
     default:
       return "대진표가 변경되었습니다.";
   }
+}
+
+function readApplicationWeightKg(
+  fighterSnapshot: unknown,
+  weighInWeightKg: number | null,
+): number | null {
+  if (
+    fighterSnapshot &&
+    typeof fighterSnapshot === "object" &&
+    !Array.isArray(fighterSnapshot)
+  ) {
+    const raw = (fighterSnapshot as Record<string, unknown>).applicationWeightKg;
+    if (typeof raw === "number" && Number.isFinite(raw)) return raw;
+    if (typeof raw === "string" && raw.trim()) {
+      const n = Number(raw);
+      if (Number.isFinite(n)) return n;
+    }
+  }
+  return weighInWeightKg;
 }
 
 async function appendChangeLog(
@@ -411,6 +431,9 @@ export type OrganizerApprovedFighterOptionVM = {
   assignabilityLabel: string;
   assignabilityDisabledReason?: string;
   assignabilityWarningReason?: string;
+  /** 후보 카드 보조 표시 */
+  recordSummary: string;
+  applicationWeightKg: number | null;
 };
 
 export type OrganizerBracketDetailVM = {
@@ -686,6 +709,11 @@ export const bracketService = {
           assignabilityLabel: assignability.label,
           assignabilityDisabledReason: assignability.disabledReason,
           assignabilityWarningReason: assignability.warningReason,
+          recordSummary: formatRecordSummary(a.fighter),
+          applicationWeightKg: readApplicationWeightKg(
+            a.fighterSnapshot,
+            a.weighInWeightKg,
+          ),
         };
       });
 
@@ -1675,6 +1703,140 @@ export const bracketService = {
       });
 
       return { matchId: id };
+    });
+  },
+
+  /**
+   * 미배정 2명으로 수동 경기 1개 생성 (D&D / tap Confirm 후).
+   * 기존 addEmpty + assign 경로와 동일 Match CRUD를 한 트랜잭션으로 수행.
+   */
+  async createManualMatchWithPair(
+    actor: ActorContext,
+    input: {
+      bracketId: string;
+      redFighterId: string;
+      blueFighterId: string;
+      defaultCourtId?: string;
+    },
+  ): Promise<{ matchId: string; eventId: string }> {
+    const ctx = await ensureBracketOrganizer(actor, input.bracketId);
+    if (ctx.type !== BracketType.match_list) {
+      throw new AppError(
+        "VALIDATION_ERROR",
+        "경기 목록 대진표에서만 수동 경기를 추가할 수 있습니다.",
+      );
+    }
+    if (input.redFighterId === input.blueFighterId) {
+      throw new AppError(
+        "VALIDATION_ERROR",
+        "동일 선수를 홍·청 코너에 동시에 둘 수 없습니다.",
+      );
+    }
+
+    return prisma.$transaction(async (tx) => {
+      async function loadAssignable(fighterId: string) {
+        const row =
+          await bracketRepository.findApprovedApplicationForBracketPlacement(
+            ctx.eventId,
+            fighterId,
+            ctx.divisionId,
+            tx,
+          );
+        if (!row) {
+          throw new AppError(
+            "VALIDATION_ERROR",
+            "승인된 신청 선수만 배치할 수 있습니다.",
+          );
+        }
+        const assignability = computeBracketAssignability({
+          checkInStatus: row.checkInStatus,
+          weighInStatus: row.weighInStatus,
+          weighInFailureResolution: row.weighInFailureResolution,
+          applicationStatus: row.status,
+          cancellationSource: row.cancellationSource,
+          weighInWeightKg: row.weighInWeightKg,
+        });
+        if (!assignability.isAssignable) {
+          throw new AppError(
+            "VALIDATION_ERROR",
+            assignability.disabledReason ??
+              "출전 불가 상태의 선수는 대진에 배치할 수 없습니다.",
+          );
+        }
+        const placed =
+          await bracketRepository.countFighterAssignmentsInBracketExcluding(
+            input.bracketId,
+            fighterId,
+            "",
+            tx,
+          );
+        if (placed > 0) {
+          throw new AppError(
+            "CONFLICT",
+            "선수 배정 상태가 변경되었습니다. 미매칭 목록을 다시 확인해 주세요.",
+          );
+        }
+        return row;
+      }
+
+      const redRow = await loadAssignable(input.redFighterId);
+      const blueRow = await loadAssignable(input.blueFighterId);
+
+      const nextOrder =
+        (await bracketRepository.getMaxMatchOrderForBracket(
+          input.bracketId,
+          tx,
+        )) + 1;
+      const courtId = await resolveSuggestedCourtId(
+        ctx.eventId,
+        ctx.divisionId,
+        input.defaultCourtId ?? null,
+        tx,
+      );
+      if (!courtId) {
+        throw new AppError("VALIDATION_ERROR", "경기장을 선택해 주세요.");
+      }
+      const pendingCourtOrders = new Map<string, number>();
+      const courtOrder = await nextCourtOrderForCourt(
+        ctx.eventId,
+        courtId,
+        pendingCourtOrders,
+        tx,
+      );
+
+      const { id: matchId } = await bracketRepository.createBracketMatch(
+        {
+          bracketId: input.bracketId,
+          matchOrder: nextOrder,
+          courtId,
+          courtOrder,
+          fighterRedId: input.redFighterId,
+          fighterRedSnapshot: buildFighterBracketSnapshot(redRow),
+          fighterBlueId: input.blueFighterId,
+          fighterBlueSnapshot: buildFighterBracketSnapshot(blueRow),
+        },
+        tx,
+      );
+
+      await appendChangeLog(tx, {
+        eventId: ctx.eventId,
+        bracketId: input.bracketId,
+        matchId,
+        changedByUserId: actor.userId,
+        bracketType: ctx.type,
+        changeType: BracketChangeType.bracket_created,
+        afterData: {
+          matchOrder: nextOrder,
+          courtId,
+          courtOrder,
+          fighterRedId: input.redFighterId,
+          fighterBlueId: input.blueFighterId,
+          source: "manual_pair_dnd",
+        },
+        reason: "수동 경기 만들기",
+      });
+
+      return { matchId, eventId: ctx.eventId };
     });
   },
 
