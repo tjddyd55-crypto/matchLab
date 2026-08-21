@@ -32,6 +32,7 @@ export function OrganizerApplicationsCards({
   emptyMessage = "아직 신청자가 없습니다.",
   emptyDescription,
   divisions = [],
+  manualRegistrationOptions,
 }: {
   eventId: string;
   rows: OrganizerApplicationRowVM[];
@@ -41,6 +42,7 @@ export function OrganizerApplicationsCards({
   emptyMessage?: string;
   emptyDescription?: string;
   divisions?: ResolveOtherDivisionOption[];
+  manualRegistrationOptions?: import("@/lib/services/application.service").OrganizerManualRegistrationOptionsDTO;
 }) {
   if (rows.length === 0) {
     return (
@@ -148,6 +150,7 @@ export function OrganizerApplicationsCards({
               eventId={eventId}
               row={row}
               divisions={divisions}
+              manualRegistrationOptions={manualRegistrationOptions}
               touchFriendly
             />
           </CardContent>

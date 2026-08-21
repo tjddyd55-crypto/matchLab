@@ -230,6 +230,7 @@ export function OrganizerApplicationsBoard({
     onToggleSelect: toggleSelect,
     emptyMessage,
     emptyDescription,
+    manualRegistrationOptions,
     divisions: manualRegistrationOptions.divisions.map((d) => ({
       id: d.id,
       label: d.label,

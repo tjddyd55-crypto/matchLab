@@ -107,6 +107,7 @@ export function OrganizerApplicationsTable({
   emptyMessage = "아직 신청자가 없습니다.",
   emptyDescription,
   divisions = [],
+  manualRegistrationOptions,
 }: {
   eventId: string;
   rows: OrganizerApplicationRowVM[];
@@ -116,6 +117,7 @@ export function OrganizerApplicationsTable({
   emptyMessage?: string;
   emptyDescription?: string;
   divisions?: ResolveOtherDivisionOption[];
+  manualRegistrationOptions?: import("@/lib/services/application.service").OrganizerManualRegistrationOptionsDTO;
 }) {
   if (rows.length === 0) {
     return (
@@ -241,6 +243,7 @@ export function OrganizerApplicationsTable({
                     eventId={eventId}
                     row={row}
                     divisions={divisions}
+                    manualRegistrationOptions={manualRegistrationOptions}
                     compact
                   />
                 </div>
