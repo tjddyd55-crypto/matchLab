@@ -35,10 +35,13 @@ const EMPTY_RECORD: StructuredRecordValue = {
 export function StructuredRecordFields({
   idPrefix,
   value,
+  defaultValue,
   onChange,
 }: {
   idPrefix: string;
   value?: StructuredRecordValue;
+  /** uncontrolled 초기값 (신청 snapshot preload 등) */
+  defaultValue?: StructuredRecordValue;
   onChange?: (v: StructuredRecordValue) => void;
 }) {
   const uid = useId();
@@ -46,7 +49,9 @@ export function StructuredRecordFields({
 
   const isControlled = value !== undefined;
 
-  const [local, setLocal] = useState<StructuredRecordValue>(EMPTY_RECORD);
+  const [local, setLocal] = useState<StructuredRecordValue>(
+    defaultValue ?? EMPTY_RECORD,
+  );
 
   const current = isControlled ? value : local;
 

@@ -296,21 +296,27 @@ type FighterForManualApplication = {
   recordWin: number;
   recordLoss: number;
   recordDraw: number;
+  recordTotalBouts?: number;
 };
 
 function buildFighterForManualApplication(input: {
   id: string;
   fighterCode: string;
   name: string;
+  recordWin?: number;
+  recordLoss?: number;
+  recordDraw?: number;
+  recordTotalBouts?: number;
 }): FighterForManualApplication {
   return {
     id: input.id,
     fighterCode: input.fighterCode,
     name: input.name,
     profileImageUrl: null,
-    recordWin: 0,
-    recordLoss: 0,
-    recordDraw: 0,
+    recordWin: input.recordWin ?? 0,
+    recordLoss: input.recordLoss ?? 0,
+    recordDraw: input.recordDraw ?? 0,
+    recordTotalBouts: input.recordTotalBouts,
   };
 }
 
@@ -2641,11 +2647,20 @@ export const applicationService = {
               guardianName: row.guardianName || null,
               guardianPhone: row.guardianPhone || null,
               currentGymId: null,
+              recordTotalBouts: row.totalBoutsSnapshot ?? 0,
+              recordWin: row.winsSnapshot ?? 0,
+              recordDraw: row.drawsSnapshot ?? 0,
+              recordLoss: row.lossesSnapshot ?? 0,
+              recordText: row.recordText || null,
             });
           const fighter = buildFighterForManualApplication({
             id: createdFighter.id,
             fighterCode: createdFighter.fighterCode,
             name: row.fighterName,
+            recordWin: row.winsSnapshot ?? 0,
+            recordLoss: row.lossesSnapshot ?? 0,
+            recordDraw: row.drawsSnapshot ?? 0,
+            recordTotalBouts: row.totalBoutsSnapshot ?? 0,
           });
 
           await assertNoDuplicateManualApplication({

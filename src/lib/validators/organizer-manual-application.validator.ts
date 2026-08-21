@@ -63,12 +63,34 @@ export const organizerManualApplicationSchema = z
       .transform((s) => (s === "" ? undefined : s)),
     recordText: athleteRecordTextSchema,
     careerText: athleteCareerTextSchema,
+    totalBouts: z.coerce.number().int().min(0).optional(),
+    wins: z.coerce.number().int().min(0).optional(),
+    draws: z.coerce.number().int().min(0).optional(),
+    losses: z.coerce.number().int().min(0).optional(),
     residentRegistrationNumber: optionalResidentRegistrationNumberFieldSchema,
     insuranceConsentConfirmed: optionalInsuranceConsentSchema,
     confirmDuplicate: z.boolean().optional().default(false),
     linkFighterId: z.string().trim().optional(),
   })
   .superRefine((data, ctx) => {
+    const hasStructured =
+      data.totalBouts != null ||
+      data.wins != null ||
+      data.draws != null ||
+      data.losses != null;
+    if (hasStructured) {
+      const totalBouts = data.totalBouts ?? 0;
+      const wins = data.wins ?? 0;
+      const draws = data.draws ?? 0;
+      const losses = data.losses ?? 0;
+      if (totalBouts !== wins + draws + losses) {
+        ctx.addIssue({
+          code: "custom",
+          message: "총 경기수와 승·무·패 합계가 일치하지 않습니다.",
+          path: ["totalBouts"],
+        });
+      }
+    }
     if (data.manualDivisionOverride && !data.divisionId?.trim()) {
       ctx.addIssue({
         code: "custom",

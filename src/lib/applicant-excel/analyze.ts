@@ -406,17 +406,19 @@ function resolveStructuredRecord(
     }
     return {
       record,
-      recordText: buildRecordText(record),
+      // Excel「전적」원문이 있으면 보존. 없으면 구조화 값으로 생성.
+      recordText: recordTextRaw || buildRecordText(record),
       warning: null,
     };
   }
 
+  // 레거시: 총전/승/무/패 컬럼 없을 때만 free-text 파싱
   if (recordTextRaw) {
     const parsed = parseRecordText(recordTextRaw);
     if (parsed.ok) {
       return {
         record: parsed.record,
-        recordText: parsed.recordText,
+        recordText: recordTextRaw || parsed.recordText,
         warning: null,
       };
     }

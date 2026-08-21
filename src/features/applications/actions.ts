@@ -459,6 +459,10 @@ export async function updateOrganizerApplicationAction(
       memo: formReq(formData, "memo") || undefined,
       recordText: formReq(formData, "recordText") || undefined,
       careerText: formReq(formData, "careerText") || undefined,
+      totalBouts: formReq(formData, "totalBouts") || undefined,
+      wins: formReq(formData, "wins") || undefined,
+      draws: formReq(formData, "draws") || undefined,
+      losses: formReq(formData, "losses") || undefined,
       residentRegistrationNumber: formReq(formData, "residentRegistrationNumber"),
       insuranceConsentConfirmed: parseCheckboxOn(
         formData,
