@@ -31,6 +31,11 @@ import { gymRepository } from "@/lib/repositories/gym.repository";
 import { parseApplicationWeightKg } from "@/lib/applications/application-weight";
 import { resolveEventDivisionByApplicationWeight } from "@/lib/applications/resolve-event-division";
 import { parseApplicantGender } from "@/lib/applicant-excel/normalize";
+import {
+  buildRecordText,
+  parseRecordText,
+  type StructuredRecord,
+} from "@/lib/fighter/record";
 import type { OrganizerManualApplicationInput } from "@/lib/validators/organizer-manual-application.validator";
 
 export type OrganizerApplicationEditFormDTO = {
@@ -54,11 +59,38 @@ export type OrganizerApplicationEditFormDTO = {
   paymentStatus: PaymentStatus;
   memo: string;
   recordText: string;
+  /** 신청 snapshot 우선 (Fighter 캐시로 덮지 않음) */
+  record: StructuredRecord;
   careerText: string;
   insuranceRrnMasked: string | null;
   structuralEditBlocked: boolean;
   structuralBlockReason: string | null;
 };
+
+function resolveApplicationRecordForEdit(row: {
+  recordText: string | null;
+  totalBoutsSnapshot: number | null;
+  winsSnapshot: number | null;
+  drawsSnapshot: number | null;
+  lossesSnapshot: number | null;
+}): StructuredRecord {
+  const hasSnapshot =
+    row.totalBoutsSnapshot != null ||
+    row.winsSnapshot != null ||
+    row.drawsSnapshot != null ||
+    row.lossesSnapshot != null;
+  if (hasSnapshot) {
+    return {
+      totalBouts: row.totalBoutsSnapshot ?? 0,
+      wins: row.winsSnapshot ?? 0,
+      draws: row.drawsSnapshot ?? 0,
+      losses: row.lossesSnapshot ?? 0,
+    };
+  }
+  const parsed = parseRecordText(row.recordText);
+  if (parsed.ok) return parsed.record;
+  return { totalBouts: 0, wins: 0, draws: 0, losses: 0 };
+}
 
 export type UpdateOrganizerApplicationInput = OrganizerManualApplicationInput & {
   applicationId: string;
@@ -268,6 +300,7 @@ export const applicationOrganizerLifecycleService = {
       paymentStatus: row.paymentStatus,
       memo: row.memo ?? "",
       recordText: row.recordText ?? "",
+      record: resolveApplicationRecordForEdit(row),
       careerText: row.careerText ?? "",
       insuranceRrnMasked: row.insuranceRrnMasked,
       structuralEditBlocked,
@@ -388,6 +421,23 @@ export const applicationOrganizerLifecycleService = {
 
     const gymSnapshot = { gymId, name: gymDisplayName };
 
+    const hasStructuredRecord =
+      input.totalBouts != null ||
+      input.wins != null ||
+      input.draws != null ||
+      input.losses != null;
+    const structuredRecord = hasStructuredRecord
+      ? {
+          totalBouts: input.totalBouts ?? 0,
+          wins: input.wins ?? 0,
+          draws: input.draws ?? 0,
+          losses: input.losses ?? 0,
+        }
+      : null;
+    const resolvedRecordText =
+      input.recordText?.trim() ||
+      (structuredRecord ? buildRecordText(structuredRecord) : null);
+
     const piiPatch: Prisma.EventApplicationUpdateInput = {};
     const rrn = input.residentRegistrationNumber?.trim() ?? "";
     if (input.clearInsuranceRrn) {
@@ -417,6 +467,15 @@ export const applicationOrganizerLifecycleService = {
         phone,
         guardianName: input.guardianName ?? null,
         guardianPhone: input.guardianPhone ?? null,
+        ...(structuredRecord
+          ? {
+              recordTotalBouts: structuredRecord.totalBouts,
+              recordWin: structuredRecord.wins,
+              recordDraw: structuredRecord.draws,
+              recordLoss: structuredRecord.losses,
+              recordText: resolvedRecordText,
+            }
+          : {}),
       });
 
       // 동일 대회·다른 division unique 충돌 방지
@@ -445,8 +504,16 @@ export const applicationOrganizerLifecycleService = {
           division: { connect: { id: division.id } },
           divisionSelectionType: DivisionSelectionType.REGISTERED,
           requestedDivisionText: null,
-          recordText: input.recordText?.trim() || null,
+          recordText: resolvedRecordText,
           careerText: input.careerText?.trim() || null,
+          ...(structuredRecord
+            ? {
+                totalBoutsSnapshot: structuredRecord.totalBouts,
+                winsSnapshot: structuredRecord.wins,
+                drawsSnapshot: structuredRecord.draws,
+                lossesSnapshot: structuredRecord.losses,
+              }
+            : {}),
           memo: input.memo?.trim() || existing.memo,
           ...piiPatch,
         },

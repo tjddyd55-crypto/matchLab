@@ -314,7 +314,11 @@ export function OrganizerApplicationEditPanel({
                     />
                   </div>
 
-                  <StructuredRecordFields idPrefix="edit" />
+                  <StructuredRecordFields
+                    key={`${form.applicationId}-record`}
+                    idPrefix="edit"
+                    defaultValue={form.record}
+                  />
 
                   <div>
                     <label className={labelClass} htmlFor="edit-careerText">
