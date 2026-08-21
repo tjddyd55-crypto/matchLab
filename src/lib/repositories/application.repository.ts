@@ -706,4 +706,76 @@ export const applicationRepository = {
       },
     });
   },
+
+  /** 체급표 재구성용 — 신청 원본 + 현재 division (snapshot 덮어쓰기 금지) */
+  async listApplicationsForDivisionRebuild(
+    eventId: string,
+    tx?: Prisma.TransactionClient,
+  ) {
+    return db(tx).eventApplication.findMany({
+      where: {
+        eventId,
+        status: {
+          in: [ApplicationStatus.pending, ApplicationStatus.approved],
+        },
+      },
+      orderBy: [{ createdAt: "asc" }],
+      select: {
+        id: true,
+        divisionId: true,
+        divisionSelectionType: true,
+        requestedDivisionText: true,
+        fighterSnapshot: true,
+        gymSnapshot: true,
+        gymNameSnapshot: true,
+        fighter: {
+          select: {
+            id: true,
+            name: true,
+            gender: true,
+          },
+        },
+        division: {
+          select: {
+            id: true,
+            sportType: true,
+            gender: true,
+            ageGroup: true,
+            weightClass: true,
+            weightClassName: true,
+            weightLimitText: true,
+            skillLevel: true,
+            ruleType: true,
+          },
+        },
+        gym: { select: { id: true, name: true } },
+      },
+    });
+  },
+
+  async clearDivisionIdsForEvent(
+    eventId: string,
+    tx?: Prisma.TransactionClient,
+  ): Promise<number> {
+    const result = await db(tx).eventApplication.updateMany({
+      where: { eventId, divisionId: { not: null } },
+      data: { divisionId: null },
+    });
+    return result.count;
+  },
+
+  async countApplicationsWithoutDivision(
+    eventId: string,
+    tx?: Prisma.TransactionClient,
+  ): Promise<number> {
+    return db(tx).eventApplication.count({
+      where: {
+        eventId,
+        divisionId: null,
+        status: {
+          in: [ApplicationStatus.pending, ApplicationStatus.approved],
+        },
+      },
+    });
+  },
 };

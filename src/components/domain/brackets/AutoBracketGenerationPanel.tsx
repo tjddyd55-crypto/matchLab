@@ -73,11 +73,13 @@ export function AutoBracketGenerationPanel({
   courts,
   canResetSafely,
   matchesWithResults,
+  undividedApplicantCount = 0,
 }: {
   eventId: string;
   courts: EventCourtVM[];
   canResetSafely: boolean;
   matchesWithResults: number;
+  undividedApplicantCount?: number;
 }) {
   const router = useRouter();
   const { confirm } = useAppConfirmDialog();
@@ -188,6 +190,12 @@ export function AutoBracketGenerationPanel({
           미리보기로 결과를 확인한 뒤 적용하세요. 같은 체육관끼리 매칭 금지가
           기본 적용됩니다.
         </p>
+        {undividedApplicantCount > 0 ? (
+          <p className="mt-2 text-sm text-amber-800 dark:text-amber-200" role="status">
+            경기구분이 지정되지 않은 신청자 {undividedApplicantCount}명 — 자동/수동
+            대진 후보에서 제외됩니다.
+          </p>
+        ) : null}
       </CardHeader>
       <CardContent className="px-4">
         <div className="mt-4 grid gap-3 sm:grid-cols-2">

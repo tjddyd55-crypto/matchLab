@@ -57,6 +57,7 @@ export type OrganizerApplicationRowVM = {
   /** REGISTERED면 division id, OTHER면 null */
   divisionId: string | null;
   divisionLabel: string;
+  currentDivisionLabel?: string | null;
   division: EventDivisionDisplayInput | null;
   applicationStatus: ApplicationStatus;
   cancellationSource: ApplicationCancellationSource | null;
@@ -201,6 +202,19 @@ export function OrganizerApplicationsTable({
                   mainClassName="text-xs"
                   secondaryClassName="text-[11px]"
                 />
+                {row.currentDivisionLabel &&
+                row.currentDivisionLabel !== row.divisionLabel ? (
+                  <p className="text-muted-foreground mt-1 text-[10px] leading-snug">
+                    신청 체급: {row.divisionLabel}
+                    <br />
+                    현재 배정: {row.currentDivisionLabel}
+                  </p>
+                ) : null}
+                {!row.divisionId ? (
+                  <p className="text-destructive mt-1 text-[10px]">
+                    경기구분 미배정
+                  </p>
+                ) : null}
                 {row.divisionReviewRequired ? (
                   <div className="mt-1 flex flex-wrap gap-1">
                     <span className={DIVISION_REVIEW_BADGE_CLASS}>기타</span>

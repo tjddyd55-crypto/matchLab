@@ -86,3 +86,13 @@ export const applyDivisionTemplateSchema = z.object({
 export type ApplyDivisionTemplateInput = z.infer<
   typeof applyDivisionTemplateSchema
 >;
+
+/** 새 템플릿으로 경기구분 재구성 (신청 보존 · Match 삭제) */
+export const rebuildEventDivisionsFromTemplateSchema = z.object({
+  eventId: z.string().min(1),
+  templateId: z.string().min(1),
+});
+
+export type RebuildEventDivisionsFromTemplateInput = z.infer<
+  typeof rebuildEventDivisionsFromTemplateSchema
+>;

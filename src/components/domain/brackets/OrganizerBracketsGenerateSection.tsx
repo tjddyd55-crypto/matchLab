@@ -11,6 +11,7 @@ import { UnmatchedBracketCandidatesPanel } from "@/components/domain/brackets/Un
 import { BracketsEmptyState } from "@/components/domain/brackets/BracketsEmptyState";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { eventCourtService } from "@/lib/services/event-court.service";
+import { applicationRepository } from "@/lib/repositories/application.repository";
 
 /** 대진표 생성 탭 콘텐츠 */
 export async function OrganizerBracketsGenerateSection({
@@ -21,13 +22,14 @@ export async function OrganizerBracketsGenerateSection({
   const actor = await requireActor();
   await requireOrganizerForEventPage(actor, eventId);
 
-  const [brackets, divisions, unmatchedCandidates, resetCheck, courts] =
+  const [brackets, divisions, unmatchedCandidates, resetCheck, courts, undividedCount] =
     await Promise.all([
       bracketService.listOrganizerEventBrackets(actor, eventId),
       eventService.listOrganizerEventDivisions(actor, eventId),
       bracketAutoMatchService.listUnmatchedCandidatesForEvent(actor, eventId),
       bracketAutoMatchService.canResetBracketSafely(actor, eventId),
       eventCourtService.listForOrganizer(actor, eventId),
+      applicationRepository.countApplicationsWithoutDivision(eventId),
     ]);
 
   return (
@@ -43,6 +45,7 @@ export async function OrganizerBracketsGenerateSection({
         courts={courts}
         canResetSafely={resetCheck.safe}
         matchesWithResults={resetCheck.matchesWithResults}
+        undividedApplicantCount={undividedCount}
       />
 
       <BracketCreateForm eventId={eventId} divisions={divisions} />

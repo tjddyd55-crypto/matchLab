@@ -388,6 +388,21 @@ export const eventRepository = {
     return db(tx).bracket.count({ where: { divisionId } });
   },
 
+  async deleteAllEventDivisions(
+    eventId: string,
+    tx?: Prisma.TransactionClient,
+  ): Promise<number> {
+    const result = await db(tx).eventDivision.deleteMany({ where: { eventId } });
+    return result.count;
+  },
+
+  async countEventDivisions(
+    eventId: string,
+    tx?: Prisma.TransactionClient,
+  ): Promise<number> {
+    return db(tx).eventDivision.count({ where: { eventId } });
+  },
+
   /** 이벤트 소유 Organizer PK — 권한 검증용 (`findEventOwnershipContext` 별칭) */
   async findEventOwnershipContext(
     eventId: string,
