@@ -108,6 +108,7 @@ export function OrganizerFieldStatusTable({
                   <div className={fieldStatusTextCellClass} title={row.divisionLabel}>
                     <DivisionCompactDisplay
                       division={row.division}
+                      fallbackLabel={row.divisionLabel}
                       mainClassName={`text-xs ${nowrapTruncateClass}`}
                       secondaryClassName="text-[11px]"
                     />
@@ -174,6 +175,7 @@ export function OrganizerFieldStatusTable({
               <div title={row.divisionLabel}>
                 <DivisionCompactDisplay
                   division={row.division}
+                  fallbackLabel={row.divisionLabel}
                   mainClassName="text-xs"
                   secondaryClassName="text-[11px]"
                 />

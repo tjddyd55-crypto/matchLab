@@ -18,9 +18,12 @@ import { isPrismaUniqueViolation } from "@/lib/prisma-errors";
 import {
   assignFighterToMatchSchema,
   addEmptyBracketMatchSchema,
+  createManualMatchWithPairSchema,
   createBracketSchema,
   createMatchListMatchesSchema,
   createSingleEliminationDraftSchema,
+  deleteBracketMatchSchema,
+  ensureBracketForDivisionSchema,
   publishBracketSchema,
   removeFighterFromMatchSchema,
   eventBracketPublicationSchema,
@@ -464,6 +467,92 @@ export async function addEmptyBracketMatchAction(
     const actor = await requireActorFromMutation();
     const result = await bracketService.addEmptyBracketMatch(actor, parsed.data);
     return actionSuccess(result);
+  });
+}
+
+export async function createManualMatchWithPairAction(
+  arg1: unknown,
+  arg2?: FormData,
+): Promise<ActionResult<{ matchId: string }>> {
+  const formData = resolveFormData(arg1, arg2);
+  if (!formData) {
+    return actionFailure("VALIDATION_ERROR", "요청 본문이 올바르지 않습니다.");
+  }
+  return mapCaught(async () => {
+    const parsed = createManualMatchWithPairSchema.safeParse({
+      bracketId: formReq(formData, "bracketId"),
+      redFighterId: formReq(formData, "redFighterId"),
+      blueFighterId: formReq(formData, "blueFighterId"),
+      defaultCourtId: formReq(formData, "defaultCourtId") || undefined,
+    });
+    if (!parsed.success) {
+      return actionFailure(
+        "VALIDATION_ERROR",
+        "수동 경기 생성 입력값을 확인해 주세요.",
+      );
+    }
+    const actor = await requireActorFromMutation();
+    const result = await bracketService.createManualMatchWithPair(
+      actor,
+      parsed.data,
+    );
+    revalidatePath(
+      `/organizer/events/${result.eventId}/brackets/${parsed.data.bracketId}`,
+    );
+    revalidatePath(`/organizer/events/${result.eventId}/brackets`);
+    return actionSuccess({ matchId: result.matchId });
+  });
+}
+
+export async function ensureBracketForDivisionAction(
+  arg1: unknown,
+  arg2?: FormData,
+): Promise<ActionResult<{ bracketId: string }>> {
+  const formData = resolveFormData(arg1, arg2);
+  if (!formData) {
+    return actionFailure("VALIDATION_ERROR", "요청 본문이 올바르지 않습니다.");
+  }
+  return mapCaught(async () => {
+    const parsed = ensureBracketForDivisionSchema.safeParse({
+      eventId: formReq(formData, "eventId"),
+      divisionId: formReq(formData, "divisionId"),
+    });
+    if (!parsed.success) {
+      return actionFailure(
+        "VALIDATION_ERROR",
+        "경기구분 정보를 확인해 주세요.",
+        parsed.error.flatten(),
+      );
+    }
+    const actor = await requireActorFromMutation();
+    const result = await bracketService.ensureBracketShellForDivision(
+      actor,
+      parsed.data,
+    );
+    revalidatePath(`/organizer/events/${parsed.data.eventId}/brackets`);
+    return actionSuccess(result);
+  });
+}
+
+export async function deleteBracketMatchAction(
+  arg1: unknown,
+  arg2?: FormData,
+): Promise<ActionResult<{ ok: true }>> {
+  const formData = resolveFormData(arg1, arg2);
+  if (!formData) {
+    return actionFailure("VALIDATION_ERROR", "요청 본문이 올바르지 않습니다.");
+  }
+  return mapCaught(async () => {
+    const parsed = deleteBracketMatchSchema.safeParse({
+      bracketId: formReq(formData, "bracketId"),
+      matchId: formReq(formData, "matchId"),
+    });
+    if (!parsed.success) {
+      return actionFailure("VALIDATION_ERROR", "경기 삭제 입력값을 확인해 주세요.");
+    }
+    const actor = await requireActorFromMutation();
+    await bracketService.deleteBracketMatch(actor, parsed.data);
+    return actionSuccess({ ok: true as const });
   });
 }
 

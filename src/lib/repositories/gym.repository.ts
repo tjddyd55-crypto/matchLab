@@ -106,6 +106,10 @@ export const gymRepository = {
    * 주최자당 공용 외부등록 Gym 1개 — 제출마다 Gym/User를 새로 만들지 않는다.
    * loginId = ext-reg-{organizerId}
    */
+  /**
+   * @deprecated 신규 외부등록/Excel은 Gym을 생성하지 않는다.
+   * 레거시 placeholder 조회·마이그레이션 보조 용도로만 유지.
+   */
   async ensureOrganizerExternalRegistrationGym(
     input: { organizerId: string; organizerName: string },
     tx?: Prisma.TransactionClient,

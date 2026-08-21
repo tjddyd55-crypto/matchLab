@@ -9,6 +9,7 @@ import { cn } from "@/lib/utils";
 /** 경기구분 SSOT — row 기본은 메인(묶음·성별·체급)만. 종목은 섹션 헤더용. */
 export function DivisionCompactDisplay({
   division,
+  fallbackLabel,
   className,
   mainClassName,
   secondaryClassName,
@@ -16,7 +17,9 @@ export function DivisionCompactDisplay({
   showSport = false,
   showSecondary = false,
 }: {
-  division: EventDivisionDisplayInput;
+  division: EventDivisionDisplayInput | null | undefined;
+  /** OTHER/미지정 등 division 없을 때 표시 문구 */
+  fallbackLabel?: string | null;
   className?: string;
   mainClassName?: string;
   secondaryClassName?: string;
@@ -26,9 +29,11 @@ export function DivisionCompactDisplay({
   /** showSport 별칭·확장용 — 기본 false */
   showSecondary?: boolean;
 }) {
-  const main = formatDivisionMainLabel(division);
+  const fromDivision = division ? formatDivisionMainLabel(division) : "";
+  const main = fromDivision || fallbackLabel?.trim() || "";
   const showSportLine = showSport || showSecondary;
-  const sportTitle = showSportLine ? formatDivisionSportTitle(division) : null;
+  const sportTitle =
+    showSportLine && division ? formatDivisionSportTitle(division) : null;
 
   return (
     <div className={cn("min-w-0 space-y-0.5", className)}>

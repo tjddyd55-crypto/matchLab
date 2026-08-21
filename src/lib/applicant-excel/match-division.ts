@@ -6,7 +6,11 @@ import {
   normalizeWeightLimitDisplayText,
   resolveEventDivisionWeightFields,
 } from "@/lib/event-division-fields";
-import { foldKey, parseApplicantGender, splitWeightClassInput } from "@/lib/applicant-excel/normalize";
+import {
+  foldKey,
+  parseApplicantGender,
+  splitWeightClassInput,
+} from "@/lib/applicant-excel/normalize";
 
 export type ApplicantDivisionMatchInput = {
   gender: string;
@@ -19,6 +23,11 @@ export type ApplicantDivisionMatchInput = {
 export type ApplicantDivisionCandidate = EventDivisionDisplayInput & {
   id: string;
 };
+
+/** Excel·폼 체급 칸이 "기타"인지 (foldKey 기준). division-selection과 동일 규칙. */
+export function isOtherDivisionLabel(raw: string | null | undefined): boolean {
+  return foldKey(raw ?? "") === foldKey("기타");
+}
 
 function genderMatches(
   divisionGender: string | null,
@@ -83,6 +92,13 @@ export function matchEventDivision(input: {
   gender: "male" | "female";
   divisions: ApplicantDivisionCandidate[];
 }): { ok: true; division: ApplicantDivisionCandidate } | { ok: false; reason: string } {
+  if (isOtherDivisionLabel(input.row.weightClass)) {
+    return {
+      ok: false,
+      reason: "기타 체급은 EventDivision 매칭 대상이 아닙니다.",
+    };
+  }
+
   const byGender = input.divisions.filter((d) =>
     genderMatches(d.gender, input.gender),
   );
@@ -92,7 +108,7 @@ export function matchEventDivision(input: {
   if (byAge.length === 0) {
     return {
       ok: false,
-      reason: "해당 대회에 없는 경기구분/체급입니다.",
+      reason: "체급표에 없는 경기구분/체급입니다.",
     };
   }
   const bySport = byAge.filter((d) => sportMatches(d, input.row.sport));
@@ -104,11 +120,11 @@ export function matchEventDivision(input: {
   if (matched.length === 0) {
     return {
       ok: false,
-      reason: "해당 대회에 없는 경기구분/체급입니다.",
+      reason: "체급표에 없는 경기구분/체급입니다.",
     };
   }
   return {
     ok: false,
-    reason: "경기구분/체급이 여러 개와 일치합니다. 종목 또는 체중기준을 더 정확히 입력해 주세요.",
+    reason: "중복 체급 설정을 확인해주세요.",
   };
 }

@@ -4,6 +4,10 @@ import { useState, useTransition } from "react";
 import { useRouter } from "next/navigation";
 import type { OrganizerApplicationRowVM } from "@/components/domain/applications/OrganizerApplicationsTable";
 import {
+  OrganizerResolveOtherDivisionDialog,
+  type ResolveOtherDivisionOption,
+} from "@/components/domain/applications/OrganizerResolveOtherDivisionDialog";
+import {
   getOrganizerApplicationDisplayStatusLabel,
   isPaidForOrganizerDisplay,
   resolveOrganizerApplicationDisplayStatus,
@@ -49,17 +53,20 @@ function canRunAction(
 export function OrganizerApplicationRowActions({
   eventId,
   row,
+  divisions = [],
   compact = false,
   touchFriendly = false,
 }: {
   eventId: string;
   row: OrganizerApplicationRowVM;
+  divisions?: ResolveOtherDivisionOption[];
   compact?: boolean;
   touchFriendly?: boolean;
 }) {
   const router = useRouter();
   const { confirm } = useAppConfirmDialog();
   const [pending, startTransition] = useTransition();
+  const [resolveOpen, setResolveOpen] = useState(false);
   const [feedback, setFeedback] = useState<{
     tone: "success" | "error";
     message: string;
@@ -70,6 +77,7 @@ export function OrganizerApplicationRowActions({
     cancellationSource: row.cancellationSource,
   });
   const statusLabel = getOrganizerApplicationDisplayStatusLabel(display);
+  const showResolve = row.divisionReviewRequired === true;
 
   async function run(action: BulkApplicationAction) {
     const label = ACTION_LABELS[action];
@@ -122,7 +130,7 @@ export function OrganizerApplicationRowActions({
   const btnSize = touchFriendly ? "field" : "sm";
   const btnClass = touchFriendly ? "w-full sm:w-auto" : "h-7 px-2 text-xs";
 
-  if (actions.length === 0) {
+  if (actions.length === 0 && !showResolve) {
     return (
       <span className="text-muted-foreground text-xs">{statusLabel}</span>
     );
@@ -135,6 +143,27 @@ export function OrganizerApplicationRowActions({
         compact ? "items-center" : "items-stretch sm:items-end",
       )}
     >
+      {showResolve ? (
+        <div
+          className={cn(
+            "flex flex-wrap gap-1.5",
+            compact ? "justify-center" : "justify-end",
+            touchFriendly && "w-full flex-col sm:flex-row",
+          )}
+        >
+          <Button
+            type="button"
+            size={btnSize}
+            variant="outline"
+            className={btnClass}
+            disabled={pending}
+            onClick={() => setResolveOpen(true)}
+          >
+            체급 지정
+          </Button>
+        </div>
+      ) : null}
+
       {primaryActions.length > 0 ? (
         <div
           className={cn(
@@ -192,6 +221,20 @@ export function OrganizerApplicationRowActions({
           {feedback.message}
         </FeedbackMessage>
       ) : null}
+
+      <OrganizerResolveOtherDivisionDialog
+        open={resolveOpen}
+        onOpenChange={setResolveOpen}
+        eventId={eventId}
+        applicationId={row.applicationId}
+        fighterName={row.fighterName}
+        gender={row.fighterGender}
+        requestedDivisionText={row.requestedDivisionText}
+        applicationWeightKg={row.applicationWeightKg}
+        recordText={row.recordText}
+        careerText={row.careerText}
+        divisions={divisions}
+      />
     </div>
   );
 }

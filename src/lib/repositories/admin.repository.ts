@@ -6,6 +6,7 @@ import {
   EventStatus,
   MatchRecordStatus,
 } from "@/generated/prisma";
+import { excludeExternalRegistrationPlaceholderGymWhere } from "@/lib/gym/external-registration-placeholder-gym";
 import { prisma } from "@/lib/prisma";
 
 const DEFAULT_LIST_LIMIT = 400;
@@ -116,6 +117,7 @@ export const adminRepository = {
 
   async listAdminGyms(limit = DEFAULT_LIST_LIMIT) {
     return prisma.gym.findMany({
+      where: excludeExternalRegistrationPlaceholderGymWhere,
       take: limit,
       orderBy: { updatedAt: "desc" },
       select: {

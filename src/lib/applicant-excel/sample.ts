@@ -10,6 +10,7 @@ import {
   APPLICANT_EXCEL_SHEET_GUIDE,
 } from "@/lib/applicant-excel/columns";
 import { MINIMAL_APPLICATION_GUIDE_LINES } from "@/lib/applications/minimal-application";
+import { DIVISION_SELECTION_OTHER_LABEL } from "@/lib/applications/division-selection";
 import { sanitizePlainCell } from "@/lib/applicant-excel/normalize";
 import {
   formatDivisionGenderLabel,
@@ -30,22 +31,18 @@ const COLUMN_WIDTHS: Record<string, number> = {
   선수명: 14,
   성별: 9,
   생년월일: 14,
-  나이: 9,
-  키: 10,
-  신청체중: 12,
-  전적: 20,
+  연락처: 18,
+  경기구분: 16,
+  체급: 16,
   총전: 8,
   승: 7,
   무: 7,
   패: 7,
+  신청체중: 12,
   운동경력: 24,
-  주민등록번호: 18,
-  "보험가입 개인정보동의": 22,
-  경기구분: 16,
-  종목: 14,
-  연락처: 18,
   보호자이름: 14,
   보호자연락처: 18,
+  기타내용: 28,
   메모: 28,
 };
 
@@ -66,6 +63,15 @@ function weightChip(d: ApplicantExcelSampleDivision): string {
 
 function weightLimit(d: ApplicantExcelSampleDivision): string {
   return d.weightLimitText?.trim() || weightChip(d);
+}
+
+function weightClassName(d: ApplicantExcelSampleDivision): string {
+  return (
+    d.weightClassName?.trim() ||
+    weightChip(d) ||
+    d.weightClass?.trim() ||
+    ""
+  );
 }
 
 function applyHeaderStyle(row: ExcelJS.Row) {
@@ -93,6 +99,21 @@ function setTextColumn(sheet: ExcelJS.Worksheet, header: string) {
   sheet.getColumn(idx + 1).numFmt = "@";
 }
 
+function paintExampleRow(row: ExcelJS.Row, values: string[]) {
+  values.forEach((value, idx) => {
+    const cell = row.getCell(idx + 1);
+    cell.value = value;
+    cell.fill = {
+      type: "pattern",
+      pattern: "solid",
+      fgColor: { argb: "FFEFF6FF" },
+    };
+    cell.font = { italic: true, color: { argb: "FF64748B" } };
+  });
+  row.getCell(APPLICANT_EXCEL_HEADERS.length + 1).value =
+    APPLICANT_EXCEL_EXAMPLE_KIND;
+}
+
 export async function buildApplicantExcelSampleWorkbook(input: {
   eventTitle: string;
   divisions: ApplicantExcelSampleDivision[];
@@ -113,48 +134,56 @@ export async function buildApplicantExcelSampleWorkbook(input: {
     APPLICANT_EXCEL_INTERNAL_KIND_HEADER;
   applyHeaderStyle(headerRow);
   headerRow.getCell(1).note =
-    "※ 2행은 입력 예시입니다. 실제 등록 대상에 포함되지 않습니다. 3행부터 실제 선수를 입력하세요.";
+    "※ 2~3행은 입력 예시입니다. 실제 등록 대상에 포함되지 않습니다. 4행부터 실제 선수를 입력하세요.";
 
   const exampleAge = primary?.ageGroup?.trim() || "성인";
-  const exampleSport = formatDivisionSportTitle(primary ?? {}) || "킥복싱";
+  const exampleClass = primary
+    ? weightClassName(primary) || "라이트급"
+    : "라이트급";
 
-  const exampleRow = data.getRow(2);
-  const exampleValues: string[] = [
+  // 등록 체급 예시
+  paintExampleRow(data.getRow(2), [
     APPLICANT_EXCEL_EXAMPLE_NUMBER_LABEL,
     "마포킥복싱",
     "홍길동",
     "남",
     "2008-05-12",
-    "18",
-    "175",
-    "62.5",
-    "3전 2승 1패",
+    "010-1234-5678",
+    exampleAge === "대학·일반부" ? "성인" : exampleAge,
+    exampleClass,
     "3",
     "2",
     "0",
     "1",
+    "62.5",
     "킥복싱 2년",
-    "",
-    "",
-    exampleAge === "대학·일반부" ? "성인" : exampleAge,
-    exampleSport,
-    "010-1234-5678",
     "김보호",
     "010-1111-2222",
+    "",
     "첫 출전",
-  ];
-  exampleValues.forEach((value, idx) => {
-    const cell = exampleRow.getCell(idx + 1);
-    cell.value = value;
-    cell.fill = {
-      type: "pattern",
-      pattern: "solid",
-      fgColor: { argb: "FFEFF6FF" },
-    };
-    cell.font = { italic: true, color: { argb: "FF64748B" } };
-  });
-  exampleRow.getCell(APPLICANT_EXCEL_HEADERS.length + 1).value =
-    APPLICANT_EXCEL_EXAMPLE_KIND;
+  ]);
+
+  // 기타 체급 예시
+  paintExampleRow(data.getRow(3), [
+    APPLICANT_EXCEL_EXAMPLE_NUMBER_LABEL,
+    "마포킥복싱",
+    "이기타",
+    "여",
+    "2005-11-03",
+    "010-9876-5432",
+    exampleAge === "대학·일반부" ? "성인" : exampleAge,
+    DIVISION_SELECTION_OTHER_LABEL,
+    "0",
+    "0",
+    "0",
+    "0",
+    "",
+    "",
+    "",
+    "",
+    "-52kg 체급 희망",
+    "",
+  ]);
 
   data.views = [{ state: "frozen", ySplit: 1 }];
   data.autoFilter = {
@@ -169,27 +198,23 @@ export async function buildApplicantExcelSampleWorkbook(input: {
   setTextColumn(data, "보호자연락처");
   setTextColumn(data, "생년월일");
   setTextColumn(data, "번호");
-  setTextColumn(data, "주민등록번호");
 
   const guide = wb.addWorksheet(APPLICANT_EXCEL_SHEET_GUIDE);
   guide.addRow(["1차 신청 안내", MINIMAL_APPLICATION_GUIDE_LINES[0]!]);
-  guide.addRow([
-    "체급 자동배정",
-    "체급명과 체중기준은 직접 입력하지 않습니다. 신청체중을 입력하면 체급표 기준으로 자동 배정됩니다.",
-  ]);
+  guide.addRow(["추가정보", MINIMAL_APPLICATION_GUIDE_LINES[1]!]);
   guide.addRow([]);
   guide.addRow(["대회", sanitizePlainCell(input.eventTitle)]);
   guide.addRow([
     "작성 방법",
-    "1행=헤더, 2행=예시(등록 안 됨), 3행부터 실제 선수 입력",
+    "1행=헤더, 2~3행=예시(등록 안 됨), 4행부터 실제 선수 입력",
   ]);
   guide.addRow([
     "체급 입력",
-    "체급명과 체중기준은 직접 입력하지 않습니다. 신청체중을 입력하면 대회 체급표 기준으로 자동 배정됩니다.",
+    "체급표의 체급명을 입력하세요. 체급표에 없으면 「기타」 + 기타내용 필수. 신청체중은 체급 매칭에 사용하지 않습니다.",
   ]);
   guide.addRow([
     "경기구분 예",
-    "초3, 중2, 고1, 성인, 초등부, 일반부. 정확한 매칭이 안 되면 확인 필요 처리됩니다.",
+    "초3, 중2, 고1, 성인, 초등부, 일반부. 성별+경기구분+체급이 체급표와 정확히 하나 일치해야 합니다.",
   ]);
   guide.addRow([]);
   const ruleHeader = guide.addRow(["항목", "필수", "입력 방법", "예시"]);
@@ -200,34 +225,30 @@ export async function buildApplicantExcelSampleWorkbook(input: {
     ["체육관명", "필수", "소속 체육관 표시명", "마포킥복싱"],
     ["선수명", "필수", "실제 선수명", "홍길동"],
     ["성별", "필수", "권장 남/여 (남성·여성·male·female 허용)", "남"],
-    ["생년월일", "선택", "YYYY-MM-DD 권장. 경기구분으로 학년 판정 시 생략 가능", "2008-05-12"],
-    ["나이", "선택", "참고값. 생년월일이 있으면 생년월일 우선", "18"],
-    ["키", "선택", "숫자(cm). 175 또는 175cm", "175"],
-    ["신청체중", "필수", "이번 대회 출전 신청 체중. 62.5 / 62.5kg", "62.5"],
-    ["전적", "선택", "표시용. 총전/승/무/패가 있으면 그쪽이 우선", "3전 2승 1패"],
-    ["총전", "선택", "정수", "3"],
-    ["승", "선택", "정수", "2"],
-    ["무", "선택", "정수", "0"],
-    ["패", "선택", "정수", "1"],
-    ["운동경력", "선택", "자유 문장 그대로 보존", "킥복싱 2년"],
-    [
-      "주민등록번호",
-      "선택",
-      "1차 신청에서는 생략 가능. 추후 개인정보 수집 단계에서 요청",
-      "(비워두기 가능)",
-    ],
-    [
-      "보험가입 개인정보동의",
-      "선택",
-      "1차 신청에서는 생략 가능. 동의 받은 경우만 「동의」 입력",
-      "동의",
-    ],
+    ["생년월일", "필수", "YYYY-MM-DD. 미성년 판정·보호자 연락처 조건에 사용", "2008-05-12"],
+    ["연락처", "필수", "선수 휴대폰 (문자/텍스트)", "010-1234-5678"],
     ["경기구분", "필수", "초3 / 중2 / 고1 / 성인 등", exampleAge],
-    ["종목", "선택", "대회 종목명", exampleSport],
-    ["연락처", "선택", "문자(텍스트) 형식", "010-1234-5678"],
+    ["체급", "필수", "체급표 체급명. 없으면 「기타」", exampleClass],
+    ["총전", "필수", "정수. 무전은 0", "3"],
+    ["승", "필수", "정수", "2"],
+    ["무", "필수", "정수", "0"],
+    ["패", "필수", "정수", "1"],
+    ["신청체중", "선택", "참고용. 빈칸 가능. 체급 자동배정에 사용하지 않음", "62.5"],
+    ["운동경력", "선택", "자유 문장", "킥복싱 2년"],
     ["보호자이름", "선택", "필요 시", "김보호"],
-    ["보호자연락처", "선택", "문자(텍스트) 형식", "010-1111-2222"],
-    ["메모", "선택", "운영 참고 / 비고", "첫 출전"],
+    [
+      "보호자연락처",
+      "조건부",
+      "미성년(만 19세 미만)이면 필수",
+      "010-1111-2222",
+    ],
+    [
+      "기타내용",
+      "조건부",
+      "체급=기타일 때 필수. 희망 체급·요청사항",
+      "-52kg 체급 희망",
+    ],
+    ["메모", "선택", "운영 참고", "첫 출전"],
   ];
   for (const row of guideRows) {
     guide.addRow(row.map((c) => sanitizePlainCell(c)));
@@ -236,11 +257,11 @@ export async function buildApplicantExcelSampleWorkbook(input: {
   guide.addRow([]);
   guide.addRow([
     "개인정보(2차)",
-    MINIMAL_APPLICATION_GUIDE_LINES[1]!,
+    "주민등록번호·개인정보 동의·서명은 추후 별도 요청합니다. Excel만으로 추가정보를 완료 처리할 수 없습니다.",
   ]);
   guide.addRow([
     "체급표 참고",
-    "아래 목록은 참고용입니다. 체급명/체중기준을 직접 입력하지 마세요.",
+    "아래 목록의 경기구분·체급명을 그대로 입력하세요. 「기타」는 체급표에 없어도 됩니다.",
   ]);
   guide.addRow([]);
   guide.addRow(["현재 대회 체급표 (참고용)"]);
@@ -257,7 +278,7 @@ export async function buildApplicantExcelSampleWorkbook(input: {
       sanitizePlainCell(d.ageGroup ?? "-"),
       sanitizePlainCell(formatDivisionGenderLabel(d.gender) ?? "-"),
       sanitizePlainCell(formatDivisionSportTitle(d) ?? "-"),
-      sanitizePlainCell(d.weightClassName?.trim() || weightChip(d) || "-"),
+      sanitizePlainCell(weightClassName(d) || "-"),
       sanitizePlainCell(weightLimit(d) || "-"),
     ]);
   }

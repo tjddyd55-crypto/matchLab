@@ -22,12 +22,14 @@ export function OrganizerApplicationsBulkToolbar({
   gymName,
   selectedIds,
   onClearSelection,
+  onRequestAdditionalInfo,
 }: {
   eventId: string;
   gymId: string | null;
   gymName: string | null;
   selectedIds: string[];
   onClearSelection: () => void;
+  onRequestAdditionalInfo?: () => void;
 }) {
   const router = useRouter();
   const [pending, startTransition] = useTransition();
@@ -38,7 +40,8 @@ export function OrganizerApplicationsBulkToolbar({
   const [confirmAction, setConfirmAction] =
     useState<BulkApplicationAction | null>(null);
 
-  if (selectedIds.length === 0) return null;
+  const showBar = selectedIds.length > 0 || Boolean(onRequestAdditionalInfo);
+  if (!showBar) return null;
 
   function run(action: BulkApplicationAction) {
     setConfirmAction(null);
@@ -76,48 +79,66 @@ export function OrganizerApplicationsBulkToolbar({
   return (
     <div className={ORGANIZER_COMPACT_ACTION_BAR_CLASS}>
       <div className="flex w-full flex-col gap-3">
-        <p className="text-sm font-medium">
-          {gymName ? `${gymName} · ` : ""}선택 {selectedIds.length}명
-        </p>
-
-        <div className="flex flex-wrap gap-2">
-          {primaryActions.map((action) => (
+        <div className="flex flex-wrap items-center justify-between gap-2">
+          <p className="text-sm font-medium">
+            {selectedIds.length > 0
+              ? `${gymName ? `${gymName} · ` : ""}선택 ${selectedIds.length}명`
+              : "추가정보 일괄 요청"}
+          </p>
+          {onRequestAdditionalInfo ? (
             <Button
-              key={action}
               type="button"
               size="sm"
-              variant="default"
-              disabled={pending}
-              onClick={() => setConfirmAction(action)}
+              variant="outline"
+              onClick={onRequestAdditionalInfo}
             >
-              {ACTION_LABELS[action]}
+              추가정보 요청
             </Button>
-          ))}
-          <Button
-            type="button"
-            size="sm"
-            variant="outline"
-            disabled={pending}
-            onClick={onClearSelection}
-          >
-            선택 해제
-          </Button>
+          ) : null}
         </div>
 
-        <div className="flex flex-wrap gap-2 border-t pt-3">
-          {dangerActions.map((action) => (
-            <Button
-              key={action}
-              type="button"
-              size="sm"
-              variant="destructive"
-              disabled={pending}
-              onClick={() => setConfirmAction(action)}
-            >
-              {ACTION_LABELS[action]}
-            </Button>
-          ))}
-        </div>
+        {selectedIds.length > 0 ? (
+          <>
+            <div className="flex flex-wrap gap-2">
+              {primaryActions.map((action) => (
+                <Button
+                  key={action}
+                  type="button"
+                  size="sm"
+                  variant="default"
+                  disabled={pending}
+                  onClick={() => setConfirmAction(action)}
+                >
+                  {ACTION_LABELS[action]}
+                </Button>
+              ))}
+              <Button
+                type="button"
+                size="sm"
+                variant="outline"
+                disabled={pending}
+                onClick={onClearSelection}
+              >
+                선택 해제
+              </Button>
+            </div>
+
+            <div className="flex flex-wrap gap-2 border-t pt-3">
+              {dangerActions.map((action) => (
+                <Button
+                  key={action}
+                  type="button"
+                  size="sm"
+                  variant="destructive"
+                  disabled={pending}
+                  onClick={() => setConfirmAction(action)}
+                >
+                  {ACTION_LABELS[action]}
+                </Button>
+              ))}
+            </div>
+          </>
+        ) : null}
 
         {confirmAction ? (
           <Card variant="default" className="py-3">
@@ -163,3 +184,4 @@ export function OrganizerApplicationsBulkToolbar({
     </div>
   );
 }
+

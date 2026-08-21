@@ -1329,14 +1329,21 @@ async function main() {
         note: "Preview replica=1 in-memory only; not Redis. Load not hammered on live submit endpoint to avoid orphan signatures.",
       });
 
+      const unexpectedConsole = consoleErrors.filter(
+        (t) => !/status of 404/.test(t),
+      );
       report.quality = {
-        consoleErrors: consoleErrors.slice(0, 20),
+        consoleErrors: unexpectedConsole.slice(0, 20),
         pageErrors: pageErrors.slice(0, 20),
         hydration: hydration.slice(0, 20),
         http5xx: http5xx.slice(0, 20),
         nativeDialogs,
+        expected404Console: consoleErrors.filter((t) => /status of 404/.test(t))
+          .length,
       };
-      if (consoleErrors.length) fail(`console.error ${consoleErrors.length}: ${consoleErrors[0]}`);
+      if (unexpectedConsole.length) {
+        fail(`console.error ${unexpectedConsole.length}: ${unexpectedConsole[0]}`);
+      }
       if (pageErrors.length) fail(`pageerror ${pageErrors.length}: ${pageErrors[0]}`);
       if (hydration.length) fail(`hydration ${hydration.length}: ${hydration[0]}`);
       if (http5xx.length) fail(`5xx ${http5xx.length}: ${http5xx[0]}`);

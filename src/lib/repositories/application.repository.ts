@@ -23,6 +23,9 @@ function toPrismaBytes(
 
 const organizerApplicationSelect = {
   id: true,
+  divisionId: true,
+  divisionSelectionType: true,
+  requestedDivisionText: true,
   status: true,
   paymentStatus: true,
   cancellationSource: true,
@@ -31,17 +34,24 @@ const organizerApplicationSelect = {
   appliedAt: true,
   fighterSnapshot: true,
   gymSnapshot: true,
+  gymNameSnapshot: true,
   applicationAgreementSnapshot: true,
   recordText: true,
   careerText: true,
   insuranceRrnMasked: true,
   insuranceConsentSnapshot: true,
+  additionalInfoStatus: true,
+  additionalInfoCompletedAt: true,
+  additionalInfoRecipientMasked: true,
+  additionalInfoRecipientPhone: true,
   fighter: {
     select: {
       id: true,
       name: true,
       profileImageUrl: true,
       birthDate: true,
+      gender: true,
+      phone: true,
       schoolName: true,
       grade: true,
       guardianName: true,
@@ -87,6 +97,8 @@ export const applicationRepository = {
         createdAt: true,
         appliedAt: true,
         fighterSnapshot: true,
+        divisionSelectionType: true,
+        requestedDivisionText: true,
         event: {
           select: {
             id: true,
@@ -122,6 +134,8 @@ export const applicationRepository = {
         createdAt: true,
         appliedAt: true,
         fighterSnapshot: true,
+        divisionSelectionType: true,
+        requestedDivisionText: true,
         event: {
           select: {
             id: true,
@@ -188,16 +202,28 @@ export const applicationRepository = {
   async findExistingApplication(
     eventId: string,
     fighterId: string,
-    divisionId: string,
+    divisionId: string | null,
     tx?: Prisma.TransactionClient,
   ) {
-    return db(tx).eventApplication.findUnique({
-      where: {
-        eventId_fighterId_divisionId: {
-          eventId,
-          fighterId,
-          divisionId,
+    if (divisionId) {
+      return db(tx).eventApplication.findUnique({
+        where: {
+          eventId_fighterId_divisionId: {
+            eventId,
+            fighterId,
+            divisionId,
+          },
         },
+      });
+    }
+    // OTHER: unique (eventId,fighterId,NULL) is not enforced by PG — explicit lookup
+    return db(tx).eventApplication.findFirst({
+      where: {
+        eventId,
+        fighterId,
+        divisionId: null,
+        divisionSelectionType: "OTHER",
+        status: { notIn: ["cancelled", "rejected"] },
       },
     });
   },
@@ -219,8 +245,11 @@ export const applicationRepository = {
   async createEventApplicationWithPayment(
     data: {
       eventId: string;
-      divisionId: string;
-      gymId: string;
+      divisionId: string | null;
+      divisionSelectionType?: "REGISTERED" | "OTHER";
+      requestedDivisionText?: string | null;
+      gymId: string | null;
+      gymNameSnapshot?: string | null;
       fighterId: string;
       fighterSnapshot: Prisma.InputJsonValue;
       gymSnapshot: Prisma.InputJsonValue;
@@ -253,11 +282,26 @@ export const applicationRepository = {
     const applicationStatus =
       data.initialApplicationStatus ?? ApplicationStatus.pending;
     const paymentStatus = data.initialPaymentStatus ?? PaymentStatus.unpaid;
+    const selectionType =
+      data.divisionSelectionType ??
+      (data.divisionId ? "REGISTERED" : "OTHER");
+    const gymNameSnapshot =
+      data.gymNameSnapshot?.trim() ||
+      (typeof data.gymSnapshot === "object" &&
+      data.gymSnapshot &&
+      !Array.isArray(data.gymSnapshot) &&
+      typeof (data.gymSnapshot as Record<string, unknown>).name === "string"
+        ? String((data.gymSnapshot as Record<string, unknown>).name).trim()
+        : null) ||
+      null;
     const app = await client.eventApplication.create({
       data: {
         eventId: data.eventId,
         divisionId: data.divisionId,
+        divisionSelectionType: selectionType,
+        requestedDivisionText: data.requestedDivisionText?.trim() || null,
         gymId: data.gymId,
+        gymNameSnapshot,
         fighterId: data.fighterId,
         fighterSnapshot: data.fighterSnapshot,
         gymSnapshot: data.gymSnapshot,
@@ -332,6 +376,45 @@ export const applicationRepository = {
     });
   },
 
+  async updateAdditionalInfoSubmission(
+    applicationId: string,
+    data: {
+      insuranceRrnCipher: Uint8Array;
+      insuranceRrnIv: Uint8Array;
+      insuranceRrnAuthTag: Uint8Array;
+      insuranceRrnKeyVer: string;
+      insuranceRrnMasked: string;
+      insuranceConsentSnapshot: Prisma.InputJsonValue;
+      participantAddress: string;
+      participantAddressDetail: string | null;
+      additionalInfoGuardianRelation: string | null;
+      additionalInfoSignatureObjectKey: string;
+      applicationAgreementSnapshot: Prisma.InputJsonValue;
+      additionalInfoStatus: "COMPLETED";
+      additionalInfoCompletedAt: Date;
+    },
+    tx?: Prisma.TransactionClient,
+  ): Promise<void> {
+    await db(tx).eventApplication.update({
+      where: { id: applicationId },
+      data: {
+        insuranceRrnCipher: toPrismaBytes(data.insuranceRrnCipher),
+        insuranceRrnIv: toPrismaBytes(data.insuranceRrnIv),
+        insuranceRrnAuthTag: toPrismaBytes(data.insuranceRrnAuthTag),
+        insuranceRrnKeyVer: data.insuranceRrnKeyVer,
+        insuranceRrnMasked: data.insuranceRrnMasked,
+        insuranceConsentSnapshot: data.insuranceConsentSnapshot,
+        participantAddress: data.participantAddress,
+        participantAddressDetail: data.participantAddressDetail,
+        additionalInfoGuardianRelation: data.additionalInfoGuardianRelation,
+        additionalInfoSignatureObjectKey: data.additionalInfoSignatureObjectKey,
+        applicationAgreementSnapshot: data.applicationAgreementSnapshot,
+        additionalInfoStatus: data.additionalInfoStatus,
+        additionalInfoCompletedAt: data.additionalInfoCompletedAt,
+      },
+    });
+  },
+
   async findApplicationOwnershipContext(applicationId: string) {
     return prisma.eventApplication.findUnique({
       where: { id: applicationId },
@@ -350,6 +433,23 @@ export const applicationRepository = {
           orderBy: { createdAt: "desc" },
         },
         event: { select: { organizerId: true, title: true } },
+      },
+    });
+  },
+
+  /** OTHER → 등록 체급 지정용 */
+  async findApplicationForOtherDivisionResolve(applicationId: string) {
+    return prisma.eventApplication.findUnique({
+      where: { id: applicationId },
+      select: {
+        id: true,
+        eventId: true,
+        fighterId: true,
+        divisionId: true,
+        divisionSelectionType: true,
+        requestedDivisionText: true,
+        status: true,
+        fighter: { select: { id: true, name: true, gender: true } },
       },
     });
   },
@@ -413,6 +513,8 @@ export const applicationRepository = {
         id: true,
         fighterId: true,
         divisionId: true,
+        divisionSelectionType: true,
+        requestedDivisionText: true,
         status: true,
         paymentStatus: true,
         memo: true,
@@ -448,6 +550,8 @@ export const applicationRepository = {
         gymId: true,
         fighterId: true,
         divisionId: true,
+        divisionSelectionType: true,
+        requestedDivisionText: true,
         status: true,
         paymentStatus: true,
         memo: true,
@@ -456,6 +560,8 @@ export const applicationRepository = {
         appliedAt: true,
         createdAt: true,
         fighterSnapshot: true,
+        gymSnapshot: true,
+        gymNameSnapshot: true,
         applicationAgreementSnapshot: true,
         applicationDocumentId: true,
         event: {
@@ -496,6 +602,107 @@ export const applicationRepository = {
         handicapNote: true,
         checkInStatus: true,
         disqualificationReason: true,
+      },
+    });
+  },
+
+  async findApplicationForAdditionalInfo(applicationId: string) {
+    return prisma.eventApplication.findUnique({
+      where: { id: applicationId },
+      select: {
+        id: true,
+        eventId: true,
+        fighterId: true,
+        additionalInfoStatus: true,
+        additionalInfoRequestedAt: true,
+        additionalInfoTokenHash: true,
+        additionalInfoRecipientType: true,
+        additionalInfoRecipientPhone: true,
+        additionalInfoRecipientMasked: true,
+        fighterSnapshot: true,
+        fighter: {
+          select: {
+            id: true,
+            name: true,
+            birthDate: true,
+            phone: true,
+            guardianName: true,
+            guardianPhone: true,
+          },
+        },
+        event: { select: { id: true, title: true, organizerId: true } },
+      },
+    });
+  },
+
+  /** @deprecated alias — prefer findApplicationForAdditionalInfo */
+  async findApplicationForAdditionalInfoRequest(applicationId: string) {
+    return this.findApplicationForAdditionalInfo(applicationId);
+  },
+
+  async listApplicationsForAdditionalInfo(eventId: string) {
+    return prisma.eventApplication.findMany({
+      where: { eventId },
+      select: {
+        id: true,
+        additionalInfoStatus: true,
+        fighter: {
+          select: {
+            birthDate: true,
+            phone: true,
+            guardianPhone: true,
+          },
+        },
+      },
+    });
+  },
+
+  /** @deprecated alias — prefer listApplicationsForAdditionalInfo */
+  async listApplicationsForAdditionalInfoBulk(eventId: string) {
+    return this.listApplicationsForAdditionalInfo(eventId);
+  },
+
+  async findApplicationByAdditionalInfoTokenHash(tokenHash: string) {
+    return prisma.eventApplication.findUnique({
+      where: { additionalInfoTokenHash: tokenHash },
+      select: {
+        id: true,
+        eventId: true,
+        fighterId: true,
+        additionalInfoStatus: true,
+        additionalInfoTokenExpiresAt: true,
+        divisionSelectionType: true,
+        requestedDivisionText: true,
+        fighterSnapshot: true,
+        gymSnapshot: true,
+        applicationAgreementSnapshot: true,
+        insuranceRrnMasked: true,
+        participantAddress: true,
+        participantAddressDetail: true,
+        fighter: {
+          select: {
+            id: true,
+            name: true,
+            birthDate: true,
+            guardianName: true,
+            guardianPhone: true,
+          },
+        },
+        gym: { select: { id: true, name: true } },
+        division: {
+          select: {
+            id: true,
+            sportType: true,
+            ruleType: true,
+            gender: true,
+            ageGroup: true,
+            weightClass: true,
+            weightClassName: true,
+            weightLimitText: true,
+            skillLevel: true,
+          },
+        },
+        event: { select: { id: true, title: true } },
       },
     });
   },

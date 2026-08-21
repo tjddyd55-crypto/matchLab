@@ -7,10 +7,7 @@ import type {
 } from "@/generated/prisma";
 import type { ActorContext } from "@/lib/auth/actor-context";
 import { formatDivisionNameLabel } from "@/lib/bracket-snapshot";
-import {
-  formatDivisionSearchLabel,
-  type EventDivisionDisplayInput,
-} from "@/lib/event-division-fields";
+import { formatApplicationDivisionLabel } from "@/lib/applications/application-division-label";
 import { AppError } from "@/lib/errors/app-error";
 import {
   computeFieldEligibility,
@@ -20,6 +17,7 @@ import {
 import { outcomeStylePublicLabel } from "@/lib/match-result-snapshot";
 import { bracketMatchStatusLabel } from "@/lib/match-status-display";
 import { requireRole } from "@/lib/permissions";
+import { resolveApplicationGymDisplayName } from "@/lib/gym/external-registration-placeholder-gym";
 import { applicationRepository } from "@/lib/repositories/application.repository";
 import { bracketRepository } from "@/lib/repositories/bracket.repository";
 import { matchRepository } from "@/lib/repositories/match.repository";
@@ -71,10 +69,6 @@ export type FighterEventsPageDTO = {
   applications: FighterApplicationStatusRowDTO[];
   matches: FighterMatchRowDTO[];
 };
-
-function formatDivisionLabel(d: EventDivisionDisplayInput): string {
-  return formatDivisionSearchLabel(d);
-}
 
 function fighterPaymentDisplayLabel(status: PaymentStatus): string {
   switch (status) {
@@ -210,8 +204,16 @@ export const fighterEventStatusService = {
           eventTitle: row.event.title,
           eventSlug: row.event.publicSlug,
           eventStatus: row.event.status,
-          gymName: row.gym.name,
-          divisionLabel: formatDivisionLabel(row.division),
+          gymName: resolveApplicationGymDisplayName({
+            gymNameSnapshot: row.gymNameSnapshot,
+            gymSnapshot: row.gymSnapshot,
+            gymRelationName: row.gym?.name,
+          }),
+          divisionLabel: formatApplicationDivisionLabel({
+            division: row.division,
+            divisionSelectionType: row.divisionSelectionType,
+            requestedDivisionText: row.requestedDivisionText,
+          }),
           applicationStatus: row.status,
           paymentDisplayLabel: fighterPaymentDisplayLabel(row.paymentStatus),
           checkInStatusLabel: getCheckInStatusLabel(row.checkInStatus),

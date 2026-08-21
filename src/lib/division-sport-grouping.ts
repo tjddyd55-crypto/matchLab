@@ -36,12 +36,12 @@ export function groupItemsByDivisionSport<T>(
 
 /** 단일 종목이면 헤더 1개, 복수 종목이면 null (섹션 분리 필요). */
 export function resolveSingleSportSectionTitle(
-  divisions: Array<{ sportType?: string | null }>,
+  divisions: Array<{ sportType?: string | null } | null | undefined>,
 ): string | null {
   const titles = [
     ...new Set(
       divisions
-        .map((d) => formatDivisionSportTitle(d))
+        .map((d) => formatDivisionSportTitle(d ?? {}))
         .filter((x): x is string => Boolean(x)),
     ),
   ];

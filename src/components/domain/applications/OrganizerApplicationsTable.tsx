@@ -14,6 +14,8 @@ import {
   OrganizerPaymentDisplayBadge,
 } from "@/components/domain/applications/OrganizerApplicationDisplayBadge";
 import { OrganizerApplicationRowActions } from "@/components/domain/applications/OrganizerApplicationRowActions";
+import { OrganizerAdditionalInfoRowActions } from "@/components/domain/applications/OrganizerAdditionalInfoRowActions";
+import { AdditionalInfoStatusBadge } from "@/components/domain/applications/AdditionalInfoStatusBadge";
 import { OrganizerManualEntryHint } from "@/components/domain/applications/OrganizerManualEntryHint";
 import { OrganizerApplicationsEmptyState } from "@/components/domain/applications/OrganizerApplicationsEmptyState";
 import {
@@ -40,6 +42,10 @@ import {
   TableHeader,
   TableRow,
 } from "@/components/ui/table";
+import type { ResolveOtherDivisionOption } from "@/components/domain/applications/OrganizerResolveOtherDivisionDialog";
+
+const DIVISION_REVIEW_BADGE_CLASS =
+  "inline-flex rounded px-1.5 py-0.5 text-[11px] font-medium bg-amber-100 text-amber-900";
 
 export type OrganizerApplicationRowVM = {
   applicationId: string;
@@ -48,9 +54,10 @@ export type OrganizerApplicationRowVM = {
   fighterName: string;
   gymId: string;
   gymName: string;
-  divisionId: string;
+  /** REGISTERED면 division id, OTHER면 null */
+  divisionId: string | null;
   divisionLabel: string;
-  division: EventDivisionDisplayInput;
+  division: EventDivisionDisplayInput | null;
   applicationStatus: ApplicationStatus;
   cancellationSource: ApplicationCancellationSource | null;
   paymentStatus: PaymentStatus;
@@ -71,6 +78,24 @@ export type OrganizerApplicationRowVM = {
   insuranceRrnMasked?: string | null;
   insuranceConsentAgreed?: boolean;
   insuranceConsentLabel?: string;
+  additionalInfoStatus: import("@/generated/prisma").AdditionalInfoStatus;
+  additionalInfoLabel: string;
+  additionalInfoBadgeTone: import("@/lib/additional-info/completion").AdditionalInfoBadgeTone;
+  additionalInfoCompletedAt: string | null;
+  contactMissing: boolean;
+  additionalInfoContactCode:
+    | "MISSING_ATHLETE_PHONE"
+    | "MISSING_GUARDIAN_PHONE"
+    | null;
+  additionalInfoRecipientMasked?: string | null;
+  /** 요청 snapshot vs Fighter live 연락처 불일치 */
+  recipientPhoneDrift?: boolean;
+  liveRecipientMasked?: string | null;
+  isMinor: boolean;
+  divisionReviewRequired: boolean;
+  requestedDivisionText: string | null;
+  applicationWeightKg: number | null;
+  fighterGender: string;
 };
 
 export function OrganizerApplicationsTable({
@@ -81,6 +106,7 @@ export function OrganizerApplicationsTable({
   sequenceStart = 0,
   emptyMessage = "아직 신청자가 없습니다.",
   emptyDescription,
+  divisions = [],
 }: {
   eventId: string;
   rows: OrganizerApplicationRowVM[];
@@ -89,6 +115,7 @@ export function OrganizerApplicationsTable({
   sequenceStart?: number;
   emptyMessage?: string;
   emptyDescription?: string;
+  divisions?: ResolveOtherDivisionOption[];
 }) {
   if (rows.length === 0) {
     return (
@@ -125,7 +152,10 @@ export function OrganizerApplicationsTable({
             <TableHead className={cn(listTableHeaderCellCenterClass, "w-[10%]")}>
               상태
             </TableHead>
-            <TableHead className={cn(listTableHeaderCellCenterClass, "w-[22%]")}>
+            <TableHead className={cn(listTableHeaderCellCenterClass, "w-[8%]")}>
+              추가정보
+            </TableHead>
+            <TableHead className={cn(listTableHeaderCellCenterClass, "w-[18%]")}>
               상태입력/처리
             </TableHead>
           </TableRow>
@@ -155,7 +185,7 @@ export function OrganizerApplicationsTable({
                   <span className="truncate text-sm font-medium">
                     {row.fighterName}
                   </span>
-                  <DivisionGenderBadge gender={row.division.gender} short />
+                  <DivisionGenderBadge gender={row.division?.gender} short />
                 </div>
                 <OrganizerManualEntryHint
                   show={row.isOrganizerManualEntry}
@@ -165,9 +195,18 @@ export function OrganizerApplicationsTable({
               <TableCell className="align-top">
                 <DivisionCompactDisplay
                   division={row.division}
+                  fallbackLabel={row.divisionLabel}
                   mainClassName="text-xs"
                   secondaryClassName="text-[11px]"
                 />
+                {row.divisionReviewRequired ? (
+                  <div className="mt-1 flex flex-wrap gap-1">
+                    <span className={DIVISION_REVIEW_BADGE_CLASS}>기타</span>
+                    <span className={DIVISION_REVIEW_BADGE_CLASS}>
+                      체급 확인 필요
+                    </span>
+                  </div>
+                ) : null}
               </TableCell>
               <TableCell className="align-top text-center">
                 <OrganizerPaymentDisplayBadge paymentStatus={row.paymentStatus} />
@@ -184,10 +223,24 @@ export function OrganizerApplicationsTable({
                 />
               </TableCell>
               <TableCell className="align-top text-center">
+                <div className="flex flex-col items-center gap-1">
+                  <AdditionalInfoStatusBadge
+                    label={row.additionalInfoLabel}
+                    tone={row.additionalInfoBadgeTone}
+                  />
+                  <OrganizerAdditionalInfoRowActions
+                    eventId={eventId}
+                    row={row}
+                    compact
+                  />
+                </div>
+              </TableCell>
+              <TableCell className="align-top text-center">
                 <div className="flex justify-center">
                   <OrganizerApplicationRowActions
                     eventId={eventId}
                     row={row}
+                    divisions={divisions}
                     compact
                   />
                 </div>

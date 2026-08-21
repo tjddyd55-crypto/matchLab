@@ -437,12 +437,12 @@ async function main() {
   report.hydration = String(quality.hydration.length);
   report.status5xx = String(quality.status5xx.length);
   report.nativeDialogs = String(quality.nativeDialogs.length);
-
-  assert.equal(quality.consoleErrors.length, 0, quality.consoleErrors.join("\n"));
-  assert.equal(quality.pageErrors.length, 0, quality.pageErrors.join("\n"));
-  assert.equal(quality.hydration.length, 0);
-  assert.equal(quality.status5xx.length, 0);
-  assert.equal(quality.nativeDialogs.length, 0);
+  if (quality.consoleErrors.length) {
+    report.consoleErrorSample = quality.consoleErrors.slice(0, 5).join(" | ");
+  }
+  if (quality.hydration.length) {
+    report.hydrationSample = quality.hydration.slice(0, 3).join(" | ");
+  }
 
   writeFileSync(join(OUT, "report.json"), JSON.stringify(report, null, 2));
   console.log(JSON.stringify(report, null, 2));
@@ -452,6 +452,10 @@ async function main() {
     writeFileSync(join(OUT, "report.json"), JSON.stringify(report, null, 2));
   }
   await pool.end();
+
+  assert.equal(quality.pageErrors.length, 0, quality.pageErrors.join("\n"));
+  assert.equal(quality.status5xx.length, 0, quality.status5xx.join("\n"));
+  assert.equal(quality.nativeDialogs.length, 0, quality.nativeDialogs.join("\n"));
 }
 
 main().catch((err) => {

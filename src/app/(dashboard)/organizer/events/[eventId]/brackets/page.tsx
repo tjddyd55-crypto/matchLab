@@ -34,14 +34,14 @@ export default async function OrganizerEventBracketsPage({
     eventService.getEventBracketPublicationSettings(actor, eventId),
   ]);
 
-  const publicBracketCount = brackets.filter((b) => b.isPublic).length;
+  const existingBrackets = brackets.filter((b) => b.bracketId);
+  const publicBracketCount = existingBrackets.filter((b) => b.isPublic).length;
 
   return (
     <EventManagementLayout {...eventManagementLayoutProps(nav)}>
       <EventManagementPageHeader
         title="대진표 관리"
         eventTitle={nav.title}
-        description="기본설정·대진표 생성·대진표 보기 탭으로 기능을 구분해 사용합니다."
       />
 
       <OrganizerBracketsTabShell
@@ -55,7 +55,7 @@ export default async function OrganizerEventBracketsPage({
               publicUnmatchedListEnabled={publication.publicUnmatchedListEnabled}
               hasPublicBrackets={publicBracketCount > 0}
               publicBracketCount={publicBracketCount}
-              totalBracketCount={brackets.length}
+              totalBracketCount={existingBrackets.length}
             />
             <OrganizerCourtManagementSection eventId={eventId} />
           </div>

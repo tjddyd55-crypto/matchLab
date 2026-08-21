@@ -1,5 +1,6 @@
 /** 브래킷 매치 JSON 스냅샷에 저장되는 공개 가능 필드 집합. */
 import { formatDivisionSearchLabel } from "@/lib/event-division-fields";
+import { resolveApplicationGymDisplayName } from "@/lib/gym/external-registration-placeholder-gym";
 
 export type BracketFighterSnapshotPayload = {
   fighterId: string;
@@ -31,7 +32,11 @@ export type BracketFighterSnapshotSource = {
     weightLimitText?: string | null;
     skillLevel: string | null;
   };
-  gym: { name: string };
+  /** 이미 resolve된 표시명 또는 Gym.relation name */
+  gym: { name: string } | null;
+  /** EventApplication.gymSnapshot — 있으면 표시 SSOT 우선 */
+  gymSnapshot?: unknown;
+  gymNameSnapshot?: string | null;
 };
 
 export function formatDivisionNameLabel(d: {
@@ -58,11 +63,16 @@ export function formatRecordSummary(f: {
 export function buildFighterBracketSnapshot(
   row: BracketFighterSnapshotSource,
 ): BracketFighterSnapshotPayload {
+  const gymName = resolveApplicationGymDisplayName({
+    gymNameSnapshot: row.gymNameSnapshot,
+    gymSnapshot: row.gymSnapshot,
+    gymRelationName: row.gym?.name,
+  });
   return {
     fighterId: row.fighter.id,
     fighterCode: row.fighter.fighterCode,
     name: row.fighter.name,
-    gymName: row.gym.name ?? null,
+    gymName: gymName === "—" ? null : gymName,
     profileImageUrl: row.fighter.profileImageUrl,
     recordSummary: formatRecordSummary(row.fighter),
     divisionName: formatDivisionNameLabel(row.division),

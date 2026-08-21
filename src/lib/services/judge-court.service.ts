@@ -14,6 +14,7 @@ import {
   formatDivisionLabel,
 } from "@/lib/division-display";
 import { AppError } from "@/lib/errors/app-error";
+import { isExternalRegistrationPlaceholderGymName } from "@/lib/gym/external-registration-placeholder-gym";
 import { computeScorecardTotals } from "@/lib/judge-score-aggregation";
 import { hashJudgePassword } from "@/lib/judge-password";
 import { readRequestClientMeta } from "@/lib/judge-request-meta";
@@ -204,9 +205,16 @@ function fighterGymName(
   fighter: { currentGym: { name: string } | null } | null,
   snapshot: unknown,
 ): string | null {
-  if (fighter?.currentGym?.name) return fighter.currentGym.name;
   const parsed = parseBracketFighterSnapshot(snapshot);
-  return parsed?.gymName ?? null;
+  const snapGym = parsed?.gymName?.trim() ?? "";
+  if (snapGym && !isExternalRegistrationPlaceholderGymName(snapGym)) {
+    return snapGym;
+  }
+  const currentGym = fighter?.currentGym?.name?.trim() ?? "";
+  if (currentGym && !isExternalRegistrationPlaceholderGymName(currentGym)) {
+    return currentGym;
+  }
+  return null;
 }
 
 function normalizeKey(value: string): string {

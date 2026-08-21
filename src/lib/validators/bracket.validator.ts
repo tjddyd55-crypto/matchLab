@@ -86,6 +86,24 @@ export const addEmptyBracketMatchSchema = z.object({
   defaultCourtId: z.string().min(1).optional(),
 });
 
+/** Drag&Drop / tap 수동 경기 생성 — 미배정 2명으로 Match 1개 */
+export const createManualMatchWithPairSchema = z.object({
+  bracketId: z.string().min(1),
+  redFighterId: z.string().min(1),
+  blueFighterId: z.string().min(1),
+  defaultCourtId: z.string().min(1).optional(),
+});
+
+export const ensureBracketForDivisionSchema = z.object({
+  eventId: z.string().min(1),
+  divisionId: z.string().min(1),
+});
+
+export const deleteBracketMatchSchema = z.object({
+  bracketId: z.string().min(1),
+  matchId: z.string().min(1),
+});
+
 export const resetEventBracketsSchema = z.object({
   eventId: z.string().min(1),
 });
@@ -140,3 +158,10 @@ export type RemoveFighterFromMatchInput = z.infer<
   typeof removeFighterFromMatchSchema
 >;
 export type ResetBracketInput = z.infer<typeof resetBracketSchema>;
+export type EnsureBracketForDivisionInput = z.infer<
+  typeof ensureBracketForDivisionSchema
+>;
+export type DeleteBracketMatchInput = z.infer<typeof deleteBracketMatchSchema>;
+export type CreateManualMatchWithPairInput = z.infer<
+  typeof createManualMatchWithPairSchema
+>;

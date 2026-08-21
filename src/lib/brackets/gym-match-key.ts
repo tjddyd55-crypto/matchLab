@@ -11,12 +11,16 @@ export function normalizeGymName(name: string): string {
  * Excel/외부등록은 공용 placeholder gymId를 공유하므로 gymId만 보면
  * 서로 다른 체육관 선수도 같은 체육관으로 오인된다.
  */
-export function gymMatchKey(gymId: string, gymName: string): string {
+export function gymMatchKey(
+  gymId: string | null | undefined,
+  gymName: string,
+): string {
   const name = normalizeGymName(gymName);
   if (name && name !== "—" && name !== "-") {
     return `name:${name}`;
   }
-  if (gymId.trim()) return `id:${gymId.trim()}`;
+  const id = (gymId ?? "").trim();
+  if (id) return `id:${id}`;
   return "unknown";
 }
 

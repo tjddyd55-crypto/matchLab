@@ -3,6 +3,7 @@
 import { useMemo, useRef, useState } from "react";
 import type { OrganizerApplicationRowVM } from "@/components/domain/applications/OrganizerApplicationsTable";
 import { OrganizerApplicationsBulkToolbar } from "@/components/domain/applications/OrganizerApplicationsBulkToolbar";
+import { OrganizerAdditionalInfoBulkDialog } from "@/components/domain/applications/OrganizerAdditionalInfoBulkDialog";
 import { OrganizerApplicationsCards } from "@/components/domain/applications/OrganizerApplicationsCards";
 import { OrganizerApplicationsList } from "@/components/domain/applications/OrganizerApplicationsList";
 import {
@@ -72,13 +73,15 @@ export function OrganizerApplicationsBoard({
   const [linkOpen, setLinkOpen] = useState(false);
   const [excelOpen, setExcelOpen] = useState(false);
   const [externalLink, setExternalLink] = useState(externalRegistrationLink);
+  const [additionalInfoBulkOpen, setAdditionalInfoBulkOpen] = useState(false);
 
   const summaryFilter = useMemo(() => inferSummaryFilter(filters), [filters]);
 
   const divisionOptions = useMemo(() => {
     const map = new Map<string, string>();
     for (const r of rows) {
-      map.set(r.divisionId, r.divisionLabel);
+      const key = r.divisionId ?? "__other__";
+      map.set(key, r.divisionLabel);
     }
     return [...map.entries()].map(([id, label]) => ({ id, label }));
   }, [rows]);
@@ -112,7 +115,10 @@ export function OrganizerApplicationsBoard({
       ) {
         return false;
       }
-      if (filters.divisionId !== "all" && r.divisionId !== filters.divisionId) {
+      if (
+        filters.divisionId !== "all" &&
+        (r.divisionId ?? "__other__") !== filters.divisionId
+      ) {
         return false;
       }
       if (filters.gymId !== "all" && r.gymId !== filters.gymId) {
@@ -187,7 +193,7 @@ export function OrganizerApplicationsBoard({
 
   const emptyDescription =
     rows.length === 0
-      ? "선수 직접 등록 또는 외부 체육관 등록 링크로 신청자를 추가할 수 있습니다."
+      ? "등록 링크·선수 직접 등록·엑셀로 1차 신청자를 추가할 수 있습니다."
       : undefined;
 
   function toggleSelect(applicationId: string, checked: boolean) {
@@ -224,6 +230,15 @@ export function OrganizerApplicationsBoard({
     onToggleSelect: toggleSelect,
     emptyMessage,
     emptyDescription,
+    divisions: manualRegistrationOptions.divisions.map((d) => ({
+      id: d.id,
+      label: d.label,
+      gender: d.gender,
+      ageGroup: d.ageGroup,
+      weightClass: d.weightClass,
+      weightClassName: d.weightClassName,
+      weightLimitText: d.weightLimitText,
+    })),
   };
 
   function renderApplicationViews(
@@ -261,6 +276,19 @@ export function OrganizerApplicationsBoard({
         className="gap-2 sm:items-center"
       >
         <div className="flex flex-wrap items-center gap-2">
+          <ExternalRegistrationLinkTrigger
+            eventId={eventId}
+            link={externalLink}
+            open={linkOpen}
+            onOpenChange={(next) => {
+              setLinkOpen(next);
+              if (next) {
+                setManualOpen(false);
+                setExcelOpen(false);
+              }
+            }}
+            onLinkChange={setExternalLink}
+          />
           <OrganizerManualApplicationTrigger
             open={manualOpen}
             onOpenChange={(next) => {
@@ -278,19 +306,6 @@ export function OrganizerApplicationsBoard({
               setLinkOpen(false);
             }}
           />
-          <ExternalRegistrationLinkTrigger
-            eventId={eventId}
-            link={externalLink}
-            open={linkOpen}
-            onOpenChange={(next) => {
-              setLinkOpen(next);
-              if (next) {
-                setManualOpen(false);
-                setExcelOpen(false);
-              }
-            }}
-            onLinkChange={setExternalLink}
-          />
           <Button
             type="button"
             size="sm"
@@ -303,6 +318,13 @@ export function OrganizerApplicationsBoard({
         </div>
       </EventManagementPageHeader>
 
+      <ExternalRegistrationLinkPanel
+        eventId={eventId}
+        link={externalLink}
+        open={linkOpen}
+        onOpenChange={setLinkOpen}
+        onLinkChange={setExternalLink}
+      />
       <OrganizerManualApplicationPanel
         eventId={eventId}
         options={manualRegistrationOptions}
@@ -313,13 +335,6 @@ export function OrganizerApplicationsBoard({
         eventId={eventId}
         open={excelOpen}
         onOpenChange={setExcelOpen}
-      />
-      <ExternalRegistrationLinkPanel
-        eventId={eventId}
-        link={externalLink}
-        open={linkOpen}
-        onOpenChange={setLinkOpen}
-        onLinkChange={setExternalLink}
       />
 
       <OrganizerApplicationsSummaryCards
@@ -354,6 +369,15 @@ export function OrganizerApplicationsBoard({
         gymName={selectedGym?.gymName ?? null}
         selectedIds={[...selectedIds]}
         onClearSelection={clearSelection}
+        onRequestAdditionalInfo={() => setAdditionalInfoBulkOpen(true)}
+      />
+
+      <OrganizerAdditionalInfoBulkDialog
+        eventId={eventId}
+        rows={rows}
+        selectedIds={[...selectedIds]}
+        open={additionalInfoBulkOpen}
+        onOpenChange={setAdditionalInfoBulkOpen}
       />
 
       {groupByGym && singleSportTitle ? (

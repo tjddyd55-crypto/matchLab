@@ -14,6 +14,8 @@ const applicationSelect = {
   id: true,
   eventId: true,
   divisionId: true,
+  divisionSelectionType: true,
+  requestedDivisionText: true,
   gymId: true,
   fighterId: true,
   status: true,

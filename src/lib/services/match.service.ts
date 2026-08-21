@@ -6,7 +6,7 @@ import {
   Prisma,
 } from "@/generated/prisma";
 import type { ActorContext } from "@/lib/auth/actor-context";
-import { formatDivisionNameLabel } from "@/lib/bracket-snapshot";
+import { formatDivisionNameLabel, parseBracketFighterSnapshot } from "@/lib/bracket-snapshot";
 import {
   toEventDivisionDisplayInput,
   type EventDivisionDisplayInput,
@@ -17,6 +17,7 @@ import {
 } from "@/lib/fighter-handicap-display";
 import { sortMatchesByCourtSchedule } from "@/lib/court-match-order";
 import { AppError } from "@/lib/errors/app-error";
+import { isExternalRegistrationPlaceholderGymName } from "@/lib/gym/external-registration-placeholder-gym";
 import { assertBracketMatchStatusTransition } from "@/lib/match-status-transition";
 import { resolveMatchIsPublicSparring } from "@/lib/match-bout-settings";
 import { mergeDisplayResultMemo, updateMatchBoutInResultMemo } from "@/lib/match-result-memo";
@@ -305,13 +306,28 @@ export const matchService = {
 
     function mapFighter(
       f: NonNullable<(typeof rows)[number]["fighterRed"]>,
+      snapshot: unknown,
     ): OrganizerEventMatchFighterVM {
       const h = handicapMap.get(f.id);
+      const parsed = parseBracketFighterSnapshot(snapshot);
+      const snapGym = parsed?.gymName?.trim() ?? "";
+      const currentGym = f.currentGym?.name?.trim() ?? "";
+      let gymName: string | null;
+      if (snapGym && !isExternalRegistrationPlaceholderGymName(snapGym)) {
+        gymName = snapGym;
+      } else if (
+        currentGym &&
+        !isExternalRegistrationPlaceholderGymName(currentGym)
+      ) {
+        gymName = currentGym;
+      } else {
+        gymName = "—";
+      }
       return {
         id: f.id,
         fighterCode: f.fighterCode,
         name: f.name,
-        gymName: f.currentGym?.name ?? null,
+        gymName,
         handicap:
           h?.badgeLabel != null
             ? { badgeLabel: h.badgeLabel, note: h.note }
@@ -356,8 +372,12 @@ export const matchService = {
         courtName: m.court?.name ?? null,
         courtOrder: m.courtOrder ?? null,
         status: m.status,
-        fighterRed: m.fighterRed ? mapFighter(m.fighterRed) : null,
-        fighterBlue: m.fighterBlue ? mapFighter(m.fighterBlue) : null,
+        fighterRed: m.fighterRed
+          ? mapFighter(m.fighterRed, m.fighterRedSnapshot)
+          : null,
+        fighterBlue: m.fighterBlue
+          ? mapFighter(m.fighterBlue, m.fighterBlueSnapshot)
+          : null,
         winnerId: m.winnerId,
         loserId: m.loserId,
         resultType: m.resultType,

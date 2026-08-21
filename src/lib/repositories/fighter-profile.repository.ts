@@ -111,9 +111,9 @@ export const fighterProfileRepository = {
     return rows.map((r) => ({
       eventTitle: r.event.title,
       eventDateIso: r.event.eventDate?.toISOString() ?? null,
-      divisionLabel: [r.division.sportType, r.division.ageGroup, r.division.weightClass]
+      divisionLabel: [r.division?.sportType, r.division?.ageGroup, r.division?.weightClass]
         .filter(Boolean)
-        .join(" · "),
+        .join(" · ") || "체급 미지정",
     }));
   },
 

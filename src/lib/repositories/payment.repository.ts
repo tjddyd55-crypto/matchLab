@@ -181,7 +181,7 @@ export const paymentRepository = {
       paymentId: row.id,
       applicationId: row.eventApplication.id,
       eventId: row.eventApplication.eventId,
-      gymId: row.eventApplication.gymId,
+      gymId: row.eventApplication.gymId ?? "",
       organizerId: row.eventApplication.event.organizerId,
     };
   },

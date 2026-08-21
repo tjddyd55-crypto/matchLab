@@ -55,12 +55,11 @@ export function ExternalRegistrationLinkTrigger({
       <Button
         type="button"
         size="sm"
-        className="h-9"
-        variant="outline"
+        variant="default"
         disabled={pending}
         onClick={handleClick}
       >
-        {link ? (open ? "링크 닫기" : "링크 관리") : "링크 생성"}
+        {link ? (open ? "등록 링크 닫기" : "등록 링크") : "등록 링크 생성"}
       </Button>
       {error ? (
         <p className="text-destructive max-w-[12rem] text-[11px]" role="alert">
@@ -120,7 +119,14 @@ export function ExternalRegistrationLinkPanel({
   if (!open || !link) return null;
 
   return (
-    <div className="space-y-2 rounded-lg border bg-background p-3 text-sm">
+    <div className="space-y-2 rounded-lg border border-primary/30 bg-primary/5 p-3 text-sm shadow-sm">
+      <div className="space-y-0.5">
+        <p className="text-sm font-semibold">등록 링크 (1차 신청 · 권장)</p>
+        <p className="text-muted-foreground text-xs leading-relaxed">
+          외부 체육관·선수에게 공유하는 기본 신청 경로입니다. 주민등록번호·보험
+          동의 없이 1차 정보만 받습니다.
+        </p>
+      </div>
       <div className="grid gap-1 text-xs sm:grid-cols-2">
         <p>
           상태{" "}
@@ -147,7 +153,7 @@ export function ExternalRegistrationLinkPanel({
           </span>
         </p>
       </div>
-      <p className="break-all rounded border bg-muted/30 px-2 py-1.5 font-mono text-[11px] leading-relaxed">
+      <p className="break-all rounded border bg-background px-2 py-1.5 font-mono text-[11px] leading-relaxed">
         {link.url}
       </p>
       {error ? (

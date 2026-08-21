@@ -1,6 +1,11 @@
 import { formatUtcDateOnly } from "@/lib/date-only";
-import { parseApplicationWeightKg } from "@/lib/applications/application-weight";
-import { resolveEventDivisionByApplicationWeight } from "@/lib/applications/resolve-event-division";
+import { parseOptionalApplicationWeightKg } from "@/lib/applications/application-weight";
+import { normalizeCompetitionCategory } from "@/lib/applications/competition-category";
+import { validateFirstStageApplication } from "@/lib/applications/first-stage-application";
+import {
+  formatDivisionSearchLabel,
+  resolveEventDivisionWeightFields,
+} from "@/lib/event-division-fields";
 import {
   birthDateToUtc,
   compactText,
@@ -31,14 +36,20 @@ export function applicantIdentityKey(input: {
   birthDateIso: string;
   gender: string;
   gymName: string;
-  divisionId: string;
+  divisionId: string | null;
+  divisionSelectionType?: "REGISTERED" | "OTHER" | null;
+  requestedDivisionText?: string | null;
 }): string {
+  const divisionPart =
+    input.divisionSelectionType === "OTHER"
+      ? `OTHER:${foldKey(input.requestedDivisionText ?? "")}`
+      : (input.divisionId ?? "");
   return [
     foldKey(input.fighterName),
     input.birthDateIso,
     foldKey(input.gender),
     foldKey(input.gymName),
-    input.divisionId,
+    divisionPart,
   ].join("|");
 }
 
@@ -49,6 +60,7 @@ function existingKey(row: ApplicantExcelExistingIdentity): string {
     gender: row.gender,
     gymName: row.gymName,
     divisionId: row.divisionId,
+    divisionSelectionType: "REGISTERED",
   });
 }
 
@@ -60,7 +72,7 @@ function gymNameFromSnapshot(snapshot: unknown): string {
 
 export function identityFromExistingApplication(row: {
   id: string;
-  divisionId: string;
+  divisionId: string | null;
   gymSnapshot: unknown;
   fighter: { name: string; birthDate: Date | null; gender: string };
 }): ApplicantExcelExistingIdentity {
@@ -86,95 +98,126 @@ function analyzeOneRow(
   const fighterName = compactText(v.선수명);
   const gymName = compactText(v.체육관명);
   const ageGroup = compactText(v.경기구분);
-  const legacyWeightClass = compactText(v.체급);
+  const weightClassLabel = compactText(v.체급);
   const legacyWeightLimit = compactText(v.체중기준);
   const sport = compactText(v.종목);
   const phone = compactText(v.연락처);
   const guardianName = compactText(v.보호자이름);
   const guardianPhone = compactText(v.보호자연락처);
+  const otherDetailText = compactText(v.기타내용);
   const memo = compactText(v.메모);
   const rowNumber = compactText(v.번호);
   const ageNote = compactText(v.나이);
   const recordTextRaw = compactText(v.전적);
   const careerText = compactText(v.운동경력);
 
-  // 구조화 전적: 신규 컬럼(총전/승/무/패) SSOT, 없으면 레거시 전적 문자열 파싱
   const structuredRecord = resolveStructuredRecord(v, recordTextRaw);
   const recordText = structuredRecord.recordText;
   if (structuredRecord.warning) {
     errors.push(structuredRecord.warning);
   }
+
+  // 레거시 파일: 형식만 검증. Excel만으로 추가정보 COMPLETED 승격 금지.
   const rrnParsed = parseOptionalResidentRegistrationNumber(v.주민등록번호);
-  const consentParsed = parseOptionalExcelInsuranceConsent(v["보험가입 개인정보동의"]);
+  const consentParsed = parseOptionalExcelInsuranceConsent(
+    v["보험가입 개인정보동의"],
+  );
   if (!rrnParsed.ok) errors.push(rrnParsed.error);
   if (!consentParsed.ok) errors.push(consentParsed.error);
-
-  if (!fighterName) errors.push("선수명이 없습니다.");
-  if (!gymName) errors.push("체육관명이 없습니다.");
-  if (!ageGroup) errors.push("경기구분이 없습니다.");
+  if (
+    (rrnParsed.ok && rrnParsed.digits) ||
+    (consentParsed.ok && consentParsed.agreed)
+  ) {
+    warnings.push(
+      "주민등록번호·보험동의는 1차 Excel에서 저장·완료 처리되지 않습니다. 추가정보 요청 단계에서 입력하세요.",
+    );
+  }
 
   const genderParsed = parseApplicantGender(v.성별);
-  if (!genderParsed.ok) errors.push("성별을 남/여로 입력해 주세요.");
+  const birthDateRaw = compactText(v.생년월일);
   const birthDate = parseApplicantBirthDate(v.생년월일);
-  const weight = parseApplicationWeightKg(v.신청체중);
-  if (!weight.ok) errors.push(weight.error);
+  if (birthDateRaw && !birthDate) {
+    errors.push("생년월일 형식이 올바르지 않습니다.");
+  }
+  const weight = parseOptionalApplicationWeightKg(v.신청체중);
   const height = parseOptionalHeightCm(v.키);
   if (!height.ok) errors.push(height.error ?? "키가 올바르지 않습니다.");
 
+  const category = normalizeCompetitionCategory(ageGroup);
   let divisionId: string | null = null;
   let divisionLabel = "";
   let resolvedWeightClassName = "";
   let resolvedWeightLimit = "";
-  let normalizedAgeGroup = "";
-  let categoryStatus: "ok" | "unknown" = "unknown";
-  let schoolLevelSnapshot: string | null = null;
-  let schoolGradeSnapshot: number | null = null;
+  let divisionSelectionType: "REGISTERED" | "OTHER" | null = null;
+  let requestedDivisionText: string | null = null;
+  let reviewRequired = false;
 
-  if (genderParsed.ok && ageGroup && weight.ok) {
-    const resolved = resolveEventDivisionByApplicationWeight({
-      gender: genderParsed.gender,
-      competitionCategory: ageGroup,
-      discipline: sport,
-      applicationWeightKg: weight.kg,
-      divisions,
-    });
-    categoryStatus = resolved.category.status;
-    normalizedAgeGroup = resolved.category.displayLabel;
-    schoolLevelSnapshot = resolved.category.schoolLevel;
-    schoolGradeSnapshot = resolved.category.schoolGrade;
-    if (resolved.ok) {
-      divisionId = resolved.division.id;
-      divisionLabel = resolved.division.label;
-      resolvedWeightClassName = resolved.division.weightClassName ?? "";
-      resolvedWeightLimit = resolved.division.weightLimitText ?? "";
-      if (legacyWeightClass) {
-        const legacyFold = foldKey(legacyWeightClass);
-        const autoFold = foldKey(resolvedWeightClassName);
-        const same =
-          legacyFold &&
-          autoFold &&
-          (legacyFold === autoFold ||
-            legacyFold.includes(autoFold) ||
-            autoFold.includes(legacyFold));
-        if (legacyFold && autoFold && !same) {
-          warnings.push(
-            `기존 입력 체급: ${legacyWeightClass} → 자동배정: ${resolvedWeightClassName}`,
-          );
-        }
+  const firstStage = validateFirstStageApplication({
+    gymName,
+    fighterName,
+    gender: genderParsed.ok ? genderParsed.gender : null,
+    birthDate,
+    phone,
+    guardianPhone,
+    guardianName,
+    competitionCategory: ageGroup,
+    divisionSelection: {
+      weightClassLabel,
+      otherDetailText,
+    },
+    record: structuredRecord.record,
+    applicationWeightKg: v.신청체중,
+    careerText,
+    memo,
+    sport,
+    divisions,
+  });
+
+  if (!firstStage.ok) {
+    for (const err of firstStage.errors) {
+      if (
+        err === "생년월일을 입력해 주세요." &&
+        birthDateRaw &&
+        !birthDate
+      ) {
+        continue;
       }
+      if (!errors.includes(err)) errors.push(err);
+    }
+  } else {
+    const sel = firstStage.value.selection;
+    divisionSelectionType = sel.selectionType;
+    reviewRequired = sel.reviewRequired;
+    if (sel.selectionType === "REGISTERED") {
+      divisionId = sel.divisionId;
+      divisionLabel = formatDivisionSearchLabel(sel.division);
+      const fields = resolveEventDivisionWeightFields(sel.division);
+      resolvedWeightClassName = fields.weightClassName ?? "";
+      resolvedWeightLimit = fields.weightLimitText ?? "";
+      requestedDivisionText = null;
     } else {
-      errors.push(resolved.reason);
+      divisionId = null;
+      divisionLabel = "기타";
+      resolvedWeightClassName = "기타";
+      resolvedWeightLimit = "";
+      requestedDivisionText = sel.requestedDivisionText;
     }
   }
 
   const identityKey =
-    fighterName && birthDate && genderParsed.ok && gymName && divisionId
+    fighterName &&
+    birthDate &&
+    genderParsed.ok &&
+    gymName &&
+    (divisionId || divisionSelectionType === "OTHER")
       ? applicantIdentityKey({
           fighterName,
           birthDateIso: birthDate,
           gender: genderParsed.gender,
           gymName,
           divisionId,
+          divisionSelectionType,
+          requestedDivisionText,
         })
       : `row:${parsed.excelRow}`;
 
@@ -189,47 +232,51 @@ function analyzeOneRow(
       : compactText(v.성별),
     birthDate: birthDate ?? compactText(v.생년월일),
     ageGroup,
-    normalizedAgeGroup,
-    weightClass: resolvedWeightClassName || legacyWeightClass,
+    normalizedAgeGroup: category.displayLabel || ageGroup,
+    weightClass: resolvedWeightClassName || weightClassLabel,
     weightLimit: resolvedWeightLimit || legacyWeightLimit,
     sport,
     weightKg: weight.ok ? weight.kg : null,
     applicationWeightKg: weight.ok ? weight.kg : null,
     resolvedWeightClassName,
     resolvedWeightLimit,
-    legacyWeightClass,
-    categoryStatus,
+    legacyWeightClass: weightClassLabel,
+    categoryStatus: category.status,
     heightCm: height.cm,
     rowNumber,
     ageNote,
     recordText,
     careerText,
-    insuranceRrnMasked: rrnParsed.ok && rrnParsed.digits ? rrnParsed.masked : "",
-    insuranceConsentLabel:
-      consentParsed.ok && consentParsed.agreed
-        ? "동의"
-        : compactText(v["보험가입 개인정보동의"]) || "미입력",
-    insuranceRrnDigits:
-      rrnParsed.ok && rrnParsed.digits ? rrnParsed.digits : undefined,
-    insuranceConsentAgreed:
-      consentParsed.ok && consentParsed.agreed ? true : undefined,
-    phone,
+    insuranceRrnMasked: "",
+    insuranceConsentLabel: "미입력",
+    // Excel 경로: 추가정보 COMPLETED 승격 금지 — digits/agreed 미설정
+    phone: firstStage.ok ? firstStage.value.phone : phone,
     guardianName,
-    guardianPhone,
+    guardianPhone: firstStage.ok
+      ? (firstStage.value.guardianPhone ?? "")
+      : guardianPhone,
     memo,
     divisionId,
     divisionLabel,
+    divisionSelectionType,
+    requestedDivisionText,
+    reviewRequired,
+    otherDetailText,
     identityKey,
     decision: hasError ? "error" : "create",
-    decisionLabel: hasError ? "오류" : "등록 가능",
+    decisionLabel: hasError
+      ? "오류"
+      : reviewRequired
+        ? "체급 확인 필요"
+        : "등록 가능",
     errors,
     warnings,
     totalBoutsSnapshot: structuredRecord.record?.totalBouts ?? null,
     winsSnapshot: structuredRecord.record?.wins ?? null,
     drawsSnapshot: structuredRecord.record?.draws ?? null,
     lossesSnapshot: structuredRecord.record?.losses ?? null,
-    schoolLevelSnapshot,
-    schoolGradeSnapshot,
+    schoolLevelSnapshot: category.schoolLevel,
+    schoolGradeSnapshot: category.schoolGrade,
     recordParseWarning: structuredRecord.warning ?? null,
   };
 }
@@ -287,7 +334,11 @@ export function sanitizeApplicantExcelPreviewForClient(
   return {
     ...preview,
     rows: preview.rows.map((row) => {
-      const { insuranceRrnDigits: _digits, insuranceConsentAgreed: _consent, ...safe } = row;
+      const {
+        insuranceRrnDigits: _digits,
+        insuranceConsentAgreed: _consent,
+        ...safe
+      } = row;
       return safe;
     }),
   };
@@ -317,14 +368,17 @@ type ResolvedRecord = {
 
 function parseOptionalInt(raw: unknown): number | null {
   if (raw == null || raw === "") return null;
-  const n = typeof raw === "number" ? raw : Number.parseInt(String(raw).trim(), 10);
+  const n =
+    typeof raw === "number"
+      ? raw
+      : Number.parseInt(String(raw).trim(), 10);
   return Number.isFinite(n) && n >= 0 ? n : null;
 }
 
 /**
- * 총전/승/무/패 컬럼이 있으면 SSOT로 사용.
- * 없으면 전적 자유문장 파싱 시도.
- * 파싱 불확실하면 warning 반환.
+ * 총전/승/무/패 컬럼이 있으면 SSOT로 사용 (0/0/0/0 허용).
+ * 구조화 컬럼이 모두 비어 있으면 레거시 전적 문자열만 파싱.
+ * 둘 다 없으면 오류.
  */
 function resolveStructuredRecord(
   v: Record<string, unknown>,
@@ -335,7 +389,6 @@ function resolveStructuredRecord(
   const draws = parseOptionalInt(v["무"]);
   const losses = parseOptionalInt(v["패"]);
 
-  // 신규 구조화 컬럼이 하나라도 있으면 SSOT
   if (total != null || wins != null || draws != null || losses != null) {
     const record: StructuredRecord = {
       totalBouts: total ?? 0,
@@ -358,22 +411,25 @@ function resolveStructuredRecord(
     };
   }
 
-  // 레거시: 자유문장 파싱
-  if (!recordTextRaw) {
+  if (recordTextRaw) {
+    const parsed = parseRecordText(recordTextRaw);
+    if (parsed.ok) {
+      return {
+        record: parsed.record,
+        recordText: parsed.recordText,
+        warning: null,
+      };
+    }
     return {
-      record: { totalBouts: 0, wins: 0, draws: 0, losses: 0 },
-      recordText: "무전",
-      warning: null,
+      record: null,
+      recordText: recordTextRaw,
+      warning: parsed.error,
     };
   }
 
-  const parsed = parseRecordText(recordTextRaw);
-  if (parsed.ok) {
-    return { record: parsed.record, recordText: parsed.recordText, warning: null };
-  }
   return {
     record: null,
-    recordText: recordTextRaw,
-    warning: parsed.error,
+    recordText: "",
+    warning: "전적(총전/승/무/패)을 입력해 주세요.",
   };
 }

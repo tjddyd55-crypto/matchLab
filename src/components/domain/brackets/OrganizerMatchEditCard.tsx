@@ -1,5 +1,7 @@
 "use client";
 
+import { useTransition } from "react";
+import { useRouter } from "next/navigation";
 import { OrganizerMatchEditSlot } from "@/components/domain/brackets/OrganizerMatchEditSlot";
 import {
   BracketMatchCompactRow,
@@ -11,6 +13,9 @@ import {
 } from "@/components/domain/brackets/MatchEditControlsRow";
 import { MatchonStatusBadge } from "@/components/shared/MatchonStatusBadge";
 import { FeedbackMessage } from "@/components/shared/FeedbackMessage";
+import { useAppConfirmDialog } from "@/components/shared/app-confirm-dialog";
+import { Button } from "@/components/ui/button";
+import { deleteBracketMatchAction } from "@/features/brackets/actions";
 import type { OrganizerApprovedFighterOptionVM } from "@/lib/services/bracket.service";
 import type { OrganizerBracketMatchVM } from "@/lib/services/bracket.service";
 import type { EventCourtVM } from "@/lib/services/event-court.service";
@@ -42,8 +47,37 @@ export function OrganizerMatchEditCard({
   bracketType: BracketType;
   bracketIsPublic?: boolean;
 }) {
+  const router = useRouter();
+  const { confirm, alert } = useAppConfirmDialog();
+  const [pending, startTransition] = useTransition();
   const editLocked = Boolean(match.hasOfficialResults);
   const orderLabel = formatMatchOrderShort(match);
+  const canDelete =
+    bracketType === BracketType.match_list && !match.hasOfficialResults;
+
+  function handleDelete() {
+    startTransition(async () => {
+      const ok = await confirm({
+        title: "이 경기를 삭제할까요?",
+        description:
+          "경기에서 빠진 선수는 미매칭 선수로 돌아갑니다.",
+        confirmLabel: "삭제",
+        cancelLabel: "취소",
+        variant: "danger",
+      });
+      if (!ok) return;
+
+      const fd = new FormData();
+      fd.set("bracketId", bracketId);
+      fd.set("matchId", match.id);
+      const res = await deleteBracketMatchAction(fd);
+      if (!res.ok) {
+        await alert(res.error.message);
+        return;
+      }
+      router.refresh();
+    });
+  }
 
   return (
     <BracketMatchCompactRow
@@ -121,13 +155,28 @@ export function OrganizerMatchEditCard({
         />
       }
       controls={
-        <MatchEditControlsRow
-          eventId={eventId}
-          bracketId={bracketId}
-          courts={courts}
-          match={match}
-          editLocked={editLocked}
-        />
+        <div className="flex w-full flex-wrap items-center gap-2">
+          <div className="min-w-0 flex-1">
+            <MatchEditControlsRow
+              eventId={eventId}
+              bracketId={bracketId}
+              courts={courts}
+              match={match}
+              editLocked={editLocked}
+            />
+          </div>
+          {canDelete ? (
+            <Button
+              type="button"
+              variant="destructive"
+              size="sm"
+              disabled={pending}
+              onClick={handleDelete}
+            >
+              {pending ? "삭제 중…" : "삭제"}
+            </Button>
+          ) : null}
+        </div>
       }
       footer={
         editLocked ? (

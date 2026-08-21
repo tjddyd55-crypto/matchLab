@@ -55,6 +55,8 @@ export type ApprovedApplicationForBracketRow = {
   cancellationSource: ApplicationCancellationSource | null;
   weighInWeightKg: number | null;
   gymSnapshot: unknown;
+  gymNameSnapshot?: string | null;
+  fighterSnapshot?: unknown;
   fighter: {
     id: string;
     fighterCode: string;
@@ -74,14 +76,16 @@ export type ApprovedApplicationForBracketRow = {
     weightLimitText: string | null;
     skillLevel: string | null;
   };
-  gym: { name: string };
+  gym: { name: string } | null;
 };
 
 export type AutoMatchApplicationRow = {
   id: string;
   fighterId: string;
-  divisionId: string;
-  gymId: string;
+  divisionId: string | null;
+  divisionSelectionType: "REGISTERED" | "OTHER";
+  requestedDivisionText: string | null;
+  gymId: string | null;
   status: ApplicationStatus;
   checkInStatus: CheckInStatus;
   weighInStatus: WeighInStatus;
@@ -91,6 +95,7 @@ export type AutoMatchApplicationRow = {
   appliedAt: Date | null;
   createdAt: Date;
   gymSnapshot: unknown;
+  gymNameSnapshot?: string | null;
   /** 신청 시점 구조화 전적 snapshot — 자동대진 SSOT */
   totalBoutsSnapshot: number | null;
   winsSnapshot: number | null;
@@ -121,8 +126,8 @@ export type AutoMatchApplicationRow = {
     weightClassName: string | null;
     weightLimitText: string | null;
     skillLevel: string | null;
-  };
-  gym: { id: string; name: string };
+  } | null;
+  gym: { id: string; name: string } | null;
 };
 
 export const bracketRepository = {
@@ -445,6 +450,9 @@ export const bracketRepository = {
         weighInFailureResolution: true,
         cancellationSource: true,
         weighInWeightKg: true,
+        fighterSnapshot: true,
+        gymSnapshot: true,
+        gymNameSnapshot: true,
         fighter: {
           select: {
             id: true,
@@ -459,7 +467,6 @@ export const bracketRepository = {
         division: {
           select: EVENT_DIVISION_DISPLAY_SELECT,
         },
-        gymSnapshot: true,
         gym: { select: { name: true } },
       },
     });
@@ -488,7 +495,9 @@ export const bracketRepository = {
         weighInFailureResolution: true,
         cancellationSource: true,
         weighInWeightKg: true,
+        fighterSnapshot: true,
         gymSnapshot: true,
+        gymNameSnapshot: true,
         fighter: {
           select: {
             id: true,
@@ -690,6 +699,111 @@ export const bracketRepository = {
     return [...ids];
   },
 
+  /**
+   * 승인·REGISTERED(divisionId 있음) 신청 — 체급별 집계용 배치 조회.
+   */
+  async listApprovedRegisteredApplicationsForDivisionAggregation(
+    eventId: string,
+    tx?: Prisma.TransactionClient,
+  ) {
+    return db(tx).eventApplication.findMany({
+      where: {
+        eventId,
+        status: ApplicationStatus.approved,
+        divisionId: { not: null },
+        divisionSelectionType: "REGISTERED",
+      },
+      orderBy: { createdAt: "asc" },
+      select: {
+        id: true,
+        divisionId: true,
+        fighterId: true,
+        status: true,
+        checkInStatus: true,
+        weighInStatus: true,
+        weighInFailureResolution: true,
+        cancellationSource: true,
+        weighInWeightKg: true,
+        gymSnapshot: true,
+        gymNameSnapshot: true,
+        fighter: { select: { id: true, name: true } },
+        gym: { select: { name: true } },
+      },
+    });
+  },
+
+  /**
+   * 체급별 승인 신청 수 (REGISTERED only).
+   */
+  async listApprovedApplicationCountsByDivision(
+    eventId: string,
+    tx?: Prisma.TransactionClient,
+  ): Promise<Map<string, number>> {
+    const rows = await db(tx).eventApplication.groupBy({
+      by: ["divisionId"],
+      where: {
+        eventId,
+        status: ApplicationStatus.approved,
+        divisionId: { not: null },
+        divisionSelectionType: "REGISTERED",
+      },
+      _count: { _all: true },
+    });
+    const map = new Map<string, number>();
+    for (const r of rows) {
+      if (r.divisionId) map.set(r.divisionId, r._count._all);
+    }
+    return map;
+  },
+
+  /**
+   * 체급(bracket.divisionId)별 non-cancelled 매치 슬롯에 배치된 fighterId.
+   */
+  async listPlacedFighterIdsByDivision(
+    eventId: string,
+    tx?: Prisma.TransactionClient,
+  ): Promise<Map<string, Set<string>>> {
+    const rows = await db(tx).bracketMatch.findMany({
+      where: {
+        bracket: { eventId, divisionId: { not: null } },
+        status: { not: BracketMatchStatus.cancelled },
+        OR: [
+          { fighterRedId: { not: null } },
+          { fighterBlueId: { not: null } },
+        ],
+      },
+      select: {
+        fighterRedId: true,
+        fighterBlueId: true,
+        bracket: { select: { divisionId: true } },
+      },
+    });
+    const map = new Map<string, Set<string>>();
+    for (const r of rows) {
+      const divisionId = r.bracket.divisionId;
+      if (!divisionId) continue;
+      let set = map.get(divisionId);
+      if (!set) {
+        set = new Set<string>();
+        map.set(divisionId, set);
+      }
+      if (r.fighterRedId) set.add(r.fighterRedId);
+      if (r.fighterBlueId) set.add(r.fighterBlueId);
+    }
+    return map;
+  },
+
+  async deleteBracketMatchById(
+    matchId: string,
+    tx?: Prisma.TransactionClient,
+  ): Promise<void> {
+    await db(tx).bracketMatch.updateMany({
+      where: { nextMatchId: matchId },
+      data: { nextMatchId: null, nextMatchSlot: null },
+    });
+    await db(tx).bracketMatch.delete({ where: { id: matchId } });
+  },
+
   async countEventMatchesWithOfficialResults(
     eventId: string,
     tx?: Prisma.TransactionClient,
@@ -790,11 +904,13 @@ export const bracketRepository = {
         },
         fighter: { status: FighterStatus.active },
       },
-      orderBy: [{ gym: { name: "asc" } }, { createdAt: "asc" }],
+      orderBy: [{ gymNameSnapshot: "asc" }, { createdAt: "asc" }],
       select: {
         id: true,
         fighterId: true,
         divisionId: true,
+        divisionSelectionType: true,
+        requestedDivisionText: true,
         gymId: true,
         status: true,
         checkInStatus: true,
@@ -805,6 +921,7 @@ export const bracketRepository = {
         appliedAt: true,
         createdAt: true,
         gymSnapshot: true,
+        gymNameSnapshot: true,
         totalBoutsSnapshot: true,
         winsSnapshot: true,
         drawsSnapshot: true,

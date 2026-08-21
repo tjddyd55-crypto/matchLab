@@ -106,6 +106,7 @@ export function OrganizerFieldStatusListPane({
                 </p>
                 <DivisionCompactDisplay
                   division={row.division}
+                  fallbackLabel={row.divisionLabel}
                   mainClassName="text-xs"
                   secondaryClassName="text-[11px]"
                 />

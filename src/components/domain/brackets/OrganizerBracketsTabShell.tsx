@@ -50,7 +50,7 @@ export function OrganizerBracketsTabShell({
         : view;
 
   return (
-    <div className="flex flex-col gap-5">
+    <div className="flex flex-col gap-3">
       <nav className={matchonUnderlineTabsNavClass} role="tablist">
         {TABS.map((tab) => {
           const active = activeTab === tab.id;

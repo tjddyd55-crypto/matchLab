@@ -1,6 +1,6 @@
 "use client";
 
-import { useMemo } from "react";
+import { useEffect, useMemo, useState } from "react";
 import type {
   OrganizerApprovedFighterOptionVM,
   OrganizerBracketMatchVM,
@@ -9,6 +9,11 @@ import {
   BracketFighterCompactBadge,
   BracketFighterCompactCard,
 } from "@/components/domain/brackets/BracketFighterCompactCard";
+import {
+  ManualMatchCreatePanel,
+  UnmatchedDraggableCardShell,
+  type ManualMatchSlotAthlete,
+} from "@/components/domain/brackets/ManualMatchCreatePanel";
 import {
   buildCandidateMetaLine,
   resolveCandidateStatusBadge,
@@ -24,6 +29,7 @@ import {
   CardTitle,
 } from "@/components/ui/card";
 import { formatMatchOrderShort } from "@/lib/match-order-display";
+import { BracketType } from "@/lib/enums";
 import { cn } from "@/lib/utils";
 
 function buildPlacementMap(
@@ -59,6 +65,17 @@ function classifyCandidate(
   return "unassigned";
 }
 
+function candidateExtraMeta(option: OrganizerApprovedFighterOptionVM): string {
+  const parts: string[] = [];
+  if (option.recordSummary) {
+    parts.push(option.recordSummary.replace(/\s+/g, ""));
+  }
+  if (option.applicationWeightKg != null) {
+    parts.push(`신청체중 ${option.applicationWeightKg}kg`);
+  }
+  return parts.join(" · ");
+}
+
 function CandidateCard({
   option,
   placement,
@@ -71,7 +88,9 @@ function CandidateCard({
   group: BracketCandidateGroup;
 }) {
   const statusBadge = resolveCandidateStatusBadge(option);
-  const metaLine = buildCandidateMetaLine(group, placement, isPlaced);
+  const placementMeta = buildCandidateMetaLine(group, placement, isPlaced);
+  const extra = candidateExtraMeta(option);
+  const metaLine = [placementMeta, extra].filter(Boolean).join(" · ");
 
   return (
     <li
@@ -88,7 +107,7 @@ function CandidateCard({
       <BracketFighterCompactCard
         fighterName={option.fighterName}
         gymName={option.gymName}
-        metaLine={metaLine}
+        metaLine={metaLine || undefined}
         statusBadges={
           <BracketFighterCompactBadge
             label={statusBadge.label}
@@ -107,12 +126,14 @@ function CandidateColumn({
   accentClassName,
   emptyMessage,
   children,
+  footer,
 }: {
   title: string;
   count: number;
   accentClassName?: string;
   emptyMessage: string;
   children: React.ReactNode;
+  footer?: React.ReactNode;
 }) {
   return (
     <div className="min-w-0 space-y-2">
@@ -134,6 +155,7 @@ function CandidateColumn({
           {emptyMessage}
         </p>
       )}
+      {footer}
     </div>
   );
 }
@@ -141,9 +163,15 @@ function CandidateColumn({
 export function BracketApprovedCandidatesSection({
   options,
   matches,
+  bracketId,
+  bracketType,
+  defaultCourtId,
 }: {
   options: OrganizerApprovedFighterOptionVM[];
   matches: OrganizerBracketMatchVM[];
+  bracketId: string;
+  bracketType: BracketType;
+  defaultCourtId?: string;
 }) {
   const placementMap = useMemo(() => buildPlacementMap(matches), [matches]);
   const placedIds = useMemo(() => new Set(placementMap.keys()), [placementMap]);
@@ -161,9 +189,32 @@ export function BracketApprovedCandidatesSection({
     return { assigned, unassignable, unassigned };
   }, [options, placedIds]);
 
+  const [red, setRed] = useState<ManualMatchSlotAthlete | null>(null);
+  const [blue, setBlue] = useState<ManualMatchSlotAthlete | null>(null);
+  const [createPending, setCreatePending] = useState(false);
+
+  const unmatchedIds = useMemo(
+    () => new Set(grouped.unassigned.map((o) => o.fighterId)),
+    [grouped.unassigned],
+  );
+
+  useEffect(() => {
+    if (red && !unmatchedIds.has(red.fighterId)) setRed(null);
+    if (blue && !unmatchedIds.has(blue.fighterId)) setBlue(null);
+  }, [unmatchedIds, red, blue]);
+
+  const slotIds = useMemo(() => {
+    const s = new Set<string>();
+    if (red) s.add(red.fighterId);
+    if (blue) s.add(blue.fighterId);
+    return s;
+  }, [red, blue]);
+
   const unassignablePlacedCount = grouped.unassignable.filter((o) =>
     placedIds.has(o.fighterId),
   ).length;
+
+  const showManualCreate = bracketType === BracketType.match_list;
 
   return (
     <Card>
@@ -223,16 +274,62 @@ export function BracketApprovedCandidatesSection({
             count={grouped.unassigned.length}
             accentClassName="bg-amber-500/15 text-amber-700 dark:text-amber-300"
             emptyMessage="미배정 선수가 없습니다."
+            footer={
+              showManualCreate ? (
+                <ManualMatchCreatePanel
+                  bracketId={bracketId}
+                  defaultCourtId={defaultCourtId}
+                  unmatched={grouped.unassigned}
+                  red={red}
+                  blue={blue}
+                  onRedChange={setRed}
+                  onBlueChange={setBlue}
+                  pending={createPending}
+                  setPendingExternal={setCreatePending}
+                />
+              ) : null
+            }
           >
-            {grouped.unassigned.map((o) => (
-              <CandidateCard
-                key={o.applicationId}
-                option={o}
-                placement={undefined}
-                isPlaced={false}
-                group="unassigned"
-              />
-            ))}
+            {grouped.unassigned.map((o) => {
+              const inSlot = slotIds.has(o.fighterId);
+              const statusBadge = resolveCandidateStatusBadge(o);
+              const extra = candidateExtraMeta(o);
+              if (!showManualCreate) {
+                return (
+                  <CandidateCard
+                    key={o.applicationId}
+                    option={o}
+                    placement={undefined}
+                    isPlaced={false}
+                    group="unassigned"
+                  />
+                );
+              }
+              return (
+                <UnmatchedDraggableCardShell
+                  key={o.applicationId}
+                  fighterId={o.fighterId}
+                  inSlot={inSlot}
+                >
+                  <BracketFighterCompactCard
+                    fighterName={o.fighterName}
+                    gymName={o.gymName}
+                    metaLine={
+                      [extra, inSlot ? "배치 중" : null]
+                        .filter(Boolean)
+                        .join(" · ") || undefined
+                    }
+                    statusBadges={
+                      <BracketFighterCompactBadge
+                        label={statusBadge.label}
+                        variant={statusBadge.variant}
+                        title={statusBadge.title}
+                      />
+                    }
+                  />
+                </UnmatchedDraggableCardShell>
+              );
+            })}
           </CandidateColumn>
         </div>
       </CardContent>
