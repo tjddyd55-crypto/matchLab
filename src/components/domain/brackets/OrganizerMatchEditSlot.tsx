@@ -22,6 +22,7 @@ import {
   fighterNeedsMoveConfirm,
 } from "@/lib/bracket-fighter-picker";
 import { CORNER_SLOT_STYLES } from "@/lib/corner-slot-styles";
+import { isExternalRegistrationPlaceholderGymName } from "@/lib/gym/external-registration-placeholder-gym";
 import { cn } from "@/lib/utils";
 
 function resolveFighterDisplay(
@@ -29,17 +30,24 @@ function resolveFighterDisplay(
   snapshot: BracketFighterSnapshotPayload | null | undefined,
   options: OrganizerApprovedFighterOptionVM[],
 ) {
+  const opt = options.find((o) => o.fighterId === fighterId);
   if (snapshot) {
+    const snapGym = snapshot.gymName?.trim() ?? "";
+    const preferOptionsGym =
+      !snapGym || isExternalRegistrationPlaceholderGymName(snapGym);
+    const optionsGym = opt?.gymName?.trim() ?? "";
+    const gymName = preferOptionsGym
+      ? optionsGym || "소속 미상"
+      : snapGym;
     return {
       fighterName: snapshot.name,
-      gymName: snapshot.gymName ?? "소속 미상",
+      gymName,
       statusBadge: undefined as
         | ReturnType<typeof resolveSlotFighterDisplay>["statusBadge"]
         | undefined,
       metaLine: undefined as string | undefined,
     };
   }
-  const opt = options.find((o) => o.fighterId === fighterId);
   if (opt) {
     return resolveSlotFighterDisplay(opt);
   }
@@ -164,6 +172,7 @@ export function OrganizerMatchEditSlot({
         >
           <ApprovedApplicationPicker
             value={fighterId}
+            currentFighterId={fighterId}
             onChange={handleChange}
             options={options}
             optionStates={optionStates}
@@ -181,6 +190,7 @@ export function OrganizerMatchEditSlot({
         >
           <ApprovedApplicationPicker
             value={fighterId}
+            currentFighterId={fighterId}
             onChange={handleChange}
             options={options}
             optionStates={optionStates}
