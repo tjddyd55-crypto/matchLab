@@ -492,7 +492,11 @@ function pushCourtCapacityUnmatched(
     );
     if (selfCandidate && divisionCandidates) {
       const explanation = explainRecordUnmatched(
-        { ...selfCandidate, reason: "court_capacity_full" },
+        {
+          ...selfCandidate,
+          reason: "court_capacity_full",
+          reasonLabel: REASON_LABELS.court_capacity_full,
+        },
         divisionCandidates,
         { forbidSameGym },
       );
