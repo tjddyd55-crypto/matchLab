@@ -19,19 +19,27 @@ export default async function OrganizerBracketDetailPage({
 
   await requireOrganizerForEventPage(actor, eventId);
 
-  const [nav, detail, courts] = await Promise.all([
+  const [nav, detail, courts, brackets] = await Promise.all([
     loadEventManagementNavContext(eventId),
     bracketService.getOrganizerBracketDetail(actor, bracketId),
     eventCourtService.listForOrganizer(actor, eventId),
+    bracketService.listOrganizerEventBrackets(actor, eventId),
   ]);
 
   if (detail.eventId !== eventId) {
     notFound();
   }
 
+  const eventBracketsPublic = brackets.some((b) => Boolean(b.bracketId) && b.isPublic);
+
   return (
     <EventManagementLayout {...eventManagementLayoutProps(nav)}>
-      <OrganizerBracketEditor eventId={eventId} detail={detail} courts={courts} />
+      <OrganizerBracketEditor
+        eventId={eventId}
+        detail={detail}
+        courts={courts}
+        eventBracketsPublic={eventBracketsPublic}
+      />
     </EventManagementLayout>
   );
 }

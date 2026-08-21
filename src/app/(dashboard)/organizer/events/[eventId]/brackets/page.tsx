@@ -35,7 +35,7 @@ export default async function OrganizerEventBracketsPage({
   ]);
 
   const existingBrackets = brackets.filter((b) => b.bracketId);
-  const publicBracketCount = existingBrackets.filter((b) => b.isPublic).length;
+  const hasPublicBrackets = existingBrackets.some((b) => b.isPublic);
 
   return (
     <EventManagementLayout {...eventManagementLayoutProps(nav)}>
@@ -53,8 +53,7 @@ export default async function OrganizerEventBracketsPage({
               eventId={eventId}
               publicSlug={publication.publicSlug}
               publicUnmatchedListEnabled={publication.publicUnmatchedListEnabled}
-              hasPublicBrackets={publicBracketCount > 0}
-              publicBracketCount={publicBracketCount}
+              hasPublicBrackets={hasPublicBrackets}
               totalBracketCount={existingBrackets.length}
             />
             <OrganizerCourtManagementSection eventId={eventId} />

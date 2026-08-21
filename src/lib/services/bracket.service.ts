@@ -609,12 +609,20 @@ export const bracketService = {
       );
       if (again) return again.id;
 
+      const peers = await bracketRepository.listBracketsByEvent(
+        input.eventId,
+        tx,
+      );
+      const eventPublic = peers.some((p) => p.isPublic);
+
       const { id } = await bracketRepository.createBracket(
         {
           eventId: input.eventId,
           divisionId: input.divisionId,
           title,
           type: BracketType.match_list,
+          status: eventPublic ? BracketStatus.published : BracketStatus.draft,
+          isPublic: eventPublic,
         },
         tx,
       );
@@ -804,12 +812,20 @@ export const bracketService = {
     const title = formatAutoBracketGroupTitle(divisionInput);
 
     const bracketId = await prisma.$transaction(async (tx) => {
+      const peers = await bracketRepository.listBracketsByEvent(
+        input.eventId,
+        tx,
+      );
+      const eventPublic = peers.some((p) => p.isPublic);
+
       const { id } = await bracketRepository.createBracket(
         {
           eventId: input.eventId,
           divisionId: input.divisionId,
           title,
           type: input.type,
+          status: eventPublic ? BracketStatus.published : BracketStatus.draft,
+          isPublic: eventPublic,
         },
         tx,
       );
@@ -897,7 +913,12 @@ export const bracketService = {
     const brackets = await bracketRepository.listBracketsByEvent(eventId);
     let published = 0;
     for (const b of brackets) {
-      if (!b.isPublic) {
+      const alreadyPublic =
+        b.isPublic &&
+        (b.status === BracketStatus.published ||
+          b.status === BracketStatus.ongoing ||
+          b.status === BracketStatus.finished);
+      if (!alreadyPublic) {
         await bracketService.publishBracket(actor, b.id);
         published += 1;
       }

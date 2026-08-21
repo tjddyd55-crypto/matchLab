@@ -451,7 +451,7 @@ export const eventRepository = {
     });
   },
 
-  /** 공개 대진표 존재 여부 — isPublic + published/ongoing/finished */
+  /** 대회 단위 대진표 공개 여부 — Bracket.isPublic 하나라도 true면 공개 */
   async findEventIdsWithPublicBrackets(
     eventIds: string[],
   ): Promise<Set<string>> {
@@ -460,13 +460,6 @@ export const eventRepository = {
       where: {
         eventId: { in: eventIds },
         isPublic: true,
-        status: {
-          in: [
-            BracketStatus.published,
-            BracketStatus.ongoing,
-            BracketStatus.finished,
-          ],
-        },
       },
       select: { eventId: true },
       distinct: ["eventId"],
