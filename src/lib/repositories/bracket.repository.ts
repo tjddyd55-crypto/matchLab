@@ -137,6 +137,8 @@ export const bracketRepository = {
       divisionId?: string | null;
       title: string;
       type: BracketType;
+      status?: BracketStatus;
+      isPublic?: boolean;
     },
     tx?: Prisma.TransactionClient,
   ): Promise<{ id: string }> {
@@ -146,8 +148,8 @@ export const bracketRepository = {
         divisionId: data.divisionId ?? null,
         title: data.title,
         type: data.type,
-        status: BracketStatus.draft,
-        isPublic: false,
+        status: data.status ?? BracketStatus.draft,
+        isPublic: data.isPublic ?? false,
       },
       select: { id: true },
     });
@@ -234,8 +236,8 @@ export const bracketRepository = {
     });
   },
 
-  async listBracketsByEvent(eventId: string) {
-    return prisma.bracket.findMany({
+  async listBracketsByEvent(eventId: string, tx?: Prisma.TransactionClient) {
+    return db(tx).bracket.findMany({
       where: { eventId },
       orderBy: { createdAt: "asc" },
       select: {
@@ -263,17 +265,16 @@ export const bracketRepository = {
     });
     if (!event) return [];
 
+    // 대회 단위 공개 SSOT: 하나라도 공개면 전체 그룹 노출 (그룹별 부분 공개 금지).
+    const eventPublished = await prisma.bracket.findFirst({
+      where: { eventId: event.id, isPublic: true },
+      select: { id: true },
+    });
+    if (!eventPublished) return [];
+
     return prisma.bracket.findMany({
       where: {
         eventId: event.id,
-        isPublic: true,
-        status: {
-          in: [
-            BracketStatus.published,
-            BracketStatus.ongoing,
-            BracketStatus.finished,
-          ],
-        },
       },
       orderBy: { createdAt: "asc" },
       select: {

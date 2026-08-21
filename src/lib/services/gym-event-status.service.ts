@@ -417,7 +417,7 @@ export const gymEventStatusService = {
     });
 
     const publicMatches = matches
-      .filter((m) => m.bracket.isPublic)
+      .filter((m) => hasPublicBrackets)
       .flatMap((m) => {
         const perspective = mapGymPerspectiveMatch(gymId, m);
         if (!perspective) return [];

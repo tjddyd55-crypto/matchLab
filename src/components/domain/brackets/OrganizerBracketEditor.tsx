@@ -1,16 +1,10 @@
 import Link from "next/link";
-import {
-  publishBracketFormAction,
-  unpublishBracketFormAction,
-} from "@/features/brackets/actions";
 import { BracketApprovedCandidatesSection } from "@/components/domain/brackets/BracketApprovedCandidatesSection";
-import { BracketStatusBadge } from "@/components/domain/brackets/BracketStatusBadge";
 import { BracketTypeBadge } from "@/components/domain/brackets/BracketTypeBadge";
 import { MatchListEditor } from "@/components/domain/brackets/MatchListEditor";
 import { TournamentBracketEditor } from "@/components/domain/brackets/TournamentBracketEditor";
 import { DivisionCompactDisplay } from "@/components/domain/shared/DivisionCompactDisplay";
-import { MatchonStatusBadge } from "@/components/shared/MatchonStatusBadge";
-import { Button, buttonVariants } from "@/components/ui/button";
+import { buttonVariants } from "@/components/ui/button";
 import {
   Card,
   CardDescription,
@@ -44,10 +38,13 @@ export function OrganizerBracketEditor({
   eventId,
   detail,
   courts,
+  eventBracketsPublic = false,
 }: {
   eventId: string;
   detail: OrganizerBracketDetailVM;
   courts: EventCourtVM[];
+  /** 대회 단위 대진표 공개 SSOT (기본설정). 그룹별 변경 불가. */
+  eventBracketsPublic?: boolean;
 }) {
   const summaryLine = buildBracketDetailSummary(detail);
 
@@ -78,39 +75,22 @@ export function OrganizerBracketEditor({
               )}
               <div className="flex flex-wrap items-center gap-2">
                 <BracketTypeBadge type={detail.type} />
-                <BracketStatusBadge status={detail.status} />
-                <MatchonStatusBadge
-                  status={detail.isPublic ? "public" : "private"}
-                  label={detail.isPublic ? "공개" : "비공개"}
-                  size="sm"
-                />
+                <span className="text-muted-foreground text-xs">
+                  전체 대진표: {eventBracketsPublic ? "공개" : "비공개"}
+                </span>
               </div>
               <p className="text-muted-foreground text-sm">{summaryLine}</p>
               <CardDescription>
-                선수 배정·경기장·순서·상태 변경은 아래 편집 영역에서 진행합니다.
+                공개 여부는{" "}
+                <Link
+                  href={`/organizer/events/${eventId}/brackets?tab=settings`}
+                  className="text-foreground underline-offset-2 hover:underline"
+                >
+                  기본 설정
+                </Link>
+                에서만 변경할 수 있습니다. 선수 배정·경기장·순서·상태 변경은
+                아래 편집 영역에서 진행합니다.
               </CardDescription>
-            </div>
-            <div className="flex w-full flex-col gap-2 sm:w-auto sm:flex-row">
-              {!detail.isPublic ? (
-                <form action={publishBracketFormAction}>
-                  <input type="hidden" name="bracketId" value={detail.id} />
-                  <Button type="submit" size="default" className="w-full sm:w-auto">
-                    공개하기
-                  </Button>
-                </form>
-              ) : (
-                <form action={unpublishBracketFormAction}>
-                  <input type="hidden" name="bracketId" value={detail.id} />
-                  <Button
-                    type="submit"
-                    variant="secondary"
-                    size="default"
-                    className="w-full sm:w-auto"
-                  >
-                    비공개
-                  </Button>
-                </form>
-              )}
             </div>
           </div>
         </CardHeader>
