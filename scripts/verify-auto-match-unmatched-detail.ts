@@ -33,6 +33,7 @@ function makeCandidate(
     totalBouts,
     schoolLevel,
     schoolGrade,
+    applicationWeightKg: null,
   };
 }
 

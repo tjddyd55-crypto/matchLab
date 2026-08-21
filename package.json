@@ -460,7 +460,8 @@
     "verify:schedule-now-line-hydration": "tsx scripts/verify-gym-schedule.ts board-ux",
     "verify:schedule-responsive-hydration": "tsx scripts/verify-gym-schedule.ts board-ux",
     "verify:athlete-record-structured": "tsx scripts/verify-athlete-record-structured.ts",
-    "verify:auto-match-record-priority": "tsx scripts/verify-auto-match-record-priority.ts"
+    "verify:auto-match-record-priority": "tsx scripts/verify-auto-match-record-priority.ts",
+    "verify:auto-match-weight-priority": "tsx scripts/verify-auto-match-weight-priority.ts"
   },
   "prisma": {
     "seed": "tsx prisma/seed.ts"

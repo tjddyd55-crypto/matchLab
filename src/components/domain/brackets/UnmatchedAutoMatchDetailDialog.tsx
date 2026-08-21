@@ -3,6 +3,7 @@
 import { useEffect, useMemo, useState } from "react";
 import type {
   AutoBracketCourtAssignmentSummary,
+  AutoBracketPlannedMatchDetail,
   AutoBracketUnmatchedDetail,
 } from "@/lib/services/bracket-auto-match.service";
 import type { UnmatchedDetailReasonCode } from "@/lib/brackets/explain-record-unmatched";
@@ -138,6 +139,7 @@ export type AutoBracketPreviewDialogProps = {
   divisionsProcessed: number;
   courtAssignments?: AutoBracketCourtAssignmentSummary[];
   messages?: string[];
+  plannedMatchDetails?: AutoBracketPlannedMatchDetail[];
   unmatchedDetails: AutoBracketUnmatchedDetail[];
   /** 페이지의 적용 form id — Dialog footer 적용 버튼이 동일 handler 재사용 */
   applyFormId?: string;
@@ -155,6 +157,7 @@ export function AutoBracketPreviewDialog({
   divisionsProcessed,
   courtAssignments = [],
   messages = [],
+  plannedMatchDetails = [],
   unmatchedDetails,
   applyFormId,
   applyPending = false,
@@ -290,6 +293,43 @@ export function AutoBracketPreviewDialog({
         </DialogHeader>
 
         <div className="min-h-0 flex-1 overflow-y-auto px-5 py-3">
+          {plannedMatchDetails.length > 0 ? (
+            <div className="mb-4 space-y-2">
+              <p className="text-xs font-medium text-matchon-text-secondary">
+                생성 예정 경기 ({plannedMatchDetails.length})
+              </p>
+              <ul className="space-y-1.5">
+                {plannedMatchDetails.map((m, idx) => {
+                  const redW =
+                    m.redWeightKg != null ? `${m.redWeightKg}kg` : "체중 정보 없음";
+                  const blueW =
+                    m.blueWeightKg != null
+                      ? `${m.blueWeightKg}kg`
+                      : "체중 정보 없음";
+                  const diff =
+                    m.weightDiffKg != null
+                      ? `체중차 ${m.weightDiffKg}kg`
+                      : "체중차 비교 불가";
+                  return (
+                    <li
+                      key={`${m.redName}-${m.blueName}-${idx}`}
+                      className="rounded-md border border-matchon-border bg-white px-3 py-2 text-xs"
+                    >
+                      <p className="text-muted-foreground">{m.divisionLabel}</p>
+                      <p className="mt-0.5 text-sm text-matchon-text-primary">
+                        {m.redName} {redW}
+                        {" · "}
+                        {m.blueName} {blueW}
+                        {" · "}
+                        {diff}
+                      </p>
+                    </li>
+                  );
+                })}
+              </ul>
+            </div>
+          ) : null}
+
           <div className="hidden md:block">
             <table className="w-full table-fixed border-collapse text-left text-sm">
               <colgroup>

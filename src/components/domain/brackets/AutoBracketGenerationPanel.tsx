@@ -412,6 +412,7 @@ export function AutoBracketGenerationPanel({
             courtAssignments={previewSummary.courtAssignments}
             messages={previewSummary.messages}
             unmatchedDetails={previewSummary.unmatchedDetails ?? []}
+            plannedMatchDetails={previewSummary.plannedMatchDetails ?? []}
             applyFormId="auto-match-apply-form"
             applyPending={applyPending}
             applyDisabled={
