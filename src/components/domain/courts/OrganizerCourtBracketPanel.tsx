@@ -261,15 +261,7 @@ export function OrganizerCourtBracketPanel({
   }
 
   return (
-    <div className="flex flex-col gap-4">
-      <div>
-        <h3 className="text-base font-semibold">경기장별 대진표</h3>
-        <p className="text-muted-foreground mt-1 text-sm">
-          탭으로 경기장을 선택해 경기를 확인하고, 경기장 탭에서 순서를 조정할 수
-          있습니다.
-        </p>
-      </div>
-
+    <div className="flex flex-col gap-3">
       <MatchonTabs
         items={courtTabItems}
         activeId={activeTab}

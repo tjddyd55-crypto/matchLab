@@ -22,13 +22,8 @@ export async function OrganizerCourtViewSection({
   const activeCourts = courts.filter((c) => c.isActive);
 
   return (
-    <section id="event-courts" className="flex flex-col gap-4">
-      <div>
-        <h2 className="text-lg font-semibold">경기장별 대진표</h2>
-        <p className="text-muted-foreground mt-1 text-sm">
-          경기장별로 전체 경기를 확인하고 순서·경기장 배정을 조정합니다.
-        </p>
-      </div>
+    <section id="event-courts" className="flex flex-col gap-3">
+      <h2 className="text-lg font-semibold">경기장별 대진표</h2>
 
       {activeCourts.length === 0 ? (
         <BracketsEmptyState message="경기장을 먼저 추가하세요. 대진표 생성 탭에서 경기장을 만들 수 있습니다." />

@@ -42,7 +42,6 @@ export default async function OrganizerEventBracketsPage({
       <EventManagementPageHeader
         title="대진표 관리"
         eventTitle={nav.title}
-        description="기본설정·대진표 생성·대진표 보기 탭으로 기능을 구분해 사용합니다."
       />
 
       <OrganizerBracketsTabShell
