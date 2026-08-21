@@ -75,6 +75,18 @@ export type AutoBracketUnmatchedDetail = {
   gymName: string;
   divisionLabel: string;
   reasonLabel: string;
+  /** 상세 미리보기 dialog용 (optional — 구형 push는 reasonLabel만) */
+  reasonCode?: import("@/lib/brackets/explain-record-unmatched").UnmatchedDetailReasonCode;
+  reasonText?: string;
+  ageGroupLabel?: string;
+  weightClassLabel?: string;
+  recordText?: string;
+  candidateCount?: number;
+  excludedSameGymCount?: number;
+  excludedRecordCount?: number;
+  excludedAgeCount?: number;
+  finalCandidateCount?: number;
+  candidateFlowText?: string;
 };
 
 export type AutoBracketGenerationSummary = {

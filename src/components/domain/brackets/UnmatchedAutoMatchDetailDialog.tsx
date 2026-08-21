@@ -53,9 +53,10 @@ function matchesFilter(
   filterId: (typeof FILTERS)[number]["id"],
 ): boolean {
   if (filterId === "all") return true;
+  const code = row.reasonCode ?? "other";
   const def = FILTERS.find((f) => f.id === filterId);
-  if (!def?.codes) return row.reasonCode === filterId;
-  return def.codes.includes(row.reasonCode);
+  if (!def?.codes) return code === filterId;
+  return def.codes.includes(code);
 }
 
 export type AutoBracketPreviewDialogProps = {
@@ -227,19 +228,22 @@ export function AutoBracketPreviewDialog({
                     <td className="py-3 pr-2 break-words text-matchon-text-secondary">
                       {row.gymName}
                     </td>
-                    <td className="py-3 pr-2">{row.ageGroupLabel}</td>
-                    <td className="py-3 pr-2">{row.weightClassLabel}</td>
-                    <td className="py-3 pr-2">{row.recordText}</td>
+                    <td className="py-3 pr-2">{row.ageGroupLabel ?? "—"}</td>
+                    <td className="py-3 pr-2">{row.weightClassLabel ?? "—"}</td>
+                    <td className="py-3 pr-2">{row.recordText ?? "—"}</td>
                     <td className="py-3 pr-2 text-center tabular-nums">
-                      {row.candidateCount}명
+                      {row.candidateCount ?? "—"}
+                      {row.candidateCount != null ? "명" : ""}
                     </td>
                     <td className="py-3">
                       <p className="leading-snug break-keep text-matchon-text-primary">
-                        {row.reasonText}
+                        {row.reasonText ?? row.reasonLabel}
                       </p>
-                      <p className="mt-1 text-xs text-muted-foreground">
-                        {row.candidateFlowText}
-                      </p>
+                      {row.candidateFlowText ? (
+                        <p className="mt-1 text-xs text-muted-foreground">
+                          {row.candidateFlowText}
+                        </p>
+                      ) : null}
                     </td>
                   </tr>
                 ))}
@@ -261,12 +265,19 @@ export function AutoBracketPreviewDialog({
                   </span>
                 </p>
                 <p className="mt-1 text-xs text-matchon-text-secondary">
-                  {row.ageGroupLabel} · {row.weightClassLabel} · {row.recordText}
-                  {" · "}
-                  후보 {row.candidateCount}명
+                  {[
+                    row.ageGroupLabel,
+                    row.weightClassLabel,
+                    row.recordText,
+                    row.candidateCount != null
+                      ? `후보 ${row.candidateCount}명`
+                      : null,
+                  ]
+                    .filter(Boolean)
+                    .join(" · ") || row.divisionLabel}
                 </p>
                 <p className="mt-2 text-sm leading-snug break-keep">
-                  {row.reasonText}
+                  {row.reasonText ?? row.reasonLabel}
                 </p>
                 <p className="mt-1 text-xs text-muted-foreground">
                   {row.candidateFlowText}
