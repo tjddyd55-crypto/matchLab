@@ -692,6 +692,110 @@ export const bracketRepository = {
     return [...ids];
   },
 
+  /**
+   * 승인·REGISTERED(divisionId 있음) 신청 — 체급별 집계용 배치 조회.
+   */
+  async listApprovedRegisteredApplicationsForDivisionAggregation(
+    eventId: string,
+    tx?: Prisma.TransactionClient,
+  ) {
+    return db(tx).eventApplication.findMany({
+      where: {
+        eventId,
+        status: ApplicationStatus.approved,
+        divisionId: { not: null },
+        divisionSelectionType: "REGISTERED",
+      },
+      orderBy: { createdAt: "asc" },
+      select: {
+        id: true,
+        divisionId: true,
+        fighterId: true,
+        status: true,
+        checkInStatus: true,
+        weighInStatus: true,
+        weighInFailureResolution: true,
+        cancellationSource: true,
+        weighInWeightKg: true,
+        gymSnapshot: true,
+        fighter: { select: { id: true, name: true } },
+        gym: { select: { name: true } },
+      },
+    });
+  },
+
+  /**
+   * 체급별 승인 신청 수 (REGISTERED only).
+   */
+  async listApprovedApplicationCountsByDivision(
+    eventId: string,
+    tx?: Prisma.TransactionClient,
+  ): Promise<Map<string, number>> {
+    const rows = await db(tx).eventApplication.groupBy({
+      by: ["divisionId"],
+      where: {
+        eventId,
+        status: ApplicationStatus.approved,
+        divisionId: { not: null },
+        divisionSelectionType: "REGISTERED",
+      },
+      _count: { _all: true },
+    });
+    const map = new Map<string, number>();
+    for (const r of rows) {
+      if (r.divisionId) map.set(r.divisionId, r._count._all);
+    }
+    return map;
+  },
+
+  /**
+   * 체급(bracket.divisionId)별 non-cancelled 매치 슬롯에 배치된 fighterId.
+   */
+  async listPlacedFighterIdsByDivision(
+    eventId: string,
+    tx?: Prisma.TransactionClient,
+  ): Promise<Map<string, Set<string>>> {
+    const rows = await db(tx).bracketMatch.findMany({
+      where: {
+        bracket: { eventId, divisionId: { not: null } },
+        status: { not: BracketMatchStatus.cancelled },
+        OR: [
+          { fighterRedId: { not: null } },
+          { fighterBlueId: { not: null } },
+        ],
+      },
+      select: {
+        fighterRedId: true,
+        fighterBlueId: true,
+        bracket: { select: { divisionId: true } },
+      },
+    });
+    const map = new Map<string, Set<string>>();
+    for (const r of rows) {
+      const divisionId = r.bracket.divisionId;
+      if (!divisionId) continue;
+      let set = map.get(divisionId);
+      if (!set) {
+        set = new Set<string>();
+        map.set(divisionId, set);
+      }
+      if (r.fighterRedId) set.add(r.fighterRedId);
+      if (r.fighterBlueId) set.add(r.fighterBlueId);
+    }
+    return map;
+  },
+
+  async deleteBracketMatchById(
+    matchId: string,
+    tx?: Prisma.TransactionClient,
+  ): Promise<void> {
+    await db(tx).bracketMatch.updateMany({
+      where: { nextMatchId: matchId },
+      data: { nextMatchId: null, nextMatchSlot: null },
+    });
+    await db(tx).bracketMatch.delete({ where: { id: matchId } });
+  },
+
   async countEventMatchesWithOfficialResults(
     eventId: string,
     tx?: Prisma.TransactionClient,

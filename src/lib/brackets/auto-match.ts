@@ -32,7 +32,9 @@ export type UnmatchedReason =
   | "missing_division"
   | "division_review_required"
   | "same_gym_only_remaining"
-  | "court_capacity_full";
+  | "court_capacity_full"
+  /** 출전 가능하지만 활성 Match 슬롯 미배정 (운영 화면 SSOT) */
+  | "not_assigned";
 
 export type UnmatchedCandidate = AutoMatchCandidate & {
   reason: UnmatchedReason;

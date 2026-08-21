@@ -122,6 +122,7 @@ const REASON_LABELS: Record<UnmatchedReason, string> = {
   division_review_required: "체급 확인 필요",
   same_gym_only_remaining: "같은 체육관만 남아 매칭 불가",
   court_capacity_full: "경기장 최대 경기 수 초과",
+  not_assigned: "경기 미배정",
 };
 
 function requiresDivisionReview(row: {
@@ -235,6 +236,7 @@ function toPlacementRow(row: AutoMatchApplicationRow & { divisionId: string }) {
     fighter: row.fighter,
     division: row.division!,
     gym: { name: displayGymName(row) },
+    gymSnapshot: row.gymSnapshot,
   };
 }
 
@@ -427,8 +429,6 @@ export const bracketAutoMatchService = {
       await bracketRepository.listPlacedFighterIdsForEvent(eventId),
     );
 
-    const unplacedByDivision = new Map<string, AutoMatchApplicationRow[]>();
-
     const result: UnmatchedBracketCandidateVM[] = [];
 
     for (const row of applications) {
@@ -440,9 +440,6 @@ export const bracketAutoMatchService = {
         cancellationSource: row.cancellationSource,
         weighInWeightKg: row.weighInWeightKg,
       });
-      if (!assignability.isAssignable) {
-        continue;
-      }
 
       const eligibility = computeFieldEligibility({
         checkInStatus: row.checkInStatus,
@@ -455,32 +452,19 @@ export const bracketAutoMatchService = {
         continue;
       }
 
+      if (!assignability.isAssignable) {
+        // 참여 불가 — 미매칭 패널과 분리 (별도 ineligible 경로에서 다룸)
+        continue;
+      }
+
       if (placedIds.has(row.fighterId)) {
         result.push(mapUnmatchedRow(row, eligibility, "already_placed"));
         continue;
       }
 
-      const list = unplacedByDivision.get(row.divisionId!) ?? [];
-      list.push(row);
-      unplacedByDivision.set(row.divisionId!, list);
-    }
-
-    for (const [, group] of unplacedByDivision) {
-      const candidates = group.map((r) =>
-        toRecordMatchCandidate(r as AutoMatchApplicationRow & { divisionId: string }),
-      );
-      const pairing = pairWithRecordAndGrade(candidates, {
-        forbidSameGym: true,
-      });
-      for (const u of pairing.unmatched) {
-        const row = group.find((g) => g.fighterId === u.fighterId);
-        if (!row) continue;
-        const eligibility = computeFieldEligibility({
-          checkInStatus: row.checkInStatus,
-          weighInStatus: row.weighInStatus,
-        });
-        result.push(mapUnmatchedRow(row, eligibility, u.reason));
-      }
+      // 운영 SSOT: 출전 가능 + 활성 Match 슬롯 미배정 = 미매칭
+      // 자동대진 재시뮬 leftover가 아니다.
+      result.push(mapUnmatchedRow(row, eligibility, "not_assigned"));
     }
 
     return result.sort((a, b) =>

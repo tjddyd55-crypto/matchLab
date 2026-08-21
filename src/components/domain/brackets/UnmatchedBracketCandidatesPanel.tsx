@@ -12,6 +12,9 @@ const WAITING_REASONS = new Set([
   "not_field_eligible",
   "missing_division",
   "division_review_required",
+  "same_gym_only_remaining",
+  "court_capacity_full",
+  "not_assigned",
 ]);
 
 export function UnmatchedBracketCandidatesPanel({

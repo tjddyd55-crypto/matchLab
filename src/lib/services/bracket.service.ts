@@ -6,6 +6,7 @@ import {
   BracketMatchStatus,
   BracketStatus,
   BracketType,
+  MatchRecordStatus,
   NextMatchSlot,
   Prisma,
 } from "@/generated/prisma";
@@ -65,6 +66,8 @@ import type {
   CreateBracketInput,
   CreateMatchListMatchesInput,
   CreateSingleEliminationDraftInput,
+  DeleteBracketMatchInput,
+  EnsureBracketForDivisionInput,
   RemoveFighterFromMatchInput,
   ResetBracketInput,
   UpdateMatchOrderAndMatInput,
@@ -338,17 +341,30 @@ function snapshotToPublic(
   };
 }
 
+export type OrganizerBracketListUnmatchedPreviewVM = {
+  fighterName: string;
+  gymName: string;
+};
+
 export type OrganizerBracketListItemVM = {
+  /** React key — bracketId 또는 `pending:${divisionId}` */
   id: string;
+  bracketId: string | null;
   title: string;
   displayTitle: string;
   type: BracketType;
   status: BracketStatus;
   isPublic: boolean;
-  divisionId: string | null;
+  divisionId: string;
   division: EventDivisionDisplayInput | null;
   divisionLabel: string | null;
+  applicantCount: number;
   matchCount: number;
+  unmatchedCount: number;
+  /** 미매칭 미리보기 (최대 5명) */
+  unmatchedPreview: OrganizerBracketListUnmatchedPreviewVM[];
+  /** Dialog용 전체 미매칭 목록 */
+  unmatchedFighters: OrganizerBracketListUnmatchedPreviewVM[];
 };
 
 export type OrganizerBracketMatchVM = {
@@ -421,22 +437,182 @@ export const bracketService = {
   ): Promise<OrganizerBracketListItemVM[]> {
     requireRole(actor, ["organizer", "admin"]);
     await requireOrganizerForEvent(actor, eventId);
-    const rows = await bracketRepository.listBracketsByEvent(eventId);
-    return rows.map((r) => {
-      const division = toEventDivisionDisplayInput(r.division);
-      return {
-        id: r.id,
-        title: r.title,
-        displayTitle: formatBracketTitleForDisplay(r.title, division),
-        type: r.type,
-        status: r.status,
-        isPublic: r.isPublic,
-        divisionId: r.divisionId,
+
+    const [divisions, brackets, applications, placedByDivision] =
+      await Promise.all([
+        eventRepository.findPublicEventDivisions(eventId),
+        bracketRepository.listBracketsByEvent(eventId),
+        bracketRepository.listApprovedRegisteredApplicationsForDivisionAggregation(
+          eventId,
+        ),
+        bracketRepository.listPlacedFighterIdsByDivision(eventId),
+      ]);
+
+    const bracketsByDivision = new Map<
+      string,
+      (typeof brackets)[number][]
+    >();
+    for (const b of brackets) {
+      if (!b.divisionId) continue;
+      const list = bracketsByDivision.get(b.divisionId) ?? [];
+      list.push(b);
+      bracketsByDivision.set(b.divisionId, list);
+    }
+
+    type AppRow = (typeof applications)[number];
+    const appsByDivision = new Map<string, AppRow[]>();
+    for (const app of applications) {
+      if (!app.divisionId) continue;
+      const list = appsByDivision.get(app.divisionId) ?? [];
+      list.push(app);
+      appsByDivision.set(app.divisionId, list);
+    }
+
+    const result: OrganizerBracketListItemVM[] = [];
+
+    for (const div of divisions) {
+      const divisionApps = appsByDivision.get(div.id) ?? [];
+      const divisionBrackets = bracketsByDivision.get(div.id) ?? [];
+      if (divisionApps.length === 0 && divisionBrackets.length === 0) {
+        continue;
+      }
+
+      const division = toEventDivisionDisplayInput(div);
+      const placed = placedByDivision.get(div.id) ?? new Set<string>();
+
+      const unmatchedFighters: OrganizerBracketListUnmatchedPreviewVM[] = [];
+      for (const app of divisionApps) {
+        const assignability = computeBracketAssignability({
+          checkInStatus: app.checkInStatus,
+          weighInStatus: app.weighInStatus,
+          weighInFailureResolution: app.weighInFailureResolution,
+          applicationStatus: app.status,
+          cancellationSource: app.cancellationSource,
+          weighInWeightKg: app.weighInWeightKg,
+        });
+        if (!assignability.isAssignable) continue;
+        if (placed.has(app.fighterId)) continue;
+        unmatchedFighters.push({
+          fighterName: app.fighter.name,
+          gymName: resolveApplicationGymDisplayName({
+            gymSnapshot: app.gymSnapshot,
+            gymRelationName: app.gym.name,
+          }),
+        });
+      }
+
+      const preferred =
+        divisionBrackets.find((b) => b.type === BracketType.match_list) ??
+        divisionBrackets[0] ??
+        null;
+
+      const matchCount = divisionBrackets.reduce(
+        (sum, b) => sum + b._count.matches,
+        0,
+      );
+
+      const title =
+        preferred?.title ??
+        (division ? formatAutoBracketGroupTitle(division) : "대진표");
+      const displayTitle = formatBracketTitleForDisplay(title, division);
+
+      result.push({
+        id: preferred?.id ?? `pending:${div.id}`,
+        bracketId: preferred?.id ?? null,
+        title,
+        displayTitle,
+        type: preferred?.type ?? BracketType.match_list,
+        status: preferred?.status ?? BracketStatus.draft,
+        isPublic: preferred?.isPublic ?? false,
+        divisionId: div.id,
         division,
         divisionLabel: division ? formatDivisionNameLabel(division) : null,
-        matchCount: r._count.matches,
-      };
+        applicantCount: divisionApps.length,
+        matchCount,
+        unmatchedCount: unmatchedFighters.length,
+        unmatchedPreview: unmatchedFighters.slice(0, 5),
+        unmatchedFighters,
+      });
+    }
+
+    return result;
+  },
+
+  /**
+   * 체급용 match_list draft 브래킷이 없으면 생성. 목록 조회에서는 호출하지 않는다.
+   */
+  async ensureBracketShellForDivision(
+    actor: ActorContext,
+    input: EnsureBracketForDivisionInput,
+  ): Promise<{ bracketId: string }> {
+    requireRole(actor, ["organizer", "admin"]);
+    await requireOrganizerForEvent(actor, input.eventId);
+
+    const ok = await eventRepository.findDivisionBelongsToEvent(
+      input.divisionId,
+      input.eventId,
+    );
+    if (!ok) {
+      throw new AppError(
+        "VALIDATION_ERROR",
+        "선택한 경기구분이 이 대회에 속하지 않습니다.",
+      );
+    }
+
+    const existing = await bracketRepository.findMatchListBracketByDivision(
+      input.eventId,
+      input.divisionId,
+    );
+    if (existing) {
+      return { bracketId: existing.id };
+    }
+
+    const divisionRow = await eventRepository.findEventDivisionById(
+      input.divisionId,
+    );
+    if (!divisionRow) {
+      throw new AppError("NOT_FOUND", "경기구분을 찾을 수 없습니다.");
+    }
+
+    const divisionInput = toEventDivisionDisplayInput(divisionRow)!;
+    const title = formatAutoBracketGroupTitle(divisionInput);
+
+    const bracketId = await prisma.$transaction(async (tx) => {
+      const again = await bracketRepository.findMatchListBracketByDivision(
+        input.eventId,
+        input.divisionId,
+        tx,
+      );
+      if (again) return again.id;
+
+      const { id } = await bracketRepository.createBracket(
+        {
+          eventId: input.eventId,
+          divisionId: input.divisionId,
+          title,
+          type: BracketType.match_list,
+        },
+        tx,
+      );
+
+      await appendChangeLog(tx, {
+        eventId: input.eventId,
+        bracketId: id,
+        changedByUserId: actor.userId,
+        bracketType: BracketType.match_list,
+        changeType: BracketChangeType.bracket_created,
+        afterData: {
+          title,
+          divisionId: input.divisionId,
+          type: BracketType.match_list,
+          ensuredShell: true,
+        },
+      });
+
+      return id;
     });
+
+    return { bracketId };
   },
 
   async getOrganizerBracketDetail(
@@ -487,10 +663,10 @@ export const bracketService = {
         return {
           applicationId: a.id,
           fighterId: a.fighter.id,
-          label: `${a.fighter.name} · ${resolveApplicationGymDisplayName({
+          label: `${resolveApplicationGymDisplayName({
             gymSnapshot: a.gymSnapshot,
             gymRelationName: a.gym.name,
-          })}`,
+          })} · ${a.fighter.name}`,
           divisionLabel: formatDivisionNameLabel(a.division),
           division: toEventDivisionDisplayInput(a.division)!,
           fighterName: a.fighter.name,
@@ -998,6 +1174,11 @@ export const bracketService = {
     });
   },
 
+  /**
+   * 수동 배정 정책:
+   * - 자동대진(auto-match): 동일 체육관 페어는 hard exclude
+   * - 수동 배정(본 함수): 동일 체육관 허용 (별도 하드 블록·경고 없음)
+   */
   async assignFighterToMatch(
     actor: ActorContext,
     input: AssignFighterToMatchInput,
@@ -1491,6 +1672,105 @@ export const bracketService = {
       });
 
       return { matchId: id };
+    });
+  },
+
+  async deleteBracketMatch(
+    actor: ActorContext,
+    input: DeleteBracketMatchInput,
+  ): Promise<void> {
+    const ctx = await ensureBracketOrganizer(actor, input.bracketId);
+    if (ctx.type !== BracketType.match_list) {
+      throw new AppError(
+        "VALIDATION_ERROR",
+        "경기 목록 대진표에서만 경기를 삭제할 수 있습니다.",
+      );
+    }
+
+    await prisma.$transaction(async (tx) => {
+      const match = await bracketRepository.findBracketMatchById(
+        input.matchId,
+        tx,
+      );
+      if (!match || match.bracketId !== input.bracketId) {
+        throw new AppError("NOT_FOUND", "매치를 찾을 수 없습니다.");
+      }
+
+      const officialCount = await tx.matchResult.count({
+        where: {
+          matchId: input.matchId,
+          status: {
+            in: [
+              MatchRecordStatus.confirmed,
+              MatchRecordStatus.corrected,
+            ],
+          },
+        },
+      });
+      if (officialCount >= 2) {
+        throw new AppError(
+          "CONFLICT",
+          "공식 결과가 확정된 경기는 삭제할 수 없습니다.",
+        );
+      }
+
+      const fighterSnapshotIds = [
+        match.fighterRedId,
+        match.fighterBlueId,
+      ].filter((id): id is string => Boolean(id));
+
+      await bracketRepository.deleteBracketMatchById(input.matchId, tx);
+
+      const remaining = await bracketRepository.listBracketMatchesForOrder(
+        input.bracketId,
+        tx,
+      );
+      const sorted = sortMatchesByOrder(remaining);
+      for (let i = 0; i < sorted.length; i++) {
+        const row = sorted[i]!;
+        if (row.matchOrder !== i) {
+          await bracketRepository.updateBracketMatch(
+            row.id,
+            { matchOrder: i },
+            tx,
+          );
+        }
+      }
+
+      await appendChangeLog(tx, {
+        eventId: ctx.eventId,
+        bracketId: input.bracketId,
+        changedByUserId: actor.userId,
+        bracketType: ctx.type,
+        changeType: BracketChangeType.match_cancelled,
+        beforeData: {
+          matchId: input.matchId,
+          matchOrder: match.matchOrder,
+          fighterRedId: match.fighterRedId,
+          fighterBlueId: match.fighterBlueId,
+        },
+        afterData: { deleted: true, renumbered: true },
+        reason: "경기 삭제",
+      });
+
+      const ev = await notificationRepository.getEventSlugTitle(ctx.eventId, tx);
+      const br = await bracketRepository.findBracketById(input.bracketId, tx);
+      if (ev?.publicSlug && br && fighterSnapshotIds.length > 0) {
+        await tryNotify("bracket-changed", () =>
+          notificationService.notifyBracketChanged(
+            {
+              eventId: ctx.eventId,
+              publicSlug: ev.publicSlug,
+              bracketId: input.bracketId,
+              bracketTitle: br.title,
+              summaryLine: "경기가 삭제되어 대진 배치가 변경되었습니다.",
+              scope: "bracket_all",
+              fighterIdsOverride: fighterSnapshotIds,
+            },
+            tx,
+          ),
+        );
+      }
     });
   },
 

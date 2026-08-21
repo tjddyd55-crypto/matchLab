@@ -56,7 +56,7 @@ export async function OrganizerBracketsGenerateSection({
         </CardHeader>
         <CardContent className="px-4">
         {brackets.length === 0 ? (
-          <BracketsEmptyState message="아직 생성된 대진표가 없습니다." />
+          <BracketsEmptyState message="신청자가 있는 경기구분·체급이 아직 없습니다." />
         ) : (
           <div className="overflow-x-auto">
             <OrganizerBracketList eventId={eventId} brackets={brackets} />

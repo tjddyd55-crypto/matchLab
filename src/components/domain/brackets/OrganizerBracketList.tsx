@@ -1,5 +1,10 @@
+"use client";
+
 import Link from "next/link";
+import { useRouter } from "next/navigation";
+import { useTransition } from "react";
 import {
+  ensureBracketForDivisionAction,
   publishBracketFormAction,
   unpublishBracketFormAction,
 } from "@/features/brackets/actions";
@@ -16,6 +21,15 @@ import {
   listTableHeaderRowClass,
 } from "@/lib/ui/list-table-styles";
 import { cn } from "@/lib/utils";
+import {
+  Dialog,
+  DialogContent,
+  DialogDescription,
+  DialogHeader,
+  DialogTitle,
+  DialogTrigger,
+} from "@/components/ui/dialog";
+import { useAppConfirmDialog } from "@/components/shared/app-confirm-dialog";
 
 function BracketDivisionCell({
   bracket,
@@ -44,6 +58,138 @@ function BracketDivisionCell({
   );
 }
 
+function UnmatchedCell({ bracket }: { bracket: OrganizerBracketListItemVM }) {
+  const count = bracket.unmatchedCount;
+  if (count === 0) {
+    return <span className="text-muted-foreground">0명</span>;
+  }
+
+  const compact = bracket.unmatchedPreview
+    .map((f) => f.fighterName)
+    .join(", ");
+
+  return (
+    <div className="space-y-1">
+      <p className="font-medium">{count}명</p>
+      {compact ? (
+        <p className="text-muted-foreground line-clamp-2 text-xs">{compact}</p>
+      ) : null}
+      <Dialog>
+        <DialogTrigger
+          render={
+            <Button
+              type="button"
+              variant="link"
+              size="sm"
+              className="h-auto px-0 text-xs"
+            >
+              전체 보기
+            </Button>
+          }
+        />
+        <DialogContent>
+          <DialogHeader>
+            <DialogTitle>미매칭 선수 ({count}명)</DialogTitle>
+            <DialogDescription>
+              출전 가능하나 아직 경기에 배정되지 않은 선수입니다.
+            </DialogDescription>
+          </DialogHeader>
+          <ul className="max-h-72 space-y-2 overflow-y-auto text-sm">
+            {bracket.unmatchedFighters.map((f, i) => (
+              <li
+                key={`${f.fighterName}-${f.gymName}-${i}`}
+                className="flex flex-wrap gap-x-2"
+              >
+                <span className="font-medium">{f.fighterName}</span>
+                <span className="text-muted-foreground">{f.gymName}</span>
+              </li>
+            ))}
+          </ul>
+        </DialogContent>
+      </Dialog>
+    </div>
+  );
+}
+
+function ManageBracketButton({
+  eventId,
+  bracket,
+}: {
+  eventId: string;
+  bracket: OrganizerBracketListItemVM;
+}) {
+  const router = useRouter();
+  const { alert } = useAppConfirmDialog();
+  const [pending, startTransition] = useTransition();
+
+  if (bracket.bracketId) {
+    return (
+      <Link
+        href={`/organizer/events/${eventId}/brackets/${bracket.bracketId}`}
+        className={cn(buttonVariants({ variant: "outline", size: "sm" }))}
+      >
+        관리
+      </Link>
+    );
+  }
+
+  return (
+    <Button
+      type="button"
+      variant="outline"
+      size="sm"
+      disabled={pending}
+      onClick={() => {
+        startTransition(async () => {
+          const fd = new FormData();
+          fd.set("eventId", eventId);
+          fd.set("divisionId", bracket.divisionId);
+          const res = await ensureBracketForDivisionAction(fd);
+          if (!res.ok) {
+            await alert(res.error.message);
+            return;
+          }
+          router.push(
+            `/organizer/events/${eventId}/brackets/${res.data.bracketId}`,
+          );
+        });
+      }}
+    >
+      {pending ? "준비 중…" : "관리"}
+    </Button>
+  );
+}
+
+function BracketActionButtons({
+  eventId,
+  bracket,
+}: {
+  eventId: string;
+  bracket: OrganizerBracketListItemVM;
+}) {
+  return (
+    <div className="flex flex-wrap justify-end gap-2">
+      <ManageBracketButton eventId={eventId} bracket={bracket} />
+      {bracket.bracketId && !bracket.isPublic ? (
+        <form action={publishBracketFormAction}>
+          <input type="hidden" name="bracketId" value={bracket.bracketId} />
+          <Button size="sm" type="submit">
+            공개
+          </Button>
+        </form>
+      ) : null}
+      {bracket.bracketId && bracket.isPublic ? (
+        <form action={unpublishBracketFormAction}>
+          <input type="hidden" name="bracketId" value={bracket.bracketId} />
+          <Button size="sm" variant="secondary" type="submit">
+            비공개
+          </Button>
+        </form>
+      ) : null}
+    </div>
+  );
+}
+
 export function OrganizerBracketList({
   eventId,
   brackets,
@@ -54,19 +200,22 @@ export function OrganizerBracketList({
   return (
     <div className="space-y-4">
       <div className={cn(organizerBracketTableWrapClass, "hidden md:block")}>
-        <table className="w-full min-w-[880px] text-left text-sm">
+        <table className="w-full min-w-[960px] text-left text-sm">
           <thead className={listTableHeaderRowClass}>
             <tr>
               <th className={cn(listTableHeaderCellStartClass, "px-4")}>
                 경기구분 / 체급
               </th>
               <th className={cn(listTableHeaderCellStartClass, "px-4")}>
-                대진 방식
+                방식
               </th>
               <th className={cn(listTableHeaderCellStartClass, "px-4")}>상태</th>
               <th className={cn(listTableHeaderCellStartClass, "px-4")}>공개</th>
               <th className={cn(listTableHeaderCellCenterClass, "px-4")}>
                 경기 수
+              </th>
+              <th className={cn(listTableHeaderCellStartClass, "px-4")}>
+                미매칭
               </th>
               <th className={cn(listTableHeaderCellCenterClass, "px-4 text-right")}>
                 동작
@@ -89,31 +238,12 @@ export function OrganizerBracketList({
                   <BracketStatusBadge status={b.status} />
                 </td>
                 <td className="px-4 py-2.5">{b.isPublic ? "예" : "아니오"}</td>
-                <td className="px-4 py-2.5">{b.matchCount}</td>
+                <td className="px-4 py-2.5 text-center">{b.matchCount}</td>
                 <td className="px-4 py-2.5">
-                  <div className="flex flex-wrap justify-end gap-2">
-                    <Link
-                      href={`/organizer/events/${eventId}/brackets/${b.id}`}
-                      className={cn(buttonVariants({ variant: "outline", size: "sm" }))}
-                    >
-                      관리
-                    </Link>
-                    {!b.isPublic ? (
-                      <form action={publishBracketFormAction}>
-                        <input type="hidden" name="bracketId" value={b.id} />
-                        <Button size="sm" type="submit">
-                          공개
-                        </Button>
-                      </form>
-                    ) : (
-                      <form action={unpublishBracketFormAction}>
-                        <input type="hidden" name="bracketId" value={b.id} />
-                        <Button size="sm" variant="secondary" type="submit">
-                          비공개
-                        </Button>
-                      </form>
-                    )}
-                  </div>
+                  <UnmatchedCell bracket={b} />
+                </td>
+                <td className="px-4 py-2.5">
+                  <BracketActionButtons eventId={eventId} bracket={b} />
                 </td>
               </tr>
             ))}
@@ -134,32 +264,11 @@ export function OrganizerBracketList({
             <div className="flex flex-wrap gap-2">
               <BracketTypeBadge type={b.type} />
               <span className="text-muted-foreground text-xs">
-                공개 {b.isPublic ? "예" : "아니오"} · 경기 {b.matchCount}
+                공개 {b.isPublic ? "예" : "아니오"} · 경기 {b.matchCount} · 미매칭{" "}
+                {b.unmatchedCount}
               </span>
             </div>
-            <div className="flex flex-wrap gap-2">
-              <Link
-                href={`/organizer/events/${eventId}/brackets/${b.id}`}
-                className={cn(buttonVariants({ variant: "outline", size: "sm" }))}
-              >
-                관리
-              </Link>
-              {!b.isPublic ? (
-                <form action={publishBracketFormAction}>
-                  <input type="hidden" name="bracketId" value={b.id} />
-                  <Button size="sm" type="submit">
-                    공개
-                  </Button>
-                </form>
-              ) : (
-                <form action={unpublishBracketFormAction}>
-                  <input type="hidden" name="bracketId" value={b.id} />
-                  <Button size="sm" variant="secondary" type="submit">
-                    비공개
-                  </Button>
-                </form>
-              )}
-            </div>
+            <BracketActionButtons eventId={eventId} bracket={b} />
           </div>
         ))}
       </div>
