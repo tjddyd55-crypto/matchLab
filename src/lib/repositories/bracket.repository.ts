@@ -96,6 +96,10 @@ export type AutoMatchApplicationRow = {
   createdAt: Date;
   gymSnapshot: unknown;
   gymNameSnapshot?: string | null;
+  /** 신청 시점 자유문장 전적 */
+  recordText: string | null;
+  /** 신청체중 등 — fighterSnapshot.applicationWeightKg */
+  fighterSnapshot: unknown;
   /** 신청 시점 구조화 전적 snapshot — 자동대진 SSOT */
   totalBoutsSnapshot: number | null;
   winsSnapshot: number | null;
@@ -923,6 +927,8 @@ export const bracketRepository = {
         createdAt: true,
         gymSnapshot: true,
         gymNameSnapshot: true,
+        recordText: true,
+        fighterSnapshot: true,
         totalBoutsSnapshot: true,
         winsSnapshot: true,
         drawsSnapshot: true,
