@@ -45,6 +45,18 @@ function main() {
 
   assert.match(panel, /not_assigned/);
 
+  const list = readFileSync(
+    join(
+      process.cwd(),
+      "src/components/domain/brackets/OrganizerBracketList.tsx",
+    ),
+    "utf8",
+  );
+  assert.match(list, /unmatchedCount\}명/);
+  assert.doesNotMatch(list, /전체 보기/);
+  assert.doesNotMatch(list, /unmatchedPreview/);
+  assert.doesNotMatch(list, /unmatchedFighters\.map/);
+
   console.log("verify:bracket-group-unmatched OK");
 }
 
