@@ -8,9 +8,11 @@ import {
 } from "@/generated/prisma";
 import type { ActorContext } from "@/lib/auth/actor-context";
 import { AppError } from "@/lib/errors/app-error";
+import { prisma } from "@/lib/prisma";
 import { requireOrganizerForEvent } from "@/lib/permissions";
 import { applicationRepository } from "@/lib/repositories/application.repository";
 import { applicationService } from "@/lib/services/application.service";
+import { applicationOrganizerLifecycleService } from "@/lib/services/application-organizer-lifecycle.service";
 import { paymentService } from "@/lib/services/payment.service";
 
 export type BulkApplicationAction =
@@ -167,29 +169,33 @@ export const applicationOrganizerBulkService = {
     >,
   ): Promise<void> {
     if (ctx.status === ApplicationStatus.rejected) return;
-    if (ctx.status === ApplicationStatus.pending) {
-      await applicationService.rejectEventApplication(
-        actor,
-        applicationId,
-        "주최측 취소",
-      );
-      await applicationRepository.patchApplication(applicationId, {
-        cancellationSource: ApplicationCancellationSource.organizer,
-      });
-      return;
+    if (
+      ctx.status !== ApplicationStatus.pending &&
+      ctx.status !== ApplicationStatus.approved
+    ) {
+      throw new AppError("CONFLICT", "이미 취소된 신청입니다.");
     }
-    if (ctx.status === ApplicationStatus.approved) {
-      await applicationService.rejectEventApplication(
-        actor,
-        applicationId,
-        "주최측 취소",
+
+    const full = await prisma.eventApplication.findUnique({
+      where: { id: applicationId },
+      select: { applicationAgreementSnapshot: true, status: true },
+    });
+    const restorePatch =
+      applicationOrganizerLifecycleService.buildCancelRestorePatch(
+        ctx.status,
+        "organizer",
+        full?.applicationAgreementSnapshot,
       );
-      await applicationRepository.patchApplication(applicationId, {
-        cancellationSource: ApplicationCancellationSource.organizer,
-      });
-      return;
-    }
-    throw new AppError("CONFLICT", "이미 취소된 신청입니다.");
+
+    await applicationService.rejectEventApplication(
+      actor,
+      applicationId,
+      "주최측 취소",
+    );
+    await applicationRepository.patchApplication(applicationId, {
+      cancellationSource: ApplicationCancellationSource.organizer,
+      applicationAgreementSnapshot: restorePatch.applicationAgreementSnapshot,
+    });
   },
 
   async markGymCancelled(
@@ -208,9 +214,22 @@ export const applicationOrganizerBulkService = {
     ) {
       throw new AppError("CONFLICT", "처리할 수 없는 신청 상태입니다.");
     }
+
+    const full = await prisma.eventApplication.findUnique({
+      where: { id: applicationId },
+      select: { applicationAgreementSnapshot: true },
+    });
+    const restorePatch =
+      applicationOrganizerLifecycleService.buildCancelRestorePatch(
+        ctx.status,
+        "gym",
+        full?.applicationAgreementSnapshot,
+      );
+
     await applicationRepository.patchApplication(applicationId, {
       status: ApplicationStatus.cancelled,
       cancellationSource: ApplicationCancellationSource.gym,
+      applicationAgreementSnapshot: restorePatch.applicationAgreementSnapshot,
     });
   },
 };

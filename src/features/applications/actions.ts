@@ -43,6 +43,7 @@ import {
   bulkApplyToEventSchema,
   type BulkApplyToEventInput,
 } from "@/lib/validators/bulk-application.validator";
+import { applicationOrganizerLifecycleService } from "@/lib/services/application-organizer-lifecycle.service";
 
 function mapCaught<T>(
   fn: () => Promise<ActionResult<T>>,
@@ -405,6 +406,155 @@ export async function resolveOtherDivisionAction(
     revalidatePath(`/organizer/events/${eventId}/applications`);
     revalidatePath(`/organizer/events/${eventId}/check-in`);
     revalidatePath(`/organizer/events/${eventId}/brackets`);
+    return actionSuccess(result);
+  });
+}
+
+export async function getOrganizerApplicationEditFormAction(
+  applicationId: string,
+): Promise<
+  ActionResult<
+    import("@/lib/services/application-organizer-lifecycle.service").OrganizerApplicationEditFormDTO
+  >
+> {
+  return mapCaught(async () => {
+    const actor = await requireActorFromMutation();
+    const data = await applicationOrganizerLifecycleService.getEditForm(
+      actor,
+      applicationId,
+    );
+    return actionSuccess(data);
+  });
+}
+
+export async function updateOrganizerApplicationAction(
+  formData: FormData,
+): Promise<ActionResult<{ applicationId: string }>> {
+  return mapCaught(async () => {
+    const gymModeRaw = formReq(formData, "gymMode");
+    const gymMode =
+      gymModeRaw === "manual" || gymModeRaw === "existing"
+        ? gymModeRaw
+        : "existing";
+
+    const raw = {
+      applicationId: formReq(formData, "applicationId"),
+      eventId: formReq(formData, "eventId"),
+      applicationWeightKg: Number(formReq(formData, "applicationWeightKg")),
+      competitionCategory: formReq(formData, "competitionCategory"),
+      discipline: formReq(formData, "discipline") || undefined,
+      manualDivisionOverride: parseCheckboxOn(formData, "manualDivisionOverride"),
+      divisionId: formReq(formData, "divisionId") || undefined,
+      gymMode,
+      gymId: formReq(formData, "gymId") || undefined,
+      gymName: formReq(formData, "gymName") || undefined,
+      fighterName: formReq(formData, "fighterName"),
+      gender: formReq(formData, "gender"),
+      birthDate: formReq(formData, "birthDate") || undefined,
+      phone: formReq(formData, "phone") || undefined,
+      guardianName: formReq(formData, "guardianName") || undefined,
+      guardianPhone: formReq(formData, "guardianPhone") || undefined,
+      applicationStatus: ApplicationStatus.approved,
+      paymentStatus: PaymentStatus.paid,
+      memo: formReq(formData, "memo") || undefined,
+      recordText: formReq(formData, "recordText") || undefined,
+      careerText: formReq(formData, "careerText") || undefined,
+      residentRegistrationNumber: formReq(formData, "residentRegistrationNumber"),
+      insuranceConsentConfirmed: parseCheckboxOn(
+        formData,
+        "insuranceConsentConfirmed",
+      ),
+      clearInsuranceRrn: parseCheckboxOn(formData, "clearInsuranceRrn"),
+      confirmDuplicate: false,
+    };
+
+    const parsed = organizerManualApplicationSchema.safeParse(raw);
+    if (!parsed.success) {
+      return actionFailure(
+        "VALIDATION_ERROR",
+        parsed.error.issues[0]?.message ?? "입력값을 확인해 주세요.",
+      );
+    }
+    const applicationId = formReq(formData, "applicationId");
+    if (!applicationId) {
+      return actionFailure("VALIDATION_ERROR", "신청 정보가 없습니다.");
+    }
+
+    const actor = await requireActorFromMutation();
+    const result =
+      await applicationOrganizerLifecycleService.updateOrganizerEventApplication(
+        actor,
+        {
+          ...parsed.data,
+          applicationId,
+          clearInsuranceRrn: parseCheckboxOn(formData, "clearInsuranceRrn"),
+        },
+      );
+    revalidatePath(`/organizer/events/${parsed.data.eventId}/applications`);
+    revalidatePath(`/organizer/events/${parsed.data.eventId}/check-in`);
+    revalidatePath(`/organizer/events/${parsed.data.eventId}/brackets`);
+    return actionSuccess(result);
+  });
+}
+
+export async function restoreOrganizerCancelledApplicationAction(
+  formData: FormData,
+): Promise<ActionResult<{ applicationId: string; restoredStatus: string }>> {
+  return mapCaught(async () => {
+    const applicationId = formReq(formData, "applicationId");
+    const eventId = formReq(formData, "eventId");
+    if (!applicationId || !eventId) {
+      return actionFailure("VALIDATION_ERROR", "신청 정보가 없습니다.");
+    }
+    const actor = await requireActorFromMutation();
+    const result =
+      await applicationOrganizerLifecycleService.restoreOrganizerCancelledApplication(
+        actor,
+        applicationId,
+      );
+    revalidatePath(`/organizer/events/${eventId}/applications`);
+    return actionSuccess(result);
+  });
+}
+
+export async function restoreGymCancelledApplicationAction(
+  formData: FormData,
+): Promise<ActionResult<{ applicationId: string; restoredStatus: string }>> {
+  return mapCaught(async () => {
+    const applicationId = formReq(formData, "applicationId");
+    const eventId = formReq(formData, "eventId");
+    if (!applicationId || !eventId) {
+      return actionFailure("VALIDATION_ERROR", "신청 정보가 없습니다.");
+    }
+    const actor = await requireActorFromMutation();
+    const result =
+      await applicationOrganizerLifecycleService.restoreGymCancelledApplication(
+        actor,
+        applicationId,
+      );
+    revalidatePath(`/organizer/events/${eventId}/applications`);
+    return actionSuccess(result);
+  });
+}
+
+export async function permanentlyDeleteOrganizerApplicationAction(
+  formData: FormData,
+): Promise<ActionResult<{ applicationId: string; fighterDeleted: boolean }>> {
+  return mapCaught(async () => {
+    const applicationId = formReq(formData, "applicationId");
+    const eventId = formReq(formData, "eventId");
+    if (!applicationId || !eventId) {
+      return actionFailure("VALIDATION_ERROR", "신청 정보가 없습니다.");
+    }
+    const actor = await requireActorFromMutation();
+    const result =
+      await applicationOrganizerLifecycleService.permanentlyDeleteOrganizerApplication(
+        actor,
+        applicationId,
+      );
+    revalidatePath(`/organizer/events/${eventId}/applications`);
+    revalidatePath(`/organizer/events/${eventId}/brackets`);
+    revalidatePath(`/organizer/events/${eventId}/check-in`);
     return actionSuccess(result);
   });
 }
