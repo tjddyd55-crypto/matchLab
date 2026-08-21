@@ -20,7 +20,12 @@ import {
   buildAdditionalInfoPrivacyConsentSnapshot,
   PRIVACY_CONSENT_SNAPSHOT_KEY,
 } from "@/lib/additional-info/privacy-consent";
-import { resolveAdditionalInfoRecipient } from "@/lib/additional-info/recipient";
+import {
+  resolveAdditionalInfoRecipient,
+  resolveAdditionalInfoSendRecipient,
+  hasRecipientPhoneDrift,
+  digitsOnlyPhone,
+} from "@/lib/additional-info/recipient";
 import {
   buildAdditionalInfoPublicUrl,
   generateAdditionalInfoRawToken,
@@ -117,6 +122,8 @@ export const additionalInfoService = {
   mapRowFields(row: {
     additionalInfoStatus: AdditionalInfoStatus;
     additionalInfoCompletedAt: Date | null;
+    additionalInfoRecipientPhone?: string | null;
+    additionalInfoRecipientMasked?: string | null;
     divisionSelectionType: string;
     fighter: {
       birthDate: Date | null;
@@ -124,12 +131,20 @@ export const additionalInfoService = {
       guardianPhone: string | null;
     };
   }) {
-    const recipient = resolveAdditionalInfoRecipient({
+    const live = resolveAdditionalInfoRecipient({
       birthDate: row.fighter.birthDate,
       athletePhone: row.fighter.phone,
       guardianPhone: row.fighter.guardianPhone,
     });
-    const contactMissing = !recipient.ok;
+    const contactMissing = !live.ok;
+    const livePhone = live.ok ? live.phone : null;
+    const snapshotPhone = row.additionalInfoRecipientPhone ?? null;
+    const drift =
+      row.additionalInfoStatus !== "NOT_REQUESTED" &&
+      hasRecipientPhoneDrift({
+        snapshotPhone,
+        livePhone,
+      });
     return {
       additionalInfoStatus: row.additionalInfoStatus,
       additionalInfoLabel: additionalInfoStatusLabel(
@@ -144,7 +159,12 @@ export const additionalInfoService = {
         ? row.additionalInfoCompletedAt.toISOString()
         : null,
       contactMissing,
-      additionalInfoContactCode: recipient.ok ? null : recipient.code,
+      additionalInfoContactCode: live.ok ? null : live.code,
+      additionalInfoRecipientMasked:
+        row.additionalInfoRecipientMasked ??
+        (live.ok ? live.maskedPhone : null),
+      recipientPhoneDrift: drift,
+      liveRecipientMasked: live.ok ? live.maskedPhone : null,
       divisionReviewRequired: row.divisionSelectionType === "OTHER",
     };
   },
@@ -203,7 +223,7 @@ export const additionalInfoService = {
   async requestOne(
     actor: ActorContext,
     applicationId: string,
-    options?: { resend?: boolean },
+    options?: { resend?: boolean; refreshFromFighter?: boolean },
   ): Promise<AdditionalInfoRequestResult> {
     const row =
       await applicationRepository.findApplicationForAdditionalInfoRequest(
@@ -222,10 +242,19 @@ export const additionalInfoService = {
       };
     }
 
-    const recipient = resolveAdditionalInfoRecipient({
+    const isResend =
+      Boolean(options?.resend) ||
+      row.additionalInfoStatus === "REQUESTED" ||
+      row.additionalInfoStatus === "IN_PROGRESS";
+
+    const recipient = resolveAdditionalInfoSendRecipient({
       birthDate: row.fighter.birthDate,
       athletePhone: row.fighter.phone,
       guardianPhone: row.fighter.guardianPhone,
+      snapshotPhone: row.additionalInfoRecipientPhone,
+      snapshotRecipientType: row.additionalInfoRecipientType,
+      resend: isResend,
+      refreshFromFighter: options?.refreshFromFighter === true,
     });
     if (!recipient.ok) {
       return {
@@ -270,11 +299,12 @@ export const additionalInfoService = {
         },
       ],
       requestedByUserId: actor.userId,
-      idempotencyKey: `additional-info:${row.id}:${options?.resend ? "resend" : "req"}:${tokenHash.slice(0, 12)}`,
+      idempotencyKey: `additional-info:${row.id}:${isResend ? "resend" : "req"}:${tokenHash.slice(0, 12)}`,
       metadata: {
         purpose: "additional_info_request",
         applicationId: row.id,
         eventId: row.eventId,
+        recipientMasked: recipient.maskedPhone,
       },
       allowRealSend: false,
     });
@@ -283,12 +313,20 @@ export const additionalInfoService = {
     });
 
     const now = new Date();
+    const shouldWriteSnapshot =
+      !isResend ||
+      options?.refreshFromFighter === true ||
+      !digitsOnlyPhone(row.additionalInfoRecipientPhone);
+
     await applicationRepository.patchApplication(row.id, {
       additionalInfoStatus: AdditionalInfoStatus.REQUESTED,
       additionalInfoRequestedAt: row.additionalInfoRequestedAt ?? now,
       additionalInfoLastSentAt: now,
       additionalInfoRecipientType: recipient.recipientType,
       additionalInfoRecipientMasked: recipient.maskedPhone,
+      ...(shouldWriteSnapshot
+        ? { additionalInfoRecipientPhone: recipient.phone }
+        : {}),
       additionalInfoSendStatus: `dry_run:dispatch:${created.id}`,
       additionalInfoTokenHash: tokenHash,
       additionalInfoTokenExpiresAt: null,
@@ -297,8 +335,10 @@ export const additionalInfoService = {
     return {
       applicationId,
       ok: true,
-      message: options?.resend
-        ? "추가정보 요청을 재전송했습니다. (Development dry-run)"
+      message: isResend
+        ? options?.refreshFromFighter
+          ? "새 연락처로 변경 후 재전송했습니다. (Development dry-run)"
+          : "추가정보 요청을 재전송했습니다. (Development dry-run)"
         : "추가정보 요청을 보냈습니다. (Development dry-run)",
       status: AdditionalInfoStatus.REQUESTED,
       dryRun: true,

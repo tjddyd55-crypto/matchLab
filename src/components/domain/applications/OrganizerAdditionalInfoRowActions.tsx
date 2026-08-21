@@ -50,8 +50,9 @@ export function OrganizerAdditionalInfoRowActions({
     status === "IN_PROGRESS" ||
     status === "REQUESTED";
   const needsGuardian = row.additionalInfoContactCode === "MISSING_GUARDIAN_PHONE";
+  const phoneDrift = Boolean(row.recipientPhoneDrift);
 
-  function runRequest() {
+  function runRequest(refreshFromFighter = false) {
     if (row.contactMissing) {
       setContactOpen(true);
       return;
@@ -59,7 +60,11 @@ export function OrganizerAdditionalInfoRowActions({
     setFeedback(null);
     startTransition(async () => {
       const res = isResend
-        ? await resendAdditionalInfoAction(row.applicationId, eventId)
+        ? await resendAdditionalInfoAction(
+            row.applicationId,
+            eventId,
+            refreshFromFighter,
+          )
         : await requestAdditionalInfoAction(row.applicationId, eventId);
       if (!res.ok) {
         setFeedback({ tone: "error", message: res.error.message });
@@ -132,11 +137,25 @@ export function OrganizerAdditionalInfoRowActions({
           size="sm"
           className={btnClass}
           disabled={pending}
-          onClick={runRequest}
+          onClick={() => runRequest(false)}
         >
           {isResend ? "재전송" : "요청"}
         </Button>
       )}
+
+      {phoneDrift && isResend ? (
+        <Button
+          type="button"
+          variant="outline"
+          size="sm"
+          className={btnClass}
+          disabled={pending}
+          onClick={() => runRequest(true)}
+          title="선수/보호자 최신 연락처로 snapshot을 갱신한 뒤 재전송합니다."
+        >
+          새 연락처로 변경 후 재전송
+        </Button>
+      ) : null}
 
       {canView && status !== "COMPLETED" ? (
         <Button
@@ -228,6 +247,18 @@ export function OrganizerAdditionalInfoRowActions({
               <dt className="text-muted-foreground">상태</dt>
               <dd>{row.additionalInfoLabel}</dd>
             </div>
+            {row.additionalInfoRecipientMasked ? (
+              <div className="flex justify-between gap-2">
+                <dt className="text-muted-foreground">현재 요청 수신번호</dt>
+                <dd>{row.additionalInfoRecipientMasked}</dd>
+              </div>
+            ) : null}
+            {phoneDrift && row.liveRecipientMasked ? (
+              <div className="flex justify-between gap-2">
+                <dt className="text-muted-foreground">새 선수/보호자 연락처</dt>
+                <dd className="text-amber-800">{row.liveRecipientMasked}</dd>
+              </div>
+            ) : null}
             {row.insuranceRrnMasked ? (
               <div className="flex justify-between gap-2">
                 <dt className="text-muted-foreground">주민번호</dt>

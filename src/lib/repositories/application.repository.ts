@@ -42,12 +42,14 @@ const organizerApplicationSelect = {
   additionalInfoStatus: true,
   additionalInfoCompletedAt: true,
   additionalInfoRecipientMasked: true,
+  additionalInfoRecipientPhone: true,
   fighter: {
     select: {
       id: true,
       name: true,
       profileImageUrl: true,
       birthDate: true,
+      gender: true,
       phone: true,
       schoolName: true,
       grade: true,
@@ -423,6 +425,23 @@ export const applicationRepository = {
     });
   },
 
+  /** OTHER → 등록 체급 지정용 */
+  async findApplicationForOtherDivisionResolve(applicationId: string) {
+    return prisma.eventApplication.findUnique({
+      where: { id: applicationId },
+      select: {
+        id: true,
+        eventId: true,
+        fighterId: true,
+        divisionId: true,
+        divisionSelectionType: true,
+        requestedDivisionText: true,
+        status: true,
+        fighter: { select: { id: true, name: true, gender: true } },
+      },
+    });
+  },
+
   /** 인앱 알림용 — 휴대폰·생년월일 등 민감 필드 제외 */
   async findApplicationNotificationContext(
     applicationId: string,
@@ -583,6 +602,9 @@ export const applicationRepository = {
         additionalInfoStatus: true,
         additionalInfoRequestedAt: true,
         additionalInfoTokenHash: true,
+        additionalInfoRecipientType: true,
+        additionalInfoRecipientPhone: true,
+        additionalInfoRecipientMasked: true,
         fighterSnapshot: true,
         fighter: {
           select: {

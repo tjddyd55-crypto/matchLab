@@ -1974,6 +1974,8 @@ model EventApplication {
   additionalInfoLastSentAt   DateTime?
   additionalInfoCompletedAt  DateTime?
   additionalInfoRecipientType AdditionalInfoRecipientType?
+  /// 이 신청 건에 추가정보 요청을 보낸 수신번호 snapshot (digits). Fighter live 값과 분리.
+  additionalInfoRecipientPhone String?
   /// dry-run / send 결과 요약 (전화번호 plaintext 금지)
   additionalInfoSendStatus   String?
   additionalInfoRecipientMasked String?

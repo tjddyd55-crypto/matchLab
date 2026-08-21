@@ -53,7 +53,7 @@ export const ADDITIONAL_INFO_STATUS_LABELS: Record<
 > = {
   NOT_REQUESTED: "미요청",
   REQUESTED: "요청완료",
-  IN_PROGRESS: "작성중",
+  IN_PROGRESS: "작성중", // enum 존재하나 현재 UX는 atomic submit만 사용 — draft 미생성
   COMPLETED: "완료",
   CONTACT_REQUIRED: "연락처 필요",
 };

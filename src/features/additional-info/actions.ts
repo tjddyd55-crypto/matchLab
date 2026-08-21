@@ -48,11 +48,13 @@ export async function requestAdditionalInfoAction(
 export async function resendAdditionalInfoAction(
   applicationId: string,
   eventId?: string,
+  refreshFromFighter?: boolean,
 ): Promise<ActionResult<AdditionalInfoRequestResult>> {
   return mapCaught(async () => {
     const actor = await requireActorFromMutation();
     const result = await additionalInfoService.requestOne(actor, applicationId, {
       resend: true,
+      refreshFromFighter: refreshFromFighter === true,
     });
     if (eventId) {
       revalidatePath(`/organizer/events/${eventId}/applications`);
