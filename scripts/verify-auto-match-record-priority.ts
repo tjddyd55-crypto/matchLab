@@ -34,6 +34,7 @@ function makeCandidate(
   gymId = "gym1",
   schoolLevel: string | null = null,
   schoolGrade: number | null = null,
+  applicationWeightKg: number | null = null,
 ): RecordMatchCandidate {
   return {
     applicationId: id,
@@ -48,6 +49,7 @@ function makeCandidate(
     totalBouts,
     schoolLevel,
     schoolGrade,
+    applicationWeightKg,
   };
 }
 

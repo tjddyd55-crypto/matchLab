@@ -1,17 +1,20 @@
 /**
- * 전적·학년 기반 자동매칭 엔진 V2
+ * 전적·학년 기반 자동매칭 엔진 V2 (+ 체중 근접 soft priority)
  *
  * 기존 auto-match.ts(성별·체급·체육관 필터)를 확장.
  * 이 모듈은 순수 함수 — DB/IO 없음.
  *
- * 매칭 규칙:
- * 1. 무전(totalBouts=0)은 무전끼리만 자동매칭
- * 2. 같은 totalBouts끼리 먼저 매칭
- * 3. 동일전적 pair 소진 후 남은 선수: |diff|=1 허용 (0전 예외)
- * 4. 낮은 totalBouts부터 greedy
- * 5. |diff|>=2 자동매칭 금지 → 미확정
- * 6. 초등부: ELEMENTARY_LOW(1~3) ↔ ELEMENTARY_HIGH(4~6) 크로스 금지
- * 7. 같은 학년 우선 (score 기반)
+ * Hard constraints:
+ * 1. 무전(totalBouts=0)은 무전끼리만
+ * 2. |전적차| >= 2 금지
+ * 3. 초등부 band 크로스 금지
+ * 4. 동일 체육관 금지(옵션)
+ *
+ * Soft priority (동일 hard 통과 시):
+ * 1. 가능한 Match 수 최대화
+ * 2. Σ|신청체중 차| 최소화
+ * 3. 학년 차이 최소화
+ * 4. deterministic tie-break (applicationId)
  */
 
 import { isSameGym } from "@/lib/brackets/gym-match-key";
@@ -20,10 +23,6 @@ import {
   SCHOOL_LEVEL,
   type ElementaryMatchBand,
 } from "@/lib/fighter/record";
-
-// ────────────────────────────────────────────────────
-// 확장 후보 타입
-// ────────────────────────────────────────────────────
 
 export type RecordMatchCandidate = {
   applicationId: string;
@@ -35,12 +34,11 @@ export type RecordMatchCandidate = {
   appliedAt: Date;
   isEligibleForBracket: boolean;
   isAssignableForBracket: boolean;
-  /** 신청 시점 구조화 전적 snapshot */
   totalBouts: number | null;
-  /** 신청 시점 구조화 학교급 snapshot */
   schoolLevel: string | null;
-  /** 신청 시점 구조화 학년 snapshot */
   schoolGrade: number | null;
+  /** 신청체중(kg) — fighterSnapshot.applicationWeightKg SSOT. 계체값 사용 금지. */
+  applicationWeightKg: number | null;
 };
 
 export type RecordUnmatchedReason =
@@ -61,6 +59,10 @@ export type RecordMatchPair = {
   blue: RecordMatchCandidate;
   sameGymWarning: boolean;
   matchReason: string;
+  redWeightKg: number | null;
+  blueWeightKg: number | null;
+  /** null = 한쪽 이상 체중 없음 */
+  weightDiffKg: number | null;
 };
 
 export type RecordUnmatchedCandidate = RecordMatchCandidate & {
@@ -75,9 +77,9 @@ export type RecordDivisionPairingResult = {
   sameGymPairCount: number;
 };
 
-// ────────────────────────────────────────────────────
-// 내부 유틸
-// ────────────────────────────────────────────────────
+const MISSING_WEIGHT_MILLI = 1_000_000_000;
+/** bitmask DP 상한 — 체급당 인원이 이보다 크면 look-ahead greedy */
+const DP_N_MAX = 16;
 
 function isSameGymCandidate(
   a: RecordMatchCandidate,
@@ -86,29 +88,23 @@ function isSameGymCandidate(
   return isSameGym(a, b);
 }
 
-/** 초등부 band 비교. 비초등부는 null 반환 */
 function elementaryBandOf(c: RecordMatchCandidate): ElementaryMatchBand | null {
   if (c.schoolLevel !== SCHOOL_LEVEL.ELEMENTARY) return null;
   if (c.schoolGrade == null) return null;
   return getElementaryMatchBand(c.schoolGrade);
 }
 
-/**
- * 두 후보 간 초등부 band 호환 여부.
- * 한쪽이 초등부이면 반드시 같은 band여야 함.
- */
 function isElementaryBandCompatible(
   a: RecordMatchCandidate,
   b: RecordMatchCandidate,
 ): boolean {
   const bandA = elementaryBandOf(a);
   const bandB = elementaryBandOf(b);
-  if (bandA === null && bandB === null) return true; // 둘 다 비초등부
-  if (bandA !== bandB) return false; // 한쪽만 초등부이거나 다른 band
+  if (bandA === null && bandB === null) return true;
+  if (bandA !== bandB) return false;
   return true;
 }
 
-/** deterministic 정렬: totalBouts ASC → appliedAt ASC → applicationId ASC */
 function sortCandidates(
   candidates: RecordMatchCandidate[],
 ): RecordMatchCandidate[] {
@@ -123,10 +119,6 @@ function sortCandidates(
   });
 }
 
-/**
- * 두 후보 간 학년 우선순위 score (낮을수록 좋음).
- * 같은 학년: 0, 차이 1: 1, ...
- */
 function gradeDiffScore(
   a: RecordMatchCandidate,
   b: RecordMatchCandidate,
@@ -134,6 +126,35 @@ function gradeDiffScore(
   if (a.schoolLevel !== b.schoolLevel) return 999;
   if (a.schoolGrade == null || b.schoolGrade == null) return 0;
   return Math.abs(a.schoolGrade - b.schoolGrade);
+}
+
+/** 신청체중 차(milli-kg). 한쪽 없으면 큰 penalty — pair는 허용하되 soft 최후순위. */
+export function weightDiffMilli(
+  a: Pick<RecordMatchCandidate, "applicationWeightKg">,
+  b: Pick<RecordMatchCandidate, "applicationWeightKg">,
+): number {
+  const wa = a.applicationWeightKg;
+  const wb = b.applicationWeightKg;
+  if (
+    wa == null ||
+    wb == null ||
+    !Number.isFinite(wa) ||
+    !Number.isFinite(wb) ||
+    wa <= 0 ||
+    wb <= 0
+  ) {
+    return MISSING_WEIGHT_MILLI;
+  }
+  return Math.round(Math.abs(wa - wb) * 1000);
+}
+
+export function weightDiffKgOrNull(
+  a: Pick<RecordMatchCandidate, "applicationWeightKg">,
+  b: Pick<RecordMatchCandidate, "applicationWeightKg">,
+): number | null {
+  const milli = weightDiffMilli(a, b);
+  if (milli >= MISSING_WEIGHT_MILLI) return null;
+  return milli / 1000;
 }
 
 function buildMatchReason(
@@ -146,6 +167,10 @@ function buildMatchReason(
   } else if (a.totalBouts != null && b.totalBouts != null) {
     parts.push(`전적 차이 1전`);
   }
+  const wDiff = weightDiffKgOrNull(a, b);
+  if (wDiff != null) {
+    parts.push(`체중차 ${formatWeightDiffLabel(wDiff)}`);
+  }
   if (a.schoolLevel === SCHOOL_LEVEL.ELEMENTARY) {
     const band = elementaryBandOf(a);
     parts.push(band === "LOW" ? "초1~3 그룹" : "초4~6 그룹");
@@ -154,25 +179,47 @@ function buildMatchReason(
   return parts.join(", ") || "조건 충족";
 }
 
-// ────────────────────────────────────────────────────
-// 핵심 페어링 로직
-// ────────────────────────────────────────────────────
+function formatWeightDiffLabel(diffKg: number): string {
+  const rounded = Math.round(diffKg * 1000) / 1000;
+  return `${rounded}kg`;
+}
+
+function orderPairCorners(
+  a: RecordMatchCandidate,
+  b: RecordMatchCandidate,
+): { red: RecordMatchCandidate; blue: RecordMatchCandidate } {
+  const byTime = a.appliedAt.getTime() - b.appliedAt.getTime();
+  if (byTime < 0) return { red: a, blue: b };
+  if (byTime > 0) return { red: b, blue: a };
+  if (a.applicationId.localeCompare(b.applicationId) <= 0) {
+    return { red: a, blue: b };
+  }
+  return { red: b, blue: a };
+}
+
+function toPair(
+  a: RecordMatchCandidate,
+  b: RecordMatchCandidate,
+): RecordMatchPair {
+  const { red, blue } = orderPairCorners(a, b);
+  const sameGym = isSameGymCandidate(red, blue);
+  return {
+    red,
+    blue,
+    sameGymWarning: sameGym,
+    matchReason: buildMatchReason(red, blue),
+    redWeightKg: red.applicationWeightKg,
+    blueWeightKg: blue.applicationWeightKg,
+    weightDiffKg: weightDiffKgOrNull(red, blue),
+  };
+}
 
 export type RecordPairOptions = {
-  /** true(기본): 같은 체육관끼리 매칭 금지 */
   forbidSameGym?: boolean;
 };
 
 /**
- * division 내 전적·학년 기반 페어링.
- *
- * 알고리즘:
- * Step 1. eligibility 필터
- * Step 2. unknown record → 미확정
- * Step 3. 0전 pool 분리 → 0전끼리만 페어
- * Step 4. 나머지 totalBouts별 그룹 → 동일전적 페어 먼저
- * Step 5. 남은 후보 낮은 totalBouts부터 ±1 페어
- * Step 6. 그래도 남은 후보 → 미확정
+ * division 내 전적·학년·체중 근접 페어링.
  */
 export function pairWithRecordAndGrade(
   candidates: RecordMatchCandidate[],
@@ -189,33 +236,36 @@ export function pairWithRecordAndGrade(
   const unmatched: RecordUnmatchedCandidate[] = [];
   let sameGymPairCount = 0;
 
-  // Step 1: 대진 배치 가능만 필터.
-  // 계체 전(isEligibleForBracket=false)은 신청자 기준 자동대진에 포함한다.
-  // 계체 완료 선수만 쓰려면 generate 쪽 eligibleOnly를 켠다.
   const eligible: RecordMatchCandidate[] = [];
   for (const c of candidates) {
     if (!c.isAssignableForBracket) {
-      unmatched.push({ ...c, reason: "not_field_eligible", reasonLabel: "출전 조건 미충족" });
+      unmatched.push({
+        ...c,
+        reason: "not_field_eligible",
+        reasonLabel: "출전 조건 미충족",
+      });
       continue;
     }
     eligible.push(c);
   }
 
-  // Step 2: unknown record 분리
   const knownPool: RecordMatchCandidate[] = [];
   for (const c of eligible) {
     if (c.totalBouts == null) {
-      unmatched.push({ ...c, reason: "unknown_record", reasonLabel: "전적 정보 없음" });
+      unmatched.push({
+        ...c,
+        reason: "unknown_record",
+        reasonLabel: "전적 정보 없음",
+      });
       continue;
     }
     knownPool.push(c);
   }
 
-  // Step 3: 0전 분리 → 0전끼리만 pair
   const zeroPool = knownPool.filter((c) => c.totalBouts === 0);
   const nonZeroPool = knownPool.filter((c) => (c.totalBouts ?? 0) > 0);
 
-  const pairedZero = pairWithinPool(zeroPool, forbidSameGym, sameGymPairCount);
+  const pairedZero = pairWithinPool(zeroPool, forbidSameGym);
   pairs.push(...pairedZero.pairs);
   unmatched.push(
     ...pairedZero.remaining.map((c) => ({
@@ -226,19 +276,17 @@ export function pairWithRecordAndGrade(
   );
   sameGymPairCount += pairedZero.sameGymCount;
 
-  // Step 4: 동일전적 그룹 페어
   const sortedNonZero = sortCandidates(nonZeroPool);
   const byBouts = groupByTotalBouts(sortedNonZero);
   let leftover: RecordMatchCandidate[] = [];
 
   for (const [, group] of byBouts) {
-    const result = pairWithinPool(group, forbidSameGym, 0);
+    const result = pairWithinPool(group, forbidSameGym);
     pairs.push(...result.pairs);
     sameGymPairCount += result.sameGymCount;
     leftover.push(...result.remaining);
   }
 
-  // Step 5: 남은 후보 ±1 전적 페어 (낮은 totalBouts 우선)
   leftover = sortCandidates(leftover);
   const leftoverResult = pairLeftoverByOneDiff(leftover, forbidSameGym);
   pairs.push(...leftoverResult.pairs);
@@ -254,10 +302,6 @@ export function pairWithRecordAndGrade(
 
   return { divisionId, pairs, unmatched, sameGymPairCount };
 }
-
-// ────────────────────────────────────────────────────
-// 내부 헬퍼
-// ────────────────────────────────────────────────────
 
 function groupByTotalBouts(
   sorted: RecordMatchCandidate[],
@@ -278,129 +322,254 @@ type PoolPairResult = {
   sameGymCount: number;
 };
 
-/**
- * pool 내 순서대로 greedy 페어링.
- * 초등부 band 체크 + 같은 체육관 회피 포함.
- * 같은 학년 우선(gradeDiffScore가 낮은 상대 선택).
- */
-function pairWithinPool(
-  pool: RecordMatchCandidate[],
+type EdgeCost = {
+  weightMilli: number;
+  grade: number;
+  record: number;
+  tie: string;
+};
+
+function edgeCost(a: RecordMatchCandidate, b: RecordMatchCandidate): EdgeCost {
+  const ids = [a.applicationId, b.applicationId].sort();
+  return {
+    weightMilli: weightDiffMilli(a, b),
+    grade: gradeDiffScore(a, b),
+    record: Math.abs((a.totalBouts ?? 0) - (b.totalBouts ?? 0)),
+    tie: `${ids[0]}|${ids[1]}`,
+  };
+}
+
+type Score = {
+  pairCount: number;
+  weightMilli: number;
+  gradeSum: number;
+  recordSum: number;
+  tie: string;
+};
+
+function emptyScore(): Score {
+  return {
+    pairCount: 0,
+    weightMilli: 0,
+    gradeSum: 0,
+    recordSum: 0,
+    tie: "",
+  };
+}
+
+function isBetterScore(a: Score, b: Score | null): boolean {
+  if (!b) return true;
+  if (a.pairCount !== b.pairCount) return a.pairCount > b.pairCount;
+  if (a.weightMilli !== b.weightMilli) return a.weightMilli < b.weightMilli;
+  if (a.gradeSum !== b.gradeSum) return a.gradeSum < b.gradeSum;
+  if (a.recordSum !== b.recordSum) return a.recordSum < b.recordSum;
+  return a.tie < b.tie;
+}
+
+function addEdgeToScore(base: Score, cost: EdgeCost): Score {
+  return {
+    pairCount: base.pairCount + 1,
+    weightMilli: base.weightMilli + cost.weightMilli,
+    gradeSum: base.gradeSum + cost.grade,
+    recordSum: base.recordSum + cost.record,
+    tie: base.tie ? `${base.tie};${cost.tie}` : cost.tie,
+  };
+}
+
+function hardEdgeOk(
+  a: RecordMatchCandidate,
+  b: RecordMatchCandidate,
   forbidSameGym: boolean,
-  _sameGymBase: number,
-): PoolPairResult {
-  const working = [...pool];
-  const pairs: RecordMatchPair[] = [];
-  const sameGymOnly: RecordMatchCandidate[] = [];
-  let sameGymCount = 0;
-
-  while (working.length >= 2) {
-    const first = working.shift()!;
-
-    const candidates = working
-      .map((c, idx) => ({ c, idx }))
-      .filter(({ c }) => isElementaryBandCompatible(first, c));
-
-    if (candidates.length === 0) {
-      working.unshift(first);
-      break;
-    }
-
-    const diffGymCandidates = candidates.filter(({ c }) => !isSameGymCandidate(first, c));
-    if (forbidSameGym && diffGymCandidates.length === 0) {
-      sameGymOnly.push(first);
-      continue;
-    }
-
-    const pool2 = forbidSameGym ? diffGymCandidates : candidates;
-
-    pool2.sort((a, b) => gradeDiffScore(first, a.c) - gradeDiffScore(first, b.c));
-
-    const best = pool2[0]!;
-    working.splice(best.idx, 1);
-
-    const sameGym = isSameGymCandidate(first, best.c);
-    if (sameGym) sameGymCount += 1;
-
-    pairs.push({
-      red: first,
-      blue: best.c,
-      sameGymWarning: sameGym,
-      matchReason: buildMatchReason(first, best.c),
-    });
-  }
-
-  return { pairs, remaining: [...working, ...sameGymOnly], sameGymCount };
+): boolean {
+  if (!isElementaryBandCompatible(a, b)) return false;
+  if (forbidSameGym && isSameGymCandidate(a, b)) return false;
+  return true;
 }
 
 /**
- * 남은 후보끼리 totalBouts 차이 정확히 1인 경우만 페어링.
- * 낮은 totalBouts 선수부터 greedy 처리.
+ * 최대 cardinality 우선 → 동일 시 Σ체중차 최소화.
+ * n ≤ DP_N_MAX: exact bitmask DP.
+ * n > DP_N_MAX: 1-step look-ahead greedy (cardinality 보존 후 체중).
  */
-function pairLeftoverByOneDiff(
-  sorted: RecordMatchCandidate[],
+function optimalPairPool(
+  pool: RecordMatchCandidate[],
   forbidSameGym: boolean,
+  extraEdgeOk?: (a: RecordMatchCandidate, b: RecordMatchCandidate) => boolean,
 ): PoolPairResult {
-  const working = [...sorted];
+  if (pool.length < 2) {
+    return { pairs: [], remaining: [...pool], sameGymCount: 0 };
+  }
+
+  const canEdge = (a: RecordMatchCandidate, b: RecordMatchCandidate) => {
+    if (!hardEdgeOk(a, b, forbidSameGym)) return false;
+    if (extraEdgeOk && !extraEdgeOk(a, b)) return false;
+    return true;
+  };
+
+  if (pool.length <= DP_N_MAX) {
+    return optimalPairPoolExact(pool, canEdge);
+  }
+  return optimalPairPoolLookahead(pool, canEdge);
+}
+
+function optimalPairPoolExact(
+  pool: RecordMatchCandidate[],
+  canEdge: (a: RecordMatchCandidate, b: RecordMatchCandidate) => boolean,
+): PoolPairResult {
+  const n = pool.length;
+  const full = (1 << n) - 1;
+  const bestScore: Array<Score | null> = new Array(full + 1).fill(null);
+  const bestChoice: Array<{ j: number } | { unmatched: true } | null> =
+    new Array(full + 1).fill(null);
+
+  bestScore[0] = emptyScore();
+
+  for (let mask = 1; mask <= full; mask++) {
+    let i = -1;
+    for (let b = 0; b < n; b++) {
+      if (mask & (1 << b)) {
+        i = b;
+        break;
+      }
+    }
+    if (i < 0) continue;
+
+    const withoutI = mask ^ (1 << i);
+    const leaveScore = bestScore[withoutI];
+    if (leaveScore && isBetterScore(leaveScore, bestScore[mask])) {
+      bestScore[mask] = leaveScore;
+      bestChoice[mask] = { unmatched: true };
+    }
+
+    for (let j = i + 1; j < n; j++) {
+      if (!(mask & (1 << j))) continue;
+      if (!canEdge(pool[i]!, pool[j]!)) continue;
+      const rest = withoutI ^ (1 << j);
+      const restScore = bestScore[rest];
+      if (!restScore) continue;
+      const next = addEdgeToScore(restScore, edgeCost(pool[i]!, pool[j]!));
+      if (isBetterScore(next, bestScore[mask])) {
+        bestScore[mask] = next;
+        bestChoice[mask] = { j };
+      }
+    }
+  }
+
+  const pairs: RecordMatchPair[] = [];
+  const used = new Set<number>();
+  let mask = full;
+  while (mask > 0) {
+    let i = -1;
+    for (let b = 0; b < n; b++) {
+      if (mask & (1 << b)) {
+        i = b;
+        break;
+      }
+    }
+    if (i < 0) break;
+    const choice = bestChoice[mask];
+    if (!choice || "unmatched" in choice) {
+      mask ^= 1 << i;
+      continue;
+    }
+    const j = choice.j;
+    pairs.push(toPair(pool[i]!, pool[j]!));
+    used.add(i);
+    used.add(j);
+    mask ^= (1 << i) | (1 << j);
+  }
+
+  const remaining = pool.filter((_, idx) => !used.has(idx));
+  let sameGymCount = 0;
+  for (const p of pairs) {
+    if (p.sameGymWarning) sameGymCount += 1;
+  }
+  return { pairs, remaining, sameGymCount };
+}
+
+function countGreedyCardinality(
+  pool: RecordMatchCandidate[],
+  canEdge: (a: RecordMatchCandidate, b: RecordMatchCandidate) => boolean,
+): number {
+  const working = [...pool];
+  let count = 0;
+  while (working.length >= 2) {
+    const first = working.shift()!;
+    const idx = working.findIndex((c) => canEdge(first, c));
+    if (idx < 0) continue;
+    working.splice(idx, 1);
+    count += 1;
+  }
+  return count;
+}
+
+function optimalPairPoolLookahead(
+  pool: RecordMatchCandidate[],
+  canEdge: (a: RecordMatchCandidate, b: RecordMatchCandidate) => boolean,
+): PoolPairResult {
+  const working = sortCandidates(pool);
   const pairs: RecordMatchPair[] = [];
   let sameGymCount = 0;
 
-  let i = 0;
-  while (i < working.length) {
-    const first = working[i]!;
-    const firstBouts = first.totalBouts!;
-
-    // diff=1인 상대 탐색
-    const compatIdx = working.findIndex((c, idx) => {
-      if (idx === i) return false;
-      if (Math.abs(c.totalBouts! - firstBouts) !== 1) return false;
-      if (!isElementaryBandCompatible(first, c)) return false;
-      return true;
-    });
-
-    if (compatIdx < 0) {
-      i++;
+  while (working.length >= 2) {
+    const first = working[0]!;
+    const partners: Array<{ idx: number; c: RecordMatchCandidate }> = [];
+    for (let idx = 1; idx < working.length; idx++) {
+      const c = working[idx]!;
+      if (canEdge(first, c)) partners.push({ idx, c });
+    }
+    if (partners.length === 0) {
+      working.shift();
       continue;
     }
 
-    // 체육관 회피
-    const partnerIdx = (() => {
-      if (!forbidSameGym) return compatIdx;
-      const diffGym = working.findIndex((c, idx) => {
-        if (idx === i) return false;
-        if (Math.abs(c.totalBouts! - firstBouts) !== 1) return false;
-        if (!isElementaryBandCompatible(first, c)) return false;
-        if (isSameGymCandidate(first, c)) return false;
-        return true;
-      });
-      return diffGym >= 0 ? diffGym : compatIdx;
-    })();
+    let bestIdx = partners[0]!.idx;
+    let bestScoreLocal: Score | null = null;
+    for (const { idx, c } of partners) {
+      const rest = working.filter((_, i) => i !== 0 && i !== idx);
+      // look-ahead residual은 greedy cardinality만 사용 (반복 DP 금지)
+      const restPairs = countGreedyCardinality(rest, canEdge);
+      const cost = edgeCost(first, c);
+      const score: Score = {
+        pairCount: 1 + restPairs,
+        weightMilli: cost.weightMilli,
+        gradeSum: cost.grade,
+        recordSum: cost.record,
+        tie: cost.tie,
+      };
+      if (isBetterScore(score, bestScoreLocal)) {
+        bestScoreLocal = score;
+        bestIdx = idx;
+      }
+    }
 
-    const partner = working[partnerIdx]!;
-    const sameGym = isSameGymCandidate(first, partner);
-    if (sameGym) sameGymCount += 1;
-
-    pairs.push({
-      red: first,
-      blue: partner,
-      sameGymWarning: sameGym,
-      matchReason: buildMatchReason(first, partner),
-    });
-
-    // 높은 index 먼저 제거
-    const removeFirst = Math.max(i, partnerIdx);
-    const removeSecond = Math.min(i, partnerIdx);
-    working.splice(removeFirst, 1);
-    working.splice(removeSecond, 1);
-    // i는 그대로 (삭제 후 다음 요소가 동일 위치)
-    if (i >= removeSecond) i = Math.max(0, i - 1);
+    const partner = working[bestIdx]!;
+    working.splice(bestIdx, 1);
+    working.shift();
+    const pair = toPair(first, partner);
+    if (pair.sameGymWarning) sameGymCount += 1;
+    pairs.push(pair);
   }
 
   return { pairs, remaining: working, sameGymCount };
 }
 
-// ────────────────────────────────────────────────────
-// 전체 division 일괄
-// ────────────────────────────────────────────────────
+function pairWithinPool(
+  pool: RecordMatchCandidate[],
+  forbidSameGym: boolean,
+): PoolPairResult {
+  return optimalPairPool(pool, forbidSameGym);
+}
+
+function pairLeftoverByOneDiff(
+  sorted: RecordMatchCandidate[],
+  forbidSameGym: boolean,
+): PoolPairResult {
+  return optimalPairPool(sorted, forbidSameGym, (a, b) => {
+    if (a.totalBouts == null || b.totalBouts == null) return false;
+    return Math.abs(a.totalBouts - b.totalBouts) === 1;
+  });
+}
 
 export function pairAllDivisionsWithRecord(
   candidates: RecordMatchCandidate[],

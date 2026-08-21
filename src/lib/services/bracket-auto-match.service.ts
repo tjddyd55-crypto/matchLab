@@ -77,10 +77,10 @@ function readApplicationWeightKgFromSnapshot(
     return null;
   }
   const raw = (fighterSnapshot as Record<string, unknown>).applicationWeightKg;
-  if (typeof raw === "number" && Number.isFinite(raw)) return raw;
+  if (typeof raw === "number" && Number.isFinite(raw) && raw > 0) return raw;
   if (typeof raw === "string" && raw.trim()) {
     const n = Number(raw);
-    if (Number.isFinite(n)) return n;
+    if (Number.isFinite(n) && n > 0) return n;
   }
   return null;
 }
@@ -195,6 +195,18 @@ export type AutoBracketUnmatchedDetail = {
   candidateFlowText?: string;
 };
 
+export type AutoBracketPlannedMatchDetail = {
+  divisionLabel: string;
+  redName: string;
+  blueName: string;
+  redGymName: string;
+  blueGymName: string;
+  redWeightKg: number | null;
+  blueWeightKg: number | null;
+  weightDiffKg: number | null;
+  matchReason: string;
+};
+
 export type AutoBracketGenerationSummary = {
   createdMatches: number;
   unmatchedCount: number;
@@ -208,6 +220,7 @@ export type AutoBracketGenerationSummary = {
   messages: string[];
   previewOnly?: boolean;
   plannedMatches?: number;
+  plannedMatchDetails?: AutoBracketPlannedMatchDetail[];
   courtAssignments?: AutoBracketCourtAssignmentSummary[];
   unmatchedDetails?: AutoBracketUnmatchedDetail[];
 };
@@ -327,6 +340,7 @@ function toRecordMatchCandidate(
     totalBouts,
     schoolLevel: row.schoolLevelSnapshot ?? null,
     schoolGrade: row.schoolGradeSnapshot ?? null,
+    applicationWeightKg: readApplicationWeightKgFromSnapshot(row.fighterSnapshot),
   };
 }
 
@@ -827,6 +841,7 @@ export const bracketAutoMatchService = {
     const courtAssignmentCounts = new Map<string, number>();
     let plannedMatches = 0;
     let courtSkippedPairs = 0;
+    const plannedMatchDetails: AutoBracketPlannedMatchDetail[] = [];
     const previewAllocator = createCourtAllocator(
       activeCourtIds,
       new Map(courtCounts),
@@ -834,6 +849,13 @@ export const bracketAutoMatchService = {
     );
 
     for (const [divisionId, pairing] of pairingByDivision) {
+      const sampleForLabel = appByFighterDivision.get(
+        `${pairing.pairs[0]?.red.fighterId ?? pairing.unmatched[0]?.fighterId}:${divisionId}`,
+      );
+      const divisionLabel = sampleForLabel?.division
+        ? formatDivisionNameLabel(sampleForLabel.division)
+        : divisionId;
+
       for (const pair of pairing.pairs) {
         const allocation = previewAllocator?.allocate() ?? null;
         if (!allocation) {
@@ -854,11 +876,23 @@ export const bracketAutoMatchService = {
           allocation.courtId,
           (courtAssignmentCounts.get(allocation.courtId) ?? 0) + 1,
         );
+        plannedMatchDetails.push({
+          divisionLabel,
+          redName: pair.red.fighterName,
+          blueName: pair.blue.fighterName,
+          redGymName: pair.red.gymName,
+          blueGymName: pair.blue.gymName,
+          redWeightKg: pair.redWeightKg,
+          blueWeightKg: pair.blueWeightKg,
+          weightDiffKg: pair.weightDiffKg,
+          matchReason: pair.matchReason,
+        });
       }
     }
 
     summary.unmatchedCount += courtSkippedPairs * 2;
     summary.plannedMatches = plannedMatches;
+    summary.plannedMatchDetails = plannedMatchDetails;
     summary.unmatchedDetails = unmatchedDetails;
     summary.courtAssignments = [...courtAssignmentCounts.entries()].map(
       ([courtId, assignedCount]) => ({
