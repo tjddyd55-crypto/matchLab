@@ -551,7 +551,12 @@ export async function deleteBracketMatchAction(
       return actionFailure("VALIDATION_ERROR", "경기 삭제 입력값을 확인해 주세요.");
     }
     const actor = await requireActorFromMutation();
-    await bracketService.deleteBracketMatch(actor, parsed.data);
+    const deleted = await bracketService.deleteBracketMatch(actor, parsed.data);
+    revalidatePath(
+      `/organizer/events/${deleted.eventId}/brackets/${deleted.bracketId}`,
+    );
+    revalidatePath(`/organizer/events/${deleted.eventId}/brackets`);
+    await revalidateBracketPublicPaths(deleted.eventId);
     return actionSuccess({ ok: true as const });
   });
 }

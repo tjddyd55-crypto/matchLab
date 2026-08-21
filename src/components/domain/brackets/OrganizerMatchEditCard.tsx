@@ -55,18 +55,19 @@ export function OrganizerMatchEditCard({
   const canDelete =
     bracketType === BracketType.match_list && !match.hasOfficialResults;
 
-  function handleDelete() {
-    startTransition(async () => {
-      const ok = await confirm({
-        title: "이 경기를 삭제할까요?",
-        description:
-          "경기에서 빠진 선수는 미매칭 선수로 돌아갑니다.",
-        confirmLabel: "삭제",
-        cancelLabel: "취소",
-        variant: "danger",
-      });
-      if (!ok) return;
+  async function handleDelete() {
+    if (pending) return;
 
+    const ok = await confirm({
+      title: "이 경기를 삭제할까요?",
+      description: "경기에서 빠진 선수는 미매칭 선수로 돌아갑니다.",
+      confirmLabel: "삭제",
+      cancelLabel: "취소",
+      variant: "danger",
+    });
+    if (!ok) return;
+
+    startTransition(async () => {
       const fd = new FormData();
       fd.set("bracketId", bracketId);
       fd.set("matchId", match.id);
