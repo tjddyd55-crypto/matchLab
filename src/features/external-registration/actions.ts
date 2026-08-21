@@ -90,7 +90,7 @@ export async function submitExternalRegistrationBatchAction(
     results: Array<{
       applicationId: string;
       fighterName: string;
-      divisionId: string;
+      divisionId: string | null;
     }>;
     idempotentReplay: boolean;
   }>

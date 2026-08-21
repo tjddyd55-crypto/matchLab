@@ -1,37 +1,43 @@
 import { MINIMAL_APPLICATION_REQUIRED_FIELDS } from "@/lib/applications/minimal-application";
 
+/** 신규 1차 Excel sample 헤더 순서 */
 export const APPLICANT_EXCEL_HEADERS = [
   "번호",
   "체육관명",
   "선수명",
   "성별",
   "생년월일",
-  "나이",
-  "키",
-  "신청체중",
-  "전적",
+  "연락처",
+  "경기구분",
+  "체급",
   "총전",
   "승",
   "무",
   "패",
+  "신청체중",
   "운동경력",
-  "주민등록번호",
-  "보험가입 개인정보동의",
-  "경기구분",
-  "종목",
-  "연락처",
   "보호자이름",
   "보호자연락처",
+  "기타내용",
   "메모",
 ] as const;
 
 export type ApplicantExcelCanonicalHeader =
   (typeof APPLICANT_EXCEL_HEADERS)[number];
 
-/** 레거시 파일 호환. 체급 결정은 신청체중+체급표로 다시 계산한다. */
+/**
+ * 레거시 파일 호환 컬럼.
+ * 신규 sample에는 포함하지 않으며, parser alias로만 읽는다.
+ * 주민등록번호·보험동의 값이 있어도 추가정보 COMPLETED로 승격하지 않는다.
+ */
 export const APPLICANT_EXCEL_OPTIONAL_HEADERS = [
-  "체급",
+  "전적",
+  "나이",
+  "키",
+  "종목",
   "체중기준",
+  "주민등록번호",
+  "보험가입 개인정보동의",
 ] as const;
 
 export type ApplicantExcelHeader =

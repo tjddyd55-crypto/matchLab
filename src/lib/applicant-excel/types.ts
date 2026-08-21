@@ -1,3 +1,5 @@
+import type { DivisionSelectionType } from "@/lib/applications/division-selection";
+
 export type ApplicantExcelDecision =
   | "create"
   | "skip_existing"
@@ -39,14 +41,20 @@ export type ApplicantExcelPreviewRow = {
   insuranceConsentLabel: string;
   /** 서버 commit 전용. analyze action 응답에서는 제거한다. */
   insuranceRrnDigits?: string;
-  /** commit 시 consent snapshot 생성 여부 (서버 전용) */
+  /** commit 시 consent snapshot 생성 여부 (서버 전용) — Excel 경로에서는 설정하지 않음 */
   insuranceConsentAgreed?: boolean;
   phone: string;
   guardianName: string;
   guardianPhone: string;
   memo: string;
+  /** REGISTERED일 때만 EventDivision.id. OTHER면 null */
   divisionId: string | null;
   divisionLabel: string;
+  divisionSelectionType: DivisionSelectionType | null;
+  requestedDivisionText: string | null;
+  /** OTHER 등 주최자 체급 확인 필요 */
+  reviewRequired: boolean;
+  otherDetailText: string;
   identityKey: string;
   decision: ApplicantExcelDecision;
   decisionLabel: string;
@@ -69,7 +77,7 @@ export type ApplicantExcelPreview = {
 
 export type ApplicantExcelExistingIdentity = {
   applicationId: string;
-  divisionId: string;
+  divisionId: string | null;
   fighterName: string;
   birthDateIso: string;
   gender: string;

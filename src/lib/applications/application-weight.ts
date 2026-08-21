@@ -9,6 +9,10 @@ export type ApplicationWeightParseResult =
 
 const STRICT_WEIGHT_RE = /^\s*(\d+(?:\.\d+)?)\s*(?:kg)?\s*$/i;
 
+export type OptionalApplicationWeightParseResult =
+  | { ok: true; kg: number | null }
+  | { ok: false; error: string };
+
 export function parseApplicationWeightKg(
   raw: string | number | null | undefined,
 ): ApplicationWeightParseResult {
@@ -27,6 +31,17 @@ export function parseApplicationWeightKg(
   }
   const kg = Number.parseFloat(text.replace(/kg/i, "").trim());
   return validateKg(kg);
+}
+
+/** 1차 신청: 빈칸 허용. 값이 있으면 parseApplicationWeightKg와 동일 검증. */
+export function parseOptionalApplicationWeightKg(
+  raw: string | number | null | undefined,
+): OptionalApplicationWeightParseResult {
+  if (raw == null) return { ok: true, kg: null };
+  if (typeof raw === "string" && !raw.trim()) return { ok: true, kg: null };
+  const parsed = parseApplicationWeightKg(raw);
+  if (!parsed.ok) return parsed;
+  return { ok: true, kg: parsed.kg };
 }
 
 function validateKg(kg: number): ApplicationWeightParseResult {
