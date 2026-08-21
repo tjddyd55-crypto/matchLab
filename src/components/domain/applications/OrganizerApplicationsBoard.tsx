@@ -230,6 +230,15 @@ export function OrganizerApplicationsBoard({
     onToggleSelect: toggleSelect,
     emptyMessage,
     emptyDescription,
+    divisions: manualRegistrationOptions.divisions.map((d) => ({
+      id: d.id,
+      label: d.label,
+      gender: d.gender,
+      ageGroup: d.ageGroup,
+      weightClass: d.weightClass,
+      weightClassName: d.weightClassName,
+      weightLimitText: d.weightLimitText,
+    })),
   };
 
   function renderApplicationViews(

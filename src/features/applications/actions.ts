@@ -22,6 +22,7 @@ import type {
   ApplyToEventSuccessDTO,
   BulkApplyToEventSuccessDTO,
   CreateOrganizerManualApplicationResultDTO,
+  ResolveOtherDivisionResultDTO,
 } from "@/lib/services/application.service";
 import type {
   ApplicantExcelCommitResult,
@@ -382,6 +383,24 @@ export async function commitOrganizerApplicantExcelAction(
     const result = await applicationService.commitOrganizerApplicantExcel(
       actor,
       { eventId, ...(file as { fileName: string; buffer: Buffer }) },
+    );
+    revalidatePath(`/organizer/events/${eventId}/applications`);
+    revalidatePath(`/organizer/events/${eventId}/check-in`);
+    revalidatePath(`/organizer/events/${eventId}/brackets`);
+    return actionSuccess(result);
+  });
+}
+
+export async function resolveOtherDivisionAction(
+  applicationId: string,
+  eventDivisionId: string,
+  eventId: string,
+): Promise<ActionResult<ResolveOtherDivisionResultDTO>> {
+  return mapCaught(async () => {
+    const actor = await requireActorFromMutation();
+    const result = await applicationService.resolveOtherDivisionApplication(
+      actor,
+      { applicationId, eventDivisionId },
     );
     revalidatePath(`/organizer/events/${eventId}/applications`);
     revalidatePath(`/organizer/events/${eventId}/check-in`);

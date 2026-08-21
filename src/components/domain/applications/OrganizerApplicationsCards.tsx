@@ -18,6 +18,10 @@ import { Checkbox } from "@/components/ui/checkbox";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { displaySequenceNumber } from "@/lib/ui/list-sequence";
 import { matchonMobileCardListClass } from "@/lib/ui/matchon-shell-ui";
+import type { ResolveOtherDivisionOption } from "@/components/domain/applications/OrganizerResolveOtherDivisionDialog";
+
+const DIVISION_REVIEW_BADGE_CLASS =
+  "inline-flex rounded px-1.5 py-0.5 text-[11px] font-medium bg-amber-100 text-amber-900";
 
 export function OrganizerApplicationsCards({
   eventId,
@@ -27,6 +31,7 @@ export function OrganizerApplicationsCards({
   sequenceStart = 0,
   emptyMessage = "아직 신청자가 없습니다.",
   emptyDescription,
+  divisions = [],
 }: {
   eventId: string;
   rows: OrganizerApplicationRowVM[];
@@ -35,6 +40,7 @@ export function OrganizerApplicationsCards({
   sequenceStart?: number;
   emptyMessage?: string;
   emptyDescription?: string;
+  divisions?: ResolveOtherDivisionOption[];
 }) {
   if (rows.length === 0) {
     return (
@@ -97,6 +103,14 @@ export function OrganizerApplicationsCards({
                 mainClassName="text-xs"
                 secondaryClassName="text-[11px]"
               />
+              {row.divisionReviewRequired ? (
+                <div className="mt-1 flex flex-wrap gap-1">
+                  <span className={DIVISION_REVIEW_BADGE_CLASS}>기타</span>
+                  <span className={DIVISION_REVIEW_BADGE_CLASS}>
+                    체급 확인 필요
+                  </span>
+                </div>
+              ) : null}
             </div>
             {row.depositorName ? (
               <p className="text-muted-foreground text-xs">
@@ -133,6 +147,7 @@ export function OrganizerApplicationsCards({
             <OrganizerApplicationRowActions
               eventId={eventId}
               row={row}
+              divisions={divisions}
               touchFriendly
             />
           </CardContent>

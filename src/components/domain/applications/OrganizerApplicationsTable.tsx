@@ -42,6 +42,10 @@ import {
   TableHeader,
   TableRow,
 } from "@/components/ui/table";
+import type { ResolveOtherDivisionOption } from "@/components/domain/applications/OrganizerResolveOtherDivisionDialog";
+
+const DIVISION_REVIEW_BADGE_CLASS =
+  "inline-flex rounded px-1.5 py-0.5 text-[11px] font-medium bg-amber-100 text-amber-900";
 
 export type OrganizerApplicationRowVM = {
   applicationId: string;
@@ -83,8 +87,15 @@ export type OrganizerApplicationRowVM = {
     | "MISSING_ATHLETE_PHONE"
     | "MISSING_GUARDIAN_PHONE"
     | null;
+  additionalInfoRecipientMasked?: string | null;
+  /** 요청 snapshot vs Fighter live 연락처 불일치 */
+  recipientPhoneDrift?: boolean;
+  liveRecipientMasked?: string | null;
   isMinor: boolean;
   divisionReviewRequired: boolean;
+  requestedDivisionText: string | null;
+  applicationWeightKg: number | null;
+  fighterGender: string;
 };
 
 export function OrganizerApplicationsTable({
@@ -95,6 +106,7 @@ export function OrganizerApplicationsTable({
   sequenceStart = 0,
   emptyMessage = "아직 신청자가 없습니다.",
   emptyDescription,
+  divisions = [],
 }: {
   eventId: string;
   rows: OrganizerApplicationRowVM[];
@@ -103,6 +115,7 @@ export function OrganizerApplicationsTable({
   sequenceStart?: number;
   emptyMessage?: string;
   emptyDescription?: string;
+  divisions?: ResolveOtherDivisionOption[];
 }) {
   if (rows.length === 0) {
     return (
@@ -186,6 +199,14 @@ export function OrganizerApplicationsTable({
                   mainClassName="text-xs"
                   secondaryClassName="text-[11px]"
                 />
+                {row.divisionReviewRequired ? (
+                  <div className="mt-1 flex flex-wrap gap-1">
+                    <span className={DIVISION_REVIEW_BADGE_CLASS}>기타</span>
+                    <span className={DIVISION_REVIEW_BADGE_CLASS}>
+                      체급 확인 필요
+                    </span>
+                  </div>
+                ) : null}
               </TableCell>
               <TableCell className="align-top text-center">
                 <OrganizerPaymentDisplayBadge paymentStatus={row.paymentStatus} />
@@ -219,6 +240,7 @@ export function OrganizerApplicationsTable({
                   <OrganizerApplicationRowActions
                     eventId={eventId}
                     row={row}
+                    divisions={divisions}
                     compact
                   />
                 </div>

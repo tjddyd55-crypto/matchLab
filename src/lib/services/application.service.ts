@@ -54,7 +54,7 @@ import type {
   ApplicantExcelCommitResult,
   ApplicantExcelPreview,
 } from "@/lib/applicant-excel/types";
-import { compactText } from "@/lib/applicant-excel/normalize";
+import { compactText, foldKey, parseApplicantGender } from "@/lib/applicant-excel/normalize";
 import { fighterBirthDateForPersist } from "@/lib/fighter/birth-date";
 import { normalizeGymFighterPhone } from "@/lib/gym-fighter-management";
 import {
@@ -101,7 +101,6 @@ import {
 import { assertExternalRegistrationEligible } from "@/lib/external-registration/eligibility";
 import { parseApplicationWeightKg } from "@/lib/applications/application-weight";
 import { validateFirstStageApplication } from "@/lib/applications/first-stage-application";
-import { parseApplicantGender } from "@/lib/applicant-excel/normalize";
 import { resolveEventDivisionByApplicationWeight } from "@/lib/applications/resolve-event-division";
 import type { NormalizedCompetitionCategory } from "@/lib/applications/competition-category";
 
@@ -114,6 +113,23 @@ function toIso(d: Date): string {
 
 function formatDivisionLabel(d: EventDivisionDisplayInput): string {
   return formatDivisionSearchLabel(d);
+}
+
+/** 체급 성별 ↔ 선수 성별 — 혼성/빈 값은 허용 */
+function divisionGenderAllowsFighter(
+  divisionGender: string | null | undefined,
+  fighterGender: string,
+): boolean {
+  const raw = (divisionGender ?? "").trim();
+  if (!raw) return true;
+  const folded = foldKey(raw);
+  if (folded === "mixed" || folded === "혼성") return true;
+  const divisionParsed = parseApplicantGender(raw);
+  const fighterParsed = parseApplicantGender(fighterGender);
+  if (divisionParsed.ok && fighterParsed.ok) {
+    return divisionParsed.gender === fighterParsed.gender;
+  }
+  return folded === foldKey(fighterGender);
 }
 
 function toApplicationDivisionRow(
@@ -578,6 +594,21 @@ export type OrganizerApplicationListRowDTO = {
     | null;
   isMinor: boolean;
   divisionReviewRequired: boolean;
+  /** OTHER 요청 원문 — 체급 지정 후에도 이력으로 유지 */
+  requestedDivisionText: string | null;
+  /** fighterSnapshot.applicationWeightKg */
+  applicationWeightKg: number | null;
+  /** 선수 성별 (male/female 등) — 체급 지정 UI·검증용 */
+  fighterGender: string;
+};
+
+export type ResolveOtherDivisionResultDTO = {
+  applicationId: string;
+  divisionId: string;
+  divisionLabel: string;
+  divisionSelectionType: "REGISTERED";
+  divisionReviewRequired: false;
+  requestedDivisionText: string | null;
 };
 
 export type OrganizerManualRegistrationOptionsDTO = {
@@ -958,6 +989,13 @@ export const applicationService = {
               skillLevel: row.division.skillLevel,
             }
           : null,
+        requestedDivisionText: row.requestedDivisionText ?? null,
+        applicationWeightKg:
+          typeof snap.applicationWeightKg === "number" &&
+          Number.isFinite(snap.applicationWeightKg)
+            ? snap.applicationWeightKg
+            : null,
+        fighterGender: row.fighter.gender,
         applicationStatus: row.status,
         cancellationSource: row.cancellationSource ?? null,
         paymentStatus: row.paymentStatus,
@@ -992,6 +1030,8 @@ export const applicationService = {
           const mapped = additionalInfoService.mapRowFields({
             additionalInfoStatus: row.additionalInfoStatus,
             additionalInfoCompletedAt: row.additionalInfoCompletedAt,
+            additionalInfoRecipientPhone: row.additionalInfoRecipientPhone,
+            additionalInfoRecipientMasked: row.additionalInfoRecipientMasked,
             divisionSelectionType: row.divisionSelectionType,
             fighter: {
               birthDate: row.fighter.birthDate,
@@ -2771,6 +2811,80 @@ export const applicationService = {
       skipped: preview.counts.skipExisting,
       failed: 0,
       applicationIds: result,
+    };
+  },
+
+  /**
+   * OTHER(divisionId null) 신청을 실제 EventDivision에 지정한다.
+   * requestedDivisionText는 이력으로 유지한다.
+   */
+  async resolveOtherDivisionApplication(
+    actor: ActorContext,
+    input: { applicationId: string; eventDivisionId: string },
+  ): Promise<ResolveOtherDivisionResultDTO> {
+    const row =
+      await applicationRepository.findApplicationForOtherDivisionResolve(
+        input.applicationId,
+      );
+    if (!row) {
+      throw new AppError("NOT_FOUND", "신청을 찾을 수 없습니다.");
+    }
+
+    await requireOrganizerForEvent(actor, row.eventId);
+
+    const isOtherSelection = row.divisionSelectionType === "OTHER";
+    const hasNullDivision = row.divisionId == null;
+    const hasRequestedText = Boolean(row.requestedDivisionText?.trim());
+    if (!isOtherSelection && !hasNullDivision && !hasRequestedText) {
+      throw new AppError(
+        "VALIDATION_ERROR",
+        "기타(체급 미지정) 신청만 체급을 지정할 수 있습니다.",
+      );
+    }
+
+    const division = await eventRepository.findEventDivisionById(
+      input.eventDivisionId,
+    );
+    if (!division || division.eventId !== row.eventId) {
+      throw new AppError(
+        "VALIDATION_ERROR",
+        "이 대회의 체급만 지정할 수 있습니다.",
+      );
+    }
+
+    if (!divisionGenderAllowsFighter(division.gender, row.fighter.gender)) {
+      throw new AppError(
+        "VALIDATION_ERROR",
+        "선수 성별과 선택한 체급 성별이 일치하지 않습니다.",
+      );
+    }
+
+    if (row.divisionId !== division.id) {
+      const duplicate = await applicationRepository.findExistingApplication(
+        row.eventId,
+        row.fighterId,
+        division.id,
+      );
+      if (duplicate && duplicate.id !== row.id) {
+        throw new AppError(
+          "CONFLICT",
+          "동일 선수·체급 신청이 이미 존재합니다.",
+        );
+      }
+    }
+
+    await applicationRepository.patchApplication(row.id, {
+      division: { connect: { id: division.id } },
+      divisionSelectionType: "REGISTERED",
+    });
+
+    return {
+      applicationId: row.id,
+      divisionId: division.id,
+      divisionLabel: formatDivisionLabel(division),
+      divisionSelectionType: "REGISTERED",
+      divisionReviewRequired: false,
+      requestedDivisionText: row.requestedDivisionText ?? null,
     };
   },
 };
