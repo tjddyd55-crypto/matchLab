@@ -97,12 +97,14 @@ async function main() {
     servingSha,
     expectedSha: EXPECTED_SHA,
   };
-  if (latest.status !== "SUCCESS") fail(`deploy status ${latest.status}`);
-  if (servingSha !== EXPECTED_SHA && !process.argv.includes("--allow-sha-mismatch")) {
-    fail(`serving SHA mismatch: ${servingSha} !== ${EXPECTED_SHA}`);
-  }
-  if (servingSha !== EXPECTED_SHA) {
-    console.warn(`[warn] serving SHA mismatch allowed: ${servingSha}`);
+  if (!cleanupOnly) {
+    if (latest.status !== "SUCCESS") fail(`deploy status ${latest.status}`);
+    if (servingSha !== EXPECTED_SHA && !process.argv.includes("--allow-sha-mismatch")) {
+      fail(`serving SHA mismatch: ${servingSha} !== ${EXPECTED_SHA}`);
+    }
+    if (servingSha !== EXPECTED_SHA) {
+      console.warn(`[warn] serving SHA mismatch allowed: ${servingSha}`);
+    }
   }
   pass("deployment", report.deployment);
 
