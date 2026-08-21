@@ -382,13 +382,76 @@ export function formatAutoMatchRecordText(input: {
   draws?: number | null;
   losses?: number | null;
 }): string {
-  if (input.totalBouts == null) return "전적 미입력";
+  if (input.totalBouts == null) return "전적 정보 없음";
   if (input.totalBouts === 0) return "무전";
   const wins = input.wins;
   const draws = input.draws;
   const losses = input.losses;
   if (wins != null && draws != null && losses != null) {
-    return `${input.totalBouts}전 ${wins}승 ${draws}무 ${losses}패`;
+    const parts = [`${input.totalBouts}전`, `${wins}승`];
+    if (draws > 0) parts.push(`${draws}무`);
+    parts.push(`${losses}패`);
+    return parts.join(" ");
   }
   return `${input.totalBouts}전`;
+}
+
+/** 미리보기 표시용 — 구조화 전적 우선, 없으면 free-text, 둘 다 없으면 안내 문구 */
+export function formatPreviewApplicationRecord(input: {
+  totalBoutsSnapshot: number | null;
+  winsSnapshot: number | null;
+  drawsSnapshot: number | null;
+  lossesSnapshot: number | null;
+  recordText?: string | null;
+  fighter?: {
+    recordTotalBouts: number;
+    recordWin: number;
+    recordLoss: number;
+    recordDraw: number;
+  } | null;
+}): string {
+  const hasStructuredSnapshot =
+    input.totalBoutsSnapshot != null ||
+    input.winsSnapshot != null ||
+    input.drawsSnapshot != null ||
+    input.lossesSnapshot != null;
+
+  if (hasStructuredSnapshot) {
+    const wins = input.winsSnapshot;
+    const draws = input.drawsSnapshot;
+    const losses = input.lossesSnapshot;
+    const totalBouts =
+      input.totalBoutsSnapshot ??
+      (wins != null && draws != null && losses != null
+        ? wins + draws + losses
+        : null);
+    return formatAutoMatchRecordText({
+      totalBouts,
+      wins,
+      draws,
+      losses,
+    });
+  }
+
+  const fighter = input.fighter;
+  if (
+    fighter &&
+    (fighter.recordTotalBouts > 0 ||
+      fighter.recordWin > 0 ||
+      fighter.recordLoss > 0 ||
+      fighter.recordDraw > 0)
+  ) {
+    return formatAutoMatchRecordText({
+      totalBouts:
+        fighter.recordTotalBouts ||
+        fighter.recordWin + fighter.recordLoss + fighter.recordDraw,
+      wins: fighter.recordWin,
+      draws: fighter.recordDraw,
+      losses: fighter.recordLoss,
+    });
+  }
+
+  const freeText = input.recordText?.trim();
+  if (freeText) return freeText;
+  return "전적 정보 없음";
 }

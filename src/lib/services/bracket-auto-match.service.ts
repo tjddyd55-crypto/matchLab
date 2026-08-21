@@ -2,6 +2,7 @@ import "server-only";
 
 import {
   BracketChangeType,
+  BracketStatus,
   BracketType,
 } from "@/generated/prisma";
 import type { ActorContext } from "@/lib/auth/actor-context";
@@ -11,6 +12,7 @@ import {
 } from "@/lib/bracket-snapshot";
 import {
   formatAutoBracketGroupTitle,
+  resolveDivisionDisplayParts,
   toEventDivisionDisplayInput,
   type EventDivisionDisplayInput,
 } from "@/lib/event-division-fields";
@@ -26,6 +28,12 @@ import {
   type RecordMatchCandidate,
   type RecordUnmatchedReason,
 } from "@/lib/brackets/record-auto-match";
+import {
+  explainRecordUnmatched,
+  formatPreviewApplicationRecord,
+  type UnmatchedCandidateExplanation,
+  type UnmatchedDetailReasonCode,
+} from "@/lib/brackets/explain-record-unmatched";
 import { SCHOOL_LEVEL } from "@/lib/fighter/record";
 import { formatCourtTabLabel } from "@/lib/court-tab-label";
 import { computeBracketAssignability } from "@/lib/bracket-assignability";
@@ -58,6 +66,100 @@ function displayGymName(row: {
   });
 }
 
+function readApplicationWeightKgFromSnapshot(
+  fighterSnapshot: unknown,
+): number | null {
+  if (
+    !fighterSnapshot ||
+    typeof fighterSnapshot !== "object" ||
+    Array.isArray(fighterSnapshot)
+  ) {
+    return null;
+  }
+  const raw = (fighterSnapshot as Record<string, unknown>).applicationWeightKg;
+  if (typeof raw === "number" && Number.isFinite(raw)) return raw;
+  if (typeof raw === "string" && raw.trim()) {
+    const n = Number(raw);
+    if (Number.isFinite(n)) return n;
+  }
+  return null;
+}
+
+function formatAppliedWeightLabel(row: AutoMatchApplicationRow): string | undefined {
+  const kg = readApplicationWeightKgFromSnapshot(row.fighterSnapshot);
+  if (kg != null) return `${kg}kg`;
+  return undefined;
+}
+
+function formatPreviewDivisionParts(row: AutoMatchApplicationRow): {
+  ageGroupLabel: string | undefined;
+  weightClassLabel: string | undefined;
+} {
+  if (row.divisionSelectionType === "OTHER") {
+    const text = row.requestedDivisionText?.trim();
+    return {
+      ageGroupLabel: text ? `기타 · ${text}` : "기타 (체급 확인 필요)",
+      weightClassLabel: undefined,
+    };
+  }
+  if (!row.division) {
+    return { ageGroupLabel: undefined, weightClassLabel: undefined };
+  }
+  const parts = resolveDivisionDisplayParts(row.division);
+  const ageGroupLabel = [parts.ageGroup, parts.genderLabel]
+    .filter(Boolean)
+    .join(" ");
+  return {
+    ageGroupLabel: ageGroupLabel || undefined,
+    weightClassLabel: parts.weightChipLabel ?? undefined,
+  };
+}
+
+function buildUnmatchedDetailBase(
+  row: AutoMatchApplicationRow,
+  reasonLabel: string,
+  extras: Partial<AutoBracketUnmatchedDetail> = {},
+): AutoBracketUnmatchedDetail {
+  const divisionParts = formatPreviewDivisionParts(row);
+  return {
+    fighterName: row.fighter.name,
+    gymName: displayGymName(row),
+    divisionLabel: formatApplicationDivisionLabel({
+      division: row.division,
+      divisionSelectionType: row.divisionSelectionType,
+      requestedDivisionText: row.requestedDivisionText,
+    }),
+    reasonLabel,
+    ageGroupLabel: divisionParts.ageGroupLabel,
+    weightClassLabel: divisionParts.weightClassLabel,
+    appliedWeightLabel: formatAppliedWeightLabel(row),
+    recordText: formatPreviewApplicationRecord({
+      totalBoutsSnapshot: row.totalBoutsSnapshot,
+      winsSnapshot: row.winsSnapshot,
+      drawsSnapshot: row.drawsSnapshot,
+      lossesSnapshot: row.lossesSnapshot,
+      recordText: row.recordText,
+      fighter: row.fighter,
+    }),
+    ...extras,
+  };
+}
+
+function mergeExplanation(
+  explanation: UnmatchedCandidateExplanation,
+): Partial<AutoBracketUnmatchedDetail> {
+  return {
+    reasonCode: explanation.reasonCode,
+    reasonText: explanation.reasonText,
+    candidateCount: explanation.candidateCount,
+    excludedSameGymCount: explanation.excludedSameGymCount,
+    excludedRecordCount: explanation.excludedRecordCount,
+    excludedAgeCount: explanation.excludedAgeCount,
+    finalCandidateCount: explanation.finalCandidateCount,
+    candidateFlowText: explanation.candidateFlowText,
+  };
+}
+
 export type AutoBracketDivisionSummary = {
   divisionLabel: string;
   createdMatches: number;
@@ -76,10 +178,14 @@ export type AutoBracketUnmatchedDetail = {
   divisionLabel: string;
   reasonLabel: string;
   /** 상세 미리보기 dialog용 (optional — 구형 push는 reasonLabel만) */
-  reasonCode?: import("@/lib/brackets/explain-record-unmatched").UnmatchedDetailReasonCode;
+  reasonCode?: UnmatchedDetailReasonCode;
   reasonText?: string;
+  /** 경기구분 — 예: 고등부 남성 */
   ageGroupLabel?: string;
+  /** 체급 — 예: 웰터급 -67kg */
   weightClassLabel?: string;
+  /** 신청체중 — 예: 67kg */
+  appliedWeightLabel?: string;
   recordText?: string;
   candidateCount?: number;
   excludedSameGymCount?: number;
@@ -373,22 +479,40 @@ function pushCourtCapacityUnmatched(
   appByFighterDivision: Map<string, AutoMatchApplicationRow>,
   unmatchedDetails: AutoBracketUnmatchedDetail[],
   unmatchedGymIds: Array<string | null>,
+  divisionCandidates?: RecordMatchCandidate[],
+  forbidSameGym?: boolean,
 ) {
   for (const fighter of [pair.red, pair.blue]) {
     unmatchedGymIds.push(fighter.gymId);
     const row = appByFighterDivision.get(`${fighter.fighterId}:${divisionId}`);
-    if (row) {
-      unmatchedDetails.push({
-        fighterName: row.fighter.name,
-        gymName: displayGymName(row),
-        divisionLabel: formatApplicationDivisionLabel({
-          division: row.division,
-          divisionSelectionType: row.divisionSelectionType,
-          requestedDivisionText: row.requestedDivisionText,
-        }),
-        reasonLabel: REASON_LABELS.court_capacity_full,
-      });
+    if (!row) continue;
+
+    const selfCandidate = divisionCandidates?.find(
+      (c) => c.applicationId === fighter.applicationId,
+    );
+    if (selfCandidate && divisionCandidates) {
+      const explanation = explainRecordUnmatched(
+        { ...selfCandidate, reason: "court_capacity_full" },
+        divisionCandidates,
+        { forbidSameGym },
+      );
+      unmatchedDetails.push(
+        buildUnmatchedDetailBase(
+          row,
+          REASON_LABELS.court_capacity_full,
+          mergeExplanation(explanation),
+        ),
+      );
+      continue;
     }
+
+    unmatchedDetails.push(
+      buildUnmatchedDetailBase(row, REASON_LABELS.court_capacity_full, {
+        reasonCode: "court_capacity",
+        reasonText: "경기장 최대 경기 수 제한으로 배치되지 않았습니다.",
+        candidateCount: 0,
+      }),
+    );
   }
 }
 
@@ -569,16 +693,13 @@ export const bracketAutoMatchService = {
 
     const unmatchedDetails: AutoBracketUnmatchedDetail[] = [];
     for (const row of divisionReviewExcluded) {
-      unmatchedDetails.push({
-        fighterName: row.fighter.name,
-        gymName: displayGymName(row),
-        divisionLabel: formatApplicationDivisionLabel({
-          division: row.division,
-          divisionSelectionType: row.divisionSelectionType,
-          requestedDivisionText: row.requestedDivisionText,
+      unmatchedDetails.push(
+        buildUnmatchedDetailBase(row, REASON_LABELS.division_review_required, {
+          reasonCode: "other",
+          reasonText: REASON_LABELS.division_review_required,
+          candidateCount: 0,
         }),
-        reasonLabel: REASON_LABELS.division_review_required,
-      });
+      );
     }
     summary.unmatchedCount += divisionReviewExcluded.length;
 
@@ -643,18 +764,21 @@ export const bracketAutoMatchService = {
       for (const u of pairing.unmatched) {
         unmatchedGymIds.push(u.gymId);
         const row = appByFighterDivision.get(`${u.fighterId}:${divisionId}`);
-        if (row) {
-          unmatchedDetails.push({
-            fighterName: row.fighter.name,
-            gymName: displayGymName(row),
-            divisionLabel: formatApplicationDivisionLabel({
-              division: row.division,
-              divisionSelectionType: row.divisionSelectionType,
-              requestedDivisionText: row.requestedDivisionText,
-            }),
-            reasonLabel: formatRecordUnmatchedReason(u.reason),
-          });
-        }
+        if (!row) continue;
+        const explanation = explainRecordUnmatched(u, group, {
+          forbidSameGym: input.forbidSameGym !== false,
+        });
+        unmatchedDetails.push(
+          buildUnmatchedDetailBase(
+            row,
+            formatRecordUnmatchedReason(u.reason),
+            {
+              ...mergeExplanation(explanation),
+              // reasonText는 explain SSOT 우선
+              reasonLabel: explanation.reasonText,
+            },
+          ),
+        );
       }
     }
 
@@ -716,6 +840,8 @@ export const bracketAutoMatchService = {
             appByFighterDivision,
             unmatchedDetails,
             unmatchedGymIds,
+            recordCandidatesByDivision.get(divisionId),
+            input.forbidSameGym !== false,
           );
           continue;
         }
@@ -787,12 +913,21 @@ export const bracketAutoMatchService = {
             input.autoBoutFormat === "tournament"
               ? BracketType.single_elimination
               : BracketType.match_list;
+          const peers = await bracketRepository.listBracketsByEvent(
+            input.eventId,
+            tx,
+          );
+          const eventPublic = peers.some((p) => p.isPublic);
           const { id } = await bracketRepository.createBracket(
             {
               eventId: input.eventId,
               divisionId,
               title: autoTitle,
               type: bracketType,
+              status: eventPublic
+                ? BracketStatus.published
+                : BracketStatus.draft,
+              isPublic: eventPublic,
             },
             tx,
           );
@@ -837,6 +972,8 @@ export const bracketAutoMatchService = {
               appByFighterDivision,
               unmatchedDetails,
               unmatchedGymIds,
+              recordCandidatesByDivision.get(divisionId),
+              input.forbidSameGym !== false,
             );
             continue;
           }

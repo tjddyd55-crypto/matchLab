@@ -97,15 +97,15 @@ assert.equal(
     draws: 0,
     losses: 3,
   }),
-  "6전 3승 0무 3패",
+  "6전 3승 3패",
 );
+assert.equal(formatAutoMatchRecordText({ totalBouts: null }), "전적 정보 없음");
 
 const panel = readFileSync(
   join(process.cwd(), "src/components/domain/brackets/AutoBracketGenerationPanel.tsx"),
   "utf8",
 );
 assert.ok(!panel.includes("미매칭 상세 미리보기"));
-assert.ok(!panel.includes("자동매칭 미리보기"));
 assert.ok(!panel.includes("max-h-40 space-y-1 overflow-y-auto"));
 assert.ok(panel.includes("AutoBracketPreviewDialog"));
 assert.ok(panel.includes("setPreviewDialogOpen(true)"));
@@ -118,11 +118,12 @@ const dialog = readFileSync(
   ),
   "utf8",
 );
-assert.ok(dialog.includes("자동대진 미리보기"));
-assert.ok(dialog.includes("max-w-7xl"));
-assert.ok(dialog.includes("max-h-[88dvh]"));
-assert.ok(dialog.includes("w-[calc(100vw-4rem)]"));
+assert.ok(dialog.includes("자동매칭 미리보기"));
+assert.ok(dialog.includes("!max-w-[1100px]"));
+assert.ok(dialog.includes("max-h-[85vh]"));
 assert.ok(dialog.includes("formControlFieldClass"));
+assert.ok(dialog.includes("appliedWeightLabel"));
+assert.ok(dialog.includes("formatCandidateCount"));
 
 const service = readFileSync(
   join(process.cwd(), "src/lib/services/bracket-auto-match.service.ts"),
@@ -130,5 +131,7 @@ const service = readFileSync(
 );
 assert.ok(service.includes("explainRecordUnmatched"));
 assert.ok(service.includes("candidateFlowText"));
+assert.ok(service.includes("formatPreviewApplicationRecord"));
+assert.ok(service.includes("buildUnmatchedDetailBase"));
 
 console.log("\nverify-auto-match-unmatched-detail: PASS");
