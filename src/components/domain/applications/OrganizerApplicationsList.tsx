@@ -5,6 +5,8 @@ import {
   OrganizerPaymentDisplayBadge,
 } from "@/components/domain/applications/OrganizerApplicationDisplayBadge";
 import { OrganizerApplicationRowActions } from "@/components/domain/applications/OrganizerApplicationRowActions";
+import { OrganizerAdditionalInfoRowActions } from "@/components/domain/applications/OrganizerAdditionalInfoRowActions";
+import { AdditionalInfoStatusBadge } from "@/components/domain/applications/AdditionalInfoStatusBadge";
 import { OrganizerManualEntryHint } from "@/components/domain/applications/OrganizerManualEntryHint";
 import { OrganizerApplicationsEmptyState } from "@/components/domain/applications/OrganizerApplicationsEmptyState";
 import type { OrganizerApplicationRowVM } from "@/components/domain/applications/OrganizerApplicationsTable";
@@ -85,7 +87,7 @@ export function OrganizerApplicationsList({
             <div className="min-w-0 font-medium">
               <div className="flex min-w-0 items-center gap-1.5">
                 <span className="truncate">{row.fighterName}</span>
-                <DivisionGenderBadge gender={row.division.gender} short />
+                <DivisionGenderBadge gender={row.division?.gender} short />
               </div>
               <OrganizerManualEntryHint
                 show={row.isOrganizerManualEntry}
@@ -96,6 +98,7 @@ export function OrganizerApplicationsList({
             <div className="min-w-0" title={row.divisionLabel}>
               <DivisionCompactDisplay
                 division={row.division}
+                fallbackLabel={row.divisionLabel}
                 mainClassName="text-xs"
                 secondaryClassName="text-[11px]"
               />
@@ -105,14 +108,23 @@ export function OrganizerApplicationsList({
               <OrganizerPaymentDisplayBadge paymentStatus={row.paymentStatus} />
             </div>
 
-            <div className="min-w-0">
+            <div className="min-w-0 space-y-1">
               <OrganizerApplicationStatusBadge
                 applicationStatus={row.applicationStatus}
                 cancellationSource={row.cancellationSource}
               />
+              <AdditionalInfoStatusBadge
+                label={row.additionalInfoLabel}
+                tone={row.additionalInfoBadgeTone}
+              />
             </div>
 
-            <div className="col-actions min-w-0">
+            <div className="col-actions min-w-0 space-y-1">
+              <OrganizerAdditionalInfoRowActions
+                eventId={eventId}
+                row={row}
+                compact
+              />
               <OrganizerApplicationRowActions eventId={eventId} row={row} compact />
             </div>
           </li>

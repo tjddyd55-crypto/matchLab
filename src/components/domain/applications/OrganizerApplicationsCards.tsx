@@ -5,6 +5,8 @@ import {
   OrganizerPaymentDisplayBadge,
 } from "@/components/domain/applications/OrganizerApplicationDisplayBadge";
 import { OrganizerApplicationRowActions } from "@/components/domain/applications/OrganizerApplicationRowActions";
+import { OrganizerAdditionalInfoRowActions } from "@/components/domain/applications/OrganizerAdditionalInfoRowActions";
+import { AdditionalInfoStatusBadge } from "@/components/domain/applications/AdditionalInfoStatusBadge";
 import { OrganizerManualEntryHint } from "@/components/domain/applications/OrganizerManualEntryHint";
 import { OrganizerApplicationsEmptyState } from "@/components/domain/applications/OrganizerApplicationsEmptyState";
 import type { OrganizerApplicationRowVM } from "@/components/domain/applications/OrganizerApplicationsTable";
@@ -72,7 +74,7 @@ export function OrganizerApplicationsCards({
                   <CardTitle className="truncate text-base leading-snug">
                     {row.fighterName}
                   </CardTitle>
-                  <DivisionGenderBadge gender={row.division.gender} short />
+                  <DivisionGenderBadge gender={row.division?.gender} short />
                 </div>
                 <OrganizerManualEntryHint
                   show={row.isOrganizerManualEntry}
@@ -91,6 +93,7 @@ export function OrganizerApplicationsCards({
             <div title={row.divisionLabel}>
               <DivisionCompactDisplay
                 division={row.division}
+                fallbackLabel={row.divisionLabel}
                 mainClassName="text-xs"
                 secondaryClassName="text-[11px]"
               />
@@ -116,11 +119,17 @@ export function OrganizerApplicationsCards({
             <p className="text-muted-foreground text-xs">
               보험동의 {row.insuranceConsentLabel ?? (row.insuranceConsentAgreed ? "동의" : "미입력")}
             </p>
-            {row.insuranceRrnMasked ? (
-              <p className="text-muted-foreground text-xs">
-                주민번호 {row.insuranceRrnMasked}
-              </p>
-            ) : null}
+            <div className="flex flex-wrap items-center gap-2">
+              <span className="text-muted-foreground text-xs">추가정보</span>
+              <AdditionalInfoStatusBadge
+                label={row.additionalInfoLabel}
+                tone={row.additionalInfoBadgeTone}
+              />
+            </div>
+            <OrganizerAdditionalInfoRowActions
+              eventId={eventId}
+              row={row}
+            />
             <OrganizerApplicationRowActions
               eventId={eventId}
               row={row}

@@ -14,6 +14,8 @@ import {
   OrganizerPaymentDisplayBadge,
 } from "@/components/domain/applications/OrganizerApplicationDisplayBadge";
 import { OrganizerApplicationRowActions } from "@/components/domain/applications/OrganizerApplicationRowActions";
+import { OrganizerAdditionalInfoRowActions } from "@/components/domain/applications/OrganizerAdditionalInfoRowActions";
+import { AdditionalInfoStatusBadge } from "@/components/domain/applications/AdditionalInfoStatusBadge";
 import { OrganizerManualEntryHint } from "@/components/domain/applications/OrganizerManualEntryHint";
 import { OrganizerApplicationsEmptyState } from "@/components/domain/applications/OrganizerApplicationsEmptyState";
 import {
@@ -48,9 +50,10 @@ export type OrganizerApplicationRowVM = {
   fighterName: string;
   gymId: string;
   gymName: string;
-  divisionId: string;
+  /** REGISTERED면 division id, OTHER면 null */
+  divisionId: string | null;
   divisionLabel: string;
-  division: EventDivisionDisplayInput;
+  division: EventDivisionDisplayInput | null;
   applicationStatus: ApplicationStatus;
   cancellationSource: ApplicationCancellationSource | null;
   paymentStatus: PaymentStatus;
@@ -71,6 +74,17 @@ export type OrganizerApplicationRowVM = {
   insuranceRrnMasked?: string | null;
   insuranceConsentAgreed?: boolean;
   insuranceConsentLabel?: string;
+  additionalInfoStatus: import("@/generated/prisma").AdditionalInfoStatus;
+  additionalInfoLabel: string;
+  additionalInfoBadgeTone: import("@/lib/additional-info/completion").AdditionalInfoBadgeTone;
+  additionalInfoCompletedAt: string | null;
+  contactMissing: boolean;
+  additionalInfoContactCode:
+    | "MISSING_ATHLETE_PHONE"
+    | "MISSING_GUARDIAN_PHONE"
+    | null;
+  isMinor: boolean;
+  divisionReviewRequired: boolean;
 };
 
 export function OrganizerApplicationsTable({
@@ -125,7 +139,10 @@ export function OrganizerApplicationsTable({
             <TableHead className={cn(listTableHeaderCellCenterClass, "w-[10%]")}>
               상태
             </TableHead>
-            <TableHead className={cn(listTableHeaderCellCenterClass, "w-[22%]")}>
+            <TableHead className={cn(listTableHeaderCellCenterClass, "w-[8%]")}>
+              추가정보
+            </TableHead>
+            <TableHead className={cn(listTableHeaderCellCenterClass, "w-[18%]")}>
               상태입력/처리
             </TableHead>
           </TableRow>
@@ -155,7 +172,7 @@ export function OrganizerApplicationsTable({
                   <span className="truncate text-sm font-medium">
                     {row.fighterName}
                   </span>
-                  <DivisionGenderBadge gender={row.division.gender} short />
+                  <DivisionGenderBadge gender={row.division?.gender} short />
                 </div>
                 <OrganizerManualEntryHint
                   show={row.isOrganizerManualEntry}
@@ -165,6 +182,7 @@ export function OrganizerApplicationsTable({
               <TableCell className="align-top">
                 <DivisionCompactDisplay
                   division={row.division}
+                  fallbackLabel={row.divisionLabel}
                   mainClassName="text-xs"
                   secondaryClassName="text-[11px]"
                 />
@@ -182,6 +200,19 @@ export function OrganizerApplicationsTable({
                   applicationStatus={row.applicationStatus}
                   cancellationSource={row.cancellationSource}
                 />
+              </TableCell>
+              <TableCell className="align-top text-center">
+                <div className="flex flex-col items-center gap-1">
+                  <AdditionalInfoStatusBadge
+                    label={row.additionalInfoLabel}
+                    tone={row.additionalInfoBadgeTone}
+                  />
+                  <OrganizerAdditionalInfoRowActions
+                    eventId={eventId}
+                    row={row}
+                    compact
+                  />
+                </div>
               </TableCell>
               <TableCell className="align-top text-center">
                 <div className="flex justify-center">
