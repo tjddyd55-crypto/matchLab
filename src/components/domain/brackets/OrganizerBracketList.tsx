@@ -21,14 +21,6 @@ import {
   listTableHeaderRowClass,
 } from "@/lib/ui/list-table-styles";
 import { cn } from "@/lib/utils";
-import {
-  Dialog,
-  DialogContent,
-  DialogDescription,
-  DialogHeader,
-  DialogTitle,
-  DialogTrigger,
-} from "@/components/ui/dialog";
 import { useAppConfirmDialog } from "@/components/shared/app-confirm-dialog";
 
 function BracketDivisionCell({
@@ -58,56 +50,19 @@ function BracketDivisionCell({
   );
 }
 
+/** 목록은 인원수만. 명단은 관리 화면 SSOT. */
 function UnmatchedCell({ bracket }: { bracket: OrganizerBracketListItemVM }) {
-  const count = bracket.unmatchedCount;
-  if (count === 0) {
-    return <span className="text-muted-foreground">0명</span>;
-  }
-
-  const compact = bracket.unmatchedPreview
-    .map((f) => f.fighterName)
-    .join(", ");
-
   return (
-    <div className="space-y-1">
-      <p className="font-medium">{count}명</p>
-      {compact ? (
-        <p className="text-muted-foreground line-clamp-2 text-xs">{compact}</p>
-      ) : null}
-      <Dialog>
-        <DialogTrigger
-          render={
-            <Button
-              type="button"
-              variant="link"
-              size="sm"
-              className="h-auto px-0 text-xs"
-            >
-              전체 보기
-            </Button>
-          }
-        />
-        <DialogContent>
-          <DialogHeader>
-            <DialogTitle>미매칭 선수 ({count}명)</DialogTitle>
-            <DialogDescription>
-              출전 가능하나 아직 경기에 배정되지 않은 선수입니다.
-            </DialogDescription>
-          </DialogHeader>
-          <ul className="max-h-72 space-y-2 overflow-y-auto text-sm">
-            {bracket.unmatchedFighters.map((f, i) => (
-              <li
-                key={`${f.fighterName}-${f.gymName}-${i}`}
-                className="flex flex-wrap gap-x-2"
-              >
-                <span className="font-medium">{f.fighterName}</span>
-                <span className="text-muted-foreground">{f.gymName}</span>
-              </li>
-            ))}
-          </ul>
-        </DialogContent>
-      </Dialog>
-    </div>
+    <span
+      className={cn(
+        "tabular-nums",
+        bracket.unmatchedCount === 0
+          ? "text-muted-foreground"
+          : "font-medium text-matchon-text-primary",
+      )}
+    >
+      {bracket.unmatchedCount}명
+    </span>
   );
 }
 
@@ -214,7 +169,7 @@ export function OrganizerBracketList({
               <th className={cn(listTableHeaderCellCenterClass, "px-4")}>
                 경기 수
               </th>
-              <th className={cn(listTableHeaderCellStartClass, "px-4")}>
+              <th className={cn(listTableHeaderCellCenterClass, "px-4")}>
                 미매칭
               </th>
               <th className={cn(listTableHeaderCellCenterClass, "px-4 text-right")}>
@@ -228,21 +183,25 @@ export function OrganizerBracketList({
                 key={b.id}
                 className="border-b border-matchon-border/60 last:border-0 hover:bg-matchon-surface/50"
               >
-                <td className="px-4 py-2.5">
+                <td className="px-4 py-2.5 align-middle">
                   <BracketDivisionCell bracket={b} />
                 </td>
-                <td className="px-4 py-2.5">
+                <td className="px-4 py-2.5 align-middle">
                   <BracketTypeBadge type={b.type} />
                 </td>
-                <td className="px-4 py-2.5">
+                <td className="px-4 py-2.5 align-middle">
                   <BracketStatusBadge status={b.status} />
                 </td>
-                <td className="px-4 py-2.5">{b.isPublic ? "예" : "아니오"}</td>
-                <td className="px-4 py-2.5 text-center">{b.matchCount}</td>
-                <td className="px-4 py-2.5">
+                <td className="px-4 py-2.5 align-middle">
+                  {b.isPublic ? "예" : "아니오"}
+                </td>
+                <td className="px-4 py-2.5 text-center align-middle">
+                  {b.matchCount}
+                </td>
+                <td className="px-4 py-2.5 text-center align-middle">
                   <UnmatchedCell bracket={b} />
                 </td>
-                <td className="px-4 py-2.5">
+                <td className="px-4 py-2.5 align-middle">
                   <BracketActionButtons eventId={eventId} bracket={b} />
                 </td>
               </tr>
@@ -265,7 +224,7 @@ export function OrganizerBracketList({
               <BracketTypeBadge type={b.type} />
               <span className="text-muted-foreground text-xs">
                 공개 {b.isPublic ? "예" : "아니오"} · 경기 {b.matchCount} · 미매칭{" "}
-                {b.unmatchedCount}
+                {b.unmatchedCount}명
               </span>
             </div>
             <BracketActionButtons eventId={eventId} bracket={b} />
