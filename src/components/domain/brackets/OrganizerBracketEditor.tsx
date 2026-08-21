@@ -17,10 +17,28 @@ import {
   CardHeader,
   CardTitle,
 } from "@/components/ui/card";
-import { BracketType } from "@/lib/enums";
+import { BracketMatchStatus, BracketType } from "@/lib/enums";
 import type { OrganizerBracketDetailVM } from "@/lib/services/bracket.service";
 import type { EventCourtVM } from "@/lib/services/event-court.service";
 import { cn } from "@/lib/utils";
+
+function buildBracketDetailSummary(detail: OrganizerBracketDetailVM): string {
+  const placedIds = new Set<string>();
+  for (const m of detail.matches) {
+    if (m.status === BracketMatchStatus.cancelled) continue;
+    if (m.fighterRedId) placedIds.add(m.fighterRedId);
+    if (m.fighterBlueId) placedIds.add(m.fighterBlueId);
+  }
+
+  const applicantCount = detail.approvedFighterOptions.length;
+  const assignedCount = placedIds.size;
+  const matchCount = detail.matches.length;
+  const unmatchedCount = detail.approvedFighterOptions.filter(
+    (o) => o.isAssignableForBracket && !placedIds.has(o.fighterId),
+  ).length;
+
+  return `신청 ${applicantCount} · 배정 ${assignedCount} · 경기 ${matchCount} · 미매칭 ${unmatchedCount}`;
+}
 
 export function OrganizerBracketEditor({
   eventId,
@@ -31,6 +49,8 @@ export function OrganizerBracketEditor({
   detail: OrganizerBracketDetailVM;
   courts: EventCourtVM[];
 }) {
+  const summaryLine = buildBracketDetailSummary(detail);
+
   return (
     <div className="flex w-full flex-col gap-8">
       <Card>
@@ -65,6 +85,7 @@ export function OrganizerBracketEditor({
                   size="sm"
                 />
               </div>
+              <p className="text-muted-foreground text-sm">{summaryLine}</p>
               <CardDescription>
                 선수 배정·경기장·순서·상태 변경은 아래 편집 영역에서 진행합니다.
               </CardDescription>

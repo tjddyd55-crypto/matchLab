@@ -86,6 +86,16 @@ export const addEmptyBracketMatchSchema = z.object({
   defaultCourtId: z.string().min(1).optional(),
 });
 
+export const ensureBracketForDivisionSchema = z.object({
+  eventId: z.string().min(1),
+  divisionId: z.string().min(1),
+});
+
+export const deleteBracketMatchSchema = z.object({
+  bracketId: z.string().min(1),
+  matchId: z.string().min(1),
+});
+
 export const resetEventBracketsSchema = z.object({
   eventId: z.string().min(1),
 });
@@ -140,3 +150,7 @@ export type RemoveFighterFromMatchInput = z.infer<
   typeof removeFighterFromMatchSchema
 >;
 export type ResetBracketInput = z.infer<typeof resetBracketSchema>;
+export type EnsureBracketForDivisionInput = z.infer<
+  typeof ensureBracketForDivisionSchema
+>;
+export type DeleteBracketMatchInput = z.infer<typeof deleteBracketMatchSchema>;
