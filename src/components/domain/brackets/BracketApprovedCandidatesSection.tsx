@@ -18,6 +18,9 @@ import {
 } from "@/components/domain/brackets/ManualMatchCreatePanel";
 import { useAppConfirmDialog } from "@/components/shared/app-confirm-dialog";
 import {
+  buildBracketCandidateWeightRecordDisplay,
+} from "@/lib/bracket-fighter-assignment";
+import {
   buildCandidateMetaLine,
   resolveCandidateStatusBadge,
   type BracketCandidateGroup,
@@ -72,15 +75,13 @@ function classifyCandidate(
   return "unassigned";
 }
 
-function candidateExtraMeta(option: OrganizerApprovedFighterOptionVM): string {
-  const parts: string[] = [];
-  if (option.recordSummary) {
-    parts.push(option.recordSummary.replace(/\s+/g, ""));
-  }
-  if (option.applicationWeightKg != null) {
-    parts.push(`${option.applicationWeightKg}kg`);
-  }
-  return parts.join(" · ");
+function candidateDivisionMeta(
+  option: OrganizerApprovedFighterOptionVM,
+): string | undefined {
+  const label = option.isOtherDivision
+    ? option.currentDivisionLabel
+    : option.appliedDivisionLabel;
+  return label || undefined;
 }
 
 function EventWideUnmatchedQuickBar({
@@ -150,7 +151,7 @@ function EventWideUnmatchedQuickBar({
           {filtered.map((o) => {
             const inSlot = slotIds.has(o.fighterId);
             const statusBadge = resolveCandidateStatusBadge(o);
-            const extra = candidateExtraMeta(o);
+            const weightRecordStats = buildBracketCandidateWeightRecordDisplay(o);
             return (
               <UnmatchedDraggableCardShell
                 key={o.applicationId}
@@ -172,16 +173,8 @@ function EventWideUnmatchedQuickBar({
                   <BracketFighterCompactCard
                     fighterName={o.fighterName}
                     gymName={o.gymName}
-                    metaLine={
-                      [
-                        o.isOtherDivision
-                          ? o.currentDivisionLabel
-                          : o.appliedDivisionLabel,
-                        extra,
-                      ]
-                        .filter(Boolean)
-                        .join(" · ") || undefined
-                    }
+                    metaLine={candidateDivisionMeta(o)}
+                    weightRecordStats={weightRecordStats}
                     statusBadges={
                       <div className="flex flex-wrap items-center gap-1">
                         {o.isOtherDivision ? (
@@ -264,8 +257,7 @@ function CandidateCard({
 }) {
   const statusBadge = resolveCandidateStatusBadge(option);
   const placementMeta = buildCandidateMetaLine(group, placement, isPlaced);
-  const extra = candidateExtraMeta(option);
-  const metaLine = [placementMeta, extra].filter(Boolean).join(" · ");
+  const weightRecordStats = buildBracketCandidateWeightRecordDisplay(option);
 
   return (
     <li
@@ -282,7 +274,8 @@ function CandidateCard({
       <BracketFighterCompactCard
         fighterName={option.fighterName}
         gymName={option.gymName}
-        metaLine={metaLine || undefined}
+        metaLine={placementMeta || undefined}
+        weightRecordStats={weightRecordStats}
         statusBadges={
           <BracketFighterCompactBadge
             label={statusBadge.label}
@@ -315,7 +308,7 @@ function UnmatchedOptionCard({
   onDragStart?: () => void;
 }) {
   const statusBadge = resolveCandidateStatusBadge(option);
-  const extra = candidateExtraMeta(option);
+  const weightRecordStats = buildBracketCandidateWeightRecordDisplay(option);
   const divisionLine = showDivisionLine ? option.currentDivisionLabel : null;
   const appliedDiffers =
     showDivisionLine &&
@@ -343,14 +336,11 @@ function UnmatchedOptionCard({
             fighterName={option.fighterName}
             gymName={option.gymName}
             metaLine={
-              [
-                divisionLine,
-                extra,
-                inSlot ? "배치 중" : null,
-              ]
+              [divisionLine, inSlot ? "배치 중" : null]
                 .filter(Boolean)
                 .join(" · ") || undefined
             }
+            weightRecordStats={weightRecordStats}
             statusBadges={
               <div className="flex flex-wrap items-center gap-1">
                 {option.isOtherDivision ? (

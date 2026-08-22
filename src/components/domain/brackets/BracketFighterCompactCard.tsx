@@ -38,6 +38,7 @@ export function BracketFighterCompactCard({
   gymName,
   statusBadges,
   metaLine,
+  weightRecordStats,
   empty = false,
   emptyLabel = "선수 미정",
   centerIdentity = false,
@@ -48,6 +49,11 @@ export function BracketFighterCompactCard({
   gymName?: string;
   statusBadges?: ReactNode;
   metaLine?: string;
+  /** 체중 · 전적 — 후보/빠른 배정 카드 보조정보 (metaLine보다 크게 표시) */
+  weightRecordStats?: {
+    weightText?: string;
+    recordText?: string;
+  };
   empty?: boolean;
   emptyLabel?: string;
   /** 선수명 영역 가로·세로 중앙 정렬 (대진표 보기 row) */
@@ -109,6 +115,33 @@ export function BracketFighterCompactCard({
           title={metaLine}
         >
           {metaLine}
+        </p>
+      ) : null}
+      {weightRecordStats?.weightText || weightRecordStats?.recordText ? (
+        <p
+          className={cn(
+            "flex min-w-0 items-baseline gap-1 text-sm font-medium leading-snug text-slate-600 dark:text-slate-300",
+            centerIdentity && "justify-center",
+          )}
+          title={[weightRecordStats.weightText, weightRecordStats.recordText]
+            .filter(Boolean)
+            .join(" · ")}
+        >
+          {weightRecordStats.weightText ? (
+            <span className="shrink-0 tabular-nums">
+              {weightRecordStats.weightText}
+            </span>
+          ) : null}
+          {weightRecordStats.weightText && weightRecordStats.recordText ? (
+            <span className="shrink-0 text-slate-400 dark:text-slate-500">
+              ·
+            </span>
+          ) : null}
+          {weightRecordStats.recordText ? (
+            <span className="min-w-0 truncate tabular-nums">
+              {weightRecordStats.recordText}
+            </span>
+          ) : null}
         </p>
       ) : null}
       {children}

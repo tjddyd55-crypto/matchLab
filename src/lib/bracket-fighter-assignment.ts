@@ -1,3 +1,4 @@
+import { buildRecordText, parseRecordText } from "@/lib/fighter/record";
 import type { OrganizerBracketMatchVM } from "@/lib/services/bracket.service";
 import {
   formatMatchOrderShort,
@@ -179,6 +180,47 @@ export function buildPickerOptionColumns(
     isOtherDivision: option.isOtherDivision,
     isEligibleForBracket: option.isEligibleForBracket,
   };
+}
+
+export type BracketCandidateWeightRecordDisplay = {
+  weightText?: string;
+  recordText?: string;
+};
+
+/** 후보 카드·빠른 배정 — formatRecordSummary("N승 N패 N무") → buildRecordText 표준 */
+export function formatBracketCandidateRecordLabel(
+  recordSummary: string,
+): string | undefined {
+  const trimmed = recordSummary.trim();
+  if (!trimmed) return undefined;
+  const parsed = parseRecordText(trimmed);
+  if (parsed.ok) return parsed.recordText;
+  const winsLossesDraws = trimmed.match(/^(\d+)\s*승\s*(\d+)\s*패\s*(\d+)\s*무$/);
+  if (winsLossesDraws) {
+    const wins = Number(winsLossesDraws[1]);
+    const losses = Number(winsLossesDraws[2]);
+    const draws = Number(winsLossesDraws[3]);
+    return buildRecordText({
+      totalBouts: wins + losses + draws,
+      wins,
+      draws,
+      losses,
+    });
+  }
+  return trimmed.replace(/\s+/g, "");
+}
+
+export function buildBracketCandidateWeightRecordDisplay(input: {
+  applicationWeightKg: number | null;
+  recordSummary: string;
+}): BracketCandidateWeightRecordDisplay | undefined {
+  const weightText =
+    input.applicationWeightKg != null
+      ? `${input.applicationWeightKg}kg`
+      : undefined;
+  const recordText = formatBracketCandidateRecordLabel(input.recordSummary);
+  if (!weightText && !recordText) return undefined;
+  return { weightText, recordText };
 }
 
 /** picker option 정렬 tier (낮을수록 위) */
