@@ -1,5 +1,5 @@
 /**
- * 수동 배정 UX — assignment summary / quick bar / sticky dock
+ * 수동 배정 UX — assignment summary / quick bar / sticky dock / picker portal
  *   npm run verify:manual-match-ux
  */
 import assert from "node:assert/strict";
@@ -42,14 +42,31 @@ function main() {
   assert.match(assignment, /buildFighterAssignmentMap/);
 
   assert.match(picker, /role="listbox"/);
-  assert.match(picker, /PickerGridHeader|grid-cols-\[7\.5rem/);
+  assert.match(picker, /PICKER_GRID_CLASS|grid-cols-\[8rem/);
+  assert.match(picker, /PickerGridHeader/);
   assert.match(picker, /buildPickerOptionColumns/);
   assert.match(picker, /pickerStatus/);
+  assert.match(picker, /createPortal/);
+  assert.match(picker, /position:\s*"fixed"/);
+  assert.match(picker, /POPUP_MIN_WIDTH|560/);
+  assert.match(picker, /scrollbar-gutter:stable/);
 
   assert.match(panel, /fixed bottom-0/);
   assert.match(panel, /activePickSlot/);
+  assert.match(panel, /dockExpanded/);
+  assert.match(panel, /onDockExpandedChange/);
+  assert.match(panel, /ResizeObserver/);
+  assert.match(panel, /h-11/);
+  assert.match(panel, /max-h-\[32vh\]/);
+  assert.match(panel, /buildManualMatchConfirmDescription/);
+
   assert.match(section, /전체 미배정/);
   assert.match(section, /EventWideUnmatchedQuickBar|전체 미배정 선수 빠른 배정/);
+  assert.match(section, /dockExpanded/);
+  assert.match(section, /onDockExpand/);
+  assert.match(section, /홍코너에 배정/);
+  assert.match(section, /경기 생성\]을 눌러주세요/);
+  assert.match(section, /min-w-\[240px\]/);
 
   const map = buildFighterAssignmentMap([
     {

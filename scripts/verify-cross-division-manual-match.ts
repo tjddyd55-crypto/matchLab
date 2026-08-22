@@ -52,7 +52,7 @@ function main() {
 
   assert.match(panel, /다른 경기구분 선수와 매칭할까요/);
   assert.match(panel, /이동하여 경기 생성/);
-  assert.match(panel, /buildCrossDivisionManualMatchDescription/);
+  assert.match(panel, /buildManualMatchConfirmDescription/);
 
   const move = fightersRequiringDivisionMove(
     { fighterId: "a", divisionId: "div-a" },
@@ -127,6 +127,9 @@ function main() {
   });
   assert.match(desc, /원래 신청정보는 변경되지 않습니다/);
   assert.match(desc, /일반부 · 남성/);
+  assert.match(desc, /68\.2kg/);
+  assert.match(desc, /전적 정보 없음/);
+  assert.match(desc, /70\.1kg/);
 
   console.log("verify:cross-division-manual-match OK");
 }

@@ -1,6 +1,6 @@
 "use client";
 
-import { useEffect, useMemo, useState } from "react";
+import { useCallback, useEffect, useMemo, useState } from "react";
 import type {
   OrganizerApprovedFighterOptionVM,
   OrganizerBracketMatchVM,
@@ -92,6 +92,7 @@ function EventWideUnmatchedQuickBar({
   onCardClick,
   onAssignRed,
   onAssignBlue,
+  onDragStart,
 }: {
   options: OrganizerApprovedFighterOptionVM[];
   searchQuery: string;
@@ -101,6 +102,7 @@ function EventWideUnmatchedQuickBar({
   onCardClick: (option: OrganizerApprovedFighterOptionVM) => void;
   onAssignRed: (option: OrganizerApprovedFighterOptionVM) => void;
   onAssignBlue: (option: OrganizerApprovedFighterOptionVM) => void;
+  onDragStart?: () => void;
 }) {
   const q = searchQuery.trim().toLowerCase();
   const filtered = q
@@ -120,6 +122,10 @@ function EventWideUnmatchedQuickBar({
           <h3 className="text-sm font-semibold">전체 미배정 선수 빠른 배정</h3>
           <p className="text-muted-foreground text-xs">
             다른 경기구분 포함 · Match 미배정 선수만 ({options.length}명)
+          </p>
+          <p className="text-muted-foreground mt-1 text-[11px] leading-snug">
+            선수의 홍코너·청코너 버튼을 눌러 아래 수동 경기 슬롯에 배정한 뒤
+            [경기 생성]을 눌러주세요.
           </p>
         </div>
         <input
@@ -150,11 +156,12 @@ function EventWideUnmatchedQuickBar({
                 key={o.applicationId}
                 fighterId={o.fighterId}
                 inSlot={inSlot}
+                onDragStart={onDragStart}
               >
                 <button
                   type="button"
                   className={cn(
-                    "min-w-[200px] max-w-[240px] text-left",
+                    "min-w-[240px] max-w-[280px] text-left",
                     activePickSlot && !inSlot ? "cursor-pointer" : undefined,
                   )}
                   onClick={() => {
@@ -199,6 +206,7 @@ function EventWideUnmatchedQuickBar({
                       size="xs"
                       variant="outline"
                       className="flex-1"
+                      aria-label={`${o.fighterName} 홍코너에 배정`}
                       onClick={() => onAssignRed(o)}
                     >
                       홍
@@ -208,6 +216,7 @@ function EventWideUnmatchedQuickBar({
                       size="xs"
                       variant="outline"
                       className="flex-1"
+                      aria-label={`${o.fighterName} 청코너에 배정`}
                       onClick={() => onAssignBlue(o)}
                     >
                       청
@@ -294,6 +303,7 @@ function UnmatchedOptionCard({
   onCardClick,
   onAssignRed,
   onAssignBlue,
+  onDragStart,
 }: {
   option: OrganizerApprovedFighterOptionVM;
   inSlot: boolean;
@@ -302,6 +312,7 @@ function UnmatchedOptionCard({
   onCardClick?: () => void;
   onAssignRed?: () => void;
   onAssignBlue?: () => void;
+  onDragStart?: () => void;
 }) {
   const statusBadge = resolveCandidateStatusBadge(option);
   const extra = candidateExtraMeta(option);
@@ -311,7 +322,11 @@ function UnmatchedOptionCard({
     option.appliedDivisionLabel !== option.currentDivisionLabel;
 
   return (
-    <UnmatchedDraggableCardShell fighterId={option.fighterId} inSlot={inSlot}>
+    <UnmatchedDraggableCardShell
+      fighterId={option.fighterId}
+      inSlot={inSlot}
+      onDragStart={onDragStart}
+    >
       <div className="space-y-1">
         <button
           type="button"
@@ -366,6 +381,7 @@ function UnmatchedOptionCard({
                 size="xs"
                 variant="outline"
                 className="flex-1"
+                aria-label={`${option.fighterName} 홍코너에 배정`}
                 onClick={onAssignRed}
               >
                 홍코너
@@ -377,6 +393,7 @@ function UnmatchedOptionCard({
                 size="xs"
                 variant="outline"
                 className="flex-1"
+                aria-label={`${option.fighterName} 청코너에 배정`}
                 onClick={onAssignBlue}
               >
                 청코너
@@ -480,7 +497,10 @@ export function BracketApprovedCandidatesSection({
   const [activePickSlot, setActivePickSlot] = useState<ManualMatchPickSlot | null>(
     null,
   );
+  const [dockExpanded, setDockExpanded] = useState(false);
   const { alert } = useAppConfirmDialog();
+
+  const expandDock = useCallback(() => setDockExpanded(true), []);
 
   const manualCandidateMap = useMemo(() => {
     const map = new Map<string, OrganizerApprovedFighterOptionVM>();
@@ -547,21 +567,30 @@ export function BracketApprovedCandidatesSection({
     onRedChange: setRed,
     onBlueChange: setBlue,
     onActivePickSlotChange: setActivePickSlot,
+    onDockExpand: expandDock,
     alert,
   });
+
+  function assignToSlot(
+    slot: ManualMatchPickSlot,
+    fighterId: string,
+  ) {
+    placeAthlete(slot, fighterId);
+    expandDock();
+  }
 
   function handleCardPick(option: OrganizerApprovedFighterOptionVM) {
     if (slotIds.has(option.fighterId)) return;
     if (activePickSlot) {
-      placeAthlete(activePickSlot, option.fighterId);
+      assignToSlot(activePickSlot, option.fighterId);
       return;
     }
     if (!red) {
-      placeAthlete("red", option.fighterId);
+      assignToSlot("red", option.fighterId);
       return;
     }
     if (!blue && red.fighterId !== option.fighterId) {
-      placeAthlete("blue", option.fighterId);
+      assignToSlot("blue", option.fighterId);
     }
   }
 
@@ -692,8 +721,9 @@ export function BracketApprovedCandidatesSection({
                   showDivisionLine={unmatchedTab === "event"}
                   activePickSlot={activePickSlot}
                   onCardClick={() => handleCardPick(o)}
-                  onAssignRed={() => placeAthlete("red", o.fighterId)}
-                  onAssignBlue={() => placeAthlete("blue", o.fighterId)}
+                  onAssignRed={() => assignToSlot("red", o.fighterId)}
+                  onAssignBlue={() => assignToSlot("blue", o.fighterId)}
+                  onDragStart={expandDock}
                 />
               );
             })}
@@ -708,8 +738,9 @@ export function BracketApprovedCandidatesSection({
             slotIds={slotIds}
             activePickSlot={activePickSlot}
             onCardClick={handleCardPick}
-            onAssignRed={(o) => placeAthlete("red", o.fighterId)}
-            onAssignBlue={(o) => placeAthlete("blue", o.fighterId)}
+            onAssignRed={(o) => assignToSlot("red", o.fighterId)}
+            onAssignBlue={(o) => assignToSlot("blue", o.fighterId)}
+            onDragStart={expandDock}
           />
         ) : null}
 
@@ -729,6 +760,8 @@ export function BracketApprovedCandidatesSection({
             setPendingExternal={setCreatePending}
             activePickSlot={activePickSlot}
             onActivePickSlotChange={setActivePickSlot}
+            dockExpanded={dockExpanded}
+            onDockExpandedChange={setDockExpanded}
           />
         ) : null}
       </CardContent>
