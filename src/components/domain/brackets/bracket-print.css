@@ -1,5 +1,5 @@
 /**
- * 시합 대진표 인쇄용 A4 CSS
+ * 시합 대진표 인쇄용 A4 CSS — 4열 (경기 | 레드 | VS | 블루)
  * screen: 미리보기 / print: @page A4 + 관리 UI 숨김
  */
 
@@ -9,6 +9,8 @@
   --bracket-print-line: #222;
   --bracket-print-red-bg: #fff5f5;
   --bracket-print-blue-bg: #f0f7ff;
+  --bracket-print-red-th: #ffe8e8;
+  --bracket-print-blue-th: #e3effc;
   background: #e8e8e8;
   min-height: 100vh;
   color: var(--bracket-print-ink);
@@ -85,42 +87,49 @@
 .bracket-print-table td {
   border: 1.5px solid var(--bracket-print-line);
   vertical-align: middle;
-  padding: 2.5mm 2mm;
+  padding: 3mm 2.5mm;
 }
 
 .bracket-print-table th {
   background: #f3f3f3;
-  font-size: 9pt;
+  font-size: 10pt;
   font-weight: 700;
   text-align: center;
 }
 
+.bracket-print-th-red {
+  background: var(--bracket-print-red-th);
+}
+
+.bracket-print-th-blue {
+  background: var(--bracket-print-blue-th);
+}
+
 .bracket-print-col-no {
-  width: 7%;
+  width: 9%;
   text-align: center;
 }
 
 .bracket-print-col-red,
 .bracket-print-col-blue {
-  width: 31%;
-}
-
-.bracket-print-col-record {
-  width: 12%;
-  text-align: center;
-  font-weight: 600;
+  width: 43%;
 }
 
 .bracket-print-col-vs {
-  width: 7%;
+  width: 5%;
   text-align: center;
   font-weight: 800;
-  font-size: 11pt;
+  font-size: 12pt;
+  letter-spacing: 0.02em;
 }
 
 .bracket-print-row {
   break-inside: avoid;
   page-break-inside: avoid;
+}
+
+.bracket-print-row td {
+  min-height: 18mm;
 }
 
 .bracket-print-match-meta {
@@ -137,7 +146,7 @@
 }
 
 .bracket-print-match-sub {
-  font-size: 7.5pt;
+  font-size: 7pt;
   font-weight: 600;
   color: var(--bracket-print-muted);
   text-align: center;
@@ -145,18 +154,36 @@
 }
 
 .bracket-print-fighter {
+  display: flex;
+  flex-direction: column;
+  gap: 1.2mm;
   line-height: 1.35;
   word-break: keep-all;
   overflow-wrap: anywhere;
+  min-height: 14mm;
 }
 
 .bracket-print-fighter-name {
-  font-weight: 800;
-  font-size: 11pt;
+  font-weight: 700;
+  font-size: 12pt;
+  line-height: 1.25;
 }
 
-.bracket-print-fighter-rest {
+.bracket-print-fighter-detail {
   font-size: 9pt;
+  font-weight: 500;
+  color: var(--bracket-print-ink);
+  line-height: 1.35;
+  /* 긴 체육관명 최대 2줄 */
+  display: -webkit-box;
+  -webkit-box-orient: vertical;
+  -webkit-line-clamp: 2;
+  overflow: hidden;
+}
+
+.bracket-print-fighter-record {
+  font-size: 9.5pt;
+  font-weight: 600;
   margin-top: 0.5mm;
 }
 
@@ -219,14 +246,19 @@
     border-color: #000;
   }
 
-  /* 흑백에서도 코너 구분: 연한 배경 유지 + 헤더 텍스트로 구분 */
+  .bracket-print-th-red,
   .bracket-print-cell-red {
-    background: #f7f7f7 !important;
+    background: #f2f2f2 !important;
     -webkit-print-color-adjust: exact;
     print-color-adjust: exact;
   }
 
+  .bracket-print-th-blue,
   .bracket-print-cell-blue {
     background: #fff !important;
+  }
+
+  .bracket-print-fighter-name {
+    font-size: 11.5pt;
   }
 }

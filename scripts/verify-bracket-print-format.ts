@@ -54,9 +54,14 @@ console.log("  ✓ 학년/성인 라벨");
     lossesSnapshot: 1,
     recordText: null,
   });
-  assert.equal(f.identityLine, "김무현 / 산본더원 / 58kg / 중3");
+  assert.equal(f.name, "김무현");
+  assert.equal(f.gymName, "산본더원");
+  assert.equal(f.weightLabel, "58kg");
+  assert.equal(f.gradeLabel, "중3");
   assert.equal(f.recordLabel, "2전 1승 1패");
-  console.log("  ✓ 선수 identity + 전적");
+  // 4열 UI는 컴포넌트에서 3줄 조합: 이름 / 체육관·경기구분·체중 / 전적
+  assert.ok(f.identityLine.includes("김무현"));
+  console.log("  ✓ 선수 필드 + 전적");
 }
 
 {
