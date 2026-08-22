@@ -331,10 +331,16 @@ function explainFromPool(
 
   if (afterRecord.length === 0) {
     const own = self.totalBouts;
-    const detail =
-      own != null && nearest != null
-        ? `본인 ${own}전 / 후보 ${nearest}전 · 허용 차이 초과`
-        : "동일 체급 후보는 있으나 현재 자동매칭 전적 기준을 초과합니다.";
+    let detail: string;
+    if (own != null && own > 0 && nearest === 0) {
+      detail =
+        `본인 ${own}전 / 가까운 후보 무전 · 무전은 무전끼리만 매칭 (전적 규칙)`;
+    } else if (own != null && nearest != null) {
+      detail = `본인 ${own}전 / 후보 ${nearest}전 · 허용 차이(|Δ|≤1) 초과`;
+    } else {
+      detail =
+        "동일 체급 후보는 있으나 현재 자동매칭 전적 기준을 초과합니다.";
+    }
     return {
       reasonCode: "record_diff",
       reasonText: detail,

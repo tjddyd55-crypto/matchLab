@@ -133,7 +133,7 @@ console.log("\n[체중 근접 자동매칭]");
 }
 
 {
-  // F: n>16 look-ahead — crash/timeout 없이 cardinality floor
+  // F: n>16 blossom — crash/timeout 없이 maximum cardinality
   const many: ReturnType<typeof cand>[] = [];
   for (let i = 0; i < 18; i++) {
     many.push(
@@ -158,7 +158,7 @@ console.log("\n[체중 근접 자동매칭]");
   // deterministic re-run
   const r2 = pairWithRecordAndGrade(many, { forbidSameGym: true });
   assert.deepEqual(pairKeys(r), pairKeys(r2));
-  console.log(`  ✓ F n=18 look-ahead (${elapsed}ms, 9 pairs, deterministic)`);
+  console.log(`  ✓ F n=18 blossom (${elapsed}ms, 9 pairs, deterministic)`);
 }
 
 {

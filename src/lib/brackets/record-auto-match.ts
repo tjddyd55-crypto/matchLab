@@ -18,6 +18,7 @@
  */
 
 import { isSameGym } from "@/lib/brackets/gym-match-key";
+import { maxWeightMatching } from "@/lib/brackets/max-weight-matching";
 import {
   getElementaryMatchBand,
   SCHOOL_LEVEL,
@@ -78,8 +79,10 @@ export type RecordDivisionPairingResult = {
 };
 
 const MISSING_WEIGHT_MILLI = 1_000_000_000;
-/** bitmask DP 상한 — 체급당 인원이 이보다 크면 look-ahead greedy */
+/** bitmask DP 상한 — 이보다 크면 Edmonds max-weight matching */
 const DP_N_MAX = 16;
+/** blossom soft-cost 인코딩용 체중차 상한(milli) — Number overflow 방지 */
+const BLOSSOM_WEIGHT_MILLI_CAP = 10_000_000;
 
 function isSameGymCandidate(
   a: RecordMatchCandidate,
@@ -388,8 +391,8 @@ function hardEdgeOk(
 
 /**
  * 최대 cardinality 우선 → 동일 시 Σ체중차 최소화.
- * n ≤ DP_N_MAX: exact bitmask DP.
- * n > DP_N_MAX: 1-step look-ahead greedy (cardinality 보존 후 체중).
+ * n ≤ DP_N_MAX: exact bitmask DP (검증됨).
+ * n > DP_N_MAX: Edmonds blossom max-weight matching (maxCardinality).
  */
 function optimalPairPool(
   pool: RecordMatchCandidate[],
@@ -409,7 +412,7 @@ function optimalPairPool(
   if (pool.length <= DP_N_MAX) {
     return optimalPairPoolExact(pool, canEdge);
   }
-  return optimalPairPoolLookahead(pool, canEdge);
+  return optimalPairPoolBlossom(pool, canEdge);
 }
 
 function optimalPairPoolExact(
@@ -487,71 +490,90 @@ function optimalPairPoolExact(
   return { pairs, remaining, sameGymCount };
 }
 
-function countGreedyCardinality(
-  pool: RecordMatchCandidate[],
-  canEdge: (a: RecordMatchCandidate, b: RecordMatchCandidate) => boolean,
-): number {
-  const working = [...pool];
-  let count = 0;
-  while (working.length >= 2) {
-    const first = working.shift()!;
-    const idx = working.findIndex((c) => canEdge(first, c));
-    if (idx < 0) continue;
-    working.splice(idx, 1);
-    count += 1;
-  }
-  return count;
+/**
+ * soft cost → blossom weight (maximize).
+ * maxCardinality=true 이므로 1순위는 경기 수.
+ * 동일 cardinality 안에서 Σweight → grade → record → tie 최소화.
+ */
+function blossomEdgeWeight(cost: EdgeCost, tieRank: number): number {
+  const w = Math.min(cost.weightMilli, BLOSSOM_WEIGHT_MILLI_CAP);
+  // units: weight milli dominates grade/record/tie without float
+  return -(w * 1_000_000 + cost.grade * 1_000 + cost.record * 10 + tieRank);
 }
 
-function optimalPairPoolLookahead(
+function optimalPairPoolBlossom(
   pool: RecordMatchCandidate[],
   canEdge: (a: RecordMatchCandidate, b: RecordMatchCandidate) => boolean,
 ): PoolPairResult {
-  const working = sortCandidates(pool);
+  const n = pool.length;
+  const rawEdges: Array<{ i: number; j: number; cost: EdgeCost }> = [];
+  for (let i = 0; i < n; i++) {
+    for (let j = i + 1; j < n; j++) {
+      if (!canEdge(pool[i]!, pool[j]!)) continue;
+      rawEdges.push({ i, j, cost: edgeCost(pool[i]!, pool[j]!) });
+    }
+  }
+
+  rawEdges.sort((a, b) => a.cost.tie.localeCompare(b.cost.tie));
+  const edges: Array<[number, number, number]> = rawEdges.map((e, rank) => [
+    e.i,
+    e.j,
+    blossomEdgeWeight(e.cost, rank),
+  ]);
+
+  const mate = maxWeightMatching(edges, true);
   const pairs: RecordMatchPair[] = [];
+  const used = new Set<number>();
   let sameGymCount = 0;
 
-  while (working.length >= 2) {
-    const first = working[0]!;
-    const partners: Array<{ idx: number; c: RecordMatchCandidate }> = [];
-    for (let idx = 1; idx < working.length; idx++) {
-      const c = working[idx]!;
-      if (canEdge(first, c)) partners.push({ idx, c });
-    }
-    if (partners.length === 0) {
-      working.shift();
-      continue;
-    }
-
-    let bestIdx = partners[0]!.idx;
-    let bestScoreLocal: Score | null = null;
-    for (const { idx, c } of partners) {
-      const rest = working.filter((_, i) => i !== 0 && i !== idx);
-      // look-ahead residual은 greedy cardinality만 사용 (반복 DP 금지)
-      const restPairs = countGreedyCardinality(rest, canEdge);
-      const cost = edgeCost(first, c);
-      const score: Score = {
-        pairCount: 1 + restPairs,
-        weightMilli: cost.weightMilli,
-        gradeSum: cost.grade,
-        recordSum: cost.record,
-        tie: cost.tie,
-      };
-      if (isBetterScore(score, bestScoreLocal)) {
-        bestScoreLocal = score;
-        bestIdx = idx;
-      }
-    }
-
-    const partner = working[bestIdx]!;
-    working.splice(bestIdx, 1);
-    working.shift();
-    const pair = toPair(first, partner);
+  for (let i = 0; i < n; i++) {
+    const j = mate[i] ?? -1;
+    if (j < 0 || j <= i) continue;
+    if (used.has(i) || used.has(j)) continue;
+    used.add(i);
+    used.add(j);
+    const pair = toPair(pool[i]!, pool[j]!);
     if (pair.sameGymWarning) sameGymCount += 1;
     pairs.push(pair);
   }
 
-  return { pairs, remaining: working, sameGymCount };
+  // deterministic pair order
+  pairs.sort((a, b) => {
+    const ka = [a.red.applicationId, a.blue.applicationId].sort().join("|");
+    const kb = [b.red.applicationId, b.blue.applicationId].sort().join("|");
+    return ka.localeCompare(kb);
+  });
+
+  const remaining = pool.filter((_, idx) => !used.has(idx));
+  return { pairs, remaining, sameGymCount };
+}
+
+/**
+ * 결과 unmatched 집합에 hard-compatible pair가 남아 있으면 maximal matching 실패.
+ * (maximum matching의 완전 증명은 아니나, 누락 pair regression guard)
+ */
+export function findCompatibleUnmatchedPair(
+  unmatched: RecordMatchCandidate[],
+  options: RecordPairOptions = {},
+  extraEdgeOk?: (a: RecordMatchCandidate, b: RecordMatchCandidate) => boolean,
+): { a: RecordMatchCandidate; b: RecordMatchCandidate } | null {
+  const forbidSameGym = options.forbidSameGym !== false;
+  for (let i = 0; i < unmatched.length; i++) {
+    for (let j = i + 1; j < unmatched.length; j++) {
+      const a = unmatched[i]!;
+      const b = unmatched[j]!;
+      if (a.totalBouts == null || b.totalBouts == null) continue;
+      if (a.totalBouts === 0 || b.totalBouts === 0) {
+        if (!(a.totalBouts === 0 && b.totalBouts === 0)) continue;
+      } else if (Math.abs(a.totalBouts - b.totalBouts) > 1) {
+        continue;
+      }
+      if (!hardEdgeOk(a, b, forbidSameGym)) continue;
+      if (extraEdgeOk && !extraEdgeOk(a, b)) continue;
+      return { a, b };
+    }
+  }
+  return null;
 }
 
 function pairWithinPool(
