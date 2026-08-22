@@ -173,6 +173,7 @@
     "verify:registered-gym-list": "tsx scripts/verify-registered-gym-list.ts",
     "verify:bracket-group-unmatched": "tsx scripts/verify-bracket-group-unmatched.ts",
     "verify:manual-match-crud": "tsx scripts/verify-manual-match-crud.ts",
+    "verify:manual-match-ux": "tsx scripts/verify-manual-match-ux.ts",
     "verify:bracket-current-player": "tsx scripts/verify-bracket-current-player.ts",
     "verify:additional-info-request": "tsx scripts/verify-additional-info-request.ts",
     "verify:additional-info-recipient": "tsx scripts/verify-additional-info-recipient.ts",

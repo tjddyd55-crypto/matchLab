@@ -2,7 +2,6 @@
 
 import {
   useCallback,
-  useEffect,
   useId,
   useMemo,
   useRef,
@@ -46,6 +45,8 @@ export type ManualMatchSlotAthlete = Pick<
 
 type SlotKey = "red" | "blue";
 
+export type ManualMatchPickSlot = SlotKey;
+
 function athleteMetaLine(a: ManualMatchSlotAthlete): string {
   const parts: string[] = [];
   if (a.recordSummary) parts.push(a.recordSummary.replace(/\s+/g, ""));
@@ -68,20 +69,24 @@ function DropSlot({
   corner,
   athlete,
   dragOver,
+  activePick,
   onDragOver,
   onDragLeave,
   onDrop,
   onClear,
   onTapSelect,
+  onActivatePick,
 }: {
   corner: "홍코너" | "청코너";
   athlete: ManualMatchSlotAthlete | null;
   dragOver: boolean;
+  activePick: boolean;
   onDragOver: (e: DragEvent) => void;
   onDragLeave: () => void;
   onDrop: (e: DragEvent) => void;
   onClear: () => void;
   onTapSelect: () => void;
+  onActivatePick: () => void;
 }) {
   return (
     <div
@@ -90,8 +95,8 @@ function DropSlot({
       onDrop={onDrop}
       className={cn(
         "flex min-h-[88px] flex-col justify-center rounded-lg border border-dashed px-3 py-2 transition-colors",
-        dragOver
-          ? "border-primary bg-primary/10"
+        dragOver || activePick
+          ? "border-primary bg-primary/10 ring-2 ring-primary/30"
           : athlete
             ? "border-primary/40 bg-primary/5"
             : "border-matchon-border bg-muted/20",
@@ -99,27 +104,40 @@ function DropSlot({
     >
       <div className="mb-1 flex items-center justify-between gap-2">
         <p className="text-xs font-semibold tracking-tight">{corner}</p>
-        {athlete ? (
-          <Button
-            type="button"
-            variant="ghost"
-            size="sm"
-            className="h-6 px-1.5 text-xs"
-            onClick={onClear}
-          >
-            제거
-          </Button>
-        ) : (
-          <Button
-            type="button"
-            variant="ghost"
-            size="sm"
-            className="h-6 px-1.5 text-xs md:hidden"
-            onClick={onTapSelect}
-          >
-            선택
-          </Button>
-        )}
+        <div className="flex items-center gap-1">
+          {!athlete ? (
+            <Button
+              type="button"
+              variant={activePick ? "secondary" : "ghost"}
+              size="sm"
+              className="h-6 px-1.5 text-xs"
+              onClick={onActivatePick}
+            >
+              {activePick ? "선택 중" : "클릭 배정"}
+            </Button>
+          ) : null}
+          {athlete ? (
+            <Button
+              type="button"
+              variant="ghost"
+              size="sm"
+              className="h-6 px-1.5 text-xs"
+              onClick={onClear}
+            >
+              제거
+            </Button>
+          ) : (
+            <Button
+              type="button"
+              variant="ghost"
+              size="sm"
+              className="h-6 px-1.5 text-xs md:hidden"
+              onClick={onTapSelect}
+            >
+              목록
+            </Button>
+          )}
+        </div>
       </div>
       {athlete ? (
         <div className="min-w-0 space-y-0.5">
@@ -161,6 +179,20 @@ function toPairSide(
   };
 }
 
+export function athleteFromManualMatchOption(
+  option: OrganizerApprovedFighterOptionVM,
+): ManualMatchSlotAthlete {
+  return {
+    fighterId: option.fighterId,
+    applicationId: option.applicationId,
+    fighterName: option.fighterName,
+    gymName: option.gymName,
+    label: option.label,
+    recordSummary: option.recordSummary,
+    applicationWeightKg: option.applicationWeightKg,
+  };
+}
+
 export function ManualMatchCreatePanel({
   bracketId,
   defaultCourtId,
@@ -174,6 +206,9 @@ export function ManualMatchCreatePanel({
   onBlueChange,
   pending,
   setPendingExternal,
+  activePickSlot,
+  onActivePickSlotChange,
+  sticky = true,
 }: {
   bracketId: string;
   defaultCourtId?: string;
@@ -187,12 +222,16 @@ export function ManualMatchCreatePanel({
   onBlueChange: (v: ManualMatchSlotAthlete | null) => void;
   pending: boolean;
   setPendingExternal: (v: boolean) => void;
+  activePickSlot: ManualMatchPickSlot | null;
+  onActivePickSlotChange: (slot: ManualMatchPickSlot | null) => void;
+  sticky?: boolean;
 }) {
   const router = useRouter();
   const { confirm, alert } = useAppConfirmDialog();
   const [, startTransition] = useTransition();
   const [dragOverSlot, setDragOverSlot] = useState<SlotKey | null>(null);
   const [pickerSlot, setPickerSlot] = useState<SlotKey | null>(null);
+  const [collapsed, setCollapsed] = useState(false);
   const confirmPairKeyRef = useRef<string | null>(null);
   const titleId = useId();
 
@@ -240,8 +279,17 @@ export function ManualMatchCreatePanel({
         }
         onBlueChange(athlete);
       }
+      onActivePickSlotChange(null);
     },
-    [alert, blue?.fighterId, byId, onBlueChange, onRedChange, red?.fighterId],
+    [
+      alert,
+      blue?.fighterId,
+      byId,
+      onActivePickSlotChange,
+      onBlueChange,
+      onRedChange,
+      red?.fighterId,
+    ],
   );
 
   const runCreateConfirm = useCallback(async () => {
@@ -352,13 +400,7 @@ export function ManualMatchCreatePanel({
     targetDivisionLabel,
   ]);
 
-  useEffect(() => {
-    if (red && blue && !pending) {
-      void runCreateConfirm();
-    }
-  }, [red, blue, pending, runCreateConfirm]);
-
-  function allowDrop(e: DragEvent, slot: SlotKey) {
+  function handleAllowDrop(e: DragEvent, slot: SlotKey) {
     e.preventDefault();
     e.dataTransfer.dropEffect = "move";
     setDragOverSlot(slot);
@@ -374,6 +416,112 @@ export function ManualMatchCreatePanel({
     placeAthlete(slot, fighterId);
   }
 
+  function resetSlots() {
+    confirmPairKeyRef.current = null;
+    onRedChange(null);
+    onBlueChange(null);
+    onActivePickSlotChange(null);
+  }
+
+  const canCreate = Boolean(red && blue && !pending);
+
+  const dockBody = (
+    <>
+      <div className="flex items-start justify-between gap-2">
+        <div>
+          <h4 id={titleId} className="text-sm font-semibold">
+            수동 경기 만들기
+          </h4>
+          <p className="text-muted-foreground text-xs">
+            드래그하거나 슬롯을 선택한 뒤 선수를 클릭해 배정하세요.
+          </p>
+        </div>
+        {sticky ? (
+          <Button
+            type="button"
+            variant="ghost"
+            size="sm"
+            className="shrink-0 text-xs"
+            onClick={() => setCollapsed((v) => !v)}
+          >
+            {collapsed ? "펼치기" : "접기"}
+          </Button>
+        ) : null}
+      </div>
+
+      {!collapsed ? (
+        <>
+          <div className="grid grid-cols-2 gap-2">
+            <DropSlot
+              corner="홍코너"
+              athlete={red}
+              dragOver={dragOverSlot === "red"}
+              activePick={activePickSlot === "red"}
+              onDragOver={(e) => handleAllowDrop(e, "red")}
+              onDragLeave={() => setDragOverSlot(null)}
+              onDrop={(e) => handleDrop(e, "red")}
+              onClear={() => {
+                confirmPairKeyRef.current = null;
+                onRedChange(null);
+              }}
+              onTapSelect={() => setPickerSlot("red")}
+              onActivatePick={() =>
+                onActivePickSlotChange(activePickSlot === "red" ? null : "red")
+              }
+            />
+            <DropSlot
+              corner="청코너"
+              athlete={blue}
+              dragOver={dragOverSlot === "blue"}
+              activePick={activePickSlot === "blue"}
+              onDragOver={(e) => handleAllowDrop(e, "blue")}
+              onDragLeave={() => setDragOverSlot(null)}
+              onDrop={(e) => handleDrop(e, "blue")}
+              onClear={() => {
+                confirmPairKeyRef.current = null;
+                onBlueChange(null);
+              }}
+              onTapSelect={() => setPickerSlot("blue")}
+              onActivatePick={() =>
+                onActivePickSlotChange(activePickSlot === "blue" ? null : "blue")
+              }
+            />
+          </div>
+
+          <div className="flex flex-wrap items-center justify-end gap-2">
+            <Button
+              type="button"
+              variant="outline"
+              size="sm"
+              disabled={pending || (!red && !blue)}
+              onClick={resetSlots}
+            >
+              초기화
+            </Button>
+            <Button
+              type="button"
+              size="sm"
+              disabled={!canCreate}
+              onClick={() => void runCreateConfirm()}
+            >
+              경기 생성
+            </Button>
+          </div>
+        </>
+      ) : (
+        <p className="text-muted-foreground text-xs">
+          {red || blue
+            ? `${red ? "홍" : ""}${red && blue ? " · " : ""}${blue ? "청" : ""} 선택됨 — 펼쳐서 확인`
+            : "슬롯 비어 있음 — 펼쳐서 배정"}
+        </p>
+      )}
+
+      {pending ? (
+        <p className="text-muted-foreground text-center text-xs">생성 중…</p>
+      ) : null}
+    </>
+  );
+
   if (unmatched.length === 0) {
     return (
       <div className="rounded-lg border border-dashed px-3 py-3 text-center">
@@ -385,53 +533,26 @@ export function ManualMatchCreatePanel({
   }
 
   return (
-    <section className="space-y-2 border-t pt-3" aria-labelledby={titleId}>
-      <div>
-        <h4 id={titleId} className="text-sm font-semibold">
-          수동 경기 만들기
-        </h4>
-        <p className="text-muted-foreground text-xs">
-          미매칭 선수를 좌우 슬롯에 끌어놓아 경기를 추가할 수 있습니다.
-        </p>
-        {unmatched.length === 1 ? (
-          <p className="text-muted-foreground mt-1 text-xs">
-            상대 선수가 없습니다. 한 명만으로는 경기를 만들 수 없습니다.
-          </p>
-        ) : null}
-      </div>
+    <>
+      <section
+        className={cn(
+          sticky
+            ? "fixed bottom-0 left-0 right-0 z-50 border-t bg-background/95 px-4 py-3 shadow-[0_-4px_24px_rgba(0,0,0,0.08)] backdrop-blur supports-[backdrop-filter]:bg-background/85"
+            : "space-y-2 border-t pt-3",
+        )}
+        aria-labelledby={titleId}
+      >
+        <div
+          className={cn(
+            "mx-auto space-y-2",
+            sticky ? "max-w-6xl" : undefined,
+          )}
+        >
+          {dockBody}
+        </div>
+      </section>
 
-      <div className="grid grid-cols-2 gap-2">
-        <DropSlot
-          corner="홍코너"
-          athlete={red}
-          dragOver={dragOverSlot === "red"}
-          onDragOver={(e) => allowDrop(e, "red")}
-          onDragLeave={() => setDragOverSlot(null)}
-          onDrop={(e) => handleDrop(e, "red")}
-          onClear={() => {
-            confirmPairKeyRef.current = null;
-            onRedChange(null);
-          }}
-          onTapSelect={() => setPickerSlot("red")}
-        />
-        <DropSlot
-          corner="청코너"
-          athlete={blue}
-          dragOver={dragOverSlot === "blue"}
-          onDragOver={(e) => allowDrop(e, "blue")}
-          onDragLeave={() => setDragOverSlot(null)}
-          onDrop={(e) => handleDrop(e, "blue")}
-          onClear={() => {
-            confirmPairKeyRef.current = null;
-            onBlueChange(null);
-          }}
-          onTapSelect={() => setPickerSlot("blue")}
-        />
-      </div>
-
-      {pending ? (
-        <p className="text-muted-foreground text-center text-xs">생성 중…</p>
-      ) : null}
+      {sticky ? <div className="h-40 shrink-0" aria-hidden /> : null}
 
       <Dialog
         open={pickerSlot != null}
@@ -479,7 +600,52 @@ export function ManualMatchCreatePanel({
           </ul>
         </DialogContent>
       </Dialog>
-    </section>
+    </>
+  );
+}
+
+export function useManualMatchPlaceAthlete(input: {
+  byId: Map<string, OrganizerApprovedFighterOptionVM>;
+  red: ManualMatchSlotAthlete | null;
+  blue: ManualMatchSlotAthlete | null;
+  onRedChange: (v: ManualMatchSlotAthlete | null) => void;
+  onBlueChange: (v: ManualMatchSlotAthlete | null) => void;
+  onActivePickSlotChange: (slot: ManualMatchPickSlot | null) => void;
+  alert: (opts: { title: string; description?: string }) => Promise<void>;
+}) {
+  return useCallback(
+    (slot: ManualMatchPickSlot, fighterId: string) => {
+      const option = input.byId.get(fighterId);
+      if (!option) {
+        void input.alert({
+          title: "배정 불가",
+          description: "선수 배정 상태가 변경되었습니다.",
+        });
+        return;
+      }
+      const athlete = athleteFromManualMatchOption(option);
+      if (slot === "red") {
+        if (input.blue?.fighterId === fighterId) {
+          void input.alert({
+            title: "중복 배정",
+            description: "동일 선수를 홍·청 코너에 동시에 둘 수 없습니다.",
+          });
+          return;
+        }
+        input.onRedChange(athlete);
+      } else {
+        if (input.red?.fighterId === fighterId) {
+          void input.alert({
+            title: "중복 배정",
+            description: "동일 선수를 홍·청 코너에 동시에 둘 수 없습니다.",
+          });
+          return;
+        }
+        input.onBlueChange(athlete);
+      }
+      input.onActivePickSlotChange(null);
+    },
+    [input],
   );
 }
 
