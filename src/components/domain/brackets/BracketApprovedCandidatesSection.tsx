@@ -12,6 +12,7 @@ import {
 import {
   ManualMatchCreatePanel,
   UnmatchedDraggableCardShell,
+  formatManualMatchSelectionHint,
   useManualMatchPlaceAthlete,
   type ManualMatchPickSlot,
   type ManualMatchSlotAthlete,
@@ -125,8 +126,8 @@ function EventWideUnmatchedQuickBar({
             다른 경기구분 포함 · Match 미배정 선수만 ({options.length}명)
           </p>
           <p className="text-muted-foreground mt-1 text-[11px] leading-snug">
-            선수의 홍코너·청코너 버튼을 눌러 아래 수동 경기 슬롯에 배정한 뒤
-            [경기 생성]을 눌러주세요.
+            선수의 홍코너·청코너 버튼을 누르면 수동 경기 만들기가 열립니다. 두
+            선수를 확인한 뒤 [경기 생성]을 눌러주세요.
           </p>
         </div>
         <input
@@ -549,6 +550,7 @@ export function BracketApprovedCandidatesSection({
   ).length;
 
   const showManualCreate = bracketType === BracketType.match_list;
+  const manualMatchSelectionHint = formatManualMatchSelectionHint(red, blue);
 
   const placeAthlete = useManualMatchPlaceAthlete({
     byId: manualCandidateMap,
@@ -586,13 +588,32 @@ export function BracketApprovedCandidatesSection({
 
   return (
     <Card>
-      <CardHeader>
-        <CardTitle className="text-lg">승인된 신청 선수 (대진 후보)</CardTitle>
-        <CardDescription>
-          승인된 신청자를 배정된 선수 · 참여 불가 선수 · 미매칭 선수로
-          나누어 표시합니다. 전체 미매칭에서는 다른 경기구분 선수도 조회할 수
-          있습니다.
-        </CardDescription>
+      <CardHeader className="flex flex-col gap-4 sm:flex-row sm:items-start sm:justify-between">
+        <div className="space-y-1">
+          <CardTitle className="text-lg">승인된 신청 선수 (대진 후보)</CardTitle>
+          <CardDescription>
+            승인된 신청자를 배정된 선수 · 참여 불가 선수 · 미매칭 선수로
+            나누어 표시합니다. 전체 미매칭에서는 다른 경기구분 선수도 조회할 수
+            있습니다.
+          </CardDescription>
+        </div>
+        {showManualCreate && manualCandidates.length > 0 && !dockExpanded ? (
+          <Button
+            type="button"
+            variant="outline"
+            size="sm"
+            className="shrink-0"
+            onClick={() => setDockExpanded(true)}
+          >
+            수동 경기 만들기
+            {manualMatchSelectionHint ? (
+              <span className="text-muted-foreground font-normal">
+                {" "}
+                · {manualMatchSelectionHint}
+              </span>
+            ) : null}
+          </Button>
+        ) : null}
       </CardHeader>
       <CardContent className="space-y-4">
         {unassignablePlacedCount > 0 ? (

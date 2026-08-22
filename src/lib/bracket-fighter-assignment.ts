@@ -174,9 +174,7 @@ export function buildPickerOptionColumns(
       option.applicationWeightKg != null
         ? `${option.applicationWeightKg}kg`
         : "-",
-    recordLabel: option.recordSummary
-      ? option.recordSummary.replace(/\s+/g, "")
-      : "-",
+    recordLabel: formatBracketCandidateRecordLabel(option.recordSummary) ?? "-",
     isOtherDivision: option.isOtherDivision,
     isEligibleForBracket: option.isEligibleForBracket,
   };
