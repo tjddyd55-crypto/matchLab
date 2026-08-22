@@ -1,0 +1,232 @@
+/**
+ * 시합 대진표 인쇄용 A4 CSS
+ * screen: 미리보기 / print: @page A4 + 관리 UI 숨김
+ */
+
+.bracket-print-page {
+  --bracket-print-ink: #111;
+  --bracket-print-muted: #444;
+  --bracket-print-line: #222;
+  --bracket-print-red-bg: #fff5f5;
+  --bracket-print-blue-bg: #f0f7ff;
+  background: #e8e8e8;
+  min-height: 100vh;
+  color: var(--bracket-print-ink);
+}
+
+.bracket-print-toolbar {
+  position: sticky;
+  top: 0;
+  z-index: 20;
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  justify-content: space-between;
+  gap: 0.75rem;
+  padding: 0.75rem 1rem;
+  background: #fff;
+  border-bottom: 1px solid #ccc;
+}
+
+.bracket-print-toolbar-actions {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 0.5rem;
+}
+
+.bracket-print-sheet {
+  width: 210mm;
+  max-width: 100%;
+  margin: 1rem auto 2rem;
+  padding: 12mm 10mm;
+  background: #fff;
+  box-shadow: 0 1px 8px rgba(0, 0, 0, 0.12);
+  box-sizing: border-box;
+}
+
+.bracket-print-header {
+  text-align: center;
+  margin-bottom: 8mm;
+  page-break-after: avoid;
+}
+
+.bracket-print-event-title {
+  margin: 0;
+  font-size: 22pt;
+  font-weight: 800;
+  line-height: 1.25;
+  letter-spacing: -0.02em;
+}
+
+.bracket-print-doc-title {
+  margin: 4mm 0 0;
+  font-size: 16pt;
+  font-weight: 700;
+}
+
+.bracket-print-meta {
+  margin: 3mm 0 0;
+  font-size: 9pt;
+  color: var(--bracket-print-muted);
+}
+
+.bracket-print-table {
+  width: 100%;
+  border-collapse: collapse;
+  table-layout: fixed;
+  font-size: 10pt;
+}
+
+.bracket-print-table thead {
+  display: table-header-group;
+}
+
+.bracket-print-table th,
+.bracket-print-table td {
+  border: 1.5px solid var(--bracket-print-line);
+  vertical-align: middle;
+  padding: 2.5mm 2mm;
+}
+
+.bracket-print-table th {
+  background: #f3f3f3;
+  font-size: 9pt;
+  font-weight: 700;
+  text-align: center;
+}
+
+.bracket-print-col-no {
+  width: 7%;
+  text-align: center;
+}
+
+.bracket-print-col-red,
+.bracket-print-col-blue {
+  width: 31%;
+}
+
+.bracket-print-col-record {
+  width: 12%;
+  text-align: center;
+  font-weight: 600;
+}
+
+.bracket-print-col-vs {
+  width: 7%;
+  text-align: center;
+  font-weight: 800;
+  font-size: 11pt;
+}
+
+.bracket-print-row {
+  break-inside: avoid;
+  page-break-inside: avoid;
+}
+
+.bracket-print-match-meta {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 1mm;
+  font-weight: 800;
+  line-height: 1.2;
+}
+
+.bracket-print-match-no {
+  font-size: 11pt;
+}
+
+.bracket-print-match-sub {
+  font-size: 7.5pt;
+  font-weight: 600;
+  color: var(--bracket-print-muted);
+  text-align: center;
+  word-break: keep-all;
+}
+
+.bracket-print-fighter {
+  line-height: 1.35;
+  word-break: keep-all;
+  overflow-wrap: anywhere;
+}
+
+.bracket-print-fighter-name {
+  font-weight: 800;
+  font-size: 11pt;
+}
+
+.bracket-print-fighter-rest {
+  font-size: 9pt;
+  margin-top: 0.5mm;
+}
+
+.bracket-print-cell-red {
+  background: var(--bracket-print-red-bg);
+}
+
+.bracket-print-cell-blue {
+  background: var(--bracket-print-blue-bg);
+}
+
+.bracket-print-empty {
+  margin: 2rem 0;
+  text-align: center;
+  font-size: 12pt;
+  color: var(--bracket-print-muted);
+}
+
+@media screen {
+  .bracket-print-sheet {
+    min-height: 297mm;
+  }
+}
+
+@media print {
+  @page {
+    size: A4 portrait;
+    margin: 10mm 8mm;
+  }
+
+  html,
+  body {
+    background: #fff !important;
+  }
+
+  .bracket-print-page {
+    background: #fff !important;
+    min-height: 0;
+  }
+
+  .bracket-print-toolbar,
+  .no-print {
+    display: none !important;
+  }
+
+  .bracket-print-sheet {
+    width: 100%;
+    max-width: none;
+    margin: 0;
+    padding: 0;
+    box-shadow: none;
+  }
+
+  .bracket-print-event-title {
+    font-size: 20pt;
+  }
+
+  .bracket-print-table th,
+  .bracket-print-table td {
+    border-color: #000;
+  }
+
+  /* 흑백에서도 코너 구분: 연한 배경 유지 + 헤더 텍스트로 구분 */
+  .bracket-print-cell-red {
+    background: #f7f7f7 !important;
+    -webkit-print-color-adjust: exact;
+    print-color-adjust: exact;
+  }
+
+  .bracket-print-cell-blue {
+    background: #fff !important;
+  }
+}

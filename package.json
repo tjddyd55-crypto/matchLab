@@ -462,7 +462,8 @@
     "verify:athlete-record-structured": "tsx scripts/verify-athlete-record-structured.ts",
     "verify:auto-match-record-priority": "tsx scripts/verify-auto-match-record-priority.ts",
     "verify:auto-match-weight-priority": "tsx scripts/verify-auto-match-weight-priority.ts",
-    "verify:auto-match-large-cardinality": "tsx scripts/verify-auto-match-large-cardinality.ts"
+    "verify:auto-match-large-cardinality": "tsx scripts/verify-auto-match-large-cardinality.ts",
+    "verify:bracket-print-format": "tsx scripts/verify-bracket-print-format.ts"
   },
   "prisma": {
     "seed": "tsx prisma/seed.ts"

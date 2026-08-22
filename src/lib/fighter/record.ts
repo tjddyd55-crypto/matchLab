@@ -228,3 +228,28 @@ export function parseRecordText(raw: string | null | undefined): RecordParseResu
     raw: s,
   };
 }
+
+/**
+ * 출력·목록용 짧은 학년 라벨.
+ * 예: 초5, 중2, 고1, 성인
+ */
+export function formatSchoolGradeCompactLabel(input: {
+  schoolLevel: string | null | undefined;
+  schoolGrade: number | null | undefined;
+}): string | null {
+  const level = input.schoolLevel?.trim() ?? "";
+  if (!level) return null;
+  if (level === SCHOOL_LEVEL.ADULT || level === "ADULT") return "성인";
+  const grade = input.schoolGrade;
+  if (grade == null || !Number.isFinite(grade)) return null;
+  if (level === SCHOOL_LEVEL.ELEMENTARY || level === "ELEMENTARY") {
+    return `초${grade}`;
+  }
+  if (level === SCHOOL_LEVEL.MIDDLE || level === "MIDDLE") {
+    return `중${grade}`;
+  }
+  if (level === SCHOOL_LEVEL.HIGH || level === "HIGH") {
+    return `고${grade}`;
+  }
+  return null;
+}
