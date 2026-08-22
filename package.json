@@ -160,6 +160,7 @@
     "verify:bracket-display-gym": "tsx scripts/verify-bracket-display-gym.ts",
     "verify:manual-match-dnd": "tsx scripts/verify-manual-match-dnd.ts",
     "verify:manual-match-unmatched-source": "tsx scripts/verify-manual-match-unmatched-source.ts",
+    "verify:cross-division-manual-match": "tsx scripts/verify-cross-division-manual-match.ts",
     "verify:manual-match-confirm": "tsx scripts/verify-manual-match-confirm.ts",
     "verify:external-registration-no-gym-create": "tsx scripts/verify-external-registration-no-gym-create.ts",
     "verify:application-gym-snapshot": "tsx scripts/verify-application-gym-snapshot.ts",

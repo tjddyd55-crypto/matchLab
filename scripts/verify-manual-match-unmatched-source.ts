@@ -23,10 +23,13 @@ function main() {
   assert.match(section, /classifyCandidate/);
   assert.match(section, /isAssignableForBracket/);
   assert.match(section, /grouped\.unassigned/);
+  assert.match(section, /eventWideUnmatchedOptions/);
+  assert.match(section, /전체 미매칭/);
   assert.match(section, /UnmatchedDraggableCardShell/);
 
-  // create path re-checks unmatched on server
-  assert.match(service, /countFighterAssignmentsInBracketExcluding/);
+  // create path re-checks unmatched on server (event-wide, not bracket-only)
+  assert.match(service, /countFighterAssignmentsInEvent/);
+  assert.match(service, /findApprovedApplicationForEventPlacement/);
   assert.match(service, /createManualMatchWithPair/);
 
   console.log("verify:manual-match-unmatched-source OK");

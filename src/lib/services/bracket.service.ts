@@ -17,14 +17,17 @@ import {
   formatRecordSummary,
   parseBracketFighterSnapshot,
   type BracketFighterSnapshotPayload,
+  type BracketFighterSnapshotSource,
 } from "@/lib/bracket-snapshot";
+import { computeBracketAssignability } from "@/lib/bracket-assignability";
+import { formatApplicationDivisionLabel } from "@/lib/applications/application-division-label";
 import {
+  formatDivisionMainLabel,
   formatAutoBracketGroupTitle,
   formatBracketTitleForDisplay,
   toEventDivisionDisplayInput,
   type EventDivisionDisplayInput,
 } from "@/lib/event-division-fields";
-import { computeBracketAssignability } from "@/lib/bracket-assignability";
 import { computeFieldEligibility } from "@/lib/field-eligibility";
 import { validateMatchListPlacement } from "@/lib/bracket-match-placement";
 import {
@@ -60,6 +63,8 @@ import { notificationRepository } from "@/lib/repositories/notification.reposito
 import { safeNotify, tryNotify } from "@/lib/notifications/safe-dispatch";
 import { notificationService } from "@/lib/services/notification.service";
 import { fieldStatusService } from "@/lib/services/field-status.service";
+import type { FieldStatusRowDTO } from "@/lib/services/field-status.service";
+import type { ApprovedApplicationForBracketRow } from "@/lib/repositories/bracket.repository";
 import { resolveApplicationGymDisplayName } from "@/lib/gym/external-registration-placeholder-gym";
 import { eventCourtService } from "@/lib/services/event-court.service";
 import type {
@@ -119,6 +124,115 @@ function readApplicationWeightKg(
     }
   }
   return weighInWeightKg;
+}
+
+function mapApplicationToApprovedOption(
+  a: ApprovedApplicationForBracketRow,
+  field: FieldStatusRowDTO | undefined,
+  bracketDivisionId: string | null,
+): OrganizerApprovedFighterOptionVM {
+  const divisionInput = toEventDivisionDisplayInput(a.division);
+  const fieldEligibility = field
+    ? computeFieldEligibility({
+        checkInStatus: field.checkInStatus,
+        weighInStatus: field.weighInStatus,
+        weighInFailureResolution: field.weighInFailureResolution,
+      })
+    : null;
+  const assignability = field
+    ? computeBracketAssignability({
+        checkInStatus: field.checkInStatus,
+        weighInStatus: field.weighInStatus,
+        weighInFailureResolution: field.weighInFailureResolution,
+        applicationStatus: "approved",
+        weighInWeightKg: field.weighInWeightKg,
+      })
+    : computeBracketAssignability({
+        checkInStatus: "pending",
+        weighInStatus: "pending",
+        applicationStatus: "approved",
+      });
+  const currentDivisionLabel = divisionInput
+    ? formatDivisionMainLabel(divisionInput)
+    : "체급 미지정";
+  const appliedDivisionLabel = formatApplicationDivisionLabel({
+    division: divisionInput,
+    divisionSelectionType:
+      a.divisionSelectionType === "OTHER" ||
+      a.divisionSelectionType === "REGISTERED"
+        ? a.divisionSelectionType
+        : null,
+    requestedDivisionText: a.requestedDivisionText,
+  });
+
+  return {
+    applicationId: a.id,
+    fighterId: a.fighter.id,
+    label: `${resolveApplicationGymDisplayName({
+      gymNameSnapshot: a.gymNameSnapshot,
+      gymSnapshot: a.gymSnapshot,
+      gymRelationName: a.gym?.name,
+    })} · ${a.fighter.name}`,
+    divisionId: a.divisionId,
+    divisionLabel: currentDivisionLabel,
+    appliedDivisionLabel,
+    currentDivisionLabel,
+    isOtherDivision: Boolean(
+      bracketDivisionId && a.divisionId && a.divisionId !== bracketDivisionId,
+    ),
+    division: divisionInput ?? {
+      sportType: null,
+      ruleType: null,
+      gender: null,
+      ageGroup: null,
+      weightClass: null,
+      weightClassName: null,
+      weightLimitText: null,
+      skillLevel: null,
+    },
+    fighterName: a.fighter.name,
+    gymName: resolveApplicationGymDisplayName({
+      gymNameSnapshot: a.gymNameSnapshot,
+      gymSnapshot: a.gymSnapshot,
+      gymRelationName: a.gym?.name,
+    }),
+    fighterGender: a.fighter.gender ?? null,
+    isEligibleForBracket: fieldEligibility?.isEligibleForBracket ?? false,
+    eligibilityLabel: fieldEligibility?.eligibilityLabel ?? "현장 미확인",
+    eligibilityReason:
+      fieldEligibility?.eligibilityReason ??
+      "현장 확인·계체 상태가 아직 기록되지 않았습니다.",
+    isAssignableForBracket: assignability.isAssignable,
+    assignabilityLabel: assignability.label,
+    assignabilityDisabledReason: assignability.disabledReason,
+    assignabilityWarningReason: assignability.warningReason,
+    recordSummary: formatRecordSummary(a.fighter),
+    applicationWeightKg: readApplicationWeightKg(
+      a.fighterSnapshot,
+      a.weighInWeightKg,
+    ),
+  };
+}
+
+function toBracketSnapshotSource(
+  row: ApprovedApplicationForBracketRow,
+): BracketFighterSnapshotSource {
+  return {
+    fighter: row.fighter,
+    gym: row.gym,
+    gymSnapshot: row.gymSnapshot,
+    gymNameSnapshot: row.gymNameSnapshot,
+    division: row.division ?? {
+      sportType: null,
+      ruleType: null,
+      gender: null,
+      ageGroup: null,
+      weightClass: null,
+      weightClassName: null,
+      weightLimitText: null,
+      skillLevel: null,
+    },
+  };
 }
 
 async function appendChangeLog(
@@ -417,11 +531,19 @@ export type OrganizerApprovedFighterOptionVM = {
   applicationId: string;
   fighterId: string;
   label: string;
+  divisionId: string | null;
   divisionLabel: string;
+  /** 신청 시점 표시 — snapshot/OTHER 텍스트 기반 */
+  appliedDivisionLabel: string;
+  /** EventApplication.divisionId 현재 배정 */
+  currentDivisionLabel: string;
+  /** 현재 bracket EventDivision과 다른 배정 */
+  isOtherDivision: boolean;
   /** 표시용 division 필드 — 공통 칩 helper 입력. */
   division: EventDivisionDisplayInput;
   fighterName: string;
   gymName: string;
+  fighterGender: string | null;
   /** 출전 확정 여부 (현장·계체 완료) */
   isEligibleForBracket: boolean;
   eligibilityLabel: string;
@@ -449,6 +571,8 @@ export type OrganizerBracketDetailVM = {
   divisionLabel: string | null;
   matches: OrganizerBracketMatchVM[];
   approvedFighterOptions: OrganizerApprovedFighterOptionVM[];
+  /** 대회 전체 — Match 미배정 + 배치 가능 선수 */
+  eventWideUnmatchedOptions: OrganizerApprovedFighterOptionVM[];
   /** 서버 매치 스냅샷이 바뀌면 값이 달라지며, 클라이언트 폼 상태 리마운트에 사용한다. */
   syncKey: string;
 };
@@ -670,59 +794,41 @@ export const bracketService = {
       );
 
     const approvedFighterOptions: OrganizerApprovedFighterOptionVM[] =
-      approved.map((a) => {
-        const field = fieldStatusMap.get(a.fighter.id);
-        const fieldEligibility = field
-          ? computeFieldEligibility({
-              checkInStatus: field.checkInStatus,
-              weighInStatus: field.weighInStatus,
-              weighInFailureResolution: field.weighInFailureResolution,
-            })
-          : null;
-        const assignability = field
-          ? computeBracketAssignability({
-              checkInStatus: field.checkInStatus,
-              weighInStatus: field.weighInStatus,
-              weighInFailureResolution: field.weighInFailureResolution,
-              applicationStatus: "approved",
-              weighInWeightKg: field.weighInWeightKg,
-            })
-          : computeBracketAssignability({
-              checkInStatus: "pending",
-              weighInStatus: "pending",
-              applicationStatus: "approved",
-            });
-        return {
-          applicationId: a.id,
-          fighterId: a.fighter.id,
-          label: `${resolveApplicationGymDisplayName({
-            gymNameSnapshot: a.gymNameSnapshot,
-            gymSnapshot: a.gymSnapshot,
-            gymRelationName: a.gym?.name,
-          })} · ${a.fighter.name}`,
-          divisionLabel: formatDivisionNameLabel(a.division),
-          division: toEventDivisionDisplayInput(a.division)!,
-          fighterName: a.fighter.name,
-          gymName: resolveApplicationGymDisplayName({
-            gymNameSnapshot: a.gymNameSnapshot,
-            gymSnapshot: a.gymSnapshot,
-            gymRelationName: a.gym?.name,
-          }),
-          isEligibleForBracket: fieldEligibility?.isEligibleForBracket ?? false,
-          eligibilityLabel: fieldEligibility?.eligibilityLabel ?? "현장 미확인",
-          eligibilityReason:
-            fieldEligibility?.eligibilityReason ??
-            "현장 확인·계체 상태가 아직 기록되지 않았습니다.",
-          isAssignableForBracket: assignability.isAssignable,
-          assignabilityLabel: assignability.label,
-          assignabilityDisabledReason: assignability.disabledReason,
-          assignabilityWarningReason: assignability.warningReason,
-          recordSummary: formatRecordSummary(a.fighter),
-          applicationWeightKg: readApplicationWeightKg(
-            a.fighterSnapshot,
-            a.weighInWeightKg,
-          ),
-        };
+      approved.map((a) =>
+        mapApplicationToApprovedOption(
+          a,
+          fieldStatusMap.get(a.fighter.id),
+          full.divisionId,
+        ),
+      );
+
+    const [placedFighterIds, allEventApproved, eventFieldStatusMap] =
+      await Promise.all([
+        bracketRepository.listPlacedFighterIdsForEvent(full.eventId),
+        bracketRepository.listApprovedApplicationsForBracket(
+          full.eventId,
+          null,
+        ),
+        fieldStatusService.listBracketCandidateFieldStatus(full.eventId, null),
+      ]);
+    const placedSet = new Set(placedFighterIds);
+    const eventWideUnmatchedOptions = allEventApproved
+      .map((a) =>
+        mapApplicationToApprovedOption(
+          a,
+          eventFieldStatusMap.get(a.fighter.id),
+          full.divisionId,
+        ),
+      )
+      .filter((o) => o.isAssignableForBracket && !placedSet.has(o.fighterId))
+      .sort((a, b) => {
+        if (a.isOtherDivision !== b.isOtherDivision) {
+          return a.isOtherDivision ? 1 : -1;
+        }
+        const wA = a.applicationWeightKg ?? Number.POSITIVE_INFINITY;
+        const wB = b.applicationWeightKg ?? Number.POSITIVE_INFINITY;
+        if (wA !== wB) return wA - wB;
+        return a.fighterName.localeCompare(b.fighterName, "ko");
       });
 
     const matches: OrganizerBracketMatchVM[] = full.matches.map((m) => ({
@@ -772,6 +878,7 @@ export const bracketService = {
       divisionLabel: division ? formatDivisionNameLabel(division) : null,
       matches,
       approvedFighterOptions,
+      eventWideUnmatchedOptions,
       syncKey,
     };
   },
@@ -1125,10 +1232,10 @@ export const bracketService = {
             fighterRedId: redPlacement?.fighterId ?? null,
             fighterBlueId: bluePlacement?.fighterId ?? null,
             fighterRedSnapshot: redPlacement
-              ? buildFighterBracketSnapshot(redPlacement)
+              ? buildFighterBracketSnapshot(toBracketSnapshotSource(redPlacement))
               : null,
             fighterBlueSnapshot: bluePlacement
-              ? buildFighterBracketSnapshot(bluePlacement)
+              ? buildFighterBracketSnapshot(toBracketSnapshotSource(bluePlacement))
               : null,
           },
           tx,
@@ -1339,7 +1446,7 @@ export const bracketService = {
         }
       }
 
-      const snap = buildFighterBracketSnapshot(row);
+      const snap = buildFighterBracketSnapshot(toBracketSnapshotSource(row));
       const prevRedId = match.fighterRedId;
       const prevBlueId = match.fighterBlueId;
 
@@ -1755,12 +1862,11 @@ export const bracketService = {
     }
 
     return prisma.$transaction(async (tx) => {
-      async function loadAssignable(fighterId: string) {
+      async function loadUnmatchedForManualPair(fighterId: string) {
         const row =
-          await bracketRepository.findApprovedApplicationForBracketPlacement(
+          await bracketRepository.findApprovedApplicationForEventPlacement(
             ctx.eventId,
             fighterId,
-            ctx.divisionId,
             tx,
           );
         if (!row) {
@@ -1785,23 +1891,95 @@ export const bracketService = {
           );
         }
         const placed =
-          await bracketRepository.countFighterAssignmentsInBracketExcluding(
-            input.bracketId,
+          await bracketRepository.countFighterAssignmentsInEvent(
+            ctx.eventId,
             fighterId,
-            "",
             tx,
           );
         if (placed > 0) {
           throw new AppError(
             "CONFLICT",
-            "선수 배정 상태가 변경되었습니다. 미매칭 목록을 다시 확인해 주세요.",
+            "다른 관리자가 이미 이 선수를 경기에 배정했습니다. 목록을 새로고침합니다.",
           );
         }
         return row;
       }
 
-      const redRow = await loadAssignable(input.redFighterId);
-      const blueRow = await loadAssignable(input.blueFighterId);
+      async function ensureAssignedToBracketDivision(
+        row: ApprovedApplicationForBracketRow,
+      ): Promise<ApprovedApplicationForBracketRow> {
+        if (!ctx.divisionId) {
+          throw new AppError(
+            "VALIDATION_ERROR",
+            "경기구분이 없는 대진표에서는 교차 편성할 수 없습니다.",
+          );
+        }
+        if (row.divisionId === ctx.divisionId) return row;
+
+        const belongs = await eventRepository.findDivisionBelongsToEvent(
+          ctx.divisionId,
+          ctx.eventId,
+        );
+        if (!belongs) {
+          throw new AppError(
+            "VALIDATION_ERROR",
+            "대상 경기구분을 찾을 수 없습니다.",
+          );
+        }
+
+        const fromDivisionId = row.divisionId;
+        await applicationRepository.updateApplicationDivisionAssignment(
+          row.id,
+          ctx.divisionId,
+          tx,
+        );
+
+        await appendChangeLog(tx, {
+          eventId: ctx.eventId,
+          bracketId: input.bracketId,
+          changedByUserId: actor.userId,
+          bracketType: ctx.type,
+          changeType: BracketChangeType.bracket_created,
+          beforeData: {
+            applicationId: row.id,
+            fighterId: row.fighterId,
+            fromDivisionId,
+          },
+          afterData: {
+            applicationId: row.id,
+            fighterId: row.fighterId,
+            toDivisionId: ctx.divisionId,
+            source: "cross_division_manual_match",
+          },
+          reason: "교차 경기구분 수동 편성 — 배정 이동",
+        });
+
+        const moved =
+          await bracketRepository.findApprovedApplicationForEventPlacement(
+            ctx.eventId,
+            row.fighterId,
+            tx,
+          );
+        if (!moved) {
+          throw new AppError(
+            "CONFLICT",
+            "선수 배정 상태가 변경되었습니다. 목록을 새로고침합니다.",
+          );
+        }
+        return moved;
+      }
+
+      let redRow = await loadUnmatchedForManualPair(input.redFighterId);
+      let blueRow = await loadUnmatchedForManualPair(input.blueFighterId);
+
+      const crossDivisionMove = Boolean(
+        ctx.divisionId &&
+          ((redRow.divisionId && redRow.divisionId !== ctx.divisionId) ||
+            (blueRow.divisionId && blueRow.divisionId !== ctx.divisionId)),
+      );
+
+      redRow = await ensureAssignedToBracketDivision(redRow);
+      blueRow = await ensureAssignedToBracketDivision(blueRow);
 
       const nextOrder =
         (await bracketRepository.getMaxMatchOrderForBracket(
@@ -1832,9 +2010,13 @@ export const bracketService = {
           courtId,
           courtOrder,
           fighterRedId: input.redFighterId,
-          fighterRedSnapshot: buildFighterBracketSnapshot(redRow),
+          fighterRedSnapshot: buildFighterBracketSnapshot(
+            toBracketSnapshotSource(redRow),
+          ),
           fighterBlueId: input.blueFighterId,
-          fighterBlueSnapshot: buildFighterBracketSnapshot(blueRow),
+          fighterBlueSnapshot: buildFighterBracketSnapshot(
+            toBracketSnapshotSource(blueRow),
+          ),
         },
         tx,
       );
@@ -1853,6 +2035,7 @@ export const bracketService = {
           fighterRedId: input.redFighterId,
           fighterBlueId: input.blueFighterId,
           source: "manual_pair_dnd",
+          crossDivisionMove,
         },
         reason: "수동 경기 만들기",
       });

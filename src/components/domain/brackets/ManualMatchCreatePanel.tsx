@@ -22,7 +22,12 @@ import {
   DialogTitle,
 } from "@/components/ui/dialog";
 import { createManualMatchWithPairAction } from "@/features/brackets/actions";
-import { normalizeGymName } from "@/lib/brackets/gym-match-key";
+import {
+  buildCrossDivisionManualMatchDescription,
+  buildManualPairWarnings,
+  fightersRequiringDivisionMove,
+  type ManualMatchPairSide,
+} from "@/lib/brackets/manual-match-pair";
 import type { OrganizerApprovedFighterOptionVM } from "@/lib/services/bracket.service";
 import { cn } from "@/lib/utils";
 
@@ -141,10 +146,28 @@ function DropSlot({
   );
 }
 
+function toPairSide(
+  option: OrganizerApprovedFighterOptionVM,
+): ManualMatchPairSide {
+  return {
+    fighterId: option.fighterId,
+    fighterName: option.fighterName,
+    gymName: option.gymName,
+    divisionId: option.divisionId,
+    currentDivisionLabel: option.currentDivisionLabel,
+    applicationWeightKg: option.applicationWeightKg,
+    recordSummary: option.recordSummary,
+    fighterGender: option.fighterGender,
+  };
+}
+
 export function ManualMatchCreatePanel({
   bracketId,
   defaultCourtId,
   unmatched,
+  targetDivisionId,
+  targetDivisionLabel,
+  targetDivisionGender,
   red,
   blue,
   onRedChange,
@@ -155,6 +178,9 @@ export function ManualMatchCreatePanel({
   bracketId: string;
   defaultCourtId?: string;
   unmatched: OrganizerApprovedFighterOptionVM[];
+  targetDivisionId: string | null;
+  targetDivisionLabel: string | null;
+  targetDivisionGender?: string | null;
   red: ManualMatchSlotAthlete | null;
   blue: ManualMatchSlotAthlete | null;
   onRedChange: (v: ManualMatchSlotAthlete | null) => void;
@@ -224,27 +250,60 @@ export function ManualMatchCreatePanel({
     if (confirmPairKeyRef.current === pairKey) return;
     confirmPairKeyRef.current = pairKey;
 
-    const warnings: string[] = [];
-    if (
-      normalizeGymName(red.gymName) &&
-      normalizeGymName(red.gymName) === normalizeGymName(blue.gymName)
-    ) {
-      warnings.push("같은 체육관 선수입니다.");
+    const redOption = byId.get(red.fighterId);
+    const blueOption = byId.get(blue.fighterId);
+    if (!redOption || !blueOption) {
+      confirmPairKeyRef.current = null;
+      await alert({
+        title: "배정 불가",
+        description: "선수 배정 상태가 변경되었습니다.",
+      });
+      return;
     }
 
-    const description = [
-      `홍코너\n${red.gymName} · ${red.fighterName}`,
-      "",
-      `청코너\n${blue.gymName} · ${blue.fighterName}`,
-      "",
-      "두 선수로 새 경기를 생성합니다.",
-      ...(warnings.length ? ["", ...warnings.map((w) => `⚠ ${w}`)] : []),
-    ].join("\n");
+    const redSide = toPairSide(redOption);
+    const blueSide = toPairSide(blueOption);
+    const warnings = buildManualPairWarnings({
+      red: redSide,
+      blue: blueSide,
+      targetDivisionId,
+      targetDivisionLabel,
+      targetDivisionGender: targetDivisionGender ?? null,
+    });
+    const moveIds = fightersRequiringDivisionMove(
+      redSide,
+      blueSide,
+      targetDivisionId,
+    );
+    const isCrossDivision = moveIds.length > 0;
+
+    const description = isCrossDivision
+      ? buildCrossDivisionManualMatchDescription({
+          red: redSide,
+          blue: blueSide,
+          targetDivisionLabel: targetDivisionLabel ?? "현재 그룹",
+          moveFighters: [redSide, blueSide].filter((side) =>
+            moveIds.some((m) => m.fighterId === side.fighterId),
+          ),
+          warnings,
+        })
+      : [
+          `홍코너\n${red.gymName} · ${red.fighterName}`,
+          "",
+          `청코너\n${blue.gymName} · ${blue.fighterName}`,
+          "",
+          "두 선수로 새 경기를 생성합니다.",
+          ...(warnings.length
+            ? ["", ...warnings.map((w) => `⚠ ${w.label}`)]
+            : []),
+        ].join("\n");
 
     const ok = await confirm({
-      title: "경기를 생성할까요?",
+      title: isCrossDivision
+        ? "다른 경기구분 선수와 매칭할까요?"
+        : "경기를 생성할까요?",
       description,
-      confirmLabel: "경기 생성",
+      confirmLabel: isCrossDivision ? "이동하여 경기 생성" : "경기 생성",
       cancelLabel: "취소",
     });
 
@@ -288,6 +347,9 @@ export function ManualMatchCreatePanel({
     red,
     router,
     setPendingExternal,
+    targetDivisionGender,
+    targetDivisionId,
+    targetDivisionLabel,
   ]);
 
   useEffect(() => {

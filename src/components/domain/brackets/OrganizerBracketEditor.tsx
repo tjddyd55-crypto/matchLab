@@ -4,6 +4,7 @@ import { BracketTypeBadge } from "@/components/domain/brackets/BracketTypeBadge"
 import { MatchListEditor } from "@/components/domain/brackets/MatchListEditor";
 import { TournamentBracketEditor } from "@/components/domain/brackets/TournamentBracketEditor";
 import { DivisionCompactDisplay } from "@/components/domain/shared/DivisionCompactDisplay";
+import { formatDivisionMainLabel } from "@/lib/event-division-fields";
 import { buttonVariants } from "@/components/ui/button";
 import {
   Card,
@@ -98,10 +99,16 @@ export function OrganizerBracketEditor({
 
       <BracketApprovedCandidatesSection
         options={detail.approvedFighterOptions}
+        eventWideUnmatchedOptions={detail.eventWideUnmatchedOptions}
         matches={detail.matches}
         bracketId={detail.id}
         bracketType={detail.type}
         defaultCourtId={courts.find((c) => c.isActive)?.id}
+        targetDivisionId={detail.divisionId}
+        targetDivisionLabel={
+          detail.division ? formatDivisionMainLabel(detail.division) : detail.divisionLabel
+        }
+        targetDivisionGender={detail.division?.gender ?? null}
       />
 
       {detail.type === BracketType.match_list ? (

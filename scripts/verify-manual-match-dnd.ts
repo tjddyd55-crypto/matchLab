@@ -37,7 +37,7 @@ function main() {
 
   assert.match(section, /ManualMatchCreatePanel/);
   assert.match(section, /UnmatchedDraggableCardShell/);
-  assert.match(section, /미배정 선수/);
+  assert.match(section, /미매칭 선수/);
 
   assert.match(service, /createManualMatchWithPair/);
   assert.match(

@@ -47,7 +47,9 @@ export type MatchOwnershipContext = {
 export type ApprovedApplicationForBracketRow = {
   id: string;
   fighterId: string;
-  divisionId: string;
+  divisionId: string | null;
+  divisionSelectionType?: "REGISTERED" | "OTHER" | null;
+  requestedDivisionText?: string | null;
   status: ApplicationStatus;
   checkInStatus: CheckInStatus;
   weighInStatus: WeighInStatus;
@@ -61,12 +63,14 @@ export type ApprovedApplicationForBracketRow = {
     id: string;
     fighterCode: string;
     name: string;
+    gender: string | null;
     profileImageUrl: string | null;
     recordWin: number;
     recordLoss: number;
     recordDraw: number;
   };
   division: {
+    id?: string;
     sportType: string | null;
     ruleType: string | null;
     gender: string | null;
@@ -75,7 +79,7 @@ export type ApprovedApplicationForBracketRow = {
     weightClassName: string | null;
     weightLimitText: string | null;
     skillLevel: string | null;
-  };
+  } | null;
   gym: { name: string } | null;
 };
 
@@ -133,6 +137,42 @@ export type AutoMatchApplicationRow = {
   } | null;
   gym: { id: string; name: string } | null;
 };
+
+const APPROVED_APPLICATION_FOR_BRACKET_SELECT = {
+  id: true,
+  fighterId: true,
+  divisionId: true,
+  divisionSelectionType: true,
+  requestedDivisionText: true,
+  status: true,
+  checkInStatus: true,
+  weighInStatus: true,
+  weighInFailureResolution: true,
+  cancellationSource: true,
+  weighInWeightKg: true,
+  fighterSnapshot: true,
+  gymSnapshot: true,
+  gymNameSnapshot: true,
+  fighter: {
+    select: {
+      id: true,
+      fighterCode: true,
+      name: true,
+      gender: true,
+      profileImageUrl: true,
+      recordWin: true,
+      recordLoss: true,
+      recordDraw: true,
+    },
+  },
+  division: {
+    select: {
+      id: true,
+      ...EVENT_DIVISION_DISPLAY_SELECT,
+    },
+  },
+  gym: { select: { name: true } },
+} as const;
 
 export const bracketRepository = {
   async createBracket(
@@ -445,35 +485,23 @@ export const bracketRepository = {
         status: ApplicationStatus.approved,
         ...(bracketDivisionId ? { divisionId: bracketDivisionId } : {}),
       },
-      select: {
-        id: true,
-        fighterId: true,
-        divisionId: true,
-        status: true,
-        checkInStatus: true,
-        weighInStatus: true,
-        weighInFailureResolution: true,
-        cancellationSource: true,
-        weighInWeightKg: true,
-        fighterSnapshot: true,
-        gymSnapshot: true,
-        gymNameSnapshot: true,
-        fighter: {
-          select: {
-            id: true,
-            fighterCode: true,
-            name: true,
-            profileImageUrl: true,
-            recordWin: true,
-            recordLoss: true,
-            recordDraw: true,
-          },
-        },
-        division: {
-          select: EVENT_DIVISION_DISPLAY_SELECT,
-        },
-        gym: { select: { name: true } },
+      select: APPROVED_APPLICATION_FOR_BRACKET_SELECT,
+    });
+    return row ? (row as ApprovedApplicationForBracketRow) : null;
+  },
+
+  async findApprovedApplicationForEventPlacement(
+    eventId: string,
+    fighterId: string,
+    tx?: Prisma.TransactionClient,
+  ): Promise<ApprovedApplicationForBracketRow | null> {
+    const row = await db(tx).eventApplication.findFirst({
+      where: {
+        eventId,
+        fighterId,
+        status: ApplicationStatus.approved,
       },
+      select: APPROVED_APPLICATION_FOR_BRACKET_SELECT,
     });
     return row ? (row as ApprovedApplicationForBracketRow) : null;
   },
@@ -490,35 +518,7 @@ export const bracketRepository = {
         ...(divisionId ? { divisionId } : {}),
       },
       orderBy: { createdAt: "asc" },
-      select: {
-        id: true,
-        fighterId: true,
-        divisionId: true,
-        status: true,
-        checkInStatus: true,
-        weighInStatus: true,
-        weighInFailureResolution: true,
-        cancellationSource: true,
-        weighInWeightKg: true,
-        fighterSnapshot: true,
-        gymSnapshot: true,
-        gymNameSnapshot: true,
-        fighter: {
-          select: {
-            id: true,
-            fighterCode: true,
-            name: true,
-            profileImageUrl: true,
-            recordWin: true,
-            recordLoss: true,
-            recordDraw: true,
-          },
-        },
-        division: {
-          select: EVENT_DIVISION_DISPLAY_SELECT,
-        },
-        gym: { select: { name: true } },
-      },
+      select: APPROVED_APPLICATION_FOR_BRACKET_SELECT,
     });
     return rows as ApprovedApplicationForBracketRow[];
   },
@@ -571,6 +571,20 @@ export const bracketRepository = {
       eventId: row.bracket.eventId,
       organizerId: row.bracket.event.organizerId,
     };
+  },
+
+  async countFighterAssignmentsInEvent(
+    eventId: string,
+    fighterId: string,
+    tx?: Prisma.TransactionClient,
+  ): Promise<number> {
+    return db(tx).bracketMatch.count({
+      where: {
+        bracket: { eventId },
+        status: { not: BracketMatchStatus.cancelled },
+        OR: [{ fighterRedId: fighterId }, { fighterBlueId: fighterId }],
+      },
+    });
   },
 
   async countFighterAssignmentsInBracket(
