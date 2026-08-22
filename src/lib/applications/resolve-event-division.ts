@@ -221,32 +221,49 @@ export function resolveEventDivisionByApplicationWeight(
     };
   }
 
-  const eligible = bySport.flatMap((division) => {
+  const limitedMatches = bySport.flatMap((division) => {
     const limit = parseDivisionLimit(division);
     if (!limit) return [];
     if (!containsWeight(limit, input.applicationWeightKg)) return [];
     return [{ division, limit }];
   });
 
-  const picked = pickTightest(eligible);
-  if (picked === "ambiguous") {
+  if (limitedMatches.length > 0) {
+    const picked = pickTightest(limitedMatches);
+    if (picked === "ambiguous") {
+      return {
+        ok: false,
+        code: "ambiguous",
+        reason: "신청체중에 해당하는 체급이 여러 개입니다. 종목을 확인해 주세요.",
+        category,
+      };
+    }
+    if (picked) {
+      return { ok: true, division: toResolved(picked), category };
+    }
+  }
+
+  // 체중 제한 없는 division은 specific limit 후보가 없을 때만 fallback
+  const unlimited = bySport.filter((d) => parseDivisionLimit(d) == null);
+  if (unlimited.length === 1) {
+    return { ok: true, division: toResolved(unlimited[0]!), category };
+  }
+  if (unlimited.length > 1) {
     return {
       ok: false,
       code: "ambiguous",
-      reason: "신청체중에 해당하는 체급이 여러 개입니다. 종목을 확인해 주세요.",
-      category,
-    };
-  }
-  if (!picked) {
-    return {
-      ok: false,
-      code: "no_weight_match",
-      reason: "신청체중에 맞는 체급이 없습니다.",
+      reason:
+        "체중 제한 없는 경기구분이 여러 개입니다. 체급표를 확인해 주세요.",
       category,
     };
   }
 
-  return { ok: true, division: toResolved(picked), category };
+  return {
+    ok: false,
+    code: "no_weight_match",
+    reason: "신청체중에 맞는 체급이 없습니다.",
+    category,
+  };
 }
 
 export function formatResolvedDivisionPreview(

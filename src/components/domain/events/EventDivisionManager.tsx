@@ -53,8 +53,8 @@ function DivisionListHeader({ tone }: { tone: DivisionGenderTone }) {
 
   return (
     <div className={cn(divisionListHeaderBaseClass, token.listHeaderClassName)}>
-      <span>체급명</span>
-      <span>체중 기준</span>
+      <span>체급명 (선택)</span>
+      <span>체중 기준 (선택)</span>
       <span className="text-right">동작</span>
     </div>
   );
@@ -84,21 +84,22 @@ function DivisionRowEditor({ d }: { d: Div }) {
         <input type="hidden" name="ruleType" value={d.ruleType ?? ""} />
         <input type="hidden" name="skillLevel" value={d.skillLevel ?? ""} />
         <label className="space-y-1 text-xs">
-          <span className="text-muted-foreground">체급명</span>
+          <span className="text-muted-foreground">체급명 (선택)</span>
           <input
             name="weightClassName"
             defaultValue={d.weightClassName ?? ""}
             maxLength={120}
             className={inputClass}
+            placeholder="예: 플라이급"
           />
         </label>
         <label className="space-y-1 text-xs">
-          <span className="text-muted-foreground">체중 기준</span>
+          <span className="text-muted-foreground">체중 기준 (선택)</span>
           <input
             name="weightLimitText"
             defaultValue={d.weightLimitText ?? ""}
             maxLength={40}
-            placeholder="54"
+            placeholder="54 · 비우면 제한 없음"
             className={cn(inputClass, "font-mono")}
             onBlur={(e) => {
               const normalized = normalizeWeightLimitInput(e.target.value);
@@ -215,16 +216,16 @@ function DivisionWeightRow({
             name="weightClassName"
             defaultValue={division.weightClassName ?? ""}
             maxLength={120}
-            aria-label="체급명"
-            placeholder="체급명"
+            aria-label="체급명 (선택)"
+            placeholder="체급명 (선택)"
             className={inputClass}
           />
           <input
             name="weightLimitText"
             defaultValue={division.weightLimitText ?? ""}
             maxLength={40}
-            aria-label="체중 기준"
-            placeholder="54"
+            aria-label="체중 기준 (선택)"
+            placeholder="54 · 비우면 제한 없음"
             className={cn(inputClass, "font-mono")}
             onBlur={(e) => {
               const normalized = normalizeWeightLimitInput(e.target.value);

@@ -110,17 +110,23 @@ export function itemToEventDivisionRow(
   if (!sportType) return null;
 
   const normalized = normalizeTemplateItemWeight(item);
-  const weightClass = normalized.weightClass?.trim() ?? "";
-  if (!weightClass) return null;
+  const ageGroup = normalized.ageGroup?.trim() || null;
+  const gender = normalized.gender?.trim() || null;
+  const weightClassName = normalized.weightClassName?.trim() || null;
+  const weightLimitText = normalized.weightLimitText?.trim() || null;
+  const weightClass = normalized.weightClass?.trim() || null;
+
+  // 체급명·체중 모두 없어도 부문(+성별)만으로 EventDivision 생성 가능
+  if (!weightClass && !ageGroup) return null;
 
   return {
     sportType,
     ruleType: normalized.ruleType?.trim() || null,
-    gender: normalized.gender?.trim() || null,
-    ageGroup: normalized.ageGroup?.trim() || null,
+    gender,
+    ageGroup,
     weightClass,
-    weightClassName: normalized.weightClassName?.trim() || null,
-    weightLimitText: normalized.weightLimitText?.trim() || null,
+    weightClassName,
+    weightLimitText,
     skillLevel: normalized.skillLevel?.trim() || null,
   };
 }
@@ -161,6 +167,10 @@ export function sanitizeTemplateItems(
     )
     .filter((row) => {
       if (row.isActive === false) return true;
-      return Boolean(row.sportType?.trim() && buildWeightClassDisplay(row));
+      const hasSport = Boolean(row.sportType?.trim());
+      const hasAge = Boolean(row.ageGroup?.trim());
+      const hasWeight = Boolean(buildWeightClassDisplay(row));
+      // 체급명·체중 없이도 부문만 있으면 무제한 경기구분으로 유지
+      return hasSport && (hasWeight || hasAge);
     });
 }

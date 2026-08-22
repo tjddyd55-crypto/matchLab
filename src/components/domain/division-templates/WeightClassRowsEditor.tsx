@@ -36,6 +36,8 @@ type WeightRow = {
   id: string;
   weightClassName: string;
   weightLimitText: string;
+  /** true면 체중 기준 없음 (weightLimitText 무시) */
+  unlimited: boolean;
 };
 
 type GroupBlock = {
@@ -59,7 +61,12 @@ function stableId(parts: Array<string | number | null | undefined>): string {
 }
 
 function emptyRow(): WeightRow {
-  return { id: newId(), weightClassName: "", weightLimitText: "" };
+  return {
+    id: newId(),
+    weightClassName: "",
+    weightLimitText: "",
+    unlimited: false,
+  };
 }
 
 function bucketGender(gender: string | null | undefined): DivisionTemplateGender {
@@ -107,6 +114,7 @@ function deriveBlocks(items: DivisionTemplateItemInput[]): GroupBlock[] {
       ]),
       weightClassName: normalized.weightClassName?.trim() ?? "",
       weightLimitText: normalized.weightLimitText?.trim() ?? "",
+      unlimited: !normalized.weightLimitText?.trim(),
     });
   }
 
@@ -130,7 +138,9 @@ function flattenBlocks(
           gender,
           ageGroup: block.ageGroup.trim() || null,
           weightClassName: row.weightClassName.trim() || null,
-          weightLimitText: row.weightLimitText.trim() || null,
+          weightLimitText: row.unlimited
+            ? null
+            : row.weightLimitText.trim() || null,
           weightLimitKg: null,
           limitType: null,
           weightClass: null,
@@ -168,16 +178,18 @@ function GenderColumn({
       <table className="w-full border-collapse text-left text-xs">
         <thead>
           <tr className="text-muted-foreground border-b">
-            <th className="px-1 py-1.5 font-medium">체급명</th>
-            <th className="px-1 py-1.5 font-medium">체중 기준</th>
+            <th className="px-1 py-1.5 font-medium">체급명 (선택)</th>
+            <th className="px-1 py-1.5 font-medium">체중 기준 (선택)</th>
+            <th className="w-14 px-1 py-1.5 font-medium">제한</th>
             <th className="w-12 px-1 py-1.5 font-medium">동작</th>
           </tr>
         </thead>
         <tbody>
           {rows.length === 0 ? (
             <tr>
-              <td colSpan={3} className="text-muted-foreground px-1 py-2">
-                체급 행이 없습니다.
+              <td colSpan={4} className="text-muted-foreground px-1 py-2">
+                체급 행이 없습니다. 행을 추가한 뒤 체급명·체중을 비우면
+                「부문 · 성별」만으로 경기구분이 됩니다.
               </td>
             </tr>
           ) : (
@@ -187,7 +199,7 @@ function GenderColumn({
                   <input
                     className={formControlFieldCompactClass}
                     value={row.weightClassName}
-                    placeholder="라이트급"
+                    placeholder="예: 플라이급 (선택)"
                     onChange={(e) =>
                       updateRow(row.id, { weightClassName: e.target.value })
                     }
@@ -196,12 +208,17 @@ function GenderColumn({
                 <td className="px-1 py-1">
                   <input
                     className={cn(formControlFieldCompactClass, "font-mono")}
-                    value={row.weightLimitText}
-                    placeholder="54"
+                    value={row.unlimited ? "" : row.weightLimitText}
+                    placeholder={row.unlimited ? "제한 없음" : "54"}
+                    disabled={row.unlimited}
                     onChange={(e) =>
-                      updateRow(row.id, { weightLimitText: e.target.value })
+                      updateRow(row.id, {
+                        weightLimitText: e.target.value,
+                        unlimited: false,
+                      })
                     }
                     onBlur={(e) => {
+                      if (row.unlimited) return;
                       const normalized = normalizeWeightLimitInput(
                         e.target.value,
                       );
@@ -210,6 +227,25 @@ function GenderColumn({
                       }
                     }}
                   />
+                </td>
+                <td className="px-1 py-1">
+                  <label className="flex cursor-pointer items-center gap-1 text-[11px]">
+                    <input
+                      type="checkbox"
+                      checked={row.unlimited}
+                      onChange={(e) =>
+                        updateRow(row.id, {
+                          unlimited: e.target.checked,
+                          weightLimitText: e.target.checked
+                            ? ""
+                            : row.weightLimitText,
+                        })
+                      }
+                    />
+                    <span className="text-muted-foreground whitespace-nowrap">
+                      없음
+                    </span>
+                  </label>
                 </td>
                 <td className="px-1 py-1">
                   <Button

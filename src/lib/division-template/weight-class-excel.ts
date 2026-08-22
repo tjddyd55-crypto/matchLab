@@ -203,9 +203,21 @@ export async function buildWeightClassSampleWorkbook(
   guide.addRow(["컬럼", "설명", "허용 값 예시"]);
   guide.addRow(["부문", "연령/부문", DIVISION_TEMPLATE_AGE_GROUPS.join(" / ")]);
   guide.addRow(["성별", "성별 표시명", "남성 / 여성"]);
-  guide.addRow(["체급명", "표시 이름 (부문·성별 내 중복 가능)", "핀급, 라이트웰터급"]);
-  guide.addRow(["체중", "숫자 (소수 허용)", "30, 63.5"]);
-  guide.addRow(["기준", "이하=상한 / 초과=무제한 하단", "이하 / 초과"]);
+  guide.addRow([
+    "체급명",
+    "선택 — 비우면 체급명 생략 (예: 초등부 · 남성)",
+    "핀급, 라이트웰터급, (빈칸)",
+  ]);
+  guide.addRow([
+    "체중",
+    "선택 — 비우면 몸무게 제한 없음",
+    "30, 63.5, (빈칸)",
+  ]);
+  guide.addRow([
+    "기준",
+    "체중이 있을 때만 필수 (이하=상한 / 초과=하단)",
+    "이하 / 초과 / (체중 없으면 빈칸)",
+  ]);
   guide.addRow(["정렬순서", "부문·성별 안 표시 순서 (1부터)", "1, 2, 3…"]);
   guide.addRow([]);
   guide.addRow([
@@ -215,7 +227,7 @@ export async function buildWeightClassSampleWorkbook(
   ]);
   guide.addRow([
     "중복",
-    "동일 부문+성별+체급명+체중기준이면 기존과 동일로 건너뜁니다.",
+    "동일 부문+성별+체급명+체중기준이면 기존과 동일로 건너뜁니다. 체급명·체중 모두 빈칸도 동일 조건으로 취급합니다.",
     "",
   ]);
   guide.getColumn(1).width = 12;
@@ -350,40 +362,64 @@ export async function analyzeWeightClassWorkbook(input: {
     const errors: string[] = [];
     const gender = parseGenderLabel(genderLabel);
     const operator = parseOperatorLabel(operatorLabel);
-    const weightKg = Number.parseFloat(weightRaw.replace(/,/g, ""));
+    const hasWeightRaw = Boolean(weightRaw.trim());
+    const weightKg = hasWeightRaw
+      ? Number.parseFloat(weightRaw.replace(/,/g, ""))
+      : NaN;
     const sortOrder = Number.parseInt(sortRaw, 10);
+    const unlimitedWeight = !hasWeightRaw;
 
     if (!ageGroup) errors.push("부문 없음");
     if (!gender) errors.push("성별 없음 또는 알 수 없음");
-    if (!weightClassName) errors.push("체급명 없음");
-    if (!weightRaw || !Number.isFinite(weightKg) || weightKg <= 0) {
+    // 체급명·체중은 선택 — 둘 다 비우면 무제한 경기구분
+    if (hasWeightRaw && (!Number.isFinite(weightKg) || weightKg <= 0)) {
       errors.push("체중 숫자 오류");
     }
-    if (!operator) errors.push("기준값 알 수 없음");
+    if (hasWeightRaw && !operator) errors.push("기준값 알 수 없음");
+    if (!hasWeightRaw && operatorLabel.trim()) {
+      errors.push("체중이 없으면 기준도 비워 주세요");
+    }
     if (!sortRaw || !Number.isFinite(sortOrder) || sortOrder < 1) {
       errors.push("정렬순서 오류");
     }
 
     let item: DivisionTemplateItemInput | null = null;
     let weightLimitText: string | null = null;
-    if (errors.length === 0 && gender && operator && Number.isFinite(weightKg)) {
-      weightLimitText = formatWeightLimitText(weightKg, operator);
-      const limitType: DivisionTemplateLimitType =
-        operator === "over" ? "over" : "under";
-      item = normalizeTemplateItemWeight({
-        sportType,
-        ruleType: null,
-        gender,
-        ageGroup,
-        weightClassName,
-        weightLimitText,
-        weightLimitKg: weightKg,
-        limitType,
-        weightClass: null,
-        skillLevel: null,
-        displayOrder: sortOrder,
-        isActive: true,
-      });
+    if (errors.length === 0 && gender) {
+      if (unlimitedWeight) {
+        item = normalizeTemplateItemWeight({
+          sportType,
+          ruleType: null,
+          gender,
+          ageGroup,
+          weightClassName: weightClassName || null,
+          weightLimitText: null,
+          weightLimitKg: null,
+          limitType: null,
+          weightClass: null,
+          skillLevel: null,
+          displayOrder: sortOrder,
+          isActive: true,
+        });
+      } else if (operator && Number.isFinite(weightKg)) {
+        weightLimitText = formatWeightLimitText(weightKg, operator);
+        const limitType: DivisionTemplateLimitType =
+          operator === "over" ? "over" : "under";
+        item = normalizeTemplateItemWeight({
+          sportType,
+          ruleType: null,
+          gender,
+          ageGroup,
+          weightClassName: weightClassName || null,
+          weightLimitText,
+          weightLimitKg: weightKg,
+          limitType,
+          weightClass: null,
+          skillLevel: null,
+          displayOrder: sortOrder,
+          isActive: true,
+        });
+      }
     }
 
     let decision: WeightClassImportDecision = "create";
@@ -438,7 +474,13 @@ export async function analyzeWeightClassWorkbook(input: {
       weightClassName,
       weightKg: Number.isFinite(weightKg) ? weightKg : null,
       operator,
-      operatorLabel: operator === "over" ? "초과" : operator === "under" ? "이하" : operatorLabel,
+      operatorLabel: unlimitedWeight
+        ? "제한 없음"
+        : operator === "over"
+          ? "초과"
+          : operator === "under"
+            ? "이하"
+            : operatorLabel,
       sortOrder: Number.isFinite(sortOrder) ? sortOrder : null,
       weightLimitText,
       decision,

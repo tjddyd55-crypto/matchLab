@@ -88,15 +88,15 @@ export function EventDivisionForm({
           <input
             name="weightClassName"
             maxLength={120}
-            aria-label="체급명"
-            placeholder="체급명"
+            aria-label="체급명 (선택)"
+            placeholder="체급명 (선택)"
             className={inputClass}
           />
           <input
             name="weightLimitText"
             maxLength={40}
-            aria-label="체중 기준"
-            placeholder="54"
+            aria-label="체중 기준 (선택)"
+            placeholder="54 · 비우면 제한 없음"
             className={cn(inputClass, "font-mono")}
             onBlur={(e) => {
               const normalized = normalizeWeightLimitInput(e.target.value);
@@ -184,7 +184,7 @@ export function EventDivisionForm({
         </label>
       ) : null}
       <label className={cn("space-y-1", compact ? "text-xs" : "text-sm")}>
-        <span className="text-muted-foreground">체급명</span>
+        <span className="text-muted-foreground">체급명 (선택)</span>
         <input
           name="weightClassName"
           maxLength={120}
@@ -193,12 +193,12 @@ export function EventDivisionForm({
         />
       </label>
       <label className={cn("space-y-1", compact ? "text-xs" : "text-sm")}>
-        <span className="text-muted-foreground">체중 기준</span>
+        <span className="text-muted-foreground">체중 기준 (선택)</span>
         <input
           name="weightLimitText"
           maxLength={40}
           className={cn(inputClass, "font-mono")}
-          placeholder="54"
+          placeholder="54 · 비우면 제한 없음"
           onBlur={(e) => {
             const normalized = normalizeWeightLimitInput(e.target.value);
             if (normalized !== e.target.value) {
