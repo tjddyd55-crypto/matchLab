@@ -14,7 +14,8 @@ function main() {
     ),
     "utf8",
   );
-  assert.match(picker, /현재 선수/);
+  assert.match(picker, /buildPickerOptionColumns/);
+  assert.match(picker, /pickerStatus|미배정/);
   assert.match(picker, /activeFighterId|currentFighterId/);
   assert.match(picker, /빈 슬롯/);
 

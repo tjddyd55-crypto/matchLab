@@ -1,12 +1,23 @@
 import type { OrganizerApprovedFighterOptionVM } from "@/lib/services/bracket.service";
 import type { OrganizerBracketMatchVM } from "@/lib/services/bracket.service";
+import {
+  buildFighterAssignmentMap,
+  formatAssignmentSummary,
+  formatAssignmentSummaryCompact,
+  getFighterAssignments,
+} from "@/lib/bracket-fighter-assignment";
 
 export type FighterPickerOptionState = {
   fighterId: string;
   selectable: boolean;
   reason?: string;
   warningReason?: string;
+  /** @deprecated assignmentSummary 사용 */
   statusHint?: string;
+  assignmentSummary: string;
+  /** picker grid 상태 column */
+  pickerStatus: string;
+  assignmentCount: number;
 };
 
 export function buildFighterPickerOptionStates(input: {
@@ -18,6 +29,7 @@ export function buildFighterPickerOptionStates(input: {
 }): Map<string, FighterPickerOptionState> {
   const { options, matches, matchId, slot, currentFighterId } = input;
   const result = new Map<string, FighterPickerOptionState>();
+  const assignmentMap = buildFighterAssignmentMap(matches);
 
   const currentMatch = matches.find((m) => m.id === matchId);
   const oppositeId =
@@ -26,7 +38,17 @@ export function buildFighterPickerOptionStates(input: {
       : currentMatch?.fighterRedId ?? "";
 
   for (const opt of options) {
-    const states: string[] = [];
+    const assignments = getFighterAssignments(assignmentMap, opt.fighterId);
+    const isCurrentSelection = opt.fighterId === currentFighterId;
+    const assignmentSummary = formatAssignmentSummary(assignments, {
+      currentMatchId: matchId,
+      isCurrentSelection,
+    });
+    const pickerStatus = formatAssignmentSummaryCompact(assignments, {
+      currentMatchId: matchId,
+      isCurrentSelection,
+    });
+
     let selectable = true;
     let reason: string | undefined;
     let warningReason: string | undefined;
@@ -46,13 +68,12 @@ export function buildFighterPickerOptionStates(input: {
       warningReason = opt.assignabilityWarningReason;
     }
 
-    const other = findFighterPlacement(matches, opt.fighterId, matchId);
-    if (other) {
-      states.push(`${other.label} 배정`);
+    const otherAssignments = assignments.filter((a) => a.matchId !== matchId);
+    if (otherAssignments.length > 0) {
       if (opt.fighterId !== currentFighterId && selectable) {
         reason =
           reason ??
-          `다른 경기 ${other.label} 배정 — 선택 시 기존 슬롯은 비워집니다`;
+          `다른 경기 ${formatAssignmentSummary(otherAssignments)} — 선택 시 기존 슬롯은 비워집니다`;
       }
     }
 
@@ -61,28 +82,14 @@ export function buildFighterPickerOptionStates(input: {
       selectable: selectable || opt.fighterId === currentFighterId,
       reason,
       warningReason,
-      statusHint: states.length > 0 ? states.join(" · ") : undefined,
+      statusHint: assignmentSummary === "미배정" ? undefined : assignmentSummary,
+      assignmentSummary,
+      pickerStatus,
+      assignmentCount: assignments.length,
     });
   }
 
   return result;
-}
-
-function findFighterPlacement(
-  matches: OrganizerBracketMatchVM[],
-  fighterId: string,
-  excludeMatchId: string,
-): { matchId: string; label: string } | null {
-  for (const m of matches) {
-    if (m.id === excludeMatchId) continue;
-    if (m.fighterRedId === fighterId) {
-      return { matchId: m.id, label: "홍코너" };
-    }
-    if (m.fighterBlueId === fighterId) {
-      return { matchId: m.id, label: "청코너" };
-    }
-  }
-  return null;
 }
 
 export function fighterNeedsMoveConfirm(
@@ -90,5 +97,7 @@ export function fighterNeedsMoveConfirm(
   fighterId: string,
   excludeMatchId: string,
 ): boolean {
-  return findFighterPlacement(matches, fighterId, excludeMatchId) !== null;
+  const assignmentMap = buildFighterAssignmentMap(matches);
+  const assignments = getFighterAssignments(assignmentMap, fighterId);
+  return assignments.some((a) => a.matchId !== excludeMatchId);
 }

@@ -12,8 +12,11 @@ import {
 import {
   ManualMatchCreatePanel,
   UnmatchedDraggableCardShell,
+  useManualMatchPlaceAthlete,
+  type ManualMatchPickSlot,
   type ManualMatchSlotAthlete,
 } from "@/components/domain/brackets/ManualMatchCreatePanel";
+import { useAppConfirmDialog } from "@/components/shared/app-confirm-dialog";
 import {
   buildCandidateMetaLine,
   resolveCandidateStatusBadge,
@@ -80,18 +83,144 @@ function candidateExtraMeta(option: OrganizerApprovedFighterOptionVM): string {
   return parts.join(" · ");
 }
 
-function athleteFromOption(
-  option: OrganizerApprovedFighterOptionVM,
-): ManualMatchSlotAthlete {
-  return {
-    fighterId: option.fighterId,
-    applicationId: option.applicationId,
-    fighterName: option.fighterName,
-    gymName: option.gymName,
-    label: option.label,
-    recordSummary: option.recordSummary,
-    applicationWeightKg: option.applicationWeightKg,
-  };
+function EventWideUnmatchedQuickBar({
+  options,
+  searchQuery,
+  onSearchChange,
+  slotIds,
+  activePickSlot,
+  onCardClick,
+  onAssignRed,
+  onAssignBlue,
+}: {
+  options: OrganizerApprovedFighterOptionVM[];
+  searchQuery: string;
+  onSearchChange: (q: string) => void;
+  slotIds: Set<string>;
+  activePickSlot: ManualMatchPickSlot | null;
+  onCardClick: (option: OrganizerApprovedFighterOptionVM) => void;
+  onAssignRed: (option: OrganizerApprovedFighterOptionVM) => void;
+  onAssignBlue: (option: OrganizerApprovedFighterOptionVM) => void;
+}) {
+  const q = searchQuery.trim().toLowerCase();
+  const filtered = q
+    ? options.filter(
+        (o) =>
+          o.fighterName.toLowerCase().includes(q) ||
+          o.gymName.toLowerCase().includes(q) ||
+          o.currentDivisionLabel.toLowerCase().includes(q) ||
+          o.appliedDivisionLabel.toLowerCase().includes(q),
+      )
+    : options;
+
+  return (
+    <section className="space-y-2 rounded-lg border bg-muted/10 p-3">
+      <div className="flex flex-wrap items-center justify-between gap-2">
+        <div>
+          <h3 className="text-sm font-semibold">전체 미배정 선수 빠른 배정</h3>
+          <p className="text-muted-foreground text-xs">
+            다른 경기구분 포함 · Match 미배정 선수만 ({options.length}명)
+          </p>
+        </div>
+        <input
+          className={cn(formControlFieldCompactClass, "max-w-xs")}
+          placeholder="선수명 · 체육관 · 경기구분"
+          value={searchQuery}
+          onChange={(e) => onSearchChange(e.target.value)}
+        />
+      </div>
+      {activePickSlot ? (
+        <p className="text-primary text-xs font-medium">
+          {activePickSlot === "red" ? "홍코너" : "청코너"} 선택 중 — 아래 선수를
+          클릭하세요
+        </p>
+      ) : null}
+      {filtered.length === 0 ? (
+        <p className="text-muted-foreground rounded border border-dashed px-3 py-2 text-center text-xs">
+          검색 결과가 없습니다.
+        </p>
+      ) : (
+        <ul className="flex gap-2 overflow-x-auto pb-1">
+          {filtered.map((o) => {
+            const inSlot = slotIds.has(o.fighterId);
+            const statusBadge = resolveCandidateStatusBadge(o);
+            const extra = candidateExtraMeta(o);
+            return (
+              <UnmatchedDraggableCardShell
+                key={o.applicationId}
+                fighterId={o.fighterId}
+                inSlot={inSlot}
+              >
+                <button
+                  type="button"
+                  className={cn(
+                    "min-w-[200px] max-w-[240px] text-left",
+                    activePickSlot && !inSlot ? "cursor-pointer" : undefined,
+                  )}
+                  onClick={() => {
+                    if (inSlot) return;
+                    onCardClick(o);
+                  }}
+                >
+                  <BracketFighterCompactCard
+                    fighterName={o.fighterName}
+                    gymName={o.gymName}
+                    metaLine={
+                      [
+                        o.isOtherDivision
+                          ? o.currentDivisionLabel
+                          : o.appliedDivisionLabel,
+                        extra,
+                      ]
+                        .filter(Boolean)
+                        .join(" · ") || undefined
+                    }
+                    statusBadges={
+                      <div className="flex flex-wrap items-center gap-1">
+                        {o.isOtherDivision ? (
+                          <BracketFighterCompactBadge
+                            label="다른 경기구분"
+                            variant="warning"
+                          />
+                        ) : null}
+                        <BracketFighterCompactBadge
+                          label={statusBadge.label}
+                          variant={statusBadge.variant}
+                          title={statusBadge.title}
+                        />
+                      </div>
+                    }
+                  />
+                </button>
+                {!inSlot ? (
+                  <div className="mt-1 flex gap-1">
+                    <Button
+                      type="button"
+                      size="xs"
+                      variant="outline"
+                      className="flex-1"
+                      onClick={() => onAssignRed(o)}
+                    >
+                      홍
+                    </Button>
+                    <Button
+                      type="button"
+                      size="xs"
+                      variant="outline"
+                      className="flex-1"
+                      onClick={() => onAssignBlue(o)}
+                    >
+                      청
+                    </Button>
+                  </div>
+                ) : null}
+              </UnmatchedDraggableCardShell>
+            );
+          })}
+        </ul>
+      )}
+    </section>
+  );
 }
 
 function sortByAnchorWeight(
@@ -161,14 +290,18 @@ function UnmatchedOptionCard({
   option,
   inSlot,
   showDivisionLine = false,
-  onMobilePair,
-  mobilePairLabel,
+  activePickSlot,
+  onCardClick,
+  onAssignRed,
+  onAssignBlue,
 }: {
   option: OrganizerApprovedFighterOptionVM;
   inSlot: boolean;
   showDivisionLine?: boolean;
-  onMobilePair?: () => void;
-  mobilePairLabel?: string;
+  activePickSlot?: ManualMatchPickSlot | null;
+  onCardClick?: () => void;
+  onAssignRed?: () => void;
+  onAssignBlue?: () => void;
 }) {
   const statusBadge = resolveCandidateStatusBadge(option);
   const extra = candidateExtraMeta(option);
@@ -180,49 +313,76 @@ function UnmatchedOptionCard({
   return (
     <UnmatchedDraggableCardShell fighterId={option.fighterId} inSlot={inSlot}>
       <div className="space-y-1">
-        <BracketFighterCompactCard
-          fighterName={option.fighterName}
-          gymName={option.gymName}
-          metaLine={
-            [
-              divisionLine,
-              extra,
-              inSlot ? "배치 중" : null,
-            ]
-              .filter(Boolean)
-              .join(" · ") || undefined
-          }
-          statusBadges={
-            <div className="flex flex-wrap items-center gap-1">
-              {option.isOtherDivision ? (
+        <button
+          type="button"
+          className={cn(
+            "w-full text-left",
+            activePickSlot && !inSlot ? "cursor-pointer rounded ring-offset-2 focus-visible:ring-2 focus-visible:ring-primary" : undefined,
+          )}
+          onClick={() => {
+            if (inSlot) return;
+            onCardClick?.();
+          }}
+        >
+          <BracketFighterCompactCard
+            fighterName={option.fighterName}
+            gymName={option.gymName}
+            metaLine={
+              [
+                divisionLine,
+                extra,
+                inSlot ? "배치 중" : null,
+              ]
+                .filter(Boolean)
+                .join(" · ") || undefined
+            }
+            statusBadges={
+              <div className="flex flex-wrap items-center gap-1">
+                {option.isOtherDivision ? (
+                  <BracketFighterCompactBadge
+                    label="다른 경기구분"
+                    variant="warning"
+                  />
+                ) : null}
                 <BracketFighterCompactBadge
-                  label="다른 경기구분"
-                  variant="warning"
+                  label={statusBadge.label}
+                  variant={statusBadge.variant}
+                  title={statusBadge.title}
                 />
-              ) : null}
-              <BracketFighterCompactBadge
-                label={statusBadge.label}
-                variant={statusBadge.variant}
-                title={statusBadge.title}
-              />
-            </div>
-          }
-        />
+              </div>
+            }
+          />
+        </button>
         {appliedDiffers ? (
           <p className="text-muted-foreground text-[11px]">
             신청: {option.appliedDivisionLabel}
           </p>
         ) : null}
-        {onMobilePair ? (
-          <Button
-            type="button"
-            size="xs"
-            variant="secondary"
-            className="mt-1 w-full md:hidden"
-            onClick={onMobilePair}
-          >
-            {mobilePairLabel ?? "이 선수와 매칭"}
-          </Button>
+        {!inSlot && (onAssignRed || onAssignBlue) ? (
+          <div className="flex gap-1">
+            {onAssignRed ? (
+              <Button
+                type="button"
+                size="xs"
+                variant="outline"
+                className="flex-1"
+                onClick={onAssignRed}
+              >
+                홍코너
+              </Button>
+            ) : null}
+            {onAssignBlue ? (
+              <Button
+                type="button"
+                size="xs"
+                variant="outline"
+                className="flex-1"
+                onClick={onAssignBlue}
+              >
+                청코너
+              </Button>
+            ) : null}
+          </div>
         ) : null}
       </div>
     </UnmatchedDraggableCardShell>
@@ -316,6 +476,11 @@ export function BracketApprovedCandidatesSection({
   const [createPending, setCreatePending] = useState(false);
   const [unmatchedTab, setUnmatchedTab] = useState<UnmatchedTab>("division");
   const [searchQuery, setSearchQuery] = useState("");
+  const [quickBarSearch, setQuickBarSearch] = useState("");
+  const [activePickSlot, setActivePickSlot] = useState<ManualMatchPickSlot | null>(
+    null,
+  );
+  const { alert } = useAppConfirmDialog();
 
   const manualCandidateMap = useMemo(() => {
     const map = new Map<string, OrganizerApprovedFighterOptionVM>();
@@ -375,20 +540,29 @@ export function BracketApprovedCandidatesSection({
 
   const showManualCreate = bracketType === BracketType.match_list;
 
-  function mobilePairHandler(option: OrganizerApprovedFighterOptionVM) {
-    if (slotIds.has(option.fighterId)) return undefined;
-    const anchor = red ?? blue;
-    if (!anchor) return undefined;
-    return () => {
-      const athlete = athleteFromOption(option);
-      if (red && !blue && red.fighterId !== option.fighterId) {
-        setBlue(athlete);
-        return;
-      }
-      if (blue && !red && blue.fighterId !== option.fighterId) {
-        setRed(athlete);
-      }
-    };
+  const placeAthlete = useManualMatchPlaceAthlete({
+    byId: manualCandidateMap,
+    red,
+    blue,
+    onRedChange: setRed,
+    onBlueChange: setBlue,
+    onActivePickSlotChange: setActivePickSlot,
+    alert,
+  });
+
+  function handleCardPick(option: OrganizerApprovedFighterOptionVM) {
+    if (slotIds.has(option.fighterId)) return;
+    if (activePickSlot) {
+      placeAthlete(activePickSlot, option.fighterId);
+      return;
+    }
+    if (!red) {
+      placeAthlete("red", option.fighterId);
+      return;
+    }
+    if (!blue && red.fighterId !== option.fighterId) {
+      placeAthlete("blue", option.fighterId);
+    }
   }
 
   return (
@@ -495,24 +669,7 @@ export function BracketApprovedCandidatesSection({
                 </div>
               ) : null
             }
-            footer={
-              showManualCreate ? (
-                <ManualMatchCreatePanel
-                  bracketId={bracketId}
-                  defaultCourtId={defaultCourtId}
-                  unmatched={manualCandidates}
-                  targetDivisionId={targetDivisionId}
-                  targetDivisionLabel={targetDivisionLabel}
-                  targetDivisionGender={targetDivisionGender}
-                  red={red}
-                  blue={blue}
-                  onRedChange={setRed}
-                  onBlueChange={setBlue}
-                  pending={createPending}
-                  setPendingExternal={setCreatePending}
-                />
-              ) : null
-            }
+            footer={null}
           >
             {visibleUnmatched.map((o) => {
               const inSlot = slotIds.has(o.fighterId);
@@ -533,12 +690,47 @@ export function BracketApprovedCandidatesSection({
                   option={o}
                   inSlot={inSlot}
                   showDivisionLine={unmatchedTab === "event"}
-                  onMobilePair={mobilePairHandler(o)}
+                  activePickSlot={activePickSlot}
+                  onCardClick={() => handleCardPick(o)}
+                  onAssignRed={() => placeAthlete("red", o.fighterId)}
+                  onAssignBlue={() => placeAthlete("blue", o.fighterId)}
                 />
               );
             })}
           </CandidateColumn>
         </div>
+
+        {showManualCreate && eventWideUnmatchedOptions.length > 0 ? (
+          <EventWideUnmatchedQuickBar
+            options={eventWideUnmatchedOptions}
+            searchQuery={quickBarSearch}
+            onSearchChange={setQuickBarSearch}
+            slotIds={slotIds}
+            activePickSlot={activePickSlot}
+            onCardClick={handleCardPick}
+            onAssignRed={(o) => placeAthlete("red", o.fighterId)}
+            onAssignBlue={(o) => placeAthlete("blue", o.fighterId)}
+          />
+        ) : null}
+
+        {showManualCreate ? (
+          <ManualMatchCreatePanel
+            bracketId={bracketId}
+            defaultCourtId={defaultCourtId}
+            unmatched={manualCandidates}
+            targetDivisionId={targetDivisionId}
+            targetDivisionLabel={targetDivisionLabel}
+            targetDivisionGender={targetDivisionGender}
+            red={red}
+            blue={blue}
+            onRedChange={setRed}
+            onBlueChange={setBlue}
+            pending={createPending}
+            setPendingExternal={setCreatePending}
+            activePickSlot={activePickSlot}
+            onActivePickSlotChange={setActivePickSlot}
+          />
+        ) : null}
       </CardContent>
     </Card>
   );
