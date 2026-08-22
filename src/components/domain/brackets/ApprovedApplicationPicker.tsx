@@ -1,6 +1,15 @@
 "use client";
 
-import { useEffect, useId, useMemo, useRef, useState } from "react";
+import {
+  useCallback,
+  useEffect,
+  useId,
+  useLayoutEffect,
+  useMemo,
+  useRef,
+  useState,
+} from "react";
+import { createPortal } from "react-dom";
 import type { OrganizerApprovedFighterOptionVM } from "@/lib/services/bracket.service";
 import type { FighterPickerOptionState } from "@/lib/bracket-fighter-picker";
 import {
@@ -17,8 +26,20 @@ import {
 import { organizerBracketFieldSelectClass } from "@/lib/ui/organizer-bracket-ui";
 import { cn } from "@/lib/utils";
 
-const PICKER_GRID_CLASS =
-  "grid w-full min-w-0 grid-cols-[7.5rem_minmax(9rem,1.4fr)_minmax(7rem,1fr)_3.5rem_minmax(5.5rem,1fr)] items-center gap-x-2";
+export const PICKER_GRID_CLASS =
+  "grid w-full min-w-0 grid-cols-[8rem_minmax(10rem,1.5fr)_minmax(8rem,1fr)_4rem_minmax(6rem,1fr)] items-center gap-x-3";
+
+const POPUP_MIN_WIDTH = 560;
+const POPUP_MAX_WIDTH = 680;
+const POPUP_MAX_HEIGHT = 320;
+const POPUP_Z_INDEX = 100;
+
+type PopupPosition = {
+  top: number;
+  left: number;
+  width: number;
+  maxHeight: number;
+};
 
 type ResolvedPickerOption = {
   option: OrganizerApprovedFighterOptionVM;
@@ -71,7 +92,7 @@ function PickerGridHeader() {
     <div
       className={cn(
         PICKER_GRID_CLASS,
-        "text-muted-foreground hidden border-b px-2 py-1.5 text-[10px] font-medium sm:grid",
+        "text-muted-foreground hidden border-b bg-popover px-3 py-2 text-[10px] font-medium sm:grid",
       )}
       aria-hidden
     >
@@ -164,7 +185,7 @@ function PickerGridRow({
   warningReason?: string;
 }) {
   return (
-    <>
+    <div className="min-h-[52px] py-1">
       <PickerGridRowDesktop columns={columns} selectable={selectable} />
       <PickerGridRowMobile columns={columns} />
       {warningReason ? (
@@ -172,8 +193,38 @@ function PickerGridRow({
           ⚠ {shortenAssignabilityReason(warningReason)}
         </p>
       ) : null}
-    </>
+    </div>
   );
+}
+
+function computePopupPosition(trigger: HTMLElement): PopupPosition {
+  const rect = trigger.getBoundingClientRect();
+  const margin = 8;
+  const viewportW = window.innerWidth;
+  const viewportH = window.innerHeight;
+  const width = Math.min(
+    POPUP_MAX_WIDTH,
+    Math.max(POPUP_MIN_WIDTH, rect.width, viewportW - margin * 2),
+  );
+
+  let left = rect.left;
+  if (left + width > viewportW - margin) {
+    left = viewportW - margin - width;
+  }
+  if (left < margin) left = margin;
+
+  const spaceBelow = viewportH - rect.bottom - margin;
+  const spaceAbove = rect.top - margin;
+  const openBelow = spaceBelow >= 180 || spaceBelow >= spaceAbove;
+  const maxHeight = Math.min(
+    POPUP_MAX_HEIGHT,
+    openBelow ? spaceBelow - 4 : spaceAbove - 4,
+  );
+  const top = openBelow
+    ? rect.bottom + 4
+    : Math.max(margin, rect.top - maxHeight - 4);
+
+  return { top, left, width, maxHeight: Math.max(160, maxHeight) };
 }
 
 export function ApprovedApplicationPicker({
@@ -211,21 +262,48 @@ export function ApprovedApplicationPicker({
   );
   const listboxId = useId();
   const rootRef = useRef<HTMLDivElement>(null);
+  const triggerRef = useRef<HTMLButtonElement>(null);
+  const popupRef = useRef<HTMLDivElement>(null);
   const [open, setOpen] = useState(false);
   const [internalValue, setInternalValue] = useState(value);
+  const [popupPosition, setPopupPosition] = useState<PopupPosition | null>(
+    null,
+  );
+  const [mounted, setMounted] = useState(false);
 
   const activeFighterId = currentFighterId ?? value ?? internalValue;
+
+  useEffect(() => {
+    setMounted(true);
+  }, []);
 
   useEffect(() => {
     setInternalValue(value);
   }, [value]);
 
+  const updatePopupPosition = useCallback(() => {
+    if (!triggerRef.current) return;
+    setPopupPosition(computePopupPosition(triggerRef.current));
+  }, []);
+
+  useLayoutEffect(() => {
+    if (!open) return;
+    updatePopupPosition();
+    window.addEventListener("resize", updatePopupPosition);
+    window.addEventListener("scroll", updatePopupPosition, true);
+    return () => {
+      window.removeEventListener("resize", updatePopupPosition);
+      window.removeEventListener("scroll", updatePopupPosition, true);
+    };
+  }, [open, updatePopupPosition]);
+
   useEffect(() => {
     if (!open) return;
     function onPointerDown(e: MouseEvent) {
-      if (!rootRef.current?.contains(e.target as Node)) {
-        setOpen(false);
-      }
+      const target = e.target as Node;
+      if (rootRef.current?.contains(target)) return;
+      if (popupRef.current?.contains(target)) return;
+      setOpen(false);
     }
     function onKeyDown(e: KeyboardEvent) {
       if (e.key === "Escape") setOpen(false);
@@ -357,40 +435,28 @@ export function ApprovedApplicationPicker({
     ? `${selectedRow.columns.status} · ${selectedRow.columns.fighterName}`
     : placeholder ?? "빈 슬롯";
 
-  return (
-    <div ref={rootRef} className="relative min-w-0">
-      {name ? (
-        <input type="hidden" name={name} value={internalValue} required={required} />
-      ) : null}
-
-      <button
-        type="button"
-        disabled={disabled}
-        aria-haspopup="listbox"
-        aria-expanded={open}
-        aria-controls={listboxId}
-        className={cn(
-          triggerClass,
-          disabled && "cursor-not-allowed opacity-50",
-        )}
-        onClick={() => {
-          if (disabled) return;
-          setOpen((v) => !v);
+  const popup =
+    open && popupPosition && mounted ? (
+      <div
+        ref={popupRef}
+        id={listboxId}
+        role="listbox"
+        style={{
+          position: "fixed",
+          top: popupPosition.top,
+          left: popupPosition.left,
+          width: popupPosition.width,
+          zIndex: POPUP_Z_INDEX,
         }}
+        className="overflow-hidden rounded-md border bg-popover shadow-lg ring-1 ring-border/60"
       >
-        <span className="min-w-0 truncate">{triggerLabel}</span>
-        <span className="text-muted-foreground shrink-0 text-[10px]" aria-hidden>
-          ▾
-        </span>
-      </button>
-
-      {open ? (
-        <div
-          id={listboxId}
-          role="listbox"
-          className="absolute z-50 mt-1 max-h-72 w-[min(100vw-2rem,36rem)] min-w-full overflow-y-auto overflow-x-hidden rounded-md border bg-popover py-1 shadow-md"
-        >
+        <div className="sticky top-0 z-10 bg-popover">
           <PickerGridHeader />
+        </div>
+        <div
+          className="overflow-y-auto overflow-x-hidden [scrollbar-gutter:stable]"
+          style={{ maxHeight: popupPosition.maxHeight }}
+        >
           <ul className="divide-y divide-border/60">
             {resolvedOptions.map((row) => {
               const isSelected =
@@ -403,7 +469,9 @@ export function ApprovedApplicationPicker({
                 row.option.fighterId !== activeFighterId;
 
               return (
-                <li key={row.mode === "empty" ? "__empty__" : row.option.fighterId}>
+                <li
+                  key={row.mode === "empty" ? "__empty__" : row.option.fighterId}
+                >
                   <button
                     type="button"
                     role="option"
@@ -411,7 +479,7 @@ export function ApprovedApplicationPicker({
                     disabled={isDisabled}
                     title={row.title}
                     className={cn(
-                      "w-full px-2 py-2 text-left transition-colors hover:bg-muted/60",
+                      "w-full px-3 py-1 text-left transition-colors hover:bg-muted/60",
                       isSelected && "bg-primary/5",
                       isDisabled && "cursor-not-allowed opacity-50",
                       row.warningReason &&
@@ -441,7 +509,43 @@ export function ApprovedApplicationPicker({
             })}
           </ul>
         </div>
+      </div>
+    ) : null;
+
+  return (
+    <div ref={rootRef} className="relative min-w-0">
+      {name ? (
+        <input
+          type="hidden"
+          name={name}
+          value={internalValue}
+          required={required}
+        />
       ) : null}
+
+      <button
+        ref={triggerRef}
+        type="button"
+        disabled={disabled}
+        aria-haspopup="listbox"
+        aria-expanded={open}
+        aria-controls={open ? listboxId : undefined}
+        className={cn(
+          triggerClass,
+          disabled && "cursor-not-allowed opacity-50",
+        )}
+        onClick={() => {
+          if (disabled) return;
+          setOpen((v) => !v);
+        }}
+      >
+        <span className="min-w-0 truncate">{triggerLabel}</span>
+        <span className="text-muted-foreground shrink-0 text-[10px]" aria-hidden>
+          ▾
+        </span>
+      </button>
+
+      {mounted && popup ? createPortal(popup, document.body) : null}
     </div>
   );
 }

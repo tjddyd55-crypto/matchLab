@@ -2,6 +2,7 @@
 
 import {
   useCallback,
+  useEffect,
   useId,
   useMemo,
   useRef,
@@ -22,7 +23,7 @@ import {
 } from "@/components/ui/dialog";
 import { createManualMatchWithPairAction } from "@/features/brackets/actions";
 import {
-  buildCrossDivisionManualMatchDescription,
+  buildManualMatchConfirmDescription,
   buildManualPairWarnings,
   fightersRequiringDivisionMove,
   type ManualMatchPairSide,
@@ -208,6 +209,8 @@ export function ManualMatchCreatePanel({
   setPendingExternal,
   activePickSlot,
   onActivePickSlotChange,
+  dockExpanded,
+  onDockExpandedChange,
   sticky = true,
 }: {
   bracketId: string;
@@ -224,6 +227,8 @@ export function ManualMatchCreatePanel({
   setPendingExternal: (v: boolean) => void;
   activePickSlot: ManualMatchPickSlot | null;
   onActivePickSlotChange: (slot: ManualMatchPickSlot | null) => void;
+  dockExpanded: boolean;
+  onDockExpandedChange: (expanded: boolean) => void;
   sticky?: boolean;
 }) {
   const router = useRouter();
@@ -231,8 +236,9 @@ export function ManualMatchCreatePanel({
   const [, startTransition] = useTransition();
   const [dragOverSlot, setDragOverSlot] = useState<SlotKey | null>(null);
   const [pickerSlot, setPickerSlot] = useState<SlotKey | null>(null);
-  const [collapsed, setCollapsed] = useState(false);
+  const [dockHeight, setDockHeight] = useState(48);
   const confirmPairKeyRef = useRef<string | null>(null);
+  const dockRef = useRef<HTMLElement>(null);
   const titleId = useId();
 
   const byId = useMemo(() => {
@@ -240,6 +246,16 @@ export function ManualMatchCreatePanel({
     for (const o of unmatched) map.set(o.fighterId, o);
     return map;
   }, [unmatched]);
+
+  useEffect(() => {
+    if (!sticky || !dockRef.current) return;
+    const node = dockRef.current;
+    const update = () => setDockHeight(node.getBoundingClientRect().height);
+    update();
+    const ro = new ResizeObserver(update);
+    ro.observe(node);
+    return () => ro.disconnect();
+  }, [sticky, dockExpanded, red, blue, pending]);
 
   const placeAthlete = useCallback(
     (slot: SlotKey, fighterId: string) => {
@@ -280,6 +296,7 @@ export function ManualMatchCreatePanel({
         onBlueChange(athlete);
       }
       onActivePickSlotChange(null);
+      onDockExpandedChange(true);
     },
     [
       alert,
@@ -287,6 +304,7 @@ export function ManualMatchCreatePanel({
       byId,
       onActivePickSlotChange,
       onBlueChange,
+      onDockExpandedChange,
       onRedChange,
       red?.fighterId,
     ],
@@ -325,26 +343,17 @@ export function ManualMatchCreatePanel({
     );
     const isCrossDivision = moveIds.length > 0;
 
-    const description = isCrossDivision
-      ? buildCrossDivisionManualMatchDescription({
-          red: redSide,
-          blue: blueSide,
-          targetDivisionLabel: targetDivisionLabel ?? "현재 그룹",
-          moveFighters: [redSide, blueSide].filter((side) =>
+    const description = buildManualMatchConfirmDescription({
+      red: redSide,
+      blue: blueSide,
+      targetDivisionLabel: targetDivisionLabel ?? "현재 그룹",
+      moveFighters: isCrossDivision
+        ? [redSide, blueSide].filter((side) =>
             moveIds.some((m) => m.fighterId === side.fighterId),
-          ),
-          warnings,
-        })
-      : [
-          `홍코너\n${red.gymName} · ${red.fighterName}`,
-          "",
-          `청코너\n${blue.gymName} · ${blue.fighterName}`,
-          "",
-          "두 선수로 새 경기를 생성합니다.",
-          ...(warnings.length
-            ? ["", ...warnings.map((w) => `⚠ ${w.label}`)]
-            : []),
-        ].join("\n");
+          )
+        : [],
+      warnings,
+    });
 
     const ok = await confirm({
       title: isCrossDivision
@@ -425,8 +434,17 @@ export function ManualMatchCreatePanel({
 
   const canCreate = Boolean(red && blue && !pending);
 
-  const dockBody = (
-    <>
+  const selectionHint =
+    red && blue
+      ? "홍/청 선택됨"
+      : red
+        ? "홍 선택됨"
+        : blue
+          ? "청 선택됨"
+          : null;
+
+  const dockBody = dockExpanded ? (
+    <div className="max-h-[32vh] space-y-2 overflow-y-auto overflow-x-hidden pr-1">
       <div className="flex items-start justify-between gap-2">
         <div>
           <h4 id={titleId} className="text-sm font-semibold">
@@ -442,16 +460,14 @@ export function ManualMatchCreatePanel({
             variant="ghost"
             size="sm"
             className="shrink-0 text-xs"
-            onClick={() => setCollapsed((v) => !v)}
+            onClick={() => onDockExpandedChange(false)}
           >
-            {collapsed ? "펼치기" : "접기"}
+            접기
           </Button>
         ) : null}
       </div>
 
-      {!collapsed ? (
-        <>
-          <div className="grid grid-cols-2 gap-2">
+      <div className="grid grid-cols-2 gap-2">
             <DropSlot
               corner="홍코너"
               athlete={red}
@@ -507,19 +523,32 @@ export function ManualMatchCreatePanel({
               경기 생성
             </Button>
           </div>
-        </>
-      ) : (
-        <p className="text-muted-foreground text-xs">
-          {red || blue
-            ? `${red ? "홍" : ""}${red && blue ? " · " : ""}${blue ? "청" : ""} 선택됨 — 펼쳐서 확인`
-            : "슬롯 비어 있음 — 펼쳐서 배정"}
-        </p>
-      )}
 
       {pending ? (
         <p className="text-muted-foreground text-center text-xs">생성 중…</p>
       ) : null}
-    </>
+    </div>
+  ) : (
+    <div className="flex h-11 items-center justify-between gap-2">
+      <p className="min-w-0 truncate text-sm font-semibold">
+        수동 경기 만들기
+        {selectionHint ? (
+          <span className="text-muted-foreground font-normal">
+            {" "}
+            · {selectionHint}
+          </span>
+        ) : null}
+      </p>
+      <Button
+        type="button"
+        variant="ghost"
+        size="sm"
+        className="shrink-0 text-xs"
+        onClick={() => onDockExpandedChange(true)}
+      >
+        펼치기
+      </Button>
+    </div>
   );
 
   if (unmatched.length === 0) {
@@ -535,24 +564,27 @@ export function ManualMatchCreatePanel({
   return (
     <>
       <section
+        ref={dockRef}
         className={cn(
           sticky
-            ? "fixed bottom-0 left-0 right-0 z-50 border-t bg-background/95 px-4 py-3 shadow-[0_-4px_24px_rgba(0,0,0,0.08)] backdrop-blur supports-[backdrop-filter]:bg-background/85"
+            ? "fixed bottom-0 left-0 right-0 z-50 border-t bg-background/95 px-4 shadow-[0_-4px_24px_rgba(0,0,0,0.08)] backdrop-blur supports-[backdrop-filter]:bg-background/85 pb-[max(0.5rem,env(safe-area-inset-bottom))]"
             : "space-y-2 border-t pt-3",
+          dockExpanded ? "py-3" : "py-2",
         )}
         aria-labelledby={titleId}
       >
-        <div
-          className={cn(
-            "mx-auto space-y-2",
-            sticky ? "max-w-6xl" : undefined,
-          )}
-        >
+        <div className={cn("mx-auto", sticky ? "max-w-6xl" : undefined)}>
           {dockBody}
         </div>
       </section>
 
-      {sticky ? <div className="h-40 shrink-0" aria-hidden /> : null}
+      {sticky ? (
+        <div
+          className="shrink-0"
+          style={{ height: dockHeight + 8 }}
+          aria-hidden
+        />
+      ) : null}
 
       <Dialog
         open={pickerSlot != null}
@@ -611,6 +643,7 @@ export function useManualMatchPlaceAthlete(input: {
   onRedChange: (v: ManualMatchSlotAthlete | null) => void;
   onBlueChange: (v: ManualMatchSlotAthlete | null) => void;
   onActivePickSlotChange: (slot: ManualMatchPickSlot | null) => void;
+  onDockExpand?: () => void;
   alert: (opts: { title: string; description?: string }) => Promise<void>;
 }) {
   return useCallback(
@@ -644,6 +677,7 @@ export function useManualMatchPlaceAthlete(input: {
         input.onBlueChange(athlete);
       }
       input.onActivePickSlotChange(null);
+      input.onDockExpand?.();
     },
     [input],
   );
@@ -652,10 +686,12 @@ export function useManualMatchPlaceAthlete(input: {
 export function UnmatchedDraggableCardShell({
   fighterId,
   inSlot,
+  onDragStart,
   children,
 }: {
   fighterId: string;
   inSlot: boolean;
+  onDragStart?: () => void;
   children: ReactNode;
 }) {
   return (
@@ -667,6 +703,7 @@ export function UnmatchedDraggableCardShell({
           return;
         }
         setUnmatchedDragPayload(e, fighterId);
+        onDragStart?.();
       }}
       className={cn(
         "rounded-lg border bg-muted/20 px-2 py-1.5",
