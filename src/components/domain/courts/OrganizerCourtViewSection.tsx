@@ -1,9 +1,12 @@
+import Link from "next/link";
+import { buttonVariants } from "@/components/ui/button";
+import { BracketsEmptyState } from "@/components/domain/brackets/BracketsEmptyState";
+import { OrganizerCourtBracketPanel } from "@/components/domain/courts/OrganizerCourtBracketPanel";
 import { requireActor } from "@/lib/auth/actor";
 import { requireOrganizerForEventPage } from "@/lib/permissions";
 import { eventCourtService } from "@/lib/services/event-court.service";
 import { matchService } from "@/lib/services/match.service";
-import { OrganizerCourtBracketPanel } from "@/components/domain/courts/OrganizerCourtBracketPanel";
-import { BracketsEmptyState } from "@/components/domain/brackets/BracketsEmptyState";
+import { cn } from "@/lib/utils";
 
 /** 대진표 보기 탭 — 경기장별 대진·순서 조정 */
 export async function OrganizerCourtViewSection({
@@ -23,7 +26,17 @@ export async function OrganizerCourtViewSection({
 
   return (
     <section id="event-courts" className="flex flex-col gap-3">
-      <h2 className="text-lg font-semibold">경기장별 대진표</h2>
+      <div className="flex flex-wrap items-center justify-between gap-2">
+        <h2 className="text-lg font-semibold">경기장별 대진표</h2>
+        {eventMatches.length > 0 ? (
+          <Link
+            href={`/organizer/events/${eventId}/brackets/print`}
+            className={cn(buttonVariants({ variant: "outline", size: "sm" }))}
+          >
+            시합 대진표 출력
+          </Link>
+        ) : null}
+      </div>
 
       {activeCourts.length === 0 ? (
         <BracketsEmptyState message="경기장을 먼저 추가하세요. 대진표 생성 탭에서 경기장을 만들 수 있습니다." />
