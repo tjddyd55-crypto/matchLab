@@ -354,6 +354,21 @@ export const applicationRepository = {
     });
   },
 
+  /** 수동 교차 편성 — 현재 배정 EventDivision만 변경 (신청 snapshot 불변). */
+  async updateApplicationDivisionAssignment(
+    applicationId: string,
+    divisionId: string,
+    tx?: Prisma.TransactionClient,
+  ): Promise<void> {
+    await db(tx).eventApplication.update({
+      where: { id: applicationId },
+      data: {
+        divisionId,
+        divisionSelectionType: "REGISTERED",
+      },
+    });
+  },
+
   async updateApplicationPaymentStatusCache(
     applicationId: string,
     paymentStatus: PaymentStatus,

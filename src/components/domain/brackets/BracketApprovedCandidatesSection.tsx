@@ -21,6 +21,7 @@ import {
   type BracketFighterPlacementMeta,
 } from "@/lib/bracket-fighter-compact-display";
 import { FeedbackMessage } from "@/components/shared/FeedbackMessage";
+import { Button } from "@/components/ui/button";
 import {
   Card,
   CardContent,
@@ -28,9 +29,12 @@ import {
   CardHeader,
   CardTitle,
 } from "@/components/ui/card";
+import { formControlFieldCompactClass } from "@/lib/ui/form-control-ui";
 import { formatMatchOrderShort } from "@/lib/match-order-display";
 import { BracketType } from "@/lib/enums";
 import { cn } from "@/lib/utils";
+
+type UnmatchedTab = "division" | "event";
 
 function buildPlacementMap(
   matches: OrganizerBracketMatchVM[],
@@ -71,9 +75,42 @@ function candidateExtraMeta(option: OrganizerApprovedFighterOptionVM): string {
     parts.push(option.recordSummary.replace(/\s+/g, ""));
   }
   if (option.applicationWeightKg != null) {
-    parts.push(`신청체중 ${option.applicationWeightKg}kg`);
+    parts.push(`${option.applicationWeightKg}kg`);
   }
   return parts.join(" · ");
+}
+
+function athleteFromOption(
+  option: OrganizerApprovedFighterOptionVM,
+): ManualMatchSlotAthlete {
+  return {
+    fighterId: option.fighterId,
+    applicationId: option.applicationId,
+    fighterName: option.fighterName,
+    gymName: option.gymName,
+    label: option.label,
+    recordSummary: option.recordSummary,
+    applicationWeightKg: option.applicationWeightKg,
+  };
+}
+
+function sortByAnchorWeight(
+  list: OrganizerApprovedFighterOptionVM[],
+  anchorKg: number | null,
+): OrganizerApprovedFighterOptionVM[] {
+  if (anchorKg == null) return list;
+  return [...list].sort((a, b) => {
+    const da =
+      a.applicationWeightKg != null
+        ? Math.abs(a.applicationWeightKg - anchorKg)
+        : Number.POSITIVE_INFINITY;
+    const db =
+      b.applicationWeightKg != null
+        ? Math.abs(b.applicationWeightKg - anchorKg)
+        : Number.POSITIVE_INFINITY;
+    if (da !== db) return da - db;
+    return a.fighterName.localeCompare(b.fighterName, "ko");
+  });
 }
 
 function CandidateCard({
@@ -120,6 +157,78 @@ function CandidateCard({
   );
 }
 
+function UnmatchedOptionCard({
+  option,
+  inSlot,
+  showDivisionLine = false,
+  onMobilePair,
+  mobilePairLabel,
+}: {
+  option: OrganizerApprovedFighterOptionVM;
+  inSlot: boolean;
+  showDivisionLine?: boolean;
+  onMobilePair?: () => void;
+  mobilePairLabel?: string;
+}) {
+  const statusBadge = resolveCandidateStatusBadge(option);
+  const extra = candidateExtraMeta(option);
+  const divisionLine = showDivisionLine ? option.currentDivisionLabel : null;
+  const appliedDiffers =
+    showDivisionLine &&
+    option.appliedDivisionLabel !== option.currentDivisionLabel;
+
+  return (
+    <UnmatchedDraggableCardShell fighterId={option.fighterId} inSlot={inSlot}>
+      <div className="space-y-1">
+        <BracketFighterCompactCard
+          fighterName={option.fighterName}
+          gymName={option.gymName}
+          metaLine={
+            [
+              divisionLine,
+              extra,
+              inSlot ? "배치 중" : null,
+            ]
+              .filter(Boolean)
+              .join(" · ") || undefined
+          }
+          statusBadges={
+            <div className="flex flex-wrap items-center gap-1">
+              {option.isOtherDivision ? (
+                <BracketFighterCompactBadge
+                  label="다른 경기구분"
+                  variant="warning"
+                />
+              ) : null}
+              <BracketFighterCompactBadge
+                label={statusBadge.label}
+                variant={statusBadge.variant}
+                title={statusBadge.title}
+              />
+            </div>
+          }
+        />
+        {appliedDiffers ? (
+          <p className="text-muted-foreground text-[11px]">
+            신청: {option.appliedDivisionLabel}
+          </p>
+        ) : null}
+        {onMobilePair ? (
+          <Button
+            type="button"
+            size="xs"
+            variant="secondary"
+            className="mt-1 w-full md:hidden"
+            onClick={onMobilePair}
+          >
+            {mobilePairLabel ?? "이 선수와 매칭"}
+          </Button>
+        ) : null}
+      </div>
+    </UnmatchedDraggableCardShell>
+  );
+}
+
 function CandidateColumn({
   title,
   count,
@@ -127,6 +236,7 @@ function CandidateColumn({
   emptyMessage,
   children,
   footer,
+  headerExtra,
 }: {
   title: string;
   count: number;
@@ -134,20 +244,24 @@ function CandidateColumn({
   emptyMessage: string;
   children: React.ReactNode;
   footer?: React.ReactNode;
+  headerExtra?: React.ReactNode;
 }) {
   return (
     <div className="min-w-0 space-y-2">
-      <h3 className="flex items-center gap-2 border-b pb-2 text-sm font-semibold">
-        <span>{title}</span>
-        <span
-          className={cn(
-            "inline-flex h-5 min-w-5 items-center justify-center rounded-full px-1.5 text-xs font-medium",
-            accentClassName ?? "bg-muted text-muted-foreground",
-          )}
-        >
-          {count}
-        </span>
-      </h3>
+      <div className="space-y-2 border-b pb-2">
+        <h3 className="flex items-center gap-2 text-sm font-semibold">
+          <span>{title}</span>
+          <span
+            className={cn(
+              "inline-flex h-5 min-w-5 items-center justify-center rounded-full px-1.5 text-xs font-medium",
+              accentClassName ?? "bg-muted text-muted-foreground",
+            )}
+          >
+            {count}
+          </span>
+        </h3>
+        {headerExtra}
+      </div>
       {count > 0 ? (
         <ul className="grid gap-1.5">{children}</ul>
       ) : (
@@ -162,16 +276,24 @@ function CandidateColumn({
 
 export function BracketApprovedCandidatesSection({
   options,
+  eventWideUnmatchedOptions,
   matches,
   bracketId,
   bracketType,
   defaultCourtId,
+  targetDivisionId,
+  targetDivisionLabel,
+  targetDivisionGender,
 }: {
   options: OrganizerApprovedFighterOptionVM[];
+  eventWideUnmatchedOptions: OrganizerApprovedFighterOptionVM[];
   matches: OrganizerBracketMatchVM[];
   bracketId: string;
   bracketType: BracketType;
   defaultCourtId?: string;
+  targetDivisionId: string | null;
+  targetDivisionLabel: string | null;
+  targetDivisionGender?: string | null;
 }) {
   const placementMap = useMemo(() => buildPlacementMap(matches), [matches]);
   const placedIds = useMemo(() => new Set(placementMap.keys()), [placementMap]);
@@ -192,10 +314,24 @@ export function BracketApprovedCandidatesSection({
   const [red, setRed] = useState<ManualMatchSlotAthlete | null>(null);
   const [blue, setBlue] = useState<ManualMatchSlotAthlete | null>(null);
   const [createPending, setCreatePending] = useState(false);
+  const [unmatchedTab, setUnmatchedTab] = useState<UnmatchedTab>("division");
+  const [searchQuery, setSearchQuery] = useState("");
+
+  const manualCandidateMap = useMemo(() => {
+    const map = new Map<string, OrganizerApprovedFighterOptionVM>();
+    for (const o of grouped.unassigned) map.set(o.fighterId, o);
+    for (const o of eventWideUnmatchedOptions) map.set(o.fighterId, o);
+    return map;
+  }, [grouped.unassigned, eventWideUnmatchedOptions]);
+
+  const manualCandidates = useMemo(
+    () => [...manualCandidateMap.values()],
+    [manualCandidateMap],
+  );
 
   const unmatchedIds = useMemo(
-    () => new Set(grouped.unassigned.map((o) => o.fighterId)),
-    [grouped.unassigned],
+    () => new Set(manualCandidates.map((o) => o.fighterId)),
+    [manualCandidates],
   );
 
   useEffect(() => {
@@ -210,19 +346,59 @@ export function BracketApprovedCandidatesSection({
     return s;
   }, [red, blue]);
 
+  const anchorWeight = red?.applicationWeightKg ?? blue?.applicationWeightKg ?? null;
+
+  const filteredEventWide = useMemo(() => {
+    const q = searchQuery.trim().toLowerCase();
+    let list = eventWideUnmatchedOptions;
+    if (q) {
+      list = list.filter(
+        (o) =>
+          o.fighterName.toLowerCase().includes(q) ||
+          o.gymName.toLowerCase().includes(q) ||
+          o.currentDivisionLabel.toLowerCase().includes(q),
+      );
+    }
+    return sortByAnchorWeight(list, anchorWeight);
+  }, [anchorWeight, eventWideUnmatchedOptions, searchQuery]);
+
+  const visibleUnmatched =
+    unmatchedTab === "division" ? grouped.unassigned : filteredEventWide;
+  const visibleUnmatchedCount =
+    unmatchedTab === "division"
+      ? grouped.unassigned.length
+      : eventWideUnmatchedOptions.length;
+
   const unassignablePlacedCount = grouped.unassignable.filter((o) =>
     placedIds.has(o.fighterId),
   ).length;
 
   const showManualCreate = bracketType === BracketType.match_list;
 
+  function mobilePairHandler(option: OrganizerApprovedFighterOptionVM) {
+    if (slotIds.has(option.fighterId)) return undefined;
+    const anchor = red ?? blue;
+    if (!anchor) return undefined;
+    return () => {
+      const athlete = athleteFromOption(option);
+      if (red && !blue && red.fighterId !== option.fighterId) {
+        setBlue(athlete);
+        return;
+      }
+      if (blue && !red && blue.fighterId !== option.fighterId) {
+        setRed(athlete);
+      }
+    };
+  }
+
   return (
     <Card>
       <CardHeader>
         <CardTitle className="text-lg">승인된 신청 선수 (대진 후보)</CardTitle>
         <CardDescription>
-          승인된 신청자를 배정된 선수 · 참여 불가 선수 · 미배정 선수로 나누어
-          표시합니다. 실격·경기취소 등 출전 불가 선수는 배치할 수 없습니다.
+          승인된 신청자를 배정된 선수 · 참여 불가 선수 · 미매칭 선수로
+          나누어 표시합니다. 전체 미매칭에서는 다른 경기구분 선수도 조회할 수
+          있습니다.
         </CardDescription>
       </CardHeader>
       <CardContent className="space-y-4">
@@ -270,16 +446,64 @@ export function BracketApprovedCandidatesSection({
           </CandidateColumn>
 
           <CandidateColumn
-            title="미배정 선수"
-            count={grouped.unassigned.length}
+            title="미매칭 선수"
+            count={visibleUnmatchedCount}
             accentClassName="bg-amber-500/15 text-amber-700 dark:text-amber-300"
-            emptyMessage="미배정 선수가 없습니다."
+            emptyMessage={
+              unmatchedTab === "division"
+                ? "현재 경기구분 미매칭 선수가 없습니다."
+                : "대회 전체 미매칭 선수가 없습니다."
+            }
+            headerExtra={
+              showManualCreate ? (
+                <div className="space-y-2">
+                  <div className="flex flex-wrap gap-1">
+                    <Button
+                      type="button"
+                      size="xs"
+                      variant={
+                        unmatchedTab === "division" ? "secondary" : "outline"
+                      }
+                      onClick={() => setUnmatchedTab("division")}
+                    >
+                      현재 경기구분 ({grouped.unassigned.length})
+                    </Button>
+                    <Button
+                      type="button"
+                      size="xs"
+                      variant={
+                        unmatchedTab === "event" ? "secondary" : "outline"
+                      }
+                      onClick={() => setUnmatchedTab("event")}
+                    >
+                      전체 미매칭 ({eventWideUnmatchedOptions.length})
+                    </Button>
+                  </div>
+                  {unmatchedTab === "event" ? (
+                    <input
+                      className={formControlFieldCompactClass}
+                      placeholder="선수명 · 체육관 검색"
+                      value={searchQuery}
+                      onChange={(e) => setSearchQuery(e.target.value)}
+                    />
+                  ) : null}
+                  {targetDivisionLabel ? (
+                    <p className="text-muted-foreground text-[11px]">
+                      이 그룹: {targetDivisionLabel}
+                    </p>
+                  ) : null}
+                </div>
+              ) : null
+            }
             footer={
               showManualCreate ? (
                 <ManualMatchCreatePanel
                   bracketId={bracketId}
                   defaultCourtId={defaultCourtId}
-                  unmatched={grouped.unassigned}
+                  unmatched={manualCandidates}
+                  targetDivisionId={targetDivisionId}
+                  targetDivisionLabel={targetDivisionLabel}
+                  targetDivisionGender={targetDivisionGender}
                   red={red}
                   blue={blue}
                   onRedChange={setRed}
@@ -290,10 +514,8 @@ export function BracketApprovedCandidatesSection({
               ) : null
             }
           >
-            {grouped.unassigned.map((o) => {
+            {visibleUnmatched.map((o) => {
               const inSlot = slotIds.has(o.fighterId);
-              const statusBadge = resolveCandidateStatusBadge(o);
-              const extra = candidateExtraMeta(o);
               if (!showManualCreate) {
                 return (
                   <CandidateCard
@@ -306,28 +528,13 @@ export function BracketApprovedCandidatesSection({
                 );
               }
               return (
-                <UnmatchedDraggableCardShell
+                <UnmatchedOptionCard
                   key={o.applicationId}
-                  fighterId={o.fighterId}
+                  option={o}
                   inSlot={inSlot}
-                >
-                  <BracketFighterCompactCard
-                    fighterName={o.fighterName}
-                    gymName={o.gymName}
-                    metaLine={
-                      [extra, inSlot ? "배치 중" : null]
-                        .filter(Boolean)
-                        .join(" · ") || undefined
-                    }
-                    statusBadges={
-                      <BracketFighterCompactBadge
-                        label={statusBadge.label}
-                        variant={statusBadge.variant}
-                        title={statusBadge.title}
-                      />
-                    }
-                  />
-                </UnmatchedDraggableCardShell>
+                  showDivisionLine={unmatchedTab === "event"}
+                  onMobilePair={mobilePairHandler(o)}
+                />
               );
             })}
           </CandidateColumn>
