@@ -194,6 +194,16 @@ export function athleteFromManualMatchOption(
   };
 }
 
+export function formatManualMatchSelectionHint(
+  red: ManualMatchSlotAthlete | null,
+  blue: ManualMatchSlotAthlete | null,
+): string | null {
+  if (red && blue) return "홍/청 선택됨";
+  if (red) return "홍 선택됨";
+  if (blue) return "청 선택됨";
+  return null;
+}
+
 export function ManualMatchCreatePanel({
   bracketId,
   defaultCourtId,
@@ -248,7 +258,7 @@ export function ManualMatchCreatePanel({
   }, [unmatched]);
 
   useEffect(() => {
-    if (!sticky || !dockRef.current) return;
+    if (!sticky || !dockExpanded || !dockRef.current) return;
     const node = dockRef.current;
     const update = () => setDockHeight(node.getBoundingClientRect().height);
     update();
@@ -434,16 +444,9 @@ export function ManualMatchCreatePanel({
 
   const canCreate = Boolean(red && blue && !pending);
 
-  const selectionHint =
-    red && blue
-      ? "홍/청 선택됨"
-      : red
-        ? "홍 선택됨"
-        : blue
-          ? "청 선택됨"
-          : null;
+  const showFixedDock = sticky && dockExpanded;
 
-  const dockBody = dockExpanded ? (
+  const dockBody = (
     <div className="max-h-[32vh] space-y-2 overflow-y-auto overflow-x-hidden pr-1">
       <div className="flex items-start justify-between gap-2">
         <div>
@@ -468,86 +471,65 @@ export function ManualMatchCreatePanel({
       </div>
 
       <div className="grid grid-cols-2 gap-2">
-            <DropSlot
-              corner="홍코너"
-              athlete={red}
-              dragOver={dragOverSlot === "red"}
-              activePick={activePickSlot === "red"}
-              onDragOver={(e) => handleAllowDrop(e, "red")}
-              onDragLeave={() => setDragOverSlot(null)}
-              onDrop={(e) => handleDrop(e, "red")}
-              onClear={() => {
-                confirmPairKeyRef.current = null;
-                onRedChange(null);
-              }}
-              onTapSelect={() => setPickerSlot("red")}
-              onActivatePick={() =>
-                onActivePickSlotChange(activePickSlot === "red" ? null : "red")
-              }
-            />
-            <DropSlot
-              corner="청코너"
-              athlete={blue}
-              dragOver={dragOverSlot === "blue"}
-              activePick={activePickSlot === "blue"}
-              onDragOver={(e) => handleAllowDrop(e, "blue")}
-              onDragLeave={() => setDragOverSlot(null)}
-              onDrop={(e) => handleDrop(e, "blue")}
-              onClear={() => {
-                confirmPairKeyRef.current = null;
-                onBlueChange(null);
-              }}
-              onTapSelect={() => setPickerSlot("blue")}
-              onActivatePick={() =>
-                onActivePickSlotChange(activePickSlot === "blue" ? null : "blue")
-              }
-            />
-          </div>
+        <DropSlot
+          corner="홍코너"
+          athlete={red}
+          dragOver={dragOverSlot === "red"}
+          activePick={activePickSlot === "red"}
+          onDragOver={(e) => handleAllowDrop(e, "red")}
+          onDragLeave={() => setDragOverSlot(null)}
+          onDrop={(e) => handleDrop(e, "red")}
+          onClear={() => {
+            confirmPairKeyRef.current = null;
+            onRedChange(null);
+          }}
+          onTapSelect={() => setPickerSlot("red")}
+          onActivatePick={() =>
+            onActivePickSlotChange(activePickSlot === "red" ? null : "red")
+          }
+        />
+        <DropSlot
+          corner="청코너"
+          athlete={blue}
+          dragOver={dragOverSlot === "blue"}
+          activePick={activePickSlot === "blue"}
+          onDragOver={(e) => handleAllowDrop(e, "blue")}
+          onDragLeave={() => setDragOverSlot(null)}
+          onDrop={(e) => handleDrop(e, "blue")}
+          onClear={() => {
+            confirmPairKeyRef.current = null;
+            onBlueChange(null);
+          }}
+          onTapSelect={() => setPickerSlot("blue")}
+          onActivatePick={() =>
+            onActivePickSlotChange(activePickSlot === "blue" ? null : "blue")
+          }
+        />
+      </div>
 
-          <div className="flex flex-wrap items-center justify-end gap-2">
-            <Button
-              type="button"
-              variant="outline"
-              size="sm"
-              disabled={pending || (!red && !blue)}
-              onClick={resetSlots}
-            >
-              초기화
-            </Button>
-            <Button
-              type="button"
-              size="sm"
-              disabled={!canCreate}
-              onClick={() => void runCreateConfirm()}
-            >
-              경기 생성
-            </Button>
-          </div>
+      <div className="flex flex-wrap items-center justify-end gap-2">
+        <Button
+          type="button"
+          variant="outline"
+          size="sm"
+          disabled={pending || (!red && !blue)}
+          onClick={resetSlots}
+        >
+          초기화
+        </Button>
+        <Button
+          type="button"
+          size="sm"
+          disabled={!canCreate}
+          onClick={() => void runCreateConfirm()}
+        >
+          경기 생성
+        </Button>
+      </div>
 
       {pending ? (
         <p className="text-muted-foreground text-center text-xs">생성 중…</p>
       ) : null}
-    </div>
-  ) : (
-    <div className="flex h-11 items-center justify-between gap-2">
-      <p className="min-w-0 truncate text-sm font-semibold">
-        수동 경기 만들기
-        {selectionHint ? (
-          <span className="text-muted-foreground font-normal">
-            {" "}
-            · {selectionHint}
-          </span>
-        ) : null}
-      </p>
-      <Button
-        type="button"
-        variant="ghost"
-        size="sm"
-        className="shrink-0 text-xs"
-        onClick={() => onDockExpandedChange(true)}
-      >
-        펼치기
-      </Button>
     </div>
   );
 
@@ -563,22 +545,23 @@ export function ManualMatchCreatePanel({
 
   return (
     <>
-      <section
-        ref={dockRef}
-        className={cn(
-          sticky
-            ? "fixed bottom-0 left-0 right-0 z-50 border-t bg-background/95 px-4 shadow-[0_-4px_24px_rgba(0,0,0,0.08)] backdrop-blur supports-[backdrop-filter]:bg-background/85 pb-[max(0.5rem,env(safe-area-inset-bottom))]"
-            : "space-y-2 border-t pt-3",
-          dockExpanded ? "py-3" : "py-2",
-        )}
-        aria-labelledby={titleId}
-      >
-        <div className={cn("mx-auto", sticky ? "max-w-6xl" : undefined)}>
+      {showFixedDock ? (
+        <section
+          ref={dockRef}
+          className={cn(
+            "fixed bottom-0 left-0 right-0 z-50 border-t bg-background/95 px-4 py-3 shadow-[0_-4px_24px_rgba(0,0,0,0.08)] backdrop-blur supports-[backdrop-filter]:bg-background/85 pb-[max(0.5rem,env(safe-area-inset-bottom))]",
+          )}
+          aria-labelledby={titleId}
+        >
+          <div className="mx-auto max-w-6xl">{dockBody}</div>
+        </section>
+      ) : !sticky ? (
+        <section className="space-y-2 border-t pt-3" aria-labelledby={titleId}>
           {dockBody}
-        </div>
-      </section>
+        </section>
+      ) : null}
 
-      {sticky ? (
+      {showFixedDock ? (
         <div
           className="shrink-0"
           style={{ height: dockHeight + 8 }}

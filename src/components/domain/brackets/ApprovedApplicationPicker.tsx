@@ -27,10 +27,8 @@ import { organizerBracketFieldSelectClass } from "@/lib/ui/organizer-bracket-ui"
 import { cn } from "@/lib/utils";
 
 export const PICKER_GRID_CLASS =
-  "grid w-full min-w-0 grid-cols-[8rem_minmax(10rem,1.5fr)_minmax(8rem,1fr)_4rem_minmax(6rem,1fr)] items-center gap-x-3";
+  "grid w-full min-w-0 grid-cols-[5.5rem_minmax(7.5rem,1.4fr)_minmax(6.25rem,1fr)_3.5rem_minmax(5rem,1fr)] items-center gap-x-2";
 
-const POPUP_MIN_WIDTH = 560;
-const POPUP_MAX_WIDTH = 680;
 const POPUP_MAX_HEIGHT = 320;
 const POPUP_Z_INDEX = 100;
 
@@ -92,7 +90,7 @@ function PickerGridHeader() {
     <div
       className={cn(
         PICKER_GRID_CLASS,
-        "text-muted-foreground hidden border-b bg-popover px-3 py-2 text-[10px] font-medium sm:grid",
+        "text-muted-foreground hidden border-b bg-popover px-2 py-1.5 text-[10px] font-medium sm:grid",
       )}
       aria-hidden
     >
@@ -202,14 +200,11 @@ function computePopupPosition(trigger: HTMLElement): PopupPosition {
   const margin = 8;
   const viewportW = window.innerWidth;
   const viewportH = window.innerHeight;
-  const width = Math.min(
-    POPUP_MAX_WIDTH,
-    Math.max(POPUP_MIN_WIDTH, rect.width, viewportW - margin * 2),
-  );
+  const width = Math.min(Math.max(rect.width, 0), viewportW - margin * 2);
 
   let left = rect.left;
   if (left + width > viewportW - margin) {
-    left = viewportW - margin - width;
+    left = Math.max(margin, viewportW - margin - width);
   }
   if (left < margin) left = margin;
 
@@ -479,7 +474,7 @@ export function ApprovedApplicationPicker({
                     disabled={isDisabled}
                     title={row.title}
                     className={cn(
-                      "w-full px-3 py-1 text-left transition-colors hover:bg-muted/60",
+                      "w-full px-2 py-1 text-left transition-colors hover:bg-muted/60",
                       isSelected && "bg-primary/5",
                       isDisabled && "cursor-not-allowed opacity-50",
                       row.warningReason &&

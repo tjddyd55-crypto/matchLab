@@ -42,31 +42,34 @@ function main() {
   assert.match(assignment, /buildFighterAssignmentMap/);
 
   assert.match(picker, /role="listbox"/);
-  assert.match(picker, /PICKER_GRID_CLASS|grid-cols-\[8rem/);
+  assert.match(picker, /PICKER_GRID_CLASS|grid-cols-\[5\.5rem/);
   assert.match(picker, /PickerGridHeader/);
   assert.match(picker, /buildPickerOptionColumns/);
   assert.match(picker, /pickerStatus/);
   assert.match(picker, /createPortal/);
   assert.match(picker, /position:\s*"fixed"/);
-  assert.match(picker, /POPUP_MIN_WIDTH|560/);
+  assert.match(picker, /rect\.width/);
+  assert.equal(picker.includes("POPUP_MIN_WIDTH"), false);
   assert.match(picker, /scrollbar-gutter:stable/);
 
   assert.match(panel, /fixed bottom-0/);
   assert.match(panel, /activePickSlot/);
   assert.match(panel, /dockExpanded/);
   assert.match(panel, /onDockExpandedChange/);
+  assert.match(panel, /showFixedDock/);
   assert.match(panel, /ResizeObserver/);
-  assert.match(panel, /h-11/);
   assert.match(panel, /max-h-\[32vh\]/);
   assert.match(panel, /buildManualMatchConfirmDescription/);
+  assert.equal(panel.includes("h-11"), false);
 
   assert.match(section, /전체 미배정/);
   assert.match(section, /EventWideUnmatchedQuickBar|전체 미배정 선수 빠른 배정/);
   assert.match(section, /dockExpanded/);
   assert.match(section, /onDockExpand/);
   assert.match(section, /홍코너에 배정/);
-  assert.match(section, /경기 생성\]을 눌러주세요/);
+  assert.match(section, /수동 경기 만들기가 열립니다/);
   assert.match(section, /min-w-\[240px\]/);
+  assert.match(section, /formatManualMatchSelectionHint/);
 
   const map = buildFighterAssignmentMap([
     {
