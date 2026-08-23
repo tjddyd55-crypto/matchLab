@@ -663,30 +663,11 @@ export function BracketApprovedCandidatesSection({
                     </p>
                   ) : null}
                   <UnmatchedQuickBarFilterToolbar
-                    className={isWorkspace ? undefined : "lg:hidden"}
-                    layout={isWorkspace ? "stack" : "stack"}
+                    layout="stack"
                     options={unmatchedFilterOptionsSource}
                     filters={unmatchedFilters}
                     onFiltersChange={setUnmatchedFilters}
                   />
-                  {!isWorkspace && eventWideUnmatchedOptions.length === 0 ? (
-                    <UnmatchedQuickBarFilterToolbar
-                      className="hidden lg:block"
-                      layout="toolbar"
-                      options={unmatchedFilterOptionsSource}
-                      filters={unmatchedFilters}
-                      onFiltersChange={setUnmatchedFilters}
-                    />
-                  ) : null}
-                  {isWorkspace ? (
-                    <UnmatchedQuickBarFilterToolbar
-                      className="hidden lg:block"
-                      layout="toolbar"
-                      options={unmatchedFilterOptionsSource}
-                      filters={unmatchedFilters}
-                      onFiltersChange={setUnmatchedFilters}
-                    />
-                  ) : null}
                   {targetDivisionLabel ? (
                     <p className="text-muted-foreground text-[11px]">
                       이 그룹: {targetDivisionLabel}

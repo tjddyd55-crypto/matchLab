@@ -44,6 +44,9 @@ const editor = read(
 assert.ok(editor.includes("lg:grid-cols-[minmax(0,1.9fr)_minmax(0,1fr)]"));
 assert.ok(editor.includes('variant="workspace"'));
 assert.ok(editor.includes("compactWorkspace"));
+assert.ok(editor.includes("미배정"));
+assert.ok(!editor.includes("공개 여부는"));
+assert.ok(!editor.includes("overflow-x-auto"));
 
 const matchList = read(
   "src/components/domain/brackets/MatchListEditor.tsx",
@@ -57,6 +60,36 @@ const candidates = read(
 );
 assert.ok(candidates.includes('variant?: "default" | "workspace"'));
 assert.ok(candidates.includes("unmatchedFilters"));
+const toolbarMatches =
+  candidates.match(/<UnmatchedQuickBarFilterToolbar\b/g) ?? [];
+assert.equal(
+  toolbarMatches.length,
+  1,
+  "미매칭 패널 header에 필터 toolbar 1세트만",
+);
+
+const matchedToolbar = read(
+  "src/components/domain/brackets/MatchedMatchFilterToolbar.tsx",
+);
+assert.ok(matchedToolbar.includes("FilterMultiSelectButton"));
+
+const viewToolbar = read(
+  "src/components/domain/brackets/BracketViewFilterToolbar.tsx",
+);
+assert.ok(viewToolbar.includes("FilterMultiSelectButton"));
+
+const memoInput = read(
+  "src/components/domain/brackets/MatchOrganizerMemoInput.tsx",
+);
+assert.ok(memoInput.includes('aria-label="경기 운영 메모"'));
+assert.ok(!memoInput.includes(">메모<"));
+
+const editControls = read(
+  "src/components/domain/brackets/MatchEditControlsRow.tsx",
+);
+assert.ok(editControls.includes("hideSaveButton"));
+assert.ok(editControls.includes("endActions"));
+assert.ok(editControls.includes("right={"));
 
 const meta = buildBracketFighterMetaLine({
   fighterGender: "male",
