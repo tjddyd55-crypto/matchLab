@@ -269,29 +269,37 @@ function CandidateColumn({
   children,
   footer,
   headerExtra,
+  className,
 }: {
-  title: string;
+  title?: string;
   count: number;
   accentClassName?: string;
   emptyMessage: string;
   children: React.ReactNode;
   footer?: React.ReactNode;
   headerExtra?: React.ReactNode;
+  className?: string;
 }) {
   return (
-    <div className="min-w-0 space-y-2">
+    <div className={cn("min-w-0 space-y-2", className)}>
       <div className="space-y-2 border-b pb-2">
-        <h3 className="flex items-center gap-2 text-sm font-semibold">
-          <span>{title}</span>
-          <span
-            className={cn(
-              "inline-flex h-5 min-w-5 items-center justify-center rounded-full px-1.5 text-xs font-medium",
-              accentClassName ?? "bg-muted text-muted-foreground",
-            )}
-          >
-            {count}
-          </span>
-        </h3>
+        {title ? (
+          <h3 className="flex items-center gap-2 text-sm font-semibold">
+            <span>{title}</span>
+            <span
+              className={cn(
+                "inline-flex h-5 min-w-5 items-center justify-center rounded-full px-1.5 text-xs font-medium",
+                accentClassName ?? "bg-muted text-muted-foreground",
+              )}
+            >
+              {count}
+            </span>
+          </h3>
+        ) : (
+          <p className="text-muted-foreground text-xs tabular-nums">
+            표시 {count}명
+          </p>
+        )}
         {headerExtra}
       </div>
       {count > 0 ? (
@@ -316,6 +324,7 @@ export function BracketApprovedCandidatesSection({
   targetDivisionId,
   targetDivisionLabel,
   targetDivisionGender,
+  variant = "default",
 }: {
   options: OrganizerApprovedFighterOptionVM[];
   eventWideUnmatchedOptions: OrganizerApprovedFighterOptionVM[];
@@ -326,6 +335,8 @@ export function BracketApprovedCandidatesSection({
   targetDivisionId: string | null;
   targetDivisionLabel: string | null;
   targetDivisionGender?: string | null;
+  /** workspace: 그룹 상세 오른쪽 — 미매칭만 */
+  variant?: "default" | "workspace";
 }) {
   const placementMap = useMemo(() => buildPlacementMap(matches), [matches]);
   const placedIds = useMemo(() => new Set(placementMap.keys()), [placementMap]);
@@ -459,16 +470,26 @@ export function BracketApprovedCandidatesSection({
     }
   }
 
+  const isWorkspace = variant === "workspace";
+
   return (
-    <Card>
-      <CardHeader className="flex flex-col gap-4 sm:flex-row sm:items-start sm:justify-between">
+    <Card className={cn(isWorkspace && "border-matchon-border shadow-sm")}>
+      <CardHeader className="flex flex-col gap-3 sm:flex-row sm:items-start sm:justify-between">
         <div className="space-y-1">
-          <CardTitle className="text-lg">승인된 신청 선수 (대진 후보)</CardTitle>
-          <CardDescription>
-            승인된 신청자를 배정된 선수 · 참여 불가 선수 · 미매칭 선수로
-            나누어 표시합니다. 전체 미매칭에서는 다른 경기구분 선수도 조회할 수
-            있습니다.
-          </CardDescription>
+          <CardTitle className="text-lg">
+            {isWorkspace ? "미매칭 선수" : "승인된 신청 선수 (대진 후보)"}
+          </CardTitle>
+          {!isWorkspace ? (
+            <CardDescription>
+              승인된 신청자를 배정된 선수 · 참여 불가 선수 · 미매칭 선수로
+              나누어 표시합니다. 전체 미매칭에서는 다른 경기구분 선수도 조회할 수
+              있습니다.
+            </CardDescription>
+          ) : (
+            <CardDescription>
+              검색·필터는 이 영역만 적용됩니다. 왼쪽 잡힌 경기 필터와 독립입니다.
+            </CardDescription>
+          )}
         </div>
         {showManualCreate && manualCandidates.length > 0 && !dockExpanded ? (
           <Button
@@ -489,7 +510,7 @@ export function BracketApprovedCandidatesSection({
         ) : null}
       </CardHeader>
       <CardContent className="space-y-4">
-        {unassignablePlacedCount > 0 ? (
+        {!isWorkspace && unassignablePlacedCount > 0 ? (
           <FeedbackMessage tone="error" role="alert">
             대진표에 배치된 선수 중 출전 불가 상태인 선수가{" "}
             {unassignablePlacedCount}명 있습니다. 참여 불가 선수 영역에서 확인 후
@@ -497,46 +518,60 @@ export function BracketApprovedCandidatesSection({
           </FeedbackMessage>
         ) : null}
 
-        <div className="grid gap-4 lg:grid-cols-3 lg:gap-5">
-          <CandidateColumn
-            title="배정된 선수"
-            count={grouped.assigned.length}
-            accentClassName="bg-primary/10 text-primary"
-            emptyMessage="대진에 배정된 선수가 없습니다."
-          >
-            {grouped.assigned.map((o) => (
-              <CandidateCard
-                key={o.applicationId}
-                option={o}
-                placement={placementMap.get(o.fighterId)}
-                isPlaced
-                group="assigned"
-              />
-            ))}
-          </CandidateColumn>
+        <div
+          className={cn(
+            "grid gap-4",
+            isWorkspace ? "grid-cols-1" : "lg:grid-cols-3 lg:gap-5",
+          )}
+        >
+          {!isWorkspace ? (
+            <>
+              <CandidateColumn
+                title="배정된 선수"
+                count={grouped.assigned.length}
+                accentClassName="bg-primary/10 text-primary"
+                emptyMessage="대진에 배정된 선수가 없습니다."
+              >
+                {grouped.assigned.map((o) => (
+                  <CandidateCard
+                    key={o.applicationId}
+                    option={o}
+                    placement={placementMap.get(o.fighterId)}
+                    isPlaced
+                    group="assigned"
+                  />
+                ))}
+              </CandidateColumn>
+
+              <CandidateColumn
+                title="참여 불가 선수"
+                count={grouped.unassignable.length}
+                accentClassName="bg-destructive/10 text-destructive"
+                emptyMessage="참여 불가 선수가 없습니다."
+              >
+                {grouped.unassignable.map((o) => (
+                  <CandidateCard
+                    key={o.applicationId}
+                    option={o}
+                    placement={placementMap.get(o.fighterId)}
+                    isPlaced={placedIds.has(o.fighterId)}
+                    group="unassignable"
+                  />
+                ))}
+              </CandidateColumn>
+            </>
+          ) : null}
 
           <CandidateColumn
-            title="참여 불가 선수"
-            count={grouped.unassignable.length}
-            accentClassName="bg-destructive/10 text-destructive"
-            emptyMessage="참여 불가 선수가 없습니다."
-          >
-            {grouped.unassignable.map((o) => (
-              <CandidateCard
-                key={o.applicationId}
-                option={o}
-                placement={placementMap.get(o.fighterId)}
-                isPlaced={placedIds.has(o.fighterId)}
-                group="unassignable"
-              />
-            ))}
-          </CandidateColumn>
-
-          <CandidateColumn
-            title="미매칭 선수"
+            title={isWorkspace ? undefined : "미매칭 선수"}
             count={visibleUnmatchedCount}
             accentClassName="bg-amber-500/15 text-amber-700 dark:text-amber-300"
             emptyMessage={unmatchedEmptyMessage}
+            className={
+              isWorkspace
+                ? "max-h-[min(70vh,720px)] overflow-y-auto overscroll-contain"
+                : undefined
+            }
             headerExtra={
               showManualCreate ? (
                 <div className="space-y-2">
@@ -563,13 +598,22 @@ export function BracketApprovedCandidatesSection({
                     </Button>
                   </div>
                   <UnmatchedQuickBarFilterToolbar
-                    className="lg:hidden"
-                    layout="stack"
+                    className={isWorkspace ? undefined : "lg:hidden"}
+                    layout={isWorkspace ? "stack" : "stack"}
                     options={unmatchedFilterOptionsSource}
                     filters={unmatchedFilters}
                     onFiltersChange={setUnmatchedFilters}
                   />
-                  {eventWideUnmatchedOptions.length === 0 ? (
+                  {!isWorkspace && eventWideUnmatchedOptions.length === 0 ? (
+                    <UnmatchedQuickBarFilterToolbar
+                      className="hidden lg:block"
+                      layout="toolbar"
+                      options={unmatchedFilterOptionsSource}
+                      filters={unmatchedFilters}
+                      onFiltersChange={setUnmatchedFilters}
+                    />
+                  ) : null}
+                  {isWorkspace ? (
                     <UnmatchedQuickBarFilterToolbar
                       className="hidden lg:block"
                       layout="toolbar"
@@ -618,7 +662,9 @@ export function BracketApprovedCandidatesSection({
           </CandidateColumn>
         </div>
 
-        {showManualCreate && eventWideUnmatchedOptions.length > 0 ? (
+        {!isWorkspace &&
+        showManualCreate &&
+        eventWideUnmatchedOptions.length > 0 ? (
           <EventWideUnmatchedQuickBar
             options={eventWideUnmatchedOptions}
             filters={unmatchedFilters}

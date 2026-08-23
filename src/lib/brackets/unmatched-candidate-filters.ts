@@ -8,6 +8,7 @@ export type UnmatchedQuickBarFilterState = {
   ageGroups: string[];
   genders: string[];
   weights: number[];
+  gyms: string[];
   recordStatus: UnmatchedRecordStatusFilter;
   /** 유전 선택 시만 사용. 빈 문자열 = 상한 없음(1전 이상) */
   maxTotalBouts: string;
@@ -18,6 +19,7 @@ export const DEFAULT_UNMATCHED_QUICK_BAR_FILTERS: UnmatchedQuickBarFilterState =
   ageGroups: [],
   genders: [],
   weights: [],
+  gyms: [],
   recordStatus: "all",
   maxTotalBouts: "",
 };
@@ -100,6 +102,7 @@ export function buildUnmatchedQuickBarFilterOptions(
   const ageGroups = new Set<string>();
   const genders = new Set<string>();
   const weights = new Set<number>();
+  const gyms = new Set<string>();
 
   for (const option of options) {
     const ageGroup = resolveUnmatchedCandidateAgeGroup(option);
@@ -111,12 +114,14 @@ export function buildUnmatchedQuickBarFilterOptions(
     if (option.applicationWeightKg != null) {
       weights.add(option.applicationWeightKg);
     }
+    if (option.gymName.trim()) gyms.add(option.gymName);
   }
 
   return {
     ageGroups: sortAgeGroups([...ageGroups]),
     genders: [...genders].sort((a, b) => a.localeCompare(b, "ko")),
     weights: [...weights].sort((a, b) => a - b),
+    gyms: [...gyms].sort((a, b) => a.localeCompare(b, "ko")),
   };
 }
 
@@ -185,6 +190,10 @@ export function filterUnmatchedQuickBarOptions(
       }
     }
 
+    if (filters.gyms.length > 0) {
+      if (!filters.gyms.includes(option.gymName)) return false;
+    }
+
     if (
       !matchesRecordFilter(
         option,
@@ -205,6 +214,7 @@ export function buildUnmatchedQuickBarFilterChips(
   const chips: string[] = [];
   for (const ageGroup of filters.ageGroups) chips.push(ageGroup);
   for (const gender of filters.genders) chips.push(gender);
+  for (const gym of filters.gyms) chips.push(gym);
   for (const weight of filters.weights) {
     chips.push(formatUnmatchedWeightFilterLabel(weight));
   }
@@ -225,6 +235,7 @@ export function hasActiveUnmatchedQuickBarFilters(
     filters.ageGroups.length > 0 ||
     filters.genders.length > 0 ||
     filters.weights.length > 0 ||
+    filters.gyms.length > 0 ||
     filters.recordStatus !== "all"
   );
 }

@@ -376,6 +376,8 @@ export function ApprovedApplicationPicker({
         assignabilityLabel: "",
         recordSummary: "",
         applicationWeightKg: null,
+        schoolLevel: null,
+        schoolGrade: null,
       },
       selectable: true,
       columns: buildPickerOptionColumns(

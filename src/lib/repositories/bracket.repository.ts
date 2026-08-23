@@ -59,6 +59,8 @@ export type ApprovedApplicationForBracketRow = {
   gymSnapshot: unknown;
   gymNameSnapshot?: string | null;
   fighterSnapshot?: unknown;
+  schoolLevelSnapshot?: string | null;
+  schoolGradeSnapshot?: number | null;
   fighter: {
     id: string;
     fighterCode: string;
@@ -153,6 +155,8 @@ const APPROVED_APPLICATION_FOR_BRACKET_SELECT = {
   fighterSnapshot: true,
   gymSnapshot: true,
   gymNameSnapshot: true,
+  schoolLevelSnapshot: true,
+  schoolGradeSnapshot: true,
   fighter: {
     select: {
       id: true,

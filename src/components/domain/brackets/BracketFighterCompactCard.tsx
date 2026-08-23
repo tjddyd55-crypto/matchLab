@@ -109,7 +109,7 @@ export function BracketFighterCompactCard({
       {metaLine ? (
         <p
           className={cn(
-            "text-muted-foreground truncate text-[10px] leading-none whitespace-nowrap",
+            "text-muted-foreground text-[11px] leading-snug",
             centerIdentity && "text-center",
           )}
           title={metaLine}

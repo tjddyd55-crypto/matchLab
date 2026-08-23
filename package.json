@@ -178,6 +178,7 @@
     "verify:unmatched-quick-bar-filters": "tsx scripts/verify-unmatched-quick-bar-filters.ts",
     "verify:match-organizer-memo": "tsx scripts/verify-match-organizer-memo.ts",
     "verify:bracket-current-player": "tsx scripts/verify-bracket-current-player.ts",
+    "verify:bracket-workspace-layout": "tsx scripts/verify-bracket-workspace-layout.ts",
     "verify:additional-info-request": "tsx scripts/verify-additional-info-request.ts",
     "verify:additional-info-recipient": "tsx scripts/verify-additional-info-recipient.ts",
     "verify:additional-info-recipient-snapshot": "tsx scripts/verify-additional-info-recipient-snapshot.ts",
