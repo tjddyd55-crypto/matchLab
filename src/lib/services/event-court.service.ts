@@ -210,6 +210,7 @@ export const eventCourtService = {
     matchId: string,
     courtId: string | null,
     courtOrder?: number | null,
+    organizerMemo?: string | null,
   ): Promise<void> {
     await requireOrganizerForEvent(actor, eventId);
 
@@ -239,6 +240,13 @@ export const eventCourtService = {
             tx,
           );
         }
+        if (organizerMemo !== undefined) {
+          await matchRepository.updateMatchOrganizerMemo(
+            matchId,
+            organizerMemo,
+            tx,
+          );
+        }
       });
       return;
     }
@@ -257,6 +265,13 @@ export const eventCourtService = {
         await matchRepository.updateMatchCourt(
           u.matchId,
           { courtId: u.courtId, courtOrder: u.courtOrder },
+          tx,
+        );
+      }
+      if (organizerMemo !== undefined) {
+        await matchRepository.updateMatchOrganizerMemo(
+          matchId,
+          organizerMemo,
           tx,
         );
       }

@@ -523,6 +523,7 @@ export type OrganizerBracketMatchVM = {
   loserId: string | null;
   resultType: BracketMatchOutcomeStyle | null;
   resultMemo: string | null;
+  organizerMemo: string | null;
   /** 확정·정정된 MatchResult가 양쪽 모두 있을 때 공식 전적 반영으로 간주 */
   hasOfficialResults: boolean;
 };
@@ -853,6 +854,7 @@ export const bracketService = {
       loserId: m.loserId,
       resultType: m.resultType,
       resultMemo: m.resultMemo,
+      organizerMemo: m.organizerMemo ?? null,
       hasOfficialResults: (m.matchResults?.length ?? 0) >= 2,
     }));
 
