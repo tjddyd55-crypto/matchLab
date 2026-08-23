@@ -30,6 +30,7 @@ import { notificationService } from "@/lib/services/notification.service";
 import { evaluateWeighInWeight } from "@/lib/weigh-in-eval";
 import { resolveApplicationGymDisplayName } from "@/lib/gym/external-registration-placeholder-gym";
 import { resolveWeighInWeightLabel } from "@/lib/event-division-fields";
+import { buildFighterHandicapMap } from "@/lib/fighter-handicap-display";
 import {
   buildFighterBracketAssignmentMap,
   type FieldStatusBracketAssignmentVM,
@@ -226,11 +227,16 @@ export const fieldStatusService = {
     requireRole(actor, ["organizer", "admin"]);
     await requireOrganizerForEvent(actor, eventId);
 
-    const [raw, bracketMatches] = await Promise.all([
+    const [raw, bracketMatches, handicapRows] = await Promise.all([
       fieldStatusRepository.listApprovedApplicationsForEvent(eventId),
       bracketRepository.listFighterBracketMatchesInEvent(eventId),
+      applicationRepository.listFighterHandicapFieldsForEvent(eventId),
     ]);
-    const assignmentMap = buildFighterBracketAssignmentMap(bracketMatches);
+    const handicapMap = buildFighterHandicapMap(handicapRows);
+    const assignmentMap = buildFighterBracketAssignmentMap(
+      bracketMatches,
+      handicapMap,
+    );
     const rows = raw.map((r) => ({
       ...mapRow(r),
       bracketAssignments: assignmentMap.get(r.fighterId) ?? [],

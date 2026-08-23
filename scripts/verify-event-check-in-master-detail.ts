@@ -27,7 +27,10 @@ const detail = read(
 );
 assert.ok(detail.includes("FieldStatusResetButton"));
 assert.ok(detail.includes("FieldFinalResultCell"));
-assert.ok(detail.includes("경기 운영에서 보기"));
+const matchCards = read(
+  "src/components/domain/field-status/FieldStatusBracketMatchCards.tsx",
+);
+assert.ok(matchCards.includes("경기 운영에서 보기"));
 assert.ok(!detail.includes('title="현장 확인"'));
 assert.ok(detail.includes('title="계체"'));
 assert.ok(detail.includes('title="경기 진행 여부"'));

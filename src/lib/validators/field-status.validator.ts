@@ -26,7 +26,7 @@ export const recordWeighInWeightSchema = fieldStatusApplicationIdSchema.extend({
 });
 
 export const saveFieldMemoSchema = fieldStatusApplicationIdSchema.extend({
-  memo: z.string().max(2000).nullable(),
+  memo: z.string().max(500).nullable(),
 });
 
 export const applyFieldBracketOutcomeSchema = z.object({
