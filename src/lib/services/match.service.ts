@@ -6,7 +6,9 @@ import {
   Prisma,
 } from "@/generated/prisma";
 import type { ActorContext } from "@/lib/auth/actor-context";
-import { formatDivisionNameLabel, parseBracketFighterSnapshot } from "@/lib/bracket-snapshot";
+import { formatDivisionNameLabel, formatRecordSummary, parseBracketFighterSnapshot } from "@/lib/bracket-snapshot";
+import { formatPreviewApplicationRecord } from "@/lib/brackets/explain-record-unmatched";
+import { resolveApplicationSchoolGradeLabel } from "@/lib/fighter/school-grade-input";
 import {
   toEventDivisionDisplayInput,
   type EventDivisionDisplayInput,
@@ -256,6 +258,13 @@ export type OrganizerEventMatchFighterVM = {
   name: string;
   gymName: string | null;
   handicap: FighterHandicapDisplay | null;
+  /** 대진표 보기 필터용 (표시 카드에는 기본 미노출) */
+  genderLabel?: string | null;
+  applicationWeightKg?: number | null;
+  schoolLevel?: string | null;
+  schoolGrade?: number | null;
+  schoolGradeLabel?: string | null;
+  recordSummary?: string;
 };
 
 export type OrganizerEventMatchListItemVM = {
@@ -297,18 +306,52 @@ export const matchService = {
     requireRole(actor, ["organizer", "admin"]);
     await requireOrganizerForEvent(actor, eventId);
 
-    const [rows, handicapRows, courts] = await Promise.all([
+    const [rows, handicapRows, filterFieldRows, courts] = await Promise.all([
       matchRepository.listMatchesByEvent(eventId),
       applicationRepository.listFighterHandicapFieldsForEvent(eventId),
+      applicationRepository.listFighterBracketViewFilterFieldsForEvent(eventId),
       eventCourtRepository.listAllByEvent(eventId),
     ]);
     const handicapMap = buildFighterHandicapMap(handicapRows);
+    const filterFieldMap = new Map(
+      filterFieldRows.map((row) => [row.fighterId, row]),
+    );
+
+    function readApplicationWeightKg(
+      fighterSnapshot: unknown,
+      weighInWeightKg: number | null,
+    ): number | null {
+      if (
+        fighterSnapshot &&
+        typeof fighterSnapshot === "object" &&
+        !Array.isArray(fighterSnapshot)
+      ) {
+        const raw = (fighterSnapshot as Record<string, unknown>)
+          .applicationWeightKg;
+        if (typeof raw === "number" && Number.isFinite(raw)) return raw;
+        if (typeof raw === "string" && raw.trim()) {
+          const n = Number(raw);
+          if (Number.isFinite(n)) return n;
+        }
+      }
+      return weighInWeightKg;
+    }
+
+    function resolveGenderLabel(
+      gender: string | null | undefined,
+    ): string | null {
+      const g = (gender ?? "").trim().toLowerCase();
+      if (g === "male") return "남성";
+      if (g === "female") return "여성";
+      return null;
+    }
 
     function mapFighter(
       f: NonNullable<(typeof rows)[number]["fighterRed"]>,
       snapshot: unknown,
     ): OrganizerEventMatchFighterVM {
       const h = handicapMap.get(f.id);
+      const filterRow = filterFieldMap.get(f.id);
       const parsed = parseBracketFighterSnapshot(snapshot);
       const snapGym = parsed?.gymName?.trim() ?? "";
       const currentGym = f.currentGym?.name?.trim() ?? "";
@@ -323,6 +366,34 @@ export const matchService = {
       } else {
         gymName = "—";
       }
+
+      const schoolLevel = filterRow?.schoolLevelSnapshot ?? null;
+      const schoolGrade = filterRow?.schoolGradeSnapshot ?? null;
+      const schoolGradeLabel = resolveApplicationSchoolGradeLabel({
+        schoolLevel,
+        schoolGrade,
+      });
+      const recordSummary = filterRow
+        ? formatPreviewApplicationRecord({
+            totalBoutsSnapshot: filterRow.totalBoutsSnapshot,
+            winsSnapshot: filterRow.winsSnapshot,
+            drawsSnapshot: filterRow.drawsSnapshot,
+            lossesSnapshot: filterRow.lossesSnapshot,
+            recordText: filterRow.recordText,
+            fighter: {
+              recordTotalBouts: filterRow.fighter.recordTotalBouts,
+              recordWin: filterRow.fighter.recordWin,
+              recordLoss: filterRow.fighter.recordLoss,
+              recordDraw: filterRow.fighter.recordDraw,
+            },
+          })
+        : (parsed?.recordSummary ??
+          formatRecordSummary({
+            recordWin: 0,
+            recordLoss: 0,
+            recordDraw: 0,
+          }));
+
       return {
         id: f.id,
         fighterCode: f.fighterCode,
@@ -332,6 +403,17 @@ export const matchService = {
           h?.badgeLabel != null
             ? { badgeLabel: h.badgeLabel, note: h.note }
             : null,
+        genderLabel: resolveGenderLabel(filterRow?.fighter.gender),
+        applicationWeightKg: filterRow
+          ? readApplicationWeightKg(
+              filterRow.fighterSnapshot,
+              filterRow.weighInWeightKg,
+            )
+          : null,
+        schoolLevel,
+        schoolGrade,
+        schoolGradeLabel,
+        recordSummary,
       };
     }
 

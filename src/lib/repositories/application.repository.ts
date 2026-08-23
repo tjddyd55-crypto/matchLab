@@ -673,6 +673,37 @@ export const applicationRepository = {
     });
   },
 
+  /** 대진표 보기 필터용 — approved application snapshot (read-only) */
+  async listFighterBracketViewFilterFieldsForEvent(eventId: string) {
+    return prisma.eventApplication.findMany({
+      where: {
+        eventId,
+        status: ApplicationStatus.approved,
+      },
+      select: {
+        fighterId: true,
+        weighInWeightKg: true,
+        fighterSnapshot: true,
+        schoolLevelSnapshot: true,
+        schoolGradeSnapshot: true,
+        totalBoutsSnapshot: true,
+        winsSnapshot: true,
+        drawsSnapshot: true,
+        lossesSnapshot: true,
+        recordText: true,
+        fighter: {
+          select: {
+            gender: true,
+            recordTotalBouts: true,
+            recordWin: true,
+            recordLoss: true,
+            recordDraw: true,
+          },
+        },
+      },
+    });
+  },
+
   async findApplicationForAdditionalInfo(applicationId: string) {
     return prisma.eventApplication.findUnique({
       where: { id: applicationId },
