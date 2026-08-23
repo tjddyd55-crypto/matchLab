@@ -10,6 +10,7 @@ import {
 import { PermissionError } from "@/lib/auth/permission-error";
 import { requireActorFromMutation } from "@/lib/auth/actor";
 import { AppError } from "@/lib/errors/app-error";
+import { validateMatchOrganizerMemo } from "@/lib/brackets/match-organizer-memo";
 import { eventCourtService } from "@/lib/services/event-court.service";
 
 function mapCaught<T>(
@@ -167,12 +168,20 @@ export async function setMatchCourtFormAction(
     if (courtOrderRaw !== "" && Number.isNaN(courtOrder)) {
       return actionFailure("VALIDATION_ERROR", "경기 순서를 확인해 주세요.");
     }
+    const organizerMemoRaw = formData.get("organizerMemo");
+    const organizerMemoParsed = validateMatchOrganizerMemo(
+      typeof organizerMemoRaw === "string" ? organizerMemoRaw : null,
+    );
+    if (!organizerMemoParsed.ok) {
+      return actionFailure("VALIDATION_ERROR", organizerMemoParsed.message);
+    }
     await eventCourtService.setMatchCourt(
       actor,
       eventId,
       matchId,
       courtId,
       courtOrder,
+      organizerMemoParsed.value,
     );
     revalidateEventPaths(eventId, formReq(formData, "bracketId") || undefined);
     return actionSuccess({ ok: true });

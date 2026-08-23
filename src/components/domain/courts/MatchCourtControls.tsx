@@ -1,6 +1,6 @@
 "use client";
 
-import { useMemo, useState, useTransition } from "react";
+import { useEffect, useMemo, useState, useTransition } from "react";
 import { useRouter } from "next/navigation";
 import { setMatchCourtFormAction } from "@/features/event-courts/actions";
 import { Button } from "@/components/ui/button";
@@ -70,6 +70,8 @@ export function MatchCourtControls({
   unwrapped = false,
   hideLabels = false,
   compactRow = false,
+  organizerMemo,
+  savedOrganizerMemo = null,
 }: {
   eventId: string;
   matchId: string;
@@ -86,6 +88,9 @@ export function MatchCourtControls({
   /** compact control row — 경기장 label 숨김, select+버튼 h-8 */
   hideLabels?: boolean;
   compactRow?: boolean;
+  /** 저장 시 함께 반영할 운영 메모 (부모 controlled) */
+  organizerMemo?: string;
+  savedOrganizerMemo?: string | null;
 }) {
   const router = useRouter();
   const activeCourts = useMemo(
@@ -108,6 +113,19 @@ export function MatchCourtControls({
     ? localCourtId
     : resolved.selectValue;
 
+  const courtDirty =
+    selectValue !== resolved.selectValue ||
+    localOrder !== (courtOrder != null ? String(courtOrder) : "");
+  const memoDirty =
+    organizerMemo !== undefined &&
+    organizerMemo !== (savedOrganizerMemo ?? "");
+  const isDirty = courtDirty || memoDirty;
+
+  useEffect(() => {
+    setLocalCourtId(resolved.selectValue);
+    setLocalOrder(courtOrder != null ? String(courtOrder) : "");
+  }, [resolved.selectValue, courtOrder, matchId]);
+
   function save(nextCourtId?: string, nextOrder?: string) {
     const court = nextCourtId ?? selectValue;
     const order = nextOrder ?? localOrder;
@@ -126,6 +144,9 @@ export function MatchCourtControls({
     if (bracketId) fd.set("bracketId", bracketId);
     fd.set("courtId", court);
     fd.set("courtOrder", order);
+    if (organizerMemo !== undefined) {
+      fd.set("organizerMemo", organizerMemo);
+    }
 
     startTransition(async () => {
       const res = await setMatchCourtFormAction(fd);
@@ -257,7 +278,7 @@ export function MatchCourtControls({
           type="button"
           size="sm"
           className={matchCourtSaveButtonClass}
-          disabled={pending || !selectValue}
+          disabled={pending || !selectValue || !isDirty}
           onClick={() => save()}
         >
           {pending ? "저장 중…" : compactRow ? "저장" : "경기장 저장"}

@@ -2319,6 +2319,8 @@ model BracketMatch {
   status       BracketMatchStatus   @default(waiting)
   resultType   BracketMatchOutcomeStyle?
   resultMemo   String?
+  /// 주최자 내부 경기 운영 메모 (Public/PDF 미노출)
+  organizerMemo String?
   nextMatchId  String?
   nextMatchSlot NextMatchSlot?
   scheduledStartTime DateTime?

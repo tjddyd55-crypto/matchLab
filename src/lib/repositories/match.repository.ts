@@ -335,6 +335,17 @@ export const matchRepository = {
     });
   },
 
+  async updateMatchOrganizerMemo(
+    matchId: string,
+    organizerMemo: string | null,
+    tx?: Prisma.TransactionClient,
+  ): Promise<void> {
+    await db(tx).bracketMatch.update({
+      where: { id: matchId },
+      data: { organizerMemo },
+    });
+  },
+
   async updateMatchOutcomeDraft(
     matchId: string,
     data: {
