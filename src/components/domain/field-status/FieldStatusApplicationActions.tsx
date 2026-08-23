@@ -357,17 +357,20 @@ export function WeighInWeightForm({ row }: { row: FieldStatusRowDTO }) {
 export function FieldMemoForm({ row }: { row: FieldStatusRowDTO }) {
   const { feedback, setFeedback } = useSaveFeedback();
   const [pending, startTransition] = useTransition();
+  const [memo, setMemo] = useState(row.fieldMemo ?? "");
+
+  useEffect(() => {
+    setMemo(row.fieldMemo ?? "");
+  }, [row.applicationId, row.fieldMemo]);
 
   function handleSubmit(e: FormEvent<HTMLFormElement>) {
     e.preventDefault();
-    const form = e.currentTarget;
-    const memo = (form.elements.namedItem("memo") as HTMLTextAreaElement).value;
     setFeedback({ kind: "pending", message: "저장 중..." });
 
     startTransition(async () => {
       const fd = new FormData();
       fd.set("applicationId", row.applicationId);
-      fd.set("memo", memo);
+      fd.set("memo", memo.trim());
       const result = await saveFieldMemoFormAction(fd);
       if (result.ok) {
         setFeedback({ kind: "success", message: "메모 저장됨" });
@@ -381,24 +384,31 @@ export function FieldMemoForm({ row }: { row: FieldStatusRowDTO }) {
   }
 
   return (
-    <div className="space-y-0.5">
-      <form onSubmit={handleSubmit} className="flex items-start gap-1">
+    <div className="space-y-1">
+      <form onSubmit={handleSubmit} className="space-y-2">
         <textarea
           name="memo"
-          rows={1}
-          defaultValue={row.fieldMemo ?? ""}
-          placeholder="현장 메모"
-          className="border-input bg-background min-h-[1.75rem] min-w-0 flex-1 resize-y rounded-md border px-2 py-1 text-xs"
+          rows={2}
+          maxLength={500}
+          value={memo}
+          onChange={(e) => setMemo(e.target.value)}
+          placeholder="참가자에 대한 운영 메모를 입력하세요."
+          className="border-input bg-background max-h-[120px] min-h-[3.5rem] w-full resize-y rounded-md border px-2.5 py-2 text-xs"
         />
-        <Button
-          type="submit"
-          size="sm"
-          variant="outline"
-          className="h-7 shrink-0 px-2 text-xs"
-          disabled={pending}
-        >
-          {pending ? "저장 중…" : "저장"}
-        </Button>
+        <div className="flex items-center justify-between gap-2">
+          <p className="text-muted-foreground text-[10px] tabular-nums">
+            주최자 내부용 · {memo.length}/500
+          </p>
+          <Button
+            type="submit"
+            size="sm"
+            variant="outline"
+            className="h-8 shrink-0 px-3 text-xs"
+            disabled={pending}
+          >
+            {pending ? "저장 중…" : "메모 저장"}
+          </Button>
+        </div>
       </form>
       <SaveFeedbackLine feedback={feedback} />
     </div>

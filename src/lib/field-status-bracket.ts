@@ -1,4 +1,9 @@
-import { formatDivisionNameLabel } from "@/lib/bracket-snapshot";
+import {
+  formatDivisionNameLabel,
+  parseBracketFighterSnapshot,
+} from "@/lib/bracket-snapshot";
+import type { FighterHandicapDisplay } from "@/lib/fighter-handicap-display";
+import type { BracketMatchStatus } from "@/lib/enums";
 
 export type FieldStatusBracketAssignmentVM = {
   matchId: string;
@@ -6,18 +11,41 @@ export type FieldStatusBracketAssignmentVM = {
   opponentName: string;
   divisionLabel: string | null;
   hasOfficialResult: boolean;
+  status: BracketMatchStatus;
+  winnerId: string | null;
+  fighterCorner: "red" | "blue";
+  fighterRedId: string | null;
+  fighterRedName: string;
+  fighterRedGym: string | null;
+  fighterRedHandicap: FighterHandicapDisplay | null;
+  fighterBlueId: string | null;
+  fighterBlueName: string;
+  fighterBlueGym: string | null;
+  fighterBlueHandicap: FighterHandicapDisplay | null;
 };
 
-function snapshotName(snapshot: unknown): string {
-  if (
-    snapshot &&
-    typeof snapshot === "object" &&
-    "name" in snapshot &&
-    typeof (snapshot as { name: unknown }).name === "string"
-  ) {
-    return (snapshot as { name: string }).name;
+function snapshotFighter(snapshot: unknown): {
+  id: string;
+  name: string;
+  gymName: string | null;
+} {
+  const parsed = parseBracketFighterSnapshot(snapshot);
+  if (parsed) {
+    return {
+      id: parsed.fighterId,
+      name: parsed.name,
+      gymName: parsed.gymName,
+    };
   }
-  return "미상";
+  return { id: "", name: "미상", gymName: null };
+}
+
+function handicapFor(
+  handicapMap: Map<string, FighterHandicapDisplay> | undefined,
+  fighterId: string | null,
+): FighterHandicapDisplay | null {
+  if (!fighterId || !handicapMap) return null;
+  return handicapMap.get(fighterId) ?? null;
 }
 
 export function buildFighterBracketAssignmentMap(
@@ -30,6 +58,8 @@ export function buildFighterBracketAssignmentMap(
     fighterBlueId: string | null;
     fighterRedSnapshot: unknown;
     fighterBlueSnapshot: unknown;
+    status: BracketMatchStatus;
+    winnerId: string | null;
     matchResults: { id: string }[];
     bracket: {
       division: {
@@ -42,6 +72,7 @@ export function buildFighterBracketAssignmentMap(
       } | null;
     };
   }[],
+  handicapMap?: Map<string, FighterHandicapDisplay>,
 ): Map<string, FieldStatusBracketAssignmentVM[]> {
   const map = new Map<string, FieldStatusBracketAssignmentVM[]>();
 
@@ -61,26 +92,49 @@ export function buildFighterBracketAssignmentMap(
       : null;
     const hasOfficialResult = m.matchResults.length >= 2;
 
+    const red = snapshotFighter(m.fighterRedSnapshot);
+    const blue = snapshotFighter(m.fighterBlueSnapshot);
+    const redHandicap = handicapFor(handicapMap, m.fighterRedId);
+    const blueHandicap = handicapFor(handicapMap, m.fighterBlueId);
+
     if (m.fighterRedId) {
       push(m.fighterRedId, {
         matchId: m.id,
         matchLabel,
-        opponentName: m.fighterBlueId
-          ? snapshotName(m.fighterBlueSnapshot)
-          : "미배정",
+        opponentName: m.fighterBlueId ? blue.name : "미배정",
         divisionLabel,
         hasOfficialResult,
+        status: m.status,
+        winnerId: m.winnerId,
+        fighterCorner: "red",
+        fighterRedId: m.fighterRedId,
+        fighterRedName: red.name,
+        fighterRedGym: red.gymName,
+        fighterRedHandicap: redHandicap,
+        fighterBlueId: m.fighterBlueId,
+        fighterBlueName: blue.name,
+        fighterBlueGym: blue.gymName,
+        fighterBlueHandicap: blueHandicap,
       });
     }
     if (m.fighterBlueId) {
       push(m.fighterBlueId, {
         matchId: m.id,
         matchLabel,
-        opponentName: m.fighterRedId
-          ? snapshotName(m.fighterRedSnapshot)
-          : "미배정",
+        opponentName: m.fighterRedId ? red.name : "미배정",
         divisionLabel,
         hasOfficialResult,
+        status: m.status,
+        winnerId: m.winnerId,
+        fighterCorner: "blue",
+        fighterRedId: m.fighterRedId,
+        fighterRedName: red.name,
+        fighterRedGym: red.gymName,
+        fighterRedHandicap: redHandicap,
+        fighterBlueId: m.fighterBlueId,
+        fighterBlueName: blue.name,
+        fighterBlueGym: blue.gymName,
+        fighterBlueHandicap: blueHandicap,
       });
     }
   }

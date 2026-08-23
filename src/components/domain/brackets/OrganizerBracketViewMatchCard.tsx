@@ -23,12 +23,14 @@ function FighterCell({
   gymName,
   handicap,
   isWinner,
+  isCurrentFighter,
 }: {
   corner: "홍코너" | "청코너";
   name: string;
   gymName: string | null;
   handicap: OrganizerEventMatchFighterVM["handicap"];
   isWinner: boolean;
+  isCurrentFighter?: boolean;
 }) {
   const empty = !name?.trim() || name === "-";
   const panelClass =
@@ -41,8 +43,12 @@ function FighterCell({
       className={cn(
         panelClass,
         isWinner && "ring-2 ring-emerald-500/50",
+        isCurrentFighter && "ring-1 ring-[#0A47FF]/50 bg-[#EAF1FF]/60",
       )}
     >
+      {isCurrentFighter ? (
+        <span className="text-[10px] font-semibold text-[#0A47FF]">현재 선수</span>
+      ) : null}
       <BracketFighterCompactCard
         centerIdentity={false}
         empty={empty}
@@ -81,6 +87,7 @@ export function OrganizerBracketViewMatchCard({
   headerBadges,
   opsLabel,
   controls,
+  highlightFighterId,
 }: {
   matchOrderLabel: string;
   divisionLabel?: string | null;
@@ -99,6 +106,8 @@ export function OrganizerBracketViewMatchCard({
   headerBadges?: ReactNode;
   opsLabel?: string | null;
   controls?: ReactNode;
+  /** 현장·계체 등 — 선택 참가자 코너 강조 */
+  highlightFighterId?: string | null;
 }) {
   return (
     <div className={cn(organizerBracketVsCardClass, "overflow-hidden p-0")}>
@@ -146,6 +155,9 @@ export function OrganizerBracketViewMatchCard({
             gymName={fighterRedGym}
             handicap={fighterRedHandicap}
             isWinner={Boolean(winnerId && fighterRedId && winnerId === fighterRedId)}
+            isCurrentFighter={Boolean(
+              highlightFighterId && fighterRedId && highlightFighterId === fighterRedId,
+            )}
           />
           <div className="text-matchon-text-secondary flex flex-col items-center justify-center px-1 text-sm font-black">
             VS
@@ -156,6 +168,9 @@ export function OrganizerBracketViewMatchCard({
             gymName={fighterBlueGym}
             handicap={fighterBlueHandicap}
             isWinner={Boolean(winnerId && fighterBlueId && winnerId === fighterBlueId)}
+            isCurrentFighter={Boolean(
+              highlightFighterId && fighterBlueId && highlightFighterId === fighterBlueId,
+            )}
           />
         </div>
 

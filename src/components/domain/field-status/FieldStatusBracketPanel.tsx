@@ -60,14 +60,18 @@ function OutcomeForm({
 export function FieldStatusBracketPanel({
   row,
   compact = false,
+  outcomesOnly = false,
 }: {
   row: FieldStatusRowDTO;
   compact?: boolean;
+  /** true면 대진 텍스트 목록 없이 outcome 액션만 표시 */
+  outcomesOnly?: boolean;
 }) {
   const [dismissed, setDismissed] = useState(false);
   const assignments = row.bracketAssignments;
 
   if (assignments.length === 0) {
+    if (outcomesOnly) return null;
     return compact ? (
       <span className="text-muted-foreground text-xs">대진 미배정</span>
     ) : (
@@ -146,6 +150,71 @@ export function FieldStatusBracketPanel({
             </Button>
           </div>
         ) : null}
+      </div>
+    );
+  }
+
+  if (outcomesOnly) {
+    if (!showOutcomePrompt) return null;
+    return (
+      <div className="space-y-2 rounded-lg border border-amber-200 bg-amber-50/50 p-3">
+        <p className="text-sm font-medium text-amber-900 dark:text-amber-100">
+          이 선수는 이미 대진표에 배정되어 있습니다.
+        </p>
+        <p className="text-muted-foreground text-xs">
+          계체 실패·미출석·철회·실격 상태입니다. 대진에서 어떻게 처리할지
+          선택해 주세요.
+        </p>
+        <div className="flex flex-wrap gap-2">
+          {assignments
+            .filter((a) => !a.hasOfficialResult)
+            .map((a) => (
+              <div key={a.matchId} className="flex flex-wrap gap-1">
+                <OutcomeForm
+                  row={row}
+                  assignment={a}
+                  resultType={BracketMatchOutcomeStyle.forfeit}
+                  label="패배 처리"
+                  variant="destructive"
+                  confirmMessage={`${row.fighterName} 선수를 패배(기권) 처리하고 상대를 승리 처리할까요?`}
+                />
+                <OutcomeForm
+                  row={row}
+                  assignment={a}
+                  resultType={BracketMatchOutcomeStyle.disqualification}
+                  label="실격 처리"
+                  variant="destructive"
+                  confirmMessage={`${row.fighterName} 선수를 실격 처리하고 상대를 승리 처리할까요?`}
+                />
+                <OutcomeForm
+                  row={row}
+                  assignment={a}
+                  resultType={BracketMatchOutcomeStyle.forfeit}
+                  label="기권 처리"
+                  variant="secondary"
+                  confirmMessage={`${row.fighterName} 선수를 기권 처리하고 상대를 승리 처리할까요?`}
+                />
+              </div>
+            ))}
+          <Button
+            type="button"
+            size="sm"
+            variant="outline"
+            className="h-8 text-xs"
+            onClick={() => setDismissed(true)}
+          >
+            그래도 진행
+          </Button>
+          <Button
+            type="button"
+            size="sm"
+            variant="ghost"
+            className="h-8 text-xs"
+            onClick={() => setDismissed(true)}
+          >
+            나중에 결정
+          </Button>
+        </div>
       </div>
     );
   }

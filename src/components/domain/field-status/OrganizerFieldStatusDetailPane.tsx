@@ -4,6 +4,7 @@ import Link from "next/link";
 import { useState, useTransition, type ReactNode } from "react";
 import { useRouter } from "next/navigation";
 import { FieldFinalResultCell } from "@/components/domain/field-status/FieldFinalResultCell";
+import { FieldStatusBracketMatchCards } from "@/components/domain/field-status/FieldStatusBracketMatchCards";
 import { FieldStatusBracketPanel } from "@/components/domain/field-status/FieldStatusBracketPanel";
 import { FieldStatusPrimaryActions } from "@/components/domain/field-status/FieldStatusPrimaryActions";
 import { FieldStatusResetButton } from "@/components/domain/field-status/FieldStatusResetButton";
@@ -34,7 +35,7 @@ function DetailSection({
 }: {
   step: number;
   title: string;
-  hint: string;
+  hint?: string;
   children: ReactNode;
 }) {
   return (
@@ -43,9 +44,11 @@ function DetailSection({
         <h3 className="text-[15px] font-bold text-matchon-text-primary">
           {step}. {title}
         </h3>
-        <span className="text-matchon-text-secondary shrink-0 text-xs font-medium">
-          {hint}
-        </span>
+        {hint ? (
+          <span className="text-matchon-text-secondary shrink-0 text-xs font-medium">
+            {hint}
+          </span>
+        ) : null}
       </div>
       {children}
     </section>
@@ -64,7 +67,6 @@ export function OrganizerFieldStatusDetailPane({
   const router = useRouter();
   const { alert } = useAppConfirmDialog();
   const [pending, startTransition] = useTransition();
-  const relatedMatch = row.bracketAssignments[0];
   const showReason = shouldShowFieldReasonSection(row);
   const [reasonExpanded, setReasonExpanded] = useState(false);
   const reasonVisible = showReason || reasonExpanded;
@@ -143,7 +145,6 @@ export function OrganizerFieldStatusDetailPane({
         {reasonVisible ? (
           <div className="flex flex-col gap-2">
             <DisqualificationReasonForm row={row} />
-            <FieldMemoForm row={row} />
             {row.checkInStatus !== "disqualified" ? (
               <Button
                 type="button"
@@ -177,32 +178,18 @@ export function OrganizerFieldStatusDetailPane({
         )}
       </section>
 
-      <section className="flex flex-col gap-2.5 border-t border-matchon-border pt-4">
-        <h3 className="text-[15px] font-bold text-matchon-text-primary">
-          4. 결과 및 대진
-        </h3>
+      <DetailSection step={4} title="대진 현황">
         <FieldFinalResultCell row={row} />
-        <FieldStatusBracketPanel row={row} />
-        {relatedMatch ? (
-          <div className="rounded-lg border border-dashed border-matchon-border bg-matchon-surface/40 px-3 py-2.5">
-            <p className="text-sm font-medium">{relatedMatch.matchLabel}</p>
-            {relatedMatch.opponentName ? (
-              <p className="text-matchon-text-secondary text-xs">
-                vs {relatedMatch.opponentName}
-              </p>
-            ) : null}
-            <Link
-              href={`/organizer/events/${eventId}/operation`}
-              className="mt-2 inline-flex h-8 items-center justify-center rounded-md border border-matchon-border bg-white px-3 text-xs font-semibold text-matchon-text-primary hover:bg-matchon-surface"
-            >
-              경기 운영에서 보기
-            </Link>
-          </div>
-        ) : null}
-      </section>
+        <FieldStatusBracketMatchCards row={row} eventId={eventId} />
+        <FieldStatusBracketPanel row={row} outcomesOnly />
+      </DetailSection>
+
+      <DetailSection step={5} title="메모">
+        <FieldMemoForm row={row} />
+      </DetailSection>
 
       <section className="flex flex-col gap-2 rounded-lg border border-rose-200 bg-rose-50/40 p-3">
-        <h3 className="text-sm font-bold text-rose-900">5. 관리</h3>
+        <h3 className="text-sm font-bold text-rose-900">6. 관리</h3>
         <FieldStatusResetButton row={row} />
       </section>
     </div>

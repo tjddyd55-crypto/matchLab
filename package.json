@@ -108,6 +108,7 @@
     "verify:operation-match-card-tone": "tsx scripts/verify-operation-match-card-tone.ts",
     "verify:selected-list-card-focus": "tsx scripts/verify-operation-match-card-tone.ts",
     "verify:field-status-detail-workflow": "tsx scripts/verify-field-status-detail-workflow.ts",
+    "verify:onsite-weighin-detail": "tsx scripts/verify-onsite-weighin-detail.ts",
     "verify:weigh-in-first-workflow": "tsx scripts/verify-field-status-detail-workflow.ts",
     "verify:no-check-in-step": "tsx scripts/verify-field-status-detail-workflow.ts",
     "verify:no-manual-weigh-in-approval": "tsx scripts/verify-field-status-detail-workflow.ts",

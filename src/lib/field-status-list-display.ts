@@ -70,6 +70,7 @@ export function getFieldStatusListCardClass({
 }): string {
   return getSelectableListCardClass({
     selected,
+    selectedStyle: "soft",
     toneClassName: getFieldStatusListToneClassName(tone),
   });
 }
