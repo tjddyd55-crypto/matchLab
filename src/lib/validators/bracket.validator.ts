@@ -92,6 +92,22 @@ export const createManualMatchWithPairSchema = z.object({
   redFighterId: z.string().min(1),
   blueFighterId: z.string().min(1),
   defaultCourtId: z.string().min(1).optional(),
+  /** 수동 복수 출전 명시 override. 기본 false = 기존 CONFLICT 유지 */
+  allowDuplicateAssignment: z.boolean().optional().default(false),
+});
+
+export const confirmEventMultiMatchSchema = z.object({
+  eventId: z.string().min(1),
+  applicationId: z.string().min(1),
+});
+
+export const clearEventMultiMatchConfirmationSchema = z.object({
+  eventId: z.string().min(1),
+  applicationId: z.string().min(1),
+});
+
+export const listEventBracketDuplicateValidationSchema = z.object({
+  eventId: z.string().min(1),
 });
 
 export const ensureBracketForDivisionSchema = z.object({
@@ -164,4 +180,13 @@ export type EnsureBracketForDivisionInput = z.infer<
 export type DeleteBracketMatchInput = z.infer<typeof deleteBracketMatchSchema>;
 export type CreateManualMatchWithPairInput = z.infer<
   typeof createManualMatchWithPairSchema
+>;
+export type ConfirmEventMultiMatchInput = z.infer<
+  typeof confirmEventMultiMatchSchema
+>;
+export type ClearEventMultiMatchConfirmationInput = z.infer<
+  typeof clearEventMultiMatchConfirmationSchema
+>;
+export type ListEventBracketDuplicateValidationInput = z.infer<
+  typeof listEventBracketDuplicateValidationSchema
 >;

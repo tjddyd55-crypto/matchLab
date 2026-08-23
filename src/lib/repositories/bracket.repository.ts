@@ -723,6 +723,55 @@ export const bracketRepository = {
   },
 
   /**
+   * event 전체 비취소 Match — 복수 출전 검증용 (N+1 금지).
+   */
+  async listActiveMatchesForDuplicateValidation(
+    eventId: string,
+    tx?: Prisma.TransactionClient,
+  ) {
+    return db(tx).bracketMatch.findMany({
+      where: {
+        bracket: { eventId },
+        status: { not: BracketMatchStatus.cancelled },
+        OR: [
+          { fighterRedId: { not: null } },
+          { fighterBlueId: { not: null } },
+        ],
+      },
+      select: {
+        id: true,
+        bracketId: true,
+        matchOrder: true,
+        globalMatchOrder: true,
+        matchNumber: true,
+        fighterRedId: true,
+        fighterBlueId: true,
+        fighterRedSnapshot: true,
+        fighterBlueSnapshot: true,
+        bracket: {
+          select: {
+            id: true,
+            title: true,
+            divisionId: true,
+            division: {
+              select: {
+                ageGroup: true,
+                gender: true,
+                sportType: true,
+                ruleType: true,
+                skillLevel: true,
+                weightClassName: true,
+                weightClass: true,
+              },
+            },
+          },
+        },
+      },
+      orderBy: [{ globalMatchOrder: "asc" }, { matchOrder: "asc" }],
+    });
+  },
+
+  /**
    * 승인·REGISTERED(divisionId 있음) 신청 — 체급별 집계용 배치 조회.
    */
   async listApprovedRegisteredApplicationsForDivisionAggregation(

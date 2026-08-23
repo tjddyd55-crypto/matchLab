@@ -20,7 +20,11 @@ import {
 import { useAppConfirmDialog } from "@/components/shared/app-confirm-dialog";
 import { EventWideUnmatchedQuickBar } from "@/components/domain/brackets/EventWideUnmatchedQuickBar";
 import { UnmatchedQuickBarFilterToolbar } from "@/components/domain/brackets/UnmatchedQuickBarFilterToolbar";
-import { buildBracketCandidateWeightRecordDisplay } from "@/lib/bracket-fighter-assignment";
+import {
+  buildBracketCandidateWeightRecordDisplay,
+  buildFighterAssignmentMap,
+  getFighterAssignments,
+} from "@/lib/bracket-fighter-assignment";
 import {
   buildCandidateMetaLine,
   resolveCandidateStatusBadge,
@@ -158,6 +162,7 @@ function UnmatchedOptionCard({
   inSlot,
   showDivisionLine = false,
   activePickSlot,
+  assignmentBadge,
   onCardClick,
   onAssignRed,
   onAssignBlue,
@@ -167,6 +172,7 @@ function UnmatchedOptionCard({
   inSlot: boolean;
   showDivisionLine?: boolean;
   activePickSlot?: ManualMatchPickSlot | null;
+  assignmentBadge?: string | null;
   onCardClick?: () => void;
   onAssignRed?: () => void;
   onAssignBlue?: () => void;
@@ -201,13 +207,19 @@ function UnmatchedOptionCard({
             fighterName={option.fighterName}
             gymName={option.gymName}
             metaLine={
-              [divisionLine, inSlot ? "배치 중" : null]
+              [divisionLine, assignmentBadge, inSlot ? "배치 중" : null]
                 .filter(Boolean)
                 .join(" · ") || undefined
             }
             weightRecordStats={weightRecordStats}
             statusBadges={
               <div className="flex flex-wrap items-center gap-1">
+                {assignmentBadge ? (
+                  <BracketFighterCompactBadge
+                    label={assignmentBadge}
+                    variant="warning"
+                  />
+                ) : null}
                 {option.isOtherDivision ? (
                   <BracketFighterCompactBadge
                     label="다른 경기구분"
@@ -340,6 +352,10 @@ export function BracketApprovedCandidatesSection({
 }) {
   const placementMap = useMemo(() => buildPlacementMap(matches), [matches]);
   const placedIds = useMemo(() => new Set(placementMap.keys()), [placementMap]);
+  const assignmentMap = useMemo(
+    () => buildFighterAssignmentMap(matches),
+    [matches],
+  );
 
   const grouped = useMemo(() => {
     const assigned: OrganizerApprovedFighterOptionVM[] = [];
@@ -364,16 +380,36 @@ export function BracketApprovedCandidatesSection({
     null,
   );
   const [dockExpanded, setDockExpanded] = useState(false);
+  /** 복수 경기 모드 — reload 시 기본 OFF (persist 금지) */
+  const [multiMatchMode, setMultiMatchMode] = useState(false);
   const { alert } = useAppConfirmDialog();
 
   const expandDock = useCallback(() => setDockExpanded(true), []);
+
+  const sameDivisionAssigned = useMemo(
+    () =>
+      grouped.assigned.filter(
+        (o) =>
+          o.isAssignableForBracket &&
+          (!targetDivisionId || o.divisionId === targetDivisionId),
+      ),
+    [grouped.assigned, targetDivisionId],
+  );
 
   const manualCandidateMap = useMemo(() => {
     const map = new Map<string, OrganizerApprovedFighterOptionVM>();
     for (const o of grouped.unassigned) map.set(o.fighterId, o);
     for (const o of eventWideUnmatchedOptions) map.set(o.fighterId, o);
+    if (multiMatchMode) {
+      for (const o of sameDivisionAssigned) map.set(o.fighterId, o);
+    }
     return map;
-  }, [grouped.unassigned, eventWideUnmatchedOptions]);
+  }, [
+    grouped.unassigned,
+    eventWideUnmatchedOptions,
+    multiMatchMode,
+    sameDivisionAssigned,
+  ]);
 
   const manualCandidates = useMemo(
     () => [...manualCandidateMap.values()],
@@ -415,12 +451,25 @@ export function BracketApprovedCandidatesSection({
     return sortByAnchorWeight(filtered, anchorWeight);
   }, [anchorWeight, eventWideUnmatchedOptions, unmatchedFilters]);
 
+  const filteredAssignedForMulti = useMemo(() => {
+    if (!multiMatchMode) return [];
+    const filtered = filterUnmatchedQuickBarOptions(
+      sameDivisionAssigned,
+      unmatchedFilters,
+    );
+    return sortByAnchorWeight(filtered, anchorWeight);
+  }, [anchorWeight, multiMatchMode, sameDivisionAssigned, unmatchedFilters]);
+
   const visibleUnmatched =
     unmatchedTab === "division" ? filteredDivisionUnmatched : filteredEventWide;
   const visibleUnmatchedCount = visibleUnmatched.length;
   const unmatchedFiltersActive = hasActiveUnmatchedQuickBarFilters(unmatchedFilters);
   const unmatchedFilterOptionsSource =
-    unmatchedTab === "division" ? grouped.unassigned : eventWideUnmatchedOptions;
+    unmatchedTab === "division"
+      ? multiMatchMode
+        ? [...grouped.unassigned, ...sameDivisionAssigned]
+        : grouped.unassigned
+      : eventWideUnmatchedOptions;
 
   const unmatchedEmptyMessage =
     unmatchedFiltersActive && visibleUnmatchedCount === 0
@@ -575,7 +624,7 @@ export function BracketApprovedCandidatesSection({
             headerExtra={
               showManualCreate ? (
                 <div className="space-y-2">
-                  <div className="flex flex-wrap gap-1">
+                  <div className="flex flex-wrap items-center gap-1">
                     <Button
                       type="button"
                       size="xs"
@@ -596,7 +645,23 @@ export function BracketApprovedCandidatesSection({
                     >
                       전체 미매칭 ({eventWideUnmatchedOptions.length})
                     </Button>
+                    <Button
+                      type="button"
+                      size="xs"
+                      variant={multiMatchMode ? "default" : "outline"}
+                      onClick={() => setMultiMatchMode((v) => !v)}
+                    >
+                      {multiMatchMode
+                        ? "복수 경기 모드 종료"
+                        : "복수 경기 선수 추가"}
+                    </Button>
                   </div>
+                  {multiMatchMode ? (
+                    <p className="rounded-md border border-amber-500/40 bg-amber-500/10 px-2 py-1 text-[11px] text-amber-950 dark:text-amber-100">
+                      복수 경기 선수 추가 모드 — 이미 배정된 같은 경기구분 선수를
+                      추가로 선택할 수 있습니다. 미매칭 인원 수는 변하지 않습니다.
+                    </p>
+                  ) : null}
                   <UnmatchedQuickBarFilterToolbar
                     className={isWorkspace ? undefined : "lg:hidden"}
                     layout={isWorkspace ? "stack" : "stack"}
@@ -659,6 +724,29 @@ export function BracketApprovedCandidatesSection({
                 />
               );
             })}
+            {multiMatchMode && unmatchedTab === "division"
+              ? filteredAssignedForMulti.map((o) => {
+                  const inSlot = slotIds.has(o.fighterId);
+                  const assignments = getFighterAssignments(
+                    assignmentMap,
+                    o.fighterId,
+                  );
+                  const badge = `이미 ${assignments.length}경기 배정`;
+                  return (
+                    <UnmatchedOptionCard
+                      key={`multi-${o.applicationId}`}
+                      option={o}
+                      inSlot={inSlot}
+                      assignmentBadge={badge}
+                      activePickSlot={activePickSlot}
+                      onCardClick={() => handleCardPick(o)}
+                      onAssignRed={() => assignToSlot("red", o.fighterId)}
+                      onAssignBlue={() => assignToSlot("blue", o.fighterId)}
+                      onDragStart={expandDock}
+                    />
+                  );
+                })
+              : null}
           </CandidateColumn>
         </div>
 
@@ -684,6 +772,8 @@ export function BracketApprovedCandidatesSection({
             bracketId={bracketId}
             defaultCourtId={defaultCourtId}
             unmatched={manualCandidates}
+            matches={matches}
+            allowDuplicateAssignment={multiMatchMode}
             targetDivisionId={targetDivisionId}
             targetDivisionLabel={targetDivisionLabel}
             targetDivisionGender={targetDivisionGender}

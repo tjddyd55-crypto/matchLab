@@ -28,7 +28,13 @@ import {
   fightersRequiringDivisionMove,
   type ManualMatchPairSide,
 } from "@/lib/brackets/manual-match-pair";
+import {
+  buildFighterAssignmentMap,
+  formatAssignmentSummaryCompact,
+  getFighterAssignments,
+} from "@/lib/bracket-fighter-assignment";
 import type { OrganizerApprovedFighterOptionVM } from "@/lib/services/bracket.service";
+import type { OrganizerBracketMatchVM } from "@/lib/services/bracket.service";
 import { cn } from "@/lib/utils";
 
 export const UNMATCHED_DND_MIME = "application/x-matchon-unmatched-fighter";
@@ -167,7 +173,9 @@ function DropSlot({
 
 function toPairSide(
   option: OrganizerApprovedFighterOptionVM,
+  assignmentMap: ReturnType<typeof buildFighterAssignmentMap>,
 ): ManualMatchPairSide {
+  const assignments = getFighterAssignments(assignmentMap, option.fighterId);
   return {
     fighterId: option.fighterId,
     fighterName: option.fighterName,
@@ -177,6 +185,11 @@ function toPairSide(
     applicationWeightKg: option.applicationWeightKg,
     recordSummary: option.recordSummary,
     fighterGender: option.fighterGender,
+    assignmentCount: assignments.length,
+    assignmentSummary:
+      assignments.length > 0
+        ? formatAssignmentSummaryCompact(assignments)
+        : undefined,
   };
 }
 
@@ -208,6 +221,8 @@ export function ManualMatchCreatePanel({
   bracketId,
   defaultCourtId,
   unmatched,
+  matches = [],
+  allowDuplicateAssignment = false,
   targetDivisionId,
   targetDivisionLabel,
   targetDivisionGender,
@@ -226,6 +241,10 @@ export function ManualMatchCreatePanel({
   bracketId: string;
   defaultCourtId?: string;
   unmatched: OrganizerApprovedFighterOptionVM[];
+  /** event/bracket matches — 복수 출전 경고용 */
+  matches?: OrganizerBracketMatchVM[];
+  /** 복수 경기 모드 ON일 때만 true */
+  allowDuplicateAssignment?: boolean;
   targetDivisionId: string | null;
   targetDivisionLabel: string | null;
   targetDivisionGender?: string | null;
@@ -256,6 +275,11 @@ export function ManualMatchCreatePanel({
     for (const o of unmatched) map.set(o.fighterId, o);
     return map;
   }, [unmatched]);
+
+  const assignmentMap = useMemo(
+    () => buildFighterAssignmentMap(matches),
+    [matches],
+  );
 
   useEffect(() => {
     if (!sticky || !dockExpanded || !dockRef.current) return;
@@ -337,8 +361,8 @@ export function ManualMatchCreatePanel({
       return;
     }
 
-    const redSide = toPairSide(redOption);
-    const blueSide = toPairSide(blueOption);
+    const redSide = toPairSide(redOption, assignmentMap);
+    const blueSide = toPairSide(blueOption, assignmentMap);
     const warnings = buildManualPairWarnings({
       red: redSide,
       blue: blueSide,
@@ -352,6 +376,8 @@ export function ManualMatchCreatePanel({
       targetDivisionId,
     );
     const isCrossDivision = moveIds.length > 0;
+    const hasDuplicate =
+      (redSide.assignmentCount ?? 0) > 0 || (blueSide.assignmentCount ?? 0) > 0;
 
     const description = buildManualMatchConfirmDescription({
       red: redSide,
@@ -366,11 +392,17 @@ export function ManualMatchCreatePanel({
     });
 
     const ok = await confirm({
-      title: isCrossDivision
-        ? "다른 경기구분 선수와 매칭할까요?"
-        : "경기를 생성할까요?",
+      title: hasDuplicate
+        ? "이미 배정된 선수를 추가로 배정할까요?"
+        : isCrossDivision
+          ? "다른 경기구분 선수와 매칭할까요?"
+          : "경기를 생성할까요?",
       description,
-      confirmLabel: isCrossDivision ? "이동하여 경기 생성" : "경기 생성",
+      confirmLabel: hasDuplicate
+        ? "추가 배정하여 경기 생성"
+        : isCrossDivision
+          ? "이동하여 경기 생성"
+          : "경기 생성",
       cancelLabel: "취소",
     });
 
@@ -386,6 +418,9 @@ export function ManualMatchCreatePanel({
       fd.set("redFighterId", red.fighterId);
       fd.set("blueFighterId", blue.fighterId);
       if (defaultCourtId) fd.set("defaultCourtId", defaultCourtId);
+      if (allowDuplicateAssignment) {
+        fd.set("allowDuplicateAssignment", "1");
+      }
       const res = await createManualMatchWithPairAction(fd);
       setPendingExternal(false);
       if (!res.ok) {
@@ -404,6 +439,8 @@ export function ManualMatchCreatePanel({
     });
   }, [
     alert,
+    allowDuplicateAssignment,
+    assignmentMap,
     blue,
     bracketId,
     confirm,
@@ -417,6 +454,7 @@ export function ManualMatchCreatePanel({
     targetDivisionGender,
     targetDivisionId,
     targetDivisionLabel,
+    byId,
   ]);
 
   function handleAllowDrop(e: DragEvent, slot: SlotKey) {
@@ -581,7 +619,9 @@ export function ManualMatchCreatePanel({
               {pickerSlot === "red" ? "홍코너" : "청코너"} 선수 선택
             </DialogTitle>
             <DialogDescription>
-              미매칭 선수 중에서 선택하세요.
+              {allowDuplicateAssignment
+                ? "미매칭 선수와 이미 배정된 선수(같은 경기구분)를 선택할 수 있습니다."
+                : "미매칭 선수 중에서 선택하세요."}
             </DialogDescription>
           </DialogHeader>
           <ul className="max-h-72 space-y-1 overflow-y-auto">
@@ -590,28 +630,38 @@ export function ManualMatchCreatePanel({
                 if (pickerSlot === "red") return o.fighterId !== blue?.fighterId;
                 return o.fighterId !== red?.fighterId;
               })
-              .map((o) => (
-                <li key={o.applicationId}>
-                  <Button
-                    type="button"
-                    variant="ghost"
-                    className="h-auto w-full justify-start px-2 py-2 text-left"
-                    onClick={() => {
-                      if (pickerSlot) placeAthlete(pickerSlot, o.fighterId);
-                      setPickerSlot(null);
-                    }}
-                  >
-                    <span className="min-w-0">
-                      <span className="block truncate text-sm font-medium">
-                        {o.gymName} · {o.fighterName}
+              .map((o) => {
+                const assignmentStatus = formatAssignmentSummaryCompact(
+                  getFighterAssignments(assignmentMap, o.fighterId),
+                );
+                return (
+                  <li key={o.applicationId}>
+                    <Button
+                      type="button"
+                      variant="ghost"
+                      className="h-auto w-full justify-start px-2 py-2 text-left"
+                      onClick={() => {
+                        if (pickerSlot) placeAthlete(pickerSlot, o.fighterId);
+                        setPickerSlot(null);
+                      }}
+                    >
+                      <span className="flex min-w-0 flex-1 items-start justify-between gap-2">
+                        <span className="min-w-0">
+                          <span className="block truncate text-sm font-medium">
+                            {o.gymName} · {o.fighterName}
+                          </span>
+                          <span className="text-muted-foreground block truncate text-xs">
+                            {athleteMetaLine(o)}
+                          </span>
+                        </span>
+                        <span className="text-muted-foreground shrink-0 text-[11px]">
+                          {assignmentStatus}
+                        </span>
                       </span>
-                      <span className="text-muted-foreground block truncate text-xs">
-                        {athleteMetaLine(o)}
-                      </span>
-                    </span>
-                  </Button>
-                </li>
-              ))}
+                    </Button>
+                  </li>
+                );
+              })}
           </ul>
         </DialogContent>
       </Dialog>

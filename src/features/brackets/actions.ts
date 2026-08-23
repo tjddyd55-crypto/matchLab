@@ -18,12 +18,15 @@ import { isPrismaUniqueViolation } from "@/lib/prisma-errors";
 import {
   assignFighterToMatchSchema,
   addEmptyBracketMatchSchema,
+  clearEventMultiMatchConfirmationSchema,
+  confirmEventMultiMatchSchema,
   createManualMatchWithPairSchema,
   createBracketSchema,
   createMatchListMatchesSchema,
   createSingleEliminationDraftSchema,
   deleteBracketMatchSchema,
   ensureBracketForDivisionSchema,
+  listEventBracketDuplicateValidationSchema,
   publishBracketSchema,
   removeFighterFromMatchSchema,
   eventBracketPublicationSchema,
@@ -484,6 +487,9 @@ export async function createManualMatchWithPairAction(
       redFighterId: formReq(formData, "redFighterId"),
       blueFighterId: formReq(formData, "blueFighterId"),
       defaultCourtId: formReq(formData, "defaultCourtId") || undefined,
+      allowDuplicateAssignment:
+        formReq(formData, "allowDuplicateAssignment") === "1" ||
+        formReq(formData, "allowDuplicateAssignment") === "true",
     });
     if (!parsed.success) {
       return actionFailure(
@@ -770,5 +776,77 @@ export async function generateAutoBracketMatchesAction(
         parsed.data,
       );
     return actionSuccess(summary);
+  });
+}
+
+export async function listEventBracketDuplicateValidationAction(
+  eventId: string,
+): Promise<
+  ActionResult<{
+    issues: Awaited<
+      ReturnType<typeof bracketService.listEventDuplicateAssignmentIssues>
+    >["issues"];
+    unconfirmedCount: number;
+    confirmedCount: number;
+  }>
+> {
+  return mapCaught(async () => {
+    const parsed = listEventBracketDuplicateValidationSchema.safeParse({
+      eventId,
+    });
+    if (!parsed.success) {
+      return actionFailure("VALIDATION_ERROR", "대회 정보를 확인해 주세요.");
+    }
+    const actor = await requireActorFromMutation();
+    const result = await bracketService.listEventDuplicateAssignmentIssues(
+      actor,
+      parsed.data.eventId,
+    );
+    return actionSuccess(result);
+  });
+}
+
+export async function confirmEventMultiMatchAction(
+  formData: FormData,
+): Promise<ActionResult<{ applicationId: string; signature: string }>> {
+  return mapCaught(async () => {
+    const parsed = confirmEventMultiMatchSchema.safeParse({
+      eventId: formReq(formData, "eventId"),
+      applicationId: formReq(formData, "applicationId"),
+    });
+    if (!parsed.success) {
+      return actionFailure("VALIDATION_ERROR", "확인 대상 신청을 확인해 주세요.");
+    }
+    const actor = await requireActorFromMutation();
+    const result = await bracketService.confirmEventMultiMatch(
+      actor,
+      parsed.data,
+    );
+    revalidatePath(`/organizer/events/${parsed.data.eventId}/brackets`);
+    return actionSuccess(result);
+  });
+}
+
+export async function clearEventMultiMatchConfirmationAction(
+  formData: FormData,
+): Promise<ActionResult<{ applicationId: string }>> {
+  return mapCaught(async () => {
+    const parsed = clearEventMultiMatchConfirmationSchema.safeParse({
+      eventId: formReq(formData, "eventId"),
+      applicationId: formReq(formData, "applicationId"),
+    });
+    if (!parsed.success) {
+      return actionFailure(
+        "VALIDATION_ERROR",
+        "확인 취소 대상 신청을 확인해 주세요.",
+      );
+    }
+    const actor = await requireActorFromMutation();
+    const result = await bracketService.clearEventMultiMatchConfirmation(
+      actor,
+      parsed.data,
+    );
+    revalidatePath(`/organizer/events/${parsed.data.eventId}/brackets`);
+    return actionSuccess(result);
   });
 }
