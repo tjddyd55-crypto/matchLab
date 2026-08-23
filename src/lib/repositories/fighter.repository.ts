@@ -475,6 +475,8 @@ export const fighterRepository = {
       recordDraw?: number;
       recordLoss?: number;
       recordText?: string | null;
+      schoolLevel?: string | null;
+      schoolGrade?: number | null;
     },
   ): Promise<{ id: string; fighterCode: string }> {
     const fighter = await tx.fighter.create({
@@ -489,6 +491,8 @@ export const fighterRepository = {
         profileImageUrl: params.profileImageUrl,
         schoolName: params.schoolName ?? null,
         grade: params.grade ?? null,
+        schoolLevel: params.schoolLevel ?? null,
+        schoolGrade: params.schoolGrade ?? null,
         guardianName: params.guardianName ?? null,
         guardianPhone: params.guardianPhone ?? null,
         primarySport: params.primarySport ?? null,
@@ -599,6 +603,8 @@ export const fighterRepository = {
       recordDraw?: number;
       recordLoss?: number;
       recordText?: string | null;
+      schoolLevel?: string | null;
+      schoolGrade?: number | null;
     },
   ): Promise<void> {
     await tx.fighter.update({
@@ -614,6 +620,12 @@ export const fighterRepository = {
         guardianName: data.guardianName ?? null,
         guardianPhone: data.guardianPhone ?? null,
         ...(data.status ? { status: data.status } : {}),
+        ...(data.schoolLevel !== undefined
+          ? {
+              schoolLevel: data.schoolLevel,
+              schoolGrade: data.schoolGrade ?? null,
+            }
+          : {}),
         ...(data.recordTotalBouts != null
           ? {
               recordTotalBouts: data.recordTotalBouts,

@@ -176,6 +176,12 @@ export function MatchedMatchFilterToolbar({
           formatOption={(v) => formatUnmatchedWeightFilterLabel(Number(v))}
         />
         <MultiSelectChips
+          label="학년"
+          options={filterOptions.schoolGrades}
+          selected={filters.schoolGrades}
+          onChange={(schoolGrades) => patch({ schoolGrades })}
+        />
+        <MultiSelectChips
           label="경기구분"
           options={filterOptions.divisions}
           selected={filters.divisions}

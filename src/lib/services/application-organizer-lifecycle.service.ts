@@ -36,6 +36,10 @@ import {
   parseRecordText,
   type StructuredRecord,
 } from "@/lib/fighter/record";
+import {
+  parseSchoolGradeSelectValue,
+  schoolGradeSelectValueFromFields,
+} from "@/lib/fighter/school-grade-input";
 import type { OrganizerManualApplicationInput } from "@/lib/validators/organizer-manual-application.validator";
 
 export type OrganizerApplicationEditFormDTO = {
@@ -62,6 +66,8 @@ export type OrganizerApplicationEditFormDTO = {
   /** 신청 snapshot 우선 (Fighter 캐시로 덮지 않음) */
   record: StructuredRecord;
   careerText: string;
+  /** compact select value (초1~고3) — EventApplication snapshot 기준 */
+  schoolGradeSelect: string;
   insuranceRrnMasked: string | null;
   structuralEditBlocked: boolean;
   structuralBlockReason: string | null;
@@ -302,6 +308,10 @@ export const applicationOrganizerLifecycleService = {
       recordText: row.recordText ?? "",
       record: resolveApplicationRecordForEdit(row),
       careerText: row.careerText ?? "",
+      schoolGradeSelect: schoolGradeSelectValueFromFields({
+        schoolLevel: row.schoolLevelSnapshot,
+        schoolGrade: row.schoolGradeSnapshot,
+      }),
       insuranceRrnMasked: row.insuranceRrnMasked,
       structuralEditBlocked,
       structuralBlockReason: deps.hasMatchResult
@@ -438,6 +448,14 @@ export const applicationOrganizerLifecycleService = {
       input.recordText?.trim() ||
       (structuredRecord ? buildRecordText(structuredRecord) : null);
 
+    const schoolGradeParsed = parseSchoolGradeSelectValue(
+      input.schoolGradeSelect,
+    );
+    if (!schoolGradeParsed.ok) {
+      throw new AppError("VALIDATION_ERROR", schoolGradeParsed.error);
+    }
+    const schoolFields = schoolGradeParsed.fields;
+
     const piiPatch: Prisma.EventApplicationUpdateInput = {};
     const rrn = input.residentRegistrationNumber?.trim() ?? "";
     if (input.clearInsuranceRrn) {
@@ -514,6 +532,8 @@ export const applicationOrganizerLifecycleService = {
                 lossesSnapshot: structuredRecord.losses,
               }
             : {}),
+          schoolLevelSnapshot: schoolFields.schoolLevel,
+          schoolGradeSnapshot: schoolFields.schoolGrade,
           memo: input.memo?.trim() || existing.memo,
           ...piiPatch,
         },

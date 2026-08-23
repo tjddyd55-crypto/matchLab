@@ -33,6 +33,7 @@ const COLUMN_WIDTHS: Record<string, number> = {
   생년월일: 14,
   연락처: 18,
   경기구분: 16,
+  학년: 10,
   체급: 16,
   총전: 8,
   승: 7,
@@ -150,6 +151,7 @@ export async function buildApplicantExcelSampleWorkbook(input: {
     "2008-05-12",
     "010-1234-5678",
     exampleAge === "대학·일반부" ? "성인" : exampleAge,
+    "고2",
     exampleClass,
     "3",
     "2",
@@ -172,6 +174,7 @@ export async function buildApplicantExcelSampleWorkbook(input: {
     "2005-11-03",
     "010-9876-5432",
     exampleAge === "대학·일반부" ? "성인" : exampleAge,
+    "",
     DIVISION_SELECTION_OTHER_LABEL,
     "0",
     "0",
@@ -213,6 +216,10 @@ export async function buildApplicantExcelSampleWorkbook(input: {
     "체급표의 체급명을 입력하세요. 체급표에 없으면 「기타」 + 기타내용 필수. 신청체중은 체급 매칭에 사용하지 않습니다.",
   ]);
   guide.addRow([
+    "학년",
+    "선택(선택 안 함 가능). 허용: 초1~초6, 중1~중3, 고1~고3. 컬럼이 없으면 기존 파일과 동일하게 동작합니다.",
+  ]);
+  guide.addRow([
     "경기구분 예",
     "초3, 중2, 고1, 성인, 초등부, 일반부. 성별+경기구분+체급이 체급표와 정확히 하나 일치해야 합니다.",
   ]);
@@ -228,6 +235,7 @@ export async function buildApplicantExcelSampleWorkbook(input: {
     ["생년월일", "필수", "YYYY-MM-DD. 미성년 판정·보호자 연락처 조건에 사용", "2008-05-12"],
     ["연락처", "필수", "선수 휴대폰 (문자/텍스트)", "010-1234-5678"],
     ["경기구분", "필수", "초3 / 중2 / 고1 / 성인 등", exampleAge],
+    ["학년", "선택", "초1~초6 / 중1~중3 / 고1~고3. 빈칸=없음", "고2"],
     ["체급", "필수", "체급표 체급명. 없으면 「기타」", exampleClass],
     ["총전", "필수", "정수. 무전은 0", "3"],
     ["승", "필수", "정수", "2"],

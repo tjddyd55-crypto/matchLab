@@ -23,6 +23,8 @@ export type ParsedApplicantExcelWorkbook = {
   sheetName: string;
   headerRow: number;
   headers: string[];
+  /** 실제 파일에 존재하는 인식 컬럼 — 학년 optional backward compat용 */
+  presentHeaders: ApplicantExcelHeader[];
   rows: ParsedApplicantExcelRow[];
   skippedExampleRows: number;
 };
@@ -193,6 +195,7 @@ export async function parseApplicantExcelWorkbook(
     sheetName: sheet.name,
     headerRow,
     headers: headerCells,
+    presentHeaders: [...index.keys()],
     rows,
     skippedExampleRows,
   };

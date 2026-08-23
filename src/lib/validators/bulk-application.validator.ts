@@ -6,16 +6,30 @@ import {
   residentRegistrationNumberFieldSchema,
   structuredRecordSchema,
 } from "@/lib/athlete-application/profile-input";
+import { parseSchoolGradeSelectValue } from "@/lib/fighter/school-grade-input";
 
 const mustAgree = z.boolean().refine((v) => v === true, {
   message: "동의가 필요합니다.",
 });
+
+const optionalSchoolGradeSelectSchema = z
+  .string()
+  .trim()
+  .optional()
+  .default("")
+  .superRefine((value, ctx) => {
+    const parsed = parseSchoolGradeSelectValue(value);
+    if (!parsed.ok) {
+      ctx.addIssue({ code: "custom", message: parsed.error });
+    }
+  });
 
 export const bulkApplicationItemSchema = z.object({
   fighterId: z.string().min(1),
   applicationWeightKg: z.coerce.number().gt(0).lte(300),
   competitionCategory: z.string().trim().min(1, "경기구분을 선택해 주세요."),
   discipline: z.string().trim().optional(),
+  schoolGradeSelect: optionalSchoolGradeSelectSchema,
   recordText: athleteRecordTextSchema,
   structuredRecord: structuredRecordSchema,
   careerText: athleteCareerTextSchema,

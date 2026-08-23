@@ -10,6 +10,7 @@ import type { OrganizerApplicationEditFormDTO } from "@/lib/services/application
 import type { OrganizerManualRegistrationOptionsDTO } from "@/lib/services/application.service";
 import { AppDateInput } from "@/components/shared/AppDateInput";
 import { ApplicationWeightAutoAssign } from "@/components/domain/applications/ApplicationWeightAutoAssign";
+import { SchoolGradeSelectField } from "@/components/domain/applications/SchoolGradeSelectField";
 import { StructuredRecordFields } from "@/components/domain/fighters/StructuredRecordFields";
 import { INSURANCE_PII_CONSENT_TEXT } from "@/lib/athlete-application/insurance-consent";
 import {
@@ -246,19 +247,26 @@ export function OrganizerApplicationEditPanel({
                         ))}
                       </select>
                     </div>
-                    <div>
-                      <label className={labelClass} htmlFor="edit-birthDate">
-                        생년월일
-                      </label>
-                      <AppDateInput
-                        id="edit-birthDate"
-                        name="birthDate"
-                        disallowFuture
-                        defaultValue={form.birthDate ?? undefined}
-                        aria-label="생년월일"
-                        inputClassName={fieldClass}
-                      />
-                    </div>
+                    <SchoolGradeSelectField
+                      id="edit-schoolGradeSelect"
+                      name="schoolGradeSelect"
+                      defaultValue={form.schoolGradeSelect}
+                      className={fieldClass}
+                      labelClassName={labelClass}
+                    />
+                  </div>
+                  <div>
+                    <label className={labelClass} htmlFor="edit-birthDate">
+                      생년월일
+                    </label>
+                    <AppDateInput
+                      id="edit-birthDate"
+                      name="birthDate"
+                      disallowFuture
+                      defaultValue={form.birthDate ?? undefined}
+                      aria-label="생년월일"
+                      inputClassName={fieldClass}
+                    />
                   </div>
                 </section>
 

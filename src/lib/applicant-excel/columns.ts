@@ -9,6 +9,7 @@ export const APPLICANT_EXCEL_HEADERS = [
   "생년월일",
   "연락처",
   "경기구분",
+  "학년",
   "체급",
   "총전",
   "승",

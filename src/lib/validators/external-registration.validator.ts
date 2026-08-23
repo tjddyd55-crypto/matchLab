@@ -1,8 +1,21 @@
 import { z } from "zod";
 import { athleteCareerTextSchema } from "@/lib/athlete-application/profile-input";
 import { DIVISION_SELECTION_OTHER_LABEL } from "@/lib/applications/division-selection";
+import { parseSchoolGradeSelectValue } from "@/lib/fighter/school-grade-input";
 
 export const EXTERNAL_REGISTRATION_MAX_ATHLETES = 50;
+
+const optionalSchoolGradeSelectSchema = z
+  .string()
+  .trim()
+  .optional()
+  .default("")
+  .superRefine((value, ctx) => {
+    const parsed = parseSchoolGradeSelectValue(value);
+    if (!parsed.ok) {
+      ctx.addIssue({ code: "custom", message: parsed.error });
+    }
+  });
 
 const genderSchema = z.enum(["male", "female"], {
   error: "성별을 선택해 주세요.",
@@ -95,6 +108,8 @@ export const externalRegistrationAthleteSchema = z.object({
     .transform((s) => (s === "" ? undefined : s)),
   guardianPhone: optionalPhoneSchema,
   competitionCategory: z.string().trim().min(1, "경기구분을 선택해 주세요."),
+  /** compact label only (초1~고3). 자유문·공백 포함값 reject */
+  schoolGradeSelect: optionalSchoolGradeSelectSchema,
   divisionSelection: externalRegistrationDivisionSelectionSchema,
   applicationWeightKg: z
     .union([z.string(), z.number(), z.null(), z.undefined()])

@@ -9,6 +9,7 @@ import { AppDateInput } from "@/components/shared/AppDateInput";
 import { Button } from "@/components/ui/button";
 import { ApplicationWeightAutoAssign } from "@/components/domain/applications/ApplicationWeightAutoAssign";
 import { AthleteInsuranceProfileFields } from "@/components/domain/applications/AthleteInsuranceProfileFields";
+import { SchoolGradeSelectField } from "@/components/domain/applications/SchoolGradeSelectField";
 import { INSURANCE_PII_ORGANIZER_CONFIRM_LABEL } from "@/lib/athlete-application/insurance-consent";
 import { ORGANIZER_FIELD_INPUT_CLASS } from "@/lib/organizer-dashboard-layout";
 import { cn } from "@/lib/utils";
@@ -223,18 +224,25 @@ export function OrganizerManualApplicationPanel({
                   ))}
                 </select>
               </div>
-              <div>
-                <label className={labelClass} htmlFor="manual-birthDate">
-                  생년월일
-                </label>
-                <AppDateInput
-                  id="manual-birthDate"
-                  name="birthDate"
-                  disallowFuture
-                  aria-label="생년월일"
-                  inputClassName={fieldClass}
-                />
-              </div>
+              <SchoolGradeSelectField
+                id="manual-schoolGradeSelect"
+                name="schoolGradeSelect"
+                className={fieldClass}
+                labelClassName={labelClass}
+              />
+            </div>
+
+            <div>
+              <label className={labelClass} htmlFor="manual-birthDate">
+                생년월일
+              </label>
+              <AppDateInput
+                id="manual-birthDate"
+                name="birthDate"
+                disallowFuture
+                aria-label="생년월일"
+                inputClassName={fieldClass}
+              />
             </div>
 
             <div>

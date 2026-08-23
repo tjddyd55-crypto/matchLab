@@ -56,6 +56,10 @@ import type {
 } from "@/lib/applicant-excel/types";
 import { compactText, foldKey, parseApplicantGender } from "@/lib/applicant-excel/normalize";
 import { fighterBirthDateForPersist } from "@/lib/fighter/birth-date";
+import {
+  parseSchoolGradeSelectValue,
+  resolveGymApplySchoolGradeSnapshot,
+} from "@/lib/fighter/school-grade-input";
 import { normalizeGymFighterPhone } from "@/lib/gym-fighter-management";
 import {
   buildCustomFormSnapshot,
@@ -1236,6 +1240,17 @@ export const applicationService = {
     const appliedAt = new Date();
     const feeAmount = paymentSetting?.feeAmount ?? 0;
 
+    const schoolGradeResolved = resolveGymApplySchoolGradeSnapshot({
+      schoolGradeSelect: input.schoolGradeSelect,
+      fighterSchoolLevel: fighter.schoolLevel,
+      fighterSchoolGrade: fighter.schoolGrade,
+      categorySchoolLevel: category.schoolLevel,
+      categorySchoolGrade: category.schoolGrade,
+    });
+    if (!schoolGradeResolved.ok) {
+      throw new AppError("VALIDATION_ERROR", schoolGradeResolved.error);
+    }
+
     const { applicationId } = await createGymEventApplication({
       eventId: input.eventId,
       divisionId: division.id,
@@ -1255,8 +1270,8 @@ export const applicationService = {
       winsSnapshot: fighter.recordWin ?? null,
       drawsSnapshot: fighter.recordDraw ?? null,
       lossesSnapshot: fighter.recordLoss ?? null,
-      schoolLevelSnapshot: fighter.schoolLevel ?? category.schoolLevel,
-      schoolGradeSnapshot: fighter.schoolGrade ?? category.schoolGrade,
+      schoolLevelSnapshot: schoolGradeResolved.fields.schoolLevel,
+      schoolGradeSnapshot: schoolGradeResolved.fields.schoolGrade,
       applicationWeightKg,
       insuranceRrnDigits: input.residentRegistrationNumber,
       insuranceConsent: buildInsuranceConsentSnapshot({
@@ -1470,6 +1485,17 @@ export const applicationService = {
       }
 
       try {
+        const schoolGradeResolved = resolveGymApplySchoolGradeSnapshot({
+          schoolGradeSelect: row.schoolGradeSelect,
+          fighterSchoolLevel: fighter.schoolLevel,
+          fighterSchoolGrade: fighter.schoolGrade,
+          categorySchoolLevel: resolved.category.schoolLevel,
+          categorySchoolGrade: resolved.category.schoolGrade,
+        });
+        if (!schoolGradeResolved.ok) {
+          throw new AppError("VALIDATION_ERROR", schoolGradeResolved.error);
+        }
+
         const { applicationId } = await createGymEventApplication({
           eventId: input.eventId,
           divisionId,
@@ -1484,8 +1510,8 @@ export const applicationService = {
           memo: input.memo,
           recordText: row.recordText,
           careerText: row.careerText,
-          schoolLevelSnapshot: resolved.category.schoolLevel,
-          schoolGradeSnapshot: resolved.category.schoolGrade,
+          schoolLevelSnapshot: schoolGradeResolved.fields.schoolLevel,
+          schoolGradeSnapshot: schoolGradeResolved.fields.schoolGrade,
           applicationWeightKg: resolved.applicationWeightKg,
           insuranceRrnDigits: row.residentRegistrationNumber,
           insuranceConsent: buildInsuranceConsentSnapshot({
@@ -1777,6 +1803,14 @@ export const applicationService = {
       const phone = normalizeGymFighterPhone(input.phone) || "-";
       const birthDate = input.birthDate ? toUtcDateOnly(input.birthDate) : null;
 
+      const schoolGradeParsed = parseSchoolGradeSelectValue(
+        input.schoolGradeSelect,
+      );
+      if (!schoolGradeParsed.ok) {
+        throw new AppError("VALIDATION_ERROR", schoolGradeParsed.error);
+      }
+      const schoolFields = schoolGradeParsed.fields;
+
       const duplicates =
         await fighterRepository.findIdentityDuplicateCandidates({
           name: input.fighterName,
@@ -1894,6 +1928,8 @@ export const applicationService = {
             guardianName: input.guardianName ?? null,
             guardianPhone: input.guardianPhone ?? null,
             status: FighterStatus.active,
+            schoolLevel: schoolFields.schoolLevel,
+            schoolGrade: schoolFields.schoolGrade,
           });
           fighter = {
             id: linked.id,
@@ -1921,6 +1957,8 @@ export const applicationService = {
               guardianName: input.guardianName ?? null,
               guardianPhone: input.guardianPhone ?? null,
               currentGymId: gymId,
+              schoolLevel: schoolFields.schoolLevel,
+              schoolGrade: schoolFields.schoolGrade,
             },
           );
           fighter = buildFighterForManualApplication({
@@ -2004,8 +2042,8 @@ export const applicationService = {
             memo: memoParts.join("\n"),
             recordText: input.recordText,
             careerText: input.careerText,
-            schoolLevelSnapshot: category?.schoolLevel ?? null,
-            schoolGradeSnapshot: category?.schoolGrade ?? null,
+            schoolLevelSnapshot: schoolFields.schoolLevel,
+            schoolGradeSnapshot: schoolFields.schoolGrade,
             applicationWeightKg,
             insuranceRrnDigits: input.residentRegistrationNumber,
             insuranceConsent: input.insuranceConsentConfirmed
@@ -2272,7 +2310,7 @@ export const applicationService = {
         divisionId: string | null;
       }> = [];
 
-      for (const { validated } of resolvedAthletes) {
+      for (const { athlete, validated } of resolvedAthletes) {
         const isOther = validated.selection.selectionType === "OTHER";
         const divisionId = isOther ? null : validated.selection.divisionId;
         const division = divisionId ? divisionById.get(divisionId) : undefined;
@@ -2292,6 +2330,14 @@ export const applicationService = {
           );
         }
 
+        const schoolGradeParsed = parseSchoolGradeSelectValue(
+          athlete.schoolGradeSelect,
+        );
+        if (!schoolGradeParsed.ok) {
+          throw new AppError("VALIDATION_ERROR", schoolGradeParsed.error);
+        }
+        const schoolFields = schoolGradeParsed.fields;
+
         const fighterCode = await fighterService.generateFighterCode(tx);
         const createdFighter = await fighterRepository.createFighterWithGymHistory(
           tx,
@@ -2305,6 +2351,8 @@ export const applicationService = {
             guardianPhone: validated.guardianPhone,
             currentGymId: null,
             weight: validated.applicationWeightKg,
+            schoolLevel: schoolFields.schoolLevel,
+            schoolGrade: schoolFields.schoolGrade,
           },
         );
         const fighter = buildFighterForManualApplication({
@@ -2405,6 +2453,8 @@ export const applicationService = {
             winsSnapshot: validated.record.wins,
             drawsSnapshot: validated.record.draws,
             lossesSnapshot: validated.record.losses,
+            schoolLevelSnapshot: schoolFields.schoolLevel,
+            schoolGradeSnapshot: schoolFields.schoolGrade,
             applicationWeightKg: validated.applicationWeightKg,
             insuranceRrnDigits: undefined,
             insuranceConsent: undefined,
@@ -2540,6 +2590,7 @@ export const applicationService = {
       fileName: input.fileName,
       headerRow: parsed.headerRow,
       rows: parsed.rows,
+      presentHeaders: parsed.presentHeaders,
       divisions: event.divisions,
       existing: existingRows.map(identityFromExistingApplication),
     });
