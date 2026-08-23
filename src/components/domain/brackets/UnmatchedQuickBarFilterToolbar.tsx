@@ -334,6 +334,12 @@ function UnmatchedFilterButtons({
         onChange={(gyms) => patchFilters({ gyms })}
       />
       <MultiCheckFilterDropdown
+        label="학년"
+        options={filterOptions.schoolGrades}
+        selected={filters.schoolGrades}
+        onChange={(schoolGrades) => patchFilters({ schoolGrades })}
+      />
+      <MultiCheckFilterDropdown
         label="성별"
         options={filterOptions.genders}
         selected={filters.genders}

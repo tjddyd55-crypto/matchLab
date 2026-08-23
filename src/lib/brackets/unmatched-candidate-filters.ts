@@ -1,5 +1,9 @@
 import type { OrganizerApprovedFighterOptionVM } from "@/lib/services/bracket.service";
 import { parseRecordText } from "@/lib/fighter/record";
+import {
+  buildSchoolGradeFilterOptions,
+  resolveApplicationSchoolGradeLabel,
+} from "@/lib/fighter/school-grade-input";
 
 export type UnmatchedRecordStatusFilter = "all" | "zero" | "experienced";
 
@@ -9,6 +13,7 @@ export type UnmatchedQuickBarFilterState = {
   genders: string[];
   weights: number[];
   gyms: string[];
+  schoolGrades: string[];
   recordStatus: UnmatchedRecordStatusFilter;
   /** 유전 선택 시만 사용. 빈 문자열 = 상한 없음(1전 이상) */
   maxTotalBouts: string;
@@ -20,6 +25,7 @@ export const DEFAULT_UNMATCHED_QUICK_BAR_FILTERS: UnmatchedQuickBarFilterState =
   genders: [],
   weights: [],
   gyms: [],
+  schoolGrades: [],
   recordStatus: "all",
   maxTotalBouts: "",
 };
@@ -122,6 +128,7 @@ export function buildUnmatchedQuickBarFilterOptions(
     genders: [...genders].sort((a, b) => a.localeCompare(b, "ko")),
     weights: [...weights].sort((a, b) => a - b),
     gyms: [...gyms].sort((a, b) => a.localeCompare(b, "ko")),
+    schoolGrades: buildSchoolGradeFilterOptions(options),
   };
 }
 
@@ -194,6 +201,11 @@ export function filterUnmatchedQuickBarOptions(
       if (!filters.gyms.includes(option.gymName)) return false;
     }
 
+    if (filters.schoolGrades.length > 0) {
+      const grade = resolveApplicationSchoolGradeLabel(option);
+      if (!grade || !filters.schoolGrades.includes(grade)) return false;
+    }
+
     if (
       !matchesRecordFilter(
         option,
@@ -215,6 +227,7 @@ export function buildUnmatchedQuickBarFilterChips(
   for (const ageGroup of filters.ageGroups) chips.push(ageGroup);
   for (const gender of filters.genders) chips.push(gender);
   for (const gym of filters.gyms) chips.push(gym);
+  for (const grade of filters.schoolGrades) chips.push(grade);
   for (const weight of filters.weights) {
     chips.push(formatUnmatchedWeightFilterLabel(weight));
   }
@@ -236,6 +249,7 @@ export function hasActiveUnmatchedQuickBarFilters(
     filters.genders.length > 0 ||
     filters.weights.length > 0 ||
     filters.gyms.length > 0 ||
+    filters.schoolGrades.length > 0 ||
     filters.recordStatus !== "all"
   );
 }

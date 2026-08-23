@@ -2,6 +2,7 @@
 
 import type React from "react";
 import { ApplicationWeightAutoAssign } from "@/components/domain/applications/ApplicationWeightAutoAssign";
+import { SchoolGradeSelectField } from "@/components/domain/applications/SchoolGradeSelectField";
 import { parseApplicantGender } from "@/lib/applicant-excel/normalize";
 import type {
   EventApplicationDivisionRowDTO,
@@ -25,6 +26,7 @@ export type FighterRowState = {
   competitionCategory: string;
   discipline: string;
   applicationWeightKg: string;
+  schoolGradeSelect: string;
   formAnswers: Record<string, unknown>;
   structuredRecord: StructuredRecordValue;
   careerText: string;
@@ -40,6 +42,7 @@ type GymBulkApplicationRowProps = {
     competitionCategory?: string;
     discipline?: string;
     applicationWeightKg?: string;
+    schoolGradeSelect?: string;
   }) => void;
   formStatus?: React.ReactNode;
 };
@@ -130,6 +133,18 @@ export function GymBulkApplicationTableRow(props: GymBulkApplicationRowProps) {
           labelClass="text-muted-foreground mb-1 block text-[11px] font-medium"
           defaultWeightHintKg={fighter.weightKg}
         />
+        <div className="mt-2 max-w-[8rem]">
+          <SchoolGradeSelectField
+            id={`bulk-grade-${fighter.id}`}
+            name={`schoolGradeSelect-${fighter.id}`}
+            value={rowState.schoolGradeSelect}
+            onChange={(schoolGradeSelect) =>
+              onWeightFieldsChange({ schoolGradeSelect })
+            }
+            className={publicApplicationFieldSelectClass}
+            labelClassName="text-muted-foreground mb-1 block text-[11px] font-medium"
+          />
+        </div>
       </TableCell>
       {formStatus ? <TableCell>{formStatus}</TableCell> : null}
       <TableCell>
@@ -197,6 +212,16 @@ export function GymBulkApplicationCard(props: GymBulkApplicationRowProps) {
           fieldClass={publicApplicationFieldSelectClass}
           labelClass="text-muted-foreground mb-1 block text-[11px] font-medium"
           defaultWeightHintKg={fighter.weightKg}
+        />
+        <SchoolGradeSelectField
+          id={`bulk-card-grade-${fighter.id}`}
+          name={`schoolGradeSelect-${fighter.id}`}
+          value={rowState.schoolGradeSelect}
+          onChange={(schoolGradeSelect) =>
+            onWeightFieldsChange({ schoolGradeSelect })
+          }
+          className={publicApplicationFieldSelectClass}
+          labelClassName="text-muted-foreground mb-1 block text-[11px] font-medium"
         />
         <label className="flex cursor-pointer items-center gap-2 text-sm">
           <input

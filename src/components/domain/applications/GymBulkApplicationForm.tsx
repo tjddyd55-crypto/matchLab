@@ -65,6 +65,7 @@ function initialRowStates(
       discipline: "",
       applicationWeightKg:
         fighter.weightKg != null ? String(fighter.weightKg) : "",
+      schoolGradeSelect: "",
       formAnswers: {},
       structuredRecord: { totalBouts: 0, wins: 0, draws: 0, losses: 0 },
       careerText: "",
@@ -85,6 +86,7 @@ function buildApplicationsPayload(
     applicationWeightKg: number;
     competitionCategory: string;
     discipline?: string;
+    schoolGradeSelect?: string;
     structuredRecord: StructuredRecordValue;
     recordText?: string;
     careerText?: string;
@@ -108,6 +110,7 @@ function buildApplicationsPayload(
       applicationWeightKg: kg,
       competitionCategory: state.competitionCategory,
       discipline: state.discipline || undefined,
+      schoolGradeSelect: state.schoolGradeSelect || "",
       structuredRecord: state.structuredRecord,
       recordText: undefined,
       careerText: state.careerText || undefined,

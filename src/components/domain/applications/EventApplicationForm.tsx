@@ -6,6 +6,7 @@ import { applyToEventAction } from "@/features/applications/actions";
 import { ApplicationWeightAutoAssign } from "@/components/domain/applications/ApplicationWeightAutoAssign";
 import { ApplicationAgreementChecklist } from "@/components/domain/applications/ApplicationAgreementChecklist";
 import { AthleteInsuranceProfileFields } from "@/components/domain/applications/AthleteInsuranceProfileFields";
+import { SchoolGradeSelectField } from "@/components/domain/applications/SchoolGradeSelectField";
 import { PaymentInstructionCard } from "@/components/domain/payments/PaymentInstructionCard";
 import { FeedbackMessage } from "@/components/shared/FeedbackMessage";
 import { MatchonStatusBadge } from "@/components/shared/MatchonStatusBadge";
@@ -201,6 +202,14 @@ export function EventApplicationForm(props: EventApplicationFormProps) {
               applicationWeightKg: "applicationWeightKg",
             }}
           />
+          <div className="mt-4 max-w-xs">
+            <SchoolGradeSelectField
+              id="apply-schoolGradeSelect"
+              name="schoolGradeSelect"
+              className={publicApplicationFieldSelectClass}
+              labelClassName="text-muted-foreground mb-1 block text-xs font-medium"
+            />
+          </div>
         </CardContent>
       </Card>
 

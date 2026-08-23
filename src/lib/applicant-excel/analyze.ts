@@ -30,6 +30,8 @@ import {
   validateRecord,
   type StructuredRecord,
 } from "@/lib/fighter/record";
+import { resolveExcelSchoolGradeFields } from "@/lib/fighter/school-grade-input";
+import type { ApplicantExcelHeader } from "@/lib/applicant-excel/columns";
 
 export function applicantIdentityKey(input: {
   fighterName: string;
@@ -91,6 +93,7 @@ export function identityFromExistingApplication(row: {
 function analyzeOneRow(
   parsed: ParsedApplicantExcelRow,
   divisions: ApplicantDivisionCandidate[],
+  presentHeaders: readonly ApplicantExcelHeader[],
 ): ApplicantExcelPreviewRow {
   const v = parsed.values;
   const errors: string[] = [];
@@ -222,6 +225,16 @@ function analyzeOneRow(
       : `row:${parsed.excelRow}`;
 
   const hasError = errors.length > 0;
+  const schoolResolved = resolveExcelSchoolGradeFields({
+    hasGradeColumn: presentHeaders.includes("학년"),
+    gradeCell: v.학년,
+    categorySchoolLevel: category.schoolLevel,
+    categorySchoolGrade: category.schoolGrade,
+  });
+  if (!schoolResolved.ok) {
+    errors.push(schoolResolved.error);
+  }
+
   return {
     excelRow: parsed.excelRow,
     fighterName,
@@ -263,20 +276,25 @@ function analyzeOneRow(
     reviewRequired,
     otherDetailText,
     identityKey,
-    decision: hasError ? "error" : "create",
-    decisionLabel: hasError
-      ? "오류"
-      : reviewRequired
-        ? "체급 확인 필요"
-        : "등록 가능",
+    decision: errors.length > 0 ? "error" : "create",
+    decisionLabel:
+      errors.length > 0
+        ? "오류"
+        : reviewRequired
+          ? "체급 확인 필요"
+          : "등록 가능",
     errors,
     warnings,
     totalBoutsSnapshot: structuredRecord.record?.totalBouts ?? null,
     winsSnapshot: structuredRecord.record?.wins ?? null,
     drawsSnapshot: structuredRecord.record?.draws ?? null,
     lossesSnapshot: structuredRecord.record?.losses ?? null,
-    schoolLevelSnapshot: category.schoolLevel,
-    schoolGradeSnapshot: category.schoolGrade,
+    schoolLevelSnapshot: schoolResolved.ok
+      ? schoolResolved.fields.schoolLevel
+      : null,
+    schoolGradeSnapshot: schoolResolved.ok
+      ? schoolResolved.fields.schoolGrade
+      : null,
     recordParseWarning: structuredRecord.warning ?? null,
   };
 }
@@ -285,12 +303,16 @@ export function analyzeApplicantExcelRows(input: {
   fileName: string;
   headerRow: number;
   rows: ParsedApplicantExcelRow[];
+  presentHeaders?: readonly ApplicantExcelHeader[];
   divisions: ApplicantDivisionCandidate[];
   existing: ApplicantExcelExistingIdentity[];
 }): ApplicantExcelPreview {
   const existingSet = new Set(input.existing.map(existingKey));
   const seen = new Map<string, number>();
-  const rows = input.rows.map((row) => analyzeOneRow(row, input.divisions));
+  const presentHeaders = input.presentHeaders ?? [];
+  const rows = input.rows.map((row) =>
+    analyzeOneRow(row, input.divisions, presentHeaders),
+  );
 
   for (const row of rows) {
     if (row.decision === "error") continue;

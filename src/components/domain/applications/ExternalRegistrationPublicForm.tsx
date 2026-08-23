@@ -20,6 +20,7 @@ import { DIVISION_SELECTION_OTHER_LABEL } from "@/lib/applications/division-sele
 import { formatDivisionWeightChipLabel } from "@/lib/event-division-fields";
 import { isMinorBirthDate } from "@/lib/gym-member-self-registration/age";
 import { birthDateToUtc, parseApplicantGender } from "@/lib/applicant-excel/normalize";
+import { SCHOOL_GRADE_SELECT_OPTIONS } from "@/lib/fighter/school-grade-input";
 
 const OTHER_OPTION_VALUE = "__OTHER__";
 
@@ -42,6 +43,7 @@ type AthleteDraft = {
   phone: string;
   guardianPhone: string;
   competitionCategory: string;
+  schoolGradeSelect: string;
   /** EventDivision.id 또는 OTHER_OPTION_VALUE */
   divisionOptionValue: string;
   otherDetailText: string;
@@ -81,6 +83,7 @@ function emptyAthlete(): AthleteDraft {
     phone: "",
     guardianPhone: "",
     competitionCategory: "",
+    schoolGradeSelect: "",
     divisionOptionValue: "",
     otherDetailText: "",
     applicationWeightKg: "",
@@ -356,6 +359,7 @@ export function ExternalRegistrationPublicForm({
           phone: a.phone,
           guardianPhone: a.guardianPhone || undefined,
           competitionCategory: a.competitionCategory,
+          schoolGradeSelect: a.schoolGradeSelect || "",
           divisionSelection: buildDivisionSelection(a),
           applicationWeightKg: a.applicationWeightKg || undefined,
           memo: a.memo || undefined,
@@ -706,6 +710,23 @@ function AthleteCard({
             {ageGroupOptions.map((ageGroup) => (
               <option key={ageGroup} value={ageGroup}>
                 {ageGroup}
+              </option>
+            ))}
+          </select>
+        </label>
+
+        <label className="block text-xs">
+          <span className={labelClass}>학년</span>
+          <select
+            className={cn(formControlFieldClass, "min-h-10 w-full")}
+            value={a.schoolGradeSelect}
+            onChange={(e) => onUpdate({ schoolGradeSelect: e.target.value })}
+            aria-label="학년"
+          >
+            <option value="">선택 안 함</option>
+            {SCHOOL_GRADE_SELECT_OPTIONS.map((opt) => (
+              <option key={opt} value={opt}>
+                {opt}
               </option>
             ))}
           </select>

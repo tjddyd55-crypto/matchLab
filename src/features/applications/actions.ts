@@ -90,6 +90,7 @@ export async function applyToEventAction(
       applicationWeightKg: Number(formReq(formData, "applicationWeightKg")),
       competitionCategory: formReq(formData, "competitionCategory"),
       discipline: formReq(formData, "discipline") || undefined,
+      schoolGradeSelect: formReq(formData, "schoolGradeSelect") || "",
       applicationProfileImageUrl:
         formReq(formData, "applicationProfileImageUrl") || undefined,
       memo: formReq(formData, "memo") || undefined,
@@ -260,6 +261,7 @@ export async function createOrganizerManualApplicationAction(
       applicationWeightKg: Number(formReq(formData, "applicationWeightKg")),
       competitionCategory: formReq(formData, "competitionCategory"),
       discipline: formReq(formData, "discipline") || undefined,
+      schoolGradeSelect: formReq(formData, "schoolGradeSelect") || "",
       manualDivisionOverride: parseCheckboxOn(formData, "manualDivisionOverride"),
       divisionId: formReq(formData, "divisionId") || undefined,
       gymMode,
@@ -443,6 +445,7 @@ export async function updateOrganizerApplicationAction(
       applicationWeightKg: Number(formReq(formData, "applicationWeightKg")),
       competitionCategory: formReq(formData, "competitionCategory"),
       discipline: formReq(formData, "discipline") || undefined,
+      schoolGradeSelect: formReq(formData, "schoolGradeSelect") || "",
       manualDivisionOverride: parseCheckboxOn(formData, "manualDivisionOverride"),
       divisionId: formReq(formData, "divisionId") || undefined,
       gymMode,

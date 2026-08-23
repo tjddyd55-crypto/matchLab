@@ -8,6 +8,10 @@ import {
   type UnmatchedQuickBarFilterState,
   type UnmatchedRecordStatusFilter,
 } from "@/lib/brackets/unmatched-candidate-filters";
+import {
+  buildSchoolGradeFilterOptions,
+  resolveApplicationSchoolGradeLabel,
+} from "@/lib/fighter/school-grade-input";
 
 /** 잡힌 경기(Match) 필터 — unmatchedFilters와 완전 독립 SSOT */
 export type MatchedMatchFilterState = {
@@ -15,6 +19,7 @@ export type MatchedMatchFilterState = {
   gyms: string[];
   genders: string[];
   weights: number[];
+  schoolGrades: string[];
   recordStatus: UnmatchedRecordStatusFilter;
   maxTotalBouts: string;
   divisions: string[];
@@ -25,6 +30,7 @@ export const DEFAULT_MATCHED_MATCH_FILTERS: MatchedMatchFilterState = {
   gyms: [],
   genders: [],
   weights: [],
+  schoolGrades: [],
   recordStatus: "all",
   maxTotalBouts: "",
   divisions: [],
@@ -38,6 +44,7 @@ export function hasActiveMatchedMatchFilters(
     filters.gyms.length > 0 ||
     filters.genders.length > 0 ||
     filters.weights.length > 0 ||
+    filters.schoolGrades.length > 0 ||
     filters.recordStatus !== "all" ||
     filters.divisions.length > 0
   );
@@ -124,6 +131,16 @@ function optionMatchesSearch(
   );
 }
 
+function optionMatchesSchoolGradeFilter(
+  option: OrganizerApprovedFighterOptionVM | null,
+  schoolGrades: string[],
+): boolean {
+  if (schoolGrades.length === 0) return true;
+  if (!option) return false;
+  const grade = resolveApplicationSchoolGradeLabel(option);
+  return Boolean(grade && schoolGrades.includes(grade));
+}
+
 function fighterSideMatchesFilters(
   option: OrganizerApprovedFighterOptionVM | null,
   filters: MatchedMatchFilterState,
@@ -132,6 +149,9 @@ function fighterSideMatchesFilters(
   if (!optionMatchesGymFilter(option, filters.gyms)) return false;
   if (!optionMatchesGenderFilter(option, filters.genders)) return false;
   if (!optionMatchesWeightFilter(option, filters.weights)) return false;
+  if (!optionMatchesSchoolGradeFilter(option, filters.schoolGrades)) {
+    return false;
+  }
   if (
     !optionMatchesRecordFilter(
       option,
@@ -161,6 +181,7 @@ export function filterMatchedMatches(
     filters.gyms.length > 0 ||
     filters.genders.length > 0 ||
     filters.weights.length > 0 ||
+    filters.schoolGrades.length > 0 ||
     filters.recordStatus !== "all" ||
     filters.divisions.length > 0;
 
@@ -221,6 +242,19 @@ export function buildMatchedMatchFilterOptions(
     genders: [...genders].sort((a, b) => a.localeCompare(b, "ko")),
     weights: [...weights].sort((a, b) => a - b),
     divisions: [...divisions].sort((a, b) => a.localeCompare(b, "ko")),
+    schoolGrades: buildSchoolGradeFilterOptions(
+      [...optionsById.values()].filter((option) => {
+        for (const match of matches) {
+          if (
+            match.fighterRedId === option.fighterId ||
+            match.fighterBlueId === option.fighterId
+          ) {
+            return true;
+          }
+        }
+        return false;
+      }),
+    ),
   };
 }
 
@@ -233,6 +267,7 @@ export function toUnmatchedFilterStateFromMatched(
     search: filters.search,
     genders: filters.genders,
     weights: filters.weights,
+    schoolGrades: filters.schoolGrades,
     recordStatus: filters.recordStatus,
     maxTotalBouts: filters.maxTotalBouts,
   };

@@ -6,8 +6,21 @@ import {
   optionalInsuranceConsentSchema,
   optionalResidentRegistrationNumberFieldSchema,
 } from "@/lib/athlete-application/profile-input";
+import { parseSchoolGradeSelectValue } from "@/lib/fighter/school-grade-input";
 
 const genderSchema = z.string().trim().min(1, "성별을 선택해 주세요.");
+
+const optionalSchoolGradeSelectSchema = z
+  .string()
+  .trim()
+  .optional()
+  .default("")
+  .superRefine((value, ctx) => {
+    const parsed = parseSchoolGradeSelectValue(value);
+    if (!parsed.ok) {
+      ctx.addIssue({ code: "custom", message: parsed.error });
+    }
+  });
 
 export const organizerManualApplicationSchema = z
   .object({
@@ -22,6 +35,8 @@ export const organizerManualApplicationSchema = z
     gymName: z.string().trim().max(120).optional(),
     fighterName: z.string().trim().min(1, "선수 이름을 입력해 주세요."),
     gender: genderSchema,
+    /** compact label (초1~고3) 또는 "". 서버에서 schoolLevel/schoolGrade로 normalize */
+    schoolGradeSelect: optionalSchoolGradeSelectSchema,
     birthDate: z.coerce
       .date({ message: "생년월일 형식이 올바르지 않습니다." })
       .optional()
