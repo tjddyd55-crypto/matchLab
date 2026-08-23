@@ -181,6 +181,7 @@
     "verify:application-school-grade": "tsx scripts/verify-application-school-grade.ts",
     "verify:manual-multi-match": "tsx scripts/verify-manual-multi-match.ts",
     "verify:bracket-duplicate-validation": "tsx scripts/verify-bracket-duplicate-validation.ts",
+    "verify:bracket-view-filters": "tsx scripts/verify-bracket-view-filters.ts",
     "verify:additional-info-request": "tsx scripts/verify-additional-info-request.ts",
     "verify:additional-info-recipient": "tsx scripts/verify-additional-info-recipient.ts",
     "verify:additional-info-recipient-snapshot": "tsx scripts/verify-additional-info-recipient-snapshot.ts",

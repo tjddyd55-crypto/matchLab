@@ -31,7 +31,14 @@ import { FeedbackMessage } from "@/components/shared/FeedbackMessage";
 import { MatchonStatusBadge } from "@/components/shared/MatchonStatusBadge";
 import { Card, CardContent } from "@/components/ui/card";
 import { OrganizerBracketViewMatchCard } from "@/components/domain/brackets/OrganizerBracketViewMatchCard";
+import { BracketViewFilterToolbar } from "@/components/domain/brackets/BracketViewFilterToolbar";
 import { BracketsEmptyState } from "@/components/domain/brackets/BracketsEmptyState";
+import {
+  DEFAULT_BRACKET_VIEW_FILTERS,
+  filterBracketViewMatches,
+  hasActiveBracketViewFilters,
+  type BracketViewFilterState,
+} from "@/lib/brackets/bracket-view-filters";
 import { resolveBoutFormatKind } from "@/lib/bout-format";
 import { CORNER_SLOT_STYLES } from "@/lib/corner-slot-styles";
 import type { EventCourtVM } from "@/lib/services/event-court.service";
@@ -129,6 +136,9 @@ export function OrganizerCourtBracketPanel({
   const [orderOverrides, setOrderOverrides] = useState<
     Record<string, number | null>
   >({});
+  const [viewFilters, setViewFilters] = useState<BracketViewFilterState>(
+    DEFAULT_BRACKET_VIEW_FILTERS,
+  );
 
   const serverOrders = useMemo(() => {
     const init: Record<string, number | null> = {};
@@ -141,11 +151,20 @@ export function OrganizerCourtBracketPanel({
     [serverOrders, orderOverrides],
   );
 
-  const filtered = useMemo(() => {
+  /** 경기장 탭 필터 — 순서 조정 SSOT */
+  const courtTabMatches = useMemo(() => {
     const sorted = sortMatchesForTab(matches, activeCourts);
     if (activeTab === "all") return sorted;
     return sorted.filter((m) => m.courtId === activeTab);
   }, [matches, activeTab, activeCourts]);
+
+  /** 읽기 전용 보기 필터 — hide/show만, 순서/저장 무관 */
+  const filtered = useMemo(
+    () => filterBracketViewMatches(courtTabMatches, viewFilters),
+    [courtTabMatches, viewFilters],
+  );
+
+  const viewFiltersActive = hasActiveBracketViewFilters(viewFilters);
 
   const courtTabItems = useMemo(
     () => [
@@ -172,10 +191,12 @@ export function OrganizerCourtBracketPanel({
   ): OrganizerEventMatchListItemVM[] {
     const courtId = reorderCourtIdForMatch(m);
     if (!courtId) return [];
-    return filtered.filter((x) => x.courtId === courtId);
+    // 보기 필터와 무관하게 해당 경기장 전체 순서로 재정렬
+    return courtTabMatches.filter((x) => x.courtId === courtId);
   }
 
   function canShowReorderControls(m: OrganizerEventMatchListItemVM): boolean {
+    if (viewFiltersActive) return false;
     const courtId = reorderCourtIdForMatch(m);
     if (!courtId) return false;
     return courtMatchesForReorder(m).length > 1;
@@ -183,7 +204,8 @@ export function OrganizerCourtBracketPanel({
 
   function moveAndSave(matchId: string, direction: -1 | 1) {
     if (pending) return;
-    const match = filtered.find((m) => m.matchId === matchId);
+    if (viewFiltersActive) return;
+    const match = courtTabMatches.find((m) => m.matchId === matchId);
     if (!match) return;
     const courtId = reorderCourtIdForMatch(match);
     if (!courtId) return;
@@ -268,8 +290,21 @@ export function OrganizerCourtBracketPanel({
         onChange={setActiveTab}
       />
 
+      <BracketViewFilterToolbar
+        matches={courtTabMatches}
+        filters={viewFilters}
+        onFiltersChange={setViewFilters}
+        visibleCount={filtered.length}
+      />
+
       {filtered.length === 0 ? (
-        <BracketsEmptyState message="조건에 맞는 경기가 없습니다." />
+        <BracketsEmptyState
+          message={
+            viewFiltersActive
+              ? "조건에 맞는 대진이 없습니다."
+              : "조건에 맞는 경기가 없습니다."
+          }
+        />
       ) : (
         <>
           <div className="hidden flex-col gap-2 md:flex">
