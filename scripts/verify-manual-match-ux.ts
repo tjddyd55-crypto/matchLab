@@ -30,6 +30,13 @@ function main() {
     ),
     "utf8",
   );
+  const quickBar = readFileSync(
+    join(
+      process.cwd(),
+      "src/components/domain/brackets/EventWideUnmatchedQuickBar.tsx",
+    ),
+    "utf8",
+  );
   const section = readFileSync(
     join(
       process.cwd(),
@@ -62,13 +69,14 @@ function main() {
   assert.match(panel, /buildManualMatchConfirmDescription/);
   assert.equal(panel.includes("h-11"), false);
 
-  assert.match(section, /전체 미배정/);
-  assert.match(section, /EventWideUnmatchedQuickBar|전체 미배정 선수 빠른 배정/);
+  assert.match(section, /EventWideUnmatchedQuickBar/);
+  assert.match(quickBar, /미매칭 선수/);
+  assert.match(quickBar, /filterUnmatchedQuickBarOptions/);
+  assert.equal(quickBar.includes("전체 미배정 선수 빠른 배정"), false);
   assert.match(section, /dockExpanded/);
   assert.match(section, /onDockExpand/);
   assert.match(section, /홍코너에 배정/);
-  assert.match(section, /수동 경기 만들기가 열립니다/);
-  assert.match(section, /min-w-\[240px\]/);
+  assert.match(quickBar, /min-w-\[240px\]/);
   assert.match(section, /formatManualMatchSelectionHint/);
 
   const map = buildFighterAssignmentMap([
