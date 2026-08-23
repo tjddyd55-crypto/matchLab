@@ -48,6 +48,13 @@ import {
 } from "@/lib/brackets/unmatched-candidate-filters";
 import { formatMatchOrderShort } from "@/lib/match-order-display";
 import { BracketType } from "@/lib/enums";
+import {
+  bracketWorkspaceControlsClass,
+  bracketWorkspaceListScrollClass,
+  bracketWorkspacePaneClass,
+  bracketWorkspaceScopeRowClass,
+  bracketWorkspaceTitleRowClass,
+} from "@/lib/ui/bracket-workspace-ui";
 import { cn } from "@/lib/utils";
 
 type UnmatchedTab = "division" | "event";
@@ -520,25 +527,205 @@ export function BracketApprovedCandidatesSection({
   }
 
   const isWorkspace = variant === "workspace";
+  const totalUnmatchedForTitle =
+    unmatchedTab === "division"
+      ? grouped.unassigned.length
+      : eventWideUnmatchedOptions.length;
+
+  function renderUnmatchedPlayerList() {
+    return (
+      <>
+        {visibleUnmatched.map((o) => {
+          const inSlot = slotIds.has(o.fighterId);
+          if (!showManualCreate) {
+            return (
+              <CandidateCard
+                key={o.applicationId}
+                option={o}
+                placement={undefined}
+                isPlaced={false}
+                group="unassigned"
+              />
+            );
+          }
+          return (
+            <UnmatchedOptionCard
+              key={o.applicationId}
+              option={o}
+              inSlot={inSlot}
+              showDivisionLine={unmatchedTab === "event"}
+              activePickSlot={activePickSlot}
+              onCardClick={() => handleCardPick(o)}
+              onAssignRed={() => assignToSlot("red", o.fighterId)}
+              onAssignBlue={() => assignToSlot("blue", o.fighterId)}
+              onDragStart={expandDock}
+            />
+          );
+        })}
+        {multiMatchMode && unmatchedTab === "division"
+          ? filteredAssignedForMulti.map((o) => {
+              const inSlot = slotIds.has(o.fighterId);
+              const assignments = getFighterAssignments(
+                assignmentMap,
+                o.fighterId,
+              );
+              const badge = `이미 ${assignments.length}경기 배정`;
+              return (
+                <UnmatchedOptionCard
+                  key={`multi-${o.applicationId}`}
+                  option={o}
+                  inSlot={inSlot}
+                  assignmentBadge={badge}
+                  activePickSlot={activePickSlot}
+                  onCardClick={() => handleCardPick(o)}
+                  onAssignRed={() => assignToSlot("red", o.fighterId)}
+                  onAssignBlue={() => assignToSlot("blue", o.fighterId)}
+                  onDragStart={expandDock}
+                />
+              );
+            })
+          : null}
+      </>
+    );
+  }
+
+  function renderUnmatchedControls() {
+    if (!showManualCreate) return null;
+    return (
+      <div className="space-y-2">
+        <div className={bracketWorkspaceScopeRowClass}>
+          <Button
+            type="button"
+            size="xs"
+            variant={unmatchedTab === "division" ? "secondary" : "outline"}
+            onClick={() => setUnmatchedTab("division")}
+          >
+            현재 경기구분 ({grouped.unassigned.length})
+          </Button>
+          <Button
+            type="button"
+            size="xs"
+            variant={unmatchedTab === "event" ? "secondary" : "outline"}
+            onClick={() => setUnmatchedTab("event")}
+          >
+            전체 미매칭 ({eventWideUnmatchedOptions.length})
+          </Button>
+          <Button
+            type="button"
+            size="xs"
+            variant={multiMatchMode ? "default" : "outline"}
+            onClick={() => setMultiMatchMode((v) => !v)}
+          >
+            {multiMatchMode ? "복수 경기 모드 종료" : "복수 경기 선수 추가"}
+          </Button>
+        </div>
+        {multiMatchMode ? (
+          <p className="rounded-md border border-amber-500/40 bg-amber-500/10 px-2 py-1 text-[11px] text-amber-950 dark:text-amber-100">
+            복수 경기 선수 추가 모드 — 이미 배정된 같은 경기구분 선수를 추가로
+            선택할 수 있습니다.
+          </p>
+        ) : null}
+        <UnmatchedQuickBarFilterToolbar
+          layout="stack"
+          options={unmatchedFilterOptionsSource}
+          filters={unmatchedFilters}
+          onFiltersChange={setUnmatchedFilters}
+        />
+      </div>
+    );
+  }
+
+  if (isWorkspace) {
+    return (
+      <Card
+        className={cn(bracketWorkspacePaneClass, "border-0 shadow-none")}
+      >
+        <CardHeader className={bracketWorkspaceControlsClass}>
+          <div className={bracketWorkspaceTitleRowClass}>
+            <CardTitle className="text-lg">
+              미매칭 선수{" "}
+              <span className="text-muted-foreground font-normal tabular-nums">
+                {visibleUnmatchedCount}명
+              </span>
+              {unmatchedFiltersActive &&
+              visibleUnmatchedCount !== totalUnmatchedForTitle ? (
+                <span className="text-muted-foreground ml-1 text-xs font-normal">
+                  / 전체 {totalUnmatchedForTitle}
+                </span>
+              ) : null}
+            </CardTitle>
+            {showManualCreate && manualCandidates.length > 0 && !dockExpanded ? (
+              <Button
+                type="button"
+                variant="outline"
+                size="sm"
+                className="shrink-0"
+                onClick={() => setDockExpanded(true)}
+              >
+                수동 경기 만들기
+                {manualMatchSelectionHint ? (
+                  <span className="text-muted-foreground font-normal">
+                    {" "}
+                    · {manualMatchSelectionHint}
+                  </span>
+                ) : null}
+              </Button>
+            ) : null}
+          </div>
+          {renderUnmatchedControls()}
+        </CardHeader>
+        <CardContent
+          className={cn(bracketWorkspaceListScrollClass, "pt-0")}
+          data-bracket-workspace-list="unmatched"
+        >
+          {visibleUnmatchedCount +
+            (multiMatchMode && unmatchedTab === "division"
+              ? filteredAssignedForMulti.length
+              : 0) >
+          0 ? (
+            <ul className="grid gap-1.5">{renderUnmatchedPlayerList()}</ul>
+          ) : (
+            <p className="text-muted-foreground rounded-lg border border-dashed px-3 py-3 text-center text-xs">
+              {unmatchedEmptyMessage}
+            </p>
+          )}
+        </CardContent>
+        {showManualCreate ? (
+          <ManualMatchCreatePanel
+            bracketId={bracketId}
+            defaultCourtId={defaultCourtId}
+            unmatched={manualCandidates}
+            matches={matches}
+            allowDuplicateAssignment={multiMatchMode}
+            targetDivisionId={targetDivisionId}
+            targetDivisionLabel={targetDivisionLabel}
+            targetDivisionGender={targetDivisionGender}
+            red={red}
+            blue={blue}
+            onRedChange={setRed}
+            onBlueChange={setBlue}
+            pending={createPending}
+            setPendingExternal={setCreatePending}
+            activePickSlot={activePickSlot}
+            onActivePickSlotChange={setActivePickSlot}
+            dockExpanded={dockExpanded}
+            onDockExpandedChange={setDockExpanded}
+          />
+        ) : null}
+      </Card>
+    );
+  }
 
   return (
-    <Card className={cn(isWorkspace && "border-matchon-border shadow-sm")}>
+    <Card>
       <CardHeader className="flex flex-col gap-3 sm:flex-row sm:items-start sm:justify-between">
         <div className="space-y-1">
-          <CardTitle className="text-lg">
-            {isWorkspace ? "미매칭 선수" : "승인된 신청 선수 (대진 후보)"}
-          </CardTitle>
-          {!isWorkspace ? (
-            <CardDescription>
-              승인된 신청자를 배정된 선수 · 참여 불가 선수 · 미매칭 선수로
-              나누어 표시합니다. 전체 미매칭에서는 다른 경기구분 선수도 조회할 수
-              있습니다.
-            </CardDescription>
-          ) : (
-            <CardDescription>
-              검색·필터는 이 영역만 적용됩니다. 왼쪽 잡힌 경기 필터와 독립입니다.
-            </CardDescription>
-          )}
+          <CardTitle className="text-lg">승인된 신청 선수 (대진 후보)</CardTitle>
+          <CardDescription>
+            승인된 신청자를 배정된 선수 · 참여 불가 선수 · 미매칭 선수로 나누어
+            표시합니다. 전체 미매칭에서는 다른 경기구분 선수도 조회할 수
+            있습니다.
+          </CardDescription>
         </div>
         {showManualCreate && manualCandidates.length > 0 && !dockExpanded ? (
           <Button
@@ -559,7 +746,7 @@ export function BracketApprovedCandidatesSection({
         ) : null}
       </CardHeader>
       <CardContent className="space-y-4">
-        {!isWorkspace && unassignablePlacedCount > 0 ? (
+        {unassignablePlacedCount > 0 ? (
           <FeedbackMessage tone="error" role="alert">
             대진표에 배치된 선수 중 출전 불가 상태인 선수가{" "}
             {unassignablePlacedCount}명 있습니다. 참여 불가 선수 영역에서 확인 후
@@ -567,173 +754,54 @@ export function BracketApprovedCandidatesSection({
           </FeedbackMessage>
         ) : null}
 
-        <div
-          className={cn(
-            "grid gap-4",
-            isWorkspace ? "grid-cols-1" : "lg:grid-cols-3 lg:gap-5",
-          )}
-        >
-          {!isWorkspace ? (
-            <>
-              <CandidateColumn
-                title="배정된 선수"
-                count={grouped.assigned.length}
-                accentClassName="bg-primary/10 text-primary"
-                emptyMessage="대진에 배정된 선수가 없습니다."
-              >
-                {grouped.assigned.map((o) => (
-                  <CandidateCard
-                    key={o.applicationId}
-                    option={o}
-                    placement={placementMap.get(o.fighterId)}
-                    isPlaced
-                    group="assigned"
-                  />
-                ))}
-              </CandidateColumn>
-
-              <CandidateColumn
-                title="참여 불가 선수"
-                count={grouped.unassignable.length}
-                accentClassName="bg-destructive/10 text-destructive"
-                emptyMessage="참여 불가 선수가 없습니다."
-              >
-                {grouped.unassignable.map((o) => (
-                  <CandidateCard
-                    key={o.applicationId}
-                    option={o}
-                    placement={placementMap.get(o.fighterId)}
-                    isPlaced={placedIds.has(o.fighterId)}
-                    group="unassignable"
-                  />
-                ))}
-              </CandidateColumn>
-            </>
-          ) : null}
+        <div className="grid gap-4 lg:grid-cols-3 lg:gap-5">
+          <CandidateColumn
+            title="배정된 선수"
+            count={grouped.assigned.length}
+            accentClassName="bg-primary/10 text-primary"
+            emptyMessage="대진에 배정된 선수가 없습니다."
+          >
+            {grouped.assigned.map((o) => (
+              <CandidateCard
+                key={o.applicationId}
+                option={o}
+                placement={placementMap.get(o.fighterId)}
+                isPlaced
+                group="assigned"
+              />
+            ))}
+          </CandidateColumn>
 
           <CandidateColumn
-            title={isWorkspace ? undefined : "미매칭 선수"}
+            title="참여 불가 선수"
+            count={grouped.unassignable.length}
+            accentClassName="bg-destructive/10 text-destructive"
+            emptyMessage="참여 불가 선수가 없습니다."
+          >
+            {grouped.unassignable.map((o) => (
+              <CandidateCard
+                key={o.applicationId}
+                option={o}
+                placement={placementMap.get(o.fighterId)}
+                isPlaced={placedIds.has(o.fighterId)}
+                group="unassignable"
+              />
+            ))}
+          </CandidateColumn>
+
+          <CandidateColumn
+            title="미매칭 선수"
             count={visibleUnmatchedCount}
             accentClassName="bg-amber-500/15 text-amber-700 dark:text-amber-300"
             emptyMessage={unmatchedEmptyMessage}
-            className={
-              isWorkspace
-                ? "max-h-[min(70vh,720px)] overflow-y-auto overscroll-contain"
-                : undefined
-            }
-            headerExtra={
-              showManualCreate ? (
-                <div className="space-y-2">
-                  <div className="flex flex-wrap items-center gap-1">
-                    <Button
-                      type="button"
-                      size="xs"
-                      variant={
-                        unmatchedTab === "division" ? "secondary" : "outline"
-                      }
-                      onClick={() => setUnmatchedTab("division")}
-                    >
-                      현재 경기구분 ({grouped.unassigned.length})
-                    </Button>
-                    <Button
-                      type="button"
-                      size="xs"
-                      variant={
-                        unmatchedTab === "event" ? "secondary" : "outline"
-                      }
-                      onClick={() => setUnmatchedTab("event")}
-                    >
-                      전체 미매칭 ({eventWideUnmatchedOptions.length})
-                    </Button>
-                    <Button
-                      type="button"
-                      size="xs"
-                      variant={multiMatchMode ? "default" : "outline"}
-                      onClick={() => setMultiMatchMode((v) => !v)}
-                    >
-                      {multiMatchMode
-                        ? "복수 경기 모드 종료"
-                        : "복수 경기 선수 추가"}
-                    </Button>
-                  </div>
-                  {multiMatchMode ? (
-                    <p className="rounded-md border border-amber-500/40 bg-amber-500/10 px-2 py-1 text-[11px] text-amber-950 dark:text-amber-100">
-                      복수 경기 선수 추가 모드 — 이미 배정된 같은 경기구분 선수를
-                      추가로 선택할 수 있습니다. 미매칭 인원 수는 변하지 않습니다.
-                    </p>
-                  ) : null}
-                  <UnmatchedQuickBarFilterToolbar
-                    layout="stack"
-                    options={unmatchedFilterOptionsSource}
-                    filters={unmatchedFilters}
-                    onFiltersChange={setUnmatchedFilters}
-                  />
-                  {targetDivisionLabel ? (
-                    <p className="text-muted-foreground text-[11px]">
-                      이 그룹: {targetDivisionLabel}
-                    </p>
-                  ) : null}
-                </div>
-              ) : null
-            }
+            headerExtra={renderUnmatchedControls()}
             footer={null}
           >
-            {visibleUnmatched.map((o) => {
-              const inSlot = slotIds.has(o.fighterId);
-              if (!showManualCreate) {
-                return (
-                  <CandidateCard
-                    key={o.applicationId}
-                    option={o}
-                    placement={undefined}
-                    isPlaced={false}
-                    group="unassigned"
-                  />
-                );
-              }
-              return (
-                <UnmatchedOptionCard
-                  key={o.applicationId}
-                  option={o}
-                  inSlot={inSlot}
-                  showDivisionLine={unmatchedTab === "event"}
-                  activePickSlot={activePickSlot}
-                  onCardClick={() => handleCardPick(o)}
-                  onAssignRed={() => assignToSlot("red", o.fighterId)}
-                  onAssignBlue={() => assignToSlot("blue", o.fighterId)}
-                  onDragStart={expandDock}
-                />
-              );
-            })}
-            {multiMatchMode && unmatchedTab === "division"
-              ? filteredAssignedForMulti.map((o) => {
-                  const inSlot = slotIds.has(o.fighterId);
-                  const assignments = getFighterAssignments(
-                    assignmentMap,
-                    o.fighterId,
-                  );
-                  const badge = `이미 ${assignments.length}경기 배정`;
-                  return (
-                    <UnmatchedOptionCard
-                      key={`multi-${o.applicationId}`}
-                      option={o}
-                      inSlot={inSlot}
-                      assignmentBadge={badge}
-                      activePickSlot={activePickSlot}
-                      onCardClick={() => handleCardPick(o)}
-                      onAssignRed={() => assignToSlot("red", o.fighterId)}
-                      onAssignBlue={() => assignToSlot("blue", o.fighterId)}
-                      onDragStart={expandDock}
-                    />
-                  );
-                })
-              : null}
+            {renderUnmatchedPlayerList()}
           </CandidateColumn>
         </div>
 
-        {!isWorkspace &&
-        showManualCreate &&
-        eventWideUnmatchedOptions.length > 0 ? (
+        {showManualCreate && eventWideUnmatchedOptions.length > 0 ? (
           <EventWideUnmatchedQuickBar
             options={eventWideUnmatchedOptions}
             filters={unmatchedFilters}

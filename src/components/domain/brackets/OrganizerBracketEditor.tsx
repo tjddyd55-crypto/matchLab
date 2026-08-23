@@ -81,8 +81,8 @@ export function OrganizerBracketEditor({
       </Card>
 
       {isMatchList ? (
-        <div className="grid min-w-0 gap-4 lg:grid-cols-[minmax(0,1.9fr)_minmax(0,1fr)] lg:items-start lg:gap-5">
-          <div className="min-w-0">
+        <div className="grid min-w-0 gap-4 lg:grid-cols-[minmax(0,1.9fr)_minmax(0,1fr)] lg:items-stretch lg:gap-5">
+          <div className="flex min-h-0 min-w-0 flex-col">
             <MatchListEditor
               key={detail.syncKey}
               eventId={eventId}
@@ -95,7 +95,7 @@ export function OrganizerBracketEditor({
               compactWorkspace
             />
           </div>
-          <div className="min-w-0">
+          <div className="flex min-h-0 min-w-0 flex-col">
             <BracketApprovedCandidatesSection
               options={detail.approvedFighterOptions}
               eventWideUnmatchedOptions={detail.eventWideUnmatchedOptions}

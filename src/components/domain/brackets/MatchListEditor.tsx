@@ -30,6 +30,13 @@ import {
 } from "@/components/ui/card";
 import { BracketType } from "@/lib/enums";
 import { sortMatchesByOrder } from "@/lib/match-order-display";
+import {
+  bracketWorkspaceControlsClass,
+  bracketWorkspaceListScrollClass,
+  bracketWorkspacePaneClass,
+  bracketWorkspaceScopeRowClass,
+  bracketWorkspaceTitleRowClass,
+} from "@/lib/ui/bracket-workspace-ui";
 import { cn } from "@/lib/utils";
 
 export function MatchListEditor({
@@ -92,51 +99,62 @@ export function MatchListEditor({
   }
 
   return (
-    <Card className={cn(compactWorkspace && "border-0 shadow-none")}>
-      <CardHeader className="space-y-2">
-        <div className="flex flex-wrap items-start justify-between gap-3">
-          <div className="space-y-1">
-            <CardTitle className="text-lg">
-              대진 잡힌 경기{" "}
-              <span className="text-muted-foreground font-normal tabular-nums">
-                {filteredMatches.length}경기
+    <Card
+      className={cn(
+        compactWorkspace && cn(bracketWorkspacePaneClass, "border-0 shadow-none"),
+      )}
+    >
+      <CardHeader
+        className={cn(
+          "space-y-2",
+          compactWorkspace && bracketWorkspaceControlsClass,
+        )}
+      >
+        <div className={bracketWorkspaceTitleRowClass}>
+          <CardTitle className="text-lg">
+            대진 잡힌 경기{" "}
+            <span className="text-muted-foreground font-normal tabular-nums">
+              {filteredMatches.length}경기
+            </span>
+            {filtersActive && filteredMatches.length !== sortedMatches.length ? (
+              <span className="text-muted-foreground ml-1 text-xs font-normal">
+                / 전체 {sortedMatches.length}
               </span>
-              {filtersActive && filteredMatches.length !== sortedMatches.length ? (
-                <span className="text-muted-foreground ml-1 text-xs font-normal">
-                  / 전체 {sortedMatches.length}
-                </span>
-              ) : null}
-            </CardTitle>
-            {!compactWorkspace ? (
-              <CardDescription>
-                선수·경기장·라운드·시간 변경은 즉시 저장됩니다. 경기 순서는 대진표
-                보기에서 조정하세요.
-              </CardDescription>
             ) : null}
-          </div>
+          </CardTitle>
           <Button
             type="button"
             size="sm"
             variant="outline"
+            className="shrink-0"
             disabled={pending || activeCourts.length === 0}
             onClick={handleAddEmptyMatch}
           >
             {pending ? "추가 중…" : "빈 경기 추가"}
           </Button>
         </div>
+        {!compactWorkspace ? (
+          <CardDescription>
+            선수·경기장·라운드·시간 변경은 즉시 저장됩니다. 경기 순서는 대진표
+            보기에서 조정하세요.
+          </CardDescription>
+        ) : (
+          <div className={bracketWorkspaceScopeRowClass} aria-hidden />
+        )}
         <MatchedMatchFilterToolbar
           matches={sortedMatches}
           options={options}
           filters={matchedFilters}
           onFiltersChange={setMatchedFilters}
+          layout={compactWorkspace ? "stack" : "inline"}
         />
       </CardHeader>
       <CardContent
         className={cn(
           "space-y-4",
-          compactWorkspace &&
-            "max-h-[min(70vh,720px)] overflow-y-auto overscroll-contain pr-1",
+          compactWorkspace && bracketWorkspaceListScrollClass,
         )}
+        data-bracket-workspace-list={compactWorkspace ? "matched" : undefined}
       >
         {activeCourts.length === 0 ? (
           <FeedbackMessage tone="error" role="alert">

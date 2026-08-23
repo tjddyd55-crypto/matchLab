@@ -42,11 +42,17 @@ const editor = read(
   "src/components/domain/brackets/OrganizerBracketEditor.tsx",
 );
 assert.ok(editor.includes("lg:grid-cols-[minmax(0,1.9fr)_minmax(0,1fr)]"));
+assert.ok(editor.includes("lg:items-stretch"));
 assert.ok(editor.includes('variant="workspace"'));
 assert.ok(editor.includes("compactWorkspace"));
 assert.ok(editor.includes("미배정"));
 assert.ok(!editor.includes("공개 여부는"));
 assert.ok(!editor.includes("overflow-x-auto"));
+
+const workspaceUi = read("src/lib/ui/bracket-workspace-ui.ts");
+assert.ok(workspaceUi.includes("BRACKET_WORKSPACE_PANE_HEIGHT_CLASS"));
+assert.ok(workspaceUi.includes("bracketWorkspaceListScrollClass"));
+assert.ok(workspaceUi.includes("lg:h-[min(70vh,720px)]"));
 
 const matchList = read(
   "src/components/domain/brackets/MatchListEditor.tsx",
@@ -54,12 +60,32 @@ const matchList = read(
 assert.ok(matchList.includes("matchedFilters"));
 assert.ok(matchList.includes("MatchedMatchFilterToolbar"));
 assert.ok(matchList.includes("조건에 맞는 대진이 없습니다"));
+assert.ok(matchList.includes("bracketWorkspacePaneClass"));
+assert.ok(matchList.includes("bracketWorkspaceListScrollClass"));
+assert.ok(matchList.includes('data-bracket-workspace-list={compactWorkspace ? "matched"'));
+assert.ok(matchList.includes('layout={compactWorkspace ? "stack"'));
+assert.ok(matchList.includes("bracketWorkspaceScopeRowClass"));
 
 const candidates = read(
   "src/components/domain/brackets/BracketApprovedCandidatesSection.tsx",
 );
 assert.ok(candidates.includes('variant?: "default" | "workspace"'));
 assert.ok(candidates.includes("unmatchedFilters"));
+assert.ok(candidates.includes("bracketWorkspacePaneClass"));
+assert.ok(candidates.includes("bracketWorkspaceListScrollClass"));
+assert.ok(candidates.includes('data-bracket-workspace-list="unmatched"'));
+assert.ok(
+  !candidates.includes("검색·필터는 이 영역만 적용됩니다"),
+  "workspace description removed",
+);
+assert.ok(
+  !candidates.includes("이 그룹:"),
+  "redundant group description removed from unmatched pane",
+);
+assert.ok(
+  !candidates.includes("max-h-[min(70vh,720px)] overflow-y-auto"),
+  "filters must not share overflow scroll with player list",
+);
 const toolbarMatches =
   candidates.match(/<UnmatchedQuickBarFilterToolbar\b/g) ?? [];
 assert.equal(
@@ -72,7 +98,17 @@ const matchedToolbar = read(
   "src/components/domain/brackets/MatchedMatchFilterToolbar.tsx",
 );
 assert.ok(matchedToolbar.includes("FilterMultiSelectButton"));
+assert.ok(matchedToolbar.includes('layout?: "inline" | "stack"'));
+assert.ok(matchedToolbar.includes('layout === "stack"'));
 
+// Filter portal (absolute clipping 회귀 방지)
+const filterAnchored = read(
+  "src/components/domain/brackets/FilterAnchoredDropdown.tsx",
+);
+assert.ok(filterAnchored.includes("createPortal"));
+assert.ok(
+  filterAnchored.includes("fixed") || filterAnchored.includes('position: "fixed"'),
+);
 const viewToolbar = read(
   "src/components/domain/brackets/BracketViewFilterToolbar.tsx",
 );
