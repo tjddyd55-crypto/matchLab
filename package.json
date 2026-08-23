@@ -174,6 +174,7 @@
     "verify:manual-match-ux": "tsx scripts/verify-manual-match-ux.ts",
     "verify:unmatched-quick-bar-filters": "tsx scripts/verify-unmatched-quick-bar-filters.ts",
     "verify:match-organizer-memo": "tsx scripts/verify-match-organizer-memo.ts",
+    "verify:public-home-manager-download": "tsx scripts/verify-public-home-manager-download.ts",
     "verify:bracket-current-player": "tsx scripts/verify-bracket-current-player.ts",
     "verify:additional-info-request": "tsx scripts/verify-additional-info-request.ts",
     "verify:additional-info-recipient": "tsx scripts/verify-additional-info-recipient.ts",
