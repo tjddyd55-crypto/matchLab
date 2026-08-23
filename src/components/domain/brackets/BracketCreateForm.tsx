@@ -21,9 +21,11 @@ import { cn } from "@/lib/utils";
 export function BracketCreateForm({
   eventId,
   divisions,
+  variant = "card",
 }: {
   eventId: string;
   divisions: PublicEventDivisionDTO[];
+  variant?: "card" | "plain";
 }) {
   const router = useRouter();
   const [divisionId, setDivisionId] = useState(
@@ -52,12 +54,22 @@ export function BracketCreateForm({
   }, [state, router, eventId]);
 
   return (
-    <div className="ring-foreground/10 space-y-4 rounded-xl border bg-card p-4 shadow-sm">
-      <h2 className="text-lg font-semibold">대진표 생성</h2>
-      <p className="text-muted-foreground text-sm">
-        경기구분을 선택한 뒤 대진 방식을 정합니다. 승인된 신청자만 이후 단계에서
-        배치할 수 있으며, 대진 방식은 생성 후 변경할 수 없습니다.
-      </p>
+    <div
+      className={cn(
+        variant === "card" &&
+          "ring-foreground/10 space-y-4 rounded-xl border bg-card p-4 shadow-sm",
+        variant === "plain" && "space-y-4",
+      )}
+    >
+      {variant === "card" ? (
+        <>
+          <h2 className="text-lg font-semibold">대진표 생성</h2>
+          <p className="text-muted-foreground text-sm">
+            경기구분을 선택한 뒤 대진 방식을 정합니다. 승인된 신청자만 이후 단계에서
+            배치할 수 있으며, 대진 방식은 생성 후 변경할 수 없습니다.
+          </p>
+        </>
+      ) : null}
       {state?.ok === false ? (
         <p className="text-destructive text-sm">{state.error.message}</p>
       ) : null}

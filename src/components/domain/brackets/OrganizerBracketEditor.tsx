@@ -48,9 +48,10 @@ export function OrganizerBracketEditor({
   eventBracketsPublic?: boolean;
 }) {
   const summaryLine = buildBracketDetailSummary(detail);
+  const isMatchList = detail.type === BracketType.match_list;
 
   return (
-    <div className="flex w-full flex-col gap-8">
+    <div className="flex w-full flex-col gap-5">
       <Card>
         <CardHeader>
           <div className="flex flex-wrap items-start justify-between gap-4">
@@ -89,41 +90,70 @@ export function OrganizerBracketEditor({
                 >
                   기본 설정
                 </Link>
-                에서만 변경할 수 있습니다. 선수 배정·경기장·순서·상태 변경은
-                아래 편집 영역에서 진행합니다.
+                에서만 변경할 수 있습니다.
               </CardDescription>
             </div>
           </div>
         </CardHeader>
       </Card>
 
-      <BracketApprovedCandidatesSection
-        options={detail.approvedFighterOptions}
-        eventWideUnmatchedOptions={detail.eventWideUnmatchedOptions}
-        matches={detail.matches}
-        bracketId={detail.id}
-        bracketType={detail.type}
-        defaultCourtId={courts.find((c) => c.isActive)?.id}
-        targetDivisionId={detail.divisionId}
-        targetDivisionLabel={
-          detail.division ? formatDivisionMainLabel(detail.division) : detail.divisionLabel
-        }
-        targetDivisionGender={detail.division?.gender ?? null}
-      />
-
-      {detail.type === BracketType.match_list ? (
-        <MatchListEditor
-          key={detail.syncKey}
-          eventId={eventId}
-          courts={courts}
-          bracketId={detail.id}
-          bracketType={detail.type}
-          bracketIsPublic={detail.isPublic}
-          matches={detail.matches}
-          options={detail.approvedFighterOptions}
-        />
+      {isMatchList ? (
+        <div className="grid min-w-0 gap-4 lg:grid-cols-[minmax(0,1.9fr)_minmax(0,1fr)] lg:items-start lg:gap-5">
+          <div className="min-w-0 overflow-x-auto">
+            <MatchListEditor
+              key={detail.syncKey}
+              eventId={eventId}
+              courts={courts}
+              bracketId={detail.id}
+              bracketType={detail.type}
+              bracketIsPublic={detail.isPublic}
+              matches={detail.matches}
+              options={detail.approvedFighterOptions}
+              compactWorkspace
+            />
+          </div>
+          <div className="min-w-0">
+            <BracketApprovedCandidatesSection
+              options={detail.approvedFighterOptions}
+              eventWideUnmatchedOptions={detail.eventWideUnmatchedOptions}
+              matches={detail.matches}
+              bracketId={detail.id}
+              bracketType={detail.type}
+              defaultCourtId={courts.find((c) => c.isActive)?.id}
+              targetDivisionId={detail.divisionId}
+              targetDivisionLabel={
+                detail.division
+                  ? formatDivisionMainLabel(detail.division)
+                  : detail.divisionLabel
+              }
+              targetDivisionGender={detail.division?.gender ?? null}
+              variant="workspace"
+            />
+          </div>
+        </div>
       ) : (
-        <TournamentBracketEditor eventId={eventId} courts={courts} detail={detail} />
+        <>
+          <BracketApprovedCandidatesSection
+            options={detail.approvedFighterOptions}
+            eventWideUnmatchedOptions={detail.eventWideUnmatchedOptions}
+            matches={detail.matches}
+            bracketId={detail.id}
+            bracketType={detail.type}
+            defaultCourtId={courts.find((c) => c.isActive)?.id}
+            targetDivisionId={detail.divisionId}
+            targetDivisionLabel={
+              detail.division
+                ? formatDivisionMainLabel(detail.division)
+                : detail.divisionLabel
+            }
+            targetDivisionGender={detail.division?.gender ?? null}
+          />
+          <TournamentBracketEditor
+            eventId={eventId}
+            courts={courts}
+            detail={detail}
+          />
+        </>
       )}
     </div>
   );

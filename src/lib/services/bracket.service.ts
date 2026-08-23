@@ -211,6 +211,8 @@ function mapApplicationToApprovedOption(
       a.fighterSnapshot,
       a.weighInWeightKg,
     ),
+    schoolLevel: a.schoolLevelSnapshot ?? null,
+    schoolGrade: a.schoolGradeSnapshot ?? null,
   };
 }
 
@@ -557,6 +559,9 @@ export type OrganizerApprovedFighterOptionVM = {
   /** 후보 카드 보조 표시 */
   recordSummary: string;
   applicationWeightKg: number | null;
+  /** EventApplication snapshot — 표시용. schema 추가 없음 */
+  schoolLevel: string | null;
+  schoolGrade: number | null;
 };
 
 export type OrganizerBracketDetailVM = {

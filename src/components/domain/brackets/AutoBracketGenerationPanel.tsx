@@ -74,12 +74,15 @@ export function AutoBracketGenerationPanel({
   canResetSafely,
   matchesWithResults,
   undividedApplicantCount = 0,
+  variant = "card",
 }: {
   eventId: string;
   courts: EventCourtVM[];
   canResetSafely: boolean;
   matchesWithResults: number;
   undividedApplicantCount?: number;
+  /** card: 메인 인라인 Card / plain: Dialog 내부 */
+  variant?: "card" | "plain";
 }) {
   const router = useRouter();
   const { confirm } = useAppConfirmDialog();
@@ -180,25 +183,15 @@ export function AutoBracketGenerationPanel({
   const previewMatched = Math.max(0, previewPlanned * 2);
   const previewTotal = previewMatched + previewUnmatched;
 
-  return (
-    <Card variant="default" className="py-4">
-      <CardHeader className="px-4 pb-2">
-        <CardTitle className="text-lg" data-auto-match-panel="">
-          자동매칭
-        </CardTitle>
-        <p className="text-muted-foreground mt-1 text-sm font-normal">
-          미리보기로 결과를 확인한 뒤 적용하세요. 같은 체육관끼리 매칭 금지가
-          기본 적용됩니다.
-        </p>
-        {undividedApplicantCount > 0 ? (
-          <p className="mt-2 text-sm text-amber-800 dark:text-amber-200" role="status">
+  const body = (
+    <>
+        {variant === "plain" && undividedApplicantCount > 0 ? (
+          <p className="mb-3 text-sm text-amber-800 dark:text-amber-200" role="status">
             경기구분이 지정되지 않은 신청자 {undividedApplicantCount}명 — 자동/수동
             대진 후보에서 제외됩니다.
           </p>
         ) : null}
-      </CardHeader>
-      <CardContent className="px-4">
-        <div className="mt-4 grid gap-3 sm:grid-cols-2">
+        <div className="grid gap-3 sm:grid-cols-2">
           <label className={formControlFieldStackClass}>
             <span className={formControlLabelClass}>자동매칭 범위</span>
             <select
@@ -420,7 +413,31 @@ export function AutoBracketGenerationPanel({
             }
           />
         ) : null}
-      </CardContent>
+    </>
+  );
+
+  if (variant === "plain") {
+    return <div data-auto-match-panel="">{body}</div>;
+  }
+
+  return (
+    <Card variant="default" className="py-4">
+      <CardHeader className="px-4 pb-2">
+        <CardTitle className="text-lg" data-auto-match-panel="">
+          자동매칭
+        </CardTitle>
+        <p className="text-muted-foreground mt-1 text-sm font-normal">
+          미리보기로 결과를 확인한 뒤 적용하세요. 같은 체육관끼리 매칭 금지가
+          기본 적용됩니다.
+        </p>
+        {undividedApplicantCount > 0 ? (
+          <p className="mt-2 text-sm text-amber-800 dark:text-amber-200" role="status">
+            경기구분이 지정되지 않은 신청자 {undividedApplicantCount}명 — 자동/수동
+            대진 후보에서 제외됩니다.
+          </p>
+        ) : null}
+      </CardHeader>
+      <CardContent className="px-4">{body}</CardContent>
     </Card>
   );
 }

@@ -14,6 +14,7 @@ import {
 import { FeedbackMessage } from "@/components/shared/FeedbackMessage";
 import { useAppConfirmDialog } from "@/components/shared/app-confirm-dialog";
 import { resolveSlotFighterDisplay } from "@/lib/bracket-fighter-compact-display";
+import { buildBracketFighterMetaLineFromOption } from "@/lib/brackets/bracket-fighter-meta-line";
 import type { OrganizerApprovedFighterOptionVM } from "@/lib/services/bracket.service";
 import type { OrganizerBracketMatchVM } from "@/lib/services/bracket.service";
 import type { BracketFighterSnapshotPayload } from "@/lib/bracket-snapshot";
@@ -39,17 +40,25 @@ function resolveFighterDisplay(
     const gymName = preferOptionsGym
       ? optionsGym || "소속 미상"
       : snapGym;
+    const metaLine = opt
+      ? buildBracketFighterMetaLineFromOption(opt)
+      : undefined;
     return {
       fighterName: snapshot.name,
       gymName,
       statusBadge: undefined as
         | ReturnType<typeof resolveSlotFighterDisplay>["statusBadge"]
         | undefined,
-      metaLine: undefined as string | undefined,
+      metaLine,
     };
   }
   if (opt) {
-    return resolveSlotFighterDisplay(opt);
+    const resolved = resolveSlotFighterDisplay(opt);
+    return {
+      ...resolved,
+      metaLine:
+        buildBracketFighterMetaLineFromOption(opt) ?? resolved.metaLine,
+    };
   }
   return null;
 }
