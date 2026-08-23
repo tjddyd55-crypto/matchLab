@@ -156,28 +156,27 @@ export function OrganizerMatchEditCard({
         />
       }
       controls={
-        <div className="flex w-full flex-wrap items-center gap-2">
-          <div className="min-w-0 flex-1">
-            <MatchEditControlsRow
-              eventId={eventId}
-              bracketId={bracketId}
-              courts={courts}
-              match={match}
-              editLocked={editLocked}
-            />
-          </div>
-          {canDelete ? (
-            <Button
-              type="button"
-              variant="destructive"
-              size="sm"
-              disabled={pending}
-              onClick={handleDelete}
-            >
-              {pending ? "삭제 중…" : "삭제"}
-            </Button>
-          ) : null}
-        </div>
+        <MatchEditControlsRow
+          eventId={eventId}
+          bracketId={bracketId}
+          courts={courts}
+          match={match}
+          editLocked={editLocked}
+          endActions={
+            canDelete ? (
+              <Button
+                type="button"
+                variant="destructive"
+                size="sm"
+                className="h-9"
+                disabled={pending}
+                onClick={handleDelete}
+              >
+                {pending ? "삭제 중…" : "삭제"}
+              </Button>
+            ) : null
+          }
+        />
       }
       footer={
         editLocked ? (

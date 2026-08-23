@@ -1,11 +1,13 @@
 "use client";
 
-import { useEffect, useState } from "react";
+import { useCallback, useEffect, useState, type ReactNode } from "react";
 import { MatchBoutFormatToggle } from "@/components/domain/brackets/MatchBoutFormatToggle";
 import { BracketMatchControlsRow } from "@/components/domain/brackets/BracketMatchCompactRow";
 import { MatchOperationalSettingsSelect } from "@/components/domain/brackets/MatchOperationalSettingsSelect";
 import { MatchOrganizerMemoInput } from "@/components/domain/brackets/MatchOrganizerMemoInput";
 import { MatchCourtControls } from "@/components/domain/courts/MatchCourtControls";
+import { Button } from "@/components/ui/button";
+import { matchCourtSaveButtonClass } from "@/lib/ui/match-grid-layout";
 import type { EventCourtVM } from "@/lib/services/event-court.service";
 import type { OrganizerBracketMatchVM } from "@/lib/services/bracket.service";
 import { BracketType } from "@/lib/enums";
@@ -17,18 +19,37 @@ export function MatchEditControlsRow({
   courts,
   match,
   editLocked = false,
+  endActions,
 }: {
   eventId: string;
   bracketId: string;
   courts: EventCourtVM[];
   match: OrganizerBracketMatchVM;
   editLocked?: boolean;
+  /** 우측 끝 — 삭제 등 (저장 버튼 옆에 배치) */
+  endActions?: ReactNode;
 }) {
   const [organizerMemo, setOrganizerMemo] = useState(match.organizerMemo ?? "");
+  const [saveControls, setSaveControls] = useState<{
+    save: () => void;
+    pending: boolean;
+    disabled: boolean;
+  } | null>(null);
 
   useEffect(() => {
     setOrganizerMemo(match.organizerMemo ?? "");
   }, [match.id, match.organizerMemo]);
+
+  const handleSaveControlsChange = useCallback(
+    (controls: {
+      save: () => void;
+      pending: boolean;
+      disabled: boolean;
+    }) => {
+      setSaveControls(controls);
+    },
+    [],
+  );
 
   return (
     <div className="flex w-full min-w-0 flex-col gap-1.5">
@@ -46,6 +67,8 @@ export function MatchEditControlsRow({
             hideCourtOrder
             hideLabels
             compactRow
+            hideSaveButton
+            onSaveControlsChange={handleSaveControlsChange}
             organizerMemo={organizerMemo}
             savedOrganizerMemo={match.organizerMemo}
           />
@@ -59,6 +82,20 @@ export function MatchEditControlsRow({
               hideLabels
               inline
             />
+          </div>
+        }
+        right={
+          <div className="flex items-center justify-end gap-1">
+            <Button
+              type="button"
+              size="sm"
+              className={matchCourtSaveButtonClass}
+              disabled={!saveControls || saveControls.disabled || editLocked}
+              onClick={() => saveControls?.save()}
+            >
+              {saveControls?.pending ? "저장 중…" : "저장"}
+            </Button>
+            {endActions}
           </div>
         }
       />

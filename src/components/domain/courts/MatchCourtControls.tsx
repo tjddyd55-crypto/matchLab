@@ -1,6 +1,6 @@
 "use client";
 
-import { useEffect, useMemo, useState, useTransition } from "react";
+import { useEffect, useMemo, useRef, useState, useTransition } from "react";
 import { useRouter } from "next/navigation";
 import { setMatchCourtFormAction } from "@/features/event-courts/actions";
 import { Button } from "@/components/ui/button";
@@ -72,6 +72,8 @@ export function MatchCourtControls({
   compactRow = false,
   organizerMemo,
   savedOrganizerMemo = null,
+  hideSaveButton = false,
+  onSaveControlsChange,
 }: {
   eventId: string;
   matchId: string;
@@ -91,6 +93,13 @@ export function MatchCourtControls({
   /** 저장 시 함께 반영할 운영 메모 (부모 controlled) */
   organizerMemo?: string;
   savedOrganizerMemo?: string | null;
+  /** true면 저장 버튼을 렌더하지 않음 (부모가 우측 슬롯에 배치) */
+  hideSaveButton?: boolean;
+  onSaveControlsChange?: (controls: {
+    save: () => void;
+    pending: boolean;
+    disabled: boolean;
+  }) => void;
 }) {
   const router = useRouter();
   const activeCourts = useMemo(
@@ -158,6 +167,19 @@ export function MatchCourtControls({
       router.refresh();
     });
   }
+
+  const saveRef = useRef(save);
+  saveRef.current = save;
+  const saveDisabled = pending || !selectValue || !isDirty;
+
+  useEffect(() => {
+    if (!onSaveControlsChange) return;
+    onSaveControlsChange({
+      save: () => saveRef.current(),
+      pending,
+      disabled: saveDisabled,
+    });
+  }, [onSaveControlsChange, pending, saveDisabled]);
 
   function handleCourtChange(value: string) {
     setLocalCourtId(value);
@@ -273,7 +295,7 @@ export function MatchCourtControls({
           />
         </label>
       ) : null}
-      {!immediate ? (
+      {!immediate && !hideSaveButton ? (
         <Button
           type="button"
           size="sm"
@@ -283,7 +305,7 @@ export function MatchCourtControls({
         >
           {pending ? "저장 중…" : compactRow ? "저장" : "경기장 저장"}
         </Button>
-      ) : pending ? (
+      ) : pending && !hideSaveButton ? (
         <p className="text-muted-foreground text-[10px]">저장 중…</p>
       ) : null}
       {hasOfficialResults && !compactRow ? (

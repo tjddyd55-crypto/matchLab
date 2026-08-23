@@ -1,6 +1,6 @@
 "use client";
 
-import { useMemo, useState } from "react";
+import { useMemo } from "react";
 import type { OrganizerApprovedFighterOptionVM } from "@/lib/services/bracket.service";
 import type { OrganizerBracketMatchVM } from "@/lib/services/bracket.service";
 import {
@@ -12,6 +12,7 @@ import {
 } from "@/lib/brackets/matched-match-filters";
 import { formatUnmatchedWeightFilterLabel } from "@/lib/brackets/unmatched-candidate-filters";
 import type { UnmatchedRecordStatusFilter } from "@/lib/brackets/unmatched-candidate-filters";
+import { FilterMultiSelectButton } from "@/components/domain/brackets/FilterAnchoredDropdown";
 import { Button } from "@/components/ui/button";
 import { formControlFieldCompactClass } from "@/lib/ui/form-control-ui";
 import { cn } from "@/lib/utils";
@@ -25,97 +26,6 @@ const SEARCH_INPUT_CLASS = cn(
   formControlFieldCompactClass,
   "h-9 w-full min-w-0 max-w-[280px] shrink-0 basis-[240px] rounded-md px-3 text-xs sm:basis-[280px]",
 );
-
-function MultiSelectChips({
-  label,
-  options,
-  selected,
-  onChange,
-  formatOption,
-}: {
-  label: string;
-  options: string[];
-  selected: string[];
-  onChange: (next: string[]) => void;
-  formatOption?: (value: string) => string;
-}) {
-  const [open, setOpen] = useState(false);
-  if (options.length === 0) return null;
-  const active = selected.length > 0;
-
-  return (
-    <div className="relative shrink-0">
-      <Button
-        type="button"
-        variant="outline"
-        size="sm"
-        className="h-9 gap-1 rounded-md px-3 text-xs"
-        onClick={() => setOpen((v) => !v)}
-      >
-        {label}
-        {active ? (
-          <span className="bg-primary/10 text-primary rounded px-1.5 py-0.5 text-[10px] tabular-nums">
-            {selected.length}
-          </span>
-        ) : null}
-      </Button>
-      {open ? (
-        <>
-          <div
-            className="fixed inset-0 z-40"
-            aria-hidden
-            onClick={() => setOpen(false)}
-          />
-          <div className="absolute left-0 top-full z-50 mt-1 max-h-48 min-w-[10rem] overflow-y-auto rounded-md border bg-popover p-2 shadow-lg">
-            <div className="mb-1 flex gap-1">
-              <Button
-                type="button"
-                variant="ghost"
-                size="sm"
-                className="h-7 flex-1 text-[11px]"
-                onClick={() => onChange([...options])}
-              >
-                전체 선택
-              </Button>
-              <Button
-                type="button"
-                variant="ghost"
-                size="sm"
-                className="h-7 flex-1 text-[11px]"
-                onClick={() => onChange([])}
-              >
-                전체 해제
-              </Button>
-            </div>
-            <ul className="space-y-1">
-              {options.map((option) => (
-                <li key={option}>
-                  <label className="flex cursor-pointer items-center gap-2 rounded px-1 py-1 text-xs hover:bg-muted/60">
-                    <input
-                      type="checkbox"
-                      className="size-3.5"
-                      checked={selected.includes(option)}
-                      onChange={() =>
-                        onChange(
-                          selected.includes(option)
-                            ? selected.filter((item) => item !== option)
-                            : [...selected, option],
-                        )
-                      }
-                    />
-                    <span className="min-w-0 truncate">
-                      {formatOption ? formatOption(option) : option}
-                    </span>
-                  </label>
-                </li>
-              ))}
-            </ul>
-          </div>
-        </>
-      ) : null}
-    </div>
-  );
-}
 
 export function MatchedMatchFilterToolbar({
   matches,
@@ -150,19 +60,19 @@ export function MatchedMatchFilterToolbar({
           onChange={(e) => patch({ search: e.target.value })}
           aria-label="잡힌 경기 검색"
         />
-        <MultiSelectChips
+        <FilterMultiSelectButton
           label="체육관"
           options={filterOptions.gyms}
           selected={filters.gyms}
           onChange={(gyms) => patch({ gyms })}
         />
-        <MultiSelectChips
+        <FilterMultiSelectButton
           label="성별"
           options={filterOptions.genders}
           selected={filters.genders}
           onChange={(genders) => patch({ genders })}
         />
-        <MultiSelectChips
+        <FilterMultiSelectButton
           label="몸무게"
           options={filterOptions.weights.map(String)}
           selected={filters.weights.map(String)}
@@ -175,13 +85,13 @@ export function MatchedMatchFilterToolbar({
           }
           formatOption={(v) => formatUnmatchedWeightFilterLabel(Number(v))}
         />
-        <MultiSelectChips
+        <FilterMultiSelectButton
           label="학년"
           options={filterOptions.schoolGrades}
           selected={filters.schoolGrades}
           onChange={(schoolGrades) => patch({ schoolGrades })}
         />
-        <MultiSelectChips
+        <FilterMultiSelectButton
           label="경기구분"
           options={filterOptions.divisions}
           selected={filters.divisions}
@@ -230,7 +140,7 @@ export function MatchedMatchFilterToolbar({
             type="button"
             variant="ghost"
             size="sm"
-            className="h-9 px-2 text-xs"
+            className="h-9 text-xs"
             onClick={() => onFiltersChange(DEFAULT_MATCHED_MATCH_FILTERS)}
           >
             초기화

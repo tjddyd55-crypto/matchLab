@@ -19,7 +19,6 @@ export function MatchOrganizerMemoInput({
 }) {
   return (
     <label className={cn("flex min-w-0 flex-1 flex-col gap-0.5", className)}>
-      <span className="text-muted-foreground text-[10px] font-medium">메모</span>
       <textarea
         className={matchOrganizerMemoTextareaClass}
         rows={1}
