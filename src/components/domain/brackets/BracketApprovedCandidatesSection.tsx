@@ -19,6 +19,7 @@ import {
 } from "@/components/domain/brackets/ManualMatchCreatePanel";
 import { useAppConfirmDialog } from "@/components/shared/app-confirm-dialog";
 import { EventWideUnmatchedQuickBar } from "@/components/domain/brackets/EventWideUnmatchedQuickBar";
+import { UnmatchedQuickBarFilterToolbar } from "@/components/domain/brackets/UnmatchedQuickBarFilterToolbar";
 import { buildBracketCandidateWeightRecordDisplay } from "@/lib/bracket-fighter-assignment";
 import {
   buildCandidateMetaLine,
@@ -35,7 +36,12 @@ import {
   CardHeader,
   CardTitle,
 } from "@/components/ui/card";
-import { formControlFieldCompactClass } from "@/lib/ui/form-control-ui";
+import {
+  DEFAULT_UNMATCHED_QUICK_BAR_FILTERS,
+  filterUnmatchedQuickBarOptions,
+  hasActiveUnmatchedQuickBarFilters,
+  type UnmatchedQuickBarFilterState,
+} from "@/lib/brackets/unmatched-candidate-filters";
 import { formatMatchOrderShort } from "@/lib/match-order-display";
 import { BracketType } from "@/lib/enums";
 import { cn } from "@/lib/utils";
@@ -341,7 +347,8 @@ export function BracketApprovedCandidatesSection({
   const [blue, setBlue] = useState<ManualMatchSlotAthlete | null>(null);
   const [createPending, setCreatePending] = useState(false);
   const [unmatchedTab, setUnmatchedTab] = useState<UnmatchedTab>("division");
-  const [searchQuery, setSearchQuery] = useState("");
+  const [unmatchedFilters, setUnmatchedFilters] =
+    useState<UnmatchedQuickBarFilterState>(DEFAULT_UNMATCHED_QUICK_BAR_FILTERS);
   const [activePickSlot, setActivePickSlot] = useState<ManualMatchPickSlot | null>(
     null,
   );
@@ -381,26 +388,35 @@ export function BracketApprovedCandidatesSection({
 
   const anchorWeight = red?.applicationWeightKg ?? blue?.applicationWeightKg ?? null;
 
+  const filteredDivisionUnmatched = useMemo(() => {
+    const filtered = filterUnmatchedQuickBarOptions(
+      grouped.unassigned,
+      unmatchedFilters,
+    );
+    return sortByAnchorWeight(filtered, anchorWeight);
+  }, [anchorWeight, grouped.unassigned, unmatchedFilters]);
+
   const filteredEventWide = useMemo(() => {
-    const q = searchQuery.trim().toLowerCase();
-    let list = eventWideUnmatchedOptions;
-    if (q) {
-      list = list.filter(
-        (o) =>
-          o.fighterName.toLowerCase().includes(q) ||
-          o.gymName.toLowerCase().includes(q) ||
-          o.currentDivisionLabel.toLowerCase().includes(q),
-      );
-    }
-    return sortByAnchorWeight(list, anchorWeight);
-  }, [anchorWeight, eventWideUnmatchedOptions, searchQuery]);
+    const filtered = filterUnmatchedQuickBarOptions(
+      eventWideUnmatchedOptions,
+      unmatchedFilters,
+    );
+    return sortByAnchorWeight(filtered, anchorWeight);
+  }, [anchorWeight, eventWideUnmatchedOptions, unmatchedFilters]);
 
   const visibleUnmatched =
-    unmatchedTab === "division" ? grouped.unassigned : filteredEventWide;
-  const visibleUnmatchedCount =
-    unmatchedTab === "division"
-      ? grouped.unassigned.length
-      : eventWideUnmatchedOptions.length;
+    unmatchedTab === "division" ? filteredDivisionUnmatched : filteredEventWide;
+  const visibleUnmatchedCount = visibleUnmatched.length;
+  const unmatchedFiltersActive = hasActiveUnmatchedQuickBarFilters(unmatchedFilters);
+  const unmatchedFilterOptionsSource =
+    unmatchedTab === "division" ? grouped.unassigned : eventWideUnmatchedOptions;
+
+  const unmatchedEmptyMessage =
+    unmatchedFiltersActive && visibleUnmatchedCount === 0
+      ? "조건에 맞는 미매칭 선수가 없습니다."
+      : unmatchedTab === "division"
+        ? "현재 경기구분 미매칭 선수가 없습니다."
+        : "대회 전체 미매칭 선수가 없습니다.";
 
   const unassignablePlacedCount = grouped.unassignable.filter((o) =>
     placedIds.has(o.fighterId),
@@ -520,11 +536,7 @@ export function BracketApprovedCandidatesSection({
             title="미매칭 선수"
             count={visibleUnmatchedCount}
             accentClassName="bg-amber-500/15 text-amber-700 dark:text-amber-300"
-            emptyMessage={
-              unmatchedTab === "division"
-                ? "현재 경기구분 미매칭 선수가 없습니다."
-                : "대회 전체 미매칭 선수가 없습니다."
-            }
+            emptyMessage={unmatchedEmptyMessage}
             headerExtra={
               showManualCreate ? (
                 <div className="space-y-2">
@@ -550,12 +562,20 @@ export function BracketApprovedCandidatesSection({
                       전체 미매칭 ({eventWideUnmatchedOptions.length})
                     </Button>
                   </div>
-                  {unmatchedTab === "event" ? (
-                    <input
-                      className={formControlFieldCompactClass}
-                      placeholder="선수명 · 체육관 검색"
-                      value={searchQuery}
-                      onChange={(e) => setSearchQuery(e.target.value)}
+                  <UnmatchedQuickBarFilterToolbar
+                    className="lg:hidden"
+                    layout="stack"
+                    options={unmatchedFilterOptionsSource}
+                    filters={unmatchedFilters}
+                    onFiltersChange={setUnmatchedFilters}
+                  />
+                  {eventWideUnmatchedOptions.length === 0 ? (
+                    <UnmatchedQuickBarFilterToolbar
+                      className="hidden lg:block"
+                      layout="toolbar"
+                      options={unmatchedFilterOptionsSource}
+                      filters={unmatchedFilters}
+                      onFiltersChange={setUnmatchedFilters}
                     />
                   ) : null}
                   {targetDivisionLabel ? (
@@ -601,6 +621,9 @@ export function BracketApprovedCandidatesSection({
         {showManualCreate && eventWideUnmatchedOptions.length > 0 ? (
           <EventWideUnmatchedQuickBar
             options={eventWideUnmatchedOptions}
+            filters={unmatchedFilters}
+            onFiltersChange={setUnmatchedFilters}
+            showToolbar
             slotIds={slotIds}
             activePickSlot={activePickSlot}
             onCardClick={handleCardPick}
