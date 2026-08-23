@@ -12,6 +12,10 @@ export type ManualMatchPairSide = {
   applicationWeightKg: number | null;
   recordSummary: string;
   fighterGender: string | null;
+  /** event-wide 현재 배정 수 (복수 출전 경고용) */
+  assignmentCount?: number;
+  /** 예: "3경기 홍" — formatAssignmentSummaryCompact */
+  assignmentSummary?: string;
 };
 
 export type ManualPairWarning = {
@@ -151,12 +155,42 @@ export function buildManualMatchConfirmDescription(input: {
     formatManualMatchConfirmSideBlock(
       buildManualMatchConfirmSideDisplay("홍코너", input.red),
     ),
-    "",
+  ];
+  if ((input.red.assignmentCount ?? 0) > 0) {
+    lines.push(
+      `현재 배정: ${input.red.assignmentCount}경기${
+        input.red.assignmentSummary
+          ? ` (${input.red.assignmentSummary})`
+          : ""
+      }`,
+    );
+  }
+  lines.push("");
+  lines.push(
     formatManualMatchConfirmSideBlock(
       buildManualMatchConfirmSideDisplay("청코너", input.blue),
     ),
-    "",
-  ];
+  );
+  if ((input.blue.assignmentCount ?? 0) > 0) {
+    lines.push(
+      `현재 배정: ${input.blue.assignmentCount}경기${
+        input.blue.assignmentSummary
+          ? ` (${input.blue.assignmentSummary})`
+          : ""
+      }`,
+    );
+  }
+  lines.push("");
+
+  for (const side of [input.red, input.blue]) {
+    if ((side.assignmentCount ?? 0) > 0) {
+      lines.push(
+        `${side.fighterName} 선수는 이미 ${side.assignmentCount}경기에 배정되어 있습니다.`,
+      );
+      lines.push("추가로 이 경기에 배정하시겠습니까?");
+      lines.push("");
+    }
+  }
 
   if (input.moveFighters.length > 0) {
     for (const mover of input.moveFighters) {
@@ -169,7 +203,10 @@ export function buildManualMatchConfirmDescription(input: {
       lines.push("");
     }
     lines.push("원래 신청정보는 변경되지 않습니다.");
-  } else {
+  } else if (
+    (input.red.assignmentCount ?? 0) === 0 &&
+    (input.blue.assignmentCount ?? 0) === 0
+  ) {
     lines.push("두 선수로 새 경기를 생성합니다.");
   }
 

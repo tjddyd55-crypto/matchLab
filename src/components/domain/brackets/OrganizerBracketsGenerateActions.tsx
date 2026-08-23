@@ -3,6 +3,7 @@
 import { useState } from "react";
 import { AutoBracketGenerationPanel } from "@/components/domain/brackets/AutoBracketGenerationPanel";
 import { BracketCreateForm } from "@/components/domain/brackets/BracketCreateForm";
+import { BracketDuplicateValidationDialog } from "@/components/domain/brackets/BracketDuplicateValidationDialog";
 import { Button } from "@/components/ui/button";
 import {
   Dialog,
@@ -31,6 +32,7 @@ export function OrganizerBracketsGenerateActions({
 }) {
   const [autoMatchOpen, setAutoMatchOpen] = useState(false);
   const [groupCreateOpen, setGroupCreateOpen] = useState(false);
+  const [validationOpen, setValidationOpen] = useState(false);
 
   return (
     <>
@@ -38,8 +40,12 @@ export function OrganizerBracketsGenerateActions({
         <Button
           type="button"
           size="sm"
-          onClick={() => setAutoMatchOpen(true)}
+          variant="outline"
+          onClick={() => setValidationOpen(true)}
         >
+          대진 검증
+        </Button>
+        <Button type="button" size="sm" onClick={() => setAutoMatchOpen(true)}>
           자동매칭
         </Button>
         <Button
@@ -51,6 +57,12 @@ export function OrganizerBracketsGenerateActions({
           그룹 생성
         </Button>
       </div>
+
+      <BracketDuplicateValidationDialog
+        eventId={eventId}
+        open={validationOpen}
+        onOpenChange={setValidationOpen}
+      />
 
       <Dialog open={autoMatchOpen} onOpenChange={setAutoMatchOpen}>
         <DialogContent className="flex max-h-[88dvh] w-[min(100vw-1.5rem,42rem)] max-w-none flex-col gap-0 overflow-hidden p-0 sm:max-w-none">

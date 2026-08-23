@@ -1,6 +1,7 @@
 import "server-only";
 
 import {
+  ApplicationStatus,
   BracketChangeType,
   BracketMatchOutcomeStyle,
   BracketMatchStatus,
@@ -32,6 +33,7 @@ import { computeFieldEligibility } from "@/lib/field-eligibility";
 import { validateMatchListPlacement } from "@/lib/bracket-match-placement";
 import {
   buildOrderSwapPatches,
+  formatMatchOrderShort,
   sortMatchesByOrder,
 } from "@/lib/match-order-display";
 import type {
@@ -67,6 +69,12 @@ import type { FieldStatusRowDTO } from "@/lib/services/field-status.service";
 import type { ApprovedApplicationForBracketRow } from "@/lib/repositories/bracket.repository";
 import { resolveApplicationGymDisplayName } from "@/lib/gym/external-registration-placeholder-gym";
 import { eventCourtService } from "@/lib/services/event-court.service";
+import {
+  buildMultiMatchAssignmentSignature,
+  isMultiMatchConfirmationValid,
+  type BracketDuplicateAssignmentIssue,
+  type BracketDuplicateMatchDetail,
+} from "@/lib/brackets/bracket-duplicate-validation";
 import type {
   AssignFighterToMatchInput,
   CreateBracketInput,
@@ -1852,6 +1860,8 @@ export const bracketService = {
       redFighterId: string;
       blueFighterId: string;
       defaultCourtId?: string;
+      /** 수동 복수 출전만. 기본 false = event-wide placed CONFLICT 유지 */
+      allowDuplicateAssignment?: boolean;
     },
   ): Promise<{ matchId: string; eventId: string }> {
     const ctx = await ensureBracketOrganizer(actor, input.bracketId);
@@ -1867,6 +1877,8 @@ export const bracketService = {
         "동일 선수를 홍·청 코너에 동시에 둘 수 없습니다.",
       );
     }
+
+    const allowDuplicate = input.allowDuplicateAssignment === true;
 
     return prisma.$transaction(async (tx) => {
       async function loadUnmatchedForManualPair(fighterId: string) {
@@ -1904,16 +1916,30 @@ export const bracketService = {
             tx,
           );
         if (placed > 0) {
-          throw new AppError(
-            "CONFLICT",
-            "다른 관리자가 이미 이 선수를 경기에 배정했습니다. 목록을 새로고침합니다.",
-          );
+          if (!allowDuplicate) {
+            throw new AppError(
+              "CONFLICT",
+              "다른 관리자가 이미 이 선수를 경기에 배정했습니다. 목록을 새로고침합니다.",
+            );
+          }
+          // 복수 출전은 same-division만 — divisionId 이동이 기존 Match SSOT를 흔들 수 있음
+          if (
+            !ctx.divisionId ||
+            !row.divisionId ||
+            row.divisionId !== ctx.divisionId
+          ) {
+            throw new AppError(
+              "VALIDATION_ERROR",
+              "이미 배정된 선수의 다른 경기구분 복수 출전은 아직 지원하지 않습니다. 같은 경기구분 그룹에서만 추가 배정할 수 있습니다.",
+            );
+          }
         }
-        return row;
+        return { row, placed };
       }
 
       async function ensureAssignedToBracketDivision(
         row: ApprovedApplicationForBracketRow,
+        alreadyPlaced: number,
       ): Promise<ApprovedApplicationForBracketRow> {
         if (!ctx.divisionId) {
           throw new AppError(
@@ -1922,6 +1948,14 @@ export const bracketService = {
           );
         }
         if (row.divisionId === ctx.divisionId) return row;
+
+        // 이미 배정된 선수의 division 이동 금지 (복수 출전 안전장치)
+        if (alreadyPlaced > 0) {
+          throw new AppError(
+            "VALIDATION_ERROR",
+            "이미 배정된 선수의 다른 경기구분 복수 출전은 아직 지원하지 않습니다.",
+          );
+        }
 
         const belongs = await eventRepository.findDivisionBelongsToEvent(
           ctx.divisionId,
@@ -1976,8 +2010,10 @@ export const bracketService = {
         return moved;
       }
 
-      let redRow = await loadUnmatchedForManualPair(input.redFighterId);
-      let blueRow = await loadUnmatchedForManualPair(input.blueFighterId);
+      const redLoaded = await loadUnmatchedForManualPair(input.redFighterId);
+      const blueLoaded = await loadUnmatchedForManualPair(input.blueFighterId);
+      let redRow = redLoaded.row;
+      let blueRow = blueLoaded.row;
 
       const crossDivisionMove = Boolean(
         ctx.divisionId &&
@@ -1985,8 +2021,14 @@ export const bracketService = {
             (blueRow.divisionId && blueRow.divisionId !== ctx.divisionId)),
       );
 
-      redRow = await ensureAssignedToBracketDivision(redRow);
-      blueRow = await ensureAssignedToBracketDivision(blueRow);
+      redRow = await ensureAssignedToBracketDivision(
+        redRow,
+        redLoaded.placed,
+      );
+      blueRow = await ensureAssignedToBracketDivision(
+        blueRow,
+        blueLoaded.placed,
+      );
 
       const nextOrder =
         (await bracketRepository.getMaxMatchOrderForBracket(
@@ -2096,6 +2138,22 @@ export const bracketService = {
       ].filter((id): id is string => Boolean(id));
 
       await bracketRepository.deleteBracketMatchById(input.matchId, tx);
+
+      for (const fighterId of fighterSnapshotIds) {
+        const remainingCount =
+          await bracketRepository.countFighterAssignmentsInEvent(
+            ctx.eventId,
+            fighterId,
+            tx,
+          );
+        if (remainingCount < 2) {
+          await applicationRepository.clearMultiMatchConfirmationByFighterIds(
+            ctx.eventId,
+            [fighterId],
+            tx,
+          );
+        }
+      }
 
       const remaining = await bracketRepository.listBracketMatchesForOrder(
         input.bracketId,
@@ -2273,5 +2331,199 @@ export const bracketService = {
         matches: sortedMatches,
       };
     });
+  },
+
+  async listEventDuplicateAssignmentIssues(
+    actor: ActorContext,
+    eventId: string,
+  ): Promise<{
+    issues: BracketDuplicateAssignmentIssue[];
+    unconfirmedCount: number;
+    confirmedCount: number;
+  }> {
+    requireRole(actor, ["organizer", "admin"]);
+    await requireOrganizerForEvent(actor, eventId);
+
+    const matches =
+      await bracketRepository.listActiveMatchesForDuplicateValidation(eventId);
+
+    type Acc = {
+      matchIds: string[];
+      details: BracketDuplicateMatchDetail[];
+    };
+    const byFighter = new Map<string, Acc>();
+
+    function pushSide(
+      fighterId: string | null,
+      corner: "홍" | "청",
+      match: (typeof matches)[number],
+      opponentSnapshot: unknown,
+    ) {
+      if (!fighterId) return;
+      const opponent = parseBracketFighterSnapshot(opponentSnapshot);
+      const divisionInput = toEventDivisionDisplayInput(match.bracket.division);
+      const acc = byFighter.get(fighterId) ?? { matchIds: [], details: [] };
+      acc.matchIds.push(match.id);
+      acc.details.push({
+        matchId: match.id,
+        matchLabel: formatMatchOrderShort({
+          matchOrder: match.matchOrder,
+          globalMatchOrder: match.globalMatchOrder,
+          matchNumber: match.matchNumber,
+        }),
+        corner,
+        opponentName: opponent?.name?.trim() || "미배정",
+        divisionLabel: divisionInput
+          ? formatDivisionMainLabel(divisionInput) || "경기구분 미지정"
+          : "경기구분 미지정",
+        bracketId: match.bracketId,
+      });
+      byFighter.set(fighterId, acc);
+    }
+
+    for (const match of matches) {
+      pushSide(
+        match.fighterRedId,
+        "홍",
+        match,
+        match.fighterBlueSnapshot,
+      );
+      pushSide(
+        match.fighterBlueId,
+        "청",
+        match,
+        match.fighterRedSnapshot,
+      );
+    }
+
+    const duplicateFighterIds = [...byFighter.entries()]
+      .filter(([, acc]) => acc.matchIds.length >= 2)
+      .map(([id]) => id);
+
+    if (duplicateFighterIds.length === 0) {
+      return { issues: [], unconfirmedCount: 0, confirmedCount: 0 };
+    }
+
+    const applications = await prisma.eventApplication.findMany({
+      where: {
+        eventId,
+        fighterId: { in: duplicateFighterIds },
+        status: { not: ApplicationStatus.cancelled },
+      },
+      select: {
+        id: true,
+        fighterId: true,
+        gymNameSnapshot: true,
+        gymSnapshot: true,
+        multiMatchConfirmedAt: true,
+        multiMatchConfirmedSignature: true,
+        fighter: { select: { name: true } },
+        gym: { select: { name: true } },
+      },
+    });
+
+    const appByFighter = new Map(applications.map((a) => [a.fighterId, a]));
+
+    const issues: BracketDuplicateAssignmentIssue[] = [];
+    for (const fighterId of duplicateFighterIds) {
+      const acc = byFighter.get(fighterId)!;
+      const app = appByFighter.get(fighterId);
+      if (!app) continue;
+      const confirmed = isMultiMatchConfirmationValid({
+        currentMatchIds: acc.matchIds,
+        confirmedSignature: app.multiMatchConfirmedSignature,
+      });
+      issues.push({
+        type: "DUPLICATE_ASSIGNMENT",
+        fighterId,
+        applicationId: app.id,
+        fighterName: app.fighter.name,
+        gymName: resolveApplicationGymDisplayName({
+          gymNameSnapshot: app.gymNameSnapshot,
+          gymSnapshot: app.gymSnapshot,
+          gymRelationName: app.gym?.name,
+        }),
+        matchCount: acc.matchIds.length,
+        matches: acc.details,
+        confirmed,
+        confirmedAt: app.multiMatchConfirmedAt
+          ? app.multiMatchConfirmedAt.toISOString()
+          : null,
+      });
+    }
+
+    issues.sort((a, b) => {
+      if (a.confirmed !== b.confirmed) return a.confirmed ? 1 : -1;
+      if (a.matchCount !== b.matchCount) return b.matchCount - a.matchCount;
+      return a.fighterName.localeCompare(b.fighterName, "ko");
+    });
+
+    return {
+      issues,
+      unconfirmedCount: issues.filter((i) => !i.confirmed).length,
+      confirmedCount: issues.filter((i) => i.confirmed).length,
+    };
+  },
+
+  async confirmEventMultiMatch(
+    actor: ActorContext,
+    input: { eventId: string; applicationId: string },
+  ): Promise<{ applicationId: string; signature: string }> {
+    requireRole(actor, ["organizer", "admin"]);
+    await requireOrganizerForEvent(actor, input.eventId);
+
+    const app = await prisma.eventApplication.findFirst({
+      where: { id: input.applicationId, eventId: input.eventId },
+      select: { id: true, fighterId: true },
+    });
+    if (!app) {
+      throw new AppError("NOT_FOUND", "신청을 찾을 수 없습니다.");
+    }
+
+    const matches =
+      await bracketRepository.listActiveMatchesForDuplicateValidation(
+        input.eventId,
+      );
+    const matchIds = matches
+      .filter(
+        (m) =>
+          m.fighterRedId === app.fighterId ||
+          m.fighterBlueId === app.fighterId,
+      )
+      .map((m) => m.id);
+    if (matchIds.length < 2) {
+      throw new AppError(
+        "VALIDATION_ERROR",
+        "현재 2경기 이상 배정된 선수만 복수 출전으로 확인할 수 있습니다.",
+      );
+    }
+
+    const signature = buildMultiMatchAssignmentSignature(matchIds);
+    await applicationRepository.setMultiMatchConfirmation(app.id, {
+      confirmedAt: new Date(),
+      confirmedByUserId: actor.userId,
+      signature,
+    });
+
+    return { applicationId: app.id, signature };
+  },
+
+  async clearEventMultiMatchConfirmation(
+    actor: ActorContext,
+    input: { eventId: string; applicationId: string },
+  ): Promise<{ applicationId: string }> {
+    requireRole(actor, ["organizer", "admin"]);
+    await requireOrganizerForEvent(actor, input.eventId);
+
+    const app = await prisma.eventApplication.findFirst({
+      where: { id: input.applicationId, eventId: input.eventId },
+      select: { id: true },
+    });
+    if (!app) {
+      throw new AppError("NOT_FOUND", "신청을 찾을 수 없습니다.");
+    }
+
+    await applicationRepository.clearMultiMatchConfirmation(app.id);
+    return { applicationId: app.id };
   },
 };

@@ -1956,6 +1956,12 @@ model EventApplication {
   schoolLevelSnapshot        String?
   /// 신청 시점 구조화 학년 snapshot (초3 → 3, 고1 → 1, 성인 → null)
   schoolGradeSnapshot        Int?
+  /// 운영자: 이번 대회 복수 출전을 의도된 것으로 확인한 시각
+  multiMatchConfirmedAt      DateTime?
+  /// 확인한 운영자 User.id (FK 없이 snapshot)
+  multiMatchConfirmedByUserId String?
+  /// 확인 당시 배정 Match id signature (sorted join). 배정 변경 시 invalid
+  multiMatchConfirmedSignature String?
   /// 보험가입용 주민번호 암호문 (EventApplication scope only)
   insuranceRrnCipher         Bytes?
   insuranceRrnIv             Bytes?

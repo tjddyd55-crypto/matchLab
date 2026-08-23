@@ -391,6 +391,58 @@ export const applicationRepository = {
     });
   },
 
+  async setMultiMatchConfirmation(
+    applicationId: string,
+    data: {
+      confirmedAt: Date;
+      confirmedByUserId: string;
+      signature: string;
+    },
+    tx?: Prisma.TransactionClient,
+  ): Promise<void> {
+    await db(tx).eventApplication.update({
+      where: { id: applicationId },
+      data: {
+        multiMatchConfirmedAt: data.confirmedAt,
+        multiMatchConfirmedByUserId: data.confirmedByUserId,
+        multiMatchConfirmedSignature: data.signature,
+      },
+    });
+  },
+
+  async clearMultiMatchConfirmation(
+    applicationId: string,
+    tx?: Prisma.TransactionClient,
+  ): Promise<void> {
+    await db(tx).eventApplication.update({
+      where: { id: applicationId },
+      data: {
+        multiMatchConfirmedAt: null,
+        multiMatchConfirmedByUserId: null,
+        multiMatchConfirmedSignature: null,
+      },
+    });
+  },
+
+  async clearMultiMatchConfirmationByFighterIds(
+    eventId: string,
+    fighterIds: string[],
+    tx?: Prisma.TransactionClient,
+  ): Promise<void> {
+    if (fighterIds.length === 0) return;
+    await db(tx).eventApplication.updateMany({
+      where: {
+        eventId,
+        fighterId: { in: fighterIds },
+      },
+      data: {
+        multiMatchConfirmedAt: null,
+        multiMatchConfirmedByUserId: null,
+        multiMatchConfirmedSignature: null,
+      },
+    });
+  },
+
   async updateAdditionalInfoSubmission(
     applicationId: string,
     data: {
