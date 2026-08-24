@@ -29,7 +29,7 @@ export function OperationMatchListPane({
   }
 
   return (
-    <div className={cn("flex flex-col gap-2", className)} role="listbox">
+    <div className={cn("flex flex-col gap-1.5", className)} role="listbox">
       {rows.map((row) => {
         const selected = row.matchId === selectedMatchId;
         const display = getOperationMatchListDisplay(row);
@@ -45,19 +45,18 @@ export function OperationMatchListPane({
               selected,
             )}
           >
-            <div className="flex flex-wrap items-center justify-between gap-2">
-              <p className="text-sm font-bold text-matchon-text-primary">
+            <div className="flex flex-wrap items-center justify-between gap-1.5">
+              <p className="min-w-0 text-sm font-semibold leading-tight text-matchon-text-primary">
                 {display.matchNumberLabel}
                 {display.courtLabel ? (
-                  <span className="text-matchon-text-secondary font-medium">
-                    {" "}
+                  <span className="text-matchon-text-secondary ml-1 text-[12px] font-normal">
                     · {display.courtLabel}
                   </span>
                 ) : null}
               </p>
               <span
                 className={cn(
-                  "inline-flex shrink-0 rounded-md border px-2 py-0.5 text-[11px] font-semibold",
+                  "inline-flex h-[22px] shrink-0 items-center rounded-md border px-1.5 text-[11px] font-semibold",
                   display.badgeClassName,
                 )}
               >
@@ -67,17 +66,17 @@ export function OperationMatchListPane({
             {row.division ? (
               <DivisionCompactDisplay
                 division={row.division}
-                mainClassName="text-xs"
-                secondaryClassName="text-[11px]"
+                mainClassName="text-[11px] leading-tight"
+                secondaryClassName="text-[10px] leading-tight"
               />
             ) : (
-              <p className="truncate text-xs font-medium">
+              <p className="truncate text-[11px] font-medium leading-tight">
                 {display.divisionLabel}
               </p>
             )}
             <p
               className={cn(
-                "truncate text-sm font-semibold",
+                "truncate text-sm font-semibold leading-snug",
                 display.isFinished && "text-slate-600",
               )}
               title={display.matchupLabel}

@@ -24,10 +24,10 @@ export function getSelectableListCardClass({
       "border-[#0A47FF] bg-[#EAF1FF] hover:bg-[#EAF1FF]",
     selected &&
       selectedStyle === "ring" &&
-      "shadow-[0_0_0_2px_#FFFFFF,0_0_0_4px_var(--matchon-primary,#0A47FF)]",
+      "border-2 border-[#0A47FF] bg-[#EAF1FF] shadow-none hover:bg-[#EAF1FF]",
     selected && selectedStyle === "soft"
       ? "focus-visible:ring-1 focus-visible:ring-[#0A47FF]/40 focus-visible:ring-offset-0"
-      : "focus-visible:ring-2 focus-visible:ring-matchon-primary focus-visible:ring-offset-2",
+      : "focus-visible:ring-2 focus-visible:ring-matchon-primary focus-visible:ring-offset-1",
     className,
   );
 }

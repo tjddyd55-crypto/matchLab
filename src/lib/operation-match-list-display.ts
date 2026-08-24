@@ -108,6 +108,7 @@ export function getOperationMatchListCardToneClass(
   return getSelectableListCardClass({
     selected,
     toneClassName: getOperationMatchListToneClassName(phase),
+    className: "gap-0.5 rounded-[10px] px-2.5 py-2.5",
   });
 }
 
@@ -177,5 +178,6 @@ export function getOperationMatchListResultClassName(
   if (display.isCancelled) {
     return "truncate text-xs font-medium text-rose-800";
   }
-  return "truncate text-xs text-matchon-text-secondary";
+  // 결과 미입력 — secondary 약화 (반복 시선 분산 방지)
+  return "truncate text-[11px] text-matchon-text-secondary/80";
 }
