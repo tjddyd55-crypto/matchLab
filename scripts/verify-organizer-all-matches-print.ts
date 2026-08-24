@@ -37,6 +37,7 @@ const docSrc = readFileSync(
   "utf8",
 );
 assert.ok(docSrc.includes("organizerMemo"));
+assert.ok(docSrc.includes('doc.mode === "all-matches"'));
 assert.ok(docSrc.includes("전체 경기 편집"));
 
 const pdfSrc = readFileSync(

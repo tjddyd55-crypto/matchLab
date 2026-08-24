@@ -37,71 +37,23 @@ export function BracketPrintToolbar({
   );
 }
 
-/** 긴 EventDivision label → 첫 세그먼트(연령부) compact */
-function compactAgeGroupFromDivisionLabel(
-  divisionLabel: string | null | undefined,
-): string | null {
-  const raw = divisionLabel?.trim();
-  if (!raw) return null;
-  const first = raw.split(" · ")[0]?.trim();
-  return first || null;
-}
-
-function compactMatchSubLabel(input: {
-  arenaName: string | null;
-  divisionLabel: string | null;
-}): string | null {
-  const age = compactAgeGroupFromDivisionLabel(input.divisionLabel);
-  const genderRaw = input.divisionLabel?.split(" · ")[1]?.trim() ?? null;
-  let category = age;
-  if (age && genderRaw) {
-    const g = genderRaw.includes("남")
-      ? "남성"
-      : genderRaw.includes("여")
-        ? "여성"
-        : null;
-    category = g ? `${age} ${g}` : age;
-  }
-  const parts = [input.arenaName, category].filter(Boolean);
-  return parts.length > 0 ? parts.join(" · ") : null;
-}
-
-function fighterCategoryLabel(
-  divisionLabel: string | null | undefined,
-  gradeLabel: string | null | undefined,
-): string | null {
-  const age = compactAgeGroupFromDivisionLabel(divisionLabel);
-  if (age && gradeLabel && !age.includes(gradeLabel)) {
-    return `${age} · ${gradeLabel}`;
-  }
-  return age || gradeLabel || null;
-}
-
 function FighterCell({
   fighter,
-  divisionLabel,
   emptyLabel = "미정",
 }: {
   fighter: BracketPrintDocumentDto["matches"][number]["red"];
-  divisionLabel: string | null;
   emptyLabel?: string;
 }) {
   if (!fighter) {
     return <div className="bracket-print-fighter">{emptyLabel}</div>;
   }
-  const category = fighterCategoryLabel(divisionLabel, fighter.gradeLabel);
-  const detail = [fighter.gymName, category, fighter.weightLabel]
+  const rest = [fighter.gymName, fighter.weightLabel, fighter.gradeLabel]
     .filter(Boolean)
     .join(" / ");
   return (
     <div className="bracket-print-fighter">
       <div className="bracket-print-fighter-name">{fighter.name}</div>
-      {detail ? (
-        <div className="bracket-print-fighter-detail">{detail}</div>
-      ) : null}
-      <div className="bracket-print-fighter-record">
-        {fighter.recordLabel || "-"}
-      </div>
+      {rest ? <div className="bracket-print-fighter-rest">{rest}</div> : null}
     </div>
   );
 }
@@ -133,21 +85,27 @@ export function BracketPrintDocument({
           <thead>
             <tr>
               <th className="bracket-print-col-no">경기</th>
-              <th className="bracket-print-col-red bracket-print-th-red">
+              <th className="bracket-print-col-red">
                 레드 코너
+                <br />
+                <span style={{ fontWeight: 500 }}>
+                  (이름 / 체육관 / kg / 학년)
+                </span>
               </th>
+              <th className="bracket-print-col-record">전적</th>
               <th className="bracket-print-col-vs">VS</th>
-              <th className="bracket-print-col-blue bracket-print-th-blue">
+              <th className="bracket-print-col-blue">
                 블루 코너
+                <br />
+                <span style={{ fontWeight: 500 }}>
+                  (이름 / 체육관 / kg / 학년)
+                </span>
               </th>
+              <th className="bracket-print-col-record">전적</th>
             </tr>
           </thead>
           <tbody>
             {doc.matches.map((m) => {
-              const matchSub = compactMatchSubLabel({
-                arenaName: m.arenaName,
-                divisionLabel: m.divisionLabel,
-              });
               const opsParts = [
                 m.roundLabel ? `라운드 ${m.roundLabel}` : null,
                 m.timeLabel ? `시간 ${m.timeLabel}` : null,
@@ -159,9 +117,14 @@ export function BracketPrintDocument({
                       <span className="bracket-print-match-no">
                         {m.matchNoLabel}
                       </span>
-                      {matchSub ? (
+                      {m.arenaName ? (
                         <span className="bracket-print-match-sub">
-                          {matchSub}
+                          {m.arenaName}
+                        </span>
+                      ) : null}
+                      {m.divisionLabel ? (
+                        <span className="bracket-print-match-sub">
+                          {m.divisionLabel}
                         </span>
                       ) : null}
                       {isAllMatches && opsParts.length > 0 ? (
@@ -177,17 +140,17 @@ export function BracketPrintDocument({
                     </div>
                   </td>
                   <td className="bracket-print-col-red bracket-print-cell-red">
-                    <FighterCell
-                      fighter={m.red}
-                      divisionLabel={m.divisionLabel}
-                    />
+                    <FighterCell fighter={m.red} />
+                  </td>
+                  <td className="bracket-print-col-record">
+                    {m.red?.recordLabel ?? "-"}
                   </td>
                   <td className="bracket-print-col-vs">VS</td>
                   <td className="bracket-print-col-blue bracket-print-cell-blue">
-                    <FighterCell
-                      fighter={m.blue}
-                      divisionLabel={m.divisionLabel}
-                    />
+                    <FighterCell fighter={m.blue} />
+                  </td>
+                  <td className="bracket-print-col-record">
+                    {m.blue?.recordLabel ?? "-"}
                   </td>
                 </tr>
               );
