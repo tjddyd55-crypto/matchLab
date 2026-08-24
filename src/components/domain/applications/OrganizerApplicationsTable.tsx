@@ -10,7 +10,7 @@ import type {
   CustomFormSnapshot,
 } from "@/lib/application-form/custom-form";
 import {
-  OrganizerApplicationStatusBadge,
+  OrganizerApplicationStatusBadgeToggle,
   OrganizerPaymentDisplayBadge,
 } from "@/components/domain/applications/OrganizerApplicationDisplayBadge";
 import { OrganizerApplicationRowActions } from "@/components/domain/applications/OrganizerApplicationRowActions";
@@ -241,7 +241,10 @@ export function OrganizerApplicationsTable({
                 ) : null}
               </TableCell>
               <TableCell className="align-top text-center">
-                <OrganizerApplicationStatusBadge
+                <OrganizerApplicationStatusBadgeToggle
+                  eventId={eventId}
+                  applicationId={row.applicationId}
+                  fighterName={row.fighterName}
                   applicationStatus={row.applicationStatus}
                   cancellationSource={row.cancellationSource}
                 />

@@ -15,6 +15,7 @@ import { applicationService } from "@/lib/services/application.service";
 import {
   applyToEventSchema,
   approveApplicationSchema,
+  revokeApplicationApprovalSchema,
   rejectApplicationSchema,
   type ApplyToEventInput,
 } from "@/lib/validators/application.validator";
@@ -69,6 +70,11 @@ function mapCaught<T>(
 function formReq(formData: FormData, key: string): string {
   const v = formData.get(key);
   return typeof v === "string" ? v.trim() : "";
+}
+
+function formOpt(formData: FormData, key: string): string | undefined {
+  const v = formReq(formData, key);
+  return v === "" ? undefined : v;
 }
 
 export async function applyToEventAction(
@@ -182,12 +188,20 @@ export async function createBulkEventApplicationsAction(
   });
 }
 
+function revalidateOrganizerApplicationPaths(eventId: string | undefined): void {
+  if (!eventId) return;
+  revalidatePath(`/organizer/events/${eventId}/applications`);
+  revalidatePath(`/organizer/events/${eventId}/check-in`);
+  revalidatePath(`/organizer/events/${eventId}/brackets`);
+}
+
 export async function approveApplicationAction(
   formData: FormData,
 ): Promise<ActionResult<{ ok: true }>> {
   return mapCaught(async () => {
     const parsed = approveApplicationSchema.safeParse({
       applicationId: formReq(formData, "applicationId"),
+      eventId: formOpt(formData, "eventId"),
     });
     if (!parsed.success) {
       return actionFailure(
@@ -200,6 +214,31 @@ export async function approveApplicationAction(
       actor,
       parsed.data.applicationId,
     );
+    revalidateOrganizerApplicationPaths(parsed.data.eventId);
+    return actionSuccess({ ok: true as const });
+  });
+}
+
+export async function revokeApplicationApprovalAction(
+  formData: FormData,
+): Promise<ActionResult<{ ok: true }>> {
+  return mapCaught(async () => {
+    const parsed = revokeApplicationApprovalSchema.safeParse({
+      applicationId: formReq(formData, "applicationId"),
+      eventId: formOpt(formData, "eventId"),
+    });
+    if (!parsed.success) {
+      return actionFailure(
+        "VALIDATION_ERROR",
+        "신청 정보가 올바르지 않습니다.",
+      );
+    }
+    const actor = await requireActorFromMutation();
+    await applicationService.revokeEventApplicationApproval(
+      actor,
+      parsed.data.applicationId,
+    );
+    revalidateOrganizerApplicationPaths(parsed.data.eventId);
     return actionSuccess({ ok: true as const });
   });
 }

@@ -53,6 +53,12 @@ export const applyToEventSchema = z.object({
 
 export const approveApplicationSchema = z.object({
   applicationId: z.string().min(1),
+  eventId: z.string().min(1).optional(),
+});
+
+export const revokeApplicationApprovalSchema = z.object({
+  applicationId: z.string().min(1),
+  eventId: z.string().min(1).optional(),
 });
 
 export const rejectApplicationSchema = z.object({

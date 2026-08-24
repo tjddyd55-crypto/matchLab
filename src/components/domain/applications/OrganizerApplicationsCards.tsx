@@ -1,7 +1,7 @@
 "use client";
 
 import {
-  OrganizerApplicationStatusBadge,
+  OrganizerApplicationStatusBadgeToggle,
   OrganizerPaymentDisplayBadge,
 } from "@/components/domain/applications/OrganizerApplicationDisplayBadge";
 import { OrganizerApplicationRowActions } from "@/components/domain/applications/OrganizerApplicationRowActions";
@@ -94,7 +94,10 @@ export function OrganizerApplicationsCards({
             <div className="flex flex-wrap gap-1.5 pl-8">
               <OrganizerAssignmentStatusBadge isAssigned={row.isAssigned} />
               <OrganizerPaymentDisplayBadge paymentStatus={row.paymentStatus} />
-              <OrganizerApplicationStatusBadge
+              <OrganizerApplicationStatusBadgeToggle
+                eventId={eventId}
+                applicationId={row.applicationId}
+                fighterName={row.fighterName}
                 applicationStatus={row.applicationStatus}
                 cancellationSource={row.cancellationSource}
               />
