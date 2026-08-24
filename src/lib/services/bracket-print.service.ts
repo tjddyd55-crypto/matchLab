@@ -14,6 +14,7 @@ import {
 } from "@/lib/court-match-order";
 import { parseBracketFighterSnapshot } from "@/lib/bracket-snapshot";
 import {
+  buildAllMatchesPrintOpsLine,
   buildBracketPrintDocumentTitle,
   buildBracketPrintFighterDto,
   formatBracketPrintEventDate,
@@ -23,6 +24,11 @@ import {
   type BracketPrintMatchDto,
   type BracketPrintMode,
 } from "@/lib/brackets/bracket-print-format";
+import { parseMatchOperationalSettings } from "@/lib/match-operational-settings";
+import {
+  formatRoundCountLabel,
+  formatRoundTimeLabel,
+} from "@/lib/match-operational-settings-options";
 
 type PrintApplicationRow = {
   id: string;
@@ -43,6 +49,7 @@ type PrintApplicationRow = {
   fighter: {
     id: string;
     name: string;
+    gender: string;
     recordTotalBouts: number;
     recordWin: number;
     recordLoss: number;
@@ -112,6 +119,7 @@ function mapPrintFighter(
       drawsSnapshot: null,
       lossesSnapshot: null,
       recordText: snap?.recordSummary ?? null,
+      genderLabel: null,
       fighterRecord: null,
     });
   }
@@ -129,6 +137,12 @@ function mapPrintFighter(
     drawsSnapshot: app.drawsSnapshot,
     lossesSnapshot: app.lossesSnapshot,
     recordText: app.recordText,
+    genderLabel: (() => {
+      const g = (app.fighter.gender ?? "").trim().toLowerCase();
+      if (g === "male") return "남성";
+      if (g === "female") return "여성";
+      return null;
+    })(),
     fighterRecord: {
       recordTotalBouts: app.fighter.recordTotalBouts,
       recordWin: app.fighter.recordWin,
@@ -189,6 +203,7 @@ export const bracketPrintService = {
             select: {
               id: true,
               name: true,
+              gender: true,
               recordTotalBouts: true,
               recordWin: true,
               recordLoss: true,
@@ -249,6 +264,26 @@ export const bracketPrintService = {
         ? pickApplication(appMap, m.fighterBlue.id, divisionId)
         : null;
 
+      const arenaName = m.court?.name?.trim() || null;
+      let roundLabel: string | null = null;
+      let timeLabel: string | null = null;
+      let opsLine: string | null = null;
+      let organizerMemo: string | null = null;
+
+      if (mode === "all-matches") {
+        const { settings } = parseMatchOperationalSettings(
+          (m as { resultMemo?: string | null }).resultMemo,
+        );
+        roundLabel = formatRoundCountLabel(settings.roundCount);
+        timeLabel = formatRoundTimeLabel(settings.roundTimeSec);
+        opsLine = buildAllMatchesPrintOpsLine({
+          arenaName,
+          roundLabel,
+          timeLabel,
+        });
+        organizerMemo = m.organizerMemo?.trim() || null;
+      }
+
       return {
         matchId: m.id,
         matchNoLabel: formatCourtScheduleMatchOrderShort({
@@ -260,15 +295,15 @@ export const bracketPrintService = {
           matchOrder: m.matchOrder,
         }),
         divisionLabel,
-        arenaName: m.court?.name?.trim() || null,
+        arenaName,
         red: mapPrintFighter(m.fighterRed, m.fighterRedSnapshot, redApp),
         blue: mapPrintFighter(m.fighterBlue, m.fighterBlueSnapshot, blueApp),
         ...(mode === "all-matches"
           ? {
-              roundLabel: m.roundName?.trim() || null,
-              timeLabel:
-                m.matNumber != null ? String(m.matNumber) : null,
-              organizerMemo: m.organizerMemo?.trim() || null,
+              roundLabel,
+              timeLabel,
+              opsLine,
+              organizerMemo,
             }
           : {}),
       };

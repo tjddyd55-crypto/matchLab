@@ -6,26 +6,26 @@ export const compactApplicantFilterBarClass =
   "rounded-[10px] border border-[#E2E8F0] bg-matchon-surface/70 p-2.5 md:p-3";
 
 export const compactApplicantFilterRowClass =
-  "flex flex-col gap-2 md:flex-row md:items-center md:gap-2 max-[1365px]:flex-wrap min-[1366px]:gap-1.5";
+  "flex flex-col gap-2 md:flex-row md:flex-nowrap md:items-center md:gap-1.5 max-[1365px]:flex-wrap";
 
 export const compactApplicantSearchClass =
-  "min-w-0 flex-1 md:min-w-[160px] min-[1366px]:min-w-[120px]";
+  "min-w-0 w-full md:w-[220px] md:max-w-[220px] md:flex-none xl:w-[240px] xl:max-w-[240px]";
 
 /** 신청자 관리 — 1366에서 검색~초기화 1줄 */
 export const compactOrganizerApplicantSearchClass =
-  "min-w-0 flex-1 md:min-w-[140px] min-[1366px]:min-w-[112px]";
+  "min-w-0 w-full md:w-[180px] md:max-w-[180px] md:flex-none xl:w-[200px] xl:max-w-[200px]";
 
 export const compactOrganizerApplicantControlClass =
   "h-9 min-h-9 px-2.5 text-xs";
 
 export const compactApplicantSelectWidths = {
-  gym: "w-full min-w-0 md:w-[9.25rem] md:shrink-0 min-[1366px]:w-[6.5rem]",
-  division: "w-full min-w-0 md:w-[10rem] md:shrink-0 min-[1366px]:w-[7rem]",
+  gym: "w-full min-w-0 md:w-[8.5rem] md:shrink-0 min-[1366px]:w-[6.25rem]",
+  division: "w-full min-w-0 md:w-[9rem] md:shrink-0 min-[1366px]:w-[6.75rem]",
   checkIn: "w-full min-w-0 md:w-[9.25rem] md:shrink-0 min-[1366px]:w-[7.25rem]",
-  status: "w-full min-w-0 md:w-[8.75rem] md:shrink-0 min-[1366px]:w-[6.5rem]",
-  payment: "w-full min-w-0 md:w-[8.125rem] md:shrink-0 min-[1366px]:w-[6rem]",
-  consent: "w-full min-w-0 md:w-[8.125rem] md:shrink-0 min-[1366px]:w-[6rem]",
-  assignment: "w-full min-w-0 md:w-[7.5rem] md:shrink-0 min-[1366px]:w-[5.75rem]",
+  status: "w-full min-w-0 md:w-[8rem] md:shrink-0 min-[1366px]:w-[6.25rem]",
+  payment: "w-full min-w-0 md:w-[7.5rem] md:shrink-0 min-[1366px]:w-[5.75rem]",
+  consent: "w-full min-w-0 md:w-[7.5rem] md:shrink-0 min-[1366px]:w-[5.75rem]",
+  assignment: "w-full min-w-0 md:w-[7rem] md:shrink-0 min-[1366px]:w-[5.5rem]",
 } as const;
 
 export function CompactFilterResetButton({

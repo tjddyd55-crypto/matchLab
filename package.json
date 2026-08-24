@@ -181,6 +181,7 @@
     "verify:bracket-workspace-layout": "tsx scripts/verify-bracket-workspace-layout.ts",
     "verify:organizer-all-matches-workspace": "tsx scripts/verify-organizer-all-matches-workspace.ts",
     "verify:organizer-all-matches-print": "tsx scripts/verify-organizer-all-matches-print.ts",
+    "verify:compact-filter-toolbar": "tsx scripts/verify-compact-filter-toolbar.ts",
     "verify:application-school-grade": "tsx scripts/verify-application-school-grade.ts",
     "verify:applicant-list-filters": "tsx scripts/verify-applicant-list-filters.ts",
     "verify:manual-multi-match": "tsx scripts/verify-manual-multi-match.ts",

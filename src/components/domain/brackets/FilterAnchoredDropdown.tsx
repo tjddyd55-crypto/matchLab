@@ -104,6 +104,7 @@ export function FilterMultiSelectButton({
   onChange,
   formatOption,
   emptyHint = "선택 가능한 항목이 없습니다",
+  className,
 }: {
   label: string;
   options: string[];
@@ -111,6 +112,7 @@ export function FilterMultiSelectButton({
   onChange: (next: string[]) => void;
   formatOption?: (value: string) => string;
   emptyHint?: string;
+  className?: string;
 }) {
   const [open, setOpen] = useState(false);
   const anchorRef = useRef<HTMLDivElement>(null);
@@ -123,7 +125,7 @@ export function FilterMultiSelectButton({
         type="button"
         variant="outline"
         size="sm"
-        className="h-9 gap-1 rounded-md px-3 text-xs"
+        className={cn("h-9 gap-1 rounded-md px-2.5 text-xs", className)}
         aria-expanded={open}
         aria-controls={listId}
         disabled={options.length === 0}

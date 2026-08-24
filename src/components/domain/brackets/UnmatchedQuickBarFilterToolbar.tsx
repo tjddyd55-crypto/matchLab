@@ -1,4 +1,4 @@
-"use client";
+﻿"use client";
 
 import {
   useEffect,
@@ -21,21 +21,16 @@ import {
 } from "@/lib/brackets/unmatched-candidate-filters";
 import { Button } from "@/components/ui/button";
 import { Checkbox } from "@/components/ui/checkbox";
-import { formControlFieldCompactClass } from "@/lib/ui/form-control-ui";
+import {
+  COMPACT_FILTER_BUTTON_CLASS,
+  COMPACT_FILTER_RESET_CLASS,
+  COMPACT_FILTER_ROW_CLASS,
+  COMPACT_FILTER_SEARCH_NARROW_CLASS,
+  COMPACT_FILTER_SELECT_CLASS,
+  COMPACT_NUMBER_INPUT_CLASS,
+  sanitizePositiveIntInput,
+} from "@/lib/ui/compact-filter-toolbar";
 import { cn } from "@/lib/utils";
-
-const FILTER_BUTTON_CLASS =
-  "h-9 shrink-0 gap-1 rounded-md px-3 text-xs font-medium";
-
-const FILTER_SELECT_CLASS = cn(
-  formControlFieldCompactClass,
-  "h-9 w-auto min-w-[5.5rem] shrink-0 rounded-md px-3 text-xs",
-);
-
-const SEARCH_INPUT_CLASS = cn(
-  formControlFieldCompactClass,
-  "h-9 w-full min-w-0 max-w-[280px] shrink-0 basis-[280px] rounded-md px-3 text-xs sm:max-w-[320px] sm:basis-[320px]",
-);
 
 function useAnchoredPanelStyle(
   open: boolean,
@@ -139,7 +134,7 @@ function MultiCheckFilterDropdown({
         type="button"
         variant="outline"
         size="sm"
-        className={FILTER_BUTTON_CLASS}
+        className={COMPACT_FILTER_BUTTON_CLASS}
         onClick={() => setOpen((v) => !v)}
         aria-expanded={open}
       >
@@ -225,7 +220,7 @@ function WeightMultiCheckFilterDropdown({
         type="button"
         variant="outline"
         size="sm"
-        className={FILTER_BUTTON_CLASS}
+        className={COMPACT_FILTER_BUTTON_CLASS}
         onClick={() => setOpen((v) => !v)}
         aria-expanded={open}
       >
@@ -282,110 +277,14 @@ function WeightMultiCheckFilterDropdown({
   );
 }
 
-function UnmatchedSearchInput({
-  filters,
-  onFiltersChange,
-  className,
-}: {
-  filters: UnmatchedQuickBarFilterState;
-  onFiltersChange: (next: UnmatchedQuickBarFilterState) => void;
-  className?: string;
-}) {
-  return (
-    <input
-      className={cn(SEARCH_INPUT_CLASS, className)}
-      placeholder="선수명 · 체육관 검색"
-      value={filters.search}
-      onChange={(e) =>
-        onFiltersChange({ ...filters, search: e.target.value })
-      }
-      aria-label="미매칭 선수 검색"
-    />
-  );
-}
-
-function UnmatchedRecordFilterRow({
-  filters,
-  onFiltersChange,
-  filtersActive,
-}: {
-  filters: UnmatchedQuickBarFilterState;
-  onFiltersChange: (next: UnmatchedQuickBarFilterState) => void;
-  filtersActive: boolean;
-}) {
-  function patchFilters(patch: Partial<UnmatchedQuickBarFilterState>) {
-    onFiltersChange({ ...filters, ...patch });
-  }
-
-  return (
-    <div className="flex flex-wrap items-center gap-2">
-      <select
-        className={cn(FILTER_SELECT_CLASS, "min-w-[6.5rem]")}
-        value={filters.recordStatus}
-        onChange={(e) =>
-          patchFilters({
-            recordStatus: e.target.value as UnmatchedRecordStatusFilter,
-            maxTotalBouts:
-              e.target.value === "experienced" ? filters.maxTotalBouts : "",
-          })
-        }
-        aria-label="전적 상태 필터"
-      >
-        <option value="all">전적 전체</option>
-        <option value="zero">무전</option>
-        <option value="experienced">유전</option>
-      </select>
-      {filters.recordStatus === "experienced" ? (
-        <label className="flex h-9 min-w-0 flex-wrap items-center gap-1 text-xs">
-          <span className="text-muted-foreground shrink-0">최대 총전</span>
-          <input
-            type="number"
-            min={1}
-            step={1}
-            inputMode="numeric"
-            className={cn(formControlFieldCompactClass, "h-9 w-16 tabular-nums")}
-            placeholder="—"
-            value={filters.maxTotalBouts}
-            onChange={(e) => {
-              const raw = e.target.value;
-              if (raw === "") {
-                patchFilters({ maxTotalBouts: "" });
-                return;
-              }
-              const n = Number.parseInt(raw, 10);
-              if (!Number.isFinite(n) || n < 1) return;
-              patchFilters({ maxTotalBouts: String(n) });
-            }}
-            aria-label="최대 총전"
-          />
-          <span className="text-muted-foreground shrink-0">전 이하</span>
-        </label>
-      ) : null}
-      {filtersActive ? (
-        <Button
-          type="button"
-          variant="ghost"
-          size="sm"
-          className="h-9 shrink-0 px-2 text-xs"
-          onClick={() => onFiltersChange(DEFAULT_UNMATCHED_QUICK_BAR_FILTERS)}
-        >
-          초기화
-        </Button>
-      ) : null}
-    </div>
-  );
-}
-
-function UnmatchedFilterButtons({
+function UnmatchedFilterControls({
   filterOptions,
   filters,
   onFiltersChange,
-  layout = "inline",
 }: {
   filterOptions: ReturnType<typeof buildUnmatchedQuickBarFilterOptions>;
   filters: UnmatchedQuickBarFilterState;
   onFiltersChange: (next: UnmatchedQuickBarFilterState) => void;
-  layout?: "inline" | "stack";
 }) {
   const filtersActive = hasActiveUnmatchedQuickBarFilters(filters);
 
@@ -393,7 +292,7 @@ function UnmatchedFilterButtons({
     onFiltersChange({ ...filters, ...patch });
   }
 
-  const attributeFilters = (
+  return (
     <>
       <MultiCheckFilterDropdown
         label="부문"
@@ -424,27 +323,8 @@ function UnmatchedFilterButtons({
         selected={filters.weights}
         onChange={(weights) => patchFilters({ weights })}
       />
-    </>
-  );
-
-  if (layout === "stack") {
-    return (
-      <>
-        <div className="flex flex-wrap items-center gap-2">{attributeFilters}</div>
-        <UnmatchedRecordFilterRow
-          filters={filters}
-          onFiltersChange={onFiltersChange}
-          filtersActive={filtersActive}
-        />
-      </>
-    );
-  }
-
-  return (
-    <>
-      {attributeFilters}
       <select
-        className={FILTER_SELECT_CLASS}
+        className={COMPACT_FILTER_SELECT_CLASS}
         value={filters.recordStatus}
         onChange={(e) =>
           patchFilters({
@@ -455,42 +335,31 @@ function UnmatchedFilterButtons({
         }
         aria-label="전적 상태 필터"
       >
-        <option value="all">전적 전체</option>
+        <option value="all">전체</option>
         <option value="zero">무전</option>
         <option value="experienced">유전</option>
       </select>
       {filters.recordStatus === "experienced" ? (
-        <label className="flex h-9 shrink-0 items-center gap-1 text-xs">
-          <span className="text-muted-foreground shrink-0">최대 총전</span>
-          <input
-            type="number"
-            min={1}
-            step={1}
-            inputMode="numeric"
-            className={cn(formControlFieldCompactClass, "h-9 w-16 tabular-nums")}
-            placeholder="—"
-            value={filters.maxTotalBouts}
-            onChange={(e) => {
-              const raw = e.target.value;
-              if (raw === "") {
-                patchFilters({ maxTotalBouts: "" });
-                return;
-              }
-              const n = Number.parseInt(raw, 10);
-              if (!Number.isFinite(n) || n < 1) return;
-              patchFilters({ maxTotalBouts: String(n) });
-            }}
-            aria-label="최대 총전"
-          />
-          <span className="text-muted-foreground shrink-0">전 이하</span>
-        </label>
+        <input
+          type="text"
+          inputMode="numeric"
+          className={COMPACT_NUMBER_INPUT_CLASS}
+          placeholder="—"
+          value={filters.maxTotalBouts}
+          onChange={(e) => {
+            const next = sanitizePositiveIntInput(e.target.value);
+            if (next == null) return;
+            patchFilters({ maxTotalBouts: next });
+          }}
+          aria-label="최대 총전"
+        />
       ) : null}
       {filtersActive ? (
         <Button
           type="button"
           variant="ghost"
           size="sm"
-          className="h-9 shrink-0 px-2 text-xs"
+          className={COMPACT_FILTER_RESET_CLASS}
           onClick={() => onFiltersChange(DEFAULT_UNMATCHED_QUICK_BAR_FILTERS)}
         >
           초기화
@@ -511,40 +380,30 @@ export function UnmatchedQuickBarFilterToolbar({
   filters: UnmatchedQuickBarFilterState;
   onFiltersChange: (next: UnmatchedQuickBarFilterState) => void;
   className?: string;
+  /** stack/toolbar 모두 검색+필터 한 줄 (scope는 부모에서 별도) */
   layout?: "toolbar" | "stack";
 }) {
   const filterOptions = buildUnmatchedQuickBarFilterOptions(options);
   const chips = buildUnmatchedQuickBarFilterChips(filters);
 
   return (
-    <div className={cn("min-w-0 space-y-2", className)}>
-      {layout === "stack" ? (
-        <div className="space-y-2">
-          <UnmatchedSearchInput
-            filters={filters}
-            onFiltersChange={onFiltersChange}
-            className="max-w-none basis-auto"
-          />
-          <UnmatchedFilterButtons
-            filterOptions={filterOptions}
-            filters={filters}
-            onFiltersChange={onFiltersChange}
-            layout="stack"
-          />
-        </div>
-      ) : (
-        <div className="flex flex-wrap items-center justify-start gap-2">
-          <UnmatchedSearchInput
-            filters={filters}
-            onFiltersChange={onFiltersChange}
-          />
-          <UnmatchedFilterButtons
-            filterOptions={filterOptions}
-            filters={filters}
-            onFiltersChange={onFiltersChange}
-          />
-        </div>
-      )}
+    <div className={cn("min-w-0 space-y-2", className)} data-layout={layout}>
+      <div className={COMPACT_FILTER_ROW_CLASS}>
+        <input
+          className={COMPACT_FILTER_SEARCH_NARROW_CLASS}
+          placeholder="선수명 · 체육관"
+          value={filters.search}
+          onChange={(e) =>
+            onFiltersChange({ ...filters, search: e.target.value })
+          }
+          aria-label="미매칭 선수 검색"
+        />
+        <UnmatchedFilterControls
+          filterOptions={filterOptions}
+          filters={filters}
+          onFiltersChange={onFiltersChange}
+        />
+      </div>
       {chips.length > 0 ? (
         <div className="flex flex-wrap gap-1">
           {chips.map((chip) => (

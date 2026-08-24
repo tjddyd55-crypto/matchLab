@@ -65,7 +65,7 @@ export function OrganizerApplicationsFilterBar({
         <input
           id="f-fighter"
           type="search"
-          placeholder="선수명·체육관·경기구분·체급 검색"
+          placeholder="선수명 · 체육관"
           aria-label="선수 검색"
           className={cn(
             ORGANIZER_FIELD_INPUT_CLASS,

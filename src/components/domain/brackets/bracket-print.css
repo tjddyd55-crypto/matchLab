@@ -185,6 +185,134 @@
   color: var(--bracket-print-muted);
 }
 
+/* —— 전체 경기 편집 전용 카드 레이아웃 —— */
+.all-matches-print-list {
+  display: flex;
+  flex-direction: column;
+  gap: 4mm;
+}
+
+.all-matches-print-block {
+  border: 1.5px solid var(--bracket-print-line);
+  break-inside: avoid;
+  page-break-inside: avoid;
+  overflow: hidden;
+}
+
+.all-matches-print-block-head {
+  display: flex;
+  align-items: baseline;
+  justify-content: space-between;
+  gap: 3mm;
+  padding: 2.5mm 3mm;
+  border-bottom: 1px solid var(--bracket-print-line);
+  background: #f7f7f7;
+}
+
+.all-matches-print-match-no {
+  font-size: 14pt;
+  font-weight: 800;
+  letter-spacing: -0.02em;
+}
+
+.all-matches-print-division {
+  font-size: 8pt;
+  font-weight: 600;
+  color: var(--bracket-print-muted);
+  text-align: right;
+  word-break: keep-all;
+}
+
+.all-matches-print-fighters {
+  display: grid;
+  grid-template-columns: 1fr auto 1fr;
+  align-items: stretch;
+  min-height: 22mm;
+}
+
+.all-matches-print-vs {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  padding: 0 2mm;
+  font-size: 11pt;
+  font-weight: 800;
+  border-left: 1px solid var(--bracket-print-line);
+  border-right: 1px solid var(--bracket-print-line);
+}
+
+.all-matches-print-corner {
+  padding: 3mm;
+  display: flex;
+  flex-direction: column;
+  gap: 1.2mm;
+  line-height: 1.3;
+  word-break: keep-all;
+  overflow-wrap: anywhere;
+}
+
+.all-matches-print-corner-red {
+  background: var(--bracket-print-red-bg);
+}
+
+.all-matches-print-corner-blue {
+  background: var(--bracket-print-blue-bg);
+}
+
+.all-matches-print-gym {
+  font-size: 9pt;
+  font-weight: 600;
+  color: var(--bracket-print-muted);
+}
+
+.all-matches-print-name {
+  font-size: 13pt;
+  font-weight: 800;
+  line-height: 1.2;
+}
+
+.all-matches-print-meta {
+  font-size: 9pt;
+  font-weight: 500;
+}
+
+.all-matches-print-empty {
+  font-size: 11pt;
+  font-weight: 600;
+  color: var(--bracket-print-muted);
+}
+
+.all-matches-print-ops {
+  padding: 2mm 3mm;
+  border-top: 1px solid var(--bracket-print-line);
+  font-size: 9pt;
+  font-weight: 600;
+}
+
+.all-matches-print-memo {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 1.5mm 2.5mm;
+  padding: 2.5mm 3mm;
+  border-top: 1px solid var(--bracket-print-line);
+  background: #fafafa;
+  font-size: 9pt;
+  line-height: 1.4;
+  white-space: pre-wrap;
+  word-break: break-word;
+}
+
+.all-matches-print-memo-label {
+  font-weight: 800;
+  flex-shrink: 0;
+}
+
+.all-matches-print-memo-body {
+  font-weight: 500;
+  flex: 1 1 12rem;
+  min-width: 0;
+}
+
 @media screen {
   .bracket-print-sheet {
     min-height: 297mm;
@@ -238,5 +366,31 @@
 
   .bracket-print-cell-blue {
     background: #fff !important;
+  }
+
+  .all-matches-print-corner-red {
+    background: #f2f2f2 !important;
+    -webkit-print-color-adjust: exact;
+    print-color-adjust: exact;
+  }
+
+  .all-matches-print-corner-blue {
+    background: #fff !important;
+  }
+
+  .all-matches-print-block-head,
+  .all-matches-print-memo {
+    background: #f5f5f5 !important;
+    -webkit-print-color-adjust: exact;
+    print-color-adjust: exact;
+  }
+
+  .bracket-print-fighter-name {
+    font-size: 11.5pt;
+  }
+
+  .all-matches-print-block {
+    break-inside: avoid;
+    page-break-inside: avoid;
   }
 }
