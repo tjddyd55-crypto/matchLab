@@ -56,8 +56,15 @@ export const organizerOperationDetailMajorSectionClass = cn(
   "mt-4 pt-4",
 );
 
+/** inner content — horizontal padding owner는 outer panel only */
+export const organizerOperationDetailInnerClass =
+  "flex w-full min-w-0 flex-col px-0";
+
 /** section title → first control */
-export const organizerOperationDetailSectionContentClass = "mt-3";
+export const organizerOperationDetailSectionContentClass = cn(
+  organizerOperationDetailInnerClass,
+  "mt-3",
+);
 
 /** label → control (6px) */
 export const organizerOperationDetailFieldLabelClass =
