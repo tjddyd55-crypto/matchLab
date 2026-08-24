@@ -21,6 +21,7 @@ export type BracketFighterSnapshotSource = {
     recordWin: number;
     recordLoss: number;
     recordDraw: number;
+    recordTotalBouts?: number | null;
   };
   division: {
     sportType: string | null;
@@ -56,7 +57,13 @@ export function formatRecordSummary(f: {
   recordWin: number;
   recordLoss: number;
   recordDraw: number;
+  recordTotalBouts?: number | null;
 }): string {
+  const total =
+    f.recordTotalBouts ?? f.recordWin + f.recordLoss + f.recordDraw;
+  const detailSum = f.recordWin + f.recordLoss + f.recordDraw;
+  if (total > 0 && detailSum === 0) return `${total}전`;
+  if (total === 0) return "무전";
   return `${f.recordWin}승 ${f.recordLoss}패 ${f.recordDraw}무`;
 }
 

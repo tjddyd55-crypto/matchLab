@@ -2,9 +2,10 @@
  * 선수 전적 구조화 유틸리티
  *
  * 모든 입력 경로(직접등록·외부링크·Excel·회원기반신청)에서 공유.
- * - 구조화 전적 검증: totalBouts = wins + draws + losses
+ * - 총전만 입력 허용 (승·무·패 null = 모름)
+ * - 승·무·패를 쓰면 3개 모두 필수 + 합계 검증
  * - recordText 자동 생성
- * - 레거시 자유문장 파싱 (확실한 패턴만)
+ * - 레거시 자유문장 파싱
  * - 학년 구조화: "초3" → schoolLevel/schoolGrade
  */
 
@@ -12,16 +13,27 @@
 // 전적 구조화 타입
 // ────────────────────────────────────────────────────
 
+/**
+ * wins/draws/losses:
+ * - null = 모름 (총전만 알고 세부 전적 미상)
+ * - 0 = 실제 0 (세부 전적을 입력한 것)
+ */
 export type StructuredRecord = {
   totalBouts: number;
-  wins: number;
-  draws: number;
-  losses: number;
+  wins: number | null;
+  draws: number | null;
+  losses: number | null;
 };
 
 export type RecordParseResult =
   | { ok: true; record: StructuredRecord; recordText: string }
   | { ok: false; error: string; raw: string };
+
+export const RECORD_PARTIAL_DETAIL_MESSAGE =
+  "승·무·패를 입력하려면 세 항목을 모두 입력해 주세요.";
+
+export const RECORD_SUM_MISMATCH_MESSAGE =
+  "총전적과 승·무·패 합계가 일치하지 않습니다.";
 
 // ────────────────────────────────────────────────────
 // 학년 구조화 타입
@@ -108,24 +120,72 @@ export type RecordValidationResult =
   | { ok: true }
   | { ok: false; error: string };
 
+function isNonNegInt(n: number): boolean {
+  return Number.isInteger(n) && n >= 0;
+}
+
+/** 승·무·패 세부 입력 개수 (null = 미입력) */
+export function countProvidedRecordDetails(
+  r: Pick<StructuredRecord, "wins" | "draws" | "losses">,
+): number {
+  return [r.wins, r.draws, r.losses].filter((v) => v != null).length;
+}
+
+export function hasCompleteRecordDetails(
+  r: Pick<StructuredRecord, "wins" | "draws" | "losses">,
+): boolean {
+  return countProvidedRecordDetails(r) === 3;
+}
+
+/**
+ * Fighter Int 캐시 → nullable 세부 전적.
+ * total>0 이고 W+D+L=0 이면 총전만 알고 세부 미상(null)으로 복원.
+ */
+export function nullableDetailsFromFighterCache(f: {
+  recordTotalBouts: number;
+  recordWin: number;
+  recordDraw: number;
+  recordLoss: number;
+}): Pick<StructuredRecord, "wins" | "draws" | "losses"> {
+  const total =
+    f.recordTotalBouts > 0
+      ? f.recordTotalBouts
+      : f.recordWin + f.recordDraw + f.recordLoss;
+  const detailSum = f.recordWin + f.recordDraw + f.recordLoss;
+  if (total > 0 && detailSum === 0) {
+    return { wins: null, draws: null, losses: null };
+  }
+  return {
+    wins: f.recordWin,
+    draws: f.recordDraw,
+    losses: f.recordLoss,
+  };
+}
+
 export function validateRecord(r: StructuredRecord): RecordValidationResult {
-  if (r.totalBouts < 0 || r.wins < 0 || r.draws < 0 || r.losses < 0) {
-    return { ok: false, error: "전적 값은 0 이상이어야 합니다." };
+  if (!isNonNegInt(r.totalBouts)) {
+    return { ok: false, error: "총전적은 0 이상 정수여야 합니다." };
   }
-  if (
-    !Number.isInteger(r.totalBouts) ||
-    !Number.isInteger(r.wins) ||
-    !Number.isInteger(r.draws) ||
-    !Number.isInteger(r.losses)
-  ) {
-    return { ok: false, error: "전적 값은 정수여야 합니다." };
+
+  const detailCount = countProvidedRecordDetails(r);
+  if (detailCount === 0) {
+    return { ok: true };
   }
-  const sum = r.wins + r.draws + r.losses;
+
+  if (detailCount !== 3) {
+    return { ok: false, error: RECORD_PARTIAL_DETAIL_MESSAGE };
+  }
+
+  const wins = r.wins!;
+  const draws = r.draws!;
+  const losses = r.losses!;
+  if (!isNonNegInt(wins) || !isNonNegInt(draws) || !isNonNegInt(losses)) {
+    return { ok: false, error: "전적 값은 0 이상 정수여야 합니다." };
+  }
+
+  const sum = wins + draws + losses;
   if (r.totalBouts !== sum) {
-    return {
-      ok: false,
-      error: `총 경기수(${r.totalBouts})와 승·무·패 합계(${sum})가 일치하지 않습니다.`,
-    };
+    return { ok: false, error: RECORD_SUM_MISMATCH_MESSAGE };
   }
   return { ok: true };
 }
@@ -137,14 +197,21 @@ export function validateRecord(r: StructuredRecord): RecordValidationResult {
 /**
  * 구조화 전적으로부터 화면 표시용 recordText 생성.
  * - 무전: "무전"
+ * - 총전만: "9전"
  * - 0무 생략: "3전 2승 1패"
  * - 0무 포함: "3전 2승 1무 1패"
  */
 export function buildRecordText(r: StructuredRecord): string {
   if (r.totalBouts === 0) return "무전";
-  const parts: string[] = [`${r.totalBouts}전`, `${r.wins}승`];
-  if (r.draws > 0) parts.push(`${r.draws}무`);
-  parts.push(`${r.losses}패`);
+  if (!hasCompleteRecordDetails(r)) {
+    return `${r.totalBouts}전`;
+  }
+  const wins = r.wins!;
+  const draws = r.draws!;
+  const losses = r.losses!;
+  const parts: string[] = [`${r.totalBouts}전`, `${wins}승`];
+  if (draws > 0) parts.push(`${draws}무`);
+  parts.push(`${losses}패`);
   return parts.join(" ");
 }
 
@@ -161,7 +228,7 @@ export function parseRecordText(raw: string | null | undefined): RecordParseResu
   if (!raw) {
     return {
       ok: true,
-      record: { totalBouts: 0, wins: 0, draws: 0, losses: 0 },
+      record: { totalBouts: 0, wins: null, draws: null, losses: null },
       recordText: "무전",
     };
   }
@@ -171,9 +238,22 @@ export function parseRecordText(raw: string | null | undefined): RecordParseResu
   if (/^[:\s]*(무전|0전|0경기)$/.test(s)) {
     return {
       ok: true,
-      record: { totalBouts: 0, wins: 0, draws: 0, losses: 0 },
+      record: { totalBouts: 0, wins: null, draws: null, losses: null },
       recordText: "무전",
     };
+  }
+
+  // 총전만: "9전"
+  const totalOnly = s.match(/^(\d+)\s*전$/);
+  if (totalOnly) {
+    const totalBouts = parseInt(totalOnly[1]!, 10);
+    const record: StructuredRecord = {
+      totalBouts,
+      wins: null,
+      draws: null,
+      losses: null,
+    };
+    return { ok: true, record, recordText: buildRecordText(record) };
   }
 
   // "N전 W승 [D무] L패" 패턴 (공백 허용)
@@ -193,7 +273,7 @@ export function parseRecordText(raw: string | null | undefined): RecordParseResu
     return { ok: true, record, recordText: buildRecordText(record) };
   }
 
-  // "N전 W승" 또는 "N전 L패" (무·패/무·승 생략형)
+  // "N전 W승" 또는 "N전 L패" — 나머지 세부값을 0으로 채우면 합계가 맞을 때만 허용
   const twoPartPattern = /^(\d+)\s*전\s*(\d+)\s*(승|패)$/;
   const twoMatch = s.match(twoPartPattern);
   if (twoMatch) {
@@ -204,7 +284,7 @@ export function parseRecordText(raw: string | null | undefined): RecordParseResu
     const losses = kind === "패" ? val : 0;
     const draws = totalBouts - wins - losses;
     if (draws < 0) {
-      return { ok: false, error: "전적 수치가 맞지 않습니다.", raw: s };
+      return { ok: false, error: RECORD_SUM_MISMATCH_MESSAGE, raw: s };
     }
     const record: StructuredRecord = { totalBouts, wins, draws, losses };
     return { ok: true, record, recordText: buildRecordText(record) };

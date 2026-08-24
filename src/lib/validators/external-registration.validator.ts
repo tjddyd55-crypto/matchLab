@@ -2,6 +2,7 @@ import { z } from "zod";
 import { athleteCareerTextSchema } from "@/lib/athlete-application/profile-input";
 import { DIVISION_SELECTION_OTHER_LABEL } from "@/lib/applications/division-selection";
 import { parseSchoolGradeSelectValue } from "@/lib/fighter/school-grade-input";
+import { validateRecord } from "@/lib/fighter/record";
 
 export const EXTERNAL_REGISTRATION_MAX_ATHLETES = 50;
 
@@ -22,17 +23,21 @@ const genderSchema = z.enum(["male", "female"], {
 });
 
 const nonNegInt = z.number().int().min(0);
+const nullableNonNegInt = z.number().int().min(0).nullable();
 
-/** 1차 신청 — 전적 필수 (profile-input의 optional 스키마와 분리) */
+/** 1차 신청 — 전적: 총전만 또는 총전+승무패 전체 */
 const requiredStructuredRecordSchema = z
   .object({
     totalBouts: nonNegInt,
-    wins: nonNegInt,
-    draws: nonNegInt,
-    losses: nonNegInt,
+    wins: nullableNonNegInt,
+    draws: nullableNonNegInt,
+    losses: nullableNonNegInt,
   })
-  .refine((r) => r.totalBouts === r.wins + r.draws + r.losses, {
-    message: "총 경기수와 승·무·패 합계가 일치하지 않습니다.",
+  .superRefine((r, ctx) => {
+    const result = validateRecord(r);
+    if (!result.ok) {
+      ctx.addIssue({ code: "custom", message: result.error });
+    }
   });
 
 const birthDateIsoSchema = z

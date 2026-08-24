@@ -31,7 +31,19 @@ check("무전", () => {
   const r = parseRecordText("무전");
   assert.ok(r.ok);
   assert.equal(r.record.totalBouts, 0);
+  assert.equal(r.record.wins, null);
   assert.equal(r.recordText, "무전");
+});
+check("총전만 9전", () => {
+  const r = parseRecordText("9전");
+  assert.ok(r.ok);
+  assert.deepEqual(r.record, {
+    totalBouts: 9,
+    wins: null,
+    draws: null,
+    losses: null,
+  });
+  assert.equal(r.recordText, "9전");
 });
 check("7전 7승", () => {
   const r = parseRecordText("7전7승");
@@ -57,11 +69,16 @@ check("합계 불일치", () => {
 
 console.log("\n[전적 검증]");
 check("정상 검증 통과", () => {
-  assert.ok(validateRecord({ totalBouts: 0, wins: 0, draws: 0, losses: 0 }).ok);
+  assert.ok(validateRecord({ totalBouts: 0, wins: null, draws: null, losses: null }).ok);
   assert.ok(validateRecord({ totalBouts: 3, wins: 2, draws: 0, losses: 1 }).ok);
+  assert.ok(validateRecord({ totalBouts: 9, wins: null, draws: null, losses: null }).ok);
 });
 check("합계 불일치 차단", () => {
   assert.ok(!validateRecord({ totalBouts: 3, wins: 2, draws: 0, losses: 2 }).ok);
+  assert.ok(!validateRecord({ totalBouts: 9, wins: 0, draws: 0, losses: 0 }).ok);
+});
+check("부분 입력 차단", () => {
+  assert.ok(!validateRecord({ totalBouts: 9, wins: 5, draws: null, losses: null }).ok);
 });
 check("음수 차단", () => {
   assert.ok(!validateRecord({ totalBouts: -1, wins: 0, draws: 0, losses: -1 }).ok);
@@ -69,7 +86,10 @@ check("음수 차단", () => {
 
 console.log("\n[recordText 생성]");
 check("무전 생성", () => {
-  assert.equal(buildRecordText({ totalBouts: 0, wins: 0, draws: 0, losses: 0 }), "무전");
+  assert.equal(buildRecordText({ totalBouts: 0, wins: null, draws: null, losses: null }), "무전");
+});
+check("총전만", () => {
+  assert.equal(buildRecordText({ totalBouts: 9, wins: null, draws: null, losses: null }), "9전");
 });
 check("0무 생략", () => {
   assert.equal(buildRecordText({ totalBouts: 3, wins: 2, draws: 0, losses: 1 }), "3전 2승 1패");

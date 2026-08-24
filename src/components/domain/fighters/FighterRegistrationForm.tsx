@@ -30,7 +30,7 @@ export function FighterRegistrationForm({
     null,
   );
   const [record, setRecord] = useState<StructuredRecordValue>({
-    totalBouts: 0, wins: 0, draws: 0, losses: 0,
+    totalBouts: 0, wins: null, draws: null, losses: null,
   });
   const formRef = useRef<HTMLFormElement>(null);
 
@@ -55,9 +55,9 @@ export function FighterRegistrationForm({
         <input type="hidden" name="token" value={token} />
         {/* 구조화 전적 hidden inputs — StructuredRecordFields controlled 값과 동기화 */}
         <input type="hidden" name="totalBouts" value={record.totalBouts} />
-        <input type="hidden" name="wins" value={record.wins} />
-        <input type="hidden" name="draws" value={record.draws} />
-        <input type="hidden" name="losses" value={record.losses} />
+        <input type="hidden" name="wins" value={record.wins ?? ""} />
+        <input type="hidden" name="draws" value={record.draws ?? ""} />
+        <input type="hidden" name="losses" value={record.losses ?? ""} />
 
         <Card>
           <CardHeader>

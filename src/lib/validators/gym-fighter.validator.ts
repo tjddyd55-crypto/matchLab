@@ -1,17 +1,6 @@
 import { z } from "zod";
 import { FighterStatus } from "@/lib/enums";
-import { z as _z } from "zod";
-
-// structuredRecordSchema 자체가 .optional()을 포함하므로 unwrap 후 재사용
-const recordFieldsSchema = _z.object({
-  totalBouts: _z.coerce.number().int().min(0).default(0),
-  wins: _z.coerce.number().int().min(0).default(0),
-  draws: _z.coerce.number().int().min(0).default(0),
-  losses: _z.coerce.number().int().min(0).default(0),
-}).refine(
-  (r) => r.totalBouts === r.wins + r.draws + r.losses,
-  { message: "총 경기수와 승·무·패 합계가 일치하지 않습니다." },
-).optional();
+import { structuredRecordFormSchema } from "@/lib/athlete-application/profile-input";
 import {
   isDateOnlyNotAfterToday,
   isValidDateOnlyString,
@@ -71,7 +60,7 @@ export const gymFighterCreateSchema = z
     guardianName: optionalTrimmedString(80),
     guardianPhone: optionalTrimmedString(20),
     gymInternalMemo: optionalTrimmedString(2000),
-    structuredRecord: recordFieldsSchema,
+    structuredRecord: structuredRecordFormSchema,
     confirmDuplicateLink: z
       .enum(["true", "false"])
       .optional()
@@ -152,7 +141,7 @@ export const gymFighterUpdateSchema = z
     guardianName: optionalTrimmedString(80),
     guardianPhone: optionalTrimmedString(20),
     gymInternalMemo: optionalTrimmedString(2000),
-    structuredRecord: recordFieldsSchema,
+    structuredRecord: structuredRecordFormSchema,
     status: z.nativeEnum(FighterStatus).optional(),
   })
   .strict();

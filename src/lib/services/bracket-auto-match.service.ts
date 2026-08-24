@@ -1205,12 +1205,6 @@ export const bracketAutoMatchService = {
       return a.row.fighter.name.localeCompare(b.row.fighter.name, "ko");
     });
 
-    const totalBoutsLabel = (row: AutoMatchApplicationRow): string => {
-      const t = row.totalBoutsSnapshot ?? row.fighter.recordTotalBouts;
-      if (t == null || t === 0) return "무전";
-      return `${t}전`;
-    };
-
     return waitingRows.map(({ row, reason }, index) => ({
       order: index + 1,
       fighterName: row.fighter.name,
@@ -1223,7 +1217,14 @@ export const bracketAutoMatchService = {
         divisionSelectionType: row.divisionSelectionType,
         requestedDivisionText: row.requestedDivisionText,
       }),
-      recordSummary: `${row.fighter.recordWin}승 ${row.fighter.recordLoss}패 ${row.fighter.recordDraw}무 (${totalBoutsLabel(row)})`,
+      recordSummary: formatPreviewApplicationRecord({
+        totalBoutsSnapshot: row.totalBoutsSnapshot,
+        winsSnapshot: row.winsSnapshot,
+        drawsSnapshot: row.drawsSnapshot,
+        lossesSnapshot: row.lossesSnapshot,
+        recordText: row.recordText,
+        fighter: row.fighter,
+      }),
       reasonLabel:
         reason in REASON_LABELS
           ? REASON_LABELS[reason as UnmatchedReason]

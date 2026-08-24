@@ -7,6 +7,7 @@
 import { isSameGym } from "@/lib/brackets/gym-match-key";
 import {
   getElementaryMatchBand,
+  nullableDetailsFromFighterCache,
   SCHOOL_LEVEL,
   type ElementaryMatchBand,
 } from "@/lib/fighter/record";
@@ -447,13 +448,14 @@ export function formatPreviewApplicationRecord(input: {
       fighter.recordLoss > 0 ||
       fighter.recordDraw > 0)
   ) {
+    const details = nullableDetailsFromFighterCache(fighter);
     return formatAutoMatchRecordText({
       totalBouts:
         fighter.recordTotalBouts ||
         fighter.recordWin + fighter.recordLoss + fighter.recordDraw,
-      wins: fighter.recordWin,
-      draws: fighter.recordDraw,
-      losses: fighter.recordLoss,
+      wins: details.wins,
+      draws: details.draws,
+      losses: details.losses,
     });
   }
 

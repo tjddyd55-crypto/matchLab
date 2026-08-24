@@ -88,14 +88,14 @@ function resolveApplicationRecordForEdit(row: {
   if (hasSnapshot) {
     return {
       totalBouts: row.totalBoutsSnapshot ?? 0,
-      wins: row.winsSnapshot ?? 0,
-      draws: row.drawsSnapshot ?? 0,
-      losses: row.lossesSnapshot ?? 0,
+      wins: row.winsSnapshot,
+      draws: row.drawsSnapshot,
+      losses: row.lossesSnapshot,
     };
   }
   const parsed = parseRecordText(row.recordText);
   if (parsed.ok) return parsed.record;
-  return { totalBouts: 0, wins: 0, draws: 0, losses: 0 };
+  return { totalBouts: 0, wins: null, draws: null, losses: null };
 }
 
 export type UpdateOrganizerApplicationInput = OrganizerManualApplicationInput & {
@@ -439,9 +439,9 @@ export const applicationOrganizerLifecycleService = {
     const structuredRecord = hasStructuredRecord
       ? {
           totalBouts: input.totalBouts ?? 0,
-          wins: input.wins ?? 0,
-          draws: input.draws ?? 0,
-          losses: input.losses ?? 0,
+          wins: input.wins ?? null,
+          draws: input.draws ?? null,
+          losses: input.losses ?? null,
         }
       : null;
     const resolvedRecordText =
@@ -488,9 +488,10 @@ export const applicationOrganizerLifecycleService = {
         ...(structuredRecord
           ? {
               recordTotalBouts: structuredRecord.totalBouts,
-              recordWin: structuredRecord.wins,
-              recordDraw: structuredRecord.draws,
-              recordLoss: structuredRecord.losses,
+              // Fighter Int 캐시: null(모름)은 0으로만 보관. SSOT는 snapshot.
+              recordWin: structuredRecord.wins ?? 0,
+              recordDraw: structuredRecord.draws ?? 0,
+              recordLoss: structuredRecord.losses ?? 0,
               recordText: resolvedRecordText,
             }
           : {}),

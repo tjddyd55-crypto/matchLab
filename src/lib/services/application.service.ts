@@ -60,6 +60,7 @@ import type {
 } from "@/lib/applicant-excel/types";
 import { compactText, foldKey, parseApplicantGender } from "@/lib/applicant-excel/normalize";
 import { fighterBirthDateForPersist } from "@/lib/fighter/birth-date";
+import { nullableDetailsFromFighterCache } from "@/lib/fighter/record";
 import {
   parseSchoolGradeSelectValue,
   resolveGymApplySchoolGradeSnapshot,
@@ -203,7 +204,17 @@ function formatRecordSummary(row: {
   recordWin: number;
   recordLoss: number;
   recordDraw: number;
+  recordTotalBouts?: number | null;
 }): string {
+  const total =
+    row.recordTotalBouts ??
+    row.recordWin + row.recordLoss + row.recordDraw;
+  const detailSum = row.recordWin + row.recordLoss + row.recordDraw;
+  if (total === 0) return "무전";
+  // Fighter Int 캐시: 총전만 저장 시 W/D/L=0 → "N전"
+  if (detailSum === 0) {
+    return `${total}전`;
+  }
   return `${row.recordWin}승 ${row.recordLoss}패 ${row.recordDraw}무`;
 }
 
@@ -1271,6 +1282,7 @@ export const applicationService = {
       throw new AppError("VALIDATION_ERROR", schoolGradeResolved.error);
     }
 
+    const fighterRecordDetails = nullableDetailsFromFighterCache(fighter);
     const { applicationId } = await createGymEventApplication({
       eventId: input.eventId,
       divisionId: division.id,
@@ -1287,9 +1299,9 @@ export const applicationService = {
       recordText: input.recordText,
       careerText: input.careerText,
       totalBoutsSnapshot: fighter.recordTotalBouts ?? null,
-      winsSnapshot: fighter.recordWin ?? null,
-      drawsSnapshot: fighter.recordDraw ?? null,
-      lossesSnapshot: fighter.recordLoss ?? null,
+      winsSnapshot: fighterRecordDetails.wins,
+      drawsSnapshot: fighterRecordDetails.draws,
+      lossesSnapshot: fighterRecordDetails.losses,
       schoolLevelSnapshot: schoolGradeResolved.fields.schoolLevel,
       schoolGradeSnapshot: schoolGradeResolved.fields.schoolGrade,
       applicationWeightKg,

@@ -21,6 +21,7 @@ import { formatDivisionWeightChipLabel } from "@/lib/event-division-fields";
 import { isMinorBirthDate } from "@/lib/gym-member-self-registration/age";
 import { birthDateToUtc, parseApplicantGender } from "@/lib/applicant-excel/normalize";
 import { SCHOOL_GRADE_SELECT_OPTIONS } from "@/lib/fighter/school-grade-input";
+import { validateRecord } from "@/lib/fighter/record";
 
 const OTHER_OPTION_VALUE = "__OTHER__";
 
@@ -88,7 +89,7 @@ function emptyAthlete(): AthleteDraft {
     otherDetailText: "",
     applicationWeightKg: "",
     memo: "",
-    structuredRecord: { totalBouts: 0, wins: 0, draws: 0, losses: 0 },
+    structuredRecord: { totalBouts: 0, wins: null, draws: null, losses: null },
     careerText: "",
   };
 }
@@ -323,8 +324,9 @@ export function ExternalRegistrationPublicForm({
         return `${prefix}: 기타를 선택한 경우 체급 또는 요청사항을 입력해주세요.`;
       }
       const r = a.structuredRecord;
-      if (r.totalBouts !== r.wins + r.draws + r.losses) {
-        return `${prefix}: 총 경기수와 승·무·패 합계가 일치하지 않습니다.`;
+      const recordCheck = validateRecord(r);
+      if (!recordCheck.ok) {
+        return `${prefix}: ${recordCheck.error}`;
       }
     }
     return null;
