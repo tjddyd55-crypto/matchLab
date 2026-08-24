@@ -28,6 +28,7 @@ import {
   organizerOperationDetailFieldLabelClass,
   organizerOperationDetailFieldStackClass,
   organizerOperationDetailFootnoteClass,
+  organizerOperationDetailInnerClass,
   organizerOperationDetailLabelControlClass,
   organizerOperationDetailMajorSectionClass,
   organizerOperationDetailStatusStackClass,
@@ -451,17 +452,8 @@ function OrganizerMatchOpsPanelBody(props: OrganizerMatchOpsPanelProps) {
     });
   };
 
-  return (
-    <Card
-      className={cn(
-        "gap-0 overflow-hidden py-0 text-xs shadow-none",
-        props.compact && !isOperation ? "text-[11px]" : "text-xs",
-        isOperation ? "border-0 bg-transparent" : "bg-muted/15",
-      )}
-    >
-      <CardContent
-        className={cn(isOperation ? "flex flex-col p-0" : "space-y-3 p-3")}
-      >
+  const panelBody = (
+    <>
       {!props.compact && !isOperation ? (
         <div className="text-muted-foreground flex flex-wrap items-center gap-2">
           <BoutFormatBadge
@@ -704,7 +696,23 @@ function OrganizerMatchOpsPanelBody(props: OrganizerMatchOpsPanelProps) {
             : "경기 목록형: 다음 라운드 자동 배치 없음."}
         </p>
       ) : null}
-      </CardContent>
+    </>
+  );
+
+  if (isOperation) {
+    return (
+      <div className={organizerOperationDetailInnerClass}>{panelBody}</div>
+    );
+  }
+
+  return (
+    <Card
+      className={cn(
+        "gap-0 overflow-hidden bg-muted/15 py-0 text-xs shadow-none",
+        props.compact ? "text-[11px]" : "text-xs",
+      )}
+    >
+      <CardContent className="space-y-3 p-3">{panelBody}</CardContent>
     </Card>
   );
 }
