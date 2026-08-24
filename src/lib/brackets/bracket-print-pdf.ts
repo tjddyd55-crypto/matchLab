@@ -10,6 +10,9 @@ export async function generateBracketPrintPdfBuffer(params: {
   eventId: string;
   cookieHeader: string | null;
 }): Promise<Buffer> {
+  // Railway runtime: browsers must live under node_modules (PLAYWRIGHT_BROWSERS_PATH=0).
+  process.env.PLAYWRIGHT_BROWSERS_PATH ??= "0";
+
   const baseUrl = getServerAppBaseUrl();
   if (!baseUrl) {
     throw new Error("APP base URL이 설정되지 않았습니다.");
