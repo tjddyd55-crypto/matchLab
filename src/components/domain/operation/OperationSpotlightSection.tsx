@@ -8,8 +8,6 @@ import { toMatchOpsProps } from "@/components/domain/operation/operation-match-r
 import type { OperationMatchRowVM } from "@/components/domain/operation/operation-match-row";
 import { DivisionCompactDisplay } from "@/components/domain/shared/DivisionCompactDisplay";
 import {
-  canEnterResult,
-  canViewResult,
   getOperationMatchPhase,
   pickOperationSpotlightMatches,
 } from "@/lib/match-operation-display";
@@ -44,9 +42,6 @@ export function OperationSpotlightSection({
   void onFocusMatch;
 
   const showOpsPanel = Boolean(focusedMatch);
-  const showResultEntry =
-    focusedMatch &&
-    (canEnterResult(focusedMatch) || canViewResult(focusedMatch));
 
   useEffect(() => {
     if (!focusedMatchId || typeof window === "undefined") return;
@@ -130,7 +125,7 @@ export function OperationSpotlightSection({
             className="mt-3 border-t border-matchon-border pt-3"
           >
             <h3 className="text-[15px] font-bold text-matchon-text-primary">
-              {showResultEntry ? "결과 입력" : "경기 운영"}
+              결과 입력
             </h3>
             <div className="mt-2">
               <OrganizerMatchOpsPanel
