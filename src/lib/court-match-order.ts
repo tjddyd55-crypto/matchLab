@@ -1,3 +1,8 @@
+import {
+  formatMatchOrderShort,
+  type MatchOrderFields,
+} from "@/lib/match-order-display";
+
 /** 경기장 배정·경기장 내 순서 기준 정렬·재번호 */
 
 export type CourtScheduleMatch = {
@@ -50,6 +55,14 @@ export function sortMatchesByCourtSchedule<
   return [...matches].sort((a, b) =>
     compareCourtScheduleMatches(a, b, courtSortIndex),
   );
+}
+
+/** 대진표 보기·인쇄 공통 경기 번호 라벨 — courtOrder 우선 */
+export function formatCourtScheduleMatchOrderShort(
+  match: CourtScheduleMatch & MatchOrderFields,
+): string {
+  if (match.courtOrder != null) return `${match.courtOrder}경기`;
+  return formatMatchOrderShort(match);
 }
 
 function sortMatchIdsByCourtOrder(

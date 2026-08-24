@@ -11,6 +11,10 @@ import {
   formatApplicationWeightLabel,
   formatBracketPrintEventDate,
 } from "../src/lib/brackets/bracket-print-format";
+import {
+  formatCourtScheduleMatchOrderShort,
+  sortMatchesByCourtSchedule,
+} from "../src/lib/court-match-order";
 import { formatSchoolGradeCompactLabel } from "../src/lib/fighter/record";
 import { formatMatchOrderShort } from "../src/lib/match-order-display";
 
@@ -103,6 +107,49 @@ assert.equal(
   }),
   "8경기",
 );
+
+{
+  const courts = [
+    { id: "c1", sortOrder: 0 },
+    { id: "c2", sortOrder: 1 },
+  ];
+  const ordered = sortMatchesByCourtSchedule(
+    [
+      {
+        matchId: "m-b",
+        courtId: "c1",
+        courtOrder: 2,
+        matchNumber: 99,
+        globalMatchOrder: 0,
+        matchOrder: 0,
+      },
+      {
+        matchId: "m-a",
+        courtId: "c1",
+        courtOrder: 1,
+        matchNumber: 1,
+        globalMatchOrder: 0,
+        matchOrder: 0,
+      },
+    ],
+    courts,
+  );
+  assert.deepEqual(
+    ordered.map((m) => m.matchId),
+    ["m-a", "m-b"],
+  );
+  assert.equal(
+    formatCourtScheduleMatchOrderShort({
+      courtId: "c1",
+      courtOrder: 3,
+      matchNumber: 99,
+      globalMatchOrder: 0,
+      matchOrder: 0,
+    }),
+    "3경기",
+  );
+  console.log("  ✓ court schedule sort + label");
+}
 assert.equal(
   buildBracketPrintDocumentTitle("제12회 마포구청장배"),
   "MATCHON_제12회 마포구청장배_시합대진표",

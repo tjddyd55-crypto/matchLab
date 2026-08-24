@@ -7,9 +7,28 @@ import {
   resolveEventDivisionByApplicationWeight,
   type DivisionResolverCandidate,
 } from "@/lib/applications/resolve-event-division";
+import { formatDivisionSearchLabel } from "@/lib/event-division-fields";
 import { cn } from "@/lib/utils";
 
-export type ApplicationWeightAutoAssignDivision = DivisionResolverCandidate;
+export type ApplicationWeightAutoAssignDivision = DivisionResolverCandidate & {
+  label?: string;
+};
+
+function formatManualDivisionOptionLabel(
+  division: ApplicationWeightAutoAssignDivision,
+): string {
+  if (division.label?.trim()) return division.label.trim();
+  return formatDivisionSearchLabel({
+    sportType: division.sportType ?? null,
+    ruleType: division.ruleType ?? null,
+    gender: division.gender ?? null,
+    ageGroup: division.ageGroup ?? null,
+    weightClass: division.weightClass ?? null,
+    weightClassName: division.weightClassName ?? null,
+    weightLimitText: division.weightLimitText ?? null,
+    skillLevel: division.skillLevel ?? null,
+  });
+}
 
 function uniqueSorted(values: Array<string | null | undefined>): string[] {
   const set = new Set<string>();
@@ -188,7 +207,7 @@ export function ApplicationWeightAutoAssign(props: {
               <option value="">체급 선택</option>
               {props.divisions.map((d) => (
                 <option key={d.id} value={d.id}>
-                  {d.ageGroup} {d.weightClassName} {d.weightLimitText}
+                  {formatManualDivisionOptionLabel(d)}
                 </option>
               ))}
             </select>

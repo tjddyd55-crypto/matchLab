@@ -25,7 +25,10 @@ import {
   type CourtTabId,
   formatCourtTabLabel,
 } from "@/lib/court-tab-label";
-import { sortMatchesByCourtSchedule } from "@/lib/court-match-order";
+import {
+  formatCourtScheduleMatchOrderShort,
+  sortMatchesByCourtSchedule,
+} from "@/lib/court-match-order";
 import { MatchonTabs } from "@/components/shared/MatchonTabs";
 import { FeedbackMessage } from "@/components/shared/FeedbackMessage";
 import { MatchonStatusBadge } from "@/components/shared/MatchonStatusBadge";
@@ -46,7 +49,6 @@ import type {
   OrganizerEventMatchListItemVM,
   OrganizerEventMatchFighterVM,
 } from "@/lib/services/match.service";
-import { formatMatchOrderShort } from "@/lib/match-order-display";
 import {
   getBracketMatchMatchonLabel,
   resolveBracketMatchMatchonStatus,
@@ -70,10 +72,8 @@ function sortMatchesForTab(
 
 function resolveCourtMatchOrderLabel(
   m: OrganizerEventMatchListItemVM,
-  courtOrder: number | null,
 ): string {
-  if (courtOrder != null) return `${courtOrder}경기`;
-  return formatMatchOrderShort(m);
+  return formatCourtScheduleMatchOrderShort(m);
 }
 
 function CourtBracketFighterCell({
@@ -417,7 +417,7 @@ export function OrganizerCourtBracketPanel({
               return (
                 <BracketMatchCompactRow
                   key={m.matchId}
-                  matchOrderLabel={resolveCourtMatchOrderLabel(m, order)}
+                  matchOrderLabel={resolveCourtMatchOrderLabel(m)}
                   divisionHint={m.divisionLabel}
                   statusArea={
                     <MatchonStatusBadge
@@ -470,7 +470,7 @@ export function OrganizerCourtBracketPanel({
               return (
                 <OrganizerBracketViewMatchCard
                   key={`${m.matchId}-mobile`}
-                  matchOrderLabel={resolveCourtMatchOrderLabel(m, order)}
+                  matchOrderLabel={resolveCourtMatchOrderLabel(m)}
                   divisionLabel={m.divisionLabel}
                   bracketTitle={m.bracketTitle}
                   courtName={m.courtName}

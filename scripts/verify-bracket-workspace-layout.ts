@@ -41,7 +41,7 @@ assert.ok(actions.includes("Dialog"));
 const editor = read(
   "src/components/domain/brackets/OrganizerBracketEditor.tsx",
 );
-assert.ok(editor.includes("lg:grid-cols-[minmax(0,1.9fr)_minmax(0,1fr)]"));
+assert.ok(editor.includes("lg:grid-cols-[minmax(0,1.6fr)_minmax(0,1.15fr)]"));
 assert.ok(editor.includes("lg:items-stretch"));
 assert.ok(editor.includes('variant="workspace"'));
 assert.ok(editor.includes("compactWorkspace"));
@@ -86,6 +86,34 @@ assert.ok(
   !candidates.includes("max-h-[min(70vh,720px)] overflow-y-auto"),
   "filters must not share overflow scroll with player list",
 );
+
+const printService = read("src/lib/services/bracket-print.service.ts");
+assert.ok(printService.includes("sortMatchesByCourtSchedule"));
+assert.ok(printService.includes("formatCourtScheduleMatchOrderShort"));
+assert.ok(!printService.includes("sortMatchesByOrder("));
+
+const courtView = read("src/components/domain/courts/OrganizerCourtViewSection.tsx");
+assert.ok(courtView.includes("OrganizerBracketPrintActions"));
+assert.ok(!courtView.includes("시합 대진표 출력"));
+
+const printActions = read(
+  "src/components/domain/brackets/OrganizerBracketPrintActions.tsx",
+);
+assert.ok(printActions.includes("PDF 다운로드"));
+assert.ok(printActions.includes("인쇄"));
+assert.ok(printActions.includes("/brackets/print-pdf"));
+
+const unmatchedToolbar = read(
+  "src/components/domain/brackets/UnmatchedQuickBarFilterToolbar.tsx",
+);
+assert.ok(unmatchedToolbar.includes("UnmatchedRecordFilterRow"));
+assert.ok(unmatchedToolbar.includes('layout === "stack"'));
+
+const weightAutoAssign = read(
+  "src/components/domain/applications/ApplicationWeightAutoAssign.tsx",
+);
+assert.ok(weightAutoAssign.includes("formatManualDivisionOptionLabel"));
+assert.ok(weightAutoAssign.includes("formatDivisionSearchLabel"));
 const toolbarMatches =
   candidates.match(/<UnmatchedQuickBarFilterToolbar\b/g) ?? [];
 assert.equal(
