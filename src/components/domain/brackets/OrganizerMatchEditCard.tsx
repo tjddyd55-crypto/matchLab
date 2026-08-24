@@ -37,6 +37,8 @@ export function OrganizerMatchEditCard({
   options,
   bracketType,
   bracketIsPublic,
+  matchOrderLabel: matchOrderLabelProp,
+  divisionLabel,
 }: {
   eventId: string;
   bracketId: string;
@@ -46,12 +48,16 @@ export function OrganizerMatchEditCard({
   options: OrganizerApprovedFighterOptionVM[];
   bracketType: BracketType;
   bracketIsPublic?: boolean;
+  /** 제공 시 formatMatchOrderShort 대신 사용 (court schedule SSOT) */
+  matchOrderLabel?: string;
+  /** 전체 경기 편집 — 카드 상단 경기구분 */
+  divisionLabel?: string | null;
 }) {
   const router = useRouter();
   const { confirm, alert } = useAppConfirmDialog();
   const [pending, startTransition] = useTransition();
   const editLocked = Boolean(match.hasOfficialResults);
-  const orderLabel = formatMatchOrderShort(match);
+  const orderLabel = matchOrderLabelProp ?? formatMatchOrderShort(match);
   const canDelete =
     bracketType === BracketType.match_list && !match.hasOfficialResults;
 
@@ -85,6 +91,14 @@ export function OrganizerMatchEditCard({
       matchOrderLabel={orderLabel}
       statusArea={
         <div className="flex flex-col items-center gap-1">
+          {divisionLabel ? (
+            <span
+              className="text-muted-foreground max-w-[7rem] truncate text-center text-[10px] leading-tight"
+              title={divisionLabel}
+            >
+              {divisionLabel}
+            </span>
+          ) : null}
           <MatchonStatusBadge
             status={resolveBracketMatchMatchonStatus(match.status as BracketMatchStatus)}
             label={getBracketMatchMatchonLabel(match.status as BracketMatchStatus)}

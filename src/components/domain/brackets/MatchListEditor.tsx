@@ -13,7 +13,10 @@ import { useAppConfirmDialog } from "@/components/shared/app-confirm-dialog";
 import { Button } from "@/components/ui/button";
 import { addEmptyBracketMatchAction } from "@/features/brackets/actions";
 import type { OrganizerApprovedFighterOptionVM } from "@/lib/services/bracket.service";
-import type { OrganizerBracketMatchVM } from "@/lib/services/bracket.service";
+import type {
+  OrganizerBracketMatchVM,
+  OrganizerEventAllMatchVM,
+} from "@/lib/services/bracket.service";
 import type { EventCourtVM } from "@/lib/services/event-court.service";
 import {
   DEFAULT_MATCHED_MATCH_FILTERS,
@@ -31,6 +34,10 @@ import {
 import { BracketType } from "@/lib/enums";
 import { sortMatchesByOrder } from "@/lib/match-order-display";
 import {
+  formatCourtScheduleMatchOrderShort,
+  sortMatchesByCourtSchedule,
+} from "@/lib/court-match-order";
+import {
   bracketWorkspaceControlsClass,
   bracketWorkspaceListScrollClass,
   bracketWorkspacePaneClass,
@@ -38,6 +45,12 @@ import {
   bracketWorkspaceTitleRowClass,
 } from "@/lib/ui/bracket-workspace-ui";
 import { cn } from "@/lib/utils";
+
+function isEventAllMatch(
+  m: OrganizerBracketMatchVM,
+): m is OrganizerEventAllMatchVM {
+  return "bracketId" in m && typeof (m as OrganizerEventAllMatchVM).bracketId === "string";
+}
 
 export function MatchListEditor({
   eventId,
@@ -48,6 +61,9 @@ export function MatchListEditor({
   matches,
   options,
   compactWorkspace = false,
+  orderMode = "bracket",
+  eventWide = false,
+  onRequestAddEmptyMatch,
 }: {
   eventId: string;
   courts: EventCourtVM[];
@@ -58,6 +74,12 @@ export function MatchListEditor({
   options: OrganizerApprovedFighterOptionVM[];
   /** 그룹 상세 2분할 왼쪽 pane */
   compactWorkspace?: boolean;
+  /** bracket: 그룹 matchOrder / courtSchedule: 대진표 보기 SSOT */
+  orderMode?: "bracket" | "courtSchedule";
+  /** 이벤트 전체 모드 — match.bracketId / divisionLabel 사용 */
+  eventWide?: boolean;
+  /** 제공 시 빈 경기 추가 기본 action 대신 호출 */
+  onRequestAddEmptyMatch?: () => void;
 }) {
   const router = useRouter();
   const { alert } = useAppConfirmDialog();
@@ -71,10 +93,15 @@ export function MatchListEditor({
     [courts],
   );
 
-  const sortedMatches = useMemo(
-    () => sortMatchesByOrder(matches),
-    [matches],
-  );
+  const sortedMatches = useMemo(() => {
+    if (orderMode === "courtSchedule") {
+      return sortMatchesByCourtSchedule(
+        matches.map((m) => ({ ...m, matchId: m.id })),
+        courts.map((c) => ({ id: c.id, sortOrder: c.sortOrder })),
+      );
+    }
+    return sortMatchesByOrder(matches);
+  }, [courts, matches, orderMode]);
 
   const filteredMatches = useMemo(
     () => filterMatchedMatches(sortedMatches, options, matchedFilters),
@@ -85,6 +112,10 @@ export function MatchListEditor({
   const defaultCourtId = activeCourts[0]?.id;
 
   function handleAddEmptyMatch() {
+    if (onRequestAddEmptyMatch) {
+      onRequestAddEmptyMatch();
+      return;
+    }
     startTransition(async () => {
       const fd = new FormData();
       fd.set("bracketId", bracketId);
@@ -171,19 +202,44 @@ export function MatchListEditor({
         ) : (
           <div className="flex flex-col gap-3">
             <BracketMatchColumnHeader />
-            {filteredMatches.map((m) => (
-              <OrganizerMatchEditCard
-                key={m.id}
-                eventId={eventId}
-                bracketId={bracketId}
-                courts={courts}
-                match={m}
-                matches={sortedMatches}
-                options={options}
-                bracketType={bracketType}
-                bracketIsPublic={bracketIsPublic}
-              />
-            ))}
+            {filteredMatches.map((m) => {
+              const rowBracketId = isEventAllMatch(m) ? m.bracketId : bracketId;
+              const rowBracketType = isEventAllMatch(m)
+                ? m.bracketType
+                : bracketType;
+              const rowBracketIsPublic = isEventAllMatch(m)
+                ? m.bracketIsPublic
+                : bracketIsPublic;
+              const matchOrderLabel =
+                orderMode === "courtSchedule"
+                  ? formatCourtScheduleMatchOrderShort({
+                      matchId: m.id,
+                      courtId: m.courtId,
+                      courtOrder: m.courtOrder,
+                      matchNumber: m.matchNumber,
+                      globalMatchOrder: m.globalMatchOrder,
+                      matchOrder: m.matchOrder,
+                    })
+                  : undefined;
+              const divisionLabel =
+                eventWide && isEventAllMatch(m) ? m.divisionLabel : null;
+
+              return (
+                <OrganizerMatchEditCard
+                  key={m.id}
+                  eventId={eventId}
+                  bracketId={rowBracketId}
+                  courts={courts}
+                  match={m}
+                  matches={sortedMatches}
+                  options={options}
+                  bracketType={rowBracketType}
+                  bracketIsPublic={rowBracketIsPublic}
+                  matchOrderLabel={matchOrderLabel}
+                  divisionLabel={divisionLabel}
+                />
+              );
+            })}
           </div>
         )}
       </CardContent>

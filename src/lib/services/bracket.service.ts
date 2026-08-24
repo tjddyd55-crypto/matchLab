@@ -59,6 +59,7 @@ import {
 } from "@/lib/repositories/bracket.repository";
 import { applicationRepository } from "@/lib/repositories/application.repository";
 import { eventCourtRepository } from "@/lib/repositories/event-court.repository";
+import { matchRepository } from "@/lib/repositories/match.repository";
 import { sortMatchesByCourtSchedule } from "@/lib/court-match-order";
 import { eventRepository } from "@/lib/repositories/event.repository";
 import { notificationRepository } from "@/lib/repositories/notification.repository";
@@ -591,6 +592,32 @@ export type OrganizerBracketDetailVM = {
   syncKey: string;
 };
 
+/** 전체 경기 편집 — match 행에 bracket/division 컨텍스트 포함 */
+export type OrganizerEventAllMatchVM = OrganizerBracketMatchVM & {
+  bracketId: string;
+  divisionId: string | null;
+  divisionLabel: string | null;
+  bracketType: BracketType;
+  bracketIsPublic: boolean;
+};
+
+export type OrganizerEventAllMatchesDivisionOptionVM = {
+  id: string;
+  label: string;
+  bracketId: string | null;
+  gender: string | null;
+};
+
+export type OrganizerEventAllMatchesWorkspaceVM = {
+  eventId: string;
+  eventTitle: string;
+  matches: OrganizerEventAllMatchVM[];
+  approvedFighterOptions: OrganizerApprovedFighterOptionVM[];
+  eventWideUnmatchedOptions: OrganizerApprovedFighterOptionVM[];
+  divisions: OrganizerEventAllMatchesDivisionOptionVM[];
+  syncKey: string;
+};
+
 export const bracketService = {
   async listOrganizerEventBrackets(
     actor: ActorContext,
@@ -894,6 +921,134 @@ export const bracketService = {
       matches,
       approvedFighterOptions,
       eventWideUnmatchedOptions,
+      syncKey,
+    };
+  },
+
+  async getOrganizerEventAllMatchesWorkspace(
+    actor: ActorContext,
+    eventId: string,
+  ): Promise<OrganizerEventAllMatchesWorkspaceVM> {
+    requireRole(actor, ["organizer", "admin"]);
+    await requireOrganizerForEvent(actor, eventId);
+
+    const [event, matchRows, placedFighterIds, allEventApproved, eventFieldStatusMap, divisions, brackets] =
+      await Promise.all([
+        prisma.event.findUnique({
+          where: { id: eventId },
+          select: { id: true, title: true },
+        }),
+        matchRepository.listMatchesByEvent(eventId),
+        bracketRepository.listPlacedFighterIdsForEvent(eventId),
+        bracketRepository.listApprovedApplicationsForBracket(eventId, null),
+        fieldStatusService.listBracketCandidateFieldStatus(eventId, null),
+        eventRepository.findPublicEventDivisions(eventId),
+        bracketRepository.listBracketsByEvent(eventId),
+      ]);
+
+    if (!event) {
+      throw new AppError("NOT_FOUND", "대회를 찾을 수 없습니다.");
+    }
+
+    const courts = await eventCourtRepository.listByEvent(eventId);
+
+    const approvedFighterOptions: OrganizerApprovedFighterOptionVM[] =
+      allEventApproved.map((a) =>
+        mapApplicationToApprovedOption(
+          a,
+          eventFieldStatusMap.get(a.fighter.id),
+          a.divisionId,
+        ),
+      );
+
+    const placedSet = new Set(placedFighterIds);
+    const eventWideUnmatchedOptions = approvedFighterOptions
+      .filter((o) => o.isAssignableForBracket && !placedSet.has(o.fighterId))
+      .sort((a, b) => {
+        if (a.isOtherDivision !== b.isOtherDivision) {
+          return a.isOtherDivision ? 1 : -1;
+        }
+        const wA = a.applicationWeightKg ?? Number.POSITIVE_INFINITY;
+        const wB = b.applicationWeightKg ?? Number.POSITIVE_INFINITY;
+        if (wA !== wB) return wA - wB;
+        return a.fighterName.localeCompare(b.fighterName, "ko");
+      });
+
+    const mapped: OrganizerEventAllMatchVM[] = matchRows.map((m) => {
+      const division = toEventDivisionDisplayInput(m.bracket.division);
+      return {
+        id: m.id,
+        bracketId: m.bracketId,
+        divisionId: m.bracket.divisionId ?? null,
+        divisionLabel: division
+          ? formatDivisionMainLabel(division)
+          : null,
+        bracketType: m.bracket.type,
+        bracketIsPublic: m.bracket.isPublic,
+        round: m.round,
+        roundName: m.roundName,
+        matchOrder: m.matchOrder,
+        globalMatchOrder: m.globalMatchOrder,
+        matchNumber: m.matchNumber,
+        matNumber: m.matNumber,
+        courtId: m.courtId ?? null,
+        courtOrder: m.courtOrder ?? null,
+        courtName: m.court?.name ?? null,
+        fighterRedId: m.fighterRedId,
+        fighterBlueId: m.fighterBlueId,
+        fighterRedSnapshot: parseBracketFighterSnapshot(m.fighterRedSnapshot),
+        fighterBlueSnapshot: parseBracketFighterSnapshot(m.fighterBlueSnapshot),
+        nextMatchId: m.nextMatchId,
+        nextMatchSlot: m.nextMatchSlot,
+        status: m.status,
+        winnerId: m.winnerId,
+        loserId: m.loserId,
+        resultType: m.resultType,
+        resultMemo: m.resultMemo,
+        organizerMemo: m.organizerMemo ?? null,
+        hasOfficialResults: (m.matchResults?.length ?? 0) >= 2,
+      };
+    });
+
+    const matches = sortMatchesByCourtSchedule(
+      mapped.map((m) => ({ ...m, matchId: m.id })),
+      courts.map((c) => ({ id: c.id, sortOrder: c.sortOrder })),
+    );
+
+    const bracketsByDivision = new Map<string, string>();
+    for (const b of brackets) {
+      if (!b.divisionId) continue;
+      if (b.type !== BracketType.match_list) continue;
+      if (!bracketsByDivision.has(b.divisionId)) {
+        bracketsByDivision.set(b.divisionId, b.id);
+      }
+    }
+
+    const divisionOptions: OrganizerEventAllMatchesDivisionOptionVM[] =
+      divisions.map((d) => {
+        const input = toEventDivisionDisplayInput(d);
+        return {
+          id: d.id,
+          label: input ? formatDivisionMainLabel(input) : d.id,
+          bracketId: bracketsByDivision.get(d.id) ?? null,
+          gender: input?.gender ?? null,
+        };
+      });
+
+    const syncKey = matches
+      .map(
+        (m) =>
+          `${m.id}:${m.bracketId}:${m.fighterRedId ?? ""}:${m.fighterBlueId ?? ""}:${m.matchOrder}:${m.globalMatchOrder ?? ""}:${m.matNumber ?? ""}:${m.matchNumber ?? ""}:${m.courtId ?? ""}:${m.courtOrder ?? ""}:${m.status}:${m.organizerMemo ?? ""}:${m.hasOfficialResults ? "1" : "0"}`,
+      )
+      .join("|");
+
+    return {
+      eventId,
+      eventTitle: event.title,
+      matches,
+      approvedFighterOptions,
+      eventWideUnmatchedOptions,
+      divisions: divisionOptions,
       syncKey,
     };
   },

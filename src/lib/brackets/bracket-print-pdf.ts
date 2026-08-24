@@ -35,6 +35,7 @@ async function launchPdfBrowser() {
 export async function generateBracketPrintPdfBuffer(params: {
   eventId: string;
   cookieHeader: string | null;
+  mode?: "court" | "all-matches";
 }): Promise<Buffer> {
   const baseUrl = getServerAppBaseUrl();
   if (!baseUrl) {
@@ -48,7 +49,9 @@ export async function generateBracketPrintPdfBuffer(params: {
       await context.setExtraHTTPHeaders({ cookie: params.cookieHeader });
     }
     const page = await context.newPage();
-    const url = `${baseUrl}/organizer/events/${params.eventId}/brackets/print`;
+    const modeQuery =
+      params.mode === "all-matches" ? "?mode=all-matches" : "";
+    const url = `${baseUrl}/organizer/events/${params.eventId}/brackets/print${modeQuery}`;
     await page.goto(url, { waitUntil: "networkidle", timeout: 120_000 });
     await page.emulateMedia({ media: "print" });
     const pdf = await page.pdf({

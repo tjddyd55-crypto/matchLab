@@ -9,14 +9,20 @@ import { cn } from "@/lib/utils";
 export function BracketPrintToolbar({
   eventId,
   documentTitle,
+  printMode = "court",
 }: {
   eventId: string;
   documentTitle: string;
+  printMode?: "court" | "all-matches";
 }) {
   return (
     <div className="bracket-print-toolbar no-print">
       <Link
-        href={`/organizer/events/${eventId}/brackets?tab=view`}
+        href={
+          printMode === "all-matches"
+            ? `/organizer/events/${eventId}/brackets?tab=view&view=workspace`
+            : `/organizer/events/${eventId}/brackets?tab=view`
+        }
         className={cn(buttonVariants({ variant: "outline", size: "sm" }))}
       >
         ← 돌아가기
@@ -25,6 +31,7 @@ export function BracketPrintToolbar({
         eventId={eventId}
         documentTitle={documentTitle}
         variant="toolbar"
+        printMode={printMode}
       />
     </div>
   );
@@ -57,12 +64,15 @@ export function BracketPrintDocument({
   doc: BracketPrintDocumentDto;
 }) {
   const metaParts = [doc.eventDateLabel, doc.venueLabel].filter(Boolean);
+  const isAllMatches = doc.mode === "all-matches";
 
   return (
     <div className="bracket-print-sheet">
       <header className="bracket-print-header">
         <h1 className="bracket-print-event-title">{doc.eventName}</h1>
-        <p className="bracket-print-doc-title">시합 대진표</p>
+        <p className="bracket-print-doc-title">
+          {isAllMatches ? "전체 경기 편집" : "시합 대진표"}
+        </p>
         {metaParts.length > 0 ? (
           <p className="bracket-print-meta">{metaParts.join(" · ")}</p>
         ) : null}
@@ -95,40 +105,56 @@ export function BracketPrintDocument({
             </tr>
           </thead>
           <tbody>
-            {doc.matches.map((m) => (
-              <tr key={m.matchId} className="bracket-print-row">
-                <td className="bracket-print-col-no">
-                  <div className="bracket-print-match-meta">
-                    <span className="bracket-print-match-no">
-                      {m.matchNoLabel}
-                    </span>
-                    {m.arenaName ? (
-                      <span className="bracket-print-match-sub">
-                        {m.arenaName}
+            {doc.matches.map((m) => {
+              const opsParts = [
+                m.roundLabel ? `라운드 ${m.roundLabel}` : null,
+                m.timeLabel ? `시간 ${m.timeLabel}` : null,
+              ].filter(Boolean);
+              return (
+                <tr key={m.matchId} className="bracket-print-row">
+                  <td className="bracket-print-col-no">
+                    <div className="bracket-print-match-meta">
+                      <span className="bracket-print-match-no">
+                        {m.matchNoLabel}
                       </span>
-                    ) : null}
-                    {m.divisionLabel ? (
-                      <span className="bracket-print-match-sub">
-                        {m.divisionLabel}
-                      </span>
-                    ) : null}
-                  </div>
-                </td>
-                <td className="bracket-print-col-red bracket-print-cell-red">
-                  <FighterCell fighter={m.red} />
-                </td>
-                <td className="bracket-print-col-record">
-                  {m.red?.recordLabel ?? "-"}
-                </td>
-                <td className="bracket-print-col-vs">VS</td>
-                <td className="bracket-print-col-blue bracket-print-cell-blue">
-                  <FighterCell fighter={m.blue} />
-                </td>
-                <td className="bracket-print-col-record">
-                  {m.blue?.recordLabel ?? "-"}
-                </td>
-              </tr>
-            ))}
+                      {m.arenaName ? (
+                        <span className="bracket-print-match-sub">
+                          {m.arenaName}
+                        </span>
+                      ) : null}
+                      {m.divisionLabel ? (
+                        <span className="bracket-print-match-sub">
+                          {m.divisionLabel}
+                        </span>
+                      ) : null}
+                      {isAllMatches && opsParts.length > 0 ? (
+                        <span className="bracket-print-match-sub">
+                          {opsParts.join(" · ")}
+                        </span>
+                      ) : null}
+                      {isAllMatches && m.organizerMemo ? (
+                        <span className="bracket-print-match-memo">
+                          메모: {m.organizerMemo}
+                        </span>
+                      ) : null}
+                    </div>
+                  </td>
+                  <td className="bracket-print-col-red bracket-print-cell-red">
+                    <FighterCell fighter={m.red} />
+                  </td>
+                  <td className="bracket-print-col-record">
+                    {m.red?.recordLabel ?? "-"}
+                  </td>
+                  <td className="bracket-print-col-vs">VS</td>
+                  <td className="bracket-print-col-blue bracket-print-cell-blue">
+                    <FighterCell fighter={m.blue} />
+                  </td>
+                  <td className="bracket-print-col-record">
+                    {m.blue?.recordLabel ?? "-"}
+                  </td>
+                </tr>
+              );
+            })}
           </tbody>
         </table>
       )}
