@@ -34,7 +34,7 @@ export function FieldStatusBracketMatchCards({
   const showOutcomeHint = shouldShowWeighInOutcomeHint(row);
 
   return (
-    <div className="space-y-3">
+    <div className="space-y-2">
       {assignments.map((assignment) => (
         <OrganizerBracketViewMatchCard
           key={assignment.matchId}
@@ -59,13 +59,13 @@ export function FieldStatusBracketMatchCards({
           controls={
             <div className="flex flex-wrap items-center justify-end gap-2">
               {assignment.hasOfficialResult ? (
-                <p className="text-matchon-text-secondary mr-auto text-xs">
+                <p className="mr-auto text-xs text-[#64748B]">
                   공식 결과 확정
                 </p>
               ) : null}
               <Link
                 href={`/organizer/events/${eventId}/operation`}
-                className="inline-flex h-8 items-center justify-center rounded-md border border-matchon-border bg-white px-3 text-xs font-semibold text-matchon-text-primary hover:bg-matchon-surface"
+                className="inline-flex h-9 items-center justify-center rounded-lg border border-[#E2E8F0] bg-white px-3 text-xs font-semibold text-[#0F172A] hover:border-[#0A47FF]/30 hover:bg-[#EAF1FF]/40"
               >
                 경기 운영에서 보기
               </Link>

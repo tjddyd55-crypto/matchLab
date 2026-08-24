@@ -2,6 +2,7 @@ import type { FieldStatusRowDTO } from "@/lib/services/field-status.service";
 import { WeighInStatus } from "@/generated/prisma";
 import { CheckInStatus } from "@/lib/enums";
 import { getWeighInStatusLabel } from "@/lib/field-eligibility";
+import { organizerOperationListCardDensityClass } from "@/lib/ui/organizer-operation-ui";
 import { getSelectableListCardClass } from "@/lib/ui/selectable-list-card";
 
 export type FieldStatusListTone =
@@ -70,8 +71,9 @@ export function getFieldStatusListCardClass({
 }): string {
   return getSelectableListCardClass({
     selected,
-    selectedStyle: "soft",
+    selectedStyle: "ring",
     toneClassName: getFieldStatusListToneClassName(tone),
+    className: organizerOperationListCardDensityClass,
   });
 }
 

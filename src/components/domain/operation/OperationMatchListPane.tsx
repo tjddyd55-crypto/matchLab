@@ -56,7 +56,7 @@ export function OperationMatchListPane({
               </p>
               <span
                 className={cn(
-                  "inline-flex h-[22px] shrink-0 items-center rounded-md border px-1.5 text-[11px] font-semibold",
+                  "inline-flex h-6 shrink-0 items-center rounded-full border px-2.5 text-[11px] font-semibold",
                   display.badgeClassName,
                 )}
               >

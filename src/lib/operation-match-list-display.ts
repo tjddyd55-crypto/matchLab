@@ -5,6 +5,7 @@ import {
   operationPhaseLabel,
   type OperationMatchPhase,
 } from "@/lib/match-operation-display";
+import { organizerOperationListCardDensityClass } from "@/lib/ui/organizer-operation-ui";
 import { getSelectableListCardClass } from "@/lib/ui/selectable-list-card";
 import { resolveMatchStatusTone, type MatchStatusTone } from "@/lib/ui/match-status-ui";
 import { cn } from "@/lib/utils";
@@ -108,7 +109,7 @@ export function getOperationMatchListCardToneClass(
   return getSelectableListCardClass({
     selected,
     toneClassName: getOperationMatchListToneClassName(phase),
-    className: "gap-0.5 rounded-[10px] px-2.5 py-2.5",
+    className: organizerOperationListCardDensityClass,
   });
 }
 

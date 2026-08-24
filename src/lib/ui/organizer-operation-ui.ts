@@ -35,14 +35,23 @@ export const organizerOperationStatValueClass = matchonStatValueClass;
 export const organizerOperationStatLabelClass = matchonStatLabelClass;
 export const organizerOperationTableWrapClass = matchonCompactTableWrapClass;
 
-export const organizerOperationSpotlightPanelClass =
-  "rounded-xl border border-matchon-border bg-white p-3 shadow-sm lg:sticky lg:top-4";
+/**
+ * 우측 detail outer panel SSOT — 현장 계체 rhythm 기준.
+ * 경기 운영 spotlight도 동일 family.
+ */
+export const organizerOperationDetailPanelClass =
+  "flex flex-col gap-[18px] rounded-xl border border-[#E2E8F0] bg-white p-[18px] shadow-sm md:p-5";
+
+export const organizerOperationSpotlightPanelClass = cn(
+  organizerOperationDetailPanelClass,
+  "lg:sticky lg:top-4",
+);
 
 export const organizerOperationVsCardClass = matchonVsCardClass;
 
-/** PC: 좌측 목록 280~320, 우측 상세 가변 */
+/** PC split shell SSOT — 경기 운영 / 현장 계체 공통 */
 export const organizerOperationWorkspaceClass =
-  "grid gap-3 lg:grid-cols-[minmax(280px,320px)_minmax(0,1fr)] lg:items-start";
+  "grid gap-3 lg:grid-cols-[308px_minmax(0,1fr)] lg:items-start";
 
 export const organizerOperationListPaneClass =
   "flex min-h-0 min-w-0 flex-col gap-2 lg:max-h-[calc(100vh-11rem)] lg:overflow-hidden";
@@ -51,10 +60,25 @@ export const organizerOperationListHeaderClass =
   "flex min-h-[44px] shrink-0 items-center justify-between gap-3 rounded-xl border border-matchon-border bg-white px-3 py-2";
 
 export const organizerOperationListScrollClass =
-  "flex min-h-0 flex-1 flex-col gap-1.5 overflow-y-auto overscroll-contain [scrollbar-width:thin] pr-0.5";
+  "flex min-h-0 flex-1 flex-col gap-1.5 overflow-y-auto overscroll-contain [scrollbar-width:thin] pr-1.5";
 
 export const organizerOperationDetailPaneClass =
   "min-w-0 lg:max-h-[calc(100vh-11rem)] lg:overflow-y-auto [scrollbar-width:thin]";
+
+/** 좌측 list card compact density SSOT (경기 운영 기준) */
+export const organizerOperationListCardDensityClass =
+  "gap-0.5 rounded-[10px] px-2.5 py-2.5 min-h-[86px]";
+
+export const organizerOperationSectionTitleClass =
+  "text-[15px] font-bold text-matchon-text-primary";
+
+export const organizerOperationSectionClass = "flex flex-col gap-2.5";
+
+export const organizerOperationDetailHeaderClass =
+  "flex flex-wrap items-start justify-between gap-3 border-b border-[#E2E8F0] pb-4";
+
+export const organizerOperationStatusBadgeClass =
+  "inline-flex h-6 shrink-0 items-center rounded-full border px-2.5 text-[11px] font-semibold";
 
 /** KPI strip — height ~42–44px */
 export const organizerOperationCompactSummaryClass =

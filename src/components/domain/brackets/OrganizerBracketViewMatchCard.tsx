@@ -110,25 +110,26 @@ export function OrganizerBracketViewMatchCard({
   highlightFighterId?: string | null;
 }) {
   return (
-    <div className={cn(organizerBracketVsCardClass, "overflow-hidden p-0")}>
-      <div className="space-y-2 border-b border-matchon-border bg-matchon-primary-light/20 px-4 py-3">
+    <div
+      className={cn(
+        organizerBracketVsCardClass,
+        "overflow-hidden rounded-[10px] border-[#E2E8F0] p-0 shadow-none",
+      )}
+    >
+      <div className="space-y-1.5 border-b border-[#E2E8F0] bg-matchon-primary-light/20 px-3 py-2.5">
         <div className="flex flex-wrap items-start justify-between gap-2">
-          <div className="min-w-0 space-y-1">
-            <p className="text-sm font-bold tabular-nums text-matchon-text-primary">
+          <div className="min-w-0 space-y-0.5">
+            <p className="text-sm font-bold tabular-nums text-[#0F172A]">
               {matchOrderLabel}
             </p>
             {bracketTitle ? (
-              <p className="text-matchon-text-secondary truncate text-xs">
-                {bracketTitle}
-              </p>
+              <p className="truncate text-xs text-[#64748B]">{bracketTitle}</p>
             ) : null}
             {divisionLabel ? (
-              <p className="text-matchon-text-secondary truncate text-xs">
-                {divisionLabel}
-              </p>
+              <p className="truncate text-xs text-[#64748B]">{divisionLabel}</p>
             ) : null}
             {courtName ? (
-              <p className="text-matchon-text-secondary text-xs">{courtName}</p>
+              <p className="text-xs text-[#64748B]">{courtName}</p>
             ) : null}
           </div>
           <MatchonStatusBadge
@@ -141,13 +142,11 @@ export function OrganizerBracketViewMatchCard({
           <div className="flex flex-wrap items-center gap-1.5">{headerBadges}</div>
         ) : null}
         {opsLabel ? (
-          <p className="text-matchon-text-secondary text-xs font-medium">
-            {opsLabel}
-          </p>
+          <p className="text-xs font-medium text-[#64748B]">{opsLabel}</p>
         ) : null}
       </div>
 
-      <div className="space-y-3 px-4 py-4">
+      <div className="space-y-2.5 px-3 py-3">
         <div className="grid grid-cols-[1fr_auto_1fr] items-stretch gap-2">
           <FighterCell
             corner="홍코너"
@@ -159,7 +158,7 @@ export function OrganizerBracketViewMatchCard({
               highlightFighterId && fighterRedId && highlightFighterId === fighterRedId,
             )}
           />
-          <div className="text-matchon-text-secondary flex flex-col items-center justify-center px-1 text-sm font-black">
+          <div className="flex flex-col items-center justify-center px-1 text-sm font-black text-[#64748B]">
             VS
           </div>
           <FighterCell
@@ -175,7 +174,7 @@ export function OrganizerBracketViewMatchCard({
         </div>
 
         {controls ? (
-          <div className="space-y-2 border-t border-matchon-border pt-3">
+          <div className="space-y-2 border-t border-[#E2E8F0] pt-2.5">
             {controls}
           </div>
         ) : null}
