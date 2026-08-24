@@ -5,12 +5,20 @@ import { eventService } from "@/lib/services/event.service";
 import { BracketPublicationPanel } from "@/components/domain/brackets/BracketPublicationPanel";
 import { OrganizerBracketsTabShell } from "@/components/domain/brackets/OrganizerBracketsTabShell";
 import { OrganizerBracketsGenerateSection } from "@/components/domain/brackets/OrganizerBracketsGenerateSection";
+import { OrganizerBracketViewTabs } from "@/components/domain/brackets/OrganizerBracketViewTabs";
+import { OrganizerAllMatchesWorkspace } from "@/components/domain/brackets/OrganizerAllMatchesWorkspace";
 import { OrganizerCourtManagementSection } from "@/components/domain/courts/OrganizerCourtManagementSection";
 import { OrganizerCourtViewSection } from "@/components/domain/courts/OrganizerCourtViewSection";
-import { parseBracketPageTab } from "@/lib/brackets/bracket-page-tab";
+import {
+  parseBracketPageTab,
+  parseBracketViewSubTab,
+} from "@/lib/brackets/bracket-page-tab";
 import { EventManagementLayout } from "@/components/domain/events/EventManagementLayout";
 import { EventManagementPageHeader } from "@/components/domain/events/EventManagementPageHeader";
-import { loadEventManagementNavContext, eventManagementLayoutProps } from "@/lib/event-management-nav-context";
+import {
+  loadEventManagementNavContext,
+  eventManagementLayoutProps,
+} from "@/lib/event-management-nav-context";
 
 export const dynamic = "force-dynamic";
 
@@ -19,12 +27,13 @@ export default async function OrganizerEventBracketsPage({
   searchParams,
 }: {
   params: Promise<{ eventId: string }>;
-  searchParams: Promise<{ tab?: string }>;
+  searchParams: Promise<{ tab?: string; view?: string }>;
 }) {
   const actor = await requireActor();
   const { eventId } = await params;
   const sp = await searchParams;
   const activeTab = parseBracketPageTab(sp.tab);
+  const viewSubTab = parseBracketViewSubTab(sp.view);
 
   await requireOrganizerForEventPage(actor, eventId);
 
@@ -52,7 +61,9 @@ export default async function OrganizerEventBracketsPage({
             <BracketPublicationPanel
               eventId={eventId}
               publicSlug={publication.publicSlug}
-              publicUnmatchedListEnabled={publication.publicUnmatchedListEnabled}
+              publicUnmatchedListEnabled={
+                publication.publicUnmatchedListEnabled
+              }
               hasPublicBrackets={hasPublicBrackets}
               totalBracketCount={existingBrackets.length}
             />
@@ -60,7 +71,13 @@ export default async function OrganizerEventBracketsPage({
           </div>
         }
         generate={<OrganizerBracketsGenerateSection eventId={eventId} />}
-        view={<OrganizerCourtViewSection eventId={eventId} />}
+        view={
+          <OrganizerBracketViewTabs
+            activeSubTab={viewSubTab}
+            board={<OrganizerCourtViewSection eventId={eventId} />}
+            workspace={<OrganizerAllMatchesWorkspace eventId={eventId} />}
+          />
+        }
       />
     </EventManagementLayout>
   );

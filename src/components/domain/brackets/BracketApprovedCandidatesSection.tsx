@@ -344,6 +344,8 @@ export function BracketApprovedCandidatesSection({
   targetDivisionLabel,
   targetDivisionGender,
   variant = "default",
+  initialUnmatchedTab = "division",
+  resolveManualMatchTarget,
 }: {
   options: OrganizerApprovedFighterOptionVM[];
   eventWideUnmatchedOptions: OrganizerApprovedFighterOptionVM[];
@@ -356,6 +358,16 @@ export function BracketApprovedCandidatesSection({
   targetDivisionGender?: string | null;
   /** workspace: 그룹 상세 오른쪽 — 미매칭만 */
   variant?: "default" | "workspace";
+  initialUnmatchedTab?: UnmatchedTab;
+  resolveManualMatchTarget?: (
+    red: OrganizerApprovedFighterOptionVM,
+    blue: OrganizerApprovedFighterOptionVM,
+  ) => Promise<{
+    bracketId: string;
+    targetDivisionId: string;
+    targetDivisionLabel: string;
+    targetDivisionGender: string | null;
+  } | null>;
 }) {
   const placementMap = useMemo(() => buildPlacementMap(matches), [matches]);
   const placedIds = useMemo(() => new Set(placementMap.keys()), [placementMap]);
@@ -380,7 +392,9 @@ export function BracketApprovedCandidatesSection({
   const [red, setRed] = useState<ManualMatchSlotAthlete | null>(null);
   const [blue, setBlue] = useState<ManualMatchSlotAthlete | null>(null);
   const [createPending, setCreatePending] = useState(false);
-  const [unmatchedTab, setUnmatchedTab] = useState<UnmatchedTab>("division");
+  const [unmatchedTab, setUnmatchedTab] = useState<UnmatchedTab>(
+    initialUnmatchedTab,
+  );
   const [unmatchedFilters, setUnmatchedFilters] =
     useState<UnmatchedQuickBarFilterState>(DEFAULT_UNMATCHED_QUICK_BAR_FILTERS);
   const [activePickSlot, setActivePickSlot] = useState<ManualMatchPickSlot | null>(
@@ -700,6 +714,7 @@ export function BracketApprovedCandidatesSection({
             targetDivisionId={targetDivisionId}
             targetDivisionLabel={targetDivisionLabel}
             targetDivisionGender={targetDivisionGender}
+            resolveManualMatchTarget={resolveManualMatchTarget}
             red={red}
             blue={blue}
             onRedChange={setRed}
@@ -826,6 +841,7 @@ export function BracketApprovedCandidatesSection({
             targetDivisionId={targetDivisionId}
             targetDivisionLabel={targetDivisionLabel}
             targetDivisionGender={targetDivisionGender}
+            resolveManualMatchTarget={resolveManualMatchTarget}
             red={red}
             blue={blue}
             onRedChange={setRed}

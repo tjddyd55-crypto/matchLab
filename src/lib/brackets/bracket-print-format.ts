@@ -22,7 +22,13 @@ export type BracketPrintMatchDto = {
   arenaName: string | null;
   red: BracketPrintFighterDto | null;
   blue: BracketPrintFighterDto | null;
+  /** all-matches mode only */
+  roundLabel?: string | null;
+  timeLabel?: string | null;
+  organizerMemo?: string | null;
 };
+
+export type BracketPrintMode = "court" | "all-matches";
 
 export type BracketPrintDocumentDto = {
   eventId: string;
@@ -31,6 +37,7 @@ export type BracketPrintDocumentDto = {
   venueLabel: string | null;
   documentTitle: string;
   matches: BracketPrintMatchDto[];
+  mode?: BracketPrintMode;
 };
 
 export function formatApplicationWeightLabel(
@@ -132,8 +139,14 @@ export function buildBracketPrintFighterDto(input: {
   return dto;
 }
 
-export function buildBracketPrintDocumentTitle(eventName: string): string {
+export function buildBracketPrintDocumentTitle(
+  eventName: string,
+  mode: BracketPrintMode = "court",
+): string {
   const safe = eventName.trim().replace(/[\\/:*?"<>|]+/g, "_") || "대회";
+  if (mode === "all-matches") {
+    return `MATCHON_${safe}_전체경기편집`;
+  }
   return `MATCHON_${safe}_시합대진표`;
 }
 

@@ -9,14 +9,20 @@ import { cn } from "@/lib/utils";
 export function BracketPrintToolbar({
   eventId,
   documentTitle,
+  printMode = "court",
 }: {
   eventId: string;
   documentTitle: string;
+  printMode?: "court" | "all-matches";
 }) {
   return (
     <div className="bracket-print-toolbar no-print">
       <Link
-        href={`/organizer/events/${eventId}/brackets?tab=view`}
+        href={
+          printMode === "all-matches"
+            ? `/organizer/events/${eventId}/brackets?tab=view&view=workspace`
+            : `/organizer/events/${eventId}/brackets?tab=view`
+        }
         className={cn(buttonVariants({ variant: "outline", size: "sm" }))}
       >
         ← 돌아가기
@@ -25,6 +31,7 @@ export function BracketPrintToolbar({
         eventId={eventId}
         documentTitle={documentTitle}
         variant="toolbar"
+        printMode={printMode}
       />
     </div>
   );
@@ -105,12 +112,15 @@ export function BracketPrintDocument({
   doc: BracketPrintDocumentDto;
 }) {
   const metaParts = [doc.eventDateLabel, doc.venueLabel].filter(Boolean);
+  const isAllMatches = doc.mode === "all-matches";
 
   return (
     <div className="bracket-print-sheet">
       <header className="bracket-print-header">
         <h1 className="bracket-print-event-title">{doc.eventName}</h1>
-        <p className="bracket-print-doc-title">시합 대진표</p>
+        <p className="bracket-print-doc-title">
+          {isAllMatches ? "전체 경기 편집" : "시합 대진표"}
+        </p>
         {metaParts.length > 0 ? (
           <p className="bracket-print-meta">{metaParts.join(" · ")}</p>
         ) : null}
@@ -138,6 +148,10 @@ export function BracketPrintDocument({
                 arenaName: m.arenaName,
                 divisionLabel: m.divisionLabel,
               });
+              const opsParts = [
+                m.roundLabel ? `라운드 ${m.roundLabel}` : null,
+                m.timeLabel ? `시간 ${m.timeLabel}` : null,
+              ].filter(Boolean);
               return (
                 <tr key={m.matchId} className="bracket-print-row">
                   <td className="bracket-print-col-no">
@@ -148,6 +162,16 @@ export function BracketPrintDocument({
                       {matchSub ? (
                         <span className="bracket-print-match-sub">
                           {matchSub}
+                        </span>
+                      ) : null}
+                      {isAllMatches && opsParts.length > 0 ? (
+                        <span className="bracket-print-match-sub">
+                          {opsParts.join(" · ")}
+                        </span>
+                      ) : null}
+                      {isAllMatches && m.organizerMemo ? (
+                        <span className="bracket-print-match-memo">
+                          메모: {m.organizerMemo}
                         </span>
                       ) : null}
                     </div>

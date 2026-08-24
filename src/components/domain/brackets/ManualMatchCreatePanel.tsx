@@ -237,6 +237,7 @@ export function ManualMatchCreatePanel({
   dockExpanded,
   onDockExpandedChange,
   sticky = true,
+  resolveManualMatchTarget,
 }: {
   bracketId: string;
   defaultCourtId?: string;
@@ -259,6 +260,16 @@ export function ManualMatchCreatePanel({
   dockExpanded: boolean;
   onDockExpandedChange: (expanded: boolean) => void;
   sticky?: boolean;
+  /** 전체 경기 편집 — 생성 전 bracket/division 해석 */
+  resolveManualMatchTarget?: (
+    red: OrganizerApprovedFighterOptionVM,
+    blue: OrganizerApprovedFighterOptionVM,
+  ) => Promise<{
+    bracketId: string;
+    targetDivisionId: string;
+    targetDivisionLabel: string;
+    targetDivisionGender: string | null;
+  } | null>;
 }) {
   const router = useRouter();
   const { confirm, alert } = useAppConfirmDialog();
@@ -361,19 +372,36 @@ export function ManualMatchCreatePanel({
       return;
     }
 
+    let activeBracketId = bracketId;
+    let activeDivisionId = targetDivisionId;
+    let activeDivisionLabel = targetDivisionLabel;
+    let activeDivisionGender = targetDivisionGender ?? null;
+
+    if (resolveManualMatchTarget) {
+      const resolved = await resolveManualMatchTarget(redOption, blueOption);
+      if (!resolved) {
+        confirmPairKeyRef.current = null;
+        return;
+      }
+      activeBracketId = resolved.bracketId;
+      activeDivisionId = resolved.targetDivisionId;
+      activeDivisionLabel = resolved.targetDivisionLabel;
+      activeDivisionGender = resolved.targetDivisionGender;
+    }
+
     const redSide = toPairSide(redOption, assignmentMap);
     const blueSide = toPairSide(blueOption, assignmentMap);
     const warnings = buildManualPairWarnings({
       red: redSide,
       blue: blueSide,
-      targetDivisionId,
-      targetDivisionLabel,
-      targetDivisionGender: targetDivisionGender ?? null,
+      targetDivisionId: activeDivisionId,
+      targetDivisionLabel: activeDivisionLabel,
+      targetDivisionGender: activeDivisionGender,
     });
     const moveIds = fightersRequiringDivisionMove(
       redSide,
       blueSide,
-      targetDivisionId,
+      activeDivisionId,
     );
     const isCrossDivision = moveIds.length > 0;
     const hasDuplicate =
@@ -382,7 +410,7 @@ export function ManualMatchCreatePanel({
     const description = buildManualMatchConfirmDescription({
       red: redSide,
       blue: blueSide,
-      targetDivisionLabel: targetDivisionLabel ?? "현재 그룹",
+      targetDivisionLabel: activeDivisionLabel ?? "현재 그룹",
       moveFighters: isCrossDivision
         ? [redSide, blueSide].filter((side) =>
             moveIds.some((m) => m.fighterId === side.fighterId),
@@ -414,7 +442,7 @@ export function ManualMatchCreatePanel({
     setPendingExternal(true);
     startTransition(async () => {
       const fd = new FormData();
-      fd.set("bracketId", bracketId);
+      fd.set("bracketId", activeBracketId);
       fd.set("redFighterId", red.fighterId);
       fd.set("blueFighterId", blue.fighterId);
       if (defaultCourtId) fd.set("defaultCourtId", defaultCourtId);
@@ -449,6 +477,7 @@ export function ManualMatchCreatePanel({
     onRedChange,
     pending,
     red,
+    resolveManualMatchTarget,
     router,
     setPendingExternal,
     targetDivisionGender,

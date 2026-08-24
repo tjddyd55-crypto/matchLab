@@ -1,19 +1,29 @@
 "use client";
 
-import { useCallback, useState } from "react";
+import { useCallback, useMemo, useState } from "react";
 import { Button } from "@/components/ui/button";
+import type { BracketPrintMode } from "@/lib/brackets/bracket-print-format";
 
 export function OrganizerBracketPrintActions({
   eventId,
   documentTitle,
   variant = "toolbar",
+  printMode = "court",
 }: {
   eventId: string;
   documentTitle?: string;
   /** view: 대진표 보기 상단 / toolbar: 인쇄 전용 페이지 */
   variant?: "view" | "toolbar";
+  printMode?: BracketPrintMode;
 }) {
-  const printHref = `/organizer/events/${eventId}/brackets/print`;
+  const printHref = useMemo(() => {
+    const base = `/organizer/events/${eventId}/brackets/print`;
+    return printMode === "all-matches" ? `${base}?mode=all-matches` : base;
+  }, [eventId, printMode]);
+  const pdfHref = useMemo(() => {
+    const base = `/api/organizer/events/${eventId}/brackets/print-pdf`;
+    return printMode === "all-matches" ? `${base}?mode=all-matches` : base;
+  }, [eventId, printMode]);
   const [downloading, setDownloading] = useState(false);
   const [error, setError] = useState<string | null>(null);
 
@@ -35,10 +45,7 @@ export function OrganizerBracketPrintActions({
     setDownloading(true);
     setError(null);
     try {
-      const res = await fetch(
-        `/api/organizer/events/${eventId}/brackets/print-pdf`,
-        { credentials: "include" },
-      );
+      const res = await fetch(pdfHref, { credentials: "include" });
       if (!res.ok) {
         const body = (await res.json().catch(() => null)) as {
           error?: string;
@@ -51,7 +58,10 @@ export function OrganizerBracketPrintActions({
       const plainMatch = disposition.match(/filename="([^"]+)"/i);
       const filename = utf8Match?.[1]
         ? decodeURIComponent(utf8Match[1])
-        : plainMatch?.[1] ?? `MATCHON_시합대진표.pdf`;
+        : plainMatch?.[1] ??
+          (printMode === "all-matches"
+            ? `MATCHON_전체경기편집.pdf`
+            : `MATCHON_시합대진표.pdf`);
 
       const url = URL.createObjectURL(blob);
       const a = document.createElement("a");
@@ -64,7 +74,7 @@ export function OrganizerBracketPrintActions({
     } finally {
       setDownloading(false);
     }
-  }, [eventId]);
+  }, [pdfHref, printMode]);
 
   if (variant === "toolbar") {
     return (

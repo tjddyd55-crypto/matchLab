@@ -153,6 +153,16 @@
   word-break: keep-all;
 }
 
+.bracket-print-match-memo {
+  font-size: 7pt;
+  font-weight: 500;
+  color: var(--bracket-print-ink);
+  text-align: left;
+  white-space: pre-wrap;
+  word-break: break-word;
+  max-width: 100%;
+}
+
 .bracket-print-fighter {
   display: flex;
   flex-direction: column;

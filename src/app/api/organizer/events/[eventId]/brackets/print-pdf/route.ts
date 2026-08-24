@@ -38,12 +38,17 @@ export async function GET(
       );
     }
 
+    const modeParam = new URL(request.url).searchParams.get("mode");
+    const mode =
+      modeParam === "all-matches" ? ("all-matches" as const) : ("court" as const);
+
     const pdf = await generateBracketPrintPdfBuffer({
       eventId,
       cookieHeader: request.headers.get("cookie"),
+      mode,
     });
 
-    const filename = `${buildBracketPrintDocumentTitle(event.title)}.pdf`;
+    const filename = `${buildBracketPrintDocumentTitle(event.title, mode)}.pdf`;
 
     return new NextResponse(new Uint8Array(pdf), {
       status: 200,

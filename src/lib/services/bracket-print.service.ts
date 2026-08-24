@@ -21,6 +21,7 @@ import {
   type BracketPrintDocumentDto,
   type BracketPrintFighterDto,
   type BracketPrintMatchDto,
+  type BracketPrintMode,
 } from "@/lib/brackets/bracket-print-format";
 
 type PrintApplicationRow = {
@@ -141,9 +142,13 @@ export const bracketPrintService = {
   async getOrganizerBracketPrintDocument(
     actor: ActorContext,
     eventId: string,
+    options?: { mode?: BracketPrintMode },
   ): Promise<BracketPrintDocumentDto> {
     requireRole(actor, ["organizer", "admin"]);
     await requireOrganizerForEvent(actor, eventId);
+    const mode: BracketPrintMode = options?.mode === "all-matches"
+      ? "all-matches"
+      : "court";
 
     const [event, matchRows, applications, courts] = await Promise.all([
       prisma.event.findUnique({
@@ -201,8 +206,9 @@ export const bracketPrintService = {
         eventName: "",
         eventDateLabel: null,
         venueLabel: null,
-        documentTitle: buildBracketPrintDocumentTitle("대회"),
+        documentTitle: buildBracketPrintDocumentTitle("대회", mode),
         matches: [],
+        mode,
       };
     }
 
@@ -257,6 +263,14 @@ export const bracketPrintService = {
         arenaName: m.court?.name?.trim() || null,
         red: mapPrintFighter(m.fighterRed, m.fighterRedSnapshot, redApp),
         blue: mapPrintFighter(m.fighterBlue, m.fighterBlueSnapshot, blueApp),
+        ...(mode === "all-matches"
+          ? {
+              roundLabel: m.roundName?.trim() || null,
+              timeLabel:
+                m.matNumber != null ? String(m.matNumber) : null,
+              organizerMemo: m.organizerMemo?.trim() || null,
+            }
+          : {}),
       };
     });
 
@@ -267,8 +281,9 @@ export const bracketPrintService = {
       eventName: event.title,
       eventDateLabel: formatBracketPrintEventDate(event.eventDate),
       venueLabel,
-      documentTitle: buildBracketPrintDocumentTitle(event.title),
+      documentTitle: buildBracketPrintDocumentTitle(event.title, mode),
       matches,
+      mode,
     };
   },
 };
