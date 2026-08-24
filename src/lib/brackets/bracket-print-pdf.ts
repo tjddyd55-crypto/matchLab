@@ -2,6 +2,32 @@ import "server-only";
 
 import { getServerAppBaseUrl } from "@/lib/qr-url";
 
+function shouldUseBundledChromium(): boolean {
+  return (
+    process.platform === "linux" &&
+    (process.env.RAILWAY_ENVIRONMENT_NAME === "production" ||
+      process.env.RAILWAY_ENVIRONMENT === "production" ||
+      process.env.NODE_ENV === "production")
+  );
+}
+
+async function launchPdfBrowser() {
+  if (shouldUseBundledChromium()) {
+    const [{ chromium: playwright }, chromium] = await Promise.all([
+      import("playwright-core"),
+      import("@sparticuz/chromium"),
+    ]);
+    return playwright.launch({
+      args: chromium.default.args,
+      executablePath: await chromium.default.executablePath(),
+      headless: true,
+    });
+  }
+
+  const { chromium } = await import("playwright-core");
+  return chromium.launch({ headless: true });
+}
+
 /**
  * print route를 headless chromium으로 렌더해 PDF 생성.
  * 화면·인쇄와 동일한 HTML/CSS를 사용한다.
@@ -10,16 +36,12 @@ export async function generateBracketPrintPdfBuffer(params: {
   eventId: string;
   cookieHeader: string | null;
 }): Promise<Buffer> {
-  // Railway runtime: browsers must live under node_modules (PLAYWRIGHT_BROWSERS_PATH=0).
-  process.env.PLAYWRIGHT_BROWSERS_PATH ??= "0";
-
   const baseUrl = getServerAppBaseUrl();
   if (!baseUrl) {
     throw new Error("APP base URL이 설정되지 않았습니다.");
   }
 
-  const { chromium } = await import("playwright");
-  const browser = await chromium.launch({ headless: true });
+  const browser = await launchPdfBrowser();
   try {
     const context = await browser.newContext();
     if (params.cookieHeader) {
