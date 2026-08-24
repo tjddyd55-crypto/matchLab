@@ -1,5 +1,8 @@
 import type { OrganizerApprovedFighterOptionVM } from "@/lib/services/bracket.service";
-import { parseRecordText } from "@/lib/fighter/record";
+import {
+  matchesFightRecordExperienceFilter,
+  resolveFightRecordTotalBouts,
+} from "@/lib/fighter/fight-record-total-bouts";
 import {
   buildSchoolGradeFilterOptions,
   resolveApplicationSchoolGradeLabel,
@@ -39,25 +42,28 @@ const AGE_GROUP_SORT_ORDER = [
   "성인부",
 ] as const;
 
-/** 자동매칭 recordSummary("N승 N패 N무") → totalBouts — parseRecordText SSOT */
+/** filter SSOT — structured snapshot 우선, `"9전"` 등 총전-only 지원 */
 export function resolveUnmatchedCandidateTotalBouts(
   recordSummary: string,
+  structured?: Pick<
+    OrganizerApprovedFighterOptionVM,
+    "totalBoutsSnapshot" | "recordText"
+  >,
 ): number | null {
-  const trimmed = recordSummary.trim();
-  if (!trimmed) return 0;
+  return resolveFightRecordTotalBouts({
+    recordSummary,
+    recordText: structured?.recordText,
+    totalBoutsSnapshot: structured?.totalBoutsSnapshot,
+  });
+}
 
-  const parsed = parseRecordText(trimmed);
-  if (parsed.ok) return parsed.record.totalBouts;
-
-  const winsLossesDraws = trimmed.match(/^(\d+)\s*승\s*(\d+)\s*패\s*(\d+)\s*무$/);
-  if (winsLossesDraws) {
-    const wins = Number(winsLossesDraws[1]);
-    const losses = Number(winsLossesDraws[2]);
-    const draws = Number(winsLossesDraws[3]);
-    return wins + losses + draws;
-  }
-
-  return null;
+export function resolveApprovedOptionTotalBouts(
+  option: Pick<
+    OrganizerApprovedFighterOptionVM,
+    "recordSummary" | "totalBoutsSnapshot" | "recordText"
+  >,
+): number | null {
+  return resolveUnmatchedCandidateTotalBouts(option.recordSummary, option);
 }
 
 export function resolveUnmatchedCandidateGenderLabel(
@@ -153,22 +159,12 @@ function matchesRecordFilter(
 ): boolean {
   if (recordStatus === "all") return true;
 
-  const totalBouts = resolveUnmatchedCandidateTotalBouts(option.recordSummary);
-  if (totalBouts == null) return false;
-
-  if (recordStatus === "zero") {
-    return totalBouts === 0;
-  }
-
-  if (totalBouts < 1) return false;
-
-  const maxRaw = maxTotalBoutsRaw.trim();
-  if (!maxRaw) return true;
-
-  const max = Number.parseInt(maxRaw, 10);
-  if (!Number.isFinite(max) || max < 1) return false;
-
-  return totalBouts <= max;
+  const totalBouts = resolveApprovedOptionTotalBouts(option);
+  return matchesFightRecordExperienceFilter(
+    totalBouts,
+    recordStatus,
+    maxTotalBoutsRaw,
+  );
 }
 
 export function filterUnmatchedQuickBarOptions(

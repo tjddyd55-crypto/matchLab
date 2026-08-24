@@ -26,6 +26,8 @@ import {
   COMPACT_FILTER_RESET_CLASS,
   COMPACT_FILTER_ROW_CLASS,
   COMPACT_FILTER_SEARCH_NARROW_CLASS,
+  COMPACT_FILTER_SEARCH_STACKED_NARROW_CLASS,
+  COMPACT_FILTER_STACK_CLASS,
   COMPACT_FILTER_SELECT_CLASS,
   COMPACT_NUMBER_INPUT_CLASS,
   sanitizePositiveIntInput,
@@ -380,42 +382,69 @@ export function UnmatchedQuickBarFilterToolbar({
   filters: UnmatchedQuickBarFilterState;
   onFiltersChange: (next: UnmatchedQuickBarFilterState) => void;
   className?: string;
-  /** stack/toolbar 모두 검색+필터 한 줄 (scope는 부모에서 별도) */
+  /** stack: 검색 1행 + 필터 1행 / toolbar: 한 줄 */
   layout?: "toolbar" | "stack";
 }) {
   const filterOptions = buildUnmatchedQuickBarFilterOptions(options);
   const chips = buildUnmatchedQuickBarFilterChips(filters);
 
+  const searchInput = (
+    <input
+      className={
+        layout === "stack"
+          ? COMPACT_FILTER_SEARCH_STACKED_NARROW_CLASS
+          : COMPACT_FILTER_SEARCH_NARROW_CLASS
+      }
+      placeholder="선수명 · 체육관"
+      value={filters.search}
+      onChange={(e) =>
+        onFiltersChange({ ...filters, search: e.target.value })
+      }
+      aria-label="미매칭 선수 검색"
+    />
+  );
+
+  const chipRow =
+    chips.length > 0 ? (
+      <div className="flex flex-wrap gap-1">
+        {chips.map((chip) => (
+          <span
+            key={chip}
+            className="bg-muted text-muted-foreground inline-flex rounded-full px-2 py-0.5 text-[11px]"
+          >
+            {chip}
+          </span>
+        ))}
+      </div>
+    ) : null;
+
+  if (layout === "stack") {
+    return (
+      <div className={cn(COMPACT_FILTER_STACK_CLASS, className)} data-layout={layout}>
+        {searchInput}
+        <div className={COMPACT_FILTER_ROW_CLASS}>
+          <UnmatchedFilterControls
+            filterOptions={filterOptions}
+            filters={filters}
+            onFiltersChange={onFiltersChange}
+          />
+        </div>
+        {chipRow}
+      </div>
+    );
+  }
+
   return (
     <div className={cn("min-w-0 space-y-2", className)} data-layout={layout}>
       <div className={COMPACT_FILTER_ROW_CLASS}>
-        <input
-          className={COMPACT_FILTER_SEARCH_NARROW_CLASS}
-          placeholder="선수명 · 체육관"
-          value={filters.search}
-          onChange={(e) =>
-            onFiltersChange({ ...filters, search: e.target.value })
-          }
-          aria-label="미매칭 선수 검색"
-        />
+        {searchInput}
         <UnmatchedFilterControls
           filterOptions={filterOptions}
           filters={filters}
           onFiltersChange={onFiltersChange}
         />
       </div>
-      {chips.length > 0 ? (
-        <div className="flex flex-wrap gap-1">
-          {chips.map((chip) => (
-            <span
-              key={chip}
-              className="bg-muted text-muted-foreground inline-flex rounded-full px-2 py-0.5 text-[11px]"
-            >
-              {chip}
-            </span>
-          ))}
-        </div>
-      ) : null}
+      {chipRow}
     </div>
   );
 }

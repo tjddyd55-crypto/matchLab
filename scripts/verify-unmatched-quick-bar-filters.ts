@@ -53,7 +53,8 @@ function fixtureOption(input: {
 function main() {
   assert.equal(resolveUnmatchedCandidateTotalBouts("0승 0패 0무"), 0);
   assert.equal(resolveUnmatchedCandidateTotalBouts("3승 2패 1무"), 6);
-  assert.equal(resolveUnmatchedCandidateTotalBouts(""), 0);
+  assert.equal(resolveUnmatchedCandidateTotalBouts("9전"), 9);
+  assert.equal(resolveUnmatchedCandidateTotalBouts(""), null);
 
   const options = [
     fixtureOption({ id: "a", name: "A", recordSummary: "0승 0패 0무" }),

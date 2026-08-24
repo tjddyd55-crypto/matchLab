@@ -11,6 +11,7 @@ import {
   resolveUnmatchedCandidateTotalBouts,
   type UnmatchedRecordStatusFilter,
 } from "@/lib/brackets/unmatched-candidate-filters";
+import { matchesFightRecordExperienceFilter } from "@/lib/fighter/fight-record-total-bouts";
 import {
   buildSchoolGradeFilterOptions,
   resolveApplicationSchoolGradeLabel,
@@ -133,14 +134,11 @@ function matchesRecord(
 ): boolean {
   if (recordStatus === "all") return true;
   const total = resolveUnmatchedCandidateTotalBouts(fields.recordSummary);
-  if (total == null) return false;
-  if (recordStatus === "zero") return total === 0;
-  if (total < 1) return false;
-  const maxRaw = maxTotalBouts.trim();
-  if (!maxRaw) return true;
-  const max = Number.parseInt(maxRaw, 10);
-  if (!Number.isFinite(max) || max < 1) return false;
-  return total <= max;
+  return matchesFightRecordExperienceFilter(
+    total,
+    recordStatus,
+    maxTotalBouts,
+  );
 }
 
 /**

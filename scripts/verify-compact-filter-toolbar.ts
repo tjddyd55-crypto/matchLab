@@ -24,7 +24,8 @@ const matched = readFileSync(
   join(process.cwd(), "src/components/domain/brackets/MatchedMatchFilterToolbar.tsx"),
   "utf8",
 );
-assert.ok(matched.includes("COMPACT_FILTER_ROW_CLASS"));
+assert.ok(matched.includes("COMPACT_FILTER_STACK_CLASS"));
+assert.ok(matched.includes("COMPACT_FILTER_SEARCH_STACKED_CLASS"));
 assert.ok(matched.includes('<option value="all">전체</option>'));
 assert.ok(!matched.includes("전적 전체"));
 assert.ok(matched.includes('type="text"'));
@@ -39,6 +40,8 @@ const unmatched = readFileSync(
   ),
   "utf8",
 );
+assert.ok(unmatched.includes("COMPACT_FILTER_STACK_CLASS"));
+assert.ok(unmatched.includes("COMPACT_FILTER_SEARCH_STACKED_NARROW_CLASS"));
 assert.ok(unmatched.includes("COMPACT_FILTER_ROW_CLASS"));
 assert.ok(unmatched.includes('<option value="all">전체</option>'));
 assert.ok(!unmatched.includes("전적 전체"));
