@@ -9,6 +9,7 @@ import { OrganizerAdditionalInfoRowActions } from "@/components/domain/applicati
 import { AdditionalInfoStatusBadge } from "@/components/domain/applications/AdditionalInfoStatusBadge";
 import { OrganizerManualEntryHint } from "@/components/domain/applications/OrganizerManualEntryHint";
 import { OrganizerApplicationsEmptyState } from "@/components/domain/applications/OrganizerApplicationsEmptyState";
+import { OrganizerAssignmentStatusBadge } from "@/components/domain/applications/OrganizerAssignmentStatusBadge";
 import type { OrganizerApplicationRowVM } from "@/components/domain/applications/OrganizerApplicationsTable";
 import { formatPublicDateTime } from "@/lib/date-display";
 import { ListSequenceMobilePrefix } from "@/components/domain/shared/CompactApplicantFilterBar";
@@ -89,7 +90,9 @@ export function OrganizerApplicationsCards({
                   entrySource={row.entrySource}
                 />
               </div>
-            </div>            <div className="flex flex-wrap gap-1.5 pl-8">
+            </div>
+            <div className="flex flex-wrap gap-1.5 pl-8">
+              <OrganizerAssignmentStatusBadge isAssigned={row.isAssigned} />
               <OrganizerPaymentDisplayBadge paymentStatus={row.paymentStatus} />
               <OrganizerApplicationStatusBadge
                 applicationStatus={row.applicationStatus}

@@ -18,6 +18,12 @@ import {
   resolveOrganizerApplicationDisplayStatus,
 } from "@/lib/application-display-status";
 import {
+  buildApplicantGymFilterOptions,
+  groupApplicantsByGymDisplayName,
+  matchesApplicantAssignmentFilter,
+  normalizeApplicantGymDisplayName,
+} from "@/lib/applications/applicant-list-filters";
+import {
   groupItemsByDivisionSport,
   resolveSingleSportSectionTitle,
 } from "@/lib/division-sport-grouping";
@@ -48,9 +54,10 @@ const DEFAULT_FILTERS: OrganizerApplicationFiltersState = {
   displayStatus: "all",
   paymentDisplay: "all",
   divisionId: "all",
-  gymId: "all",
+  gymName: "all",
   consent: "all",
   fighterName: "",
+  assignment: "all",
 };
 
 export function OrganizerApplicationsBoard({
@@ -86,13 +93,10 @@ export function OrganizerApplicationsBoard({
     return [...map.entries()].map(([id, label]) => ({ id, label }));
   }, [rows]);
 
-  const gymOptions = useMemo(() => {
-    const map = new Map<string, string>();
-    for (const r of rows) {
-      if (r.gymId) map.set(r.gymId, r.gymName);
-    }
-    return [...map.entries()].map(([id, name]) => ({ id, name }));
-  }, [rows]);
+  const gymOptions = useMemo(
+    () => buildApplicantGymFilterOptions(rows),
+    [rows],
+  );
 
   const filtered = useMemo(() => {
     return rows.filter((r) => {
@@ -121,10 +125,21 @@ export function OrganizerApplicationsBoard({
       ) {
         return false;
       }
-      if (filters.gymId !== "all" && r.gymId !== filters.gymId) {
+      if (
+        filters.gymName !== "all" &&
+        normalizeApplicantGymDisplayName(r.gymName) !== filters.gymName
+      ) {
         return false;
       }
       if (filters.consent !== "all" && r.consentFilterKey !== filters.consent) {
+        return false;
+      }
+      if (
+        !matchesApplicantAssignmentFilter(
+          r.assignmentCount ?? 0,
+          filters.assignment,
+        )
+      ) {
         return false;
       }
       const nameQuery = filters.fighterName.trim().toLowerCase();
@@ -141,32 +156,23 @@ export function OrganizerApplicationsBoard({
   const selectedGym = useMemo(() => {
     if (selectedIds.size === 0) return null;
     const gymIds = new Set<string>();
+    const gymNames = new Set<string>();
     let gymName: string | null = null;
     for (const r of filtered) {
       if (selectedIds.has(r.applicationId)) {
-        gymIds.add(r.gymId);
-        gymName = r.gymName;
+        if (r.gymId) gymIds.add(r.gymId);
+        gymNames.add(normalizeApplicantGymDisplayName(r.gymName));
+        gymName = normalizeApplicantGymDisplayName(r.gymName);
       }
     }
-    if (gymIds.size !== 1) return { gymId: null, gymName: null };
-    return { gymId: [...gymIds][0] ?? null, gymName };
+    if (gymNames.size !== 1) return { gymId: null, gymName: null };
+    const uniqueGymId = gymIds.size === 1 ? ([...gymIds][0] ?? null) : null;
+    return { gymId: uniqueGymId, gymName };
   }, [filtered, selectedIds]);
 
   const groupedRows = useMemo(() => {
     if (!groupByGym) return null;
-    const map = new Map<
-      string,
-      { gymName: string; rows: OrganizerApplicationRowVM[] }
-    >();
-    for (const r of filtered) {
-      const key = r.gymId || "_unknown";
-      const entry = map.get(key) ?? { gymName: r.gymName, rows: [] };
-      entry.rows.push(r);
-      map.set(key, entry);
-    }
-    return [...map.values()].sort((a, b) =>
-      a.gymName.localeCompare(b.gymName, "ko"),
-    );
+    return groupApplicantsByGymDisplayName(filtered);
   }, [filtered, groupByGym]);
 
   const sportGroups = useMemo(() => {
@@ -179,15 +185,19 @@ export function OrganizerApplicationsBoard({
     [filtered],
   );
 
+  const hasActiveFilters =
+    filters.fighterName.trim() ||
+    filters.displayStatus !== "all" ||
+    filters.paymentDisplay !== "all" ||
+    filters.divisionId !== "all" ||
+    filters.gymName !== "all" ||
+    filters.consent !== "all" ||
+    filters.assignment !== "all";
+
   const emptyMessage =
     rows.length === 0
       ? "아직 신청자가 없습니다."
-      : filters.fighterName.trim() ||
-          filters.displayStatus !== "all" ||
-          filters.paymentDisplay !== "all" ||
-          filters.divisionId !== "all" ||
-          filters.gymId !== "all" ||
-          filters.consent !== "all"
+      : hasActiveFilters
         ? "조건에 맞는 신청자가 없습니다."
         : "아직 신청자가 없습니다.";
 
@@ -205,9 +215,12 @@ export function OrganizerApplicationsBoard({
     });
   }
 
-  function selectAllInGym(gymId: string) {
+  function selectAllInGym(gymName: string) {
+    const target = normalizeApplicantGymDisplayName(gymName);
     const ids = filtered
-      .filter((r) => r.gymId === gymId)
+      .filter(
+        (r) => normalizeApplicantGymDisplayName(r.gymName) === target,
+      )
       .map((r) => r.applicationId);
     setSelectedIds(new Set(ids));
   }
@@ -311,10 +324,11 @@ export function OrganizerApplicationsBoard({
             type="button"
             size="sm"
             className="h-9"
-            variant="outline"
+            variant={groupByGym ? "default" : "outline"}
+            aria-pressed={groupByGym}
             onClick={() => setGroupByGym((v) => !v)}
           >
-            체육관별 그룹 보기
+            {groupByGym ? "체육관별 그룹 보기 중" : "체육관별 그룹 보기"}
           </Button>
         </div>
       </EventManagementPageHeader>
@@ -350,14 +364,14 @@ export function OrganizerApplicationsBoard({
         divisionOptions={divisionOptions}
         gymOptions={gymOptions}
       />
-      {filters.gymId !== "all" ? (
+      {filters.gymName !== "all" ? (
         <div className="flex shrink-0 flex-wrap items-center gap-2">
           <Button
             type="button"
             size="sm"
             className="h-9"
             variant="outline"
-            onClick={() => selectAllInGym(filters.gymId)}
+            onClick={() => selectAllInGym(filters.gymName)}
           >
             필터된 체육관 전체 선택
           </Button>
@@ -392,18 +406,23 @@ export function OrganizerApplicationsBoard({
                 const start = sequenceOffset;
                 sequenceOffset += group.rows.length;
                 return (
-                  <section key={group.gymName} className="flex flex-col gap-2.5">
+                  <section
+                    key={group.gymName}
+                    className="flex flex-col gap-2.5"
+                  >
                     <div className="flex flex-wrap items-center justify-between gap-2">
-                      <h3 className="text-sm font-semibold">{group.gymName}</h3>
+                      <h3 className="text-sm font-semibold">
+                        {group.gymName}
+                        <span className="text-matchon-text-secondary ml-2 text-xs font-normal">
+                          {group.rows.length}명
+                        </span>
+                      </h3>
                       <Button
                         type="button"
                         size="sm"
                         className="h-8"
                         variant="outline"
-                        onClick={() => {
-                          const gymId = group.rows[0]?.gymId;
-                          if (gymId) selectAllInGym(gymId);
-                        }}
+                        onClick={() => selectAllInGym(group.gymName)}
                       >
                         이 체육관 전체 선택
                       </Button>
@@ -439,9 +458,9 @@ export function OrganizerApplicationsBoard({
 
       <OrganizerApplicationsGymSummaryTable
         rows={rows}
-        selectedGymId={filters.gymId === "all" ? null : filters.gymId}
-        onSelectGym={(gymId) =>
-          setFilters((prev) => ({ ...prev, gymId: gymId ?? "all" }))
+        selectedGymName={filters.gymName === "all" ? null : filters.gymName}
+        onSelectGym={(gymName) =>
+          setFilters((prev) => ({ ...prev, gymName: gymName ?? "all" }))
         }
       />
     </div>

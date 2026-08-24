@@ -9,6 +9,7 @@ import { OrganizerAdditionalInfoRowActions } from "@/components/domain/applicati
 import { AdditionalInfoStatusBadge } from "@/components/domain/applications/AdditionalInfoStatusBadge";
 import { OrganizerManualEntryHint } from "@/components/domain/applications/OrganizerManualEntryHint";
 import { OrganizerApplicationsEmptyState } from "@/components/domain/applications/OrganizerApplicationsEmptyState";
+import { OrganizerAssignmentStatusBadge } from "@/components/domain/applications/OrganizerAssignmentStatusBadge";
 import type { OrganizerApplicationRowVM } from "@/components/domain/applications/OrganizerApplicationsTable";
 import {
   ListSequenceCell,
@@ -97,10 +98,13 @@ export function OrganizerApplicationsList({
                 <span className="truncate">{row.fighterName}</span>
                 <DivisionGenderBadge gender={row.division?.gender} short />
               </div>
-              <OrganizerManualEntryHint
-                show={row.isOrganizerManualEntry}
-                entrySource={row.entrySource}
-              />
+              <div className="mt-1 flex flex-wrap items-center gap-1">
+                <OrganizerAssignmentStatusBadge isAssigned={row.isAssigned} />
+                <OrganizerManualEntryHint
+                  show={row.isOrganizerManualEntry}
+                  entrySource={row.entrySource}
+                />
+              </div>
             </div>
 
             <div className="min-w-0" title={row.divisionLabel}>

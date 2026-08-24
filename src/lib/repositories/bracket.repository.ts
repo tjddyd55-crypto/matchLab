@@ -703,7 +703,23 @@ export const bracketRepository = {
     eventId: string,
     tx?: Prisma.TransactionClient,
   ): Promise<string[]> {
-    const rows = await db(tx).bracketMatch.findMany({
+    const rows = await this.listActiveMatchFighterSlotsForEvent(eventId, tx);
+    const ids = new Set<string>();
+    for (const r of rows) {
+      if (r.fighterRedId) ids.add(r.fighterRedId);
+      if (r.fighterBlueId) ids.add(r.fighterBlueId);
+    }
+    return [...ids];
+  },
+
+  /**
+   * event 전체 비취소 Match의 홍/청 fighterId만 — assignmentCount 배치 집계용 (N+1 금지).
+   */
+  async listActiveMatchFighterSlotsForEvent(
+    eventId: string,
+    tx?: Prisma.TransactionClient,
+  ): Promise<{ fighterRedId: string | null; fighterBlueId: string | null }[]> {
+    return db(tx).bracketMatch.findMany({
       where: {
         bracket: { eventId },
         status: { not: BracketMatchStatus.cancelled },
@@ -714,12 +730,6 @@ export const bracketRepository = {
       },
       select: { fighterRedId: true, fighterBlueId: true },
     });
-    const ids = new Set<string>();
-    for (const r of rows) {
-      if (r.fighterRedId) ids.add(r.fighterRedId);
-      if (r.fighterBlueId) ids.add(r.fighterBlueId);
-    }
-    return [...ids];
   },
 
   /**
