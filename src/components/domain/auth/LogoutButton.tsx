@@ -4,6 +4,7 @@ import { useTransition } from "react";
 import { useRouter } from "next/navigation";
 import { signOutAction } from "@/features/auth/actions";
 import { Button } from "@/components/ui/button";
+import { isMatchonDesktopClient } from "@/lib/desktop/client";
 import { cn } from "@/lib/utils";
 
 export function LogoutButton({
@@ -28,9 +29,13 @@ export function LogoutButton({
       onClick={() => {
         startTransition(async () => {
           const r = await signOutAction();
-          if (r.ok) {
-            router.push(afterLogoutPath ?? r.data.redirectTo);
-            router.refresh();
+          if (!r.ok) return;
+          const dest = afterLogoutPath ?? r.data.redirectTo;
+          // history에 인증 화면을 남기지 않음 (뒤로가기 → homepage 방지)
+          router.replace(dest);
+          router.refresh();
+          if (isMatchonDesktopClient()) {
+            void window.matchonDesktop?.clearNavigationHistory?.();
           }
         });
       }}

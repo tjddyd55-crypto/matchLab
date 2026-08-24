@@ -106,11 +106,14 @@ function sessionPersistence() {
 function logout() {
   const actions = read("src/features/auth/actions.ts");
   const header = read("src/components/layout/Header.tsx");
+  const button = read("src/components/domain/auth/LogoutButton.tsx");
   assertIncludes(actions, "signOutAction", "logout");
   assertIncludes(actions, "DESKTOP_LOGIN_PATH", "desktop logout dest");
   assertIncludes(actions, "isMatchonDesktopRequest", "desktop-aware logout");
   assertIncludes(header, "LogoutButton", "header logout");
   assertIncludes(header, "isDesktop", "header desktop branch");
+  assertIncludes(button, "router.replace", "logout replace not push");
+  assertNotIncludes(button, "router.push(", "logout must not push history");
   console.log("verify:desktop-logout: OK");
 }
 
@@ -135,6 +138,8 @@ function navigationSecurity() {
   assertIncludes(nav, "will-navigate", "nav");
   assertIncludes(nav, "setWindowOpenHandler", "nav");
   assertIncludes(nav, "shell.openExternal", "nav");
+  assertIncludes(nav, "clearHistory", "login history clear");
+  assertIncludes(nav, "did-navigate", "login navigate hook");
   assertIncludes(config, "isAllowedMatchonUrl", "config");
   assertIncludes(config, "getAllowedHosts", "config");
   assertIncludes(security, "isDangerousUrl", "security");

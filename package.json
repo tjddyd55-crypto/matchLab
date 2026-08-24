@@ -51,6 +51,7 @@
     "verify:signup-phone-verification": "tsx scripts/verify-phone-verification.ts",
     "verify:password-reset-phone": "tsx scripts/verify-phone-verification.ts",
     "verify:sms-provider-safety": "tsx scripts/verify-phone-verification.ts",
+    "verify:desktop-auth-boundary": "tsx scripts/verify-desktop-auth-boundary.ts",
     "verify:desktop-auth-navigation": "tsx scripts/verify-phone-verification.ts",
     "verify:supabase-environment-isolation": "tsx scripts/verify-phone-verification.ts",
     "verify:phone-verification-feature-flags": "tsx scripts/verify-phone-verification.ts",
