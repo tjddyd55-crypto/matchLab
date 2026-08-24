@@ -17,7 +17,8 @@ assert.ok(selectable.includes("border-[#0A47FF]"));
 assert.ok(selectable.includes("bg-[#EAF1FF]"));
 
 const listDisplay = read("src/lib/field-status-list-display.ts");
-assert.ok(listDisplay.includes('selectedStyle: "soft"'));
+assert.ok(listDisplay.includes('selectedStyle: "ring"'));
+assert.ok(listDisplay.includes("organizerOperationListCardDensityClass"));
 
 const detail = read(
   "src/components/domain/field-status/OrganizerFieldStatusDetailPane.tsx",

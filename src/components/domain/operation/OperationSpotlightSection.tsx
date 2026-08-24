@@ -11,7 +11,11 @@ import {
   getOperationMatchPhase,
   pickOperationSpotlightMatches,
 } from "@/lib/match-operation-display";
-import { organizerOperationSpotlightPanelClass } from "@/lib/ui/organizer-operation-ui";
+import {
+  organizerOperationDetailHeaderClass,
+  organizerOperationSectionTitleClass,
+  organizerOperationSpotlightPanelClass,
+} from "@/lib/ui/organizer-operation-ui";
 import { BracketMatchStatus } from "@/lib/enums";
 import { cn } from "@/lib/utils";
 
@@ -56,7 +60,7 @@ export function OperationSpotlightSection({
       <section
         className={cn(
           organizerOperationSpotlightPanelClass,
-          "text-matchon-text-secondary text-sm",
+          "text-sm text-[#64748B]",
           className,
         )}
         aria-label="선택 경기 상세"
@@ -66,74 +70,65 @@ export function OperationSpotlightSection({
     );
   }
 
-  const metaParts = [
-    focusedMatch.courtName?.trim() || null,
-    focusedMatch.divisionLabel?.trim() || null,
-  ].filter(Boolean);
-
   return (
-    <section className={cn("space-y-3", className)} aria-label="선택 경기 상세">
+    <section className={cn(className)} aria-label="선택 경기 상세">
       <div className={organizerOperationSpotlightPanelClass}>
-        <div className="space-y-2.5">
-          <div className="flex flex-wrap items-start justify-between gap-2">
-            <div className="min-w-0 space-y-0.5">
-              <p className="text-base font-bold leading-tight text-matchon-text-primary">
-                {focusedMatch.orderLabel}
-              </p>
-              {metaParts.length > 0 || focusedMatch.division ? (
-                <div className="text-matchon-text-secondary flex min-w-0 flex-wrap items-center gap-x-1.5 gap-y-0.5 text-[12px] leading-snug">
-                  {focusedMatch.courtName ? (
-                    <span>{focusedMatch.courtName}</span>
-                  ) : null}
-                  {focusedMatch.courtName && focusedMatch.division ? (
-                    <span aria-hidden>·</span>
-                  ) : null}
-                  {focusedMatch.division ? (
-                    <DivisionCompactDisplay
-                      division={focusedMatch.division}
-                      mainClassName="text-[12px] font-medium text-matchon-text-secondary"
-                      secondaryClassName="text-[11px]"
-                    />
-                  ) : focusedMatch.divisionLabel ? (
-                    <span className="font-medium">{focusedMatch.divisionLabel}</span>
-                  ) : null}
-                </div>
-              ) : null}
-            </div>
-            <OrganizerOperationStatusBadges
-              phase={getOperationMatchPhase(focusedMatch)}
-              phaseLabel={focusedMatch.phaseLabel}
-              resultStatusLabel={focusedMatch.resultStatusLabel}
-              status={focusedMatch.status}
-              size="sm"
-            />
+        <div className={organizerOperationDetailHeaderClass}>
+          <div className="min-w-0 space-y-0.5">
+            <p className="text-base font-bold leading-tight text-[#0F172A]">
+              {focusedMatch.orderLabel}
+            </p>
+            {focusedMatch.courtName ||
+            focusedMatch.division ||
+            focusedMatch.divisionLabel ? (
+              <div className="flex min-w-0 flex-wrap items-center gap-x-1.5 gap-y-0.5 text-[12px] leading-snug text-[#64748B]">
+                {focusedMatch.courtName ? (
+                  <span>{focusedMatch.courtName}</span>
+                ) : null}
+                {focusedMatch.courtName && focusedMatch.division ? (
+                  <span aria-hidden>·</span>
+                ) : null}
+                {focusedMatch.division ? (
+                  <DivisionCompactDisplay
+                    division={focusedMatch.division}
+                    mainClassName="text-[12px] font-medium text-[#64748B]"
+                    secondaryClassName="text-[11px]"
+                  />
+                ) : focusedMatch.divisionLabel ? (
+                  <span className="font-medium">{focusedMatch.divisionLabel}</span>
+                ) : null}
+              </div>
+            ) : null}
           </div>
-
-          <OperationMatchFighterMatchup
-            fighterRed={focusedMatch.fighterRed}
-            fighterBlue={focusedMatch.fighterBlue}
-            winnerId={focusedMatch.winnerId}
-            identityMode="wrap"
-            density="compact"
-            className="w-full min-w-0"
+          <OrganizerOperationStatusBadges
+            phase={getOperationMatchPhase(focusedMatch)}
+            phaseLabel={focusedMatch.phaseLabel}
+            resultStatusLabel={focusedMatch.resultStatusLabel}
+            status={focusedMatch.status}
+            size="sm"
           />
         </div>
+
+        <OperationMatchFighterMatchup
+          fighterRed={focusedMatch.fighterRed}
+          fighterBlue={focusedMatch.fighterBlue}
+          winnerId={focusedMatch.winnerId}
+          identityMode="wrap"
+          density="compact"
+          className="w-full min-w-0"
+        />
 
         {showOpsPanel ? (
           <section
             ref={resultRef}
-            className="mt-3 border-t border-matchon-border pt-3"
+            className="flex flex-col gap-2.5 border-t border-[#E2E8F0] pt-4"
           >
-            <h3 className="text-[15px] font-bold text-matchon-text-primary">
-              결과 입력
-            </h3>
-            <div className="mt-2">
-              <OrganizerMatchOpsPanel
-                {...toMatchOpsProps(focusedMatch)}
-                presentation="operation"
-                onStatusChanged={onMatchStatusChanged}
-              />
-            </div>
+            <h3 className={organizerOperationSectionTitleClass}>결과 입력</h3>
+            <OrganizerMatchOpsPanel
+              {...toMatchOpsProps(focusedMatch)}
+              presentation="operation"
+              onStatusChanged={onMatchStatusChanged}
+            />
           </section>
         ) : null}
       </div>

@@ -1,6 +1,5 @@
 "use client";
 
-import Link from "next/link";
 import { useState, useTransition, type ReactNode } from "react";
 import { useRouter } from "next/navigation";
 import { FieldFinalResultCell } from "@/components/domain/field-status/FieldFinalResultCell";
@@ -26,6 +25,12 @@ import {
   shouldShowFieldReasonSection,
 } from "@/lib/field-status-list-display";
 import type { FieldStatusRowDTO } from "@/lib/services/field-status.service";
+import {
+  organizerOperationDetailHeaderClass,
+  organizerOperationDetailPanelClass,
+  organizerOperationSectionClass,
+  organizerOperationSectionTitleClass,
+} from "@/lib/ui/organizer-operation-ui";
 
 function DetailSection({
   step,
@@ -39,13 +44,13 @@ function DetailSection({
   children: ReactNode;
 }) {
   return (
-    <section className="flex flex-col gap-2.5">
+    <section className={organizerOperationSectionClass}>
       <div className="flex items-baseline justify-between gap-2">
-        <h3 className="text-[15px] font-bold text-matchon-text-primary">
+        <h3 className={organizerOperationSectionTitleClass}>
           {step}. {title}
         </h3>
         {hint ? (
-          <span className="text-matchon-text-secondary shrink-0 text-xs font-medium">
+          <span className="shrink-0 text-xs font-medium text-[#64748B]">
             {hint}
           </span>
         ) : null}
@@ -80,18 +85,18 @@ export function OrganizerFieldStatusDetailPane({
   return (
     <div
       key={row.applicationId}
-      className="flex flex-col gap-4 rounded-xl border border-matchon-border bg-white p-4 shadow-sm md:p-5"
+      className={organizerOperationDetailPanelClass}
     >
-      <div className="flex flex-wrap items-start justify-between gap-3">
+      <div className={organizerOperationDetailHeaderClass}>
         <div className="min-w-0 space-y-0.5">
-          <h2 className="text-lg font-bold text-matchon-text-primary">
+          <h2 className="text-base font-bold leading-tight text-[#0F172A]">
             {row.fighterName}
           </h2>
-          <p className="text-sm text-matchon-text-secondary">
+          <p className="text-sm text-[#64748B]">
             {[row.gymName, divisionLine].filter(Boolean).join(" · ")}
           </p>
           {statusLine ? (
-            <p className="text-matchon-text-secondary text-xs">{statusLine}</p>
+            <p className="text-xs text-[#64748B]">{statusLine}</p>
           ) : null}
         </div>
         {onBack ? (
@@ -125,15 +130,15 @@ export function OrganizerFieldStatusDetailPane({
         ) : null}
       </DetailSection>
 
-      <section className="flex flex-col gap-2.5">
+      <section className={organizerOperationSectionClass}>
         <div className="flex items-baseline justify-between gap-2">
-          <h3 className="text-[15px] font-bold text-matchon-text-primary">
+          <h3 className={organizerOperationSectionTitleClass}>
             3. 실격 사유
           </h3>
           {!showReason ? (
             <button
               type="button"
-              className="text-matchon-text-secondary text-xs underline-offset-2 hover:underline"
+              className="text-xs text-[#64748B] underline-offset-2 hover:underline"
               onClick={() => setReasonExpanded((v) => !v)}
             >
               {reasonExpanded ? "접기" : "펼치기"}
@@ -172,7 +177,7 @@ export function OrganizerFieldStatusDetailPane({
             ) : null}
           </div>
         ) : (
-          <p className="text-matchon-text-secondary text-xs">
+          <p className="text-xs text-[#64748B]">
             미출석·계체 실패·실격·경기 취소 시에만 필수입니다.
           </p>
         )}
@@ -188,7 +193,7 @@ export function OrganizerFieldStatusDetailPane({
         <FieldMemoForm row={row} />
       </DetailSection>
 
-      <section className="flex flex-col gap-2 rounded-lg border border-rose-200 bg-rose-50/40 p-3">
+      <section className="flex flex-col gap-2 rounded-[10px] border border-rose-200 bg-rose-50/40 p-3">
         <h3 className="text-sm font-bold text-rose-900">6. 관리</h3>
         <FieldStatusResetButton row={row} />
       </section>
