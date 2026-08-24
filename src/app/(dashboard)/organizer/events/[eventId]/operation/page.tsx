@@ -51,10 +51,14 @@ export default async function OrganizerEventOperationPage({
         title="경기 운영"
         eventTitle={nav.title}
         description="대회 당일 경기 순서와 상태를 관리합니다."
+        className="mb-3 gap-1 [&>div:first-child]:gap-1 [&_h1]:text-2xl [&_h1]:leading-tight"
       >
         <Link
           href={`/organizer/events/${eventId}/qr`}
-          className={cn(buttonVariants({ variant: "outline", size: "sm" }), "mt-2 inline-flex")}
+          className={cn(
+            buttonVariants({ variant: "outline", size: "sm" }),
+            "inline-flex h-9",
+          )}
         >
           현장 QR 출력
         </Link>

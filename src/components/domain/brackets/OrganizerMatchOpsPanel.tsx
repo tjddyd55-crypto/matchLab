@@ -91,16 +91,16 @@ function MatchOpsStatusSection({
   return (
     <div
       className={cn(
-        "space-y-2",
-        isOperation && "border-t pt-3",
+        "space-y-1.5",
+        isOperation && "border-t border-matchon-border pt-2.5",
       )}
     >
       <p className="text-muted-foreground text-xs font-semibold">
-        {isOperation ? "경기 상태 변경" : "경기 상태"}
+        {isOperation ? "경기 상태" : "경기 상태"}
       </p>
       <div
         className={cn(
-          "flex flex-wrap gap-2",
+          "flex flex-wrap gap-1.5",
           isOperation && "sm:flex-row",
         )}
       >
@@ -151,13 +151,6 @@ function MatchOpsStatusSection({
       {status === BracketMatchStatus.cancelled && !cancelledNeedsVoid ? (
         <p className="text-muted-foreground text-[11px] leading-snug">
           취소된 경기를 대기·경기준비·경기진행중으로 복구할 수 있습니다.
-        </p>
-      ) : null}
-      {isOperation &&
-      status !== BracketMatchStatus.cancelled &&
-      !finishedTerminal ? (
-        <p className="text-muted-foreground text-[11px] leading-snug">
-          임의 상태 변경이 필요할 때 선택하세요.
         </p>
       ) : null}
     </div>
@@ -216,6 +209,7 @@ function MatchOutcomeEntryFields({
   defaultMemo,
   winnerPickerKey,
   showCorrectionReason = false,
+  compact = false,
 }: {
   resultType: BracketMatchOutcomeStyle;
   onResultTypeChange: (next: BracketMatchOutcomeStyle) => void;
@@ -228,13 +222,14 @@ function MatchOutcomeEntryFields({
   defaultMemo?: string | null;
   winnerPickerKey: string;
   showCorrectionReason?: boolean;
+  compact?: boolean;
 }) {
   const outcomeMode = resolveOutcomeMode(resultType);
 
   return (
     <>
       <input type="hidden" name="outcomeMode" value={outcomeMode} />
-      <label className="block space-y-1">
+      <label className={cn("block", compact ? "space-y-0.5" : "space-y-1")}>
         <span className="text-muted-foreground text-[11px] font-semibold">
           결과 방식
         </span>
@@ -245,7 +240,10 @@ function MatchOutcomeEntryFields({
           onChange={(e) =>
             onResultTypeChange(e.target.value as BracketMatchOutcomeStyle)
           }
-          className="border-input bg-background h-8 w-full rounded-md border px-2"
+          className={cn(
+            "border-input bg-background w-full rounded-md border px-2",
+            compact ? "h-9" : "h-8",
+          )}
         >
           {OUTCOME_OPTIONS.map((o) => (
             <option key={o} value={o}>
@@ -263,21 +261,25 @@ function MatchOutcomeEntryFields({
           fighterBlueName={fighterBlueName}
           defaultWinnerId={defaultWinnerId}
           disabled={pending}
+          compact={compact}
         />
       ) : (
         <input type="hidden" name="winnerId" value="" />
       )}
-      <label className="block space-y-1">
+      <label className={cn("block", compact ? "space-y-0.5" : "space-y-1")}>
         <span className="text-muted-foreground text-[11px] font-semibold">
           메모
         </span>
         <textarea
           name="resultMemo"
           placeholder="메모 (선택)"
-          rows={2}
+          rows={compact ? 2 : 2}
           defaultValue={defaultMemo ?? ""}
           disabled={pending}
-          className="border-input bg-background w-full rounded-md border px-2 py-1"
+          className={cn(
+            "border-input bg-background w-full rounded-md border px-2 py-1",
+            compact && "min-h-[44px] resize-y",
+          )}
         />
       </label>
       {showCorrectionReason ? (
@@ -324,7 +326,7 @@ function OrganizerMatchOpsPanelBody(props: OrganizerMatchOpsPanelProps) {
     props.resultType ?? BracketMatchOutcomeStyle.decision,
   );
   const isOperation = props.presentation === "operation";
-  const actionSize = isOperation ? "field" : props.compact ? "xs" : "sm";
+  const actionSize = isOperation ? "sm" : props.compact ? "xs" : "sm";
 
   const canFillOutcome = Boolean(props.fighterRedId && props.fighterBlueId);
   const cancelled = props.status === BracketMatchStatus.cancelled;
@@ -422,12 +424,14 @@ function OrganizerMatchOpsPanelBody(props: OrganizerMatchOpsPanelProps) {
   return (
     <Card
       className={cn(
-        "gap-0 overflow-hidden py-0 text-xs",
+        "gap-0 overflow-hidden py-0 text-xs shadow-none",
         props.compact && !isOperation ? "text-[11px]" : "text-xs",
-        isOperation ? "border-border" : "bg-muted/15",
+        isOperation ? "border-0 bg-transparent" : "bg-muted/15",
       )}
     >
-      <CardContent className="space-y-3 p-3">
+      <CardContent
+        className={cn("space-y-2.5", isOperation ? "p-0" : "space-y-3 p-3")}
+      >
       {!props.compact && !isOperation ? (
         <div className="text-muted-foreground flex flex-wrap items-center gap-2">
           <BoutFormatBadge
@@ -467,14 +471,11 @@ function OrganizerMatchOpsPanelBody(props: OrganizerMatchOpsPanelProps) {
 
       {canRecordOutcome ? (
         <form
-          className={cn("space-y-3", !isOperation && "border-t pt-3")}
+          className={cn(
+            isOperation ? "space-y-2" : "space-y-3 border-t pt-3",
+          )}
           action={onOutcomeSubmit}
         >
-          {isOperation ? (
-            <p className="text-muted-foreground text-xs font-semibold">
-              결과 입력
-            </p>
-          ) : null}
           <MatchOutcomeEntryFields
             resultType={resultType}
             onResultTypeChange={setResultType}
@@ -486,8 +487,14 @@ function OrganizerMatchOpsPanelBody(props: OrganizerMatchOpsPanelProps) {
             defaultWinnerId={props.winnerId}
             defaultMemo={props.resultMemo}
             winnerPickerKey={`entry-${props.matchId}-${props.winnerId ?? "none"}`}
+            compact={isOperation}
           />
-          <div className={cn("flex flex-col gap-2 sm:flex-row", isOperation && "sm:flex-wrap")}>
+          <div
+            className={cn(
+              "flex flex-col gap-2 sm:flex-row",
+              isOperation && "gap-2 sm:flex-wrap",
+            )}
+          >
             <Button
               type="submit"
               name="intent"
@@ -495,7 +502,7 @@ function OrganizerMatchOpsPanelBody(props: OrganizerMatchOpsPanelProps) {
               size={actionSize}
               variant="outline"
               disabled={pending}
-              className={isOperation ? "w-full sm:w-auto" : undefined}
+              className={isOperation ? "h-9 w-full sm:w-auto" : undefined}
             >
               임시저장
             </Button>
@@ -505,7 +512,7 @@ function OrganizerMatchOpsPanelBody(props: OrganizerMatchOpsPanelProps) {
               value="confirm"
               size={actionSize}
               disabled={pending}
-              className={isOperation ? "w-full sm:w-auto" : undefined}
+              className={isOperation ? "h-9 w-full sm:w-auto" : undefined}
             >
               확정
             </Button>
@@ -559,6 +566,7 @@ function OrganizerMatchOpsPanelBody(props: OrganizerMatchOpsPanelProps) {
                 defaultMemo={props.resultMemo}
                 winnerPickerKey={`correct-${props.matchId}-${props.winnerId ?? "none"}`}
                 showCorrectionReason
+                compact={isOperation}
               />
               <div className="flex flex-wrap gap-2">
                 <Button
@@ -634,13 +642,21 @@ function OrganizerMatchOpsPanelBody(props: OrganizerMatchOpsPanelProps) {
         </div>
       ) : null}
 
-      {!props.compact && props.bracketType === BracketType.single_elimination ? (
+      {!isOperation &&
+      !props.compact &&
+      props.bracketType === BracketType.single_elimination ? (
         <p className="text-muted-foreground border-t pt-2 text-[11px]">
           단판: 결과 확정 시 승자가 다음 매치 슬롯으로 배치됩니다.
         </p>
-      ) : !props.compact ? (
+      ) : !isOperation && !props.compact ? (
         <p className="text-muted-foreground border-t pt-2 text-[11px]">
           경기 목록형: 다음 라운드 자동 배치 없음.
+        </p>
+      ) : isOperation ? (
+        <p className="text-matchon-text-secondary pt-1 text-[11px] leading-snug">
+          {props.bracketType === BracketType.single_elimination
+            ? "단판: 결과 확정 시 승자가 다음 매치 슬롯으로 배치됩니다."
+            : "경기 목록형: 다음 라운드 자동 배치 없음."}
         </p>
       ) : null}
       </CardContent>

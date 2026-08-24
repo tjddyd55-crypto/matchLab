@@ -71,61 +71,68 @@ export function OperationSpotlightSection({
     );
   }
 
+  const metaParts = [
+    focusedMatch.courtName?.trim() || null,
+    focusedMatch.divisionLabel?.trim() || null,
+  ].filter(Boolean);
+
   return (
-    <section className={cn("space-y-4", className)} aria-label="선택 경기 상세">
+    <section className={cn("space-y-3", className)} aria-label="선택 경기 상세">
       <div className={organizerOperationSpotlightPanelClass}>
-        <div className="space-y-3">
+        <div className="space-y-2.5">
           <div className="flex flex-wrap items-start justify-between gap-2">
-            <div className="min-w-0 space-y-1">
-              <p className="text-matchon-text-secondary text-xs font-medium">
-                선택 경기
-              </p>
-              <p className="text-base font-bold leading-snug text-matchon-text-primary">
+            <div className="min-w-0 space-y-0.5">
+              <p className="text-base font-bold leading-tight text-matchon-text-primary">
                 {focusedMatch.orderLabel}
-                {focusedMatch.courtName ? (
-                  <span className="text-matchon-text-secondary ml-1 text-sm font-normal">
-                    · {focusedMatch.courtName}
-                  </span>
-                ) : null}
               </p>
+              {metaParts.length > 0 || focusedMatch.division ? (
+                <div className="text-matchon-text-secondary flex min-w-0 flex-wrap items-center gap-x-1.5 gap-y-0.5 text-[12px] leading-snug">
+                  {focusedMatch.courtName ? (
+                    <span>{focusedMatch.courtName}</span>
+                  ) : null}
+                  {focusedMatch.courtName && focusedMatch.division ? (
+                    <span aria-hidden>·</span>
+                  ) : null}
+                  {focusedMatch.division ? (
+                    <DivisionCompactDisplay
+                      division={focusedMatch.division}
+                      mainClassName="text-[12px] font-medium text-matchon-text-secondary"
+                      secondaryClassName="text-[11px]"
+                    />
+                  ) : focusedMatch.divisionLabel ? (
+                    <span className="font-medium">{focusedMatch.divisionLabel}</span>
+                  ) : null}
+                </div>
+              ) : null}
             </div>
             <OrganizerOperationStatusBadges
               phase={getOperationMatchPhase(focusedMatch)}
               phaseLabel={focusedMatch.phaseLabel}
               resultStatusLabel={focusedMatch.resultStatusLabel}
               status={focusedMatch.status}
+              size="sm"
             />
           </div>
-
-          {focusedMatch.division ? (
-            <DivisionCompactDisplay
-              division={focusedMatch.division}
-              mainClassName="text-xs"
-              secondaryClassName="text-[11px]"
-            />
-          ) : (
-            <p className="text-xs font-medium">
-              {focusedMatch.divisionLabel ?? "경기구분 미상"}
-            </p>
-          )}
 
           <OperationMatchFighterMatchup
             fighterRed={focusedMatch.fighterRed}
             fighterBlue={focusedMatch.fighterBlue}
             winnerId={focusedMatch.winnerId}
             identityMode="wrap"
+            density="compact"
             className="w-full min-w-0"
           />
         </div>
 
         {showOpsPanel ? (
-          <section ref={resultRef} className="mt-4 border-t border-matchon-border pt-4">
-            <h3 className="text-sm font-bold text-matchon-text-primary">
-              {showResultEntry
-                ? `결과 입력 · ${focusedMatch.orderLabel}`
-                : `경기 운영 · ${focusedMatch.orderLabel}`}
+          <section
+            ref={resultRef}
+            className="mt-3 border-t border-matchon-border pt-3"
+          >
+            <h3 className="text-[15px] font-bold text-matchon-text-primary">
+              {showResultEntry ? "결과 입력" : "경기 운영"}
             </h3>
-            <div className="mt-3">
+            <div className="mt-2">
               <OrganizerMatchOpsPanel
                 {...toMatchOpsProps(focusedMatch)}
                 presentation="operation"

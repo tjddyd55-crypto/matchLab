@@ -19,50 +19,61 @@ import {
 export const organizerOperationFilterBarClass = matchonFilterBarClass;
 export const organizerOperationFieldInputClass = matchonFieldInputClass;
 export const organizerOperationFieldSelectClass = matchonFieldSelectClass;
-export const organizerOperationCourtPillBaseClass = matchonFilterPillBaseClass;
+
+/** 경기장 필터 — operation 전용 compact (전역 pill 높이 유지) */
+export const organizerOperationCourtPillBaseClass = cn(
+  matchonFilterPillBaseClass,
+  "min-h-8 px-3 py-1 text-[13px] md:min-h-[32px]",
+);
 export const organizerOperationCourtPillActiveClass = matchonFilterPillActiveClass;
-export const organizerOperationCourtPillInactiveClass = matchonFilterPillInactiveClass;
+export const organizerOperationCourtPillInactiveClass =
+  matchonFilterPillInactiveClass;
+
 export const organizerOperationStatsGridClass = matchonStatsGridClass;
 export const organizerOperationStatCardClass = matchonStatCardClass;
 export const organizerOperationStatValueClass = matchonStatValueClass;
 export const organizerOperationStatLabelClass = matchonStatLabelClass;
 export const organizerOperationTableWrapClass = matchonCompactTableWrapClass;
+
 export const organizerOperationSpotlightPanelClass =
-  "rounded-xl border border-matchon-border bg-white p-4 shadow-sm lg:sticky lg:top-6";
+  "rounded-xl border border-matchon-border bg-white p-3 shadow-sm lg:sticky lg:top-4";
+
 export const organizerOperationVsCardClass = matchonVsCardClass;
 
+/** PC: 좌측 목록 280~320, 우측 상세 가변 */
 export const organizerOperationWorkspaceClass =
-  "grid gap-4 lg:grid-cols-[minmax(280px,320px)_minmax(0,1fr)] lg:items-start xl:grid-cols-[minmax(300px,340px)_minmax(0,1fr)]";
+  "grid gap-3 lg:grid-cols-[minmax(280px,320px)_minmax(0,1fr)] lg:items-start";
 
 export const organizerOperationListPaneClass =
-  "flex min-h-0 min-w-0 flex-col gap-2 lg:max-h-[calc(100vh-12rem)] lg:overflow-hidden";
+  "flex min-h-0 min-w-0 flex-col gap-2 lg:max-h-[calc(100vh-11rem)] lg:overflow-hidden";
 
 export const organizerOperationListHeaderClass =
-  "flex min-h-[52px] shrink-0 items-center justify-between gap-3 rounded-xl border border-matchon-border bg-white px-3 py-2.5";
+  "flex min-h-[44px] shrink-0 items-center justify-between gap-3 rounded-xl border border-matchon-border bg-white px-3 py-2";
 
 export const organizerOperationListScrollClass =
-  "flex min-h-0 flex-1 flex-col gap-2 overflow-y-auto pr-0.5";
+  "flex min-h-0 flex-1 flex-col gap-1.5 overflow-y-auto overscroll-contain [scrollbar-width:thin] pr-0.5";
 
 export const organizerOperationDetailPaneClass =
-  "min-w-0 lg:max-h-[calc(100vh-12rem)] lg:overflow-y-auto";
+  "min-w-0 lg:max-h-[calc(100vh-11rem)] lg:overflow-y-auto [scrollbar-width:thin]";
 
+/** KPI strip — height ~42–44px */
 export const organizerOperationCompactSummaryClass =
-  "flex flex-wrap items-center gap-2 overflow-x-auto rounded-xl border border-matchon-border bg-matchon-surface/60 px-3 py-2 text-xs";
+  "flex min-h-[42px] flex-wrap items-center gap-1.5 overflow-x-auto rounded-xl border border-matchon-border bg-matchon-surface/60 px-2.5 py-1.5 text-xs";
 
 export const organizerOperationSummaryPillBaseClass =
-  "inline-flex shrink-0 items-center gap-1.5 rounded-full border border-matchon-border bg-white px-3 py-1 transition-colors";
+  "inline-flex h-7 shrink-0 items-center gap-1.5 rounded-full border border-matchon-border bg-white px-2.5 py-0.5 transition-colors";
 
 export const organizerOperationSummaryPillActiveClass =
   "border-matchon-primary bg-matchon-primary-light text-matchon-primary";
 
 export const organizerOperationMatchListItemClass =
-  "flex w-full min-w-0 cursor-pointer items-start gap-2 rounded-lg border border-matchon-border bg-white px-3 py-2.5 text-left transition-colors hover:border-matchon-primary/30 hover:bg-matchon-primary-light/20";
+  "flex w-full min-w-0 cursor-pointer items-start gap-2 rounded-[10px] border border-matchon-border bg-white px-2.5 py-2.5 text-left transition-colors hover:border-matchon-primary/30 hover:bg-matchon-primary-light/20";
 
 export const organizerOperationMatchListItemActiveClass =
-  "border-l-[3px] border-l-[#0A47FF] bg-[#EAF1FF] hover:bg-[#EAF1FF]";
+  "border-matchon-primary border-2 bg-[#EAF1FF] hover:bg-[#EAF1FF]";
 
 export const organizerOperationStatusButtonBaseClass =
-  "min-w-[4.5rem] border font-medium transition-colors";
+  "min-h-9 min-w-[4.25rem] border px-3.5 font-medium transition-colors";
 
 export const organizerOperationStatusButtonActiveClass =
   "border-[#0A47FF] bg-[#0A47FF] text-white font-semibold hover:bg-[#0A47FF] hover:text-white";

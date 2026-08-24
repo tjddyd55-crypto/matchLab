@@ -14,11 +14,13 @@ function OperationFighterCell({
   fighter,
   isWinner,
   identityMode,
+  density,
 }: {
   corner: "홍코너" | "청코너";
   fighter?: OperationFighter | null;
   isWinner?: boolean;
   identityMode: "truncate" | "full" | "wrap";
+  density: "default" | "compact";
 }) {
   const style = CORNER_SLOT_STYLES[corner];
   const empty = !fighter?.name?.trim() || fighter.name === "-";
@@ -33,7 +35,8 @@ function OperationFighterCell({
   return (
     <div
       className={cn(
-        "flex min-h-[2.5rem] min-w-0 items-center justify-center rounded-md border px-2 py-1 text-center",
+        "flex min-w-0 items-center justify-center rounded-md border px-2 text-center",
+        density === "compact" ? "min-h-[52px] py-1" : "min-h-[2.5rem] py-1",
         style.bg,
         isWinner && "ring-2 ring-inset ring-emerald-600/70",
       )}
@@ -66,6 +69,7 @@ export function OperationMatchFighterMatchup({
   winnerId,
   className,
   identityMode = "truncate",
+  density = "default",
 }: {
   fighterRed?: OperationFighter | null;
   fighterBlue?: OperationFighter | null;
@@ -73,11 +77,13 @@ export function OperationMatchFighterMatchup({
   className?: string;
   /** operation: PC 전체 표시 / wrap: 모바일 2줄 허용 / truncate: 기본 */
   identityMode?: "truncate" | "full" | "wrap";
+  density?: "default" | "compact";
 }) {
   return (
     <div
       className={cn(
-        "grid w-full items-stretch gap-1.5",
+        "grid w-full items-stretch",
+        density === "compact" ? "gap-1" : "gap-1.5",
         identityMode === "full"
           ? "min-w-[24rem] grid-cols-[minmax(0,1fr)_2.5rem_minmax(0,1fr)]"
           : "min-w-0 grid-cols-[minmax(0,1fr)_2.25rem_minmax(0,1fr)]",
@@ -88,13 +94,16 @@ export function OperationMatchFighterMatchup({
         corner="홍코너"
         fighter={fighterRed}
         identityMode={identityMode}
+        density={density}
         isWinner={Boolean(winnerId && fighterRed?.id && winnerId === fighterRed.id)}
       />
       <div className="flex shrink-0 items-center justify-center self-stretch">
         <span
           className={cn(
             bracketCardTypography.vs,
-            "text-xs leading-none whitespace-nowrap",
+            density === "compact"
+              ? "text-[15px] font-bold leading-none whitespace-nowrap"
+              : "text-xs leading-none whitespace-nowrap",
           )}
         >
           VS
@@ -104,6 +113,7 @@ export function OperationMatchFighterMatchup({
         corner="청코너"
         fighter={fighterBlue}
         identityMode={identityMode}
+        density={density}
         isWinner={Boolean(winnerId && fighterBlue?.id && winnerId === fighterBlue.id)}
       />
     </div>

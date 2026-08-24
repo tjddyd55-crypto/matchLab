@@ -146,7 +146,7 @@ export function OrganizerOperationBoard({
   }
 
   return (
-    <div className="flex flex-col gap-3 md:gap-4">
+    <div className="flex flex-col gap-2.5 md:gap-3">
       <OperationCompactSummaryBar
         summary={summary}
         activeFilter={summaryFilter}
