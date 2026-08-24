@@ -5,12 +5,12 @@ import {
   isPaidForOrganizerDisplay,
   resolveOrganizerApplicationDisplayStatus,
 } from "@/lib/application-display-status";
+import { normalizeApplicantGymDisplayName } from "@/lib/applications/applicant-list-filters";
 import { matchonCompactTableWrapClass } from "@/lib/ui/matchon-shell-ui";
 import { listTableHeaderRowClass } from "@/lib/ui/list-table-styles";
 import { cn } from "@/lib/utils";
 
 export type GymApplicationSummary = {
-  gymId: string;
   gymName: string;
   fighterCount: number;
   paidCount: number;
@@ -25,12 +25,11 @@ function buildGymSummaries(rows: OrganizerApplicationRowVM[]): GymApplicationSum
   const map = new Map<string, GymApplicationSummary>();
 
   for (const row of rows) {
-    const gymId = row.gymId || "_unknown";
+    const gymName = normalizeApplicantGymDisplayName(row.gymName);
     const entry =
-      map.get(gymId) ??
+      map.get(gymName) ??
       ({
-        gymId,
-        gymName: row.gymName,
+        gymName,
         fighterCount: 0,
         paidCount: 0,
         unpaidCount: 0,
@@ -53,7 +52,7 @@ function buildGymSummaries(rows: OrganizerApplicationRowVM[]): GymApplicationSum
     if (display === "gym_cancelled") entry.gymCancelledCount += 1;
     if (display === "organizer_cancelled") entry.organizerCancelledCount += 1;
 
-    map.set(gymId, entry);
+    map.set(gymName, entry);
   }
 
   return [...map.values()].sort((a, b) => a.gymName.localeCompare(b.gymName, "ko"));
@@ -61,12 +60,12 @@ function buildGymSummaries(rows: OrganizerApplicationRowVM[]): GymApplicationSum
 
 export function OrganizerApplicationsGymSummaryTable({
   rows,
-  selectedGymId,
+  selectedGymName,
   onSelectGym,
 }: {
   rows: OrganizerApplicationRowVM[];
-  selectedGymId?: string | null;
-  onSelectGym?: (gymId: string | null) => void;
+  selectedGymName?: string | null;
+  onSelectGym?: (gymName: string | null) => void;
 }) {
   const summaries = buildGymSummaries(rows);
 
@@ -110,16 +109,18 @@ export function OrganizerApplicationsGymSummaryTable({
             </thead>
             <tbody>
               {summaries.map((gym) => {
-                const isSelected = selectedGymId === gym.gymId;
+                const isSelected = selectedGymName === gym.gymName;
                 return (
                   <tr
-                    key={gym.gymId}
+                    key={gym.gymName}
                     className={cn(
                       "border-t",
                       onSelectGym && "cursor-pointer hover:bg-muted/30",
                       isSelected && "bg-primary/5",
                     )}
-                    onClick={() => onSelectGym?.(isSelected ? null : gym.gymId)}
+                    onClick={() =>
+                      onSelectGym?.(isSelected ? null : gym.gymName)
+                    }
                   >
                     <td className="px-3 py-2 font-medium">{gym.gymName}</td>
                     <td className="px-3 py-2 text-center tabular-nums">

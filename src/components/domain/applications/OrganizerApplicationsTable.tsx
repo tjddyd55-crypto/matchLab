@@ -18,6 +18,7 @@ import { OrganizerAdditionalInfoRowActions } from "@/components/domain/applicati
 import { AdditionalInfoStatusBadge } from "@/components/domain/applications/AdditionalInfoStatusBadge";
 import { OrganizerManualEntryHint } from "@/components/domain/applications/OrganizerManualEntryHint";
 import { OrganizerApplicationsEmptyState } from "@/components/domain/applications/OrganizerApplicationsEmptyState";
+import { OrganizerAssignmentStatusBadge } from "@/components/domain/applications/OrganizerAssignmentStatusBadge";
 import {
   ListSequenceCell,
 } from "@/components/domain/shared/CompactApplicantFilterBar";
@@ -97,6 +98,8 @@ export type OrganizerApplicationRowVM = {
   requestedDivisionText: string | null;
   applicationWeightKg: number | null;
   fighterGender: string;
+  assignmentCount: number;
+  isAssigned: boolean;
 };
 
 export function OrganizerApplicationsTable({
@@ -190,10 +193,15 @@ export function OrganizerApplicationsTable({
                   </span>
                   <DivisionGenderBadge gender={row.division?.gender} short />
                 </div>
-                <OrganizerManualEntryHint
-                  show={row.isOrganizerManualEntry}
-                  entrySource={row.entrySource}
-                />
+                <div className="mt-1 flex flex-wrap items-center gap-1">
+                  <OrganizerAssignmentStatusBadge
+                    isAssigned={row.isAssigned}
+                  />
+                  <OrganizerManualEntryHint
+                    show={row.isOrganizerManualEntry}
+                    entrySource={row.entrySource}
+                  />
+                </div>
               </TableCell>
               <TableCell className="align-top">
                 <DivisionCompactDisplay

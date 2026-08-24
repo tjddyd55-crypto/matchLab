@@ -46,6 +46,10 @@ import {
 } from "@/lib/applicant-excel/sample";
 import { encryptInsuranceResidentNumber } from "@/lib/athlete-application/encrypt-insurance-rrn";
 import {
+  buildApplicantAssignmentCountMap,
+  resolveApplicantAssignmentCount,
+} from "@/lib/applications/applicant-list-filters";
+import {
   buildInsuranceConsentSnapshot,
   insuranceConsentDisplayLabel,
   readInsuranceConsentSnapshot,
@@ -617,6 +621,10 @@ export type OrganizerApplicationListRowDTO = {
   applicationWeightKg: number | null;
   /** 선수 성별 (male/female 등) — 체급 지정 UI·검증용 */
   fighterGender: string;
+  /** 이벤트 내 active Match 배정 수 (복수 출전 포함) */
+  assignmentCount: number;
+  /** assignmentCount >= 1 */
+  isAssigned: boolean;
 };
 
 export type ResolveOtherDivisionResultDTO = {
@@ -939,8 +947,11 @@ export const applicationService = {
         : null,
     );
 
-    const rows =
-      await applicationRepository.listApplicationsForOrganizerEvent(eventId);
+    const [rows, matchSlots] = await Promise.all([
+      applicationRepository.listApplicationsForOrganizerEvent(eventId),
+      bracketRepository.listActiveMatchFighterSlotsForEvent(eventId),
+    ]);
+    const assignmentCounts = buildApplicantAssignmentCountMap(matchSlots);
 
     const results: OrganizerApplicationListRowDTO[] = [];
     for (const row of rows) {
@@ -1065,7 +1076,16 @@ export const applicationService = {
           const isMinor = row.fighter.birthDate
             ? isMinorBirthDate(row.fighter.birthDate)
             : false;
-          return { ...mapped, isMinor };
+          const assignmentCount = resolveApplicantAssignmentCount(
+            assignmentCounts,
+            row.fighter.id,
+          );
+          return {
+            ...mapped,
+            isMinor,
+            assignmentCount,
+            isAssigned: assignmentCount >= 1,
+          };
         })(),
       });
     }

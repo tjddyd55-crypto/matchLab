@@ -1,6 +1,7 @@
 "use client";
 
 import type { OrganizerApplicationDisplayStatus } from "@/lib/application-display-status";
+import type { ApplicantAssignmentFilter } from "@/lib/applications/applicant-list-filters";
 import {
   CompactFilterResetButton,
   compactApplicantFilterBarClass,
@@ -19,18 +20,21 @@ export type OrganizerApplicationFiltersState = {
   displayStatus: OrganizerApplicationDisplayStatus | "all";
   paymentDisplay: "all" | "unpaid" | "paid";
   divisionId: string;
-  gymId: string;
+  /** 체육관 display name (SSOT). "all" = 전체 */
+  gymName: string;
   consent: string;
   fighterName: string;
+  assignment: ApplicantAssignmentFilter;
 };
 
 const DEFAULT_FILTERS: OrganizerApplicationFiltersState = {
   displayStatus: "all",
   paymentDisplay: "all",
   divisionId: "all",
-  gymId: "all",
+  gymName: "all",
   consent: "all",
   fighterName: "",
+  assignment: "all",
 };
 
 export function OrganizerApplicationsFilterBar({
@@ -42,7 +46,7 @@ export function OrganizerApplicationsFilterBar({
   filters: OrganizerApplicationFiltersState;
   onChange: (next: OrganizerApplicationFiltersState) => void;
   divisionOptions: { id: string; label: string }[];
-  gymOptions: { id: string; name: string }[];
+  gymOptions: { name: string }[];
 }) {
   function patch<K extends keyof OrganizerApplicationFiltersState>(
     key: K,
@@ -79,13 +83,13 @@ export function OrganizerApplicationsFilterBar({
               compactApplicantSelectWidths.gym,
               compactOrganizerApplicantControlClass,
             )}
-            value={filters.gymId}
-            onChange={(e) => patch("gymId", e.target.value)}
+            value={filters.gymName}
+            onChange={(e) => patch("gymName", e.target.value)}
             aria-label="체육관 필터"
           >
             <option value="all">체육관 전체</option>
             {gymOptions.map((g) => (
-              <option key={g.id} value={g.id}>
+              <option key={g.name} value={g.name}>
                 {g.name}
               </option>
             ))}
@@ -167,6 +171,26 @@ export function OrganizerApplicationsFilterBar({
             <option value="draft">작성중</option>
             <option value="missing">미작성</option>
             <option value="other">기타</option>
+          </select>
+          <select
+            id="f-assignment"
+            className={cn(
+              ORGANIZER_FIELD_SELECT_CLASS,
+              compactApplicantSelectWidths.assignment,
+              compactOrganizerApplicantControlClass,
+            )}
+            value={filters.assignment}
+            onChange={(e) =>
+              patch(
+                "assignment",
+                e.target.value as ApplicantAssignmentFilter,
+              )
+            }
+            aria-label="대진 현황"
+          >
+            <option value="all">대진 전체</option>
+            <option value="assigned">완료</option>
+            <option value="unassigned">미완료</option>
           </select>
           <CompactFilterResetButton
             onClick={reset}

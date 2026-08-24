@@ -19,12 +19,13 @@ export const compactOrganizerApplicantControlClass =
   "h-9 min-h-9 px-2.5 text-xs";
 
 export const compactApplicantSelectWidths = {
-  gym: "w-full min-w-0 md:w-[9.25rem] md:shrink-0 min-[1366px]:w-[6.75rem]",
-  division: "w-full min-w-0 md:w-[10rem] md:shrink-0 min-[1366px]:w-[7.25rem]",
+  gym: "w-full min-w-0 md:w-[9.25rem] md:shrink-0 min-[1366px]:w-[6.5rem]",
+  division: "w-full min-w-0 md:w-[10rem] md:shrink-0 min-[1366px]:w-[7rem]",
   checkIn: "w-full min-w-0 md:w-[9.25rem] md:shrink-0 min-[1366px]:w-[7.25rem]",
-  status: "w-full min-w-0 md:w-[8.75rem] md:shrink-0 min-[1366px]:w-[6.75rem]",
-  payment: "w-full min-w-0 md:w-[8.125rem] md:shrink-0 min-[1366px]:w-[6.25rem]",
-  consent: "w-full min-w-0 md:w-[8.125rem] md:shrink-0 min-[1366px]:w-[6.25rem]",
+  status: "w-full min-w-0 md:w-[8.75rem] md:shrink-0 min-[1366px]:w-[6.5rem]",
+  payment: "w-full min-w-0 md:w-[8.125rem] md:shrink-0 min-[1366px]:w-[6rem]",
+  consent: "w-full min-w-0 md:w-[8.125rem] md:shrink-0 min-[1366px]:w-[6rem]",
+  assignment: "w-full min-w-0 md:w-[7.5rem] md:shrink-0 min-[1366px]:w-[5.75rem]",
 } as const;
 
 export function CompactFilterResetButton({
