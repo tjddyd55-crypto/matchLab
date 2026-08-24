@@ -4,7 +4,7 @@
   "private": true,
   "scripts": {
     "dev": "next dev",
-    "build": "npm run db:generate && next build",
+    "build": "npm run db:generate && npx playwright install --with-deps chromium && next build",
     "start": "next start",
     "lint": "eslint",
     "db:generate": "prisma generate",
@@ -474,7 +474,8 @@
     "verify:auto-match-record-priority": "tsx scripts/verify-auto-match-record-priority.ts",
     "verify:auto-match-weight-priority": "tsx scripts/verify-auto-match-weight-priority.ts",
     "verify:auto-match-large-cardinality": "tsx scripts/verify-auto-match-large-cardinality.ts",
-    "verify:bracket-print-format": "tsx scripts/verify-bracket-print-format.ts"
+    "verify:bracket-print-format": "tsx scripts/verify-bracket-print-format.ts",
+    "verify:applicants-vs-excel": "tsx scripts/verify-applicants-vs-excel.ts"
   },
   "prisma": {
     "seed": "tsx prisma/seed.ts"
@@ -498,6 +499,7 @@
     "pdf-lib": "^1.17.1",
     "pdfjs-dist": "^5.7.284",
     "pg": "^8.20.0",
+    "playwright": "^1.62.1",
     "qrcode.react": "^4.2.0",
     "react": "19.2.4",
     "react-dom": "19.2.4",

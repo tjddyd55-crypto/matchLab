@@ -3,17 +3,20 @@ import "server-only";
 import type { ActorContext } from "@/lib/auth/actor-context";
 import { prisma } from "@/lib/prisma";
 import { requireOrganizerForEvent, requireRole } from "@/lib/permissions";
+import { eventCourtRepository } from "@/lib/repositories/event-court.repository";
 import { matchRepository } from "@/lib/repositories/match.repository";
 import { formatDivisionMainLabel } from "@/lib/event-division-fields";
 import { toEventDivisionDisplayInput } from "@/lib/event-division-fields";
 import { composeEventVenueDisplay } from "@/lib/services/event.service";
-import { sortMatchesByOrder } from "@/lib/match-order-display";
+import {
+  formatCourtScheduleMatchOrderShort,
+  sortMatchesByCourtSchedule,
+} from "@/lib/court-match-order";
 import { parseBracketFighterSnapshot } from "@/lib/bracket-snapshot";
 import {
   buildBracketPrintDocumentTitle,
   buildBracketPrintFighterDto,
   formatBracketPrintEventDate,
-  formatMatchOrderShort,
   parseApplicantNameFromSnapshot,
   type BracketPrintDocumentDto,
   type BracketPrintFighterDto,
@@ -142,7 +145,7 @@ export const bracketPrintService = {
     requireRole(actor, ["organizer", "admin"]);
     await requireOrganizerForEvent(actor, eventId);
 
-    const [event, matchRows, applications] = await Promise.all([
+    const [event, matchRows, applications, courts] = await Promise.all([
       prisma.event.findUnique({
         where: { id: eventId },
         select: {
@@ -189,6 +192,7 @@ export const bracketPrintService = {
           },
         },
       }),
+      eventCourtRepository.listByEvent(eventId),
     ]);
 
     if (!event) {
@@ -210,13 +214,17 @@ export const bracketPrintService = {
       appMap.set(key, list);
     }
 
-    const ordered = sortMatchesByOrder(
+    const ordered = sortMatchesByCourtSchedule(
       matchRows.map((m) => ({
         ...m,
+        matchId: m.id,
+        courtId: m.courtId ?? null,
+        courtOrder: m.courtOrder ?? null,
         matchNumber: m.matchNumber,
         globalMatchOrder: m.globalMatchOrder,
         matchOrder: m.matchOrder,
       })),
+      courts.map((c) => ({ id: c.id, sortOrder: c.sortOrder })),
     );
 
     const matches: BracketPrintMatchDto[] = ordered.map((m) => {
@@ -237,7 +245,14 @@ export const bracketPrintService = {
 
       return {
         matchId: m.id,
-        matchNoLabel: formatMatchOrderShort(m),
+        matchNoLabel: formatCourtScheduleMatchOrderShort({
+          matchId: m.id,
+          courtId: m.courtId ?? null,
+          courtOrder: m.courtOrder ?? null,
+          matchNumber: m.matchNumber,
+          globalMatchOrder: m.globalMatchOrder,
+          matchOrder: m.matchOrder,
+        }),
         divisionLabel,
         arenaName: m.court?.name?.trim() || null,
         red: mapPrintFighter(m.fighterRed, m.fighterRedSnapshot, redApp),

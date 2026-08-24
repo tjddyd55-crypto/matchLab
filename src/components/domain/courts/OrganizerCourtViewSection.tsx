@@ -1,12 +1,10 @@
-import Link from "next/link";
-import { buttonVariants } from "@/components/ui/button";
 import { BracketsEmptyState } from "@/components/domain/brackets/BracketsEmptyState";
+import { OrganizerBracketPrintActions } from "@/components/domain/brackets/OrganizerBracketPrintActions";
 import { OrganizerCourtBracketPanel } from "@/components/domain/courts/OrganizerCourtBracketPanel";
 import { requireActor } from "@/lib/auth/actor";
 import { requireOrganizerForEventPage } from "@/lib/permissions";
 import { eventCourtService } from "@/lib/services/event-court.service";
 import { matchService } from "@/lib/services/match.service";
-import { cn } from "@/lib/utils";
 
 /** 대진표 보기 탭 — 경기장별 대진·순서 조정 */
 export async function OrganizerCourtViewSection({
@@ -29,12 +27,7 @@ export async function OrganizerCourtViewSection({
       <div className="flex flex-wrap items-center justify-between gap-2">
         <h2 className="text-lg font-semibold">경기장별 대진표</h2>
         {eventMatches.length > 0 ? (
-          <Link
-            href={`/organizer/events/${eventId}/brackets/print`}
-            className={cn(buttonVariants({ variant: "outline", size: "sm" }))}
-          >
-            시합 대진표 출력
-          </Link>
+          <OrganizerBracketPrintActions eventId={eventId} variant="view" />
         ) : null}
       </div>
 

@@ -304,14 +304,88 @@ function UnmatchedSearchInput({
   );
 }
 
+function UnmatchedRecordFilterRow({
+  filters,
+  onFiltersChange,
+  filtersActive,
+}: {
+  filters: UnmatchedQuickBarFilterState;
+  onFiltersChange: (next: UnmatchedQuickBarFilterState) => void;
+  filtersActive: boolean;
+}) {
+  function patchFilters(patch: Partial<UnmatchedQuickBarFilterState>) {
+    onFiltersChange({ ...filters, ...patch });
+  }
+
+  return (
+    <div className="flex flex-wrap items-center gap-2">
+      <select
+        className={cn(FILTER_SELECT_CLASS, "min-w-[6.5rem]")}
+        value={filters.recordStatus}
+        onChange={(e) =>
+          patchFilters({
+            recordStatus: e.target.value as UnmatchedRecordStatusFilter,
+            maxTotalBouts:
+              e.target.value === "experienced" ? filters.maxTotalBouts : "",
+          })
+        }
+        aria-label="전적 상태 필터"
+      >
+        <option value="all">전적 전체</option>
+        <option value="zero">무전</option>
+        <option value="experienced">유전</option>
+      </select>
+      {filters.recordStatus === "experienced" ? (
+        <label className="flex h-9 min-w-0 flex-wrap items-center gap-1 text-xs">
+          <span className="text-muted-foreground shrink-0">최대 총전</span>
+          <input
+            type="number"
+            min={1}
+            step={1}
+            inputMode="numeric"
+            className={cn(formControlFieldCompactClass, "h-9 w-16 tabular-nums")}
+            placeholder="—"
+            value={filters.maxTotalBouts}
+            onChange={(e) => {
+              const raw = e.target.value;
+              if (raw === "") {
+                patchFilters({ maxTotalBouts: "" });
+                return;
+              }
+              const n = Number.parseInt(raw, 10);
+              if (!Number.isFinite(n) || n < 1) return;
+              patchFilters({ maxTotalBouts: String(n) });
+            }}
+            aria-label="최대 총전"
+          />
+          <span className="text-muted-foreground shrink-0">전 이하</span>
+        </label>
+      ) : null}
+      {filtersActive ? (
+        <Button
+          type="button"
+          variant="ghost"
+          size="sm"
+          className="h-9 shrink-0 px-2 text-xs"
+          onClick={() => onFiltersChange(DEFAULT_UNMATCHED_QUICK_BAR_FILTERS)}
+        >
+          초기화
+        </Button>
+      ) : null}
+    </div>
+  );
+}
+
 function UnmatchedFilterButtons({
   filterOptions,
   filters,
   onFiltersChange,
+  layout = "inline",
 }: {
   filterOptions: ReturnType<typeof buildUnmatchedQuickBarFilterOptions>;
   filters: UnmatchedQuickBarFilterState;
   onFiltersChange: (next: UnmatchedQuickBarFilterState) => void;
+  layout?: "inline" | "stack";
 }) {
   const filtersActive = hasActiveUnmatchedQuickBarFilters(filters);
 
@@ -319,7 +393,7 @@ function UnmatchedFilterButtons({
     onFiltersChange({ ...filters, ...patch });
   }
 
-  return (
+  const attributeFilters = (
     <>
       <MultiCheckFilterDropdown
         label="부문"
@@ -350,6 +424,25 @@ function UnmatchedFilterButtons({
         selected={filters.weights}
         onChange={(weights) => patchFilters({ weights })}
       />
+    </>
+  );
+
+  if (layout === "stack") {
+    return (
+      <>
+        <div className="flex flex-wrap items-center gap-2">{attributeFilters}</div>
+        <UnmatchedRecordFilterRow
+          filters={filters}
+          onFiltersChange={onFiltersChange}
+          filtersActive={filtersActive}
+        />
+      </>
+    );
+  }
+
+  return (
+    <>
+      {attributeFilters}
       <select
         className={FILTER_SELECT_CLASS}
         value={filters.recordStatus}
@@ -432,13 +525,12 @@ export function UnmatchedQuickBarFilterToolbar({
             onFiltersChange={onFiltersChange}
             className="max-w-none basis-auto"
           />
-          <div className="-mx-1 flex min-w-0 gap-2 overflow-x-auto overscroll-x-contain px-1 pb-0.5 [&>*]:shrink-0">
-            <UnmatchedFilterButtons
-              filterOptions={filterOptions}
-              filters={filters}
-              onFiltersChange={onFiltersChange}
-            />
-          </div>
+          <UnmatchedFilterButtons
+            filterOptions={filterOptions}
+            filters={filters}
+            onFiltersChange={onFiltersChange}
+            layout="stack"
+          />
         </div>
       ) : (
         <div className="flex flex-wrap items-center justify-start gap-2">

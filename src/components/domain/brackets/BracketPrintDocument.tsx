@@ -1,8 +1,8 @@
 "use client";
 
 import Link from "next/link";
-import { useCallback } from "react";
-import { Button, buttonVariants } from "@/components/ui/button";
+import { buttonVariants } from "@/components/ui/button";
+import { OrganizerBracketPrintActions } from "@/components/domain/brackets/OrganizerBracketPrintActions";
 import type { BracketPrintDocumentDto } from "@/lib/brackets/bracket-print-format";
 import { cn } from "@/lib/utils";
 
@@ -13,13 +13,6 @@ export function BracketPrintToolbar({
   eventId: string;
   documentTitle: string;
 }) {
-  const onPrint = useCallback(() => {
-    const prev = document.title;
-    document.title = documentTitle;
-    window.print();
-    document.title = prev;
-  }, [documentTitle]);
-
   return (
     <div className="bracket-print-toolbar no-print">
       <Link
@@ -28,11 +21,11 @@ export function BracketPrintToolbar({
       >
         ← 돌아가기
       </Link>
-      <div className="bracket-print-toolbar-actions">
-        <Button type="button" size="sm" onClick={onPrint}>
-          인쇄 / PDF 저장
-        </Button>
-      </div>
+      <OrganizerBracketPrintActions
+        eventId={eventId}
+        documentTitle={documentTitle}
+        variant="toolbar"
+      />
     </div>
   );
 }
