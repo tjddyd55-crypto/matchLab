@@ -33,6 +33,12 @@ export function PublicFooter() {
                 대회 공고
               </Link>
               <Link
+                href="/#download"
+                className="text-[13px] font-semibold text-white/50 transition-colors hover:text-white/70"
+              >
+                프로그램 다운로드
+              </Link>
+              <Link
                 href="/fighter/profile"
                 className="text-[13px] font-semibold text-white/50 transition-colors hover:text-white/70"
               >

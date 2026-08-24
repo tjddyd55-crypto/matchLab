@@ -85,6 +85,7 @@
     "verify:public-partner-logo-cache": "tsx scripts/verify-public-partner-logo-management.ts",
     "verify:organizer-logo-regression": "tsx scripts/verify-public-partner-logo-management.ts",
     "verify:public-home-partner-grid": "tsx scripts/verify-public-partner-logo-management.ts",
+    "verify:public-home-manager-download": "tsx scripts/verify-public-home-manager-download.ts",
     "apply:public-partner-schema-additive": "tsx scripts/apply-public-partner-schema-additive.mts",
     "verify:association-application-flow": "tsx scripts/verify-association-application-flow.ts",
     "verify:organizer-signup-address-search": "tsx scripts/verify-organizer-signup-address-documents.ts",
