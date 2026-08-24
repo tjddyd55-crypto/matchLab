@@ -10,6 +10,7 @@ import {
   GymMemberStatus,
 } from "@/lib/enums";
 import { generateTemporaryPassword } from "@/lib/fighter-login";
+import { buildRecordText } from "@/lib/fighter/record";
 import { normalizeGymFighterPhone } from "@/lib/gym-fighter-management";
 import { fighterAccountService } from "@/lib/services/fighter-account.service";
 import { toUtcDateOnly } from "@/lib/date-only";
@@ -286,10 +287,11 @@ export const fighterService = {
         ...(rec
           ? {
               recordTotalBouts: rec.totalBouts,
-              recordWin: rec.wins,
-              recordDraw: rec.draws,
-              recordLoss: rec.losses,
-              recordText: `${rec.totalBouts}전 ${rec.wins}승 ${rec.draws}무 ${rec.losses}패`,
+              // Fighter Int 컬럼 — 세부 미상(null)은 0으로 저장, 표시는 totalBouts SSOT
+              recordWin: rec.wins ?? 0,
+              recordDraw: rec.draws ?? 0,
+              recordLoss: rec.losses ?? 0,
+              recordText: buildRecordText(rec),
             }
           : {}),
       };
@@ -432,10 +434,10 @@ export const fighterService = {
         ...(updateRec
           ? {
               recordTotalBouts: updateRec.totalBouts,
-              recordWin: updateRec.wins,
-              recordDraw: updateRec.draws,
-              recordLoss: updateRec.losses,
-              recordText: `${updateRec.totalBouts}전 ${updateRec.wins}승 ${updateRec.draws}무 ${updateRec.losses}패`,
+              recordWin: updateRec.wins ?? 0,
+              recordDraw: updateRec.draws ?? 0,
+              recordLoss: updateRec.losses ?? 0,
+              recordText: buildRecordText(updateRec),
             }
           : {}),
       });

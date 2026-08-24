@@ -1,18 +1,6 @@
 import { z } from "zod";
 import { registrationAccountSchema } from "@/lib/validators/fighter-account.validator";
-
-const structuredRecordFieldSchema = z
-  .object({
-    totalBouts: z.coerce.number().int().min(0).default(0),
-    wins: z.coerce.number().int().min(0).default(0),
-    draws: z.coerce.number().int().min(0).default(0),
-    losses: z.coerce.number().int().min(0).default(0),
-  })
-  .refine(
-    (r) => r.totalBouts === r.wins + r.draws + r.losses,
-    { message: "총 경기수와 승·무·패 합계가 일치하지 않습니다." },
-  )
-  .optional();
+import { structuredRecordFormSchema } from "@/lib/athlete-application/profile-input";
 
 function optionalPositiveFloat() {
   return z.preprocess((val) => {
@@ -47,7 +35,7 @@ export const fighterRegistrationPublicSchema = z
     grade: z.string().trim().optional().transform((s) => (s === "" ? undefined : s)),
     guardianName: z.string().trim().optional().transform((s) => (s === "" ? undefined : s)),
     guardianPhone: z.string().trim().optional().transform((s) => (s === "" ? undefined : s)),
-    structuredRecord: structuredRecordFieldSchema,
+    structuredRecord: structuredRecordFormSchema,
   })
   .strict();
 

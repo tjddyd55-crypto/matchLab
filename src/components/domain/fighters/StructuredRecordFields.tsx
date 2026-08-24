@@ -1,8 +1,8 @@
 "use client";
 
 /**
- * 총전/승/무/패 4개 숫자 입력 + 실시간 미리보기.
- * AthleteInsuranceProfileFields, GymFighterForm, FighterRegistrationForm 공통 사용.
+ * 총전/승/무/패 입력 + 실시간 미리보기.
+ * 승·무·패 빈값 = 모름(null). 숫자 0과 구분.
  */
 
 import { useState, useId } from "react";
@@ -10,22 +10,32 @@ import { buildRecordText, validateRecord } from "@/lib/fighter/record";
 
 export type StructuredRecordValue = {
   totalBouts: number;
-  wins: number;
-  draws: number;
-  losses: number;
+  wins: number | null;
+  draws: number | null;
+  losses: number | null;
 };
 
-function parseNonNegInt(raw: string): number {
-  const n = parseInt(raw, 10);
+function parseOptionalNonNegInt(raw: string): number | null {
+  const t = raw.trim();
+  if (t === "") return null;
+  const n = parseInt(t, 10);
+  if (!Number.isFinite(n) || n < 0) return null;
+  return n;
+}
+
+function parseTotalBouts(raw: string): number {
+  const t = raw.trim();
+  if (t === "") return 0;
+  const n = parseInt(t, 10);
   if (!Number.isFinite(n) || n < 0) return 0;
   return n;
 }
 
 const EMPTY_RECORD: StructuredRecordValue = {
   totalBouts: 0,
-  wins: 0,
-  draws: 0,
-  losses: 0,
+  wins: null,
+  draws: null,
+  losses: null,
 };
 
 /**
@@ -61,11 +71,7 @@ export function StructuredRecordFields({
     onChange?.(next);
   }
 
-  const isZero =
-    current.totalBouts === 0 &&
-    current.wins === 0 &&
-    current.draws === 0 &&
-    current.losses === 0;
+  const isZeroRecord = current.totalBouts === 0;
 
   const validation = validateRecord(current);
   const preview = validation.ok ? buildRecordText(current) : null;
@@ -73,17 +79,26 @@ export function StructuredRecordFields({
   const numFieldClass =
     "border-input bg-background h-9 rounded-md border px-2 text-sm shadow-sm text-center w-full";
 
+  const detailFields = [
+    { key: "wins" as const, label: "승" },
+    { key: "draws" as const, label: "무" },
+    { key: "losses" as const, label: "패" },
+  ];
+
   return (
     <div className="space-y-2">
       <div className="flex items-center justify-between">
-        <span className="text-muted-foreground mb-1 block text-xs font-medium" style={{ marginBottom: 0 }}>
+        <span
+          className="text-muted-foreground mb-1 block text-xs font-medium"
+          style={{ marginBottom: 0 }}
+        >
           전적
         </span>
         <button
           type="button"
           onClick={() => update(EMPTY_RECORD)}
           className={`text-xs px-2 py-0.5 rounded border transition-colors ${
-            isZero
+            isZeroRecord
               ? "border-primary text-primary bg-primary/10"
               : "border-border text-muted-foreground hover:border-primary hover:text-primary"
           }`}
@@ -92,49 +107,76 @@ export function StructuredRecordFields({
         </button>
       </div>
 
-      {/* 4개 숫자 입력 — 2×2 grid (모바일 390 대응) */}
       <div className="grid grid-cols-2 gap-2 sm:grid-cols-4">
-        {(
-          [
-            { key: "totalBouts", label: "총전" },
-            { key: "wins", label: "승" },
-            { key: "draws", label: "무" },
-            { key: "losses", label: "패" },
-          ] as const
-        ).map(({ key, label }) => (
-          <div key={key}>
-            <label
-              className="text-muted-foreground mb-1 block text-xs font-medium text-center"
-              htmlFor={`${prefix}-${key}`}
-            >
-              {label}
-            </label>
-            <input
-              id={`${prefix}-${key}`}
-              name={key}
-              type="number"
-              inputMode="numeric"
-              min={0}
-              step={1}
-              className={numFieldClass}
-              value={isControlled ? current[key] : undefined}
-              defaultValue={isControlled ? undefined : current[key]}
-              onChange={(e) => update({ [key]: parseNonNegInt(e.target.value) })}
-            />
-          </div>
-        ))}
+        <div>
+          <label
+            className="text-muted-foreground mb-1 block text-xs font-medium text-center"
+            htmlFor={`${prefix}-totalBouts`}
+          >
+            총전
+          </label>
+          <input
+            id={`${prefix}-totalBouts`}
+            name="totalBouts"
+            type="text"
+            inputMode="numeric"
+            className={numFieldClass}
+            value={isControlled ? String(current.totalBouts) : undefined}
+            defaultValue={
+              isControlled ? undefined : String(current.totalBouts)
+            }
+            onChange={(e) =>
+              update({ totalBouts: parseTotalBouts(e.target.value) })
+            }
+            aria-label="총전적"
+          />
+        </div>
+        {detailFields.map(({ key, label }) => {
+          const v = current[key];
+          return (
+            <div key={key}>
+              <label
+                className="text-muted-foreground mb-1 block text-xs font-medium text-center"
+                htmlFor={`${prefix}-${key}`}
+              >
+                {label}
+              </label>
+              <input
+                id={`${prefix}-${key}`}
+                name={key}
+                type="text"
+                inputMode="numeric"
+                className={numFieldClass}
+                placeholder="모름"
+                value={
+                  isControlled ? (v == null ? "" : String(v)) : undefined
+                }
+                defaultValue={
+                  isControlled ? undefined : v == null ? "" : String(v)
+                }
+                onChange={(e) =>
+                  update({ [key]: parseOptionalNonNegInt(e.target.value) })
+                }
+                aria-label={`${label} (비우면 모름)`}
+              />
+            </div>
+          );
+        })}
       </div>
 
-      {/* 실시간 미리보기 */}
-      <div className="flex items-center gap-2 min-h-[20px]">
+      <p className="text-muted-foreground text-[11px] leading-snug">
+        승·무·패를 모르면 총전적만 입력할 수 있습니다. 빈 칸은 모름입니다.
+      </p>
+
+      <div className="flex min-h-[20px] items-center gap-2">
         {preview != null ? (
-          <span className="text-xs text-muted-foreground">
+          <span className="text-muted-foreground text-xs">
             전적:{" "}
-            <span className="font-medium text-foreground">{preview}</span>
+            <span className="text-foreground font-medium">{preview}</span>
           </span>
         ) : null}
         {!validation.ok ? (
-          <span className="text-xs text-destructive" role="alert">
+          <span className="text-destructive text-xs" role="alert">
             {validation.error}
           </span>
         ) : null}

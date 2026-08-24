@@ -414,9 +414,9 @@ function resolveStructuredRecord(
   if (total != null || wins != null || draws != null || losses != null) {
     const record: StructuredRecord = {
       totalBouts: total ?? 0,
-      wins: wins ?? 0,
-      draws: draws ?? 0,
-      losses: losses ?? 0,
+      wins,
+      draws,
+      losses,
     };
     const validation = validateRecord(record);
     if (!validation.ok) {

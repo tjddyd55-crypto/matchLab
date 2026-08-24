@@ -63,11 +63,17 @@ export function GymFighterForm({
     loginId: string;
     temporaryPassword: string;
   } | null>(null);
-  const [record, setRecord] = useState<StructuredRecordValue>({
-    totalBouts: initial?.recordTotalBouts ?? 0,
-    wins: initial?.recordWin ?? 0,
-    draws: initial?.recordDraw ?? 0,
-    losses: initial?.recordLoss ?? 0,
+  const [record, setRecord] = useState<StructuredRecordValue>(() => {
+    const total = initial?.recordTotalBouts ?? 0;
+    const wins = initial?.recordWin ?? 0;
+    const draws = initial?.recordDraw ?? 0;
+    const losses = initial?.recordLoss ?? 0;
+    const detailSum = wins + draws + losses;
+    // Fighter Int 캐시: 총전만 저장 시 W/D/L=0 → UI에서는 모름(null)
+    if (total > 0 && detailSum === 0) {
+      return { totalBouts: total, wins: null, draws: null, losses: null };
+    }
+    return { totalBouts: total, wins, draws, losses };
   });
 
   const inputClass =
@@ -81,9 +87,9 @@ export function GymFighterForm({
 
     // 구조화 전적 값 명시 설정 (controlled 모드 — form input value가 React state에 있음)
     fd.set("totalBouts", String(record.totalBouts));
-    fd.set("wins", String(record.wins));
-    fd.set("draws", String(record.draws));
-    fd.set("losses", String(record.losses));
+    fd.set("wins", record.wins == null ? "" : String(record.wins));
+    fd.set("draws", record.draws == null ? "" : String(record.draws));
+    fd.set("losses", record.losses == null ? "" : String(record.losses));
 
     if (mode === "create" && duplicates?.length && selectedLinkId) {
       fd.set("confirmDuplicateLink", "true");

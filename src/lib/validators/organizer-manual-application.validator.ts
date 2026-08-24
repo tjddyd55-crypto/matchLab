@@ -3,10 +3,12 @@ import { ApplicationStatus, PaymentStatus } from "@/generated/prisma";
 import {
   athleteCareerTextSchema,
   athleteRecordTextSchema,
+  coerceNullableNonNegInt,
   optionalInsuranceConsentSchema,
   optionalResidentRegistrationNumberFieldSchema,
 } from "@/lib/athlete-application/profile-input";
 import { parseSchoolGradeSelectValue } from "@/lib/fighter/school-grade-input";
+import { validateRecord } from "@/lib/fighter/record";
 
 const genderSchema = z.string().trim().min(1, "성별을 선택해 주세요.");
 
@@ -78,10 +80,14 @@ export const organizerManualApplicationSchema = z
       .transform((s) => (s === "" ? undefined : s)),
     recordText: athleteRecordTextSchema,
     careerText: athleteCareerTextSchema,
-    totalBouts: z.coerce.number().int().min(0).optional(),
-    wins: z.coerce.number().int().min(0).optional(),
-    draws: z.coerce.number().int().min(0).optional(),
-    losses: z.coerce.number().int().min(0).optional(),
+    totalBouts: z.preprocess((val) => {
+      if (val === "" || val === undefined || val === null) return undefined;
+      const n = Number(val);
+      return Number.isFinite(n) ? n : val;
+    }, z.number().int().min(0).optional()),
+    wins: z.preprocess(coerceNullableNonNegInt, z.number().int().min(0).nullable().optional()),
+    draws: z.preprocess(coerceNullableNonNegInt, z.number().int().min(0).nullable().optional()),
+    losses: z.preprocess(coerceNullableNonNegInt, z.number().int().min(0).nullable().optional()),
     residentRegistrationNumber: optionalResidentRegistrationNumberFieldSchema,
     insuranceConsentConfirmed: optionalInsuranceConsentSchema,
     confirmDuplicate: z.boolean().optional().default(false),
@@ -94,14 +100,16 @@ export const organizerManualApplicationSchema = z
       data.draws != null ||
       data.losses != null;
     if (hasStructured) {
-      const totalBouts = data.totalBouts ?? 0;
-      const wins = data.wins ?? 0;
-      const draws = data.draws ?? 0;
-      const losses = data.losses ?? 0;
-      if (totalBouts !== wins + draws + losses) {
+      const result = validateRecord({
+        totalBouts: data.totalBouts ?? 0,
+        wins: data.wins ?? null,
+        draws: data.draws ?? null,
+        losses: data.losses ?? null,
+      });
+      if (!result.ok) {
         ctx.addIssue({
           code: "custom",
-          message: "총 경기수와 승·무·패 합계가 일치하지 않습니다.",
+          message: result.error,
           path: ["totalBouts"],
         });
       }

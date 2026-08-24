@@ -67,7 +67,7 @@ function initialRowStates(
         fighter.weightKg != null ? String(fighter.weightKg) : "",
       schoolGradeSelect: "",
       formAnswers: {},
-      structuredRecord: { totalBouts: 0, wins: 0, draws: 0, losses: 0 },
+      structuredRecord: { totalBouts: 0, wins: null, draws: null, losses: null },
       careerText: "",
       residentRegistrationNumber: "",
     };

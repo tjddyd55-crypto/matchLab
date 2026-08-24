@@ -183,6 +183,7 @@
     "verify:organizer-all-matches-print": "tsx scripts/verify-organizer-all-matches-print.ts",
     "verify:compact-filter-toolbar": "tsx scripts/verify-compact-filter-toolbar.ts",
     "verify:record-total-bouts": "tsx scripts/verify-record-total-bouts.ts",
+    "verify:application-fight-record": "tsx scripts/verify-application-fight-record.ts",
     "verify:application-school-grade": "tsx scripts/verify-application-school-grade.ts",
     "verify:applicant-list-filters": "tsx scripts/verify-applicant-list-filters.ts",
     "verify:manual-multi-match": "tsx scripts/verify-manual-multi-match.ts",
