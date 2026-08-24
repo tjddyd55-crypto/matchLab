@@ -21,8 +21,10 @@ assert.ok(display.includes("getSelectableListCardClass"));
 
 const selectable = read("src/lib/ui/selectable-list-card.ts");
 assert.ok(selectable.includes("focus-visible:ring-2"));
-assert.ok(selectable.includes("0_0_0_4px"));
+// selected ring style: full primary border (not inset box-shadow)
+assert.ok(selectable.includes('border-2 border-[#0A47FF]'));
 assert.ok(selectable.includes("getSelectableListCardClass"));
+assert.ok(!selectable.includes("0_0_0_4px"));
 
 const pane = read(
   "src/components/domain/operation/OperationMatchListPane.tsx",
