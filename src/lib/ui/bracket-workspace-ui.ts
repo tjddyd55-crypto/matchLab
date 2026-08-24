@@ -24,8 +24,12 @@ export const bracketWorkspaceScopeRowClass =
 export const bracketWorkspaceListScrollClass =
   "min-h-0 flex-1 overflow-y-auto overscroll-contain pr-1";
 
-/** Title row: 좌우 동일 baseline */
+/** Title / action row: 좌우 동일 baseline */
 export const bracketWorkspaceTitleRowClass =
+  "flex min-h-10 flex-wrap items-center justify-between gap-2";
+
+/** 우측 scope + 수동 경기 만들기 1행 */
+export const bracketWorkspaceActionRowClass =
   "flex min-h-10 flex-wrap items-center justify-between gap-2";
 
 function cnSafe(...parts: Array<string | false | null | undefined>): string {

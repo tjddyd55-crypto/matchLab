@@ -61,6 +61,11 @@ export type ApprovedApplicationForBracketRow = {
   fighterSnapshot?: unknown;
   schoolLevelSnapshot?: string | null;
   schoolGradeSnapshot?: number | null;
+  recordText?: string | null;
+  totalBoutsSnapshot?: number | null;
+  winsSnapshot?: number | null;
+  drawsSnapshot?: number | null;
+  lossesSnapshot?: number | null;
   fighter: {
     id: string;
     fighterCode: string;
@@ -70,6 +75,7 @@ export type ApprovedApplicationForBracketRow = {
     recordWin: number;
     recordLoss: number;
     recordDraw: number;
+    recordTotalBouts?: number;
   };
   division: {
     id?: string;
@@ -157,6 +163,11 @@ const APPROVED_APPLICATION_FOR_BRACKET_SELECT = {
   gymNameSnapshot: true,
   schoolLevelSnapshot: true,
   schoolGradeSnapshot: true,
+  recordText: true,
+  totalBoutsSnapshot: true,
+  winsSnapshot: true,
+  drawsSnapshot: true,
+  lossesSnapshot: true,
   fighter: {
     select: {
       id: true,
@@ -167,6 +178,7 @@ const APPROVED_APPLICATION_FOR_BRACKET_SELECT = {
       recordWin: true,
       recordLoss: true,
       recordDraw: true,
+      recordTotalBouts: true,
     },
   },
   division: {

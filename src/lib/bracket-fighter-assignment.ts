@@ -193,6 +193,8 @@ export function formatBracketCandidateRecordLabel(
   if (!trimmed) return undefined;
   const parsed = parseRecordText(trimmed);
   if (parsed.ok) return parsed.recordText;
+  const totalOnly = trimmed.match(/^(\d+)\s*전$/);
+  if (totalOnly) return trimmed;
   const winsLossesDraws = trimmed.match(/^(\d+)\s*승\s*(\d+)\s*패\s*(\d+)\s*무$/);
   if (winsLossesDraws) {
     const wins = Number(winsLossesDraws[1]);

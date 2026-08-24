@@ -3,11 +3,12 @@ import type { OrganizerBracketMatchVM } from "@/lib/services/bracket.service";
 import {
   DEFAULT_UNMATCHED_QUICK_BAR_FILTERS,
   filterUnmatchedQuickBarOptions,
+  resolveApprovedOptionTotalBouts,
   resolveUnmatchedCandidateGenderLabel,
-  resolveUnmatchedCandidateTotalBouts,
   type UnmatchedQuickBarFilterState,
   type UnmatchedRecordStatusFilter,
 } from "@/lib/brackets/unmatched-candidate-filters";
+import { matchesFightRecordExperienceFilter } from "@/lib/fighter/fight-record-total-bouts";
 import {
   buildSchoolGradeFilterOptions,
   resolveApplicationSchoolGradeLabel,
@@ -93,15 +94,12 @@ function optionMatchesRecordFilter(
 ): boolean {
   if (recordStatus === "all") return true;
   if (!option) return false;
-  const total = resolveUnmatchedCandidateTotalBouts(option.recordSummary);
-  if (total == null) return false;
-  if (recordStatus === "zero") return total === 0;
-  if (total < 1) return false;
-  const maxRaw = maxTotalBouts.trim();
-  if (!maxRaw) return true;
-  const max = Number.parseInt(maxRaw, 10);
-  if (!Number.isFinite(max) || max < 1) return false;
-  return total <= max;
+  const total = resolveApprovedOptionTotalBouts(option);
+  return matchesFightRecordExperienceFilter(
+    total,
+    recordStatus,
+    maxTotalBouts,
+  );
 }
 
 function optionMatchesDivisionFilter(

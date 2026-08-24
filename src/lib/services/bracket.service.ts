@@ -15,7 +15,6 @@ import type { ActorContext } from "@/lib/auth/actor-context";
 import {
   buildFighterBracketSnapshot,
   formatDivisionNameLabel,
-  formatRecordSummary,
   parseBracketFighterSnapshot,
   type BracketFighterSnapshotPayload,
   type BracketFighterSnapshotSource,
@@ -69,6 +68,7 @@ import { fieldStatusService } from "@/lib/services/field-status.service";
 import type { FieldStatusRowDTO } from "@/lib/services/field-status.service";
 import type { ApprovedApplicationForBracketRow } from "@/lib/repositories/bracket.repository";
 import { resolveApplicationGymDisplayName } from "@/lib/gym/external-registration-placeholder-gym";
+import { formatPreviewApplicationRecord } from "@/lib/brackets/explain-record-unmatched";
 import { eventCourtService } from "@/lib/services/event-court.service";
 import {
   buildMultiMatchAssignmentSignature,
@@ -215,7 +215,21 @@ function mapApplicationToApprovedOption(
     assignabilityLabel: assignability.label,
     assignabilityDisabledReason: assignability.disabledReason,
     assignabilityWarningReason: assignability.warningReason,
-    recordSummary: formatRecordSummary(a.fighter),
+    recordSummary: formatPreviewApplicationRecord({
+      totalBoutsSnapshot: a.totalBoutsSnapshot ?? null,
+      winsSnapshot: a.winsSnapshot ?? null,
+      drawsSnapshot: a.drawsSnapshot ?? null,
+      lossesSnapshot: a.lossesSnapshot ?? null,
+      recordText: a.recordText ?? null,
+      fighter: {
+        recordTotalBouts: a.fighter.recordTotalBouts ?? 0,
+        recordWin: a.fighter.recordWin,
+        recordLoss: a.fighter.recordLoss,
+        recordDraw: a.fighter.recordDraw,
+      },
+    }),
+    totalBoutsSnapshot: a.totalBoutsSnapshot ?? null,
+    recordText: a.recordText ?? null,
     applicationWeightKg: readApplicationWeightKg(
       a.fighterSnapshot,
       a.weighInWeightKg,
@@ -567,6 +581,9 @@ export type OrganizerApprovedFighterOptionVM = {
   assignabilityWarningReason?: string;
   /** 후보 카드 보조 표시 */
   recordSummary: string;
+  /** 신청 snapshot — 전적 필터 SSOT */
+  totalBoutsSnapshot?: number | null;
+  recordText?: string | null;
   applicationWeightKg: number | null;
   /** EventApplication snapshot — 표시용. schema 추가 없음 */
   schoolLevel: string | null;

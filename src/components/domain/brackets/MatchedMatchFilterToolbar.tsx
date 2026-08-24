@@ -19,6 +19,8 @@ import {
   COMPACT_FILTER_RESET_CLASS,
   COMPACT_FILTER_ROW_CLASS,
   COMPACT_FILTER_SEARCH_CLASS,
+  COMPACT_FILTER_SEARCH_STACKED_CLASS,
+  COMPACT_FILTER_STACK_CLASS,
   COMPACT_FILTER_SELECT_CLASS,
   COMPACT_NUMBER_INPUT_CLASS,
   sanitizePositiveIntInput,
@@ -38,7 +40,7 @@ export function MatchedMatchFilterToolbar({
   filters: MatchedMatchFilterState;
   onFiltersChange: (next: MatchedMatchFilterState) => void;
   className?: string;
-  /** workspace/inline 동일: 검색+필터 한 줄 */
+  /** workspace: 검색 1행 + 필터 1행 / inline: 한 줄 */
   layout?: "inline" | "stack";
 }) {
   const filterOptions = useMemo(
@@ -53,7 +55,11 @@ export function MatchedMatchFilterToolbar({
 
   const searchInput = (
     <input
-      className={COMPACT_FILTER_SEARCH_CLASS}
+      className={
+        _layout === "stack"
+          ? COMPACT_FILTER_SEARCH_STACKED_CLASS
+          : COMPACT_FILTER_SEARCH_CLASS
+      }
       placeholder="선수명 · 체육관"
       value={filters.search}
       onChange={(e) => patch({ search: e.target.value })}
@@ -149,6 +155,15 @@ export function MatchedMatchFilterToolbar({
       ) : null}
     </>
   );
+
+  if (_layout === "stack") {
+    return (
+      <div className={cn(COMPACT_FILTER_STACK_CLASS, className)}>
+        {searchInput}
+        <div className={COMPACT_FILTER_ROW_CLASS}>{filterControls}</div>
+      </div>
+    );
+  }
 
   return (
     <div className={cn("min-w-0", className)}>

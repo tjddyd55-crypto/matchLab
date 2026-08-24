@@ -41,7 +41,6 @@ import {
   bracketWorkspaceControlsClass,
   bracketWorkspaceListScrollClass,
   bracketWorkspacePaneClass,
-  bracketWorkspaceScopeRowClass,
   bracketWorkspaceTitleRowClass,
 } from "@/lib/ui/bracket-workspace-ui";
 import { cn } from "@/lib/utils";
@@ -169,9 +168,7 @@ export function MatchListEditor({
             선수·경기장·라운드·시간 변경은 즉시 저장됩니다. 경기 순서는 대진표
             보기에서 조정하세요.
           </CardDescription>
-        ) : (
-          <div className={bracketWorkspaceScopeRowClass} aria-hidden />
-        )}
+        ) : null}
         <MatchedMatchFilterToolbar
           matches={sortedMatches}
           options={options}

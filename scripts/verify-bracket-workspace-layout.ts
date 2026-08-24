@@ -64,7 +64,7 @@ assert.ok(matchList.includes("bracketWorkspacePaneClass"));
 assert.ok(matchList.includes("bracketWorkspaceListScrollClass"));
 assert.ok(matchList.includes('data-bracket-workspace-list={compactWorkspace ? "matched"'));
 assert.ok(matchList.includes('layout={compactWorkspace ? "stack"'));
-assert.ok(matchList.includes("bracketWorkspaceScopeRowClass"));
+assert.ok(!matchList.includes("bracketWorkspaceScopeRowClass"));
 
 const candidates = read(
   "src/components/domain/brackets/BracketApprovedCandidatesSection.tsx",
@@ -74,6 +74,12 @@ assert.ok(candidates.includes("unmatchedFilters"));
 assert.ok(candidates.includes("bracketWorkspacePaneClass"));
 assert.ok(candidates.includes("bracketWorkspaceListScrollClass"));
 assert.ok(candidates.includes('data-bracket-workspace-list="unmatched"'));
+assert.ok(candidates.includes("bracketWorkspaceActionRowClass"));
+assert.ok(candidates.includes("renderUnmatchedScopeButtons"));
+assert.ok(
+  !/isWorkspace[\s\S]{0,800}미매칭 선수/.test(candidates),
+  "workspace unmatched title removed",
+);
 assert.ok(
   !candidates.includes("검색·필터는 이 영역만 적용됩니다"),
   "workspace description removed",
