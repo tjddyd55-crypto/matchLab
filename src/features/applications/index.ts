@@ -4,6 +4,7 @@ export {
   createBulkEventApplicationsAction,
   approveApplicationAction,
   approveApplicationFormAction,
+  revokeApplicationApprovalAction,
   rejectApplicationAction,
   rejectApplicationFormAction,
 } from "./actions";

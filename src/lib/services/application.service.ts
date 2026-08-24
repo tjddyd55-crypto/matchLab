@@ -3,10 +3,13 @@ import "server-only";
 import type { ActorContext } from "@/lib/auth/actor-context";
 import {
   ApplicationStatus,
+  BracketMatchStatus,
   ConsentStatus,
   EventStatus,
   FighterStatus,
+  MatchRecordStatus,
   PaymentStatus,
+  WeighInStatus,
   type Prisma,
 } from "@/generated/prisma";
 import { prisma } from "@/lib/prisma";
@@ -1667,6 +1670,116 @@ export const applicationService = {
     }
 
     // MVP: 입금 미확인(unpaid)이어도 승인 가능 — 향후 대회별 "입금 확인 후 승인" 정책 확장 TODO.
+    void ctx.paymentStatus;
+  },
+
+  /** 승인(approved) → 미승인(pending). 입금 상태는 변경하지 않음. */
+  async revokeEventApplicationApproval(
+    actor: ActorContext,
+    applicationId: string,
+  ): Promise<void> {
+    const ctx =
+      await applicationRepository.findApplicationOwnershipContext(applicationId);
+    if (!ctx) {
+      throw new AppError("NOT_FOUND", "신청을 찾을 수 없습니다.");
+    }
+    await requireOrganizerForEvent(actor, ctx.eventId);
+
+    if (ctx.status !== ApplicationStatus.approved) {
+      throw new AppError(
+        "CONFLICT",
+        "승인된 신청만 승인 취소할 수 있습니다.",
+      );
+    }
+
+    const fighterId = ctx.fighterId;
+    const eventId = ctx.eventId;
+
+    const [matches, results, appRow] = await Promise.all([
+      prisma.bracketMatch.count({
+        where: {
+          status: { not: BracketMatchStatus.cancelled },
+          bracket: { eventId },
+          OR: [{ fighterRedId: fighterId }, { fighterBlueId: fighterId }],
+        },
+      }),
+      prisma.matchResult.count({
+        where: {
+          fighterId,
+          eventId,
+          status: {
+            in: [MatchRecordStatus.confirmed, MatchRecordStatus.corrected],
+          },
+        },
+      }),
+      prisma.eventApplication.findUnique({
+        where: { id: applicationId },
+        select: { weighInStatus: true, weighInWeightKg: true },
+      }),
+    ]);
+
+    if (matches > 0) {
+      throw new AppError(
+        "CONFLICT",
+        "대진 배정된 선수는 승인을 취소할 수 없습니다.",
+      );
+    }
+    if (results > 0) {
+      throw new AppError(
+        "CONFLICT",
+        "경기 결과가 있는 선수는 승인을 취소할 수 없습니다.",
+      );
+    }
+    if (
+      appRow &&
+      (appRow.weighInStatus !== WeighInStatus.pending ||
+        appRow.weighInWeightKg != null)
+    ) {
+      throw new AppError(
+        "CONFLICT",
+        "계체 기록이 있는 선수는 승인을 취소할 수 없습니다.",
+      );
+    }
+
+    const organizerId = ctx.event.organizerId;
+
+    await prisma.$transaction(async (tx) => {
+      await creditService.refundParticipantFee(
+        {
+          organizerId,
+          eventId: ctx.eventId,
+          eventApplicationId: applicationId,
+          actor,
+        },
+        tx,
+      );
+
+      await applicationRepository.updateApplicationStatus(
+        applicationId,
+        ApplicationStatus.pending,
+        tx,
+      );
+    });
+
+    const nctxRevoked =
+      await applicationRepository.findApplicationNotificationContext(
+        applicationId,
+      );
+    if (nctxRevoked?.event && nctxRevoked.gym && nctxRevoked.fighter) {
+      const gymOwnerUserId = nctxRevoked.gym.ownerUserId;
+      const fighterUserId = nctxRevoked.fighter.userId;
+      safeNotify(`application-revoked:${applicationId}`, () =>
+        notificationService.notifyApplicationStatusChanged({
+          applicationId,
+          eventId: nctxRevoked.eventId,
+          eventTitle: nctxRevoked.event.title,
+          status: ApplicationStatus.pending,
+          gymOwnerUserId,
+          fighterUserId,
+        }),
+      );
+    }
+
     void ctx.paymentStatus;
   },
 

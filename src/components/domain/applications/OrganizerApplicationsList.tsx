@@ -1,7 +1,7 @@
 "use client";
 
 import {
-  OrganizerApplicationStatusBadge,
+  OrganizerApplicationStatusBadgeToggle,
   OrganizerPaymentDisplayBadge,
 } from "@/components/domain/applications/OrganizerApplicationDisplayBadge";
 import { OrganizerApplicationRowActions } from "@/components/domain/applications/OrganizerApplicationRowActions";
@@ -142,7 +142,10 @@ export function OrganizerApplicationsList({
             </div>
 
             <div className="min-w-0 space-y-1">
-              <OrganizerApplicationStatusBadge
+              <OrganizerApplicationStatusBadgeToggle
+                eventId={eventId}
+                applicationId={row.applicationId}
+                fighterName={row.fighterName}
                 applicationStatus={row.applicationStatus}
                 cancellationSource={row.cancellationSource}
               />
