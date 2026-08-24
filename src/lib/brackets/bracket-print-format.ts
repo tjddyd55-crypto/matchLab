@@ -13,6 +13,8 @@ export type BracketPrintFighterDto = {
   gradeLabel: string | null;
   recordLabel: string;
   identityLine: string;
+  /** all-matches card layout */
+  genderLabel?: string | null;
 };
 
 export type BracketPrintMatchDto = {
@@ -25,6 +27,8 @@ export type BracketPrintMatchDto = {
   /** all-matches mode only */
   roundLabel?: string | null;
   timeLabel?: string | null;
+  /** compact ops line: 제1경기장 · 2R · 3:00 */
+  opsLine?: string | null;
   organizerMemo?: string | null;
 };
 
@@ -97,6 +101,7 @@ export function buildBracketPrintFighterDto(input: {
   drawsSnapshot?: number | null;
   lossesSnapshot?: number | null;
   recordText?: string | null;
+  genderLabel?: string | null;
   fighterRecord?: {
     recordTotalBouts: number;
     recordWin: number;
@@ -127,16 +132,44 @@ export function buildBracketPrintFighterDto(input: {
   const normalizedRecord =
     recordLabel === "전적 정보 없음" ? "-" : recordLabel;
 
-  const dto = {
+  const dto: BracketPrintFighterDto = {
     name: input.name.trim() || "미정",
     gymName,
     weightLabel,
     gradeLabel,
     recordLabel: normalizedRecord,
     identityLine: "",
+    genderLabel: input.genderLabel?.trim() || null,
   };
   dto.identityLine = buildBracketPrintFighterIdentityLine(dto);
   return dto;
+}
+
+/** all-matches 카드: 남성 · 66kg · 중2 · 무전 */
+export function buildBracketPrintFighterMetaLine(
+  fighter: BracketPrintFighterDto | null,
+): string | null {
+  if (!fighter) return null;
+  const parts = [
+    fighter.genderLabel,
+    fighter.weightLabel,
+    fighter.gradeLabel,
+    fighter.recordLabel && fighter.recordLabel !== "-"
+      ? fighter.recordLabel
+      : null,
+  ].filter((x): x is string => Boolean(x && x.trim()));
+  return parts.length > 0 ? parts.join(" · ") : null;
+}
+
+export function buildAllMatchesPrintOpsLine(input: {
+  arenaName: string | null;
+  roundLabel: string | null;
+  timeLabel: string | null;
+}): string | null {
+  const parts = [input.arenaName, input.roundLabel, input.timeLabel].filter(
+    (x): x is string => Boolean(x && x.trim()),
+  );
+  return parts.length > 0 ? parts.join(" · ") : null;
 }
 
 export function buildBracketPrintDocumentTitle(

@@ -106,8 +106,8 @@ assert.ok(printActions.includes("/brackets/print-pdf"));
 const unmatchedToolbar = read(
   "src/components/domain/brackets/UnmatchedQuickBarFilterToolbar.tsx",
 );
-assert.ok(unmatchedToolbar.includes("UnmatchedRecordFilterRow"));
-assert.ok(unmatchedToolbar.includes('layout === "stack"'));
+assert.ok(unmatchedToolbar.includes("COMPACT_FILTER_ROW_CLASS"));
+assert.ok(unmatchedToolbar.includes('layout?: "toolbar" | "stack"'));
 
 const weightAutoAssign = read(
   "src/components/domain/applications/ApplicationWeightAutoAssign.tsx",
@@ -127,7 +127,7 @@ const matchedToolbar = read(
 );
 assert.ok(matchedToolbar.includes("FilterMultiSelectButton"));
 assert.ok(matchedToolbar.includes('layout?: "inline" | "stack"'));
-assert.ok(matchedToolbar.includes('layout === "stack"'));
+assert.ok(matchedToolbar.includes("COMPACT_FILTER_ROW_CLASS"));
 
 // Filter portal (absolute clipping 회귀 방지)
 const filterAnchored = read(
