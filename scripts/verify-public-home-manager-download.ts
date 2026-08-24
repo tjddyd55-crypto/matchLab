@@ -15,9 +15,21 @@ function main() {
   const info = getMatchonManagerDownloadInfo();
   assert.equal(info.productName, "MATCHON Manager");
   assert.equal(info.version, MATCHON_MANAGER_PUBLISHED_VERSION);
+  assert.equal(MATCHON_MANAGER_PUBLISHED_VERSION, "1.0.3");
   assert.equal(info.fileName, `MATCHON-Manager-Setup-${info.version}.exe`);
   assert.equal(info.releaseTag, `desktop-v${info.version}`);
   assert.equal(info.githubRepo, MATCHON_MANAGER_GITHUB_FULL_NAME);
+  assert.equal(MATCHON_MANAGER_GITHUB_FULL_NAME, "tjddyd55-crypto/matchLab");
+  assert.equal(
+    info.downloadUrl.includes("tjdyd55-crypto"),
+    false,
+    "owner typo tjdyd55-crypto must not appear",
+  );
+  assert.equal(
+    info.latestDownloadUrl.includes("tjdyd55-crypto"),
+    false,
+    "owner typo tjdyd55-crypto must not appear",
+  );
   assert.match(
     info.downloadUrl,
     new RegExp(
@@ -30,10 +42,21 @@ function main() {
     `https://github.com/${MATCHON_MANAGER_GITHUB_FULL_NAME}/releases/latest/download/${info.fileName}`,
   );
 
+  const ssotSource = readFileSync(
+    join(process.cwd(), "src/lib/desktop/manager-download.ts"),
+    "utf8",
+  );
+  assert.equal(
+    ssotSource.includes('readFileSync(join(process.cwd(), "desktop/package.json")'),
+    false,
+    "public download SSOT must not read desktop/package.json for installer URL",
+  );
+
   // Must not advertise unpublished package bumps (e.g. desktop 1.0.4 without a Release).
   const desktopPkg = JSON.parse(
     readFileSync(join(process.cwd(), "desktop/package.json"), "utf8"),
   ) as { version?: string };
+  assert.equal(desktopPkg.version, "1.0.4");
   if (
     desktopPkg.version &&
     desktopPkg.version !== MATCHON_MANAGER_PUBLISHED_VERSION
@@ -42,6 +65,18 @@ function main() {
       info.version,
       desktopPkg.version,
       "public download version must follow published Release, not desktop package bump",
+    );
+    assert.equal(
+      info.downloadUrl.includes(`desktop-v${desktopPkg.version}`),
+      false,
+      "downloadUrl must not use unpublished desktop package version",
+    );
+    assert.equal(
+      info.latestDownloadUrl.includes(
+        `MATCHON-Manager-Setup-${desktopPkg.version}.exe`,
+      ),
+      false,
+      "latestDownloadUrl must not use unpublished desktop package filename",
     );
   }
 
