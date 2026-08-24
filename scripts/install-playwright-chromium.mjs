@@ -8,7 +8,7 @@ process.env.PLAYWRIGHT_BROWSERS_PATH = "0";
 
 const result = spawnSync(
   process.platform === "win32" ? "npx.cmd" : "npx",
-  ["playwright", "install", "chromium"],
+  ["playwright", "install", "chromium", "chromium-headless-shell"],
   { stdio: "inherit", env: process.env },
 );
 
