@@ -9,8 +9,13 @@ import { prisma } from "@/lib/prisma";
 export const runtime = "nodejs";
 export const maxDuration = 120;
 
-function sanitizeFilename(name: string): string {
-  return name.replace(/[\\/:*?"<>|]/g, "_").trim() || "대회";
+function buildContentDisposition(filename: string): string {
+  const ascii =
+    filename
+      .replace(/[^\x20-\x7E]/g, "_")
+      .replace(/[\\/:*?"<>|]/g, "_")
+      .trim() || "MATCHON_bracket.pdf";
+  return `attachment; filename="${ascii}"; filename*=UTF-8''${encodeURIComponent(filename)}`;
 }
 
 export async function GET(
@@ -44,7 +49,7 @@ export async function GET(
       status: 200,
       headers: {
         "Content-Type": "application/pdf",
-        "Content-Disposition": `attachment; filename="${sanitizeFilename(filename)}"; filename*=UTF-8''${encodeURIComponent(filename)}`,
+        "Content-Disposition": buildContentDisposition(filename),
         "Cache-Control": "no-store",
       },
     });
