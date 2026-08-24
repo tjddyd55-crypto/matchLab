@@ -16,6 +16,8 @@ const bridge = {
   retryConnection: (): Promise<boolean> =>
     ipcRenderer.invoke("desktop:retry-connection"),
   isDesktopApp: (): boolean => true,
+  clearNavigationHistory: (): Promise<boolean> =>
+    ipcRenderer.invoke("desktop:clear-navigation-history"),
   getUpdateStatus: (): Promise<UpdateStatusSnapshot> =>
     ipcRenderer.invoke("desktop:get-update-status"),
   checkForUpdates: (): Promise<UpdateStatusSnapshot> =>

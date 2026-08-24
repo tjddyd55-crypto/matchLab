@@ -168,6 +168,12 @@ function registerIpc(): void {
     await loadEntry(mainWindow);
     return true;
   });
+  ipcMain.handle("desktop:clear-navigation-history", (event) => {
+    const contents = event.sender;
+    if (contents.isDestroyed()) return false;
+    contents.clearHistory();
+    return true;
+  });
   ipcMain.handle("desktop:get-update-status", () => getUpdateStatus());
   ipcMain.handle("desktop:check-for-updates", async () => checkForUpdatesNow());
   ipcMain.handle("desktop:apply-web-update", async () => applyWebUpdateNow());

@@ -53,6 +53,8 @@ export type MatchonDesktopBridge = {
   openExternal: (url: string) => Promise<boolean>;
   retryConnection: () => Promise<boolean>;
   isDesktopApp: () => boolean;
+  /** 로그아웃·login boundary 진입 후 뒤로가기 스택 제거 */
+  clearNavigationHistory?: () => Promise<boolean>;
   getUpdateStatus?: () => Promise<MatchonDesktopUpdateStatus>;
   checkForUpdates?: () => Promise<MatchonDesktopUpdateStatus>;
   /** 웹 화면만 reload. quitAndInstall 호출 안 함 */
