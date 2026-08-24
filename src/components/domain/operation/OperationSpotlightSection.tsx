@@ -13,6 +13,10 @@ import {
 } from "@/lib/match-operation-display";
 import {
   organizerOperationDetailHeaderClass,
+  organizerOperationDetailHeaderMetaClass,
+  organizerOperationDetailMajorSectionClass,
+  organizerOperationDetailSectionContentClass,
+  organizerOperationDetailVsSectionClass,
   organizerOperationSectionTitleClass,
   organizerOperationSpotlightPanelClass,
 } from "@/lib/ui/organizer-operation-ui";
@@ -74,7 +78,7 @@ export function OperationSpotlightSection({
     <section className={cn(className)} aria-label="선택 경기 상세">
       <div className={organizerOperationSpotlightPanelClass}>
         <div className={organizerOperationDetailHeaderClass}>
-          <div className="min-w-0 space-y-0.5">
+          <div className={cn("min-w-0", organizerOperationDetailHeaderMetaClass)}>
             <p className="text-base font-bold leading-tight text-[#0F172A]">
               {focusedMatch.orderLabel}
             </p>
@@ -109,26 +113,30 @@ export function OperationSpotlightSection({
           />
         </div>
 
-        <OperationMatchFighterMatchup
-          fighterRed={focusedMatch.fighterRed}
-          fighterBlue={focusedMatch.fighterBlue}
-          winnerId={focusedMatch.winnerId}
-          identityMode="wrap"
-          density="compact"
-          className="w-full min-w-0"
-        />
+        <div className={organizerOperationDetailVsSectionClass}>
+          <OperationMatchFighterMatchup
+            fighterRed={focusedMatch.fighterRed}
+            fighterBlue={focusedMatch.fighterBlue}
+            winnerId={focusedMatch.winnerId}
+            identityMode="wrap"
+            density="compact"
+            className="w-full min-w-0"
+          />
+        </div>
 
         {showOpsPanel ? (
           <section
             ref={resultRef}
-            className="flex flex-col gap-2.5 border-t border-[#E2E8F0] pt-4"
+            className={organizerOperationDetailMajorSectionClass}
           >
             <h3 className={organizerOperationSectionTitleClass}>결과 입력</h3>
-            <OrganizerMatchOpsPanel
-              {...toMatchOpsProps(focusedMatch)}
-              presentation="operation"
-              onStatusChanged={onMatchStatusChanged}
-            />
+            <div className={organizerOperationDetailSectionContentClass}>
+              <OrganizerMatchOpsPanel
+                {...toMatchOpsProps(focusedMatch)}
+                presentation="operation"
+                onStatusChanged={onMatchStatusChanged}
+              />
+            </div>
           </section>
         ) : null}
       </div>

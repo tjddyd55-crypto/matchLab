@@ -23,6 +23,15 @@ import {
 } from "@/lib/enums";
 import {
   organizerMatchStatusButtonClassName,
+  organizerOperationDetailActionButtonClass,
+  organizerOperationDetailActionRowClass,
+  organizerOperationDetailFieldLabelClass,
+  organizerOperationDetailFieldStackClass,
+  organizerOperationDetailFootnoteClass,
+  organizerOperationDetailLabelControlClass,
+  organizerOperationDetailMajorSectionClass,
+  organizerOperationDetailStatusStackClass,
+  organizerOperationSectionTitleClass,
 } from "@/lib/ui/organizer-operation-ui";
 import {
   BRACKET_MATCH_STATUS_LABELS,
@@ -91,16 +100,27 @@ function MatchOpsStatusSection({
   return (
     <div
       className={cn(
-        "space-y-1.5",
-        isOperation && "border-t border-matchon-border pt-2.5",
+        isOperation
+          ? cn(
+              organizerOperationDetailMajorSectionClass,
+              organizerOperationDetailStatusStackClass,
+            )
+          : "space-y-1.5",
       )}
     >
-      <p className="text-muted-foreground text-xs font-semibold">
+      <p
+        className={cn(
+          isOperation
+            ? organizerOperationSectionTitleClass
+            : "text-muted-foreground text-xs font-semibold",
+        )}
+      >
         {isOperation ? "경기 상태" : "경기 상태"}
       </p>
       <div
         className={cn(
-          "flex flex-wrap gap-1.5",
+          "flex flex-wrap gap-2",
+          !isOperation && "gap-1.5 sm:flex-row",
           isOperation && "sm:flex-row",
         )}
       >
@@ -225,14 +245,18 @@ function MatchOutcomeEntryFields({
   compact?: boolean;
 }) {
   const outcomeMode = resolveOutcomeMode(resultType);
+  const labelClass = compact
+    ? organizerOperationDetailFieldLabelClass
+    : "text-muted-foreground text-[11px] font-semibold";
+  const fieldWrapClass = compact
+    ? organizerOperationDetailLabelControlClass
+    : cn("block", compact ? "space-y-0.5" : "space-y-1");
 
-  return (
+  const fields = (
     <>
       <input type="hidden" name="outcomeMode" value={outcomeMode} />
-      <label className={cn("block", compact ? "space-y-0.5" : "space-y-1")}>
-        <span className="text-muted-foreground text-[11px] font-semibold">
-          결과 방식
-        </span>
+      <label className={fieldWrapClass}>
+        <span className={labelClass}>결과 방식</span>
         <select
           name="resultType"
           value={resultType}
@@ -242,7 +266,7 @@ function MatchOutcomeEntryFields({
           }
           className={cn(
             "border-input bg-background w-full rounded-md border px-2",
-            compact ? "h-9" : "h-8",
+            compact ? "h-[38px]" : "h-8",
           )}
         >
           {OUTCOME_OPTIONS.map((o) => (
@@ -266,10 +290,8 @@ function MatchOutcomeEntryFields({
       ) : (
         <input type="hidden" name="winnerId" value="" />
       )}
-      <label className={cn("block", compact ? "space-y-0.5" : "space-y-1")}>
-        <span className="text-muted-foreground text-[11px] font-semibold">
-          메모
-        </span>
+      <label className={fieldWrapClass}>
+        <span className={labelClass}>메모</span>
         <textarea
           name="resultMemo"
           placeholder="메모 (선택)"
@@ -278,7 +300,7 @@ function MatchOutcomeEntryFields({
           disabled={pending}
           className={cn(
             "border-input bg-background w-full rounded-md border px-2 py-1",
-            compact && "min-h-[44px] resize-y",
+            compact && "min-h-[50px] resize-y",
           )}
         />
       </label>
@@ -298,6 +320,14 @@ function MatchOutcomeEntryFields({
       ) : null}
     </>
   );
+
+  if (compact) {
+    return (
+      <div className={organizerOperationDetailFieldStackClass}>{fields}</div>
+    );
+  }
+
+  return fields;
 }
 
 export function OrganizerMatchOpsPanel(props: OrganizerMatchOpsPanelProps) {
@@ -430,7 +460,7 @@ function OrganizerMatchOpsPanelBody(props: OrganizerMatchOpsPanelProps) {
       )}
     >
       <CardContent
-        className={cn("space-y-2.5", isOperation ? "p-0" : "space-y-3 p-3")}
+        className={cn(isOperation ? "flex flex-col p-0" : "space-y-3 p-3")}
       >
       {!props.compact && !isOperation ? (
         <div className="text-muted-foreground flex flex-wrap items-center gap-2">
@@ -449,12 +479,14 @@ function OrganizerMatchOpsPanelBody(props: OrganizerMatchOpsPanelProps) {
       ) : null}
 
       {error ? (
-        <FeedbackMessage tone="error" role="alert">
+        <FeedbackMessage tone="error" role="alert" className={isOperation ? "mb-3" : undefined}>
           {error}
         </FeedbackMessage>
       ) : null}
       {success ? (
-        <FeedbackMessage tone="success">{success}</FeedbackMessage>
+        <FeedbackMessage tone="success" className={isOperation ? "mb-3" : undefined}>
+          {success}
+        </FeedbackMessage>
       ) : null}
 
       {!isOperation ? (
@@ -472,7 +504,7 @@ function OrganizerMatchOpsPanelBody(props: OrganizerMatchOpsPanelProps) {
       {canRecordOutcome ? (
         <form
           className={cn(
-            isOperation ? "space-y-2" : "space-y-3 border-t pt-3",
+            isOperation ? "flex flex-col" : "space-y-3 border-t pt-3",
           )}
           action={onOutcomeSubmit}
         >
@@ -491,8 +523,9 @@ function OrganizerMatchOpsPanelBody(props: OrganizerMatchOpsPanelProps) {
           />
           <div
             className={cn(
-              "flex flex-col gap-2 sm:flex-row",
-              isOperation && "gap-2 sm:flex-wrap",
+              isOperation
+                ? organizerOperationDetailActionRowClass
+                : "flex flex-col gap-2 sm:flex-row",
             )}
           >
             <Button
@@ -502,7 +535,13 @@ function OrganizerMatchOpsPanelBody(props: OrganizerMatchOpsPanelProps) {
               size={actionSize}
               variant="outline"
               disabled={pending}
-              className={isOperation ? "h-9 w-full sm:w-auto" : undefined}
+              className={cn(
+                isOperation &&
+                  cn(
+                    organizerOperationDetailActionButtonClass,
+                    "w-full sm:w-auto",
+                  ),
+              )}
             >
               임시저장
             </Button>
@@ -512,7 +551,13 @@ function OrganizerMatchOpsPanelBody(props: OrganizerMatchOpsPanelProps) {
               value="confirm"
               size={actionSize}
               disabled={pending}
-              className={isOperation ? "h-9 w-full sm:w-auto" : undefined}
+              className={cn(
+                isOperation &&
+                  cn(
+                    organizerOperationDetailActionButtonClass,
+                    "w-full sm:w-auto",
+                  ),
+              )}
             >
               확정
             </Button>
@@ -653,7 +698,7 @@ function OrganizerMatchOpsPanelBody(props: OrganizerMatchOpsPanelProps) {
           경기 목록형: 다음 라운드 자동 배치 없음.
         </p>
       ) : isOperation ? (
-        <p className="text-matchon-text-secondary pt-1 text-[11px] leading-snug">
+        <p className={organizerOperationDetailFootnoteClass}>
           {props.bracketType === BracketType.single_elimination
             ? "단판: 결과 확정 시 승자가 다음 매치 슬롯으로 배치됩니다."
             : "경기 목록형: 다음 라운드 자동 배치 없음."}

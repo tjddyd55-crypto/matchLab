@@ -3,6 +3,10 @@
 import { useState } from "react";
 import { cn } from "@/lib/utils";
 import { CORNER_SLOT_STYLES } from "@/lib/corner-slot-styles";
+import {
+  organizerOperationDetailFieldLabelClass,
+  organizerOperationDetailLabelControlClass,
+} from "@/lib/ui/organizer-operation-ui";
 
 type Corner = "red" | "blue";
 
@@ -55,8 +59,20 @@ export function WinnerCornerPicker({
   ];
 
   return (
-    <div className={cn("space-y-1", compact && "space-y-1")}>
-      <p className="text-muted-foreground text-[11px] font-semibold">승자</p>
+    <div
+      className={cn(
+        compact ? organizerOperationDetailLabelControlClass : "space-y-1",
+      )}
+    >
+      <p
+        className={cn(
+          compact
+            ? organizerOperationDetailFieldLabelClass
+            : "text-muted-foreground text-[11px] font-semibold",
+        )}
+      >
+        승자
+      </p>
       <input type="hidden" name={name} value={selected ?? ""} />
       <div className="grid grid-cols-2 gap-2">
         {corners.map((c) => {

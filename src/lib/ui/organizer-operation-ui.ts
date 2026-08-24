@@ -37,15 +37,49 @@ export const organizerOperationTableWrapClass = matchonCompactTableWrapClass;
 
 /**
  * 우측 detail outer panel SSOT — 현장 계체 rhythm 기준.
- * 경기 운영 spotlight도 동일 family.
+ * 경기 운영 spotlight도 동일 family (padding/border); major section gap은 spotlight에서 gap-0 + divider로 관리.
  */
 export const organizerOperationDetailPanelClass =
   "flex flex-col gap-[18px] rounded-xl border border-[#E2E8F0] bg-white p-[18px] shadow-sm md:p-5";
 
 export const organizerOperationSpotlightPanelClass = cn(
   organizerOperationDetailPanelClass,
-  "lg:sticky lg:top-4",
+  "gap-0 lg:sticky lg:top-4",
 );
+
+/** RIGHT detail section divider — border #E2E8F0, 위아래 16px rhythm (mt-4 + pt-4 한 세트) */
+export const organizerOperationDetailDividerClass =
+  "border-t border-[#E2E8F0]";
+
+export const organizerOperationDetailMajorSectionClass = cn(
+  organizerOperationDetailDividerClass,
+  "mt-4 pt-4",
+);
+
+/** section title → first control */
+export const organizerOperationDetailSectionContentClass = "mt-3";
+
+/** label → control (6px) */
+export const organizerOperationDetailFieldLabelClass =
+  "text-[12px] font-medium text-[#64748B]";
+
+export const organizerOperationDetailLabelControlClass = "flex flex-col gap-1.5";
+
+/** field → field (12px) */
+export const organizerOperationDetailFieldStackClass = "flex flex-col gap-3";
+
+/** 결과/상태 action row — button gap 8px, height 36px */
+export const organizerOperationDetailActionRowClass =
+  "mt-3 flex flex-wrap gap-2";
+
+export const organizerOperationDetailActionButtonClass = "h-9";
+
+/** 경기 상태 title → buttons (10px) */
+export const organizerOperationDetailStatusStackClass = "flex flex-col gap-2.5";
+
+/** 상태 buttons → bottom note (12px) */
+export const organizerOperationDetailFootnoteClass =
+  "mt-3 text-[12px] leading-snug text-[#64748B]";
 
 export const organizerOperationVsCardClass = matchonVsCardClass;
 
@@ -70,7 +104,11 @@ export const organizerOperationListCardDensityClass =
   "gap-0.5 rounded-[10px] px-2.5 py-2.5 min-h-[86px]";
 
 export const organizerOperationSectionTitleClass =
-  "text-[15px] font-bold text-matchon-text-primary";
+  "text-[15px] font-bold leading-snug text-matchon-text-primary";
+
+export const organizerOperationDetailHeaderMetaClass = "space-y-1";
+
+export const organizerOperationDetailVsSectionClass = "pt-4";
 
 export const organizerOperationSectionClass = "flex flex-col gap-2.5";
 
