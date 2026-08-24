@@ -2,9 +2,11 @@ import { PublicHomeEventsSection } from "@/components/domain/events/public/Publi
 import { PublicHomeHeroDesktop } from "@/components/domain/events/public/PublicHomeHeroDesktop";
 import { PublicHomeHeroMobile } from "@/components/domain/events/public/PublicHomeHeroMobile";
 import { PublicHomeHowItWorksSection } from "@/components/domain/events/public/PublicHomeHowItWorksSection";
+import { PublicHomeManagerDownloadSection } from "@/components/domain/events/public/PublicHomeManagerDownloadSection";
 import { PublicHomeOrganizerCtaSection } from "@/components/domain/events/public/PublicHomeOrganizerCtaSection";
 import { PublicHomePartnersSection } from "@/components/domain/events/public/PublicHomePartnersSection";
 import { PublicHomeStatsSection } from "@/components/domain/events/public/PublicHomeStatsSection";
+import { getMatchonManagerDownloadInfo } from "@/lib/desktop/manager-download";
 import { eventService } from "@/lib/services/event.service";
 import { publicPartnerService } from "@/lib/services/public-partner.service";
 
@@ -24,6 +26,7 @@ export default async function PublicHomePage() {
         e.status === "bracket_ready",
     )
     .slice(0, 6);
+  const managerDownload = getMatchonManagerDownloadInfo();
 
   return (
     <div className="flex flex-col">
@@ -34,6 +37,7 @@ export default async function PublicHomePage() {
       <PublicHomeHowItWorksSection />
       <PublicHomeOrganizerCtaSection />
       <PublicHomePartnersSection partners={partners} />
+      <PublicHomeManagerDownloadSection download={managerDownload} />
     </div>
   );
 }
