@@ -42,14 +42,14 @@ function staticChecks() {
     "admin layout keeps DashboardShell",
   );
 
-  const sidebar = readSrc("src/components/layout/Sidebar.tsx");
+  const sidebar = readSrc("src/components/layout/SidebarNav.tsx");
   assert.ok(
     sidebar.includes("getAdminNavGroups"),
-    "Sidebar must use getAdminNavGroups",
+    "SidebarNav must use getAdminNavGroups",
   );
   assert.ok(
     sidebar.includes("from \"@/lib/navigation/admin-navigation\""),
-    "Sidebar must import admin-navigation SSOT",
+    "SidebarNav must import admin-navigation SSOT",
   );
 
   const mobileBottom = readSrc("src/components/layout/MobileBottomNav.tsx");
@@ -73,14 +73,14 @@ function staticChecks() {
     items.map((i) => i.label),
     [
       "홈",
-      "대회",
-      "주최자",
-      "협회 가입 신청",
-      "체육관 가입 신청",
-      "메인 파트너 로고",
-      "크레딧",
+      "협회",
       "체육관",
       "선수",
+      "협회 가입 신청",
+      "체육관 가입 신청",
+      "대회",
+      "주최자",
+      "크레딧 관리",
       "신청",
       "신청서 템플릿",
       "결과",
@@ -90,6 +90,7 @@ function staticChecks() {
       "메시징 진단",
       "메시징 테스트",
       "발송 이력",
+      "메인 파트너 로고",
       "알림",
     ],
   );
@@ -103,6 +104,10 @@ function staticChecks() {
     true,
   );
   assert.equal(isAdminNavItemActive("/admin/gyms", "/admin/gyms/x"), true);
+  assert.equal(
+    isAdminNavItemActive("/admin/associations", "/admin/associations/x"),
+    true,
+  );
   assert.equal(
     isAdminNavItemActive("/admin/audit-logs", "/admin/audit-logs"),
     true,
@@ -133,6 +138,7 @@ function staticChecks() {
     "/admin",
     "/admin/events",
     "/admin/organizers",
+    "/admin/associations",
     "/admin/association-applications",
     "/admin/gym-applications",
     "/admin/public-partners",

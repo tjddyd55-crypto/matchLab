@@ -17,13 +17,20 @@ type OrganizerOption = {
 
 export function AdminCreditsPanel({
   organizers,
+  initialOrganizerId,
 }: {
   organizers: OrganizerOption[];
+  initialOrganizerId?: string;
 }) {
   const [state, formAction, pending] = useActionState(
     adminManualChargeAction,
     null,
   );
+  const preselected =
+    initialOrganizerId &&
+    organizers.some((o) => o.id === initialOrganizerId)
+      ? initialOrganizerId
+      : "";
 
   return (
     <div className={cn("grid lg:grid-cols-2", matchonGridGapClass)}>
@@ -39,7 +46,12 @@ export function AdminCreditsPanel({
           <form action={formAction} className="space-y-4">
             <label className="block space-y-1 text-sm">
               <span className="font-medium">주최자</span>
-              <select name="organizerId" required className={eventListFieldSelectClass}>
+              <select
+                name="organizerId"
+                required
+                defaultValue={preselected}
+                className={eventListFieldSelectClass}
+              >
                 <option value="">선택</option>
                 {organizers.map((o) => (
                   <option key={o.id} value={o.id}>

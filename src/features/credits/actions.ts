@@ -1,5 +1,6 @@
 "use server";
 
+import { revalidatePath } from "next/cache";
 import {
   actionFailure,
   actionSuccess,
@@ -60,6 +61,10 @@ export async function adminManualChargeAction(
       memo: parsed.data.memo,
       actor,
     });
+
+    revalidatePath("/admin/credits");
+    revalidatePath(`/admin/associations/${parsed.data.organizerId}`);
+    revalidatePath("/admin/associations");
 
     return actionSuccess({ balanceAfter: result.balanceAfter });
   });

@@ -51,6 +51,84 @@ export type AdminOrganizerListItemDTO = {
   loginId: string | null;
 };
 
+/** Organizer(type=association) — 협회 목록 SSOT */
+export type AdminAssociationListItemDTO = {
+  id: string;
+  name: string;
+  status: OrganizerStatus;
+  representativeName: string | null;
+  contactPhone: string | null;
+  contactEmail: string | null;
+  memberGymCount: number;
+  creditBalance: number;
+  createdAt: string;
+  updatedAt: string;
+  ownerUserId: string;
+  loginId: string | null;
+};
+
+export type AdminAssociationLinkedGymDTO = {
+  membershipId: string;
+  gymId: string;
+  gymName: string;
+  status: string;
+  joinedAt: string;
+  memberCode: string;
+};
+
+export type AdminAssociationEventDTO = {
+  id: string;
+  title: string;
+  status: EventStatus;
+  eventDate: string;
+  publicSlug: string;
+};
+
+export type AdminOrganizationCreditLedgerDTO = {
+  id: string;
+  type: string;
+  amount: number;
+  balanceAfter: number;
+  reason: string;
+  memo: string | null;
+  createdAt: string;
+};
+
+export type AdminAssociationDetailDTO = {
+  id: string;
+  name: string;
+  type: OrganizerType;
+  status: OrganizerStatus;
+  websiteUrl: string | null;
+  createdAt: string;
+  updatedAt: string;
+  ownerUserId: string;
+  loginId: string | null;
+  ownerName: string;
+  ownerPhone: string | null;
+  ownerEmail: string | null;
+  /** 승인된 가입 신청이 있으면 신청서 스냅샷 */
+  application: {
+    id: string;
+    representativeName: string;
+    contactName: string;
+    contactPhone: string;
+    contactEmail: string;
+    addressLabel: string | null;
+    reviewedAt: string | null;
+    submittedAt: string;
+  } | null;
+  summary: {
+    memberGymCount: number;
+    eventCount: number;
+    creditBalance: number;
+  };
+  linkedGyms: AdminAssociationLinkedGymDTO[];
+  events: AdminAssociationEventDTO[];
+  creditLedgers: AdminOrganizationCreditLedgerDTO[];
+  auditLogs: AdminAuditLogListItemDTO[];
+};
+
 export type AdminGymListItemDTO = {
   id: string;
   name: string;
@@ -60,6 +138,57 @@ export type AdminGymListItemDTO = {
   createdAt: string;
   ownerUserId: string;
   loginId: string | null;
+};
+
+export type AdminGymAssociationLinkDTO = {
+  membershipId: string;
+  organizerId: string;
+  associationName: string;
+  status: string;
+  joinedAt: string;
+};
+
+export type AdminGymEventParticipationDTO = {
+  eventId: string;
+  eventTitle: string;
+  eventStatus: EventStatus;
+  eventDate: string;
+  applicationCount: number;
+};
+
+export type AdminGymDetailDTO = {
+  id: string;
+  name: string;
+  status: GymStatus;
+  phone: string | null;
+  address: string | null;
+  createdAt: string;
+  updatedAt: string;
+  ownerUserId: string;
+  loginId: string | null;
+  ownerName: string;
+  ownerPhone: string | null;
+  ownerEmail: string | null;
+  application: {
+    id: string;
+    representativeName: string;
+    contactName: string;
+    mobilePhone: string;
+    email: string;
+    addressLabel: string | null;
+    businessNo: string | null;
+    reviewedAt: string | null;
+    submittedAt: string;
+  } | null;
+  summary: {
+    memberCount: number;
+    fighterCount: number;
+    associationLinkCount: number;
+    eventParticipationCount: number;
+  };
+  associationLinks: AdminGymAssociationLinkDTO[];
+  eventParticipations: AdminGymEventParticipationDTO[];
+  auditLogs: AdminAuditLogListItemDTO[];
 };
 
 export type AdminFighterListItemDTO = {
