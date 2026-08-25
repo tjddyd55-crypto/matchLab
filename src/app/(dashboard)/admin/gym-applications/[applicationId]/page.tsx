@@ -8,6 +8,7 @@ import { tryResolveAdminResetClientTarget } from "@/lib/admin/try-resolve-admin-
 import { requireActor } from "@/lib/auth/actor";
 import { formatPostalAddress } from "@/lib/postal-address";
 import { gymApplicationService } from "@/lib/services/gym-application.service";
+import { getGymPlatformApplicationStatusLabel } from "@/lib/ui/gym-application-status";
 import { loadMatchonAdminPasswordResetLinkConfig } from "@/server/admin-password-reset/config";
 import {
   adminContentCardClass,
@@ -139,7 +140,9 @@ export default async function AdminGymApplicationDetailPage({
             </div>
             <div>
               <dt className="text-matchon-text-secondary">상태</dt>
-              <dd className="font-medium">{row.status}</dd>
+              <dd className="font-medium">
+                {getGymPlatformApplicationStatusLabel(row.status)}
+              </dd>
             </div>
             <div>
               <dt className="text-matchon-text-secondary">생성 Gym</dt>

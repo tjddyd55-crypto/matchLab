@@ -322,7 +322,8 @@ export function GymJoinApplicationForm({
           가입 신청이 완료되었습니다.
         </p>
         <p className={authLoginSecondaryNoteClass}>
-          관리자 확인 후 결과를 안내해 드립니다.
+          관리자 승인 후 신청한 계정으로 로그인할 수 있습니다. 승인 전까지
+          체육관 관리 기능은 사용할 수 없습니다.
         </p>
         <Link
           href="/login"
@@ -630,7 +631,45 @@ export function GymJoinApplicationForm({
         )}
         <TextField name="email" label="이메일" type="email" required />
         {mode === "independent" ? (
-          <RequestedLoginIdField disabled={pending} />
+          <>
+            <RequestedLoginIdField disabled={pending} />
+            <div className={authLoginFieldStackClass}>
+              <label htmlFor="password" className={authLoginLabelClass}>
+                비밀번호 *
+              </label>
+              <input
+                id="password"
+                name="password"
+                type="password"
+                required
+                minLength={8}
+                maxLength={72}
+                autoComplete="new-password"
+                disabled={pending}
+                className={authLoginInputClass}
+              />
+              <p className={authLoginSecondaryNoteClass}>
+                8자 이상, 공백 없이 입력해 주세요. 관리자 승인 후 이
+                비밀번호로 바로 로그인합니다.
+              </p>
+            </div>
+            <div className={authLoginFieldStackClass}>
+              <label htmlFor="passwordConfirm" className={authLoginLabelClass}>
+                비밀번호 확인 *
+              </label>
+              <input
+                id="passwordConfirm"
+                name="passwordConfirm"
+                type="password"
+                required
+                minLength={8}
+                maxLength={72}
+                autoComplete="new-password"
+                disabled={pending}
+                className={authLoginInputClass}
+              />
+            </div>
+          </>
         ) : null}
       </section>
 

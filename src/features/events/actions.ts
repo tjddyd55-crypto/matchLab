@@ -47,7 +47,21 @@ function mapCaught<T>(
   });
 }
 
-/** `<form action>` 단일 인자 vs `useActionState(prev, formData)` 모두 지원 */
+function revalidatePublicAnnouncementPaths(options?: {
+  eventId?: string;
+  publicSlug?: string | null;
+}) {
+  revalidatePath("/");
+  revalidatePath("/events");
+  revalidatePath("/admin/events");
+  revalidatePath("/organizer/events");
+  if (options?.eventId) {
+    revalidatePath(`/organizer/events/${options.eventId}`);
+  }
+  if (options?.publicSlug) {
+    revalidatePath(`/events/${options.publicSlug}`);
+  }
+}
 function resolveFormData(a: unknown, b?: FormData): FormData | null {
   if (b instanceof FormData) return b;
   if (a instanceof FormData) return a;
@@ -126,6 +140,7 @@ export async function createEventAction(
 
     const actor = await requireActorFromMutation();
     const data = await eventService.createOrganizerEvent(actor, parsed.data);
+    revalidatePublicAnnouncementPaths({ eventId: data.id });
     return actionSuccess(data);
   });
 }
@@ -206,7 +221,7 @@ export async function updateEventAction(
 
     const actor = await requireActorFromMutation();
     await eventService.updateOrganizerEvent(actor, parsed.data);
-    revalidatePath(`/organizer/events/${parsed.data.eventId}`);
+    revalidatePublicAnnouncementPaths({ eventId: parsed.data.eventId });
     return actionSuccess({ ok: true as const });
   });
 }
@@ -233,6 +248,7 @@ export async function changeEventStatusAction(
     }
     const actor = await requireActorFromMutation();
     await eventService.changeEventStatus(actor, parsed.data);
+    revalidatePublicAnnouncementPaths({ eventId: parsed.data.eventId });
     return actionSuccess({ ok: true as const });
   });
 }

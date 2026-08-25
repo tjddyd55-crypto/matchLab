@@ -1,7 +1,10 @@
 import type { ActorContext } from "@/lib/auth/actor-context";
 import { AppError } from "@/lib/errors/app-error";
 import { PermissionError } from "@/lib/auth/permission-error";
-import type { AssociationMemberGymStatus as MemberStatus } from "@/lib/enums";
+import {
+  GymStatus,
+  type AssociationMemberGymStatus as MemberStatus,
+} from "@/lib/enums";
 import {
   decideGymPortalAccessFromMembership,
   type MembershipGateDecision,
@@ -15,11 +18,19 @@ import {
 import { memberGymRepository } from "@/lib/repositories/member-gym.repository";
 import { prisma } from "@/lib/prisma";
 
-export type GymPortalAccessMode = MembershipGateDecision["accessMode"];
+export type GymPortalAccessMode =
+  | MembershipGateDecision["accessMode"]
+  | "platform_suspended";
 
 export type GymPortalAccess = {
   gymId: string;
-  gym: { id: string; name: string; phone: string | null; address: string | null };
+  gym: {
+    id: string;
+    name: string;
+    phone: string | null;
+    address: string | null;
+    status: GymStatus;
+  };
   memberGym: {
     id: string;
     organizerId: string;
@@ -42,6 +53,30 @@ export type GymPortalAccess = {
   isOwner: boolean;
   gymStaffId: string | null;
 };
+
+function platformGymStatusBlocked(status: GymStatus): {
+  accessMode: "platform_suspended";
+  canEnterPortal: false;
+  canRead: false;
+  canCreateFighter: false;
+  canUpdateFighter: false;
+  canReleaseFighter: false;
+  bannerMessage: string;
+} {
+  const message =
+    status === GymStatus.archived
+      ? "보관된 체육관 계정입니다. MATCHON 관리자에게 문의해 주세요."
+      : "체육관 이용이 중지되었습니다. MATCHON 관리자에게 문의해 주세요.";
+  return {
+    accessMode: "platform_suspended",
+    canEnterPortal: false,
+    canRead: false,
+    canCreateFighter: false,
+    canUpdateFighter: false,
+    canReleaseFighter: false,
+    bannerMessage: message,
+  };
+}
 
 function isPlaceholderOwner(user: {
   loginId: string | null;
@@ -99,10 +134,33 @@ export async function resolveGymPortalAccess(
 
   const gym = await prisma.gym.findUnique({
     where: { id: gymId },
-    select: { id: true, name: true, phone: true, address: true },
+    select: {
+      id: true,
+      name: true,
+      phone: true,
+      address: true,
+      status: true,
+    },
   });
   if (!gym) {
     throw new AppError("NOT_FOUND", "체육관을 찾을 수 없습니다.");
+  }
+
+  /** 플랫폼 GymStatus 게이트 — Association 연결과 별개 */
+  if (gym.status !== GymStatus.active) {
+    const blocked = platformGymStatusBlocked(gym.status);
+    return {
+      gymId,
+      gym,
+      memberGym: null,
+      ...blocked,
+      canManageStaff: false,
+      canManageSales: false,
+      canManageGymSettings: false,
+      canWriteMembers: false,
+      isOwner: !asStaff,
+      gymStaffId: asStaff ? (actor.gymStaffId ?? null) : null,
+    };
   }
 
   if (asStaff) {

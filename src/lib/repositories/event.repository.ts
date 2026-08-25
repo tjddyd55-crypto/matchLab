@@ -1,6 +1,3 @@
-/**
- * [CONTRACT] PrismaClient import는 `src/lib/repositories` 내부에만 허용한다.
- */
 import type { Prisma } from "@/generated/prisma";
 import {
   BracketStatus,
@@ -9,16 +6,16 @@ import {
 } from "@/generated/prisma";
 import { prisma } from "@/lib/prisma";
 import { EVENT_DIVISION_DISPLAY_SELECT } from "@/lib/event-division-fields";
+import {
+  isEphemeralPublicAnnouncementSlug,
+  PUBLIC_EVENT_EXCLUDED_STATUSES,
+} from "@/lib/events/public-event-visibility";
 
 function db(tx?: Prisma.TransactionClient) {
   return tx ?? prisma;
 }
 
-const excludedFromPublic: EventStatus[] = [
-  EventStatus.draft,
-  EventStatus.cancelled,
-];
-
+const excludedFromPublic: EventStatus[] = [...PUBLIC_EVENT_EXCLUDED_STATUSES];
 async function loadEventOrganizerId(
   eventId: string,
 ): Promise<string | null> {
@@ -421,16 +418,22 @@ export const eventRepository = {
     return loadEventOrganizerId(eventId);
   },
 
-  /** 공개 목록 — draft·cancelled 제외 */
+  /** 공개 목록 — draft·cancelled·E2E fixture slug 제외 (Event SSOT) */
   async listPublicEvents(): Promise<PublicEventListRecord[]> {
-    return prisma.event.findMany({
-      where: { status: { notIn: excludedFromPublic } },
+    const rows = await prisma.event.findMany({
+      where: {
+        status: { notIn: excludedFromPublic },
+        NOT: { publicSlug: { startsWith: "e2e-" } },
+      },
       orderBy: [{ eventDate: "asc" }, { registrationStartDate: "asc" }],
       select: listSelect,
     });
+    return rows.filter(
+      (row) => !isEphemeralPublicAnnouncementSlug(row.publicSlug),
+    );
   },
 
-  /** 공개 상세 헤더 — slug 기준, draft·cancelled 는 미존재와 동일 */
+  /** 공개 상세 헤더 — slug 기준, draft·cancelled·E2E fixture 는 미존재와 동일 */
   async findEventPublicationSettings(eventId: string) {
     return prisma.event.findUnique({
       where: { id: eventId },
@@ -444,6 +447,9 @@ export const eventRepository = {
   async findPublicEventBySlug(
     slug: string,
   ): Promise<PublicEventDetailRecord | null> {
+    if (isEphemeralPublicAnnouncementSlug(slug)) {
+      return null;
+    }
     return prisma.event.findFirst({
       where: {
         publicSlug: slug,
@@ -452,7 +458,6 @@ export const eventRepository = {
       select: detailHeaderSelect,
     });
   },
-
   async findPublicEventDivisions(
     eventId: string,
   ): Promise<PublicEventDivisionRecord[]> {

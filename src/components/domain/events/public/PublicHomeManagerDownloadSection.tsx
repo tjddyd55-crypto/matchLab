@@ -37,7 +37,7 @@ export function PublicHomeManagerDownloadSection({
 
           <div className="flex w-full shrink-0 md:w-auto md:justify-end">
             <a
-              href={download.latestDownloadUrl}
+              href={download.downloadUrl}
               download={download.fileName}
               className={cn(
                 buttonVariants({ size: "lg" }),

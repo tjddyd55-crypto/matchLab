@@ -62,8 +62,10 @@ function verifyAthleteApplicationProfile() {
     "src/components/domain/applications/ExternalRegistrationPublicForm.tsx",
   );
   assert.match(external, /sessionStorage\.setItem/);
-  // 1차 외부등록: 주민번호는 payload에 포함하지 않음 (추가정보 단계에서 수집)
-  assert.doesNotMatch(external, /residentRegistrationNumber/);
+  assert.match(
+    external,
+    /athletes: athletes\.map\(\(a\) => \(\{[\s\S]*?residentRegistrationNumber: ""/,
+  );
   console.log("verify:athlete-application-profile OK");
 }
 
@@ -120,6 +122,7 @@ function verifyInsuranceConsent() {
   assert.equal(parseExcelInsuranceConsent("Y").ok, true);
   assert.equal(parseExcelInsuranceConsent("").ok, false);
   const sample = read("src/lib/applicant-excel/sample.ts");
+  assert.match(sample, /1차 신청에서는 생략 가능/);
   assert.match(sample, /주민등록번호·개인정보 동의·서명은 추후 별도 요청/);
   console.log("verify:athlete-insurance-consent OK");
 }

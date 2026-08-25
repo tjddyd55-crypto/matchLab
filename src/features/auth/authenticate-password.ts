@@ -6,12 +6,18 @@ import {
 } from "@/lib/action-result";
 import type { ActorContext } from "@/lib/auth/actor-context";
 import { isSupabaseAuthConfigured } from "@/lib/auth/actor";
+import { GymApplicationStatus } from "@/lib/enums";
+import { prisma } from "@/lib/prisma";
 import { authService } from "@/lib/services/auth.service";
 import { createSupabaseServerClient } from "@/lib/supabase/server";
+import { normalizeLoginId } from "@/lib/validators/login-id.validator";
 import { signInWithPasswordFormSchema } from "@/lib/validators/auth.validator";
 
 const PROFILE_NOT_LINKED_MESSAGE =
   "로그인은 성공했지만 앱 사용자 프로필이 연결되지 않았습니다. 관리자에게 authUserId 매핑을 확인해 주세요.";
+
+const GYM_APPLICATION_PENDING_MESSAGE =
+  "가입 신청이 관리자 승인 대기 중입니다. 승인 후 같은 아이디·비밀번호로 로그인할 수 있습니다.";
 
 export type AuthenticatePasswordOk = {
   ok: true;
@@ -61,11 +67,14 @@ export async function authenticateWithPassword(
     parsed.data.identifier,
   );
   if (!authEmail) {
+    const pendingMessage = await pendingGymApplicationLoginMessage(
+      parsed.data.identifier,
+    );
     return {
       ok: false,
       result: actionFailure(
-        "UNAUTHORIZED",
-        "아이디 또는 비밀번호를 확인해 주세요.",
+        pendingMessage ? "FORBIDDEN" : "UNAUTHORIZED",
+        pendingMessage ?? "아이디 또는 비밀번호를 확인해 주세요.",
       ),
     };
   }
@@ -90,13 +99,49 @@ export async function authenticateWithPassword(
   const actor = await authService.getActorByAuthUserId(data.user.id);
   if (!actor) {
     await supabase.auth.signOut();
+    const pendingMessage = await pendingGymApplicationLoginMessage(
+      parsed.data.identifier,
+      data.user.id,
+    );
     return {
       ok: false,
-      result: actionFailure("FORBIDDEN", PROFILE_NOT_LINKED_MESSAGE),
+      result: actionFailure(
+        "FORBIDDEN",
+        pendingMessage ?? PROFILE_NOT_LINKED_MESSAGE,
+      ),
     };
   }
 
   return { ok: true, actor };
+}
+
+async function pendingGymApplicationLoginMessage(
+  identifier: string,
+  authUserId?: string,
+): Promise<string | null> {
+  const loginId = normalizeLoginId(identifier.trim());
+  const or: Array<
+    { requestedLoginId: string } | { pendingAuthUserId: string }
+  > = [];
+  if (loginId.length >= 4) {
+    or.push({ requestedLoginId: loginId });
+  }
+  if (authUserId) {
+    or.push({ pendingAuthUserId: authUserId });
+  }
+  if (or.length === 0) return null;
+
+  const row = await prisma.gymApplication.findFirst({
+    where: {
+      deletedAt: null,
+      status: {
+        in: [GymApplicationStatus.pending, GymApplicationStatus.under_review],
+      },
+      OR: or,
+    },
+    select: { id: true },
+  });
+  return row ? GYM_APPLICATION_PENDING_MESSAGE : null;
 }
 
 export async function revokeCurrentAuthSession(): Promise<void> {

@@ -7,8 +7,8 @@ import {
 } from "@/lib/navigation/fighter-navigation";
 
 /**
- * 선수 글로벌 사이드바 — isItemActive 콜백은 Client Component 내부에서만 생성한다.
- * Server Component(Sidebar)에서 함수 props를 넘기면 RSC serialization 오류가 난다.
+ * 선수 글로벌 사이드바 엔트리.
+ * Client boundary 안에서 isItemActive를 바인딩해 Server → Client 함수 전달을 피한다.
  */
 export function FighterSidebarNav({
   density = "desktop",
@@ -18,7 +18,7 @@ export function FighterSidebarNav({
   return (
     <DashboardSidebarNav
       groups={getFighterNavGroups()}
-      isItemActive={(href, pathname) => isFighterNavItemActive(href, pathname)}
+      isItemActive={isFighterNavItemActive}
       density={density}
       ariaLabel="선수 메뉴"
     />

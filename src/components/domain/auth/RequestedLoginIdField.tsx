@@ -94,7 +94,7 @@ export function RequestedLoginIdField({
         </button>
       </div>
       <p className={authLoginSecondaryNoteClass}>
-        승인 후 로그인에 사용할 아이디입니다. 영문 소문자와 숫자를 조합해
+        관리자 승인 후 로그인에 사용할 아이디입니다. 영문 소문자와 숫자를 조합해
         입력해 주세요.
       </p>
       {message ? (

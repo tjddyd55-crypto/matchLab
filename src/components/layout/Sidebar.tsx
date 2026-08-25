@@ -1,4 +1,5 @@
 import {
+  DashboardSidebarNav,
   SidebarBrand,
   SidebarShell,
 } from "@/components/layout/dashboard-sidebar";
@@ -58,9 +59,9 @@ export function Sidebar({
           groups={getGymPortalNavGroups(gymNavViewer)}
         />
       ) : role === "admin" ? (
-        <SidebarNav density="desktop" />
+        <SidebarNav />
       ) : (
-        <FighterSidebarNav density="desktop" />
+        <FighterSidebarNav />
       )}
     </SidebarShell>
   );

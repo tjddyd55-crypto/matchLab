@@ -67,6 +67,9 @@ export type GymApplicationInput = {
   signatureName: string;
   signatureConsent: boolean;
   requestedLoginId: string;
+  /** 가입 시 비밀번호 — App DB에 저장하지 않고 Supabase Auth에만 생성 */
+  password: string;
+  passwordConfirm: string;
   uploadBatchId?: string;
   attachments?: GymApplicationAttachmentInput[];
 };
@@ -136,57 +139,98 @@ export const gymApplicationService = {
     const requestedLoginId = parseRequiredRequestedLoginId(
       input.requestedLoginId,
     );
+    if (input.password !== input.passwordConfirm) {
+      throw new AppError("VALIDATION_ERROR", "비밀번호가 일치하지 않습니다.");
+    }
+    const passwordParsed = passwordSchema.safeParse(input.password);
+    if (!passwordParsed.success) {
+      throw new AppError(
+        "VALIDATION_ERROR",
+        passwordParsed.error.issues[0]?.message ??
+          "비밀번호는 8자 이상이어야 합니다.",
+      );
+    }
+    const password = passwordParsed.data;
+    const authEmail = loginIdToAuthEmail(requestedLoginId);
 
-    return prisma.$transaction(async (tx) => {
-      await assertApplicationRequestedLoginIdAvailable(requestedLoginId, {
-        client: tx,
-      });
-      const created = await tx.gymApplication.create({
-        data: {
-          gymName: requireText(input.gymName, "체육관명"),
-          representativeName: requireText(input.representativeName, "대표자명"),
-          contactName: requireText(input.contactName, "담당자명"),
-          phone: input.phone?.trim() || null,
-          mobilePhone: mobilePhoneNormalized,
-          email: requireText(input.email, "이메일"),
-          postalCode,
-          address: input.address?.trim() || null,
-          addressDetail: input.addressDetail?.trim() || null,
-          businessNo: input.businessNo?.trim() || null,
-          sportType: input.sportType?.trim() || null,
-          description: input.description?.trim() || null,
-          requestedLoginId,
-          privacyConsent: true,
-          registrationConsent: true,
-          smsConsent: Boolean(input.smsConsent),
-          informationConsent: Boolean(input.informationConsent),
-          signatureName: input.signatureName.trim(),
-          signatureConsent: true,
-          signatureSignedAt: new Date(),
-          uploadBatchId: input.uploadBatchId?.trim() || null,
-          status: GymApplicationStatus.pending,
-          termsAcceptedAt: new Date(),
-          privacyAcceptedAt: new Date(),
+    await assertApplicationRequestedLoginIdAvailable(requestedLoginId);
+
+    const supabase = createSupabaseAdminClient();
+    const { data: createdAuth, error: authError } =
+      await supabase.auth.admin.createUser({
+        email: authEmail,
+        password,
+        email_confirm: true,
+        user_metadata: {
+          matchon_pending_gym_application: true,
+          requested_login_id: requestedLoginId,
         },
-        select: { id: true, gymName: true, status: true },
       });
+    if (authError || !createdAuth.user) {
+      throw new AppError(
+        "INTERNAL",
+        "로그인 계정 준비에 실패했습니다. 잠시 후 다시 시도해 주세요.",
+        authError?.message,
+      );
+    }
+    const pendingAuthUserId = createdAuth.user.id;
 
-      if (attachments.length > 0) {
-        await tx.gymApplicationAttachment.createMany({
-          data: attachments.map((a) => ({
-            applicationId: created.id,
-            attachmentType: a.attachmentType,
-            storageBucket: bucket,
-            storagePath: a.storagePath,
-            originalFileName: a.originalFileName.slice(0, 200),
-            mimeType: a.mimeType,
-            sizeBytes: a.sizeBytes,
-          })),
+    try {
+      return await prisma.$transaction(async (tx) => {
+        await assertApplicationRequestedLoginIdAvailable(requestedLoginId, {
+          client: tx,
         });
-      }
+        const created = await tx.gymApplication.create({
+          data: {
+            gymName: requireText(input.gymName, "체육관명"),
+            representativeName: requireText(input.representativeName, "대표자명"),
+            contactName: requireText(input.contactName, "담당자명"),
+            phone: input.phone?.trim() || null,
+            mobilePhone: mobilePhoneNormalized,
+            email: requireText(input.email, "이메일"),
+            postalCode,
+            address: input.address?.trim() || null,
+            addressDetail: input.addressDetail?.trim() || null,
+            businessNo: input.businessNo?.trim() || null,
+            sportType: input.sportType?.trim() || null,
+            description: input.description?.trim() || null,
+            requestedLoginId,
+            pendingAuthUserId,
+            privacyConsent: true,
+            registrationConsent: true,
+            smsConsent: Boolean(input.smsConsent),
+            informationConsent: Boolean(input.informationConsent),
+            signatureName: input.signatureName.trim(),
+            signatureConsent: true,
+            signatureSignedAt: new Date(),
+            uploadBatchId: input.uploadBatchId?.trim() || null,
+            status: GymApplicationStatus.pending,
+            termsAcceptedAt: new Date(),
+            privacyAcceptedAt: new Date(),
+          },
+          select: { id: true, gymName: true, status: true },
+        });
 
-      return created;
-    });
+        if (attachments.length > 0) {
+          await tx.gymApplicationAttachment.createMany({
+            data: attachments.map((a) => ({
+              applicationId: created.id,
+              attachmentType: a.attachmentType,
+              storageBucket: bucket,
+              storagePath: a.storagePath,
+              originalFileName: a.originalFileName.slice(0, 200),
+              mimeType: a.mimeType,
+              sizeBytes: a.sizeBytes,
+            })),
+          });
+        }
+
+        return created;
+      });
+    } catch (e) {
+      await supabase.auth.admin.deleteUser(pendingAuthUserId).catch(() => undefined);
+      throw e;
+    }
   },
 
   async listForAdmin(actor: ActorContext) {
@@ -241,6 +285,7 @@ export const gymApplicationService = {
     ) {
       throw new AppError("CONFLICT", "이미 처리된 신청입니다.");
     }
+    const pendingAuthUserId = row.pendingAuthUserId;
     const updated = await prisma.gymApplication.update({
       where: { id },
       data: {
@@ -248,8 +293,13 @@ export const gymApplicationService = {
         reviewedAt: new Date(),
         reviewedByUserId: actor.userId,
         reviewMemo: reviewMemo?.trim() || null,
+        pendingAuthUserId: null,
       },
     });
+    if (pendingAuthUserId) {
+      const supabase = createSupabaseAdminClient();
+      await supabase.auth.admin.deleteUser(pendingAuthUserId).catch(() => undefined);
+    }
     await prisma.auditLog.create({
       data: {
         actorUserId: actor.userId,
@@ -263,7 +313,10 @@ export const gymApplicationService = {
   },
 
   /**
-   * 승인 시 Gym + placeholder User만 생성한다.
+   * 승인 시 Gym + User 생성.
+   * pendingAuthUserId가 있으면(신규 가입에서 비밀번호 확보) Auth를 바로 연결하고
+   * 초대 링크 없이 즉시 로그인 가능.
+   * 레거시 신청(비밀번호 미확보)만 placeholder + invite 발급.
    * AssociationMemberGym은 절대 생성하지 않는다.
    */
   async approve(
@@ -272,9 +325,11 @@ export const gymApplicationService = {
     reviewMemo?: string,
   ): Promise<{
     applicationId: string;
-    inviteToken: string;
-    inviteUrl: string;
     gymId: string;
+    loginReady: boolean;
+    /** 레거시 신청에만 반환. 신규 direct-login 흐름에서는 null */
+    inviteToken: string | null;
+    inviteUrl: string | null;
   }> {
     requireRole(actor, [UserRole.admin]);
     const row = await this.getForAdmin(actor, id);
@@ -285,6 +340,140 @@ export const gymApplicationService = {
       throw new AppError("CONFLICT", "반려된 신청은 승인할 수 없습니다.");
     }
 
+    const requestedLoginId = row.requestedLoginId
+      ? parseRequiredRequestedLoginId(row.requestedLoginId)
+      : null;
+    const pendingAuthUserId = row.pendingAuthUserId?.trim() || null;
+    const directLogin = Boolean(pendingAuthUserId && requestedLoginId);
+
+    if (!directLogin) {
+      return this.approveLegacyWithInvite(actor, row, reviewMemo);
+    }
+
+    const authEmail = loginIdToAuthEmail(requestedLoginId!);
+    const supabase = createSupabaseAdminClient();
+
+    const result = await prisma.$transaction(async (tx) => {
+      await assertApplicationRequestedLoginIdAvailable(requestedLoginId!, {
+        excludeGymApplicationId: row.id,
+        client: tx,
+      });
+
+      const existingAuthLink = await tx.user.findFirst({
+        where: { authUserId: pendingAuthUserId! },
+        select: { id: true },
+      });
+      if (existingAuthLink) {
+        throw new AppError(
+          "CONFLICT",
+          "이미 다른 계정에 연결된 인증 정보입니다. 관리자에게 문의해 주세요.",
+        );
+      }
+
+      const user = await tx.user.create({
+        data: {
+          name: row.contactName,
+          email: authEmail,
+          phone: row.mobilePhone,
+          role: UserRole.gym,
+          loginId: requestedLoginId!,
+          authUserId: pendingAuthUserId!,
+          mustChangePassword: false,
+          passwordIssuedAt: new Date(),
+        },
+      });
+
+      const address =
+        formatPostalAddress({
+          postalCode: row.postalCode,
+          address: row.address,
+          addressDetail: row.addressDetail,
+        }) || null;
+      const gym = await tx.gym.create({
+        data: {
+          ownerUserId: user.id,
+          name: row.gymName,
+          phone: row.phone || row.mobilePhone,
+          address,
+          status: GymStatus.active,
+        },
+      });
+
+      await tx.gymApplication.update({
+        where: { id },
+        data: {
+          status: GymApplicationStatus.approved,
+          reviewedAt: new Date(),
+          reviewedByUserId: actor.userId,
+          reviewMemo: reviewMemo?.trim() || null,
+          createdGymId: gym.id,
+          pendingAuthUserId: null,
+          ownerInviteTokenHash: null,
+          ownerInviteExpiresAt: null,
+          ownerInviteCreatedAt: null,
+          ownerInviteCreatedByUserId: null,
+        },
+      });
+
+      await tx.auditLog.create({
+        data: {
+          actorUserId: actor.userId,
+          action: AuditAction.gym_application_reviewed,
+          targetType: "GymApplication",
+          targetId: id,
+          afterData: {
+            status: "approved",
+            gymId: gym.id,
+            userId: user.id,
+            loginReady: true,
+            associationMemberGymCreated: false,
+          },
+        },
+      });
+
+      return { gymId: gym.id, userId: user.id };
+    });
+
+    await supabase.auth.admin
+      .updateUserById(pendingAuthUserId!, {
+        user_metadata: {
+          matchon_pending_gym_application: false,
+          requested_login_id: requestedLoginId,
+        },
+      })
+      .catch(() => undefined);
+
+    return {
+      applicationId: id,
+      gymId: result.gymId,
+      loginReady: true,
+      inviteToken: null,
+      inviteUrl: null,
+    };
+  },
+
+  /** 비밀번호를 신청 시 받지 않은 레거시 신청 — placeholder + invite */
+  async approveLegacyWithInvite(
+    actor: ActorContext,
+    row: {
+      id: string;
+      contactName: string;
+      mobilePhone: string;
+      phone: string | null;
+      postalCode: string | null;
+      address: string | null;
+      addressDetail: string | null;
+      gymName: string;
+      requestedLoginId: string | null;
+    },
+    reviewMemo?: string,
+  ): Promise<{
+    applicationId: string;
+    gymId: string;
+    loginReady: boolean;
+    inviteToken: string;
+    inviteUrl: string;
+  }> {
     const inviteToken = randomBytes(24).toString("hex");
     const tokenHash = hashGymApplicationOwnerInviteToken(inviteToken);
     const expiresAt = new Date(Date.now() + GYM_OWNER_APPLICATION_INVITE_TTL_MS);
@@ -329,7 +518,7 @@ export const gymApplicationService = {
       });
 
       await tx.gymApplication.update({
-        where: { id },
+        where: { id: row.id },
         data: {
           status: GymApplicationStatus.approved,
           reviewedAt: new Date(),
@@ -348,11 +537,13 @@ export const gymApplicationService = {
           actorUserId: actor.userId,
           action: AuditAction.gym_application_reviewed,
           targetType: "GymApplication",
-          targetId: id,
+          targetId: row.id,
           afterData: {
             status: "approved",
             gymId: gym.id,
             userId: user.id,
+            loginReady: false,
+            legacyInvite: true,
             associationMemberGymCreated: false,
           },
         },
@@ -362,10 +553,11 @@ export const gymApplicationService = {
     });
 
     return {
-      applicationId: id,
+      applicationId: row.id,
+      gymId: result.gymId,
+      loginReady: false,
       inviteToken,
       inviteUrl: buildGymApplicationOwnerInviteUrl(inviteToken),
-      gymId: result.gymId,
     };
   },
 
