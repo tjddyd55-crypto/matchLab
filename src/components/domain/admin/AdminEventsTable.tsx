@@ -27,6 +27,7 @@ import {
   adminMobileListClass,
   adminMutedTextClass,
 } from "@/lib/ui/admin-ui";
+import { shouldListEventOnPublicAnnouncementBoard } from "@/lib/events/public-event-visibility";
 import { cn } from "@/lib/utils";
 
 export function AdminEventsTable({ rows }: { rows: AdminEventListItemDTO[] }) {
@@ -48,6 +49,7 @@ export function AdminEventsTable({ rows }: { rows: AdminEventListItemDTO[] }) {
               <TableHead>대회</TableHead>
               <TableHead>주최</TableHead>
               <TableHead>상태</TableHead>
+              <TableHead>공개노출</TableHead>
               <TableHead>일정</TableHead>
               <TableHead>신청/대진</TableHead>
               <TableHead>링크</TableHead>
@@ -62,6 +64,14 @@ export function AdminEventsTable({ rows }: { rows: AdminEventListItemDTO[] }) {
                 </TableCell>
                 <TableCell>
                   <EventStatusPill status={e.status} />
+                </TableCell>
+                <TableCell className={`${adminMutedTextClass} whitespace-nowrap`}>
+                  {shouldListEventOnPublicAnnouncementBoard({
+                    status: e.status,
+                    publicSlug: e.publicSlug,
+                  })
+                    ? "예"
+                    : "아니오"}
                 </TableCell>
                 <TableCell className={`${adminMutedTextClass} whitespace-nowrap`}>
                   {formatAdminDateTime(e.eventDate)}
@@ -110,7 +120,13 @@ export function AdminEventsTable({ rows }: { rows: AdminEventListItemDTO[] }) {
               <CardContent className="pt-3 text-xs">
                 <p className={adminMutedTextClass}>
                   {formatAdminDateTime(e.eventDate)} · 신청 {e.applicationCount} · 대진{" "}
-                  {e.bracketCount}
+                  {e.bracketCount} · 공개노출{" "}
+                  {shouldListEventOnPublicAnnouncementBoard({
+                    status: e.status,
+                    publicSlug: e.publicSlug,
+                  })
+                    ? "예"
+                    : "아니오"}
                 </p>
               </CardContent>
               <CardFooter className={`${adminMobileCardFooterClass} flex flex-wrap gap-2`}>

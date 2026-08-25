@@ -33,6 +33,8 @@
     "verify:public-home-no-judge-access": "tsx scripts/verify-public-home-no-judge-access.ts",
     "verify:public-signup-entry": "tsx scripts/verify-public-signup-entry.ts",
     "verify:public-gym-independent-signup": "tsx scripts/verify-public-gym-independent-signup.ts",
+    "verify:public-announcement-ssot": "tsx scripts/verify-public-announcement-ssot.ts",
+    "verify:announcement-public-filter": "tsx scripts/verify-announcement-public-filter.ts",
     "verify:gym-signup-pending": "tsx scripts/verify-gym-signup-pending.ts",
     "verify:gym-approval-route-guard": "tsx scripts/verify-gym-approval-route-guard.ts",
     "verify:gym-join-direct-entry": "tsx scripts/verify-gym-join-independent-flow.ts",
