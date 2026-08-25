@@ -125,41 +125,53 @@ export function AdminOrganizationStatusPanel({
         ? getAdminOrganizerStatusLabel(selectedNext as OrganizerStatus)
         : getAdminGymStatusLabel(selectedNext as GymStatus);
 
+    const trimmedReasonSnapshot = trimmedReason;
+    const adminMemoSnapshot = adminMemo;
+    const selectedNextSnapshot = selectedNext;
+
+    setOpen(false);
+
     startTransition(async () => {
       const ok = await confirm({
         title: "운영 상태 변경",
         description: `${organizationName}을(를) 「${statusLabel}」에서 「${nextLabel}」(으)로 변경합니다.`,
         confirmLabel: nextLabel,
         variant:
-          selectedNext === OrganizerStatus.suspended ||
-          selectedNext === GymStatus.suspended
+          selectedNextSnapshot === OrganizerStatus.suspended ||
+          selectedNextSnapshot === GymStatus.suspended
             ? "danger"
             : "default",
       });
-      if (!ok) return;
+      if (!ok) {
+        setNextStatus(selectedNextSnapshot);
+        setReason(trimmedReasonSnapshot);
+        setAdminMemo(adminMemoSnapshot);
+        setOpen(true);
+        return;
+      }
 
       setError(null);
-      const fd = new FormData();
-      fd.set("reason", trimmedReason);
-      if (adminMemo.trim()) fd.set("adminMemo", adminMemo.trim());
-      fd.set("nextStatus", selectedNext);
 
       const result =
         kind === "association"
           ? await adminUpdateOrganizerStatusAction(null, (() => {
               const form = new FormData();
               form.set("organizerId", organizationId);
-              form.set("nextStatus", selectedNext);
-              form.set("reason", trimmedReason);
-              if (adminMemo.trim()) form.set("adminMemo", adminMemo.trim());
+              form.set("nextStatus", selectedNextSnapshot);
+              form.set("reason", trimmedReasonSnapshot);
+              if (adminMemoSnapshot.trim()) {
+                form.set("adminMemo", adminMemoSnapshot.trim());
+              }
               return form;
             })())
           : await adminUpdateGymStatusAction(null, (() => {
               const form = new FormData();
               form.set("gymId", organizationId);
-              form.set("nextStatus", selectedNext);
-              form.set("reason", trimmedReason);
-              if (adminMemo.trim()) form.set("adminMemo", adminMemo.trim());
+              form.set("nextStatus", selectedNextSnapshot);
+              form.set("reason", trimmedReasonSnapshot);
+              if (adminMemoSnapshot.trim()) {
+                form.set("adminMemo", adminMemoSnapshot.trim());
+              }
               return form;
             })());
 
