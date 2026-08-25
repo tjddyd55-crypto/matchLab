@@ -46,10 +46,10 @@ function matchesFilter(
 export default async function AdminGymApplicationsPage({
   searchParams,
 }: {
-  searchParams?: Promise<{ status?: string | string[] }>;
+  searchParams: Promise<{ status?: string | string[] }>;
 }) {
   const actor = await requireActor();
-  const params = searchParams ? await searchParams : {};
+  const params = await searchParams;
   const filter = parseStatusFilter(params.status);
   const allRows = await gymApplicationService.listForAdmin(actor);
   const pendingCount = allRows.filter((row) =>
