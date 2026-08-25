@@ -3262,7 +3262,7 @@ model GymApplication {
   reviewedByUserId     String?
   reviewMemo           String?
   createdGymId         String?
-  /// 승인 후 체육관 owner 계정 초대 (원문 금지, hash만)
+  /// 승인 후 체육관 owner 계정 초대 (원문 금지, hash만). 신규 direct-login 흐름에서는 null.
   ownerInviteTokenHash String?              @unique
   ownerInviteExpiresAt DateTime?
   ownerInviteCreatedAt DateTime?
@@ -3274,6 +3274,8 @@ model GymApplication {
   updatedAt            DateTime             @updatedAt
   /// 신청 시 희망 로그인 아이디 (canonical lowercase). 승인·활성화 후 User.loginId와 일치해야 함.
   requestedLoginId     String?
+  /// 가입 시 생성한 Supabase Auth user id. 비밀번호는 Auth에만 저장(앱 DB 금지). 승인 시 User.authUserId로 이전.
+  pendingAuthUserId    String?              @unique
 
   reviewedByUser User? @relation("GymApplicationReviewer", fields: [reviewedByUserId], references: [id], onDelete: SetNull)
   createdGym     Gym?  @relation("GymApplicationCreatedGym", fields: [createdGymId], references: [id], onDelete: SetNull)
