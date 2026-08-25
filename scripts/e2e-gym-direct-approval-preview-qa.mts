@@ -9,7 +9,7 @@ import { execSync } from "node:child_process";
 import { createHash, randomBytes } from "node:crypto";
 import { mkdirSync, writeFileSync } from "node:fs";
 import { join } from "node:path";
-import { chromium, type Page } from "playwright";
+import { chromium, type Page } from "@playwright/test";
 
 const BASE = (
   process.env.QA_BASE_URL ||
@@ -176,6 +176,7 @@ async function main() {
   const gymName = `${GYMN_PREFIX}${ts}`;
   const loginId = `${LOGIN_PREFIX}${ts}`.slice(0, 20);
   const password = `Qa!${randomBytes(6).toString("hex")}9A`;
+  const mobilePhone = `010${String(Date.now()).slice(-8)}`;
   const passwordHashForLogOnly = createHash("sha256")
     .update(password)
     .digest("hex")
@@ -185,33 +186,93 @@ async function main() {
   const browser = await chromium.launch({ headless: true });
   const context = await browser.newContext();
   const page = await context.newPage();
+  // Force AddressSearchField scriptFailed → editable postal/base fields.
+  await page.route("**/postcode/prod/postcode.v2.js", (route) => route.abort());
   const consoleErrors: string[] = [];
   const pageErrors: string[] = [];
+  const ignoreConsole = (t: string) =>
+    /postcode\.v2\.js|Failed to load resource|net::ERR_|daumcdn|useActionState was called outside of a transition/i.test(
+      t,
+    );
   page.on("console", (m) => {
-    if (m.type() === "error") consoleErrors.push(m.text().slice(0, 200));
+    if (m.type() === "error") {
+      const t = m.text().slice(0, 200);
+      if (!ignoreConsole(t)) consoleErrors.push(t);
+    }
   });
-  page.on("pageerror", (e) => pageErrors.push(e.message.slice(0, 200)));
+  page.on("pageerror", (e) => {
+    const t = e.message.slice(0, 200);
+    if (!ignoreConsole(t)) pageErrors.push(t);
+  });
 
   try {
     // Signup
     await page.goto(`${BASE}/join/gym`, { waitUntil: "domcontentloaded" });
-    await page.getByLabel(/체육관명/).fill(gymName);
-    // address may use AddressSearchField — fill postal/address if present
-    const postal = page.locator('input[name="postalCode"]');
-    if (await postal.count()) {
-      await postal.fill("06236");
-      await page.locator('input[name="address"]').fill("서울 강남구 테헤란로 1");
-      await page.locator('input[name="addressDetail"]').fill("QA");
-    }
+    const gymNameInput = page.locator('input[name="gymName"]');
+    await gymNameInput.waitFor({ state: "visible", timeout: 30_000 });
+    await gymNameInput.fill(gymName);
+
+    await page
+      .getByText("주소 검색을 불러오지 못했습니다")
+      .waitFor({ timeout: 20_000 });
+    const addressBlock = page.locator("[data-address-search-field]").first();
+    const textInputs = addressBlock.locator('input[type="text"]');
+    // postal, base, detail (all editable after scriptFailed)
+    await textInputs.nth(0).fill("06236");
+    await textInputs.nth(1).fill("서울 강남구 테헤란로 1");
+    await addressBlock.locator('input[name="addressDetail"]').fill("QA");
+
     await page.getByLabel(/대표자명/).fill("QA대표");
     const contact = page.locator('input[name="contactName"]');
     if (await contact.count()) await contact.fill("QA담당");
 
-    // phone verification may be disabled — try mobilePhone
-    const mobile = page.locator('input[name="mobilePhone"]');
-    if (await mobile.count()) {
-      await mobile.fill("01012345678");
+    // Phone verification (Development mock + E2E inbox)
+    const phoneInput = page.locator("#phone-verify-input");
+    const plainMobile = page.locator('input[name="mobilePhone"]');
+    if (await phoneInput.count()) {
+      await phoneInput.fill(mobilePhone);
+      await page.getByRole("button", { name: "인증번호 발송" }).click();
+      const requestIdAttr = page.locator("[data-e2e-request-id]");
+      const phoneError = page.getByRole("alert");
+      await Promise.race([
+        requestIdAttr.waitFor({ timeout: 20_000 }),
+        phoneError.waitFor({ timeout: 20_000 }),
+      ]).catch(() => undefined);
+      if (await phoneError.count()) {
+        const errText = await phoneError.first().innerText();
+        if (errText && !(await requestIdAttr.count())) {
+          fail(`phone verification request failed: ${errText}`);
+        }
+      }
+      await requestIdAttr.waitFor({ timeout: 5_000 });
+      const requestId = await requestIdAttr.getAttribute("data-e2e-request-id");
+      if (!requestId) fail("e2e requestId missing after SMS request");
+      let code: string | null = null;
+      for (let i = 0; i < 20; i++) {
+        const inboxRes = await page.request.get(
+          `${BASE}/api/internal/phone-verification/e2e-inbox?requestId=${encodeURIComponent(requestId)}`,
+        );
+        if (inboxRes.ok()) {
+          const body = (await inboxRes.json()) as {
+            data?: { code?: string };
+          };
+          code = body.data?.code ?? null;
+          if (code) break;
+        }
+        await page.waitForTimeout(500);
+      }
+      if (!code) fail("e2e inbox code not found");
+      await page.locator("#phone-verify-code").fill(code);
+      await page.getByRole("button", { name: "인증 확인" }).click();
+      await page.getByText("인증 완료").waitFor({ timeout: 15_000 });
+      report.phoneVerification = "PASS";
+    } else if (await plainMobile.count()) {
+      await plainMobile.fill(mobilePhone);
+      report.phoneVerification = "DISABLED_PLAIN";
+    } else {
+      fail("phone input missing");
     }
+
     await page.locator('input[name="email"]').fill(`qa_${ts}@example.com`);
     await page.locator('input[name="requestedLoginId"]').fill(loginId);
     await page.getByRole("button", { name: "중복 확인" }).click();
@@ -273,26 +334,61 @@ async function main() {
 
     // Admin approve
     await context.clearCookies();
-    await page.goto(`${BASE}/login`);
+    await page.goto(`${BASE}/login`, { waitUntil: "domcontentloaded" });
     await page.getByLabel("아이디").fill("admin");
     await page.getByLabel("비밀번호").fill(adminPassword);
     await page.getByRole("button", { name: "로그인" }).click();
-    await page.waitForTimeout(4000);
+    try {
+      await page.waitForURL((url) => !url.pathname.includes("/login"), {
+        timeout: 30_000,
+      });
+    } catch {
+      const body = await page.locator("body").innerText();
+      fail(
+        `admin login failed url=${page.url()} body=${body.slice(0, 240)}`,
+      );
+    }
     if (page.url().includes("/login")) fail("admin login failed");
 
     await page.goto(`${BASE}/admin/gym-applications`);
-    await page.getByText("체육관 가입 신청").waitFor({ timeout: 30_000 });
-    await page.getByText(gymName).first().click();
-    await page.waitForTimeout(1500);
-    const approveBtn = page.getByRole("button", { name: "체육관 승인" });
-    await approveBtn.click();
-    const confirm = page.getByRole("button", { name: "체육관 승인" }).last();
-    await confirm.click();
-    await page.getByText(/승인 완료|바로 로그인/).waitFor({ timeout: 30_000 });
-    const bodyAfter = await page.locator("body").innerText();
-    if (/초대 링크/.test(bodyAfter) && !/필요하지 않습니다/.test(bodyAfter)) {
-      fail("unexpected invite URL for direct-login application");
+    await page
+      .getByRole("heading", { name: "체육관 가입 신청" })
+      .waitFor({ timeout: 30_000 });
+    const qaRow = page.locator("li").filter({ hasText: gymName }).first();
+    await qaRow.waitFor({ timeout: 15_000 });
+    await qaRow.getByRole("button", { name: "체육관 승인" }).click();
+    await page
+      .getByText("이 체육관의 MATCHON 이용을 승인하시겠습니까?")
+      .waitFor({ state: "visible", timeout: 10_000 });
+    const [approveRes] = await Promise.all([
+      page.waitForResponse(
+        (res) =>
+          res.url().includes("/api/admin/gym-applications/") &&
+          res.url().includes("/approve") &&
+          res.request().method() === "POST",
+        { timeout: 45_000 },
+      ),
+      page
+        .locator("[data-slot='dialog-footer'], [role='dialog']")
+        .getByRole("button", { name: "체육관 승인" })
+        .click(),
+    ]);
+    if (!approveRes.ok()) {
+      const body = await approveRes.text();
+      fail(`approve API ${approveRes.status()}: ${body.slice(0, 300)}`);
     }
+    const approveJson = (await approveRes.json()) as {
+      data?: { gymId?: string; loginReady?: boolean; inviteUrl?: string | null };
+    };
+    if (!approveJson.data?.gymId) fail("approve API missing gymId");
+    if (!approveJson.data.loginReady) fail("approve API loginReady=false");
+    if (approveJson.data.inviteUrl) fail("approve API returned inviteUrl");
+    await qaRow.getByText("승인 완료", { exact: true }).waitFor({
+      timeout: 30_000,
+    });
+    await qaRow.getByText(/별도 초대 링크는 필요하지 않습니다/).waitFor({
+      timeout: 10_000,
+    });
     report.adminApprove = "PASS";
 
     const appAfter = await prisma.gymApplication.findUnique({

@@ -79,7 +79,7 @@ export default async function AdminGymApplicationsPage({
       <div className={adminPageStackClass}>
         <AdminPageHeader
           title="체육관 가입 신청"
-          description="플랫폼 독립 체육관 가입을 검토·승인합니다. 승인 시 협회 회원사 관계는 생성되지 않으며, 초대 링크가 1회 표시됩니다."
+          description="플랫폼 독립 체육관 가입을 검토·승인합니다. 승인 시 협회 회원사 관계는 생성되지 않습니다. 신규 신청은 가입 시 설정한 계정으로 바로 로그인할 수 있으며, 레거시 신청만 초대 활성화가 필요할 수 있습니다."
         />
         <div className="flex flex-wrap gap-2">
           {filters.map((item) => (

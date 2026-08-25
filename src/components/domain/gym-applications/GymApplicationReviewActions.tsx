@@ -30,8 +30,10 @@ export function GymApplicationReviewActions({
             type="button"
             disabled={pending}
             onClick={() => {
-              startTransition(async () => {
+              void (async () => {
                 setError(null);
+                // confirm() must NOT run inside startTransition — Provider setState
+                // would be deferred until the transition ends, deadlocking the dialog.
                 const ok = await confirm({
                   title: "이 체육관의 MATCHON 이용을 승인하시겠습니까?",
                   description:
@@ -40,30 +42,32 @@ export function GymApplicationReviewActions({
                 });
                 if (!ok) return;
 
-                const res = await fetch(
-                  `/api/admin/gym-applications/${applicationId}/approve`,
-                  {
-                    method: "POST",
-                    headers: { "Content-Type": "application/json" },
-                    body: JSON.stringify({}),
-                  },
-                );
-                const json = await res.json().catch(() => null);
-                if (!res.ok || !json?.data?.gymId) {
-                  setError(
-                    json?.error?.message ||
-                      "승인 처리에 실패했습니다. 다시 시도해 주세요.",
+                startTransition(async () => {
+                  const res = await fetch(
+                    `/api/admin/gym-applications/${applicationId}/approve`,
+                    {
+                      method: "POST",
+                      headers: { "Content-Type": "application/json" },
+                      body: JSON.stringify({}),
+                    },
                   );
-                  return;
-                }
-                setApproved(true);
-                setLoginReady(Boolean(json.data.loginReady));
-                setInviteUrl(
-                  typeof json.data.inviteUrl === "string"
-                    ? json.data.inviteUrl
-                    : null,
-                );
-              });
+                  const json = await res.json().catch(() => null);
+                  if (!res.ok || !json?.data?.gymId) {
+                    setError(
+                      json?.error?.message ||
+                        "승인 처리에 실패했습니다. 다시 시도해 주세요.",
+                    );
+                    return;
+                  }
+                  setApproved(true);
+                  setLoginReady(Boolean(json.data.loginReady));
+                  setInviteUrl(
+                    typeof json.data.inviteUrl === "string"
+                      ? json.data.inviteUrl
+                      : null,
+                  );
+                });
+              })();
             }}
           >
             {pending ? "승인 중…" : "체육관 승인"}
@@ -73,7 +77,7 @@ export function GymApplicationReviewActions({
             variant="outline"
             disabled={pending}
             onClick={() => {
-              startTransition(async () => {
+              void (async () => {
                 setError(null);
                 const ok = await confirm({
                   title: "이 체육관 가입 신청을 반려하시겠습니까?",
@@ -82,10 +86,12 @@ export function GymApplicationReviewActions({
                   variant: "danger",
                 });
                 if (!ok) return;
-                const fd = new FormData();
-                fd.set("applicationId", applicationId);
-                await rejectGymApplicationAction(fd);
-              });
+                startTransition(async () => {
+                  const fd = new FormData();
+                  fd.set("applicationId", applicationId);
+                  await rejectGymApplicationAction(fd);
+                });
+              })();
             }}
           >
             반려
