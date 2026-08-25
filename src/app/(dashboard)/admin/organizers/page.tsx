@@ -15,7 +15,7 @@ export default async function AdminOrganizersPage() {
       <div className={adminPageStackClass}>
         <AdminPageHeader
           title="전체 주최자"
-          description="협회 계정 목록입니다. 로그인 아이디는 최고 관리자만 볼 수 있습니다."
+          description="모든 Organizer 계정입니다. 협회만 보려면 「사용자 관리 → 협회」를 사용하세요. 로그인 아이디는 최고 관리자만 볼 수 있습니다."
         />
         <div className={adminContentCardClass}>
           <AdminOrganizersTable rows={rows} />

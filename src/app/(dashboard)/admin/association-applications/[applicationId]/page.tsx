@@ -118,6 +118,16 @@ export default async function AdminAssociationApplicationDetailPage({
               row.status === "pending" || row.status === "under_review"
             }
           />
+          {row.status === "approved" && row.createdOrganizerId ? (
+            <p>
+              <Link
+                href={`/admin/associations/${row.createdOrganizerId}`}
+                className="font-semibold text-matchon-primary underline-offset-2 hover:underline"
+              >
+                협회 상세 보기 →
+              </Link>
+            </p>
+          ) : null}
           <p>
             <Link
               href="/admin/association-applications"
