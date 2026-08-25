@@ -146,9 +146,31 @@ export default async function AdminGymApplicationDetailPage({
             </div>
             <div>
               <dt className="text-matchon-text-secondary">생성 Gym</dt>
-              <dd className="font-medium">{row.createdGymId || "확인 불가"}</dd>
+              <dd className="font-medium">
+                {row.createdGymId ? (
+                  <Link
+                    href={`/admin/gyms/${row.createdGymId}`}
+                    className="font-semibold text-matchon-primary underline-offset-2 hover:underline"
+                  >
+                    {row.createdGymId}
+                  </Link>
+                ) : (
+                  "확인 불가"
+                )}
+              </dd>
             </div>
           </dl>
+
+          {row.status === "approved" && row.createdGymId ? (
+            <p>
+              <Link
+                href={`/admin/gyms/${row.createdGymId}`}
+                className="font-semibold text-matchon-primary underline-offset-2 hover:underline"
+              >
+                체육관 상세 보기 →
+              </Link>
+            </p>
+          ) : null}
 
           <div>
             <p className="mb-2 text-sm font-semibold">첨부파일</p>

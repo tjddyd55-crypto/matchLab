@@ -54,7 +54,7 @@ export function AdminGymsTable({ rows }: { rows: AdminGymListItemDTO[] }) {
           </TableHeader>
           <TableBody>
             {rows.map((g) => (
-              <TableRow key={g.id}>
+              <TableRow key={g.id} className="h-12">
                 <TableCell className="font-medium break-words">{g.name}</TableCell>
                 <TableCell className="max-w-[10rem] break-all font-mono text-xs">
                   {formatStoredAdminLoginId(g.loginId)}
@@ -70,7 +70,13 @@ export function AdminGymsTable({ rows }: { rows: AdminGymListItemDTO[] }) {
                 <TableCell className={`${adminMutedTextClass} whitespace-nowrap text-xs`}>
                   {formatAdminDateTime(g.createdAt)}
                 </TableCell>
-                <TableCell>
+                <TableCell className="space-x-2 whitespace-nowrap">
+                  <Link
+                    href={`/admin/gyms/${g.id}`}
+                    className="text-xs font-semibold text-matchon-primary underline-offset-2 hover:underline"
+                  >
+                    상세
+                  </Link>
                   {g.loginId && !g.loginId.startsWith("pending-gym-") ? (
                     <Link
                       href={`/admin/password-reset-links?userId=${g.ownerUserId}`}
@@ -107,8 +113,16 @@ export function AdminGymsTable({ rows }: { rows: AdminGymListItemDTO[] }) {
                 <p className={`${adminMutedTextClass} mt-1`}>
                   {formatAdminDateTime(g.createdAt)}
                 </p>
+                <p className="mt-2">
+                  <Link
+                    href={`/admin/gyms/${g.id}`}
+                    className="font-semibold text-matchon-primary underline-offset-2 hover:underline"
+                  >
+                    상세 보기
+                  </Link>
+                </p>
                 {g.loginId && !g.loginId.startsWith("pending-gym-") ? (
-                  <p className="mt-2">
+                  <p className="mt-1">
                     <Link
                       href={`/admin/password-reset-links?userId=${g.ownerUserId}`}
                       className="font-semibold text-matchon-primary underline-offset-2 hover:underline"

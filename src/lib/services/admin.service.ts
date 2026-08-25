@@ -3,16 +3,20 @@ import "server-only";
 import type { ActorContext } from "@/lib/auth/actor-context";
 import type {
   AdminApplicationListItemDTO,
+  AdminAssociationDetailDTO,
+  AdminAssociationListItemDTO,
   AdminAuditLogListItemDTO,
   AdminDashboardHomeDTO,
   AdminDashboardStatsDTO,
   AdminEventListItemDTO,
   AdminFighterListItemDTO,
+  AdminGymDetailDTO,
   AdminGymListItemDTO,
   AdminMatchResultListItemDTO,
   AdminOrganizerListItemDTO,
 } from "@/lib/dto/admin";
 import { AppError } from "@/lib/errors/app-error";
+import { formatPostalAddress } from "@/lib/postal-address";
 import { adminRepository } from "@/lib/repositories/admin.repository";
 
 const RECENT_HOME = 10;
@@ -237,5 +241,232 @@ export const adminService = {
     assertAdmin(actor);
     const rows = await adminRepository.listAdminAuditLogs(AUDIT_LOG_PAGE_LIMIT);
     return rows.map(mapAuditRow);
+  },
+
+  async listAdminAssociations(
+    actor: ActorContext,
+  ): Promise<AdminAssociationListItemDTO[]> {
+    assertAdmin(actor);
+    const rows = await adminRepository.listAdminAssociations();
+    return rows.map((r) => {
+      const app = r.associationApplicationsCreated[0] ?? null;
+      return {
+        id: r.id,
+        name: r.name,
+        status: r.status,
+        representativeName: app?.representativeName ?? r.user.name,
+        contactPhone: app?.contactPhone ?? r.user.phone,
+        contactEmail: app?.contactEmail ?? r.user.email,
+        memberGymCount: r._count.associationMemberGyms,
+        creditBalance: r.creditWallet?.balance ?? 0,
+        createdAt: toIso(r.createdAt),
+        updatedAt: toIso(r.updatedAt),
+        ownerUserId: r.userId,
+        loginId: r.user.loginId,
+      };
+    });
+  },
+
+  async getAdminAssociationDetail(
+    actor: ActorContext,
+    organizerId: string,
+  ): Promise<AdminAssociationDetailDTO> {
+    assertAdmin(actor);
+    const row = await adminRepository.getAdminAssociationById(organizerId);
+    if (!row) {
+      throw new AppError("NOT_FOUND", "협회를 찾을 수 없습니다.");
+    }
+
+    const app = row.associationApplicationsCreated[0] ?? null;
+    const auditLogs = await adminRepository.listAdminAuditLogsForTarget(
+      "Organizer",
+      row.id,
+    );
+    // 가입 신청 감사도 함께 표시 (승인 이력)
+    const appAuditLogs = app
+      ? await adminRepository.listAdminAuditLogsForTarget(
+          "AssociationApplication",
+          app.id,
+        )
+      : [];
+    const mergedAudit = [...auditLogs, ...appAuditLogs]
+      .sort(
+        (a, b) =>
+          new Date(b.createdAt).getTime() - new Date(a.createdAt).getTime(),
+      )
+      .slice(0, 50);
+
+    return {
+      id: row.id,
+      name: row.name,
+      type: row.type,
+      status: row.status,
+      websiteUrl: row.websiteUrl,
+      createdAt: toIso(row.createdAt),
+      updatedAt: toIso(row.updatedAt),
+      ownerUserId: row.userId,
+      loginId: row.user.loginId,
+      ownerName: row.user.name,
+      ownerPhone: row.user.phone,
+      ownerEmail: row.user.email,
+      application: app
+        ? {
+            id: app.id,
+            representativeName: app.representativeName,
+            contactName: app.contactName,
+            contactPhone: app.contactPhone,
+            contactEmail: app.contactEmail,
+            addressLabel:
+              formatPostalAddress({
+                postalCode: app.postalCode,
+                address: app.address,
+                addressDetail: app.addressDetail,
+              }) || null,
+            reviewedAt: app.reviewedAt ? toIso(app.reviewedAt) : null,
+            submittedAt: toIso(app.submittedAt),
+          }
+        : null,
+      summary: {
+        memberGymCount: row._count.associationMemberGyms,
+        eventCount: row._count.events,
+        creditBalance: row.creditWallet?.balance ?? 0,
+      },
+      linkedGyms: row.associationMemberGyms.map((m) => ({
+        membershipId: m.id,
+        gymId: m.gym.id,
+        gymName: m.gym.name,
+        status: m.status,
+        joinedAt: toIso(m.joinedAt),
+        memberCode: m.memberCode,
+      })),
+      events: row.events.map((e) => ({
+        id: e.id,
+        title: e.title,
+        status: e.status,
+        eventDate: toIso(e.eventDate),
+        publicSlug: e.publicSlug,
+      })),
+      creditLedgers: row.creditLedgers.map((l) => ({
+        id: l.id,
+        type: l.type,
+        amount: l.amount,
+        balanceAfter: l.balanceAfter,
+        reason: l.reason,
+        memo: l.memo,
+        createdAt: toIso(l.createdAt),
+      })),
+      auditLogs: mergedAudit.map(mapAuditRow),
+    };
+  },
+
+  async getAdminGymDetail(
+    actor: ActorContext,
+    gymId: string,
+  ): Promise<AdminGymDetailDTO> {
+    assertAdmin(actor);
+    const row = await adminRepository.getAdminGymById(gymId);
+    if (!row) {
+      throw new AppError("NOT_FOUND", "체육관을 찾을 수 없습니다.");
+    }
+
+    const app = row.gymApplicationsCreated[0] ?? null;
+    const auditLogs = await adminRepository.listAdminAuditLogsForTarget(
+      "Gym",
+      row.id,
+    );
+    const appAuditLogs = app
+      ? await adminRepository.listAdminAuditLogsForTarget(
+          "GymApplication",
+          app.id,
+        )
+      : [];
+    const mergedAudit = [...auditLogs, ...appAuditLogs]
+      .sort(
+        (a, b) =>
+          new Date(b.createdAt).getTime() - new Date(a.createdAt).getTime(),
+      )
+      .slice(0, 50);
+
+    const participationMap = new Map<
+      string,
+      {
+        eventId: string;
+        eventTitle: string;
+        eventStatus: (typeof row.applications)[number]["event"]["status"];
+        eventDate: Date;
+        applicationCount: number;
+      }
+    >();
+    for (const a of row.applications) {
+      const existing = participationMap.get(a.event.id);
+      if (existing) {
+        existing.applicationCount += 1;
+        continue;
+      }
+      participationMap.set(a.event.id, {
+        eventId: a.event.id,
+        eventTitle: a.event.title,
+        eventStatus: a.event.status,
+        eventDate: a.event.eventDate,
+        applicationCount: 1,
+      });
+    }
+    const eventParticipations = [...participationMap.values()]
+      .sort((a, b) => b.eventDate.getTime() - a.eventDate.getTime())
+      .map((e) => ({
+        eventId: e.eventId,
+        eventTitle: e.eventTitle,
+        eventStatus: e.eventStatus,
+        eventDate: toIso(e.eventDate),
+        applicationCount: e.applicationCount,
+      }));
+
+    return {
+      id: row.id,
+      name: row.name,
+      status: row.status,
+      phone: row.phone,
+      address: row.address,
+      createdAt: toIso(row.createdAt),
+      updatedAt: toIso(row.updatedAt),
+      ownerUserId: row.ownerUserId,
+      loginId: row.ownerUser.loginId,
+      ownerName: row.ownerUser.name,
+      ownerPhone: row.ownerUser.phone,
+      ownerEmail: row.ownerUser.email,
+      application: app
+        ? {
+            id: app.id,
+            representativeName: app.representativeName,
+            contactName: app.contactName,
+            mobilePhone: app.mobilePhone,
+            email: app.email,
+            addressLabel:
+              formatPostalAddress({
+                postalCode: app.postalCode,
+                address: app.address,
+                addressDetail: app.addressDetail,
+              }) || null,
+            businessNo: app.businessNo,
+            reviewedAt: app.reviewedAt ? toIso(app.reviewedAt) : null,
+            submittedAt: toIso(app.submittedAt),
+          }
+        : null,
+      summary: {
+        memberCount: row._count.gymMembers,
+        fighterCount: row._count.fighters,
+        associationLinkCount: row._count.associationMemberGyms,
+        eventParticipationCount: eventParticipations.length,
+      },
+      associationLinks: row.associationMemberGyms.map((m) => ({
+        membershipId: m.id,
+        organizerId: m.organizer.id,
+        associationName: m.organizer.name,
+        status: m.status,
+        joinedAt: toIso(m.joinedAt),
+      })),
+      eventParticipations,
+      auditLogs: mergedAudit.map(mapAuditRow),
+    };
   },
 };
