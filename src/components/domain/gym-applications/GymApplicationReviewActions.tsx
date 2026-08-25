@@ -2,6 +2,7 @@
 
 import { useState, useTransition } from "react";
 import { rejectGymApplicationAction } from "@/features/gym-applications/actions";
+import { useAppConfirmDialog } from "@/components/shared/app-confirm-dialog";
 import { Button } from "@/components/ui/button";
 
 export function GymApplicationReviewActions({
@@ -11,6 +12,7 @@ export function GymApplicationReviewActions({
   applicationId: string;
   canReview: boolean;
 }) {
+  const { confirm } = useAppConfirmDialog();
   const [pending, startTransition] = useTransition();
   const [inviteUrl, setInviteUrl] = useState<string | null>(null);
   const [error, setError] = useState<string | null>(null);
@@ -28,6 +30,14 @@ export function GymApplicationReviewActions({
             onClick={() => {
               startTransition(async () => {
                 setError(null);
+                const ok = await confirm({
+                  title: "이 체육관의 MATCHON 이용을 승인하시겠습니까?",
+                  description:
+                    "승인 후 계정 초대 링크가 발급됩니다. 협회 회원사 관계는 생성되지 않습니다.",
+                  confirmLabel: "승인",
+                });
+                if (!ok) return;
+
                 const res = await fetch(
                   `/api/admin/gym-applications/${applicationId}/approve`,
                   {
@@ -50,12 +60,28 @@ export function GymApplicationReviewActions({
           >
             {pending ? "승인 중…" : "승인 및 계정 초대 발급"}
           </Button>
-          <form action={rejectGymApplicationAction}>
-            <input type="hidden" name="applicationId" value={applicationId} />
-            <Button type="submit" variant="outline" disabled={pending}>
-              반려
-            </Button>
-          </form>
+          <Button
+            type="button"
+            variant="outline"
+            disabled={pending}
+            onClick={() => {
+              startTransition(async () => {
+                setError(null);
+                const ok = await confirm({
+                  title: "이 체육관 가입 신청을 반려하시겠습니까?",
+                  description: "반려된 신청은 다시 승인할 수 없습니다.",
+                  confirmLabel: "반려",
+                  variant: "danger",
+                });
+                if (!ok) return;
+                const fd = new FormData();
+                fd.set("applicationId", applicationId);
+                await rejectGymApplicationAction(fd);
+              });
+            }}
+          >
+            반려
+          </Button>
         </div>
       ) : null}
 

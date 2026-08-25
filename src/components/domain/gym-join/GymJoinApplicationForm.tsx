@@ -322,7 +322,8 @@ export function GymJoinApplicationForm({
           가입 신청이 완료되었습니다.
         </p>
         <p className={authLoginSecondaryNoteClass}>
-          관리자 확인 후 결과를 안내해 드립니다.
+          관리자 승인 후 계정 초대 링크가 안내됩니다. 승인 전까지 체육관 관리
+          기능은 사용할 수 없습니다.
         </p>
         <Link
           href="/login"

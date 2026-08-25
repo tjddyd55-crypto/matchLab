@@ -28,6 +28,10 @@ export default async function GymDashboardLayout({
   }
 
   if (access && !access.canEnterPortal) {
+    const title =
+      access.accessMode === "platform_suspended"
+        ? "체육관 이용 제한"
+        : "회원사 포털 이용 불가";
     return (
       <AppShell>
         <DashboardShell
@@ -38,7 +42,7 @@ export default async function GymDashboardLayout({
         >
           <div className="mx-auto max-w-lg px-4 py-16">
             <h1 className="text-xl font-bold text-matchon-text-primary">
-              회원사 포털 이용 불가
+              {title}
             </h1>
             <p className="mt-3 text-sm text-matchon-text-secondary">
               {access.bannerMessage}
