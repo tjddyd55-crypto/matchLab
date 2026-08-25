@@ -264,18 +264,3 @@ export function AdminOrganizationStatusPanel({
     </>
   );
 }
-
-function canManageOrganizationStatus(
-  kind: OrganizationKind,
-  status: OrganizerStatusType | GymStatusType,
-): boolean {
-  if (kind === "association") {
-    return (
-      status === OrganizerStatus.active ||
-      status === OrganizerStatus.suspended
-    );
-  }
-  return status === GymStatus.active || status === GymStatus.suspended;
-}
-
-export { canManageOrganizationStatus };

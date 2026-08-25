@@ -83,3 +83,19 @@ export function isOrganizerFieldOperationsEventStatus(
 export function isAssociationOrganizerType(type: OrganizerType): boolean {
   return type === OrganizerType.association;
 }
+
+export type AdminOrganizationKind = "association" | "gym";
+
+/** Admin UI: active/suspended만 상태 관리 dialog 노출 */
+export function canManageOrganizationStatus(
+  kind: AdminOrganizationKind,
+  status: OrganizerStatusType | GymStatusType,
+): boolean {
+  if (kind === "association") {
+    return (
+      status === OrganizerStatus.active ||
+      status === OrganizerStatus.suspended
+    );
+  }
+  return status === GymStatus.active || status === GymStatus.suspended;
+}
