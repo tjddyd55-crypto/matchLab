@@ -147,12 +147,19 @@ export function GymJoinApplicationForm({
   const [submitError, setSubmitError] = useState<string | null>(null);
   const [inviteDone, setInviteDone] = useState<string | null>(null);
   const [mobilePhone, setMobilePhone] = useState("");
+  const [password, setPassword] = useState("");
+  const [passwordConfirm, setPasswordConfirm] = useState("");
   const [signupVerificationToken, setSignupVerificationToken] = useState<
     string | null
   >(null);
   const [invitePending, startInvite] = useTransition();
   const [independentState, independentAction, independentPending] =
     useActionState(submitGymApplicationAction, null as IndependentState);
+
+  const passwordsMismatch =
+    mode === "independent" &&
+    passwordConfirm.length > 0 &&
+    password !== passwordConfirm;
 
   const settings = associationInvite?.settings;
   const requirePhoto = Boolean(settings?.form.requireRepresentativePhoto);
@@ -400,6 +407,12 @@ export function GymJoinApplicationForm({
             const nextAttachments = await ensureSignatureAttachment();
 
             if (mode === "independent") {
+              const pw = String(fd.get("password") || "");
+              const pwConfirm = String(fd.get("passwordConfirm") || "");
+              if (pw !== pwConfirm) {
+                setSubmitError("비밀번호가 일치하지 않습니다.");
+                return;
+              }
               fd.set("uploadBatchId", uploadBatchId);
               fd.set("attachmentsJson", JSON.stringify(nextAttachments));
               if (phoneVerificationEnabled) {
@@ -506,43 +519,66 @@ export function GymJoinApplicationForm({
         </section>
       ) : null}
 
-      <section className="space-y-3 rounded-xl border border-matchon-border bg-white p-4 shadow-sm">
-        <h2 className="text-sm font-bold text-matchon-text-primary">
-          1. 체육관 정보
-        </h2>
-        <TextField name="gymName" label="체육관명" required />
-        <AddressSearchField
-          label="체육관 주소"
-          required
-          postalName="postalCode"
-          addressName="address"
-          detailName="addressDetail"
-          inputClassName={authLoginInputClass}
-        />
-        {mode === "independent" ? (
-          <PhoneInput name="phone" label="체육관 연락처" />
-        ) : (
-          <PhoneInput name="gymPhone" label="체육관 연락처" />
-        )}
-        <BusinessNoInput name="businessNo" label="사업자등록번호" />
-        <TextField name="sportType" label="운영 종목" />
-        <div className={authLoginFieldStackClass}>
-          <label htmlFor="description" className={authLoginLabelClass}>
-            소개
-          </label>
-          <textarea
-            id="description"
-            name={mode === "independent" ? "description" : "memo"}
-            rows={3}
-            className={`${authLoginInputClass} min-h-[5rem] py-2`}
-          />
-        </div>
-      </section>
+      {mode === "independent" ? (
+        <section className="space-y-3 rounded-xl border border-matchon-border bg-white p-4 shadow-sm">
+          <h2 className="text-sm font-bold text-matchon-text-primary">
+            1. 계정 정보
+          </h2>
+          <RequestedLoginIdField disabled={pending} />
+          <div className={authLoginFieldStackClass}>
+            <label htmlFor="password" className={authLoginLabelClass}>
+              비밀번호 *
+            </label>
+            <input
+              id="password"
+              name="password"
+              type="password"
+              required
+              minLength={8}
+              maxLength={72}
+              autoComplete="new-password"
+              disabled={pending}
+              value={password}
+              onChange={(e) => setPassword(e.target.value)}
+              className={authLoginInputClass}
+            />
+            <p className={authLoginSecondaryNoteClass}>
+              8자 이상, 공백 없이 입력해 주세요. 관리자 승인 후 이 비밀번호로
+              바로 로그인합니다.
+            </p>
+          </div>
+          <div className={authLoginFieldStackClass}>
+            <label htmlFor="passwordConfirm" className={authLoginLabelClass}>
+              비밀번호 확인 *
+            </label>
+            <input
+              id="passwordConfirm"
+              name="passwordConfirm"
+              type="password"
+              required
+              minLength={8}
+              maxLength={72}
+              autoComplete="new-password"
+              disabled={pending}
+              value={passwordConfirm}
+              onChange={(e) => setPasswordConfirm(e.target.value)}
+              className={authLoginInputClass}
+              aria-invalid={passwordsMismatch || undefined}
+            />
+            {passwordsMismatch ? (
+              <p className={authLoginErrorClass} role="alert">
+                비밀번호가 일치하지 않습니다.
+              </p>
+            ) : null}
+          </div>
+        </section>
+      ) : null}
 
       <section className="space-y-3 rounded-xl border border-matchon-border bg-white p-4 shadow-sm">
         <h2 className="text-sm font-bold text-matchon-text-primary">
-          2. 대표자 정보
+          {mode === "independent" ? "2. 체육관 정보" : "1. 체육관 정보"}
         </h2>
+        <TextField name="gymName" label="체육관명" required />
         <div className={authLoginFieldStackClass}>
           <label htmlFor="ownerOrRep" className={authLoginLabelClass}>
             대표자명 *
@@ -554,6 +590,32 @@ export function GymJoinApplicationForm({
             value={ownerName}
             onChange={(e) => setOwnerName(e.target.value)}
             className={authLoginInputClass}
+          />
+        </div>
+        {mode === "independent" ? (
+          <PhoneInput name="phone" label="체육관 연락처" />
+        ) : (
+          <PhoneInput name="gymPhone" label="체육관 연락처" />
+        )}
+        <AddressSearchField
+          label="체육관 주소"
+          required
+          postalName="postalCode"
+          addressName="address"
+          detailName="addressDetail"
+          inputClassName={authLoginInputClass}
+        />
+        <BusinessNoInput name="businessNo" label="사업자등록번호" />
+        <TextField name="sportType" label="운영 종목" />
+        <div className={authLoginFieldStackClass}>
+          <label htmlFor="description" className={authLoginLabelClass}>
+            소개
+          </label>
+          <textarea
+            id="description"
+            name={mode === "independent" ? "description" : "memo"}
+            rows={3}
+            className={`${authLoginInputClass} min-h-[5rem] py-2`}
           />
         </div>
         {mode === "association_invite" ? (
@@ -623,59 +685,14 @@ export function GymJoinApplicationForm({
             </div>
           )
         ) : (
-          <PhoneInput
-            name="mobilePhone"
-            label="개인 연락처"
-            required
-          />
+          <PhoneInput name="mobilePhone" label="개인 연락처" required />
         )}
         <TextField name="email" label="이메일" type="email" required />
-        {mode === "independent" ? (
-          <>
-            <RequestedLoginIdField disabled={pending} />
-            <div className={authLoginFieldStackClass}>
-              <label htmlFor="password" className={authLoginLabelClass}>
-                비밀번호 *
-              </label>
-              <input
-                id="password"
-                name="password"
-                type="password"
-                required
-                minLength={8}
-                maxLength={72}
-                autoComplete="new-password"
-                disabled={pending}
-                className={authLoginInputClass}
-              />
-              <p className={authLoginSecondaryNoteClass}>
-                8자 이상, 공백 없이 입력해 주세요. 관리자 승인 후 이
-                비밀번호로 바로 로그인합니다.
-              </p>
-            </div>
-            <div className={authLoginFieldStackClass}>
-              <label htmlFor="passwordConfirm" className={authLoginLabelClass}>
-                비밀번호 확인 *
-              </label>
-              <input
-                id="passwordConfirm"
-                name="passwordConfirm"
-                type="password"
-                required
-                minLength={8}
-                maxLength={72}
-                autoComplete="new-password"
-                disabled={pending}
-                className={authLoginInputClass}
-              />
-            </div>
-          </>
-        ) : null}
       </section>
 
       <section className="space-y-3 rounded-xl border border-matchon-border bg-white p-4 shadow-sm">
         <h2 className="text-sm font-bold text-matchon-text-primary">
-          3. 첨부 서류
+          {mode === "independent" ? "3. 첨부 서류" : "2. 첨부 서류"}
         </h2>
         <p className={authLoginSecondaryNoteClass}>{GYM_JOIN_ATTACHMENT_HINT}</p>
         {slots.map((slot) => {
@@ -722,7 +739,7 @@ export function GymJoinApplicationForm({
 
       <section className="space-y-3 rounded-xl border border-matchon-border bg-white p-4 shadow-sm">
         <h2 className="text-sm font-bold text-matchon-text-primary">
-          4. 신청인 및 서약
+          {mode === "independent" ? "4. 신청인 및 서약" : "3. 신청인 및 서약"}
         </h2>
         <label className="flex items-start gap-2 text-sm text-matchon-text-secondary">
           <input name="privacyConsent" type="checkbox" required className="mt-1" />
@@ -798,6 +815,7 @@ export function GymJoinApplicationForm({
         disabled={
           pending ||
           isUploading ||
+          passwordsMismatch ||
           (mode === "independent" &&
             phoneVerificationEnabled &&
             !signupVerificationToken)
