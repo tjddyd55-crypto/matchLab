@@ -9,8 +9,8 @@ import {
 } from "@/components/domain/admin/AdminOrganizationSuspendedBanner";
 import {
   AdminOrganizationStatusPanel,
-  canManageOrganizationStatus,
 } from "@/components/domain/admin/AdminOrganizationStatusPanel";
+import { canManageOrganizationStatus } from "@/lib/organization-platform-status";
 import { AdminOrganizationSummary } from "@/components/domain/admin/AdminOrganizationSummary";
 import { AdminOrganizationTabs } from "@/components/domain/admin/AdminOrganizationTabs";
 import { formatAdminDateTime } from "@/components/domain/admin/admin-format";
