@@ -1,6 +1,6 @@
 "use client";
 
-import { useState, useTransition } from "react";
+import { useState } from "react";
 import {
   adminUpdateGymStatusAction,
   adminUpdateOrganizerStatusAction,
@@ -89,7 +89,7 @@ export function AdminOrganizationStatusPanel({
   const [reason, setReason] = useState("");
   const [adminMemo, setAdminMemo] = useState("");
   const [error, setError] = useState<string | null>(null);
-  const [pending, startTransition] = useTransition();
+  const [pending, setPending] = useState(false);
 
   const transitions = nextStatusOptions(kind, currentStatus);
   const selectedNext = nextStatus || transitions[0]?.value || "";
@@ -112,7 +112,7 @@ export function AdminOrganizationStatusPanel({
     resetForm();
   }
 
-  function submit() {
+  async function submit() {
     if (!selectedNext || pending) return;
     const trimmedReason = reason.trim();
     if (trimmedReason.length < 2) {
@@ -130,8 +130,9 @@ export function AdminOrganizationStatusPanel({
     const selectedNextSnapshot = selectedNext;
 
     setOpen(false);
+    setPending(true);
 
-    startTransition(async () => {
+    try {
       const ok = await confirm({
         title: "운영 상태 변경",
         description: `${organizationName}을(를) 「${statusLabel}」에서 「${nextLabel}」(으)로 변경합니다.`,
@@ -177,11 +178,14 @@ export function AdminOrganizationStatusPanel({
 
       if (!result.ok) {
         setError(result.error.message);
+        setOpen(true);
         return;
       }
-      setOpen(false);
+
       resetForm();
-    });
+    } finally {
+      setPending(false);
+    }
   }
 
   if (!canManage) return null;
