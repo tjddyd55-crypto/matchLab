@@ -14,10 +14,23 @@ function read(rel: string) {
 function main() {
   const field = read("src/components/shared/AddressSearchField.tsx");
   assert.match(field, /"use client"/);
-  assert.match(field, /daumcdn\.net\/mapjsapi\/bundle\/postcode/);
-  assert.match(field, /strategy="lazyOnload"/);
+  assert.match(field, /loadDaumPostcodeScript/);
+  assert.match(field, /\.embed\(/);
+  assert.doesNotMatch(field, /\.open\(\)/);
+  assert.doesNotMatch(field, /window\.open/);
   assert.match(field, /readOnly=\{!scriptFailed\}/);
   assert.match(field, /detailRef\.current\?\.focus/);
+  assert.match(field, /isOpen/);
+  assert.match(field, /data-address-search-embed/);
+
+  const loader = read("src/lib/daum-postcode-loader.ts");
+  assert.match(loader, /data-matchon-daum-postcode/);
+  assert.match(loader, /loadPromise/);
+  assert.match(loader, /daumcdn\.net\/mapjsapi\/bundle\/postcode/);
+
+  const eventAddress = read("src/components/domain/events/EventAddressInput.tsx");
+  assert.match(eventAddress, /\.embed\(/);
+  assert.doesNotMatch(eventAddress, /\.open\(\)/);
 
   const form = read(
     "src/components/domain/association-applications/AssociationApplicationForm.tsx",
