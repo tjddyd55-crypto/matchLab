@@ -20,7 +20,7 @@ export default async function OrganizerHomePage() {
   const actor = await requireActor();
   if (actor.role === "organizer") {
     const access = await resolveOrganizerPortalAccess(actor).catch(() => null);
-    if (access && !access.canEnterPortal) {
+    if (!access?.canEnterPortal) {
       return null;
     }
   }
