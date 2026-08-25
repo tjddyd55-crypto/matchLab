@@ -1,11 +1,17 @@
 import type { ActorContext } from "@/lib/auth/actor-context";
 import type { PublicFighterCardDTO } from "@/lib/dto/public";
-import { OrganizerType, type UserRole } from "@/lib/enums";
+import { EventStatus, OrganizerType, type UserRole } from "@/lib/enums";
 import { eventRepository } from "@/lib/repositories/event.repository";
 import { fighterRepository } from "@/lib/repositories/fighter.repository";
 import { PermissionError } from "@/lib/auth/permission-error";
 import { AppError } from "@/lib/errors/app-error";
 import { notFound } from "next/navigation";
+import {
+  isOrganizerFieldOperationsEventStatus,
+} from "@/lib/organization-platform-status";
+import { requireOrganizerPortalGeneralWrite } from "@/lib/organizer-portal-access";
+import { prisma } from "@/lib/prisma";
+import { OrganizerStatus } from "@/lib/enums";
 
 /** 허용 역할이 아니면 FORBIDDEN (`requireActor*` 와 조합). */
 export function requireRole(
@@ -49,6 +55,20 @@ export function resolveAssociationOrganizerScope(
   return actor.organizerId;
 }
 
+/**
+ * 협회 organizer write/read API — platform active 필수.
+ * suspended 시 member-gym 등 일반 업무 차단 (Event field ops는 별도 gate).
+ */
+export async function requireAssociationOrganizerScope(
+  actor: ActorContext,
+  explicitOrganizerId?: string | null,
+): Promise<string> {
+  if (actor.role === "organizer") {
+    await requireOrganizerPortalGeneralWrite(actor);
+  }
+  return resolveAssociationOrganizerScope(actor, explicitOrganizerId);
+}
+
 export function requireAssociationOrganizerPage(
   actor: ActorContext,
   explicitOrganizerId?: string | null,
@@ -75,6 +95,44 @@ export async function requireOrganizerForEvent(
   if (actor.organizerId !== ownerOrgId) {
     throw new PermissionError("FORBIDDEN");
   }
+
+  if (!actor.organizerId) return;
+
+  const organizer = await prisma.organizer.findUnique({
+    where: { id: actor.organizerId },
+    select: { status: true },
+  });
+  if (!organizer) {
+    throw new PermissionError("NOT_FOUND", "주최자를 찾을 수 없습니다.");
+  }
+
+  if (organizer.status === OrganizerStatus.active) return;
+
+  if (organizer.status === OrganizerStatus.suspended) {
+    const eventStatus = await eventRepository.findEventStatus(eventId);
+    if (
+      eventStatus &&
+      isOrganizerFieldOperationsEventStatus(eventStatus as EventStatus)
+    ) {
+      return;
+    }
+    throw new PermissionError(
+      "FORBIDDEN",
+      "협회 이용이 일시정지되어 이 대회 작업을 수행할 수 없습니다.",
+    );
+  }
+
+  throw new PermissionError(
+    "FORBIDDEN",
+    "현재 조직 상태에서는 대회 작업을 수행할 수 없습니다.",
+  );
+}
+
+/** 신규 대회·일반 organizer mutation용 — platform active 필수 */
+export async function requireOrganizerPlatformActiveForWrite(
+  actor: ActorContext,
+): Promise<void> {
+  await requireOrganizerPortalGeneralWrite(actor);
 }
 
 /** 주최자 대회 페이지 — 권한·미존재 시 500 대신 404 */

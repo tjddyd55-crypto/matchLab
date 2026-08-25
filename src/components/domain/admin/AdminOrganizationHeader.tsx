@@ -9,12 +9,14 @@ export function AdminOrganizationHeader({
   statusMatchon,
   metaLines,
   actions,
+  statusActions,
 }: {
   title: string;
   statusLabel: string;
   statusMatchon: MatchonStatus;
   metaLines: string[];
   actions?: ReactNode;
+  statusActions?: ReactNode;
 }) {
   return (
     <div className="flex flex-wrap items-start justify-between gap-3">
@@ -34,9 +36,11 @@ export function AdminOrganizationHeader({
             {line}
           </p>
         ))}
-        {/* Phase 2: organization status mutation (suspend / archive) — API 없음, UI 미노출 */}
       </div>
-      {actions ? <div className="flex flex-wrap gap-2">{actions}</div> : null}
+      <div className="flex flex-wrap items-center gap-2">
+        {statusActions}
+        {actions ? <div className="flex flex-wrap gap-2">{actions}</div> : null}
+      </div>
     </div>
   );
 }

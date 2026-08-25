@@ -14,7 +14,7 @@ import {
   isGymPortalOwner,
   requireGymOwner,
   requireRole,
-  resolveAssociationOrganizerScope,
+  requireAssociationOrganizerScope,
 } from "@/lib/permissions";
 import { auditRepository } from "@/lib/repositories/audit.repository";
 import { memberGymRepository } from "@/lib/repositories/member-gym.repository";
@@ -368,7 +368,7 @@ export const gymAssociationConnectionService = {
     actor: ActorContext,
     statusFilter?: AssociationGymConnectionRequestStatus | "all",
   ) {
-    const organizerId = await resolveAssociationOrganizerScope(actor);
+    const organizerId = await requireAssociationOrganizerScope(actor);
     const where = {
       associationOrganizerId: organizerId,
       deletedAt: null,
@@ -415,7 +415,7 @@ export const gymAssociationConnectionService = {
   },
 
   async approveRequest(actor: ActorContext, requestId: string, note?: string) {
-    const organizerId = await resolveAssociationOrganizerScope(actor);
+    const organizerId = await requireAssociationOrganizerScope(actor);
     const request = await prisma.associationGymConnectionRequest.findFirst({
       where: {
         id: requestId,
@@ -511,7 +511,7 @@ export const gymAssociationConnectionService = {
   },
 
   async rejectRequest(actor: ActorContext, requestId: string, note?: string) {
-    const organizerId = await resolveAssociationOrganizerScope(actor);
+    const organizerId = await requireAssociationOrganizerScope(actor);
     const request = await prisma.associationGymConnectionRequest.findFirst({
       where: {
         id: requestId,
@@ -549,7 +549,7 @@ export const gymAssociationConnectionService = {
   },
 
   async disconnectByAssociation(actor: ActorContext, memberGymId: string) {
-    const organizerId = await resolveAssociationOrganizerScope(actor);
+    const organizerId = await requireAssociationOrganizerScope(actor);
     const member = await prisma.associationMemberGym.findFirst({
       where: { id: memberGymId, organizerId },
     });

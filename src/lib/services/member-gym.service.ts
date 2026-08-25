@@ -28,7 +28,7 @@ import {
   normalizeBusinessRegistrationNumber,
   normalizePhoneDigits,
 } from "@/lib/phone";
-import { resolveAssociationOrganizerScope } from "@/lib/permissions";
+import { requireAssociationOrganizerScope } from "@/lib/permissions";
 import { isPrismaUniqueViolation } from "@/lib/prisma-errors";
 import { gymRepository } from "@/lib/repositories/gym.repository";
 import { memberGymRepository } from "@/lib/repositories/member-gym.repository";
@@ -102,7 +102,7 @@ export const memberGymService = {
   buildStableMemberGymRegisterUrl,
 
   async getSettings(actor: ActorContext, organizerIdHint?: string | null) {
-    const organizerId = resolveAssociationOrganizerScope(actor, organizerIdHint);
+    const organizerId = await requireAssociationOrganizerScope(actor, organizerIdHint);
     const row = await memberGymRepository.getOrCreateSettings(organizerId);
     return {
       organizerId,
@@ -115,14 +115,14 @@ export const memberGymService = {
     settings: MemberGymSettingsV1,
     organizerIdHint?: string | null,
   ) {
-    const organizerId = resolveAssociationOrganizerScope(actor, organizerIdHint);
+    const organizerId = await requireAssociationOrganizerScope(actor, organizerIdHint);
     const normalized = parseMemberGymSettings(settings);
     await memberGymRepository.updateSettings(organizerId, normalized);
     return normalized;
   },
 
   async getOverview(actor: ActorContext, organizerIdHint?: string | null) {
-    const organizerId = resolveAssociationOrganizerScope(actor, organizerIdHint);
+    const organizerId = await requireAssociationOrganizerScope(actor, organizerIdHint);
     const [memberGroups, appGroups, recent, activeLinks] = await Promise.all([
       memberGymRepository.countMemberGymsByStatus(organizerId),
       memberGymRepository.countApplicationsByStatus(organizerId),
@@ -157,7 +157,7 @@ export const memberGymService = {
   },
 
   async listLinks(actor: ActorContext, organizerIdHint?: string | null) {
-    const organizerId = resolveAssociationOrganizerScope(actor, organizerIdHint);
+    const organizerId = await requireAssociationOrganizerScope(actor, organizerIdHint);
     return memberGymRepository.listJoinLinks(organizerId);
   },
 
@@ -171,7 +171,7 @@ export const memberGymService = {
     },
     organizerIdHint?: string | null,
   ) {
-    const organizerId = resolveAssociationOrganizerScope(actor, organizerIdHint);
+    const organizerId = await requireAssociationOrganizerScope(actor, organizerIdHint);
     const settings = parseMemberGymSettings(
       (await memberGymRepository.getOrCreateSettings(organizerId)).settingsJson,
     );
@@ -215,7 +215,7 @@ export const memberGymService = {
     actor: ActorContext,
     organizerIdHint?: string | null,
   ) {
-    const organizerId = resolveAssociationOrganizerScope(actor, organizerIdHint);
+    const organizerId = await requireAssociationOrganizerScope(actor, organizerIdHint);
     const rows = await memberGymRepository.listActiveJoinLinks(organizerId);
     const now = Date.now();
     return rows
@@ -263,7 +263,7 @@ export const memberGymService = {
     status: AssociationJoinLinkStatus,
     organizerIdHint?: string | null,
   ) {
-    const organizerId = resolveAssociationOrganizerScope(actor, organizerIdHint);
+    const organizerId = await requireAssociationOrganizerScope(actor, organizerIdHint);
     const link = await memberGymRepository.findJoinLinkById(organizerId, linkId);
     if (!link) throw new AppError("NOT_FOUND", "가입 링크를 찾을 수 없습니다.");
     return memberGymRepository.updateJoinLink(linkId, {
@@ -528,7 +528,7 @@ export const memberGymService = {
     },
     organizerIdHint?: string | null,
   ) {
-    const organizerId = resolveAssociationOrganizerScope(actor, organizerIdHint);
+    const organizerId = await requireAssociationOrganizerScope(actor, organizerIdHint);
     if (!input.paperConsentConfirmed) {
       throw new AppError(
         "VALIDATION_ERROR",
@@ -683,7 +683,7 @@ export const memberGymService = {
     },
     organizerIdHint?: string | null,
   ) {
-    const organizerId = resolveAssociationOrganizerScope(actor, organizerIdHint);
+    const organizerId = await requireAssociationOrganizerScope(actor, organizerIdHint);
     return memberGymRepository.listApplications({
       organizerId,
       status: filters.status,
@@ -697,7 +697,7 @@ export const memberGymService = {
     applicationId: string,
     organizerIdHint?: string | null,
   ) {
-    const organizerId = resolveAssociationOrganizerScope(actor, organizerIdHint);
+    const organizerId = await requireAssociationOrganizerScope(actor, organizerIdHint);
     const row = await memberGymRepository.findApplicationById(
       organizerId,
       applicationId,
@@ -731,7 +731,7 @@ export const memberGymService = {
     },
     organizerIdHint?: string | null,
   ) {
-    const organizerId = resolveAssociationOrganizerScope(actor, organizerIdHint);
+    const organizerId = await requireAssociationOrganizerScope(actor, organizerIdHint);
     const app = await memberGymRepository.findApplicationById(
       organizerId,
       input.applicationId,
@@ -811,7 +811,7 @@ export const memberGymService = {
     },
     organizerIdHint?: string | null,
   ) {
-    const organizerId = resolveAssociationOrganizerScope(actor, organizerIdHint);
+    const organizerId = await requireAssociationOrganizerScope(actor, organizerIdHint);
     const app = await memberGymRepository.findApplicationById(
       organizerId,
       input.applicationId,
@@ -955,7 +955,7 @@ export const memberGymService = {
     filters: { status?: AssociationMemberGymStatus; q?: string },
     organizerIdHint?: string | null,
   ) {
-    const organizerId = resolveAssociationOrganizerScope(actor, organizerIdHint);
+    const organizerId = await requireAssociationOrganizerScope(actor, organizerIdHint);
     return memberGymRepository.listMemberGyms({
       organizerId,
       status: filters.status,
@@ -968,7 +968,7 @@ export const memberGymService = {
     memberGymId: string,
     organizerIdHint?: string | null,
   ) {
-    const organizerId = resolveAssociationOrganizerScope(actor, organizerIdHint);
+    const organizerId = await requireAssociationOrganizerScope(actor, organizerIdHint);
     const row = await memberGymRepository.findMemberGymById(
       organizerId,
       memberGymId,

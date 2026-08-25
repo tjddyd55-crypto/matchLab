@@ -17,7 +17,7 @@ import {
   MEMBER_GYM_UPLOAD_EXPIRES_SEC,
   memberGymFilesBucket,
 } from "@/lib/member-gym/constants";
-import { resolveAssociationOrganizerScope } from "@/lib/permissions";
+import { requireAssociationOrganizerScope } from "@/lib/permissions";
 import { memberGymRepository } from "@/lib/repositories/member-gym.repository";
 import {
   evaluateMemberGymJoinGate,
@@ -148,7 +148,7 @@ export const memberGymUploadService = {
     organizerIdHint?: string | null,
   ) {
     assertMimeAndSize(input.mimeType, input.sizeBytes, input.attachmentType);
-    const organizerId = resolveAssociationOrganizerScope(actor, organizerIdHint);
+    const organizerId = await requireAssociationOrganizerScope(actor, organizerIdHint);
     const batch = input.uploadBatchId.trim();
     if (!batch || batch.length < 8) {
       throw new AppError("VALIDATION_ERROR", "uploadBatchId가 필요합니다.");
@@ -169,7 +169,7 @@ export const memberGymUploadService = {
     organizerIdHint?: string | null,
   ) {
     assertMimeAndSize(input.mimeType, input.sizeBytes);
-    const organizerId = resolveAssociationOrganizerScope(actor, organizerIdHint);
+    const organizerId = await requireAssociationOrganizerScope(actor, organizerIdHint);
     const link = await memberGymRepository.findJoinLinkById(
       organizerId,
       input.linkId,
@@ -192,7 +192,7 @@ export const memberGymUploadService = {
     },
     organizerIdHint?: string | null,
   ) {
-    const organizerId = resolveAssociationOrganizerScope(actor, organizerIdHint);
+    const organizerId = await requireAssociationOrganizerScope(actor, organizerIdHint);
     const link = await memberGymRepository.findJoinLinkById(
       organizerId,
       input.linkId,
@@ -223,7 +223,7 @@ export const memberGymUploadService = {
     attachmentId: string,
     organizerIdHint?: string | null,
   ) {
-    const organizerId = resolveAssociationOrganizerScope(actor, organizerIdHint);
+    const organizerId = await requireAssociationOrganizerScope(actor, organizerIdHint);
     const row = await memberGymRepository.findApplicationAttachment(
       organizerId,
       attachmentId,
@@ -237,7 +237,7 @@ export const memberGymUploadService = {
     attachmentId: string,
     organizerIdHint?: string | null,
   ) {
-    const organizerId = resolveAssociationOrganizerScope(actor, organizerIdHint);
+    const organizerId = await requireAssociationOrganizerScope(actor, organizerIdHint);
     const row = await memberGymRepository.findJoinLinkAttachmentById(attachmentId);
     if (!row || row.joinLink.organizerId !== organizerId) {
       throw new AppError("NOT_FOUND", "안내자료를 찾을 수 없습니다.");
