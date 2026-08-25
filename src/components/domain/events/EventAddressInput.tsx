@@ -1,25 +1,13 @@
 "use client";
 
-import { useId, useState } from "react";
-import Script from "next/script";
-import { useAppConfirmDialog } from "@/components/shared/app-confirm-dialog";
+import { useEffect, useId, useRef, useState } from "react";
+import {
+  isDaumPostcodeReady,
+  loadDaumPostcodeScript,
+} from "@/lib/daum-postcode-loader";
 import { cn } from "@/lib/utils";
 
-declare global {
-  interface Window {
-    daum?: {
-      Postcode: new (opts: {
-        oncomplete: (data: {
-          zonecode: string;
-          roadAddress: string;
-          jibunAddress: string;
-          buildingName: string;
-          apartment: string;
-        }) => void;
-      }) => { open: () => void };
-    };
-  }
-}
+const EMBED_HEIGHT_PX = 420;
 
 const inputClass =
   "border-input bg-background h-9 w-full rounded-md border px-3 text-sm shadow-sm";
@@ -44,7 +32,6 @@ export function EventAddressInput({
   namePrefix?: string;
   fieldErrors?: Record<string, string[]>;
 }) {
-  const { alert } = useAppConfirmDialog();
   const pk = (k: string) => (namePrefix ? `${namePrefix}${k}` : k);
   const fieldError = (name: string) => fieldErrors?.[name]?.[0];
 
@@ -57,36 +44,90 @@ export function EventAddressInput({
   const [locationName, setLocationName] = useState(
     initial?.locationName ?? "",
   );
+  const [isOpen, setIsOpen] = useState(false);
+  const [scriptReady, setScriptReady] = useState(false);
+  const [scriptFailed, setScriptFailed] = useState(false);
+  const [scriptLoading, setScriptLoading] = useState(false);
+  const [inlineError, setInlineError] = useState<string | null>(null);
 
   const fieldId = useId();
+  const embedRef = useRef<HTMLDivElement>(null);
+  const detailRef = useRef<HTMLInputElement>(null);
 
-  const openSearch = () => {
-    if (typeof window === "undefined" || !window.daum?.Postcode) {
-      void alert({
-        title: "알림",
-        description:
-          "주소 검색 스크립트를 불러오는 중입니다. 잠시 후 다시 시도해 주세요.",
-      });
+  useEffect(() => {
+    if (isDaumPostcodeReady()) {
+      setScriptReady(true);
       return;
     }
+    let cancelled = false;
+    setScriptLoading(true);
+    void loadDaumPostcodeScript()
+      .then(() => {
+        if (!cancelled) {
+          setScriptReady(true);
+          setScriptFailed(false);
+        }
+      })
+      .catch(() => {
+        if (!cancelled) setScriptFailed(true);
+      })
+      .finally(() => {
+        if (!cancelled) setScriptLoading(false);
+      });
+    return () => {
+      cancelled = true;
+    };
+  }, []);
+
+  useEffect(() => {
+    if (!isOpen || !scriptReady || scriptFailed) return;
+    const el = embedRef.current;
+    if (!el || !window.daum?.Postcode) return;
+    el.replaceChildren();
     new window.daum.Postcode({
       oncomplete: (data) => {
         const road = data.roadAddress?.trim() ?? "";
         setPostalCode(data.zonecode ?? "");
         setRoadAddress(road);
         setJibunAddress(data.jibunAddress?.trim() ?? "");
+        setIsOpen(false);
+        setInlineError(null);
+        window.setTimeout(() => detailRef.current?.focus(), 0);
       },
-    }).open();
-  };
+      width: "100%",
+      height: EMBED_HEIGHT_PX,
+    }).embed(el);
+  }, [isOpen, scriptReady, scriptFailed]);
 
-  const roadDisplay = roadAddress;
+  async function toggleSearch() {
+    if (isOpen) {
+      setIsOpen(false);
+      setInlineError(null);
+      return;
+    }
+    setInlineError(null);
+    if (scriptFailed || !scriptReady) {
+      setScriptLoading(true);
+      try {
+        await loadDaumPostcodeScript();
+        setScriptReady(true);
+        setScriptFailed(false);
+        setIsOpen(true);
+      } catch {
+        setScriptFailed(true);
+        setInlineError(
+          "주소 검색을 불러오지 못했습니다. 잠시 후 다시 시도해 주세요.",
+        );
+      } finally {
+        setScriptLoading(false);
+      }
+      return;
+    }
+    setIsOpen(true);
+  }
 
   return (
     <div className="md:col-span-2 space-y-3 rounded-lg border bg-muted/20 p-3">
-      <Script
-        src="https://t1.daumcdn.net/mapjsapi/bundle/postcode/prod/postcode.v2.js"
-        strategy="lazyOnload"
-      />
       <input type="hidden" name={pk("postalCode")} value={postalCode} />
       <input type="hidden" name={pk("jibunAddress")} value={jibunAddress} />
       <input type="hidden" name={pk("roadAddress")} value={roadAddress} />
@@ -123,8 +164,8 @@ export function EventAddressInput({
           <input
             readOnly
             tabIndex={-1}
-            value={roadDisplay}
-            placeholder="주소 검색으로 선택해 주세요."
+            value={roadAddress}
+            placeholder="주소를 검색해 주세요."
             className={cn(readOnlyInputClass, "sm:flex-1")}
             aria-readonly
             aria-invalid={Boolean(fieldError("roadAddress"))}
@@ -134,11 +175,34 @@ export function EventAddressInput({
             className={cn(
               "border-input bg-background inline-flex h-9 shrink-0 items-center justify-center rounded-md border px-3 text-sm shadow-sm hover:bg-muted/50",
             )}
-            onClick={openSearch}
+            aria-expanded={isOpen}
+            onClick={() => void toggleSearch()}
           >
-            주소 검색
+            {isOpen ? "주소 검색 닫기 ▲" : "주소 검색 ▼"}
           </button>
         </div>
+        {isOpen ? (
+          <div
+            className="overflow-x-hidden rounded-md border bg-background"
+            data-address-search-embed
+          >
+            {scriptLoading && !scriptReady ? (
+              <p className="text-muted-foreground px-3 py-3 text-xs" role="status">
+                주소 검색을 준비하는 중입니다.
+              </p>
+            ) : null}
+            <div
+              ref={embedRef}
+              className="w-full max-w-full"
+              style={{ minHeight: scriptReady ? EMBED_HEIGHT_PX : undefined }}
+            />
+          </div>
+        ) : null}
+        {inlineError ? (
+          <span className="text-muted-foreground text-xs" role="status">
+            {inlineError}
+          </span>
+        ) : null}
         {fieldError("roadAddress") ? (
           <span className="text-destructive text-xs">
             {fieldError("roadAddress")}
@@ -149,6 +213,7 @@ export function EventAddressInput({
       <label className="block space-y-1 text-sm">
         <span className="text-muted-foreground text-xs">상세 주소</span>
         <input
+          ref={detailRef}
           value={detailAddress}
           onChange={(e) => setDetailAddress(e.target.value)}
           name={pk("detailAddress")}

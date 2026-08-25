@@ -33,6 +33,13 @@ function main() {
   assert.ok(form.includes("AddressSearchField"));
   assert.ok(form.includes("DocumentUploadField"));
   assert.ok(form.includes("postalName"));
+  assert.ok(form.includes("1. 계정 정보"));
+  assert.ok(form.includes("2. 체육관 정보"));
+  assert.match(
+    form,
+    /1\. 계정 정보[\s\S]*RequestedLoginIdField[\s\S]*2\. 체육관 정보/,
+  );
+  assert.doesNotMatch(form, /\.open\(\)/);
   assert.ok(form.includes("/api/uploads/gym-application"));
   assert.ok(form.includes("/api/uploads/member-gym-application"));
   assert.equal(form.includes("private storage"), false);
