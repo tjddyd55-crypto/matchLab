@@ -418,6 +418,14 @@ export const eventRepository = {
     return loadEventOrganizerId(eventId);
   },
 
+  async findEventStatus(eventId: string): Promise<EventStatus | null> {
+    const row = await prisma.event.findUnique({
+      where: { id: eventId },
+      select: { status: true },
+    });
+    return row?.status ?? null;
+  },
+
   /** 공개 목록 — draft·cancelled·E2E fixture slug 제외 (Event SSOT) */
   async listPublicEvents(): Promise<PublicEventListRecord[]> {
     const rows = await prisma.event.findMany({

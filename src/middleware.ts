@@ -72,6 +72,8 @@ export async function middleware(request: NextRequest) {
     response.headers.set("Cache-Control", "no-store");
   }
 
+  response.headers.set("x-matchon-pathname", request.nextUrl.pathname);
+
   return response;
 }
 

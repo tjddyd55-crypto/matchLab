@@ -2,6 +2,14 @@ import Link from "next/link";
 import type { AdminGymDetailDTO } from "@/lib/dto/admin";
 import { AdminOrganizationAuditList } from "@/components/domain/admin/AdminOrganizationAuditList";
 import { AdminOrganizationHeader } from "@/components/domain/admin/AdminOrganizationHeader";
+import {
+  AdminOrganizationStatusHint,
+  AdminOrganizationSuspendedBanner,
+} from "@/components/domain/admin/AdminOrganizationSuspendedBanner";
+import {
+  AdminOrganizationStatusPanel,
+  canManageOrganizationStatus,
+} from "@/components/domain/admin/AdminOrganizationStatusPanel";
 import { AdminOrganizationSummary } from "@/components/domain/admin/AdminOrganizationSummary";
 import { AdminOrganizationTabs } from "@/components/domain/admin/AdminOrganizationTabs";
 import { formatAdminDateTime } from "@/components/domain/admin/admin-format";
@@ -50,6 +58,18 @@ export function AdminGymDetailView({
           `대표자 ${app?.representativeName ?? detail.ownerName}`,
           `가입일 ${formatAdminDateTime(detail.createdAt)}`,
         ]}
+        statusActions={
+          canManageOrganizationStatus("gym", detail.status) ? (
+            <AdminOrganizationStatusPanel
+              kind="gym"
+              organizationId={detail.id}
+              organizationName={detail.name}
+              currentStatus={detail.status}
+              statusLabel={getAdminGymStatusLabel(detail.status)}
+              canManage
+            />
+          ) : null
+        }
         actions={
           <Link
             href="/admin/gyms"
@@ -59,6 +79,9 @@ export function AdminGymDetailView({
           </Link>
         }
       />
+
+      <AdminOrganizationSuspendedBanner status={detail.status} kind="gym" />
+      <AdminOrganizationStatusHint status={detail.status} />
 
       <AdminOrganizationSummary
         items={[

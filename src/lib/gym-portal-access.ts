@@ -65,8 +65,8 @@ function platformGymStatusBlocked(status: GymStatus): {
 } {
   const message =
     status === GymStatus.archived
-      ? "보관된 체육관 계정입니다. MATCHON 관리자에게 문의해 주세요."
-      : "체육관 이용이 중지되었습니다. MATCHON 관리자에게 문의해 주세요.";
+      ? "운영 종료된 체육관입니다. MATCHON 관리자에게 문의해 주세요."
+      : "서비스 이용이 일시정지되었습니다. 현재 체육관의 MATCHON 이용이 일시적으로 제한되어 있습니다. 관리자에게 문의해 주세요.";
   return {
     accessMode: "platform_suspended",
     canEnterPortal: false,

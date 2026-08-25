@@ -3,6 +3,14 @@ import type { AdminAssociationDetailDTO } from "@/lib/dto/admin";
 import { AdminOrganizationAuditList } from "@/components/domain/admin/AdminOrganizationAuditList";
 import { AdminOrganizationCreditPanel } from "@/components/domain/admin/AdminOrganizationCreditPanel";
 import { AdminOrganizationHeader } from "@/components/domain/admin/AdminOrganizationHeader";
+import {
+  AdminOrganizationStatusHint,
+  AdminOrganizationSuspendedBanner,
+} from "@/components/domain/admin/AdminOrganizationSuspendedBanner";
+import {
+  AdminOrganizationStatusPanel,
+  canManageOrganizationStatus,
+} from "@/components/domain/admin/AdminOrganizationStatusPanel";
 import { AdminOrganizationSummary } from "@/components/domain/admin/AdminOrganizationSummary";
 import { AdminOrganizationTabs } from "@/components/domain/admin/AdminOrganizationTabs";
 import { formatAdminDateTime } from "@/components/domain/admin/admin-format";
@@ -50,6 +58,18 @@ export function AdminAssociationDetailView({
           `대표자 ${app?.representativeName ?? detail.ownerName}`,
           `가입일 ${formatAdminDateTime(detail.createdAt)}`,
         ]}
+        statusActions={
+          canManageOrganizationStatus("association", detail.status) ? (
+            <AdminOrganizationStatusPanel
+              kind="association"
+              organizationId={detail.id}
+              organizationName={detail.name}
+              currentStatus={detail.status}
+              statusLabel={getAdminOrganizerStatusLabel(detail.status)}
+              canManage
+            />
+          ) : null
+        }
         actions={
           <Link
             href="/admin/associations"
@@ -59,6 +79,12 @@ export function AdminAssociationDetailView({
           </Link>
         }
       />
+
+      <AdminOrganizationSuspendedBanner
+        status={detail.status}
+        kind="association"
+      />
+      <AdminOrganizationStatusHint status={detail.status} />
 
       <AdminOrganizationSummary
         items={[

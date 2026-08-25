@@ -3,7 +3,7 @@ import "server-only";
 import type { ActorContext } from "@/lib/auth/actor-context";
 import { AppError } from "@/lib/errors/app-error";
 import { prisma } from "@/lib/prisma";
-import { resolveAssociationOrganizerScope } from "@/lib/permissions";
+import { requireAssociationOrganizerScope } from "@/lib/permissions";
 import {
   assertOrganizerPublicLogoPath,
   createPublicLogoSignedUploadUrl,
@@ -11,7 +11,7 @@ import {
 
 export const organizerPublicLogoService = {
   async getSettings(actor: ActorContext, organizerIdHint?: string | null) {
-    const organizerId = resolveAssociationOrganizerScope(actor, organizerIdHint);
+    const organizerId = await requireAssociationOrganizerScope(actor, organizerIdHint);
     const row = await prisma.organizer.findUnique({
       where: { id: organizerId },
       select: {
@@ -33,7 +33,7 @@ export const organizerPublicLogoService = {
     mimeType: string,
     organizerIdHint?: string | null,
   ) {
-    const organizerId = resolveAssociationOrganizerScope(actor, organizerIdHint);
+    const organizerId = await requireAssociationOrganizerScope(actor, organizerIdHint);
     return createPublicLogoSignedUploadUrl({
       mimeType,
       kind: "organizer-public-logo",
@@ -51,7 +51,7 @@ export const organizerPublicLogoService = {
     },
     organizerIdHint?: string | null,
   ) {
-    const organizerId = resolveAssociationOrganizerScope(actor, organizerIdHint);
+    const organizerId = await requireAssociationOrganizerScope(actor, organizerIdHint);
     if (input.logoPath) {
       assertOrganizerPublicLogoPath(input.logoPath);
       if (!input.logoUrl) {

@@ -2,3 +2,8 @@
 export function isOrganizerEventManagementPath(pathname: string): boolean {
   return /^\/organizer\/events\/(?!new(?:\/|$))[^/]+(?:\/|$)/.test(pathname);
 }
+
+export function extractOrganizerEventIdFromPath(pathname: string): string | null {
+  const m = pathname.match(/^\/organizer\/events\/(?!new(?:\/|$))([^/]+)/);
+  return m?.[1] ?? null;
+}

@@ -31,6 +31,26 @@ import {
   resolveAdminOrganizerStatusMatchon,
 } from "@/lib/ui/admin-ui";
 
+import { Button } from "@/components/ui/button";
+
+type AssociationStatusFilter =
+  | "all"
+  | "active"
+  | "pending"
+  | "suspended"
+  | "archived";
+
+const ASSOCIATION_STATUS_FILTERS: Array<{
+  id: AssociationStatusFilter;
+  label: string;
+}> = [
+  { id: "all", label: "전체" },
+  { id: "active", label: "정상" },
+  { id: "pending", label: "대기" },
+  { id: "suspended", label: "일시정지" },
+  { id: "archived", label: "보관" },
+];
+
 function matchesAssociation(row: AdminAssociationListItemDTO, q: string): boolean {
   const hay = [
     row.name,
@@ -51,11 +71,16 @@ export function AdminAssociationsTable({
   rows: AdminAssociationListItemDTO[];
 }) {
   const [query, setQuery] = useState("");
+  const [statusFilter, setStatusFilter] =
+    useState<AssociationStatusFilter>("all");
   const filtered = useMemo(() => {
     const q = query.trim().toLowerCase();
-    if (!q) return rows;
-    return rows.filter((row) => matchesAssociation(row, q));
-  }, [rows, query]);
+    return rows.filter((row) => {
+      if (statusFilter !== "all" && row.status !== statusFilter) return false;
+      if (!q) return true;
+      return matchesAssociation(row, q);
+    });
+  }, [rows, query, statusFilter]);
 
   if (rows.length === 0) {
     return (
@@ -68,6 +93,19 @@ export function AdminAssociationsTable({
 
   return (
     <div className="space-y-3">
+      <div className="flex flex-wrap gap-2">
+        {ASSOCIATION_STATUS_FILTERS.map((f) => (
+          <Button
+            key={f.id}
+            type="button"
+            size="xs"
+            variant={statusFilter === f.id ? "default" : "outline"}
+            onClick={() => setStatusFilter(f.id)}
+          >
+            {f.label}
+          </Button>
+        ))}
+      </div>
       <label className="block max-w-md space-y-1 text-sm">
         <span className="sr-only">협회 검색</span>
         <input
