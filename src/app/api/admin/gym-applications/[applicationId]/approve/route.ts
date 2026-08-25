@@ -24,8 +24,9 @@ export async function POST(
     );
     return NextResponse.json(
       toApiSuccess({
-        inviteUrl: res.inviteUrl,
         gymId: res.gymId,
+        loginReady: res.loginReady,
+        inviteUrl: res.inviteUrl,
       }),
     );
   } catch (e) {
