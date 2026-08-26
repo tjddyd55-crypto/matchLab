@@ -6,8 +6,8 @@ import { formatPreviewApplicationRecord } from "@/lib/brackets/explain-record-un
 import { formatMatchOrderShort } from "@/lib/match-order-display";
 import { resolveApplicationGymDisplayName } from "@/lib/gym/external-registration-placeholder-gym";
 
-/** A4 운영용 대진표 — 행이 잘리지 않는 밀도 (약 8~10) */
-export const BRACKET_PRINT_MATCHES_PER_PAGE = 9;
+/** A4 운영용 대진표 — Figma 밀도 기준 10경기/page */
+export const BRACKET_PRINT_MATCHES_PER_PAGE = 10;
 /** 미매칭 명단 — 20명/page (A4 세로) */
 export const UNMATCHED_PRINT_ROWS_PER_PAGE = 20;
 
