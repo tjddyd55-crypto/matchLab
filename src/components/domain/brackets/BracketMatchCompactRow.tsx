@@ -58,7 +58,7 @@ export function BracketMatchCompactRow({
     <Card className={cn("gap-0 overflow-hidden py-0", className)}>
       <div className="flex items-center justify-between gap-2 border-b border-matchon-border bg-matchon-primary-light/20 px-3 py-1.5">
         <div className="flex min-w-0 flex-1 items-center gap-2">
-          <span className="shrink-0 text-[15px] font-extrabold leading-none text-[#0F172A] tabular-nums whitespace-nowrap">
+          <span className="shrink-0 text-base font-bold leading-none text-[#0F172A] tabular-nums whitespace-nowrap">
             {matchOrderLabel}
           </span>
           {divisionHint ? (
@@ -71,7 +71,9 @@ export function BracketMatchCompactRow({
           ) : null}
         </div>
         {statusArea ? (
-          <div className="flex shrink-0 items-center justify-end">{statusArea}</div>
+          <div className="flex shrink-0 items-center justify-end gap-2">
+            {statusArea}
+          </div>
         ) : null}
       </div>
 

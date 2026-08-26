@@ -27,6 +27,8 @@ export type BracketPrintFighterDto = {
 export type BracketPrintMatchDto = {
   matchId: string;
   matchNoLabel: string;
+  /** organizerMemo에서 추출한 kg (예: "68kg"). 없으면 null */
+  weightLabel?: string | null;
   divisionLabel: string | null;
   arenaName: string | null;
   red: BracketPrintFighterDto | null;
