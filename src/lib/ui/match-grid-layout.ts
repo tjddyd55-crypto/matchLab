@@ -16,6 +16,10 @@ export const matchOperationalControlHeightClass = "h-9";
 export const matchCourtSelectClass =
   `${matchOperationalControlHeightClass} w-[140px] min-w-[140px] max-w-[140px] truncate rounded-md border border-input bg-background px-2 text-xs shadow-sm focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring`;
 
+/** 경기 카드 상단 경기구분 select — form control h-9 SSOT + 가독성 */
+export const matchDivisionSelectClass =
+  `${matchOperationalControlHeightClass} min-w-[10rem] max-w-[12rem] truncate rounded-md border border-input bg-background px-3 text-sm font-semibold shadow-sm focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring`;
+
 /** 모바일·블록 폼 — 컨테이너 폭을 넘지 않도록 */
 export const matchCourtSelectFluidClass =
   `${matchOperationalControlHeightClass} w-full min-w-0 max-w-full truncate rounded-md border border-input bg-background px-2 text-xs shadow-sm focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring md:w-[140px] md:min-w-[140px] md:max-w-[140px]`;

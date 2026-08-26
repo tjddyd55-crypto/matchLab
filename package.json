@@ -498,6 +498,9 @@
     "verify:event-wide-match-sequence": "tsx scripts/verify-event-wide-match-sequence.ts",
     "verify:unmatched-pdf-20-per-page": "tsx scripts/verify-unmatched-pdf-20-per-page.ts",
     "verify:match-division-edit": "tsx scripts/verify-match-division-edit.ts",
+    "verify:match-weight-from-memo": "tsx scripts/verify-match-weight-from-memo.ts",
+    "verify:match-header-layout": "tsx scripts/verify-match-header-layout.ts",
+    "verify:bracket-pdf-match-weight": "tsx scripts/verify-match-header-layout.ts",
     "verify:applicants-vs-excel": "tsx scripts/verify-applicants-vs-excel.ts"
   },
   "prisma": {

@@ -78,15 +78,17 @@ function FighterCorner({
 function MatchRow({ match }: { match: BracketPrintMatchDto }) {
   return (
     <article className="ops-print-row">
-      <div className="ops-print-match-no">{match.matchNoLabel}</div>
+      <div className="ops-print-match-no-cell">
+        <div className="ops-print-match-no">{match.matchNoLabel}</div>
+        {match.weightLabel ? (
+          <div className="ops-print-match-kg">{match.weightLabel}</div>
+        ) : null}
+      </div>
       <div className="ops-print-fighters">
         <FighterCorner fighter={match.red} corner="red" />
         <div className="ops-print-vs">VS</div>
         <FighterCorner fighter={match.blue} corner="blue" />
       </div>
-      {match.divisionLabel ? (
-        <div className="ops-print-division">{match.divisionLabel}</div>
-      ) : null}
     </article>
   );
 }
@@ -105,8 +107,10 @@ function PrintPage({
         <div className="ops-print-header-row">
           <span className="ops-print-range">{page.matchRangeLabel ?? ""}</span>
           <span className="ops-print-center-title">
-            경기 대진표 <span className="ops-print-center-sep">|</span> RED ·
-            BLUE
+            경기 대진표 <span className="ops-print-center-sep">|</span>{" "}
+            <span className="ops-print-center-red">RED</span>
+            <span className="ops-print-center-sep"> · </span>
+            <span className="ops-print-center-blue">BLUE</span>
           </span>
           <span className="ops-print-page-num">
             {page.pageIndex} / {page.pageCount}

@@ -30,7 +30,7 @@ import {
   resolveBracketMatchMatchonStatus,
 } from "@/lib/ui/bracket-match-ui";
 import { CORNER_SLOT_STYLES } from "@/lib/corner-slot-styles";
-import { matchCourtSelectClass } from "@/lib/ui/match-grid-layout";
+import { matchDivisionSelectClass } from "@/lib/ui/match-grid-layout";
 import { cn } from "@/lib/utils";
 
 function isEventAllMatch(
@@ -138,13 +138,10 @@ export function OrganizerMatchEditCard({
     <BracketMatchCompactRow
       matchOrderLabel={orderLabel}
       statusArea={
-        <div className="flex flex-col items-center gap-1">
+        <div className="flex max-w-full flex-wrap items-center justify-end gap-2">
           {showDivisionSelect ? (
             <select
-              className={cn(
-                matchCourtSelectClass,
-                "max-w-[7.5rem] text-[10px] leading-tight",
-              )}
+              className={matchDivisionSelectClass}
               value={draftDivisionId}
               disabled={editLocked || pending}
               title={
@@ -163,7 +160,7 @@ export function OrganizerMatchEditCard({
             </select>
           ) : divisionLabel ? (
             <span
-              className="text-muted-foreground max-w-[7rem] truncate text-center text-[10px] leading-tight"
+              className="text-muted-foreground max-w-[10rem] truncate text-sm font-semibold leading-tight"
               title={divisionLabel}
             >
               {divisionLabel}
