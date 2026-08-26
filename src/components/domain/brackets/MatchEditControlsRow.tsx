@@ -30,6 +30,8 @@ export function MatchEditControlsRow({
   draftDivisionId,
   onDraftDivisionIdChange,
   options,
+  matchWeightKg,
+  savedMatchWeightKg = null,
 }: {
   eventId: string;
   bracketId: string;
@@ -43,6 +45,9 @@ export function MatchEditControlsRow({
   draftDivisionId?: string | null;
   onDraftDivisionIdChange?: (divisionId: string) => void;
   options?: OrganizerApprovedFighterOptionVM[];
+  matchWeightKg?: string;
+  /** dirty 기준 — 정식 필드 또는 legacy memo 추출값 */
+  savedMatchWeightKg?: number | null;
 }) {
   const { confirm } = useAppConfirmDialog();
   const [organizerMemo, setOrganizerMemo] = useState(match.organizerMemo ?? "");
@@ -133,6 +138,12 @@ export function MatchEditControlsRow({
             onSaveControlsChange={handleSaveControlsChange}
             organizerMemo={organizerMemo}
             savedOrganizerMemo={match.organizerMemo}
+            matchWeightKg={matchWeightKg}
+            savedMatchWeightKg={
+              savedMatchWeightKg !== undefined
+                ? savedMatchWeightKg
+                : match.matchWeightKg
+            }
             extraFormFields={extraFormFields}
             extraDirty={divisionDirty}
             beforeSave={beforeSave}

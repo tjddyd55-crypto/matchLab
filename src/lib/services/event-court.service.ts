@@ -14,6 +14,7 @@ import {
 import { AppError } from "@/lib/errors/app-error";
 import { requireOrganizerForEvent } from "@/lib/permissions";
 import { prisma } from "@/lib/prisma";
+import type { Prisma } from "@/generated/prisma";
 import { eventCourtRepository } from "@/lib/repositories/event-court.repository";
 import { eventRepository } from "@/lib/repositories/event.repository";
 import { matchRepository } from "@/lib/repositories/match.repository";
@@ -211,6 +212,7 @@ export const eventCourtService = {
     courtId: string | null,
     courtOrder?: number | null,
     organizerMemo?: string | null,
+    matchWeightKg?: number | null,
   ): Promise<void> {
     await requireOrganizerForEvent(actor, eventId);
 
@@ -220,6 +222,18 @@ export const eventCourtService = {
       courtId: m.courtId,
       courtOrder: m.courtOrder,
     }));
+
+    const writeOperational = async (tx?: Prisma.TransactionClient) => {
+      if (organizerMemo === undefined && matchWeightKg === undefined) return;
+      await matchRepository.updateMatchOperationalFields(
+        matchId,
+        {
+          ...(organizerMemo !== undefined ? { organizerMemo } : {}),
+          ...(matchWeightKg !== undefined ? { matchWeightKg } : {}),
+        },
+        tx,
+      );
+    };
 
     if (!courtId) {
       const moving = allMatches.find((m) => m.matchId === matchId);
@@ -240,13 +254,7 @@ export const eventCourtService = {
             tx,
           );
         }
-        if (organizerMemo !== undefined) {
-          await matchRepository.updateMatchOrganizerMemo(
-            matchId,
-            organizerMemo,
-            tx,
-          );
-        }
+        await writeOperational(tx);
       });
       return;
     }
@@ -268,13 +276,7 @@ export const eventCourtService = {
           tx,
         );
       }
-      if (organizerMemo !== undefined) {
-        await matchRepository.updateMatchOrganizerMemo(
-          matchId,
-          organizerMemo,
-          tx,
-        );
-      }
+      await writeOperational(tx);
     });
   },
 

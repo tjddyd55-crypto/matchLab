@@ -35,6 +35,7 @@ export function BracketMatchColumnHeader({
 
 export function BracketMatchCompactRow({
   matchOrderLabel,
+  leadingExtra,
   divisionHint,
   statusArea,
   redSlot,
@@ -45,6 +46,8 @@ export function BracketMatchCompactRow({
   className,
 }: {
   matchOrderLabel: string;
+  /** 경기번호 옆 — 체중 입력 등 */
+  leadingExtra?: ReactNode;
   divisionHint?: string | null;
   statusArea?: ReactNode;
   redSlot: ReactNode;
@@ -57,10 +60,11 @@ export function BracketMatchCompactRow({
   return (
     <Card className={cn("gap-0 overflow-hidden py-0", className)}>
       <div className="flex items-center justify-between gap-2 border-b border-matchon-border bg-matchon-primary-light/20 px-3 py-1.5">
-        <div className="flex min-w-0 flex-1 items-center gap-2">
+        <div className="flex min-w-0 flex-1 flex-wrap items-center gap-2">
           <span className="shrink-0 text-base font-bold leading-none text-[#0F172A] tabular-nums whitespace-nowrap">
             {matchOrderLabel}
           </span>
+          {leadingExtra}
           {divisionHint ? (
             <span
               className="text-muted-foreground min-w-0 truncate text-xs leading-tight"
