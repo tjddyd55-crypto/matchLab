@@ -1,7 +1,6 @@
 /**
  * 경기 카드 상단 select+status 동일 행 + PDF kg cell
  *   npm run verify:match-header-layout
- *   npm run verify:bracket-pdf-match-weight
  */
 import assert from "node:assert/strict";
 import { readFileSync } from "node:fs";
@@ -36,8 +35,12 @@ function main() {
 
   assert.match(card, /flex max-w-full flex-wrap items-center justify-end gap-2/);
   assert.match(card, /matchDivisionSelectClass/);
+  assert.match(card, /MatchWeightKgInput/);
+  assert.match(card, /leadingExtra/);
   assert.match(compact, /items-center justify-between/);
+  assert.match(compact, /leadingExtra/);
   assert.match(layout, /matchDivisionSelectClass/);
+  assert.match(layout, /matchWeightInputClass/);
   assert.match(layout, /text-sm font-semibold/);
 
   assert.match(printDoc, /ops-print-match-no-cell/);
@@ -47,12 +50,10 @@ function main() {
   assert.match(css, /--bracket-print-no-w:\s*54px/);
   assert.match(css, /grid-template-columns:/);
   assert.doesNotMatch(printDoc, /ops-print-fighters/);
-  assert.match(printSvc, /extractMatchWeightFromMemo/);
+  assert.match(printSvc, /resolveMatchWeightLabel/);
   assert.match(printSvc, /weightLabel/);
-  assert.doesNotMatch(printDoc, /organizerMemo\s*\?\s*</);
 
   console.log("verify:match-header-layout OK");
-  console.log("verify:bracket-pdf-match-weight OK");
 }
 
 main();
