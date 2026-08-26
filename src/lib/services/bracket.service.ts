@@ -60,7 +60,9 @@ import { applicationRepository } from "@/lib/repositories/application.repository
 import { eventCourtRepository } from "@/lib/repositories/event-court.repository";
 import { matchRepository } from "@/lib/repositories/match.repository";
 import {
+  eventWideMatchNumbersNeedResequence,
   renumberAllCourtOrders,
+  renumberEventWideMatchNumbers,
   sortMatchesByCourtSchedule,
 } from "@/lib/court-match-order";
 import { eventRepository } from "@/lib/repositories/event.repository";
@@ -388,6 +390,56 @@ async function nextCourtOrderForCourt(
   const next = (row._max.courtOrder ?? 0) + 1;
   pendingOrders.set(courtId, next + 1);
   return next;
+}
+
+async function nextEventWideMatchNumber(
+  eventId: string,
+  tx?: Prisma.TransactionClient,
+): Promise<number> {
+  const row = await (tx ?? prisma).bracketMatch.aggregate({
+    where: { bracket: { eventId } },
+    _max: { matchNumber: true },
+  });
+  return (row._max.matchNumber ?? 0) + 1;
+}
+
+/** 대회 전체 표시 순번(matchNumber)을 1…N으로 맞춘다. courtOrder는 건드리지 않는다. */
+async function applyEventWideMatchNumberResequence(
+  eventId: string,
+  tx: Prisma.TransactionClient,
+): Promise<void> {
+  const [courts, peers] = await Promise.all([
+    eventCourtRepository.listByEvent(eventId, tx),
+    tx.bracketMatch.findMany({
+      where: { bracket: { eventId } },
+      select: {
+        id: true,
+        courtId: true,
+        courtOrder: true,
+        matchNumber: true,
+      },
+    }),
+  ]);
+  if (!eventWideMatchNumbersNeedResequence(peers)) return;
+
+  const updates = renumberEventWideMatchNumbers(
+    peers.map((m) => ({
+      matchId: m.id,
+      courtId: m.courtId,
+      courtOrder: m.courtOrder,
+      matchNumber: m.matchNumber,
+    })),
+    courts.map((c) => ({ id: c.id, sortOrder: c.sortOrder })),
+  );
+  for (const u of updates) {
+    const prev = peers.find((p) => p.id === u.matchId);
+    if (prev?.matchNumber === u.matchNumber) continue;
+    await bracketRepository.updateBracketMatch(
+      u.matchId,
+      { matchNumber: u.matchNumber },
+      tx,
+    );
+  }
 }
 
 function findPreservedCourtAssignment(
@@ -832,6 +884,205 @@ export const bracketService = {
     return { bracketId };
   },
 
+  /** gap/null matchNumber를 1…N으로 복구 (courtOrder·Match.id 불변) */
+  async ensureEventWideMatchDisplayNumbers(
+    actor: ActorContext,
+    eventId: string,
+  ): Promise<void> {
+    requireRole(actor, ["organizer", "admin"]);
+    await requireOrganizerForEvent(actor, eventId);
+    const peers = await prisma.bracketMatch.findMany({
+      where: { bracket: { eventId } },
+      select: { matchNumber: true },
+    });
+    if (!eventWideMatchNumbersNeedResequence(peers)) return;
+    await prisma.$transaction(
+      async (tx) => {
+        await applyEventWideMatchNumberResequence(eventId, tx);
+      },
+      { timeout: 30_000 },
+    );
+  },
+
+  /**
+   * Match의 경기구분(Bracket.divisionId) 변경.
+   * EventApplication.divisionId는 변경하지 않는다.
+   * matchNumber / courtId / courtOrder 유지. Match.id 유지.
+   */
+  async changeMatchDivision(
+    actor: ActorContext,
+    input: {
+      eventId: string;
+      matchId: string;
+      targetDivisionId: string;
+      clearIncompatibleFighters?: boolean;
+    },
+  ): Promise<{ bracketId: string }> {
+    requireRole(actor, ["organizer", "admin"]);
+    await requireOrganizerForEvent(actor, input.eventId);
+
+    const ok = await eventRepository.findDivisionBelongsToEvent(
+      input.targetDivisionId,
+      input.eventId,
+    );
+    if (!ok) {
+      throw new AppError(
+        "VALIDATION_ERROR",
+        "선택한 경기구분이 이 대회에 속하지 않습니다.",
+      );
+    }
+
+    const { bracketId: targetBracketId } =
+      await this.ensureBracketShellForDivision(actor, {
+        eventId: input.eventId,
+        divisionId: input.targetDivisionId,
+      });
+
+    return prisma.$transaction(async (tx) => {
+      const match = await bracketRepository.findBracketMatchById(
+        input.matchId,
+        tx,
+      );
+      if (!match || match.bracket.eventId !== input.eventId) {
+        throw new AppError("NOT_FOUND", "매치를 찾을 수 없습니다.");
+      }
+      if (match.bracket.type !== BracketType.match_list) {
+        throw new AppError(
+          "VALIDATION_ERROR",
+          "경기 목록 대진표에서만 경기구분을 변경할 수 있습니다.",
+        );
+      }
+
+      const officialCount = await tx.matchResult.count({
+        where: {
+          matchId: input.matchId,
+          status: {
+            in: [
+              MatchRecordStatus.confirmed,
+              MatchRecordStatus.corrected,
+            ],
+          },
+        },
+      });
+      if (officialCount >= 2) {
+        throw new AppError(
+          "CONFLICT",
+          "완료된 경기는 경기구분을 변경할 수 없습니다.",
+        );
+      }
+
+      if (match.bracketId === targetBracketId) {
+        return { bracketId: targetBracketId };
+      }
+
+      const incompatibleSlots: Array<"red" | "blue"> = [];
+      for (const slot of ["red", "blue"] as const) {
+        const fighterId =
+          slot === "red" ? match.fighterRedId : match.fighterBlueId;
+        if (!fighterId) continue;
+        const app =
+          await bracketRepository.findApprovedApplicationForEventPlacement(
+            input.eventId,
+            fighterId,
+            tx,
+          );
+        if (!app || app.divisionId !== input.targetDivisionId) {
+          incompatibleSlots.push(slot);
+        }
+      }
+
+      if (
+        incompatibleSlots.length > 0 &&
+        !input.clearIncompatibleFighters
+      ) {
+        throw new AppError(
+          "CONFLICT",
+          "경기구분을 변경하면 현재 배정된 선수 중 새 경기구분과 맞지 않는 선수가 있습니다. 배정을 해제하고 변경하시겠습니까?",
+          { code: "DIVISION_INCOMPATIBLE_FIGHTERS", incompatibleSlots },
+        );
+      }
+
+      const clearPatch: Prisma.BracketMatchUncheckedUpdateInput = {};
+      for (const slot of incompatibleSlots) {
+        if (slot === "red") {
+          clearPatch.fighterRedId = null;
+          clearPatch.fighterRedSnapshot = Prisma.JsonNull;
+        } else {
+          clearPatch.fighterBlueId = null;
+          clearPatch.fighterBlueSnapshot = Prisma.JsonNull;
+        }
+      }
+      if (Object.keys(clearPatch).length > 0) {
+        await bracketRepository.updateBracketMatch(
+          input.matchId,
+          clearPatch,
+          tx,
+        );
+        for (const slot of incompatibleSlots) {
+          await appendChangeLog(tx, {
+            eventId: input.eventId,
+            bracketId: match.bracketId,
+            matchId: input.matchId,
+            changedByUserId: actor.userId,
+            bracketType: match.bracket.type,
+            changeType: BracketChangeType.fighter_removed,
+            beforeData: {
+              slot,
+              fighterId:
+                slot === "red" ? match.fighterRedId : match.fighterBlueId,
+            },
+            afterData: { slot, fighterId: null },
+            reason: "경기구분 변경 — 비호환 선수 해제",
+          });
+        }
+      }
+
+      const nextOrder =
+        (await bracketRepository.getMaxMatchOrderForBracket(
+          targetBracketId,
+          tx,
+        )) + 1;
+
+      await bracketRepository.updateBracketMatch(
+        input.matchId,
+        {
+          bracketId: targetBracketId,
+          matchOrder: nextOrder,
+        },
+        tx,
+      );
+
+      await appendChangeLog(tx, {
+        eventId: input.eventId,
+        bracketId: targetBracketId,
+        matchId: input.matchId,
+        changedByUserId: actor.userId,
+        bracketType: BracketType.match_list,
+        changeType: BracketChangeType.match_order_changed,
+        beforeData: {
+          bracketId: match.bracketId,
+          divisionId: match.bracket.divisionId,
+          matchOrder: match.matchOrder,
+          matchNumber: match.matchNumber,
+          courtId: match.courtId,
+          courtOrder: match.courtOrder,
+        },
+        afterData: {
+          bracketId: targetBracketId,
+          divisionId: input.targetDivisionId,
+          matchOrder: nextOrder,
+          matchNumber: match.matchNumber,
+          courtId: match.courtId,
+          courtOrder: match.courtOrder,
+          clearedSlots: incompatibleSlots,
+        },
+        reason: "경기구분 변경",
+      });
+
+      return { bracketId: targetBracketId };
+    });
+  },
+
   async getOrganizerBracketDetail(
     actor: ActorContext,
     bracketId: string,
@@ -952,7 +1203,7 @@ export const bracketService = {
     requireRole(actor, ["organizer", "admin"]);
     await requireOrganizerForEvent(actor, eventId);
 
-    const [event, matchRows, placedFighterIds, allEventApproved, eventFieldStatusMap, divisions, brackets] =
+    const [event, initialMatchRows, placedFighterIds, allEventApproved, eventFieldStatusMap, divisions, brackets] =
       await Promise.all([
         prisma.event.findUnique({
           where: { id: eventId },
@@ -971,6 +1222,21 @@ export const bracketService = {
     }
 
     const courts = await eventCourtRepository.listByEvent(eventId);
+
+    let matchRows = initialMatchRows;
+    if (
+      eventWideMatchNumbersNeedResequence(
+        matchRows.map((m) => ({ matchNumber: m.matchNumber })),
+      )
+    ) {
+      await prisma.$transaction(
+        async (tx) => {
+          await applyEventWideMatchNumberResequence(eventId, tx);
+        },
+        { timeout: 30_000 },
+      );
+      matchRows = await matchRepository.listMatchesByEvent(eventId);
+    }
 
     const approvedFighterOptions: OrganizerApprovedFighterOptionVM[] =
       allEventApproved.map((a) =>
@@ -1998,11 +2264,13 @@ export const bracketService = {
         pendingCourtOrders,
         tx,
       );
+      const matchNumber = await nextEventWideMatchNumber(ctx.eventId, tx);
 
       const { id } = await bracketRepository.createBracketMatch(
         {
           bracketId: input.bracketId,
           matchOrder: nextOrder,
+          matchNumber,
           courtId,
           courtOrder,
         },
@@ -2016,9 +2284,11 @@ export const bracketService = {
         changedByUserId: actor.userId,
         bracketType: ctx.type,
         changeType: BracketChangeType.bracket_created,
-        afterData: { matchOrder: nextOrder, courtId, courtOrder },
+        afterData: { matchOrder: nextOrder, matchNumber, courtId, courtOrder },
         reason: "빈 경기 추가",
       });
+
+      await applyEventWideMatchNumberResequence(ctx.eventId, tx);
 
       return { matchId: id };
     });
@@ -2226,11 +2496,13 @@ export const bracketService = {
         pendingCourtOrders,
         tx,
       );
+      const matchNumber = await nextEventWideMatchNumber(ctx.eventId, tx);
 
       const { id: matchId } = await bracketRepository.createBracketMatch(
         {
           bracketId: input.bracketId,
           matchOrder: nextOrder,
+          matchNumber,
           courtId,
           courtOrder,
           fighterRedId: input.redFighterId,
@@ -2254,6 +2526,7 @@ export const bracketService = {
         changeType: BracketChangeType.bracket_created,
         afterData: {
           matchOrder: nextOrder,
+          matchNumber,
           courtId,
           courtOrder,
           fighterRedId: input.redFighterId,
@@ -2263,6 +2536,8 @@ export const bracketService = {
         },
         reason: "수동 경기 만들기",
       });
+
+      await applyEventWideMatchNumberResequence(ctx.eventId, tx);
 
       return { matchId, eventId: ctx.eventId };
     });
@@ -2347,7 +2622,7 @@ export const bracketService = {
         }
       }
 
-      // 화면 「N경기」SSOT = courtOrder(경기장별). 삭제된 court만 1…N 재부여.
+      // 화면 「N경기」SSOT = event-wide matchNumber. courtOrder는 경기장 내부용.
       const deletedCourtId = match.courtId;
       if (deletedCourtId) {
         const peers = await tx.bracketMatch.findMany({
@@ -2375,6 +2650,8 @@ export const bracketService = {
         }
       }
 
+      await applyEventWideMatchNumberResequence(ctx.eventId, tx);
+
       await appendChangeLog(tx, {
         eventId: ctx.eventId,
         bracketId: input.bracketId,
@@ -2393,6 +2670,7 @@ export const bracketService = {
           deleted: true,
           renumbered: true,
           courtOrdersRenumbered: Boolean(deletedCourtId),
+          eventWideMatchNumbersRenumbered: true,
         },
         reason: "경기 삭제",
       });

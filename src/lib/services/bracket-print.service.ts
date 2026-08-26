@@ -171,6 +171,7 @@ export const bracketPrintService = {
   ): Promise<BracketPrintDocumentDto> {
     requireRole(actor, ["organizer", "admin"]);
     await requireOrganizerForEvent(actor, eventId);
+    await bracketService.ensureEventWideMatchDisplayNumbers(actor, eventId);
     const mode: BracketPrintMode = options?.mode === "all-matches"
       ? "all-matches"
       : "court";

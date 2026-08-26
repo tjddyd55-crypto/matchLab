@@ -158,9 +158,9 @@ assert.equal(
       globalMatchOrder: 0,
       matchOrder: 0,
     }),
-    "3경기",
+    "99경기",
   );
-  console.log("  ✓ court schedule sort + label");
+  console.log("  ✓ court schedule sort + matchNumber label");
 }
 assert.equal(
   buildBracketPrintDocumentTitle("제12회 마포구청장배"),
@@ -221,11 +221,10 @@ assert.equal(formatBracketPrintRecordDisplay("무전"), "현재 무전");
       weightLabel: "35kg",
     })),
   );
-  assert.equal(pages.length, 2);
-  assert.equal(pages[0]!.rows.length, 10);
-  assert.equal(pages[1]!.rows.length, 9);
-  assert.equal(pages[1]!.rangeLabel, "총 19명 중 11~19");
-  console.log("  ✓ 미매칭 page chunk");
+  assert.equal(pages.length, 1);
+  assert.equal(pages[0]!.rows.length, 19);
+  assert.match(pages[0]!.rangeLabel, /총 19명/);
+  console.log("  ✓ 미매칭 page chunk (20/page)");
 }
 
 console.log("\nPASS verify-bracket-print-format\n");
