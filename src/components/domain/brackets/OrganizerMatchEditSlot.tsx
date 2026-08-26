@@ -13,6 +13,7 @@ import {
 } from "@/components/domain/brackets/BracketFighterCompactCard";
 import { FeedbackMessage } from "@/components/shared/FeedbackMessage";
 import { useAppConfirmDialog } from "@/components/shared/app-confirm-dialog";
+import { Button } from "@/components/ui/button";
 import { resolveSlotFighterDisplay } from "@/lib/bracket-fighter-compact-display";
 import { buildBracketFighterMetaLineFromOption } from "@/lib/brackets/bracket-fighter-meta-line";
 import type { OrganizerApprovedFighterOptionVM } from "@/lib/services/bracket.service";
@@ -44,7 +45,7 @@ function resolveFighterDisplay(
       ? buildBracketFighterMetaLineFromOption(opt)
       : undefined;
     return {
-      fighterName: snapshot.name,
+      fighterName: opt?.fighterName?.trim() || snapshot.name,
       gymName,
       statusBadge: undefined as
         | ReturnType<typeof resolveSlotFighterDisplay>["statusBadge"]
@@ -75,6 +76,8 @@ export function OrganizerMatchEditSlot({
   editDisabled,
   hideCornerLabel = false,
   className,
+  applicationId,
+  onEditProfile,
 }: {
   bracketId: string;
   matchId: string;
@@ -87,6 +90,8 @@ export function OrganizerMatchEditSlot({
   editDisabled?: boolean;
   hideCornerLabel?: boolean;
   className?: string;
+  applicationId?: string | null;
+  onEditProfile?: (applicationId: string) => void;
 }) {
   const router = useRouter();
   const { confirm, alert } = useAppConfirmDialog();
@@ -179,6 +184,18 @@ export function OrganizerMatchEditSlot({
           metaLine={display.metaLine}
           statusBadges={statusBadges}
         >
+          {applicationId && onEditProfile ? (
+            <Button
+              type="button"
+              variant="ghost"
+              size="sm"
+              className="mt-1 h-7 px-2 text-[11px] font-medium"
+              disabled={pending}
+              onClick={() => onEditProfile(applicationId)}
+            >
+              선수정보 수정
+            </Button>
+          ) : null}
           <ApprovedApplicationPicker
             value={fighterId}
             currentFighterId={fighterId}

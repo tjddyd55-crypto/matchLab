@@ -65,6 +65,7 @@ export function MatchListEditor({
   eventWide = false,
   divisionOptions,
   onRequestAddEmptyMatch,
+  onEditAthleteProfile,
 }: {
   eventId: string;
   courts: EventCourtVM[];
@@ -82,6 +83,7 @@ export function MatchListEditor({
   divisionOptions?: OrganizerEventAllMatchesDivisionOptionVM[];
   /** 제공 시 빈 경기 추가 기본 action 대신 호출 */
   onRequestAddEmptyMatch?: () => void;
+  onEditAthleteProfile?: (applicationId: string) => void;
 }) {
   const router = useRouter();
   const { alert } = useAppConfirmDialog();
@@ -238,6 +240,7 @@ export function MatchListEditor({
                   matchOrderLabel={matchOrderLabel}
                   divisionLabel={divisionLabel}
                   divisionOptions={eventWide ? divisionOptions : undefined}
+                  onEditAthleteProfile={onEditAthleteProfile}
                 />
               );
             })}

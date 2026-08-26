@@ -22,6 +22,7 @@ import {
   withCancelRestoreSnapshot,
   type CancelRestoreSnapshot,
 } from "@/lib/applications/cancel-restore-snapshot";
+import { resyncFighterMatchSnapshotsForEvent } from "@/lib/brackets/resync-fighter-match-snapshots";
 import { resolveApplicationGymDisplayName } from "@/lib/gym/external-registration-placeholder-gym";
 import { toUtcDateOnly } from "@/lib/date-only";
 import { normalizeGymFighterPhone } from "@/lib/gym-fighter-management";
@@ -538,6 +539,12 @@ export const applicationOrganizerLifecycleService = {
           memo: input.memo?.trim() || existing.memo,
           ...piiPatch,
         },
+        tx,
+      );
+
+      await resyncFighterMatchSnapshotsForEvent(
+        existing.eventId,
+        existing.fighterId,
         tx,
       );
     });

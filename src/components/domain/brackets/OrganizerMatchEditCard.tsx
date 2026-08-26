@@ -56,6 +56,7 @@ export function OrganizerMatchEditCard({
   matchOrderLabel: matchOrderLabelProp,
   divisionLabel,
   divisionOptions,
+  onEditAthleteProfile,
 }: {
   eventId: string;
   bracketId: string;
@@ -71,6 +72,7 @@ export function OrganizerMatchEditCard({
   divisionLabel?: string | null;
   /** event-wide 모드: 경기구분 select SSOT */
   divisionOptions?: OrganizerEventAllMatchesDivisionOptionVM[];
+  onEditAthleteProfile?: (applicationId: string) => void;
 }) {
   const router = useRouter();
   const { confirm, alert } = useAppConfirmDialog();
@@ -143,6 +145,23 @@ export function OrganizerMatchEditCard({
   const showDivisionSelect =
     Boolean(divisionOptions?.length) && Boolean(currentDivisionId);
 
+  const redApplicationId = useMemo(
+    () =>
+      match.fighterRedId
+        ? slotOptions.find((o) => o.fighterId === match.fighterRedId)
+            ?.applicationId
+        : null,
+    [match.fighterRedId, slotOptions],
+  );
+  const blueApplicationId = useMemo(
+    () =>
+      match.fighterBlueId
+        ? slotOptions.find((o) => o.fighterId === match.fighterBlueId)
+            ?.applicationId
+        : null,
+    [match.fighterBlueId, slotOptions],
+  );
+
   return (
     <BracketMatchCompactRow
       matchOrderLabel={orderLabel}
@@ -208,6 +227,8 @@ export function OrganizerMatchEditCard({
           matches={matches}
           editDisabled={editLocked}
           hideCornerLabel
+          applicationId={redApplicationId}
+          onEditProfile={onEditAthleteProfile}
           className={cn(
             CORNER_SLOT_STYLES["홍코너"].bg,
             "rounded-md border px-2 py-1.5",
@@ -242,6 +263,8 @@ export function OrganizerMatchEditCard({
           matches={matches}
           editDisabled={editLocked}
           hideCornerLabel
+          applicationId={blueApplicationId}
+          onEditProfile={onEditAthleteProfile}
           className={cn(
             CORNER_SLOT_STYLES["청코너"].bg,
             "rounded-md border px-2 py-1.5",

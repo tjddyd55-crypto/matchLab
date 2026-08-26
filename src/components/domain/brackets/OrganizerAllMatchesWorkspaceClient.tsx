@@ -8,6 +8,7 @@ import { OrganizerBracketPrintActions } from "@/components/domain/brackets/Organ
 import { OrganizerUnmatchedPrintActions } from "@/components/domain/brackets/OrganizerUnmatchedPrintActions";
 import { EventDivisionPickDialog } from "@/components/domain/brackets/EventDivisionPickDialog";
 import { BracketsEmptyState } from "@/components/domain/brackets/BracketsEmptyState";
+import { OrganizerApplicationEditPanel } from "@/components/domain/applications/OrganizerApplicationEditPanel";
 import { useAppConfirmDialog } from "@/components/shared/app-confirm-dialog";
 import {
   addEmptyBracketMatchAction,
@@ -18,6 +19,7 @@ import type {
   OrganizerApprovedFighterOptionVM,
 } from "@/lib/services/bracket.service";
 import type { EventCourtVM } from "@/lib/services/event-court.service";
+import type { OrganizerManualRegistrationOptionsDTO } from "@/lib/services/application.service";
 import { BracketType } from "@/lib/enums";
 
 type ManualTarget = {
@@ -31,16 +33,21 @@ export function OrganizerAllMatchesWorkspaceClient({
   eventId,
   data,
   courts,
+  manualRegistrationOptions,
 }: {
   eventId: string;
   data: OrganizerEventAllMatchesWorkspaceVM;
   courts: EventCourtVM[];
+  manualRegistrationOptions: OrganizerManualRegistrationOptionsDTO;
 }) {
   const router = useRouter();
   const { alert } = useAppConfirmDialog();
   const [pending, startTransition] = useTransition();
   const [emptyDialogOpen, setEmptyDialogOpen] = useState(false);
   const [manualDialogOpen, setManualDialogOpen] = useState(false);
+  const [editApplicationId, setEditApplicationId] = useState<string | null>(
+    null,
+  );
   const [manualSuggestedDivisionId, setManualSuggestedDivisionId] = useState<
     string | null
   >(null);
@@ -200,6 +207,9 @@ export function OrganizerAllMatchesWorkspaceClient({
             eventWide
             divisionOptions={data.divisions}
             onRequestAddEmptyMatch={handleRequestAddEmpty}
+            onEditAthleteProfile={(applicationId) =>
+              setEditApplicationId(applicationId)
+            }
           />
         </div>
         <div className="flex min-h-0 min-w-0 flex-col">
@@ -248,6 +258,18 @@ export function OrganizerAllMatchesWorkspaceClient({
         onConfirm={handleConfirmManualDivision}
         pending={pending}
       />
+
+      {editApplicationId ? (
+        <OrganizerApplicationEditPanel
+          open={Boolean(editApplicationId)}
+          onOpenChange={(open) => {
+            if (!open) setEditApplicationId(null);
+          }}
+          eventId={eventId}
+          applicationId={editApplicationId}
+          options={manualRegistrationOptions}
+        />
+      ) : null}
     </section>
   );
 }
