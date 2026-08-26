@@ -2,7 +2,11 @@ import "server-only";
 
 import type { ActorContext } from "@/lib/auth/actor-context";
 import { AppError } from "@/lib/errors/app-error";
-import { requireOrganizerForEvent, requireRole } from "@/lib/permissions";
+import {
+  requireOrganizerForEvent,
+  requireOrganizerPlatformActiveForWrite,
+  requireRole,
+} from "@/lib/permissions";
 import {
   divisionTemplateRepository,
   type DivisionTemplateListRow,
@@ -22,7 +26,7 @@ import {
   sortTemplateItems,
 } from "@/lib/division-template/division-template-row";
 
-function resolveOrganizerIdForWrite(
+async function resolveOrganizerIdForWrite(
   actor: ActorContext,
   inputOrganizerId?: string,
 ) {
@@ -36,6 +40,7 @@ function resolveOrganizerIdForWrite(
     }
     return id;
   }
+  await requireOrganizerPlatformActiveForWrite(actor);
   if (!actor.organizerId) {
     throw new AppError(
       "FORBIDDEN",
@@ -254,7 +259,7 @@ export const divisionTemplateService = {
     input: CreateDivisionTemplateInput,
   ): Promise<{ templateId: string }> {
     requireRole(actor, ["organizer", "admin"]);
-    const organizerId = resolveOrganizerIdForWrite(actor, input.organizerId);
+    const organizerId = await resolveOrganizerIdForWrite(actor, input.organizerId);
     const row = await divisionTemplateRepository.create({
       organizerId,
       title: input.title,
@@ -271,6 +276,9 @@ export const divisionTemplateService = {
     input: UpdateDivisionTemplateInput,
   ): Promise<void> {
     requireRole(actor, ["organizer", "admin"]);
+    if (actor.role === "organizer") {
+      await requireOrganizerPlatformActiveForWrite(actor);
+    }
     const existing = await divisionTemplateRepository.findById(
       input.templateId,
     );
@@ -289,6 +297,9 @@ export const divisionTemplateService = {
 
   async deleteTemplate(actor: ActorContext, templateId: string): Promise<void> {
     requireRole(actor, ["organizer", "admin"]);
+    if (actor.role === "organizer") {
+      await requireOrganizerPlatformActiveForWrite(actor);
+    }
     const existing = await divisionTemplateRepository.findById(templateId);
     if (!existing) {
       throw new AppError("NOT_FOUND", "템플릿을 찾을 수 없습니다.");

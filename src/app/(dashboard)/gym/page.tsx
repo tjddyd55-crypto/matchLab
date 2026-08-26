@@ -85,6 +85,9 @@ export default async function GymHomePage() {
   }
 
   const access = await resolveGymPortalAccess(actor).catch(() => null);
+  if (!access?.canEnterPortal) {
+    return null;
+  }
   const canCreate = access?.canCreateFighter ?? true;
   const canUpdate = access?.canUpdateFighter ?? true;
   const canManageSales = access?.canManageSales ?? false;

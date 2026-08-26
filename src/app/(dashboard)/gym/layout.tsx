@@ -1,8 +1,10 @@
+import { LogoutButton } from "@/components/domain/auth/LogoutButton";
 import { GymPortalStatusBanner } from "@/components/domain/gym/GymPortalStatusBanner";
 import { GymStaffPasswordChangeGate } from "@/components/domain/gym/GymStaffPasswordChangeGate";
 import { AppShell } from "@/components/layout/AppShell";
 import { DashboardShell } from "@/components/layout/DashboardShell";
 import { redirectUnlessDashboardRole, requireActor } from "@/lib/auth/actor";
+import { GymStatus } from "@/lib/enums";
 import { resolveGymPortalAccess } from "@/lib/gym-portal-access";
 
 export default async function GymDashboardLayout({
@@ -28,9 +30,11 @@ export default async function GymDashboardLayout({
   }
 
   if (access && !access.canEnterPortal) {
-    const title =
-      access.accessMode === "platform_suspended"
-        ? "체육관 이용 제한"
+    const isArchived = access.gym.status === GymStatus.archived;
+    const title = isArchived
+      ? "운영 종료된 체육관"
+      : access.accessMode === "platform_suspended"
+        ? "서비스 이용 일시정지"
         : "회원사 포털 이용 불가";
     return (
       <AppShell>
@@ -47,6 +51,9 @@ export default async function GymDashboardLayout({
             <p className="mt-3 text-sm text-matchon-text-secondary">
               {access.bannerMessage}
             </p>
+            <div className="mt-6">
+              <LogoutButton />
+            </div>
           </div>
         </DashboardShell>
       </AppShell>

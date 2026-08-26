@@ -14,7 +14,7 @@ import {
   resolveMemberGymOwnerDisplay,
 } from "@/lib/member-gym/owner-account";
 import { normalizePhoneDigits } from "@/lib/phone";
-import { resolveAssociationOrganizerScope } from "@/lib/permissions";
+import { requireAssociationOrganizerScope } from "@/lib/permissions";
 import { auditRepository } from "@/lib/repositories/audit.repository";
 import { memberGymRepository } from "@/lib/repositories/member-gym.repository";
 import { userRepository } from "@/lib/repositories/user.repository";
@@ -29,7 +29,7 @@ async function loadScopedMemberGym(
   memberGymId: string,
   organizerIdHint?: string | null,
 ) {
-  const organizerId = resolveAssociationOrganizerScope(actor, organizerIdHint);
+  const organizerId = await requireAssociationOrganizerScope(actor, organizerIdHint);
   const row = await memberGymRepository.findMemberGymById(
     organizerId,
     memberGymId,

@@ -3,6 +3,7 @@ import { OrganizerDashboardPageHeader } from "@/components/dashboard/OrganizerDa
 import { MatchonStatCardButton } from "@/components/shared/MatchonStatCardButton";
 import { buttonVariants } from "@/components/ui/button";
 import { requireActor } from "@/lib/auth/actor";
+import { resolveOrganizerPortalAccess } from "@/lib/organizer-portal-access";
 import { ORGANIZER_COMPACT_ACTION_BAR_CLASS } from "@/lib/organizer-dashboard-layout";
 import { cn } from "@/lib/utils";
 
@@ -16,7 +17,13 @@ const QUICK_ACTIONS = [
 ] as const;
 
 export default async function OrganizerHomePage() {
-  await requireActor();
+  const actor = await requireActor();
+  if (actor.role === "organizer") {
+    const access = await resolveOrganizerPortalAccess(actor).catch(() => null);
+    if (!access?.canEnterPortal) {
+      return null;
+    }
+  }
 
   return (
     <>

@@ -41,7 +41,11 @@ import {
 } from "@/lib/event-public-display";
 import { AppError } from "@/lib/errors/app-error";
 import { geocodeVenueCoordinate } from "@/lib/naver-geocode.server";
-import { requireOrganizerForEvent, requireRole } from "@/lib/permissions";
+import {
+  requireOrganizerForEvent,
+  requireOrganizerPlatformActiveForWrite,
+  requireRole,
+} from "@/lib/permissions";
 import type {
   ChangeEventStatusInput,
   CreateEventDivisionInput,
@@ -864,6 +868,9 @@ export const eventService = {
     input: CreateEventInput,
   ): Promise<{ id: string }> {
     requireRole(actor, ["organizer", "admin"]);
+    if (actor.role === "organizer") {
+      await requireOrganizerPlatformActiveForWrite(actor);
+    }
     const organizerId = resolveOrganizerIdForCreate(actor, input.organizerId);
 
     const publicSlug = await allocateUniquePublicSlug(input.title, (slug) =>

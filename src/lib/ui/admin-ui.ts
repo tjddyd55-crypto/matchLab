@@ -72,14 +72,14 @@ export {
 
 const ORGANIZER_STATUS_LABELS: Record<OrganizerStatus, string> = {
   pending: "대기",
-  active: "활성",
-  suspended: "정지",
+  active: "정상",
+  suspended: "일시정지",
   archived: "보관",
 };
 
 const GYM_STATUS_LABELS: Record<GymStatus, string> = {
-  active: "활성",
-  suspended: "정지",
+  active: "정상",
+  suspended: "일시정지",
   archived: "보관",
 };
 
