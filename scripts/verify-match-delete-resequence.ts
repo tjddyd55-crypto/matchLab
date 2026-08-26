@@ -33,12 +33,10 @@ function main() {
   const nextMethod = deleteFn.search(/\n  async [a-zA-Z]/);
   const deleteBody =
     nextMethod > 0 ? deleteFn.slice(0, nextMethod) : deleteFn.slice(0, 8000);
-  assert.match(
-    deleteBody,
-    /renumberAllCourtOrders/,
-    "renumberAllCourtOrders must run inside deleteBracketMatch",
-  );
+  assert.match(deleteBody, /renumberAllCourtOrders/);
   assert.match(deleteBody, /updateMatchCourt/);
+  assert.match(deleteBody, /deletedCourtId/);
+  assert.match(deleteBody, /timeout:\s*30_000/);
 
   // A. 1..5 중 3 삭제 → 1..4
   const afterMiddleDelete = renumberAllCourtOrders([

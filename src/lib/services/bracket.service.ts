@@ -2280,7 +2280,8 @@ export const bracketService = {
       );
     }
 
-    await prisma.$transaction(async (tx) => {
+    await prisma.$transaction(
+      async (tx) => {
       const match = await bracketRepository.findBracketMatchById(
         input.matchId,
         tx,
@@ -2346,31 +2347,32 @@ export const bracketService = {
         }
       }
 
-      // 화면 「N경기」SSOT = courtOrder(경기장별). 삭제 후 gap 제거.
-      const eventMatches = await matchRepository.listMatchesByEvent(
-        ctx.eventId,
-        tx,
-      );
-      const courtUpdates = renumberAllCourtOrders(
-        eventMatches.map((m) => ({
-          matchId: m.id,
-          courtId: m.courtId,
-          courtOrder: m.courtOrder,
-        })),
-      );
-      for (const u of courtUpdates) {
-        const prev = eventMatches.find((m) => m.id === u.matchId);
-        if (
-          !prev ||
-          (prev.courtId === u.courtId && prev.courtOrder === u.courtOrder)
-        ) {
-          continue;
-        }
-        await matchRepository.updateMatchCourt(
-          u.matchId,
-          { courtId: u.courtId, courtOrder: u.courtOrder },
-          tx,
+      // 화면 「N경기」SSOT = courtOrder(경기장별). 삭제된 court만 1…N 재부여.
+      const deletedCourtId = match.courtId;
+      if (deletedCourtId) {
+        const peers = await tx.bracketMatch.findMany({
+          where: {
+            courtId: deletedCourtId,
+            bracket: { eventId: ctx.eventId },
+          },
+          select: { id: true, courtId: true, courtOrder: true },
+        });
+        const courtUpdates = renumberAllCourtOrders(
+          peers.map((m) => ({
+            matchId: m.id,
+            courtId: m.courtId,
+            courtOrder: m.courtOrder,
+          })),
         );
+        for (const u of courtUpdates) {
+          const prev = peers.find((m) => m.id === u.matchId);
+          if (!prev || prev.courtOrder === u.courtOrder) continue;
+          await matchRepository.updateMatchCourt(
+            u.matchId,
+            { courtId: u.courtId, courtOrder: u.courtOrder },
+            tx,
+          );
+        }
       }
 
       await appendChangeLog(tx, {
@@ -2387,7 +2389,11 @@ export const bracketService = {
           fighterRedId: match.fighterRedId,
           fighterBlueId: match.fighterBlueId,
         },
-        afterData: { deleted: true, renumbered: true, courtOrdersRenumbered: true },
+        afterData: {
+          deleted: true,
+          renumbered: true,
+          courtOrdersRenumbered: Boolean(deletedCourtId),
+        },
         reason: "경기 삭제",
       });
 
@@ -2409,7 +2415,9 @@ export const bracketService = {
           ),
         );
       }
-    });
+      },
+      { maxWait: 10_000, timeout: 30_000 },
+    );
 
     return { eventId: ctx.eventId, bracketId: input.bracketId };
   },
