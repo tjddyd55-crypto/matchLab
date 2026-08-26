@@ -78,7 +78,9 @@ async function renderPrintPathToPdfBuffer(params: {
     const pdf = await page.pdf({
       format: "A4",
       printBackground: true,
-      margin: { top: "8mm", right: "7mm", bottom: "8mm", left: "7mm" },
+      preferCSSPageSize: true,
+      scale: 1,
+      margin: { top: "6mm", right: "6mm", bottom: "6mm", left: "6mm" },
     });
     return Buffer.from(pdf);
   } finally {

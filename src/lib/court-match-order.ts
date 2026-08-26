@@ -57,12 +57,58 @@ export function sortMatchesByCourtSchedule<
   );
 }
 
-/** 대진표 보기·인쇄 공통 경기 번호 라벨 — courtOrder 우선 */
+/**
+ * 사용자-facing 「N경기」SSOT = event-wide matchNumber.
+ * courtOrder는 경기장 내부 순서용이며 표시에 쓰지 않는다(없으면 레거시 fallback).
+ */
 export function formatCourtScheduleMatchOrderShort(
   match: CourtScheduleMatch & MatchOrderFields,
 ): string {
+  if (match.matchNumber != null) return `${match.matchNumber}경기`;
   if (match.courtOrder != null) return `${match.courtOrder}경기`;
   return formatMatchOrderShort(match);
+}
+
+/** event-wide matchNumber가 1…N 연속인지 (gap/dup/null → 재부여 필요) */
+export function eventWideMatchNumbersNeedResequence(
+  matches: Array<{ matchNumber: number | null }>,
+): boolean {
+  if (matches.length === 0) return false;
+  if (matches.some((m) => m.matchNumber == null)) return true;
+  const nums = matches
+    .map((m) => m.matchNumber!)
+    .sort((a, b) => a - b);
+  if (new Set(nums).size !== nums.length) return true;
+  for (let i = 0; i < nums.length; i++) {
+    if (nums[i] !== i + 1) return true;
+  }
+  return false;
+}
+
+/**
+ * 대회 전체 표시 순번 재부여.
+ * 기존 matchNumber 상대 순서를 우선 보존하고, 없으면 경기장 스케줄 순.
+ * Match.id / courtOrder는 변경하지 않는다.
+ */
+export function renumberEventWideMatchNumbers(
+  matches: Array<
+    CourtScheduleMatch & { matchNumber?: number | null }
+  >,
+  courts: CourtSortRef[],
+): Array<{ matchId: string; matchNumber: number }> {
+  const courtSortIndex = buildCourtSortIndex(courts);
+  const sorted = [...matches].sort((a, b) => {
+    const na = a.matchNumber ?? null;
+    const nb = b.matchNumber ?? null;
+    if (na != null && nb != null && na !== nb) return na - nb;
+    if (na != null && nb == null) return -1;
+    if (na == null && nb != null) return 1;
+    return compareCourtScheduleMatches(a, b, courtSortIndex);
+  });
+  return sorted.map((m, idx) => ({
+    matchId: m.matchId,
+    matchNumber: idx + 1,
+  }));
 }
 
 function sortMatchIdsByCourtOrder(
