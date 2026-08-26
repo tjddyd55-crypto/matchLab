@@ -44,7 +44,7 @@ function main() {
   );
   assert.doesNotMatch(css, /0\.7px/);
 
-  assert.match(printSvc, /resolveMatchWeightLabel/);
+  assert.match(printSvc, /formatMatchWeightKgLabel/);
   assert.match(printSvc, /printableMemo/);
   assert.match(format, /printableMemo\?/);
   assert.match(format, /BRACKET_PRINT_MATCHES_PER_PAGE\s*=\s*8/);

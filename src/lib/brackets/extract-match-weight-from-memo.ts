@@ -1,10 +1,14 @@
 /**
- * Match.organizerMemo 에서 체중 숫자/라벨 추출 (legacy backfill·transition fallback).
- * 첫 번째 kg 패턴만 사용.
+ * Match weight helpers.
+ *
+ * Runtime SSOT: BracketMatch.matchWeightKg only.
+ * extractMatchWeight* — Legacy migration/backfill only.
+ * Do not use extract* for runtime match weight resolution.
  */
 const MEMO_WEIGHT_RE = /(\d+(?:\.\d+)?)\s*kg\b/i;
 
 /**
+ * Legacy migration/backfill only.
  * @returns e.g. 68 | 42.5 | null
  */
 export function extractMatchWeightKgFromMemo(
@@ -21,6 +25,7 @@ export function extractMatchWeightKgFromMemo(
 }
 
 /**
+ * Legacy migration/backfill only.
  * @returns e.g. "68kg" | "42.5kg" | null
  */
 export function extractMatchWeightFromMemo(
@@ -33,6 +38,7 @@ export function extractMatchWeightFromMemo(
 
 /**
  * DB Float → PDF/UI 라벨. 60.0 → "60kg", 42.5 → "42.5kg"
+ * Runtime SSOT formatter (matchWeightKg only).
  */
 export function formatMatchWeightKgLabel(
   kg: number | null | undefined,
@@ -40,36 +46,12 @@ export function formatMatchWeightKgLabel(
   if (kg == null) return null;
   if (!Number.isFinite(kg) || kg <= 0) return null;
   const normalized = Number.isInteger(kg) ? String(kg) : String(kg);
-  // trim trailing zeros from float noise: 60.0000001 → keep sensible
   const cleaned = Number(normalized);
   if (!Number.isFinite(cleaned) || cleaned <= 0) return null;
   const text = Number.isInteger(cleaned)
     ? String(cleaned)
     : String(cleaned).replace(/(\.\d*?[1-9])0+$/, "$1").replace(/\.0+$/, "");
   return `${text}kg`;
-}
-
-/**
- * 표시용 체중: 정식 필드 우선, 없으면 legacy memo 추출 (transition fallback).
- */
-export function resolveMatchWeightLabel(input: {
-  matchWeightKg?: number | null;
-  organizerMemo?: string | null;
-}): string | null {
-  const fromField = formatMatchWeightKgLabel(input.matchWeightKg);
-  if (fromField) return fromField;
-  return extractMatchWeightFromMemo(input.organizerMemo);
-}
-
-/** 숫자 SSOT resolve — UI draft/dirty 기준 */
-export function resolveMatchWeightKgValue(input: {
-  matchWeightKg?: number | null;
-  organizerMemo?: string | null;
-}): number | null {
-  if (input.matchWeightKg != null && Number.isFinite(input.matchWeightKg)) {
-    return input.matchWeightKg;
-  }
-  return extractMatchWeightKgFromMemo(input.organizerMemo);
 }
 
 /**

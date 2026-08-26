@@ -1,5 +1,5 @@
 /**
- * Match.matchWeightKg 정식 필드 + helpers + UI wiring
+ * Match.matchWeightKg 정식 필드 + UI wiring (runtime SSOT, no memo fallback)
  *   npm run verify:match-weight-field
  */
 import assert from "node:assert/strict";
@@ -9,8 +9,6 @@ import {
   formatMatchWeightKgInputValue,
   formatMatchWeightKgLabel,
   parseMatchWeightKgInput,
-  resolveMatchWeightKgValue,
-  resolveMatchWeightLabel,
 } from "../src/lib/brackets/extract-match-weight-from-memo";
 
 const root = process.cwd();
@@ -32,18 +30,8 @@ function main() {
   assert.equal(parseMatchWeightKgInput("68kg").ok, true);
   assert.equal(parseMatchWeightKgInput("abc").ok, false);
 
-  assert.equal(
-    resolveMatchWeightLabel({ matchWeightKg: 70, organizerMemo: "68kg" }),
-    "70kg",
-  );
-  assert.equal(
-    resolveMatchWeightLabel({ matchWeightKg: null, organizerMemo: "68kg / 결승" }),
-    "68kg",
-  );
-  assert.equal(
-    resolveMatchWeightKgValue({ matchWeightKg: null, organizerMemo: "42.5kg" }),
-    42.5,
-  );
+  // null field must not invent weight from memo formatter alone
+  assert.equal(formatMatchWeightKgLabel(null), null);
 
   const card = readFileSync(
     join(root, "src/components/domain/brackets/OrganizerMatchEditCard.tsx"),
@@ -64,7 +52,9 @@ function main() {
 
   assert.match(card, /MatchWeightKgInput/);
   assert.match(card, /leadingExtra/);
-  assert.match(card, /resolveMatchWeightKgValue/);
+  assert.match(card, /match\.matchWeightKg/);
+  assert.doesNotMatch(card, /resolveMatchWeightKgValue/);
+  assert.doesNotMatch(card, /extractMatchWeight/);
   assert.match(input, /aria-label="경기 체중"/);
   assert.match(input, /\bkg\b/);
   assert.match(layout, /matchWeightInputClass/);
