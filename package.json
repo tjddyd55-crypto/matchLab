@@ -171,6 +171,8 @@
     "verify:weight-class-boundaries": "tsx scripts/verify-weight-class-excel-import.ts",
     "verify:external-registration": "tsx scripts/verify-external-registration.ts",
     "verify:bracket-display-gym": "tsx scripts/verify-bracket-display-gym.ts",
+    "verify:bracket-menu-direct-workspace": "tsx scripts/verify-bracket-menu-direct-workspace.ts",
+    "verify:matched-athlete-gym-name-edit": "tsx scripts/verify-matched-athlete-gym-name-edit.ts",
     "verify:manual-match-dnd": "tsx scripts/verify-manual-match-dnd.ts",
     "verify:manual-match-unmatched-source": "tsx scripts/verify-manual-match-unmatched-source.ts",
     "verify:cross-division-manual-match": "tsx scripts/verify-cross-division-manual-match.ts",

@@ -589,6 +589,31 @@ export const bracketRepository = {
     };
   },
 
+  async listActiveMatchesForFighterInEvent(
+    eventId: string,
+    fighterId: string,
+    tx?: Prisma.TransactionClient,
+  ): Promise<
+    {
+      id: string;
+      fighterRedId: string | null;
+      fighterBlueId: string | null;
+    }[]
+  > {
+    return db(tx).bracketMatch.findMany({
+      where: {
+        bracket: { eventId },
+        status: { not: BracketMatchStatus.cancelled },
+        OR: [{ fighterRedId: fighterId }, { fighterBlueId: fighterId }],
+      },
+      select: {
+        id: true,
+        fighterRedId: true,
+        fighterBlueId: true,
+      },
+    });
+  },
+
   async countFighterAssignmentsInEvent(
     eventId: string,
     fighterId: string,
