@@ -37,6 +37,29 @@ export async function generateBracketPrintPdfBuffer(params: {
   cookieHeader: string | null;
   mode?: "court" | "all-matches";
 }): Promise<Buffer> {
+  const modeQuery =
+    params.mode === "all-matches" ? "?mode=all-matches" : "";
+  const path = `/organizer/events/${params.eventId}/brackets/print${modeQuery}`;
+  return renderPrintPathToPdfBuffer({
+    path,
+    cookieHeader: params.cookieHeader,
+  });
+}
+
+export async function generateUnmatchedPrintPdfBuffer(params: {
+  eventId: string;
+  cookieHeader: string | null;
+}): Promise<Buffer> {
+  return renderPrintPathToPdfBuffer({
+    path: `/organizer/events/${params.eventId}/brackets/unmatched-print`,
+    cookieHeader: params.cookieHeader,
+  });
+}
+
+async function renderPrintPathToPdfBuffer(params: {
+  path: string;
+  cookieHeader: string | null;
+}): Promise<Buffer> {
   const baseUrl = getServerAppBaseUrl();
   if (!baseUrl) {
     throw new Error("APP base URL이 설정되지 않았습니다.");
@@ -49,15 +72,13 @@ export async function generateBracketPrintPdfBuffer(params: {
       await context.setExtraHTTPHeaders({ cookie: params.cookieHeader });
     }
     const page = await context.newPage();
-    const modeQuery =
-      params.mode === "all-matches" ? "?mode=all-matches" : "";
-    const url = `${baseUrl}/organizer/events/${params.eventId}/brackets/print${modeQuery}`;
+    const url = `${baseUrl}${params.path}`;
     await page.goto(url, { waitUntil: "networkidle", timeout: 120_000 });
     await page.emulateMedia({ media: "print" });
     const pdf = await page.pdf({
       format: "A4",
       printBackground: true,
-      margin: { top: "10mm", right: "8mm", bottom: "10mm", left: "8mm" },
+      margin: { top: "8mm", right: "7mm", bottom: "8mm", left: "7mm" },
     });
     return Buffer.from(pdf);
   } finally {

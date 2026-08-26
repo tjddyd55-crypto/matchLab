@@ -59,7 +59,10 @@ import {
 import { applicationRepository } from "@/lib/repositories/application.repository";
 import { eventCourtRepository } from "@/lib/repositories/event-court.repository";
 import { matchRepository } from "@/lib/repositories/match.repository";
-import { sortMatchesByCourtSchedule } from "@/lib/court-match-order";
+import {
+  renumberAllCourtOrders,
+  sortMatchesByCourtSchedule,
+} from "@/lib/court-match-order";
 import { eventRepository } from "@/lib/repositories/event.repository";
 import { notificationRepository } from "@/lib/repositories/notification.repository";
 import { safeNotify, tryNotify } from "@/lib/notifications/safe-dispatch";
@@ -2277,7 +2280,8 @@ export const bracketService = {
       );
     }
 
-    await prisma.$transaction(async (tx) => {
+    await prisma.$transaction(
+      async (tx) => {
       const match = await bracketRepository.findBracketMatchById(
         input.matchId,
         tx,
@@ -2343,6 +2347,34 @@ export const bracketService = {
         }
       }
 
+      // 화면 「N경기」SSOT = courtOrder(경기장별). 삭제된 court만 1…N 재부여.
+      const deletedCourtId = match.courtId;
+      if (deletedCourtId) {
+        const peers = await tx.bracketMatch.findMany({
+          where: {
+            courtId: deletedCourtId,
+            bracket: { eventId: ctx.eventId },
+          },
+          select: { id: true, courtId: true, courtOrder: true },
+        });
+        const courtUpdates = renumberAllCourtOrders(
+          peers.map((m) => ({
+            matchId: m.id,
+            courtId: m.courtId,
+            courtOrder: m.courtOrder,
+          })),
+        );
+        for (const u of courtUpdates) {
+          const prev = peers.find((m) => m.id === u.matchId);
+          if (!prev || prev.courtOrder === u.courtOrder) continue;
+          await matchRepository.updateMatchCourt(
+            u.matchId,
+            { courtId: u.courtId, courtOrder: u.courtOrder },
+            tx,
+          );
+        }
+      }
+
       await appendChangeLog(tx, {
         eventId: ctx.eventId,
         bracketId: input.bracketId,
@@ -2352,10 +2384,16 @@ export const bracketService = {
         beforeData: {
           matchId: input.matchId,
           matchOrder: match.matchOrder,
+          courtId: match.courtId,
+          courtOrder: match.courtOrder,
           fighterRedId: match.fighterRedId,
           fighterBlueId: match.fighterBlueId,
         },
-        afterData: { deleted: true, renumbered: true },
+        afterData: {
+          deleted: true,
+          renumbered: true,
+          courtOrdersRenumbered: Boolean(deletedCourtId),
+        },
         reason: "경기 삭제",
       });
 
@@ -2377,7 +2415,9 @@ export const bracketService = {
           ),
         );
       }
-    });
+      },
+      { maxWait: 10_000, timeout: 30_000 },
+    );
 
     return { eventId: ctx.eventId, bracketId: input.bracketId };
   },

@@ -1,29 +1,21 @@
 "use client";
 
-import { useCallback, useMemo, useState } from "react";
+import { useCallback, useState } from "react";
 import { Button } from "@/components/ui/button";
-import type { BracketPrintMode } from "@/lib/brackets/bracket-print-format";
 
-export function OrganizerBracketPrintActions({
+export function OrganizerUnmatchedPrintActions({
   eventId,
   documentTitle,
-  variant = "toolbar",
-  printMode = "court",
+  variant = "view",
+  disabled = false,
 }: {
   eventId: string;
   documentTitle?: string;
-  /** view: 대진표 보기 상단 / toolbar: 인쇄 전용 페이지 */
   variant?: "view" | "toolbar";
-  printMode?: BracketPrintMode;
+  disabled?: boolean;
 }) {
-  const printHref = useMemo(() => {
-    const base = `/organizer/events/${eventId}/brackets/print`;
-    return printMode === "all-matches" ? `${base}?mode=all-matches` : base;
-  }, [eventId, printMode]);
-  const pdfHref = useMemo(() => {
-    const base = `/api/organizer/events/${eventId}/brackets/print-pdf`;
-    return printMode === "all-matches" ? `${base}?mode=all-matches` : base;
-  }, [eventId, printMode]);
+  const printHref = `/organizer/events/${eventId}/brackets/unmatched-print`;
+  const pdfHref = `/api/organizer/events/${eventId}/brackets/unmatched-print-pdf`;
   const [downloading, setDownloading] = useState(false);
   const [error, setError] = useState<string | null>(null);
 
@@ -36,12 +28,11 @@ export function OrganizerBracketPrintActions({
       return;
     }
     const w = window.open(printHref, "_blank", "noopener,noreferrer");
-    if (!w) {
-      window.location.href = printHref;
-    }
+    if (!w) window.location.href = printHref;
   }, [documentTitle, printHref, variant]);
 
   const onDownloadPdf = useCallback(async () => {
+    if (disabled || downloading) return;
     setDownloading(true);
     setError(null);
     try {
@@ -51,8 +42,7 @@ export function OrganizerBracketPrintActions({
           error?: string;
         } | null;
         throw new Error(
-          body?.error ??
-            "PDF를 생성하지 못했습니다. 잠시 후 다시 시도해 주세요.",
+          body?.error ?? "PDF를 생성하지 못했습니다. 잠시 후 다시 시도해 주세요.",
         );
       }
       const blob = await res.blob();
@@ -61,7 +51,7 @@ export function OrganizerBracketPrintActions({
       const plainMatch = disposition.match(/filename="([^"]+)"/i);
       const filename = utf8Match?.[1]
         ? decodeURIComponent(utf8Match[1])
-        : plainMatch?.[1] ?? `MATCHON_대진표.pdf`;
+        : plainMatch?.[1] ?? "MATCHON_미매칭선수.pdf";
 
       const url = URL.createObjectURL(blob);
       const a = document.createElement("a");
@@ -78,7 +68,7 @@ export function OrganizerBracketPrintActions({
     } finally {
       setDownloading(false);
     }
-  }, [pdfHref, printMode]);
+  }, [disabled, downloading, pdfHref]);
 
   if (variant === "toolbar") {
     return (
@@ -90,10 +80,10 @@ export function OrganizerBracketPrintActions({
           type="button"
           size="sm"
           variant="outline"
-          disabled={downloading}
+          disabled={downloading || disabled}
           onClick={() => void onDownloadPdf()}
         >
-          {downloading ? "PDF 생성 중…" : "PDF 다운로드"}
+          {downloading ? "생성 중…" : "PDF 다운로드"}
         </Button>
         {error ? (
           <span className="text-destructive text-xs">{error}</span>
@@ -104,17 +94,14 @@ export function OrganizerBracketPrintActions({
 
   return (
     <div className="flex flex-wrap items-center gap-2">
-      <Button type="button" size="sm" variant="outline" onClick={onPrint}>
-        인쇄
-      </Button>
       <Button
         type="button"
         size="sm"
         variant="outline"
-        disabled={downloading}
+        disabled={downloading || disabled}
         onClick={() => void onDownloadPdf()}
       >
-        {downloading ? "PDF 생성 중…" : "PDF 다운로드"}
+        {downloading ? "생성 중…" : "미매칭 선수 PDF"}
       </Button>
       {error ? (
         <span className="text-destructive w-full text-xs">{error}</span>

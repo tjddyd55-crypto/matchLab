@@ -8,8 +8,13 @@ import {
   buildBracketPrintDocumentTitle,
   buildBracketPrintFighterDto,
   buildBracketPrintFighterIdentityLine,
+  buildBracketPrintPages,
+  buildUnmatchedPrintDocumentTitle,
+  buildUnmatchedPrintPages,
   formatApplicationWeightLabel,
   formatBracketPrintEventDate,
+  formatBracketPrintRecordDisplay,
+  formatPrintGenderShort,
 } from "../src/lib/brackets/bracket-print-format";
 import {
   formatCourtScheduleMatchOrderShort,
@@ -63,6 +68,7 @@ console.log("  ✓ 학년/성인 라벨");
   assert.equal(f.weightLabel, "58kg");
   assert.equal(f.gradeLabel, "중3");
   assert.equal(f.recordLabel, "2전 1승 1패");
+  assert.equal(f.recordDisplayLabel, "현재 2전 1승 1패");
   // 4열 UI는 컴포넌트에서 3줄 조합: 이름 / 체육관·경기구분·체중 / 전적
   assert.ok(f.identityLine.includes("김무현"));
   console.log("  ✓ 선수 필드 + 전적");
@@ -82,6 +88,7 @@ console.log("  ✓ 학년/성인 라벨");
     lossesSnapshot: 0,
   });
   assert.equal(f.recordLabel, "무전");
+  assert.equal(f.recordDisplayLabel, "현재 무전");
   assert.ok(f.identityLine.includes("성인"));
   console.log("  ✓ 무전 / 성인");
 }
@@ -157,7 +164,11 @@ assert.equal(
 }
 assert.equal(
   buildBracketPrintDocumentTitle("제12회 마포구청장배"),
-  "MATCHON_제12회 마포구청장배_시합대진표",
+  "MATCHON_제12회마포구청장배_대진표",
+);
+assert.equal(
+  buildUnmatchedPrintDocumentTitle("제12회 마포구청장배"),
+  "MATCHON_제12회마포구청장배_미매칭선수",
 );
 assert.equal(
   formatBracketPrintEventDate(new Date("2026-08-22T00:00:00+09:00")),
@@ -173,5 +184,48 @@ assert.equal(
   "A / B / 중1",
 );
 console.log("  ✓ 경기번호 / 문서 제목 / 날짜");
+
+assert.equal(formatPrintGenderShort("male"), "남");
+assert.equal(formatPrintGenderShort("female"), "여");
+assert.equal(formatBracketPrintRecordDisplay("무전"), "현재 무전");
+
+{
+  const pages = buildBracketPrintPages(
+    Array.from({ length: 19 }, (_, i) => ({
+      matchId: `m${i}`,
+      matchNoLabel: `${i + 1}경기`,
+      divisionLabel: null,
+      arenaName: null,
+      red: null,
+      blue: null,
+    })),
+  );
+  assert.equal(pages.length, 3);
+  assert.equal(pages[0]!.matches.length, 9);
+  assert.equal(pages[0]!.matchRangeLabel, "1~9경기");
+  assert.equal(pages[2]!.matchRangeLabel, "19경기");
+  assert.equal(pages[1]!.pageIndex, 2);
+  assert.equal(pages[1]!.pageCount, 3);
+  console.log("  ✓ 대진표 page chunk");
+}
+
+{
+  const pages = buildUnmatchedPrintPages(
+    Array.from({ length: 19 }, (_, i) => ({
+      index: i + 1,
+      gymName: "G",
+      fighterName: "F",
+      genderLabel: "남",
+      divisionLabel: "초3",
+      recordLabel: "무전",
+      weightLabel: "35kg",
+    })),
+  );
+  assert.equal(pages.length, 2);
+  assert.equal(pages[0]!.rows.length, 10);
+  assert.equal(pages[1]!.rows.length, 9);
+  assert.equal(pages[1]!.rangeLabel, "총 19명 중 11~19");
+  console.log("  ✓ 미매칭 page chunk");
+}
 
 console.log("\nPASS verify-bracket-print-format\n");

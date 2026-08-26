@@ -184,6 +184,7 @@
     "verify:registered-gym-list": "tsx scripts/verify-registered-gym-list.ts",
     "verify:bracket-group-unmatched": "tsx scripts/verify-bracket-group-unmatched.ts",
     "verify:manual-match-crud": "tsx scripts/verify-manual-match-crud.ts",
+    "verify:match-delete-resequence": "tsx scripts/verify-match-delete-resequence.ts",
     "verify:manual-match-ux": "tsx scripts/verify-manual-match-ux.ts",
     "verify:unmatched-quick-bar-filters": "tsx scripts/verify-unmatched-quick-bar-filters.ts",
     "verify:match-organizer-memo": "tsx scripts/verify-match-organizer-memo.ts",
@@ -493,6 +494,7 @@
     "verify:auto-match-weight-priority": "tsx scripts/verify-auto-match-weight-priority.ts",
     "verify:auto-match-large-cardinality": "tsx scripts/verify-auto-match-large-cardinality.ts",
     "verify:bracket-print-format": "tsx scripts/verify-bracket-print-format.ts",
+    "verify:bracket-unmatched-pdf": "tsx scripts/verify-bracket-unmatched-pdf.ts",
     "verify:applicants-vs-excel": "tsx scripts/verify-applicants-vs-excel.ts"
   },
   "prisma": {
