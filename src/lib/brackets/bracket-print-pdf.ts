@@ -74,7 +74,13 @@ async function renderPrintPathToPdfBuffer(params: {
     const page = await context.newPage();
     const url = `${baseUrl}${params.path}`;
     await page.goto(url, { waitUntil: "networkidle", timeout: 120_000 });
+    await page.evaluate(async () => {
+      await document.fonts.ready;
+    });
     await page.emulateMedia({ media: "print" });
+    await page.evaluate(async () => {
+      await document.fonts.ready;
+    });
     const pdf = await page.pdf({
       format: "A4",
       printBackground: true,

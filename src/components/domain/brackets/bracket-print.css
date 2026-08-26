@@ -1,17 +1,25 @@
 /**
  * 시합 대진표 / 미매칭 선수 인쇄용 A4 CSS
+ * Figma SSOT: BRACKET_PDF_REFERENCE_V1 / A4_Portrait_Bracket_PDF (node 11:3)
  * screen: 미리보기 / print: @page A4 + 관리 UI 숨김
- * HTML text → Playwright PDF (vector). screenshot/raster 금지.
+ * HTML text → Playwright PDF (vector). screenshot/raster/transform-scale 금지.
  */
+
+@import url("https://fonts.googleapis.com/css2?family=Noto+Sans+KR:wght@400;500;700&display=block");
 
 .bracket-print-page {
   --bracket-print-ink: #0f1214;
   --bracket-print-muted: #4d5259;
   --bracket-print-line: #c7ccd4;
+  --bracket-print-header-rule: #ccd1d9;
   --bracket-print-red-bg: #fff6f6;
   --bracket-print-blue-bg: #f6faff;
   --bracket-print-red-line: #cc1c17;
   --bracket-print-blue-line: #085499;
+  --bracket-print-row-h: 78px;
+  --bracket-print-no-w: 54px;
+  --bracket-print-vs-w: 34px;
+  --bracket-print-edge-w: 2.5px;
   background: #e8e8e8;
   min-height: 100vh;
   color: var(--bracket-print-ink);
@@ -89,7 +97,7 @@
 
 .ops-print-header {
   text-align: center;
-  margin-bottom: 3.5mm;
+  margin-bottom: 0;
   page-break-after: avoid;
 }
 
@@ -111,7 +119,8 @@
   font-size: 8pt;
   font-weight: 500;
   padding-bottom: 2mm;
-  border-bottom: 0.7px solid var(--bracket-print-line);
+  /* header rule — 좌우 끝까지 단일 1px (subpixel hairline 금지) */
+  border-bottom: 1px solid var(--bracket-print-header-rule);
 }
 
 .ops-print-range {
@@ -154,24 +163,34 @@
   gap: 0;
   flex: 1 1 auto;
   margin-top: 1mm;
+  /* 외곽선은 list가 소유 — 행은 border-bottom만 (가로선 끊김 방지) */
+  border: 1px solid var(--bracket-print-line);
+  border-bottom: none;
+  box-sizing: border-box;
+  background: #fff;
 }
 
-/* Figma A4_Portrait_Bracket_PDF: number | RED | VS | BLUE, row ~78px */
+/**
+ * Figma row: 54 | ~240 | 34 | ~239 → 54px 1fr 34px 1fr
+ * border ownership: row = bottom only; cells = vertical separators only
+ */
 .ops-print-row {
   display: grid;
-  grid-template-columns: 54px minmax(0, 1fr);
+  grid-template-columns:
+    var(--bracket-print-no-w) minmax(0, 1fr) var(--bracket-print-vs-w)
+    minmax(0, 1fr);
   align-items: stretch;
-  min-height: 78px;
-  border: 0.7px solid var(--bracket-print-line);
-  border-bottom-width: 0;
+  width: 100%;
+  height: var(--bracket-print-row-h);
+  min-height: var(--bracket-print-row-h);
+  max-height: var(--bracket-print-row-h);
+  box-sizing: border-box;
+  border: none;
+  border-bottom: 1px solid var(--bracket-print-line);
   break-inside: avoid;
   page-break-inside: avoid;
   overflow: hidden;
   background: #fff;
-}
-
-.ops-print-row:last-child {
-  border-bottom-width: 0.7px;
 }
 
 .ops-print-match-no-cell {
@@ -179,11 +198,13 @@
   flex-direction: column;
   align-items: center;
   justify-content: center;
-  gap: 1px;
+  gap: 2px;
   padding: 2mm 1mm;
-  border-right: 0.7px solid var(--bracket-print-line);
+  box-sizing: border-box;
+  height: 100%;
   background: #fff;
   text-align: center;
+  /* 번호셀 오른쪽 = RED edge bar (corner-red border-left) — gray 이중선 금지 */
 }
 
 .ops-print-match-no {
@@ -203,69 +224,77 @@
   color: #4d5259;
 }
 
-.ops-print-fighters {
-  display: grid;
-  grid-template-columns: 1fr 34px 1fr;
-  align-items: stretch;
-  min-height: 78px;
-}
-
 .ops-print-vs {
   display: flex;
   align-items: center;
   justify-content: center;
+  box-sizing: border-box;
+  height: 100%;
   padding: 0;
   font-size: 12pt;
   font-weight: 700;
-  border: none;
   background: #fff;
   color: #0f1214;
+  border-right: 1px solid var(--bracket-print-line);
 }
 
 .ops-print-corner {
-  position: relative;
-  padding: 7px 10px 8px;
   display: flex;
   flex-direction: column;
-  align-items: center;
-  justify-content: center;
-  gap: 0;
+  box-sizing: border-box;
+  height: 100%;
+  min-width: 0;
+  padding: 6px 10px 6px;
   line-height: 1.2;
   word-break: keep-all;
   overflow-wrap: anywhere;
   text-align: center;
+  -webkit-print-color-adjust: exact;
+  print-color-adjust: exact;
 }
 
 .ops-print-corner-red {
   background: var(--bracket-print-red-bg);
-  border-left: 2.5px solid var(--bracket-print-red-line);
+  /* RED edge — row 전체 높이 */
+  border-left: var(--bracket-print-edge-w) solid var(--bracket-print-red-line);
+  border-right: 1px solid var(--bracket-print-line);
 }
 
 .ops-print-corner-blue {
   background: var(--bracket-print-blue-bg);
-  border-right: 2.5px solid var(--bracket-print-blue-line);
+  /* BLUE edge — row 전체 높이 */
+  border-right: var(--bracket-print-edge-w) solid var(--bracket-print-blue-line);
 }
 
 .ops-print-corner-label {
-  position: absolute;
-  top: 7px;
+  flex: 0 0 auto;
   font-size: 7pt;
   font-weight: 700;
   letter-spacing: 0.02em;
+  line-height: 1;
 }
 
 .ops-print-corner-red .ops-print-corner-label {
-  left: 18px;
+  align-self: flex-start;
   color: var(--bracket-print-red-line);
 }
 
 .ops-print-corner-blue .ops-print-corner-label {
-  right: 18px;
+  align-self: flex-end;
   color: var(--bracket-print-blue-line);
 }
 
+.ops-print-corner-main {
+  flex: 1 1 auto;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  min-height: 0;
+  gap: 1px;
+}
+
 .ops-print-gym {
-  margin-top: 10px;
   font-size: 8pt;
   font-weight: 500;
   color: var(--bracket-print-muted);
@@ -283,14 +312,17 @@
 }
 
 .ops-print-record {
-  margin-top: 2px;
   font-size: 7.5pt;
   font-weight: 400;
   color: var(--bracket-print-muted);
 }
 
 .ops-print-empty {
-  margin-top: 10px;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  gap: 1px;
 }
 
 .ops-print-empty-title {
@@ -382,7 +414,7 @@
 
 .unmatched-print-table th,
 .unmatched-print-table td {
-  border: 0.7px solid var(--bracket-print-line);
+  border: 1px solid var(--bracket-print-line);
   padding: 1.4mm 1.4mm;
   vertical-align: middle;
   word-break: keep-all;
@@ -497,18 +529,20 @@
   }
 
   .ops-print-corner-red,
+  .ops-print-corner-blue,
   .ops-print-match-no,
   .unmatched-print-table th {
     -webkit-print-color-adjust: exact;
     print-color-adjust: exact;
   }
 
+  /* Figma tint 유지 — grayscale 덮어쓰기 금지 */
   .ops-print-corner-red {
-    background: #f2f2f2 !important;
+    background: var(--bracket-print-red-bg) !important;
   }
 
   .ops-print-corner-blue {
-    background: #fff !important;
+    background: var(--bracket-print-blue-bg) !important;
   }
 
   .ops-print-row,

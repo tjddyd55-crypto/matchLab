@@ -501,6 +501,9 @@
     "verify:match-weight-from-memo": "tsx scripts/verify-match-weight-from-memo.ts",
     "verify:match-header-layout": "tsx scripts/verify-match-header-layout.ts",
     "verify:bracket-pdf-match-weight": "tsx scripts/verify-match-header-layout.ts",
+    "verify:bracket-pdf-row-grid": "tsx scripts/verify-bracket-pdf-row-grid.ts",
+    "verify:bracket-pdf-continuous-borders": "tsx scripts/verify-bracket-pdf-row-grid.ts",
+    "verify:bracket-pdf-font-ready": "tsx scripts/verify-bracket-pdf-font-ready.ts",
     "verify:applicants-vs-excel": "tsx scripts/verify-applicants-vs-excel.ts"
   },
   "prisma": {
