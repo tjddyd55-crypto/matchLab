@@ -118,7 +118,7 @@ export function getEventManagementNavItems(
       group: "applications",
       icon: "clipboard-check",
     },
-    { href: `${base}/brackets`, label: "대진표", group: "brackets", icon: "git-branch" },
+    { href: `${base}/brackets?tab=view&view=workspace`, label: "대진표", group: "brackets", icon: "git-branch" },
     {
       href: `${base}/brackets?tab=view`,
       label: "전체순서",
@@ -185,11 +185,25 @@ export function isEventManagementNavItemActive(
     return pathname === base && normalizedHash === item.anchorId;
   }
 
+  const bracketsWorkspaceHref = `${base}/brackets?tab=view&view=workspace`;
+
   if (item.href === `${base}/brackets?tab=view`) {
     return (
       pathname === `${base}/schedule` ||
-      (pathname === `${base}/brackets` && searchParams.get("tab") === "view")
+      (pathname === `${base}/brackets` &&
+        searchParams.get("tab") === "view" &&
+        searchParams.get("view") !== "workspace")
     );
+  }
+
+  if (item.href === bracketsWorkspaceHref) {
+    if (pathname !== `${base}/brackets`) return false;
+    const tab = searchParams.get("tab");
+    const view = searchParams.get("view");
+    if (tab === "view" && view === "workspace") return true;
+    if (tab === "settings" || tab === "generate") return true;
+    if (!tab) return false;
+    return false;
   }
 
   if (item.href === `${base}/brackets`) {
