@@ -77,20 +77,31 @@ function FighterCorner({
   );
 }
 
-/** Figma 11:3 — 한 경기가 단일 grid row: 번호 | RED | VS | BLUE */
-function MatchRow({ match }: { match: BracketPrintMatchDto }) {
+/** Figma 11:3 — 번호|RED|VS|BLUE + optional 메모 행 */
+function MatchBlock({ match }: { match: BracketPrintMatchDto }) {
+  const memo = match.printableMemo?.trim() || "";
   return (
-    <article className="ops-print-row">
-      <div className="ops-print-match-no-cell">
-        <div className="ops-print-match-no">{match.matchNoLabel}</div>
-        {match.weightLabel ? (
-          <div className="ops-print-match-kg">{match.weightLabel}</div>
-        ) : null}
-      </div>
-      <FighterCorner fighter={match.red} corner="red" />
-      <div className="ops-print-vs">VS</div>
-      <FighterCorner fighter={match.blue} corner="blue" />
-    </article>
+    <div className="ops-print-match-block">
+      <article className="ops-print-row">
+        <div className="ops-print-match-no-cell">
+          <div className="ops-print-match-no">{match.matchNoLabel}</div>
+          {match.weightLabel ? (
+            <div className="ops-print-match-kg">{match.weightLabel}</div>
+          ) : null}
+        </div>
+        <FighterCorner fighter={match.red} corner="red" />
+        <div className="ops-print-vs">VS</div>
+        <FighterCorner fighter={match.blue} corner="blue" />
+      </article>
+      {memo ? (
+        <div className="ops-print-memo-row">
+          <span className="ops-print-memo-label">메모</span>
+          <span className="ops-print-memo-body" title={memo}>
+            {memo}
+          </span>
+        </div>
+      ) : null}
+    </div>
   );
 }
 
@@ -124,7 +135,7 @@ function PrintPage({
       ) : (
         <div className="ops-print-list">
           {page.matches.map((m) => (
-            <MatchRow key={m.matchId} match={m} />
+            <MatchBlock key={m.matchId} match={m} />
           ))}
         </div>
       )}

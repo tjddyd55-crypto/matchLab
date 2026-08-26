@@ -6,8 +6,8 @@ import { formatPreviewApplicationRecord } from "@/lib/brackets/explain-record-un
 import { formatMatchOrderShort } from "@/lib/match-order-display";
 import { resolveApplicationGymDisplayName } from "@/lib/gym/external-registration-placeholder-gym";
 
-/** A4 운영용 대진표 — Figma 밀도 기준 10경기/page */
-export const BRACKET_PRINT_MATCHES_PER_PAGE = 10;
+/** A4 운영용 대진표 — 체중+메모 행 포함 밀도 (8경기/page) */
+export const BRACKET_PRINT_MATCHES_PER_PAGE = 8;
 /** 미매칭 명단 — 20명/page (A4 세로) */
 export const UNMATCHED_PRINT_ROWS_PER_PAGE = 20;
 
@@ -27,8 +27,10 @@ export type BracketPrintFighterDto = {
 export type BracketPrintMatchDto = {
   matchId: string;
   matchNoLabel: string;
-  /** organizerMemo에서 추출한 kg (예: "68kg"). 없으면 null */
+  /** Match.matchWeightKg 기반 라벨 (예: "68kg"). 없으면 null */
   weightLabel?: string | null;
+  /** PDF 메모 행 — organizerMemo 원문 (없으면 행 미출력) */
+  printableMemo?: string | null;
   divisionLabel: string | null;
   arenaName: string | null;
   red: BracketPrintFighterDto | null;

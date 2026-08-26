@@ -35,11 +35,16 @@ function main() {
   assert.match(css, /--bracket-print-vs-w:\s*34px/);
   assert.match(css, /\.ops-print-row\s*\{[\s\S]*?height:\s*var\(--bracket-print-row-h\)/);
 
-  // Border ownership: list outer + row bottom only
+  // Border ownership: list outer + match-block bottom (memo row 포함)
   assert.match(css, /\.ops-print-list\s*\{[\s\S]*?border:\s*1px solid/);
-  assert.match(css, /\.ops-print-row\s*\{[\s\S]*?border-bottom:\s*1px solid/);
+  assert.match(
+    css,
+    /\.ops-print-match-block\s*\{[\s\S]*?border-bottom:\s*1px solid/,
+  );
   assert.doesNotMatch(css, /border-bottom-width:\s*0/);
   assert.doesNotMatch(css, /0\.7px/);
+  assert.match(printDoc, /ops-print-match-block/);
+  assert.match(printDoc, /ops-print-memo-row/);
 
   // Figma: no gray vertical between RED|VS|BLUE — only colored edge bars
   assert.match(

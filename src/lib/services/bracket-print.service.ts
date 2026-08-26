@@ -39,7 +39,7 @@ import {
   formatRoundTimeLabel,
 } from "@/lib/match-operational-settings-options";
 import { formatSchoolGradeCompactLabel } from "@/lib/fighter/record";
-import { extractMatchWeightFromMemo } from "@/lib/brackets/extract-match-weight-from-memo";
+import { resolveMatchWeightLabel } from "@/lib/brackets/extract-match-weight-from-memo";
 import { bracketService } from "@/lib/services/bracket.service";
 
 type PrintApplicationRow = {
@@ -284,7 +284,11 @@ export const bracketPrintService = {
       let timeLabel: string | null = null;
       let opsLine: string | null = null;
       const organizerMemo = m.organizerMemo?.trim() || null;
-      const weightLabel = extractMatchWeightFromMemo(organizerMemo);
+      const weightLabel = resolveMatchWeightLabel({
+        matchWeightKg: m.matchWeightKg,
+        organizerMemo,
+      });
+      const printableMemo = organizerMemo;
 
       if (mode === "all-matches") {
         const { settings } = parseMatchOperationalSettings(
@@ -314,6 +318,7 @@ export const bracketPrintService = {
         arenaName,
         red: mapPrintFighter(m.fighterRed, m.fighterRedSnapshot, redApp),
         blue: mapPrintFighter(m.fighterBlue, m.fighterBlueSnapshot, blueApp),
+        printableMemo,
         ...(mode === "all-matches"
           ? {
               roundLabel,

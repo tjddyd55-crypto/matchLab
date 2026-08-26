@@ -200,12 +200,12 @@ assert.equal(formatBracketPrintRecordDisplay("무전"), "현재 무전");
       blue: null,
     })),
   );
-  assert.equal(pages.length, 2);
-  assert.equal(pages[0]!.matches.length, 10);
-  assert.equal(pages[0]!.matchRangeLabel, "1~10경기");
-  assert.equal(pages[1]!.matchRangeLabel, "11~19경기");
+  assert.equal(pages.length, 3);
+  assert.equal(pages[0]!.matches.length, 8);
+  assert.equal(pages[0]!.matchRangeLabel, "1~8경기");
+  assert.equal(pages[2]!.matchRangeLabel, "17~19경기");
   assert.equal(pages[1]!.pageIndex, 2);
-  assert.equal(pages[1]!.pageCount, 2);
+  assert.equal(pages[1]!.pageCount, 3);
   console.log("  ✓ 대진표 page chunk");
 }
 
