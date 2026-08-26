@@ -204,13 +204,16 @@ test.describe("active matcher unit", () => {
 
   test("brackets tab=view distinguishes 전체순서", () => {
     const base = BASE;
+    const bracketItem = items.find((i) => i.label === "대진표")!;
+    const sequenceItem = items.find((i) => i.label === "전체순서")!;
+    expect(bracketItem.href).toContain("view=workspace");
     expect(
       isEventManagementNavItemActive(
         `${base}/brackets`,
         "",
         EVENT_ID,
-        items.find((i) => i.label === "대진표")!,
-        "",
+        bracketItem,
+        "?tab=view&view=workspace",
       ),
     ).toBe(true);
     expect(
@@ -218,8 +221,8 @@ test.describe("active matcher unit", () => {
         `${base}/brackets`,
         "",
         EVENT_ID,
-        items.find((i) => i.label === "전체순서")!,
-        "",
+        sequenceItem,
+        "?tab=view&view=workspace",
       ),
     ).toBe(false);
     expect(
@@ -227,10 +230,19 @@ test.describe("active matcher unit", () => {
         `${base}/brackets`,
         "",
         EVENT_ID,
-        items.find((i) => i.label === "전체순서")!,
+        sequenceItem,
         "?tab=view",
       ),
     ).toBe(true);
+    expect(
+      isEventManagementNavItemActive(
+        `${base}/brackets`,
+        "",
+        EVENT_ID,
+        bracketItem,
+        "?tab=view",
+      ),
+    ).toBe(false);
   });
 
   test("application-batches is not applications", () => {
