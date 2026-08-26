@@ -6,10 +6,7 @@
 import assert from "node:assert/strict";
 import { readFileSync } from "node:fs";
 import { join } from "node:path";
-import {
-  extractMatchWeightKgFromMemo,
-  resolveMatchWeightKgValue,
-} from "../src/lib/brackets/extract-match-weight-from-memo";
+import { extractMatchWeightKgFromMemo } from "../src/lib/brackets/extract-match-weight-from-memo";
 
 function main() {
   const root = process.cwd();
@@ -25,17 +22,10 @@ function main() {
   assert.doesNotMatch(script, /organizerMemo:\s*\{/);
   assert.doesNotMatch(script, /data:\s*\{[^}]*organizerMemo/);
 
-  // no-overwrite semantics
-  assert.equal(
-    resolveMatchWeightKgValue({
-      matchWeightKg: 70,
-      organizerMemo: "68kg / old memo",
-    }),
-    70,
-  );
+  // no-overwrite semantics: field wins over memo extract for display SSOT
   assert.equal(extractMatchWeightKgFromMemo("68kg / old memo"), 68);
 
-  // legacy patterns
+  // legacy patterns (backfill helper only)
   assert.equal(extractMatchWeightKgFromMemo("68kg"), 68);
   assert.equal(extractMatchWeightKgFromMemo("42.5kg"), 42.5);
   assert.equal(extractMatchWeightKgFromMemo("68kg / 결승전"), 68);

@@ -39,7 +39,7 @@ import {
   formatRoundTimeLabel,
 } from "@/lib/match-operational-settings-options";
 import { formatSchoolGradeCompactLabel } from "@/lib/fighter/record";
-import { resolveMatchWeightLabel } from "@/lib/brackets/extract-match-weight-from-memo";
+import { formatMatchWeightKgLabel } from "@/lib/brackets/extract-match-weight-from-memo";
 import { bracketService } from "@/lib/services/bracket.service";
 
 type PrintApplicationRow = {
@@ -284,10 +284,7 @@ export const bracketPrintService = {
       let timeLabel: string | null = null;
       let opsLine: string | null = null;
       const organizerMemo = m.organizerMemo?.trim() || null;
-      const weightLabel = resolveMatchWeightLabel({
-        matchWeightKg: m.matchWeightKg,
-        organizerMemo,
-      });
+      const weightLabel = formatMatchWeightKgLabel(m.matchWeightKg);
       const printableMemo = organizerMemo;
 
       if (mode === "all-matches") {

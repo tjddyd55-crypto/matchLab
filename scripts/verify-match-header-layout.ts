@@ -50,7 +50,7 @@ function main() {
   assert.match(css, /--bracket-print-no-w:\s*54px/);
   assert.match(css, /grid-template-columns:/);
   assert.doesNotMatch(printDoc, /ops-print-fighters/);
-  assert.match(printSvc, /resolveMatchWeightLabel/);
+  assert.match(printSvc, /formatMatchWeightKgLabel/);
   assert.match(printSvc, /weightLabel/);
 
   console.log("verify:match-header-layout OK");

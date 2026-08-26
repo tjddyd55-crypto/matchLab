@@ -31,10 +31,7 @@ import {
 } from "@/lib/ui/bracket-match-ui";
 import { CORNER_SLOT_STYLES } from "@/lib/corner-slot-styles";
 import { MatchWeightKgInput } from "@/components/domain/brackets/MatchWeightKgInput";
-import {
-  formatMatchWeightKgInputValue,
-  resolveMatchWeightKgValue,
-} from "@/lib/brackets/extract-match-weight-from-memo";
+import { formatMatchWeightKgInputValue } from "@/lib/brackets/extract-match-weight-from-memo";
 import { matchDivisionSelectClass } from "@/lib/ui/match-grid-layout";
 import { cn } from "@/lib/utils";
 
@@ -89,9 +86,8 @@ export function OrganizerMatchEditCard({
   const [draftDivisionId, setDraftDivisionId] = useState(
     currentDivisionId ?? "",
   );
-  const effectiveWeightKg = resolveMatchWeightKgValue(match);
   const [draftWeightKg, setDraftWeightKg] = useState(
-    formatMatchWeightKgInputValue(effectiveWeightKg),
+    formatMatchWeightKgInputValue(match.matchWeightKg),
   );
 
   useEffect(() => {
@@ -99,8 +95,8 @@ export function OrganizerMatchEditCard({
   }, [match.id, currentDivisionId]);
 
   useEffect(() => {
-    setDraftWeightKg(formatMatchWeightKgInputValue(effectiveWeightKg));
-  }, [match.id, effectiveWeightKg]);
+    setDraftWeightKg(formatMatchWeightKgInputValue(match.matchWeightKg));
+  }, [match.id, match.matchWeightKg]);
 
   const slotOptions = useMemo(() => {
     const divisionId = draftDivisionId || currentDivisionId;
@@ -269,7 +265,7 @@ export function OrganizerMatchEditCard({
           onDraftDivisionIdChange={setDraftDivisionId}
           divisionOptions={divisionOptions}
           matchWeightKg={draftWeightKg}
-          savedMatchWeightKg={effectiveWeightKg}
+          savedMatchWeightKg={match.matchWeightKg}
           endActions={
             canDelete ? (
               <Button

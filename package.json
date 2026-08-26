@@ -502,6 +502,8 @@
     "verify:match-weight-field": "tsx scripts/verify-match-weight-field.ts",
     "verify:match-weight-backfill": "tsx scripts/verify-match-weight-backfill.ts",
     "verify:match-weight-no-overwrite": "tsx scripts/verify-match-weight-backfill.ts",
+    "verify:match-weight-runtime-ssot": "tsx scripts/verify-match-weight-runtime-ssot.ts",
+    "verify:match-weight-no-legacy-fallback": "tsx scripts/verify-match-weight-runtime-ssot.ts",
     "verify:match-header-layout": "tsx scripts/verify-match-header-layout.ts",
     "verify:bracket-pdf-match-weight": "tsx scripts/verify-bracket-pdf-match-memo.ts",
     "verify:bracket-pdf-match-memo": "tsx scripts/verify-bracket-pdf-match-memo.ts",
