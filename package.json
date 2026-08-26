@@ -494,6 +494,7 @@
     "verify:auto-match-weight-priority": "tsx scripts/verify-auto-match-weight-priority.ts",
     "verify:auto-match-large-cardinality": "tsx scripts/verify-auto-match-large-cardinality.ts",
     "verify:bracket-print-format": "tsx scripts/verify-bracket-print-format.ts",
+    "verify:bracket-unmatched-pdf": "tsx scripts/verify-bracket-unmatched-pdf.ts",
     "verify:applicants-vs-excel": "tsx scripts/verify-applicants-vs-excel.ts"
   },
   "prisma": {

@@ -17,18 +17,29 @@ import {
   buildAllMatchesPrintOpsLine,
   buildBracketPrintDocumentTitle,
   buildBracketPrintFighterDto,
+  buildBracketPrintPages,
+  buildUnmatchedPrintDocumentTitle,
+  buildUnmatchedPrintPages,
+  formatApplicationWeightLabel,
   formatBracketPrintEventDate,
+  formatPrintGenderShort,
   parseApplicantNameFromSnapshot,
+  BRACKET_PRINT_FOOTER_NOTE,
+  UNMATCHED_PRINT_FOOTER_NOTE,
   type BracketPrintDocumentDto,
   type BracketPrintFighterDto,
   type BracketPrintMatchDto,
   type BracketPrintMode,
+  type UnmatchedPrintDocumentDto,
+  type UnmatchedPrintRowDto,
 } from "@/lib/brackets/bracket-print-format";
 import { parseMatchOperationalSettings } from "@/lib/match-operational-settings";
 import {
   formatRoundCountLabel,
   formatRoundTimeLabel,
 } from "@/lib/match-operational-settings-options";
+import { formatSchoolGradeCompactLabel } from "@/lib/fighter/record";
+import { bracketService } from "@/lib/services/bracket.service";
 
 type PrintApplicationRow = {
   id: string;
@@ -223,7 +234,9 @@ export const bracketPrintService = {
         venueLabel: null,
         documentTitle: buildBracketPrintDocumentTitle("대회", mode),
         matches: [],
+        pages: buildBracketPrintPages([]),
         mode,
+        footerNote: BRACKET_PRINT_FOOTER_NOTE,
       };
     }
 
@@ -318,7 +331,60 @@ export const bracketPrintService = {
       venueLabel,
       documentTitle: buildBracketPrintDocumentTitle(event.title, mode),
       matches,
+      pages: buildBracketPrintPages(matches),
       mode,
+      footerNote: BRACKET_PRINT_FOOTER_NOTE,
+    };
+  },
+
+  /**
+   * 미매칭 선수 PDF — 화면 eventWideUnmatchedOptions 와 동일 SSOT.
+   */
+  async getOrganizerUnmatchedPrintDocument(
+    actor: ActorContext,
+    eventId: string,
+  ): Promise<UnmatchedPrintDocumentDto> {
+    requireRole(actor, ["organizer", "admin"]);
+    await requireOrganizerForEvent(actor, eventId);
+
+    const workspace = await bracketService.getOrganizerEventAllMatchesWorkspace(
+      actor,
+      eventId,
+    );
+
+    const rows: UnmatchedPrintRowDto[] = workspace.eventWideUnmatchedOptions.map(
+      (o, idx) => {
+        const grade = formatSchoolGradeCompactLabel({
+          schoolLevel: o.schoolLevel,
+          schoolGrade: o.schoolGrade,
+        });
+        const divisionLabel =
+          grade ||
+          o.appliedDivisionLabel?.trim() ||
+          o.divisionLabel?.trim() ||
+          "-";
+        const recordRaw = o.recordSummary?.trim() || "-";
+        const recordLabel =
+          recordRaw === "전적 정보 없음" ? "-" : recordRaw;
+        return {
+          index: idx + 1,
+          gymName: o.gymName?.trim() || "-",
+          fighterName: o.fighterName?.trim() || "-",
+          genderLabel: formatPrintGenderShort(o.fighterGender),
+          divisionLabel,
+          recordLabel,
+          weightLabel: formatApplicationWeightLabel(o.applicationWeightKg) ?? "-",
+        };
+      },
+    );
+
+    return {
+      eventId: workspace.eventId,
+      eventName: workspace.eventTitle,
+      documentTitle: buildUnmatchedPrintDocumentTitle(workspace.eventTitle),
+      totalCount: rows.length,
+      pages: buildUnmatchedPrintPages(rows),
+      footerNote: UNMATCHED_PRINT_FOOTER_NOTE,
     };
   },
 };

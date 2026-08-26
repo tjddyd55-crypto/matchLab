@@ -5,6 +5,7 @@ import { useRouter } from "next/navigation";
 import { MatchListEditor } from "@/components/domain/brackets/MatchListEditor";
 import { BracketApprovedCandidatesSection } from "@/components/domain/brackets/BracketApprovedCandidatesSection";
 import { OrganizerBracketPrintActions } from "@/components/domain/brackets/OrganizerBracketPrintActions";
+import { OrganizerUnmatchedPrintActions } from "@/components/domain/brackets/OrganizerUnmatchedPrintActions";
 import { EventDivisionPickDialog } from "@/components/domain/brackets/EventDivisionPickDialog";
 import { BracketsEmptyState } from "@/components/domain/brackets/BracketsEmptyState";
 import { useAppConfirmDialog } from "@/components/shared/app-confirm-dialog";
@@ -167,13 +168,20 @@ export function OrganizerAllMatchesWorkspaceClient({
     <section className="flex flex-col gap-3">
       <div className="flex flex-wrap items-center justify-between gap-2">
         <h2 className="text-lg font-semibold">전체 경기 편집</h2>
-        {data.matches.length > 0 ? (
-          <OrganizerBracketPrintActions
+        <div className="flex flex-wrap items-center gap-2">
+          {data.matches.length > 0 ? (
+            <OrganizerBracketPrintActions
+              eventId={eventId}
+              variant="view"
+              printMode="all-matches"
+            />
+          ) : null}
+          <OrganizerUnmatchedPrintActions
             eventId={eventId}
             variant="view"
-            printMode="all-matches"
+            disabled={data.eventWideUnmatchedOptions.length === 0}
           />
-        ) : null}
+        </div>
       </div>
 
       <div className="grid min-w-0 gap-4 lg:grid-cols-[minmax(0,1.6fr)_minmax(0,1.15fr)] lg:items-stretch lg:gap-5">
