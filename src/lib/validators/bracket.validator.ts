@@ -147,6 +147,13 @@ export const removeFighterFromMatchSchema = z.object({
   reason: z.string().max(500).optional(),
 });
 
+export const changeMatchDivisionSchema = z.object({
+  eventId: z.string().min(1),
+  matchId: z.string().min(1),
+  targetDivisionId: z.string().min(1),
+  clearIncompatibleFighters: z.boolean().optional(),
+});
+
 export const reorderBracketMatchSchema = z.object({
   matchId: z.string().min(1),
   direction: z.enum(["up", "down"]),
@@ -178,6 +185,7 @@ export type EnsureBracketForDivisionInput = z.infer<
   typeof ensureBracketForDivisionSchema
 >;
 export type DeleteBracketMatchInput = z.infer<typeof deleteBracketMatchSchema>;
+export type ChangeMatchDivisionInput = z.infer<typeof changeMatchDivisionSchema>;
 export type CreateManualMatchWithPairInput = z.infer<
   typeof createManualMatchWithPairSchema
 >;

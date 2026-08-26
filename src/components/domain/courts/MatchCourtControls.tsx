@@ -74,6 +74,9 @@ export function MatchCourtControls({
   savedOrganizerMemo = null,
   hideSaveButton = false,
   onSaveControlsChange,
+  extraFormFields,
+  extraDirty = false,
+  beforeSave,
 }: {
   eventId: string;
   matchId: string;
@@ -100,6 +103,11 @@ export function MatchCourtControls({
     pending: boolean;
     disabled: boolean;
   }) => void;
+  /** 저장 FormData에 추가할 필드 (경기구분 등) */
+  extraFormFields?: Record<string, string>;
+  extraDirty?: boolean;
+  /** false 반환 시 저장 중단. object면 extra FormData 병합 */
+  beforeSave?: () => Promise<boolean | { extraFields: Record<string, string> }>;
 }) {
   const router = useRouter();
   const activeCourts = useMemo(
@@ -128,7 +136,7 @@ export function MatchCourtControls({
   const memoDirty =
     organizerMemo !== undefined &&
     organizerMemo !== (savedOrganizerMemo ?? "");
-  const isDirty = courtDirty || memoDirty;
+  const isDirty = courtDirty || memoDirty || extraDirty;
 
   useEffect(() => {
     setLocalCourtId(resolved.selectValue);
@@ -147,17 +155,28 @@ export function MatchCourtControls({
       return;
     }
     setMessage(null);
-    const fd = new FormData();
-    fd.set("eventId", eventId);
-    fd.set("matchId", matchId);
-    if (bracketId) fd.set("bracketId", bracketId);
-    fd.set("courtId", court);
-    fd.set("courtOrder", order);
-    if (organizerMemo !== undefined) {
-      fd.set("organizerMemo", organizerMemo);
-    }
 
     startTransition(async () => {
+      let mergeFields: Record<string, string> = { ...(extraFormFields ?? {}) };
+      if (beforeSave) {
+        const result = await beforeSave();
+        if (!result) return;
+        if (typeof result === "object") {
+          mergeFields = { ...mergeFields, ...result.extraFields };
+        }
+      }
+      const fd = new FormData();
+      fd.set("eventId", eventId);
+      fd.set("matchId", matchId);
+      if (bracketId) fd.set("bracketId", bracketId);
+      fd.set("courtId", court);
+      fd.set("courtOrder", order);
+      if (organizerMemo !== undefined) {
+        fd.set("organizerMemo", organizerMemo);
+      }
+      for (const [key, value] of Object.entries(mergeFields)) {
+        fd.set(key, value);
+      }
       const res = await setMatchCourtFormAction(fd);
       if (!res.ok) {
         setMessage(res.error.message);
@@ -179,7 +198,7 @@ export function MatchCourtControls({
       pending,
       disabled: saveDisabled,
     });
-  }, [onSaveControlsChange, pending, saveDisabled]);
+  }, [onSaveControlsChange, pending, saveDisabled, extraDirty, extraFormFields]);
 
   function handleCourtChange(value: string) {
     setLocalCourtId(value);

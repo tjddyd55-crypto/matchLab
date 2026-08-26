@@ -11,6 +11,7 @@ import { PermissionError } from "@/lib/auth/permission-error";
 import { requireActorFromMutation } from "@/lib/auth/actor";
 import { AppError } from "@/lib/errors/app-error";
 import { validateMatchOrganizerMemo } from "@/lib/brackets/match-organizer-memo";
+import { bracketService } from "@/lib/services/bracket.service";
 import { eventCourtService } from "@/lib/services/event-court.service";
 
 function mapCaught<T>(
@@ -175,6 +176,25 @@ export async function setMatchCourtFormAction(
     if (!organizerMemoParsed.ok) {
       return actionFailure("VALIDATION_ERROR", organizerMemoParsed.message);
     }
+
+    const targetDivisionIdRaw = formData.get("targetDivisionId");
+    const targetDivisionId =
+      typeof targetDivisionIdRaw === "string" && targetDivisionIdRaw.trim()
+        ? targetDivisionIdRaw.trim()
+        : null;
+    const clearIncompatible =
+      formData.get("clearIncompatibleFighters") === "on" ||
+      formData.get("clearIncompatibleFighters") === "true";
+
+    if (targetDivisionId) {
+      await bracketService.changeMatchDivision(actor, {
+        eventId,
+        matchId,
+        targetDivisionId,
+        clearIncompatibleFighters: clearIncompatible,
+      });
+    }
+
     await eventCourtService.setMatchCourt(
       actor,
       eventId,

@@ -1,15 +1,20 @@
 "use client";
 
-import { useCallback, useEffect, useState, type ReactNode } from "react";
+import { useCallback, useEffect, useMemo, useState, type ReactNode } from "react";
 import { MatchBoutFormatToggle } from "@/components/domain/brackets/MatchBoutFormatToggle";
 import { BracketMatchControlsRow } from "@/components/domain/brackets/BracketMatchCompactRow";
 import { MatchOperationalSettingsSelect } from "@/components/domain/brackets/MatchOperationalSettingsSelect";
 import { MatchOrganizerMemoInput } from "@/components/domain/brackets/MatchOrganizerMemoInput";
 import { MatchCourtControls } from "@/components/domain/courts/MatchCourtControls";
+import { useAppConfirmDialog } from "@/components/shared/app-confirm-dialog";
 import { Button } from "@/components/ui/button";
 import { matchCourtSaveButtonClass } from "@/lib/ui/match-grid-layout";
 import type { EventCourtVM } from "@/lib/services/event-court.service";
-import type { OrganizerBracketMatchVM } from "@/lib/services/bracket.service";
+import type {
+  OrganizerApprovedFighterOptionVM,
+  OrganizerBracketMatchVM,
+  OrganizerEventAllMatchesDivisionOptionVM,
+} from "@/lib/services/bracket.service";
 import { BracketType } from "@/lib/enums";
 
 /** 경기장 · 라운드 · 시간 — 하단 compact control row (label 없음) */
@@ -20,6 +25,11 @@ export function MatchEditControlsRow({
   match,
   editLocked = false,
   endActions,
+  divisionOptions,
+  currentDivisionId,
+  draftDivisionId,
+  onDraftDivisionIdChange,
+  options,
 }: {
   eventId: string;
   bracketId: string;
@@ -28,7 +38,13 @@ export function MatchEditControlsRow({
   editLocked?: boolean;
   /** 우측 끝 — 삭제 등 (저장 버튼 옆에 배치) */
   endActions?: ReactNode;
+  divisionOptions?: OrganizerEventAllMatchesDivisionOptionVM[];
+  currentDivisionId?: string | null;
+  draftDivisionId?: string | null;
+  onDraftDivisionIdChange?: (divisionId: string) => void;
+  options?: OrganizerApprovedFighterOptionVM[];
 }) {
+  const { confirm } = useAppConfirmDialog();
   const [organizerMemo, setOrganizerMemo] = useState(match.organizerMemo ?? "");
   const [saveControls, setSaveControls] = useState<{
     save: () => void;
@@ -51,6 +67,52 @@ export function MatchEditControlsRow({
     [],
   );
 
+  const divisionDirty = Boolean(
+    draftDivisionId &&
+      currentDivisionId &&
+      draftDivisionId !== currentDivisionId,
+  );
+
+  const extraFormFields = useMemo(() => {
+    if (!divisionDirty || !draftDivisionId) return undefined;
+    return { targetDivisionId: draftDivisionId };
+  }, [divisionDirty, draftDivisionId]);
+
+  const beforeSave = useCallback(async () => {
+    if (!divisionDirty || !draftDivisionId || !options) return true;
+
+    const fighterIds = [match.fighterRedId, match.fighterBlueId].filter(
+      (id): id is string => Boolean(id),
+    );
+    if (fighterIds.length === 0) return true;
+
+    const incompatible = fighterIds.some((fighterId) => {
+      const opt = options.find((o) => o.fighterId === fighterId);
+      return !opt || opt.divisionId !== draftDivisionId;
+    });
+    if (!incompatible) return true;
+
+    const ok = await confirm({
+      title: "경기구분 변경",
+      description:
+        "경기구분을 변경하면 현재 배정된 선수 중 새 경기구분과 맞지 않는 선수가 있습니다. 배정을 해제하고 변경하시겠습니까?",
+      confirmLabel: "배정 해제 후 변경",
+      cancelLabel: "취소",
+      variant: "danger",
+    });
+    if (!ok) return false;
+    return {
+      extraFields: { clearIncompatibleFighters: "true" },
+    };
+  }, [
+    confirm,
+    divisionDirty,
+    draftDivisionId,
+    match.fighterBlueId,
+    match.fighterRedId,
+    options,
+  ]);
+
   return (
     <div className="flex w-full min-w-0 flex-col gap-1.5">
       <BracketMatchControlsRow
@@ -71,6 +133,9 @@ export function MatchEditControlsRow({
             onSaveControlsChange={handleSaveControlsChange}
             organizerMemo={organizerMemo}
             savedOrganizerMemo={match.organizerMemo}
+            extraFormFields={extraFormFields}
+            extraDirty={divisionDirty}
+            beforeSave={beforeSave}
           />
         }
         center={
@@ -122,9 +187,9 @@ export function MatchEditCenterBadges({
   return (
     <MatchBoutFormatToggle
       matchId={match.id}
+      resultMemo={match.resultMemo}
       bracketType={bracketType}
       bracketIsPublic={bracketIsPublic}
-      resultMemo={match.resultMemo}
       disabled={editLocked}
     />
   );
