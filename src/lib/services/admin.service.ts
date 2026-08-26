@@ -258,7 +258,8 @@ export const adminService = {
         contactPhone: app?.contactPhone ?? r.user.phone,
         contactEmail: app?.contactEmail ?? r.user.email,
         memberGymCount: r._count.associationMemberGyms,
-        creditBalance: r.creditWallet?.balance ?? 0,
+        creditBalance:
+          r.billingAccount?.wallet?.balance ?? r.creditWallet?.balance ?? 0,
         createdAt: toIso(r.createdAt),
         updatedAt: toIso(r.updatedAt),
         ownerUserId: r.userId,
@@ -329,7 +330,10 @@ export const adminService = {
       summary: {
         memberGymCount: row._count.associationMemberGyms,
         eventCount: row._count.events,
-        creditBalance: row.creditWallet?.balance ?? 0,
+        creditBalance:
+          row.billingAccount?.wallet?.balance ??
+          row.creditWallet?.balance ??
+          0,
       },
       linkedGyms: row.associationMemberGyms.map((m) => ({
         membershipId: m.id,
@@ -346,13 +350,27 @@ export const adminService = {
         eventDate: toIso(e.eventDate),
         publicSlug: e.publicSlug,
       })),
-      creditLedgers: row.creditLedgers.map((l) => ({
+      creditLedgers: (
+        row.billingAccount?.wallet?.ledgers ??
+        row.creditLedgers.map((l) => ({
+          ...l,
+          metadata: l.memo ? { memo: l.memo } : null,
+        }))
+      ).map((l) => ({
         id: l.id,
-        type: l.type,
+        type: String(l.type),
         amount: l.amount,
         balanceAfter: l.balanceAfter,
         reason: l.reason,
-        memo: l.memo,
+        memo:
+          "memo" in l && typeof l.memo === "string"
+            ? l.memo
+            : l.metadata &&
+                typeof l.metadata === "object" &&
+                !Array.isArray(l.metadata) &&
+                "memo" in l.metadata
+              ? String((l.metadata as { memo?: unknown }).memo ?? "") || null
+              : null,
         createdAt: toIso(l.createdAt),
       })),
       auditLogs: mergedAudit.map(mapAuditRow),
@@ -458,6 +476,22 @@ export const adminService = {
         associationLinkCount: row._count.associationMemberGyms,
         eventParticipationCount: eventParticipations.length,
       },
+      creditBalance: row.billingAccount?.wallet?.balance ?? 0,
+      creditLedgers: (row.billingAccount?.wallet?.ledgers ?? []).map((l) => ({
+        id: l.id,
+        type: String(l.type),
+        amount: l.amount,
+        balanceAfter: l.balanceAfter,
+        reason: l.reason,
+        memo:
+          l.metadata &&
+          typeof l.metadata === "object" &&
+          !Array.isArray(l.metadata) &&
+          "memo" in l.metadata
+            ? String((l.metadata as { memo?: unknown }).memo ?? "") || null
+            : null,
+        createdAt: toIso(l.createdAt),
+      })),
       associationLinks: row.associationMemberGyms.map((m) => ({
         membershipId: m.id,
         organizerId: m.organizer.id,

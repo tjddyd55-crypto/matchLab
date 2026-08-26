@@ -34,8 +34,8 @@ export function AdminOrganizationCreditPanel({
           {balance.toLocaleString("ko-KR")}C
         </p>
         <p className={`${adminMutedTextClass} mt-1 text-xs`}>
-          플랫폼 크레딧은 Organizer wallet 기준입니다. 사용 가능 상태 ·
-          manual_charge만 지원합니다.
+          플랫폼 크레딧은 BillingAccount(Organizer) wallet 기준입니다.
+          manual_charge를 지원합니다.
         </p>
       </div>
 

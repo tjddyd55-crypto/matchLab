@@ -19,7 +19,8 @@ export default async function AdminCreditsPage({
   const organizers = rows.map((o) => ({
     id: o.id,
     name: o.name,
-    balance: o.creditWallet?.balance ?? 0,
+    balance:
+      o.billingAccount?.wallet?.balance ?? o.creditWallet?.balance ?? 0,
   }));
 
   return (

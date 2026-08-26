@@ -173,6 +173,9 @@ export const creditRepository = {
         name: true,
         status: true,
         creditWallet: { select: { balance: true } },
+        billingAccount: {
+          select: { wallet: { select: { balance: true } } },
+        },
       },
     });
   },

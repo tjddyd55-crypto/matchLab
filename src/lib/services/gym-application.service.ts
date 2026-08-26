@@ -25,6 +25,7 @@ import {
   parseRequiredRequestedLoginId,
 } from "@/lib/services/application-requested-login-id";
 import { assertGymApplicationAttachmentMimeAndSize } from "./gym-application-upload.service";
+import { ensureGymBillingAccount } from "@/lib/billing/provision-billing-account";
 
 export const GYM_OWNER_APPLICATION_INVITE_TTL_MS = 7 * 24 * 60 * 60 * 1000;
 
@@ -399,6 +400,8 @@ export const gymApplicationService = {
         },
       });
 
+      await ensureGymBillingAccount(gym.id, tx);
+
       await tx.gymApplication.update({
         where: { id },
         data: {
@@ -516,6 +519,8 @@ export const gymApplicationService = {
           status: GymStatus.active,
         },
       });
+
+      await ensureGymBillingAccount(gym.id, tx);
 
       await tx.gymApplication.update({
         where: { id: row.id },
