@@ -198,6 +198,7 @@ export function OrganizerAllMatchesWorkspaceClient({
             compactWorkspace
             orderMode="courtSchedule"
             eventWide
+            divisionOptions={data.divisions}
             onRequestAddEmptyMatch={handleRequestAddEmpty}
           />
         </div>

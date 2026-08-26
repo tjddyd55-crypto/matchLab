@@ -1,6 +1,6 @@
 "use client";
 
-import { useTransition } from "react";
+import { useEffect, useMemo, useState, useTransition } from "react";
 import { useRouter } from "next/navigation";
 import { OrganizerMatchEditSlot } from "@/components/domain/brackets/OrganizerMatchEditSlot";
 import {
@@ -16,8 +16,12 @@ import { FeedbackMessage } from "@/components/shared/FeedbackMessage";
 import { useAppConfirmDialog } from "@/components/shared/app-confirm-dialog";
 import { Button } from "@/components/ui/button";
 import { deleteBracketMatchAction } from "@/features/brackets/actions";
-import type { OrganizerApprovedFighterOptionVM } from "@/lib/services/bracket.service";
-import type { OrganizerBracketMatchVM } from "@/lib/services/bracket.service";
+import type {
+  OrganizerApprovedFighterOptionVM,
+  OrganizerBracketMatchVM,
+  OrganizerEventAllMatchesDivisionOptionVM,
+  OrganizerEventAllMatchVM,
+} from "@/lib/services/bracket.service";
 import type { EventCourtVM } from "@/lib/services/event-court.service";
 import { BracketType, BracketMatchStatus } from "@/lib/enums";
 import { formatMatchOrderShort } from "@/lib/match-order-display";
@@ -26,7 +30,17 @@ import {
   resolveBracketMatchMatchonStatus,
 } from "@/lib/ui/bracket-match-ui";
 import { CORNER_SLOT_STYLES } from "@/lib/corner-slot-styles";
+import { matchCourtSelectClass } from "@/lib/ui/match-grid-layout";
 import { cn } from "@/lib/utils";
+
+function isEventAllMatch(
+  m: OrganizerBracketMatchVM,
+): m is OrganizerEventAllMatchVM {
+  return (
+    "divisionId" in m &&
+    typeof (m as OrganizerEventAllMatchVM).divisionId !== "undefined"
+  );
+}
 
 export function OrganizerMatchEditCard({
   eventId,
@@ -39,6 +53,7 @@ export function OrganizerMatchEditCard({
   bracketIsPublic,
   matchOrderLabel: matchOrderLabelProp,
   divisionLabel,
+  divisionOptions,
 }: {
   eventId: string;
   bracketId: string;
@@ -52,6 +67,8 @@ export function OrganizerMatchEditCard({
   matchOrderLabel?: string;
   /** 전체 경기 편집 — 카드 상단 경기구분 */
   divisionLabel?: string | null;
+  /** event-wide 모드: 경기구분 select SSOT */
+  divisionOptions?: OrganizerEventAllMatchesDivisionOptionVM[];
 }) {
   const router = useRouter();
   const { confirm, alert } = useAppConfirmDialog();
@@ -60,6 +77,34 @@ export function OrganizerMatchEditCard({
   const orderLabel = matchOrderLabelProp ?? formatMatchOrderShort(match);
   const canDelete =
     bracketType === BracketType.match_list && !match.hasOfficialResults;
+
+  const currentDivisionId = isEventAllMatch(match)
+    ? match.divisionId
+    : null;
+  const [draftDivisionId, setDraftDivisionId] = useState(
+    currentDivisionId ?? "",
+  );
+
+  useEffect(() => {
+    setDraftDivisionId(currentDivisionId ?? "");
+  }, [match.id, currentDivisionId]);
+
+  const slotOptions = useMemo(() => {
+    const divisionId = draftDivisionId || currentDivisionId;
+    if (!divisionId) return options;
+    return options.filter(
+      (o) =>
+        o.divisionId === divisionId ||
+        o.fighterId === match.fighterRedId ||
+        o.fighterId === match.fighterBlueId,
+    );
+  }, [
+    currentDivisionId,
+    draftDivisionId,
+    match.fighterBlueId,
+    match.fighterRedId,
+    options,
+  ]);
 
   async function handleDelete() {
     if (pending) return;
@@ -86,12 +131,37 @@ export function OrganizerMatchEditCard({
     });
   }
 
+  const showDivisionSelect =
+    Boolean(divisionOptions?.length) && Boolean(currentDivisionId);
+
   return (
     <BracketMatchCompactRow
       matchOrderLabel={orderLabel}
       statusArea={
         <div className="flex flex-col items-center gap-1">
-          {divisionLabel ? (
+          {showDivisionSelect ? (
+            <select
+              className={cn(
+                matchCourtSelectClass,
+                "max-w-[7.5rem] text-[10px] leading-tight",
+              )}
+              value={draftDivisionId}
+              disabled={editLocked || pending}
+              title={
+                divisionOptions?.find((d) => d.id === draftDivisionId)?.label ??
+                divisionLabel ??
+                undefined
+              }
+              aria-label="경기구분"
+              onChange={(e) => setDraftDivisionId(e.target.value)}
+            >
+              {divisionOptions!.map((d) => (
+                <option key={d.id} value={d.id}>
+                  {d.label}
+                </option>
+              ))}
+            </select>
+          ) : divisionLabel ? (
             <span
               className="text-muted-foreground max-w-[7rem] truncate text-center text-[10px] leading-tight"
               title={divisionLabel}
@@ -121,7 +191,7 @@ export function OrganizerMatchEditCard({
           slot="red"
           fighterId={match.fighterRedId ?? ""}
           snapshot={match.fighterRedSnapshot}
-          options={options}
+          options={slotOptions}
           matches={matches}
           editDisabled={editLocked}
           hideCornerLabel
@@ -155,7 +225,7 @@ export function OrganizerMatchEditCard({
           slot="blue"
           fighterId={match.fighterBlueId ?? ""}
           snapshot={match.fighterBlueSnapshot}
-          options={options}
+          options={slotOptions}
           matches={matches}
           editDisabled={editLocked}
           hideCornerLabel
@@ -176,6 +246,11 @@ export function OrganizerMatchEditCard({
           courts={courts}
           match={match}
           editLocked={editLocked}
+          options={options}
+          currentDivisionId={currentDivisionId}
+          draftDivisionId={draftDivisionId || null}
+          onDraftDivisionIdChange={setDraftDivisionId}
+          divisionOptions={divisionOptions}
           endActions={
             canDelete ? (
               <Button

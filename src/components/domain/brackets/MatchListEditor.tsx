@@ -12,11 +12,12 @@ import { FeedbackMessage } from "@/components/shared/FeedbackMessage";
 import { useAppConfirmDialog } from "@/components/shared/app-confirm-dialog";
 import { Button } from "@/components/ui/button";
 import { addEmptyBracketMatchAction } from "@/features/brackets/actions";
-import type { OrganizerApprovedFighterOptionVM } from "@/lib/services/bracket.service";
 import type {
   OrganizerBracketMatchVM,
   OrganizerEventAllMatchVM,
+  OrganizerEventAllMatchesDivisionOptionVM,
 } from "@/lib/services/bracket.service";
+import type { OrganizerApprovedFighterOptionVM } from "@/lib/services/bracket.service";
 import type { EventCourtVM } from "@/lib/services/event-court.service";
 import {
   DEFAULT_MATCHED_MATCH_FILTERS,
@@ -62,6 +63,7 @@ export function MatchListEditor({
   compactWorkspace = false,
   orderMode = "bracket",
   eventWide = false,
+  divisionOptions,
   onRequestAddEmptyMatch,
 }: {
   eventId: string;
@@ -77,6 +79,7 @@ export function MatchListEditor({
   orderMode?: "bracket" | "courtSchedule";
   /** 이벤트 전체 모드 — match.bracketId / divisionLabel 사용 */
   eventWide?: boolean;
+  divisionOptions?: OrganizerEventAllMatchesDivisionOptionVM[];
   /** 제공 시 빈 경기 추가 기본 action 대신 호출 */
   onRequestAddEmptyMatch?: () => void;
 }) {
@@ -234,6 +237,7 @@ export function MatchListEditor({
                   bracketIsPublic={rowBracketIsPublic}
                   matchOrderLabel={matchOrderLabel}
                   divisionLabel={divisionLabel}
+                  divisionOptions={eventWide ? divisionOptions : undefined}
                 />
               );
             })}
