@@ -20,6 +20,10 @@ export const matchCourtSelectClass =
 export const matchDivisionSelectClass =
   `${matchOperationalControlHeightClass} min-w-[10rem] max-w-[12rem] truncate rounded-md border border-input bg-background px-3 text-sm font-semibold shadow-sm focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring`;
 
+/** 경기 카드 상단 체중 input — compact, h-9 SSOT */
+export const matchWeightInputClass =
+  `${matchOperationalControlHeightClass} w-[4.75rem] shrink-0 rounded-md border border-input bg-background px-2 text-center text-sm font-semibold tabular-nums shadow-sm focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring`;
+
 /** 모바일·블록 폼 — 컨테이너 폭을 넘지 않도록 */
 export const matchCourtSelectFluidClass =
   `${matchOperationalControlHeightClass} w-full min-w-0 max-w-full truncate rounded-md border border-input bg-background px-2 text-xs shadow-sm focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring md:w-[140px] md:min-w-[140px] md:max-w-[140px]`;

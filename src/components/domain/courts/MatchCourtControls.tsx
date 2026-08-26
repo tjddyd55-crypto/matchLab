@@ -7,6 +7,9 @@ import { Button } from "@/components/ui/button";
 import { FeedbackMessage } from "@/components/shared/FeedbackMessage";
 import type { EventCourtVM } from "@/lib/services/event-court.service";
 import {
+  formatMatchWeightKgInputValue,
+} from "@/lib/brackets/extract-match-weight-from-memo";
+import {
   matchCourtSaveButtonClass,
   matchCourtSelectClass,
   matchCourtSelectFluidClass,
@@ -72,6 +75,8 @@ export function MatchCourtControls({
   compactRow = false,
   organizerMemo,
   savedOrganizerMemo = null,
+  matchWeightKg,
+  savedMatchWeightKg = null,
   hideSaveButton = false,
   onSaveControlsChange,
   extraFormFields,
@@ -96,6 +101,9 @@ export function MatchCourtControls({
   /** 저장 시 함께 반영할 운영 메모 (부모 controlled) */
   organizerMemo?: string;
   savedOrganizerMemo?: string | null;
+  /** 저장 시 함께 반영할 체중 입력 문자열 (부모 controlled) */
+  matchWeightKg?: string;
+  savedMatchWeightKg?: number | null;
   /** true면 저장 버튼을 렌더하지 않음 (부모가 우측 슬롯에 배치) */
   hideSaveButton?: boolean;
   onSaveControlsChange?: (controls: {
@@ -136,7 +144,10 @@ export function MatchCourtControls({
   const memoDirty =
     organizerMemo !== undefined &&
     organizerMemo !== (savedOrganizerMemo ?? "");
-  const isDirty = courtDirty || memoDirty || extraDirty;
+  const weightDirty =
+    matchWeightKg !== undefined &&
+    matchWeightKg !== formatMatchWeightKgInputValue(savedMatchWeightKg);
+  const isDirty = courtDirty || memoDirty || weightDirty || extraDirty;
 
   useEffect(() => {
     setLocalCourtId(resolved.selectValue);
@@ -173,6 +184,9 @@ export function MatchCourtControls({
       fd.set("courtOrder", order);
       if (organizerMemo !== undefined) {
         fd.set("organizerMemo", organizerMemo);
+      }
+      if (matchWeightKg !== undefined) {
+        fd.set("matchWeightKg", matchWeightKg);
       }
       for (const [key, value] of Object.entries(mergeFields)) {
         fd.set(key, value);

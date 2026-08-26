@@ -11,6 +11,7 @@ import { PermissionError } from "@/lib/auth/permission-error";
 import { requireActorFromMutation } from "@/lib/auth/actor";
 import { AppError } from "@/lib/errors/app-error";
 import { validateMatchOrganizerMemo } from "@/lib/brackets/match-organizer-memo";
+import { parseMatchWeightKgInput } from "@/lib/brackets/extract-match-weight-from-memo";
 import { bracketService } from "@/lib/services/bracket.service";
 import { eventCourtService } from "@/lib/services/event-court.service";
 
@@ -177,6 +178,16 @@ export async function setMatchCourtFormAction(
       return actionFailure("VALIDATION_ERROR", organizerMemoParsed.message);
     }
 
+    const matchWeightRaw = formData.get("matchWeightKg");
+    let matchWeightKg: number | null | undefined = undefined;
+    if (typeof matchWeightRaw === "string") {
+      const parsedWeight = parseMatchWeightKgInput(matchWeightRaw);
+      if (!parsedWeight.ok) {
+        return actionFailure("VALIDATION_ERROR", parsedWeight.message);
+      }
+      matchWeightKg = parsedWeight.value;
+    }
+
     const targetDivisionIdRaw = formData.get("targetDivisionId");
     const targetDivisionId =
       typeof targetDivisionIdRaw === "string" && targetDivisionIdRaw.trim()
@@ -202,6 +213,7 @@ export async function setMatchCourtFormAction(
       courtId,
       courtOrder,
       organizerMemoParsed.value,
+      matchWeightKg,
     );
     revalidateEventPaths(eventId, formReq(formData, "bracketId") || undefined);
     return actionSuccess({ ok: true });

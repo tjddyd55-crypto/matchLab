@@ -2327,8 +2327,10 @@ model BracketMatch {
   status       BracketMatchStatus   @default(waiting)
   resultType   BracketMatchOutcomeStyle?
   resultMemo   String?
-  /// 주최자 내부 경기 운영 메모 (Public/PDF 미노출)
+  /// 주최자 내부 경기 운영 메모 (대진표 PDF 메모 행에 출력 가능)
   organizerMemo String?
+  /// 경기 공식 체중(kg). 숫자만 저장. PDF/카드 체중 SSOT.
+  matchWeightKg Float?
   nextMatchId  String?
   nextMatchSlot NextMatchSlot?
   scheduledStartTime DateTime?

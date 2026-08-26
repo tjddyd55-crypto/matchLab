@@ -1,4 +1,7 @@
-/** Match 단위 주최자 내부 운영 메모 — Public/PDF 미노출 */
+/**
+ * Match 단위 주최자 경기 운영 메모.
+ * 대진표 PDF 메모 행에 출력될 수 있음 — 개인정보(연락처·주민번호 등) 입력 지양.
+ */
 export const MATCH_ORGANIZER_MEMO_MAX_LENGTH = 500;
 
 export function normalizeMatchOrganizerMemo(

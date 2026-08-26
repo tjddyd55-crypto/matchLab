@@ -604,6 +604,8 @@ export type OrganizerBracketMatchVM = {
   resultType: BracketMatchOutcomeStyle | null;
   resultMemo: string | null;
   organizerMemo: string | null;
+  /** 경기 공식 체중(kg). null이면 미입력 */
+  matchWeightKg: number | null;
   /** 확정·정정된 MatchResult가 양쪽 모두 있을 때 공식 전적 반영으로 간주 */
   hasOfficialResults: boolean;
 };
@@ -1166,13 +1168,14 @@ export const bracketService = {
       resultType: m.resultType,
       resultMemo: m.resultMemo,
       organizerMemo: m.organizerMemo ?? null,
+      matchWeightKg: m.matchWeightKg ?? null,
       hasOfficialResults: (m.matchResults?.length ?? 0) >= 2,
     }));
 
     const syncKey = matches
       .map(
         (m) =>
-          `${m.id}:${m.fighterRedId ?? ""}:${m.fighterBlueId ?? ""}:${m.matchOrder}:${m.globalMatchOrder ?? ""}:${m.matNumber ?? ""}:${m.matchNumber ?? ""}:${m.courtId ?? ""}:${m.courtOrder ?? ""}:${m.status}:${m.winnerId ?? ""}:${m.resultType ?? ""}:${m.hasOfficialResults ? "1" : "0"}`,
+          `${m.id}:${m.fighterRedId ?? ""}:${m.fighterBlueId ?? ""}:${m.matchOrder}:${m.globalMatchOrder ?? ""}:${m.matNumber ?? ""}:${m.matchNumber ?? ""}:${m.courtId ?? ""}:${m.courtOrder ?? ""}:${m.status}:${m.winnerId ?? ""}:${m.resultType ?? ""}:${m.hasOfficialResults ? "1" : "0"}:${m.matchWeightKg ?? ""}`,
       )
       .join("|");
 
@@ -1292,6 +1295,7 @@ export const bracketService = {
         resultType: m.resultType,
         resultMemo: m.resultMemo,
         organizerMemo: m.organizerMemo ?? null,
+        matchWeightKg: m.matchWeightKg ?? null,
         hasOfficialResults: (m.matchResults?.length ?? 0) >= 2,
       };
     });
@@ -1324,7 +1328,7 @@ export const bracketService = {
     const syncKey = matches
       .map(
         (m) =>
-          `${m.id}:${m.bracketId}:${m.fighterRedId ?? ""}:${m.fighterBlueId ?? ""}:${m.matchOrder}:${m.globalMatchOrder ?? ""}:${m.matNumber ?? ""}:${m.matchNumber ?? ""}:${m.courtId ?? ""}:${m.courtOrder ?? ""}:${m.status}:${m.organizerMemo ?? ""}:${m.hasOfficialResults ? "1" : "0"}`,
+          `${m.id}:${m.bracketId}:${m.fighterRedId ?? ""}:${m.fighterBlueId ?? ""}:${m.matchOrder}:${m.globalMatchOrder ?? ""}:${m.matNumber ?? ""}:${m.matchNumber ?? ""}:${m.courtId ?? ""}:${m.courtOrder ?? ""}:${m.status}:${m.organizerMemo ?? ""}:${m.matchWeightKg ?? ""}:${m.hasOfficialResults ? "1" : "0"}`,
       )
       .join("|");
 

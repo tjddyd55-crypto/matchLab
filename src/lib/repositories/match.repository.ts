@@ -346,6 +346,27 @@ export const matchRepository = {
     });
   },
 
+  async updateMatchOperationalFields(
+    matchId: string,
+    data: {
+      organizerMemo?: string | null;
+      matchWeightKg?: number | null;
+    },
+    tx?: Prisma.TransactionClient,
+  ): Promise<void> {
+    await db(tx).bracketMatch.update({
+      where: { id: matchId },
+      data: {
+        ...(data.organizerMemo !== undefined
+          ? { organizerMemo: data.organizerMemo }
+          : {}),
+        ...(data.matchWeightKg !== undefined
+          ? { matchWeightKg: data.matchWeightKg }
+          : {}),
+      },
+    });
+  },
+
   async updateMatchOutcomeDraft(
     matchId: string,
     data: {
