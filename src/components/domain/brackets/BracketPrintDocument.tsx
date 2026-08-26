@@ -59,22 +59,25 @@ function FighterCorner({
       <span className="ops-print-corner-label">
         {corner === "red" ? "RED" : "BLUE"}
       </span>
-      {fighter ? (
-        <>
-          <div className="ops-print-gym">{fighter.gymName || "소속 미상"}</div>
-          <div className="ops-print-name">{fighter.name}</div>
-          <div className="ops-print-record">{fighter.recordDisplayLabel}</div>
-        </>
-      ) : (
-        <div className="ops-print-empty">
-          <div className="ops-print-empty-title">원본 자료 없음</div>
-          <div className="ops-print-empty-sub">경기 정보 미확정</div>
-        </div>
-      )}
+      <div className="ops-print-corner-main">
+        {fighter ? (
+          <>
+            <div className="ops-print-gym">{fighter.gymName || "소속 미상"}</div>
+            <div className="ops-print-name">{fighter.name}</div>
+            <div className="ops-print-record">{fighter.recordDisplayLabel}</div>
+          </>
+        ) : (
+          <div className="ops-print-empty">
+            <div className="ops-print-empty-title">원본 자료 없음</div>
+            <div className="ops-print-empty-sub">경기 정보 미확정</div>
+          </div>
+        )}
+      </div>
     </div>
   );
 }
 
+/** Figma 11:3 — 한 경기가 단일 grid row: 번호 | RED | VS | BLUE */
 function MatchRow({ match }: { match: BracketPrintMatchDto }) {
   return (
     <article className="ops-print-row">
@@ -84,11 +87,9 @@ function MatchRow({ match }: { match: BracketPrintMatchDto }) {
           <div className="ops-print-match-kg">{match.weightLabel}</div>
         ) : null}
       </div>
-      <div className="ops-print-fighters">
-        <FighterCorner fighter={match.red} corner="red" />
-        <div className="ops-print-vs">VS</div>
-        <FighterCorner fighter={match.blue} corner="blue" />
-      </div>
+      <FighterCorner fighter={match.red} corner="red" />
+      <div className="ops-print-vs">VS</div>
+      <FighterCorner fighter={match.blue} corner="blue" />
     </article>
   );
 }

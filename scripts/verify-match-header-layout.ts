@@ -44,7 +44,9 @@ function main() {
   assert.match(printDoc, /ops-print-match-kg/);
   assert.match(printDoc, /weightLabel/);
   assert.match(css, /ops-print-match-kg/);
-  assert.match(css, /grid-template-columns:\s*54px/);
+  assert.match(css, /--bracket-print-no-w:\s*54px/);
+  assert.match(css, /grid-template-columns:/);
+  assert.doesNotMatch(printDoc, /ops-print-fighters/);
   assert.match(printSvc, /extractMatchWeightFromMemo/);
   assert.match(printSvc, /weightLabel/);
   assert.doesNotMatch(printDoc, /organizerMemo\s*\?\s*</);
