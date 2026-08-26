@@ -184,6 +184,7 @@
     "verify:registered-gym-list": "tsx scripts/verify-registered-gym-list.ts",
     "verify:bracket-group-unmatched": "tsx scripts/verify-bracket-group-unmatched.ts",
     "verify:manual-match-crud": "tsx scripts/verify-manual-match-crud.ts",
+    "verify:match-delete-resequence": "tsx scripts/verify-match-delete-resequence.ts",
     "verify:manual-match-ux": "tsx scripts/verify-manual-match-ux.ts",
     "verify:unmatched-quick-bar-filters": "tsx scripts/verify-unmatched-quick-bar-filters.ts",
     "verify:match-organizer-memo": "tsx scripts/verify-match-organizer-memo.ts",

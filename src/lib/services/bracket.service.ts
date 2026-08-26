@@ -59,7 +59,10 @@ import {
 import { applicationRepository } from "@/lib/repositories/application.repository";
 import { eventCourtRepository } from "@/lib/repositories/event-court.repository";
 import { matchRepository } from "@/lib/repositories/match.repository";
-import { sortMatchesByCourtSchedule } from "@/lib/court-match-order";
+import {
+  renumberAllCourtOrders,
+  sortMatchesByCourtSchedule,
+} from "@/lib/court-match-order";
 import { eventRepository } from "@/lib/repositories/event.repository";
 import { notificationRepository } from "@/lib/repositories/notification.repository";
 import { safeNotify, tryNotify } from "@/lib/notifications/safe-dispatch";
@@ -2343,6 +2346,33 @@ export const bracketService = {
         }
       }
 
+      // 화면 「N경기」SSOT = courtOrder(경기장별). 삭제 후 gap 제거.
+      const eventMatches = await matchRepository.listMatchesByEvent(
+        ctx.eventId,
+        tx,
+      );
+      const courtUpdates = renumberAllCourtOrders(
+        eventMatches.map((m) => ({
+          matchId: m.id,
+          courtId: m.courtId,
+          courtOrder: m.courtOrder,
+        })),
+      );
+      for (const u of courtUpdates) {
+        const prev = eventMatches.find((m) => m.id === u.matchId);
+        if (
+          !prev ||
+          (prev.courtId === u.courtId && prev.courtOrder === u.courtOrder)
+        ) {
+          continue;
+        }
+        await matchRepository.updateMatchCourt(
+          u.matchId,
+          { courtId: u.courtId, courtOrder: u.courtOrder },
+          tx,
+        );
+      }
+
       await appendChangeLog(tx, {
         eventId: ctx.eventId,
         bracketId: input.bracketId,
@@ -2352,10 +2382,12 @@ export const bracketService = {
         beforeData: {
           matchId: input.matchId,
           matchOrder: match.matchOrder,
+          courtId: match.courtId,
+          courtOrder: match.courtOrder,
           fighterRedId: match.fighterRedId,
           fighterBlueId: match.fighterBlueId,
         },
-        afterData: { deleted: true, renumbered: true },
+        afterData: { deleted: true, renumbered: true, courtOrdersRenumbered: true },
         reason: "경기 삭제",
       });
 
