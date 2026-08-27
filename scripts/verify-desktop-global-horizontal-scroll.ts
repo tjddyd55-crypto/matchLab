@@ -1,16 +1,17 @@
 /**
- * Static + DOM numeric verify: Desktop global horizontal scroll without canvas shrink.
+ * Static + DOM: Desktop global horizontal scroll without canvas shrink.
+ * Maximized windows grow; below baseline floor canvas stays >= 1440.
  *   npm run verify:desktop-global-horizontal-scroll
  *   npm run verify:desktop-canvas-no-shrink
- *
- * DOM checks use Playwright against a local fixture page (no live server required).
  */
 import assert from "node:assert/strict";
 import { readFileSync, writeFileSync, mkdirSync } from "node:fs";
 import { join } from "node:path";
-import { chromium } from "@playwright/test";
+import { pathToFileURL } from "node:url";
+import { chromium, type Browser } from "@playwright/test";
 
 const root = process.cwd();
+const OUT = join(root, "test-results", "desktop-global-scroll");
 
 function read(rel: string): string {
   return readFileSync(join(root, rel), "utf8");
@@ -18,9 +19,9 @@ function read(rel: string): string {
 
 function testStaticCssContract() {
   const globals = read("src/app/globals.css");
-  assert.match(globals, /--desktop-app-min-width:\s*var\(--desktop-layout-base-width\)|--desktop-layout-base-width:\s*1600px/);
-  assert.match(globals, /--desktop-main-width:\s*1376px/);
-  assert.match(globals, /--desktop-content-min-width:\s*var\(--desktop-event-content-width\)|--desktop-event-content-width:\s*1144px/);
+  assert.match(globals, /--desktop-layout-base-width:\s*1440px/);
+  assert.match(globals, /--desktop-main-min-width:\s*1216px/);
+  assert.match(globals, /--desktop-content-min-width:\s*984px/);
   assert.match(
     globals,
     /html\.desktop-app \.desktop-app-viewport[\s\S]*overflow-x:\s*auto/,
@@ -33,10 +34,6 @@ function testStaticCssContract() {
     globals,
     /width:\s*max\(100%,\s*var\(--desktop-layout-base-width\)\)/,
   );
-  assert.match(
-    globals,
-    /html\.desktop-app \.desktop-app-canvas[\s\S]*flex:\s*none/,
-  );
   assert.doesNotMatch(globals, /transform:\s*scale|zoom:/);
 
   const sidebarUi = read("src/lib/ui/dashboard-sidebar-ui.ts");
@@ -44,88 +41,63 @@ function testStaticCssContract() {
   assert.doesNotMatch(
     sidebarUi.split("dashboardSidebarAsideCanvasClass")[1]!.slice(0, 400),
     /sticky/,
-    "desktop canvas sidebar must not be sticky (blocks whole-canvas horizontal scroll)",
+    "desktop canvas sidebar must not be sticky",
   );
 
   const dashboard = read("src/components/layout/DashboardShell.tsx");
   assert.match(dashboard, /desktopAppMainClass/, "main min-width class");
 
   const eventUi = read("src/lib/ui/event-management-ui.ts");
+  assert.match(eventUi, /desktop:min-w-\[var\(--desktop-main-min-width\)\]/);
   assert.match(
     eventUi,
-    /desktop:min-w-\[var\(--desktop-main-width\)\]/,
-  );
-  assert.match(
-    eventUi,
-    /desktop:grid-cols-\[var\(--event-sidebar-width\)_var\(--desktop-event-content-width\)\]/,
+    /desktop:grid-cols-\[var\(--event-sidebar-width\)_minmax\(var\(--desktop-content-min-width\),1fr\)\]/,
   );
 }
 
 function buildFixtureHtml(): string {
-  // Inline the exact CSS rules under test so DOM metrics prove used width.
   return `<!doctype html>
 <html class="desktop-app" lang="ko">
 <head>
 <meta charset="utf-8"/>
 <style>
   :root {
-    --desktop-layout-base-width: 1600px;
+    --desktop-layout-base-width: 1440px;
     --desktop-layout-base-height: 900px;
-    --desktop-main-width: 1376px;
+    --desktop-main-min-width: 1216px;
     --global-sidebar-width: 14rem;
   }
-  html, body {
-    margin: 0;
-    height: 100%;
-  }
-  html.desktop-app {
-    overflow: hidden;
-  }
+  html, body { margin: 0; height: 100%; }
+  html.desktop-app { overflow: hidden; }
   html.desktop-app body {
-    display: flex;
-    flex-direction: column;
-    overflow: hidden;
+    display: flex; flex-direction: column; overflow: hidden; height: 100%;
   }
   html.desktop-app .desktop-app-viewport {
-    box-sizing: border-box;
-    width: 100%;
-    max-width: 100%;
-    min-height: 0;
-    flex: 1 1 auto;
-    overflow-x: auto;
-    overflow-y: auto;
+    flex: 1 1 auto; min-height: 0; width: 100%; max-width: 100%;
+    overflow-x: auto; overflow-y: auto;
   }
   html.desktop-app .desktop-app-canvas {
-    box-sizing: border-box;
-    width: max(100%, var(--desktop-layout-base-width));
-    min-width: var(--desktop-layout-base-width);
+    width: max(100%, var(--desktop-layout-base-width)) !important;
+    min-width: var(--desktop-layout-base-width) !important;
     min-height: max(100%, var(--desktop-layout-base-height));
-    flex-shrink: 0;
-    display: flex;
-    flex-direction: row;
-    background: #f8fafc;
-  }
-  html.desktop-app .desktop-app-main {
-    box-sizing: border-box;
-    width: var(--desktop-main-width);
-    min-width: var(--desktop-main-width);
-    flex: 1 0 auto;
-    flex-shrink: 0;
-    background: #e2e8f0;
+    flex-shrink: 0; display: flex; flex-direction: row;
   }
   .sidebar {
-    width: var(--global-sidebar-width);
-    flex-shrink: 0;
-    background: #0d1117;
-    color: #fff;
+    width: var(--global-sidebar-width); flex: none; background: #0d1117;
+  }
+  html.desktop-app .desktop-app-main {
+    width: var(--desktop-main-min-width);
+    min-width: var(--desktop-main-min-width) !important;
+    max-width: none !important;
+    flex: 1 0 auto !important;
   }
 </style>
 </head>
 <body>
   <div class="desktop-app-viewport" data-desktop-app-viewport>
     <div class="desktop-app-canvas" data-desktop-app-canvas>
-      <aside class="sidebar">sidebar</aside>
-      <div class="desktop-app-main">main content</div>
+      <aside class="sidebar">nav</aside>
+      <div class="desktop-app-main">main</div>
     </div>
   </div>
 </body>
@@ -141,32 +113,27 @@ type Metrics = {
   mainWidth: number;
 };
 
-async function measureAtViewport(
+async function measure(
+  browser: Browser,
   width: number,
   height: number,
 ): Promise<Metrics> {
-  const outDir = join(root, "test-results", "desktop-global-scroll");
-  mkdirSync(outDir, { recursive: true });
-  const fixturePath = join(outDir, "fixture.html");
+  mkdirSync(OUT, { recursive: true });
+  const fixturePath = join(OUT, "fixture.html");
   writeFileSync(fixturePath, buildFixtureHtml(), "utf8");
-
-  const browser = await chromium.launch({ headless: true });
+  const page = await browser.newPage({ viewport: { width, height } });
   try {
-    const page = await browser.newPage({ viewport: { width, height } });
-    await page.goto(`file:///${fixturePath.replace(/\\/g, "/")}`);
-    const metrics = await page.evaluate(() => {
+    await page.goto(pathToFileURL(fixturePath).href, {
+      waitUntil: "domcontentloaded",
+    });
+    return await page.evaluate(() => {
       const viewport = document.querySelector(
         "[data-desktop-app-viewport]",
-      ) as HTMLElement | null;
+      ) as HTMLElement;
       const canvas = document.querySelector(
         "[data-desktop-app-canvas]",
-      ) as HTMLElement | null;
-      const main = document.querySelector(
-        ".desktop-app-main",
-      ) as HTMLElement | null;
-      if (!viewport || !canvas || !main) {
-        throw new Error("fixture nodes missing");
-      }
+      ) as HTMLElement;
+      const main = document.querySelector(".desktop-app-main") as HTMLElement;
       viewport.scrollLeft = 400;
       return {
         viewportWidth: window.innerWidth,
@@ -177,58 +144,50 @@ async function measureAtViewport(
         mainWidth: main.getBoundingClientRect().width,
       };
     });
-    return metrics;
+  } finally {
+    await page.close();
+  }
+}
+
+async function main() {
+  testStaticCssContract();
+
+  const cases: Array<[number, number]> = [
+    [1920, 1080],
+    [1600, 900],
+    [1440, 900],
+    [1100, 700],
+    [900, 600],
+  ];
+  const browser = await chromium.launch({ headless: true });
+  try {
+    const report: Record<string, Metrics> = {};
+    for (const [w, h] of cases) {
+      report[`${w}x${h}`] = await measure(browser, w, h);
+    }
+
+    const wide = report["1920x1080"]!;
+    assert.equal(wide.canvasWidth, 1920, "maximize canvas grows to viewport");
+    assert.ok(wide.mainWidth > 1216, `maximize main grows (${wide.mainWidth})`);
+
+    const baseline = report["1440x900"]!;
+    assert.ok(baseline.canvasWidth >= 1440);
+
+    const narrow = report["900x600"]!;
+    assert.ok(narrow.canvasWidth >= 1440, "900 canvas floor");
+    assert.ok(narrow.scrollWidth > narrow.clientWidth, "outer horizontal scroll");
+    assert.ok(narrow.scrollLeftAfter > 0, "scrollLeft moves");
+
+    writeFileSync(join(OUT, "report.json"), JSON.stringify(report, null, 2));
+    console.log("NUMERIC", JSON.stringify(report, null, 2));
+    console.log("verify:desktop-global-horizontal-scroll OK");
+    console.log("verify:desktop-canvas-no-shrink OK");
   } finally {
     await browser.close();
   }
 }
 
-async function testDomNumeric() {
-  const cases: Array<{ w: number; h: number; expectScroll: boolean }> = [
-    { w: 1600, h: 900, expectScroll: false },
-    { w: 1366, h: 768, expectScroll: true },
-    { w: 1100, h: 700, expectScroll: true },
-    { w: 900, h: 600, expectScroll: true },
-  ];
-
-  const report: Record<string, Metrics> = {};
-
-  for (const c of cases) {
-    const m = await measureAtViewport(c.w, c.h);
-    report[`${c.w}x${c.h}`] = m;
-    assert.ok(
-      m.canvasWidth >= 1600,
-      `${c.w}: canvasWidth ${m.canvasWidth} < 1600`,
-    );
-    assert.ok(
-      m.mainWidth >= 1376,
-      `${c.w}: mainWidth ${m.mainWidth} < 1376`,
-    );
-    if (c.expectScroll) {
-      assert.ok(
-        m.scrollWidth > m.clientWidth,
-        `${c.w}: scrollWidth ${m.scrollWidth} <= clientWidth ${m.clientWidth}`,
-      );
-      assert.ok(
-        m.scrollLeftAfter > 0,
-        `${c.w}: scrollLeft did not move (got ${m.scrollLeftAfter})`,
-      );
-    }
-  }
-
-  const outDir = join(root, "test-results", "desktop-global-scroll");
-  writeFileSync(join(outDir, "report.json"), JSON.stringify(report, null, 2));
-  console.log("NUMERIC", JSON.stringify(report, null, 2));
-}
-
-async function main() {
-  testStaticCssContract();
-  await testDomNumeric();
-  console.log("verify:desktop-global-horizontal-scroll OK");
-  console.log("verify:desktop-canvas-no-shrink OK");
-}
-
-main().catch((e) => {
-  console.error(e);
+main().catch((err) => {
+  console.error(err);
   process.exit(1);
 });

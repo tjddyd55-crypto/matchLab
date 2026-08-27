@@ -1,9 +1,9 @@
 /**
  * 대진표 그룹 상세 Desktop workspace — 좌/우 pane 동일 높이·scroll 분리 SSOT
  */
-/** Desktop: fixed paper height (not 70vh — window shrink must not change pane). */
+/** Desktop: keep 70vh fluid height like pre-regression maximize (no forced compact 720). */
 export const BRACKET_WORKSPACE_PANE_HEIGHT_CLASS =
-  "lg:h-[min(70vh,720px)] desktop:h-[720px]";
+  "lg:h-[min(70vh,720px)]";
 
 /** Card outer: flex column + fixed desktop height */
 export const bracketWorkspacePaneClass = cnSafe(

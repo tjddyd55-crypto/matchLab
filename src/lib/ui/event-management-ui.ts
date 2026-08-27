@@ -5,7 +5,7 @@ import { matchonPageDescClass } from "@/lib/ui/matchon-layout";
 export const eventManagementPageBackgroundClass = "bg-[#F8FAFC]";
 
 export const eventManagementLayoutGridClass =
-  "grid min-h-[calc(100vh-var(--dashboard-header-height))] min-w-0 grid-cols-1 md:grid-cols-[var(--event-sidebar-width)_minmax(0,1fr)] desktop:w-[var(--desktop-main-width)] desktop:min-w-[var(--desktop-main-width)] desktop:grid-cols-[var(--event-sidebar-width)_var(--desktop-event-content-width)]";
+  "grid min-h-[calc(100vh-var(--dashboard-header-height))] min-w-0 grid-cols-1 md:grid-cols-[var(--event-sidebar-width)_minmax(0,1fr)] desktop:min-w-[var(--desktop-main-min-width)] desktop:grid-cols-[var(--event-sidebar-width)_minmax(var(--desktop-content-min-width),1fr)]";
 
 export const eventManagementSideNavAsideClass =
   "hidden h-[calc(100vh-var(--dashboard-header-height))] w-[var(--event-sidebar-width)] shrink-0 flex-col border-r border-[#E2E8F0] bg-white md:sticky md:top-0 md:flex desktop:relative desktop:top-auto desktop:h-auto desktop:min-h-full desktop:self-stretch desktop:flex";
@@ -37,10 +37,10 @@ export const eventManagementSideNavLinkInactiveClass =
   "text-[#64748B] hover:bg-[#F8FAFC] hover:text-[#334155] [&_svg]:text-[#94A3B8]";
 
 export const eventManagementMainColumnClass =
-  "min-w-0 bg-[#F8FAFC] desktop:w-[var(--desktop-event-content-width)] desktop:min-w-[var(--desktop-event-content-width)] desktop:max-w-[var(--desktop-event-content-width)]";
+  "min-w-0 bg-[#F8FAFC] desktop:min-w-[var(--desktop-content-min-width)]";
 
 export const eventManagementMainContentClass =
-  "min-w-0 w-full space-y-5 px-[var(--dashboard-content-padding-x)] py-5 md:space-y-7 md:py-7 desktop:overflow-x-visible";
+  "min-w-0 w-full space-y-5 px-[var(--dashboard-content-padding-x)] py-5 md:space-y-7 md:py-7 desktop:min-w-[var(--desktop-content-min-width)] desktop:overflow-x-visible";
 
 export const eventManagementMobileBarClass =
   "flex items-center justify-between gap-3 border-b border-[#E2E8F0] bg-white px-4 py-3 md:hidden desktop:hidden";

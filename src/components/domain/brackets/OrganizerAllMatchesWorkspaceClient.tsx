@@ -178,7 +178,7 @@ export function OrganizerAllMatchesWorkspaceClient({
   }
 
   return (
-    <section className="flex flex-col gap-3 desktop:w-[var(--desktop-workspace-width)] desktop:min-w-[var(--desktop-workspace-width)]">
+    <section className="flex flex-col gap-3">
       <div className="flex flex-wrap items-center justify-between gap-2 desktop:flex-nowrap">
         <h2 className="text-lg font-semibold">전체 경기 편집</h2>
         <div className="flex flex-wrap items-center gap-2 desktop:flex-nowrap">
@@ -200,6 +200,7 @@ export function OrganizerAllMatchesWorkspaceClient({
       <div
         className={cn(
           "grid min-w-0 gap-4 lg:grid-cols-[minmax(0,1.6fr)_minmax(0,1.15fr)] lg:items-stretch lg:gap-5",
+          "desktop:min-w-[var(--desktop-content-min-width)] desktop:grid-cols-[minmax(0,1.6fr)_minmax(0,1.15fr)] desktop:items-stretch desktop:gap-5",
           desktopWorkspaceGridClass,
         )}
         data-desktop-workspace-grid=""

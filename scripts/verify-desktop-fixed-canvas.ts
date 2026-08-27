@@ -1,5 +1,6 @@
 /**
  * Static verify: Desktop fixed canvas scroll shell (Electron only).
+ * Maximized UI must grow fluidly above the 1440 baseline (08f851f restore).
  *   npm run verify:desktop-fixed-canvas
  */
 import assert from "node:assert/strict";
@@ -25,8 +26,12 @@ function testDesktopDetectionReuse() {
 
 function testScrollShell() {
   const globals = read("src/app/globals.css");
-  assert.match(globals, /--desktop-layout-base-width:\s*1600px/, "layout base width");
-  assert.match(globals, /--desktop-main-width:\s*1376px/, "main width");
+  assert.match(globals, /--desktop-layout-base-width:\s*1440px/, "baseline floor 1440");
+  assert.match(globals, /--desktop-main-min-width:\s*1216px/, "main min 1216");
+  assert.match(globals, /--desktop-content-min-width:\s*984px/, "content min 984");
+  assert.doesNotMatch(globals, /--desktop-workspace-width:\s*1080px/, "no compact workspace cap");
+  assert.doesNotMatch(globals, /--desktop-matched-panel-width:\s*640px/, "no compact matched cap");
+  assert.doesNotMatch(globals, /--desktop-unmatched-panel-width:\s*420px/, "no compact unmatched cap");
   assert.match(globals, /html\.desktop-app \.desktop-app-viewport/, "viewport scroll owner");
   assert.match(globals, /html\.desktop-app \.desktop-app-canvas/, "canvas under desktop-app");
   assert.match(
@@ -35,11 +40,12 @@ function testScrollShell() {
     "canvas width never below base",
   );
   assert.match(globals, /overflow-x:\s*auto/, "viewport overflow-x auto");
-  assert.doesNotMatch(
+  assert.match(
     globals,
-    /transform:\s*scale|zoom:/,
-    "no scale/zoom shrink",
+    /html\.desktop-app \.desktop-app-main[\s\S]*flex:\s*1 0 auto/,
+    "main grows on maximize",
   );
+  assert.doesNotMatch(globals, /transform:\s*scale|zoom:/, "no scale/zoom shrink");
 
   const appShell = read("src/components/layout/AppShell.tsx");
   assert.match(appShell, /desktopAppViewportClass/, "AppShell viewport");
@@ -76,10 +82,24 @@ function testResponsiveOverrideScope() {
     "src/components/domain/brackets/OrganizerAllMatchesWorkspaceClient.tsx",
   );
   assert.match(workspace, /desktopWorkspaceGridClass/, "workspace desktop grid");
+  assert.match(
+    workspace,
+    /desktop:grid-cols-\[minmax\(0,1\.6fr\)_minmax\(0,1\.15fr\)\]/,
+    "fluid desktop workspace columns",
+  );
+  assert.doesNotMatch(workspace, /desktop:w-\[var\(--desktop-workspace-width\)\]/);
 
   const eventUi = read("src/lib/ui/event-management-ui.ts");
-  assert.match(eventUi, /desktop:min-w-\[var\(--desktop-main-width\)\]/, "event layout desktop min");
-  assert.match(eventUi, /var\(--desktop-event-content-width\)/, "event content fixed");
+  assert.match(
+    eventUi,
+    /desktop:min-w-\[var\(--desktop-main-min-width\)\]/,
+    "event layout desktop min",
+  );
+  assert.match(
+    eventUi,
+    /minmax\(var\(--desktop-content-min-width\),1fr\)/,
+    "event content fluid 1fr",
+  );
   assert.match(eventUi, /desktop:hidden/, "hide event mobile bar");
 }
 
@@ -100,6 +120,16 @@ function testWebResponsivePreserved() {
   assert.match(dashboard, /hidden md:flex/, "web sidebar responsive");
 }
 
+function testNoRootFontShrink() {
+  const globals = read("src/app/globals.css");
+  assert.match(globals, /html\s*\{[\s\S]*font-size:\s*16px/, "root font 16px");
+  assert.doesNotMatch(
+    globals,
+    /html\.desktop-app\s*\{[^}]*font-size:\s*(?!16px)/,
+    "desktop must not shrink root font",
+  );
+}
+
 function main() {
   testDesktopDetectionReuse();
   testScrollShell();
@@ -107,6 +137,7 @@ function main() {
   testResponsiveOverrideScope();
   testElectronMinSizePolicy();
   testWebResponsivePreserved();
+  testNoRootFontShrink();
   console.log("verify:desktop-fixed-canvas OK");
 }
 

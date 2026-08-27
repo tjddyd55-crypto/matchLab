@@ -89,8 +89,10 @@ export function OrganizerBracketEditor({
         <div
           className={cn(
             "grid min-w-0 gap-4 lg:grid-cols-[minmax(0,1.6fr)_minmax(0,1.15fr)] lg:items-stretch lg:gap-5",
+            "desktop:min-w-[var(--desktop-content-min-width)] desktop:grid-cols-[minmax(0,1.6fr)_minmax(0,1.15fr)] desktop:items-stretch desktop:gap-5",
             desktopWorkspaceGridClass,
           )}
+          data-desktop-workspace-grid=""
         >
           <div
             className={cn(
