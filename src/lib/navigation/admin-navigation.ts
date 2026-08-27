@@ -55,6 +55,10 @@ export function getAdminNavGroups(): DashboardSidebarNavGroup[] {
       label: "운영",
       items: [
         { href: "/admin/credits", label: "크레딧 관리" },
+        { href: "/admin/billing/plans", label: "요금제" },
+        { href: "/admin/billing/coupons", label: "쿠폰" },
+        { href: "/admin/billing/subscriptions", label: "구독" },
+        { href: "/admin/billing/payments", label: "결제 내역" },
         { href: "/admin/applications", label: "신청" },
         { href: "/admin/application-form-templates", label: "신청서 템플릿" },
         { href: "/admin/results", label: "결과" },

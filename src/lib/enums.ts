@@ -90,4 +90,9 @@ export {
   AdditionalInfoStatus,
   AdditionalInfoRecipientType,
   DivisionSelectionType,
+  BillingPlanInterval,
+  BillingSubscriptionStatus,
+  BillingPaymentStatus,
+  BillingCouponType,
+  BillingCouponApplicablePlan,
 } from "@/generated/prisma";

@@ -4,10 +4,12 @@ import { DashboardShell } from "@/components/layout/DashboardShell";
 import { OrganizerPortalBlockedView } from "@/components/domain/organizer/OrganizerPortalBlockedView";
 import { OrganizerPortalStatusBanner } from "@/components/domain/organizer/OrganizerPortalStatusBanner";
 import { redirectUnlessDashboardRole, requireActor } from "@/lib/auth/actor";
+import { billingCheckoutRedirectPath } from "@/lib/billing/entitlement";
 import { dashboardRoleFor } from "@/lib/dashboard-navigation";
 import { extractOrganizerEventIdFromPath } from "@/lib/organizer-route-path";
 import { resolveOrganizerPortalAccess } from "@/lib/organizer-portal-access";
 import { headers } from "next/headers";
+import { redirect } from "next/navigation";
 
 export default async function OrganizerDashboardLayout({
   children,
@@ -16,6 +18,13 @@ export default async function OrganizerDashboardLayout({
 }) {
   const actor = await requireActor();
   redirectUnlessDashboardRole(actor, ["organizer", "admin"]);
+
+  if (actor.role === "organizer") {
+    const billingRedirect = await billingCheckoutRedirectPath(actor);
+    if (billingRedirect) {
+      redirect(billingRedirect);
+    }
+  }
 
   const pathname =
     (await headers()).get("x-matchon-pathname")?.trim() ?? "";

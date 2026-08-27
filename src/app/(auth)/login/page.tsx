@@ -6,6 +6,7 @@ import {
   dashboardPathForRole,
   getCurrentActor,
 } from "@/lib/auth/actor";
+import { billingCheckoutRedirectPath } from "@/lib/billing/entitlement";
 import { normalizeLoginId } from "@/lib/validators/login-id.validator";
 
 export const dynamic = "force-dynamic";
@@ -17,6 +18,10 @@ export default async function LoginPage({
 }) {
   const actor = await getCurrentActor();
   if (actor) {
+    const billingRedirect = await billingCheckoutRedirectPath(actor);
+    if (billingRedirect) {
+      redirect(billingRedirect);
+    }
     redirect(dashboardPathForRole(actor.role));
   }
 
