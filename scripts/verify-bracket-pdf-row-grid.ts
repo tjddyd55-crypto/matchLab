@@ -22,8 +22,8 @@ function main() {
   assert.match(printDoc, /className="ops-print-row"/);
   assert.match(printDoc, /ops-print-match-no-cell/);
   assert.match(printDoc, /ops-print-vs/);
-  assert.match(printDoc, /FighterCorner fighter=\{match\.red\}/);
-  assert.match(printDoc, /FighterCorner fighter=\{match\.blue\}/);
+  assert.match(printDoc, /<FighterCorner\s+fighter=\{match\.red\}/);
+  assert.match(printDoc, /<FighterCorner\s+fighter=\{match\.blue\}/);
   assert.doesNotMatch(printDoc, /ops-print-fighters/);
 
   assert.match(

@@ -5,8 +5,11 @@ import { prisma } from "@/lib/prisma";
 import { requireOrganizerForEvent, requireRole } from "@/lib/permissions";
 import { eventCourtRepository } from "@/lib/repositories/event-court.repository";
 import { matchRepository } from "@/lib/repositories/match.repository";
-import { formatDivisionMainLabel } from "@/lib/event-division-fields";
-import { toEventDivisionDisplayInput } from "@/lib/event-division-fields";
+import {
+  formatDivisionMainLabel,
+  resolvePersistedMatchDivisionLabel,
+  toEventDivisionDisplayInput,
+} from "@/lib/event-division-fields";
 import { composeEventVenueDisplay } from "@/lib/services/event.service";
 import {
   formatCourtScheduleMatchOrderShort,
@@ -264,16 +267,15 @@ export const bracketPrintService = {
     );
 
     const matches: BracketPrintMatchDto[] = ordered.map((m) => {
+      // 경기구분 SSOT: Bracket.divisionId → EventDivision (신청자 ageGroup 금지)
       const divisionInput = m.bracket.division
         ? toEventDivisionDisplayInput(m.bracket.division)
         : null;
       const divisionLabel = divisionInput
         ? formatDivisionMainLabel(divisionInput)
         : null;
-      const ageGroupLabel =
-        m.bracket.division?.ageGroup?.trim() ||
-        divisionInput?.ageGroup?.trim() ||
-        null;
+      const matchDivisionLabel =
+        resolvePersistedMatchDivisionLabel(divisionInput);
       const divisionId = m.bracket.divisionId ?? null;
 
       const redApp = m.fighterRed
@@ -316,7 +318,7 @@ export const bracketPrintService = {
         }),
         weightLabel,
         divisionLabel,
-        ageGroupLabel,
+        matchDivisionLabel,
         arenaName,
         red: mapPrintFighter(m.fighterRed, m.fighterRedSnapshot, redApp),
         blue: mapPrintFighter(m.fighterBlue, m.fighterBlueSnapshot, blueApp),

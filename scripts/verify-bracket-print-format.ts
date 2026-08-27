@@ -1,4 +1,4 @@
-/**
+﻿/**
  * 시합 대진표 출력 — 순수 포맷터 fixture
  *
  *   npx tsx scripts/verify-bracket-print-format.ts
@@ -208,7 +208,7 @@ assert.equal(formatBracketPrintRecordDisplay("무전"), "현재 무전");
     genderLabel: "남성",
   });
   assert.equal(
-    formatDetailedPrintFighterMeta(male, { ageGroupLabel: "중등부" }),
+    formatDetailedPrintFighterMeta(male, { matchDivisionLabel: "중등부" }),
     "남 · 중등부 · 중2 · 66kg · 2전 2승 0패",
   );
   assert.equal(formatCourtPrintFighterMeta(male), "남 · 2전 2승 0패");
@@ -216,7 +216,7 @@ assert.equal(formatBracketPrintRecordDisplay("무전"), "현재 무전");
     resolveBracketPrintFighterMetaLine({
       fighter: male,
       mode: "all-matches",
-      ageGroupLabel: "중등부",
+      matchDivisionLabel: "중등부",
     }),
     "남 · 중등부 · 중2 · 66kg · 2전 2승 0패",
   );
@@ -242,7 +242,7 @@ assert.equal(formatBracketPrintRecordDisplay("무전"), "현재 무전");
     genderLabel: "여성",
   });
   assert.equal(
-    formatDetailedPrintFighterMeta(female, { ageGroupLabel: "초등부" }),
+    formatDetailedPrintFighterMeta(female, { matchDivisionLabel: "초등부" }),
     "여 · 초등부 · 초3 · 41kg · 무전",
   );
   assert.equal(formatCourtPrintFighterMeta(female), "여 · 무전");
@@ -266,11 +266,11 @@ assert.equal(formatBracketPrintRecordDisplay("무전"), "현재 무전");
     genderLabel: "남성",
   });
   assert.equal(
-    formatDetailedPrintFighterMeta(partial, { ageGroupLabel: "중등부" }),
+    formatDetailedPrintFighterMeta(partial, { matchDivisionLabel: "중등부" }),
     "남 · 중등부 · 66kg · 무전",
   );
   assert.doesNotMatch(
-    formatDetailedPrintFighterMeta(partial, { ageGroupLabel: "중등부" }) ?? "",
+    formatDetailedPrintFighterMeta(partial, { matchDivisionLabel: "중등부" }) ?? "",
     /·\s*·|-\s*·/,
   );
   console.log("  ✓ null-safe meta join");
@@ -292,7 +292,7 @@ assert.equal(formatBracketPrintRecordDisplay("무전"), "현재 무전");
   });
   assert.equal(appWeight.weightLabel, "66kg");
   assert.ok(
-    (formatDetailedPrintFighterMeta(appWeight, { ageGroupLabel: "중등부" }) ??
+    (formatDetailedPrintFighterMeta(appWeight, { matchDivisionLabel: "중등부" }) ??
       ""
     ).includes("66kg"),
   );

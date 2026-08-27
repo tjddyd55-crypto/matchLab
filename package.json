@@ -510,6 +510,7 @@
     "verify:court-pdf-gender-record-meta": "tsx scripts/verify-bracket-pdf-athlete-meta.ts",
     "verify:bracket-pdf-application-weight-source": "tsx scripts/verify-bracket-pdf-athlete-meta.ts",
     "verify:bracket-pdf-meta-null-safe": "tsx scripts/verify-bracket-pdf-athlete-meta.ts",
+    "verify:bracket-pdf-match-division-ssot": "tsx scripts/verify-bracket-pdf-match-division-ssot.ts",
     "verify:bracket-unmatched-pdf": "tsx scripts/verify-bracket-unmatched-pdf.ts",
     "verify:event-wide-match-sequence": "tsx scripts/verify-event-wide-match-sequence.ts",
     "verify:unmatched-pdf-20-per-page": "tsx scripts/verify-unmatched-pdf-20-per-page.ts",
