@@ -25,12 +25,13 @@ export function PublicHomeOrganizerCtaSection({
           id="home-final-cta-title"
           className="font-black text-[28px] tracking-tight md:text-[32px]"
         >
-          이제 대회 운영을
+          체육관과 대회 운영을
           <br />
           더 간단하게 시작하세요
         </h2>
         <p className="mt-3 text-[15px] leading-relaxed text-white/70">
-          웹에서 준비하고, 현장에서는 MATCHON Manager로 이어서 운영하세요.
+          웹에서 회원·선수를 준비하고, 현장에서는 MATCHON Manager로 이어서
+          운영하세요.
         </p>
         <div className="mt-8 flex flex-col items-stretch justify-center gap-3 sm:flex-row sm:items-center">
           <Link

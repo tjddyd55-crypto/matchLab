@@ -4,41 +4,45 @@ import {
   Scale,
   Shuffle,
   Swords,
-  Trophy,
+  Users,
 } from "lucide-react";
 import { PUBLIC_CONTENT_CONTAINER_CLASS } from "@/components/domain/events/public/public-event-layout";
 import { cn } from "@/lib/utils";
 
 const features = [
   {
+    icon: Users,
+    title: "체육관 회원 관리",
+    description:
+      "회원 등록·이용권·선수 연결까지 체육관별로 체계적으로 관리합니다.",
+  },
+  {
     icon: ClipboardList,
-    title: "참가 신청 관리",
-    description: "선수 정보와 참가 신청을 체계적으로 관리합니다.",
+    title: "선수 및 참가 신청 관리",
+    description:
+      "체육관 선수를 관리하고 대회 참가 신청 정보를 한눈에 확인합니다.",
   },
   {
     icon: Scale,
     title: "계체 관리",
-    description: "현장 계체 현황과 선수 상태를 빠르게 확인합니다.",
+    description:
+      "대회 현장에서 선수별 계체 상태와 정보를 빠르게 확인합니다.",
   },
   {
     icon: Shuffle,
     title: "대진 편성",
-    description: "선수 정보를 비교하며 빠르게 대진을 구성합니다.",
+    description: "체급과 선수 정보를 확인하며 경기 대진을 구성합니다.",
   },
   {
     icon: Swords,
     title: "경기 운영",
-    description: "경기장과 경기 순서를 현장에서 관리합니다.",
+    description:
+      "경기장별 순서와 경기 상태를 현장에서 효율적으로 관리합니다.",
   },
   {
     icon: FileDown,
-    title: "PDF / 출력",
-    description: "대진표와 운영 자료를 바로 출력하고 공유합니다.",
-  },
-  {
-    icon: Trophy,
-    title: "결과 관리",
-    description: "경기 결과까지 하나의 대회 안에서 관리합니다.",
+    title: "PDF 및 결과 관리",
+    description: "대진표 출력부터 경기 결과 관리까지 이어서 처리합니다.",
   },
 ] as const;
 
@@ -58,8 +62,11 @@ export function PublicHomeFeaturesSection() {
             id="home-features-title"
             className="mt-1.5 font-black text-[28px] tracking-tight text-matchon-text-primary md:text-[32px]"
           >
-            대회 운영에 필요한 기능을 한곳에
+            체육관과 대회 운영에 필요한 기능을 한곳에
           </h2>
+          <p className="mt-3 text-[15px] leading-relaxed text-matchon-text-secondary">
+            체육관 회원관리와 대회 운영을 같은 흐름으로 연결합니다.
+          </p>
         </div>
 
         <div className="grid gap-4 sm:grid-cols-2 lg:grid-cols-3">
