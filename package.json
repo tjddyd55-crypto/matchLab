@@ -496,6 +496,8 @@
     "verify:desktop-canvas-no-shrink": "tsx scripts/verify-desktop-global-horizontal-scroll.ts",
     "verify:desktop-workspace-geometry-stable": "tsx scripts/verify-desktop-workspace-geometry-stable.ts",
     "verify:desktop-no-inner-horizontal-scroll": "tsx scripts/verify-desktop-workspace-geometry-stable.ts",
+    "verify:desktop-maximized-size-regression": "tsx scripts/verify-desktop-workspace-geometry-stable.ts",
+    "verify:desktop-preserve-baseline-geometry": "tsx scripts/verify-desktop-workspace-geometry-stable.ts",
     "verify:schedule-hydration": "tsx scripts/verify-gym-schedule.ts board-ux",
     "verify:schedule-now-line-hydration": "tsx scripts/verify-gym-schedule.ts board-ux",
     "verify:schedule-responsive-hydration": "tsx scripts/verify-gym-schedule.ts board-ux",

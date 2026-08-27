@@ -21,7 +21,7 @@ export function BracketMatchColumnHeader({
   return (
     <div
       className={cn(
-        "text-muted-foreground mb-1 hidden px-3 text-[10px] font-medium uppercase tracking-wide md:grid md:grid-cols-[minmax(220px,1fr)_minmax(140px,170px)_minmax(220px,1fr)] md:gap-x-2 desktop:grid-cols-[minmax(0,1fr)_4.5rem_minmax(0,1fr)]",
+        "text-muted-foreground mb-1 hidden px-3 text-[10px] font-medium uppercase tracking-wide md:grid md:grid-cols-[minmax(220px,1fr)_minmax(140px,170px)_minmax(220px,1fr)] md:gap-x-2 desktop:grid-cols-[minmax(0,1fr)_minmax(140px,170px)_minmax(0,1fr)]",
         className,
       )}
     >
