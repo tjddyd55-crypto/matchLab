@@ -176,6 +176,7 @@ async function main() {
     });
 
     const browser = await chromium.launch({ headless: true });
+    try {
     const page = await browser.newPage();
     page.on("pageerror", (err) => {
       report.pageerror = String(err);
@@ -232,31 +233,37 @@ async function main() {
     await page.fill("#edit-gymName", afterGym);
     await page.screenshot({ path: join(OUT, "02-edit-dialog.png") });
 
-    await page.getByRole("button", { name: "저장" }).click();
+    const dialogSave = page.getByRole("dialog").getByRole("button", {
+      name: "저장",
+      exact: true,
+    });
+    await dialogSave.click();
 
     // Expect dialog close or visible error (must not stay silent).
+    await page.waitForTimeout(800);
     const errVisible = await page
-      .getByText(/저장하지 못했습니다|성별 정보가 전달되지 않았습니다/)
+      .getByRole("dialog")
+      .getByText(/저장하지 못했습니다|성별 정보가 전달되지 않았습니다|대진에 배정된/)
       .isVisible()
       .catch(() => false);
     if (errVisible) {
+      const errText = await page.getByRole("dialog").innerText();
+      report.saveErrorText = errText.slice(0, 500);
       await page.screenshot({ path: join(OUT, "03-save-error.png") });
-      fail("save showed error in dialog");
+      fail(`save showed error in dialog: ${report.saveErrorText}`);
     }
 
-    await page.waitForTimeout(1500);
+    await page
+      .getByRole("dialog")
+      .waitFor({ state: "hidden", timeout: 15000 })
+      .catch(() => null);
+
+    await page.waitForTimeout(1000);
     await page.reload({ waitUntil: "networkidle" });
     await page.goto(workspaceUrl, { waitUntil: "networkidle" });
     await page.screenshot({ path: join(OUT, "03-workspace-after.png"), fullPage: true });
 
-    const bodyText = await page.locator("body").innerText();
-    report.workspaceShowsAfterGym = bodyText.includes(afterGym);
-    if (!bodyText.includes(afterGym)) {
-      fail(`workspace missing after gym name: ${afterGym}`);
-    }
-
-    await browser.close();
-
+    // DB is SSOT for acceptance — UI may still show option gym until snapshot sync.
     const appAfter = await prisma.eventApplication.findUnique({
       where: { id: applicationId },
       select: {
@@ -269,6 +276,12 @@ async function main() {
     report.gymIdAfter = appAfter?.gymId ?? null;
     if (appAfter?.gymNameSnapshot !== afterGym) {
       fail(`DB gymNameSnapshot expected ${afterGym}, got ${appAfter?.gymNameSnapshot}`);
+    }
+
+    const bodyText = await page.locator("body").innerText();
+    report.workspaceShowsAfterGym = bodyText.includes(afterGym);
+    if (!bodyText.includes(afterGym)) {
+      fail(`workspace missing after gym name: ${afterGym}`);
     }
 
     const matchAfter = await prisma.bracketMatch.findUnique({
@@ -313,6 +326,9 @@ async function main() {
     report.pass = true;
     writeFileSync(join(OUT, "report.json"), JSON.stringify(report, null, 2));
     console.log("PASS", JSON.stringify(report, null, 2));
+    } finally {
+      await browser.close();
+    }
   } finally {
     await prisma.$disconnect();
     await pool.end();

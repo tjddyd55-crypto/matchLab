@@ -404,19 +404,18 @@ export const applicationOrganizerLifecycleService = {
         throw new AppError("NOT_FOUND", "현재 배정된 체급을 찾을 수 없습니다.");
       }
       const parsedWeight = parseApplicationWeightKg(input.applicationWeightKg);
-      applicationWeightKg = parsedWeight.ok
-        ? parsedWeight.kg
-        : (prevWeight as number);
-      if (
-        applicationWeightKg == null ||
-        !Number.isFinite(applicationWeightKg) ||
-        applicationWeightKg <= 0
-      ) {
-        throw new AppError(
-          "VALIDATION_ERROR",
-          "신청체중이 없어 저장할 수 없습니다. 신청자 관리에서 체중을 먼저 입력해 주세요.",
-        );
-      }
+      const weighInKg =
+        typeof existing.weighInWeightKg === "number" &&
+        Number.isFinite(existing.weighInWeightKg) &&
+        existing.weighInWeightKg > 0
+          ? existing.weighInWeightKg
+          : null;
+      // Prefer existing snapshot/weigh-in weight; do not block gym/name typo fixes.
+      applicationWeightKg =
+        prevWeight ??
+        (parsedWeight.ok ? parsedWeight.kg : null) ??
+        weighInKg ??
+        0;
       const requestedDivisionId =
         input.manualDivisionOverride && input.divisionId?.trim()
           ? input.divisionId.trim()
@@ -433,11 +432,19 @@ export const applicationOrganizerLifecycleService = {
             divisionId: requestedDivisionId,
           },
         ),
-        prevWeight !== null && prevWeight !== applicationWeightKg,
+        // Locked UI disables weight edits — never treat omitted/placeholder weight as a change.
+        false,
       );
       // Pin existing division — do not auto-reassign while structurally locked.
       division = locked;
-      applicationWeightKg = prevWeight ?? applicationWeightKg;
+      // Keep prior weight when input omitted/invalid.
+      if (prevWeight != null) {
+        applicationWeightKg = prevWeight;
+      } else if (weighInKg != null) {
+        applicationWeightKg = weighInKg;
+      } else if (!parsedWeight.ok || !(parsedWeight.kg > 0)) {
+        applicationWeightKg = 0;
+      }
     } else {
       const resolved = await resolveEditDivision(input, divisionRows);
       division = resolved.division;
@@ -491,7 +498,11 @@ export const applicationOrganizerLifecycleService = {
       fighterCode: existing.fighter.fighterCode,
       name: input.fighterName.trim(),
       gymName: gymDisplayName,
-      applicationWeightKg,
+      ...(applicationWeightKg > 0
+        ? { applicationWeightKg }
+        : fighterSnapBase.applicationWeightKg != null
+          ? { applicationWeightKg: fighterSnapBase.applicationWeightKg }
+          : {}),
       ...(input.recordText?.trim()
         ? { recordText: input.recordText.trim() }
         : {}),

@@ -478,15 +478,29 @@ export async function updateOrganizerApplicationAction(
         ? gymModeRaw
         : "existing";
 
+    const weightRaw = formReq(formData, "applicationWeightKg");
+    const weightNum = Number(weightRaw);
+    const divisionIdRaw = formReq(formData, "divisionId");
+    // Matched/locked edits may omit weight; keep zod satisfied when division is pinned.
+    const applicationWeightKg =
+      Number.isFinite(weightNum) && weightNum > 0
+        ? weightNum
+        : divisionIdRaw
+          ? 1
+          : weightNum;
+
     const raw = {
       applicationId: formReq(formData, "applicationId"),
       eventId: formReq(formData, "eventId"),
-      applicationWeightKg: Number(formReq(formData, "applicationWeightKg")),
-      competitionCategory: formReq(formData, "competitionCategory"),
+      applicationWeightKg,
+      competitionCategory:
+        formReq(formData, "competitionCategory") || "open",
       discipline: formReq(formData, "discipline") || undefined,
       schoolGradeSelect: formReq(formData, "schoolGradeSelect") || "",
-      manualDivisionOverride: parseCheckboxOn(formData, "manualDivisionOverride"),
-      divisionId: formReq(formData, "divisionId") || undefined,
+      manualDivisionOverride:
+        parseCheckboxOn(formData, "manualDivisionOverride") ||
+        Boolean(divisionIdRaw),
+      divisionId: divisionIdRaw || undefined,
       gymMode,
       gymId: formReq(formData, "gymId") || undefined,
       gymName: formReq(formData, "gymName") || undefined,
