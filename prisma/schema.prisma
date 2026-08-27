@@ -257,6 +257,46 @@ enum CreditPaymentStatus {
   refunded
 }
 
+/// 공통 BillingAccount 소유 주체 (Phase A)
+enum BillingOwnerType {
+  organizer
+  gym
+}
+
+enum BillingAccountStatus {
+  active
+  suspended
+  archived
+}
+
+/// 공통 CreditLedger 거래 유형 (기존 OrganizerCreditLedger type과 의미 매핑)
+enum BillingLedgerType {
+  payment_charge
+  manual_charge
+  usage
+  refund
+  adjustment
+  promotion
+}
+
+enum BillingServiceType {
+  event
+  sms
+  fightbox
+  admin
+  other
+}
+
+enum BillingReferenceType {
+  event_application
+  sms_dispatch
+  fightbox_usage
+  organizer_credit_payment
+  admin_manual
+  legacy_organizer_ledger
+  other
+}
+
 enum BracketType {
   single_elimination
   match_list
@@ -498,6 +538,8 @@ enum AuditAction {
   gym_member_self_registration_rejected
   organizer_status_changed
   gym_status_changed
+  /// Super Admin 수동 크레딧 충전 (Billing Foundation)
+  credit_manual_charged
 }
 
 enum GymMemberAttendanceSource {
@@ -678,6 +720,7 @@ model Organizer {
   creditWallet       OrganizerCreditWallet?
   creditLedgers      OrganizerCreditLedger[]
   creditPayments     OrganizerCreditPayment[]
+  billingAccount     BillingAccount?
 
   associationJoinLinks             AssociationJoinLink[]
   associationMemberGymApplications AssociationMemberGymApplication[]
@@ -745,6 +788,8 @@ model Gym {
   gymMemberSelfRegistrationLinks GymMemberSelfRegistrationLink[]
   gymMemberRegistrationTerms     GymMemberRegistrationTerms[]
   gymMemberRegistrationRequests  GymMemberRegistrationRequest[]
+
+  billingAccount BillingAccount?
 }
 
 model Fighter {
@@ -2554,6 +2599,63 @@ model OrganizerCreditPayment {
 
   @@index([organizerId])
   @@index([status])
+}
+
+/// 공통 과금 주체 — Organizer/Gym 각각 1:1 (Phase A)
+model BillingAccount {
+  id          String               @id @default(cuid())
+  ownerType   BillingOwnerType
+  organizerId String?              @unique
+  gymId       String?              @unique
+  status      BillingAccountStatus @default(active)
+  createdAt   DateTime             @default(now())
+  updatedAt   DateTime             @updatedAt
+
+  organizer Organizer?   @relation(fields: [organizerId], references: [id], onDelete: Cascade)
+  gym       Gym?         @relation(fields: [gymId], references: [id], onDelete: Cascade)
+  wallet    CreditWallet?
+
+  @@index([ownerType, status])
+}
+
+/// 공통 Credit 잔액 캐시 — 모든 변경은 CreditLedger를 통해서만
+model CreditWallet {
+  id               String   @id @default(cuid())
+  billingAccountId String   @unique
+  balance          Int      @default(0)
+  createdAt        DateTime @default(now())
+  updatedAt        DateTime @updatedAt
+
+  billingAccount BillingAccount @relation(fields: [billingAccountId], references: [id], onDelete: Cascade)
+  ledgers        CreditLedger[]
+}
+
+/// 공통 immutable Ledger (append-only)
+model CreditLedger {
+  id              String                @id @default(cuid())
+  walletId        String
+  type            BillingLedgerType
+  amount          Int
+  balanceBefore   Int
+  balanceAfter    Int
+  serviceType     BillingServiceType
+  referenceType   BillingReferenceType?
+  referenceId     String?
+  idempotencyKey  String?               @unique
+  actorUserId     String?
+  reason          String
+  /// memo 등 보조 — JSON
+  metadata        Json?
+  /// legacy OrganizerCreditLedger.id (backfill 추적)
+  legacyLedgerId  String?               @unique
+  createdAt       DateTime              @default(now())
+
+  wallet CreditWallet @relation(fields: [walletId], references: [id], onDelete: Cascade)
+
+  @@index([walletId, createdAt])
+  @@index([serviceType, createdAt])
+  @@index([referenceType, referenceId])
+  @@index([actorUserId])
 }
 
 model AuditLog {

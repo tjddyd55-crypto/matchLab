@@ -2,7 +2,6 @@ import "server-only";
 
 import { randomBytes } from "crypto";
 import {
-  CreditLedgerType,
   CreditPaymentStatus,
   type Prisma,
 } from "@/generated/prisma";
@@ -15,7 +14,12 @@ import { AppError } from "@/lib/errors/app-error";
 import { prisma } from "@/lib/prisma";
 import { requireRole } from "@/lib/permissions";
 import { creditPaymentRepository } from "@/lib/repositories/credit-payment.repository";
-import { creditRepository } from "@/lib/repositories/credit.repository";
+import { billingCreditService } from "@/lib/services/billing-credit.service";
+import {
+  BillingLedgerType,
+  BillingReferenceType,
+  BillingServiceType,
+} from "@/generated/prisma";
 
 function generateOrderId(): string {
   return `credit_${Date.now()}_${randomBytes(8).toString("hex")}`;
@@ -35,33 +39,21 @@ async function chargeWalletFromPayment(
   actorUserId: string | null,
   tx: Prisma.TransactionClient,
 ) {
-  let wallet = await creditRepository.lockWalletByOrganizerId(organizerId, tx);
-  if (!wallet) {
-    await creditRepository.createWallet(organizerId, tx);
-    wallet = await creditRepository.lockWalletByOrganizerId(organizerId, tx);
-  }
-  if (!wallet) {
-    throw new AppError("INTERNAL", "크레딧 지갑을 생성할 수 없습니다.");
-  }
+  const result = await billingCreditService.creditOrganizer({
+    organizerId,
+    amount: credits,
+    type: BillingLedgerType.payment_charge,
+    serviceType: BillingServiceType.admin,
+    reason: "크레딧 결제 충전",
+    idempotencyKey: `organizer_credit_payment:${paymentId}:charge`,
+    actorUserId,
+    referenceType: BillingReferenceType.organizer_credit_payment,
+    referenceId: paymentId,
+    metadata: { orderId, paymentId },
+    existingTx: tx,
+  });
 
-  const nextBalance = wallet.balance + credits;
-  await creditRepository.updateWalletBalance(wallet.id, nextBalance, tx);
-  const ledger = await creditRepository.createLedger(
-    {
-      walletId: wallet.id,
-      organizerId,
-      type: CreditLedgerType.payment_charge,
-      amount: credits,
-      balanceAfter: nextBalance,
-      reason: "크레딧 결제 충전",
-      paymentId,
-      paymentRef: orderId,
-      createdByUserId: actorUserId,
-    },
-    tx,
-  );
-
-  return ledger.id;
+  return result.ledgerId;
 }
 
 export const creditPaymentService = {

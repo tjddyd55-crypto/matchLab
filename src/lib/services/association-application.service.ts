@@ -25,6 +25,7 @@ import {
   parseRequiredRequestedLoginId,
 } from "@/lib/services/application-requested-login-id";
 import { assertAssociationAttachmentMimeAndSize } from "./association-application-upload.service";
+import { ensureOrganizerBillingAccount } from "@/lib/billing/provision-billing-account";
 
 export const ASSOCIATION_OWNER_INVITE_TTL_MS = 7 * 24 * 60 * 60 * 1000;
 
@@ -311,6 +312,8 @@ export const associationApplicationService = {
           logoPath: null,
         },
       });
+
+      await ensureOrganizerBillingAccount(organizer.id, tx);
 
       await tx.associationApplication.update({
         where: { id },

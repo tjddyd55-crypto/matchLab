@@ -263,15 +263,20 @@ export function AdminGymDetailView({
         ) : null}
 
         {tab === "credit" ? (
-          <div className="space-y-3 text-sm">
-            <p className="font-medium">체육관 전용 Credit wallet 없음</p>
-            <p className={adminMutedTextClass}>
-              플랫폼 크레딧(manual_charge)은 Organizer(협회·주최자) wallet에만
-              존재합니다. 체육관 상세에서는 잔액·충전 UI를 위장하지 않습니다.
-            </p>
+          <div className="space-y-4 text-sm">
+            <div className="rounded-lg border border-matchon-border bg-matchon-surface/40 p-4">
+              <p className={`${adminMutedTextClass} text-sm`}>현재 잔액</p>
+              <p className="text-2xl font-semibold tabular-nums">
+                {detail.creditBalance.toLocaleString("ko-KR")}C
+              </p>
+              <p className={`${adminMutedTextClass} mt-1 text-xs`}>
+                Gym BillingAccount wallet (Phase A). 대회 참가 과금은 협회
+                Organizer wallet에서 차감됩니다.
+              </p>
+            </div>
             {detail.associationLinks.length > 0 ? (
               <div className="space-y-2">
-                <p className="text-sm font-medium">연결된 협회 크레딧으로 이동</p>
+                <p className="text-sm font-medium">연결된 협회 크레딧</p>
                 <ul className="space-y-1">
                   {detail.associationLinks.map((a) => (
                     <li key={a.membershipId}>
@@ -285,14 +290,41 @@ export function AdminGymDetailView({
                   ))}
                 </ul>
               </div>
-            ) : (
-              <Link
-                href="/admin/credits"
-                className="inline-block font-semibold text-matchon-primary underline-offset-2 hover:underline"
-              >
-                전체 크레딧 관리
-              </Link>
-            )}
+            ) : null}
+            <div className="space-y-2">
+              <h3 className="text-sm font-semibold">최근 이력</h3>
+              {detail.creditLedgers.length === 0 ? (
+                <p className={adminMutedTextClass}>이력이 없습니다.</p>
+              ) : (
+                <ul className="divide-y rounded-lg border border-matchon-border">
+                  {detail.creditLedgers.map((l) => (
+                    <li
+                      key={l.id}
+                      className="flex flex-wrap items-start justify-between gap-2 px-3 py-2"
+                    >
+                      <div className="min-w-0">
+                        <p className="font-medium">
+                          {l.type} · {l.reason}
+                        </p>
+                        <p className={`${adminMutedTextClass} text-xs`}>
+                          {formatAdminDateTime(l.createdAt)}
+                        </p>
+                      </div>
+                      <p
+                        className={
+                          l.amount >= 0
+                            ? "tabular-nums text-emerald-700"
+                            : "tabular-nums text-rose-700"
+                        }
+                      >
+                        {l.amount >= 0 ? "+" : ""}
+                        {l.amount.toLocaleString("ko-KR")}C
+                      </p>
+                    </li>
+                  ))}
+                </ul>
+              )}
+            </div>
           </div>
         ) : null}
 

@@ -1,6 +1,12 @@
 import "server-only";
 
-import { CreditLedgerType, type Prisma } from "@/generated/prisma";
+import {
+  BillingLedgerType,
+  BillingReferenceType,
+  BillingServiceType,
+  CreditLedgerType,
+  type Prisma,
+} from "@/generated/prisma";
 import type { ActorContext } from "@/lib/auth/actor-context";
 import {
   creditsToKrw,
@@ -12,60 +18,31 @@ import { AppError } from "@/lib/errors/app-error";
 import { prisma } from "@/lib/prisma";
 import { requireRole } from "@/lib/permissions";
 import { creditRepository } from "@/lib/repositories/credit.repository";
+import { billingRepository } from "@/lib/repositories/billing.repository";
+import { billingCreditService } from "@/lib/services/billing-credit.service";
+import { ensureOrganizerBillingAccount } from "@/lib/billing/provision-billing-account";
 
 const INSUFFICIENT_MESSAGE =
   "크레딧이 부족하여 참가 승인을 할 수 없습니다. 크레딧을 충전해 주세요.";
 
-async function ensureWalletInTx(
-  organizerId: string,
-  tx: Parameters<typeof creditRepository.lockWalletByOrganizerId>[1],
-) {
-  let wallet = await creditRepository.lockWalletByOrganizerId(organizerId, tx);
-  if (!wallet) {
-    await creditRepository.createWallet(organizerId, tx);
-    wallet = await creditRepository.lockWalletByOrganizerId(organizerId, tx);
-  }
-  if (!wallet) {
-    throw new AppError("INTERNAL", "크레딧 지갑을 생성할 수 없습니다.");
-  }
-  return wallet;
+function approveIdempotencyKey(applicationId: string) {
+  return `event_application:${applicationId}:approve`;
 }
 
-async function applyLedgerDelta(
-  organizerId: string,
-  delta: number,
-  ledger: Omit<
-    Parameters<typeof creditRepository.createLedger>[0],
-    "walletId" | "organizerId" | "amount" | "balanceAfter"
-  >,
-  tx: Parameters<typeof creditRepository.lockWalletByOrganizerId>[1],
-) {
-  const wallet = await ensureWalletInTx(organizerId, tx);
-  const nextBalance = wallet.balance + delta;
-  if (nextBalance < 0) {
-    throw new AppError("CONFLICT", INSUFFICIENT_MESSAGE);
-  }
-
-  await creditRepository.updateWalletBalance(wallet.id, nextBalance, tx);
-  const row = await creditRepository.createLedger(
-    {
-      walletId: wallet.id,
-      organizerId,
-      amount: delta,
-      balanceAfter: nextBalance,
-      ...ledger,
-    },
-    tx,
-  );
-
-  return { walletId: wallet.id, ledgerId: row.id, balanceAfter: nextBalance };
+function refundIdempotencyKey(applicationId: string) {
+  return `event_application:${applicationId}:refund`;
 }
 
 export const creditService = {
   async getOrCreateOrganizerWallet(organizerId: string) {
-    const existing = await creditRepository.findWalletByOrganizerId(organizerId);
-    if (existing) return existing;
-    return creditRepository.createWallet(organizerId);
+    const account = await ensureOrganizerBillingAccount(organizerId);
+    return {
+      id: account.wallet!.id,
+      organizerId,
+      balance: account.wallet!.balance,
+      createdAt: account.wallet!.createdAt,
+      updatedAt: account.wallet!.updatedAt,
+    };
   },
 
   async getOrganizerCreditSummary(organizerId: string) {
@@ -80,7 +57,30 @@ export const creditService = {
   },
 
   async listCreditLedgers(organizerId: string, limit = 50) {
-    return creditRepository.listLedgersByOrganizerId(organizerId, limit);
+    const rows = await billingRepository.listLedgersByOrganizerId(
+      organizerId,
+      limit,
+    );
+    return rows.map((l) => ({
+      id: l.id,
+      type: l.type,
+      amount: l.amount,
+      balanceAfter: l.balanceAfter,
+      reason: l.reason,
+      memo:
+        l.metadata &&
+        typeof l.metadata === "object" &&
+        !Array.isArray(l.metadata) &&
+        "memo" in l.metadata
+          ? String((l.metadata as { memo?: unknown }).memo ?? "")
+          : null,
+      createdAt: l.createdAt,
+      eventId: null as string | null,
+      eventApplicationId:
+        l.referenceType === BillingReferenceType.event_application
+          ? l.referenceId
+          : null,
+    }));
   },
 
   async assertSufficientBalance(organizerId: string, amount: number) {
@@ -97,23 +97,7 @@ export const creditService = {
     actor: ActorContext;
   }) {
     requireRole(input.actor, ["admin"]);
-    if (input.amount <= 0) {
-      throw new AppError("VALIDATION_ERROR", "충전 크레딧은 1 이상이어야 합니다.");
-    }
-
-    return prisma.$transaction(async (tx) => {
-      return applyLedgerDelta(
-        input.organizerId,
-        input.amount,
-        {
-          type: CreditLedgerType.manual_charge,
-          reason: "관리자 수동 충전",
-          memo: input.memo?.trim() || null,
-          createdByUserId: input.actor.userId,
-        },
-        tx,
-      );
-    });
+    return billingCreditService.manualChargeOrganizer(input);
   },
 
   async debitParticipantFee(
@@ -146,36 +130,22 @@ export const creditService = {
         };
       }
 
-      const existingDebit = await creditRepository.findLedgerByApplicationAndType(
-        input.eventApplicationId,
-        CreditLedgerType.debit_participant,
-        tx,
-      );
-      if (existingDebit) {
-        await creditRepository.markApplicationCharged(
-          input.eventApplicationId,
-          {
-            creditChargedAt: existingDebit.createdAt,
-            creditChargeLedgerId: existingDebit.id,
-            creditChargeAmount: Math.abs(existingDebit.amount),
-          },
-          tx,
-        );
-        return { skipped: true as const, ledgerId: existingDebit.id };
-      }
-
-      const result = await applyLedgerDelta(
-        input.organizerId,
-        -fee,
-        {
-          type: CreditLedgerType.debit_participant,
-          reason: "참가 신청 승인 차감",
+      const result = await billingCreditService.debitOrganizer({
+        organizerId: input.organizerId,
+        amount: fee,
+        type: BillingLedgerType.usage,
+        serviceType: BillingServiceType.event,
+        reason: "참가 신청 승인 차감",
+        idempotencyKey: approveIdempotencyKey(input.eventApplicationId),
+        actorUserId: input.actor.userId,
+        referenceType: BillingReferenceType.event_application,
+        referenceId: input.eventApplicationId,
+        metadata: {
           eventId: input.eventId,
-          eventApplicationId: input.eventApplicationId,
-          createdByUserId: input.actor.userId,
+          legacyType: CreditLedgerType.debit_participant,
         },
-        tx,
-      );
+        existingTx: tx,
+      });
 
       await creditRepository.markApplicationCharged(
         input.eventApplicationId,
@@ -187,7 +157,7 @@ export const creditService = {
         tx,
       );
 
-      return { skipped: false as const, ...result };
+      return { skipped: result.skipped === true, ...result };
     };
 
     if (existingTx) return run(existingTx);
@@ -218,36 +188,22 @@ export const creditService = {
         return { skipped: true as const };
       }
 
-      const existingRefund = await creditRepository.findLedgerByApplicationAndType(
-        input.eventApplicationId,
-        CreditLedgerType.refund_participant,
-        tx,
-      );
-      if (existingRefund) {
-        await creditRepository.markApplicationRefunded(
-          input.eventApplicationId,
-          {
-            creditRefundedAt: existingRefund.createdAt,
-            creditRefundLedgerId: existingRefund.id,
-          },
-          tx,
-        );
-        return { skipped: true as const };
-      }
-
       const refundAmount = app.creditChargeAmount;
-      const result = await applyLedgerDelta(
-        input.organizerId,
-        refundAmount,
-        {
-          type: CreditLedgerType.refund_participant,
-          reason: "참가 승인 취소 환불",
+      const result = await billingCreditService.refundOrganizer({
+        organizerId: input.organizerId,
+        amount: refundAmount,
+        serviceType: BillingServiceType.event,
+        reason: "참가 승인 취소 환불",
+        idempotencyKey: refundIdempotencyKey(input.eventApplicationId),
+        actorUserId: input.actor.userId,
+        referenceType: BillingReferenceType.event_application,
+        referenceId: input.eventApplicationId,
+        metadata: {
           eventId: input.eventId,
-          eventApplicationId: input.eventApplicationId,
-          createdByUserId: input.actor.userId,
+          legacyType: CreditLedgerType.refund_participant,
         },
-        tx,
-      );
+        existingTx: tx,
+      });
 
       await creditRepository.markApplicationRefunded(
         input.eventApplicationId,
@@ -258,7 +214,7 @@ export const creditService = {
         tx,
       );
 
-      return { skipped: false as const, ...result };
+      return { skipped: result.skipped === true, ...result };
     };
 
     if (existingTx) return run(existingTx);

@@ -255,6 +255,9 @@ export const adminRepository = {
           },
         },
         creditWallet: { select: { balance: true } },
+        billingAccount: {
+          select: { wallet: { select: { balance: true } } },
+        },
         _count: {
           select: {
             associationMemberGyms: true,
@@ -340,6 +343,28 @@ export const adminRepository = {
             createdAt: true,
           },
         },
+        billingAccount: {
+          select: {
+            wallet: {
+              select: {
+                balance: true,
+                ledgers: {
+                  take: DETAIL_LEDGER_LIMIT,
+                  orderBy: [{ createdAt: "desc" }, { id: "desc" }],
+                  select: {
+                    id: true,
+                    type: true,
+                    amount: true,
+                    balanceAfter: true,
+                    reason: true,
+                    metadata: true,
+                    createdAt: true,
+                  },
+                },
+              },
+            },
+          },
+        },
         associationApplicationsCreated: {
           where: { deletedAt: null },
           orderBy: { submittedAt: "desc" },
@@ -388,6 +413,28 @@ export const adminRepository = {
             fighters: true,
             gymMembers: { where: { deletedAt: null } },
             associationMemberGyms: true,
+          },
+        },
+        billingAccount: {
+          select: {
+            wallet: {
+              select: {
+                balance: true,
+                ledgers: {
+                  take: DETAIL_LEDGER_LIMIT,
+                  orderBy: [{ createdAt: "desc" }, { id: "desc" }],
+                  select: {
+                    id: true,
+                    type: true,
+                    amount: true,
+                    balanceAfter: true,
+                    reason: true,
+                    metadata: true,
+                    createdAt: true,
+                  },
+                },
+              },
+            },
           },
         },
         associationMemberGyms: {

@@ -186,6 +186,8 @@ export type AdminGymDetailDTO = {
     associationLinkCount: number;
     eventParticipationCount: number;
   };
+  creditBalance: number;
+  creditLedgers: AdminOrganizationCreditLedgerDTO[];
   associationLinks: AdminGymAssociationLinkDTO[];
   eventParticipations: AdminGymEventParticipationDTO[];
   auditLogs: AdminAuditLogListItemDTO[];
