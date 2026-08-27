@@ -6,6 +6,7 @@ import { isMatchonDesktopRequest } from "@/lib/desktop/request";
 import type { OrganizerType } from "@/lib/enums";
 import type { GymPortalNavViewer } from "@/lib/navigation/gym-portal-navigation";
 import { getOrganizerGlobalNavGroups } from "@/lib/navigation/organizer-global-navigation";
+import { cn } from "@/lib/utils";
 
 export type DashboardRole = "organizer" | "gym" | "fighter" | "admin";
 
@@ -31,14 +32,29 @@ export async function DashboardShell({
   const isDesktop = await isMatchonDesktopRequest();
 
   return (
-    <div className="flex min-h-screen flex-col bg-matchon-surface md:flex-row">
+    <div
+      className={cn(
+        "flex bg-matchon-surface",
+        isDesktop
+          ? "min-h-full flex-row"
+          : "min-h-screen flex-col md:flex-row",
+      )}
+    >
       <Sidebar
-        className="hidden md:flex"
+        className={
+          isDesktop ? "flex shrink-0" : "hidden md:flex desktop:flex"
+        }
+        canvasScroll={isDesktop}
         role={role}
         organizerType={organizerType}
         gymNavViewer={gymNavViewer}
       />
-      <div className="flex min-w-0 flex-1 flex-col pb-16 md:pb-0">
+      <div
+        className={cn(
+          "flex flex-1 flex-col",
+          isDesktop ? "min-h-full pb-0" : "min-w-0 pb-16 md:pb-0 desktop:pb-0",
+        )}
+      >
         <Header
           variant="dashboard"
           role={role}
@@ -48,10 +64,17 @@ export async function DashboardShell({
           gymNavViewer={gymNavViewer}
           isDesktop={isDesktop}
         />
-        <main className="min-w-0 flex-1 overflow-x-clip">{children}</main>
+        <main
+          className={cn(
+            "flex-1",
+            isDesktop ? undefined : "min-w-0 overflow-x-clip",
+          )}
+        >
+          {children}
+        </main>
       </div>
       <MobileBottomNav
-        className="md:hidden"
+        className={isDesktop ? "hidden" : "md:hidden desktop:hidden"}
         role={role}
         gymNavViewer={gymNavViewer}
       />

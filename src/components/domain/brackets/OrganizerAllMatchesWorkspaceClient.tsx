@@ -191,7 +191,7 @@ export function OrganizerAllMatchesWorkspaceClient({
         </div>
       </div>
 
-      <div className="grid min-w-0 gap-4 lg:grid-cols-[minmax(0,1.6fr)_minmax(0,1.15fr)] lg:items-stretch lg:gap-5">
+      <div className="grid min-w-0 gap-4 lg:grid-cols-[minmax(0,1.6fr)_minmax(0,1.15fr)] lg:items-stretch lg:gap-5 desktop:grid-cols-[minmax(0,1.6fr)_minmax(0,1.15fr)] desktop:items-stretch desktop:gap-5">
         <div className="flex min-h-0 min-w-0 flex-col">
           <MatchListEditor
             key={data.syncKey}

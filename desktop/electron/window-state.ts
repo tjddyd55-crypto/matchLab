@@ -41,8 +41,8 @@ export function loadWindowState(): WindowState {
     if (!existsSync(path)) return { ...DEFAULT_STATE };
     const raw = JSON.parse(readFileSync(path, "utf8")) as Partial<WindowState>;
     const state: WindowState = {
-      width: Math.max(1100, Number(raw.width) || DEFAULT_STATE.width),
-      height: Math.max(700, Number(raw.height) || DEFAULT_STATE.height),
+      width: Math.max(800, Number(raw.width) || DEFAULT_STATE.width),
+      height: Math.max(600, Number(raw.height) || DEFAULT_STATE.height),
       x: typeof raw.x === "number" ? raw.x : undefined,
       y: typeof raw.y === "number" ? raw.y : undefined,
       maximized: Boolean(raw.maximized),

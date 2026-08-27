@@ -42,13 +42,15 @@ export function Header(props: HeaderProps) {
     <header className="border-b border-matchon-border bg-white px-4 py-3 md:px-6">
       <div className="flex flex-wrap items-center justify-between gap-3">
         <div className="flex min-w-0 items-center gap-3">
-          {props.role === "organizer" && props.organizerNavGroups ? (
+          {!isDesktop && props.role === "organizer" && props.organizerNavGroups ? (
             <OrganizerMobileNavSheet groups={props.organizerNavGroups} />
           ) : null}
-          {props.role === "gym" ? (
+          {!isDesktop && props.role === "gym" ? (
             <GymMobileNavSheet viewer={props.gymNavViewer ?? "owner"} />
           ) : null}
-          {props.role === "admin" ? <AdminMobileNavSheet /> : null}
+          {!isDesktop && props.role === "admin" ? (
+            <AdminMobileNavSheet />
+          ) : null}
           <MatchonLogo
             href={
               props.role === "organizer"
@@ -61,7 +63,7 @@ export function Header(props: HeaderProps) {
             }
             variant="light"
             size="sm"
-            className="shrink-0 md:hidden"
+            className="shrink-0 md:hidden desktop:hidden"
           />
           <div className="flex min-w-0 flex-col gap-0.5">
             <span className="text-sm font-semibold text-matchon-text-primary">

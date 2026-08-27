@@ -2,6 +2,9 @@ import type { Metadata } from "next";
 import { Geist, Geist_Mono } from "next/font/google";
 import { AppProviders } from "@/app/providers";
 import { BRAND_DESCRIPTION, BRAND_NAME } from "@/lib/brand";
+import { isMatchonDesktopRequest } from "@/lib/desktop/request";
+import { DESKTOP_APP_HTML_CLASS } from "@/lib/ui/desktop-app-layout";
+import { cn } from "@/lib/utils";
 import "./globals.css";
 
 const geistSans = Geist({
@@ -55,15 +58,20 @@ export const metadata: Metadata = {
   },
 };
 
-export default function RootLayout({
+export default async function RootLayout({
   children,
 }: Readonly<{
   children: React.ReactNode;
 }>) {
+  const isDesktop = await isMatchonDesktopRequest();
+
   return (
     <html
       lang="ko"
-      className={`${geistSans.variable} ${geistMono.variable} h-full antialiased`}
+      className={cn(
+        `${geistSans.variable} ${geistMono.variable} h-full antialiased`,
+        isDesktop && DESKTOP_APP_HTML_CLASS,
+      )}
     >
       <body className="min-h-full flex flex-col">
         <AppProviders>{children}</AppProviders>

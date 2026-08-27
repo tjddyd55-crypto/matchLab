@@ -5,10 +5,10 @@ import { matchonPageDescClass } from "@/lib/ui/matchon-layout";
 export const eventManagementPageBackgroundClass = "bg-[#F8FAFC]";
 
 export const eventManagementLayoutGridClass =
-  "grid min-h-[calc(100vh-var(--dashboard-header-height))] min-w-0 grid-cols-1 md:grid-cols-[var(--event-sidebar-width)_minmax(0,1fr)]";
+  "grid min-h-[calc(100vh-var(--dashboard-header-height))] min-w-0 grid-cols-1 md:grid-cols-[var(--event-sidebar-width)_minmax(0,1fr)] desktop:grid-cols-[var(--event-sidebar-width)_minmax(0,1fr)]";
 
 export const eventManagementSideNavAsideClass =
-  "hidden h-[calc(100vh-var(--dashboard-header-height))] shrink-0 flex-col border-r border-[#E2E8F0] bg-white md:sticky md:top-0 md:flex";
+  "hidden h-[calc(100vh-var(--dashboard-header-height))] shrink-0 flex-col border-r border-[#E2E8F0] bg-white md:sticky md:top-0 md:flex desktop:sticky desktop:top-0 desktop:flex";
 
 export const eventManagementSideNavScrollClass =
   "min-h-0 flex-1 overflow-y-auto overscroll-contain [-ms-overflow-style:none] [scrollbar-width:thin] [&::-webkit-scrollbar]:w-1.5 [&::-webkit-scrollbar-thumb]:rounded-full [&::-webkit-scrollbar-thumb]:bg-[#CBD5E1]";
@@ -42,7 +42,7 @@ export const eventManagementMainContentClass =
   "min-w-0 w-full space-y-5 px-[var(--dashboard-content-padding-x)] py-5 md:space-y-7 md:py-7";
 
 export const eventManagementMobileBarClass =
-  "flex items-center justify-between gap-3 border-b border-[#E2E8F0] bg-white px-4 py-3 md:hidden";
+  "flex items-center justify-between gap-3 border-b border-[#E2E8F0] bg-white px-4 py-3 md:hidden desktop:hidden";
 
 export const eventManagementChromeSurfaceClass = "bg-white";
 
