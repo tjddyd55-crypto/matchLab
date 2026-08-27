@@ -6,7 +6,7 @@ import { cn } from "@/lib/utils";
  * - PC 목록: max 1120px · 3열 · gap-6 · 카드 열 폭 약 320~350px
  */
 export const PUBLIC_CONTENT_CONTAINER_CLASS =
-  "mx-auto w-full max-w-[1120px] px-4 sm:px-6 lg:px-8";
+  "mx-auto w-full max-w-[1200px] px-4 sm:px-6 lg:px-8";
 
 /** 공개 대회 상세·하위 페이지(brackets/results/live) 상단 여백 */
 export const PUBLIC_EVENT_PAGE_SECTION_CLASS = "py-6 md:py-10";

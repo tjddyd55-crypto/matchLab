@@ -7,12 +7,7 @@ import { cn } from "@/lib/utils";
 export function PublicFooter() {
   return (
     <footer className="mt-auto bg-matchon-sidebar text-white">
-      <div
-        className={cn(
-          PUBLIC_CONTENT_CONTAINER_CLASS,
-          "py-10 md:py-12",
-        )}
-      >
+      <div className={cn(PUBLIC_CONTENT_CONTAINER_CLASS, "py-10 md:py-12")}>
         <div className="grid gap-10 md:grid-cols-3">
           <div className="space-y-3">
             <MatchonLogo variant="dark" size="sm" />
@@ -25,7 +20,19 @@ export function PublicFooter() {
             <p className="text-[11px] font-extrabold uppercase tracking-[0.66px] text-white/35">
               서비스
             </p>
-            <nav className="flex flex-col gap-2">
+            <nav className="flex flex-col gap-2" aria-label="푸터 서비스">
+              <Link
+                href="/#features"
+                className="text-[13px] font-semibold text-white/50 transition-colors hover:text-white/70"
+              >
+                기능 소개
+              </Link>
+              <Link
+                href="/#manager"
+                className="text-[13px] font-semibold text-white/50 transition-colors hover:text-white/70"
+              >
+                MATCHON Manager
+              </Link>
               <Link
                 href="/events"
                 className="text-[13px] font-semibold text-white/50 transition-colors hover:text-white/70"
@@ -33,16 +40,16 @@ export function PublicFooter() {
                 대회 공고
               </Link>
               <Link
-                href="/#download"
+                href="/join"
                 className="text-[13px] font-semibold text-white/50 transition-colors hover:text-white/70"
               >
-                프로그램 다운로드
+                회원가입
               </Link>
               <Link
-                href="/fighter/profile"
+                href="/login"
                 className="text-[13px] font-semibold text-white/50 transition-colors hover:text-white/70"
               >
-                선수 프로필
+                로그인
               </Link>
             </nav>
           </div>
@@ -60,7 +67,7 @@ export function PublicFooter() {
 
         <div className="mt-10 flex flex-col gap-2 border-t border-white/8 pt-5 text-xs text-white/35 sm:flex-row sm:items-center sm:justify-between">
           <p>© {new Date().getFullYear()} MATCHON. All rights reserved.</p>
-          <p>격투기 대회 운영 SaaS</p>
+          <p>격투기 대회 운영 플랫폼</p>
         </div>
       </div>
     </footer>

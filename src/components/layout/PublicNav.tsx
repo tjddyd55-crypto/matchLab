@@ -5,7 +5,7 @@ import { buttonVariants } from "@/components/ui/button";
 import { cn } from "@/lib/utils";
 
 /**
- * 공개 헤더 SSOT — 로그인 + 회원가입.
+ * 공개 헤더 SSOT — 서비스 소개 앵커 + 로그인/시작.
  * 운영용 judge 경로는 public 헤더에 노출하지 않는다.
  */
 export function PublicNav() {
@@ -14,12 +14,27 @@ export function PublicNav() {
       <div
         className={cn(
           PUBLIC_CONTENT_CONTAINER_CLASS,
-          "flex h-[60px] items-center justify-between gap-4 py-0",
+          "flex h-16 items-center justify-between gap-4 py-0 md:h-[68px]",
         )}
       >
         <MatchonLogo href="/" variant="light" size="md" />
 
-        <nav className="hidden items-center md:flex">
+        <nav
+          className="hidden items-center gap-1 md:flex"
+          aria-label="주요 메뉴"
+        >
+          <Link
+            href="/#features"
+            className="rounded-lg px-3.5 py-1.5 text-sm font-medium text-matchon-text-secondary transition-colors hover:text-matchon-text-primary"
+          >
+            기능 소개
+          </Link>
+          <Link
+            href="/#manager"
+            className="rounded-lg px-3.5 py-1.5 text-sm font-medium text-matchon-text-secondary transition-colors hover:text-matchon-text-primary"
+          >
+            MATCHON Manager
+          </Link>
           <Link
             href="/events"
             className="rounded-lg px-3.5 py-1.5 text-sm font-medium text-matchon-text-secondary transition-colors hover:text-matchon-text-primary"
@@ -39,13 +54,13 @@ export function PublicNav() {
             로그인
           </Link>
           <Link
-            href="/join"
+            href="/login"
             className={cn(
               buttonVariants({ variant: "default", size: "sm" }),
               "text-xs font-bold",
             )}
           >
-            회원가입
+            시작하기
           </Link>
         </div>
       </div>

@@ -1,6 +1,7 @@
 /**
  * 홈 MATCHON Manager 다운로드 SSOT
  *   npm run verify:public-home-manager-download
+ *   npm run verify:landing-desktop-download
  */
 import assert from "node:assert/strict";
 import { readFileSync } from "node:fs";
@@ -25,6 +26,8 @@ function main() {
   );
   assert.ok(page.includes("PublicHomeManagerDownloadSection"));
   assert.ok(page.includes("getMatchonManagerDownloadInfo"));
+  assert.ok(page.includes("PublicHomeHero"));
+  assert.ok(page.includes("PublicHomeFeaturesSection"));
 
   const section = readFileSync(
     join(
@@ -33,17 +36,30 @@ function main() {
     ),
     "utf8",
   );
-  assert.ok(section.includes('id="download"'));
-  assert.ok(section.includes("Windows용 다운로드"));
+  assert.ok(section.includes('id="manager"'));
+  assert.ok(section.includes("Windows용 MATCHON Manager 다운로드"));
+  assert.ok(section.includes("PublicManagerDownloadButton"));
+
+  const button = readFileSync(
+    join(
+      process.cwd(),
+      "src/components/domain/events/public/PublicManagerDownloadButton.tsx",
+    ),
+    "utf8",
+  );
+  assert.ok(button.includes("download.downloadUrl"));
+  assert.ok(button.includes("download.fileName"));
+  assert.equal(button.includes('href="/login"'), false);
 
   const footer = readFileSync(
     join(process.cwd(), "src/components/layout/PublicFooter.tsx"),
     "utf8",
   );
-  assert.ok(footer.includes("/#download"));
-  assert.ok(footer.includes("프로그램 다운로드"));
+  assert.ok(footer.includes("/#manager"));
+  assert.ok(footer.includes("MATCHON Manager"));
 
   console.log("verify:public-home-manager-download OK");
+  console.log("verify:landing-desktop-download OK");
   console.log(JSON.stringify(info, null, 2));
 }
 

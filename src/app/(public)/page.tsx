@@ -1,43 +1,54 @@
-import { PublicHomeEventsSection } from "@/components/domain/events/public/PublicHomeEventsSection";
-import { PublicHomeHeroDesktop } from "@/components/domain/events/public/PublicHomeHeroDesktop";
-import { PublicHomeHeroMobile } from "@/components/domain/events/public/PublicHomeHeroMobile";
+import type { Metadata } from "next";
+import { PublicHomeFeaturesSection } from "@/components/domain/events/public/PublicHomeFeaturesSection";
+import { PublicHomeHero } from "@/components/domain/events/public/PublicHomeHero";
 import { PublicHomeHowItWorksSection } from "@/components/domain/events/public/PublicHomeHowItWorksSection";
 import { PublicHomeManagerDownloadSection } from "@/components/domain/events/public/PublicHomeManagerDownloadSection";
 import { PublicHomeOrganizerCtaSection } from "@/components/domain/events/public/PublicHomeOrganizerCtaSection";
 import { PublicHomePartnersSection } from "@/components/domain/events/public/PublicHomePartnersSection";
-import { PublicHomeStatsSection } from "@/components/domain/events/public/PublicHomeStatsSection";
-import { getMatchonManagerDownloadInfo } from "@/lib/desktop/manager-download";
-import { eventService } from "@/lib/services/event.service";
+import {
+  getMatchonManagerDownloadInfo,
+  type MatchonManagerDownloadInfo,
+} from "@/lib/desktop/manager-download";
+import { BRAND_NAME } from "@/lib/brand";
 import { publicPartnerService } from "@/lib/services/public-partner.service";
 
 export const dynamic = "force-dynamic";
 
+export const metadata: Metadata = {
+  title: {
+    absolute: `${BRAND_NAME} | 격투기 대회 운영 플랫폼`,
+  },
+  description:
+    "참가 신청부터 대진 편성, 경기 운영과 결과 관리까지 MATCHON에서 한 번에 관리하세요.",
+  openGraph: {
+    title: `${BRAND_NAME} | 격투기 대회 운영 플랫폼`,
+    description:
+      "참가 신청부터 대진 편성, 경기 운영과 결과 관리까지 MATCHON에서 한 번에 관리하세요.",
+  },
+};
+
+function safeManagerDownload(): MatchonManagerDownloadInfo | null {
+  try {
+    return getMatchonManagerDownloadInfo();
+  } catch {
+    return null;
+  }
+}
+
 export default async function PublicHomePage() {
-  const [events, partners] = await Promise.all([
-    eventService.listPublicEvents(),
+  const [managerDownload, partners] = await Promise.all([
+    Promise.resolve(safeManagerDownload()),
     publicPartnerService.listActivePublicPartnerLogos(),
   ]);
-  const featured = events
-    .filter(
-      (e) =>
-        e.registrationStatus === "open" ||
-        e.status === "open" ||
-        e.status === "ongoing" ||
-        e.status === "bracket_ready",
-    )
-    .slice(0, 6);
-  const managerDownload = getMatchonManagerDownloadInfo();
 
   return (
     <div className="flex flex-col">
-      <PublicHomeHeroDesktop />
-      <PublicHomeHeroMobile />
-      <PublicHomeStatsSection />
-      <PublicHomeEventsSection events={featured} />
+      <PublicHomeHero download={managerDownload} />
+      <PublicHomeFeaturesSection />
       <PublicHomeHowItWorksSection />
-      <PublicHomeOrganizerCtaSection />
-      <PublicHomePartnersSection partners={partners} />
       <PublicHomeManagerDownloadSection download={managerDownload} />
+      <PublicHomePartnersSection partners={partners} />
+      <PublicHomeOrganizerCtaSection download={managerDownload} />
     </div>
   );
 }

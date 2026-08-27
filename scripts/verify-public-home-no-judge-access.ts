@@ -31,8 +31,7 @@ function main() {
   assert.equal(nav.includes("/judge/login"), false);
   assert.equal(nav.includes("심판"), false);
   assert.ok(nav.includes('href="/login"'));
-  assert.ok(nav.includes('href="/join"'));
-  assert.ok(nav.includes("회원가입"));
+  assert.ok(nav.includes("시작하기") || nav.includes("로그인"));
 
   const judgeLogin = read("src/app/(judge)/judge/login/page.tsx");
   assert.ok(judgeLogin.length > 0, "judge login route must remain");
