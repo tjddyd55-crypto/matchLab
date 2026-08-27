@@ -148,7 +148,7 @@ export function OrganizerMatchesBoard({
         </div>
       </div>
 
-      <div className={cn(organizerBracketTableWrapClass, "hidden xl:block")}>
+      <div className={cn(organizerBracketTableWrapClass, "hidden xl:block desktop:block")}>
         <table className="w-full min-w-[1100px] text-left text-sm">
           <thead className={cn(listTableHeaderRowClass, "text-xs uppercase")}>
             <tr>

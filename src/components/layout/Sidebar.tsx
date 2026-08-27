@@ -40,14 +40,20 @@ export function Sidebar({
   organizerType,
   gymNavViewer = "owner",
   className,
+  canvasScroll = false,
 }: {
   role: DashboardRole;
   organizerType?: OrganizerType | null;
   gymNavViewer?: GymPortalNavViewer;
   className?: string;
+  canvasScroll?: boolean;
 }) {
   return (
-    <SidebarShell ariaLabel={sidebarAriaLabel(role)} className={className}>
+    <SidebarShell
+      ariaLabel={sidebarAriaLabel(role)}
+      className={className}
+      canvasScroll={canvasScroll}
+    >
       <SidebarBrand homeHref={dashboardHomePath(role)} />
       {role === "organizer" ? (
         <OrganizerSidebarNav

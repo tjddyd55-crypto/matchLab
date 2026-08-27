@@ -155,7 +155,7 @@ export function BracketMatchCard({
         />
       </div>
 
-      <div className="grid grid-cols-1 md:grid-cols-[minmax(0,1fr)_auto_minmax(0,1fr)] md:items-center">
+      <div className="grid grid-cols-1 md:grid-cols-[minmax(0,1fr)_auto_minmax(0,1fr)] md:items-center desktop:grid-cols-[minmax(0,1fr)_auto_minmax(0,1fr)] desktop:items-center">
         <FighterSlotCard
           cornerLabel="홍코너"
           fighter={match.fighterRed}

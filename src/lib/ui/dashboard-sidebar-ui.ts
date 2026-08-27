@@ -15,6 +15,10 @@ export const dashboardSidebarSpacerClass =
 export const dashboardSidebarAsideClass =
   "fixed top-0 left-0 z-20 hidden h-dvh max-h-dvh w-[var(--global-sidebar-width)] flex-col overflow-hidden border-r border-white/8 bg-matchon-sidebar px-3 py-4 md:flex";
 
+/** Desktop canvas scroll — in-flow sticky sidebar (viewport fixed 금지). */
+export const dashboardSidebarAsideCanvasClass =
+  "sticky top-0 z-20 flex h-auto min-h-full w-[var(--global-sidebar-width)] shrink-0 flex-col self-start overflow-hidden border-r border-white/8 bg-matchon-sidebar px-3 py-4";
+
 export const dashboardSidebarBrandClass = "mb-4 shrink-0 px-2";
 
 export const dashboardSidebarNavClass =
