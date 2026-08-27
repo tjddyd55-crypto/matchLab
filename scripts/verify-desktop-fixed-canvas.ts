@@ -26,9 +26,15 @@ function testDesktopDetectionReuse() {
 function testScrollShell() {
   const globals = read("src/app/globals.css");
   assert.match(globals, /--desktop-app-min-width:\s*1440px/, "min width token");
-  assert.match(globals, /\.desktop-app-viewport/, "viewport scroll owner");
-  assert.match(globals, /\.desktop-app-canvas/, "canvas min size");
-  assert.match(globals, /overflow:\s*auto/, "viewport overflow auto");
+  assert.match(globals, /--desktop-main-min-width:\s*1216px/, "main min width");
+  assert.match(globals, /html\.desktop-app \.desktop-app-viewport/, "viewport scroll owner");
+  assert.match(globals, /html\.desktop-app \.desktop-app-canvas/, "canvas under desktop-app");
+  assert.match(
+    globals,
+    /width:\s*max\(100%,\s*var\(--desktop-app-min-width\)\)/,
+    "canvas width never below min",
+  );
+  assert.match(globals, /overflow-x:\s*auto/, "viewport overflow-x auto");
   assert.doesNotMatch(
     globals,
     /transform:\s*scale|zoom:/,
@@ -38,14 +44,16 @@ function testScrollShell() {
   const appShell = read("src/components/layout/AppShell.tsx");
   assert.match(appShell, /desktopAppViewportClass/, "AppShell viewport");
   assert.match(appShell, /desktopAppCanvasClass/, "AppShell canvas");
+  assert.match(appShell, /data-desktop-app-viewport/, "viewport data attr");
   assert.match(appShell, /isMatchonDesktopRequest/, "desktop gate");
 }
 
 function testDashboardDesktopLayout() {
   const shell = read("src/components/layout/DashboardShell.tsx");
   assert.match(shell, /canvasScroll=\{isDesktop\}/, "sidebar canvas mode");
-  assert.match(shell, /min-h-full flex-row/, "desktop row layout");
+  assert.match(shell, /flex-row flex-nowrap/, "desktop row layout");
   assert.match(shell, /desktop:hidden/, "hide mobile bottom nav");
+  assert.match(shell, /desktopAppMainClass/, "desktop main min width");
 
   const header = read("src/components/layout/Header.tsx");
   assert.match(header, /!isDesktop && props\.role === "organizer"/, "no mobile sheet on desktop");
@@ -53,6 +61,8 @@ function testDashboardDesktopLayout() {
   const sidebarUi = read("src/lib/ui/dashboard-sidebar-ui.ts");
   assert.match(sidebarUi, /dashboardSidebarAsideCanvasClass/, "in-flow sidebar");
   assert.match(sidebarUi, /shrink-0/, "sidebar no shrink");
+  const canvasAside = sidebarUi.split("dashboardSidebarAsideCanvasClass")[1]!.slice(0, 500);
+  assert.doesNotMatch(canvasAside, /sticky/, "canvas sidebar not sticky");
 
   const sidebarShell = read("src/components/layout/dashboard-sidebar/SidebarShell.tsx");
   assert.match(sidebarShell, /canvasScroll/, "canvas scroll branch");
@@ -65,10 +75,11 @@ function testResponsiveOverrideScope() {
   const workspace = read(
     "src/components/domain/brackets/OrganizerAllMatchesWorkspaceClient.tsx",
   );
-  assert.match(workspace, /desktop:grid-cols-\[minmax\(0,1\.6fr\)_minmax\(0,1\.15fr\)\]/, "workspace desktop grid");
+  assert.match(workspace, /desktop:grid-cols-\[minmax\(560px,1\.6fr\)_minmax\(400px,1\.15fr\)\]/, "workspace desktop grid");
 
   const eventUi = read("src/lib/ui/event-management-ui.ts");
-  assert.match(eventUi, /desktop:grid-cols-\[var\(--event-sidebar-width\)_minmax\(0,1fr\)\]/, "event nav desktop grid");
+  assert.match(eventUi, /desktop:min-w-\[var\(--desktop-main-min-width\)\]/, "event layout desktop min");
+  assert.match(eventUi, /minmax\(var\(--desktop-content-min-width\),1fr\)/, "event content min");
   assert.match(eventUi, /desktop:hidden/, "hide event mobile bar");
 }
 

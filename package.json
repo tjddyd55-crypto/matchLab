@@ -492,6 +492,8 @@
     "verify:desktop-fixed-canvas": "tsx scripts/verify-desktop-fixed-canvas.ts",
     "verify:desktop-no-responsive-collapse": "tsx scripts/verify-desktop-fixed-canvas.ts",
     "verify:desktop-scroll-shell": "tsx scripts/verify-desktop-fixed-canvas.ts",
+    "verify:desktop-global-horizontal-scroll": "tsx scripts/verify-desktop-global-horizontal-scroll.ts",
+    "verify:desktop-canvas-no-shrink": "tsx scripts/verify-desktop-global-horizontal-scroll.ts",
     "verify:schedule-hydration": "tsx scripts/verify-gym-schedule.ts board-ux",
     "verify:schedule-now-line-hydration": "tsx scripts/verify-gym-schedule.ts board-ux",
     "verify:schedule-responsive-hydration": "tsx scripts/verify-gym-schedule.ts board-ux",

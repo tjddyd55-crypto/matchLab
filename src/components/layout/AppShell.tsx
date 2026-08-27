@@ -11,12 +11,16 @@ export async function AppShell({ children }: { children: ReactNode }) {
 
   if (isDesktop) {
     return (
-      <div className={desktopAppViewportClass}>
+      <div
+        className={desktopAppViewportClass}
+        data-desktop-app-viewport=""
+      >
         <div
           className={cn(
             desktopAppCanvasClass,
             "flex min-h-full flex-col bg-background text-foreground",
           )}
+          data-desktop-app-canvas=""
         >
           {children}
         </div>
