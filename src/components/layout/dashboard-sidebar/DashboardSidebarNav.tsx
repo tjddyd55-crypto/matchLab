@@ -144,6 +144,58 @@ export function SidebarSection({
   );
 }
 
+function SidebarNestedBranch({
+  branchId,
+  label,
+  items,
+  isItemActive,
+  density,
+  onNavigate,
+  pathname,
+}: {
+  branchId: string;
+  label: string;
+  items: { href: string; label: string }[];
+  isItemActive: (href: string, pathname: string) => boolean;
+  density: DashboardSidebarDensity;
+  onNavigate?: () => void;
+  pathname: string;
+}) {
+  const branchActive = items.some((item) => isItemActive(item.href, pathname));
+
+  return (
+    <li
+      data-nav-branch={branchId}
+      data-nav-branch-open={branchActive ? "true" : "false"}
+    >
+      <div
+        className={cn(
+          "flex items-center px-3 text-[12px] font-semibold",
+          itemHeightClass(density),
+          branchActive ? "text-white" : "text-slate-400",
+        )}
+        title={label}
+      >
+        <span className="min-w-0 truncate">{label}</span>
+      </div>
+      <ul className="mb-1 ml-2 space-y-0.5 border-l border-white/10 pl-2">
+        {items.map((item) => (
+          <li key={`${branchId}-${item.href}`}>
+            <SidebarNavItem
+              href={item.href}
+              label={item.label}
+              active={isItemActive(item.href, pathname)}
+              density={density}
+              level="item"
+              onNavigate={onNavigate}
+            />
+          </li>
+        ))}
+      </ul>
+    </li>
+  );
+}
+
 export function DashboardSidebarNav({
   groups,
   isItemActive,
@@ -209,6 +261,18 @@ export function DashboardSidebarNav({
                     onNavigate={onNavigate}
                   />
                 </li>
+              ))}
+              {(group.branches ?? []).map((branch) => (
+                <SidebarNestedBranch
+                  key={`${group.id}-${branch.id}`}
+                  branchId={branch.id}
+                  label={branch.label}
+                  items={branch.items}
+                  isItemActive={isItemActive}
+                  density={density}
+                  onNavigate={onNavigate}
+                  pathname={pathname}
+                />
               ))}
             </SidebarSectionItems>
           </SidebarSection>

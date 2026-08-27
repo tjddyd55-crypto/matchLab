@@ -8,7 +8,10 @@ import { LogoutButton } from "@/components/domain/auth/LogoutButton";
 import { DesktopHeaderVersion } from "@/components/domain/desktop/DesktopHeaderVersion";
 import { DesktopUpdateStatusButton } from "@/components/domain/desktop/DesktopUpdateStatusButton";
 import { NotificationBell } from "@/components/domain/notifications/NotificationBell";
-import type { GymPortalNavViewer } from "@/lib/navigation/gym-portal-navigation";
+import type {
+  GymPortalAssociationNavInput,
+  GymPortalNavViewer,
+} from "@/lib/navigation/gym-portal-navigation";
 import type { OrganizerGlobalNavGroup } from "@/lib/navigation/organizer-global-navigation";
 
 type HeaderProps =
@@ -21,6 +24,7 @@ type HeaderProps =
       organizerNavGroups?: OrganizerGlobalNavGroup[];
       /** 체육관 포털은 관장/선생님이 서로 다른 메뉴를 본다. */
       gymNavViewer?: GymPortalNavViewer;
+      gymAssociations?: GymPortalAssociationNavInput[];
       /** MATCHON Manager — 공개 홈 숨김 등 UI만 분기 (권한 아님). */
       isDesktop?: boolean;
     };
@@ -46,7 +50,10 @@ export function Header(props: HeaderProps) {
             <OrganizerMobileNavSheet groups={props.organizerNavGroups} />
           ) : null}
           {!isDesktop && props.role === "gym" ? (
-            <GymMobileNavSheet viewer={props.gymNavViewer ?? "owner"} />
+            <GymMobileNavSheet
+              viewer={props.gymNavViewer ?? "owner"}
+              associations={props.gymAssociations ?? []}
+            />
           ) : null}
           {!isDesktop && props.role === "admin" ? (
             <AdminMobileNavSheet />

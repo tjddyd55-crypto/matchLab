@@ -13,6 +13,7 @@ import { getAdminHomePaths } from "@/lib/navigation/admin-navigation";
 import { getFighterHomePaths } from "@/lib/navigation/fighter-navigation";
 import {
   getGymPortalNavGroups,
+  type GymPortalAssociationNavInput,
   type GymPortalNavViewer,
 } from "@/lib/navigation/gym-portal-navigation";
 import { getOrganizerGlobalNavGroups } from "@/lib/navigation/organizer-global-navigation";
@@ -39,12 +40,14 @@ export function Sidebar({
   role,
   organizerType,
   gymNavViewer = "owner",
+  gymAssociations = [],
   className,
   canvasScroll = false,
 }: {
   role: DashboardRole;
   organizerType?: OrganizerType | null;
   gymNavViewer?: GymPortalNavViewer;
+  gymAssociations?: GymPortalAssociationNavInput[];
   className?: string;
   canvasScroll?: boolean;
 }) {
@@ -62,7 +65,7 @@ export function Sidebar({
       ) : role === "gym" ? (
         <GymPortalNavGroups
           density="desktop"
-          groups={getGymPortalNavGroups(gymNavViewer)}
+          groups={getGymPortalNavGroups(gymNavViewer, gymAssociations)}
         />
       ) : role === "admin" ? (
         <SidebarNav />
