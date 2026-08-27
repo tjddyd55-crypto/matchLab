@@ -5,16 +5,19 @@ import { Menu, X } from "lucide-react";
 import { GymPortalNavGroups } from "@/components/layout/GymPortalNavGroups";
 import {
   getGymPortalNavGroups,
+  type GymPortalAssociationNavInput,
   type GymPortalNavViewer,
 } from "@/lib/navigation/gym-portal-navigation";
 
 export function GymMobileNavSheet({
   viewer = "owner",
+  associations = [],
 }: {
   viewer?: GymPortalNavViewer;
+  associations?: GymPortalAssociationNavInput[];
 }) {
   const [open, setOpen] = useState(false);
-  const groups = getGymPortalNavGroups(viewer);
+  const groups = getGymPortalNavGroups(viewer, associations);
 
   return (
     <>

@@ -6,6 +6,7 @@ import { DashboardShell } from "@/components/layout/DashboardShell";
 import { redirectUnlessDashboardRole, requireActor } from "@/lib/auth/actor";
 import { GymStatus } from "@/lib/enums";
 import { resolveGymPortalAccess } from "@/lib/gym-portal-access";
+import { associationNoticeService } from "@/lib/services/association-notice.service";
 
 export default async function GymDashboardLayout({
   children,
@@ -27,6 +28,18 @@ export default async function GymDashboardLayout({
     }
   } catch {
     access = null;
+  }
+
+  let gymAssociations: Awaited<
+    ReturnType<typeof associationNoticeService.listActiveAssociationsForGymNav>
+  > = [];
+  if (access?.canEnterPortal && access.canRead && !mustChangePassword) {
+    try {
+      gymAssociations =
+        await associationNoticeService.listActiveAssociationsForGymNav(actor);
+    } catch {
+      gymAssociations = [];
+    }
   }
 
   if (access && !access.canEnterPortal) {
@@ -67,6 +80,7 @@ export default async function GymDashboardLayout({
         actorUserId={actor.userId}
         actorEmail={actor.email || ""}
         gymNavViewer={gymNavViewer}
+        gymAssociations={gymAssociations}
       >
         <GymStaffPasswordChangeGate mustChangePassword={mustChangePassword}>
           {access && !mustChangePassword ? (

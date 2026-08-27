@@ -5,6 +5,7 @@ import { Sidebar } from "@/components/layout/Sidebar";
 import { isMatchonDesktopRequest } from "@/lib/desktop/request";
 import type { OrganizerType } from "@/lib/enums";
 import type { GymPortalNavViewer } from "@/lib/navigation/gym-portal-navigation";
+import type { GymPortalAssociationNavInput } from "@/lib/navigation/gym-portal-navigation";
 import { getOrganizerGlobalNavGroups } from "@/lib/navigation/organizer-global-navigation";
 import { desktopAppMainClass } from "@/lib/ui/desktop-app-layout";
 import { cn } from "@/lib/utils";
@@ -17,6 +18,7 @@ export async function DashboardShell({
   actorEmail,
   organizerType,
   gymNavViewer = "owner",
+  gymAssociations = [],
   children,
 }: {
   role: DashboardRole;
@@ -24,6 +26,7 @@ export async function DashboardShell({
   actorEmail: string;
   organizerType?: OrganizerType | null;
   gymNavViewer?: GymPortalNavViewer;
+  gymAssociations?: GymPortalAssociationNavInput[];
   children: ReactNode;
 }) {
   const organizerNavGroups =
@@ -49,6 +52,7 @@ export async function DashboardShell({
         role={role}
         organizerType={organizerType}
         gymNavViewer={gymNavViewer}
+        gymAssociations={gymAssociations}
       />
       <div
         className={cn(
@@ -65,6 +69,7 @@ export async function DashboardShell({
           actorEmail={actorEmail}
           organizerNavGroups={organizerNavGroups}
           gymNavViewer={gymNavViewer}
+          gymAssociations={gymAssociations}
           isDesktop={isDesktop}
         />
         <main

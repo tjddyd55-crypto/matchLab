@@ -9,17 +9,30 @@ export type GymPortalNavItem = {
   label: string;
 };
 
+export type GymPortalNavBranch = {
+  id: string;
+  label: string;
+  items: GymPortalNavItem[];
+};
+
 export type GymPortalNavGroup = {
   id: string;
   /** null이면 섹션 헤더 없이 items만 렌더 */
   label: string | null;
   items: GymPortalNavItem[];
+  branches?: GymPortalNavBranch[];
 };
 
 export type GymPortalNavViewer = "owner" | "staff";
 
+export type GymPortalAssociationNavInput = {
+  associationId: string;
+  name: string;
+};
+
 export function getGymPortalNavGroups(
   viewer: GymPortalNavViewer = "owner",
+  associations: GymPortalAssociationNavInput[] = [],
 ): GymPortalNavGroup[] {
   const groups: GymPortalNavGroup[] = [
     {
@@ -102,16 +115,37 @@ export function getGymPortalNavGroups(
           { href: "/gym/brackets", label: "대진표 확인" },
         ],
       },
-      {
-        id: "profile",
-        label: "체육관",
-        items: [
-          { href: "/gym/profile", label: "체육관 정보" },
-          { href: "/gym/associations", label: "가입 협회" },
-          { href: "/gym/member-portal", label: "회원 전용 페이지" },
-        ],
-      },
     );
+  }
+
+  if (associations.length > 0) {
+    groups.push({
+      id: "associations",
+      label: "협회",
+      items: [],
+      branches: associations.map((a) => ({
+        id: a.associationId,
+        label: a.name,
+        items: [
+          {
+            href: `/gym/associations/${a.associationId}/notices`,
+            label: "공지사항",
+          },
+        ],
+      })),
+    });
+  }
+
+  if (viewer === "owner") {
+    groups.push({
+      id: "profile",
+      label: "체육관",
+      items: [
+        { href: "/gym/profile", label: "체육관 정보" },
+        { href: "/gym/associations", label: "가입 협회" },
+        { href: "/gym/member-portal", label: "회원 전용 페이지" },
+      ],
+    });
   }
 
   return groups;
@@ -120,8 +154,12 @@ export function getGymPortalNavGroups(
 /** 평탄화 — 검증·시트용 */
 export function getGymPortalNavItems(
   viewer: GymPortalNavViewer = "owner",
+  associations: GymPortalAssociationNavInput[] = [],
 ): GymPortalNavItem[] {
-  return getGymPortalNavGroups(viewer).flatMap((g) => g.items);
+  return getGymPortalNavGroups(viewer, associations).flatMap((g) => [
+    ...g.items,
+    ...(g.branches?.flatMap((b) => b.items) ?? []),
+  ]);
 }
 
 /**
@@ -260,5 +298,25 @@ export function isGymPortalNavItemActive(
       pathname === "/gym/products" || pathname.startsWith("/gym/products/")
     );
   }
+  if (href === "/gym/associations") {
+    return (
+      pathname === "/gym/associations" ||
+      (pathname.startsWith("/gym/associations/") &&
+        !pathname.includes("/notices"))
+    );
+  }
+  if (/^\/gym\/associations\/[^/]+\/notices$/.test(href)) {
+    return pathname === href || pathname.startsWith(`${href}/`);
+  }
   return pathname === href || pathname.startsWith(`${href}/`);
+}
+
+export function isGymAssociationBranchOpen(
+  associationId: string,
+  pathname: string,
+): boolean {
+  return (
+    pathname === `/gym/associations/${associationId}/notices` ||
+    pathname.startsWith(`/gym/associations/${associationId}/notices/`)
+  );
 }

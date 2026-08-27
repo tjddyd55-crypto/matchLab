@@ -53,6 +53,7 @@ export function getOrganizerGlobalNavGroups(input: {
         },
         { href: "/organizer/member-gyms", label: "회원사 목록" },
         { href: "/organizer/member-gyms/settings", label: "환경 설정" },
+        { href: "/organizer/notices", label: "공지사항" },
       ],
     });
   }
@@ -109,6 +110,12 @@ export function isOrganizerGlobalNavItemActive(
         !pathname.startsWith("/organizer/member-gyms/applications") &&
         !pathname.startsWith("/organizer/member-gyms/connection-requests") &&
         !pathname.startsWith("/organizer/member-gyms/settings"))
+    );
+  }
+  if (href === "/organizer/notices") {
+    return (
+      pathname === "/organizer/notices" ||
+      pathname.startsWith("/organizer/notices/")
     );
   }
   return pathname === href || pathname.startsWith(`${href}/`);

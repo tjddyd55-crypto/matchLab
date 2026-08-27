@@ -622,6 +622,7 @@ model User {
   associationJoinLinkAttachmentsUploaded AssociationJoinLinkAttachment[]         @relation("JoinLinkAttachmentUploader")
   associationMemberGymApplicationsCreated AssociationMemberGymApplication[]      @relation("MemberGymApplicationCreator")
   associationMemberGymOwnerInvitesCreated AssociationMemberGym[]                  @relation("MemberGymOwnerInviteCreator")
+  associationNoticesCreated               AssociationNotice[]                     @relation("AssociationNoticeCreator")
   associationApplicationsReviewed         AssociationApplication[]               @relation("AssociationApplicationReviewer")
   gymApplicationsReviewed                 GymApplication[]                       @relation("GymApplicationReviewer")
   associationGymConnectionRequestsReviewed AssociationGymConnectionRequest[]     @relation("AssociationGymConnectionReviewer")
@@ -683,6 +684,7 @@ model Organizer {
   associationMemberGymApplications AssociationMemberGymApplication[]
   associationMemberGyms            AssociationMemberGym[]
   associationMemberGymSettings     AssociationMemberGymSettings?
+  associationNotices               AssociationNotice[]
   associationApplicationsCreated   AssociationApplication[] @relation("AssociationApplicationCreatedOrganizer")
   associationGymConnectionRequests AssociationGymConnectionRequest[]
   eventExternalRegistrationLinks   EventExternalRegistrationLink[]
@@ -3092,6 +3094,26 @@ model AssociationMemberGymSettings {
   updatedAt    DateTime @updatedAt
 
   organizer Organizer @relation(fields: [organizerId], references: [id], onDelete: Cascade)
+}
+
+/// 협회 → 정상(active) 회원 체육관 공지. audience는 AssociationMemberGym 관계 SSOT.
+model AssociationNotice {
+  id              String    @id @default(cuid())
+  organizerId     String
+  title           String
+  content         String
+  isPinned        Boolean   @default(false)
+  publishedAt     DateTime  @default(now())
+  createdByUserId String?
+  createdAt       DateTime  @default(now())
+  updatedAt       DateTime  @updatedAt
+  deletedAt       DateTime?
+
+  organizer     Organizer @relation(fields: [organizerId], references: [id], onDelete: Cascade)
+  createdByUser User?     @relation("AssociationNoticeCreator", fields: [createdByUserId], references: [id], onDelete: SetNull)
+
+  @@index([organizerId, deletedAt, isPinned, publishedAt])
+  @@index([organizerId, deletedAt, publishedAt])
 }
 
 /// 공개 홈 스폰서·파트너 로고 (협회 로고는 Organizer 필드 사용 — 복사 저장 금지)
