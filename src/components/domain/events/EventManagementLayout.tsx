@@ -6,11 +6,14 @@ import type { EventStatus } from "@/lib/enums";
 import { EVENT_MANAGEMENT_CONTENT_CLASS } from "@/lib/event-management-layout";
 import type { OrganizerRegistrationStatus } from "@/lib/event-organizer-status";
 import {
+  desktopAppEventLayoutClass,
+  desktopAppEventMainClass,
+} from "@/lib/ui/desktop-app-layout";
+import {
   eventManagementLayoutGridClass,
   eventManagementMainColumnClass,
   eventManagementMainContentClass,
 } from "@/lib/ui/event-management-ui";
-import { desktopAppEventLayoutClass, desktopAppEventMainClass } from "@/lib/ui/desktop-app-layout";
 import { cn } from "@/lib/utils";
 
 export function EventManagementLayout({

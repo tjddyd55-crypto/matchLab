@@ -21,6 +21,12 @@ import type {
 import type { EventCourtVM } from "@/lib/services/event-court.service";
 import type { OrganizerManualRegistrationOptionsDTO } from "@/lib/services/application.service";
 import { BracketType } from "@/lib/enums";
+import {
+  desktopMatchedPanelClass,
+  desktopUnmatchedPanelClass,
+  desktopWorkspaceGridClass,
+} from "@/lib/ui/desktop-app-layout";
+import { cn } from "@/lib/utils";
 
 type ManualTarget = {
   bracketId: string;
@@ -172,10 +178,10 @@ export function OrganizerAllMatchesWorkspaceClient({
   }
 
   return (
-    <section className="flex flex-col gap-3">
-      <div className="flex flex-wrap items-center justify-between gap-2">
+    <section className="flex flex-col gap-3 desktop:w-[var(--desktop-workspace-width)] desktop:min-w-[var(--desktop-workspace-width)]">
+      <div className="flex flex-wrap items-center justify-between gap-2 desktop:flex-nowrap">
         <h2 className="text-lg font-semibold">전체 경기 편집</h2>
-        <div className="flex flex-wrap items-center gap-2">
+        <div className="flex flex-wrap items-center gap-2 desktop:flex-nowrap">
           {data.matches.length > 0 ? (
             <OrganizerBracketPrintActions
               eventId={eventId}
@@ -191,8 +197,20 @@ export function OrganizerAllMatchesWorkspaceClient({
         </div>
       </div>
 
-      <div className="grid min-w-0 gap-4 lg:grid-cols-[minmax(0,1.6fr)_minmax(0,1.15fr)] lg:items-stretch lg:gap-5 desktop:min-w-[var(--desktop-content-min-width)] desktop:grid-cols-[minmax(560px,1.6fr)_minmax(400px,1.15fr)] desktop:items-stretch desktop:gap-5">
-        <div className="flex min-h-0 min-w-0 flex-col desktop:min-w-[560px]">
+      <div
+        className={cn(
+          "grid min-w-0 gap-4 lg:grid-cols-[minmax(0,1.6fr)_minmax(0,1.15fr)] lg:items-stretch lg:gap-5",
+          desktopWorkspaceGridClass,
+        )}
+        data-desktop-workspace-grid=""
+      >
+        <div
+          className={cn(
+            "flex min-h-0 min-w-0 flex-col",
+            desktopMatchedPanelClass,
+          )}
+          data-desktop-matched-panel=""
+        >
           <MatchListEditor
             key={data.syncKey}
             eventId={eventId}
@@ -212,7 +230,13 @@ export function OrganizerAllMatchesWorkspaceClient({
             }
           />
         </div>
-        <div className="flex min-h-0 min-w-0 flex-col desktop:min-w-[400px]">
+        <div
+          className={cn(
+            "flex min-h-0 min-w-0 flex-col",
+            desktopUnmatchedPanelClass,
+          )}
+          data-desktop-unmatched-panel=""
+        >
           <BracketApprovedCandidatesSection
             options={data.approvedFighterOptions}
             eventWideUnmatchedOptions={data.eventWideUnmatchedOptions}

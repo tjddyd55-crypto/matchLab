@@ -110,12 +110,19 @@
   --event-sidebar-width: 232px;
   --dashboard-header-height: 3.25rem;
   --dashboard-content-padding-x: 1rem;
-  --desktop-app-min-width: 1440px;
-  --desktop-app-min-height: 900px;
-  /* 1440 − 14rem(224) */
-  --desktop-main-min-width: 1216px;
-  /* 1216 − 232 */
-  --desktop-content-min-width: 984px;
+  /* Desktop full-layout paper (maximized geometry SSOT) */
+  --desktop-layout-base-width: 1600px;
+  --desktop-layout-base-height: 900px;
+  --desktop-app-min-width: var(--desktop-layout-base-width);
+  --desktop-app-min-height: var(--desktop-layout-base-height);
+  --desktop-main-width: 1376px;
+  --desktop-main-min-width: var(--desktop-main-width);
+  --desktop-event-content-width: 1144px;
+  --desktop-content-min-width: var(--desktop-event-content-width);
+  --desktop-workspace-width: 1080px;
+  --desktop-matched-panel-width: 640px;
+  --desktop-unmatched-panel-width: 420px;
+  --desktop-workspace-gap: 20px;
 
   --background: oklch(1 0 0);
   --foreground: oklch(0.145 0 0);
@@ -265,9 +272,10 @@
 
 @layer components {
   /*
-   * Desktop scroll SSOT:
-   * - viewport = sole outer scroll owner (window may be 900px)
-   * - canvas used width must stay >= 1440 (never shrink to window)
+   * Desktop full-layout paper:
+   * - viewport = sole outer scroll owner
+   * - canvas used width never drops below layout base (1600)
+   * - workspace panels use fixed px — no fr / % reflow on resize
    * - no transform/zoom scale
    */
   html.desktop-app .desktop-app-viewport {
@@ -283,29 +291,116 @@
 
   html.desktop-app .desktop-app-canvas {
     box-sizing: border-box;
-    width: max(100%, var(--desktop-app-min-width));
-    min-width: var(--desktop-app-min-width);
-    min-height: max(100%, var(--desktop-app-min-height));
-    flex-shrink: 0;
+    width: max(100%, var(--desktop-layout-base-width));
+    min-width: var(--desktop-layout-base-width);
+    min-height: max(100%, var(--desktop-layout-base-height));
+    flex: none;
   }
 
   html.desktop-app .desktop-app-main {
     box-sizing: border-box;
-    width: var(--desktop-main-min-width);
-    min-width: var(--desktop-main-min-width);
+    width: var(--desktop-main-width);
+    min-width: var(--desktop-main-width);
     max-width: none;
-    flex: 1 0 auto;
-    flex-shrink: 0;
+    flex: none;
   }
 
   html.desktop-app .desktop-app-event-layout {
     box-sizing: border-box;
-    width: 100%;
-    min-width: var(--desktop-main-min-width);
+    width: var(--desktop-main-width);
+    min-width: var(--desktop-main-width);
   }
 
   html.desktop-app .desktop-app-event-main {
     box-sizing: border-box;
-    min-width: var(--desktop-content-min-width);
+    width: var(--desktop-event-content-width);
+    min-width: var(--desktop-event-content-width);
+    max-width: var(--desktop-event-content-width);
+    flex: none;
   }
+
+  html.desktop-app .desktop-workspace-grid {
+    box-sizing: border-box;
+    display: grid;
+    width: var(--desktop-workspace-width);
+    min-width: var(--desktop-workspace-width);
+    max-width: var(--desktop-workspace-width);
+    grid-template-columns: var(--desktop-matched-panel-width) var(
+        --desktop-unmatched-panel-width
+      );
+    column-gap: var(--desktop-workspace-gap);
+    align-items: stretch;
+  }
+
+  html.desktop-app .desktop-matched-panel,
+  html.desktop-app .desktop-unmatched-panel {
+    box-sizing: border-box;
+    min-width: 0;
+    max-width: none;
+    overflow-x: hidden;
+  }
+
+  html.desktop-app .desktop-matched-panel {
+    width: var(--desktop-matched-panel-width);
+    min-width: var(--desktop-matched-panel-width);
+    max-width: var(--desktop-matched-panel-width);
+  }
+
+  html.desktop-app .desktop-unmatched-panel {
+    width: var(--desktop-unmatched-panel-width);
+    min-width: var(--desktop-unmatched-panel-width);
+    max-width: var(--desktop-unmatched-panel-width);
+  }
+
+  /*
+   * Pane lists: vertical scroll only.
+   * CSS pairs overflow-y:auto with overflow-x:auto when overflow-x is visible —
+   * so hidden is required to keep outer viewport as the only horizontal owner.
+   */
+  html.desktop-app [data-bracket-workspace-list] {
+    overflow-x: hidden;
+  }
+}
+
+/*
+ * Unlayered overrides — beat Tailwind lg:/desktop: utility order so
+ * workspace geometry stays fixed under html.desktop-app.
+ */
+html.desktop-app .desktop-workspace-grid {
+  width: var(--desktop-workspace-width) !important;
+  min-width: var(--desktop-workspace-width) !important;
+  max-width: var(--desktop-workspace-width) !important;
+  grid-template-columns: var(--desktop-matched-panel-width) var(
+      --desktop-unmatched-panel-width
+    ) !important;
+  column-gap: var(--desktop-workspace-gap) !important;
+}
+
+html.desktop-app .desktop-matched-panel {
+  width: var(--desktop-matched-panel-width) !important;
+  min-width: var(--desktop-matched-panel-width) !important;
+  max-width: var(--desktop-matched-panel-width) !important;
+  overflow-x: hidden !important;
+}
+
+html.desktop-app .desktop-unmatched-panel {
+  width: var(--desktop-unmatched-panel-width) !important;
+  min-width: var(--desktop-unmatched-panel-width) !important;
+  max-width: var(--desktop-unmatched-panel-width) !important;
+  overflow-x: hidden !important;
+}
+
+html.desktop-app [data-bracket-workspace-list] {
+  overflow-x: hidden !important;
+}
+
+html.desktop-app .desktop-app-canvas {
+  width: max(100%, var(--desktop-layout-base-width)) !important;
+  min-width: var(--desktop-layout-base-width) !important;
+}
+
+html.desktop-app .desktop-app-main {
+  width: var(--desktop-main-width) !important;
+  min-width: var(--desktop-main-width) !important;
+  flex: none !important;
 }

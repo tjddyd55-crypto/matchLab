@@ -2,9 +2,9 @@
 export const bracketMatchRowGridClass =
   "grid grid-cols-1 gap-1.5 md:grid-cols-[minmax(4.5rem,5.25rem)_minmax(220px,1fr)_minmax(140px,170px)_minmax(220px,1fr)_minmax(5rem,6rem)] md:items-stretch md:gap-x-2";
 
-/** 대진표 본문 — RED | 중앙 | BLUE 3열 */
+/** 대진표 본문 — RED | 중앙 | BLUE 3열 (Desktop: fixed paper, no 220px min reflow) */
 export const bracketMatchFightersGridClass =
-  "grid grid-cols-1 gap-2 px-3 py-2 md:grid-cols-[minmax(220px,1fr)_minmax(140px,170px)_minmax(220px,1fr)] md:items-stretch md:gap-x-2 desktop:grid-cols-[minmax(220px,1fr)_minmax(140px,170px)_minmax(220px,1fr)]";
+  "grid grid-cols-1 gap-2 px-3 py-2 md:grid-cols-[minmax(220px,1fr)_minmax(140px,170px)_minmax(220px,1fr)] md:items-stretch md:gap-x-2 desktop:grid-cols-[minmax(0,1fr)_4.5rem_minmax(0,1fr)] desktop:gap-x-2";
 
 /** Bracket control row — 좌: 경기장 / 중: 라운드·시간 / 우: 순서 */
 export const bracketMatchControlsGridClass =

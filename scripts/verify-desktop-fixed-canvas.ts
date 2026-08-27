@@ -25,14 +25,14 @@ function testDesktopDetectionReuse() {
 
 function testScrollShell() {
   const globals = read("src/app/globals.css");
-  assert.match(globals, /--desktop-app-min-width:\s*1440px/, "min width token");
-  assert.match(globals, /--desktop-main-min-width:\s*1216px/, "main min width");
+  assert.match(globals, /--desktop-layout-base-width:\s*1600px/, "layout base width");
+  assert.match(globals, /--desktop-main-width:\s*1376px/, "main width");
   assert.match(globals, /html\.desktop-app \.desktop-app-viewport/, "viewport scroll owner");
   assert.match(globals, /html\.desktop-app \.desktop-app-canvas/, "canvas under desktop-app");
   assert.match(
     globals,
-    /width:\s*max\(100%,\s*var\(--desktop-app-min-width\)\)/,
-    "canvas width never below min",
+    /width:\s*max\(100%,\s*var\(--desktop-layout-base-width\)\)/,
+    "canvas width never below base",
   );
   assert.match(globals, /overflow-x:\s*auto/, "viewport overflow-x auto");
   assert.doesNotMatch(
@@ -75,11 +75,11 @@ function testResponsiveOverrideScope() {
   const workspace = read(
     "src/components/domain/brackets/OrganizerAllMatchesWorkspaceClient.tsx",
   );
-  assert.match(workspace, /desktop:grid-cols-\[minmax\(560px,1\.6fr\)_minmax\(400px,1\.15fr\)\]/, "workspace desktop grid");
+  assert.match(workspace, /desktopWorkspaceGridClass/, "workspace desktop grid");
 
   const eventUi = read("src/lib/ui/event-management-ui.ts");
-  assert.match(eventUi, /desktop:min-w-\[var\(--desktop-main-min-width\)\]/, "event layout desktop min");
-  assert.match(eventUi, /minmax\(var\(--desktop-content-min-width\),1fr\)/, "event content min");
+  assert.match(eventUi, /desktop:min-w-\[var\(--desktop-main-width\)\]/, "event layout desktop min");
+  assert.match(eventUi, /var\(--desktop-event-content-width\)/, "event content fixed");
   assert.match(eventUi, /desktop:hidden/, "hide event mobile bar");
 }
 
