@@ -112,6 +112,10 @@
   --dashboard-content-padding-x: 1rem;
   --desktop-app-min-width: 1440px;
   --desktop-app-min-height: 900px;
+  /* 1440 − 14rem(224) */
+  --desktop-main-min-width: 1216px;
+  /* 1216 − 232 */
+  --desktop-content-min-width: 984px;
 
   --background: oklch(1 0 0);
   --foreground: oklch(0.145 0 0);
@@ -238,7 +242,9 @@
     --dashboard-content-padding-x: 2rem;
   }
   html.desktop-app body {
+    display: flex;
     height: 100%;
+    flex-direction: column;
     overflow: hidden;
   }
   body {
@@ -258,15 +264,48 @@
 }
 
 @layer components {
-  .desktop-app-viewport {
+  /*
+   * Desktop scroll SSOT:
+   * - viewport = sole outer scroll owner (window may be 900px)
+   * - canvas used width must stay >= 1440 (never shrink to window)
+   * - no transform/zoom scale
+   */
+  html.desktop-app .desktop-app-viewport {
+    box-sizing: border-box;
     width: 100%;
-    height: 100%;
-    overflow: auto;
+    max-width: 100%;
+    min-height: 0;
+    flex: 1 1 auto;
+    overflow-x: auto;
+    overflow-y: auto;
     overscroll-behavior: contain;
   }
 
-  .desktop-app-canvas {
+  html.desktop-app .desktop-app-canvas {
+    box-sizing: border-box;
+    width: max(100%, var(--desktop-app-min-width));
     min-width: var(--desktop-app-min-width);
-    min-height: var(--desktop-app-min-height);
+    min-height: max(100%, var(--desktop-app-min-height));
+    flex-shrink: 0;
+  }
+
+  html.desktop-app .desktop-app-main {
+    box-sizing: border-box;
+    width: var(--desktop-main-min-width);
+    min-width: var(--desktop-main-min-width);
+    max-width: none;
+    flex: 1 0 auto;
+    flex-shrink: 0;
+  }
+
+  html.desktop-app .desktop-app-event-layout {
+    box-sizing: border-box;
+    width: 100%;
+    min-width: var(--desktop-main-min-width);
+  }
+
+  html.desktop-app .desktop-app-event-main {
+    box-sizing: border-box;
+    min-width: var(--desktop-content-min-width);
   }
 }

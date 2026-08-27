@@ -4,7 +4,7 @@ export const bracketMatchRowGridClass =
 
 /** 대진표 본문 — RED | 중앙 | BLUE 3열 */
 export const bracketMatchFightersGridClass =
-  "grid grid-cols-1 gap-2 px-3 py-2 md:grid-cols-[minmax(220px,1fr)_minmax(140px,170px)_minmax(220px,1fr)] md:items-stretch md:gap-x-2";
+  "grid grid-cols-1 gap-2 px-3 py-2 md:grid-cols-[minmax(220px,1fr)_minmax(140px,170px)_minmax(220px,1fr)] md:items-stretch md:gap-x-2 desktop:grid-cols-[minmax(220px,1fr)_minmax(140px,170px)_minmax(220px,1fr)]";
 
 /** Bracket control row — 좌: 경기장 / 중: 라운드·시간 / 우: 순서 */
 export const bracketMatchControlsGridClass =

@@ -10,6 +10,7 @@ import {
   eventManagementMainColumnClass,
   eventManagementMainContentClass,
 } from "@/lib/ui/event-management-ui";
+import { desktopAppEventLayoutClass, desktopAppEventMainClass } from "@/lib/ui/desktop-app-layout";
 import { cn } from "@/lib/utils";
 
 export function EventManagementLayout({
@@ -38,13 +39,13 @@ export function EventManagementLayout({
   };
 
   return (
-    <div className={cn("w-full min-w-0", className)}>
+    <div className={cn("w-full min-w-0 desktop:min-w-0", desktopAppEventLayoutClass, className)}>
       <div className={eventManagementLayoutGridClass}>
         <Suspense fallback={null}>
           <EventManagementSideNav {...navProps} />
         </Suspense>
 
-        <div className={eventManagementMainColumnClass}>
+        <div className={cn(eventManagementMainColumnClass, desktopAppEventMainClass)}>
           <Suspense fallback={null}>
             <EventManagementNavigationSheet {...navProps} />
           </Suspense>

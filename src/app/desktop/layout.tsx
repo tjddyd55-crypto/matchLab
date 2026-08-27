@@ -11,12 +11,13 @@ import { cn } from "@/lib/utils";
  */
 export default function DesktopLayout({ children }: { children: ReactNode }) {
   return (
-    <div className={desktopAppViewportClass}>
+    <div className={desktopAppViewportClass} data-desktop-app-viewport="">
       <div
         className={cn(
           desktopAppCanvasClass,
           "min-h-full bg-[#F8FAFC] text-[#0F172A]",
         )}
+        data-desktop-app-canvas=""
       >
         {children}
       </div>
