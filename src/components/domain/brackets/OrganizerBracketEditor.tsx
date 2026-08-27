@@ -10,6 +10,11 @@ import { Card, CardHeader, CardTitle } from "@/components/ui/card";
 import { BracketMatchStatus, BracketType } from "@/lib/enums";
 import type { OrganizerBracketDetailVM } from "@/lib/services/bracket.service";
 import type { EventCourtVM } from "@/lib/services/event-court.service";
+import {
+  desktopMatchedPanelClass,
+  desktopUnmatchedPanelClass,
+  desktopWorkspaceGridClass,
+} from "@/lib/ui/desktop-app-layout";
 import { cn } from "@/lib/utils";
 
 function buildBracketDetailSummary(detail: OrganizerBracketDetailVM): string {
@@ -81,8 +86,18 @@ export function OrganizerBracketEditor({
       </Card>
 
       {isMatchList ? (
-        <div className="grid min-w-0 gap-4 lg:grid-cols-[minmax(0,1.6fr)_minmax(0,1.15fr)] lg:items-stretch lg:gap-5 desktop:min-w-[var(--desktop-content-min-width)] desktop:grid-cols-[minmax(560px,1.6fr)_minmax(400px,1.15fr)] desktop:items-stretch desktop:gap-5">
-          <div className="flex min-h-0 min-w-0 flex-col desktop:min-w-[560px]">
+        <div
+          className={cn(
+            "grid min-w-0 gap-4 lg:grid-cols-[minmax(0,1.6fr)_minmax(0,1.15fr)] lg:items-stretch lg:gap-5",
+            desktopWorkspaceGridClass,
+          )}
+        >
+          <div
+            className={cn(
+              "flex min-h-0 min-w-0 flex-col",
+              desktopMatchedPanelClass,
+            )}
+          >
             <MatchListEditor
               key={detail.syncKey}
               eventId={eventId}
@@ -95,7 +110,12 @@ export function OrganizerBracketEditor({
               compactWorkspace
             />
           </div>
-          <div className="flex min-h-0 min-w-0 flex-col desktop:min-w-[400px]">
+          <div
+            className={cn(
+              "flex min-h-0 min-w-0 flex-col",
+              desktopUnmatchedPanelClass,
+            )}
+          >
             <BracketApprovedCandidatesSection
               options={detail.approvedFighterOptions}
               eventWideUnmatchedOptions={detail.eventWideUnmatchedOptions}

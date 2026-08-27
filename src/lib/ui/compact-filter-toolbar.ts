@@ -1,9 +1,9 @@
 import { cn } from "@/lib/utils";
 import { formControlFieldCompactClass } from "@/lib/ui/form-control-ui";
 
-/** Desktop 필터 버튼 row — 1366에서 wrap 최소화 */
+/** Desktop 필터 버튼 row — Desktop은 nowrap 고정, 웹만 wrap 허용 */
 export const COMPACT_FILTER_ROW_CLASS =
-  "flex min-w-0 flex-wrap items-center gap-1.5 md:flex-nowrap md:gap-1.5 max-[1365px]:gap-2";
+  "flex min-w-0 flex-wrap items-center gap-1.5 md:flex-nowrap md:gap-1.5 desktop:flex-nowrap desktop:gap-1.5";
 
 /** workspace stack: 검색 1행 + 필터 1행 */
 export const COMPACT_FILTER_STACK_CLASS = "min-w-0 space-y-1.5";
@@ -13,6 +13,7 @@ export const COMPACT_FILTER_SEARCH_STACKED_CLASS = cn(
   formControlFieldCompactClass,
   "h-9 w-full min-w-0 shrink-0 rounded-md px-2.5 text-xs",
   "md:w-[240px] md:max-w-[280px] lg:w-[220px] lg:max-w-[280px] xl:w-[230px] xl:max-w-[280px]",
+  "desktop:w-[230px] desktop:max-w-[230px]",
 );
 
 /** 우측 unmatched workspace 검색 (별도 1행) */
@@ -20,6 +21,7 @@ export const COMPACT_FILTER_SEARCH_STACKED_NARROW_CLASS = cn(
   formControlFieldCompactClass,
   "h-9 w-full min-w-0 shrink-0 rounded-md px-2.5 text-xs",
   "md:w-[220px] md:max-w-[260px] lg:w-[200px] lg:max-w-[260px] xl:w-[210px] xl:max-w-[260px]",
+  "desktop:w-[210px] desktop:max-w-[210px]",
 );
 
 /** 넓은 pane 검색 */
@@ -27,6 +29,7 @@ export const COMPACT_FILTER_SEARCH_CLASS = cn(
   formControlFieldCompactClass,
   "h-9 w-full min-w-0 shrink-0 rounded-md px-2.5 text-xs",
   "md:w-[220px] md:max-w-[220px] xl:w-[240px] xl:max-w-[240px]",
+  "desktop:w-[230px] desktop:max-w-[230px]",
 );
 
 /** 좁은 pane / unmatched */
@@ -34,6 +37,7 @@ export const COMPACT_FILTER_SEARCH_NARROW_CLASS = cn(
   formControlFieldCompactClass,
   "h-9 w-full min-w-0 shrink-0 rounded-md px-2.5 text-xs",
   "md:w-[180px] md:max-w-[180px] xl:w-[200px] xl:max-w-[200px]",
+  "desktop:w-[200px] desktop:max-w-[200px]",
 );
 
 export const COMPACT_FILTER_BUTTON_CLASS =

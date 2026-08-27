@@ -18,24 +18,24 @@ function read(rel: string): string {
 
 function testStaticCssContract() {
   const globals = read("src/app/globals.css");
-  assert.match(globals, /--desktop-app-min-width:\s*1440px/);
-  assert.match(globals, /--desktop-main-min-width:\s*1216px/);
-  assert.match(globals, /--desktop-content-min-width:\s*984px/);
+  assert.match(globals, /--desktop-app-min-width:\s*var\(--desktop-layout-base-width\)|--desktop-layout-base-width:\s*1600px/);
+  assert.match(globals, /--desktop-main-width:\s*1376px/);
+  assert.match(globals, /--desktop-content-min-width:\s*var\(--desktop-event-content-width\)|--desktop-event-content-width:\s*1144px/);
   assert.match(
     globals,
     /html\.desktop-app \.desktop-app-viewport[\s\S]*overflow-x:\s*auto/,
   );
   assert.match(
     globals,
-    /html\.desktop-app \.desktop-app-canvas[\s\S]*min-width:\s*var\(--desktop-app-min-width\)/,
+    /html\.desktop-app \.desktop-app-canvas[\s\S]*min-width:\s*var\(--desktop-layout-base-width\)/,
   );
   assert.match(
     globals,
-    /html\.desktop-app \.desktop-app-canvas[\s\S]*width:\s*max\(100%,\s*var\(--desktop-app-min-width\)\)/,
+    /width:\s*max\(100%,\s*var\(--desktop-layout-base-width\)\)/,
   );
   assert.match(
     globals,
-    /html\.desktop-app \.desktop-app-canvas[\s\S]*flex-shrink:\s*0/,
+    /html\.desktop-app \.desktop-app-canvas[\s\S]*flex:\s*none/,
   );
   assert.doesNotMatch(globals, /transform:\s*scale|zoom:/);
 
@@ -53,11 +53,11 @@ function testStaticCssContract() {
   const eventUi = read("src/lib/ui/event-management-ui.ts");
   assert.match(
     eventUi,
-    /desktop:min-w-\[var\(--desktop-main-min-width\)\]/,
+    /desktop:min-w-\[var\(--desktop-main-width\)\]/,
   );
   assert.match(
     eventUi,
-    /minmax\(var\(--desktop-content-min-width\),1fr\)/,
+    /desktop:grid-cols-\[var\(--event-sidebar-width\)_var\(--desktop-event-content-width\)\]/,
   );
 }
 
@@ -69,9 +69,9 @@ function buildFixtureHtml(): string {
 <meta charset="utf-8"/>
 <style>
   :root {
-    --desktop-app-min-width: 1440px;
-    --desktop-app-min-height: 900px;
-    --desktop-main-min-width: 1216px;
+    --desktop-layout-base-width: 1600px;
+    --desktop-layout-base-height: 900px;
+    --desktop-main-width: 1376px;
     --global-sidebar-width: 14rem;
   }
   html, body {
@@ -97,9 +97,9 @@ function buildFixtureHtml(): string {
   }
   html.desktop-app .desktop-app-canvas {
     box-sizing: border-box;
-    width: max(100%, var(--desktop-app-min-width));
-    min-width: var(--desktop-app-min-width);
-    min-height: max(100%, var(--desktop-app-min-height));
+    width: max(100%, var(--desktop-layout-base-width));
+    min-width: var(--desktop-layout-base-width);
+    min-height: max(100%, var(--desktop-layout-base-height));
     flex-shrink: 0;
     display: flex;
     flex-direction: row;
@@ -107,8 +107,8 @@ function buildFixtureHtml(): string {
   }
   html.desktop-app .desktop-app-main {
     box-sizing: border-box;
-    width: var(--desktop-main-min-width);
-    min-width: var(--desktop-main-min-width);
+    width: var(--desktop-main-width);
+    min-width: var(--desktop-main-width);
     flex: 1 0 auto;
     flex-shrink: 0;
     background: #e2e8f0;
@@ -197,12 +197,12 @@ async function testDomNumeric() {
     const m = await measureAtViewport(c.w, c.h);
     report[`${c.w}x${c.h}`] = m;
     assert.ok(
-      m.canvasWidth >= 1440,
-      `${c.w}: canvasWidth ${m.canvasWidth} < 1440`,
+      m.canvasWidth >= 1600,
+      `${c.w}: canvasWidth ${m.canvasWidth} < 1600`,
     );
     assert.ok(
-      m.mainWidth >= 1216,
-      `${c.w}: mainWidth ${m.mainWidth} < 1216`,
+      m.mainWidth >= 1376,
+      `${c.w}: mainWidth ${m.mainWidth} < 1376`,
     );
     if (c.expectScroll) {
       assert.ok(
