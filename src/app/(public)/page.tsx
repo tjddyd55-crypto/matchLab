@@ -18,14 +18,14 @@ export const dynamic = "force-dynamic";
 
 export const metadata: Metadata = {
   title: {
-    absolute: `${BRAND_NAME} | 격투기 운영 관리 플랫폼`,
+    absolute: `${BRAND_NAME} | 체육관 · 격투기 대회 운영 플랫폼`,
   },
   description:
-    "체육관 회원·선수 관리부터 대회 참가, 대진 편성, 경기 운영과 결과 관리까지 MATCHON에서 연결하세요.",
+    "회원과 선수 관리부터 참가 신청, 대진 편성, 경기 운영과 결과 관리까지 MATCHON Manager에서 관리하세요.",
   openGraph: {
-    title: `${BRAND_NAME} | 격투기 운영 관리 플랫폼`,
+    title: `${BRAND_NAME} | 체육관 · 격투기 대회 운영 플랫폼`,
     description:
-      "체육관 회원·선수 관리부터 대회 참가, 대진 편성, 경기 운영과 결과 관리까지 MATCHON에서 연결하세요.",
+      "회원과 선수 관리부터 참가 신청, 대진 편성, 경기 운영과 결과 관리까지 MATCHON Manager에서 관리하세요.",
   },
 };
 

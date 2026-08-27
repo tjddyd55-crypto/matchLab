@@ -25,13 +25,19 @@ export function PublicFooter() {
                 href="/#features"
                 className="text-[13px] font-semibold text-white/50 transition-colors hover:text-white/70"
               >
-                기능 소개
+                주요 기능
               </Link>
               <Link
                 href="/#gym"
                 className="text-[13px] font-semibold text-white/50 transition-colors hover:text-white/70"
               >
                 체육관 관리
+              </Link>
+              <Link
+                href="/#features"
+                className="text-[13px] font-semibold text-white/50 transition-colors hover:text-white/70"
+              >
+                대회 운영
               </Link>
               <Link
                 href="/#manager"
@@ -44,18 +50,6 @@ export function PublicFooter() {
                 className="text-[13px] font-semibold text-white/50 transition-colors hover:text-white/70"
               >
                 대회 공고
-              </Link>
-              <Link
-                href="/join"
-                className="text-[13px] font-semibold text-white/50 transition-colors hover:text-white/70"
-              >
-                회원가입
-              </Link>
-              <Link
-                href="/login"
-                className="text-[13px] font-semibold text-white/50 transition-colors hover:text-white/70"
-              >
-                로그인
               </Link>
             </nav>
           </div>
@@ -73,7 +67,7 @@ export function PublicFooter() {
 
         <div className="mt-10 flex flex-col gap-2 border-t border-white/8 pt-5 text-xs text-white/35 sm:flex-row sm:items-center sm:justify-between">
           <p>© {new Date().getFullYear()} MATCHON. All rights reserved.</p>
-          <p>격투기 대회 운영 플랫폼</p>
+          <p>격투기 운영 관리 플랫폼</p>
         </div>
       </div>
     </footer>
