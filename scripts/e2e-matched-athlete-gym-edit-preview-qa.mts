@@ -174,6 +174,28 @@ async function main() {
         gymSnapshot: { gymId: null, name: beforeGym },
       },
     });
+    // Keep Match display in sync for workspace filter/click target.
+    const snapPatch = (raw: unknown) => {
+      if (!raw || typeof raw !== "object") return { gymName: beforeGym };
+      return { ...(raw as Record<string, unknown>), gymName: beforeGym };
+    };
+    if (match.fighterRedId === fighterId) {
+      await prisma.bracketMatch.update({
+        where: { id: matchId },
+        data: { fighterRedSnapshot: snapPatch(match.fighterRedSnapshot) },
+      });
+    } else {
+      await prisma.bracketMatch.update({
+        where: { id: matchId },
+        data: { fighterBlueSnapshot: snapPatch(match.fighterBlueSnapshot) },
+      });
+    }
+
+    const fighterRow = await prisma.fighter.findUnique({
+      where: { id: fighterId },
+      select: { name: true },
+    });
+    report.fighterName = fighterRow?.name ?? null;
 
     const browser = await chromium.launch({ headless: true });
     try {
@@ -193,32 +215,41 @@ async function main() {
     await page.click('button[type="submit"]');
     await page.waitForURL(/organizer/, { timeout: 30000 }).catch(() => null);
 
+    // Ensure workspace shows seeded gym, then open THAT athlete's edit action.
     const workspaceUrl = `${BASE}/organizer/events/${eventId}/brackets?tab=view&view=workspace`;
     await page.goto(workspaceUrl, { waitUntil: "networkidle" });
+    // Filter to the seeded gym so the target card is visible.
+    const search = page.getByRole("textbox", { name: "잡힌 경기 검색" });
+    if (await search.count()) {
+      await search.fill(beforeGym);
+      await page.waitForTimeout(400);
+    }
     await page.screenshot({ path: join(OUT, "01-workspace-before.png"), fullPage: true });
 
-    // Open edit via 선수정보 수정 near the seeded gym name if visible.
-    const editBtn = page.getByRole("button", { name: "선수정보 수정" }).first();
-    if (!(await editBtn.count())) {
-      // Fallback: applications page edit for same application.
-      await page.goto(
-        `${BASE}/organizer/events/${eventId}/applications`,
-        { waitUntil: "networkidle" },
-      );
+    const targetCard = page
+      .locator("div")
+      .filter({ hasText: beforeGym })
+      .filter({ hasText: String(fighterRow?.name ?? "") })
+      .first();
+    const editInCard = targetCard.getByRole("button", { name: "선수정보 수정" });
+    if ((await editInCard.count()) > 0) {
+      await editInCard.first().click();
     } else {
-      await editBtn.click();
-    }
-
-    // If still no dialog, open applications and find row edit.
-    const dialog = page.getByRole("dialog");
-    if (!(await dialog.count())) {
+      // Applications board deep-link fallback: open edit via applicant actions.
       await page.goto(
         `${BASE}/organizer/events/${eventId}/applications`,
         { waitUntil: "networkidle" },
       );
-      // Prefer any "수정" that opens the edit panel — click first available.
-      const appEdit = page.getByRole("button", { name: /수정/ }).first();
-      if (await appEdit.count()) await appEdit.click();
+      const row = page
+        .locator("tr, li, div")
+        .filter({ hasText: beforeGym })
+        .filter({ hasText: String(fighterRow?.name ?? "") })
+        .first();
+      const editBtn = row.getByRole("button", { name: /수정/ }).first();
+      if (!(await editBtn.count())) {
+        fail("could not find edit action for seeded gym athlete");
+      }
+      await editBtn.click();
     }
 
     await page.waitForSelector("#edit-gymName, #edit-fighterName", {
@@ -230,6 +261,12 @@ async function main() {
     if (await manualBtn.count()) await manualBtn.click();
 
     await page.waitForSelector("#edit-gymName", { timeout: 10000 });
+    const currentGym = await page.inputValue("#edit-gymName");
+    report.dialogGymBeforeFill = currentGym;
+    if (currentGym !== beforeGym && currentGym !== afterGym) {
+      // Still proceed — seed may not have refreshed into form if wrong row.
+      report.dialogGymMismatch = true;
+    }
     await page.fill("#edit-gymName", afterGym);
     await page.screenshot({ path: join(OUT, "02-edit-dialog.png") });
 
