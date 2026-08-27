@@ -33,22 +33,26 @@ export function PublicHomeHero({
             회원과 선수 관리, 참가 신청, 대진 편성, 경기 운영과 결과 관리까지
             MATCHON 하나로 연결하세요.
           </p>
+          <p className="mt-3 max-w-[34rem] text-[14px] font-medium text-matchon-text-secondary">
+            MATCHON Manager를 설치하고 하나의 프로그램에서 운영을 시작하세요.
+          </p>
 
           <div className="mt-8 flex flex-col gap-3 sm:flex-row sm:flex-wrap sm:items-center">
-            <Link
-              href="/login"
-              className={cn(
-                buttonVariants({ size: "lg" }),
-                "inline-flex h-12 w-full items-center justify-center rounded-xl bg-matchon-primary px-7 text-[15px] font-extrabold text-white hover:bg-matchon-primary/90 sm:w-auto",
-              )}
-            >
-              웹에서 시작하기
-            </Link>
             <PublicManagerDownloadButton
               download={download}
-              className="w-full sm:w-auto"
+              className="h-12 w-full justify-center border-transparent bg-matchon-primary px-7 text-[15px] font-extrabold text-white hover:bg-matchon-primary/90 hover:text-white sm:w-auto"
               label="MATCHON Manager 다운로드"
+              showVersion
             />
+            <Link
+              href="/#features"
+              className={cn(
+                buttonVariants({ variant: "outline", size: "lg" }),
+                "inline-flex h-12 w-full items-center justify-center rounded-xl border-matchon-border bg-white px-6 text-[15px] font-bold text-matchon-text-primary hover:bg-matchon-primary-light/60 sm:w-auto",
+              )}
+            >
+              주요 기능 보기
+            </Link>
           </div>
           <p className="mt-3 text-[13px] font-medium text-matchon-text-secondary">
             Windows용 PC 프로그램

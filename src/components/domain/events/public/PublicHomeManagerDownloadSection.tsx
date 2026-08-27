@@ -4,6 +4,7 @@ import type { MatchonManagerDownloadInfo } from "@/lib/desktop/manager-download"
 import { cn } from "@/lib/utils";
 
 const managerPoints = [
+  "체육관 회원 · 선수 관리",
   "전체 경기 편집",
   "경기장별 운영",
   "계체 확인",
@@ -36,12 +37,12 @@ export function PublicHomeManagerDownloadSection({
             id="home-manager-download-title"
             className="font-black text-[28px] tracking-tight text-matchon-text-primary md:text-[32px]"
           >
-            현장에서는 MATCHON Manager로
+            MATCHON Manager에서 바로 시작하세요
           </h2>
           <p className="max-w-xl text-[15px] leading-relaxed text-matchon-text-secondary md:text-base">
-            대회 당일에는 넓은 PC 화면에서 경기와 선수 정보를 빠르게
-            관리하세요. 웹에서 회원·선수와 대회를 준비하고, 현장 운영은
-            MATCHON Manager로 이어서 진행할 수 있습니다.
+            체육관 회원관리부터 대회 현장 운영까지 Windows PC 프로그램에서
+            관리하세요. 설치 후 프로그램에서 로그인하거나 회원가입할 수
+            있습니다.
           </p>
           <ul className="grid gap-2 sm:grid-cols-2">
             {managerPoints.map((point) => (
@@ -67,10 +68,13 @@ export function PublicHomeManagerDownloadSection({
               ? `${download.osLabel} · v${download.version}`
               : "버전 정보를 불러오는 중이거나 일시적으로 사용할 수 없습니다."}
           </p>
+          <p className="mt-3 text-[13px] leading-relaxed text-matchon-text-secondary">
+            Windows PC에서 다운로드하세요.
+          </p>
           <div className="mt-6">
             <PublicManagerDownloadButton
               download={download}
-              className="w-full justify-center"
+              className="w-full justify-center border-transparent bg-matchon-primary text-white hover:bg-matchon-primary/90 hover:text-white"
               label="Windows용 MATCHON Manager 다운로드"
               showVersion
             />

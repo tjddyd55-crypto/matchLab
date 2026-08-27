@@ -57,9 +57,40 @@ function main() {
   );
   assert.ok(footer.includes("/#manager"));
   assert.ok(footer.includes("MATCHON Manager"));
+  assert.equal(footer.includes('href="/login"'), false);
+  assert.equal(footer.includes('href="/join"'), false);
+
+  const nav = readFileSync(
+    join(process.cwd(), "src/components/layout/PublicNav.tsx"),
+    "utf8",
+  );
+  assert.ok(nav.includes("PublicManagerDownloadButton"));
+  assert.equal(nav.includes('href="/login"'), false);
+
+  const hero = readFileSync(
+    join(
+      process.cwd(),
+      "src/components/domain/events/public/PublicHomeHero.tsx",
+    ),
+    "utf8",
+  );
+  assert.ok(hero.includes("PublicManagerDownloadButton"));
+  assert.ok(hero.includes("download.downloadUrl") === false);
+  assert.ok(hero.includes('href="/login"') === false);
+
+  const finalCta = readFileSync(
+    join(
+      process.cwd(),
+      "src/components/domain/events/public/PublicHomeOrganizerCtaSection.tsx",
+    ),
+    "utf8",
+  );
+  assert.ok(finalCta.includes("PublicManagerDownloadButton"));
+  assert.ok(finalCta.includes('href="/login"') === false);
 
   console.log("verify:public-home-manager-download OK");
   console.log("verify:landing-desktop-download OK");
+  console.log("verify:landing-manager-download OK");
   console.log(JSON.stringify(info, null, 2));
 }
 
