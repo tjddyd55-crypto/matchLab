@@ -514,6 +514,14 @@ export async function updateOrganizerApplicationAction(
       confirmDuplicate: false,
     };
 
+    // Disabled gender <select> omits FormData — catch before opaque zod noise.
+    if (!raw.gender) {
+      return actionFailure(
+        "VALIDATION_ERROR",
+        "성별 정보가 전달되지 않았습니다. 페이지를 새로고침 후 다시 시도해 주세요.",
+      );
+    }
+
     const parsed = organizerManualApplicationSchema.safeParse(raw);
     if (!parsed.success) {
       return actionFailure(
