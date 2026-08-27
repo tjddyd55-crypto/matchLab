@@ -12,6 +12,7 @@ import { AppDateInput } from "@/components/shared/AppDateInput";
 import { ApplicationWeightAutoAssign } from "@/components/domain/applications/ApplicationWeightAutoAssign";
 import { SchoolGradeSelectField } from "@/components/domain/applications/SchoolGradeSelectField";
 import { StructuredRecordFields } from "@/components/domain/fighters/StructuredRecordFields";
+import { FeedbackMessage } from "@/components/shared/FeedbackMessage";
 import { INSURANCE_PII_CONSENT_TEXT } from "@/lib/athlete-application/insurance-consent";
 import {
   Dialog,
@@ -96,14 +97,34 @@ export function OrganizerApplicationEditPanel({
     fd.set("eventId", eventId);
     fd.set("applicationId", applicationId);
     fd.set("gymMode", gymMode);
-    startTransition(async () => {
-      const res = await updateOrganizerApplicationAction(fd);
-      if (!res.ok) {
-        setError(res.error.message);
-        return;
+    // disabled structural fields are omitted from FormData — force locked values.
+    if (form?.structuralEditBlocked) {
+      fd.set("gender", gender);
+      fd.set("competitionCategory", competitionCategory);
+      if (discipline) fd.set("discipline", discipline);
+      else fd.delete("discipline");
+      fd.set("applicationWeightKg", applicationWeightKg);
+      if (manualDivisionId) {
+        fd.set("manualDivisionOverride", "on");
+        fd.set("divisionId", manualDivisionId);
       }
-      onOpenChange(false);
-      router.refresh();
+    }
+    startTransition(async () => {
+      try {
+        const res = await updateOrganizerApplicationAction(fd);
+        if (!res.ok) {
+          setError(res.error.message);
+          return;
+        }
+        onOpenChange(false);
+        router.refresh();
+      } catch (err) {
+        const message =
+          err instanceof Error && err.message.trim()
+            ? err.message
+            : "저장하지 못했습니다. 잠시 후 다시 시도해 주세요.";
+        setError(message);
+      }
     });
   }
 
@@ -126,12 +147,26 @@ export function OrganizerApplicationEditPanel({
         </DialogHeader>
 
         {loading || !form ? (
-          <p className="text-muted-foreground px-4 py-6 text-sm">불러오는 중…</p>
+          <div className="space-y-3 px-4 py-6">
+            <p className="text-muted-foreground text-sm">불러오는 중…</p>
+            {error ? (
+              <FeedbackMessage tone="error" role="alert">
+                {error}
+              </FeedbackMessage>
+            ) : null}
+          </div>
         ) : (
           <form
             onSubmit={handleSubmit}
             className="flex min-h-0 flex-1 flex-col"
           >
+            {/*
+              structuralEditBlocked 시 <select disabled> 는 FormData에서 제외된다.
+              hidden 으로 잠긴 gender 를 항상 제출한다.
+            */}
+            {form.structuralEditBlocked ? (
+              <input type="hidden" name="gender" value={gender} />
+            ) : null}
             <div className="min-h-0 flex-1 overflow-x-hidden overflow-y-auto px-4 py-3">
               {form.structuralBlockReason ? (
                 <p className="mb-3 rounded-md border border-amber-500/40 bg-amber-500/10 px-3 py-2 text-xs text-amber-950">
@@ -202,7 +237,9 @@ export function OrganizerApplicationEditPanel({
                         name="gymName"
                         required
                         className={fieldClass}
-                        defaultValue={form.gymName}
+                        defaultValue={
+                          form.gymName === "—" ? "" : form.gymName
+                        }
                       />
                       <p className="text-muted-foreground mt-1 text-[11px]">
                         외부 소속명은 Gym을 생성하지 않고 snapshot만 수정합니다.
@@ -230,8 +267,10 @@ export function OrganizerApplicationEditPanel({
                       </label>
                       <select
                         id="edit-gender"
-                        name="gender"
-                        required
+                        name={
+                          form.structuralEditBlocked ? undefined : "gender"
+                        }
+                        required={!form.structuralEditBlocked}
                         className={fieldClass}
                         value={gender}
                         onChange={(e) => setGender(e.target.value)}
@@ -433,26 +472,27 @@ export function OrganizerApplicationEditPanel({
                   </div>
                 </section>
               </div>
-
-              {error ? (
-                <p className="text-destructive mt-3 text-sm" role="alert">
-                  {error}
-                </p>
-              ) : null}
             </div>
 
-            <DialogFooter className="shrink-0">
-              <Button
-                type="button"
-                variant="outline"
-                disabled={pending}
-                onClick={() => onOpenChange(false)}
-              >
-                취소
-              </Button>
-              <Button type="submit" disabled={pending}>
-                {pending ? "저장 중…" : "저장"}
-              </Button>
+            <DialogFooter className="shrink-0 flex-col items-stretch gap-2 sm:flex-col sm:items-stretch">
+              {error ? (
+                <FeedbackMessage tone="error" role="alert" className="text-sm">
+                  저장하지 못했습니다. {error}
+                </FeedbackMessage>
+              ) : null}
+              <div className="flex flex-col-reverse gap-2 sm:flex-row sm:justify-end">
+                <Button
+                  type="button"
+                  variant="outline"
+                  disabled={pending}
+                  onClick={() => onOpenChange(false)}
+                >
+                  취소
+                </Button>
+                <Button type="submit" disabled={pending}>
+                  {pending ? "저장 중…" : "저장"}
+                </Button>
+              </div>
             </DialogFooter>
           </form>
         )}

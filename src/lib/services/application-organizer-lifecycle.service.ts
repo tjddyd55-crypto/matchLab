@@ -23,7 +23,10 @@ import {
   type CancelRestoreSnapshot,
 } from "@/lib/applications/cancel-restore-snapshot";
 import { resyncFighterMatchSnapshotsForEvent } from "@/lib/brackets/resync-fighter-match-snapshots";
-import { resolveApplicationGymDisplayName } from "@/lib/gym/external-registration-placeholder-gym";
+import {
+  isExternalRegistrationPlaceholderGymName,
+  resolveApplicationGymDisplayName,
+} from "@/lib/gym/external-registration-placeholder-gym";
 import { toUtcDateOnly } from "@/lib/date-only";
 import { normalizeGymFighterPhone } from "@/lib/gym-fighter-management";
 import { applicationRepository } from "@/lib/repositories/application.repository";
@@ -280,6 +283,14 @@ export const applicationOrganizerLifecycleService = {
     const structuralEditBlocked =
       deps.hasBracketAssignment || deps.hasMatchResult || deps.hasWeighIn;
 
+    // placeholder Gym / 미연결은 표시명 snapshot 편집(manual)이 SSOT.
+    // existing 모드로 열면 options.gyms에 없어 저장이 실패하거나 무반응처럼 보인다.
+    const linkedGymIsPlaceholder = isExternalRegistrationPlaceholderGymName(
+      row.gym?.name,
+    );
+    const gymMode: "existing" | "manual" =
+      row.gymId && !linkedGymIsPlaceholder ? "existing" : "manual";
+
     return {
       applicationId: row.id,
       eventId: row.eventId,
@@ -292,8 +303,8 @@ export const applicationOrganizerLifecycleService = {
       phone: row.fighter.phone ?? "",
       guardianName: row.fighter.guardianName ?? "",
       guardianPhone: row.fighter.guardianPhone ?? "",
-      gymMode: row.gymId ? "existing" : "manual",
-      gymId: row.gymId,
+      gymMode,
+      gymId: gymMode === "existing" ? row.gymId : null,
       gymName,
       competitionCategory: row.division?.ageGroup ?? "",
       discipline: row.division?.sportType ?? "",
@@ -346,19 +357,6 @@ export const applicationOrganizerLifecycleService = {
     });
     if (!event) throw new AppError("NOT_FOUND", "대회를 찾을 수 없습니다.");
 
-    const { division, applicationWeightKg } = await resolveEditDivision(
-      input,
-      event.divisions.map((d) => ({
-        id: d.id,
-        gender: d.gender,
-        ageGroup: d.ageGroup,
-        weightClass: d.weightClass,
-        weightClassName: d.weightClassName,
-        weightLimitText: d.weightLimitText,
-        sportType: d.sportType,
-      })),
-    );
-
     const deps = await loadDependencyFlags(
       existing.eventId,
       existing.fighterId,
@@ -373,20 +371,92 @@ export const applicationOrganizerLifecycleService = {
             .applicationWeightKg as number)
         : null;
 
-    assertNoStructuralChangeWhenBlocked(
-      deps,
-      isStructuralDivisionChange(
-        {
-          gender: (existing.fighter.gender ?? "").toLowerCase(),
-          divisionId: existing.divisionId,
-        },
-        {
-          gender: input.gender.trim().toLowerCase(),
-          divisionId: division.id,
-        },
-      ),
-      prevWeight !== applicationWeightKg,
-    );
+    const structuralLocked =
+      deps.hasBracketAssignment || deps.hasMatchResult || deps.hasWeighIn;
+
+    type DivisionRow = {
+      id: string;
+      gender: string | null;
+      ageGroup: string | null;
+      weightClass: string | null;
+      weightClassName: string | null;
+      weightLimitText: string | null;
+      sportType: string | null;
+    };
+    const divisionRows: DivisionRow[] = event.divisions.map((d) => ({
+      id: d.id,
+      gender: d.gender,
+      ageGroup: d.ageGroup,
+      weightClass: d.weightClass,
+      weightClassName: d.weightClassName,
+      weightLimitText: d.weightLimitText,
+      sportType: d.sportType,
+    }));
+
+    let division: DivisionRow;
+    let applicationWeightKg: number;
+
+    if (structuralLocked && existing.divisionId) {
+      // Safe-field edits (gym/name/record) must not fail because disabled
+      // structural inputs were omitted from FormData or weight is blank.
+      const locked = divisionRows.find((d) => d.id === existing.divisionId);
+      if (!locked) {
+        throw new AppError("NOT_FOUND", "현재 배정된 체급을 찾을 수 없습니다.");
+      }
+      const parsedWeight = parseApplicationWeightKg(input.applicationWeightKg);
+      applicationWeightKg = parsedWeight.ok
+        ? parsedWeight.kg
+        : (prevWeight as number);
+      if (
+        applicationWeightKg == null ||
+        !Number.isFinite(applicationWeightKg) ||
+        applicationWeightKg <= 0
+      ) {
+        throw new AppError(
+          "VALIDATION_ERROR",
+          "신청체중이 없어 저장할 수 없습니다. 신청자 관리에서 체중을 먼저 입력해 주세요.",
+        );
+      }
+      const requestedDivisionId =
+        input.manualDivisionOverride && input.divisionId?.trim()
+          ? input.divisionId.trim()
+          : existing.divisionId;
+      assertNoStructuralChangeWhenBlocked(
+        deps,
+        isStructuralDivisionChange(
+          {
+            gender: (existing.fighter.gender ?? "").toLowerCase(),
+            divisionId: existing.divisionId,
+          },
+          {
+            gender: input.gender.trim().toLowerCase(),
+            divisionId: requestedDivisionId,
+          },
+        ),
+        prevWeight !== null && prevWeight !== applicationWeightKg,
+      );
+      // Pin existing division — do not auto-reassign while structurally locked.
+      division = locked;
+      applicationWeightKg = prevWeight ?? applicationWeightKg;
+    } else {
+      const resolved = await resolveEditDivision(input, divisionRows);
+      division = resolved.division;
+      applicationWeightKg = resolved.applicationWeightKg;
+      assertNoStructuralChangeWhenBlocked(
+        deps,
+        isStructuralDivisionChange(
+          {
+            gender: (existing.fighter.gender ?? "").toLowerCase(),
+            divisionId: existing.divisionId,
+          },
+          {
+            gender: input.gender.trim().toLowerCase(),
+            divisionId: division.id,
+          },
+        ),
+        prevWeight !== applicationWeightKg,
+      );
+    }
 
     const phone = normalizeGymFighterPhone(input.phone) || "-";
     const birthDate = input.birthDate ? toUtcDateOnly(input.birthDate) : null;
