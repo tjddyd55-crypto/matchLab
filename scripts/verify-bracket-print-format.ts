@@ -14,7 +14,10 @@ import {
   formatApplicationWeightLabel,
   formatBracketPrintEventDate,
   formatBracketPrintRecordDisplay,
+  formatCourtPrintFighterMeta,
+  formatDetailedPrintFighterMeta,
   formatPrintGenderShort,
+  resolveBracketPrintFighterMetaLine,
 } from "../src/lib/brackets/bracket-print-format";
 import {
   formatCourtScheduleMatchOrderShort,
@@ -187,7 +190,114 @@ console.log("  ✓ 경기번호 / 문서 제목 / 날짜");
 
 assert.equal(formatPrintGenderShort("male"), "남");
 assert.equal(formatPrintGenderShort("female"), "여");
+assert.equal(formatPrintGenderShort("남성"), "남");
 assert.equal(formatBracketPrintRecordDisplay("무전"), "현재 무전");
+
+{
+  const male = buildBracketPrintFighterDto({
+    name: "강로원",
+    gymNameSnapshot: "T-MAC 종합격투기",
+    gymSnapshot: null,
+    fighterSnapshot: { applicationWeightKg: 66 },
+    schoolLevelSnapshot: "MIDDLE",
+    schoolGradeSnapshot: 2,
+    totalBoutsSnapshot: 2,
+    winsSnapshot: 2,
+    drawsSnapshot: 0,
+    lossesSnapshot: 0,
+    genderLabel: "남성",
+  });
+  assert.equal(
+    formatDetailedPrintFighterMeta(male, { ageGroupLabel: "중등부" }),
+    "남 · 중등부 · 중2 · 66kg · 2전 2승 0패",
+  );
+  assert.equal(formatCourtPrintFighterMeta(male), "남 · 2전 2승 0패");
+  assert.equal(
+    resolveBracketPrintFighterMetaLine({
+      fighter: male,
+      mode: "all-matches",
+      ageGroupLabel: "중등부",
+    }),
+    "남 · 중등부 · 중2 · 66kg · 2전 2승 0패",
+  );
+  assert.equal(
+    resolveBracketPrintFighterMetaLine({ fighter: male, mode: "court" }),
+    "남 · 2전 2승 0패",
+  );
+  console.log("  ✓ detailed / court meta (남)");
+}
+
+{
+  const female = buildBracketPrintFighterDto({
+    name: "이수아",
+    gymNameSnapshot: "산본더원",
+    gymSnapshot: null,
+    fighterSnapshot: { applicationWeightKg: 41 },
+    schoolLevelSnapshot: "ELEMENTARY",
+    schoolGradeSnapshot: 3,
+    totalBoutsSnapshot: 0,
+    winsSnapshot: 0,
+    drawsSnapshot: 0,
+    lossesSnapshot: 0,
+    genderLabel: "여성",
+  });
+  assert.equal(
+    formatDetailedPrintFighterMeta(female, { ageGroupLabel: "초등부" }),
+    "여 · 초등부 · 초3 · 41kg · 무전",
+  );
+  assert.equal(formatCourtPrintFighterMeta(female), "여 · 무전");
+  const courtLine = formatCourtPrintFighterMeta(female) ?? "";
+  assert.doesNotMatch(courtLine, /초등부|초3|41kg/);
+  console.log("  ✓ detailed / court meta (여) + court omits division/grade/weight");
+}
+
+{
+  const partial = buildBracketPrintFighterDto({
+    name: "부분정보",
+    gymNameSnapshot: "짐",
+    gymSnapshot: null,
+    fighterSnapshot: { applicationWeightKg: 66 },
+    schoolLevelSnapshot: null,
+    schoolGradeSnapshot: null,
+    totalBoutsSnapshot: 0,
+    winsSnapshot: 0,
+    drawsSnapshot: 0,
+    lossesSnapshot: 0,
+    genderLabel: "남성",
+  });
+  assert.equal(
+    formatDetailedPrintFighterMeta(partial, { ageGroupLabel: "중등부" }),
+    "남 · 중등부 · 66kg · 무전",
+  );
+  assert.doesNotMatch(
+    formatDetailedPrintFighterMeta(partial, { ageGroupLabel: "중등부" }) ?? "",
+    /·\s*·|-\s*·/,
+  );
+  console.log("  ✓ null-safe meta join");
+}
+
+{
+  const appWeight = buildBracketPrintFighterDto({
+    name: "체중구분",
+    gymNameSnapshot: "짐",
+    gymSnapshot: null,
+    fighterSnapshot: { applicationWeightKg: 66 },
+    schoolLevelSnapshot: "MIDDLE",
+    schoolGradeSnapshot: 2,
+    totalBoutsSnapshot: 0,
+    winsSnapshot: 0,
+    drawsSnapshot: 0,
+    lossesSnapshot: 0,
+    genderLabel: "남성",
+  });
+  assert.equal(appWeight.weightLabel, "66kg");
+  assert.ok(
+    (formatDetailedPrintFighterMeta(appWeight, { ageGroupLabel: "중등부" }) ??
+      ""
+    ).includes("66kg"),
+  );
+  console.log("  ✓ application weight source (not matchWeightKg)");
+}
 
 {
   const pages = buildBracketPrintPages(

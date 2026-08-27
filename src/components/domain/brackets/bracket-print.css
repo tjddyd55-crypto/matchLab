@@ -363,6 +363,10 @@
   font-weight: 400;
   line-height: 13px;
   color: var(--bracket-print-muted);
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  max-width: 100%;
 }
 
 .ops-print-empty {

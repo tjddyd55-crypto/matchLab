@@ -7,8 +7,10 @@ import type {
   BracketPrintDocumentDto,
   BracketPrintFighterDto,
   BracketPrintMatchDto,
+  BracketPrintMode,
   BracketPrintPageDto,
 } from "@/lib/brackets/bracket-print-format";
+import { resolveBracketPrintFighterMetaLine } from "@/lib/brackets/bracket-print-format";
 import { cn } from "@/lib/utils";
 
 export function BracketPrintToolbar({
@@ -45,10 +47,19 @@ export function BracketPrintToolbar({
 function FighterCorner({
   fighter,
   corner,
+  printMode,
+  ageGroupLabel,
 }: {
   fighter: BracketPrintFighterDto | null;
   corner: "red" | "blue";
+  printMode: BracketPrintMode;
+  ageGroupLabel?: string | null;
 }) {
+  const metaLine = resolveBracketPrintFighterMetaLine({
+    fighter,
+    mode: printMode,
+    ageGroupLabel,
+  });
   return (
     <div
       className={cn(
@@ -64,7 +75,7 @@ function FighterCorner({
           <>
             <div className="ops-print-gym">{fighter.gymName || "소속 미상"}</div>
             <div className="ops-print-name">{fighter.name}</div>
-            <div className="ops-print-record">{fighter.recordDisplayLabel}</div>
+            <div className="ops-print-record">{metaLine}</div>
           </>
         ) : (
           <div className="ops-print-empty">
@@ -78,7 +89,13 @@ function FighterCorner({
 }
 
 /** Figma 11:3 — 번호|RED|VS|BLUE + optional 메모 행 */
-function MatchBlock({ match }: { match: BracketPrintMatchDto }) {
+function MatchBlock({
+  match,
+  printMode,
+}: {
+  match: BracketPrintMatchDto;
+  printMode: BracketPrintMode;
+}) {
   const memo = match.printableMemo?.trim() || "";
   return (
     <div className="ops-print-match-block">
@@ -89,9 +106,19 @@ function MatchBlock({ match }: { match: BracketPrintMatchDto }) {
             <div className="ops-print-match-kg">{match.weightLabel}</div>
           ) : null}
         </div>
-        <FighterCorner fighter={match.red} corner="red" />
+        <FighterCorner
+          fighter={match.red}
+          corner="red"
+          printMode={printMode}
+          ageGroupLabel={match.ageGroupLabel}
+        />
         <div className="ops-print-vs">VS</div>
-        <FighterCorner fighter={match.blue} corner="blue" />
+        <FighterCorner
+          fighter={match.blue}
+          corner="blue"
+          printMode={printMode}
+          ageGroupLabel={match.ageGroupLabel}
+        />
       </article>
       {memo ? (
         <div className="ops-print-memo-row">
@@ -112,6 +139,7 @@ function PrintPage({
   doc: BracketPrintDocumentDto;
   page: BracketPrintPageDto;
 }) {
+  const printMode: BracketPrintMode = doc.mode === "all-matches" ? "all-matches" : "court";
   return (
     <section className="ops-print-page-sheet">
       <header className="ops-print-header">
@@ -135,7 +163,7 @@ function PrintPage({
       ) : (
         <div className="ops-print-list">
           {page.matches.map((m) => (
-            <MatchBlock key={m.matchId} match={m} />
+            <MatchBlock key={m.matchId} match={m} printMode={printMode} />
           ))}
         </div>
       )}
