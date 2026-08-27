@@ -32,6 +32,8 @@ export type BracketPrintMatchDto = {
   /** PDF 메모 행 — organizerMemo 원문 (없으면 행 미출력) */
   printableMemo?: string | null;
   divisionLabel: string | null;
+  /** 연령부만 (초등부/중등부…) — 선수 meta 상세용. full divisionLabel과 별개 */
+  ageGroupLabel?: string | null;
   arenaName: string | null;
   red: BracketPrintFighterDto | null;
   blue: BracketPrintFighterDto | null;
@@ -306,20 +308,89 @@ export const BRACKET_PRINT_FOOTER_NOTE =
 export const UNMATCHED_PRINT_FOOTER_NOTE =
   "※ 요청 항목만 표시: 체육관명, 선수명, 성별, 경기구분, 전적, 신청 체중";
 
-/** all-matches 카드: 남성 · 66kg · 중2 · 무전 */
-export function buildBracketPrintFighterMetaLine(
+const PRINT_META_SEPARATOR = " · ";
+
+function joinPrintMetaParts(
+  parts: Array<string | null | undefined>,
+): string | null {
+  const cleaned = parts
+    .map((p) => (typeof p === "string" ? p.trim() : ""))
+    .filter((p) => p.length > 0 && p !== "-");
+  return cleaned.length > 0 ? cleaned.join(PRINT_META_SEPARATOR) : null;
+}
+
+function printRecordMetaPart(
+  fighter: BracketPrintFighterDto,
+): string | null {
+  const raw = fighter.recordLabel?.trim() || "";
+  if (!raw || raw === "-") return null;
+  return raw.startsWith("현재 ") ? raw.slice("현재 ".length) : raw;
+}
+
+function printGenderMetaPart(
+  fighter: BracketPrintFighterDto,
+): string | null {
+  const short = formatPrintGenderShort(fighter.genderLabel);
+  return short === "-" ? null : short;
+}
+
+/**
+ * 전체 경기 편집 PDF — 선수명 아래 meta:
+ * 남 · 중등부 · 중2 · 66kg · 2승 0패
+ * (신청체중 = fighter.weightLabel, 경기체중 matchWeightKg와 분리)
+ */
+export function formatDetailedPrintFighterMeta(
+  fighter: BracketPrintFighterDto | null,
+  options?: { ageGroupLabel?: string | null },
+): string | null {
+  if (!fighter) return null;
+  return joinPrintMetaParts([
+    printGenderMetaPart(fighter),
+    options?.ageGroupLabel,
+    fighter.gradeLabel,
+    fighter.weightLabel,
+    printRecordMetaPart(fighter),
+  ]);
+}
+
+/**
+ * 경기장별/전체순서 PDF — 선수명 아래 meta:
+ * 남 · 무전
+ * (경기구분·학년·신청체중 미포함)
+ */
+export function formatCourtPrintFighterMeta(
   fighter: BracketPrintFighterDto | null,
 ): string | null {
   if (!fighter) return null;
-  const parts = [
-    fighter.genderLabel,
-    fighter.weightLabel,
-    fighter.gradeLabel,
-    fighter.recordLabel && fighter.recordLabel !== "-"
-      ? fighter.recordLabel
-      : null,
-  ].filter((x): x is string => Boolean(x && x.trim()));
-  return parts.length > 0 ? parts.join(" · ") : null;
+  return joinPrintMetaParts([
+    printGenderMetaPart(fighter),
+    printRecordMetaPart(fighter),
+  ]);
+}
+
+/** @deprecated prefer formatDetailedPrintFighterMeta / formatCourtPrintFighterMeta */
+export function buildBracketPrintFighterMetaLine(
+  fighter: BracketPrintFighterDto | null,
+): string | null {
+  return formatDetailedPrintFighterMeta(fighter);
+}
+
+export function resolveBracketPrintFighterMetaLine(input: {
+  fighter: BracketPrintFighterDto | null;
+  mode: BracketPrintMode;
+  ageGroupLabel?: string | null;
+}): string {
+  const line =
+    input.mode === "all-matches"
+      ? formatDetailedPrintFighterMeta(input.fighter, {
+          ageGroupLabel: input.ageGroupLabel,
+        })
+      : formatCourtPrintFighterMeta(input.fighter);
+  if (line) return line;
+  // fighter 없는 경우엔 빈 문자열 (코너 empty UI가 담당)
+  if (!input.fighter) return "";
+  // meta 전부 없으면 기존 전적 표시로 폴백
+  return input.fighter.recordDisplayLabel;
 }
 
 export function buildAllMatchesPrintOpsLine(input: {

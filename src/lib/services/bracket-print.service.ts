@@ -270,6 +270,10 @@ export const bracketPrintService = {
       const divisionLabel = divisionInput
         ? formatDivisionMainLabel(divisionInput)
         : null;
+      const ageGroupLabel =
+        m.bracket.division?.ageGroup?.trim() ||
+        divisionInput?.ageGroup?.trim() ||
+        null;
       const divisionId = m.bracket.divisionId ?? null;
 
       const redApp = m.fighterRed
@@ -312,6 +316,7 @@ export const bracketPrintService = {
         }),
         weightLabel,
         divisionLabel,
+        ageGroupLabel,
         arenaName,
         red: mapPrintFighter(m.fighterRed, m.fighterRedSnapshot, redApp),
         blue: mapPrintFighter(m.fighterBlue, m.fighterBlueSnapshot, blueApp),
