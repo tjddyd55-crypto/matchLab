@@ -232,6 +232,18 @@ export function resolveDivisionDisplayParts(
   };
 }
 
+/**
+ * 경기( Bracket.divisionId → EventDivision )에 저장된 경기구분 연령부 SSOT.
+ * UI 카드 `formatDivisionMainLabel`의 첫 세그먼트와 동일.
+ * 신청자/Fighter ageGroup·competitionCategory·임의 U16↔중등부 매핑 금지.
+ */
+export function resolvePersistedMatchDivisionLabel(
+  division: EventDivisionDisplayInput | null | undefined,
+): string | null {
+  if (!division) return null;
+  return resolveDivisionDisplayParts(division).ageGroup;
+}
+
 /** 경기 카드 compact 한 줄 — U16 · 남성 · -60kg (룰/실력 제외) */
 export function formatDivisionCompactLine(
   division: EventDivisionDisplayInput,

@@ -48,17 +48,17 @@ function FighterCorner({
   fighter,
   corner,
   printMode,
-  ageGroupLabel,
+  matchDivisionLabel,
 }: {
   fighter: BracketPrintFighterDto | null;
   corner: "red" | "blue";
   printMode: BracketPrintMode;
-  ageGroupLabel?: string | null;
+  matchDivisionLabel?: string | null;
 }) {
   const metaLine = resolveBracketPrintFighterMetaLine({
     fighter,
     mode: printMode,
-    ageGroupLabel,
+    matchDivisionLabel,
   });
   return (
     <div
@@ -110,14 +110,14 @@ function MatchBlock({
           fighter={match.red}
           corner="red"
           printMode={printMode}
-          ageGroupLabel={match.ageGroupLabel}
+          matchDivisionLabel={match.matchDivisionLabel}
         />
         <div className="ops-print-vs">VS</div>
         <FighterCorner
           fighter={match.blue}
           corner="blue"
           printMode={printMode}
-          ageGroupLabel={match.ageGroupLabel}
+          matchDivisionLabel={match.matchDivisionLabel}
         />
       </article>
       {memo ? (

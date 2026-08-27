@@ -32,8 +32,11 @@ export type BracketPrintMatchDto = {
   /** PDF 메모 행 — organizerMemo 원문 (없으면 행 미출력) */
   printableMemo?: string | null;
   divisionLabel: string | null;
-  /** 연령부만 (초등부/중등부…) — 선수 meta 상세용. full divisionLabel과 별개 */
-  ageGroupLabel?: string | null;
+  /**
+   * 해당 경기의 persisted 경기구분 연령부 (EventDivision.ageGroup).
+   * 전체 경기 편집 PDF 선수 meta용. 신청자 ageGroup과 무관.
+   */
+  matchDivisionLabel?: string | null;
   arenaName: string | null;
   red: BracketPrintFighterDto | null;
   blue: BracketPrintFighterDto | null;
@@ -338,15 +341,16 @@ function printGenderMetaPart(
  * 전체 경기 편집 PDF — 선수명 아래 meta:
  * 남 · 중등부 · 중2 · 66kg · 2승 0패
  * (신청체중 = fighter.weightLabel, 경기체중 matchWeightKg와 분리)
+ * matchDivisionLabel = 경기 Bracket→EventDivision.ageGroup (신청자 ageGroup 아님)
  */
 export function formatDetailedPrintFighterMeta(
   fighter: BracketPrintFighterDto | null,
-  options?: { ageGroupLabel?: string | null },
+  options?: { matchDivisionLabel?: string | null },
 ): string | null {
   if (!fighter) return null;
   return joinPrintMetaParts([
     printGenderMetaPart(fighter),
-    options?.ageGroupLabel,
+    options?.matchDivisionLabel,
     fighter.gradeLabel,
     fighter.weightLabel,
     printRecordMetaPart(fighter),
@@ -378,12 +382,12 @@ export function buildBracketPrintFighterMetaLine(
 export function resolveBracketPrintFighterMetaLine(input: {
   fighter: BracketPrintFighterDto | null;
   mode: BracketPrintMode;
-  ageGroupLabel?: string | null;
+  matchDivisionLabel?: string | null;
 }): string {
   const line =
     input.mode === "all-matches"
       ? formatDetailedPrintFighterMeta(input.fighter, {
-          ageGroupLabel: input.ageGroupLabel,
+          matchDivisionLabel: input.matchDivisionLabel,
         })
       : formatCourtPrintFighterMeta(input.fighter);
   if (line) return line;

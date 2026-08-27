@@ -38,7 +38,8 @@ function testStaticWiring() {
   assert.match(format, /parseApplicationWeightKgFromSnapshot/);
 
   const service = read("src/lib/services/bracket-print.service.ts");
-  assert.match(service, /ageGroupLabel/);
+  assert.match(service, /matchDivisionLabel/);
+  assert.match(service, /resolvePersistedMatchDivisionLabel/);
   assert.match(service, /formatMatchWeightKgLabel\(m\.matchWeightKg\)/);
 }
 
@@ -57,7 +58,7 @@ function testDetailedMeta() {
     genderLabel: "남성",
   });
   assert.equal(
-    formatDetailedPrintFighterMeta(male, { ageGroupLabel: "중등부" }),
+    formatDetailedPrintFighterMeta(male, { matchDivisionLabel: "중등부" }),
     "남 · 중등부 · 중2 · 66kg · 2전 2승 0패",
   );
 
@@ -75,7 +76,7 @@ function testDetailedMeta() {
     genderLabel: "여성",
   });
   assert.equal(
-    formatDetailedPrintFighterMeta(female, { ageGroupLabel: "초등부" }),
+    formatDetailedPrintFighterMeta(female, { matchDivisionLabel: "초등부" }),
     "여 · 초등부 · 초3 · 41kg · 무전",
   );
 }
@@ -124,7 +125,9 @@ function testApplicationWeightSource() {
     genderLabel: "남성",
   });
   assert.equal(f.weightLabel, "66kg");
-  const detailed = formatDetailedPrintFighterMeta(f, { ageGroupLabel: "중등부" });
+  const detailed = formatDetailedPrintFighterMeta(f, {
+    matchDivisionLabel: "중등부",
+  });
   assert.match(detailed ?? "", /66kg/);
   assert.doesNotMatch(detailed ?? "", /68kg/);
 }
@@ -144,11 +147,13 @@ function testNullSafe() {
     genderLabel: "남성",
   });
   assert.equal(
-    formatDetailedPrintFighterMeta(partial, { ageGroupLabel: "중등부" }),
+    formatDetailedPrintFighterMeta(partial, { matchDivisionLabel: "중등부" }),
     "남 · 중등부 · 66kg · 무전",
   );
   assert.doesNotMatch(
-    formatDetailedPrintFighterMeta(partial, { ageGroupLabel: "중등부" }) ?? "",
+    formatDetailedPrintFighterMeta(partial, {
+      matchDivisionLabel: "중등부",
+    }) ?? "",
     /·\s*·/,
   );
 }
