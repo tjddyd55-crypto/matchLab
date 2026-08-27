@@ -21,17 +21,17 @@ export function PublicHomeHero({
       >
         <div className="min-w-0">
           <p className="text-xs font-extrabold uppercase tracking-[0.96px] text-matchon-primary">
-            격투기 대회 운영 플랫폼
+            격투기 운영 관리 플랫폼
           </p>
-          <h1 className="mt-3 max-w-[18ch] font-black text-[32px] leading-[1.15] tracking-tight text-matchon-text-primary sm:text-[40px] md:text-[48px] lg:text-[52px]">
-            참가 신청부터 경기 운영까지
+          <h1 className="mt-3 max-w-[16ch] font-black text-[32px] leading-[1.15] tracking-tight text-matchon-text-primary sm:text-[40px] md:text-[48px] lg:text-[52px]">
+            체육관 관리부터
             <span className="mt-1 block text-matchon-primary-dark">
-              MATCHON 하나로
+              격투기 대회 운영까지
             </span>
           </h1>
           <p className="mt-5 max-w-[34rem] text-[15px] leading-relaxed text-matchon-text-secondary md:text-lg">
-            선수 신청, 계체, 대진 편성, 경기 진행과 결과 관리까지
-            대회 운영에 필요한 과정을 한곳에서 관리하세요.
+            회원과 선수 관리, 참가 신청, 대진 편성, 경기 운영과 결과 관리까지
+            MATCHON 하나로 연결하세요.
           </p>
 
           <div className="mt-8 flex flex-col gap-3 sm:flex-row sm:flex-wrap sm:items-center">
@@ -56,7 +56,7 @@ export function PublicHomeHero({
           </p>
         </div>
 
-        <div className="min-w-0">
+        <div className="min-w-0 pb-2 lg:min-h-[360px]">
           <PublicHomeProductVisual />
         </div>
       </div>

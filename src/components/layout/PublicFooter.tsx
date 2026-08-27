@@ -28,6 +28,12 @@ export function PublicFooter() {
                 기능 소개
               </Link>
               <Link
+                href="/#gym"
+                className="text-[13px] font-semibold text-white/50 transition-colors hover:text-white/70"
+              >
+                체육관 관리
+              </Link>
+              <Link
                 href="/#manager"
                 className="text-[13px] font-semibold text-white/50 transition-colors hover:text-white/70"
               >

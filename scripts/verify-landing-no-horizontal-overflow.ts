@@ -15,6 +15,8 @@ function main() {
   const files = [
     "src/components/domain/events/public/PublicHomeHero.tsx",
     "src/components/domain/events/public/PublicHomeFeaturesSection.tsx",
+    "src/components/domain/events/public/PublicHomeGymSection.tsx",
+    "src/components/domain/events/public/PublicHomeAudienceSection.tsx",
     "src/components/domain/events/public/PublicHomeManagerDownloadSection.tsx",
     "src/components/domain/events/public/PublicHomeOrganizerCtaSection.tsx",
     "src/components/layout/PublicShell.tsx",

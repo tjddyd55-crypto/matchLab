@@ -40,8 +40,8 @@ export function PublicHomeManagerDownloadSection({
           </h2>
           <p className="max-w-xl text-[15px] leading-relaxed text-matchon-text-secondary md:text-base">
             대회 당일에는 넓은 PC 화면에서 경기와 선수 정보를 빠르게
-            관리하세요. 웹에서 준비한 대회를 Manager로 이어서 운영할 수
-            있습니다.
+            관리하세요. 웹에서 회원·선수와 대회를 준비하고, 현장 운영은
+            MATCHON Manager로 이어서 진행할 수 있습니다.
           </p>
           <ul className="grid gap-2 sm:grid-cols-2">
             {managerPoints.map((point) => (

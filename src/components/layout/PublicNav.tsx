@@ -30,6 +30,12 @@ export function PublicNav() {
             기능 소개
           </Link>
           <Link
+            href="/#gym"
+            className="rounded-lg px-3.5 py-1.5 text-sm font-medium text-matchon-text-secondary transition-colors hover:text-matchon-text-primary"
+          >
+            체육관 관리
+          </Link>
+          <Link
             href="/#manager"
             className="rounded-lg px-3.5 py-1.5 text-sm font-medium text-matchon-text-secondary transition-colors hover:text-matchon-text-primary"
           >
