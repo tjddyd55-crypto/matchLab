@@ -3,6 +3,7 @@ import { EventStatusPill } from "@/components/domain/events/EventStatusPill";
 import { RegistrationStatusPill } from "@/components/domain/events/RegistrationStatusPill";
 import { buttonVariants } from "@/components/ui/button";
 import type { OrganizerEventListItemVM } from "@/lib/services/event.service";
+import { EventStatus } from "@/lib/enums";
 import { formatOrganizerEventListDate } from "@/lib/ui/event-list-ui";
 import { cn } from "@/lib/utils";
 
@@ -61,16 +62,27 @@ export function OrganizerEventCompactCard({
         </div>
       </dl>
 
-      <div className="mt-3 border-t border-matchon-border pt-3">
+      <div className="mt-3 flex flex-wrap gap-2 border-t border-matchon-border pt-3">
         <Link
           href={`/organizer/events/${row.id}`}
           className={cn(
             buttonVariants({ size: "sm", variant: "outline" }),
-            "h-8 w-full text-xs sm:w-auto",
+            "h-8 text-xs sm:w-auto",
           )}
         >
           상세 관리
         </Link>
+        {row.status === EventStatus.finished && row.hasActiveArchive ? (
+          <Link
+            href={`/organizer/events/${row.id}/archive`}
+            className={cn(
+              buttonVariants({ size: "sm", variant: "ghost" }),
+              "h-8 text-xs",
+            )}
+          >
+            기록 보기
+          </Link>
+        ) : null}
       </div>
     </article>
   );

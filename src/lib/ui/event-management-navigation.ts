@@ -135,6 +135,12 @@ export function getEventManagementNavItems(
     { href: `${base}/judges`, label: "심판 관리", group: "brackets", icon: "gavel" },
     { href: `${base}/qr`, label: "QR 출력", group: "brackets", icon: "qr-code" },
     { href: `${base}/results`, label: "결과", group: "brackets", icon: "trophy" },
+    {
+      href: `${base}/archive`,
+      label: "대회 기록",
+      group: "brackets",
+      icon: "files",
+    },
     ...(publicSlug
       ? [
           {
@@ -210,6 +216,10 @@ export function isEventManagementNavItemActive(
     if (pathname === `${base}/brackets` && searchParams.get("tab") === "view") {
       return false;
     }
+    return pathname === item.href || pathname.startsWith(`${item.href}/`);
+  }
+
+  if (item.href === `${base}/archive`) {
     return pathname === item.href || pathname.startsWith(`${item.href}/`);
   }
 

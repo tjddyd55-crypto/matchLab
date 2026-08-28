@@ -1778,11 +1778,38 @@ model Event {
   judgeScorecards   JudgeScorecard[]
   courts            EventCourt[]
   externalRegistrationLink EventExternalRegistrationLink?
+  archives               EventArchive[]
 
   @@index([organizerId])
   @@index([status])
   @@index([eventDate])
   @@index([applicationFormTemplateId])
+}
+
+enum EventArchiveStatus {
+  active
+  superseded
+}
+
+/// 대회 종료 시점 immutable 스냅샷 (PostgreSQL JSON SSOT)
+model EventArchive {
+  id                 String             @id @default(cuid())
+  eventId            String
+  version            Int
+  status             EventArchiveStatus @default(active)
+  eventSnapshot      Json
+  applicantsSnapshot Json
+  bracketSnapshot    Json
+  resultsSnapshot    Json
+  archivedAt         DateTime           @default(now())
+  archivedByUserId   String?
+  createdAt          DateTime           @default(now())
+  updatedAt          DateTime           @updatedAt
+
+  event Event @relation(fields: [eventId], references: [id], onDelete: Cascade)
+
+  @@unique([eventId, version])
+  @@index([eventId, status])
 }
 
 model EventImage {

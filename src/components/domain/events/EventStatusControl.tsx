@@ -2,7 +2,7 @@
 
 import { useActionState, useEffect, useRef } from "react";
 import { useRouter } from "next/navigation";
-import { changeEventStatusAction } from "@/features/events/actions";
+import { changeEventStatusAction, getEventArchiveFinishSummaryAction } from "@/features/events/actions";
 import type { ActionResult } from "@/lib/action-result";
 import { EventStatus } from "@/lib/enums";
 import type { OrganizerEventDetailVM } from "@/lib/services/event.service";
@@ -96,16 +96,48 @@ export function EventStatusControl({
                 e.preventDefault();
                 const form = e.currentTarget;
                 const isCancel = t.next === EventStatus.cancelled;
+                const isFinish = t.next === EventStatus.finished;
                 void (async () => {
-                  const ok = await confirm({
-                    title: isCancel
-                      ? "대회를 취소할까요?"
-                      : `상태를 "${t.label}"(으)로 변경할까요?`,
-                    description: t.warn,
-                    confirmLabel: isCancel ? "취소" : "변경",
-                    variant: isCancel ? "danger" : "default",
-                  });
-                  if (!ok) return;
+                  if (isFinish) {
+                    const summaryRes = await getEventArchiveFinishSummaryAction(
+                      event.id,
+                    );
+                    const stats =
+                      summaryRes.ok === true
+                        ? summaryRes.data
+                        : null;
+                    const description = [
+                      "현재 대회를 종료하면 신청자 명단, 최종 대진표, 경기 결과가 대회 기록으로 저장됩니다.",
+                      stats
+                        ? [
+                            "",
+                            `신청자 ${stats.applicantCount}명`,
+                            `총 경기 ${stats.totalMatchCount}경기`,
+                            `결과 완료 ${stats.completedMatchCount}/${stats.totalMatchCount}`,
+                          ].join("\n")
+                        : "",
+                    ]
+                      .filter(Boolean)
+                      .join("\n");
+                    const ok = await confirm({
+                      title: "대회 종료 및 기록 보관",
+                      description,
+                      confirmLabel: "대회 종료 및 기록 보관",
+                      cancelLabel: "취소",
+                      variant: "default",
+                    });
+                    if (!ok) return;
+                  } else {
+                    const ok = await confirm({
+                      title: isCancel
+                        ? "대회를 취소할까요?"
+                        : `상태를 "${t.label}"(으)로 변경할까요?`,
+                      description: t.warn,
+                      confirmLabel: isCancel ? "취소" : "변경",
+                      variant: isCancel ? "danger" : "default",
+                    });
+                    if (!ok) return;
+                  }
                   statusConfirmedRef.current = true;
                   form.requestSubmit();
                 })();

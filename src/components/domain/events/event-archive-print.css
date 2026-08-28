@@ -1,0 +1,40 @@
+@media print {
+  .event-archive-no-print,
+  nav,
+  aside,
+  [data-event-management-sidebar] {
+    display: none !important;
+  }
+
+  .event-archive-print-header {
+    display: block !important;
+    margin-bottom: 1rem;
+  }
+
+  .event-archive-tab-panel {
+    display: none !important;
+    border: none !important;
+    box-shadow: none !important;
+  }
+
+  .event-archive-root[data-print-tab="summary"] .event-archive-tab-summary,
+  .event-archive-root[data-print-tab="applicants"] .event-archive-tab-applicants,
+  .event-archive-root[data-print-tab="bracket"] .event-archive-tab-bracket,
+  .event-archive-root[data-print-tab="results"] .event-archive-tab-results {
+    display: block !important;
+  }
+
+  .event-archive-tab-bracket {
+    page: bracket-landscape;
+  }
+
+  @page {
+    size: A4 portrait;
+    margin: 12mm;
+  }
+
+  @page bracket-landscape {
+    size: A4 landscape;
+    margin: 12mm;
+  }
+}

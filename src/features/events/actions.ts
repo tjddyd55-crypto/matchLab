@@ -12,6 +12,8 @@ import { PermissionError } from "@/lib/auth/permission-error";
 import { AppError } from "@/lib/errors/app-error";
 import { prismaErrorToActionFailure } from "@/lib/prisma-errors";
 import { eventService } from "@/lib/services/event.service";
+import { eventArchiveService } from "@/lib/services/event-archive.service";
+import { eventArchiveApplicantExcelService } from "@/lib/services/event-archive-applicant-excel.service";
 import { validationFailureFromZod } from "@/lib/validators/event-form-errors";
 import {
   changeEventStatusSchema,
@@ -433,5 +435,35 @@ export async function updateSpectatorAccessAction(
     const actor = await requireActorFromMutation();
     await eventService.updateSpectatorAccess(actor, parsed.data);
     return actionSuccess({ ok: true as const });
+  });
+}
+
+export async function getEventArchiveFinishSummaryAction(
+  eventId: string,
+): Promise<ActionResult<import("@/lib/event-archive/types").EventArchiveFinishSummary>> {
+  return mapCaught(async () => {
+    const actor = await requireActorFromMutation();
+    const summary = await eventArchiveService.getFinishSummary(actor, eventId);
+    return actionSuccess(summary);
+  });
+}
+
+export async function exportEventArchiveApplicantsExcelAction(input: {
+  eventId: string;
+  fieldKeys: string[];
+}): Promise<ActionResult<{ base64: string; filename: string; rowCount: number }>> {
+  return mapCaught(async () => {
+    const actor = await requireActorFromMutation();
+    const { buffer, filename, rowCount } =
+      await eventArchiveApplicantExcelService.buildWorkbookFromArchive(
+        actor,
+        input.eventId,
+        input.fieldKeys,
+      );
+    return actionSuccess({
+      base64: buffer.toString("base64"),
+      filename,
+      rowCount,
+    });
   });
 }
