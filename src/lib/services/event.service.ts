@@ -42,6 +42,8 @@ import {
   buildPublicRegistrationDisplay,
 } from "@/lib/event-public-display";
 import { AppError } from "@/lib/errors/app-error";
+
+const EVENT_FINISH_TX_OPTIONS = { maxWait: 15_000, timeout: 60_000 } as const;
 import { geocodeVenueCoordinate } from "@/lib/naver-geocode.server";
 import {
   requireOrganizerForEvent,
@@ -1121,7 +1123,7 @@ export const eventService = {
           },
           tx,
         );
-      });
+      }, EVENT_FINISH_TX_OPTIONS);
       return;
     }
 

@@ -89,6 +89,20 @@ export const fighterCareerRepository = {
     return result.count;
   },
 
+  /** rebuild 시 unique(fighterId, eventArchiveId, matchId) 충돌 방지 */
+  async deleteVoidedByEventArchiveId(
+    eventArchiveId: string,
+    tx?: Prisma.TransactionClient,
+  ): Promise<number> {
+    const result = await db(tx).fighterCareerMatchRecord.deleteMany({
+      where: {
+        eventArchiveId,
+        status: FighterCareerRecordStatus.voided,
+      },
+    });
+    return result.count;
+  },
+
   async listActiveByFighterId(
     fighterId: string,
     tx?: Prisma.TransactionClient,

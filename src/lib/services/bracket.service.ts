@@ -45,6 +45,8 @@ import {
   type FighterHandicapMapEntry,
 } from "@/lib/fighter-handicap-display";
 import { AppError } from "@/lib/errors/app-error";
+
+const BRACKET_MUTATION_TX_OPTIONS = { maxWait: 10_000, timeout: 30_000 } as const;
 import { resolveMatchIsPublicSparring } from "@/lib/match-bout-settings";
 import {
   formatOperationalSettingsLabel,
@@ -2546,7 +2548,7 @@ export const bracketService = {
       await applyEventWideMatchNumberResequence(ctx.eventId, tx);
 
       return { matchId, eventId: ctx.eventId };
-    });
+    }, BRACKET_MUTATION_TX_OPTIONS);
   },
 
   async deleteBracketMatch(

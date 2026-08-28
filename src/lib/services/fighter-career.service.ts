@@ -205,6 +205,10 @@ export const fighterCareerService = {
         input.eventArchiveId,
         client,
       );
+      await fighterCareerRepository.deleteVoidedByEventArchiveId(
+        input.eventArchiveId,
+        client,
+      );
       const rows = buildCareerRecordsFromArchive(input);
       const created = await fighterCareerRepository.createMany(rows, client);
       const fighterIds = [...new Set(rows.map((r) => r.fighterId))];
@@ -216,7 +220,7 @@ export const fighterCareerService = {
 
     if (tx) return run(tx);
     const { prisma } = await import("@/lib/prisma");
-    return prisma.$transaction(run);
+    return prisma.$transaction(run, { maxWait: 15_000, timeout: 60_000 });
   },
 
   async getFighterCareerProfile(
