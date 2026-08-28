@@ -37,6 +37,10 @@ import {
   OrganizerApplicantExcelTrigger,
 } from "@/components/domain/applications/OrganizerApplicantExcelImportDialog";
 import {
+  OrganizerApplicantExcelExportDialog,
+  OrganizerApplicantExcelExportTrigger,
+} from "@/components/domain/applications/OrganizerApplicantExcelExportDialog";
+import {
   ExternalRegistrationLinkPanel,
   ExternalRegistrationLinkTrigger,
 } from "@/components/domain/applications/ExternalRegistrationLinkPanel";
@@ -79,6 +83,7 @@ export function OrganizerApplicationsBoard({
   const [manualOpen, setManualOpen] = useState(false);
   const [linkOpen, setLinkOpen] = useState(false);
   const [excelOpen, setExcelOpen] = useState(false);
+  const [excelExportOpen, setExcelExportOpen] = useState(false);
   const [externalLink, setExternalLink] = useState(externalRegistrationLink);
   const [additionalInfoBulkOpen, setAdditionalInfoBulkOpen] = useState(false);
 
@@ -299,6 +304,7 @@ export function OrganizerApplicationsBoard({
               if (next) {
                 setManualOpen(false);
                 setExcelOpen(false);
+                setExcelExportOpen(false);
               }
             }}
             onLinkChange={setExternalLink}
@@ -310,12 +316,22 @@ export function OrganizerApplicationsBoard({
               if (next) {
                 setLinkOpen(false);
                 setExcelOpen(false);
+                setExcelExportOpen(false);
               }
             }}
           />
           <OrganizerApplicantExcelTrigger
             onOpen={() => {
               setExcelOpen(true);
+              setExcelExportOpen(false);
+              setManualOpen(false);
+              setLinkOpen(false);
+            }}
+          />
+          <OrganizerApplicantExcelExportTrigger
+            onOpen={() => {
+              setExcelExportOpen(true);
+              setExcelOpen(false);
               setManualOpen(false);
               setLinkOpen(false);
             }}
@@ -350,6 +366,15 @@ export function OrganizerApplicationsBoard({
         eventId={eventId}
         open={excelOpen}
         onOpenChange={setExcelOpen}
+      />
+      <OrganizerApplicantExcelExportDialog
+        open={excelExportOpen}
+        onOpenChange={setExcelExportOpen}
+        eventId={eventId}
+        filteredApplicationIds={filtered.map((r) => r.applicationId)}
+        filteredCount={filtered.length}
+        totalCount={rows.length}
+        hasActiveFilters={Boolean(hasActiveFilters)}
       />
 
       <OrganizerApplicationsSummaryCards
