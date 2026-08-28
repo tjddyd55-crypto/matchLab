@@ -291,6 +291,31 @@ export const gymMemberService = {
     return { items, total, page, pageSize };
   },
 
+  /** Excel export — pagination 없이 필터 결과 전체(최대 5000) */
+  async listMembersForExport(
+    actor: ActorContext,
+    filters: {
+      q?: string;
+      status?: GymMemberStatus;
+      fighterFilter?: "all" | "fighter" | "non_fighter";
+      expirationFilter?: "all" | "active" | "expiring" | "expired" | "no_plan";
+      joinedFilter?: "all" | "this-month";
+      groupId?: string;
+      page?: number;
+      pageSize?: number;
+    } = {},
+  ) {
+    const { items } = await this.listMembers(actor, {
+      ...filters,
+      page: filters.page ?? 1,
+      pageSize: filters.pageSize ?? 5000,
+    });
+    return items.map((item, index) => ({
+      ...item,
+      rowNumber: index + 1,
+    }));
+  },
+
   async getMemberDetail(actor: ActorContext, memberId: string) {
     const { access, member } = await assertMemberOwned(actor, memberId, false);
     const today = todayUtcDateOnly();

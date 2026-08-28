@@ -11,6 +11,7 @@ import { resolveMemberGymOwnerAccountStatus } from "@/lib/member-gym/owner-accou
 import { MEMBER_GYM_STATUS_LABEL } from "@/lib/ui-labels/member-gym";
 import { MEMBER_GYM_OWNER_ACCOUNT_STATUS_LABEL } from "@/lib/ui-labels/member-gym-owner";
 import { format } from "date-fns";
+import { MemberGymListExcelExport } from "@/components/domain/member-gyms/MemberGymListExcelExport";
 
 export const dynamic = "force-dynamic";
 
@@ -35,6 +36,8 @@ export default async function MemberGymListPage({
     q: sp.q,
   });
   const overview = await memberGymService.getOverview(actor);
+  const hasActiveFilters = Boolean(sp.q?.trim() || status);
+  const memberGymIds = rows.map((row) => row.id);
 
   return (
     <>
@@ -46,6 +49,13 @@ export default async function MemberGymListPage({
           showCopy={false}
           showLinkManage={false}
           showDirectRegister
+        />
+        <MemberGymListExcelExport
+          memberGymIds={memberGymIds}
+          filteredCount={rows.length}
+          totalCount={overview.totals.memberGyms}
+          hasActiveFilters={hasActiveFilters}
+          filters={{ q: sp.q, status: sp.status }}
         />
       </OrganizerDashboardPageHeader>
       <MemberGymSubNav />

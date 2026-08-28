@@ -1,10 +1,11 @@
 import "server-only";
 
-import ExcelJS from "exceljs";
 import type { ActorContext } from "@/lib/auth/actor-context";
 import { AppError } from "@/lib/errors/app-error";
 import { requireOrganizerForEvent } from "@/lib/permissions";
 import { prisma } from "@/lib/prisma";
+import { buildExcelWorkbook } from "@/lib/excel-export/build-workbook";
+import { ymdFileStamp } from "@/lib/excel-export/filename";
 import {
   APPLICANT_EXCEL_EXPORT_FIELDS,
   resolveApplicantExcelExportFields,
@@ -29,13 +30,6 @@ export type ExportOrganizerApplicationsExcelInput = {
   /** scope=filtered 일 때 현재 필터 결과 applicationId (순서 유지) */
   applicationIds?: string[];
 };
-
-function ymdFileStamp(d = new Date()): string {
-  const y = d.getFullYear();
-  const m = String(d.getMonth() + 1).padStart(2, "0");
-  const day = String(d.getDate()).padStart(2, "0");
-  return `${y}-${m}-${day}`;
-}
 
 function toIso(d: Date): string {
   return d.toISOString();
@@ -203,32 +197,11 @@ export const applicantExcelExportService = {
       );
     }
 
-    const workbook = new ExcelJS.Workbook();
-    workbook.creator = "MATCHON";
-    const sheet = workbook.addWorksheet("신청자");
-
-    sheet.columns = fields.map((f) => ({
-      header: f.label,
-      key: f.key,
-      width: Math.min(28, Math.max(12, f.label.length + 4)),
-    }));
-
-    const phoneColIndex = fields.findIndex((f) => f.key === "phone");
-    selectedRows.forEach((row, index) => {
-      const values = fields.map((f) => f.extract(row, index + 1));
-      const excelRow = sheet.addRow(values);
-      if (phoneColIndex >= 0) {
-        const cell = excelRow.getCell(phoneColIndex + 1);
-        cell.numFmt = "@";
-        if (typeof values[phoneColIndex] === "string") {
-          cell.value = values[phoneColIndex];
-        }
-      }
+    const buffer = await buildExcelWorkbook({
+      sheetName: "신청자",
+      fields,
+      rows: selectedRows,
     });
-
-    sheet.getRow(1).font = { bold: true };
-
-    const buffer = Buffer.from(await workbook.xlsx.writeBuffer());
     const titlePart = sanitizeApplicantExcelFilenamePart(event.title || "대회");
     const filename = `MATCHON_${titlePart}_신청자_${ymdFileStamp()}.xlsx`;
 

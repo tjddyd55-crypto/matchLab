@@ -187,9 +187,7 @@ async function main() {
   const dialog = read(
     "src/components/domain/applications/OrganizerApplicantExcelExportDialog.tsx",
   );
-  assert.match(dialog, /전체 선택/);
-  assert.match(dialog, /전체 해제/);
-  assert.match(dialog, /현재 검색\/필터 결과/);
+  assert.match(dialog, /SelectableExcelExportDialog/);
   assert.doesNotMatch(dialog, /\balert\(/);
 
   const actions = read("src/features/applications/actions.ts");
@@ -197,7 +195,7 @@ async function main() {
 
   const service = read("src/lib/services/applicant-excel-export.service.ts");
   assert.match(service, /requireOrganizerForEvent/);
-  assert.match(service, /exceljs/i);
+  assert.match(service, /buildExcelWorkbook/);
   assert.doesNotMatch(service, /insuranceRrn/);
 
   console.log("verify:applicant-excel-export OK");

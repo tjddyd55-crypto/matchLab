@@ -20,6 +20,12 @@ import type {
   ApplicationStatus,
   PaymentStatus,
 } from "@/generated/prisma";
+import type { ExcelExportField } from "@/lib/excel-export/types";
+import {
+  defaultExcelExportFieldKeys,
+  resolveExcelExportFields,
+} from "@/lib/excel-export/field-registry";
+import { sanitizeExcelFilenamePart } from "@/lib/excel-export/filename";
 
 export type ApplicantExcelExportRow = {
   applicationId: string;
@@ -62,13 +68,10 @@ export type ApplicantExcelExportFieldKey =
   | "memo"
   | "assignment";
 
-export type ApplicantExcelExportField = {
-  key: ApplicantExcelExportFieldKey;
-  /** 신청자 관리 UI와 동일한 표시명 */
-  label: string;
-  defaultSelected: boolean;
-  extract: (row: ApplicantExcelExportRow, sequence: number) => string;
-};
+export type ApplicantExcelExportField = ExcelExportField<
+  ApplicantExcelExportFieldKey,
+  ApplicantExcelExportRow
+>;
 
 function formatDivisionCell(row: ApplicantExcelExportRow): string {
   if (row.division) {
@@ -112,6 +115,7 @@ export const APPLICANT_EXCEL_EXPORT_FIELDS: readonly ApplicantExcelExportField[]
       key: "phone",
       label: "연락처",
       defaultSelected: true,
+      textFormat: true,
       extract: (row) => {
         const phone = (row.phone ?? "").trim();
         if (!phone || phone === "-") return "";
@@ -212,21 +216,16 @@ export const APPLICANT_EXCEL_EXPORT_FIELD_KEYS =
 export function resolveApplicantExcelExportFields(
   selectedKeys: readonly string[],
 ): ApplicantExcelExportField[] {
-  const selected = new Set(selectedKeys);
-  return APPLICANT_EXCEL_EXPORT_FIELDS.filter((f) => selected.has(f.key));
-}
-
-export function defaultApplicantExcelExportFieldKeys(): ApplicantExcelExportFieldKey[] {
-  return APPLICANT_EXCEL_EXPORT_FIELDS.filter((f) => f.defaultSelected).map(
-    (f) => f.key,
+  return resolveExcelExportFields(
+    APPLICANT_EXCEL_EXPORT_FIELDS,
+    selectedKeys,
   );
 }
 
+export function defaultApplicantExcelExportFieldKeys(): ApplicantExcelExportFieldKey[] {
+  return defaultExcelExportFieldKeys(APPLICANT_EXCEL_EXPORT_FIELDS);
+}
+
 export function sanitizeApplicantExcelFilenamePart(raw: string): string {
-  return raw
-    .replace(/[\\/:*?"<>|]+/g, "_")
-    .replace(/\s+/g, "_")
-    .replace(/_+/g, "_")
-    .replace(/^_|_$/g, "")
-    .slice(0, 80);
+  return sanitizeExcelFilenamePart(raw);
 }

@@ -857,40 +857,61 @@ export async function commitGymMemberExcelImportAction(
   });
 }
 
-export async function exportGymMembersExcelAction(filters: {
-  q?: string;
-  status?: string;
-  fighter?: string;
-  joined?: string;
-  groupId?: string;
-}): Promise<ActionResult<{ base64: string; filename: string }>> {
+export async function exportGymMembersExcelAction(input: {
+  fieldKeys: string[];
+  scope: "all" | "filtered";
+  filters?: {
+    q?: string;
+    status?: string;
+    fighter?: string;
+    expiration?: string;
+    joined?: string;
+    groupId?: string;
+  };
+}): Promise<ActionResult<{ base64: string; filename: string; rowCount: number }>> {
   return mapCaught(async () => {
     const actor = await requireActorFromMutation();
     const status =
-      filters.status === GymMemberStatus.active ||
-      filters.status === GymMemberStatus.paused ||
-      filters.status === GymMemberStatus.withdrawn
-        ? filters.status
+      input.filters?.status === GymMemberStatus.active ||
+      input.filters?.status === GymMemberStatus.paused ||
+      input.filters?.status === GymMemberStatus.withdrawn
+        ? input.filters.status
         : undefined;
     const fighterFilter =
-      filters.fighter === "fighter" || filters.fighter === "non_fighter"
-        ? filters.fighter
+      input.filters?.fighter === "fighter" || input.filters?.fighter === "non_fighter"
+        ? input.filters.fighter
         : "all";
     const joinedFilter =
-      filters.joined === "this-month" ? "this-month" : "all";
-    const { buffer, filename } = await gymMemberExcelService.buildWorkbook(
+      input.filters?.joined === "this-month" ? "this-month" : "all";
+    const expirationFilter =
+      input.filters?.expiration === "active" ||
+      input.filters?.expiration === "expiring" ||
+      input.filters?.expiration === "expired" ||
+      input.filters?.expiration === "no_plan"
+        ? input.filters.expiration
+        : "all";
+    const { buffer, filename, rowCount } = await gymMemberExcelService.buildWorkbook(
       actor,
       {
-        q: filters.q,
-        status,
-        fighterFilter,
-        joinedFilter,
-        groupId: filters.groupId,
+        fieldKeys: input.fieldKeys,
+        scope: input.scope,
+        filters:
+          input.scope === "filtered"
+            ? {
+                q: input.filters?.q,
+                status,
+                fighterFilter,
+                expirationFilter,
+                joinedFilter,
+                groupId: input.filters?.groupId,
+              }
+            : undefined,
       },
     );
     return actionSuccess({
       base64: buffer.toString("base64"),
       filename,
+      rowCount,
     });
   });
 }
