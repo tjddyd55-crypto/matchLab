@@ -497,9 +497,7 @@ export async function updateOrganizerApplicationAction(
         formReq(formData, "competitionCategory") || "open",
       discipline: formReq(formData, "discipline") || undefined,
       schoolGradeSelect: formReq(formData, "schoolGradeSelect") || "",
-      manualDivisionOverride:
-        parseCheckboxOn(formData, "manualDivisionOverride") ||
-        Boolean(divisionIdRaw),
+      manualDivisionOverride: parseCheckboxOn(formData, "manualDivisionOverride"),
       divisionId: divisionIdRaw || undefined,
       gymMode,
       gymId: formReq(formData, "gymId") || undefined,

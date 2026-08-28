@@ -181,6 +181,7 @@
     "verify:external-registration-no-gym-create": "tsx scripts/verify-external-registration-no-gym-create.ts",
     "verify:application-gym-snapshot": "tsx scripts/verify-application-gym-snapshot.ts",
     "verify:organizer-application-edit": "tsx scripts/verify-organizer-application-edit.ts",
+    "verify:application-division-gender-compatibility": "tsx scripts/verify-application-division-gender-compatibility.ts",
     "verify:organizer-application-restore": "tsx scripts/verify-organizer-application-restore.ts",
     "verify:organizer-application-permanent-delete": "tsx scripts/verify-organizer-application-permanent-delete.ts",
     "verify:application-delete-dependency-guard": "tsx scripts/verify-organizer-application-permanent-delete.ts",

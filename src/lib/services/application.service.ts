@@ -112,6 +112,8 @@ import {
 } from "@/lib/external-registration/token";
 import { assertExternalRegistrationEligible } from "@/lib/external-registration/eligibility";
 import { parseApplicationWeightKg } from "@/lib/applications/application-weight";
+import { assertApplicationDivisionCompatible } from "@/lib/applications/application-division-compatibility";
+import { appendApplicationStructuralAudit } from "@/lib/applications/application-structural-audit";
 import { validateFirstStageApplication } from "@/lib/applications/first-stage-application";
 import { resolveEventDivisionByApplicationWeight } from "@/lib/applications/resolve-event-division";
 import type { NormalizedCompetitionCategory } from "@/lib/applications/competition-category";
@@ -1921,9 +1923,18 @@ export const applicationService = {
         if (!parsedWeight.ok) {
           throw new AppError("VALIDATION_ERROR", parsedWeight.error);
         }
+        if (!input.divisionId?.trim()) {
+          throw new AppError("VALIDATION_ERROR", "체급을 선택해 주세요.");
+        }
         if (!division) {
           throw new AppError("NOT_FOUND", "유효하지 않은 경기구분/체급입니다.");
         }
+        assertApplicationDivisionCompatible({
+          fighterGender: input.gender,
+          competitionCategory: input.competitionCategory,
+          discipline: input.discipline,
+          division,
+        });
         applicationWeightKg = parsedWeight.kg;
       } else {
         const auto = resolveDivisionForApplicationWeight({
@@ -2214,6 +2225,16 @@ export const applicationService = {
           applicationId,
           fighterId: fighter.id,
           gymId,
+        });
+
+        await appendApplicationStructuralAudit(tx, {
+          actorUserId: actor.userId,
+          eventId: input.eventId,
+          applicationId,
+          fighterId: fighter.id,
+          source: "ORGANIZER_APPLICATION_CREATE",
+          before: { divisionId: null, gender: null },
+          after: { divisionId: division.id, gender: input.gender },
         });
 
         if (input.applicationStatus === ApplicationStatus.approved) {

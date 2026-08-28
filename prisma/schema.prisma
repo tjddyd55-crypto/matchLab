@@ -498,6 +498,7 @@ enum AuditAction {
   gym_member_self_registration_rejected
   organizer_status_changed
   gym_status_changed
+  event_application_structural_changed
 }
 
 enum GymMemberAttendanceSource {
