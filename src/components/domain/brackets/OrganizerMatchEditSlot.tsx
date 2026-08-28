@@ -133,8 +133,9 @@ export function OrganizerMatchEditSlot({
 
       if (fighterNeedsMoveConfirm(matches, nextId, matchId)) {
         const ok = await confirm({
-          title:
-            "이 선수는 다른 경기에 배정되어 있습니다. 이동하면 기존 슬롯은 비워집니다. 계속할까요?",
+          title: "복수 출전으로 추가할까요?",
+          description:
+            "이 선수는 다른 경기에 이미 배정되어 있습니다. 기존 배정은 유지하고 이 경기에도 추가합니다.",
         });
         if (!ok) return;
       }
@@ -145,7 +146,7 @@ export function OrganizerMatchEditSlot({
       fd.set("fighterId", nextId);
       fd.set("slot", slot);
       if (fighterNeedsMoveConfirm(matches, nextId, matchId)) {
-        fd.set("moveFromOtherMatch", "on");
+        fd.set("allowDuplicateAssignment", "on");
       }
       const res = await assignFighterToMatchAction(fd);
       if (!res.ok) {

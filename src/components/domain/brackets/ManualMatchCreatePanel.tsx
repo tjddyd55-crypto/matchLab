@@ -649,7 +649,7 @@ export function ManualMatchCreatePanel({
             </DialogTitle>
             <DialogDescription>
               {allowDuplicateAssignment
-                ? "미매칭 선수와 이미 배정된 선수(같은 경기구분)를 선택할 수 있습니다."
+                ? "미매칭 선수와 이미 배정된 선수(전체 선수)를 선택할 수 있습니다."
                 : "미매칭 선수 중에서 선택하세요."}
             </DialogDescription>
           </DialogHeader>

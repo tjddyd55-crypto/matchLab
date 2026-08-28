@@ -306,6 +306,10 @@ export async function assignFighterToMatchAction(
       slot: formReq(formData, "slot"),
       reason: formReq(formData, "reason") || undefined,
       moveFromOtherMatch: parseCheckbox(formData, "moveFromOtherMatch"),
+      allowDuplicateAssignment: parseCheckbox(
+        formData,
+        "allowDuplicateAssignment",
+      ),
     });
     if (!parsed.success) {
       return actionFailure(

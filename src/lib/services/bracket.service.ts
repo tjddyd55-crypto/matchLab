@@ -1859,7 +1859,9 @@ export const bracketService = {
           tx,
         );
       if (elsewhere > 0) {
-        if (input.moveFromOtherMatch) {
+        if (input.allowDuplicateAssignment) {
+          // 복수 출전: 기존 슬롯 유지. same-bracket 내 추가 배정만 허용.
+        } else if (input.moveFromOtherMatch) {
           const prev = await bracketRepository.findFighterAssignmentInBracketExcluding(
             input.bracketId,
             input.fighterId,

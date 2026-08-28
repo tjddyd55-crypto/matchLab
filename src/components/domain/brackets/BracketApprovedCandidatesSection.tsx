@@ -59,6 +59,13 @@ import {
 import { cn } from "@/lib/utils";
 
 type UnmatchedTab = "division" | "event";
+/** 복수 경기 ON일 때 선수 목록 범위 */
+type MultiMatchListScope = "unmatched" | "all";
+
+function formatMatchCountBadge(count: number): string {
+  if (count <= 0) return "미배정";
+  return `${count}경기`;
+}
 
 function buildPlacementMap(
   matches: OrganizerBracketMatchVM[],
@@ -404,18 +411,16 @@ export function BracketApprovedCandidatesSection({
   const [dockExpanded, setDockExpanded] = useState(false);
   /** 복수 경기 모드 — reload 시 기본 OFF (persist 금지) */
   const [multiMatchMode, setMultiMatchMode] = useState(false);
+  const [multiMatchListScope, setMultiMatchListScope] =
+    useState<MultiMatchListScope>("all");
   const { alert } = useAppConfirmDialog();
 
   const expandDock = useCallback(() => setDockExpanded(true), []);
 
-  const sameDivisionAssigned = useMemo(
-    () =>
-      grouped.assigned.filter(
-        (o) =>
-          o.isAssignableForBracket &&
-          (!targetDivisionId || o.divisionId === targetDivisionId),
-      ),
-    [grouped.assigned, targetDivisionId],
+  /** 복수 경기 ON — 대회 승인·배정 가능 선수 전원 (미배정+기배정) */
+  const allAssignableFighters = useMemo(
+    () => options.filter((o) => o.isAssignableForBracket),
+    [options],
   );
 
   const manualCandidateMap = useMemo(() => {
@@ -423,14 +428,14 @@ export function BracketApprovedCandidatesSection({
     for (const o of grouped.unassigned) map.set(o.fighterId, o);
     for (const o of eventWideUnmatchedOptions) map.set(o.fighterId, o);
     if (multiMatchMode) {
-      for (const o of sameDivisionAssigned) map.set(o.fighterId, o);
+      for (const o of allAssignableFighters) map.set(o.fighterId, o);
     }
     return map;
   }, [
     grouped.unassigned,
     eventWideUnmatchedOptions,
     multiMatchMode,
-    sameDivisionAssigned,
+    allAssignableFighters,
   ]);
 
   const manualCandidates = useMemo(
@@ -438,15 +443,15 @@ export function BracketApprovedCandidatesSection({
     [manualCandidateMap],
   );
 
-  const unmatchedIds = useMemo(
+  const selectableIds = useMemo(
     () => new Set(manualCandidates.map((o) => o.fighterId)),
     [manualCandidates],
   );
 
   useEffect(() => {
-    if (red && !unmatchedIds.has(red.fighterId)) setRed(null);
-    if (blue && !unmatchedIds.has(blue.fighterId)) setBlue(null);
-  }, [unmatchedIds, red, blue]);
+    if (red && !selectableIds.has(red.fighterId)) setRed(null);
+    if (blue && !selectableIds.has(blue.fighterId)) setBlue(null);
+  }, [selectableIds, red, blue]);
 
   const slotIds = useMemo(() => {
     const s = new Set<string>();
@@ -473,32 +478,45 @@ export function BracketApprovedCandidatesSection({
     return sortByAnchorWeight(filtered, anchorWeight);
   }, [anchorWeight, eventWideUnmatchedOptions, unmatchedFilters]);
 
-  const filteredAssignedForMulti = useMemo(() => {
+  const filteredAllAssignable = useMemo(() => {
     if (!multiMatchMode) return [];
     const filtered = filterUnmatchedQuickBarOptions(
-      sameDivisionAssigned,
+      allAssignableFighters,
       unmatchedFilters,
     );
     return sortByAnchorWeight(filtered, anchorWeight);
-  }, [anchorWeight, multiMatchMode, sameDivisionAssigned, unmatchedFilters]);
+  }, [anchorWeight, multiMatchMode, allAssignableFighters, unmatchedFilters]);
 
-  const visibleUnmatched =
-    unmatchedTab === "division" ? filteredDivisionUnmatched : filteredEventWide;
-  const visibleUnmatchedCount = visibleUnmatched.length;
+  const unmatchedPool =
+    multiMatchMode
+      ? filteredEventWide
+      : unmatchedTab === "division"
+        ? filteredDivisionUnmatched
+        : filteredEventWide;
+
+  const visiblePlayerList =
+    multiMatchMode && multiMatchListScope === "all"
+      ? filteredAllAssignable
+      : unmatchedPool;
+  const visiblePlayerCount = visiblePlayerList.length;
   const unmatchedFiltersActive = hasActiveUnmatchedQuickBarFilters(unmatchedFilters);
   const unmatchedFilterOptionsSource =
-    unmatchedTab === "division"
-      ? multiMatchMode
-        ? [...grouped.unassigned, ...sameDivisionAssigned]
-        : grouped.unassigned
-      : eventWideUnmatchedOptions;
+    multiMatchMode && multiMatchListScope === "all"
+      ? allAssignableFighters
+      : unmatchedTab === "division"
+        ? grouped.unassigned
+        : eventWideUnmatchedOptions;
 
   const unmatchedEmptyMessage =
-    unmatchedFiltersActive && visibleUnmatchedCount === 0
-      ? "조건에 맞는 미매칭 선수가 없습니다."
-      : unmatchedTab === "division"
-        ? "현재 경기구분 미매칭 선수가 없습니다."
-        : "대회 전체 미매칭 선수가 없습니다.";
+    unmatchedFiltersActive && visiblePlayerCount === 0
+      ? multiMatchMode && multiMatchListScope === "all"
+        ? "조건에 맞는 선수가 없습니다."
+        : "조건에 맞는 미매칭 선수가 없습니다."
+      : multiMatchMode && multiMatchListScope === "all"
+        ? "선택 가능한 선수가 없습니다."
+        : unmatchedTab === "division"
+          ? "현재 경기구분 미매칭 선수가 없습니다."
+          : "대회 전체 미매칭 선수가 없습니다.";
 
   const unassignablePlacedCount = grouped.unassignable.filter((o) =>
     placedIds.has(o.fighterId),
@@ -548,9 +566,14 @@ export function BracketApprovedCandidatesSection({
       : eventWideUnmatchedOptions.length;
 
   function renderUnmatchedPlayerList() {
+    const showDivisionLine =
+      !multiMatchMode
+        ? unmatchedTab === "event"
+        : multiMatchListScope === "all" || unmatchedTab === "event";
+
     return (
       <>
-        {visibleUnmatched.map((o) => {
+        {visiblePlayerList.map((o) => {
           const inSlot = slotIds.has(o.fighterId);
           if (!showManualCreate) {
             return (
@@ -563,12 +586,25 @@ export function BracketApprovedCandidatesSection({
               />
             );
           }
+          const assignments = getFighterAssignments(
+            assignmentMap,
+            o.fighterId,
+          );
+          const badge =
+            multiMatchMode || assignments.length > 0
+              ? formatMatchCountBadge(assignments.length)
+              : null;
           return (
             <UnmatchedOptionCard
-              key={o.applicationId}
+              key={
+                multiMatchMode
+                  ? `multi-${o.applicationId}`
+                  : o.applicationId
+              }
               option={o}
               inSlot={inSlot}
-              showDivisionLine={unmatchedTab === "event"}
+              showDivisionLine={showDivisionLine}
+              assignmentBadge={badge}
               activePickSlot={activePickSlot}
               onCardClick={() => handleCardPick(o)}
               onAssignRed={() => assignToSlot("red", o.fighterId)}
@@ -577,34 +613,54 @@ export function BracketApprovedCandidatesSection({
             />
           );
         })}
-        {multiMatchMode && unmatchedTab === "division"
-          ? filteredAssignedForMulti.map((o) => {
-              const inSlot = slotIds.has(o.fighterId);
-              const assignments = getFighterAssignments(
-                assignmentMap,
-                o.fighterId,
-              );
-              const badge = `이미 ${assignments.length}경기 배정`;
-              return (
-                <UnmatchedOptionCard
-                  key={`multi-${o.applicationId}`}
-                  option={o}
-                  inSlot={inSlot}
-                  assignmentBadge={badge}
-                  activePickSlot={activePickSlot}
-                  onCardClick={() => handleCardPick(o)}
-                  onAssignRed={() => assignToSlot("red", o.fighterId)}
-                  onAssignBlue={() => assignToSlot("blue", o.fighterId)}
-                  onDragStart={expandDock}
-                />
-              );
-            })
-          : null}
       </>
     );
   }
 
+  function toggleMultiMatchMode() {
+    setMultiMatchMode((prev) => {
+      const next = !prev;
+      if (next) {
+        // ON 진입 시 전체 선수 탭으로 — 이미 배정된 선수를 바로 찾을 수 있게
+        setMultiMatchListScope("all");
+      }
+      return next;
+    });
+  }
+
   function renderUnmatchedScopeButtons() {
+    if (multiMatchMode) {
+      return (
+        <>
+          <Button
+            type="button"
+            size="xs"
+            variant={
+              multiMatchListScope === "unmatched" ? "secondary" : "outline"
+            }
+            onClick={() => setMultiMatchListScope("unmatched")}
+          >
+            미매칭 ({eventWideUnmatchedOptions.length})
+          </Button>
+          <Button
+            type="button"
+            size="xs"
+            variant={multiMatchListScope === "all" ? "secondary" : "outline"}
+            onClick={() => setMultiMatchListScope("all")}
+          >
+            전체 선수 ({allAssignableFighters.length})
+          </Button>
+          <Button
+            type="button"
+            size="xs"
+            variant="default"
+            onClick={toggleMultiMatchMode}
+          >
+            복수 경기 모드 종료
+          </Button>
+        </>
+      );
+    }
     return (
       <>
         <Button
@@ -626,10 +682,10 @@ export function BracketApprovedCandidatesSection({
         <Button
           type="button"
           size="xs"
-          variant={multiMatchMode ? "default" : "outline"}
-          onClick={() => setMultiMatchMode((v) => !v)}
+          variant="outline"
+          onClick={toggleMultiMatchMode}
         >
-          {multiMatchMode ? "복수 경기 모드 종료" : "복수 경기 선수 추가"}
+          복수 경기 선수 추가
         </Button>
       </>
     );
@@ -669,8 +725,8 @@ export function BracketApprovedCandidatesSection({
         ) : null}
         {multiMatchMode ? (
           <p className="rounded-md border border-amber-500/40 bg-amber-500/10 px-2 py-1 text-[11px] text-amber-950 dark:text-amber-100">
-            복수 경기 선수 추가 모드 — 이미 배정된 같은 경기구분 선수를 추가로
-            선택할 수 있습니다.
+            복수 경기 모드 — 「전체 선수」에서 이미 배정된 선수도 다시 선택할 수
+            있습니다. 동일 경기 홍·청에 같은 선수는 넣을 수 없습니다.
           </p>
         ) : null}
         <UnmatchedQuickBarFilterToolbar
@@ -703,11 +759,7 @@ export function BracketApprovedCandidatesSection({
           className={cn(bracketWorkspaceListScrollClass, "pt-0")}
           data-bracket-workspace-list="unmatched"
         >
-          {visibleUnmatchedCount +
-            (multiMatchMode && unmatchedTab === "division"
-              ? filteredAssignedForMulti.length
-              : 0) >
-          0 ? (
+          {visiblePlayerCount > 0 ? (
             <ul className="grid gap-1.5">{renderUnmatchedPlayerList()}</ul>
           ) : (
             <p className="text-muted-foreground rounded-lg border border-dashed px-3 py-3 text-center text-xs">
@@ -802,8 +854,12 @@ export function BracketApprovedCandidatesSection({
           </CandidateColumn>
 
           <CandidateColumn
-            title="미매칭 선수"
-            count={visibleUnmatchedCount}
+            title={
+              multiMatchMode && multiMatchListScope === "all"
+                ? "전체 선수"
+                : "미매칭 선수"
+            }
+            count={visiblePlayerCount}
             accentClassName="bg-amber-500/15 text-amber-700 dark:text-amber-300"
             emptyMessage={unmatchedEmptyMessage}
             headerExtra={renderUnmatchedControls()}
