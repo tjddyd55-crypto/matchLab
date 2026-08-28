@@ -88,7 +88,7 @@ function parseDivisionLimit(
   return null;
 }
 
-function genderMatches(
+export function genderMatches(
   divisionGender: string | null | undefined,
   athleteGender: "male" | "female",
 ): boolean {
@@ -109,7 +109,7 @@ function sportKey(value: string): string {
   return folded;
 }
 
-function sportMatches(
+export function sportMatches(
   division: DivisionResolverCandidate,
   discipline: string | null | undefined,
 ): boolean {

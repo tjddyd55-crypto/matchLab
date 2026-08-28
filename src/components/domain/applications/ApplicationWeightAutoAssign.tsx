@@ -1,7 +1,8 @@
 "use client";
 
-import { useMemo } from "react";
+import { useEffect, useMemo } from "react";
 import { parseApplicationWeightKg } from "@/lib/applications/application-weight";
+import { filterCompatibleManualDivisions } from "@/lib/applications/application-division-compatibility";
 import {
   formatResolvedDivisionPreview,
   resolveEventDivisionByApplicationWeight,
@@ -83,6 +84,38 @@ export function ApplicationWeightAutoAssign(props: {
           divisions: props.divisions,
         })
       : null;
+
+  const compatibleManualDivisions = useMemo(() => {
+    if (props.gender !== "male" && props.gender !== "female") return [];
+    return filterCompatibleManualDivisions({
+      divisions: props.divisions,
+      fighterGender: props.gender,
+      competitionCategory: props.competitionCategory,
+      discipline: props.discipline,
+    });
+  }, [
+    props.divisions,
+    props.gender,
+    props.competitionCategory,
+    props.discipline,
+  ]);
+
+  useEffect(() => {
+    if (!props.manualOverride || !props.manualDivisionId) return;
+    const stillCompatible = compatibleManualDivisions.some(
+      (d) => d.id === props.manualDivisionId,
+    );
+    if (!stillCompatible) {
+      props.onManualOverrideChange?.(false);
+      props.onManualDivisionIdChange?.("");
+    }
+  }, [
+    compatibleManualDivisions,
+    props.manualDivisionId,
+    props.manualOverride,
+    props.onManualDivisionIdChange,
+    props.onManualOverrideChange,
+  ]);
 
   const names = props.hiddenInputNames;
 
@@ -205,7 +238,7 @@ export function ApplicationWeightAutoAssign(props: {
               onChange={(e) => props.onManualDivisionIdChange?.(e.target.value)}
             >
               <option value="">체급 선택</option>
-              {props.divisions.map((d) => (
+              {compatibleManualDivisions.map((d) => (
                 <option key={d.id} value={d.id}>
                   {formatManualDivisionOptionLabel(d)}
                 </option>

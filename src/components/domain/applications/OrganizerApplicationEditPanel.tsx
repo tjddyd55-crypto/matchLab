@@ -81,8 +81,10 @@ export function OrganizerApplicationEditPanel({
       setCompetitionCategory(res.data.competitionCategory);
       setDiscipline(res.data.discipline);
       setApplicationWeightKg(res.data.applicationWeightKg);
-      setManualDivisionId(res.data.divisionId ?? "");
-      setManualOverride(Boolean(res.data.divisionId));
+      setManualDivisionId(
+        res.data.manualDivisionOverride ? (res.data.divisionId ?? "") : "",
+      );
+      setManualOverride(res.data.manualDivisionOverride);
       setGymMode(res.data.gymMode);
     });
     return () => {

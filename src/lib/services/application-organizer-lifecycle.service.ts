@@ -33,6 +33,11 @@ import { applicationRepository } from "@/lib/repositories/application.repository
 import { fighterRepository } from "@/lib/repositories/fighter.repository";
 import { gymRepository } from "@/lib/repositories/gym.repository";
 import { parseApplicationWeightKg } from "@/lib/applications/application-weight";
+import {
+  assertApplicationDivisionCompatible,
+  deriveManualDivisionOverrideState,
+} from "@/lib/applications/application-division-compatibility";
+import { appendApplicationStructuralAudit } from "@/lib/applications/application-structural-audit";
 import { resolveEventDivisionByApplicationWeight } from "@/lib/applications/resolve-event-division";
 import { parseApplicantGender } from "@/lib/applicant-excel/normalize";
 import {
@@ -63,6 +68,8 @@ export type OrganizerApplicationEditFormDTO = {
   discipline: string;
   applicationWeightKg: string;
   divisionId: string | null;
+  manualDivisionOverride: boolean;
+  autoSuggestedDivisionId: string | null;
   applicationStatus: ApplicationStatus;
   paymentStatus: PaymentStatus;
   memo: string;
@@ -214,10 +221,19 @@ async function resolveEditDivision(
   if (input.manualDivisionOverride) {
     const weight = parseApplicationWeightKg(input.applicationWeightKg);
     if (!weight.ok) throw new AppError("VALIDATION_ERROR", weight.error);
+    if (!input.divisionId?.trim()) {
+      throw new AppError("VALIDATION_ERROR", "체급을 선택해 주세요.");
+    }
     const division = divisions.find((d) => d.id === input.divisionId);
     if (!division) {
       throw new AppError("NOT_FOUND", "유효하지 않은 경기구분/체급입니다.");
     }
+    assertApplicationDivisionCompatible({
+      fighterGender: input.gender,
+      competitionCategory: input.competitionCategory,
+      discipline: input.discipline,
+      division,
+    });
     return { division, applicationWeightKg: weight.kg };
   }
 
@@ -291,6 +307,41 @@ export const applicationOrganizerLifecycleService = {
     const gymMode: "existing" | "manual" =
       row.gymId && !linkedGymIsPlaceholder ? "existing" : "manual";
 
+    const event = await prisma.event.findUnique({
+      where: { id: row.eventId },
+      include: { divisions: true },
+    });
+    const competitionCategory = row.division?.ageGroup ?? "";
+    const discipline = row.division?.sportType ?? "";
+    const weightKg =
+      typeof snap.applicationWeightKg === "number"
+        ? snap.applicationWeightKg
+        : null;
+    let autoSuggestedDivisionId: string | null = null;
+    const genderParsed = parseApplicantGender(row.fighter.gender ?? "");
+    if (
+      event &&
+      genderParsed.ok &&
+      weightKg != null &&
+      weightKg > 0 &&
+      competitionCategory
+    ) {
+      const resolved = resolveEventDivisionByApplicationWeight({
+        gender: genderParsed.gender,
+        competitionCategory,
+        discipline,
+        applicationWeightKg: weightKg,
+        divisions: event.divisions,
+      });
+      if (resolved.ok) {
+        autoSuggestedDivisionId = resolved.division.id;
+      }
+    }
+    const manualDivisionOverride = deriveManualDivisionOverrideState({
+      storedDivisionId: row.divisionId,
+      autoSuggestedDivisionId,
+    });
+
     return {
       applicationId: row.id,
       eventId: row.eventId,
@@ -310,6 +361,8 @@ export const applicationOrganizerLifecycleService = {
       discipline: row.division?.sportType ?? "",
       applicationWeightKg: weight,
       divisionId: row.divisionId,
+      manualDivisionOverride,
+      autoSuggestedDivisionId,
       applicationStatus:
         row.status === ApplicationStatus.pending ||
         row.status === ApplicationStatus.approved
@@ -628,6 +681,22 @@ export const applicationOrganizerLifecycleService = {
         existing.fighterId,
         tx,
       );
+
+      await appendApplicationStructuralAudit(tx, {
+        actorUserId: actor.userId ?? null,
+        eventId: existing.eventId,
+        applicationId: existing.id,
+        fighterId: existing.fighterId,
+        source: "ORGANIZER_APPLICATION_EDIT",
+        before: {
+          divisionId: existing.divisionId,
+          gender: existing.fighter.gender ?? null,
+        },
+        after: {
+          divisionId: division.id,
+          gender: input.gender,
+        },
+      });
     });
 
     return { applicationId: existing.id };
