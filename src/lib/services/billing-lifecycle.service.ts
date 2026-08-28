@@ -19,6 +19,7 @@ import {
 import {
   isBillingRequirePaymentMethodForTrial,
 } from "@/lib/billing/billing-flags";
+import { isBillingBusinessEnforcementActive } from "@/lib/billing/billing-provider-config";
 import {
   TossBillingApiError,
   tossBillingApi,
@@ -170,6 +171,12 @@ export const billingLifecycleService = {
     couponCode?: string | null;
   }) {
     requireRole(input.actor, ["gym", "organizer"]);
+    if (!(await isBillingBusinessEnforcementActive())) {
+      throw new AppError(
+        "VALIDATION_ERROR",
+        "현재 이용권 결제가 준비 중입니다. 관리자에게 문의해주세요.",
+      );
+    }
     const env = await getTossBillingEnv();
 
     return prisma.$transaction(async (tx) => {
@@ -249,6 +256,12 @@ export const billingLifecycleService = {
     customerKey: string;
   }) {
     requireRole(input.actor, ["gym", "organizer"]);
+    if (!(await isBillingBusinessEnforcementActive())) {
+      throw new AppError(
+        "VALIDATION_ERROR",
+        "현재 이용권 결제가 준비 중입니다. 관리자에게 문의해주세요.",
+      );
+    }
 
     return prisma.$transaction(async (tx) => {
       const payment = await billingPaymentRepository.findByOrderId(
@@ -548,6 +561,12 @@ export const billingLifecycleService = {
    */
   async preparePaymentMethodChange(actor: ActorContext) {
     requireRole(actor, ["gym", "organizer"]);
+    if (!(await isBillingBusinessEnforcementActive())) {
+      throw new AppError(
+        "VALIDATION_ERROR",
+        "현재 이용권 결제가 준비 중입니다. 관리자에게 문의해주세요.",
+      );
+    }
     const env = await getTossBillingEnv();
     if (!env.pgReady || !env.clientKey) {
       throw new AppError(

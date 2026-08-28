@@ -1,4 +1,5 @@
 import { NextResponse } from "next/server";
+import { isBillingBusinessEnforcementActive } from "@/lib/billing/billing-provider-config";
 import {
   expireCancelledSubscriptions,
   runBillingRenewals,
@@ -19,6 +20,15 @@ export async function POST(request: Request) {
   const auth = request.headers.get("authorization") || "";
   if (auth !== `Bearer ${secret}`) {
     return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
+  }
+
+  const enforcementActive = await isBillingBusinessEnforcementActive();
+  if (!enforcementActive) {
+    return NextResponse.json({
+      ok: true,
+      skipped: true,
+      reason: "BILLING_DISABLED",
+    });
   }
 
   const renewals = await runBillingRenewals(50);

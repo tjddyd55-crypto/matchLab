@@ -18,6 +18,7 @@ import {
   type CheckoutCouponInput,
   type CheckoutPlanInput,
 } from "@/lib/billing/checkout-calculator";
+import { isBillingBusinessEnforcementActive } from "@/lib/billing/billing-provider-config";
 import { getPaymentProvider } from "@/lib/billing/payment-provider";
 import { AppError } from "@/lib/errors/app-error";
 import { requireRole } from "@/lib/permissions";
@@ -162,6 +163,13 @@ export const billingService = {
     couponCode?: string | null;
   }) {
     requireRole(input.actor, ["gym", "organizer"]);
+
+    if (!(await isBillingBusinessEnforcementActive())) {
+      throw new AppError(
+        "VALIDATION_ERROR",
+        "현재 이용권 결제가 준비 중입니다. 관리자에게 문의해주세요.",
+      );
+    }
 
     return prisma.$transaction(async (tx) => {
       const plan = await billingPlanRepository.findById(input.planId, tx);

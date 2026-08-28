@@ -218,3 +218,12 @@ export async function getBillingPublicConfig(): Promise<BillingPublicConfig> {
     isTestKey: cfg.isTestKey,
   };
 }
+
+/**
+ * Billing business enforcement (checkout gate, activation, renewals).
+ * Schema/code may be deployed while this remains false.
+ */
+export async function isBillingBusinessEnforcementActive(): Promise<boolean> {
+  const cfg = await resolveBillingProviderConfig();
+  return cfg.enabled;
+}

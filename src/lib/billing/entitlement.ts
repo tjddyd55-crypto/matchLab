@@ -5,6 +5,7 @@ import {
   isBillingEnforceAccessEnabled,
   roleRequiresBilling,
 } from "@/lib/billing/billing-flags";
+import { isBillingBusinessEnforcementActive } from "@/lib/billing/billing-provider-config";
 import { isEntitledSubscription } from "@/lib/billing/checkout-calculator";
 import { prisma } from "@/lib/prisma";
 import { billingSubscriptionRepository } from "@/lib/repositories/billing.repository";
@@ -24,6 +25,7 @@ export type BillingEntitlementResult = {
     | "pending"
     | "past_due"
     | "enforce"
+    | "billing_disabled"
     | "other";
   subscriptionId: string | null;
   status: string | null;
@@ -37,8 +39,9 @@ export type BillingEntitlementResult = {
  * - admin / fighter / gym_staff: exempt
  * - billingExempt: exempt
  * - entitled ACTIVE/TRIAL/CANCELLED(period): ok
- * - billingRequiredAt set + not entitled → checkout
- * - billingRequiredAt null (legacy grandfather): ok unless emergency ENFORCE
+ * - billingRequiredAt set + enforcement active + not entitled → checkout
+ * - billingRequiredAt set + enforcement disabled → service access ok (billing_disabled)
+ * - billingRequiredAt null (legacy grandfather): ok unless emergency ENFORCE + enforcement active
  */
 export async function evaluateBillingEntitlement(
   actor: Pick<ActorContext, "userId" | "role">,
@@ -115,8 +118,9 @@ export async function evaluateBillingEntitlement(
   }
 
   const billingRequired = Boolean(user?.billingRequiredAt);
+  const enforcementActive = await isBillingBusinessEnforcementActive();
 
-  if (billingRequired) {
+  if (billingRequired && enforcementActive) {
     return {
       entitled: false,
       reason: !sub
@@ -136,7 +140,7 @@ export async function evaluateBillingEntitlement(
   }
 
   // Legacy / pre-Phase2 accounts without billingRequiredAt
-  if (isBillingEnforceAccessEnabled()) {
+  if (isBillingEnforceAccessEnabled() && enforcementActive) {
     return {
       entitled: false,
       reason: "enforce",
@@ -149,11 +153,11 @@ export async function evaluateBillingEntitlement(
 
   return {
     entitled: true,
-    reason: "legacy_not_required",
+    reason: billingRequired ? "billing_disabled" : "legacy_not_required",
     subscriptionId: sub?.id ?? null,
     status: sub?.status ?? null,
     redirectToCheckout: false,
-    billingRequired: false,
+    billingRequired,
   };
 }
 

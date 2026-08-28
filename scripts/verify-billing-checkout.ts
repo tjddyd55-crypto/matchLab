@@ -282,6 +282,14 @@ function main() {
   const entitlement = read("src/lib/billing/entitlement.ts");
   assert.match(entitlement, /billingRequiredAt/);
   assert.match(entitlement, /legacy_not_required/);
+  assert.match(entitlement, /isBillingBusinessEnforcementActive/);
+  assert.match(entitlement, /billing_disabled/);
+
+  const providerCfg = read("src/lib/billing/billing-provider-config.ts");
+  assert.match(providerCfg, /isBillingBusinessEnforcementActive/);
+
+  const renewalRoute = read("src/app/api/internal/billing/renewals/run/route.ts");
+  assert.match(renewalRoute, /BILLING_DISABLED/);
 
   const lifecycle = read("src/lib/services/billing-lifecycle.service.ts");
   assert.match(lifecycle, /issueBillingKey/);
@@ -303,8 +311,8 @@ function main() {
   assert.match(schema, /model BillingProviderConfig/);
   assert.match(schema, /model BillingRuntimeConfig/);
 
-  const providerCfg = read("src/lib/billing/billing-provider-config.ts");
   assert.match(providerCfg, /resolveBillingProviderConfig/);
+  assert.match(providerCfg, /isBillingBusinessEnforcementActive/);
   assert.match(read("src/app/api/billing/public-config/route.ts"), /getBillingPublicConfig/);
 
   console.log("verify:billing-checkout OK");
