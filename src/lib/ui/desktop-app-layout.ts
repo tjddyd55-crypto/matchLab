@@ -22,6 +22,10 @@ export const DESKTOP_CONTENT_MIN_WIDTH = "984px";
 export const desktopAppViewportClass = "desktop-app-viewport";
 export const desktopAppCanvasClass = "desktop-app-canvas";
 export const desktopAppMainClass = "desktop-app-main";
+export const desktopAppShellRootClass = "desktop-app-shell-root";
+export const desktopAppMainColumnClass = "desktop-app-main-column";
+export const desktopAppMainContentClass = "desktop-app-main-content";
+export const desktopStaticPageFillClass = "desktop-static-page-fill";
 export const desktopAppEventLayoutClass = "desktop-app-event-layout";
 export const desktopAppEventMainClass = "desktop-app-event-main";
 

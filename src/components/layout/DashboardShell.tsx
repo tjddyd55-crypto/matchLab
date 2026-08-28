@@ -7,7 +7,7 @@ import type { OrganizerType } from "@/lib/enums";
 import type { GymPortalNavViewer } from "@/lib/navigation/gym-portal-navigation";
 import type { GymPortalAssociationNavInput } from "@/lib/navigation/gym-portal-navigation";
 import { getOrganizerGlobalNavGroups } from "@/lib/navigation/organizer-global-navigation";
-import { desktopAppMainClass } from "@/lib/ui/desktop-app-layout";
+import { desktopAppMainClass, desktopAppMainColumnClass, desktopAppMainContentClass, desktopAppShellRootClass } from "@/lib/ui/desktop-app-layout";
 import { cn } from "@/lib/utils";
 
 export type DashboardRole = "organizer" | "gym" | "fighter" | "admin";
@@ -40,7 +40,10 @@ export async function DashboardShell({
       className={cn(
         "flex bg-matchon-surface",
         isDesktop
-          ? "min-h-full w-full flex-row flex-nowrap"
+          ? cn(
+              desktopAppShellRootClass,
+              "min-h-full w-full flex-1 flex-row flex-nowrap",
+            )
           : "min-h-screen flex-col md:flex-row",
       )}
     >
@@ -58,7 +61,11 @@ export async function DashboardShell({
         className={cn(
           "flex flex-col",
           isDesktop
-            ? cn(desktopAppMainClass, "min-h-full pb-0")
+            ? cn(
+                desktopAppMainClass,
+                desktopAppMainColumnClass,
+                "min-h-full flex-1 pb-0",
+              )
             : "min-w-0 flex-1 pb-16 md:pb-0 desktop:pb-0",
         )}
       >
@@ -75,7 +82,9 @@ export async function DashboardShell({
         <main
           className={cn(
             "flex-1",
-            isDesktop ? "w-full overflow-x-visible" : "min-w-0 overflow-x-clip",
+            isDesktop
+              ? cn(desktopAppMainContentClass, "w-full overflow-x-visible")
+              : "min-w-0 overflow-x-clip",
           )}
         >
           {children}
