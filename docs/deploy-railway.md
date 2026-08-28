@@ -69,6 +69,10 @@
 
 ## 4. 첫 배포 후 DB 초기화
 
+> **운영(Production) SSOT:** `main` 배포 시 Railway **pre-deploy**에서 `npm run db:migrate:gate`가 실행됩니다.
+> (`prisma migrate status` → `prisma migrate deploy`). migration 실패 시 **배포가 중단**됩니다.
+> Production에서 **`prisma migrate dev`**, **`prisma db push`**, **`prisma migrate reset`**은 자동화하지 않습니다.
+
 Railway에서 **빌드·배포가 성공해도** PostgreSQL은 **빈 데이터베이스**입니다. Prisma 스키마(`prisma/schema.prisma`)가 반영되지 않으면 `public.Event` 등 테이블이 없어 **`/`·`/events`·`/events/sample-open-2026` 등이 500**이 될 수 있습니다. (`/login`, `/register`처럼 DB의 `Event`를 읽지 않는 경로는 200일 수 있습니다.)
 
 **`db:push` 전에는** 위 공개 페이지가 500일 수 있습니다. 에러 로그에 **`The table public.Event does not exist`**(Prisma `P2021`)가 보이면 **스키마 미반영** → 아래 순서로 `db:push`부터 실행하세요.
@@ -82,7 +86,29 @@ Railway에서 **빌드·배포가 성공해도** PostgreSQL은 **빈 데이터�
 **중요**
 
 - `db:seed`가 `User` 등 데이터를 만들거나 갱신할 수 있으므로, **시드 이후에 `setup:demo-users`를 다시 한 번 실행**하는 것을 권장합니다(데모 계정·DB 매핑 일치).
-- 운영 환경에서는 **마이그레이션 전략**(`db:migrate` 등)을 쓰는 것이 일반적이지만, **MVP 시연 단계에서는 `db:push` 사용을 허용**합니다. `build` / `start`에 `db:push`를 자동으로 넣지 마세요.
+- 운영 환경에서는 **마이그레이션 전략**(`db:migrate:deploy` / Railway pre-deploy)을 사용합니다. **`build` / `start`에 `db:push`를 자동으로 넣지 마세요.**
+
+### Production deploy migration gate (`railway.json`)
+
+`main` → Production 자동 배포 흐름:
+
+1. **Build** — Railway Railpack 기본값 (`npm ci` → `npm run build` → `db:generate && next build`)
+2. **Pre-deploy** — `npm run db:migrate:gate` (`prisma migrate status` → `prisma migrate deploy`)
+3. **Start** — `npm start` (`next start`)
+
+설정은 레포 루트 `railway.json`의 `deploy.preDeployCommand`에 있습니다. migration 실패 시 pre-deploy가 non-zero로 종료되어 **새 release가 serving 되지 않습니다**.
+
+로그에 `DATABASE_URL` 전체를 출력하지 않습니다. host / database / Railway environment만 fingerprint로 남깁니다.
+
+검증:
+
+```bash
+npm run verify:prisma-migration-deploy-config
+npm run db:migrate:status    # read-only
+npm run verify:production-migration-status   # read-only, pending 감지
+```
+
+**금지 (Production 자동화):** `prisma migrate dev`, `prisma db push`, `prisma migrate reset`, `|| true`, `continue-on-error`
 
 ### Railway CLI 기준
 
@@ -205,7 +231,10 @@ Railway 환경에서는 **포트 노출·브라우저 접속**이 번거로울 �
 | 스크립트 | 역할 |
 |----------|------|
 | `db:generate` | `prisma generate` — 빌드 시 클라이언트 생성 |
-| `db:push` | `prisma db push` — **배포 후 수동** 스키마 반영(MVP 시연) |
+| `db:migrate:status` | `prisma migrate status` — pending migration 확인 (read-only) |
+| `db:migrate:deploy` | `prisma migrate deploy` — Production pending migration 적용 |
+| `db:migrate:gate` | Railway pre-deploy: status → deploy (실패 시 배포 중단) |
+| `db:push` | `prisma db push` — **Development/수동** 스키마 반영 (Production 자동화 금지) |
 | `db:seed` | `prisma db seed` — `prisma.config.ts`의 `migrations.seed`(`tsx prisma/seed.ts`) 실행 |
 | `setup:demo-users` | 데모 Auth·DB 사용자 정합 |
 | `seed:demo-fighters` | 데모 체육관 소속 테스트 선수 20명 upsert (`DATABASE_URL`만 필요) |
