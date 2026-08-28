@@ -69,6 +69,8 @@ export default async function AdminBillingSubscriptionsPage({
                 <th className="px-3 py-2">월/연</th>
                 <th className="px-3 py-2">이용기간</th>
                 <th className="px-3 py-2">다음 결제</th>
+                <th className="px-3 py-2">자동갱신</th>
+                <th className="px-3 py-2">결제수단</th>
                 <th className="px-3 py-2">쿠폰</th>
                 <th className="px-3 py-2">금액</th>
                 <th className="px-3 py-2">가입일</th>
@@ -90,6 +92,18 @@ export default async function AdminBillingSubscriptionsPage({
                     {fmt(s.currentPeriodStart)} ~ {fmt(s.currentPeriodEnd)}
                   </td>
                   <td className="px-3 py-2 text-xs">{fmt(s.nextBillingAt)}</td>
+                  <td className="px-3 py-2 text-xs">
+                    {s.cancelAtPeriodEnd
+                      ? "해지예약"
+                      : s.autoRenew
+                        ? "ON"
+                        : "OFF"}
+                  </td>
+                  <td className="px-3 py-2 text-xs">
+                    {s.paymentMethod && !s.paymentMethod.deletedAt
+                      ? `****${s.paymentMethod.cardLast4 ?? "----"}`
+                      : "-"}
+                  </td>
                   <td className="px-3 py-2 text-xs">
                     {s.redemptions[0]?.coupon.code ?? "-"}
                   </td>

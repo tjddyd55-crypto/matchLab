@@ -592,6 +592,12 @@ model User {
   mustChangePassword Boolean  @default(false)
   passwordIssuedAt   DateTime?
   passwordResetAt    DateTime?
+  /// 승인 후 플랫폼 구독 결제 필요 시각. null이면 legacy/면제 경로(grandfather).
+  billingRequiredAt  DateTime?
+  /// 관리자 수동 면제
+  billingExempt      Boolean  @default(false)
+  /// Toss Billing customerKey (예측 불가 UUID). userId/email과 분리.
+  tossCustomerKey    String?  @unique
   createdAt   DateTime @default(now())
   updatedAt   DateTime @updatedAt
 
@@ -627,6 +633,7 @@ model User {
   billingPayments                         BillingPayment[]
   billingCouponRedemptions                BillingCouponRedemption[]
   billingCouponsCreated                   BillingCoupon[]                         @relation("BillingCouponCreator")
+  billingPaymentMethods                   BillingPaymentMethod[]
   associationApplicationsReviewed         AssociationApplication[]               @relation("AssociationApplicationReviewer")
   gymApplicationsReviewed                 GymApplication[]                       @relation("GymApplicationReviewer")
   associationGymConnectionRequestsReviewed AssociationGymConnectionRequest[]     @relation("AssociationGymConnectionReviewer")
@@ -3194,21 +3201,49 @@ model BillingSubscription {
   nextBillingAt          DateTime?
   cancelledAt            DateTime?
   endedAt                DateTime?
+  /// 기간 말 해지 예약
+  cancelAtPeriodEnd      Boolean                   @default(false)
+  autoRenew              Boolean                   @default(true)
+  paymentMethodId        String?
   provider               String                    @default("none")
   providerCustomerId     String?
   providerSubscriptionId String?
   createdAt              DateTime                  @default(now())
   updatedAt              DateTime                  @updatedAt
 
-  user         User                      @relation(fields: [userId], references: [id], onDelete: Cascade)
-  plan         BillingPlan               @relation(fields: [planId], references: [id], onDelete: Restrict)
-  payments     BillingPayment[]
-  redemptions  BillingCouponRedemption[]
+  user          User                   @relation(fields: [userId], references: [id], onDelete: Cascade)
+  plan          BillingPlan            @relation(fields: [planId], references: [id], onDelete: Restrict)
+  paymentMethod BillingPaymentMethod?  @relation(fields: [paymentMethodId], references: [id], onDelete: SetNull)
+  payments      BillingPayment[]
+  redemptions   BillingCouponRedemption[]
 
   @@index([userId, status])
   @@index([status, currentPeriodEnd])
   @@index([status, trialEndAt])
+  @@index([status, nextBillingAt, autoRenew])
   @@index([planId])
+  @@index([paymentMethodId])
+}
+
+model BillingPaymentMethod {
+  id          String    @id @default(cuid())
+  userId      String
+  provider    String    @default("toss")
+  customerKey String
+  /// 서버 전용. 클라이언트/관리자 UI에 원문 노출 금지.
+  billingKey  String
+  cardCompany String?
+  cardLast4   String?
+  isDefault   Boolean   @default(true)
+  createdAt   DateTime  @default(now())
+  updatedAt   DateTime  @updatedAt
+  deletedAt   DateTime?
+
+  user          User                  @relation(fields: [userId], references: [id], onDelete: Cascade)
+  subscriptions BillingSubscription[]
+
+  @@index([userId, deletedAt, isDefault])
+  @@index([customerKey])
 }
 
 model BillingPayment {
@@ -3224,6 +3259,8 @@ model BillingPayment {
   paymentMethod     String?
   provider          String               @default("none")
   providerPaymentId String?
+  failureCode       String?
+  failureMessage    String?
   paidAt            DateTime?
   failedAt          DateTime?
   cancelledAt       DateTime?

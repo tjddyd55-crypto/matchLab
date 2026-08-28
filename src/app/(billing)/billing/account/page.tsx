@@ -5,6 +5,7 @@ import {
   requireActor,
 } from "@/lib/auth/actor";
 import { billingService } from "@/lib/services/billing.service";
+import { BillingAccountActions } from "@/components/domain/billing/BillingAccountActions";
 
 export const dynamic = "force-dynamic";
 
@@ -32,6 +33,7 @@ export default async function BillingAccountPage() {
   ]);
 
   const home = dashboardPathForRole(actor.role);
+  const method = sub?.paymentMethod;
 
   return (
     <div className="mx-auto flex w-full max-w-lg flex-col gap-6 px-4 py-8">
@@ -50,7 +52,10 @@ export default async function BillingAccountPage() {
           <dl className="space-y-2">
             <div className="flex justify-between">
               <dt className="text-matchon-text-secondary">요금제</dt>
-              <dd>{sub.plan.name}</dd>
+              <dd>
+                {sub.plan.name} (
+                {sub.billingInterval === "YEAR" ? "연간" : "월간"})
+              </dd>
             </div>
             <div className="flex justify-between">
               <dt className="text-matchon-text-secondary">상태</dt>
@@ -70,19 +75,41 @@ export default async function BillingAccountPage() {
             ) : null}
             <div className="flex justify-between">
               <dt className="text-matchon-text-secondary">다음 결제 예정</dt>
-              <dd>{fmt(sub.nextBillingAt)}</dd>
+              <dd>
+                {sub.cancelAtPeriodEnd
+                  ? `${fmt(sub.currentPeriodEnd)} 종료 예정`
+                  : fmt(sub.nextBillingAt)}
+              </dd>
             </div>
             <div className="flex justify-between">
-              <dt className="text-matchon-text-secondary">계약 금액</dt>
-              <dd>{formatKrw(sub.currentPrice)}</dd>
+              <dt className="text-matchon-text-secondary">다음 결제 금액</dt>
+              <dd>
+                {sub.cancelAtPeriodEnd ? "-" : formatKrw(sub.currentPrice)}
+              </dd>
             </div>
+            <div className="flex justify-between">
+              <dt className="text-matchon-text-secondary">결제수단</dt>
+              <dd>
+                {method && !method.deletedAt
+                  ? `${method.cardCompany ?? "카드"} ****${method.cardLast4 ?? "----"}`
+                  : "미등록"}
+              </dd>
+            </div>
+            {sub.cancelAtPeriodEnd && sub.currentPeriodEnd ? (
+              <p className="rounded-lg bg-amber-50 px-3 py-2 text-amber-800">
+                {fmt(sub.currentPeriodEnd)}에 이용이 종료됩니다.
+              </p>
+            ) : null}
           </dl>
         ) : (
           <p className="text-matchon-text-secondary">
             활성화된 이용권이 없습니다.
           </p>
         )}
-        {!sub || sub.status === "PENDING" || sub.status === "EXPIRED" ? (
+        {!sub ||
+        sub.status === "PENDING" ||
+        sub.status === "EXPIRED" ||
+        sub.status === "PAST_DUE" ? (
           <Link
             href="/billing/checkout"
             className="mt-3 inline-flex text-sm font-semibold text-matchon-primary underline"
@@ -90,6 +117,17 @@ export default async function BillingAccountPage() {
             이용권 선택하기
           </Link>
         ) : null}
+
+        <BillingAccountActions
+          canCancel={Boolean(
+            sub &&
+              ["ACTIVE", "TRIAL"].includes(sub.status) &&
+              !sub.cancelAtPeriodEnd,
+          )}
+          canChangeMethod={Boolean(
+            sub && ["ACTIVE", "TRIAL", "PAST_DUE"].includes(sub.status),
+          )}
+        />
       </section>
 
       <section className="space-y-3 rounded-xl border border-matchon-border bg-white p-4">
@@ -104,6 +142,7 @@ export default async function BillingAccountPage() {
                   <p className="font-medium">{p.plan.name}</p>
                   <p className="text-xs text-matchon-text-secondary">
                     {fmt(p.paidAt ?? p.createdAt)} · {p.status}
+                    {p.failureCode ? ` (${p.failureCode})` : ""}
                   </p>
                 </div>
                 <p className="font-semibold">{formatKrw(p.amount)}</p>

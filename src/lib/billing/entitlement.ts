@@ -6,6 +6,7 @@ import {
   roleRequiresBilling,
 } from "@/lib/billing/billing-flags";
 import { isEntitledSubscription } from "@/lib/billing/checkout-calculator";
+import { prisma } from "@/lib/prisma";
 import { billingSubscriptionRepository } from "@/lib/repositories/billing.repository";
 
 export type BillingEntitlementResult = {
@@ -13,19 +14,32 @@ export type BillingEntitlementResult = {
   reason:
     | "admin_bypass"
     | "role_exempt"
-    | "enforce_disabled"
+    | "billing_exempt"
+    | "legacy_not_required"
     | "active"
     | "trial"
     | "cancelled_period"
     | "missing"
     | "expired"
     | "pending"
+    | "past_due"
+    | "enforce"
     | "other";
   subscriptionId: string | null;
   status: string | null;
   redirectToCheckout: boolean;
+  billingRequired: boolean;
 };
 
+/**
+ * Per-user billing requirement (Phase 2) takes priority over global ENFORCE.
+ *
+ * - admin / fighter / gym_staff: exempt
+ * - billingExempt: exempt
+ * - entitled ACTIVE/TRIAL/CANCELLED(period): ok
+ * - billingRequiredAt set + not entitled → checkout
+ * - billingRequiredAt null (legacy grandfather): ok unless emergency ENFORCE
+ */
 export async function evaluateBillingEntitlement(
   actor: Pick<ActorContext, "userId" | "role">,
   now = new Date(),
@@ -37,6 +51,7 @@ export async function evaluateBillingEntitlement(
       subscriptionId: null,
       status: null,
       redirectToCheckout: false,
+      billingRequired: false,
     };
   }
 
@@ -47,6 +62,26 @@ export async function evaluateBillingEntitlement(
       subscriptionId: null,
       status: null,
       redirectToCheckout: false,
+      billingRequired: false,
+    };
+  }
+
+  const user = await prisma.user.findUnique({
+    where: { id: actor.userId },
+    select: {
+      billingRequiredAt: true,
+      billingExempt: true,
+    },
+  });
+
+  if (user?.billingExempt) {
+    return {
+      entitled: true,
+      reason: "billing_exempt",
+      subscriptionId: null,
+      status: null,
+      redirectToCheckout: false,
+      billingRequired: false,
     };
   }
 
@@ -54,60 +89,71 @@ export async function evaluateBillingEntitlement(
     actor.userId,
   );
 
-  if (!isBillingEnforceAccessEnabled()) {
-    return {
-      entitled: true,
-      reason: "enforce_disabled",
-      subscriptionId: sub?.id ?? null,
-      status: sub?.status ?? null,
-      redirectToCheckout: false,
-    };
+  if (sub) {
+    const entitled = isEntitledSubscription({
+      status: sub.status,
+      trialEndAt: sub.trialEndAt,
+      currentPeriodEnd: sub.currentPeriodEnd,
+      now,
+    });
+    if (entitled) {
+      const reason =
+        sub.status === "TRIAL"
+          ? "trial"
+          : sub.status === "CANCELLED"
+            ? "cancelled_period"
+            : "active";
+      return {
+        entitled: true,
+        reason,
+        subscriptionId: sub.id,
+        status: sub.status,
+        redirectToCheckout: false,
+        billingRequired: Boolean(user?.billingRequiredAt),
+      };
+    }
   }
 
-  if (!sub) {
+  const billingRequired = Boolean(user?.billingRequiredAt);
+
+  if (billingRequired) {
     return {
       entitled: false,
-      reason: "missing",
-      subscriptionId: null,
-      status: null,
+      reason: !sub
+        ? "missing"
+        : sub.status === "PENDING"
+          ? "pending"
+          : sub.status === "PAST_DUE"
+            ? "past_due"
+            : sub.status === "EXPIRED" || sub.status === "TRIAL"
+              ? "expired"
+              : "other",
+      subscriptionId: sub?.id ?? null,
+      status: sub?.status ?? null,
       redirectToCheckout: true,
+      billingRequired: true,
     };
   }
 
-  const entitled = isEntitledSubscription({
-    status: sub.status,
-    trialEndAt: sub.trialEndAt,
-    currentPeriodEnd: sub.currentPeriodEnd,
-    now,
-  });
-
-  if (entitled) {
-    const reason =
-      sub.status === "TRIAL"
-        ? "trial"
-        : sub.status === "CANCELLED"
-          ? "cancelled_period"
-          : "active";
+  // Legacy / pre-Phase2 accounts without billingRequiredAt
+  if (isBillingEnforceAccessEnabled()) {
     return {
-      entitled: true,
-      reason,
-      subscriptionId: sub.id,
-      status: sub.status,
-      redirectToCheckout: false,
+      entitled: false,
+      reason: "enforce",
+      subscriptionId: sub?.id ?? null,
+      status: sub?.status ?? null,
+      redirectToCheckout: true,
+      billingRequired: true,
     };
   }
 
   return {
-    entitled: false,
-    reason:
-      sub.status === "PENDING"
-        ? "pending"
-        : sub.status === "EXPIRED" || sub.status === "TRIAL"
-          ? "expired"
-          : "other",
-    subscriptionId: sub.id,
-    status: sub.status,
-    redirectToCheckout: true,
+    entitled: true,
+    reason: "legacy_not_required",
+    subscriptionId: sub?.id ?? null,
+    status: sub?.status ?? null,
+    redirectToCheckout: false,
+    billingRequired: false,
   };
 }
 
@@ -118,10 +164,20 @@ export async function hasActiveBillingEntitlement(
   return result.entitled;
 }
 
-/** Post-login / layout: return checkout path when blocked. */
 export async function billingCheckoutRedirectPath(
   actor: Pick<ActorContext, "userId" | "role">,
 ): Promise<string | null> {
   const result = await evaluateBillingEntitlement(actor);
   return result.redirectToCheckout ? "/billing/checkout" : null;
+}
+
+/** Call from gym/association approval when creating a billable User. */
+export async function markUserBillingRequired(
+  userId: string,
+  at: Date = new Date(),
+): Promise<void> {
+  await prisma.user.update({
+    where: { id: userId },
+    data: { billingRequiredAt: at },
+  });
 }

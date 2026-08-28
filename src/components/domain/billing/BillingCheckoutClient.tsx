@@ -6,6 +6,7 @@ import { Button } from "@/components/ui/button";
 import { BRAND_NAME } from "@/lib/brand";
 import {
   confirmBillingCheckoutAction,
+  prepareTossBillingCheckoutAction,
   previewBillingCheckoutAction,
 } from "@/features/billing/actions";
 import { yearlySavingsLabel } from "@/lib/billing/checkout-calculator";
@@ -39,16 +40,36 @@ function formatKrw(n: number) {
 
 function formatDate(iso: string | null) {
   if (!iso) return "-";
-  const d = new Date(iso);
-  return d.toLocaleDateString("ko-KR");
+  return new Date(iso).toLocaleDateString("ko-KR");
+}
+
+async function loadTossSdk(): Promise<void> {
+  if (typeof window === "undefined") return;
+  if (window.TossPayments) return;
+  await new Promise<void>((resolve, reject) => {
+    const s = document.createElement("script");
+    s.src = "https://js.tosspayments.com/v2/standard";
+    s.async = true;
+    s.onload = () => resolve();
+    s.onerror = () => reject(new Error("Toss SDK 로드 실패"));
+    document.head.appendChild(s);
+  });
 }
 
 export function BillingCheckoutClient({
   plans,
   brandName = BRAND_NAME,
+  tossClientKey,
+  tossReady,
+  isTestKey,
+  requirePmForTrial,
 }: {
   plans: CheckoutPlanVM[];
   brandName?: string;
+  tossClientKey: string | null;
+  tossReady: boolean;
+  isTestKey: boolean;
+  requirePmForTrial: boolean;
 }) {
   const router = useRouter();
   const monthly = plans.find((p) => p.interval === "MONTH") ?? plans[0];
@@ -67,9 +88,7 @@ export function BillingCheckoutClient({
       : null;
 
   const display = useMemo(() => {
-    if (preview && selected && preview) {
-      return preview;
-    }
+    if (preview) return preview;
     const price = selected?.price ?? 0;
     return {
       originalAmount: price,
@@ -80,6 +99,10 @@ export function BillingCheckoutClient({
       coupon: null,
     } satisfies PreviewState;
   }, [preview, selected]);
+
+  const needsPaymentMethod =
+    display.finalAmount > 0 ||
+    (display.freeMonths > 0 && requirePmForTrial);
 
   function runPreview(code: string | null) {
     if (!planId) return;
@@ -120,55 +143,86 @@ export function BillingCheckoutClient({
     setError(null);
   }
 
-  function onApplyCoupon() {
-    runPreview(couponInput.trim() || null);
-  }
-
-  function onClearCoupon() {
-    setCouponInput("");
-    setAppliedCode(null);
-    setPreview(null);
-    setError(null);
-  }
-
   function onConfirm() {
     if (!planId) return;
     setError(null);
     startTransition(async () => {
-      const res = await confirmBillingCheckoutAction({
+      // Free without PM requirement — Phase 1 path
+      if (display.finalAmount === 0 && !needsPaymentMethod) {
+        const res = await confirmBillingCheckoutAction({
+          planId,
+          couponCode: appliedCode,
+        });
+        if (!res.ok) {
+          setError(res.error);
+          return;
+        }
+        if (res.data.mode === "activated") {
+          const q = new URLSearchParams({
+            mode: "activated",
+            plan: res.data.plan.name,
+            amount: String(res.data.finalAmount),
+            freeMonths: String(res.data.freeMonths),
+            trialEndAt: res.data.trialEndAt ?? "",
+            periodEnd: res.data.currentPeriodEnd ?? "",
+          });
+          router.push(`/billing/success?${q.toString()}`);
+          return;
+        }
+        setError(res.data.providerMessage || "결제를 시작할 수 없습니다.");
+        return;
+      }
+
+      if (!tossReady || !tossClientKey) {
+        setError(
+          "유료 결제(Toss Billing)가 아직 설정되지 않았습니다. 무료 쿠폰을 사용하거나 관리자에게 문의하세요.",
+        );
+        return;
+      }
+
+      const prep = await prepareTossBillingCheckoutAction({
         planId,
         couponCode: appliedCode,
       });
-      if (!res.ok) {
-        setError(res.error);
+      if (!prep.ok) {
+        setError(prep.error);
         return;
       }
-      if (res.data.mode === "activated") {
-        const q = new URLSearchParams({
-          mode: "activated",
-          plan: res.data.plan.name,
-          amount: String(res.data.finalAmount),
-          freeMonths: String(res.data.freeMonths),
-          trialEndAt: res.data.trialEndAt ?? "",
-          periodEnd: res.data.currentPeriodEnd ?? "",
+
+      try {
+        await loadTossSdk();
+        if (!window.TossPayments) {
+          throw new Error("TossPayments SDK를 사용할 수 없습니다.");
+        }
+        const toss = window.TossPayments(prep.data.clientKey);
+        const payment = toss.payment({ customerKey: prep.data.customerKey });
+        const origin = window.location.origin;
+        await payment.requestBillingAuth({
+          method: "CARD",
+          successUrl: `${origin}/billing/toss/success?orderId=${encodeURIComponent(prep.data.orderId)}`,
+          failUrl: `${origin}/billing/toss/fail?orderId=${encodeURIComponent(prep.data.orderId)}`,
         });
-        router.push(`/billing/success?${q.toString()}`);
-        return;
+      } catch (e) {
+        setError(e instanceof Error ? e.message : "결제창을 열 수 없습니다.");
       }
-      setError(
-        res.data.providerMessage ||
-          "유료 결제는 PG 연동 후 이용할 수 있습니다. 무료 쿠폰이 있으면 적용해 주세요.",
-      );
     });
   }
 
   const ctaLabel =
     display.finalAmount === 0
-      ? "무료 이용 시작하기"
-      : `${formatKrw(display.finalAmount)} 결제하기`;
+      ? needsPaymentMethod
+        ? "카드 등록 후 무료 이용 시작"
+        : "무료 이용 시작하기"
+      : `${formatKrw(display.finalAmount)} 결제하고 시작하기`;
 
   return (
     <div className="mx-auto flex w-full max-w-lg flex-col gap-6 px-4 py-8 md:py-12">
+      {isTestKey ? (
+        <p className="rounded-lg border border-amber-300 bg-amber-50 px-3 py-2 text-center text-xs font-semibold text-amber-800">
+          TEST 결제 — 실제 청구되지 않는 테스트 키입니다.
+        </p>
+      ) : null}
+
       <header className="space-y-2 text-center">
         <p className="text-sm font-bold tracking-wide text-matchon-primary">
           {brandName}
@@ -183,7 +237,7 @@ export function BillingCheckoutClient({
 
       <section className="space-y-3">
         <h2 className="text-sm font-semibold text-matchon-text-primary">
-          요금제 선택
+          1. 이용권 선택
         </h2>
         <div className="grid gap-3">
           {plans.map((plan) => {
@@ -206,12 +260,12 @@ export function BillingCheckoutClient({
                     </p>
                     <p className="mt-1 text-sm text-matchon-text-secondary">
                       {plan.interval === "YEAR"
-                        ? "12개월 이용"
+                        ? "연간 이용"
                         : "매월 결제"}
                     </p>
                     {plan.interval === "YEAR" && savings ? (
                       <p className="mt-1 text-xs font-semibold text-emerald-700">
-                        월 결제 대비 {formatKrw(savings.savedAmount)} 절약 (
+                        월간 대비 {formatKrw(savings.savedAmount)} 절약 (
                         {savings.percentOff}%)
                       </p>
                     ) : null}
@@ -228,7 +282,7 @@ export function BillingCheckoutClient({
 
       <section className="space-y-3 rounded-xl border border-matchon-border bg-white p-4">
         <h2 className="text-sm font-semibold text-matchon-text-primary">
-          쿠폰 / 프로모션 코드
+          2. 쿠폰 / 프로모션
         </h2>
         <div className="flex gap-2">
           <input
@@ -242,7 +296,7 @@ export function BillingCheckoutClient({
             type="button"
             variant="outline"
             disabled={pending || !couponInput.trim()}
-            onClick={onApplyCoupon}
+            onClick={() => runPreview(couponInput.trim() || null)}
           >
             적용
           </Button>
@@ -251,9 +305,7 @@ export function BillingCheckoutClient({
           <div className="rounded-lg bg-matchon-primary/5 px-3 py-3 text-sm">
             <div className="flex items-start justify-between gap-2">
               <div>
-                <p className="font-semibold text-matchon-text-primary">
-                  {display.coupon.code}
-                </p>
+                <p className="font-semibold">{display.coupon.code}</p>
                 <p className="text-matchon-text-secondary">
                   {display.coupon.name}
                 </p>
@@ -264,7 +316,11 @@ export function BillingCheckoutClient({
               <button
                 type="button"
                 className="text-xs font-semibold text-matchon-text-secondary underline"
-                onClick={onClearCoupon}
+                onClick={() => {
+                  setCouponInput("");
+                  setAppliedCode(null);
+                  setPreview(null);
+                }}
               >
                 적용 취소
               </button>
@@ -274,16 +330,14 @@ export function BillingCheckoutClient({
       </section>
 
       <section className="space-y-3 rounded-xl border border-matchon-border bg-white p-4">
-        <h2 className="text-sm font-semibold text-matchon-text-primary">
-          결제 상세
-        </h2>
+        <h2 className="text-sm font-semibold">3. 결제 예정 내역</h2>
         <div className="space-y-2 text-sm">
           <div className="flex justify-between">
             <span className="text-matchon-text-secondary">이용권</span>
             <span>{selected?.name}</span>
           </div>
           <div className="flex justify-between">
-            <span className="text-matchon-text-secondary">정가</span>
+            <span className="text-matchon-text-secondary">정상금액</span>
             <span>{formatKrw(display.originalAmount)}</span>
           </div>
           {display.discountAmount > 0 ? (
@@ -294,28 +348,37 @@ export function BillingCheckoutClient({
           ) : null}
         </div>
         <div className="border-t border-matchon-border pt-3">
-          <p className="text-xs text-matchon-text-secondary">오늘 결제 금액</p>
-          <p className="mt-1 text-3xl font-extrabold tracking-tight text-matchon-text-primary">
+          <p className="text-xs text-matchon-text-secondary">오늘 결제</p>
+          <p className="mt-1 text-3xl font-extrabold text-matchon-text-primary">
             {formatKrw(display.finalAmount)}
           </p>
           {display.freeMonths > 0 ? (
             <p className="mt-2 text-sm text-matchon-text-secondary">
-              무료 이용 기간: 오늘 ~ {formatDate(display.trialEndAt)}
+              무료 이용 {formatDate(new Date().toISOString())} ~{" "}
+              {formatDate(display.trialEndAt)}
               <br />
-              무료기간 종료 후:{" "}
+              무료기간 종료 후{" "}
               {selected?.interval === "YEAR" ? "연" : "월"}{" "}
               {formatKrw(selected?.price ?? 0)}
             </p>
           ) : (
             <p className="mt-2 text-sm text-matchon-text-secondary">
-              오늘 {formatKrw(display.finalAmount)}
-              {display.finalAmount > 0
-                ? " · PG 연동 후 정기결제가 연결됩니다."
-                : null}
+              결제 성공일 기준{" "}
+              {selected?.interval === "YEAR" ? "1년" : "1개월"} 이용
             </p>
           )}
         </div>
       </section>
+
+      {needsPaymentMethod ? (
+        <section className="rounded-xl border border-matchon-border bg-white p-4 text-sm">
+          <h2 className="font-semibold">4. 결제수단</h2>
+          <p className="mt-2 text-matchon-text-secondary">
+            Toss 자동결제(빌링)로 카드를 등록합니다. 카드번호는 MATCHON에
+            저장되지 않습니다.
+          </p>
+        </section>
+      ) : null}
 
       {error ? (
         <p className="rounded-lg border border-red-200 bg-red-50 px-3 py-2 text-sm text-red-700">

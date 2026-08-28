@@ -1,7 +1,10 @@
 /**
- * Payment provider adapter — PG 연결 전 계층.
- * Production mock success 금지. Toss 등 실연동은 이 인터페이스 뒤에 붙인다.
+ * Payment provider adapter — PG 연결 계층.
+ * Production mock success 금지.
  */
+
+import { getBillingProviderName } from "@/lib/billing/billing-flags";
+import { getTossBillingEnv } from "@/lib/billing/toss-env";
 
 export type PaymentProviderCreateInput = {
   orderId: string;
@@ -16,8 +19,11 @@ export type PaymentProviderCreateInput = {
 export type PaymentProviderCreateResult = {
   provider: string;
   pgReady: boolean;
-  checkoutUrl?: string | null;
-  clientConfig?: Record<string, unknown> | null;
+  /** Toss Billing Auth uses client SDK; no redirect URL from server. */
+  mode: "none" | "toss_billing_auth";
+  clientKey?: string | null;
+  customerKey?: string | null;
+  isTestKey?: boolean;
   message?: string;
 };
 
@@ -42,25 +48,15 @@ export interface PaymentProvider {
   confirmPayment(
     input: PaymentProviderConfirmInput,
   ): Promise<PaymentProviderConfirmResult>;
-  cancelPayment?(input: {
-    providerPaymentId: string;
-    reason: string;
-  }): Promise<void>;
-  getPayment?(providerPaymentId: string): Promise<unknown>;
 }
 
-/**
- * Placeholder until Toss (or chosen PG) credentials exist.
- * Never marks payments as paid.
- */
 export const nonePaymentProvider: PaymentProvider = {
   name: "none",
   async createPayment() {
     return {
       provider: "none",
       pgReady: false,
-      checkoutUrl: null,
-      clientConfig: null,
+      mode: "none",
       message:
         "PG 연동 전입니다. 무료 쿠폰으로 이용을 시작하거나 관리자에게 문의하세요.",
     };
@@ -72,13 +68,38 @@ export const nonePaymentProvider: PaymentProvider = {
   },
 };
 
+export const tossBillingPaymentProvider: PaymentProvider = {
+  name: "toss",
+  async createPayment(input) {
+    const env = getTossBillingEnv();
+    if (!env.pgReady || !env.clientKey) {
+      return {
+        provider: "toss",
+        pgReady: false,
+        mode: "none",
+        message:
+          "Toss Billing 키가 없습니다. NEXT_PUBLIC_TOSS_BILLING_CLIENT_KEY / TOSS_BILLING_SECRET_KEY를 설정하세요.",
+      };
+    }
+    return {
+      provider: "toss",
+      pgReady: true,
+      mode: "toss_billing_auth",
+      clientKey: env.clientKey,
+      customerKey: input.customerKey,
+      isTestKey: env.isTestKey,
+      message: env.isTestKey ? "TEST 결제" : undefined,
+    };
+  },
+  async confirmPayment() {
+    throw new Error(
+      "Toss Billing은 confirmPayment 대신 billingKey charge를 사용합니다.",
+    );
+  },
+};
+
 export function getPaymentProvider(): PaymentProvider {
-  const name = String(process.env.MATCHON_BILLING_PROVIDER ?? "none")
-    .trim()
-    .toLowerCase();
-  if (name === "none" || name === "") {
-    return nonePaymentProvider;
-  }
-  // Future: toss provider when env + SDK are ready.
-  return nonePaymentProvider;
+  return getBillingProviderName() === "toss"
+    ? tossBillingPaymentProvider
+    : nonePaymentProvider;
 }

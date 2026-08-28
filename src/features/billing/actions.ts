@@ -60,6 +60,100 @@ export async function confirmBillingCheckoutAction(input: {
   }
 }
 
+export async function prepareTossBillingCheckoutAction(input: {
+  planId: string;
+  couponCode?: string | null;
+}) {
+  try {
+    const { billingLifecycleService } = await import(
+      "@/lib/services/billing-lifecycle.service"
+    );
+    const actor = await requireActorFromMutation();
+    const parsed = billingCheckoutConfirmSchema.parse(input);
+    const data = await billingLifecycleService.prepareTossCheckout({
+      actor,
+      planId: parsed.planId,
+      couponCode: parsed.couponCode,
+    });
+    return { ok: true as const, data };
+  } catch (e) {
+    return { ok: false as const, error: errMessage(e) };
+  }
+}
+
+export async function completeTossBillingAuthAction(input: {
+  orderId: string;
+  authKey: string;
+  customerKey: string;
+}) {
+  try {
+    const { billingLifecycleService } = await import(
+      "@/lib/services/billing-lifecycle.service"
+    );
+    const actor = await requireActorFromMutation();
+    const data = await billingLifecycleService.completeTossBillingAuth({
+      actor,
+      orderId: input.orderId,
+      authKey: input.authKey,
+      customerKey: input.customerKey,
+    });
+    revalidatePath("/billing");
+    revalidatePath("/gym");
+    revalidatePath("/organizer");
+    return { ok: true as const, data };
+  } catch (e) {
+    return { ok: false as const, error: errMessage(e) };
+  }
+}
+
+export async function cancelBillingAtPeriodEndAction() {
+  try {
+    const { billingLifecycleService } = await import(
+      "@/lib/services/billing-lifecycle.service"
+    );
+    const actor = await requireActorFromMutation();
+    await billingLifecycleService.cancelAtPeriodEnd(actor);
+    revalidatePath("/billing/account");
+    return { ok: true as const };
+  } catch (e) {
+    return { ok: false as const, error: errMessage(e) };
+  }
+}
+
+export async function preparePaymentMethodChangeAction() {
+  try {
+    const { billingLifecycleService } = await import(
+      "@/lib/services/billing-lifecycle.service"
+    );
+    const actor = await requireActorFromMutation();
+    const data = await billingLifecycleService.preparePaymentMethodChange(actor);
+    return { ok: true as const, data };
+  } catch (e) {
+    return { ok: false as const, error: errMessage(e) };
+  }
+}
+
+export async function completePaymentMethodChangeAction(input: {
+  orderId: string;
+  authKey: string;
+  customerKey: string;
+}) {
+  try {
+    const { billingLifecycleService } = await import(
+      "@/lib/services/billing-lifecycle.service"
+    );
+    const actor = await requireActorFromMutation();
+    const data = await billingLifecycleService.completePaymentMethodChange({
+      actor,
+      ...input,
+    });
+    revalidatePath("/billing/account");
+    return { ok: true as const, data };
+  } catch (e) {
+    return { ok: false as const, error: errMessage(e) };
+  }
+}
+
 export async function adminCreateBillingCouponAction(formData: FormData) {
   const actor = await requireActorFromMutation();
   const type = String(formData.get("type") ?? "") as BillingCouponType;

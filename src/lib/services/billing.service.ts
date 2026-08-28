@@ -14,6 +14,7 @@ import {
   calculateCheckout,
   CheckoutCouponError,
   normalizeCouponCode,
+  periodEndForInterval,
   type CheckoutCouponInput,
   type CheckoutPlanInput,
 } from "@/lib/billing/checkout-calculator";
@@ -100,13 +101,10 @@ function periodEndForPlan(
   interval: BillingPlanInterval,
   from: Date,
 ): Date {
-  const d = new Date(from.getTime());
-  if (interval === BillingPlanInterval.YEAR) {
-    d.setFullYear(d.getFullYear() + 1);
-  } else {
-    d.setMonth(d.getMonth() + 1);
-  }
-  return d;
+  return periodEndForInterval(
+    interval === BillingPlanInterval.YEAR ? "YEAR" : "MONTH",
+    from,
+  );
 }
 
 export const billingService = {
@@ -239,6 +237,8 @@ export const billingService = {
             currentPeriodStart: now,
             currentPeriodEnd: periodEnd,
             nextBillingAt: periodEnd,
+            autoRenew: true,
+            cancelAtPeriodEnd: false,
             provider: "promo",
           },
           tx,

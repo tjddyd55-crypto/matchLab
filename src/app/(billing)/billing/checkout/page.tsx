@@ -4,8 +4,9 @@ import {
   dashboardPathForRole,
   requireActor,
 } from "@/lib/auth/actor";
+import { isBillingRequirePaymentMethodForTrial } from "@/lib/billing/billing-flags";
+import { getTossBillingEnv } from "@/lib/billing/toss-env";
 import { billingService } from "@/lib/services/billing.service";
-import { evaluateBillingEntitlement } from "@/lib/billing/entitlement";
 
 export const dynamic = "force-dynamic";
 
@@ -18,12 +19,6 @@ export default async function BillingCheckoutPage() {
     redirect(dashboardPathForRole(actor.role));
   }
 
-  const entitlement = await evaluateBillingEntitlement(actor);
-  if (entitlement.entitled && entitlement.reason !== "enforce_disabled") {
-    // Already entitled under enforce — allow account management instead of repurchase.
-    // When enforce is off, still allow visiting checkout (promo activation / plan change later).
-  }
-
   const plans = await billingService.listActivePlans();
   const vm = plans.map((p) => ({
     id: p.id,
@@ -33,5 +28,15 @@ export default async function BillingCheckoutPage() {
     price: p.price,
   }));
 
-  return <BillingCheckoutClient plans={vm} />;
+  const toss = getTossBillingEnv();
+
+  return (
+    <BillingCheckoutClient
+      plans={vm}
+      tossClientKey={toss.clientKey}
+      tossReady={toss.pgReady}
+      isTestKey={toss.isTestKey}
+      requirePmForTrial={isBillingRequirePaymentMethodForTrial()}
+    />
+  );
 }

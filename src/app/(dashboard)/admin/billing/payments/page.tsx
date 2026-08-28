@@ -55,6 +55,7 @@ export default async function AdminBillingPaymentsPage({
                 <th className="px-3 py-2">쿠폰</th>
                 <th className="px-3 py-2">상태</th>
                 <th className="px-3 py-2">수단</th>
+                <th className="px-3 py-2">실패</th>
               </tr>
             </thead>
             <tbody>
@@ -86,6 +87,14 @@ export default async function AdminBillingPaymentsPage({
                   <td className="px-3 py-2">{p.status}</td>
                   <td className="px-3 py-2 text-xs">
                     {p.paymentMethod ?? p.provider}
+                    {p.providerPaymentId
+                      ? ` · ${p.providerPaymentId.slice(0, 8)}…`
+                      : ""}
+                  </td>
+                  <td className="px-3 py-2 text-xs text-red-700">
+                    {p.failureCode
+                      ? `${p.failureCode}: ${p.failureMessage ?? ""}`
+                      : "-"}
                   </td>
                 </tr>
               ))}

@@ -49,7 +49,32 @@ export const billingSubscriptionRepository = {
     return db.billingSubscription.findFirst({
       where: { userId },
       orderBy: { createdAt: "desc" },
-      include: { plan: true },
+      include: { plan: true, paymentMethod: true },
+    });
+  },
+
+  async findDueForRenewal(now: Date, take = 50, tx?: Tx) {
+    const db = tx ?? prisma;
+    return db.billingSubscription.findMany({
+      where: {
+        autoRenew: true,
+        cancelAtPeriodEnd: false,
+        nextBillingAt: { lte: now },
+        status: {
+          in: [
+            "ACTIVE",
+            "TRIAL",
+          ],
+        },
+        paymentMethodId: { not: null },
+      },
+      take,
+      include: {
+        plan: true,
+        paymentMethod: true,
+        user: { select: { id: true, tossCustomerKey: true } },
+      },
+      orderBy: { nextBillingAt: "asc" },
     });
   },
 
@@ -97,6 +122,16 @@ export const billingSubscriptionRepository = {
           take: 1,
           orderBy: { redeemedAt: "desc" },
           include: { coupon: true },
+        },
+        paymentMethod: {
+          select: {
+            id: true,
+            cardCompany: true,
+            cardLast4: true,
+            isDefault: true,
+            deletedAt: true,
+            provider: true,
+          },
         },
       },
     });

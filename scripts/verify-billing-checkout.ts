@@ -277,7 +277,29 @@ function main() {
   assert.doesNotMatch(svc, /markPaidMock|fakePaid|devCompletePayment/);
 
   const provider = read("src/lib/billing/payment-provider.ts");
-  assert.match(provider, /pgReady:\s*false/);
+  assert.match(provider, /toss_billing_auth|tossBillingPaymentProvider/);
+
+  const entitlement = read("src/lib/billing/entitlement.ts");
+  assert.match(entitlement, /billingRequiredAt/);
+  assert.match(entitlement, /legacy_not_required/);
+
+  const lifecycle = read("src/lib/services/billing-lifecycle.service.ts");
+  assert.match(lifecycle, /issueBillingKey/);
+  assert.match(lifecycle, /completeTossBillingAuth/);
+  assert.doesNotMatch(lifecycle, /billingKey:\s*issued\.billingKey[\s\S]{0,80}return/);
+
+  const renewal = read("src/lib/services/billing-renewal.service.ts");
+  assert.match(renewal, /PAST_DUE/);
+  assert.match(renewal, /Idempotency|idempotencyKey|FOR UPDATE/);
+
+  const gymApprove = read("src/lib/services/gym-application.service.ts");
+  assert.match(gymApprove, /billingRequiredAt/);
+  const assocApprove = read("src/lib/services/association-application.service.ts");
+  assert.match(assocApprove, /billingRequiredAt/);
+
+  assert.match(schema, /model BillingPaymentMethod/);
+  assert.match(schema, /cancelAtPeriodEnd/);
+  assert.match(schema, /tossCustomerKey/);
 
   console.log("verify:billing-checkout OK");
 }

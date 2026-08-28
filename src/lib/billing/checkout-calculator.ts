@@ -86,6 +86,17 @@ export function addMonths(from: Date, months: number): Date {
   return d;
 }
 
+export function addYears(from: Date, years: number): Date {
+  return addMonths(from, years * 12);
+}
+
+export function periodEndForInterval(
+  interval: BillingPlanIntervalCode,
+  from: Date,
+): Date {
+  return interval === "YEAR" ? addYears(from, 1) : addMonths(from, 1);
+}
+
 export function planCodeToApplicable(
   planCode: string,
 ): BillingApplicablePlanCode {
