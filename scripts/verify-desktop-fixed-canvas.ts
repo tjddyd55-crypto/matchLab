@@ -45,7 +45,9 @@ function testScrollShell() {
     /html\.desktop-app \.desktop-app-main[\s\S]*flex:\s*1 0 auto/,
     "main grows on maximize",
   );
-  assert.doesNotMatch(globals, /transform:\s*scale|zoom:/, "no scale/zoom shrink");
+  assert.match(globals, /html\.desktop-app \.desktop-app-main-content/, "main content flex column");
+  assert.match(globals, /html\.desktop-app \.desktop-static-page-fill/, "static page vertical fill");
+  assert.match(globals, /desktop-titlebar-overlay/, "titlebar body offset");
 
   const appShell = read("src/components/layout/AppShell.tsx");
   assert.match(appShell, /desktopAppViewportClass/, "AppShell viewport");
@@ -59,7 +61,8 @@ function testDashboardDesktopLayout() {
   assert.match(shell, /canvasScroll=\{isDesktop\}/, "sidebar canvas mode");
   assert.match(shell, /flex-row flex-nowrap/, "desktop row layout");
   assert.match(shell, /desktop:hidden/, "hide mobile bottom nav");
-  assert.match(shell, /desktopAppMainClass/, "desktop main min width");
+  assert.match(shell, /desktopAppShellRootClass/, "shell fills canvas height");
+  assert.match(shell, /desktopAppMainContentClass/, "main content stretch");
 
   const header = read("src/components/layout/Header.tsx");
   assert.match(header, /!isDesktop && props\.role === "organizer"/, "no mobile sheet on desktop");

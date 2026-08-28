@@ -27,6 +27,7 @@ import {
   matchonPageTitleClass,
   matchonSectionTitleClass,
 } from "@/lib/ui/matchon-layout";
+import { desktopStaticPageFillClass } from "@/lib/ui/desktop-app-layout";
 import { cn } from "@/lib/utils";
 
 export const dynamic = "force-dynamic";
@@ -61,7 +62,7 @@ async function loadHomeSnippet<T>(
 
 function GymProfileShell({ children }: { children: ReactNode }) {
   return (
-    <div className={matchonPageContainerClass}>
+    <div className={cn(matchonPageContainerClass, desktopStaticPageFillClass)}>
       <div className={matchonPageStackClass}>{children}</div>
     </div>
   );
@@ -148,7 +149,7 @@ export default async function GymHomePage() {
   const hasMembers = (memberSummary?.total ?? 0) > 0;
 
   return (
-    <div className={matchonPageContainerClass}>
+    <div className={cn(matchonPageContainerClass, desktopStaticPageFillClass)}>
       <div className={matchonPageStackClass}>
         <div className="min-w-0 space-y-1">
           <h1 className={matchonPageTitleClass}>체육관 홈</h1>
