@@ -114,6 +114,8 @@ export async function cancelBillingAtPeriodEndAction() {
     const actor = await requireActorFromMutation();
     await billingLifecycleService.cancelAtPeriodEnd(actor);
     revalidatePath("/billing/account");
+    revalidatePath("/organizer/billing/account");
+    revalidatePath("/gym/billing/account");
     return { ok: true as const };
   } catch (e) {
     return { ok: false as const, error: errMessage(e) };
@@ -148,6 +150,8 @@ export async function completePaymentMethodChangeAction(input: {
       ...input,
     });
     revalidatePath("/billing/account");
+    revalidatePath("/organizer/billing/account");
+    revalidatePath("/gym/billing/account");
     return { ok: true as const, data };
   } catch (e) {
     return { ok: false as const, error: errMessage(e) };
