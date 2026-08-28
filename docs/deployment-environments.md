@@ -30,6 +30,7 @@ feature 작업
   → 승인
   → main FF 또는 검증 완료 cherry-pick
   → Railway production 자동 배포
+  → Railway pre-deploy: prisma migrate deploy
   → Production smoke
 ```
 

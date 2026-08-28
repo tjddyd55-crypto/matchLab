@@ -624,3 +624,29 @@ export async function permanentlyDeleteOrganizerApplicationAction(
     return actionSuccess(result);
   });
 }
+
+export async function exportOrganizerApplicationsExcelAction(input: {
+  eventId: string;
+  fieldKeys: string[];
+  scope: "all" | "filtered";
+  applicationIds?: string[];
+}): Promise<ActionResult<{ base64: string; filename: string; rowCount: number }>> {
+  return mapCaught(async () => {
+    const actor = await requireActorFromMutation();
+    const { applicantExcelExportService } = await import(
+      "@/lib/services/applicant-excel-export.service"
+    );
+    const { buffer, filename, rowCount } =
+      await applicantExcelExportService.buildWorkbook(actor, {
+        eventId: input.eventId,
+        fieldKeys: input.fieldKeys,
+        scope: input.scope,
+        applicationIds: input.applicationIds,
+      });
+    return actionSuccess({
+      base64: buffer.toString("base64"),
+      filename,
+      rowCount,
+    });
+  });
+}

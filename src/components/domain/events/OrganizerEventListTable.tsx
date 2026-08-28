@@ -3,6 +3,7 @@ import { EventStatusPill } from "@/components/domain/events/EventStatusPill";
 import { RegistrationStatusPill } from "@/components/domain/events/RegistrationStatusPill";
 import { buttonVariants } from "@/components/ui/button";
 import type { OrganizerEventListItemVM } from "@/lib/services/event.service";
+import { EventStatus } from "@/lib/enums";
 import {
   listTableHeaderCellCenterClass,
   listTableHeaderCellStartClass,
@@ -116,15 +117,28 @@ export function OrganizerEventListTable({
                 />
               </td>
               <td className="px-2 py-2.5 align-middle text-center">
-                <Link
-                  href={`/organizer/events/${row.id}`}
-                  className={cn(
-                    buttonVariants({ size: "sm", variant: "outline" }),
-                    "h-8 min-w-[3.5rem] px-2.5 text-xs",
-                  )}
-                >
-                  관리
-                </Link>
+                <div className="flex flex-col items-center gap-1">
+                  <Link
+                    href={`/organizer/events/${row.id}`}
+                    className={cn(
+                      buttonVariants({ size: "sm", variant: "outline" }),
+                      "h-8 min-w-[3.5rem] px-2.5 text-xs",
+                    )}
+                  >
+                    관리
+                  </Link>
+                  {row.status === EventStatus.finished && row.hasActiveArchive ? (
+                    <Link
+                      href={`/organizer/events/${row.id}/archive`}
+                      className={cn(
+                        buttonVariants({ size: "sm", variant: "ghost" }),
+                        "h-7 px-2 text-[11px]",
+                      )}
+                    >
+                      기록 보기
+                    </Link>
+                  ) : null}
+                </div>
               </td>
             </tr>
           ))}

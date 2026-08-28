@@ -45,6 +45,8 @@ import {
   type FighterHandicapMapEntry,
 } from "@/lib/fighter-handicap-display";
 import { AppError } from "@/lib/errors/app-error";
+
+const BRACKET_MUTATION_TX_OPTIONS = { maxWait: 10_000, timeout: 30_000 } as const;
 import { resolveMatchIsPublicSparring } from "@/lib/match-bout-settings";
 import {
   formatOperationalSettingsLabel,
@@ -1859,7 +1861,9 @@ export const bracketService = {
           tx,
         );
       if (elsewhere > 0) {
-        if (input.moveFromOtherMatch) {
+        if (input.allowDuplicateAssignment) {
+          // 복수 출전: 기존 슬롯 유지. same-bracket 내 추가 배정만 허용.
+        } else if (input.moveFromOtherMatch) {
           const prev = await bracketRepository.findFighterAssignmentInBracketExcluding(
             input.bracketId,
             input.fighterId,
@@ -2544,7 +2548,7 @@ export const bracketService = {
       await applyEventWideMatchNumberResequence(ctx.eventId, tx);
 
       return { matchId, eventId: ctx.eventId };
-    });
+    }, BRACKET_MUTATION_TX_OPTIONS);
   },
 
   async deleteBracketMatch(

@@ -378,3 +378,42 @@ export async function getMemberGymApplicationAttachmentDownloadAction(
     return mapError(e);
   }
 }
+
+export async function exportMemberGymsExcelAction(input: {
+  fieldKeys: string[];
+  scope: "all" | "filtered";
+  memberGymIds?: string[];
+  filters?: { q?: string; status?: string };
+}): Promise<ActionResult<{ base64: string; filename: string; rowCount: number }>> {
+  try {
+    const actor = await requireActorFromMutation();
+    const { AssociationMemberGymStatus } = await import("@/lib/enums");
+    const status =
+      input.filters?.status &&
+      Object.values(AssociationMemberGymStatus).includes(
+        input.filters.status as (typeof AssociationMemberGymStatus)[keyof typeof AssociationMemberGymStatus],
+      )
+        ? (input.filters.status as (typeof AssociationMemberGymStatus)[keyof typeof AssociationMemberGymStatus])
+        : undefined;
+    const { memberGymExcelExportService } = await import(
+      "@/lib/services/member-gym-excel-export.service"
+    );
+    const { buffer, filename, rowCount } =
+      await memberGymExcelExportService.buildWorkbook(actor, {
+        fieldKeys: input.fieldKeys,
+        scope: input.scope,
+        memberGymIds: input.memberGymIds,
+        filters:
+          input.scope === "filtered"
+            ? { q: input.filters?.q, status }
+            : undefined,
+      });
+    return actionSuccess({
+      base64: buffer.toString("base64"),
+      filename,
+      rowCount,
+    });
+  } catch (e) {
+    return mapError(e);
+  }
+}

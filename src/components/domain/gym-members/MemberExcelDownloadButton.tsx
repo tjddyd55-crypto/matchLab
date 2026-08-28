@@ -1,55 +1,70 @@
 "use client";
 
-import { useTransition } from "react";
+import { useState } from "react";
 import { exportGymMembersExcelAction } from "@/features/gym-members/actions";
-import { useAppConfirmDialog } from "@/components/shared/app-confirm-dialog";
-import { Button } from "@/components/ui/button";
+import {
+  GYM_MEMBER_EXCEL_EXPORT_FIELDS,
+  defaultGymMemberExcelExportFieldKeys,
+} from "@/lib/gym-member/gym-member-excel-export-fields";
+import {
+  ExcelExportTriggerButton,
+  SelectableExcelExportDialog,
+} from "@/components/shared/excel-export/SelectableExcelExportDialog";
 
 export function MemberExcelDownloadButton({
   filters,
+  filteredCount,
+  totalCount,
+  hasActiveFilters,
 }: {
   filters: {
     q?: string;
     status?: string;
     fighter?: string;
+    expiration?: string;
     joined?: string;
     groupId?: string;
   };
+  filteredCount: number;
+  totalCount: number;
+  hasActiveFilters: boolean;
 }) {
-  const { alert } = useAppConfirmDialog();
-  const [pending, startTransition] = useTransition();
+  const [open, setOpen] = useState(false);
 
   return (
-    <Button
-      type="button"
-      variant="outline"
-      size="sm"
-      disabled={pending}
-      onClick={() => {
-        startTransition(async () => {
-          const result = await exportGymMembersExcelAction(filters);
-          if (!result.ok) {
-            await alert(result.error.message);
-            return;
-          }
-          const binary = atob(result.data.base64);
-          const bytes = new Uint8Array(binary.length);
-          for (let i = 0; i < binary.length; i++) {
-            bytes[i] = binary.charCodeAt(i);
-          }
-          const blob = new Blob([bytes], {
-            type: "application/vnd.openxmlformats-officedocument.spreadsheetml.sheet",
+    <>
+      <ExcelExportTriggerButton onOpen={() => setOpen(true)} />
+      <SelectableExcelExportDialog
+        open={open}
+        onOpenChange={setOpen}
+        title="엑셀 다운로드"
+        fields={GYM_MEMBER_EXCEL_EXPORT_FIELDS}
+        defaultSelectedKeys={defaultGymMemberExcelExportFieldKeys()}
+        hasActiveFilters={hasActiveFilters}
+        filteredCount={filteredCount}
+        totalCount={totalCount}
+        scopeLabels={{
+          filtered: (n) => `현재 검색/필터 결과 (${n}명)`,
+          all: (n) => `전체 회원 (${n}명)`,
+          allOnly: (n) => `전체 회원 ${n}명`,
+        }}
+        emptyScopeMessage="다운로드할 회원이 없습니다."
+        onDownload={async ({ fieldKeys, scope }) => {
+          const res = await exportGymMembersExcelAction({
+            fieldKeys,
+            scope,
+            filters: scope === "filtered" ? filters : undefined,
           });
-          const url = URL.createObjectURL(blob);
-          const a = document.createElement("a");
-          a.href = url;
-          a.download = result.data.filename;
-          a.click();
-          URL.revokeObjectURL(url);
-        });
-      }}
-    >
-      {pending ? "내보내는 중…" : "엑셀 다운로드"}
-    </Button>
+          if (!res.ok) {
+            return { ok: false as const, message: res.error.message };
+          }
+          return {
+            ok: true as const,
+            base64: res.data.base64,
+            filename: res.data.filename,
+          };
+        }}
+      />
+    </>
   );
 }

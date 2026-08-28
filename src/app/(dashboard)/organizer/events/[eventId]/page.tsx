@@ -8,6 +8,7 @@ import { EventPaymentSettingForm } from "@/components/domain/events/EventPayment
 import { EventRecordingStreamingSettings } from "@/components/domain/events/EventRecordingStreamingSettings";
 import { SpectatorSettingsSection } from "@/components/domain/events/SpectatorSettingsSection";
 import { EventStatusControl } from "@/components/domain/events/EventStatusControl";
+import { EventArchiveAccessBanner } from "@/components/domain/events/EventArchiveAccessBanner";
 import { OrganizerEventFlashBanner } from "@/components/domain/events/OrganizerEventFlashBanner";
 import { EventManagementPageHeader } from "@/components/domain/events/EventManagementPageHeader";
 import { resolveOrganizerEventPageError } from "@/lib/permissions";
@@ -134,6 +135,12 @@ export default async function OrganizerEventDetailPage({
       <OrganizerEventSetupChecklist checklist={setupChecklist} />
 
       <EventStatusControl event={detail} />
+
+      <EventArchiveAccessBanner
+        eventId={detail.id}
+        status={detail.status}
+        hasActiveArchive={detail.hasActiveArchive}
+      />
 
       <EventForm mode="edit" actorRole={actor.role} initial={detail} />
 

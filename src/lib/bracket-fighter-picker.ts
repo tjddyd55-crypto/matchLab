@@ -71,9 +71,9 @@ export function buildFighterPickerOptionStates(input: {
     const otherAssignments = assignments.filter((a) => a.matchId !== matchId);
     if (otherAssignments.length > 0) {
       if (opt.fighterId !== currentFighterId && selectable) {
-        reason =
-          reason ??
-          `다른 경기 ${formatAssignmentSummary(otherAssignments)} — 선택 시 기존 슬롯은 비워집니다`;
+        warningReason =
+          warningReason ??
+          `다른 경기 ${formatAssignmentSummary(otherAssignments)} — 선택 시 기존 배정 유지(복수 출전)`;
       }
     }
 

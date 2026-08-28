@@ -31,7 +31,9 @@ import {
   eventRepository,
 } from "@/lib/repositories/event.repository";
 import { auditRepository } from "@/lib/repositories/audit.repository";
+import { eventArchiveRepository } from "@/lib/repositories/event-archive.repository";
 import { allocateUniquePublicSlug } from "@/lib/event-public-slug";
+import { eventArchiveService } from "@/lib/services/event-archive.service";
 import {
   buildPublicPaymentDisplayLines,
   formatPublicFeeAmount,
@@ -40,6 +42,8 @@ import {
   buildPublicRegistrationDisplay,
 } from "@/lib/event-public-display";
 import { AppError } from "@/lib/errors/app-error";
+
+const EVENT_FINISH_TX_OPTIONS = { maxWait: 15_000, timeout: 60_000 } as const;
 import { geocodeVenueCoordinate } from "@/lib/naver-geocode.server";
 import {
   requireOrganizerForEvent,
@@ -262,6 +266,7 @@ export type OrganizerEventListItemVM = {
   registrationEndDate: string;
   status: EventStatus;
   applicationCount: number;
+  hasActiveArchive: boolean;
 };
 
 export type OrganizerEventPaymentSettingVM = {
@@ -313,6 +318,7 @@ export type OrganizerEventDetailVM = {
   streamingNoticeText: string | null;
   streamingConsentRequired: boolean;
   applicationCount: number;
+  hasActiveArchive: boolean;
   divisions: OrganizerEventDivisionVM[];
   paymentSetting: OrganizerEventPaymentSettingVM | null;
   galleryImages: { id: string; imageUrl: string; caption: string | null; sortOrder: number }[];
@@ -320,6 +326,7 @@ export type OrganizerEventDetailVM = {
 
 function mapOrganizerEventDetail(
   row: NonNullable<Awaited<ReturnType<typeof eventRepository.findOrganizerEventById>>>,
+  hasActiveArchive = false,
 ): OrganizerEventDetailVM {
   const payment = row.paymentSetting;
   return {
@@ -354,6 +361,7 @@ function mapOrganizerEventDetail(
     streamingNoticeText: row.streamingNoticeText,
     streamingConsentRequired: row.streamingConsentRequired,
     applicationCount: row._count.applications,
+    hasActiveArchive,
     divisions: row.divisions.map((d) => {
       const weight = resolveEventDivisionWeightFields(d);
       return {
@@ -818,6 +826,9 @@ export const eventService = {
     requireRole(actor, ["organizer", "admin"]);
     if (actor.role === "admin") {
       const rows = await eventRepository.listAllEventsForAdmin();
+      const archiveIds = await eventArchiveRepository.listActiveArchiveEventIds(
+        rows.map((r) => r.id),
+      );
       return rows.map((r) => ({
         id: r.id,
         organizerId: r.organizerId,
@@ -830,6 +841,7 @@ export const eventService = {
         registrationEndDate: toIso(r.registrationEndDate),
         status: r.status,
         applicationCount: r._count.applications,
+        hasActiveArchive: archiveIds.has(r.id),
       }));
     }
     if (!actor.organizerId) {
@@ -837,6 +849,9 @@ export const eventService = {
     }
     const organizerId = actor.organizerId;
     const rows = await eventRepository.listOrganizerEvents(organizerId);
+    const archiveIds = await eventArchiveRepository.listActiveArchiveEventIds(
+      rows.map((r) => r.id),
+    );
     return rows.map((r) => ({
       id: r.id,
       organizerId,
@@ -848,6 +863,7 @@ export const eventService = {
       registrationEndDate: toIso(r.registrationEndDate),
       status: r.status,
       applicationCount: r._count.applications,
+      hasActiveArchive: archiveIds.has(r.id),
     }));
   },
 
@@ -860,7 +876,8 @@ export const eventService = {
     if (!row) {
       throw new AppError("NOT_FOUND", "대회를 찾을 수 없습니다.");
     }
-    return mapOrganizerEventDetail(row);
+    const archive = await eventArchiveRepository.findActiveByEventId(eventId);
+    return mapOrganizerEventDetail(row, archive != null);
   },
 
   async createOrganizerEvent(
@@ -1067,6 +1084,47 @@ export const eventService = {
 
     if (row.status === EventStatus.draft && input.status === EventStatus.open) {
       await assertReadyForPublicOpen(input.eventId);
+    }
+
+    if (input.status === EventStatus.finished) {
+      await prisma.$transaction(async (tx) => {
+        const { created } = await eventArchiveService.createArchiveInTransaction(
+          tx,
+          {
+            eventId: input.eventId,
+            archivedByUserId: actor.userId,
+          },
+        );
+        if (!created) {
+          const existing = await eventArchiveRepository.findByEventAndVersion(
+            input.eventId,
+            1,
+            tx,
+          );
+          if (!existing) {
+            throw new AppError(
+              "INTERNAL",
+              "대회 기록 생성에 실패했습니다. 다시 시도해주세요.",
+            );
+          }
+        }
+        await eventRepository.updateEventStatus(input.eventId, input.status, tx);
+        await auditRepository.createAuditLog(
+          {
+            actorUserId: actor.userId,
+            action: AuditAction.event_status_changed,
+            targetType: "Event",
+            targetId: input.eventId,
+            beforeData: { status: row.status },
+            afterData: {
+              status: input.status,
+              archiveVersion: 1,
+            },
+          },
+          tx,
+        );
+      }, EVENT_FINISH_TX_OPTIONS);
+      return;
     }
 
     await prisma.$transaction(async (tx) => {

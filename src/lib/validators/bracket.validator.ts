@@ -79,6 +79,8 @@ export const assignFighterToMatchSchema = z.object({
   slot: z.enum(["red", "blue"]),
   reason: z.string().max(500).optional(),
   moveFromOtherMatch: z.boolean().optional().default(false),
+  /** true면 다른 경기 배정을 유지한 채 추가 배정 (복수 출전) */
+  allowDuplicateAssignment: z.boolean().optional().default(false),
 });
 
 export const addEmptyBracketMatchSchema = z.object({

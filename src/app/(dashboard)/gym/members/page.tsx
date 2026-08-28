@@ -165,7 +165,12 @@ export default async function GymMembersPage({
           description="회원 현황과 오늘 처리할 업무를 확인하세요."
           actions={
             <>
-              <MemberExcelDownloadButton filters={baseParams} />
+              <MemberExcelDownloadButton
+                filters={baseParams}
+                filteredCount={list.total}
+                totalCount={summary.total}
+                hasActiveFilters={hasListFilter}
+              />
               <MemberExcelImportButton />
               <Link
                 href="/gym/members/new"

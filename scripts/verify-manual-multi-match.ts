@@ -32,6 +32,15 @@ function main() {
   assert.match(panel, /allowDuplicateAssignment/);
   assert.match(candidates, /복수 경기 선수 추가/);
   assert.match(candidates, /multiMatchMode/);
+  assert.match(candidates, /전체 선수/);
+  assert.match(candidates, /multiMatchListScope/);
+  assert.match(candidates, /allAssignableFighters/);
+  assert.match(candidates, /formatMatchCountBadge/);
+  // 복수 경기 ON 시 division 탭에만 기배정 선수를 붙이던 버그 회귀 방지
+  assert.doesNotMatch(
+    candidates,
+    /multiMatchMode && unmatchedTab === "division"/,
+  );
 
   // 자동매칭은 placed exclusion 유지
   assert.match(auto, /listPlacedFighterIdsForEvent/);
