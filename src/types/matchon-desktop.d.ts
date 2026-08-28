@@ -49,6 +49,9 @@ export type MatchonDesktopUpdateStatus = {
 
 export type MatchonDesktopBridge = {
   getAppVersion: () => Promise<string>;
+  getTitleBarMode: () => Promise<"overlay" | "native">;
+  canNavigateBack: () => Promise<boolean>;
+  navigateBack: () => Promise<{ action: "back" | "none" }>;
   getPlatform: () => Promise<string>;
   openExternal: (url: string) => Promise<boolean>;
   retryConnection: () => Promise<boolean>;

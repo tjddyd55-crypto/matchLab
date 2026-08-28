@@ -1,6 +1,7 @@
 import type { Metadata } from "next";
 import { Geist, Geist_Mono } from "next/font/google";
 import { AppProviders } from "@/app/providers";
+import { DesktopManagerTitleBar } from "@/components/domain/desktop/DesktopManagerTitleBar";
 import { BRAND_DESCRIPTION, BRAND_NAME } from "@/lib/brand";
 import { isMatchonDesktopRequest } from "@/lib/desktop/request";
 import { DESKTOP_APP_HTML_CLASS } from "@/lib/ui/desktop-app-layout";
@@ -74,6 +75,7 @@ export default async function RootLayout({
       )}
     >
       <body className="min-h-full flex flex-col">
+        <DesktopManagerTitleBar />
         <AppProviders>{children}</AppProviders>
       </body>
     </html>
