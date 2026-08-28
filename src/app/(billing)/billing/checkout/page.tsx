@@ -28,7 +28,7 @@ export default async function BillingCheckoutPage() {
     price: p.price,
   }));
 
-  const toss = getTossBillingEnv();
+  const toss = await getTossBillingEnv();
 
   return (
     <BillingCheckoutClient

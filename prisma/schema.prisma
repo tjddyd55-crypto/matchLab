@@ -634,6 +634,8 @@ model User {
   billingCouponRedemptions                BillingCouponRedemption[]
   billingCouponsCreated                   BillingCoupon[]                         @relation("BillingCouponCreator")
   billingPaymentMethods                   BillingPaymentMethod[]
+  billingProviderConfigsUpdated           BillingProviderConfig[]                 @relation("BillingProviderConfigUpdater")
+  billingRuntimeConfigsUpdated            BillingRuntimeConfig[]                  @relation("BillingRuntimeConfigUpdater")
   associationApplicationsReviewed         AssociationApplication[]               @relation("AssociationApplicationReviewer")
   gymApplicationsReviewed                 GymApplication[]                       @relation("GymApplicationReviewer")
   associationGymConnectionRequestsReviewed AssociationGymConnectionRequest[]     @relation("AssociationGymConnectionReviewer")
@@ -3325,6 +3327,47 @@ model BillingCouponRedemption {
   @@index([userId, couponId])
   @@index([subscriptionId])
   @@unique([userId, couponId])
+}
+
+enum BillingProviderKind {
+  NONE
+  TOSS
+}
+
+enum BillingProviderEnvironment {
+  TEST
+  LIVE
+}
+
+/// PG credential — provider + environment 별 독립 관리 (TOSS/TEST, TOSS/LIVE).
+model BillingProviderConfig {
+  id               String                     @id @default(cuid())
+  provider         BillingProviderKind
+  environment      BillingProviderEnvironment
+  clientKey        String?
+  secretKeyCipher  Bytes?
+  secretKeyIv      Bytes?
+  secretKeyAuthTag Bytes?
+  secretKeyKeyVer  String?
+  updatedByUserId  String?
+  createdAt        DateTime                   @default(now())
+  updatedAt        DateTime                   @updatedAt
+
+  updatedBy User? @relation("BillingProviderConfigUpdater", fields: [updatedByUserId], references: [id], onDelete: SetNull)
+
+  @@unique([provider, environment])
+}
+
+/// 활성 PG provider/environment 및 연동 on/off — singleton row (id = "default").
+model BillingRuntimeConfig {
+  id              String                      @id @default("default")
+  provider        BillingProviderKind         @default(NONE)
+  environment     BillingProviderEnvironment?
+  enabled         Boolean                     @default(false)
+  updatedByUserId String?
+  updatedAt       DateTime                    @updatedAt
+
+  updatedBy User? @relation("BillingRuntimeConfigUpdater", fields: [updatedByUserId], references: [id], onDelete: SetNull)
 }
 
 /// 공개 홈 스폰서·파트너 로고 (협회 로고는 Organizer 필드 사용 — 복사 저장 금지)

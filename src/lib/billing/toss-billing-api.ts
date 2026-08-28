@@ -39,7 +39,7 @@ async function tossFetch<T>(
   path: string,
   init: RequestInit & { idempotencyKey?: string },
 ): Promise<T> {
-  const { secretKey } = assertTossSecretConfigured();
+  const { secretKey } = await assertTossSecretConfigured();
   const headers: Record<string, string> = {
     Authorization: tossBasicAuthHeader(secretKey),
     "Content-Type": "application/json",

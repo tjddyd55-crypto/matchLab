@@ -175,7 +175,7 @@ export function BillingCheckoutClient({
 
       if (!tossReady || !tossClientKey) {
         setError(
-          "유료 결제(Toss Billing)가 아직 설정되지 않았습니다. 무료 쿠폰을 사용하거나 관리자에게 문의하세요.",
+          "현재 온라인 결제 준비 중입니다. 관리자에게 문의해주세요.",
         );
         return;
       }

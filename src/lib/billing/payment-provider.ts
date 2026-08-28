@@ -71,14 +71,14 @@ export const nonePaymentProvider: PaymentProvider = {
 export const tossBillingPaymentProvider: PaymentProvider = {
   name: "toss",
   async createPayment(input) {
-    const env = getTossBillingEnv();
+    const env = await getTossBillingEnv();
     if (!env.pgReady || !env.clientKey) {
       return {
         provider: "toss",
         pgReady: false,
         mode: "none",
         message:
-          "Toss Billing 키가 없습니다. NEXT_PUBLIC_TOSS_BILLING_CLIENT_KEY / TOSS_BILLING_SECRET_KEY를 설정하세요.",
+          "현재 온라인 결제 준비 중입니다. 관리자에게 문의해주세요.",
       };
     }
     return {

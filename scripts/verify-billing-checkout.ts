@@ -300,6 +300,12 @@ function main() {
   assert.match(schema, /model BillingPaymentMethod/);
   assert.match(schema, /cancelAtPeriodEnd/);
   assert.match(schema, /tossCustomerKey/);
+  assert.match(schema, /model BillingProviderConfig/);
+  assert.match(schema, /model BillingRuntimeConfig/);
+
+  const providerCfg = read("src/lib/billing/billing-provider-config.ts");
+  assert.match(providerCfg, /resolveBillingProviderConfig/);
+  assert.match(read("src/app/api/billing/public-config/route.ts"), /getBillingPublicConfig/);
 
   console.log("verify:billing-checkout OK");
 }
