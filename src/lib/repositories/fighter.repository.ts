@@ -317,6 +317,20 @@ export const fighterRepository = {
     return row as GymFighterListRow | null;
   },
 
+  async findFighterCareerHeader(fighterId: string, tx?: Prisma.TransactionClient) {
+    return db(tx).fighter.findUnique({
+      where: { id: fighterId },
+      select: {
+        id: true,
+        fighterCode: true,
+        name: true,
+        gender: true,
+        birthDate: true,
+        currentGym: { select: { name: true } },
+      },
+    });
+  },
+
   /**
    * 생년월일(일 단위) + 성별 + 휴대폰(숫자만 동일) 기준 중복 후보.
    */

@@ -18,6 +18,9 @@ import type {
 import { AppError } from "@/lib/errors/app-error";
 import { formatPostalAddress } from "@/lib/postal-address";
 import { adminRepository } from "@/lib/repositories/admin.repository";
+import { fighterCareerRepository } from "@/lib/repositories/fighter-career.repository";
+import { fighterCareerService } from "@/lib/services/fighter-career.service";
+import { formatFighterCareerSummary } from "@/lib/fighter-career/types";
 
 const RECENT_HOME = 10;
 const AUDIT_LOG_PAGE_LIMIT = 200;
@@ -90,6 +93,14 @@ function recordSummary(win: number, loss: number, draw: number): string {
 
 function mapFighterRow(
   r: Awaited<ReturnType<typeof adminRepository.listAdminFighters>>[number],
+  career?: {
+    wins: number;
+    losses: number;
+    draws: number;
+    noContests: number;
+    totalMatches: number;
+    lastMatchAt: Date | null;
+  } | null,
 ): AdminFighterListItemDTO {
   return {
     id: r.id,
@@ -98,6 +109,20 @@ function mapFighterRow(
     gender: r.gender,
     currentGymName: r.currentGym?.name ?? null,
     recordSummary: recordSummary(r.recordWin, r.recordLoss, r.recordDraw),
+    careerSummary: career
+      ? formatFighterCareerSummary({
+          wins: career.wins,
+          losses: career.losses,
+          draws: career.draws,
+          noContests: career.noContests,
+          totalMatches: career.totalMatches,
+          knockouts: 0,
+          submissions: 0,
+          decisions: 0,
+          lastMatchAt: career.lastMatchAt?.toISOString() ?? null,
+        })
+      : null,
+    lastMatchAt: career?.lastMatchAt ? toIso(career.lastMatchAt) : null,
     status: r.status,
     createdAt: toIso(r.createdAt),
   };
@@ -216,7 +241,16 @@ export const adminService = {
   async listAdminFighters(actor: ActorContext): Promise<AdminFighterListItemDTO[]> {
     assertAdmin(actor);
     const rows = await adminRepository.listAdminFighters();
-    return rows.map(mapFighterRow);
+    const stats = await fighterCareerRepository.findStatsByFighterIds(
+      rows.map((r) => r.id),
+    );
+    const statsByFighter = new Map(stats.map((s) => [s.fighterId, s]));
+    return rows.map((r) => mapFighterRow(r, statsByFighter.get(r.id) ?? null));
+  },
+
+  async getAdminFighterCareer(actor: ActorContext, fighterId: string) {
+    assertAdmin(actor);
+    return fighterCareerService.getFighterCareerProfile(fighterId);
   },
 
   async listAdminApplications(

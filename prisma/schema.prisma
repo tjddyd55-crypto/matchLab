@@ -820,6 +820,10 @@ model Fighter {
   matchResults           MatchResult[] @relation("MatchResultFighter")
   matchResultsAsOpponent MatchResult[] @relation("MatchResultOpponent")
 
+  careerMatchRecords FighterCareerMatchRecord[] @relation("FighterCareerRecords")
+  careerRecordsAsOpponent FighterCareerMatchRecord[] @relation("FighterCareerOpponent")
+  careerStats        FighterCareerStats?
+
   fighterProfile FighterProfile?
 
   accountSetupTokens   FighterAccountSetupToken[]
@@ -1779,6 +1783,7 @@ model Event {
   courts            EventCourt[]
   externalRegistrationLink EventExternalRegistrationLink?
   archives               EventArchive[]
+  careerMatchRecords     FighterCareerMatchRecord[]
 
   @@index([organizerId])
   @@index([status])
@@ -1807,9 +1812,74 @@ model EventArchive {
   updatedAt          DateTime           @updatedAt
 
   event Event @relation(fields: [eventId], references: [id], onDelete: Cascade)
+  careerMatchRecords FighterCareerMatchRecord[]
 
   @@unique([eventId, version])
   @@index([eventId, status])
+}
+
+enum FighterCareerRecordStatus {
+  active
+  voided
+}
+
+/// Archive 기반 선수 경기 이력 원장 — MATCHON Ranking SSOT
+model FighterCareerMatchRecord {
+  id                      String                    @id @default(cuid())
+  fighterId               String
+  eventId                 String
+  matchId                 String
+  eventArchiveId          String
+  archiveVersion          Int
+  matchResultId           String?
+  opponentFighterId       String?
+  result                  MatchRecordOutcome
+  resultType              BracketMatchOutcomeStyle?
+  sportType               String?
+  divisionLabel           String?
+  divisionSnapshot        Json?
+  fighterNameSnapshot     String
+  opponentNameSnapshot    String?
+  gymNameSnapshot         String?
+  opponentGymNameSnapshot String?
+  eventNameSnapshot       String
+  eventDateSnapshot       DateTime
+  matchNumber             Int?
+  status                  FighterCareerRecordStatus @default(active)
+  voidedAt                DateTime?
+  createdAt               DateTime                  @default(now())
+  updatedAt               DateTime                  @updatedAt
+
+  fighter         Fighter      @relation("FighterCareerRecords", fields: [fighterId], references: [id], onDelete: Cascade)
+  opponentFighter Fighter?     @relation("FighterCareerOpponent", fields: [opponentFighterId], references: [id], onDelete: SetNull)
+  event           Event        @relation(fields: [eventId], references: [id], onDelete: Cascade)
+  eventArchive    EventArchive @relation(fields: [eventArchiveId], references: [id], onDelete: Cascade)
+
+  @@unique([fighterId, eventArchiveId, matchId])
+  @@index([fighterId, status])
+  @@index([eventId])
+  @@index([eventArchiveId])
+  @@index([eventDateSnapshot])
+  @@index([sportType])
+  @@index([opponentFighterId])
+}
+
+/// FighterCareerMatchRecord 집계 캐시 — rebuild로 재계산
+model FighterCareerStats {
+  id           String    @id @default(cuid())
+  fighterId    String    @unique
+  wins         Int       @default(0)
+  losses       Int       @default(0)
+  draws        Int       @default(0)
+  noContests   Int       @default(0)
+  totalMatches Int       @default(0)
+  knockouts    Int       @default(0)
+  submissions  Int       @default(0)
+  decisions    Int       @default(0)
+  lastMatchAt  DateTime?
+  updatedAt    DateTime  @updatedAt
+
+  fighter Fighter @relation(fields: [fighterId], references: [id], onDelete: Cascade)
 }
 
 model EventImage {

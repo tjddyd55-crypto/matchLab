@@ -198,6 +198,8 @@ export type AdminFighterListItemDTO = {
   gender: string;
   currentGymName: string | null;
   recordSummary: string;
+  careerSummary: string | null;
+  lastMatchAt: string | null;
   status: FighterStatus;
   createdAt: string;
 };

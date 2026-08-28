@@ -1,7 +1,9 @@
+import Link from "next/link";
 import type { AdminFighterListItemDTO } from "@/lib/dto/admin";
 import { AdminListEmptyState } from "@/components/domain/admin/AdminListEmptyState";
 import { formatAdminDateTime } from "@/components/domain/admin/admin-format";
 import { MatchonStatusBadge } from "@/components/shared/MatchonStatusBadge";
+import { buttonVariants } from "@/components/ui/button";
 import {
   Card,
   CardContent,
@@ -50,9 +52,12 @@ export function AdminFightersTable({
               <TableHead>이름</TableHead>
               <TableHead>성별</TableHead>
               <TableHead>소속 체육관</TableHead>
-              <TableHead>전적</TableHead>
+              <TableHead>Career</TableHead>
+              <TableHead>MatchResult 캐시</TableHead>
+              <TableHead>최근 경기</TableHead>
               <TableHead>상태</TableHead>
               <TableHead>등록</TableHead>
+              <TableHead className="w-[88px]">관리</TableHead>
             </TableRow>
           </TableHeader>
           <TableBody>
@@ -64,7 +69,15 @@ export function AdminFightersTable({
                 <TableCell className={`${adminMutedTextClass} break-words`}>
                   {f.currentGymName ?? "—"}
                 </TableCell>
-                <TableCell className="text-xs tabular-nums">{f.recordSummary}</TableCell>
+                <TableCell className="text-xs tabular-nums">
+                  {f.careerSummary ?? "—"}
+                </TableCell>
+                <TableCell className={`${adminMutedTextClass} text-xs tabular-nums`}>
+                  {f.recordSummary}
+                </TableCell>
+                <TableCell className={`${adminMutedTextClass} whitespace-nowrap text-xs`}>
+                  {f.lastMatchAt ? formatAdminDateTime(f.lastMatchAt) : "—"}
+                </TableCell>
                 <TableCell>
                   <MatchonStatusBadge
                     status={resolveAdminFighterStatusMatchon(f.status)}
@@ -74,6 +87,14 @@ export function AdminFightersTable({
                 </TableCell>
                 <TableCell className={`${adminMutedTextClass} whitespace-nowrap text-xs`}>
                   {formatAdminDateTime(f.createdAt)}
+                </TableCell>
+                <TableCell>
+                  <Link
+                    href={`/admin/fighters/${f.id}`}
+                    className={buttonVariants({ variant: "outline", size: "sm" })}
+                  >
+                    Career
+                  </Link>
                 </TableCell>
               </TableRow>
             ))}
@@ -101,8 +122,20 @@ export function AdminFightersTable({
               </CardHeader>
               <CardContent className="pt-3 text-xs">
                 <p className={`${adminMutedTextClass} break-words`}>
-                  {f.gender} · {f.currentGymName ?? "무소속"} · {f.recordSummary}
+                  {f.gender} · {f.currentGymName ?? "무소속"}
                 </p>
+                <p className="mt-1 text-xs tabular-nums">
+                  Career {f.careerSummary ?? "—"}
+                </p>
+                <p className={`${adminMutedTextClass} text-xs`}>
+                  캐시 {f.recordSummary}
+                </p>
+                <Link
+                  href={`/admin/fighters/${f.id}`}
+                  className={`${buttonVariants({ variant: "outline", size: "sm" })} mt-2 inline-flex`}
+                >
+                  Career 보기
+                </Link>
                 <p className={`${adminMutedTextClass} mt-1`}>
                   {formatAdminDateTime(f.createdAt)}
                 </p>

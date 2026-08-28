@@ -18,6 +18,7 @@ import type {
   EventArchiveSummaryStats,
 } from "@/lib/event-archive/types";
 import { eventArchiveRepository } from "@/lib/repositories/event-archive.repository";
+import { fighterCareerService } from "@/lib/services/fighter-career.service";
 
 const ARCHIVE_VERSION_INITIAL = 1;
 
@@ -132,6 +133,13 @@ export const eventArchiveService = {
       },
       tx,
     );
+    await fighterCareerService.syncFromArchiveInTransaction(tx, {
+      eventId: input.eventId,
+      eventArchiveId: row.id,
+      archiveVersion: ARCHIVE_VERSION_INITIAL,
+      eventSnapshot: snapshots.eventSnapshot,
+      resultsSnapshot: snapshots.resultsSnapshot,
+    });
     return { archiveId: row.id, created: true };
   },
 

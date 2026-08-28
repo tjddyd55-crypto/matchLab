@@ -15,7 +15,7 @@ export default async function AdminFightersPage() {
       <div className={adminPageStackClass}>
         <AdminPageHeader
           title="전체 선수"
-          description="연락처·생년월일·보호자 정보는 표시하지 않습니다."
+          description="연락처·생년월일·보호자 정보는 표시하지 않습니다. Career는 Archive 확정 결과 기준입니다."
         />
         <div className={adminContentCardClass}>
           <AdminFightersTable rows={rows} />

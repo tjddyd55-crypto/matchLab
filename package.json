@@ -182,6 +182,7 @@
     "verify:application-gym-snapshot": "tsx scripts/verify-application-gym-snapshot.ts",
     "verify:applicant-excel-export": "tsx scripts/verify-applicant-excel-export.ts",
     "verify:event-archive": "tsx scripts/verify-event-archive.ts",
+    "verify:fighter-career": "tsx scripts/verify-fighter-career.ts",
     "verify:member-gym-excel-export": "tsx scripts/verify-member-gym-excel-export.ts",
     "verify:organizer-application-edit": "tsx scripts/verify-organizer-application-edit.ts",
     "verify:organizer-application-restore": "tsx scripts/verify-organizer-application-restore.ts",
