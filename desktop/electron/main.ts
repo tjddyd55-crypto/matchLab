@@ -21,6 +21,7 @@ import {
   loadWindowState,
 } from "./window-state";
 
+const DESKTOP_TITLEBAR_HEIGHT = 36;
 const DESKTOP_HEADER = "X-Matchon-Desktop";
 let mainWindow: BrowserWindow | null = null;
 let sessionConfigured = false;
@@ -80,6 +81,7 @@ function createMainWindow(): BrowserWindow {
   const iconPath = resolveAppIconPath();
   configureSession();
 
+  const isWin = process.platform === "win32";
   const win = new BrowserWindow({
     width: state.width,
     height: state.height,
@@ -91,6 +93,16 @@ function createMainWindow(): BrowserWindow {
     backgroundColor: "#F8FAFC",
     title: `MATCHON Manager v${appVersion()}`,
     autoHideMenuBar: true,
+    ...(isWin
+      ? {
+          titleBarStyle: "hidden" as const,
+          titleBarOverlay: {
+            color: "#F8FAFC",
+            symbolColor: "#0F172A",
+            height: DESKTOP_TITLEBAR_HEIGHT,
+          },
+        }
+      : {}),
     ...(iconPath
       ? { icon: nativeImage.createFromPath(iconPath) }
       : {}),
@@ -154,6 +166,34 @@ function focusMainWindow(): void {
 }
 
 function registerIpc(): void {
+  ipcMain.handle("desktop:get-titlebar-mode", () =>
+    process.platform === "win32" ? "overlay" : "native",
+  );
+  ipcMain.handle("desktop:can-navigate-back", (event) => {
+    const contents = event.sender;
+    if (contents.isDestroyed()) return false;
+    const history = contents.navigationHistory;
+    if (history && typeof history.canGoBack === "function") {
+      return history.canGoBack();
+    }
+    return contents.canGoBack();
+  });
+  ipcMain.handle("desktop:navigate-back", (event) => {
+    const contents = event.sender;
+    if (contents.isDestroyed()) return { action: "none" as const };
+    const history = contents.navigationHistory;
+    const canBack =
+      history && typeof history.canGoBack === "function"
+        ? history.canGoBack()
+        : contents.canGoBack();
+    if (!canBack) return { action: "none" as const };
+    if (history && typeof history.goBack === "function") {
+      history.goBack();
+    } else {
+      contents.goBack();
+    }
+    return { action: "back" as const };
+  });
   ipcMain.handle("desktop:get-app-version", () => appVersion());
   ipcMain.handle("desktop:get-platform", () => process.platform);
   ipcMain.handle("desktop:open-external", async (_e, url: unknown) => {
