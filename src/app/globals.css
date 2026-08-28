@@ -274,6 +274,18 @@
    * - main/content use min-width + flex grow (no fixed compact caps)
    * - no transform/zoom scale
    */
+  html.desktop-app.desktop-titlebar-overlay body {
+    padding-top: var(--desktop-titlebar-height, 36px);
+  }
+
+  html.desktop-app .desktop-titlebar-drag {
+    -webkit-app-region: drag;
+  }
+
+  html.desktop-app .desktop-titlebar-no-drag {
+    -webkit-app-region: no-drag;
+  }
+
   html.desktop-app .desktop-app-viewport {
     box-sizing: border-box;
     width: 100%;
@@ -291,6 +303,37 @@
     min-width: var(--desktop-layout-base-width);
     min-height: max(100%, var(--desktop-layout-base-height));
     flex-shrink: 0;
+  }
+
+  html.desktop-app .desktop-app-main-content {
+    box-sizing: border-box;
+    display: flex;
+    flex: 1 1 auto;
+    flex-direction: column;
+    min-height: 0;
+  }
+
+  html.desktop-app .desktop-app-shell-root {
+    box-sizing: border-box;
+    flex: 1 1 auto;
+    min-height: 100%;
+    width: 100%;
+  }
+
+  html.desktop-app .desktop-app-main-column {
+    box-sizing: border-box;
+    display: flex;
+    flex: 1 1 auto;
+    flex-direction: column;
+    min-height: 0;
+  }
+
+  html.desktop-app .desktop-static-page-fill {
+    box-sizing: border-box;
+    display: flex;
+    flex: 1 1 auto;
+    flex-direction: column;
+    min-height: 100%;
   }
 
   html.desktop-app .desktop-app-main {
