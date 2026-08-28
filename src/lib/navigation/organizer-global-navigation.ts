@@ -74,6 +74,7 @@ export function getOrganizerGlobalNavGroups(input: {
         },
         { href: "/organizer/division-templates", label: "체급표 템플릿" },
         { href: "/organizer/credits", label: "크레딧" },
+        { href: "/billing/account", label: "이용권 / 결제" },
         { href: "/notifications", label: "알림" },
       ],
     },

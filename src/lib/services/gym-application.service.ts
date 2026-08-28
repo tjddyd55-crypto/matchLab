@@ -380,6 +380,7 @@ export const gymApplicationService = {
           authUserId: pendingAuthUserId!,
           mustChangePassword: false,
           passwordIssuedAt: new Date(),
+          billingRequiredAt: new Date(),
         },
       });
 
@@ -498,6 +499,7 @@ export const gymApplicationService = {
           role: UserRole.gym,
           loginId: requestedLoginId ?? `pending-gym-${suffix}`,
           authUserId: null,
+          billingRequiredAt: new Date(),
         },
       });
 

@@ -295,6 +295,7 @@ export const associationApplicationService = {
           role: UserRole.organizer,
           loginId: requestedLoginId,
           authUserId: null,
+          billingRequiredAt: new Date(),
         },
       });
 

@@ -1,4 +1,4 @@
-/**
+﻿/**
  * Preview E2E: matched athlete gym name edit must persist without Match mutation.
  *   npx tsx scripts/e2e-matched-athlete-gym-edit-preview-qa.mts
  */
@@ -54,8 +54,8 @@ async function main() {
   });
   const prisma = new PrismaClient({ adapter: new PrismaPg(pool) });
 
-  const beforeGym = "팀라페짐";
-  const afterGym = "팀라펠MMA짐";
+  const beforeGym = "??쇳럹吏?;
+  const afterGym = "??쇳렆MMA吏?;
 
   let eventId = "";
   let applicationId = "";
@@ -174,6 +174,28 @@ async function main() {
         gymSnapshot: { gymId: null, name: beforeGym },
       },
     });
+    // Keep Match display in sync for workspace filter/click target.
+    const snapPatch = (raw: unknown) => {
+      if (!raw || typeof raw !== "object") return { gymName: beforeGym };
+      return { ...(raw as Record<string, unknown>), gymName: beforeGym };
+    };
+    if (match.fighterRedId === fighterId) {
+      await prisma.bracketMatch.update({
+        where: { id: matchId },
+        data: { fighterRedSnapshot: snapPatch(match.fighterRedSnapshot) },
+      });
+    } else {
+      await prisma.bracketMatch.update({
+        where: { id: matchId },
+        data: { fighterBlueSnapshot: snapPatch(match.fighterBlueSnapshot) },
+      });
+    }
+
+    const fighterRow = await prisma.fighter.findUnique({
+      where: { id: fighterId },
+      select: { name: true },
+    });
+    report.fighterName = fighterRow?.name ?? null;
 
     const browser = await chromium.launch({ headless: true });
     try {
@@ -193,32 +215,41 @@ async function main() {
     await page.click('button[type="submit"]');
     await page.waitForURL(/organizer/, { timeout: 30000 }).catch(() => null);
 
+    // Ensure workspace shows seeded gym, then open THAT athlete's edit action.
     const workspaceUrl = `${BASE}/organizer/events/${eventId}/brackets?tab=view&view=workspace`;
     await page.goto(workspaceUrl, { waitUntil: "networkidle" });
+    // Filter to the seeded gym so the target card is visible.
+    const search = page.getByRole("textbox", { name: "?≫엺 寃쎄린 寃?? });
+    if (await search.count()) {
+      await search.fill(beforeGym);
+      await page.waitForTimeout(400);
+    }
     await page.screenshot({ path: join(OUT, "01-workspace-before.png"), fullPage: true });
 
-    // Open edit via 선수정보 수정 near the seeded gym name if visible.
-    const editBtn = page.getByRole("button", { name: "선수정보 수정" }).first();
-    if (!(await editBtn.count())) {
-      // Fallback: applications page edit for same application.
-      await page.goto(
-        `${BASE}/organizer/events/${eventId}/applications`,
-        { waitUntil: "networkidle" },
-      );
+    const targetCard = page
+      .locator("div")
+      .filter({ hasText: beforeGym })
+      .filter({ hasText: String(fighterRow?.name ?? "") })
+      .first();
+    const editInCard = targetCard.getByRole("button", { name: "?좎닔?뺣낫 ?섏젙" });
+    if ((await editInCard.count()) > 0) {
+      await editInCard.first().click();
     } else {
-      await editBtn.click();
-    }
-
-    // If still no dialog, open applications and find row edit.
-    const dialog = page.getByRole("dialog");
-    if (!(await dialog.count())) {
+      // Applications board deep-link fallback: open edit via applicant actions.
       await page.goto(
         `${BASE}/organizer/events/${eventId}/applications`,
         { waitUntil: "networkidle" },
       );
-      // Prefer any "수정" that opens the edit panel — click first available.
-      const appEdit = page.getByRole("button", { name: /수정/ }).first();
-      if (await appEdit.count()) await appEdit.click();
+      const row = page
+        .locator("tr, li, div")
+        .filter({ hasText: beforeGym })
+        .filter({ hasText: String(fighterRow?.name ?? "") })
+        .first();
+      const editBtn = row.getByRole("button", { name: /?섏젙/ }).first();
+      if (!(await editBtn.count())) {
+        fail("could not find edit action for seeded gym athlete");
+      }
+      await editBtn.click();
     }
 
     await page.waitForSelector("#edit-gymName, #edit-fighterName", {
@@ -226,15 +257,21 @@ async function main() {
     });
 
     // Ensure manual gym name mode.
-    const manualBtn = page.getByRole("button", { name: "소속명 직접 입력" });
+    const manualBtn = page.getByRole("button", { name: "?뚯냽紐?吏곸젒 ?낅젰" });
     if (await manualBtn.count()) await manualBtn.click();
 
     await page.waitForSelector("#edit-gymName", { timeout: 10000 });
+    const currentGym = await page.inputValue("#edit-gymName");
+    report.dialogGymBeforeFill = currentGym;
+    if (currentGym !== beforeGym && currentGym !== afterGym) {
+      // Still proceed ??seed may not have refreshed into form if wrong row.
+      report.dialogGymMismatch = true;
+    }
     await page.fill("#edit-gymName", afterGym);
     await page.screenshot({ path: join(OUT, "02-edit-dialog.png") });
 
     const dialogSave = page.getByRole("dialog").getByRole("button", {
-      name: "저장",
+      name: "???,
       exact: true,
     });
     await dialogSave.click();
@@ -243,7 +280,7 @@ async function main() {
     await page.waitForTimeout(800);
     const errVisible = await page
       .getByRole("dialog")
-      .getByText(/저장하지 못했습니다|성별 정보가 전달되지 않았습니다|대진에 배정된/)
+      .getByText(/??ν븯吏 紐삵뻽?듬땲???깅퀎 ?뺣낫媛 ?꾨떖?섏? ?딆븯?듬땲???吏꾩뿉 諛곗젙??)
       .isVisible()
       .catch(() => false);
     if (errVisible) {
@@ -263,7 +300,7 @@ async function main() {
     await page.goto(workspaceUrl, { waitUntil: "networkidle" });
     await page.screenshot({ path: join(OUT, "03-workspace-after.png"), fullPage: true });
 
-    // DB is SSOT for acceptance — UI may still show option gym until snapshot sync.
+    // DB is SSOT for acceptance ??UI may still show option gym until snapshot sync.
     const appAfter = await prisma.eventApplication.findUnique({
       where: { id: applicationId },
       select: {

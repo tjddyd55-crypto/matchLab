@@ -51,6 +51,17 @@ export function getAdminNavGroups(): DashboardSidebarNavGroup[] {
       ],
     },
     {
+      id: "billing",
+      label: "결제 관리",
+      items: [
+        { href: "/admin/billing/plans", label: "요금제" },
+        { href: "/admin/billing/subscriptions", label: "구독" },
+        { href: "/admin/billing/payments", label: "결제 내역" },
+        { href: "/admin/billing/coupons", label: "쿠폰" },
+        { href: "/admin/billing/settings", label: "결제 설정" },
+      ],
+    },
+    {
       id: "ops",
       label: "운영",
       items: [

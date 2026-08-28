@@ -592,6 +592,12 @@ model User {
   mustChangePassword Boolean  @default(false)
   passwordIssuedAt   DateTime?
   passwordResetAt    DateTime?
+  /// 승인 후 플랫폼 구독 결제 필요 시각. null이면 legacy/면제 경로(grandfather).
+  billingRequiredAt  DateTime?
+  /// 관리자 수동 면제
+  billingExempt      Boolean  @default(false)
+  /// Toss Billing customerKey (예측 불가 UUID). userId/email과 분리.
+  tossCustomerKey    String?  @unique
   createdAt   DateTime @default(now())
   updatedAt   DateTime @updatedAt
 
@@ -623,6 +629,13 @@ model User {
   associationMemberGymApplicationsCreated AssociationMemberGymApplication[]      @relation("MemberGymApplicationCreator")
   associationMemberGymOwnerInvitesCreated AssociationMemberGym[]                  @relation("MemberGymOwnerInviteCreator")
   associationNoticesCreated               AssociationNotice[]                     @relation("AssociationNoticeCreator")
+  billingSubscriptions                    BillingSubscription[]
+  billingPayments                         BillingPayment[]
+  billingCouponRedemptions                BillingCouponRedemption[]
+  billingCouponsCreated                   BillingCoupon[]                         @relation("BillingCouponCreator")
+  billingPaymentMethods                   BillingPaymentMethod[]
+  billingProviderConfigsUpdated           BillingProviderConfig[]                 @relation("BillingProviderConfigUpdater")
+  billingRuntimeConfigsUpdated            BillingRuntimeConfig[]                  @relation("BillingRuntimeConfigUpdater")
   associationApplicationsReviewed         AssociationApplication[]               @relation("AssociationApplicationReviewer")
   gymApplicationsReviewed                 GymApplication[]                       @relation("GymApplicationReviewer")
   associationGymConnectionRequestsReviewed AssociationGymConnectionRequest[]     @relation("AssociationGymConnectionReviewer")
@@ -3114,6 +3127,247 @@ model AssociationNotice {
 
   @@index([organizerId, deletedAt, isPinned, publishedAt])
   @@index([organizerId, deletedAt, publishedAt])
+}
+
+// --- MATCHON SaaS billing (플랫폼 구독; GymMemberSubscription·크레딧·대회입금과 분리) ---
+
+enum BillingPlanInterval {
+  MONTH
+  YEAR
+}
+
+enum BillingSubscriptionStatus {
+  PENDING
+  TRIAL
+  ACTIVE
+  PAST_DUE
+  CANCELLED
+  EXPIRED
+}
+
+enum BillingPaymentStatus {
+  READY
+  PAID
+  FAILED
+  CANCELLED
+  REFUNDED
+}
+
+enum BillingCouponType {
+  FREE_MONTHS
+  PERCENT
+  FIXED_AMOUNT
+}
+
+enum BillingCouponApplicablePlan {
+  ALL
+  MONTHLY
+  YEARLY
+}
+
+/// 플랫폼 요금제. 금액은 DB가 SSOT — UI/코드 hardcode 금지.
+model BillingPlan {
+  id            String             @id @default(cuid())
+  code          String             @unique
+  name          String
+  interval      BillingPlanInterval
+  intervalCount Int                @default(1)
+  /// KRW 정수 (VAT 포함 총액). insurance CRM billing_plans.monthly_total 패턴.
+  price         Int
+  isActive      Boolean            @default(true)
+  sortOrder     Int                @default(0)
+  createdAt     DateTime           @default(now())
+  updatedAt     DateTime           @updatedAt
+
+  subscriptions BillingSubscription[]
+  payments      BillingPayment[]
+
+  @@index([isActive, sortOrder])
+}
+
+model BillingSubscription {
+  id                     String                    @id @default(cuid())
+  userId                 String
+  planId                 String
+  status                 BillingSubscriptionStatus @default(PENDING)
+  billingInterval        BillingPlanInterval
+  /// 계약 시점 요금제 정가 snapshot
+  basePrice              Int
+  /// 계약 시점 실제 청구가 snapshot (할인 반영 가능)
+  currentPrice           Int
+  startedAt              DateTime?
+  trialStartedAt         DateTime?
+  trialEndAt             DateTime?
+  currentPeriodStart     DateTime?
+  currentPeriodEnd       DateTime?
+  nextBillingAt          DateTime?
+  cancelledAt            DateTime?
+  endedAt                DateTime?
+  /// 기간 말 해지 예약
+  cancelAtPeriodEnd      Boolean                   @default(false)
+  autoRenew              Boolean                   @default(true)
+  paymentMethodId        String?
+  provider               String                    @default("none")
+  providerCustomerId     String?
+  providerSubscriptionId String?
+  createdAt              DateTime                  @default(now())
+  updatedAt              DateTime                  @updatedAt
+
+  user          User                   @relation(fields: [userId], references: [id], onDelete: Cascade)
+  plan          BillingPlan            @relation(fields: [planId], references: [id], onDelete: Restrict)
+  paymentMethod BillingPaymentMethod?  @relation(fields: [paymentMethodId], references: [id], onDelete: SetNull)
+  payments      BillingPayment[]
+  redemptions   BillingCouponRedemption[]
+
+  @@index([userId, status])
+  @@index([status, currentPeriodEnd])
+  @@index([status, trialEndAt])
+  @@index([status, nextBillingAt, autoRenew])
+  @@index([planId])
+  @@index([paymentMethodId])
+}
+
+model BillingPaymentMethod {
+  id          String    @id @default(cuid())
+  userId      String
+  provider    String    @default("toss")
+  customerKey String
+  /// 서버 전용. 클라이언트/관리자 UI에 원문 노출 금지.
+  billingKey  String
+  cardCompany String?
+  cardLast4   String?
+  isDefault   Boolean   @default(true)
+  createdAt   DateTime  @default(now())
+  updatedAt   DateTime  @updatedAt
+  deletedAt   DateTime?
+
+  user          User                  @relation(fields: [userId], references: [id], onDelete: Cascade)
+  subscriptions BillingSubscription[]
+
+  @@index([userId, deletedAt, isDefault])
+  @@index([customerKey])
+}
+
+model BillingPayment {
+  id                String               @id @default(cuid())
+  userId            String
+  subscriptionId    String?
+  planId            String
+  orderId           String               @unique
+  amount            Int
+  originalAmount    Int
+  discountAmount    Int                  @default(0)
+  status            BillingPaymentStatus @default(READY)
+  paymentMethod     String?
+  provider          String               @default("none")
+  providerPaymentId String?
+  failureCode       String?
+  failureMessage    String?
+  paidAt            DateTime?
+  failedAt          DateTime?
+  cancelledAt       DateTime?
+  metadata          Json?
+  createdAt         DateTime             @default(now())
+  updatedAt         DateTime             @updatedAt
+
+  user         User                      @relation(fields: [userId], references: [id], onDelete: Cascade)
+  subscription BillingSubscription?      @relation(fields: [subscriptionId], references: [id], onDelete: SetNull)
+  plan         BillingPlan               @relation(fields: [planId], references: [id], onDelete: Restrict)
+  redemptions  BillingCouponRedemption[]
+
+  @@index([userId, createdAt])
+  @@index([subscriptionId])
+  @@index([status, createdAt])
+  @@index([planId])
+}
+
+model BillingCoupon {
+  id              String                     @id @default(cuid())
+  code            String                     @unique
+  name            String
+  description     String?
+  type            BillingCouponType
+  freeMonths      Int?
+  percentOff      Int?
+  fixedAmountOff  Int?
+  startsAt        DateTime?
+  expiresAt       DateTime?
+  maxRedemptions  Int?
+  redemptionCount Int                        @default(0)
+  perUserLimit    Int                        @default(1)
+  applicablePlan  BillingCouponApplicablePlan @default(ALL)
+  isActive        Boolean                    @default(true)
+  createdByUserId String?
+  createdAt       DateTime                   @default(now())
+  updatedAt       DateTime                   @updatedAt
+
+  createdByUser User?                     @relation("BillingCouponCreator", fields: [createdByUserId], references: [id], onDelete: SetNull)
+  redemptions   BillingCouponRedemption[]
+
+  @@index([isActive, expiresAt])
+  @@index([type])
+}
+
+model BillingCouponRedemption {
+  id             String   @id @default(cuid())
+  couponId       String
+  userId         String
+  subscriptionId String?
+  paymentId      String?
+  discountAmount Int      @default(0)
+  freeMonths     Int?
+  redeemedAt     DateTime @default(now())
+
+  coupon       BillingCoupon        @relation(fields: [couponId], references: [id], onDelete: Restrict)
+  user         User                 @relation(fields: [userId], references: [id], onDelete: Cascade)
+  subscription BillingSubscription? @relation(fields: [subscriptionId], references: [id], onDelete: SetNull)
+  payment      BillingPayment?      @relation(fields: [paymentId], references: [id], onDelete: SetNull)
+
+  @@index([couponId, redeemedAt])
+  @@index([userId, couponId])
+  @@index([subscriptionId])
+  @@unique([userId, couponId])
+}
+
+enum BillingProviderKind {
+  NONE
+  TOSS
+}
+
+enum BillingProviderEnvironment {
+  TEST
+  LIVE
+}
+
+/// PG credential — provider + environment 별 독립 관리 (TOSS/TEST, TOSS/LIVE).
+model BillingProviderConfig {
+  id               String                     @id @default(cuid())
+  provider         BillingProviderKind
+  environment      BillingProviderEnvironment
+  clientKey        String?
+  secretKeyCipher  Bytes?
+  secretKeyIv      Bytes?
+  secretKeyAuthTag Bytes?
+  secretKeyKeyVer  String?
+  updatedByUserId  String?
+  createdAt        DateTime                   @default(now())
+  updatedAt        DateTime                   @updatedAt
+
+  updatedBy User? @relation("BillingProviderConfigUpdater", fields: [updatedByUserId], references: [id], onDelete: SetNull)
+
+  @@unique([provider, environment])
+}
+
+/// 활성 PG provider/environment 및 연동 on/off — singleton row (id = "default").
+model BillingRuntimeConfig {
+  id              String                      @id @default("default")
+  provider        BillingProviderKind         @default(NONE)
+  environment     BillingProviderEnvironment?
+  enabled         Boolean                     @default(false)
+  updatedByUserId String?
+  updatedAt       DateTime                    @updatedAt
+
+  updatedBy User? @relation("BillingRuntimeConfigUpdater", fields: [updatedByUserId], references: [id], onDelete: SetNull)
 }
 
 /// 공개 홈 스폰서·파트너 로고 (협회 로고는 Organizer 필드 사용 — 복사 저장 금지)

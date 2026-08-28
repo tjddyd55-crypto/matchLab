@@ -4,9 +4,11 @@ import { GymStaffPasswordChangeGate } from "@/components/domain/gym/GymStaffPass
 import { AppShell } from "@/components/layout/AppShell";
 import { DashboardShell } from "@/components/layout/DashboardShell";
 import { redirectUnlessDashboardRole, requireActor } from "@/lib/auth/actor";
+import { billingCheckoutRedirectPath } from "@/lib/billing/entitlement";
 import { GymStatus } from "@/lib/enums";
 import { resolveGymPortalAccess } from "@/lib/gym-portal-access";
 import { associationNoticeService } from "@/lib/services/association-notice.service";
+import { redirect } from "next/navigation";
 
 export default async function GymDashboardLayout({
   children,
@@ -15,6 +17,13 @@ export default async function GymDashboardLayout({
 }) {
   const actor = await requireActor();
   redirectUnlessDashboardRole(actor, ["gym", "gym_staff", "admin"]);
+
+  if (actor.role === "gym") {
+    const billingRedirect = await billingCheckoutRedirectPath(actor);
+    if (billingRedirect) {
+      redirect(billingRedirect);
+    }
+  }
 
   const gymNavViewer =
     actor.role === "gym_staff" ? ("staff" as const) : ("owner" as const);
