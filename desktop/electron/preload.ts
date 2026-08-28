@@ -9,6 +9,12 @@ import type { UpdateStatusSnapshot } from "./auto-update";
 const bridge = {
   getAppVersion: (): Promise<string> =>
     ipcRenderer.invoke("desktop:get-app-version"),
+  getTitleBarMode: (): Promise<"overlay" | "native"> =>
+    ipcRenderer.invoke("desktop:get-titlebar-mode"),
+  canNavigateBack: (): Promise<boolean> =>
+    ipcRenderer.invoke("desktop:can-navigate-back"),
+  navigateBack: (): Promise<{ action: "back" | "none" }> =>
+    ipcRenderer.invoke("desktop:navigate-back"),
   getPlatform: (): Promise<string> =>
     ipcRenderer.invoke("desktop:get-platform"),
   openExternal: (url: string): Promise<boolean> =>
