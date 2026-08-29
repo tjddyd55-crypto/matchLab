@@ -42,7 +42,7 @@ export async function DashboardShell({
         isDesktop
           ? cn(
               desktopAppShellRootClass,
-              "min-h-full w-full flex-1 flex-row flex-nowrap",
+              "h-full min-h-0 w-full flex-1 flex-row flex-nowrap overflow-hidden",
             )
           : "min-h-screen flex-col md:flex-row",
       )}
@@ -64,7 +64,7 @@ export async function DashboardShell({
             ? cn(
                 desktopAppMainClass,
                 desktopAppMainColumnClass,
-                "min-h-full flex-1 pb-0",
+                "h-full min-h-0 flex-1 overflow-hidden pb-0",
               )
             : "min-w-0 flex-1 pb-16 md:pb-0 desktop:pb-0",
         )}

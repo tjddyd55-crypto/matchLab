@@ -15,7 +15,7 @@ export default function DesktopLayout({ children }: { children: ReactNode }) {
       <div
         className={cn(
           desktopAppCanvasClass,
-          "min-h-full bg-[#F8FAFC] text-[#0F172A]",
+          "h-full min-h-0 overflow-y-auto bg-[#F8FAFC] text-[#0F172A]",
         )}
         data-desktop-app-canvas=""
       >

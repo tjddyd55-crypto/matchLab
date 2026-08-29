@@ -40,13 +40,19 @@ function testScrollShell() {
     "canvas width never below base",
   );
   assert.match(globals, /overflow-x:\s*auto/, "viewport overflow-x auto");
+  assert.match(globals, /overflow-y:\s*hidden/, "viewport overflow-y hidden");
   assert.match(
     globals,
-    /html\.desktop-app \.desktop-app-main[\s\S]*flex:\s*1 0 auto/,
-    "main grows on maximize",
+    /html\.desktop-app \.desktop-app-main[\s\S]*flex:\s*1 1 auto/,
+    "main grows and can shrink for content scroll",
   );
   assert.match(globals, /html\.desktop-app \.desktop-app-main-content/, "main content flex column");
-  assert.match(globals, /html\.desktop-app \.desktop-static-page-fill/, "static page vertical fill");
+  assert.match(
+    globals,
+    /html\.desktop-app \.desktop-app-main-content[\s\S]*overflow-y:\s*auto/,
+    "main content vertical scroll owner",
+  );
+  assert.match(globals, /desktop-app-event-side-nav/, "event secondary nav sticky height");
   assert.match(globals, /desktop-titlebar-overlay/, "titlebar body offset");
 
   const appShell = read("src/components/layout/AppShell.tsx");
@@ -71,7 +77,9 @@ function testDashboardDesktopLayout() {
   assert.match(sidebarUi, /dashboardSidebarAsideCanvasClass/, "in-flow sidebar");
   assert.match(sidebarUi, /shrink-0/, "sidebar no shrink");
   const canvasAside = sidebarUi.split("dashboardSidebarAsideCanvasClass")[1]!.slice(0, 500);
+  assert.match(canvasAside, /h-full/, "canvas sidebar fills shell height");
   assert.doesNotMatch(canvasAside, /sticky/, "canvas sidebar not sticky");
+  assert.doesNotMatch(canvasAside, /min-h-full/, "canvas sidebar not page-length");
 
   const sidebarShell = read("src/components/layout/dashboard-sidebar/SidebarShell.tsx");
   assert.match(sidebarShell, /canvasScroll/, "canvas scroll branch");

@@ -73,13 +73,13 @@ function buildFixtureHtml(): string {
     display: flex; flex-direction: column; overflow: hidden; height: 100%;
   }
   html.desktop-app .desktop-app-viewport {
-    flex: 1 1 auto; min-height: 0; width: 100%; max-width: 100%;
-    overflow-x: auto; overflow-y: auto;
+    flex: 1 1 auto; min-height: 0; width: 100%; max-width: 100%; height: 100%;
+    overflow-x: auto; overflow-y: hidden;
   }
   html.desktop-app .desktop-app-canvas {
     width: max(100%, var(--desktop-layout-base-width)) !important;
     min-width: var(--desktop-layout-base-width) !important;
-    min-height: max(100%, var(--desktop-layout-base-height));
+    height: 100%; min-height: 100%;
     flex-shrink: 0; display: flex; flex-direction: row;
   }
   .sidebar {
@@ -89,7 +89,8 @@ function buildFixtureHtml(): string {
     width: var(--desktop-main-min-width);
     min-width: var(--desktop-main-min-width) !important;
     max-width: none !important;
-    flex: 1 0 auto !important;
+    flex: 1 1 auto !important;
+    min-height: 0;
   }
 </style>
 </head>

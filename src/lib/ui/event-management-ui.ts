@@ -5,10 +5,10 @@ import { matchonPageDescClass } from "@/lib/ui/matchon-layout";
 export const eventManagementPageBackgroundClass = "bg-[#F8FAFC]";
 
 export const eventManagementLayoutGridClass =
-  "grid min-h-[calc(100vh-var(--dashboard-header-height))] min-w-0 grid-cols-1 md:grid-cols-[var(--event-sidebar-width)_minmax(0,1fr)] desktop:min-w-[var(--desktop-main-min-width)] desktop:grid-cols-[var(--event-sidebar-width)_minmax(var(--desktop-content-min-width),1fr)]";
+  "grid min-h-[calc(100vh-var(--dashboard-header-height))] min-w-0 grid-cols-1 md:grid-cols-[var(--event-sidebar-width)_minmax(0,1fr)] desktop:min-h-full desktop:min-w-[var(--desktop-main-min-width)] desktop:grid-cols-[var(--event-sidebar-width)_minmax(var(--desktop-content-min-width),1fr)]";
 
 export const eventManagementSideNavAsideClass =
-  "hidden h-[calc(100vh-var(--dashboard-header-height))] w-[var(--event-sidebar-width)] shrink-0 flex-col border-r border-[#E2E8F0] bg-white md:sticky md:top-0 md:flex desktop:relative desktop:top-auto desktop:h-auto desktop:min-h-full desktop:self-stretch desktop:flex";
+  "desktop-app-event-side-nav hidden h-[calc(100vh-var(--dashboard-header-height))] w-[var(--event-sidebar-width)] shrink-0 flex-col border-r border-[#E2E8F0] bg-white md:sticky md:top-0 md:flex";
 
 export const eventManagementSideNavScrollClass =
   "min-h-0 flex-1 overflow-y-auto overscroll-contain [-ms-overflow-style:none] [scrollbar-width:thin] [&::-webkit-scrollbar]:w-1.5 [&::-webkit-scrollbar-thumb]:rounded-full [&::-webkit-scrollbar-thumb]:bg-[#CBD5E1]";

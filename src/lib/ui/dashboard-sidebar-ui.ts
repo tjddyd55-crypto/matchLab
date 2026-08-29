@@ -1,10 +1,12 @@
 /**
  * 주최자 글로벌 사이드바 스타일 SSOT — 체육관/관리자/선수도 동일 토큰 사용
  *
- * AppShell(`overflow-x-clip`)이 sticky containing block이 되어
+ * Web(md+): AppShell(`overflow-x-clip`)이 sticky containing block이 되어
  * document scroll 대비 sticky가 동작하지 않는다.
  * 글로벌 메뉴만 viewport에 고정하려면 fixed + in-flow spacer가 필요하다.
- * 대회 EventSidebar sticky는 의도적으로 그대로 둔다.
+ *
+ * Desktop Manager: shell이 viewport 높이를 채우고 본문만 세로 스크롤하므로
+ * in-flow sidebar를 shell 높이에 맞춘다 (primary nav는 본문과 함께 올라가지 않음).
  *
  * z-20: 본문보다 위, Dialog(z-50)보다 아래.
  */
@@ -16,11 +18,11 @@ export const dashboardSidebarAsideClass =
   "fixed top-0 left-0 z-20 hidden h-dvh max-h-dvh w-[var(--global-sidebar-width)] flex-col overflow-hidden border-r border-white/8 bg-matchon-sidebar px-3 py-4 md:flex";
 
 /**
- * Desktop canvas scroll — in-flow sidebar (not sticky/fixed).
- * Outer viewport scrolls the whole canvas including this sidebar.
+ * Desktop Manager shell — in-flow primary nav filling shell height.
+ * Outer viewport scrolls horizontally only; this aside stays put.
  */
 export const dashboardSidebarAsideCanvasClass =
-  "relative z-20 flex h-auto min-h-full w-[var(--global-sidebar-width)] shrink-0 flex-col self-stretch overflow-hidden border-r border-white/8 bg-matchon-sidebar px-3 py-4";
+  "relative z-20 flex h-full max-h-full w-[var(--global-sidebar-width)] shrink-0 flex-col self-stretch overflow-hidden border-r border-white/8 bg-matchon-sidebar px-3 py-4";
 
 export const dashboardSidebarBrandClass = "mb-4 shrink-0 px-2";
 

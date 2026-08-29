@@ -14,7 +14,7 @@ export function SidebarShell({
 }: {
   ariaLabel: string;
   className?: string;
-  /** Desktop canvas scroll — fixed viewport sidebar 대신 in-flow sticky. */
+  /** Desktop Manager shell — in-flow primary nav (shell height, not page scroll). */
   canvasScroll?: boolean;
   children: ReactNode;
 }) {

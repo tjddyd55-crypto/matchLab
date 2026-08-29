@@ -511,6 +511,7 @@
     "verify:desktop-ui-contract": "tsx scripts/verify-desktop-manager.ts ui-contract",
     "verify:desktop-manager": "tsx scripts/verify-desktop-manager.ts",
     "verify:desktop-fixed-canvas": "tsx scripts/verify-desktop-fixed-canvas.ts",
+    "verify:manager-nav-scroll-lock": "tsx scripts/verify-manager-nav-scroll-lock.ts",
     "verify:manager-shell-billing": "tsx scripts/verify-manager-shell-billing.ts",
     "verify:manager-global-back-navigation": "tsx scripts/verify-manager-global-back-navigation.ts",
     "verify:desktop-no-responsive-collapse": "tsx scripts/verify-desktop-fixed-canvas.ts",

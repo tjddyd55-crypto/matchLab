@@ -18,11 +18,11 @@ export async function AppShell({ children }: { children: ReactNode }) {
         <div
           className={cn(
             desktopAppCanvasClass,
-            "flex min-h-full flex-col bg-matchon-surface text-foreground",
+            "flex h-full min-h-0 flex-col bg-matchon-surface text-foreground",
           )}
           data-desktop-app-canvas=""
         >
-          <div className="flex min-h-full flex-1 flex-col">{children}</div>
+          <div className="flex h-full min-h-0 flex-1 flex-col">{children}</div>
         </div>
       </div>
     );
