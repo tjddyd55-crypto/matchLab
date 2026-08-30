@@ -104,6 +104,7 @@ export function getGymPortalNavGroups(
         items: [
           { href: "/gym/fighters", label: "선수 목록" },
           { href: "/gym/fighters/new", label: "선수 등록" },
+          { href: "/gym/sparring-matching", label: "스파링 매칭" },
         ],
       },
       {

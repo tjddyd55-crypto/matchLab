@@ -76,6 +76,7 @@ function assertNavSsotUnchanged() {
         items: [
           { href: "/gym/fighters", label: "선수 목록" },
           { href: "/gym/fighters/new", label: "선수 등록" },
+          { href: "/gym/sparring-matching", label: "스파링 매칭" },
         ],
       },
       {
@@ -92,6 +93,7 @@ function assertNavSsotUnchanged() {
         label: "체육관",
         items: [
           { href: "/gym/profile", label: "체육관 정보" },
+          { href: "/gym/billing/account", label: "이용권 / 결제" },
           { href: "/gym/associations", label: "가입 협회" },
           { href: "/gym/member-portal", label: "회원 전용 페이지" },
         ],
