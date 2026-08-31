@@ -1,10 +1,17 @@
 "use client";
 
-import type { ReactNode } from "react";
+import {
+  useEffect,
+  useState,
+  type ReactNode,
+} from "react";
 import Link from "next/link";
 import { usePathname } from "next/navigation";
 import type { DashboardSidebarNavGroup } from "@/lib/navigation/dashboard-sidebar";
 import {
+  dashboardSidebarAccordionChevronClass,
+  dashboardSidebarAccordionTriggerClass,
+  dashboardSidebarAccordionTriggerOpenClass,
   dashboardSidebarDividerClass,
   dashboardSidebarFirstSectionClass,
   dashboardSidebarHomeWrapClass,
@@ -27,6 +34,31 @@ function itemHeightClass(density: DashboardSidebarDensity): string {
   return density === "touch"
     ? dashboardSidebarItemTouchClass
     : dashboardSidebarItemDesktopClass;
+}
+
+function groupContainsActivePath(
+  group: DashboardSidebarNavGroup,
+  pathname: string,
+  isItemActive: (href: string, pathname: string) => boolean,
+): boolean {
+  if (group.items.some((item) => isItemActive(item.href, pathname))) {
+    return true;
+  }
+  return (group.branches ?? []).some((branch) =>
+    branch.items.some((item) => isItemActive(item.href, pathname)),
+  );
+}
+
+function resolveOpenGroupId(
+  groups: DashboardSidebarNavGroup[],
+  pathname: string,
+  isItemActive: (href: string, pathname: string) => boolean,
+): string | null {
+  const labeled = groups.filter((g) => g.label != null);
+  const active = labeled.find((g) =>
+    groupContainsActivePath(g, pathname, isItemActive),
+  );
+  return active?.id ?? labeled[0]?.id ?? null;
 }
 
 export function SidebarNavItem({
@@ -144,6 +176,58 @@ export function SidebarSection({
   );
 }
 
+function SidebarAccordionSection({
+  id,
+  label,
+  open,
+  onToggle,
+  isFirstSection,
+  children,
+}: {
+  id: string;
+  label: string;
+  open: boolean;
+  onToggle: () => void;
+  isFirstSection: boolean;
+  children: ReactNode;
+}) {
+  return (
+    <div
+      className={
+        isFirstSection
+          ? dashboardSidebarFirstSectionClass
+          : dashboardSidebarSectionClass
+      }
+      data-nav-group={id}
+      data-nav-accordion={open ? "open" : "closed"}
+    >
+      <button
+        type="button"
+        data-nav-level="section"
+        data-nav-section={label}
+        aria-expanded={open}
+        onClick={onToggle}
+        className={cn(
+          dashboardSidebarAccordionTriggerClass,
+          open && dashboardSidebarAccordionTriggerOpenClass,
+        )}
+      >
+        <span className="min-w-0 truncate">{label}</span>
+        <span
+          className={cn(
+            dashboardSidebarAccordionChevronClass,
+            open && "rotate-90",
+          )}
+          aria-hidden="true"
+        >
+          ›
+        </span>
+      </button>
+      {open ? children : null}
+    </div>
+  );
+}
+
 function SidebarNestedBranch({
   branchId,
   label,
@@ -213,6 +297,20 @@ export function DashboardSidebarNav({
 }) {
   const pathname = usePathname() ?? "";
   const labeledIndex = groups.findIndex((g) => g.label != null);
+  const accordion = density === "desktop";
+  const groupKey = groups.map((g) => g.id).join("|");
+  const [openGroupId, setOpenGroupId] = useState<string | null>(() =>
+    accordion
+      ? resolveOpenGroupId(groups, pathname, isItemActive)
+      : null,
+  );
+
+  useEffect(() => {
+    if (!accordion) return;
+    setOpenGroupId(resolveOpenGroupId(groups, pathname, isItemActive));
+    // groups 참조는 렌더마다 바뀌므로 id 키 + pathname만 동기화한다.
+    // eslint-disable-next-line react-hooks/exhaustive-deps -- intentional
+  }, [accordion, pathname, groupKey]);
 
   return (
     <nav
@@ -242,40 +340,62 @@ export function DashboardSidebarNav({
           );
         }
 
+        const children = (
+          <SidebarSectionItems>
+            {group.items.map((item) => (
+              <li key={`${group.id}-${item.href}`}>
+                <SidebarNavItem
+                  href={item.href}
+                  label={item.label}
+                  active={isItemActive(item.href, pathname)}
+                  density={density}
+                  level="item"
+                  onNavigate={onNavigate}
+                />
+              </li>
+            ))}
+            {(group.branches ?? []).map((branch) => (
+              <SidebarNestedBranch
+                key={`${group.id}-${branch.id}`}
+                branchId={branch.id}
+                label={branch.label}
+                items={branch.items}
+                isItemActive={isItemActive}
+                density={density}
+                onNavigate={onNavigate}
+                pathname={pathname}
+              />
+            ))}
+          </SidebarSectionItems>
+        );
+
+        if (!accordion) {
+          return (
+            <SidebarSection
+              key={group.id}
+              id={group.id}
+              label={group.label}
+              isFirstSection={groupIndex === labeledIndex}
+            >
+              {children}
+            </SidebarSection>
+          );
+        }
+
+        const open = openGroupId === group.id;
         return (
-          <SidebarSection
+          <SidebarAccordionSection
             key={group.id}
             id={group.id}
             label={group.label}
+            open={open}
             isFirstSection={groupIndex === labeledIndex}
+            onToggle={() =>
+              setOpenGroupId((prev) => (prev === group.id ? null : group.id))
+            }
           >
-            <SidebarSectionItems>
-              {group.items.map((item) => (
-                <li key={`${group.id}-${item.href}`}>
-                  <SidebarNavItem
-                    href={item.href}
-                    label={item.label}
-                    active={isItemActive(item.href, pathname)}
-                    density={density}
-                    level="item"
-                    onNavigate={onNavigate}
-                  />
-                </li>
-              ))}
-              {(group.branches ?? []).map((branch) => (
-                <SidebarNestedBranch
-                  key={`${group.id}-${branch.id}`}
-                  branchId={branch.id}
-                  label={branch.label}
-                  items={branch.items}
-                  isItemActive={isItemActive}
-                  density={density}
-                  onNavigate={onNavigate}
-                  pathname={pathname}
-                />
-              ))}
-            </SidebarSectionItems>
-          </SidebarSection>
+            {children}
+          </SidebarAccordionSection>
         );
       })}
     </nav>

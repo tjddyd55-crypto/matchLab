@@ -13,7 +13,8 @@ export type OrganizerGlobalNavGroup = {
 
 /**
  * 주최자 글로벌 메뉴 SSOT (PC sidebar · 모바일 Sheet 공통).
- * 회원사 관리는 association organizer만 포함.
+ * association: 회원사 / 선수 / 대회 / 결제·정산
+ * individual 등: 대회 / 선수 / 결제·정산 (회원사 없음)
  */
 export function getOrganizerGlobalNavGroups(input: {
   organizerType?: OrganizerType | null;
@@ -30,20 +31,12 @@ export function getOrganizerGlobalNavGroups(input: {
       label: null,
       items: [{ href: "/organizer", label: "홈" }],
     },
-    {
-      id: "events",
-      label: "대회",
-      items: [
-        { href: "/organizer/events", label: "대회 목록" },
-        { href: "/organizer/events/new", label: "새 대회 만들기" },
-      ],
-    },
   ];
 
   if (showMemberGym) {
     groups.push({
       id: "member-gyms",
-      label: "회원사 관리",
+      label: "회원사",
       items: [
         { href: "/organizer/member-gyms/overview", label: "회원사 현황" },
         { href: "/organizer/member-gyms/applications", label: "가입 신청" },
@@ -65,14 +58,22 @@ export function getOrganizerGlobalNavGroups(input: {
       items: [{ href: "/organizer/public-fighters", label: "선수 목록" }],
     },
     {
-      id: "tools",
-      label: "공통 도구",
+      id: "events",
+      label: "대회",
       items: [
+        { href: "/organizer/events", label: "대회 목록" },
+        { href: "/organizer/events/new", label: "새 대회 만들기" },
         {
           href: "/organizer/application-form-templates",
           label: "신청서 템플릿",
         },
         { href: "/organizer/division-templates", label: "체급표 템플릿" },
+      ],
+    },
+    {
+      id: "billing",
+      label: "결제·정산",
+      items: [
         { href: "/organizer/credits", label: "크레딧" },
         { href: "/organizer/billing/account", label: "이용권 / 결제" },
         { href: "/notifications", label: "알림" },

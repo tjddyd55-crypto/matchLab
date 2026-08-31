@@ -278,10 +278,10 @@ function verifyStartedClass() {
 function verifyNavigation() {
   const owner = getGymPortalNavGroups("owner");
   const staff = getGymPortalNavGroups("staff");
-  const profile = owner.find((g) => g.id === "profile");
-  assert.ok(profile);
+  const operations = owner.find((g) => g.id === "operations");
+  assert.ok(operations);
   assert.ok(
-    profile!.items.some((i) => i.href === "/gym/member-portal"),
+    operations!.items.some((i) => i.href === "/gym/member-portal"),
     "owner has member-portal",
   );
   assert.ok(

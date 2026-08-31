@@ -40,6 +40,15 @@ export const dashboardSidebarSectionClass = "mt-5";
 export const dashboardSidebarSectionLabelClass =
   "flex cursor-default items-center gap-1.5 px-3 pb-1.5 pt-1 text-[11px] font-bold tracking-[0.03em] text-slate-400";
 
+/** Desktop accordion 대메뉴 토글 — touch(모바일 Sheet)는 기존 section label 유지 */
+export const dashboardSidebarAccordionTriggerClass =
+  "flex w-full cursor-pointer items-center gap-1.5 rounded-lg px-3 py-2 text-left text-[12px] font-bold tracking-[0.02em] text-slate-300 transition-colors duration-150 hover:bg-white/8 hover:text-white focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-white/35";
+
+export const dashboardSidebarAccordionTriggerOpenClass = "text-white";
+
+export const dashboardSidebarAccordionChevronClass =
+  "ml-auto shrink-0 text-[10px] text-slate-400 transition-transform duration-150";
+
 export const dashboardSidebarSectionBulletClass =
   "inline-block h-1 w-1 shrink-0 rounded-full bg-slate-400/80";
 

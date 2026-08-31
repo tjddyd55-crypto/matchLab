@@ -1,7 +1,9 @@
 /**
  * 체육관(/gym) 포털 글로벌 네비 SSOT.
  * PC sidebar · 모바일 Sheet가 동일 소스를 사용한다.
- * 대회 목록·신청 내역은 메뉴에 노출한다 (모바일은 더보기 Sheet).
+ *
+ * Owner 업무 그룹: 회원 / 선수 / 대회 / 체육관 운영 / 결제·구독 (+ 협회 공지)
+ * Staff: 일정 / 회원만 (기존 permission 유지)
  */
 
 export type GymPortalNavItem = {
@@ -40,84 +42,100 @@ export function getGymPortalNavGroups(
       label: null,
       items: [{ href: "/gym", label: "홈" }],
     },
-    {
-      id: "schedules",
-      label: "일정 관리",
-      items:
-        viewer === "owner"
-          ? [
-              { href: "/gym/schedules", label: "전체 일정" },
-              { href: "/gym/schedules/my", label: "내 일정" },
-              { href: "/gym/group-classes", label: "그룹수업" },
-            ]
-          : [
-              { href: "/gym/schedules", label: "내 일정" },
-              { href: "/gym/group-classes", label: "그룹수업" },
-            ],
-    },
+  ];
+
+  if (viewer === "staff") {
+    groups.push(
+      {
+        id: "schedules",
+        label: "일정 관리",
+        items: [
+          { href: "/gym/schedules", label: "내 일정" },
+          { href: "/gym/group-classes", label: "그룹수업" },
+        ],
+      },
+      {
+        id: "members",
+        label: "회원 관리",
+        items: [{ href: "/gym/members", label: "전체 회원" }],
+      },
+    );
+    if (associations.length > 0) {
+      groups.push({
+        id: "associations",
+        label: "협회",
+        items: [],
+        branches: associations.map((a) => ({
+          id: a.associationId,
+          label: a.name,
+          items: [
+            {
+              href: `/gym/associations/${a.associationId}/notices`,
+              label: "공지사항",
+            },
+          ],
+        })),
+      });
+    }
+    return groups;
+  }
+
+  groups.push(
     {
       id: "members",
       label: "회원 관리",
       items: [
         { href: "/gym/members", label: "전체 회원" },
-        ...(viewer === "owner"
-          ? [
-              { href: "/gym/members/new", label: "회원 등록" },
-              { href: "/gym/member-groups", label: "회원 그룹" },
-              { href: "/gym/membership-plans", label: "이용권 관리" },
-            ]
-          : []),
+        { href: "/gym/members/new", label: "회원 등록" },
+        { href: "/gym/member-groups", label: "회원 그룹" },
+        { href: "/gym/membership-plans", label: "이용권 관리" },
+        { href: "/gym/attendance", label: "출석 현황" },
+        { href: "/gym/attendance/kiosks", label: "출석 키오스크" },
       ],
     },
-  ];
-
-  if (viewer === "owner") {
-    groups.push(
-      {
-        id: "attendance",
-        label: "출석 관리",
-        items: [
-          { href: "/gym/attendance", label: "출석 현황" },
-          { href: "/gym/attendance/kiosks", label: "출석 키오스크" },
-        ],
-      },
-      {
-        id: "staff",
-        label: "직원 관리",
-        items: [
-          { href: "/gym/staff", label: "선생님 목록" },
-          { href: "/gym/staff/new", label: "선생님 등록" },
-        ],
-      },
-      {
-        id: "sales",
-        label: "매출 관리",
-        items: [
-          { href: "/gym/sales", label: "매출 현황" },
-          { href: "/gym/sales/receivables", label: "매출 등록" },
-          { href: "/gym/products", label: "상품 관리" },
-        ],
-      },
-      {
-        id: "fighters",
-        label: "선수 관리",
-        items: [
-          { href: "/gym/fighters", label: "선수 목록" },
-          { href: "/gym/fighters/new", label: "선수 등록" },
-          { href: "/gym/sparring-matching", label: "스파링 매칭" },
-        ],
-      },
-      {
-        id: "events",
-        label: "대회",
-        items: [
-          { href: "/gym/events", label: "대회 목록" },
-          { href: "/gym/applications", label: "신청 내역" },
-          { href: "/gym/brackets", label: "대진표 확인" },
-        ],
-      },
-    );
-  }
+    {
+      id: "fighters",
+      label: "선수 관리",
+      items: [
+        { href: "/gym/fighters", label: "선수 목록" },
+        { href: "/gym/fighters/new", label: "선수 등록" },
+        { href: "/gym/sparring-matching", label: "스파링 매칭" },
+      ],
+    },
+    {
+      id: "events",
+      label: "대회",
+      items: [
+        { href: "/gym/events", label: "대회 목록" },
+        { href: "/gym/applications", label: "신청 내역" },
+        { href: "/gym/brackets", label: "대진표 확인" },
+      ],
+    },
+    {
+      id: "operations",
+      label: "체육관 운영",
+      items: [
+        { href: "/gym/schedules", label: "전체 일정" },
+        { href: "/gym/schedules/my", label: "내 일정" },
+        { href: "/gym/group-classes", label: "그룹수업" },
+        { href: "/gym/staff", label: "선생님 목록" },
+        { href: "/gym/staff/new", label: "선생님 등록" },
+        { href: "/gym/profile", label: "체육관 정보" },
+        { href: "/gym/associations", label: "가입 협회" },
+        { href: "/gym/member-portal", label: "회원 전용 페이지" },
+      ],
+    },
+    {
+      id: "billing",
+      label: "결제·구독",
+      items: [
+        { href: "/gym/sales", label: "매출 현황" },
+        { href: "/gym/sales/receivables", label: "매출 등록" },
+        { href: "/gym/products", label: "상품 관리" },
+        { href: "/gym/billing/account", label: "이용권 / 결제" },
+      ],
+    },
+  );
 
   if (associations.length > 0) {
     groups.push({
@@ -134,19 +152,6 @@ export function getGymPortalNavGroups(
           },
         ],
       })),
-    });
-  }
-
-  if (viewer === "owner") {
-    groups.push({
-      id: "profile",
-      label: "체육관",
-      items: [
-        { href: "/gym/profile", label: "체육관 정보" },
-        { href: "/gym/billing/account", label: "이용권 / 결제" },
-        { href: "/gym/associations", label: "가입 협회" },
-        { href: "/gym/member-portal", label: "회원 전용 페이지" },
-      ],
     });
   }
 

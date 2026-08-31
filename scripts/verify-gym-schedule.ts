@@ -358,9 +358,9 @@ function verifyMemberStaffDetail() {
 function verifyNavigation() {
   const owner = getGymPortalNavGroups("owner");
   const staff = getGymPortalNavGroups("staff");
-  assert.ok(owner.some((g) => g.id === "schedules"));
+  assert.ok(owner.some((g) => g.id === "operations"));
   assert.deepEqual(
-    owner.find((g) => g.id === "schedules")?.items.map((i) => i.label),
+    owner.find((g) => g.id === "operations")?.items.map((i) => i.label).slice(0, 3),
     ["전체 일정", "내 일정", "그룹수업"],
   );
   assert.deepEqual(

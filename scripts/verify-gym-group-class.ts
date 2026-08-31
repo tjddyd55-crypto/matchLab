@@ -202,9 +202,9 @@ function verifyDetailSurfaces() {
 function verifyNavigation() {
   const owner = getGymPortalNavGroups("owner");
   const staff = getGymPortalNavGroups("staff");
-  const ownerSchedules = owner.find((g) => g.id === "schedules");
+  const ownerOps = owner.find((g) => g.id === "operations");
   assert.deepEqual(
-    ownerSchedules?.items.map((i) => i.href),
+    ownerOps?.items.map((i) => i.href).slice(0, 3),
     ["/gym/schedules", "/gym/schedules/my", "/gym/group-classes"],
   );
   const staffSchedules = staff.find((g) => g.id === "schedules");

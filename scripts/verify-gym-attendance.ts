@@ -199,11 +199,13 @@ function assertGymScopeAndPermissions() {
   );
 
   const groups = getGymPortalNavGroups();
-  const attendance = groups.find((g) => g.id === "attendance");
-  assert.ok(attendance);
-  assert.deepEqual(
-    attendance!.items.map((i) => i.href),
-    ["/gym/attendance", "/gym/attendance/kiosks"],
+  const members = groups.find((g) => g.id === "members");
+  assert.ok(members);
+  assert.ok(
+    members!.items.some((i) => i.href === "/gym/attendance"),
+  );
+  assert.ok(
+    members!.items.some((i) => i.href === "/gym/attendance/kiosks"),
   );
   console.log("verify:gym-attendance-gym-scope: OK");
   console.log("verify:gym-attendance-permissions: OK");

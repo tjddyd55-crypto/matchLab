@@ -27,15 +27,6 @@ function assertNavSsotUnchanged() {
         items: [{ href: "/gym", label: "홈" }],
       },
       {
-        id: "schedules",
-        label: "일정 관리",
-        items: [
-          { href: "/gym/schedules", label: "전체 일정" },
-          { href: "/gym/schedules/my", label: "내 일정" },
-          { href: "/gym/group-classes", label: "그룹수업" },
-        ],
-      },
-      {
         id: "members",
         label: "회원 관리",
         items: [
@@ -43,31 +34,8 @@ function assertNavSsotUnchanged() {
           { href: "/gym/members/new", label: "회원 등록" },
           { href: "/gym/member-groups", label: "회원 그룹" },
           { href: "/gym/membership-plans", label: "이용권 관리" },
-        ],
-      },
-      {
-        id: "attendance",
-        label: "출석 관리",
-        items: [
           { href: "/gym/attendance", label: "출석 현황" },
           { href: "/gym/attendance/kiosks", label: "출석 키오스크" },
-        ],
-      },
-      {
-        id: "staff",
-        label: "직원 관리",
-        items: [
-          { href: "/gym/staff", label: "선생님 목록" },
-          { href: "/gym/staff/new", label: "선생님 등록" },
-        ],
-      },
-      {
-        id: "sales",
-        label: "매출 관리",
-        items: [
-          { href: "/gym/sales", label: "매출 현황" },
-          { href: "/gym/sales/receivables", label: "매출 등록" },
-          { href: "/gym/products", label: "상품 관리" },
         ],
       },
       {
@@ -89,13 +57,27 @@ function assertNavSsotUnchanged() {
         ],
       },
       {
-        id: "profile",
-        label: "체육관",
+        id: "operations",
+        label: "체육관 운영",
         items: [
+          { href: "/gym/schedules", label: "전체 일정" },
+          { href: "/gym/schedules/my", label: "내 일정" },
+          { href: "/gym/group-classes", label: "그룹수업" },
+          { href: "/gym/staff", label: "선생님 목록" },
+          { href: "/gym/staff/new", label: "선생님 등록" },
           { href: "/gym/profile", label: "체육관 정보" },
-          { href: "/gym/billing/account", label: "이용권 / 결제" },
           { href: "/gym/associations", label: "가입 협회" },
           { href: "/gym/member-portal", label: "회원 전용 페이지" },
+        ],
+      },
+      {
+        id: "billing",
+        label: "결제·구독",
+        items: [
+          { href: "/gym/sales", label: "매출 현황" },
+          { href: "/gym/sales/receivables", label: "매출 등록" },
+          { href: "/gym/products", label: "상품 관리" },
+          { href: "/gym/billing/account", label: "이용권 / 결제" },
         ],
       },
     ],
@@ -107,7 +89,13 @@ function assertNavSsotUnchanged() {
     ["home", "schedules", "members"],
   );
   assert.equal(
-    staffGroups.some((g) => g.id === "sales" || g.id === "staff"),
+    staffGroups.some(
+      (g) =>
+        g.id === "billing" ||
+        g.id === "operations" ||
+        g.id === "fighters" ||
+        g.id === "events",
+    ),
     false,
   );
 }
@@ -136,6 +124,7 @@ function assertHierarchyMarkup() {
   assert.doesNotMatch(shared, /<Link[^>]*>\{group\.label\}/);
   assert.match(shared, /aria-current=\{active \? "page" : undefined\}/);
   assert.match(shared, /dashboardSidebarItemTouchClass/);
+  assert.match(shared, /data-nav-accordion/);
   assert.doesNotMatch(shared, /uppercase/);
 
   assert.match(tokens, /min-h-11/);

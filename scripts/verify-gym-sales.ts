@@ -442,11 +442,11 @@ function assertMobileLayout() {
   assert.match(panel, /md:hidden/);
   assert.match(panel, /hidden overflow-x-auto md:block/);
   const nav = getGymPortalNavGroups();
-  const sales = nav.find((g) => g.id === "sales");
-  assert.equal(sales?.label, "매출 관리");
+  const billing = nav.find((g) => g.id === "billing");
+  assert.equal(billing?.label, "결제·구독");
   assert.deepEqual(
-    sales?.items.map((i) => i.label),
-    ["매출 현황", "매출 등록", "상품 관리"],
+    billing?.items.map((i) => i.label),
+    ["매출 현황", "매출 등록", "상품 관리", "이용권 / 결제"],
   );
   console.log("verify:gym-sales-mobile-layout: OK");
 }

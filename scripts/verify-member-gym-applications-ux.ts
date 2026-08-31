@@ -23,7 +23,14 @@ function main() {
   assert.ok(member);
   assert.deepEqual(
     member!.items.map((i) => i.label),
-    ["회원사 현황", "가입 신청", "회원사 목록", "환경 설정"],
+    [
+      "회원사 현황",
+      "가입 신청",
+      "연결 요청",
+      "회원사 목록",
+      "환경 설정",
+      "공지사항",
+    ],
   );
   assert.ok(!member!.items.some((i) => i.href.includes("/links")));
 
