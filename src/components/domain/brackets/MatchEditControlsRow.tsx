@@ -6,6 +6,10 @@ import { BracketMatchControlsRow } from "@/components/domain/brackets/BracketMat
 import { MatchOperationalSettingsSelect } from "@/components/domain/brackets/MatchOperationalSettingsSelect";
 import { MatchOrganizerMemoInput } from "@/components/domain/brackets/MatchOrganizerMemoInput";
 import { MatchCourtControls } from "@/components/domain/courts/MatchCourtControls";
+import {
+  CourtScheduleMatchReorderControls,
+  type CourtScheduleReorderMatch,
+} from "@/components/domain/courts/CourtScheduleMatchReorderControls";
 import { useAppConfirmDialog } from "@/components/shared/app-confirm-dialog";
 import { Button } from "@/components/ui/button";
 import { matchCourtSaveButtonClass } from "@/lib/ui/match-grid-layout";
@@ -32,6 +36,7 @@ export function MatchEditControlsRow({
   options,
   matchWeightKg,
   savedMatchWeightKg = null,
+  courtScheduleReorder = null,
 }: {
   eventId: string;
   bracketId: string;
@@ -48,6 +53,11 @@ export function MatchEditControlsRow({
   matchWeightKg?: string;
   /** dirty 기준 — 정식 필드 또는 legacy memo 추출값 */
   savedMatchWeightKg?: number | null;
+  /** 대진표 보기와 동일 — court schedule reorder (↑↓·숫자) */
+  courtScheduleReorder?: {
+    allMatches: CourtScheduleReorderMatch[];
+    courtMatches: CourtScheduleReorderMatch[];
+  } | null;
 }) {
   const { confirm } = useAppConfirmDialog();
   const [organizerMemo, setOrganizerMemo] = useState(match.organizerMemo ?? "");
@@ -161,7 +171,20 @@ export function MatchEditControlsRow({
           </div>
         }
         right={
-          <div className="flex items-center justify-end gap-1">
+          <div className="flex flex-wrap items-center justify-end gap-1">
+            {courtScheduleReorder &&
+            match.courtId &&
+            courtScheduleReorder.courtMatches.length > 1 ? (
+              <CourtScheduleMatchReorderControls
+                compact
+                eventId={eventId}
+                matchId={match.id}
+                courtId={match.courtId}
+                allMatches={courtScheduleReorder.allMatches}
+                courtMatches={courtScheduleReorder.courtMatches}
+                disabled={editLocked}
+              />
+            ) : null}
             <Button
               type="button"
               size="sm"

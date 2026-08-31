@@ -111,6 +111,31 @@ export function renumberEventWideMatchNumbers(
   }));
 }
 
+/**
+ * 경기장 스케줄(court sort + courtOrder) 기준으로 matchNumber를 1…N 재부여.
+ * 순서 변경(↑↓·숫자 입력) 후 표시 「N경기」SSOT를 진행순서와 맞출 때 사용.
+ * Match.id / courtOrder는 변경하지 않는다.
+ */
+export function renumberEventWideMatchNumbersByCourtSchedule(
+  matches: CourtScheduleMatch[],
+  courts: CourtSortRef[],
+): Array<{ matchId: string; matchNumber: number }> {
+  const sorted = sortMatchesByCourtSchedule(matches, courts);
+  return sorted.map((m, idx) => ({
+    matchId: m.matchId,
+    matchNumber: idx + 1,
+  }));
+}
+
+/** 경기장 내 목표 순번(1…N)을 안전한 범위로 보정 */
+export function clampCourtReorderPosition(
+  position: number,
+  courtMatchCount: number,
+): number {
+  if (courtMatchCount < 1) return 1;
+  return clampPosition(position, courtMatchCount);
+}
+
 function sortMatchIdsByCourtOrder(
   matchIds: string[],
   allMatches: CourtScheduleMatch[],

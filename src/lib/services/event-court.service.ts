@@ -9,6 +9,7 @@ import {
 import {
   computeCourtOrderUpdates,
   renumberAllCourtOrders,
+  renumberEventWideMatchNumbersByCourtSchedule,
   type CourtScheduleMatch,
 } from "@/lib/court-match-order";
 import { AppError } from "@/lib/errors/app-error";
@@ -18,6 +19,44 @@ import type { Prisma } from "@/generated/prisma";
 import { eventCourtRepository } from "@/lib/repositories/event-court.repository";
 import { eventRepository } from "@/lib/repositories/event.repository";
 import { matchRepository } from "@/lib/repositories/match.repository";
+
+/**
+ * courtOrder 변경 후 표시 SSOT(matchNumber)를 경기장 스케줄 순으로 1…N 맞춤.
+ * Match.id는 변경하지 않는다.
+ */
+async function applyMatchNumbersByCourtSchedule(
+  eventId: string,
+  tx: Prisma.TransactionClient,
+): Promise<void> {
+  const [courts, peers] = await Promise.all([
+    eventCourtRepository.listAllByEvent(eventId, tx),
+    tx.bracketMatch.findMany({
+      where: { bracket: { eventId } },
+      select: {
+        id: true,
+        courtId: true,
+        courtOrder: true,
+        matchNumber: true,
+      },
+    }),
+  ]);
+  const updates = renumberEventWideMatchNumbersByCourtSchedule(
+    peers.map((m) => ({
+      matchId: m.id,
+      courtId: m.courtId,
+      courtOrder: m.courtOrder,
+    })),
+    courts.map((c) => ({ id: c.id, sortOrder: c.sortOrder })),
+  );
+  for (const u of updates) {
+    const prev = peers.find((p) => p.id === u.matchId);
+    if (prev?.matchNumber === u.matchNumber) continue;
+    await tx.bracketMatch.update({
+      where: { id: u.matchId },
+      data: { matchNumber: u.matchNumber },
+    });
+  }
+}
 
 export type EventCourtRuleVM = {
   id: string;
@@ -246,16 +285,20 @@ export const eventCourtService = {
           : m,
       );
       const updates = renumberAllCourtOrders(merged);
-      await prisma.$transaction(async (tx) => {
-        for (const u of updates) {
-          await matchRepository.updateMatchCourt(
-            u.matchId,
-            { courtId: u.courtId, courtOrder: u.courtOrder },
-            tx,
-          );
-        }
-        await writeOperational(tx);
-      });
+      await prisma.$transaction(
+        async (tx) => {
+          for (const u of updates) {
+            await matchRepository.updateMatchCourt(
+              u.matchId,
+              { courtId: u.courtId, courtOrder: u.courtOrder },
+              tx,
+            );
+          }
+          await applyMatchNumbersByCourtSchedule(eventId, tx);
+          await writeOperational(tx);
+        },
+        { maxWait: 10_000, timeout: 30_000 },
+      );
       return;
     }
 
@@ -268,16 +311,20 @@ export const eventCourtService = {
       targetPosition: courtOrder,
     });
 
-    await prisma.$transaction(async (tx) => {
-      for (const u of updates) {
-        await matchRepository.updateMatchCourt(
-          u.matchId,
-          { courtId: u.courtId, courtOrder: u.courtOrder },
-          tx,
-        );
-      }
-      await writeOperational(tx);
-    });
+    await prisma.$transaction(
+      async (tx) => {
+        for (const u of updates) {
+          await matchRepository.updateMatchCourt(
+            u.matchId,
+            { courtId: u.courtId, courtOrder: u.courtOrder },
+            tx,
+          );
+        }
+        await applyMatchNumbersByCourtSchedule(eventId, tx);
+        await writeOperational(tx);
+      },
+      { maxWait: 10_000, timeout: 30_000 },
+    );
   },
 
   async ensureActiveCourtForEvent(
@@ -418,16 +465,34 @@ export const eventCourtService = {
       });
     }
 
+    const prevById = new Map(
+      allRows.map((m) => [
+        m.id,
+        { courtId: m.courtId, courtOrder: m.courtOrder },
+      ]),
+    );
     const finalUpdates = renumberAllCourtOrders(Array.from(state.values()));
 
-    await prisma.$transaction(async (tx) => {
-      for (const u of finalUpdates) {
-        await matchRepository.updateMatchCourt(
-          u.matchId,
-          { courtId: u.courtId, courtOrder: u.courtOrder },
-          tx,
-        );
-      }
-    });
+    await prisma.$transaction(
+      async (tx) => {
+        for (const u of finalUpdates) {
+          const prev = prevById.get(u.matchId);
+          if (
+            prev &&
+            prev.courtId === u.courtId &&
+            prev.courtOrder === u.courtOrder
+          ) {
+            continue;
+          }
+          await matchRepository.updateMatchCourt(
+            u.matchId,
+            { courtId: u.courtId, courtOrder: u.courtOrder },
+            tx,
+          );
+        }
+        await applyMatchNumbersByCourtSchedule(eventId, tx);
+      },
+      { maxWait: 10_000, timeout: 30_000 },
+    );
   },
 };

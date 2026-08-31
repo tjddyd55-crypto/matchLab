@@ -1,8 +1,10 @@
 import { notFound } from "next/navigation";
 import { AdminGymDetailView } from "@/components/domain/admin/AdminGymDetailView";
+import { tryResolveAdminResetClientTarget } from "@/lib/admin/try-resolve-admin-reset-target";
 import { requireActor, redirectUnlessDashboardRole } from "@/lib/auth/actor";
 import { AppError } from "@/lib/errors/app-error";
 import { adminService } from "@/lib/services/admin.service";
+import { loadMatchonAdminPasswordResetLinkConfig } from "@/server/admin-password-reset/config";
 import {
   adminPageContainerClass,
   adminPageStackClass,
@@ -22,6 +24,7 @@ export default async function AdminGymDetailPage({
 
   const { id } = await params;
   const { tab } = await searchParams;
+  const adminResetEnabled = loadMatchonAdminPasswordResetLinkConfig().enabled;
 
   let detail;
   try {
@@ -33,10 +36,27 @@ export default async function AdminGymDetailPage({
     throw e;
   }
 
+  const resetTarget = adminResetEnabled
+    ? await tryResolveAdminResetClientTarget(actor, detail.ownerUserId)
+    : null;
+
   return (
     <div className={adminPageContainerClass}>
       <div className={adminPageStackClass}>
-        <AdminGymDetailView detail={detail} tabParam={tab} />
+        <AdminGymDetailView
+          detail={detail}
+          tabParam={tab}
+          passwordReset={
+            adminResetEnabled
+              ? {
+                  enabled: true,
+                  initialUserId: detail.ownerUserId,
+                  initialLoginId: detail.loginId ?? "",
+                  initialTarget: resetTarget,
+                }
+              : null
+          }
+        />
       </div>
     </div>
   );

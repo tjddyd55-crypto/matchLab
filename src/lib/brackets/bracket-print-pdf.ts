@@ -56,6 +56,16 @@ export async function generateUnmatchedPrintPdfBuffer(params: {
   });
 }
 
+export async function generateWeighInSheetPdfBuffer(params: {
+  eventId: string;
+  cookieHeader: string | null;
+}): Promise<Buffer> {
+  return renderPrintPathToPdfBuffer({
+    path: `/organizer/events/${params.eventId}/weigh-in-sheet`,
+    cookieHeader: params.cookieHeader,
+  });
+}
+
 async function renderPrintPathToPdfBuffer(params: {
   path: string;
   cookieHeader: string | null;

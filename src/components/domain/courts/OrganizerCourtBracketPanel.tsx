@@ -1,7 +1,6 @@
 "use client";
 
-import { useMemo, useState, useTransition } from "react";
-import { useRouter } from "next/navigation";
+import { useMemo, useState } from "react";
 import {
   BracketMatchColumnHeader,
   BracketMatchCompactRow,
@@ -10,6 +9,7 @@ import {
 import { BracketMatchCenterCell } from "@/components/domain/brackets/BracketMatchCenterCell";
 import { BracketFighterCompactCard } from "@/components/domain/brackets/BracketFighterCompactCard";
 import { MatchCourtControls } from "@/components/domain/courts/MatchCourtControls";
+import { CourtScheduleMatchReorderControls } from "@/components/domain/courts/CourtScheduleMatchReorderControls";
 import { FighterHandicapBadge } from "@/components/domain/shared/FighterHandicapBadge";
 import {
   BoutFormatBadge,
@@ -19,8 +19,6 @@ import {
   parseMatchOperationalSettings,
   formatOperationalSettingsLabel,
 } from "@/lib/match-operational-settings";
-import { saveMatchScheduleFormAction } from "@/features/event-courts/actions";
-import { Button } from "@/components/ui/button";
 import {
   type CourtTabId,
   formatCourtTabLabel,
@@ -54,9 +52,6 @@ import {
   resolveBracketMatchMatchonStatus,
 } from "@/lib/ui/bracket-match-ui";
 import { cn } from "@/lib/utils";
-
-const selectClass =
-  "border-input bg-background h-10 rounded-md border px-2 text-sm shadow-sm focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring";
 
 function sortMatchesForTab(
   matches: OrganizerEventMatchListItemVM[],
@@ -124,31 +119,14 @@ export function OrganizerCourtBracketPanel({
   /** schedule 페이지에서는 순서 섹션 제목만 다르게 */
   showOrderSection?: boolean;
 }) {
-  const router = useRouter();
   const activeCourts = courts.filter((c) => c.isActive);
   const [activeTab, setActiveTab] = useState<CourtTabId>("all");
-  const [pending, startTransition] = useTransition();
   const [feedback, setFeedback] = useState<{
     tone: "success" | "error";
     message: string;
   } | null>(null);
-
-  const [orderOverrides, setOrderOverrides] = useState<
-    Record<string, number | null>
-  >({});
   const [viewFilters, setViewFilters] = useState<BracketViewFilterState>(
     DEFAULT_BRACKET_VIEW_FILTERS,
-  );
-
-  const serverOrders = useMemo(() => {
-    const init: Record<string, number | null> = {};
-    for (const m of matches) init[m.matchId] = m.courtOrder;
-    return init;
-  }, [matches]);
-
-  const localOrders = useMemo(
-    () => ({ ...serverOrders, ...orderOverrides }),
-    [serverOrders, orderOverrides],
   );
 
   /** 경기장 탭 필터 — 순서 조정 SSOT */
@@ -166,6 +144,18 @@ export function OrganizerCourtBracketPanel({
 
   const viewFiltersActive = hasActiveBracketViewFilters(viewFilters);
 
+  const allScheduleMatches = useMemo(
+    () =>
+      matches.map((m) => ({
+        matchId: m.matchId,
+        courtId: m.courtId,
+        courtOrder: m.courtOrder,
+        matchNumber: m.matchNumber,
+        hasOfficialResults: m.hasOfficialResults,
+      })),
+    [matches],
+  );
+
   const courtTabItems = useMemo(
     () => [
       { id: "all" as CourtTabId, label: "전체" },
@@ -176,8 +166,6 @@ export function OrganizerCourtBracketPanel({
     ],
     [activeCourts],
   );
-
-  const canReorderOnTab = activeTab !== "all" && filtered.length > 0;
 
   function reorderCourtIdForMatch(
     m: OrganizerEventMatchListItemVM,
@@ -197,89 +185,10 @@ export function OrganizerCourtBracketPanel({
 
   function canShowReorderControls(m: OrganizerEventMatchListItemVM): boolean {
     if (viewFiltersActive) return false;
+    if (activeTab === "all") return false;
     const courtId = reorderCourtIdForMatch(m);
     if (!courtId) return false;
     return courtMatchesForReorder(m).length > 1;
-  }
-
-  function moveAndSave(matchId: string, direction: -1 | 1) {
-    if (pending) return;
-    if (viewFiltersActive) return;
-    const match = courtTabMatches.find((m) => m.matchId === matchId);
-    if (!match) return;
-    const courtId = reorderCourtIdForMatch(match);
-    if (!courtId) return;
-
-    const courtMatches = courtMatchesForReorder(match);
-    const idx = courtMatches.findIndex((m) => m.matchId === matchId);
-    const swapIdx = idx + direction;
-    if (idx < 0 || swapIdx < 0 || swapIdx >= courtMatches.length) return;
-
-    const reordered = [...courtMatches];
-    const [removed] = reordered.splice(idx, 1);
-    reordered.splice(swapIdx, 0, removed!);
-
-    const updates = reordered.map((m, i) => ({
-      matchId: m.matchId,
-      courtId,
-      courtOrder: i + 1,
-    }));
-    const fd = new FormData();
-    fd.set("eventId", eventId);
-    fd.set("updates", JSON.stringify(updates));
-    startTransition(async () => {
-      const res = await saveMatchScheduleFormAction(fd);
-      if (!res.ok) {
-        setFeedback({ tone: "error", message: res.error.message });
-        return;
-      }
-      setFeedback({ tone: "success", message: "순서가 저장되었습니다." });
-      setOrderOverrides({});
-      router.refresh();
-    });
-  }
-
-  function saveOrder() {
-    const courtId = activeTab === "all" ? null : activeTab;
-    const courtMatches = courtId
-      ? matches.filter((m) => m.courtId === courtId)
-      : [];
-
-    const sortedCourtMatches =
-      courtId && courtMatches.length > 0
-        ? [...courtMatches].sort((a, b) => {
-            const oa = localOrders[a.matchId] ?? a.courtOrder ?? 9999;
-            const ob = localOrders[b.matchId] ?? b.courtOrder ?? 9999;
-            if (oa !== ob) return oa - ob;
-            return a.matchId.localeCompare(b.matchId);
-          })
-        : [];
-
-    const updates =
-      courtId && sortedCourtMatches.length > 0
-        ? sortedCourtMatches.map((m, idx) => ({
-            matchId: m.matchId,
-            courtId,
-            courtOrder: idx + 1,
-          }))
-        : matches.map((m) => ({
-            matchId: m.matchId,
-            courtId: m.courtId ?? null,
-            courtOrder: localOrders[m.matchId] ?? m.courtOrder ?? null,
-          }));
-    const fd = new FormData();
-    fd.set("eventId", eventId);
-    fd.set("updates", JSON.stringify(updates));
-    startTransition(async () => {
-      const res = await saveMatchScheduleFormAction(fd);
-      if (!res.ok) {
-        setFeedback({ tone: "error", message: res.error.message });
-        return;
-      }
-      setFeedback({ tone: "success", message: "순서가 저장되었습니다." });
-      setOrderOverrides({});
-      router.refresh();
-    });
   }
 
   return (
@@ -311,17 +220,14 @@ export function OrganizerCourtBracketPanel({
             <BracketMatchColumnHeader />
             {filtered.map((m) => {
               const ops = parseMatchOperationalSettings(m.resultMemo).settings;
-              const order = localOrders[m.matchId] ?? m.courtOrder;
               const formatKind = resolveBoutFormatKind({
                 bracketType: m.bracketType,
                 bracketIsPublic: m.bracketIsPublic,
                 matchIsPublicSparring: m.matchIsPublicSparring,
                 resultMemo: m.resultMemo,
               });
+              const courtId = reorderCourtIdForMatch(m);
               const courtMatches = courtMatchesForReorder(m);
-              const courtIdx = courtMatches.findIndex(
-                (x) => x.matchId === m.matchId,
-              );
               const showReorder = canShowReorderControls(m);
               const headerBadges = (
                 <>
@@ -355,7 +261,7 @@ export function OrganizerCourtBracketPanel({
                       matchId={m.matchId}
                       courts={courts}
                       courtId={m.courtId}
-                      courtOrder={localOrders[m.matchId] ?? m.courtOrder}
+                      courtOrder={m.courtOrder}
                       hasOfficialResults={m.hasOfficialResults}
                     />
                   }
@@ -365,50 +271,27 @@ export function OrganizerCourtBracketPanel({
                     </span>
                   }
                   right={
-                    showReorder ? (
-                      <>
-                        <input
-                          type="number"
-                          min={1}
-                          aria-label="경기 순서"
-                          className={cn(selectClass, "h-10 w-16 text-xs")}
-                          value={localOrders[m.matchId] ?? ""}
-                          onChange={(e) =>
-                            setOrderOverrides((prev) => ({
-                              ...prev,
-                              [m.matchId]: e.target.value
-                                ? Number(e.target.value)
-                                : null,
-                            }))
-                          }
-                        />
-                        <Button
-                          type="button"
-                          size="sm"
-                          variant="outline"
-                          className="h-10 w-10 shrink-0 p-0 text-base font-bold disabled:opacity-40"
-                          aria-label="위로 이동"
-                          disabled={courtIdx <= 0 || pending}
-                          onClick={() => moveAndSave(m.matchId, -1)}
-                        >
-                          ↑
-                        </Button>
-                        <Button
-                          type="button"
-                          size="sm"
-                          variant="outline"
-                          className="h-10 w-10 shrink-0 p-0 text-base font-bold disabled:opacity-40"
-                          aria-label="아래로 이동"
-                          disabled={
-                            courtIdx < 0 ||
-                            courtIdx >= courtMatches.length - 1 ||
-                            pending
-                          }
-                          onClick={() => moveAndSave(m.matchId, 1)}
-                        >
-                          ↓
-                        </Button>
-                      </>
+                    showReorder && courtId ? (
+                      <CourtScheduleMatchReorderControls
+                        compact
+                        eventId={eventId}
+                        matchId={m.matchId}
+                        courtId={courtId}
+                        allMatches={allScheduleMatches}
+                        courtMatches={courtMatches.map((x) => ({
+                          matchId: x.matchId,
+                          courtId: x.courtId,
+                          courtOrder: x.courtOrder,
+                          matchNumber: x.matchNumber,
+                          hasOfficialResults: x.hasOfficialResults,
+                        }))}
+                        onResult={(r) =>
+                          setFeedback({
+                            tone: r.ok ? "success" : "error",
+                            message: r.message,
+                          })
+                        }
+                      />
                     ) : null
                   }
                 />
@@ -454,17 +337,14 @@ export function OrganizerCourtBracketPanel({
           <div className="flex flex-col gap-3 md:hidden">
             {filtered.map((m) => {
               const ops = parseMatchOperationalSettings(m.resultMemo).settings;
-              const order = localOrders[m.matchId] ?? m.courtOrder;
               const formatKind = resolveBoutFormatKind({
                 bracketType: m.bracketType,
                 bracketIsPublic: m.bracketIsPublic,
                 matchIsPublicSparring: m.matchIsPublicSparring,
                 resultMemo: m.resultMemo,
               });
+              const courtId = reorderCourtIdForMatch(m);
               const courtMatches = courtMatchesForReorder(m);
-              const courtIdx = courtMatches.findIndex(
-                (x) => x.matchId === m.matchId,
-              );
               const showReorder = canShowReorderControls(m);
 
               return (
@@ -514,51 +394,29 @@ export function OrganizerCourtBracketPanel({
                         matchId={m.matchId}
                         courts={courts}
                         courtId={m.courtId}
-                        courtOrder={localOrders[m.matchId] ?? m.courtOrder}
+                        courtOrder={m.courtOrder}
                         hasOfficialResults={m.hasOfficialResults}
                       />
-                      {showReorder ? (
-                        <div className="flex flex-wrap items-center gap-2">
-                          <input
-                            type="number"
-                            min={1}
-                            aria-label="경기 순서"
-                            className={cn(selectClass, "w-20")}
-                            value={localOrders[m.matchId] ?? ""}
-                            onChange={(e) =>
-                              setOrderOverrides((prev) => ({
-                                ...prev,
-                                [m.matchId]: e.target.value
-                                  ? Number(e.target.value)
-                                  : null,
-                              }))
-                            }
-                          />
-                          <Button
-                            type="button"
-                            size="default"
-                            variant="outline"
-                            className="flex-1"
-                            disabled={courtIdx <= 0 || pending}
-                            onClick={() => moveAndSave(m.matchId, -1)}
-                          >
-                            위로
-                          </Button>
-                          <Button
-                            type="button"
-                            size="default"
-                            variant="outline"
-                            className="flex-1"
-                            disabled={
-                              courtIdx < 0 ||
-                              courtIdx >= courtMatches.length - 1 ||
-                              pending
-                            }
-                            onClick={() => moveAndSave(m.matchId, 1)}
-                          >
-                            아래로
-                          </Button>
-                        </div>
+                      {showReorder && courtId ? (
+                        <CourtScheduleMatchReorderControls
+                          eventId={eventId}
+                          matchId={m.matchId}
+                          courtId={courtId}
+                          allMatches={allScheduleMatches}
+                          courtMatches={courtMatches.map((x) => ({
+                            matchId: x.matchId,
+                            courtId: x.courtId,
+                            courtOrder: x.courtOrder,
+                            matchNumber: x.matchNumber,
+                            hasOfficialResults: x.hasOfficialResults,
+                          }))}
+                          onResult={(r) =>
+                            setFeedback({
+                              tone: r.ok ? "success" : "error",
+                              message: r.message,
+                            })
+                          }
+                        />
                       ) : null}
                     </>
                   }
@@ -572,20 +430,16 @@ export function OrganizerCourtBracketPanel({
       {showOrderSection && matches.length > 0 ? (
         <Card variant="muted" className="py-4">
           <CardContent className="flex flex-col gap-3 px-4">
-            {canReorderOnTab ? (
-              <Button
-                type="button"
-                size="default"
-                className="w-full sm:w-auto"
-                disabled={pending}
-                onClick={saveOrder}
-              >
-                {pending ? "저장 중…" : "이 경기장 순서 저장"}
-              </Button>
-            ) : (
+            {activeTab === "all" ? (
               <FeedbackMessage tone="info">
                 경기장 탭(1경기장, 2경기장 등)을 선택하면 해당 경기장 경기 순서를
-                조정할 수 있습니다.
+                조정할 수 있습니다. 순서 변경 시 경기 번호가 진행순서로
+                다시 부여됩니다.
+              </FeedbackMessage>
+            ) : (
+              <FeedbackMessage tone="info">
+                ↑↓ 또는 경기 순서 숫자 입력(Enter/포커스 아웃)으로 순서를
+                변경하면 즉시 저장되고, 경기 번호가 1…N으로 재부여됩니다.
               </FeedbackMessage>
             )}
             {feedback ? (

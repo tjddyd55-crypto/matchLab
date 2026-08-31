@@ -170,8 +170,8 @@ export function MatchListEditor({
         </div>
         {!compactWorkspace ? (
           <CardDescription>
-            선수·경기장·라운드·시간 변경은 즉시 저장됩니다. 경기 순서는 대진표
-            보기에서 조정하세요.
+            선수·경기장·라운드·시간 변경은 즉시 저장됩니다. 경기 순서는 ↑↓ 또는
+            숫자 입력으로 조정하며, 변경 시 경기 번호가 진행순서로 재부여됩니다.
           </CardDescription>
         ) : null}
         <MatchedMatchFilterToolbar
@@ -241,6 +241,7 @@ export function MatchListEditor({
                   divisionLabel={divisionLabel}
                   divisionOptions={eventWide ? divisionOptions : undefined}
                   onEditAthleteProfile={onEditAthleteProfile}
+                  enableCourtScheduleReorder={orderMode === "courtSchedule"}
                 />
               );
             })}

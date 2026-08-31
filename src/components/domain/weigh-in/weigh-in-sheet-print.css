@@ -1,0 +1,179 @@
+/* 계체 기록지 — A4 portrait, 흑백 가독성 우선 */
+
+@import url("https://fonts.googleapis.com/css2?family=Noto+Sans+KR:wght@400;500;700&display=block");
+
+.weigh-in-sheet-page {
+  --weigh-in-ink: #111;
+  --weigh-in-border: #222;
+  color: var(--weigh-in-ink);
+  background: #fff;
+  font-family:
+    "Noto Sans KR",
+    "Noto Sans CJK KR",
+    "Malgun Gothic",
+    sans-serif;
+}
+
+.weigh-in-sheet-toolbar {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: 0.5rem;
+  padding: 0.75rem 1rem;
+  border-bottom: 1px solid #ddd;
+  background: #fafafa;
+}
+
+.weigh-in-sheet-document {
+  padding: 8mm 10mm 12mm;
+}
+
+.weigh-in-sheet-header {
+  text-align: center;
+  margin-bottom: 10mm;
+}
+
+.weigh-in-sheet-event-title {
+  margin: 0;
+  font-size: 14pt;
+  font-weight: 700;
+}
+
+.weigh-in-sheet-doc-title {
+  margin: 4pt 0 8pt;
+  font-size: 18pt;
+  font-weight: 800;
+  letter-spacing: 0.02em;
+}
+
+.weigh-in-sheet-meta {
+  margin: 0;
+  font-size: 10pt;
+  color: #333;
+}
+
+.weigh-in-sheet-group {
+  break-inside: avoid;
+  margin-bottom: 8mm;
+}
+
+.weigh-in-sheet-group-title {
+  margin: 0 0 3mm;
+  padding: 2mm 0;
+  font-size: 12pt;
+  font-weight: 700;
+  border-bottom: 1.5px solid var(--weigh-in-border);
+}
+
+.weigh-in-sheet-table {
+  width: 100%;
+  border-collapse: collapse;
+  table-layout: fixed;
+  font-size: 9.5pt;
+}
+
+.weigh-in-sheet-table th,
+.weigh-in-sheet-table td {
+  border: 1px solid var(--weigh-in-border);
+  padding: 3.5mm 2mm;
+  vertical-align: middle;
+  text-align: center;
+  word-break: keep-all;
+}
+
+.weigh-in-sheet-table th {
+  background: #f0f0f0;
+  font-weight: 700;
+  font-size: 9pt;
+}
+
+.weigh-in-sheet-table tbody tr {
+  min-height: 11mm;
+}
+
+.weigh-in-sheet-col-name {
+  width: 14%;
+  font-weight: 700;
+  text-align: left !important;
+  padding-left: 3mm !important;
+}
+
+.weigh-in-sheet-col-gender {
+  width: 7%;
+}
+
+.weigh-in-sheet-col-birth {
+  width: 14%;
+}
+
+.weigh-in-sheet-col-division {
+  width: 14%;
+}
+
+.weigh-in-sheet-col-weight-class {
+  width: 12%;
+}
+
+.weigh-in-sheet-col-app-weight {
+  width: 12%;
+}
+
+.weigh-in-sheet-col-actual {
+  width: 27%;
+  letter-spacing: 0.08em;
+}
+
+.weigh-in-sheet-empty {
+  margin: 12mm 0;
+  text-align: center;
+  color: #666;
+  font-size: 11pt;
+}
+
+.weigh-in-sheet-footer {
+  margin-top: 6mm;
+  text-align: right;
+  font-size: 9pt;
+  color: #444;
+}
+
+@media print {
+  .no-print {
+    display: none !important;
+  }
+
+  .weigh-in-sheet-page {
+    background: #fff;
+  }
+
+  .weigh-in-sheet-document {
+    padding: 0;
+  }
+
+  .weigh-in-sheet-group {
+    break-inside: auto;
+  }
+
+  .weigh-in-sheet-group-title {
+    break-after: avoid;
+  }
+
+  .weigh-in-sheet-table thead {
+    display: table-header-group;
+  }
+
+  .weigh-in-sheet-table tr {
+    break-inside: avoid;
+  }
+
+  @page {
+    size: A4 portrait;
+    margin: 12mm 10mm 14mm;
+
+    @bottom-center {
+      content: counter(page) " / " counter(pages);
+      font-size: 9pt;
+      color: #444;
+    }
+  }
+}

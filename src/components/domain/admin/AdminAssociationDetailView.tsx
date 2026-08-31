@@ -1,5 +1,6 @@
 import Link from "next/link";
 import type { AdminAssociationDetailDTO } from "@/lib/dto/admin";
+import type { AdminPasswordResetClientTarget } from "@/lib/admin/admin-password-reset-client";
 import { AdminOrganizationAuditList } from "@/components/domain/admin/AdminOrganizationAuditList";
 import { AdminOrganizationCreditPanel } from "@/components/domain/admin/AdminOrganizationCreditPanel";
 import { AdminOrganizationHeader } from "@/components/domain/admin/AdminOrganizationHeader";
@@ -13,6 +14,7 @@ import {
 import { canManageOrganizationStatus } from "@/lib/organization-platform-status";
 import { AdminOrganizationSummary } from "@/components/domain/admin/AdminOrganizationSummary";
 import { AdminOrganizationTabs } from "@/components/domain/admin/AdminOrganizationTabs";
+import { AdminPasswordResetLinkPanel } from "@/components/domain/admin/AdminPasswordResetLinkPanel";
 import { formatAdminDateTime } from "@/components/domain/admin/admin-format";
 import { formatStoredAdminLoginId } from "@/lib/admin/admin-login-id-label";
 import {
@@ -40,9 +42,16 @@ function resolveTab(raw: string | undefined): TabId {
 export function AdminAssociationDetailView({
   detail,
   tabParam,
+  passwordReset = null,
 }: {
   detail: AdminAssociationDetailDTO;
   tabParam?: string;
+  passwordReset?: {
+    enabled: boolean;
+    initialUserId: string;
+    initialLoginId: string;
+    initialTarget: AdminPasswordResetClientTarget | null;
+  } | null;
 }) {
   const tab = resolveTab(tabParam);
   const baseHref = `/admin/associations/${detail.id}`;
@@ -143,6 +152,18 @@ export function AdminAssociationDetailView({
                 {formatStoredAdminLoginId(detail.loginId)}
               </dd>
             </div>
+            {passwordReset?.enabled ? (
+              <div className="sm:col-span-2 space-y-2 rounded-lg border border-matchon-border p-3">
+                <p className={`${adminMutedTextClass} text-xs font-semibold`}>
+                  계정 비밀번호 재설정
+                </p>
+                <AdminPasswordResetLinkPanel
+                  initialUserId={passwordReset.initialUserId}
+                  initialLoginId={passwordReset.initialLoginId}
+                  initialTarget={passwordReset.initialTarget}
+                />
+              </div>
+            ) : null}
             <div className="sm:col-span-2">
               <dt className={adminMutedTextClass}>주소</dt>
               <dd className="font-medium">{app?.addressLabel ?? "—"}</dd>

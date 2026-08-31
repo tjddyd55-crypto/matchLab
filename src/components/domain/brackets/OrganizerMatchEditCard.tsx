@@ -57,6 +57,7 @@ export function OrganizerMatchEditCard({
   divisionLabel,
   divisionOptions,
   onEditAthleteProfile,
+  enableCourtScheduleReorder = false,
 }: {
   eventId: string;
   bracketId: string;
@@ -73,6 +74,8 @@ export function OrganizerMatchEditCard({
   /** event-wide 모드: 경기구분 select SSOT */
   divisionOptions?: OrganizerEventAllMatchesDivisionOptionVM[];
   onEditAthleteProfile?: (applicationId: string) => void;
+  /** 대진표 보기와 동일 court schedule reorder */
+  enableCourtScheduleReorder?: boolean;
 }) {
   const router = useRouter();
   const { confirm, alert } = useAppConfirmDialog();
@@ -287,6 +290,28 @@ export function OrganizerMatchEditCard({
           draftDivisionId={draftDivisionId || null}
           onDraftDivisionIdChange={setDraftDivisionId}
           divisionOptions={divisionOptions}
+          courtScheduleReorder={
+            enableCourtScheduleReorder && match.courtId
+              ? {
+                  allMatches: matches.map((m) => ({
+                    matchId: m.id,
+                    courtId: m.courtId,
+                    courtOrder: m.courtOrder,
+                    matchNumber: m.matchNumber,
+                    hasOfficialResults: m.hasOfficialResults,
+                  })),
+                  courtMatches: matches
+                    .filter((m) => m.courtId === match.courtId)
+                    .map((m) => ({
+                      matchId: m.id,
+                      courtId: m.courtId,
+                      courtOrder: m.courtOrder,
+                      matchNumber: m.matchNumber,
+                      hasOfficialResults: m.hasOfficialResults,
+                    })),
+                }
+              : null
+          }
           matchWeightKg={draftWeightKg}
           savedMatchWeightKg={match.matchWeightKg}
           endActions={
