@@ -12,11 +12,13 @@ import {
   resolveSingleSportSectionTitle,
 } from "@/lib/division-sport-grouping";
 import {
+  matchesFieldStatusGymFilter,
   matchesFieldStatusSearchQuery,
   matchesFieldStatusSummaryFilter,
   weighInSelectValueForFilter,
   type FieldStatusSummaryFilter,
 } from "@/components/domain/field-status/field-status-filters";
+import { buildApplicantGymFilterOptions } from "@/lib/applications/applicant-list-filters";
 import {
   CompactFilterResetButton,
   compactApplicantFilterBarClass,
@@ -57,14 +59,10 @@ export function OrganizerFieldStatusBoard({
   >(null);
   const [mobileShowDetail, setMobileShowDetail] = useState(false);
 
-  const gymOptions = useMemo(() => {
-    const map = new Map<string, string>();
-    for (const r of rows) {
-      const key = r.gymId ?? `name:${r.gymName}`;
-      map.set(key, r.gymName);
-    }
-    return [...map.entries()].map(([id, name]) => ({ id, name }));
-  }, [rows]);
+  const gymOptions = useMemo(
+    () => buildApplicantGymFilterOptions(rows),
+    [rows],
+  );
 
   const divisionOptions = useMemo(() => {
     const map = new Map<string, string>();
@@ -75,7 +73,7 @@ export function OrganizerFieldStatusBoard({
   const filtered = useMemo(() => {
     return rows.filter((r) => {
       if (!matchesFieldStatusSearchQuery(r, searchQuery)) return false;
-      if (gymFilter !== "all" && r.gymId !== gymFilter) return false;
+      if (!matchesFieldStatusGymFilter(r, gymFilter)) return false;
       if (divisionFilter !== "all" && r.divisionId !== divisionFilter) {
         return false;
       }
@@ -233,7 +231,7 @@ export function OrganizerFieldStatusBoard({
             >
               <option value="all">체육관 전체</option>
               {gymOptions.map((g) => (
-                <option key={g.id} value={g.id}>
+                <option key={g.name} value={g.name}>
                   {g.name}
                 </option>
               ))}

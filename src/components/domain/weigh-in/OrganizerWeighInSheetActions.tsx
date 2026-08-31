@@ -10,15 +10,9 @@ export function OrganizerWeighInSheetActions({
   eventId: string;
   disabled?: boolean;
 }) {
-  const printHref = `/organizer/events/${eventId}/weigh-in-sheet`;
   const pdfHref = `/api/organizer/events/${eventId}/weigh-in-sheet-pdf`;
   const [downloading, setDownloading] = useState(false);
   const [error, setError] = useState<string | null>(null);
-
-  const onOpenPrint = useCallback(() => {
-    const w = window.open(printHref, "_blank", "noopener,noreferrer");
-    if (!w) window.location.href = printHref;
-  }, [printHref]);
 
   const onDownloadPdf = useCallback(async () => {
     if (disabled || downloading) return;
@@ -61,15 +55,6 @@ export function OrganizerWeighInSheetActions({
 
   return (
     <div className="flex flex-wrap items-center gap-2">
-      <Button
-        type="button"
-        size="sm"
-        variant="outline"
-        disabled={disabled}
-        onClick={onOpenPrint}
-      >
-        계체 기록지 출력
-      </Button>
       <Button
         type="button"
         size="sm"

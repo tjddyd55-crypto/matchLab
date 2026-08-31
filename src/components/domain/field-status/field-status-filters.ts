@@ -1,4 +1,5 @@
 import type { FieldStatusRowDTO } from "@/lib/services/field-status.service";
+import { normalizeApplicantGymDisplayName } from "@/lib/applications/applicant-list-filters";
 
 export type FieldStatusSummaryFilter =
   | "all"
@@ -42,6 +43,15 @@ export function matchesFieldStatusSummaryFilter(
     default:
       return true;
   }
+}
+
+/** 신청자 관리와 동일 — application snapshot display name 기준 */
+export function matchesFieldStatusGymFilter(
+  row: Pick<FieldStatusRowDTO, "gymName">,
+  gymFilter: string,
+): boolean {
+  if (gymFilter === "all") return true;
+  return normalizeApplicantGymDisplayName(row.gymName) === gymFilter;
 }
 
 export function matchesFieldStatusSearchQuery(
