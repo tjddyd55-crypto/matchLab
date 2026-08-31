@@ -5,31 +5,18 @@ import { Button } from "@/components/ui/button";
 
 export function OrganizerUnmatchedPrintActions({
   eventId,
-  documentTitle,
   variant = "view",
   disabled = false,
 }: {
   eventId: string;
+  /** @deprecated 인쇄 버튼 제거 후 미사용 */
   documentTitle?: string;
   variant?: "view" | "toolbar";
   disabled?: boolean;
 }) {
-  const printHref = `/organizer/events/${eventId}/brackets/unmatched-print`;
   const pdfHref = `/api/organizer/events/${eventId}/brackets/unmatched-print-pdf`;
   const [downloading, setDownloading] = useState(false);
   const [error, setError] = useState<string | null>(null);
-
-  const onPrint = useCallback(() => {
-    if (variant === "toolbar") {
-      const prev = document.title;
-      if (documentTitle) document.title = documentTitle;
-      window.print();
-      if (documentTitle) document.title = prev;
-      return;
-    }
-    const w = window.open(printHref, "_blank", "noopener,noreferrer");
-    if (!w) window.location.href = printHref;
-  }, [documentTitle, printHref, variant]);
 
   const onDownloadPdf = useCallback(async () => {
     if (disabled || downloading) return;
@@ -73,13 +60,9 @@ export function OrganizerUnmatchedPrintActions({
   if (variant === "toolbar") {
     return (
       <div className="bracket-print-toolbar-actions">
-        <Button type="button" size="sm" onClick={onPrint}>
-          인쇄
-        </Button>
         <Button
           type="button"
           size="sm"
-          variant="outline"
           disabled={downloading || disabled}
           onClick={() => void onDownloadPdf()}
         >

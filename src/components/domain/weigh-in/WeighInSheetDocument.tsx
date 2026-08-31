@@ -9,21 +9,14 @@ import { cn } from "@/lib/utils";
 
 export function WeighInSheetToolbar({
   eventId,
-  documentTitle,
 }: {
   eventId: string;
-  documentTitle: string;
+  /** @deprecated 인쇄 버튼 제거 후 미사용 — Playwright PDF title은 page 측에서 설정 */
+  documentTitle?: string;
 }) {
   const pdfHref = `/api/organizer/events/${eventId}/weigh-in-sheet-pdf`;
   const [downloading, setDownloading] = useState(false);
   const [error, setError] = useState<string | null>(null);
-
-  const onPrint = useCallback(() => {
-    const prev = document.title;
-    document.title = documentTitle;
-    window.print();
-    document.title = prev;
-  }, [documentTitle]);
 
   const onDownloadPdf = useCallback(async () => {
     if (downloading) return;
@@ -72,9 +65,6 @@ export function WeighInSheetToolbar({
       >
         ← 계체 관리
       </Link>
-      <Button type="button" size="sm" onClick={onPrint}>
-        인쇄
-      </Button>
       <Button
         type="button"
         size="sm"

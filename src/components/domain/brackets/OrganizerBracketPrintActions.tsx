@@ -6,40 +6,22 @@ import type { BracketPrintMode } from "@/lib/brackets/bracket-print-format";
 
 export function OrganizerBracketPrintActions({
   eventId,
-  documentTitle,
   variant = "toolbar",
   printMode = "court",
 }: {
   eventId: string;
+  /** @deprecated 인쇄 버튼 제거 후 미사용 — PDF 생성용 print route title과 무관 */
   documentTitle?: string;
   /** view: 대진표 보기 상단 / toolbar: 인쇄 전용 페이지 */
   variant?: "view" | "toolbar";
   printMode?: BracketPrintMode;
 }) {
-  const printHref = useMemo(() => {
-    const base = `/organizer/events/${eventId}/brackets/print`;
-    return printMode === "all-matches" ? `${base}?mode=all-matches` : base;
-  }, [eventId, printMode]);
   const pdfHref = useMemo(() => {
     const base = `/api/organizer/events/${eventId}/brackets/print-pdf`;
     return printMode === "all-matches" ? `${base}?mode=all-matches` : base;
   }, [eventId, printMode]);
   const [downloading, setDownloading] = useState(false);
   const [error, setError] = useState<string | null>(null);
-
-  const onPrint = useCallback(() => {
-    if (variant === "toolbar") {
-      const prev = document.title;
-      if (documentTitle) document.title = documentTitle;
-      window.print();
-      if (documentTitle) document.title = prev;
-      return;
-    }
-    const w = window.open(printHref, "_blank", "noopener,noreferrer");
-    if (!w) {
-      window.location.href = printHref;
-    }
-  }, [documentTitle, printHref, variant]);
 
   const onDownloadPdf = useCallback(async () => {
     setDownloading(true);
@@ -78,46 +60,26 @@ export function OrganizerBracketPrintActions({
     } finally {
       setDownloading(false);
     }
-  }, [pdfHref, printMode]);
+  }, [pdfHref]);
 
-  if (variant === "toolbar") {
-    return (
-      <div className="bracket-print-toolbar-actions">
-        <Button type="button" size="sm" onClick={onPrint}>
-          인쇄
-        </Button>
-        <Button
-          type="button"
-          size="sm"
-          variant="outline"
-          disabled={downloading}
-          onClick={() => void onDownloadPdf()}
-        >
-          {downloading ? "PDF 생성 중…" : "PDF 다운로드"}
-        </Button>
-        {error ? (
-          <span className="text-destructive text-xs">{error}</span>
-        ) : null}
-      </div>
-    );
-  }
+  const wrapperClass =
+    variant === "toolbar"
+      ? "bracket-print-toolbar-actions"
+      : "flex flex-wrap items-center gap-2";
 
   return (
-    <div className="flex flex-wrap items-center gap-2">
-      <Button type="button" size="sm" variant="outline" onClick={onPrint}>
-        인쇄
-      </Button>
+    <div className={wrapperClass}>
       <Button
         type="button"
         size="sm"
-        variant="outline"
+        variant={variant === "toolbar" ? "default" : "outline"}
         disabled={downloading}
         onClick={() => void onDownloadPdf()}
       >
         {downloading ? "PDF 생성 중…" : "PDF 다운로드"}
       </Button>
       {error ? (
-        <span className="text-destructive w-full text-xs">{error}</span>
+        <span className="text-destructive text-xs">{error}</span>
       ) : null}
     </div>
   );

@@ -104,7 +104,12 @@ export async function setWeighInStatusFormAction(
 
 export async function recordWeighInWeightFormAction(
   formData: FormData,
-): Promise<ActionResult<{ evaluationReason: string }>> {
+): Promise<
+  ActionResult<{
+    evaluationReason: string;
+    autoStatus: import("@/generated/prisma").WeighInStatus | null;
+  }>
+> {
   return mapCaught(async () => {
     const actor = await requireActorFromMutation();
     const parsed = recordWeighInWeightSchema.safeParse({
@@ -123,7 +128,10 @@ export async function recordWeighInWeightFormAction(
       parsed.data.weightKg,
     );
     await revalidateFieldStatusPaths(parsed.data.applicationId);
-    return actionSuccess({ evaluationReason: result.evaluationReason });
+    return actionSuccess({
+      evaluationReason: result.evaluationReason,
+      autoStatus: result.autoStatus,
+    });
   });
 }
 

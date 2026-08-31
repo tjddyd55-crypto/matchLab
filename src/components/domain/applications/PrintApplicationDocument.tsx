@@ -24,14 +24,17 @@ export function PrintApplicationDocument({
     <div className="mx-auto max-w-3xl bg-white px-6 py-8 print:px-0 print:py-0">
       <div className="mb-6 flex items-center justify-between print:hidden">
         <MatchonLogo variant="light" size="sm" />
-        <Button type="button" onClick={() => window.print()}>
-          인쇄
-        </Button>
+        {/* PDF overlay 완료본이 있으면 문서 상세의 PDF를 사용 — snapshot 인쇄만 예외 유지 */}
+        {!hasGeneratedPdf ? (
+          <Button type="button" onClick={() => window.print()}>
+            인쇄
+          </Button>
+        ) : null}
       </div>
       <p className="mb-4 text-xs text-matchon-text-secondary print:hidden">
         {hasGeneratedPdf
-          ? "완료 PDF가 생성되었습니다. 문서 상세에서 PDF 파일을 열 수 있습니다."
-          : "PDF overlay가 아직 생성되지 않은 경우 현재 화면을 출력할 수 있습니다."}
+          ? "완료 PDF가 생성되었습니다. 문서 상세에서 PDF 파일을 열어 주세요."
+          : "PDF overlay가 아직 생성되지 않아 현재 화면을 출력할 수 있습니다."}
       </p>
       <article className="space-y-4 text-sm">
         <header className="border-b border-matchon-border pb-4">

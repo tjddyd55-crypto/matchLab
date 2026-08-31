@@ -64,10 +64,17 @@ export function OrganizerFieldStatusDetailPane({
   row,
   eventId,
   onBack,
+  onWeighInSaved,
 }: {
   row: FieldStatusRowDTO;
   eventId: string;
   onBack?: () => void;
+  onWeighInSaved?: (info: {
+    fighterName: string;
+    weightKg: number;
+    evaluationReason: string;
+    autoStatus: import("@/generated/prisma").WeighInStatus | null;
+  }) => void;
 }) {
   const router = useRouter();
   const { alert } = useAppConfirmDialog();
@@ -112,7 +119,16 @@ export function OrganizerFieldStatusDetailPane({
         hint={getFieldWeighInStepHint(row.weighInStatus)}
       >
         <div className="flex flex-col gap-2">
-          <WeighInWeightInput row={row} />
+          <WeighInWeightInput
+            row={row}
+            autoFocus
+            onSaved={(info) =>
+              onWeighInSaved?.({
+                fighterName: row.fighterName,
+                ...info,
+              })
+            }
+          />
           <FieldStatusPrimaryActions row={row} showDisqualify={false} />
         </div>
       </DetailSection>

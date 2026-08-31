@@ -2,6 +2,7 @@
 
 import {
   useEffect,
+  useRef,
   useState,
   useSyncExternalStore,
   useTransition,
@@ -252,18 +253,52 @@ export function FieldStatusRowActions({
 export function WeighInWeightInput({
   row,
   touchFriendly = false,
+  autoFocus = false,
+  onSaved,
 }: {
   row: FieldStatusRowDTO;
   touchFriendly?: boolean;
+  /** 선수 선택 직후 몸무게 입력 포커스 */
+  autoFocus?: boolean;
+  onSaved?: (info: {
+    weightKg: number;
+    evaluationReason: string;
+    autoStatus: import("@/generated/prisma").WeighInStatus | null;
+  }) => void;
 }) {
   const router = useRouter();
   const hydrated = useHydrated();
+  const inputRef = useRef<HTMLInputElement>(null);
+  const submittingRef = useRef(false);
   const [weightInput, setWeightInput] = useState(
     row.weighInWeightKg != null ? String(row.weighInWeightKg) : "",
   );
   const [savedKg, setSavedKg] = useState<number | null>(row.weighInWeightKg);
+  const [lastReason, setLastReason] = useState<string | null>(null);
+  const [lastAutoStatus, setLastAutoStatus] = useState<
+    import("@/generated/prisma").WeighInStatus | null
+  >(null);
   const [errorMessage, setErrorMessage] = useState<string | null>(null);
   const [pending, startTransition] = useTransition();
+
+  useEffect(() => {
+    if (!autoFocus) return;
+    const t = window.setTimeout(() => {
+      inputRef.current?.focus();
+      inputRef.current?.select();
+    }, 50);
+    return () => window.clearTimeout(t);
+  }, [autoFocus, row.applicationId]);
+
+  useEffect(() => {
+    setWeightInput(
+      row.weighInWeightKg != null ? String(row.weighInWeightKg) : "",
+    );
+    setSavedKg(row.weighInWeightKg);
+    setLastReason(null);
+    setLastAutoStatus(null);
+    setErrorMessage(null);
+  }, [row.applicationId, row.weighInWeightKg]);
 
   const parsedInput = weightInput.trim() ? Number(weightInput) : null;
   const isSaved =
@@ -274,27 +309,53 @@ export function WeighInWeightInput({
 
   function handleSubmit(e: FormEvent<HTMLFormElement>) {
     e.preventDefault();
+    if (pending || submittingRef.current) return;
     const weightKg = weightInput.trim();
     if (!weightKg) return;
     setErrorMessage(null);
+    submittingRef.current = true;
 
     startTransition(async () => {
-      const fd = new FormData();
-      fd.set("applicationId", row.applicationId);
-      fd.set("weightKg", weightKg);
-      const result = await recordWeighInWeightFormAction(fd);
-      if (result.ok) {
-        const kg = Number(weightKg);
-        setSavedKg(kg);
-        router.refresh();
-      } else {
-        setErrorMessage(result.error.message || "저장 실패. 다시 시도해 주세요.");
+      try {
+        const fd = new FormData();
+        fd.set("applicationId", row.applicationId);
+        fd.set("weightKg", weightKg);
+        const result = await recordWeighInWeightFormAction(fd);
+        if (result.ok) {
+          const kg = Number(weightKg);
+          setSavedKg(kg);
+          setLastReason(result.data.evaluationReason);
+          setLastAutoStatus(result.data.autoStatus);
+          onSaved?.({
+            weightKg: kg,
+            evaluationReason: result.data.evaluationReason,
+            autoStatus: result.data.autoStatus,
+          });
+          // refresh는 onSaved 이후 — 보드가 hold-empty 플래그를 먼저 기록
+          router.refresh();
+        } else {
+          setErrorMessage(result.error.message || "저장 실패. 다시 시도해 주세요.");
+        }
+      } finally {
+        submittingRef.current = false;
       }
     });
   }
 
+  const statusHint =
+    lastAutoStatus === "pass" || lastAutoStatus === "manual_pass"
+      ? "계체 통과"
+      : lastAutoStatus === "fail" || lastAutoStatus === "manual_fail"
+        ? "계체 실패"
+        : null;
+
   return (
-    <div className="flex w-full min-w-0 flex-col items-start justify-center gap-0.5">
+    <div className="flex w-full min-w-0 flex-col items-start justify-center gap-1">
+      {row.weightClassLabel ? (
+        <p className="text-muted-foreground text-[11px]">
+          체급 기준: {row.weightClassLabel}
+        </p>
+      ) : null}
       <form
         onSubmit={handleSubmit}
         className={cn(
@@ -302,19 +363,28 @@ export function WeighInWeightInput({
           touchFriendly && "w-full flex-col sm:flex-row",
         )}
       >
+        <label className="sr-only" htmlFor={`weigh-in-${row.applicationId}`}>
+          실제 계체 몸무게
+        </label>
         <input
+          ref={inputRef}
+          id={`weigh-in-${row.applicationId}`}
           name="weightKg"
           type="number"
+          inputMode="decimal"
           step="0.1"
           min="0"
           placeholder="kg"
+          aria-label="실제 계체 몸무게"
           value={weightInput}
           onChange={(e) => setWeightInput(e.target.value)}
+          disabled={pending}
           className={cn(
             "border-input bg-background shrink-0 rounded-md border px-2 text-xs focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring",
             touchFriendly ? "h-11 w-full text-sm sm:w-[5.5rem]" : "h-8 w-[4.25rem]",
           )}
         />
+        <span className="text-muted-foreground text-xs">kg</span>
         <Button
           type="submit"
           size={touchFriendly ? "field" : "sm"}
@@ -331,6 +401,20 @@ export function WeighInWeightInput({
       {hydrated && isSaved && savedKg != null ? (
         <p className="text-[11px] font-medium text-emerald-600" role="status">
           저장됨 {formatSavedWeightKg(savedKg)}kg
+          {statusHint ? ` · ${statusHint}` : ""}
+        </p>
+      ) : null}
+      {lastReason ? (
+        <p
+          className={cn(
+            "text-[11px] font-medium",
+            statusHint === "계체 통과" && "text-emerald-700",
+            statusHint === "계체 실패" && "text-amber-800",
+            !statusHint && "text-muted-foreground",
+          )}
+          role="status"
+        >
+          {lastReason}
         </p>
       ) : null}
       {errorMessage ? (
