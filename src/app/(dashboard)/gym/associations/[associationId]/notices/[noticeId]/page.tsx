@@ -7,6 +7,7 @@ import { PermissionError } from "@/lib/auth/permission-error";
 import { formatPublicDateTime } from "@/lib/date-display";
 import { AppError } from "@/lib/errors/app-error";
 import { associationNoticeService } from "@/lib/services/association-notice.service";
+import { matchonPageContainerClass } from "@/lib/ui/matchon-layout";
 import { cn } from "@/lib/utils";
 
 export const dynamic = "force-dynamic";
@@ -41,7 +42,7 @@ export default async function GymAssociationNoticeDetailPage({
   const { association, notice } = data;
 
   return (
-    <div className="px-4 py-6 md:px-6">
+    <div className={matchonPageContainerClass}>
       <header className="space-y-2">
         <p className="text-xs font-bold text-matchon-primary">{association.name}</p>
         <div className="flex flex-wrap items-center gap-2">

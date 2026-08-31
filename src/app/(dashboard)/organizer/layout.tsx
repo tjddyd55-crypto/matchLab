@@ -65,7 +65,7 @@ export default async function OrganizerDashboardLayout({
         organizerType={actor.organizerType}
       >
         {access?.bannerMessage ? (
-          <div className="px-4 pt-4 md:px-6">
+          <div className="px-[var(--dashboard-content-padding-x)] pt-3 md:pt-4">
             <OrganizerPortalStatusBanner access={access} />
           </div>
         ) : null}

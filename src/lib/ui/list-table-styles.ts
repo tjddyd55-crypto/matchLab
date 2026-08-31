@@ -6,11 +6,11 @@ export const listTableHeaderRowClass =
 
 /** 헤더 셀 — 좌측 (체육관, 선수명, 경기구분/체급) */
 export const listTableHeaderCellStartClass =
-  "h-9 min-h-9 px-2 py-2 text-left align-middle text-xs font-semibold text-matchon-text-secondary whitespace-nowrap";
+  "h-8 min-h-8 px-2 py-1.5 text-left align-middle text-xs font-semibold text-matchon-text-secondary whitespace-nowrap";
 
 /** 헤더 셀 — 중앙 (상태, 액션, 숫자 등) */
 export const listTableHeaderCellCenterClass =
-  "h-9 min-h-9 px-2 py-2 text-center align-middle text-xs font-semibold text-matchon-text-secondary whitespace-nowrap";
+  "h-8 min-h-8 px-2 py-1.5 text-center align-middle text-xs font-semibold text-matchon-text-secondary whitespace-nowrap";
 
 /** 경기운영 — 결과 입력 패널이 열린 row summary tr */
 export function operationExpandedSummaryRowClass(isExpanded: boolean): string {

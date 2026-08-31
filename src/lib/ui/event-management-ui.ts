@@ -14,21 +14,21 @@ export const eventManagementSideNavScrollClass =
   "min-h-0 flex-1 overflow-y-auto overscroll-contain [-ms-overflow-style:none] [scrollbar-width:thin] [&::-webkit-scrollbar]:w-1.5 [&::-webkit-scrollbar-thumb]:rounded-full [&::-webkit-scrollbar-thumb]:bg-[#CBD5E1]";
 
 export const eventManagementSideNavHeaderClass =
-  "sticky top-0 z-10 shrink-0 border-b border-[#E2E8F0] bg-white p-4";
+  "sticky top-0 z-10 shrink-0 border-b border-[#E2E8F0] bg-white px-3 py-3";
 
 export const eventManagementSideNavBackLinkClass =
   "inline-flex items-center gap-1.5 text-xs font-medium text-[#64748B] transition-colors hover:text-[#0A47FF]";
 
 export const eventManagementSideNavTitleClass =
-  "mt-3 line-clamp-3 font-heading text-[15px] leading-snug font-bold text-[#0F172A]";
+  "mt-2 line-clamp-3 font-heading text-[15px] leading-snug font-bold text-[#0F172A]";
 
-export const eventManagementSideNavMenuClass = "px-3 py-4";
+export const eventManagementSideNavMenuClass = "px-2.5 py-3";
 
 export const eventManagementSideNavGroupLabelClass =
-  "mb-1.5 mt-5 px-3 text-[11px] font-semibold text-[#94A3B8] first:mt-0";
+  "mb-1 mt-4 px-3 text-[11px] font-semibold text-[#94A3B8] first:mt-0";
 
 export const eventManagementSideNavLinkBaseClass =
-  "flex h-10 w-full items-center gap-2.5 rounded-[9px] border border-transparent px-3 text-[13px] font-medium transition-colors";
+  "flex h-9 w-full items-center gap-2.5 rounded-[9px] border border-transparent px-3 text-[13px] font-medium transition-colors";
 
 export const eventManagementSideNavLinkActiveClass =
   "border-[#7AA2FF] bg-[#EAF1FF] font-semibold text-[#0A47FF] [&_svg]:text-[#0A47FF]";
@@ -40,7 +40,7 @@ export const eventManagementMainColumnClass =
   "min-w-0 bg-[#F8FAFC] desktop:min-w-[var(--desktop-content-min-width)]";
 
 export const eventManagementMainContentClass =
-  "min-w-0 w-full space-y-5 px-[var(--dashboard-content-padding-x)] py-5 md:space-y-7 md:py-7 desktop:min-w-[var(--desktop-content-min-width)] desktop:overflow-x-visible";
+  "min-w-0 w-full space-y-4 px-[var(--dashboard-content-padding-x)] py-4 md:space-y-5 md:py-5 desktop:min-w-[var(--desktop-content-min-width)] desktop:overflow-x-visible";
 
 export const eventManagementMobileBarClass =
   "flex items-center justify-between gap-3 border-b border-[#E2E8F0] bg-white px-4 py-3 md:hidden desktop:hidden";
@@ -65,27 +65,27 @@ export const eventManagementContentInsetClass =
 export const eventManagementChromeBleedClass = `-mx-[var(--dashboard-content-padding-x)] border-b ${eventManagementBorderColorClass} ${eventManagementChromeSurfaceClass}`;
 
 export const eventManagementContentClass =
-  "min-w-0 w-full space-y-5 md:space-y-7";
+  "min-w-0 w-full space-y-4 md:space-y-5";
 
 export const eventManagementPageHeaderClass =
-  "flex flex-col gap-3 sm:flex-row sm:items-start sm:justify-between sm:gap-4";
+  "flex flex-col gap-2 sm:flex-row sm:items-start sm:justify-between sm:gap-3";
 
-export const eventManagementPageHeaderMainClass = "min-w-0 flex-1 space-y-1.5";
+export const eventManagementPageHeaderMainClass = "min-w-0 flex-1 space-y-1";
 
 export const eventManagementPageHeaderActionsClass =
-  "flex shrink-0 flex-col gap-2 sm:items-end sm:pt-0.5";
+  "flex shrink-0 flex-col gap-2 sm:items-end sm:pt-0";
 
 export const eventManagementPageTitleClass =
-  "font-heading text-xl font-bold tracking-tight text-[#0F172A] md:text-2xl";
+  "font-heading text-lg font-bold tracking-tight text-[#0F172A] md:text-xl";
 
 export const eventManagementPageDescClass = `${matchonPageDescClass} text-[#64748B]`;
 
 export const eventManagementChromeClass = `${eventManagementChromeBleedClass} mb-0`;
 
 export const eventManagementContextHeaderClass =
-  "flex min-w-0 items-center justify-between gap-3 py-3.5 sm:gap-4";
+  "flex min-w-0 items-center justify-between gap-3 py-2.5 sm:gap-4";
 
-export const eventManagementPrimaryNavClass = `flex h-11 min-w-0 items-stretch gap-6 overflow-x-auto sm:gap-7 [-ms-overflow-style:none] [scrollbar-width:none] [&::-webkit-scrollbar]:hidden`;
+export const eventManagementPrimaryNavClass = `flex h-10 min-w-0 items-stretch gap-5 overflow-x-auto sm:gap-6 [-ms-overflow-style:none] [scrollbar-width:none] [&::-webkit-scrollbar]:hidden`;
 
 export const eventManagementPrimaryNavLinkBaseClass =
   "inline-flex h-full shrink-0 items-center border-b-2 border-transparent text-[13px] font-semibold transition-colors sm:text-sm";
@@ -96,7 +96,7 @@ export const eventManagementPrimaryNavLinkActiveClass =
 export const eventManagementPrimaryNavLinkInactiveClass =
   "text-[#64748B] hover:text-[#0F172A]";
 
-export const eventManagementSecondaryNavClass = `flex min-h-12 min-w-0 gap-2 overflow-x-auto py-2 ${eventManagementSubNavSurfaceClass} [-ms-overflow-style:none] [scrollbar-width:none] [&::-webkit-scrollbar]:hidden`;
+export const eventManagementSecondaryNavClass = `flex min-h-10 min-w-0 gap-2 overflow-x-auto py-1.5 ${eventManagementSubNavSurfaceClass} [-ms-overflow-style:none] [scrollbar-width:none] [&::-webkit-scrollbar]:hidden`;
 
 export const eventManagementSecondaryNavLinkBaseClass =
   "min-h-8 shrink-0 rounded-full border px-3 py-1 text-xs font-medium transition-colors md:text-sm";
@@ -107,7 +107,7 @@ export const eventManagementSecondaryNavLinkActiveClass =
 export const eventManagementSecondaryNavLinkInactiveClass =
   `border-[#E2E8F0] bg-white text-[#64748B] hover:border-[#BFD0FF]/60 hover:text-[#0F172A]`;
 
-export const eventManagementSectionStackClass = "flex flex-col gap-4 md:gap-5";
+export const eventManagementSectionStackClass = "flex flex-col gap-3 md:gap-4";
 
 export const eventManagementSectionHeaderClass =
   "flex min-w-0 items-center justify-between gap-3";
@@ -149,7 +149,7 @@ export const eventManagementStatValueClass =
   "mt-0.5 text-lg font-bold tabular-nums leading-none text-[#0F172A]";
 
 /** 바로가기/히어로 등 운영 KPI가 아닌 카드 */
-export const eventManagementStatCardRelaxedClass = `rounded-[14px] border ${eventManagementBorderColorClass} ${eventManagementContentSurfaceClass} p-4 text-left transition-colors focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[#0A47FF]/30`;
+export const eventManagementStatCardRelaxedClass = `rounded-[14px] border ${eventManagementBorderColorClass} ${eventManagementContentSurfaceClass} p-3 text-left transition-colors focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[#0A47FF]/30`;
 
 export const eventManagementStatLabelRelaxedClass = "text-xs text-[#64748B]";
 

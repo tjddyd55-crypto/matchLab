@@ -15,27 +15,27 @@ export const dashboardSidebarSpacerClass =
   "hidden w-[var(--global-sidebar-width)] shrink-0 md:block";
 
 export const dashboardSidebarAsideClass =
-  "fixed top-0 left-0 z-20 hidden h-dvh max-h-dvh w-[var(--global-sidebar-width)] flex-col overflow-hidden border-r border-white/8 bg-matchon-sidebar px-3 py-4 md:flex";
+  "fixed top-0 left-0 z-20 hidden h-dvh max-h-dvh w-[var(--global-sidebar-width)] flex-col overflow-hidden border-r border-white/8 bg-matchon-sidebar px-2.5 py-3 md:flex";
 
 /**
  * Desktop Manager shell — in-flow primary nav filling shell height.
  * Outer viewport scrolls horizontally only; this aside stays put.
  */
 export const dashboardSidebarAsideCanvasClass =
-  "relative z-20 flex h-full max-h-full w-[var(--global-sidebar-width)] shrink-0 flex-col self-stretch overflow-hidden border-r border-white/8 bg-matchon-sidebar px-3 py-4";
+  "relative z-20 flex h-full max-h-full w-[var(--global-sidebar-width)] shrink-0 flex-col self-stretch overflow-hidden border-r border-white/8 bg-matchon-sidebar px-2.5 py-3";
 
-export const dashboardSidebarBrandClass = "mb-4 shrink-0 px-2";
+export const dashboardSidebarBrandClass = "mb-3 shrink-0 px-2";
 
 export const dashboardSidebarNavClass =
   "flex min-h-0 flex-1 flex-col overflow-y-auto overflow-x-hidden";
 
 export const dashboardSidebarHomeWrapClass = "space-y-0.5";
 
-export const dashboardSidebarDividerClass = "mt-5 border-t border-white/8";
+export const dashboardSidebarDividerClass = "mt-4 border-t border-white/8";
 
-export const dashboardSidebarFirstSectionClass = "mt-3";
+export const dashboardSidebarFirstSectionClass = "mt-2.5";
 
-export const dashboardSidebarSectionClass = "mt-5";
+export const dashboardSidebarSectionClass = "mt-4";
 
 export const dashboardSidebarSectionLabelClass =
   "flex cursor-default items-center gap-1.5 px-3 pb-1.5 pt-1 text-[11px] font-bold tracking-[0.03em] text-slate-400";

@@ -14,8 +14,8 @@ export function MatchonEmptyState({
   action?: React.ReactNode;
 }) {
   return (
-    <Card variant="muted" className="gap-0 py-6">
-      <CardContent className="space-y-4 px-4 sm:px-5">
+    <Card variant="muted" className="gap-0 py-4 md:py-5">
+      <CardContent className="space-y-3 px-3 sm:px-4">
         <FeedbackMessage tone={tone} role="status">
           <span className="font-medium">{title}</span>
           {description ? (

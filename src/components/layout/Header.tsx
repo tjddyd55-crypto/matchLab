@@ -43,8 +43,8 @@ export function Header(props: HeaderProps) {
   const isDesktop = Boolean(props.isDesktop);
 
   return (
-    <header className="shrink-0 border-b border-matchon-border bg-white px-4 py-3 md:px-6">
-      <div className="flex flex-wrap items-center justify-between gap-3">
+    <header className="shrink-0 border-b border-matchon-border bg-white px-[var(--dashboard-content-padding-x)] py-2.5 md:py-3">
+      <div className="flex flex-wrap items-center justify-between gap-2 md:gap-3">
         <div className="flex min-w-0 items-center gap-3">
           {!isDesktop && props.role === "organizer" && props.organizerNavGroups ? (
             <OrganizerMobileNavSheet groups={props.organizerNavGroups} />

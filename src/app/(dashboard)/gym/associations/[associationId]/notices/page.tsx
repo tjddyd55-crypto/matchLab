@@ -6,6 +6,7 @@ import { formatPublicDate } from "@/lib/date-display";
 import { AppError } from "@/lib/errors/app-error";
 import { PermissionError } from "@/lib/auth/permission-error";
 import { associationNoticeService } from "@/lib/services/association-notice.service";
+import { matchonPageContainerClass } from "@/lib/ui/matchon-layout";
 
 export const dynamic = "force-dynamic";
 
@@ -35,7 +36,7 @@ export default async function GymAssociationNoticesPage({
   const { association, notices } = data;
 
   return (
-    <div className="px-4 py-6 md:px-6">
+    <div className={matchonPageContainerClass}>
       <header className="space-y-1">
         <p className="text-xs font-bold uppercase tracking-[0.04em] text-matchon-primary">
           협회
@@ -46,7 +47,7 @@ export default async function GymAssociationNoticesPage({
         <p className="text-sm text-matchon-text-secondary">공지사항</p>
       </header>
 
-      <div className="mt-6">
+      <div className="mt-4">
         {notices.length === 0 ? (
           <div className="rounded-xl border border-dashed border-matchon-border bg-white px-6 py-12 text-center text-sm text-matchon-text-secondary">
             등록된 공지사항이 없습니다.

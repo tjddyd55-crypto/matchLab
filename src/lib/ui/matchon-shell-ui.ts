@@ -19,7 +19,7 @@ export const matchonPageHeaderStackClass = "space-y-1";
 export { matchonPageTitleClass, matchonPageDescClass, matchonSectionTitleClass };
 
 export const matchonFilterBarClass =
-  "rounded-xl border border-matchon-border bg-matchon-primary-light/35 p-3 md:p-4";
+  "rounded-xl border border-matchon-border bg-matchon-primary-light/35 p-2.5 md:p-3";
 
 export const matchonFilterPillBaseClass =
   "min-h-9 shrink-0 rounded-full border px-3 py-1.5 text-sm font-medium transition-colors md:min-h-8";
@@ -31,13 +31,13 @@ export const matchonFilterPillInactiveClass =
   "border-matchon-border bg-white text-matchon-text-secondary hover:border-matchon-primary/30 hover:text-matchon-text-primary";
 
 export const matchonSecondarySidebarClass =
-  "rounded-xl border border-matchon-border bg-white p-3 shadow-sm";
+  "rounded-xl border border-matchon-border bg-white p-2.5 shadow-sm";
 
 export const matchonSecondarySidebarSectionLabelClass =
-  "mb-2 px-2 text-xs font-bold uppercase tracking-wide text-matchon-text-secondary";
+  "mb-1.5 px-2 text-xs font-bold uppercase tracking-wide text-matchon-text-secondary";
 
 export const matchonSecondarySidebarLinkBaseClass =
-  "block rounded-lg px-3 py-2 text-[15px] font-medium transition-colors";
+  "block rounded-lg px-3 py-1.5 text-[15px] font-medium transition-colors";
 
 export const matchonSecondarySidebarLinkActiveClass =
   "bg-matchon-primary-light text-matchon-primary";
@@ -46,10 +46,10 @@ export const matchonSecondarySidebarLinkInactiveClass =
   "text-matchon-text-primary hover:bg-matchon-surface";
 
 export const matchonUnderlineTabsNavClass =
-  "flex gap-6 overflow-x-auto border-b border-matchon-border [-ms-overflow-style:none] [scrollbar-width:none] [&::-webkit-scrollbar]:hidden";
+  "flex gap-5 overflow-x-auto border-b border-matchon-border [-ms-overflow-style:none] [scrollbar-width:none] [&::-webkit-scrollbar]:hidden";
 
 export const matchonUnderlineTabBaseClass =
-  "shrink-0 border-b-2 border-transparent pb-3 text-[15px] font-semibold transition-colors";
+  "shrink-0 border-b-2 border-transparent pb-2.5 text-[15px] font-semibold transition-colors";
 
 export const matchonUnderlineTabActiveClass =
   "border-matchon-primary text-matchon-primary";
@@ -60,40 +60,41 @@ export const matchonUnderlineTabInactiveClass =
 export const matchonCompactTableWrapClass =
   "hidden overflow-x-auto rounded-xl border border-matchon-border bg-white lg:block";
 
-export const matchonMobileCardListClass = "flex flex-col gap-3 lg:hidden";
+export const matchonMobileCardListClass = "flex flex-col gap-2.5 lg:hidden";
 
 /** 회원관리 V2 지표 — 최대 5열, 카드 과대 금지 */
 export const matchonMemberMetricsGridClass =
-  "grid gap-3 grid-cols-2 sm:grid-cols-3 xl:grid-cols-5";
+  "grid gap-2.5 grid-cols-2 sm:grid-cols-3 xl:grid-cols-5";
 
-export const matchonStatsGridClass = "grid gap-3 sm:grid-cols-2 lg:grid-cols-4";
+export const matchonStatsGridClass =
+  "grid gap-2.5 sm:grid-cols-2 lg:grid-cols-4";
 
 export const matchonStatCardClass =
-  "rounded-xl border border-matchon-border bg-white p-4 shadow-sm";
+  "rounded-xl border border-matchon-border bg-white p-3 shadow-sm";
 
 export const matchonStatValueClass =
-  "font-black text-2xl tracking-tight text-matchon-text-primary";
+  "font-black text-xl tracking-tight text-matchon-text-primary md:text-2xl";
 
 export const matchonStatLabelClass = "text-sm text-matchon-text-secondary";
 
 export const matchonVsCardClass =
-  "rounded-xl border border-matchon-border bg-white p-4 shadow-sm";
+  "rounded-xl border border-matchon-border bg-white p-3 shadow-sm";
 
 export const matchonRedCornerPanelClass =
-  "rounded-lg border border-red-200 bg-red-50/90 p-3 text-red-800";
+  "rounded-lg border border-red-200 bg-red-50/90 p-2.5 text-red-800";
 
 export const matchonBlueCornerPanelClass =
-  "rounded-lg border border-blue-200 bg-blue-50/90 p-3 text-blue-800";
+  "rounded-lg border border-blue-200 bg-blue-50/90 p-2.5 text-blue-800";
 
 export const matchonRedCornerTextClass = "font-bold text-red-600";
 
 export const matchonBlueCornerTextClass = "font-bold text-blue-600";
 
 export const matchonCompactActionBarClass =
-  "flex flex-wrap items-center gap-2 rounded-xl border border-matchon-border bg-white p-3";
+  "flex flex-wrap items-center gap-2 rounded-xl border border-matchon-border bg-white p-2.5";
 
 export const matchonInfoBannerClass =
-  "rounded-xl border border-matchon-border bg-matchon-primary-light/30 px-4 py-3 text-base text-matchon-text-primary";
+  "rounded-xl border border-matchon-border bg-matchon-primary-light/30 px-3 py-2.5 text-sm text-matchon-text-primary md:text-base";
 
 /**
  * 툴바·필터 컨트롤 공통 높이 SSOT — form-control compact.

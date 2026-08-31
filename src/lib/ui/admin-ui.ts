@@ -40,8 +40,9 @@ export {
   matchonSectionTitleClass,
 };
 
+/** gym/organizer와 동일: 96rem 천장 + CSS var inset (max-w-7xl 중앙 고립 제거) */
 export const adminPageContainerClass =
-  "mx-auto w-full max-w-7xl px-4 py-6 sm:px-6 md:py-8 lg:px-8";
+  "mx-auto w-full max-w-[min(100%,96rem)] px-[var(--dashboard-content-padding-x)] py-4 md:py-5";
 
 export const adminPageTitleClass = matchonPageTitleClass;
 export const adminPageDescClass = matchonPageDescClass;
@@ -50,7 +51,7 @@ export const adminDesktopTableClass = matchonCompactTableWrapClass;
 export const adminMobileListClass = "flex flex-col gap-3 md:hidden";
 
 export const adminContentCardClass =
-  "rounded-xl border border-matchon-border bg-white p-4 shadow-sm";
+  "rounded-xl border border-matchon-border bg-white p-3 shadow-sm md:p-3.5";
 
 export const adminMobileCardClass =
   "gap-0 overflow-hidden rounded-xl border border-matchon-border bg-white py-0 shadow-sm";

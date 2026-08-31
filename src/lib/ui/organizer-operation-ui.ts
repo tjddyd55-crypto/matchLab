@@ -40,7 +40,7 @@ export const organizerOperationTableWrapClass = matchonCompactTableWrapClass;
  * 경기 운영 spotlight도 동일 family (padding/border); major section gap은 spotlight에서 gap-0 + divider로 관리.
  */
 export const organizerOperationDetailPanelClass =
-  "flex flex-col gap-[18px] rounded-xl border border-[#E2E8F0] bg-white p-[18px] shadow-sm md:p-5";
+  "flex flex-col gap-3.5 rounded-xl border border-[#E2E8F0] bg-white p-3.5 shadow-sm md:gap-4 md:p-4";
 
 export const organizerOperationSpotlightPanelClass = cn(
   organizerOperationDetailPanelClass,
@@ -53,7 +53,7 @@ export const organizerOperationDetailDividerClass =
 
 export const organizerOperationDetailMajorSectionClass = cn(
   organizerOperationDetailDividerClass,
-  "mt-4 pt-4",
+  "mt-3 pt-3",
 );
 
 /** inner content — horizontal padding owner는 outer panel only */

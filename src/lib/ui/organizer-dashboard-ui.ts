@@ -14,7 +14,7 @@ import {
 } from "@/lib/ui/matchon-shell-ui";
 
 export const organizerDashboardContainerClass =
-  "mx-auto w-full max-w-[min(100%,96rem)] px-[var(--dashboard-content-padding-x)] py-6 md:py-8";
+  "mx-auto w-full max-w-[min(100%,96rem)] px-[var(--dashboard-content-padding-x)] py-4 md:py-5";
 
 export const organizerDashboardPageClass = matchonPageStackClass;
 

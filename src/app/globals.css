@@ -171,13 +171,14 @@
 
 @media (min-width: 640px) {
   :root {
-    --dashboard-content-padding-x: 1.5rem;
+    /* Desktop density: 과한 좌우 inset 완화 (모바일 1rem 유지) */
+    --dashboard-content-padding-x: 1.25rem;
   }
 }
 
 @media (min-width: 1024px) {
   :root {
-    --dashboard-content-padding-x: 2rem;
+    --dashboard-content-padding-x: 1.25rem;
   }
 }
 
@@ -242,7 +243,7 @@
   html.desktop-app {
     height: 100%;
     overflow: hidden;
-    --dashboard-content-padding-x: 2rem;
+    --dashboard-content-padding-x: 1.25rem;
   }
   html.desktop-app body {
     display: flex;
