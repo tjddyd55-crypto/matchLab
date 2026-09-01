@@ -14,8 +14,7 @@ export default async function AdminDashboardLayout({
     <AppShell>
       <DashboardShell
         role="admin"
-        actorUserId={actor.userId}
-        actorEmail={actor.email || ""}
+        actor={actor}
       >
         {children}
       </DashboardShell>

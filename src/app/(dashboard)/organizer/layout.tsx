@@ -46,8 +46,7 @@ export default async function OrganizerDashboardLayout({
       <AppShell>
         <DashboardShell
           role={dashboardRoleFor(actor.role)}
-          actorUserId={actor.userId}
-          actorEmail={actor.email || ""}
+          actor={actor}
           organizerType={actor.organizerType}
         >
           <OrganizerPortalBlockedView access={access} />
@@ -60,8 +59,7 @@ export default async function OrganizerDashboardLayout({
     <AppShell>
       <DashboardShell
         role={dashboardRoleFor(actor.role)}
-        actorUserId={actor.userId}
-        actorEmail={actor.email || ""}
+        actor={actor}
         organizerType={actor.organizerType}
       >
         {access?.bannerMessage ? (

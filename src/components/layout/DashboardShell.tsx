@@ -1,4 +1,6 @@
 import type { ReactNode } from "react";
+import type { ActorContext } from "@/lib/auth/actor-context";
+import { resolveDashboardHeaderIdentity } from "@/lib/auth/dashboard-header-identity";
 import { Header } from "@/components/layout/Header";
 import { MobileBottomNav } from "@/components/layout/MobileBottomNav";
 import { Sidebar } from "@/components/layout/Sidebar";
@@ -14,21 +16,20 @@ export type DashboardRole = "organizer" | "gym" | "fighter" | "admin";
 
 export async function DashboardShell({
   role,
-  actorUserId,
-  actorEmail,
+  actor,
   organizerType,
   gymNavViewer = "owner",
   gymAssociations = [],
   children,
 }: {
   role: DashboardRole;
-  actorUserId: string;
-  actorEmail: string;
+  actor: ActorContext;
   organizerType?: OrganizerType | null;
   gymNavViewer?: GymPortalNavViewer;
   gymAssociations?: GymPortalAssociationNavInput[];
   children: ReactNode;
 }) {
+  const headerIdentity = await resolveDashboardHeaderIdentity(actor);
   const organizerNavGroups =
     role === "organizer"
       ? getOrganizerGlobalNavGroups({ organizerType })
@@ -72,8 +73,9 @@ export async function DashboardShell({
         <Header
           variant="dashboard"
           role={role}
-          actorUserId={actorUserId}
-          actorEmail={actorEmail}
+          actorUserId={actor.userId}
+          identityPrimary={headerIdentity.primaryLabel}
+          identitySecondary={headerIdentity.secondaryLabel}
           organizerNavGroups={organizerNavGroups}
           gymNavViewer={gymNavViewer}
           gymAssociations={gymAssociations}

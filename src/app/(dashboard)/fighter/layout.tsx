@@ -14,8 +14,7 @@ export default async function FighterDashboardLayout({
     <AppShell>
       <DashboardShell
         role="fighter"
-        actorUserId={actor.userId}
-        actorEmail={actor.email || ""}
+        actor={actor}
       >
         {children}
       </DashboardShell>

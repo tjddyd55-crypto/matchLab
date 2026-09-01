@@ -62,8 +62,7 @@ export default async function GymDashboardLayout({
       <AppShell>
         <DashboardShell
           role="gym"
-          actorUserId={actor.userId}
-          actorEmail={actor.email || ""}
+          actor={actor}
           gymNavViewer={gymNavViewer}
         >
           <div className="mx-auto max-w-lg px-4 py-16">
@@ -86,8 +85,7 @@ export default async function GymDashboardLayout({
     <AppShell>
       <DashboardShell
         role="gym"
-        actorUserId={actor.userId}
-        actorEmail={actor.email || ""}
+        actor={actor}
         gymNavViewer={gymNavViewer}
         gymAssociations={gymAssociations}
       >

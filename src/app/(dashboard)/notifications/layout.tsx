@@ -23,8 +23,7 @@ export default async function NotificationsLayout({
     <AppShell>
       <DashboardShell
         role={dashboardRoleFor(actor.role)}
-        actorUserId={actor.userId}
-        actorEmail={actor.email || ""}
+        actor={actor}
       >
         {children}
       </DashboardShell>

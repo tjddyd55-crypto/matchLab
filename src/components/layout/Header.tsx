@@ -20,7 +20,8 @@ type HeaderProps =
       variant: "dashboard";
       role: DashboardRole;
       actorUserId: string;
-      actorEmail: string;
+      identityPrimary: string;
+      identitySecondary: string;
       organizerNavGroups?: OrganizerGlobalNavGroup[];
       /** 체육관 포털은 관장/선생님이 서로 다른 메뉴를 본다. */
       gymNavViewer?: GymPortalNavViewer;
@@ -34,12 +35,6 @@ export function Header(props: HeaderProps) {
     return null;
   }
 
-  const titles: Record<DashboardRole, string> = {
-    organizer: "주최자",
-    gym: "체육관",
-    fighter: "선수",
-    admin: "관리자",
-  };
   const isDesktop = Boolean(props.isDesktop);
 
   return (
@@ -73,11 +68,11 @@ export function Header(props: HeaderProps) {
             className="shrink-0 md:hidden desktop:hidden"
           />
           <div className="flex min-w-0 flex-col gap-0.5">
-            <span className="text-sm font-semibold text-matchon-text-primary">
-              {titles[props.role]} 대시보드
+            <span className="truncate text-sm font-semibold text-matchon-text-primary">
+              {props.identityPrimary}
             </span>
             <span className="truncate text-xs text-matchon-text-secondary">
-              {props.actorEmail}
+              {props.identitySecondary}
             </span>
           </div>
         </div>
