@@ -48,6 +48,7 @@ export default async function OrganizerEventCheckInPage({
         rows={fieldStatus.rows}
         summary={fieldStatus.summary}
         eventId={eventId}
+        eventPublicSlug={nav.publicSlug}
       />
     </EventManagementLayout>
   );

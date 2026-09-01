@@ -5,14 +5,11 @@ import {
   ApplicationStatus,
   FighterStatus,
   MatchRecordOutcome,
-  MatchRecordStatus,
 } from "@/generated/prisma";
 import { prisma } from "@/lib/prisma";
+import { PUBLIC_OFFICIAL_MATCH_RESULT_STATUSES } from "@/lib/public-official-result";
 
-const COUNTABLE_STATUSES: MatchRecordStatus[] = [
-  MatchRecordStatus.confirmed,
-  MatchRecordStatus.corrected,
-];
+const COUNTABLE_STATUSES = PUBLIC_OFFICIAL_MATCH_RESULT_STATUSES;
 
 const OUTCOME_LABEL: Record<MatchRecordOutcome, string> = {
   win: "승",

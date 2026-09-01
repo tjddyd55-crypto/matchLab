@@ -7,7 +7,7 @@ import { BracketMatchStatus } from "@/lib/enums";
 import { formatMatchOrderShort } from "@/lib/match-order-display";
 import type { OrganizerEventMatchListItemVM } from "@/lib/services/match.service";
 
-export type OperationSpotlightMatches<T extends OrganizerEventMatchListItemVM> = {
+export type OperationSpotlightMatches<T extends { status: BracketMatchStatus }> = {
   current: T | null;
   next: T | null;
   recentFinished: T | null;
@@ -15,7 +15,7 @@ export type OperationSpotlightMatches<T extends OrganizerEventMatchListItemVM> =
 
 /** 경기장 탭 기준 현재/다음/최근 종료 경기 */
 export function pickOperationSpotlightMatches<
-  T extends OrganizerEventMatchListItemVM,
+  T extends { status: BracketMatchStatus },
 >(rows: T[]): OperationSpotlightMatches<T> {
   const ongoingIdx = rows.findIndex((r) => r.status === BracketMatchStatus.ongoing);
   const current =
@@ -324,4 +324,43 @@ export function canViewResult(
   match: Pick<OrganizerEventMatchListItemVM, "hasOfficialResults">,
 ): boolean {
   return match.hasOfficialResults;
+}
+
+export type CourtQueueMatchRef = {
+  matchId: string;
+  status: BracketMatchStatus;
+  hasOfficialResults?: boolean;
+};
+
+/**
+ * 같은 경기장 courtOrder 정렬 목록에서 spotlight.current 이후 target 직전까지
+ * 운영 큐(scheduled/preparing/in_progress) 경기 수 — matchNumber 차감과 무관.
+ */
+export function countQueueMatchesUntilTarget<T extends CourtQueueMatchRef>(
+  rows: T[],
+  targetMatchId: string,
+): number {
+  const targetIdx = rows.findIndex((row) => row.matchId === targetMatchId);
+  if (targetIdx < 0) return 0;
+
+  const spotlight = pickOperationSpotlightMatches(rows);
+  const currentIdx = spotlight.current
+    ? rows.findIndex((row) => row.matchId === (spotlight.current as T).matchId)
+    : -1;
+
+  let count = 0;
+  for (let i = Math.max(0, currentIdx + 1); i < targetIdx; i++) {
+    const phase = getOperationMatchPhase({
+      status: rows[i].status,
+      hasOfficialResults: rows[i].hasOfficialResults ?? false,
+    });
+    if (
+      phase === "scheduled" ||
+      phase === "preparing" ||
+      phase === "in_progress"
+    ) {
+      count += 1;
+    }
+  }
+  return count;
 }

@@ -5,6 +5,7 @@ import { bracketCardTypography } from "@/lib/bracket-card-typography";
 import { cn } from "@/lib/utils";
 import { formatMatchOrderFormal } from "@/lib/match-order-display";
 import { outcomeStylePublicLabel } from "@/lib/match-result-snapshot";
+import { buildPublicFinishedResultLabel } from "@/lib/public-official-result";
 import { resolveBoutFormatKind } from "@/lib/bout-format";
 import type { EventDivisionDisplayInput } from "@/lib/event-division-fields";
 
@@ -45,11 +46,15 @@ export function BracketMatchCard({
   const blueIsBye =
     Boolean(match.fighterRed) && match.fighterBlue === null;
 
+  const showOfficialResult = Boolean(match.hasOfficialResults);
+
   const redHighlight =
+    showOfficialResult &&
     match.winnerId &&
     match.fighterRed?.fighterId &&
     match.winnerId === match.fighterRed.fighterId;
   const blueHighlight =
+    showOfficialResult &&
     match.winnerId &&
     match.fighterBlue?.fighterId &&
     match.winnerId === match.fighterBlue.fighterId;
@@ -184,12 +189,21 @@ export function BracketMatchCard({
         />
       </div>
 
-      {match.resultType ? (
+      {match.status === BracketMatchStatus.finished ||
+      (showOfficialResult && match.resultType) ? (
         <p className={cn(bracketCardTypography.resultFooter, "border-t px-3 py-1.5 text-center")}>
-          결과:{" "}
-          <span className="text-foreground font-medium">
-            {outcomeStylePublicLabel(match.resultType)}
-          </span>
+          {showOfficialResult && match.resultType ? (
+            <>
+              결과:{" "}
+              <span className="text-foreground font-medium">
+                {outcomeStylePublicLabel(match.resultType)}
+              </span>
+            </>
+          ) : (
+            <span className="text-muted-foreground">
+              {buildPublicFinishedResultLabel(false)}
+            </span>
+          )}
         </p>
       ) : null}
     </Card>

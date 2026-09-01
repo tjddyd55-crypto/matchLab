@@ -155,6 +155,8 @@ export type PublicBracketMatchDTO = {
   resultType: BracketMatchOutcomeStyle | null;
   matchIsPublicSparring?: boolean;
   operationalSettingsLabel?: string | null;
+  /** confirmed/corrected MatchResult 2건 이상일 때만 공개 승패 표시 */
+  hasOfficialResults?: boolean;
 };
 
 export type PublicBracketDetailDTO = {

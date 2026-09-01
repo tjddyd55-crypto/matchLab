@@ -2799,6 +2799,7 @@ export const bracketService = {
         winnerId: m.winnerId,
         loserId: m.loserId,
         resultType: m.resultType,
+        hasOfficialResults: (m.matchResults?.length ?? 0) >= 2,
         matchIsPublicSparring: resolveMatchIsPublicSparring({
           bracketType: b.type,
           bracketIsPublic: true,

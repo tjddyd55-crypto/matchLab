@@ -368,6 +368,17 @@ export const bracketRepository = {
             fighterRedId: true,
             fighterBlueId: true,
             court: { select: { name: true } },
+            matchResults: {
+              where: {
+                status: {
+                  in: [
+                    MatchRecordStatus.confirmed,
+                    MatchRecordStatus.corrected,
+                  ],
+                },
+              },
+              select: { id: true },
+            },
           },
         },
       },

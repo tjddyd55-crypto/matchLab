@@ -9,6 +9,7 @@ import {
 } from "@/generated/prisma";
 import { prisma } from "@/lib/prisma";
 import { fighterRepository } from "@/lib/repositories/fighter.repository";
+import { PUBLIC_OFFICIAL_MATCH_RESULT_STATUSES } from "@/lib/public-official-result";
 
 function db(tx?: Prisma.TransactionClient) {
   return tx ?? prisma;
@@ -20,10 +21,7 @@ const excludedPublicEventStatuses: EventStatus[] = [
 ];
 
 /** MVP: 공식 전적 집계는 확정·정정 행만 포함하고 `no_contest`는 승·패·무 카운트에 넣지 않는다. */
-const countableStatuses: MatchRecordStatus[] = [
-  MatchRecordStatus.confirmed,
-  MatchRecordStatus.corrected,
-];
+const countableStatuses = PUBLIC_OFFICIAL_MATCH_RESULT_STATUSES;
 
 async function recalculateOneFighterRecordCache(
   fighterId: string,
@@ -181,7 +179,7 @@ export const resultRepository = {
     return db(tx).matchResult.findMany({
       where: {
         eventId: event.id,
-        status: MatchRecordStatus.confirmed,
+        status: { in: PUBLIC_OFFICIAL_MATCH_RESULT_STATUSES },
       },
       orderBy: [{ matchDate: "desc" }, { createdAt: "desc" }],
       select: {

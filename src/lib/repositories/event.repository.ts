@@ -10,6 +10,7 @@ import {
   isEphemeralPublicAnnouncementSlug,
   PUBLIC_EVENT_EXCLUDED_STATUSES,
 } from "@/lib/events/public-event-visibility";
+import { PUBLIC_OFFICIAL_MATCH_RESULT_STATUSES } from "@/lib/public-official-result";
 
 function db(tx?: Prisma.TransactionClient) {
   return tx ?? prisma;
@@ -220,6 +221,16 @@ export const eventRepository = {
       },
     });
     return row;
+  },
+
+  async findPublicSummaryBySlug(slug: string) {
+    return prisma.event.findFirst({
+      where: {
+        publicSlug: slug,
+        status: { notIn: excludedFromPublic },
+      },
+      select: { id: true, title: true, publicSlug: true },
+    });
   },
 
   async findOrganizerEventById(
@@ -503,7 +514,7 @@ export const eventRepository = {
     const rows = await prisma.matchResult.findMany({
       where: {
         eventId: { in: eventIds },
-        status: MatchRecordStatus.confirmed,
+        status: { in: PUBLIC_OFFICIAL_MATCH_RESULT_STATUSES },
       },
       select: { eventId: true },
       distinct: ["eventId"],
