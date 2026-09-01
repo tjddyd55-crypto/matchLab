@@ -489,6 +489,10 @@ export const fighterRepository = {
       recordDraw?: number;
       recordLoss?: number;
       recordText?: string | null;
+      externalRecordWin?: number;
+      externalRecordLoss?: number;
+      externalRecordDraw?: number;
+      externalRecordNoContest?: number;
       schoolLevel?: string | null;
       schoolGrade?: number | null;
     },
@@ -517,6 +521,10 @@ export const fighterRepository = {
         recordDraw: params.recordDraw ?? 0,
         recordLoss: params.recordLoss ?? 0,
         recordText: params.recordText ?? null,
+        externalRecordWin: params.externalRecordWin ?? 0,
+        externalRecordLoss: params.externalRecordLoss ?? 0,
+        externalRecordDraw: params.externalRecordDraw ?? 0,
+        externalRecordNoContest: params.externalRecordNoContest ?? 0,
       },
       select: { id: true, fighterCode: true },
     });
@@ -661,6 +669,22 @@ export const fighterRepository = {
     await tx.fighterGymHistory.update({
       where: { id: historyId },
       data: { gymInternalMemo },
+    });
+  },
+
+  async updateExternalRecord(
+    tx: Prisma.TransactionClient,
+    fighterId: string,
+    data: {
+      externalRecordWin: number;
+      externalRecordLoss: number;
+      externalRecordDraw: number;
+      externalRecordNoContest: number;
+    },
+  ): Promise<void> {
+    await tx.fighter.update({
+      where: { id: fighterId },
+      data,
     });
   },
 

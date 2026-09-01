@@ -10,7 +10,7 @@ import {
   GymMemberStatus,
 } from "@/lib/enums";
 import { generateTemporaryPassword } from "@/lib/fighter-login";
-import { buildRecordText } from "@/lib/fighter/record";
+import { structuredRecordToExternalFields } from "@/lib/fighter-unified-profile/record-utils";
 import { normalizeGymFighterPhone } from "@/lib/gym-fighter-management";
 import { fighterAccountService } from "@/lib/services/fighter-account.service";
 import { toUtcDateOnly } from "@/lib/date-only";
@@ -271,6 +271,7 @@ export const fighterService = {
 
       let fighter: { id: string; fighterCode: string } | null = null;
       const rec = input.structuredRecord;
+      const externalFromRec = rec ? structuredRecordToExternalFields(rec) : null;
       const payload = {
         name: input.name.trim(),
         birthDate,
@@ -284,14 +285,13 @@ export const fighterService = {
         gymInternalMemo: input.gymInternalMemo ?? null,
         currentGymId: gymId,
         gymMemberId: member.id,
-        ...(rec
+        ...(externalFromRec
           ? {
-              recordTotalBouts: rec.totalBouts,
-              // Fighter Int 컬럼 — 세부 미상(null)은 0으로 저장, 표시는 totalBouts SSOT
-              recordWin: rec.wins ?? 0,
-              recordDraw: rec.draws ?? 0,
-              recordLoss: rec.losses ?? 0,
-              recordText: buildRecordText(rec),
+              externalRecordWin: externalFromRec.externalRecordWin,
+              externalRecordLoss: externalFromRec.externalRecordLoss,
+              externalRecordDraw: externalFromRec.externalRecordDraw,
+              externalRecordNoContest: externalFromRec.externalRecordNoContest,
+              recordText: externalFromRec.recordText ?? null,
             }
           : {}),
       };
@@ -418,7 +418,6 @@ export const fighterService = {
       );
     }
 
-    const updateRec = input.structuredRecord;
     await prisma.$transaction(async (tx) => {
       await fighterRepository.updateFighterProfile(tx, input.fighterId, {
         name: input.name.trim(),
@@ -431,15 +430,6 @@ export const fighterService = {
         guardianName: input.guardianName ?? null,
         guardianPhone: input.guardianPhone ?? null,
         status: input.status,
-        ...(updateRec
-          ? {
-              recordTotalBouts: updateRec.totalBouts,
-              recordWin: updateRec.wins ?? 0,
-              recordDraw: updateRec.draws ?? 0,
-              recordLoss: updateRec.losses ?? 0,
-              recordText: buildRecordText(updateRec),
-            }
-          : {}),
       });
 
       await fighterRepository.updateGymHistoryMemo(

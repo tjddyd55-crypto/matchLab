@@ -4,9 +4,12 @@ import { requireActor } from "@/lib/auth/actor";
 import { AppError } from "@/lib/errors/app-error";
 import { PermissionError } from "@/lib/auth/permission-error";
 import { resolveGymPortalAccess } from "@/lib/gym-portal-access";
+import { fighterUnifiedProfileService } from "@/lib/services/fighter-unified-profile.service";
 import { fighterService } from "@/lib/services/fighter.service";
 import { fighterAccountSetupService } from "@/lib/services/fighter-account-setup.service";
 import { GymFighterAccountPanel } from "@/components/domain/fighters/GymFighterAccountPanel";
+import { FighterExternalRecordForm } from "@/components/domain/fighters/career/FighterExternalRecordForm";
+import { FighterUnifiedCareerPanel } from "@/components/domain/fighters/career/FighterUnifiedCareerPanel";
 import { GymFighterProfileStatusPanel } from "@/components/domain/fighters/GymFighterProfileStatusPanel";
 import {
   GymFighterForm,
@@ -66,9 +69,16 @@ export default async function GymFighterEditPage({
 
   const { row } = data;
 
+  let careerProfile;
+  try {
+    careerProfile = await fighterUnifiedProfileService.loadForGym(actor, fighterId);
+  } catch {
+    careerProfile = null;
+  }
+
   return (
     <div className={matchonPageContainerClass}>
-      <div className={cn(matchonPageStackClass, "max-w-2xl")}>
+      <div className={cn(matchonPageStackClass, "max-w-4xl")}>
         <div className="min-w-0">
           <Link
             href="/gym/fighters"
@@ -106,6 +116,24 @@ export default async function GymFighterEditPage({
           fighterId={fighterId}
           initial={gymFighterFormInitialFromEdit(row)}
         />
+
+        {careerProfile ? (
+          <FighterExternalRecordForm
+            fighterId={fighterId}
+            initial={careerProfile.externalRecord}
+          />
+        ) : null}
+
+        {careerProfile ? (
+          <div className="pt-2">
+            <h2 className={matchonPageTitleClass}>경기 · 참가 이력</h2>
+            <p className={cn(matchonPageDescClass, "mb-4")}>
+              전체 전적은 MATCHON 공식 + 기존/외부 합산입니다. 아래 경기 목록은
+              MATCHON 공식 MatchResult 기준입니다.
+            </p>
+            <FighterUnifiedCareerPanel profile={careerProfile} />
+          </div>
+        ) : null}
       </div>
     </div>
   );

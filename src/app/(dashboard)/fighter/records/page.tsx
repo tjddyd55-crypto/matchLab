@@ -1,4 +1,5 @@
 import { FighterDashboardEmptyState } from "@/components/domain/fighter-dashboard/FighterDashboardEmptyState";
+import { FighterCareerRecordsOverview } from "@/components/domain/fighters/career/FighterCareerRecordsOverview";
 import { MatchonStatusBadge } from "@/components/shared/MatchonStatusBadge";
 import {
   Card,
@@ -25,6 +26,7 @@ import {
   matchonPageTitleClass,
 } from "@/lib/ui/matchon-layout";
 import { resultService } from "@/lib/services/result.service";
+import { fighterUnifiedProfileService } from "@/lib/services/fighter-unified-profile.service";
 import { cn } from "@/lib/utils";
 
 export const dynamic = "force-dynamic";
@@ -47,7 +49,10 @@ export default async function FighterRecordsPage() {
     );
   }
 
-  const rows = await resultService.listFighterRecords(actor, actor.fighterId);
+  const [rows, careerProfile] = await Promise.all([
+    resultService.listFighterRecords(actor, actor.fighterId),
+    fighterUnifiedProfileService.loadForFighter(actor),
+  ]);
 
   return (
     <div className={matchonPageContainerClass}>
@@ -55,9 +60,16 @@ export default async function FighterRecordsPage() {
         <header className={matchonPageHeaderStackClass}>
           <h1 className={matchonPageTitleClass}>내 전적</h1>
           <p className={matchonPageDescClass}>
-            숫자 요약은 Fighter 캐시이며, 아래 목록은 공식 MatchResult 원천입니다.
+            전체 전적은 MATCHON 공식 + 기존/외부 합산입니다. 아래 목록은 공식
+            MatchResult 원천입니다.
           </p>
         </header>
+
+        <FighterCareerRecordsOverview
+          combinedRecord={careerProfile.combinedRecord}
+          officialRecord={careerProfile.officialRecord}
+          externalRecord={careerProfile.externalRecord}
+        />
 
         {rows.length === 0 ? (
           <FighterDashboardEmptyState

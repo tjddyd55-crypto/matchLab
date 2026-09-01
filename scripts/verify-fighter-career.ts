@@ -33,7 +33,7 @@ function main() {
   assert.match(archiveService, /fighterCareerService\.syncFromArchiveInTransaction/);
 
   const adminPage = read("src/app/(dashboard)/admin/fighters/[fighterId]/page.tsx");
-  assert.match(adminPage, /AdminFighterCareerView/);
+  assert.match(adminPage, /FighterUnifiedCareerPanel/);
 
   // A vs B → A win, B loss
   const ab = computeCareerStatsFromRecords([

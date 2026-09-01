@@ -85,11 +85,13 @@ export function GymFighterForm({
     setError(null);
     const fd = new FormData(e.currentTarget);
 
-    // 구조화 전적 값 명시 설정 (controlled 모드 — form input value가 React state에 있음)
-    fd.set("totalBouts", String(record.totalBouts));
-    fd.set("wins", record.wins == null ? "" : String(record.wins));
-    fd.set("draws", record.draws == null ? "" : String(record.draws));
-    fd.set("losses", record.losses == null ? "" : String(record.losses));
+    // 구조화 전적 — create 시에만 (edit은 별도 external form)
+    if (mode === "create") {
+      fd.set("totalBouts", String(record.totalBouts));
+      fd.set("wins", record.wins == null ? "" : String(record.wins));
+      fd.set("draws", record.draws == null ? "" : String(record.draws));
+      fd.set("losses", record.losses == null ? "" : String(record.losses));
+    }
 
     if (mode === "create" && duplicates?.length && selectedLinkId) {
       fd.set("confirmDuplicateLink", "true");
@@ -329,13 +331,19 @@ export function GymFighterForm({
             defaultValue={initial?.gymInternalMemo ?? ""}
           />
         </label>
-        <div className="sm:col-span-2">
-          <StructuredRecordFields
-            idPrefix="gym-fighter-record"
-            value={record}
-            onChange={setRecord}
-          />
-        </div>
+        {mode === "create" ? (
+          <div className="sm:col-span-2 space-y-1">
+            <p className="text-sm font-medium">기존/외부 전적</p>
+            <p className="text-muted-foreground text-xs leading-relaxed">
+              MATCHON 외 경기 또는 기존 경기 전적을 입력합니다. (선택)
+            </p>
+            <StructuredRecordFields
+              idPrefix="gym-fighter-record"
+              value={record}
+              onChange={setRecord}
+            />
+          </div>
+        ) : null}
       </div>
 
       {mode === "create" ? (

@@ -10,11 +10,13 @@ import { PermissionError } from "@/lib/auth/permission-error";
 import { requireActorFromMutation } from "@/lib/auth/actor";
 import { AppError } from "@/lib/errors/app-error";
 import { fighterAccountService } from "@/lib/services/fighter-account.service";
+import { fighterExternalRecordService } from "@/lib/services/fighter-external-record.service";
 import { fighterService } from "@/lib/services/fighter.service";
 import {
   gymFighterCreateSchema,
   gymFighterUpdateSchema,
 } from "@/lib/validators/gym-fighter.validator";
+import { fighterExternalRecordUpdateSchema } from "@/lib/validators/fighter-external-record.validator";
 
 function mapCaught<T>(
   fn: () => Promise<ActionResult<T>>,
@@ -78,7 +80,7 @@ function buildCreateGymFighterPayload(formData: FormData): unknown {
   };
 }
 
-/** 수정 전용 — 로그인 계정 생성·소속 해제 필드 제외 */
+/** 수정 전용 — 로그인 계정 생성·소속 해제·전적 필드 제외 (전적은 별도 action) */
 function buildUpdateGymFighterPayload(formData: FormData): unknown {
   return {
     fighterId: formReq(formData, "fighterId"),
@@ -92,7 +94,6 @@ function buildUpdateGymFighterPayload(formData: FormData): unknown {
     guardianName: formOpt(formData, "guardianName"),
     guardianPhone: formOpt(formData, "guardianPhone"),
     gymInternalMemo: formOpt(formData, "gymInternalMemo"),
-    structuredRecord: extractStructuredRecord(formData),
     status: formOpt(formData, "status"),
   };
 }
@@ -244,6 +245,36 @@ export async function updateGymFighterAction(
     }
 
     await fighterService.updateGymFighter(actor, parsed.data);
+    return actionSuccess({ ok: true as const });
+  });
+}
+
+export async function updateFighterExternalRecordAction(
+  _prev: unknown,
+  formData: FormData,
+): Promise<ActionResult<{ ok: true }>> {
+  return mapCaught(async () => {
+    const actor = await requireActorFromMutation();
+    const parsed = fighterExternalRecordUpdateSchema.safeParse({
+      fighterId: formReq(formData, "fighterId"),
+      wins: formData.get("wins"),
+      losses: formData.get("losses"),
+      draws: formData.get("draws"),
+      noContests: formData.get("noContests"),
+    });
+    if (!parsed.success) {
+      const msg = parsed.error.issues.map((i) => i.message).join(" ");
+      return actionFailure(
+        "VALIDATION_ERROR",
+        msg || "입력값을 확인해 주세요.",
+        parsed.error.flatten(),
+      );
+    }
+
+    await fighterExternalRecordService.updateFighterExternalRecord(
+      actor,
+      parsed.data,
+    );
     return actionSuccess({ ok: true as const });
   });
 }

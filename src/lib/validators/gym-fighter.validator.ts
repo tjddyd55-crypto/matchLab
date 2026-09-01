@@ -141,7 +141,6 @@ export const gymFighterUpdateSchema = z
     guardianName: optionalTrimmedString(80),
     guardianPhone: optionalTrimmedString(20),
     gymInternalMemo: optionalTrimmedString(2000),
-    structuredRecord: structuredRecordFormSchema,
     status: z.nativeEnum(FighterStatus).optional(),
   })
   .strict();

@@ -449,6 +449,7 @@ enum AuditAction {
   fighter_password_reset_completed
   fighter_profile_image_changed
   fighter_profile_image_removed
+  fighter_external_record_updated
   gym_member_profile_image_changed
   gym_member_profile_image_removed
   gym_staff_created
@@ -794,6 +795,11 @@ model Fighter {
   recordDraw       Int           @default(0)
   /// 총 경기수 캐시 = recordWin + recordLoss + recordDraw (재집계 시 자동 계산)
   recordTotalBouts Int           @default(0)
+  /// MATCHON 이전·외부 대회 등 체육관 등록 기존/외부 전적 (Career SSOT — 대진 snapshot 무관)
+  externalRecordWin       Int @default(0)
+  externalRecordLoss      Int @default(0)
+  externalRecordDraw      Int @default(0)
+  externalRecordNoContest Int @default(0)
   /// 화면 표시·원문 호환용 자유문장 전적 (예: "3전 2승 1패", "무전")
   recordText       String?
   /// 운동경력 참고 텍스트 (자동대진 1차 조건 미사용)

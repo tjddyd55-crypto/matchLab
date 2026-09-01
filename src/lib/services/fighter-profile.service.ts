@@ -5,7 +5,10 @@ import { AppError } from "@/lib/errors/app-error";
 import { publicAgeGroupFromBirthDate } from "@/lib/public-fighter/age-group";
 import { parseRegionFromGymAddress } from "@/lib/public-fighter/region";
 import { requireRole } from "@/lib/permissions";
+import { formatRecordBoutsSummary } from "@/lib/fighter-unified-profile/record-utils";
+import type { FighterOfficialRecord } from "@/lib/fighter-unified-profile/types";
 import { fighterProfileRepository } from "@/lib/repositories/fighter-profile.repository";
+import { fighterUnifiedProfileService } from "@/lib/services/fighter-unified-profile.service";
 import { prisma } from "@/lib/prisma";
 import type { FighterProfileUpdateInput } from "@/lib/validators/fighter-profile.validator";
 
@@ -71,6 +74,9 @@ export type PublicFighterProfileDTO = {
   weightLabel: string;
   primarySport: string | null;
   recordSummary: string;
+  combinedRecord: FighterOfficialRecord;
+  officialRecord: FighterOfficialRecord;
+  externalRecord: FighterOfficialRecord;
   bio: string | null;
   snsInstagram: string | null;
   snsYoutube: string | null;
@@ -191,9 +197,10 @@ export const fighterProfileService = {
     if (!row?.fighter) return null;
 
     const f = row.fighter;
-    const [recentResults, recentEvents] = await Promise.all([
+    const [recentResults, recentEvents, career] = await Promise.all([
       fighterProfileRepository.listRecentPublicResults(f.id),
       fighterProfileRepository.listRecentApprovedEvents(f.id),
+      fighterUnifiedProfileService.loadCareerBreakdown(f.id),
     ]);
 
     return {
@@ -206,7 +213,10 @@ export const fighterProfileService = {
       ageGroup: publicAgeGroupFromBirthDate(f.birthDate) ?? "—",
       weightLabel: f.weight != null ? `${f.weight}kg` : "—",
       primarySport: f.primarySport,
-      recordSummary: `${f.recordWin}승 ${f.recordLoss}패 ${f.recordDraw}무`,
+      recordSummary: formatRecordBoutsSummary(career.combinedRecord),
+      combinedRecord: career.combinedRecord,
+      officialRecord: career.officialRecord,
+      externalRecord: career.externalRecord,
       bio: row.bio,
       snsInstagram: row.snsInstagram,
       snsYoutube: row.snsYoutube,
