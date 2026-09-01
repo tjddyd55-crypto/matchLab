@@ -292,9 +292,13 @@ async function main() {
     await page.waitForTimeout(500);
     const mobilePad = await page.evaluate(() => {
       const el =
-        Array.from(document.querySelectorAll("div")).find((n) =>
-          n.className.includes("max-w-[min(100%,96rem)]"),
-        ) || document.querySelector("main");
+        Array.from(document.querySelectorAll("div")).find((n) => {
+          const c = String(n.className);
+          return (
+            c.includes("px-[var(--dashboard-content-padding-x)]") ||
+            c.includes("max-w-none")
+          );
+        }) || document.querySelector("main > div");
       return el ? getComputedStyle(el).paddingLeft : null;
     });
     // base token is 1rem (16px) on small screens

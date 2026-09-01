@@ -13,8 +13,9 @@ import {
   matchonStatValueClass,
 } from "@/lib/ui/matchon-shell-ui";
 
+/** left-aligned — mx-auto/max-w 중앙 고립 제거 (sidebar 직후 inset만) */
 export const organizerDashboardContainerClass =
-  "mx-auto w-full max-w-[min(100%,96rem)] px-[var(--dashboard-content-padding-x)] py-4 md:py-5";
+  "w-full max-w-none px-[var(--dashboard-content-padding-x)] py-4 md:py-5";
 
 export const organizerDashboardPageClass = matchonPageStackClass;
 

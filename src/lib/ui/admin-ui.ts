@@ -40,9 +40,9 @@ export {
   matchonSectionTitleClass,
 };
 
-/** gym/organizer와 동일: 96rem 천장 + CSS var inset (max-w-7xl 중앙 고립 제거) */
+/** gym/organizer와 동일: left-aligned + CSS var inset (mx-auto/max-w 중앙 고립 제거) */
 export const adminPageContainerClass =
-  "mx-auto w-full max-w-[min(100%,96rem)] px-[var(--dashboard-content-padding-x)] py-4 md:py-5";
+  "w-full max-w-none px-[var(--dashboard-content-padding-x)] py-4 md:py-5";
 
 export const adminPageTitleClass = matchonPageTitleClass;
 export const adminPageDescClass = matchonPageDescClass;

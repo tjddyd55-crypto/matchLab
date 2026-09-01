@@ -1,8 +1,12 @@
 /** MATCHON 전역 페이지·섹션·카드 간격 SSOT (Desktop operational density) */
 
-/** 좌우 inset은 --dashboard-content-padding-x 단일 레버 (admin/gym/organizer 정렬) */
+/**
+ * Dashboard page container — left-aligned operational density.
+ * Desktop: sidebar 직후 CSS var inset만 사용. mx-auto/max-w 중앙 고립 금지.
+ * 좌우 inset은 --dashboard-content-padding-x 단일 레버.
+ */
 export const matchonPageContainerClass =
-  "mx-auto w-full max-w-[min(100%,96rem)] px-[var(--dashboard-content-padding-x)] py-4 md:py-5";
+  "w-full max-w-none px-[var(--dashboard-content-padding-x)] py-4 md:py-5";
 
 export const matchonPageStackClass =
   "flex min-w-0 w-full flex-col gap-4 md:gap-5";
