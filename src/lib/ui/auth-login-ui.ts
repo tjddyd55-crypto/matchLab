@@ -9,6 +9,10 @@ import { formControlLoginInputClass } from "@/lib/ui/form-control-ui";
 export const authLoginShellClass =
   "flex min-h-screen w-full flex-col items-center justify-center bg-matchon-surface px-5 py-8 sm:px-6";
 
+/** onboarding shell 내부 카드 — max-w-2xl 컨테이너 안에서 full width */
+export const authLoginOnboardingCardClass =
+  "w-full rounded-2xl border border-matchon-border bg-white p-6 shadow-sm sm:p-8";
+
 /** 카드 폭 448px (430~480 권장 구간) */
 export const authLoginCardClass =
   "w-full max-w-[28rem] rounded-2xl border border-matchon-border bg-white p-6 shadow-sm sm:p-8";

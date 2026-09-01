@@ -7,6 +7,7 @@ import {
   authLoginEyebrowClass,
   authLoginHeaderStackClass,
   authLoginLogoWrapClass,
+  authLoginOnboardingCardClass,
   authLoginShellClass,
   authLoginTitleClass,
 } from "@/lib/ui/auth-login-ui";
@@ -24,6 +25,11 @@ export type AuthLoginShellProps = {
   className?: string;
   /** 로고 링크. `null`이면 링크 없음(desktop Manager). 기본 `/`. */
   logoHref?: string | null;
+  /**
+   * standalone — 로그인 등 전체 화면 중앙 정렬 (기본)
+   * onboarding — OnboardingShell 내부: 넓은 카드, 외부 shell 없음
+   */
+  layout?: "standalone" | "onboarding";
 };
 
 /**
@@ -39,10 +45,11 @@ export function AuthLoginShell({
   children,
   className,
   logoHref = "/",
+  layout = "standalone",
 }: AuthLoginShellProps) {
-  return (
-    <div className={cn(authLoginShellClass, className)}>
-      <div className={authLoginCardClass}>
+  const card = (
+    <>
+      {layout === "standalone" ? (
         <div className={authLoginLogoWrapClass}>
           <MatchonLogo
             href={logoHref ?? undefined}
@@ -50,17 +57,29 @@ export function AuthLoginShell({
             variant="light"
           />
         </div>
-        <header className={authLoginHeaderStackClass}>
-          {eyebrow ? <p className={authLoginEyebrowClass}>{eyebrow}</p> : null}
-          {title ? <h1 className={authLoginTitleClass}>{title}</h1> : null}
-          {subtitle}
-          {description ? (
-            <p className={authLoginDescClass}>{description}</p>
-          ) : null}
-        </header>
-        {children}
-        {footer}
-      </div>
+      ) : null}
+      <header className={authLoginHeaderStackClass}>
+        {eyebrow ? <p className={authLoginEyebrowClass}>{eyebrow}</p> : null}
+        {title ? <h1 className={authLoginTitleClass}>{title}</h1> : null}
+        {subtitle}
+        {description ? (
+          <p className={authLoginDescClass}>{description}</p>
+        ) : null}
+      </header>
+      {children}
+      {footer}
+    </>
+  );
+
+  if (layout === "onboarding") {
+    return (
+      <div className={cn(authLoginOnboardingCardClass, className)}>{card}</div>
+    );
+  }
+
+  return (
+    <div className={cn(authLoginShellClass, className)}>
+      <div className={authLoginCardClass}>{card}</div>
     </div>
   );
 }
