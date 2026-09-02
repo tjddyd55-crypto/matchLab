@@ -476,9 +476,9 @@ export default async function GymMemberDetailPage({
 
               {profileCtx ? (
                 <GymMemberProfileDetailSections
-                  sportTemplate={profileCtx.sportTemplate}
+                  sportTemplates={profileCtx.sportTemplates}
                   customFields={profileCtx.customFields}
-                  sportValues={profileCtx.sportValues}
+                  sportValuesByTemplate={profileCtx.sportValuesByTemplate}
                   gymValues={profileCtx.gymValues}
                 />
               ) : null}

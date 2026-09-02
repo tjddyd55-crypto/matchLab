@@ -2,11 +2,10 @@ import Link from "next/link";
 import { requireActor } from "@/lib/auth/actor";
 import { GymMemberCustomFieldBuilder } from "@/components/domain/gym-members/GymMemberCustomFieldBuilder";
 import { GymProfileMissingBanner } from "@/components/domain/gym/GymProfileMissingBanner";
-import { EnableKickboxingTemplatePanel } from "@/components/domain/gym-members/EnableKickboxingTemplatePanel";
+import { GymSportTemplateSettingsPanel } from "@/components/domain/gym-members/GymSportTemplateSettingsPanel";
 import { buttonVariants } from "@/components/ui/button";
 import { gymMemberCustomFieldService } from "@/lib/services/gym-member-custom-field.service";
 import { gymMemberProfileService } from "@/lib/services/gym-member-profile.service";
-import { prisma } from "@/lib/prisma";
 import {
   matchonPageContainerClass,
   matchonPageDescClass,
@@ -30,13 +29,9 @@ export default async function GymMemberCustomFieldsPage() {
     );
   }
 
-  const [fields, formCtx, gym, valueUsage] = await Promise.all([
+  const [fields, assignableTemplates, valueUsage] = await Promise.all([
     gymMemberCustomFieldService.listFields(actor, true),
-    gymMemberProfileService.getGymFormContext(actor),
-    prisma.gym.findUnique({
-      where: { id: actor.gymId },
-      select: { memberSportTemplateId: true },
-    }),
+    gymMemberProfileService.listAssignableTemplatesForGym(actor),
     gymMemberCustomFieldService.getValueUsageMap(actor),
   ]);
 
@@ -59,17 +54,7 @@ export default async function GymMemberCustomFieldsPage() {
           </p>
         </div>
 
-        {!gym?.memberSportTemplateId ? (
-          <EnableKickboxingTemplatePanel />
-        ) : formCtx.sportTemplate ? (
-          <p className="rounded-lg border border-matchon-border bg-matchon-surface/50 px-3 py-2 text-sm text-matchon-text-secondary">
-            종목 템플릿:{" "}
-            <span className="font-medium text-matchon-text-primary">
-              {formCtx.sportTemplate.name}
-            </span>
-            · 종목 필드는 시스템 템플릿으로 관리됩니다.
-          </p>
-        ) : null}
+        <GymSportTemplateSettingsPanel options={assignableTemplates} />
 
         <GymMemberCustomFieldBuilder
           initialFields={fields}

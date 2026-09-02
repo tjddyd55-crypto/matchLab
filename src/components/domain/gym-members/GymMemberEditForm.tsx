@@ -4,10 +4,8 @@ import { useState, useTransition } from "react";
 import { useRouter } from "next/navigation";
 import Link from "next/link";
 import { GymMemberCommonInfoSection } from "@/components/domain/gym-members/GymMemberCommonInfoSection";
-import {
-  GymMemberCustomProfileSection,
-  GymMemberSportProfileSection,
-} from "@/components/domain/gym-members/GymMemberProfileSections";
+import { GymMemberMultiSportSections } from "@/components/domain/gym-members/GymMemberMultiSportSections";
+import { GymMemberCustomProfileSection } from "@/components/domain/gym-members/GymMemberProfileSections";
 import { GymMemberProfileImageUpload } from "@/components/domain/gym-members/GymMemberProfileImageUpload";
 import {
   GymMemberFormShell,
@@ -67,19 +65,25 @@ export function GymMemberEditForm({
   initial,
   groups = [],
   profileImageUrl = null,
-  sportTemplate = null,
+  sportTemplates = [],
   customFields = [],
-  sportValues = {},
+  sportValuesByTemplate = {},
   gymValues = {},
+  defaultSelectedTemplateIds,
 }: {
   memberId: string;
   initial: GymMemberEditInitial;
   groups?: GroupOption[];
   profileImageUrl?: string | null;
+  /** @deprecated use sportTemplates */
   sportTemplate?: MemberSportTemplateWithFields | null;
+  sportTemplates?: MemberSportTemplateWithFields[];
   customFields?: GymMemberDynamicFieldDefinition[];
+  /** @deprecated use sportValuesByTemplate */
   sportValues?: Record<string, unknown>;
+  sportValuesByTemplate?: Record<string, Record<string, unknown>>;
   gymValues?: Record<string, unknown>;
+  defaultSelectedTemplateIds?: string[];
 }) {
   const router = useRouter();
   const [pending, startTransition] = useTransition();
@@ -182,10 +186,11 @@ export function GymMemberEditForm({
         </section>
       ) : null}
 
-      {sportTemplate ? (
-        <GymMemberSportProfileSection
-          template={sportTemplate}
-          values={sportValues}
+      {sportTemplates.length > 0 ? (
+        <GymMemberMultiSportSections
+          sportTemplates={sportTemplates}
+          defaultSelectedIds={defaultSelectedTemplateIds}
+          sportValuesByTemplate={sportValuesByTemplate}
         />
       ) : null}
 

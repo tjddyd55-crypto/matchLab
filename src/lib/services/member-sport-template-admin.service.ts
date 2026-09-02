@@ -55,7 +55,7 @@ export const memberSportTemplateAdminService = {
       sportType: row.sportType,
       active: row.active,
       fieldCount: row._count.fields,
-      gymCount: row._count.gyms,
+      gymCount: row._count.gymAssignments,
       updatedAt: row.updatedAt,
     }));
   },
@@ -68,7 +68,7 @@ export const memberSportTemplateAdminService = {
     }
     return {
       ...memberSportTemplateRepository.mapWithAllFields(row),
-      gymCount: row._count.gyms,
+      gymCount: row._count.gymAssignments,
       updatedAt: row.updatedAt,
     };
   },
@@ -117,7 +117,7 @@ export const memberSportTemplateAdminService = {
     if (!row) {
       throw new AppError("NOT_FOUND", "템플릿을 찾을 수 없습니다.");
     }
-    if (input.active === false && row._count.gyms > 0) {
+    if (input.active === false && row._count.gymAssignments > 0) {
       throw new AppError(
         "VALIDATION_ERROR",
         "체육관에서 사용 중인 템플릿은 비활성화할 수 없습니다. 먼저 연결을 해제하세요.",
@@ -138,7 +138,7 @@ export const memberSportTemplateAdminService = {
     if (!row) {
       throw new AppError("NOT_FOUND", "템플릿을 찾을 수 없습니다.");
     }
-    if (row._count.gyms > 0) {
+    if (row._count.gymAssignments > 0) {
       throw new AppError(
         "VALIDATION_ERROR",
         "체육관에서 사용 중인 템플릿은 삭제할 수 없습니다.",

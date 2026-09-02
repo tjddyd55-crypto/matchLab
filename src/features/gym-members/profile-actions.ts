@@ -58,6 +58,22 @@ export async function deleteGymMemberCustomFieldAction(
   });
 }
 
+export async function saveGymSportTemplateAssignmentsAction(
+  templateIds: string[],
+): Promise<ActionResult<{ templateIds: string[] }>> {
+  return mapCaught(async () => {
+    const actor = await requireActorFromMutation();
+    const result = await gymMemberProfileService.saveGymSportTemplateAssignments(
+      actor,
+      { templateIds },
+    );
+    revalidatePath("/gym/member-custom-fields");
+    revalidatePath("/gym/members/new");
+    revalidatePath("/gym/members");
+    return actionSuccess(result);
+  });
+}
+
 export async function enableKickboxingMemberTemplateAction(): Promise<
   ActionResult<{ templateId: string }>
 > {

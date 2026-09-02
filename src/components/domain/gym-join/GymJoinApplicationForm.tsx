@@ -124,6 +124,7 @@ export function GymJoinApplicationForm({
   mode,
   associationInvite,
   phoneVerificationEnabled = true,
+  sportTemplateOptions = [],
 }: {
   mode: "independent" | "association_invite";
   associationInvite?: {
@@ -135,6 +136,8 @@ export function GymJoinApplicationForm({
   };
   /** 독립 체육관 가입 OTP. Production 미개통 시 false */
   phoneVerificationEnabled?: boolean;
+  /** Admin active sport templates for multi-select (independent mode) */
+  sportTemplateOptions?: Array<{ id: string; name: string }>;
 }) {
   const uploadBatchId = useMemo(() => crypto.randomUUID(), []);
   const [attachments, setAttachments] = useState<PendingAttachment[]>([]);
@@ -152,6 +155,9 @@ export function GymJoinApplicationForm({
   const [signupVerificationToken, setSignupVerificationToken] = useState<
     string | null
   >(null);
+  const [selectedSportTemplateIds, setSelectedSportTemplateIds] = useState<
+    string[]
+  >([]);
   const [invitePending, startInvite] = useTransition();
   const [independentState, independentAction, independentPending] =
     useActionState(submitGymApplicationAction, null as IndependentState);
@@ -413,6 +419,13 @@ export function GymJoinApplicationForm({
                 setSubmitError("비밀번호가 일치하지 않습니다.");
                 return;
               }
+              if (
+                sportTemplateOptions.length > 0 &&
+                selectedSportTemplateIds.length === 0
+              ) {
+                setSubmitError("운영 종목을 1개 이상 선택해 주세요.");
+                return;
+              }
               fd.set("uploadBatchId", uploadBatchId);
               fd.set("attachmentsJson", JSON.stringify(nextAttachments));
               if (phoneVerificationEnabled) {
@@ -606,7 +619,38 @@ export function GymJoinApplicationForm({
           inputClassName={authLoginInputClass}
         />
         <BusinessNoInput name="businessNo" label="사업자등록번호" />
-        <TextField name="sportType" label="운영 종목" />
+        {mode === "independent" && sportTemplateOptions.length > 0 ? (
+          <div className={authLoginFieldStackClass}>
+            <span className={authLoginLabelClass}>운영 종목 *</span>
+            <p className={authLoginSecondaryNoteClass}>
+              체육관에서 운영하는 종목을 1개 이상 선택해 주세요.
+            </p>
+            <div className="flex flex-wrap gap-2">
+              {sportTemplateOptions.map((opt) => (
+                <label
+                  key={opt.id}
+                  className="inline-flex items-center gap-1.5 rounded-lg border border-matchon-border px-2.5 py-1.5 text-sm"
+                >
+                  <input
+                    type="checkbox"
+                    name="sportTemplateIds"
+                    value={opt.id}
+                    checked={selectedSportTemplateIds.includes(opt.id)}
+                    onChange={() =>
+                      setSelectedSportTemplateIds((prev) =>
+                        prev.includes(opt.id)
+                          ? prev.filter((id) => id !== opt.id)
+                          : [...prev, opt.id],
+                      )
+                    }
+                  />
+                  {opt.name}
+                </label>
+              ))}
+            </div>
+          </div>
+        ) : null}
+        <TextField name="sportType" label="운영 종목 (기타 설명)" />
         <div className={authLoginFieldStackClass}>
           <label htmlFor="description" className={authLoginLabelClass}>
             소개

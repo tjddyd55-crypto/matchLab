@@ -1,6 +1,7 @@
 import Link from "next/link";
 import { GymJoinApplicationForm } from "@/components/domain/gym-join/GymJoinApplicationForm";
 import { AuthLoginShell } from "@/components/domain/auth/AuthLoginShell";
+import { memberSportTemplateRepository } from "@/lib/repositories/gym-member-profile.repository";
 import { loadMatchonPhoneVerificationConfig } from "@/server/phone-verification/config/matchon-phone-verification-config";
 import { authLoginFooterClass } from "@/lib/ui/auth-login-ui";
 import { cn } from "@/lib/utils";
@@ -11,8 +12,14 @@ export const dynamic = "force-dynamic";
  * 독립 체육관 가입 — 중간 협회 선택 없음. 즉시 신청서 표시.
  * 협회 초대 가입은 /member-gym-register/[token] 유지.
  */
-export default function JoinGymPage() {
+export default async function JoinGymPage() {
   const phoneConfig = loadMatchonPhoneVerificationConfig();
+  const activeTemplates = await memberSportTemplateRepository.listActive();
+  const sportTemplateOptions = activeTemplates.map((t) => ({
+    id: t.id,
+    name: t.name,
+  }));
+
   return (
     <AuthLoginShell
       layout="onboarding"
@@ -32,6 +39,7 @@ export default function JoinGymPage() {
       <GymJoinApplicationForm
         mode="independent"
         phoneVerificationEnabled={phoneConfig.signupPhoneVerificationEnabled}
+        sportTemplateOptions={sportTemplateOptions}
       />
     </AuthLoginShell>
   );

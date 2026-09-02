@@ -777,9 +777,11 @@ model Gym {
   gymMemberRegistrationTerms     GymMemberRegistrationTerms[]
   gymMemberRegistrationRequests  GymMemberRegistrationRequest[]
   intakeForms                    IntakeForm[]
-  memberSportTemplate            MemberSportTemplate?           @relation(fields: [memberSportTemplateId], references: [id], onDelete: SetNull)
+  /// Legacy single-template FK — kept for compatibility; SSOT is GymSportTemplateAssignment
+  memberSportTemplate            MemberSportTemplate?           @relation("GymLegacyMemberSportTemplate", fields: [memberSportTemplateId], references: [id], onDelete: SetNull)
   memberSportTemplateId          String?
   gymMemberCustomFields          GymMemberCustomField[]
+  sportTemplateAssignments       GymSportTemplateAssignment[]
 
   @@index([memberSportTemplateId])
 }
@@ -909,6 +911,7 @@ model GymMember {
   lockerRentals      GymMemberLockerRental[]
   selfRegistrationRequest GymMemberRegistrationRequest?
   profileValues      GymMemberProfileValue[]
+  sportTemplateAssignments GymMemberSportTemplateAssignment[]
 
   @@unique([gymId, memberNumber])
   @@index([gymId, deletedAt])
@@ -949,9 +952,64 @@ model MemberSportTemplate {
   updatedAt DateTime @updatedAt
 
   fields MemberSportTemplateField[]
-  gyms   Gym[]
+  /// Legacy Gym.memberSportTemplateId relation — do not use as multi-sport SSOT
+  legacyGyms Gym[] @relation("GymLegacyMemberSportTemplate")
+  gymAssignments    GymSportTemplateAssignment[]
+  memberAssignments GymMemberSportTemplateAssignment[]
+  applicationSelections GymApplicationSportTemplate[]
 
   @@index([active])
+}
+
+/// Gym ↔ MemberSportTemplate many-to-many (SSOT for gym sports)
+model GymSportTemplateAssignment {
+  id         String   @id @default(cuid())
+  gymId      String
+  templateId String
+  isActive   Boolean  @default(true)
+  createdAt  DateTime @default(now())
+  updatedAt  DateTime @updatedAt
+
+  gym      Gym                 @relation(fields: [gymId], references: [id], onDelete: Cascade)
+  template MemberSportTemplate @relation(fields: [templateId], references: [id], onDelete: Restrict)
+
+  @@unique([gymId, templateId])
+  @@index([gymId, isActive])
+  @@index([templateId, isActive])
+}
+
+/// GymApplication selected sports — snapshot preserved after approval
+model GymApplicationSportTemplate {
+  id                   String   @id @default(cuid())
+  applicationId        String
+  templateId           String
+  templateCodeSnapshot String
+  templateNameSnapshot String
+  createdAt            DateTime @default(now())
+
+  application GymApplication      @relation(fields: [applicationId], references: [id], onDelete: Cascade)
+  template    MemberSportTemplate @relation(fields: [templateId], references: [id], onDelete: Restrict)
+
+  @@unique([applicationId, templateId])
+  @@index([applicationId])
+  @@index([templateId])
+}
+
+/// GymMember ↔ MemberSportTemplate many-to-many
+model GymMemberSportTemplateAssignment {
+  id          String   @id @default(cuid())
+  gymMemberId String
+  templateId  String
+  isActive    Boolean  @default(true)
+  createdAt   DateTime @default(now())
+  updatedAt   DateTime @updatedAt
+
+  gymMember GymMember           @relation(fields: [gymMemberId], references: [id], onDelete: Cascade)
+  template  MemberSportTemplate @relation(fields: [templateId], references: [id], onDelete: Restrict)
+
+  @@unique([gymMemberId, templateId])
+  @@index([gymMemberId, isActive])
+  @@index([templateId, isActive])
 }
 
 model MemberSportTemplateField {
@@ -1017,7 +1075,8 @@ model GymMemberProfileValue {
   sportTemplateField MemberSportTemplateField? @relation("SportTemplateFieldValues", fields: [sportTemplateFieldId], references: [id], onDelete: SetNull)
   gymCustomField     GymMemberCustomField?     @relation("GymCustomFieldValues", fields: [gymCustomFieldId], references: [id], onDelete: SetNull)
 
-  @@unique([gymMemberId, sourceType, stableKey])
+  /// Partial uniques for multi-sport (see migration SQL). Orphan rows keep (member,source,stableKey).
+  @@index([gymMemberId, sourceType, stableKey])
   @@index([gymMemberId])
   @@index([sportTemplateFieldId])
   @@index([gymCustomFieldId])
@@ -3796,6 +3855,7 @@ model GymApplication {
   reviewedByUser User? @relation("GymApplicationReviewer", fields: [reviewedByUserId], references: [id], onDelete: SetNull)
   createdGym     Gym?  @relation("GymApplicationCreatedGym", fields: [createdGymId], references: [id], onDelete: SetNull)
   attachments    GymApplicationAttachment[]
+  sportTemplates GymApplicationSportTemplate[]
 
   @@index([status])
   @@index([submittedAt])

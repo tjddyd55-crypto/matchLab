@@ -5,6 +5,7 @@ import type { GymMemberDynamicFieldDefinition } from "@/lib/gym-member-profile/f
 import {
   gymProfileFormName,
   sportProfileFormName,
+  sportProfileFormNameForTemplate,
 } from "@/lib/gym-member-profile/form-names";
 import { matchonFieldInputClass } from "@/lib/ui/matchon-shell-ui";
 import { cn } from "@/lib/utils";
@@ -30,17 +31,22 @@ function valueToDefault(
 export function GymMemberDynamicFieldInput({
   field,
   namePrefix,
+  templateId,
   defaultValue,
   className,
 }: {
   field: GymMemberDynamicFieldDefinition;
   namePrefix: "sport" | "gym";
+  /** Multi-sport: scopes sport field names per template */
+  templateId?: string;
   defaultValue?: unknown;
   className?: string;
 }) {
   const name =
     namePrefix === "sport"
-      ? sportProfileFormName(field.stableKey)
+      ? templateId
+        ? sportProfileFormNameForTemplate(templateId, field.stableKey)
+        : sportProfileFormName(field.stableKey)
       : gymProfileFormName(field.stableKey);
   const def = valueToDefault(field.type, defaultValue);
   const inputClass = cn(matchonFieldInputClass, "min-h-9 text-sm", className);

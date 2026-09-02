@@ -113,10 +113,10 @@ function assertUiSections() {
   const create = read("src/components/domain/gym-members/GymMemberCreateForm.tsx");
   const edit = read("src/components/domain/gym-members/GymMemberEditForm.tsx");
   assert.match(create, /GymMemberCommonInfoSection/);
-  assert.match(create, /GymMemberSportProfileSection/);
+  assert.match(create, /GymMemberMultiSportSections/);
   assert.match(create, /GymMemberCustomProfileSection/);
   assert.match(edit, /GymMemberCommonInfoSection/);
-  assert.match(edit, /GymMemberSportProfileSection/);
+  assert.match(edit, /GymMemberMultiSportSections/);
   console.log("verify:gym-member-template-ui-sections: OK");
 }
 

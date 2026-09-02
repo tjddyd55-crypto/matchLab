@@ -88,6 +88,10 @@ export async function submitGymApplicationAction(
       uploadBatchId: formReq(formData, "uploadBatchId") || undefined,
       signupVerificationToken: formReq(formData, "signupVerificationToken"),
       attachments: parseAttachments(formData),
+      sportTemplateIds: formData
+        .getAll("sportTemplateIds")
+        .filter((v): v is string => typeof v === "string" && v.trim().length > 0)
+        .map((v) => v.trim()),
     });
     return actionSuccess({ applicationId: created.id });
   });

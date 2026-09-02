@@ -26,6 +26,11 @@ import {
   parseRequiredRequestedLoginId,
 } from "@/lib/services/application-requested-login-id";
 import { assertGymApplicationAttachmentMimeAndSize } from "./gym-application-upload.service";
+import {
+  gymApplicationSportTemplateRepository,
+  gymSportTemplateAssignmentRepository,
+} from "@/lib/repositories/gym-sport-template.repository";
+import { dedupeTemplateIds } from "@/lib/gym-member-profile/multi-sport";
 
 export const GYM_OWNER_APPLICATION_INVITE_TTL_MS = 7 * 24 * 60 * 60 * 1000;
 
@@ -73,6 +78,8 @@ export type GymApplicationInput = {
   passwordConfirm: string;
   uploadBatchId?: string;
   attachments?: GymApplicationAttachmentInput[];
+  /** 신규 가입: 운영 종목 template IDs (최소 1개) */
+  sportTemplateIds?: string[];
 };
 
 function assertAttachmentPaths(attachments: GymApplicationAttachmentInput[]) {
@@ -216,6 +223,21 @@ export const gymApplicationService = {
             })),
           });
         }
+
+        const sportTemplateIds = dedupeTemplateIds(
+          input.sportTemplateIds ?? [],
+        );
+        if (sportTemplateIds.length === 0) {
+          throw new AppError(
+            "VALIDATION_ERROR",
+            "운영 종목을 1개 이상 선택해 주세요.",
+          );
+        }
+        await gymApplicationSportTemplateRepository.replaceSelections(
+          created.id,
+          sportTemplateIds,
+          tx,
+        );
 
         return created;
       });
@@ -416,6 +438,25 @@ export const gymApplicationService = {
         },
       });
 
+      const sportSelections = await tx.gymApplicationSportTemplate.findMany({
+        where: { applicationId: id },
+        select: { templateId: true },
+      });
+      const sportTemplateIds = dedupeTemplateIds(
+        sportSelections.map((s) => s.templateId),
+      );
+      if (sportTemplateIds.length > 0) {
+        await gymSportTemplateAssignmentRepository.syncFromTemplateIds(
+          gym.id,
+          sportTemplateIds,
+          tx,
+        );
+        await tx.gym.update({
+          where: { id: gym.id },
+          data: { memberSportTemplateId: sportTemplateIds[0]! },
+        });
+      }
+
       await tx.gymApplication.update({
         where: { id },
         data: {
@@ -534,6 +575,25 @@ export const gymApplicationService = {
           status: GymStatus.active,
         },
       });
+
+      const sportSelections = await tx.gymApplicationSportTemplate.findMany({
+        where: { applicationId: row.id },
+        select: { templateId: true },
+      });
+      const sportTemplateIds = dedupeTemplateIds(
+        sportSelections.map((s) => s.templateId),
+      );
+      if (sportTemplateIds.length > 0) {
+        await gymSportTemplateAssignmentRepository.syncFromTemplateIds(
+          gym.id,
+          sportTemplateIds,
+          tx,
+        );
+        await tx.gym.update({
+          where: { id: gym.id },
+          data: { memberSportTemplateId: sportTemplateIds[0]! },
+        });
+      }
 
       await tx.gymApplication.update({
         where: { id: row.id },

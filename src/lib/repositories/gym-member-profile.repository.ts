@@ -63,7 +63,12 @@ export const memberSportTemplateRepository = {
       where: { id },
       include: {
         fields: { orderBy: { displayOrder: "asc" } },
-        _count: { select: { gyms: true } },
+        _count: {
+          select: {
+            gymAssignments: { where: { isActive: true } },
+            legacyGyms: true,
+          },
+        },
       },
     });
   },
@@ -82,7 +87,12 @@ export const memberSportTemplateRepository = {
       orderBy: [{ active: "desc" }, { name: "asc" }],
       include: {
         fields: { orderBy: { displayOrder: "asc" } },
-        _count: { select: { gyms: true, fields: true } },
+        _count: {
+          select: {
+            gymAssignments: { where: { isActive: true } },
+            fields: true,
+          },
+        },
       },
     });
   },
@@ -278,41 +288,62 @@ export const gymMemberProfileValueRepository = {
   ) {
     const client = tx ?? prisma;
     for (const row of rows) {
+      const existing =
+        row.sourceType === "SPORT" && row.sportTemplateFieldId
+          ? await client.gymMemberProfileValue.findFirst({
+              where: {
+                gymMemberId,
+                sportTemplateFieldId: row.sportTemplateFieldId,
+              },
+            })
+          : row.sourceType === "GYM" && row.gymCustomFieldId
+            ? await client.gymMemberProfileValue.findFirst({
+                where: {
+                  gymMemberId,
+                  gymCustomFieldId: row.gymCustomFieldId,
+                },
+              })
+            : await client.gymMemberProfileValue.findFirst({
+                where: {
+                  gymMemberId,
+                  sourceType: row.sourceType,
+                  stableKey: row.stableKey,
+                  sportTemplateFieldId: null,
+                  gymCustomFieldId: null,
+                },
+              });
+
       if (row.valueJson === null || row.valueJson === undefined) {
-        await client.gymMemberProfileValue.deleteMany({
-          where: {
-            gymMemberId,
-            sourceType: row.sourceType,
+        if (existing) {
+          await client.gymMemberProfileValue.delete({
+            where: { id: existing.id },
+          });
+        }
+        continue;
+      }
+
+      if (existing) {
+        await client.gymMemberProfileValue.update({
+          where: { id: existing.id },
+          data: {
+            valueJson: row.valueJson as Prisma.InputJsonValue,
             stableKey: row.stableKey,
+            ...(row.sportTemplateFieldId
+              ? { sportTemplateFieldId: row.sportTemplateFieldId }
+              : {}),
+            ...(row.gymCustomFieldId
+              ? { gymCustomFieldId: row.gymCustomFieldId }
+              : {}),
           },
         });
         continue;
       }
-      await client.gymMemberProfileValue.upsert({
-        where: {
-          gymMemberId_sourceType_stableKey: {
-            gymMemberId,
-            sourceType: row.sourceType,
-            stableKey: row.stableKey,
-          },
-        },
-        create: {
+
+      await client.gymMemberProfileValue.create({
+        data: {
           gymMember: { connect: { id: gymMemberId } },
           sourceType: row.sourceType,
           stableKey: row.stableKey,
-          valueJson: row.valueJson as Prisma.InputJsonValue,
-          ...(row.sportTemplateFieldId
-            ? {
-                sportTemplateField: {
-                  connect: { id: row.sportTemplateFieldId },
-                },
-              }
-            : {}),
-          ...(row.gymCustomFieldId
-            ? { gymCustomField: { connect: { id: row.gymCustomFieldId } } }
-            : {}),
-        },
-        update: {
           valueJson: row.valueJson as Prisma.InputJsonValue,
           ...(row.sportTemplateFieldId
             ? {

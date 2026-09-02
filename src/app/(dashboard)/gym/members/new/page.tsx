@@ -74,7 +74,7 @@ export default async function GymMemberNewPage({
           }))}
           groups={groups.map((g) => ({ id: g.id, name: g.name }))}
           defaultRegisterAsFighter={registerAsFighter}
-          sportTemplate={profileCtx.sportTemplate}
+          sportTemplates={profileCtx.sportTemplates}
           customFields={profileCtx.customFields}
         />
       </div>

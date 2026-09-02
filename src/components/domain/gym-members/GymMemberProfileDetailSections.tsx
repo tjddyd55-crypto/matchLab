@@ -44,30 +44,49 @@ function DynamicDetailGrid({
 }
 
 export function GymMemberProfileDetailSections({
+  sportTemplates,
   sportTemplate,
   customFields,
-  sportValues,
+  sportValuesByTemplate = {},
+  sportValues = {},
   gymValues,
 }: {
-  sportTemplate: MemberSportTemplateWithFields | null;
+  sportTemplates?: MemberSportTemplateWithFields[];
+  /** @deprecated use sportTemplates */
+  sportTemplate?: MemberSportTemplateWithFields | null;
   customFields: GymMemberDynamicFieldDefinition[];
-  sportValues: Record<string, unknown>;
+  sportValuesByTemplate?: Record<string, Record<string, unknown>>;
+  /** @deprecated use sportValuesByTemplate */
+  sportValues?: Record<string, unknown>;
   gymValues: Record<string, unknown>;
 }) {
+  const templates =
+    sportTemplates && sportTemplates.length > 0
+      ? sportTemplates
+      : sportTemplate
+        ? [sportTemplate]
+        : [];
+
   return (
     <>
-      {sportTemplate && sportTemplate.fields.length > 0 ? (
-        <GymMemberFormSection
-          title={`${sportTemplate.name} 정보`}
-          badge={sportTemplate.name}
-        >
-          <DynamicDetailGrid
-            fields={sportTemplate.fields}
-            values={sportValues}
-            useSportSpan
-          />
-        </GymMemberFormSection>
-      ) : null}
+      {templates.map((template) =>
+        template.fields.length > 0 ? (
+          <GymMemberFormSection
+            key={template.id}
+            title={`${template.name} 정보`}
+            badge={template.name}
+          >
+            <DynamicDetailGrid
+              fields={template.fields}
+              values={
+                sportValuesByTemplate[template.id] ??
+                (templates.length === 1 ? sportValues : {})
+              }
+              useSportSpan
+            />
+          </GymMemberFormSection>
+        ) : null,
+      )}
 
       {(customFields.length > 0 || Object.keys(gymValues).length > 0) && (
         <GymMemberFormSection

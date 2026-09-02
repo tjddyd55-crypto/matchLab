@@ -80,10 +80,15 @@ export default async function GymMemberEditPage({
           memberId={member.id}
           profileImageUrl={detail.profileImageUrl}
           groups={groups.map((g) => ({ id: g.id, name: g.name }))}
-          sportTemplate={profileCtx.sportTemplate}
+          sportTemplates={profileCtx.sportTemplates}
           customFields={profileCtx.customFields}
-          sportValues={profileCtx.sportValues}
+          sportValuesByTemplate={profileCtx.sportValuesByTemplate}
           gymValues={profileCtx.gymValues}
+          defaultSelectedTemplateIds={
+            profileCtx.memberActiveTemplateIds.length > 0
+              ? profileCtx.memberActiveTemplateIds
+              : profileCtx.sportTemplates.map((t) => t.id)
+          }
           initial={{
             name: member.name,
             phone: member.phone,

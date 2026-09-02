@@ -149,11 +149,22 @@ export async function createGymMemberAction(
     }
 
     const formCtx = await gymMemberProfileService.getGymFormContext(actor);
-    const sportFields = formCtx.sportTemplate?.fields ?? [];
+    const selectedTemplateIds =
+      gymMemberProfileService.parseMemberSportTemplateIdsFromFormData(formData);
+    const selectedTemplates = formCtx.sportTemplates.filter((t) =>
+      selectedTemplateIds.includes(t.id),
+    );
+    // If gym has sports but none selected and templates exist, require selection
+    if (formCtx.sportTemplates.length > 0 && selectedTemplates.length === 0) {
+      return actionFailure(
+        "VALIDATION_ERROR",
+        "회원 종목을 1개 이상 선택해 주세요.",
+      );
+    }
     const gymFields = formCtx.customFields;
     const profileParsed = gymMemberProfileService.parseProfileValuesFromFormData(
       formData,
-      sportFields,
+      selectedTemplates,
       gymFields,
     );
     if (profileParsed.errors.length > 0) {
@@ -161,7 +172,14 @@ export async function createGymMemberAction(
     }
 
     const result = await gymMemberService.createMember(actor, parsed.data);
-    if (sportFields.length > 0 || gymFields.length > 0) {
+    if (actor.gymId) {
+      await gymMemberProfileService.syncMemberSportTemplates(
+        result.memberId,
+        selectedTemplateIds,
+        actor.gymId,
+      );
+    }
+    if (selectedTemplates.length > 0 || gymFields.length > 0) {
       await gymMemberProfileService.saveProfileValuesForMember(
         result.memberId,
         profileParsed.sportRows,
@@ -215,11 +233,21 @@ export async function updateGymMemberAction(
     }
 
     const formCtx = await gymMemberProfileService.getGymFormContext(actor);
-    const sportFields = formCtx.sportTemplate?.fields ?? [];
+    const selectedTemplateIds =
+      gymMemberProfileService.parseMemberSportTemplateIdsFromFormData(formData);
+    const selectedTemplates = formCtx.sportTemplates.filter((t) =>
+      selectedTemplateIds.includes(t.id),
+    );
+    if (formCtx.sportTemplates.length > 0 && selectedTemplates.length === 0) {
+      return actionFailure(
+        "VALIDATION_ERROR",
+        "회원 종목을 1개 이상 선택해 주세요.",
+      );
+    }
     const gymFields = formCtx.customFields;
     const profileParsed = gymMemberProfileService.parseProfileValuesFromFormData(
       formData,
-      sportFields,
+      selectedTemplates,
       gymFields,
     );
     if (profileParsed.errors.length > 0) {
@@ -227,7 +255,14 @@ export async function updateGymMemberAction(
     }
 
     await gymMemberService.updateMember(actor, memberId, parsed.data);
-    if (sportFields.length > 0 || gymFields.length > 0) {
+    if (actor.gymId) {
+      await gymMemberProfileService.syncMemberSportTemplates(
+        memberId,
+        selectedTemplateIds,
+        actor.gymId,
+      );
+    }
+    if (selectedTemplates.length > 0 || gymFields.length > 0) {
       await gymMemberProfileService.saveProfileValuesForMember(
         memberId,
         profileParsed.sportRows,

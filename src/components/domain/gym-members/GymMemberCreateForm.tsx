@@ -4,10 +4,8 @@ import { useMemo, useState, useTransition } from "react";
 import { useRouter } from "next/navigation";
 import Link from "next/link";
 import { GymMemberCommonInfoSection } from "@/components/domain/gym-members/GymMemberCommonInfoSection";
-import {
-  GymMemberCustomProfileSection,
-  GymMemberSportProfileSection,
-} from "@/components/domain/gym-members/GymMemberProfileSections";
+import { GymMemberMultiSportSections } from "@/components/domain/gym-members/GymMemberMultiSportSections";
+import { GymMemberCustomProfileSection } from "@/components/domain/gym-members/GymMemberProfileSections";
 import {
   GymMemberFormShell,
   GymMemberStickyActionBar,
@@ -54,13 +52,15 @@ export function GymMemberCreateForm({
   plans,
   groups = [],
   defaultRegisterAsFighter = false,
-  sportTemplate = null,
+  sportTemplates = [],
   customFields = [],
 }: {
   plans: PlanOption[];
   groups?: GroupOption[];
   defaultRegisterAsFighter?: boolean;
+  /** @deprecated use sportTemplates */
   sportTemplate?: MemberSportTemplateWithFields | null;
+  sportTemplates?: MemberSportTemplateWithFields[];
   customFields?: GymMemberDynamicFieldDefinition[];
 }) {
   const router = useRouter();
@@ -224,8 +224,8 @@ export function GymMemberCreateForm({
         </section>
       ) : null}
 
-      {sportTemplate ? (
-        <GymMemberSportProfileSection template={sportTemplate} />
+      {sportTemplates.length > 0 ? (
+        <GymMemberMultiSportSections sportTemplates={sportTemplates} />
       ) : null}
 
       <GymMemberCustomProfileSection fields={customFields} />

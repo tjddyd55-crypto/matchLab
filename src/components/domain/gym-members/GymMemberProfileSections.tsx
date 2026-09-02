@@ -40,6 +40,7 @@ export function GymMemberSportProfileSection({
             <GymMemberDynamicFieldInput
               field={field}
               namePrefix="sport"
+              templateId={template.id}
               defaultValue={values[field.stableKey]}
             />
           </GymMemberFieldCell>
