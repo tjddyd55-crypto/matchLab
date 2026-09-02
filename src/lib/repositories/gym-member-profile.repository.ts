@@ -1,5 +1,4 @@
 import type { Prisma } from "@/generated/prisma";
-import { MemberSportTemplateCode } from "@/lib/enums";
 import { prisma } from "@/lib/prisma";
 import {
   parseGymMemberFieldOptionsJson,
@@ -9,7 +8,7 @@ import type { MemberSportTemplateWithFields } from "@/lib/gym-member-profile/typ
 
 type SportTemplateRow = {
   id: string;
-  code: import("@/lib/enums").MemberSportTemplateCode;
+  code: string;
   name: string;
   sportType: string;
   active: boolean;
@@ -64,15 +63,26 @@ export const memberSportTemplateRepository = {
       where: { id },
       include: {
         fields: { orderBy: { displayOrder: "asc" } },
+        _count: { select: { gyms: true } },
       },
     });
   },
 
-  async findByCode(code: MemberSportTemplateCode) {
+  async findByCode(code: string) {
     return prisma.memberSportTemplate.findUnique({
       where: { code },
       include: {
         fields: { orderBy: { displayOrder: "asc" } },
+      },
+    });
+  },
+
+  async listAll() {
+    return prisma.memberSportTemplate.findMany({
+      orderBy: [{ active: "desc" }, { name: "asc" }],
+      include: {
+        fields: { orderBy: { displayOrder: "asc" } },
+        _count: { select: { gyms: true, fields: true } },
       },
     });
   },
@@ -90,6 +100,23 @@ export const memberSportTemplateRepository = {
     });
   },
 
+  async create(
+    data: Prisma.MemberSportTemplateCreateInput,
+    tx?: Prisma.TransactionClient,
+  ) {
+    const client = tx ?? prisma;
+    return client.memberSportTemplate.create({ data });
+  },
+
+  async update(
+    id: string,
+    data: Prisma.MemberSportTemplateUpdateInput,
+    tx?: Prisma.TransactionClient,
+  ) {
+    const client = tx ?? prisma;
+    return client.memberSportTemplate.update({ where: { id }, data });
+  },
+
   mapWithActiveFields(row: SportTemplateRow): MemberSportTemplateWithFields {
     return {
       id: row.id,
@@ -103,6 +130,50 @@ export const memberSportTemplateRepository = {
         .map(mapSportField),
     };
   },
+
+  mapWithAllFields(row: SportTemplateRow): MemberSportTemplateWithFields {
+    return {
+      id: row.id,
+      code: row.code,
+      name: row.name,
+      sportType: row.sportType,
+      active: row.active,
+      version: row.version,
+      fields: row.fields.map(mapSportField),
+    };
+  },
+};
+
+export const memberSportTemplateFieldRepository = {
+  async create(
+    data: Prisma.MemberSportTemplateFieldCreateInput,
+    tx?: Prisma.TransactionClient,
+  ) {
+    const client = tx ?? prisma;
+    return client.memberSportTemplateField.create({ data });
+  },
+
+  async update(
+    id: string,
+    data: Prisma.MemberSportTemplateFieldUpdateInput,
+    tx?: Prisma.TransactionClient,
+  ) {
+    const client = tx ?? prisma;
+    return client.memberSportTemplateField.update({ where: { id }, data });
+  },
+
+  async delete(id: string, tx?: Prisma.TransactionClient) {
+    const client = tx ?? prisma;
+    return client.memberSportTemplateField.delete({ where: { id } });
+  },
+
+  async countValues(fieldId: string) {
+    return prisma.gymMemberProfileValue.count({
+      where: { sportTemplateFieldId: fieldId },
+    });
+  },
+
+  mapField: mapSportField,
 };
 
 export const gymMemberCustomFieldRepository = {
@@ -137,6 +208,27 @@ export const gymMemberCustomFieldRepository = {
   ) {
     const client = tx ?? prisma;
     return client.gymMemberCustomField.update({ where: { id }, data });
+  },
+
+  async delete(id: string, tx?: Prisma.TransactionClient) {
+    const client = tx ?? prisma;
+    return client.gymMemberCustomField.delete({ where: { id } });
+  },
+
+  async countValues(fieldId: string) {
+    return prisma.gymMemberProfileValue.count({
+      where: { gymCustomFieldId: fieldId },
+    });
+  },
+
+  async countValuesByStableKey(gymId: string, stableKey: string) {
+    return prisma.gymMemberProfileValue.count({
+      where: {
+        sourceType: "GYM",
+        stableKey,
+        gymMember: { gymId },
+      },
+    });
   },
 
   mapField(row: {
@@ -210,7 +302,11 @@ export const gymMemberProfileValueRepository = {
           stableKey: row.stableKey,
           valueJson: row.valueJson as Prisma.InputJsonValue,
           ...(row.sportTemplateFieldId
-            ? { sportTemplateField: { connect: { id: row.sportTemplateFieldId } } }
+            ? {
+                sportTemplateField: {
+                  connect: { id: row.sportTemplateFieldId },
+                },
+              }
             : {}),
           ...(row.gymCustomFieldId
             ? { gymCustomField: { connect: { id: row.gymCustomFieldId } } }
@@ -219,7 +315,11 @@ export const gymMemberProfileValueRepository = {
         update: {
           valueJson: row.valueJson as Prisma.InputJsonValue,
           ...(row.sportTemplateFieldId
-            ? { sportTemplateField: { connect: { id: row.sportTemplateFieldId } } }
+            ? {
+                sportTemplateField: {
+                  connect: { id: row.sportTemplateFieldId },
+                },
+              }
             : {}),
           ...(row.gymCustomFieldId
             ? { gymCustomField: { connect: { id: row.gymCustomFieldId } } }

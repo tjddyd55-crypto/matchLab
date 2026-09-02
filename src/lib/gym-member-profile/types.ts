@@ -1,9 +1,8 @@
-import type { MemberSportTemplateCode } from "@/lib/enums";
 import type { GymMemberDynamicFieldDefinition } from "@/lib/gym-member-profile/fields";
 
 export type MemberSportTemplateWithFields = {
   id: string;
-  code: MemberSportTemplateCode;
+  code: string;
   name: string;
   sportType: string;
   active: boolean;

@@ -17,7 +17,8 @@ export type GymMemberDynamicFieldDefinition = {
   active?: boolean;
 };
 
-const FIELD_KEY_PATTERN = /^[a-z][a-z0-9_]*$/;
+/** camelCase (memberType) and snake_case (pickup_place) both allowed */
+const FIELD_KEY_PATTERN = /^[a-z][a-zA-Z0-9_]*$/;
 
 export function parseGymMemberFieldOptionsJson(
   raw: unknown,

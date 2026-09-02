@@ -1,29 +1,36 @@
 "use client";
 
 import { useMemo, useState, useTransition } from "react";
-import type { GymMemberDynamicFieldType } from "@/generated/prisma";
 import {
   normalizeGymMemberDynamicFields,
   suggestGymMemberCustomFieldKey,
   validateGymMemberDynamicFieldDefinitions,
   type GymMemberDynamicFieldDefinition,
 } from "@/lib/gym-member-profile/fields";
-import { GYM_MEMBER_DYNAMIC_FIELD_TYPES } from "@/lib/gym-member-profile/field-types";
-import { GYM_MEMBER_DYNAMIC_FIELD_TYPE_LABEL } from "@/lib/gym-member-profile/ui-labels";
+import {
+  getMemberFieldGridSpan,
+} from "@/lib/gym-member-profile/grid";
 import { GymMemberDynamicFieldInput } from "@/components/domain/gym-members/GymMemberDynamicFieldInput";
-import { saveGymMemberCustomFieldsAction } from "@/features/gym-members/profile-actions";
+import { DynamicFieldEditorCard } from "@/components/domain/gym-members/DynamicFieldEditorCard";
+import {
+  GymMemberFieldCell,
+  GymMemberFieldGrid,
+} from "@/components/domain/gym-members/GymMemberFormLayout";
+import {
+  deleteGymMemberCustomFieldAction,
+  saveGymMemberCustomFieldsAction,
+} from "@/features/gym-members/profile-actions";
 import { Button } from "@/components/ui/button";
-import { matchonFieldInputClass } from "@/lib/ui/matchon-shell-ui";
-import { cn } from "@/lib/utils";
-
-const fieldClass = matchonFieldInputClass;
 
 export function GymMemberCustomFieldBuilder({
   initialFields,
+  valueUsage = {},
 }: {
   initialFields: GymMemberDynamicFieldDefinition[];
+  valueUsage?: Record<string, number>;
 }) {
   const [fields, setFields] = useState(initialFields);
+  const [usage, setUsage] = useState(valueUsage);
   const [pending, startTransition] = useTransition();
   const [error, setError] = useState<string | null>(null);
   const [saved, setSaved] = useState(false);
@@ -80,9 +87,27 @@ export function GymMemberCustomFieldBuilder({
     });
   };
 
-  const toggleActive = (index: number) => {
+  const duplicateField = (index: number) => {
     setSaved(false);
-    updateField(index, { active: fields[index]?.active === false });
+    const source = fields[index];
+    if (!source) return;
+    const keys = new Set(fields.map((f) => f.stableKey));
+    const stableKey = suggestGymMemberCustomFieldKey(
+      `${source.label} copy`,
+      keys,
+    );
+    setFields((prev) => {
+      const next = [...prev];
+      next.splice(index + 1, 0, {
+        ...source,
+        id: undefined,
+        stableKey,
+        label: `${source.label} (복제)`,
+        displayOrder: index + 2,
+        active: true,
+      });
+      return next;
+    });
   };
 
   function save() {
@@ -98,9 +123,38 @@ export function GymMemberCustomFieldBuilder({
     });
   }
 
+  function removeLocalOrServer(index: number) {
+    const field = fields[index];
+    if (!field) return;
+    setSaved(false);
+
+    if (!field.id) {
+      setFields((prev) => prev.filter((_, i) => i !== index));
+      return;
+    }
+
+    startTransition(async () => {
+      const result = await deleteGymMemberCustomFieldAction(field.id!);
+      if (!result.ok) {
+        setError(result.error.message);
+        return;
+      }
+      setFields((prev) => prev.filter((_, i) => i !== index));
+      setUsage((prev) => {
+        const next = { ...prev };
+        delete next[field.stableKey];
+        return next;
+      });
+    });
+  }
+
+  function deactivateField(index: number) {
+    updateField(index, { active: false });
+  }
+
   return (
-    <div className="grid gap-6 lg:grid-cols-[minmax(0,1fr)_minmax(16rem,22rem)] lg:items-start">
-      <div className="space-y-4">
+    <div className="grid gap-5 lg:grid-cols-[minmax(0,1fr)_minmax(18rem,24rem)] lg:items-start">
+      <div className="space-y-3">
         <div className="flex flex-wrap items-center justify-between gap-2">
           <h2 className="text-sm font-semibold">추가 입력 항목</h2>
           <Button type="button" variant="secondary" size="sm" onClick={addField}>
@@ -122,158 +176,56 @@ export function GymMemberCustomFieldBuilder({
             추가해 주세요.
           </p>
         ) : (
-          <ul className="space-y-3">
+          <ul className="space-y-2">
             {fields.map((field, index) => (
-              <li
+              <DynamicFieldEditorCard
                 key={`${field.stableKey}-${index}`}
-                className={cn(
-                  "space-y-3 rounded-lg border border-matchon-border p-3",
-                  field.active === false && "opacity-60",
-                )}
-              >
-                <div className="flex flex-wrap items-center justify-between gap-2">
-                  <span className="text-xs font-medium text-matchon-text-secondary">
-                    #{index + 1} · {field.stableKey}
-                  </span>
-                  <div className="flex flex-wrap gap-1">
-                    <Button
-                      type="button"
-                      variant="ghost"
-                      size="sm"
-                      disabled={index === 0}
-                      onClick={() => moveField(index, -1)}
-                    >
-                      ↑
-                    </Button>
-                    <Button
-                      type="button"
-                      variant="ghost"
-                      size="sm"
-                      disabled={index === fields.length - 1}
-                      onClick={() => moveField(index, 1)}
-                    >
-                      ↓
-                    </Button>
-                    <Button
-                      type="button"
-                      variant="ghost"
-                      size="sm"
-                      onClick={() => toggleActive(index)}
-                    >
-                      {field.active === false ? "활성화" : "비활성"}
-                    </Button>
-                  </div>
-                </div>
-
-                <div className="grid gap-3 sm:grid-cols-2">
-                  <label className="block space-y-1 text-sm sm:col-span-2">
-                    <span>라벨 *</span>
-                    <input
-                      className={fieldClass}
-                      value={field.label}
-                      onChange={(e) =>
-                        updateField(index, { label: e.target.value })
-                      }
-                    />
-                  </label>
-                  <label className="block space-y-1 text-sm">
-                    <span>입력 유형</span>
-                    <select
-                      className={fieldClass}
-                      value={field.type}
-                      onChange={(e) =>
-                        updateField(index, {
-                          type: e.target.value as GymMemberDynamicFieldType,
-                        })
-                      }
-                    >
-                      {GYM_MEMBER_DYNAMIC_FIELD_TYPES.map((t) => (
-                        <option key={t} value={t}>
-                          {GYM_MEMBER_DYNAMIC_FIELD_TYPE_LABEL[t]}
-                        </option>
-                      ))}
-                    </select>
-                  </label>
-                  <label className="flex items-center gap-2 text-sm">
-                    <input
-                      type="checkbox"
-                      checked={field.required === true}
-                      onChange={(e) =>
-                        updateField(index, { required: e.target.checked })
-                      }
-                    />
-                    필수 입력
-                  </label>
-                  <label className="block space-y-1 text-sm sm:col-span-2">
-                    <span>placeholder</span>
-                    <input
-                      className={fieldClass}
-                      value={field.placeholder ?? ""}
-                      onChange={(e) =>
-                        updateField(index, { placeholder: e.target.value })
-                      }
-                    />
-                  </label>
-                  <label className="block space-y-1 text-sm sm:col-span-2">
-                    <span>도움말</span>
-                    <input
-                      className={fieldClass}
-                      value={field.helpText ?? ""}
-                      onChange={(e) =>
-                        updateField(index, { helpText: e.target.value })
-                      }
-                    />
-                  </label>
-                  {(field.type === "select" ||
-                    field.type === "radio" ||
-                    field.type === "checkbox") && (
-                    <label className="block space-y-1 text-sm sm:col-span-2">
-                      <span>선택지 (줄바꿈으로 구분)</span>
-                      <textarea
-                        className={cn(fieldClass, "min-h-[5rem] py-2")}
-                        value={(field.options ?? []).join("\n")}
-                        onChange={(e) =>
-                          updateField(index, {
-                            options: e.target.value
-                              .split("\n")
-                              .map((s) => s.trim())
-                              .filter(Boolean),
-                          })
-                        }
-                      />
-                    </label>
-                  )}
-                </div>
-              </li>
+                index={index}
+                field={field}
+                total={fields.length}
+                valueCount={usage[field.stableKey] ?? 0}
+                onChange={(patch) => updateField(index, patch)}
+                onMove={(dir) => moveField(index, dir)}
+                onToggleActive={() =>
+                  updateField(index, { active: field.active === false })
+                }
+                onDuplicate={() => duplicateField(index)}
+                onDelete={() => removeLocalOrServer(index)}
+                onDeactivateInstead={() => deactivateField(index)}
+              />
             ))}
           </ul>
         )}
 
-        <div className="flex justify-end pt-2">
+        <div className="flex justify-end pt-1">
           <Button type="button" disabled={pending} onClick={save}>
             {pending ? "저장 중…" : "설정 저장"}
           </Button>
         </div>
       </div>
 
-      <aside className="space-y-3 rounded-lg border border-matchon-border p-3">
+      <aside className="sticky top-4 space-y-3 rounded-lg border border-matchon-border p-3">
         <h3 className="text-sm font-semibold">미리보기</h3>
         {normalized.filter((f) => f.active !== false).length === 0 ? (
           <p className="text-sm text-matchon-text-secondary">
             활성 항목이 없습니다.
           </p>
         ) : (
-          <div className="grid gap-3 sm:grid-cols-2">
+          <GymMemberFieldGrid>
             {normalized
               .filter((f) => f.active !== false)
               .map((field) => (
-                <GymMemberDynamicFieldInput
+                <GymMemberFieldCell
                   key={field.stableKey}
-                  field={field}
-                  namePrefix="gym"
-                />
+                  span={getMemberFieldGridSpan(field.type)}
+                >
+                  <GymMemberDynamicFieldInput
+                    field={field}
+                    namePrefix="gym"
+                  />
+                </GymMemberFieldCell>
               ))}
-          </div>
+          </GymMemberFieldGrid>
         )}
       </aside>
     </div>

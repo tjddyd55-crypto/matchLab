@@ -142,14 +142,61 @@ export function GymMemberProfileImageUpload({
   }
 
   return (
-    <div className="space-y-3">
-      <div>
-        <p className="text-sm font-medium">회원 사진</p>
-        <p className="mt-1 text-xs leading-relaxed text-matchon-text-secondary">
-          권장: 800 × 800px 정사각형 · JPG, PNG, WebP · 최대 {MAX_MB}MB
-          <br />
-          회원 사진은 체육관 내부에서만 조회할 수 있습니다.
-        </p>
+    <div className="space-y-2">
+      <div className="flex flex-wrap items-center gap-3">
+        {previewUrl ? (
+          <div className="size-16 shrink-0 overflow-hidden rounded-xl ring-1 ring-matchon-border sm:size-20 sm:rounded-full">
+            {/* eslint-disable-next-line @next/next/no-img-element -- blob / 만료되는 signed URL */}
+            <img
+              src={previewUrl}
+              alt=""
+              className="size-full object-cover"
+              onError={() => {
+                if (!localPreview) setRemoteBroken(true);
+              }}
+            />
+          </div>
+        ) : (
+          <div className="flex size-16 shrink-0 items-center justify-center rounded-xl border border-dashed border-matchon-border bg-matchon-surface/40 px-1 text-center text-[10px] text-matchon-text-secondary sm:size-20 sm:rounded-full">
+            {remoteBroken ? "불러오기 실패" : "사진 없음"}
+          </div>
+        )}
+
+        <div className="min-w-0 flex-1 space-y-1.5">
+          <p className="text-sm font-medium">회원 사진</p>
+          <p className="text-[11px] leading-snug text-matchon-text-secondary">
+            JPG, PNG, WebP · 최대 {MAX_MB}MB · 체육관 내부 전용
+          </p>
+          <div className="flex flex-wrap gap-2">
+            <input
+              ref={inputRef}
+              type="file"
+              accept={GYM_MEMBER_IMAGE_ALLOWED_MIME.join(",")}
+              className="hidden"
+              onChange={onPick}
+            />
+            <Button
+              type="button"
+              variant="secondary"
+              size="sm"
+              disabled={pending}
+              onClick={() => inputRef.current?.click()}
+            >
+              {pending ? "업로드 중…" : previewUrl ? "사진 교체" : "사진 선택"}
+            </Button>
+            {previewUrl || imagePath ? (
+              <Button
+                type="button"
+                variant="outline"
+                size="sm"
+                disabled={pending}
+                onClick={clearImage}
+              >
+                사진 제거
+              </Button>
+            ) : null}
+          </div>
+        </div>
       </div>
 
       {error ? (
@@ -163,59 +210,6 @@ export function GymMemberProfileImageUpload({
           제거 예정 — 저장하면 사진이 삭제됩니다.
         </p>
       ) : null}
-
-      <div className="flex flex-wrap items-start gap-4">
-        {previewUrl ? (
-          <div className="size-32 shrink-0 overflow-hidden rounded-2xl ring-1 ring-matchon-border md:rounded-full">
-            {/* eslint-disable-next-line @next/next/no-img-element -- blob / 만료되는 signed URL */}
-            <img
-              src={previewUrl}
-              alt=""
-              className="size-full object-cover"
-              onError={() => {
-                if (!localPreview) setRemoteBroken(true);
-              }}
-            />
-          </div>
-        ) : (
-          <div className="flex size-32 shrink-0 items-center justify-center rounded-2xl border border-dashed border-matchon-border bg-matchon-surface/40 px-2 text-center text-[11px] text-matchon-text-secondary md:rounded-full">
-            {remoteBroken ? "사진을 불러올 수 없습니다" : "사진 없음"}
-          </div>
-        )}
-
-        <div className="flex min-w-[140px] flex-col gap-2">
-          <input
-            ref={inputRef}
-            type="file"
-            accept={GYM_MEMBER_IMAGE_ALLOWED_MIME.join(",")}
-            className="hidden"
-            onChange={onPick}
-          />
-          <Button
-            type="button"
-            variant="secondary"
-            size="sm"
-            disabled={pending}
-            onClick={() => inputRef.current?.click()}
-          >
-            {pending ? "업로드 중…" : previewUrl ? "사진 교체" : "사진 선택"}
-          </Button>
-          {previewUrl || imagePath ? (
-            <Button
-              type="button"
-              variant="outline"
-              size="sm"
-              disabled={pending}
-              onClick={clearImage}
-            >
-              사진 제거
-            </Button>
-          ) : null}
-          <p className="text-[11px] leading-relaxed text-matchon-text-secondary">
-            업로드 후 저장 버튼을 눌러 반영하세요.
-          </p>
-        </div>
-      </div>
 
       <input type="hidden" name="profileImagePath" value={imagePath} />
       <input

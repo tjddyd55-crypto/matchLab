@@ -2,10 +2,15 @@
 
 import Link from "next/link";
 import type { GymMemberDynamicFieldDefinition } from "@/lib/gym-member-profile/fields";
+import {
+  getMemberFieldGridSpan,
+  getSportFieldGridSpan,
+} from "@/lib/gym-member-profile/grid";
 import type { MemberSportTemplateWithFields } from "@/lib/gym-member-profile/types";
 import { GymMemberDynamicFieldInput } from "@/components/domain/gym-members/GymMemberDynamicFieldInput";
 import {
-  GymMemberCompactGrid,
+  GymMemberFieldCell,
+  GymMemberFieldGrid,
   GymMemberFormSection,
 } from "@/components/domain/gym-members/GymMemberFormLayout";
 import { buttonVariants } from "@/components/ui/button";
@@ -26,16 +31,20 @@ export function GymMemberSportProfileSection({
       badge={template.name}
       badgeClassName="bg-slate-100 text-slate-600"
     >
-      <GymMemberCompactGrid cols={4}>
+      <GymMemberFieldGrid>
         {template.fields.map((field) => (
-          <GymMemberDynamicFieldInput
+          <GymMemberFieldCell
             key={field.stableKey}
-            field={field}
-            namePrefix="sport"
-            defaultValue={values[field.stableKey]}
-          />
+            span={getSportFieldGridSpan(field.stableKey, field.type)}
+          >
+            <GymMemberDynamicFieldInput
+              field={field}
+              namePrefix="sport"
+              defaultValue={values[field.stableKey]}
+            />
+          </GymMemberFieldCell>
         ))}
-      </GymMemberCompactGrid>
+      </GymMemberFieldGrid>
     </GymMemberFormSection>
   );
 }
@@ -67,16 +76,20 @@ export function GymMemberCustomProfileSection({
           </Link>
         </div>
       ) : (
-        <GymMemberCompactGrid cols={4}>
+        <GymMemberFieldGrid>
           {fields.map((field) => (
-            <GymMemberDynamicFieldInput
+            <GymMemberFieldCell
               key={field.stableKey}
-              field={field}
-              namePrefix="gym"
-              defaultValue={values[field.stableKey]}
-            />
+              span={getMemberFieldGridSpan(field.type)}
+            >
+              <GymMemberDynamicFieldInput
+                field={field}
+                namePrefix="gym"
+                defaultValue={values[field.stableKey]}
+              />
+            </GymMemberFieldCell>
           ))}
-        </GymMemberCompactGrid>
+        </GymMemberFieldGrid>
       )}
     </GymMemberFormSection>
   );

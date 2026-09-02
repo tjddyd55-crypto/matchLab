@@ -30,13 +30,14 @@ export default async function GymMemberCustomFieldsPage() {
     );
   }
 
-  const [fields, formCtx, gym] = await Promise.all([
+  const [fields, formCtx, gym, valueUsage] = await Promise.all([
     gymMemberCustomFieldService.listFields(actor, true),
     gymMemberProfileService.getGymFormContext(actor),
     prisma.gym.findUnique({
       where: { id: actor.gymId },
       select: { memberSportTemplateId: true },
     }),
+    gymMemberCustomFieldService.getValueUsageMap(actor),
   ]);
 
   return (
@@ -70,7 +71,10 @@ export default async function GymMemberCustomFieldsPage() {
           </p>
         ) : null}
 
-        <GymMemberCustomFieldBuilder initialFields={fields} />
+        <GymMemberCustomFieldBuilder
+          initialFields={fields}
+          valueUsage={valueUsage}
+        />
       </div>
     </div>
   );

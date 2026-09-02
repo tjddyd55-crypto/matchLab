@@ -9,7 +9,10 @@ import {
   GymMemberSportProfileSection,
 } from "@/components/domain/gym-members/GymMemberProfileSections";
 import { GymMemberProfileImageUpload } from "@/components/domain/gym-members/GymMemberProfileImageUpload";
-import { GymMemberStickyActionBar } from "@/components/domain/gym-members/GymMemberFormLayout";
+import {
+  GymMemberFormShell,
+  GymMemberStickyActionBar,
+} from "@/components/domain/gym-members/GymMemberFormLayout";
 import type { GymMemberDynamicFieldDefinition } from "@/lib/gym-member-profile/fields";
 import type { MemberSportTemplateWithFields } from "@/lib/gym-member-profile/types";
 import { updateGymMemberAction } from "@/features/gym-members/actions";
@@ -117,8 +120,9 @@ export function GymMemberEditForm({
         e.preventDefault();
         submit(new FormData(e.currentTarget));
       }}
-      className="mx-auto max-w-6xl space-y-5"
+      className="space-y-0"
     >
+      <GymMemberFormShell>
       {error ? (
         <p className="rounded-lg border border-red-200 bg-red-50 px-3 py-2 text-sm text-red-700">
           {error}
@@ -200,6 +204,7 @@ export function GymMemberEditForm({
       </div>
 
       <GymMemberStickyActionBar pending={pending} submitLabel="저장" />
+      </GymMemberFormShell>
     </form>
   );
 }

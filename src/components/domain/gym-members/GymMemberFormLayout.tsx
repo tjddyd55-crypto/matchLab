@@ -2,6 +2,25 @@
 
 import type { ReactNode } from "react";
 import { cn } from "@/lib/utils";
+import {
+  MEMBER_FORM_MAX_WIDTH_CLASS,
+  memberGridSpanClass,
+  type MemberFieldGridSpan,
+} from "@/lib/gym-member-profile/grid";
+
+export function GymMemberFormShell({
+  children,
+  className,
+}: {
+  children: ReactNode;
+  className?: string;
+}) {
+  return (
+    <div className={cn(MEMBER_FORM_MAX_WIDTH_CLASS, "space-y-5", className)}>
+      {children}
+    </div>
+  );
+}
 
 export function GymMemberFormSection({
   title,
@@ -48,6 +67,43 @@ export function GymMemberFormSection({
   );
 }
 
+/** 12-column responsive grid — preferred over percentage widths */
+export function GymMemberFieldGrid({
+  children,
+  className,
+}: {
+  children: ReactNode;
+  className?: string;
+}) {
+  return (
+    <div
+      className={cn(
+        "grid grid-cols-12 gap-x-3 gap-y-3",
+        className,
+      )}
+    >
+      {children}
+    </div>
+  );
+}
+
+export function GymMemberFieldCell({
+  span = 4,
+  children,
+  className,
+}: {
+  span?: MemberFieldGridSpan;
+  children: ReactNode;
+  className?: string;
+}) {
+  return (
+    <div className={cn(memberGridSpanClass(span), "min-w-0", className)}>
+      {children}
+    </div>
+  );
+}
+
+/** @deprecated Prefer GymMemberFieldGrid + GymMemberFieldCell */
 export function GymMemberCompactGrid({
   children,
   cols = 4,
@@ -90,6 +146,31 @@ export function GymMemberFieldLabel({
   );
 }
 
+export function GymMemberDetailItem({
+  label,
+  value,
+  span = 3,
+  className,
+}: {
+  label: string;
+  value: ReactNode;
+  span?: MemberFieldGridSpan;
+  className?: string;
+}) {
+  return (
+    <GymMemberFieldCell span={span} className={className}>
+      <div className="space-y-1 border-b border-matchon-border/80 pb-2">
+        <p className="text-[11px] font-medium text-matchon-text-secondary">
+          {label}
+        </p>
+        <div className="text-sm font-medium text-matchon-text-primary break-words">
+          {value ?? "—"}
+        </div>
+      </div>
+    </GymMemberFieldCell>
+  );
+}
+
 export function GymMemberStickyActionBar({
   pending,
   submitLabel = "저장",
@@ -98,8 +179,13 @@ export function GymMemberStickyActionBar({
   submitLabel?: string;
 }) {
   return (
-    <div className="sticky bottom-0 z-10 -mx-4 mt-4 border-t border-matchon-border bg-white/95 px-4 py-3 backdrop-blur supports-[backdrop-filter]:bg-white/80 md:-mx-0 md:rounded-lg md:border md:px-4">
-      <div className="flex justify-end gap-2">
+    <div
+      className={cn(
+        MEMBER_FORM_MAX_WIDTH_CLASS,
+        "sticky bottom-0 z-10 mt-4 border-t border-matchon-border bg-white/95 px-0 py-3 backdrop-blur supports-[backdrop-filter]:bg-white/80 md:rounded-lg md:border md:px-4",
+      )}
+    >
+      <div className="flex justify-end gap-2 px-4 md:px-0">
         <button
           type="button"
           className="inline-flex min-h-9 items-center rounded-lg border border-matchon-border px-4 text-sm font-medium"
@@ -110,7 +196,7 @@ export function GymMemberStickyActionBar({
         <button
           type="submit"
           disabled={pending}
-          className="inline-flex min-h-9 items-center rounded-lg bg-matchon-primary px-4 text-sm font-medium text-white disabled:opacity-60"
+          className="inline-flex min-h-9 flex-1 items-center justify-center rounded-lg bg-matchon-primary px-4 text-sm font-medium text-white disabled:opacity-60 sm:flex-none"
         >
           {pending ? "저장 중…" : submitLabel}
         </button>

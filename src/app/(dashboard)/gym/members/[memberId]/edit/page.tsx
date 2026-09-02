@@ -59,7 +59,7 @@ export default async function GymMemberEditPage({
 
   return (
     <div className={matchonPageContainerClass}>
-      <div className={cn(matchonPageStackClass, "max-w-5xl")}>
+      <div className={matchonPageStackClass}>
         <div className="min-w-0">
           <Link
             href={`/gym/members/${member.id}`}

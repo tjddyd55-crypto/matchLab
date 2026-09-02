@@ -34,6 +34,7 @@ function assertSchema() {
   assert.match(schema, /model GymMemberProfileValue/);
   assert.match(schema, /memberSportTemplateId/);
   assert.match(schema, /onDelete: SetNull/);
+  assert.match(schema, /code\s+String\s+@unique/);
   console.log("verify:gym-member-template-schema: OK");
 }
 

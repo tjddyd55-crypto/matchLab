@@ -36,6 +36,7 @@ export function getAdminNavGroups(): DashboardSidebarNavGroup[] {
         { href: "/admin/organizers", label: "주최자" },
         { href: "/admin/association-applications", label: "협회 가입 신청" },
         { href: "/admin/gym-applications", label: "체육관 가입 신청" },
+        { href: "/admin/member-sport-templates", label: "회원관리 템플릿" },
       ],
     },
     {

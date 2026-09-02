@@ -8,7 +8,10 @@ import {
   GymMemberCustomProfileSection,
   GymMemberSportProfileSection,
 } from "@/components/domain/gym-members/GymMemberProfileSections";
-import { GymMemberStickyActionBar } from "@/components/domain/gym-members/GymMemberFormLayout";
+import {
+  GymMemberFormShell,
+  GymMemberStickyActionBar,
+} from "@/components/domain/gym-members/GymMemberFormLayout";
 import { GymMemberProfileImageUpload } from "@/components/domain/gym-members/GymMemberProfileImageUpload";
 import { AppDateInput } from "@/components/shared/AppDateInput";
 import type { GymMemberDynamicFieldDefinition } from "@/lib/gym-member-profile/fields";
@@ -145,8 +148,9 @@ export function GymMemberCreateForm({
         e.preventDefault();
         submit(new FormData(e.currentTarget));
       }}
-      className="mx-auto max-w-6xl space-y-5"
+      className="space-y-0"
     >
+      <GymMemberFormShell>
       {error ? (
         <p className="rounded-lg border border-red-200 bg-red-50 px-3 py-2 text-sm text-red-700">
           {error}
@@ -397,6 +401,7 @@ export function GymMemberCreateForm({
       </section>
 
       <GymMemberStickyActionBar pending={pending} submitLabel="회원 등록" />
+      </GymMemberFormShell>
     </form>
   );
 }

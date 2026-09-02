@@ -2,43 +2,44 @@
 
 import { formatGymMemberProfileValueForDisplay } from "@/lib/gym-member-profile/values";
 import type { GymMemberDynamicFieldDefinition } from "@/lib/gym-member-profile/fields";
+import {
+  getMemberFieldGridSpan,
+  getSportFieldGridSpan,
+} from "@/lib/gym-member-profile/grid";
 import type { MemberSportTemplateWithFields } from "@/lib/gym-member-profile/types";
 import {
-  GymMemberCompactGrid,
+  GymMemberDetailItem,
+  GymMemberFieldGrid,
   GymMemberFormSection,
 } from "@/components/domain/gym-members/GymMemberFormLayout";
-
-function DetailRow({ label, value }: { label: string; value: string }) {
-  return (
-    <div className="flex flex-wrap justify-between gap-x-4 gap-y-1 border-b border-matchon-border py-2 text-sm last:border-0">
-      <span className="text-matchon-text-secondary">{label}</span>
-      <span className="max-w-[65%] text-right font-medium text-matchon-text-primary break-words">
-        {value}
-      </span>
-    </div>
-  );
-}
 
 function DynamicDetailGrid({
   fields,
   values,
+  useSportSpan,
 }: {
   fields: GymMemberDynamicFieldDefinition[];
   values: Record<string, unknown>;
+  useSportSpan?: boolean;
 }) {
   return (
-    <GymMemberCompactGrid cols={2} className="lg:grid-cols-4">
+    <GymMemberFieldGrid>
       {fields.map((field) => (
-        <DetailRow
+        <GymMemberDetailItem
           key={field.stableKey}
           label={field.label}
+          span={
+            useSportSpan
+              ? getSportFieldGridSpan(field.stableKey, field.type)
+              : getMemberFieldGridSpan(field.type)
+          }
           value={formatGymMemberProfileValueForDisplay(
             field.type,
             values[field.stableKey],
           )}
         />
       ))}
-    </GymMemberCompactGrid>
+    </GymMemberFieldGrid>
   );
 }
 
@@ -63,12 +64,12 @@ export function GymMemberProfileDetailSections({
           <DynamicDetailGrid
             fields={sportTemplate.fields}
             values={sportValues}
+            useSportSpan
           />
         </GymMemberFormSection>
       ) : null}
 
-      {(customFields.length > 0 ||
-        Object.keys(gymValues).length > 0) && (
+      {(customFields.length > 0 || Object.keys(gymValues).length > 0) && (
         <GymMemberFormSection
           title="우리 체육관 추가 정보"
           badge="체육관 설정"

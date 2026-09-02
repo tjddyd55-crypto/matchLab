@@ -43,7 +43,6 @@ export {
   GymMembershipDurationType,
   GymMemberDynamicFieldType,
   GymMemberProfileValueSource,
-  MemberSportTemplateCode,
   GymReceivableStatus,
   GymSalesCategory,
   GymProductCategory,
