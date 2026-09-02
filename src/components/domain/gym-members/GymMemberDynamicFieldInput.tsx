@@ -7,7 +7,7 @@ import {
   sportProfileFormName,
   sportProfileFormNameForTemplate,
 } from "@/lib/gym-member-profile/form-names";
-import { matchonFieldInputClass } from "@/lib/ui/matchon-shell-ui";
+import { matchonFieldInputClass, matchonFieldTextareaClass } from "@/lib/ui/matchon-shell-ui";
 import { cn } from "@/lib/utils";
 import { AppDateInput } from "@/components/shared/AppDateInput";
 import { GymMemberFieldLabel } from "@/components/domain/gym-members/GymMemberFormLayout";
@@ -62,9 +62,9 @@ export function GymMemberDynamicFieldInput({
         <textarea
           name={name}
           defaultValue={def}
-          rows={3}
+          rows={4}
           placeholder={field.placeholder}
-          className={cn(inputClass, "min-h-[4.5rem] py-2")}
+          className={cn(matchonFieldTextareaClass, "text-sm", className)}
         />
       </label>
     );

@@ -53,30 +53,35 @@ export const formControlSelectClass = formControlFieldClass;
 
 export const formControlSelectCompactClass = formControlFieldCompactClass;
 
-/** Textarea */
+/** Textarea — 기본 약 3~4줄 (resize-y 유지) */
 export const formControlTextareaClass = [
-  "box-border min-h-[80px] w-full",
+  "box-border min-h-24 w-full resize-y",
   formControlRadiusClass,
   "px-3 py-2",
   formControlTextClass,
+  "leading-relaxed",
   formControlBorderFocusClass,
 ].join(" ");
 
 export const formControlTextareaCompactClass = [
-  "box-border min-h-[72px] w-full",
+  "box-border min-h-[5.5rem] w-full resize-y",
   formControlRadiusClass,
   "px-3 py-2",
   formControlTextClass,
+  "leading-relaxed",
   formControlBorderFocusClass,
 ].join(" ");
 
 export const formControlTextareaTallClass = [
-  "box-border min-h-[120px] w-full",
+  "box-border min-h-[7.5rem] w-full resize-y",
   formControlRadiusClass,
   "px-3 py-2",
   formControlTextClass,
+  "leading-relaxed",
   formControlBorderFocusClass,
 ].join(" ");
+
+export const formControlTextareaRowsDefault = 4;
 
 /** Label */
 export const formControlLabelClass =

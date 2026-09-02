@@ -53,8 +53,9 @@ export function AdminMemberSportTemplateListTable({
       <table className="w-full min-w-[640px] text-left text-sm">
         <thead className="border-b border-matchon-border text-xs text-matchon-text-secondary">
           <tr>
-            <th className="px-3 py-2 font-medium">종목</th>
+            <th className="px-3 py-2 font-medium">표시명</th>
             <th className="px-3 py-2 font-medium">템플릿명</th>
+            <th className="px-3 py-2 font-medium">종목 코드</th>
             <th className="px-3 py-2 font-medium">필드 수</th>
             <th className="px-3 py-2 font-medium">사용 체육관</th>
             <th className="px-3 py-2 font-medium">상태</th>
@@ -68,13 +69,11 @@ export function AdminMemberSportTemplateListTable({
               key={t.id}
               className="border-b border-matchon-border/70 last:border-0"
             >
-              <td className="px-3 py-2.5">
-                <div className="font-medium">{t.sportType}</div>
-                <div className="text-xs text-matchon-text-secondary">
-                  {t.code}
-                </div>
-              </td>
+              <td className="px-3 py-2.5 font-medium">{t.displayName}</td>
               <td className="px-3 py-2.5">{t.name}</td>
+              <td className="px-3 py-2.5 text-matchon-text-secondary">
+                {t.code}
+              </td>
               <td className="px-3 py-2.5">{t.fieldCount}</td>
               <td className="px-3 py-2.5">{t.gymCount}</td>
               <td className="px-3 py-2.5">

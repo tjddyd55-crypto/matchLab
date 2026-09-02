@@ -10,6 +10,7 @@ type SportTemplateRow = {
   id: string;
   code: string;
   name: string;
+  displayName: string;
   sportType: string;
   active: boolean;
   version: number;
@@ -132,6 +133,7 @@ export const memberSportTemplateRepository = {
       id: row.id,
       code: row.code,
       name: row.name,
+      displayName: row.displayName?.trim() || row.name,
       sportType: row.sportType,
       active: row.active,
       version: row.version,
@@ -146,6 +148,7 @@ export const memberSportTemplateRepository = {
       id: row.id,
       code: row.code,
       name: row.name,
+      displayName: row.displayName?.trim() || row.name,
       sportType: row.sportType,
       active: row.active,
       version: row.version,

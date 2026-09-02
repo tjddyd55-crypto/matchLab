@@ -1,6 +1,7 @@
 "use client";
 
 import Link from "next/link";
+import { memberSportTemplateDisplayName } from "@/lib/gym-member-profile/display-name";
 import type { GymMemberDynamicFieldDefinition } from "@/lib/gym-member-profile/fields";
 import {
   getMemberFieldGridSpan,
@@ -25,10 +26,12 @@ export function GymMemberSportProfileSection({
 }) {
   if (template.fields.length === 0) return null;
 
+  const display = memberSportTemplateDisplayName(template);
+
   return (
     <GymMemberFormSection
-      title={`${template.name} 정보`}
-      badge={template.name}
+      title={`${display} 정보`}
+      badge={display}
       badgeClassName="bg-slate-100 text-slate-600"
     >
       <GymMemberFieldGrid>

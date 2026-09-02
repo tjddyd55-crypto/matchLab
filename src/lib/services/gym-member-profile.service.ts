@@ -19,6 +19,7 @@ import {
   sportProfileFormNameForTemplate,
 } from "@/lib/gym-member-profile/form-names";
 import { dedupeTemplateIds } from "@/lib/gym-member-profile/multi-sport";
+import { memberSportTemplateDisplayName } from "@/lib/gym-member-profile/display-name";
 import { prisma } from "@/lib/prisma";
 import {
   gymMemberCustomFieldRepository,
@@ -294,14 +295,18 @@ export const gymMemberProfileService = {
     const assigned = new Map(
       activeGym.map((a) => [a.templateId, a] as const),
     );
-    return allActive.map((t) => ({
-      id: t.id,
-      code: t.code,
-      name: t.name,
-      sportType: t.sportType,
-      assigned: assigned.has(t.id),
-      isActive: assigned.get(t.id)?.isActive ?? false,
-    }));
+    return allActive.map((t) => {
+      const displayName = memberSportTemplateDisplayName(t);
+      return {
+        id: t.id,
+        code: t.code,
+        name: displayName,
+        displayName,
+        sportType: t.sportType,
+        assigned: assigned.has(t.id),
+        isActive: assigned.get(t.id)?.isActive ?? false,
+      };
+    });
   },
 
   async saveGymSportTemplateAssignments(

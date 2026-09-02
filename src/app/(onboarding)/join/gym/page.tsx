@@ -1,6 +1,7 @@
 import Link from "next/link";
 import { GymJoinApplicationForm } from "@/components/domain/gym-join/GymJoinApplicationForm";
 import { AuthLoginShell } from "@/components/domain/auth/AuthLoginShell";
+import { memberSportTemplateDisplayName } from "@/lib/gym-member-profile/display-name";
 import { memberSportTemplateRepository } from "@/lib/repositories/gym-member-profile.repository";
 import { loadMatchonPhoneVerificationConfig } from "@/server/phone-verification/config/matchon-phone-verification-config";
 import { authLoginFooterClass } from "@/lib/ui/auth-login-ui";
@@ -17,7 +18,7 @@ export default async function JoinGymPage() {
   const activeTemplates = await memberSportTemplateRepository.listActive();
   const sportTemplateOptions = activeTemplates.map((t) => ({
     id: t.id,
-    name: t.name,
+    name: memberSportTemplateDisplayName(t),
   }));
 
   return (

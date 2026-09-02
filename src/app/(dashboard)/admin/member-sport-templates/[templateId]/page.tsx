@@ -65,6 +65,7 @@ export default async function AdminMemberSportTemplateDetailPage({
             templateId={template.id}
             code={template.code}
             initialName={template.name}
+            initialDisplayName={template.displayName}
             initialSportType={template.sportType}
             initialActive={template.active}
             initialFields={template.fields}

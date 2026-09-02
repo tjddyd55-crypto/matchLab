@@ -1,6 +1,7 @@
 "use client";
 
 import { useMemo, useState } from "react";
+import { memberSportTemplateDisplayName } from "@/lib/gym-member-profile/display-name";
 import type { MemberSportTemplateWithFields } from "@/lib/gym-member-profile/types";
 import { GymMemberSportProfileSection } from "@/components/domain/gym-members/GymMemberProfileSections";
 import { GymMemberFormSection } from "@/components/domain/gym-members/GymMemberFormLayout";
@@ -66,7 +67,7 @@ export function GymMemberMultiSportSections({
                 checked={selectedIds.includes(t.id)}
                 onChange={() => toggleTemplate(t.id)}
               />
-              {t.name}
+              {memberSportTemplateDisplayName(t)}
             </label>
           ))}
         </div>

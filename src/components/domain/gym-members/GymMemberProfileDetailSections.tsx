@@ -1,5 +1,6 @@
 "use client";
 
+import { memberSportTemplateDisplayName } from "@/lib/gym-member-profile/display-name";
 import { formatGymMemberProfileValueForDisplay } from "@/lib/gym-member-profile/values";
 import type { GymMemberDynamicFieldDefinition } from "@/lib/gym-member-profile/fields";
 import {
@@ -69,12 +70,13 @@ export function GymMemberProfileDetailSections({
 
   return (
     <>
-      {templates.map((template) =>
-        template.fields.length > 0 ? (
+      {templates.map((template) => {
+        const display = memberSportTemplateDisplayName(template);
+        return template.fields.length > 0 ? (
           <GymMemberFormSection
             key={template.id}
-            title={`${template.name} 정보`}
-            badge={template.name}
+            title={`${display} 정보`}
+            badge={display}
           >
             <DynamicDetailGrid
               fields={template.fields}
@@ -85,8 +87,8 @@ export function GymMemberProfileDetailSections({
               useSportSpan
             />
           </GymMemberFormSection>
-        ) : null,
-      )}
+        ) : null;
+      })}
 
       {(customFields.length > 0 || Object.keys(gymValues).length > 0) && (
         <GymMemberFormSection

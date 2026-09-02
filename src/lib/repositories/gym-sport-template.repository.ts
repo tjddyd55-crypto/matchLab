@@ -113,7 +113,7 @@ export const gymApplicationSportTemplateRepository = {
 
     const templates = await client.memberSportTemplate.findMany({
       where: { id: { in: ids }, active: true },
-      select: { id: true, code: true, name: true },
+      select: { id: true, code: true, name: true, displayName: true },
     });
     if (templates.length !== ids.length) {
       throw new AppError(
@@ -133,7 +133,7 @@ export const gymApplicationSportTemplateRepository = {
           applicationId,
           templateId,
           templateCodeSnapshot: t.code,
-          templateNameSnapshot: t.name,
+          templateNameSnapshot: t.displayName?.trim() || t.name,
         };
       }),
     });

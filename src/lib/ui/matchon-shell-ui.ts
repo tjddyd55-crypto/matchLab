@@ -7,6 +7,10 @@ import {
   formControlFieldClass,
   formControlHeightClass,
   formControlSelectClass,
+  formControlTextareaClass,
+  formControlTextareaCompactClass,
+  formControlTextareaTallClass,
+  formControlTextareaRowsDefault,
 } from "@/lib/ui/form-control-ui";
 
 /** MATCHON Figma Shell·목록·필터·탭·테이블 공통 SSOT */
@@ -121,3 +125,13 @@ export const matchonFieldInputClass = formControlFieldClass;
 
 /** @deprecated prefer formControlSelectClass */
 export const matchonFieldSelectClass = formControlSelectClass;
+
+export {
+  formControlTextareaClass,
+  formControlTextareaCompactClass,
+  formControlTextareaTallClass,
+  formControlTextareaRowsDefault,
+};
+
+/** Textarea 기본 — 약 3~4줄, resize-y */
+export const matchonFieldTextareaClass = formControlTextareaClass;

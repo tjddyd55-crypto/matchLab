@@ -36,7 +36,8 @@ const REVALIDATE = "/admin/member-sport-templates";
 export async function createMemberSportTemplateAction(input: {
   code: string;
   name: string;
-  sportType: string;
+  displayName: string;
+  sportType?: string;
 }): Promise<ActionResult<{ id: string }>> {
   return mapCaught(async () => {
     const actor = await requireActorFromMutation();
@@ -51,7 +52,12 @@ export async function createMemberSportTemplateAction(input: {
 
 export async function updateMemberSportTemplateMetaAction(
   templateId: string,
-  input: { name?: string; sportType?: string; active?: boolean },
+  input: {
+    name?: string;
+    displayName?: string;
+    sportType?: string;
+    active?: boolean;
+  },
 ): Promise<ActionResult<{ ok: true }>> {
   return mapCaught(async () => {
     const actor = await requireActorFromMutation();

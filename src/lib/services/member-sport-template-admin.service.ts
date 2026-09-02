@@ -11,6 +11,10 @@ import {
   type GymMemberDynamicFieldDefinition,
 } from "@/lib/gym-member-profile/fields";
 import { validateMemberSportTemplateCode } from "@/lib/gym-member-profile/sport-template-code";
+import {
+  validateMemberSportDisplayName,
+  validateMemberSportTemplateName,
+} from "@/lib/gym-member-profile/display-name";
 import { assertCompatibleGymMemberFieldTypeChange } from "@/lib/gym-member-profile/type-change";
 import {
   memberSportTemplateFieldRepository,
@@ -35,6 +39,7 @@ export type AdminMemberSportTemplateListItem = {
   id: string;
   code: string;
   name: string;
+  displayName: string;
   sportType: string;
   active: boolean;
   fieldCount: number;
@@ -52,6 +57,7 @@ export const memberSportTemplateAdminService = {
       id: row.id,
       code: row.code,
       name: row.name,
+      displayName: row.displayName?.trim() || row.name,
       sportType: row.sportType,
       active: row.active,
       fieldCount: row._count.fields,
@@ -75,18 +81,28 @@ export const memberSportTemplateAdminService = {
 
   async createTemplate(
     actor: ActorContext,
-    input: { code: string; name: string; sportType: string },
+    input: {
+      code: string;
+      name: string;
+      displayName: string;
+      sportType?: string;
+    },
   ) {
     requireAdmin(actor);
     const codeResult = validateMemberSportTemplateCode(input.code);
     if (!codeResult.ok) {
       throw new AppError("VALIDATION_ERROR", codeResult.message);
     }
-    const name = input.name.trim();
-    const sportType = input.sportType.trim() || codeResult.code;
-    if (!name) {
-      throw new AppError("VALIDATION_ERROR", "템플릿명을 입력해 주세요.");
+    const nameResult = validateMemberSportTemplateName(input.name);
+    if (!nameResult.ok) {
+      throw new AppError("VALIDATION_ERROR", nameResult.message);
     }
+    const displayResult = validateMemberSportDisplayName(input.displayName);
+    if (!displayResult.ok) {
+      throw new AppError("VALIDATION_ERROR", displayResult.message);
+    }
+    const sportType =
+      input.sportType?.trim() || displayResult.value || codeResult.code;
 
     const existing = await memberSportTemplateRepository.findByCode(
       codeResult.code,
@@ -100,7 +116,8 @@ export const memberSportTemplateAdminService = {
 
     return memberSportTemplateRepository.create({
       code: codeResult.code,
-      name,
+      name: nameResult.value,
+      displayName: displayResult.value,
       sportType,
       active: true,
       version: 1,
@@ -110,7 +127,12 @@ export const memberSportTemplateAdminService = {
   async updateTemplateMeta(
     actor: ActorContext,
     templateId: string,
-    input: { name?: string; sportType?: string; active?: boolean },
+    input: {
+      name?: string;
+      displayName?: string;
+      sportType?: string;
+      active?: boolean;
+    },
   ) {
     requireAdmin(actor);
     const row = await memberSportTemplateRepository.findById(templateId);
@@ -123,10 +145,30 @@ export const memberSportTemplateAdminService = {
         "체육관에서 사용 중인 템플릿은 비활성화할 수 없습니다. 먼저 연결을 해제하세요.",
       );
     }
+
+    let name = row.name;
+    if (input.name !== undefined) {
+      const nameResult = validateMemberSportTemplateName(input.name);
+      if (!nameResult.ok) {
+        throw new AppError("VALIDATION_ERROR", nameResult.message);
+      }
+      name = nameResult.value;
+    }
+
+    let displayName = row.displayName;
+    if (input.displayName !== undefined) {
+      const displayResult = validateMemberSportDisplayName(input.displayName);
+      if (!displayResult.ok) {
+        throw new AppError("VALIDATION_ERROR", displayResult.message);
+      }
+      displayName = displayResult.value;
+    }
+
     return memberSportTemplateRepository.update(templateId, {
-      ...(input.name !== undefined ? { name: input.name.trim() } : {}),
+      name,
+      displayName,
       ...(input.sportType !== undefined
-        ? { sportType: input.sportType.trim() }
+        ? { sportType: input.sportType.trim() || row.sportType }
         : {}),
       ...(input.active !== undefined ? { active: input.active } : {}),
     });
@@ -187,6 +229,7 @@ export const memberSportTemplateAdminService = {
         data: {
           code: nextCode,
           name: `${source.name} (복제)`,
+          displayName: source.displayName,
           sportType: source.sportType,
           active: false,
           version: 1,

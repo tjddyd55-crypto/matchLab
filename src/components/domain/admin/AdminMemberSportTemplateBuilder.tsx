@@ -29,6 +29,7 @@ export function AdminMemberSportTemplateBuilder({
   templateId,
   code,
   initialName,
+  initialDisplayName,
   initialSportType,
   initialActive,
   initialFields,
@@ -38,6 +39,7 @@ export function AdminMemberSportTemplateBuilder({
   templateId: string;
   code: string;
   initialName: string;
+  initialDisplayName: string;
   initialSportType: string;
   initialActive: boolean;
   initialFields: GymMemberDynamicFieldDefinition[];
@@ -46,6 +48,7 @@ export function AdminMemberSportTemplateBuilder({
 }) {
   const router = useRouter();
   const [name, setName] = useState(initialName);
+  const [displayName, setDisplayName] = useState(initialDisplayName);
   const [sportType, setSportType] = useState(initialSportType);
   const [active, setActive] = useState(initialActive);
   const [fields, setFields] = useState(initialFields);
@@ -134,6 +137,7 @@ export function AdminMemberSportTemplateBuilder({
     startTransition(async () => {
       const meta = await updateMemberSportTemplateMetaAction(templateId, {
         name,
+        displayName,
         sportType,
         active,
       });
@@ -182,7 +186,7 @@ export function AdminMemberSportTemplateBuilder({
 
   return (
     <div className="space-y-5">
-      <div className="grid gap-3 rounded-lg border border-matchon-border p-3 sm:grid-cols-2 lg:grid-cols-4">
+      <div className="grid gap-3 rounded-lg border border-matchon-border p-3 sm:grid-cols-2 lg:grid-cols-3">
         <label className="space-y-1 text-sm">
           <span className="text-xs text-matchon-text-secondary">종목 코드</span>
           <input
@@ -201,9 +205,26 @@ export function AdminMemberSportTemplateBuilder({
             }}
             className={matchonFieldInputClass}
           />
+          <p className="text-xs text-matchon-text-secondary">
+            관리자가 템플릿을 구분하기 위한 내부 이름입니다.
+          </p>
         </label>
         <label className="space-y-1 text-sm">
           <span className="text-xs text-matchon-text-secondary">표시명</span>
+          <input
+            value={displayName}
+            onChange={(e) => {
+              setSaved(false);
+              setDisplayName(e.target.value);
+            }}
+            className={matchonFieldInputClass}
+          />
+          <p className="text-xs text-matchon-text-secondary">
+            체육관 가입·회원관리 화면에 표시되는 종목명입니다.
+          </p>
+        </label>
+        <label className="space-y-1 text-sm">
+          <span className="text-xs text-matchon-text-secondary">종목 분류</span>
           <input
             value={sportType}
             onChange={(e) => {
@@ -213,7 +234,7 @@ export function AdminMemberSportTemplateBuilder({
             className={matchonFieldInputClass}
           />
         </label>
-        <label className="flex items-end gap-2 pb-2 text-sm">
+        <label className="flex items-end gap-2 pb-2 text-sm sm:col-span-2">
           <input
             type="checkbox"
             checked={active}

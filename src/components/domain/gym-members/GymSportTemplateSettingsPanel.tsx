@@ -6,6 +6,9 @@ import { Button } from "@/components/ui/button";
 
 export type GymSportTemplateAssignmentOption = {
   id: string;
+  /** 사용자 화면 종목 표시명 (SSOT) */
+  displayName: string;
+  /** @deprecated use displayName — kept for backward compat */
   name: string;
   assigned: boolean;
   isActive: boolean;
@@ -77,7 +80,7 @@ export function GymSportTemplateSettingsPanel({
               checked={selectedIds.includes(opt.id)}
               onChange={() => toggle(opt.id)}
             />
-            {opt.name}
+            {opt.displayName}
           </label>
         ))}
       </div>

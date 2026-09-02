@@ -5,7 +5,7 @@ import type { GymMemberDynamicFieldDefinition } from "@/lib/gym-member-profile/f
 import { GYM_MEMBER_DYNAMIC_FIELD_TYPES } from "@/lib/gym-member-profile/field-types";
 import { GYM_MEMBER_DYNAMIC_FIELD_TYPE_LABEL } from "@/lib/gym-member-profile/ui-labels";
 import { Button } from "@/components/ui/button";
-import { matchonFieldInputClass } from "@/lib/ui/matchon-shell-ui";
+import { matchonFieldInputClass, matchonFieldTextareaClass } from "@/lib/ui/matchon-shell-ui";
 import { cn } from "@/lib/utils";
 
 const fieldClass = cn(matchonFieldInputClass, "min-h-9 text-sm");
@@ -184,7 +184,8 @@ export function DynamicFieldEditorCard({
               선택지 (줄바꿈으로 구분)
             </span>
             <textarea
-              className={cn(fieldClass, "min-h-[3.5rem] py-1.5")}
+              rows={4}
+              className={cn(matchonFieldTextareaClass, "text-sm")}
               value={(field.options ?? []).join("\n")}
               onChange={(e) =>
                 onChange({
