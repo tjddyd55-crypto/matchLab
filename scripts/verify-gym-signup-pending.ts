@@ -13,6 +13,12 @@ function read(rel: string) {
 }
 
 const service = read("src/lib/services/gym-application.service.ts");
+const authHelper = read("src/lib/auth/create-matchon-auth-user.ts");
+assert.match(service, /createMatchonAuthUserWithRecovery/);
+assert.match(authHelper, /linkedUser/);
+assert.match(authHelper, /pendingGymApp/);
+assert.match(authHelper, /deleteUser\(orphan\.id\)/);
+assert.match(authHelper, /loginIdMasked/);
 assert.match(service, /status:\s*GymApplicationStatus\.pending/);
 assert.match(service, /associationMemberGymCreated:\s*false/);
 assert.match(service, /async approve\(/);

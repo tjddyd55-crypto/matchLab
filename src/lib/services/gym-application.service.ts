@@ -14,6 +14,7 @@ import { loginIdToAuthEmail } from "@/lib/fighter-login";
 import { memberGymFilesBucket } from "@/lib/member-gym/constants";
 import { prisma } from "@/lib/prisma";
 import { requireRole } from "@/lib/permissions";
+import { createMatchonAuthUserWithRecovery, maskLoginId } from "@/lib/auth/create-matchon-auth-user";
 import { createSupabaseAdminClient } from "@/lib/supabase/admin";
 import { normalizePostalCode } from "@/lib/postal-address";
 import { formatPostalAddress } from "@/lib/postal-address";
@@ -155,25 +156,16 @@ export const gymApplicationService = {
 
     await assertApplicationRequestedLoginIdAvailable(requestedLoginId);
 
-    const supabase = createSupabaseAdminClient();
-    const { data: createdAuth, error: authError } =
-      await supabase.auth.admin.createUser({
-        email: authEmail,
-        password,
-        email_confirm: true,
-        user_metadata: {
-          matchon_pending_gym_application: true,
-          requested_login_id: requestedLoginId,
-        },
-      });
-    if (authError || !createdAuth.user) {
-      throw new AppError(
-        "INTERNAL",
-        "로그인 계정 준비에 실패했습니다. 잠시 후 다시 시도해 주세요.",
-        authError?.message,
-      );
-    }
-    const pendingAuthUserId = createdAuth.user.id;
+    const pendingAuthUserId = await createMatchonAuthUserWithRecovery({
+      authEmail,
+      password,
+      requestedLoginId,
+      logContext: "gym-application.submit",
+      userMetadata: {
+        matchon_pending_gym_application: true,
+        requested_login_id: requestedLoginId,
+      },
+    });
 
     try {
       return await prisma.$transaction(async (tx) => {
@@ -228,8 +220,32 @@ export const gymApplicationService = {
         return created;
       });
     } catch (e) {
-      await supabase.auth.admin.deleteUser(pendingAuthUserId).catch(() => undefined);
-      throw e;
+      console.error(
+        "[gym-application.submit] application save failed, rolling back auth user",
+        {
+          loginIdMasked: maskLoginId(requestedLoginId),
+          stage: "application_save_failed",
+          error: e instanceof Error ? e.message : String(e),
+        },
+      );
+      try {
+        const supabase = createSupabaseAdminClient();
+        await supabase.auth.admin.deleteUser(pendingAuthUserId);
+      } catch (rollbackError) {
+        console.error("[gym-application.submit] auth rollback delete failed", {
+          stage: "auth_rollback_failed",
+          error:
+            rollbackError instanceof Error
+              ? rollbackError.message
+              : String(rollbackError),
+        });
+      }
+      if (e instanceof AppError) throw e;
+      throw new AppError(
+        "INTERNAL",
+        "가입 신청 저장 중 오류가 발생했습니다.\n잠시 후 다시 시도해 주세요.",
+        e instanceof Error ? e.message : undefined,
+      );
     }
   },
 
