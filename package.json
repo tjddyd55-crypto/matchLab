@@ -142,6 +142,7 @@
     "verify:gym-event-independent-gym-policy": "tsx scripts/verify-gym-event-navigation.ts",
     "verify:shared-event-announcement-card": "tsx scripts/verify-shared-event-announcement-card.ts",
     "verify:gym-member-ssot": "tsx scripts/verify-gym-member-ssot.ts",
+    "verify:gym-member-template": "tsx scripts/verify-gym-member-template.ts",
     "verify:gym-member-ui-v2-phase1": "tsx scripts/verify-gym-member-ui-v2-phase1.ts",
     "verify:gym-member-new-this-month-filter": "tsx scripts/verify-gym-member-new-this-month-filter.ts",
     "verify:gym-member-registration-v3": "tsx scripts/verify-gym-member-registration-v3.ts",

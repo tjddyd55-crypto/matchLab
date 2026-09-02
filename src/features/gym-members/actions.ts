@@ -23,6 +23,7 @@ import { gymMembershipSaleService } from "@/lib/services/gym-membership-sale.ser
 import { gymMemberGroupService } from "@/lib/services/gym-member-group.service";
 import { gymMemberLockerService } from "@/lib/services/gym-member-locker.service";
 import { gymMemberExcelService } from "@/lib/services/gym-member-excel.service";
+import { gymMemberProfileService } from "@/lib/services/gym-member-profile.service";
 import {
   gymMemberImportService,
   type ImportPreviewResult,
@@ -146,7 +147,27 @@ export async function createGymMemberAction(
         parsed.error.issues[0]?.message ?? "입력값을 확인해 주세요.",
       );
     }
+
+    const formCtx = await gymMemberProfileService.getGymFormContext(actor);
+    const sportFields = formCtx.sportTemplate?.fields ?? [];
+    const gymFields = formCtx.customFields;
+    const profileParsed = gymMemberProfileService.parseProfileValuesFromFormData(
+      formData,
+      sportFields,
+      gymFields,
+    );
+    if (profileParsed.errors.length > 0) {
+      return actionFailure("VALIDATION_ERROR", profileParsed.errors[0]!);
+    }
+
     const result = await gymMemberService.createMember(actor, parsed.data);
+    if (sportFields.length > 0 || gymFields.length > 0) {
+      await gymMemberProfileService.saveProfileValuesForMember(
+        result.memberId,
+        profileParsed.sportRows,
+        profileParsed.gymRows,
+      );
+    }
     revalidateMemberPaths(result.memberId);
     return actionSuccess(result);
   });
@@ -192,7 +213,27 @@ export async function updateGymMemberAction(
         parsed.error.issues[0]?.message ?? "입력값을 확인해 주세요.",
       );
     }
+
+    const formCtx = await gymMemberProfileService.getGymFormContext(actor);
+    const sportFields = formCtx.sportTemplate?.fields ?? [];
+    const gymFields = formCtx.customFields;
+    const profileParsed = gymMemberProfileService.parseProfileValuesFromFormData(
+      formData,
+      sportFields,
+      gymFields,
+    );
+    if (profileParsed.errors.length > 0) {
+      return actionFailure("VALIDATION_ERROR", profileParsed.errors[0]!);
+    }
+
     await gymMemberService.updateMember(actor, memberId, parsed.data);
+    if (sportFields.length > 0 || gymFields.length > 0) {
+      await gymMemberProfileService.saveProfileValuesForMember(
+        memberId,
+        profileParsed.sportRows,
+        profileParsed.gymRows,
+      );
+    }
     revalidateMemberPaths(memberId);
     return actionSuccess({ ok: true });
   });

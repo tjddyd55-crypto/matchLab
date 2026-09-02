@@ -87,6 +87,7 @@ export function getGymPortalNavGroups(
       items: [
         { href: "/gym/members", label: "전체 회원" },
         { href: "/gym/members/new", label: "회원 등록" },
+        { href: "/gym/member-custom-fields", label: "회원 추가 항목" },
         { href: "/gym/member-groups", label: "회원 그룹" },
         { href: "/gym/membership-plans", label: "이용권 관리" },
         { href: "/gym/attendance", label: "출석 현황" },

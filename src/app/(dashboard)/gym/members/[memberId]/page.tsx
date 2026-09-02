@@ -18,11 +18,14 @@ import { gymMemberSelfRegistrationService } from "@/lib/services/gym-member-self
 import { gymMembershipPlanService } from "@/lib/services/gym-membership-plan.service";
 import { gymMemberLockerService } from "@/lib/services/gym-member-locker.service";
 import { gymMemberGroupService } from "@/lib/services/gym-member-group.service";
+import { gymMemberProfileService } from "@/lib/services/gym-member-profile.service";
 import { gymSalesService } from "@/lib/services/gym-sales.service";
 import { gymMembershipSaleService } from "@/lib/services/gym-membership-sale.service";
 import { GymMemberAttendanceCalendar } from "@/components/domain/gym-attendance/GymMemberAttendanceCalendar";
 import { GymMemberAvatar } from "@/components/domain/gym-members/GymMemberAvatar";
 import { GymMemberAssignedStaffSection } from "@/components/domain/gym-members/GymMemberAssignedStaffSection";
+import { GymMemberCommonDetailSection } from "@/components/domain/gym-members/GymMemberCommonDetailSection";
+import { GymMemberProfileDetailSections } from "@/components/domain/gym-members/GymMemberProfileDetailSections";
 import { GymMemberUpcomingSchedulesSection } from "@/components/domain/gym-members/GymMemberUpcomingSchedulesSection";
 import { GymMemberDetailActions } from "@/components/domain/gym-members/GymMemberDetailActions";
 import { GymMemberMembershipPanel } from "@/components/domain/gym-members/GymMemberMembershipPanel";
@@ -176,6 +179,9 @@ export default async function GymMemberDetailPage({
   let upcomingGroupClasses: Awaited<
     ReturnType<typeof gymGroupClassService.getMemberUpcoming>
   > = [];
+  let profileCtx: Awaited<
+    ReturnType<typeof gymMemberProfileService.getMemberProfileContext>
+  > | null = null;
   const access = await resolveGymPortalAccess(actor).catch(() => null);
   try {
     [
@@ -189,6 +195,7 @@ export default async function GymMemberDetailPage({
       assignedStaff,
       upcomingSchedules,
       upcomingGroupClasses,
+      profileCtx,
     ] = await Promise.all([
       gymMemberService.getMemberDetail(actor, memberId),
       gymMembershipPlanService.listPlans(actor, false).catch(() => []),
@@ -205,6 +212,9 @@ export default async function GymMemberDetailPage({
       gymStaffService.listAssignmentsForMember(actor, memberId).catch(() => []),
       gymScheduleService.getMemberUpcoming(actor, memberId, 30).catch(() => []),
       gymGroupClassService.getMemberUpcoming(actor, memberId, 30).catch(() => []),
+      gymMemberProfileService
+        .getMemberProfileContext(actor, memberId)
+        .catch(() => null),
     ]);
   } catch (e) {
     if (e instanceof AppError && e.code === "NOT_FOUND") notFound();
@@ -227,9 +237,6 @@ export default async function GymMemberDetailPage({
     expirationDisplay,
     daysRemaining,
   } = detail;
-  const addressLine = [member.address, member.addressDetail]
-    .filter(Boolean)
-    .join(" ");
   const alert = membershipAlert(membershipStatus, expirationDisplay);
   const primaryStaff =
     assignedStaff.find((r) => r.isPrimary)?.staffName ??
@@ -443,54 +450,51 @@ export default async function GymMemberDetailPage({
 
         {tab === "overview" ? (
           <div className="grid gap-3 lg:grid-cols-2">
-            <section className="rounded-[10px] border border-matchon-border bg-white p-3">
-              <h2 className={cn(matchonSectionTitleClass, "mb-2 text-xs")}>
-                기본정보
-              </h2>
-              <InfoRow
-                label="휴대폰"
-                value={formatPhoneNumber(member.phone)}
+            <div className="lg:col-span-2 space-y-4">
+              <GymMemberCommonDetailSection
+                member={{
+                  name: member.name,
+                  phone: member.phone,
+                  birthDate: member.birthDate,
+                  gender: member.gender,
+                  email: member.email,
+                  postalCode: member.postalCode,
+                  address: member.address,
+                  addressDetail: member.addressDetail,
+                  joinedAt: member.joinedAt,
+                  memberNumber: member.memberNumber,
+                  rankName: member.rankName,
+                  guardianName: member.guardianName,
+                  guardianPhone: member.guardianPhone,
+                  emergencyContactName: member.emergencyContactName,
+                  emergencyContactPhone: member.emergencyContactPhone,
+                  memo: member.memo,
+                  smsOptOut: member.smsOptOut,
+                  statusLabel: getGymMemberStoredStatusLabel(member.status),
+                }}
               />
-              <InfoRow
-                label="생년월일"
-                value={
-                  member.birthDate ? formatUtcDateOnly(member.birthDate) : "—"
-                }
-              />
-              <InfoRow label="성별" value={member.gender ?? "—"} />
-              <InfoRow label="이메일" value={member.email ?? "—"} />
-              <InfoRow
-                label="보호자(비상연락처)"
-                value={
-                  [
-                    member.guardianName?.trim() ||
-                      member.emergencyContactName?.trim(),
-                    member.guardianPhone?.trim() ||
-                      member.emergencyContactPhone?.trim(),
-                  ]
-                    .filter(Boolean)
-                    .join(" · ") || "—"
-                }
-              />
-              <InfoRow label="등급" value={member.rankName ?? "—"} />
-              <InfoRow
-                label="그룹"
-                value={
-                  memberGroups.length
-                    ? memberGroups.map((a) => a.group.name).join(", ")
-                    : "—"
-                }
-              />
-              <InfoRow
-                label="주소"
-                value={
-                  addressLine
-                    ? `${member.postalCode ? `(${member.postalCode}) ` : ""}${addressLine}`
-                    : "—"
-                }
-              />
-              <InfoRow label="메모" value={member.memo ?? "—"} />
-            </section>
+
+              {profileCtx ? (
+                <GymMemberProfileDetailSections
+                  sportTemplate={profileCtx.sportTemplate}
+                  customFields={profileCtx.customFields}
+                  sportValues={profileCtx.sportValues}
+                  gymValues={profileCtx.gymValues}
+                />
+              ) : null}
+
+              {memberGroups.length > 0 ? (
+                <section className="rounded-[10px] border border-matchon-border bg-white p-3">
+                  <h2 className={cn(matchonSectionTitleClass, "mb-2 text-xs")}>
+                    회원 그룹
+                  </h2>
+                  <InfoRow
+                    label="그룹"
+                    value={memberGroups.map((a) => a.group.name).join(", ")}
+                  />
+                </section>
+              ) : null}
+            </div>
 
             <section className="rounded-[10px] border border-matchon-border bg-white p-3">
               <h2 className={cn(matchonSectionTitleClass, "mb-2 text-xs")}>

@@ -11,6 +11,8 @@ import {
 import type { ActorContext } from "@/lib/auth/actor-context";
 import { AppError } from "@/lib/errors/app-error";
 import { toUtcDateOnly, todayUtcDateOnlyString } from "@/lib/date-only";
+import { resolveGymMemberGenderForUpdate } from "@/lib/gym-member/gender";
+import { formatUtcDateOnly } from "@/lib/date-only";
 import { normalizePhoneDigits } from "@/lib/phone";
 import { assertGymMemberImagePath } from "@/lib/constants/gym-member-image-upload";
 
@@ -716,6 +718,20 @@ export const gymMemberService = {
         : null;
 
     await prisma.$transaction(async (tx) => {
+      const nextJoinedAt = input.joinedAt
+        ? (() => {
+            const next = toUtcDateOnly(input.joinedAt);
+            if (
+              member.joinedAt &&
+              formatUtcDateOnly(member.joinedAt, "-") ===
+                formatUtcDateOnly(next, "-")
+            ) {
+              return member.joinedAt;
+            }
+            return next;
+          })()
+        : member.joinedAt;
+
       await gymMemberRepository.update(
         memberId,
         {
@@ -725,7 +741,10 @@ export const gymMemberService = {
           birthDate: input.birthDate
             ? toUtcDateOnly(input.birthDate)
             : null,
-          gender: input.gender ?? null,
+          gender: resolveGymMemberGenderForUpdate(
+            input.gender,
+            member.gender,
+          ),
           email: input.email ?? null,
           postalCode: input.postalCode ?? null,
           address: input.address ?? null,
@@ -739,9 +758,7 @@ export const gymMemberService = {
           memo: input.memo ?? null,
           profileImagePath: nextImagePath,
           smsOptOut: input.smsOptOut ?? false,
-          joinedAt: input.joinedAt
-            ? toUtcDateOnly(input.joinedAt)
-            : member.joinedAt,
+          joinedAt: nextJoinedAt,
           updatedByUserId: actor.userId,
         },
         tx,

@@ -3,14 +3,18 @@
 import { useState, useTransition } from "react";
 import { useRouter } from "next/navigation";
 import Link from "next/link";
-import { AppDateInput } from "@/components/shared/AppDateInput";
-import { AddressSearchField } from "@/components/shared/AddressSearchField";
+import { GymMemberCommonInfoSection } from "@/components/domain/gym-members/GymMemberCommonInfoSection";
+import {
+  GymMemberCustomProfileSection,
+  GymMemberSportProfileSection,
+} from "@/components/domain/gym-members/GymMemberProfileSections";
 import { GymMemberProfileImageUpload } from "@/components/domain/gym-members/GymMemberProfileImageUpload";
-import { PhoneInput } from "@/components/shared/PhoneInput";
-import { Button, buttonVariants } from "@/components/ui/button";
+import { GymMemberStickyActionBar } from "@/components/domain/gym-members/GymMemberFormLayout";
+import type { GymMemberDynamicFieldDefinition } from "@/lib/gym-member-profile/fields";
+import type { MemberSportTemplateWithFields } from "@/lib/gym-member-profile/types";
 import { updateGymMemberAction } from "@/features/gym-members/actions";
 import { formatUtcDateOnly } from "@/lib/date-only";
-import { matchonFieldInputClass } from "@/lib/ui/matchon-shell-ui";
+import { buttonVariants } from "@/components/ui/button";
 import { cn } from "@/lib/utils";
 
 export type GymMemberEditInitial = {
@@ -31,6 +35,7 @@ export type GymMemberEditInitial = {
   rankName: string | null;
   memo: string | null;
   smsOptOut: boolean;
+  memberNumber: string;
   groupIds?: string[];
 };
 
@@ -59,11 +64,19 @@ export function GymMemberEditForm({
   initial,
   groups = [],
   profileImageUrl = null,
+  sportTemplate = null,
+  customFields = [],
+  sportValues = {},
+  gymValues = {},
 }: {
   memberId: string;
   initial: GymMemberEditInitial;
   groups?: GroupOption[];
   profileImageUrl?: string | null;
+  sportTemplate?: MemberSportTemplateWithFields | null;
+  customFields?: GymMemberDynamicFieldDefinition[];
+  sportValues?: Record<string, unknown>;
+  gymValues?: Record<string, unknown>;
 }) {
   const router = useRouter();
   const [pending, startTransition] = useTransition();
@@ -104,7 +117,7 @@ export function GymMemberEditForm({
         e.preventDefault();
         submit(new FormData(e.currentTarget));
       }}
-      className="mx-auto max-w-5xl space-y-6"
+      className="mx-auto max-w-6xl space-y-5"
     >
       {error ? (
         <p className="rounded-lg border border-red-200 bg-red-50 px-3 py-2 text-sm text-red-700">
@@ -122,133 +135,62 @@ export function GymMemberEditForm({
         <input type="hidden" name="profileImagePath" value={profileImagePath} />
       ) : null}
 
-      <div className="grid gap-6 lg:grid-cols-2">
-        <section className="space-y-3">
-          <h2 className="text-base font-semibold">기본 정보</h2>
-          <label className="block space-y-1 text-sm">
-            <span>이름 *</span>
-            <input
-              name="name"
-              required
-              defaultValue={initial.name}
-              className={matchonFieldInputClass}
-            />
-          </label>
-          <PhoneInput
-            name="phone"
-            label="휴대전화번호"
-            required
-            defaultValue={initial.phone}
-          />
-          <label className="block space-y-1 text-sm">
-            <span>등록일</span>
-            <AppDateInput
-              name="joinedAt"
-              defaultValue={dateDefault(initial.joinedAt)}
-            />
-          </label>
-          <label className="block space-y-1 text-sm">
-            <span>생년월일</span>
-            <AppDateInput
-              name="birthDate"
-              defaultValue={dateDefault(initial.birthDate)}
-              disallowFuture
-            />
-          </label>
-          <label className="block space-y-1 text-sm">
-            <span>성별</span>
-            <select
-              name="gender"
-              defaultValue={initial.gender ?? ""}
-              className={matchonFieldInputClass}
-            >
-              <option value="">선택</option>
-              <option value="남">남</option>
-              <option value="여">여</option>
-            </select>
-          </label>
-          <AddressSearchField
-            label="주소"
-            addressName="address"
-            detailName="addressDetail"
-            postalName="postalCode"
-            defaultAddress={initial.address ?? ""}
-            defaultDetail={initial.addressDetail ?? ""}
-            defaultPostal={initial.postalCode ?? ""}
-          />
-        </section>
+      <GymMemberCommonInfoSection
+        initial={{
+          name: initial.name,
+          phone: initial.phone,
+          birthDate: dateDefault(initial.birthDate),
+          gender: initial.gender ?? "",
+          email: initial.email ?? "",
+          postalCode: initial.postalCode ?? "",
+          address: initial.address ?? "",
+          addressDetail: initial.addressDetail ?? "",
+          joinedAt: dateDefault(initial.joinedAt),
+          memberNumber: initial.memberNumber,
+          rankName: initial.rankName ?? "",
+          guardianName: guardian.name,
+          guardianPhone: guardian.phone,
+          memo: initial.memo ?? "",
+          smsOptOut: initial.smsOptOut,
+        }}
+        showMemberNumber
+        joinedRequired={false}
+      />
 
-        <section className="space-y-3">
-          <h2 className="text-base font-semibold">보호자·등급·그룹</h2>
-          <label className="block space-y-1 text-sm">
-            <span>보호자(비상연락처) 이름</span>
-            <input
-              name="guardianName"
-              defaultValue={guardian.name}
-              className={matchonFieldInputClass}
-            />
-          </label>
-          <PhoneInput
-            name="guardianPhone"
-            label="보호자(비상연락처) 전화"
-            defaultValue={guardian.phone}
-          />
-          <label className="block space-y-1 text-sm">
-            <span>회원 등급</span>
-            <input
-              name="rankName"
-              defaultValue={initial.rankName ?? ""}
-              className={matchonFieldInputClass}
-            />
-          </label>
-          {groups.length > 0 ? (
-            <fieldset className="space-y-2">
-              <legend className="text-sm font-medium">회원 그룹</legend>
-              <div className="flex flex-wrap gap-2">
-                {groups.map((g) => (
-                  <label
-                    key={g.id}
-                    className="inline-flex items-center gap-1.5 rounded-lg border border-matchon-border px-2.5 py-1.5 text-sm"
-                  >
-                    <input
-                      type="checkbox"
-                      checked={selectedGroupIds.includes(g.id)}
-                      onChange={() => toggleGroup(g.id)}
-                    />
-                    {g.name}
-                  </label>
-                ))}
-              </div>
-            </fieldset>
-          ) : (
-            <input type="hidden" name="groupIds" value="" />
-          )}
-          <label className="flex items-center gap-2 text-sm">
-            <input
-              type="checkbox"
-              name="smsOptOut"
-              value="true"
-              defaultChecked={initial.smsOptOut}
-            />
-            출석 문자 수신 거부
-          </label>
+      {groups.length > 0 ? (
+        <section className="space-y-2 rounded-lg border border-matchon-border p-3">
+          <h3 className="text-sm font-semibold">회원 그룹</h3>
+          <div className="flex flex-wrap gap-2">
+            {groups.map((g) => (
+              <label
+                key={g.id}
+                className="inline-flex items-center gap-1.5 rounded-lg border border-matchon-border px-2.5 py-1.5 text-sm"
+              >
+                <input
+                  type="checkbox"
+                  checked={selectedGroupIds.includes(g.id)}
+                  onChange={() => toggleGroup(g.id)}
+                />
+                {g.name}
+              </label>
+            ))}
+          </div>
         </section>
-      </div>
+      ) : null}
 
-      <label className="block space-y-1 text-sm">
-        <span>메모</span>
-        <textarea
-          name="memo"
-          rows={3}
-          defaultValue={initial.memo ?? ""}
-          className={cn(matchonFieldInputClass, "min-h-[5rem] py-2")}
+      {sportTemplate ? (
+        <GymMemberSportProfileSection
+          template={sportTemplate}
+          values={sportValues}
         />
-      </label>
+      ) : null}
 
-      <div className="flex flex-wrap gap-2 pt-2">
-        <Button type="submit" disabled={pending}>
-          {pending ? "저장 중…" : "저장"}
-        </Button>
+      <GymMemberCustomProfileSection
+        fields={customFields}
+        values={gymValues}
+      />
+
+      <div className="flex justify-end gap-2 pb-2 md:hidden">
         <Link
           href={`/gym/members/${memberId}`}
           className={cn(buttonVariants({ variant: "outline" }))}
@@ -256,6 +198,8 @@ export function GymMemberEditForm({
           취소
         </Link>
       </div>
+
+      <GymMemberStickyActionBar pending={pending} submitLabel="저장" />
     </form>
   );
 }

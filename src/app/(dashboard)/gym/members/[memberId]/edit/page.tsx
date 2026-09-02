@@ -5,6 +5,7 @@ import { AppError } from "@/lib/errors/app-error";
 import { PermissionError } from "@/lib/auth/permission-error";
 import { gymMemberService } from "@/lib/services/gym-member.service";
 import { gymMemberGroupService } from "@/lib/services/gym-member-group.service";
+import { gymMemberProfileService } from "@/lib/services/gym-member-profile.service";
 import { GymMemberEditForm } from "@/components/domain/gym-members/GymMemberEditForm";
 import { GymProfileMissingBanner } from "@/components/domain/gym/GymProfileMissingBanner";
 import { buttonVariants } from "@/components/ui/button";
@@ -39,11 +40,13 @@ export default async function GymMemberEditPage({
   let detail;
   let groups;
   let assignments;
+  let profileCtx;
   try {
-    [detail, groups, assignments] = await Promise.all([
+    [detail, groups, assignments, profileCtx] = await Promise.all([
       gymMemberService.getMemberDetail(actor, memberId),
       gymMemberGroupService.listGroups(actor, false),
       gymMemberGroupService.listMemberAssignments(actor, memberId),
+      gymMemberProfileService.getMemberProfileContext(actor, memberId),
     ]);
   } catch (e) {
     if (e instanceof AppError && e.code === "NOT_FOUND") notFound();
@@ -77,6 +80,10 @@ export default async function GymMemberEditPage({
           memberId={member.id}
           profileImageUrl={detail.profileImageUrl}
           groups={groups.map((g) => ({ id: g.id, name: g.name }))}
+          sportTemplate={profileCtx.sportTemplate}
+          customFields={profileCtx.customFields}
+          sportValues={profileCtx.sportValues}
+          gymValues={profileCtx.gymValues}
           initial={{
             name: member.name,
             phone: member.phone,
@@ -95,6 +102,7 @@ export default async function GymMemberEditPage({
             rankName: member.rankName,
             memo: member.memo,
             smsOptOut: member.smsOptOut,
+            memberNumber: member.memberNumber,
             groupIds: assignments.map((a) => a.groupId),
           }}
         />

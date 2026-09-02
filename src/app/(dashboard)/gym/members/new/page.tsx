@@ -2,6 +2,7 @@ import Link from "next/link";
 import { requireActor } from "@/lib/auth/actor";
 import { gymMembershipPlanService } from "@/lib/services/gym-membership-plan.service";
 import { gymMemberGroupService } from "@/lib/services/gym-member-group.service";
+import { gymMemberProfileService } from "@/lib/services/gym-member-profile.service";
 import { GymMemberCreateForm } from "@/components/domain/gym-members/GymMemberCreateForm";
 import { GymProfileMissingBanner } from "@/components/domain/gym/GymProfileMissingBanner";
 import { buttonVariants } from "@/components/ui/button";
@@ -34,9 +35,10 @@ export default async function GymMemberNewPage({
     );
   }
 
-  const [plans, groups] = await Promise.all([
+  const [plans, groups, profileCtx] = await Promise.all([
     gymMembershipPlanService.listPlans(actor, false),
     gymMemberGroupService.listGroups(actor, false),
+    gymMemberProfileService.getGymFormContext(actor),
   ]);
 
   return (
@@ -72,6 +74,8 @@ export default async function GymMemberNewPage({
           }))}
           groups={groups.map((g) => ({ id: g.id, name: g.name }))}
           defaultRegisterAsFighter={registerAsFighter}
+          sportTemplate={profileCtx.sportTemplate}
+          customFields={profileCtx.customFields}
         />
       </div>
     </div>

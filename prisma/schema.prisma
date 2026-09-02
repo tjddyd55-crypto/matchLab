@@ -777,6 +777,11 @@ model Gym {
   gymMemberRegistrationTerms     GymMemberRegistrationTerms[]
   gymMemberRegistrationRequests  GymMemberRegistrationRequest[]
   intakeForms                    IntakeForm[]
+  memberSportTemplate            MemberSportTemplate?           @relation(fields: [memberSportTemplateId], references: [id], onDelete: SetNull)
+  memberSportTemplateId          String?
+  gymMemberCustomFields          GymMemberCustomField[]
+
+  @@index([memberSportTemplateId])
 }
 
 model Fighter {
@@ -903,6 +908,7 @@ model GymMember {
   groupAssignments   GymMemberGroupAssignment[]
   lockerRentals      GymMemberLockerRental[]
   selfRegistrationRequest GymMemberRegistrationRequest?
+  profileValues      GymMemberProfileValue[]
 
   @@unique([gymId, memberNumber])
   @@index([gymId, deletedAt])
@@ -910,6 +916,113 @@ model GymMember {
   @@index([gymId, phone])
   @@index([gymId, normalizedPhone])
   @@index([gymId, name])
+}
+
+/// Admin·시스템이 관리하는 종목별 회원 프로필 템플릿 (Phase 1: KICKBOXING)
+enum MemberSportTemplateCode {
+  KICKBOXING
+}
+
+enum GymMemberProfileValueSource {
+  SPORT
+  GYM
+}
+
+/// 회원관리 dynamic field type — IntakeForm과 별도 domain
+enum GymMemberDynamicFieldType {
+  text
+  textarea
+  number
+  date
+  select
+  radio
+  checkbox
+  boolean
+}
+
+model MemberSportTemplate {
+  id        String                 @id @default(cuid())
+  code      MemberSportTemplateCode @unique
+  name      String
+  sportType String
+  active    Boolean                @default(true)
+  version   Int                    @default(1)
+  createdAt DateTime               @default(now())
+  updatedAt DateTime               @updatedAt
+
+  fields MemberSportTemplateField[]
+  gyms   Gym[]
+
+  @@index([active])
+}
+
+model MemberSportTemplateField {
+  id           String                   @id @default(cuid())
+  templateId   String
+  stableKey    String
+  label        String
+  type         GymMemberDynamicFieldType
+  required     Boolean                  @default(false)
+  placeholder  String?
+  helpText     String?
+  optionsJson  Json?
+  displayOrder Int                      @default(0)
+  active       Boolean                  @default(true)
+  createdAt    DateTime                 @default(now())
+  updatedAt    DateTime                 @updatedAt
+
+  template MemberSportTemplate      @relation(fields: [templateId], references: [id], onDelete: Cascade)
+  values   GymMemberProfileValue[] @relation("SportTemplateFieldValues")
+
+  @@unique([templateId, stableKey])
+  @@index([templateId, displayOrder])
+  @@index([templateId, active])
+}
+
+/// 체육관별 회원 추가 항목 정의
+model GymMemberCustomField {
+  id           String                   @id @default(cuid())
+  gymId        String
+  stableKey    String
+  label        String
+  type         GymMemberDynamicFieldType
+  required     Boolean                  @default(false)
+  placeholder  String?
+  helpText     String?
+  optionsJson  Json?
+  displayOrder Int                      @default(0)
+  active       Boolean                  @default(true)
+  createdAt    DateTime                 @default(now())
+  updatedAt    DateTime                 @updatedAt
+
+  gym    Gym                     @relation(fields: [gymId], references: [id], onDelete: Cascade)
+  values GymMemberProfileValue[] @relation("GymCustomFieldValues")
+
+  @@unique([gymId, stableKey])
+  @@index([gymId, displayOrder])
+  @@index([gymId, active])
+}
+
+/// 종목·체육관 dynamic field 회원별 값 — field 비활성/삭제 시에도 stableKey로 보존
+model GymMemberProfileValue {
+  id                     String                      @id @default(cuid())
+  gymMemberId            String
+  sourceType             GymMemberProfileValueSource
+  stableKey              String
+  valueJson              Json
+  sportTemplateFieldId   String?
+  gymCustomFieldId       String?
+  createdAt              DateTime                    @default(now())
+  updatedAt              DateTime                    @updatedAt
+
+  gymMember          GymMember                 @relation(fields: [gymMemberId], references: [id], onDelete: Cascade)
+  sportTemplateField MemberSportTemplateField? @relation("SportTemplateFieldValues", fields: [sportTemplateFieldId], references: [id], onDelete: SetNull)
+  gymCustomField     GymMemberCustomField?     @relation("GymCustomFieldValues", fields: [gymCustomFieldId], references: [id], onDelete: SetNull)
+
+  @@unique([gymMemberId, sourceType, stableKey])
+  @@index([gymMemberId])
+  @@index([sportTemplateFieldId])
+  @@index([gymCustomFieldId])
 }
 
 /// 체육관별 사용자 정의 회원 그룹 (성인/초등/오전반 등 — enum 고정 금지)
@@ -1806,6 +1919,7 @@ model Event {
   externalRegistrationLink EventExternalRegistrationLink?
   archives               EventArchive[]
   careerMatchRecords     FighterCareerMatchRecord[]
+  linkedAssociationSchedules AssociationSchedule[] @relation("ScheduleRelatedEvent")
 
   @@index([organizerId])
   @@index([status])
@@ -4149,6 +4263,8 @@ model AssociationSchedule {
   relatedUrl        String?
   relatedFormId     String?
   relatedNoticeId   String?
+  /// 대회 Event optional link (Schedule은 Event에 종속되지 않음)
+  relatedEventId    String?
   createdByUserId   String?
   createdAt         DateTime                      @default(now())
   updatedAt         DateTime                      @updatedAt
@@ -4157,10 +4273,12 @@ model AssociationSchedule {
   organizer     Organizer          @relation(fields: [organizerId], references: [id], onDelete: Cascade)
   relatedForm     IntakeForm?        @relation("ScheduleRelatedForm", fields: [relatedFormId], references: [id], onDelete: SetNull)
   relatedNotice AssociationNotice? @relation("ScheduleRelatedNotice", fields: [relatedNoticeId], references: [id], onDelete: SetNull)
+  relatedEvent  Event?             @relation("ScheduleRelatedEvent", fields: [relatedEventId], references: [id], onDelete: SetNull)
   createdByUser User?              @relation("AssociationScheduleCreator", fields: [createdByUserId], references: [id], onDelete: SetNull)
 
   @@index([organizerId, deletedAt, startsAt])
   @@index([organizerId, visibility, startsAt])
   @@index([relatedFormId])
   @@index([relatedNoticeId])
+  @@index([relatedEventId])
 }
