@@ -51,6 +51,7 @@ export async function createAssociationNoticeAction(
       title: formStr(formData, "title"),
       content: formStr(formData, "content"),
       isPinned: formData.get("isPinned") === "true" || formData.get("isPinned") === "on",
+      relatedFormId: formStr(formData, "relatedFormId") || null,
     });
     if (!parsed.success) {
       return actionFailure(
@@ -74,6 +75,7 @@ export async function updateAssociationNoticeAction(
       title: formStr(formData, "title"),
       content: formStr(formData, "content"),
       isPinned: formData.get("isPinned") === "true" || formData.get("isPinned") === "on",
+      relatedFormId: formStr(formData, "relatedFormId") || null,
     });
     if (!parsed.success) {
       return actionFailure(

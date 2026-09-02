@@ -7,22 +7,35 @@ import {
   updateAssociationNoticeAction,
 } from "@/features/association-notices/actions";
 import { Button } from "@/components/ui/button";
-import { matchonFieldInputClass } from "@/lib/ui/matchon-shell-ui";
+import {
+  matchonFieldInputClass,
+  matchonFieldSelectClass,
+} from "@/lib/ui/matchon-shell-ui";
 
 export function AssociationNoticeForm({
   mode,
   noticeId,
   initial,
+  formOptions = [],
 }: {
   mode: "create" | "edit";
   noticeId?: string;
-  initial?: { title: string; content: string; isPinned: boolean };
+  initial?: {
+    title: string;
+    content: string;
+    isPinned: boolean;
+    relatedFormId?: string | null;
+  };
+  formOptions?: Array<{ id: string; title: string }>;
 }) {
   const router = useRouter();
   const [pending, startTransition] = useTransition();
   const [title, setTitle] = useState(initial?.title ?? "");
   const [content, setContent] = useState(initial?.content ?? "");
   const [isPinned, setIsPinned] = useState(initial?.isPinned ?? false);
+  const [relatedFormId, setRelatedFormId] = useState(
+    initial?.relatedFormId ?? "",
+  );
   const [message, setMessage] = useState<string | null>(null);
 
   function onSubmit(e: FormEvent) {
@@ -31,6 +44,7 @@ export function AssociationNoticeForm({
     formData.set("title", title);
     formData.set("content", content);
     formData.set("isPinned", isPinned ? "true" : "false");
+    formData.set("relatedFormId", relatedFormId);
 
     startTransition(async () => {
       const result =
@@ -95,6 +109,21 @@ export function AssociationNoticeForm({
           className="size-4 rounded border-matchon-border"
         />
         상단 고정
+      </label>
+      <label className="grid gap-2 text-sm">
+        <span className="font-semibold text-matchon-text-primary">
+          신청 폼 연결 (선택)
+        </span>
+        <select
+          value={relatedFormId}
+          onChange={(e) => setRelatedFormId(e.target.value)}
+          className={matchonFieldSelectClass}
+        >
+          <option value="">연결 없음</option>
+          {formOptions.map((f) => (
+            <option key={f.id} value={f.id}>{f.title}</option>
+          ))}
+        </select>
       </label>
       <div className="flex flex-wrap gap-2">
         <Button

@@ -7,6 +7,7 @@ import {
   requireAssociationOrganizerScope,
 } from "@/lib/permissions";
 import { associationNoticeRepository } from "@/lib/repositories/association-notice.repository";
+import { prisma } from "@/lib/prisma";
 
 function normalizeTitle(raw: string): string {
   return raw.trim().replace(/\s+/g, " ");
@@ -55,7 +56,12 @@ export const associationNoticeService = {
 
   async create(
     actor: ActorContext,
-    input: { title: string; content: string; isPinned: boolean },
+    input: {
+      title: string;
+      content: string;
+      isPinned: boolean;
+      relatedFormId?: string | null;
+    },
   ) {
     const organizerId = await requireAssociationOrganizerScope(actor);
     const title = normalizeTitle(input.title);
@@ -75,19 +81,38 @@ export const associationNoticeService = {
         "내용은 20,000자 이내로 입력해 주세요.",
       );
     }
+    if (input.relatedFormId) {
+      const form = await prisma.intakeForm.findFirst({
+        where: {
+          id: input.relatedFormId,
+          deletedAt: null,
+          ownerType: "organizer",
+          organizerId,
+        },
+      });
+      if (!form) {
+        throw new AppError("VALIDATION_ERROR", "연결할 신청 폼을 찾을 수 없습니다.");
+      }
+    }
     return associationNoticeRepository.create({
       organizerId,
       title,
       content,
       isPinned: input.isPinned,
       createdByUserId: actor.userId,
+      relatedFormId: input.relatedFormId ?? null,
     });
   },
 
   async update(
     actor: ActorContext,
     noticeId: string,
-    input: { title: string; content: string; isPinned: boolean },
+    input: {
+      title: string;
+      content: string;
+      isPinned: boolean;
+      relatedFormId?: string | null;
+    },
   ) {
     const organizerId = await requireAssociationOrganizerScope(actor);
     const existing = await associationNoticeRepository.findByIdForOrganizer(
@@ -114,10 +139,24 @@ export const associationNoticeService = {
         "내용은 20,000자 이내로 입력해 주세요.",
       );
     }
+    if (input.relatedFormId) {
+      const form = await prisma.intakeForm.findFirst({
+        where: {
+          id: input.relatedFormId,
+          deletedAt: null,
+          ownerType: "organizer",
+          organizerId,
+        },
+      });
+      if (!form) {
+        throw new AppError("VALIDATION_ERROR", "연결할 신청 폼을 찾을 수 없습니다.");
+      }
+    }
     return associationNoticeRepository.update(noticeId, {
       title,
       content,
       isPinned: input.isPinned,
+      relatedFormId: input.relatedFormId ?? null,
     });
   },
 

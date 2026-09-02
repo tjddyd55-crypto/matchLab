@@ -499,6 +499,16 @@ enum AuditAction {
   gym_member_self_registration_rejected
   organizer_status_changed
   gym_status_changed
+  intake_form_created
+  intake_form_updated
+  intake_form_duplicated
+  intake_form_closed
+  intake_form_reopened
+  intake_form_archived
+  intake_form_submission_status_changed
+  association_schedule_created
+  association_schedule_updated
+  association_schedule_deleted
 }
 
 enum GymMemberAttendanceSource {
@@ -630,6 +640,9 @@ model User {
   associationMemberGymApplicationsCreated AssociationMemberGymApplication[]      @relation("MemberGymApplicationCreator")
   associationMemberGymOwnerInvitesCreated AssociationMemberGym[]                  @relation("MemberGymOwnerInviteCreator")
   associationNoticesCreated               AssociationNotice[]                     @relation("AssociationNoticeCreator")
+  intakeFormsCreated                      IntakeForm[]                            @relation("IntakeFormCreator")
+  intakeFormSubmissions                   IntakeFormSubmission[]                  @relation("IntakeFormSubmissionSubmitter")
+  associationSchedulesCreated             AssociationSchedule[]                   @relation("AssociationScheduleCreator")
   billingSubscriptions                    BillingSubscription[]
   billingPayments                         BillingPayment[]
   billingCouponRedemptions                BillingCouponRedemption[]
@@ -699,6 +712,8 @@ model Organizer {
   associationMemberGyms            AssociationMemberGym[]
   associationMemberGymSettings     AssociationMemberGymSettings?
   associationNotices               AssociationNotice[]
+  intakeForms                      IntakeForm[]
+  associationSchedules             AssociationSchedule[]
   associationApplicationsCreated   AssociationApplication[] @relation("AssociationApplicationCreatedOrganizer")
   associationGymConnectionRequests AssociationGymConnectionRequest[]
   eventExternalRegistrationLinks   EventExternalRegistrationLink[]
@@ -761,6 +776,7 @@ model Gym {
   gymMemberSelfRegistrationLinks GymMemberSelfRegistrationLink[]
   gymMemberRegistrationTerms     GymMemberRegistrationTerms[]
   gymMemberRegistrationRequests  GymMemberRegistrationRequest[]
+  intakeForms                    IntakeForm[]
 }
 
 model Fighter {
@@ -3220,16 +3236,21 @@ model AssociationNotice {
   content         String
   isPinned        Boolean   @default(false)
   publishedAt     DateTime  @default(now())
+  /// optional 독립 신청 폼 연결 — 공지와 폼은 별개 entity
+  relatedFormId   String?
   createdByUserId String?
   createdAt       DateTime  @default(now())
   updatedAt       DateTime  @updatedAt
   deletedAt       DateTime?
 
-  organizer     Organizer @relation(fields: [organizerId], references: [id], onDelete: Cascade)
-  createdByUser User?     @relation("AssociationNoticeCreator", fields: [createdByUserId], references: [id], onDelete: SetNull)
+  organizer     Organizer  @relation(fields: [organizerId], references: [id], onDelete: Cascade)
+  relatedForm   IntakeForm? @relation("NoticeRelatedForm", fields: [relatedFormId], references: [id], onDelete: SetNull)
+  createdByUser User?      @relation("AssociationNoticeCreator", fields: [createdByUserId], references: [id], onDelete: SetNull)
+  linkedSchedules AssociationSchedule[] @relation("ScheduleRelatedNotice")
 
   @@index([organizerId, deletedAt, isPinned, publishedAt])
   @@index([organizerId, deletedAt, publishedAt])
+  @@index([relatedFormId])
 }
 
 // --- MATCHON SaaS billing (플랫폼 구독; GymMemberSubscription·크레딧·대회입금과 분리) ---
@@ -3976,4 +3997,170 @@ model AdminPasswordResetLink {
   @@index([issuedByUserId])
   @@index([inquiryId])
   @@index([status, createdAt])
+}
+
+// --- 독립 신청 폼 (대회 EventApplication과 분리) ---
+
+enum IntakeFormOwnerType {
+  organizer
+  gym
+}
+
+enum IntakeFormStatus {
+  DRAFT
+  OPEN
+  CLOSED
+}
+
+enum IntakeFormFieldType {
+  text
+  textarea
+  number
+  tel
+  email
+  date
+  radio
+  select
+  checkbox_group
+  consent_checkbox
+  static_info
+}
+
+enum IntakeFormSubmissionStatus {
+  SUBMITTED
+  APPROVED
+  CANCELLED
+}
+
+/// 협회·주최자·체육관이 재사용할 독립 신청 폼 정의
+model IntakeForm {
+  id                String             @id @default(cuid())
+  ownerType         IntakeFormOwnerType
+  organizerId       String?
+  gymId             String?
+  title             String
+  description       String             @default("")
+  status            IntakeFormStatus   @default(DRAFT)
+  /// 공개 URL opaque token (raw PK 노출 방지)
+  publicToken       String             @unique
+  startsAt          DateTime?
+  closesAt          DateTime?
+  maxSubmissions    Int?
+  completionMessage String?
+  createdByUserId   String?
+  createdAt         DateTime           @default(now())
+  updatedAt         DateTime           @updatedAt
+  deletedAt         DateTime?
+
+  organizer     Organizer? @relation(fields: [organizerId], references: [id], onDelete: Cascade)
+  gym           Gym?       @relation(fields: [gymId], references: [id], onDelete: Cascade)
+  createdByUser User?      @relation("IntakeFormCreator", fields: [createdByUserId], references: [id], onDelete: SetNull)
+  fields        IntakeFormField[]
+  submissions   IntakeFormSubmission[]
+  linkedNotices AssociationNotice[] @relation("NoticeRelatedForm")
+  linkedSchedules AssociationSchedule[] @relation("ScheduleRelatedForm")
+
+  @@index([ownerType, organizerId, deletedAt, updatedAt])
+  @@index([ownerType, gymId, deletedAt, updatedAt])
+  @@index([status])
+}
+
+model IntakeFormField {
+  id           String            @id @default(cuid())
+  formId       String
+  /// field 삭제 후에도 answer 매칭·스냅샷용 stable key
+  stableKey    String
+  label        String
+  type         IntakeFormFieldType
+  placeholder  String?
+  helpText     String?
+  required     Boolean           @default(false)
+  optionsJson  Json?
+  displayOrder Int               @default(0)
+  createdAt    DateTime          @default(now())
+  updatedAt    DateTime          @updatedAt
+
+  form    IntakeForm         @relation(fields: [formId], references: [id], onDelete: Cascade)
+  answers IntakeFormAnswer[]
+
+  @@unique([formId, stableKey])
+  @@index([formId, displayOrder])
+}
+
+model IntakeFormSubmission {
+  id              String                     @id @default(cuid())
+  formId          String
+  status          IntakeFormSubmissionStatus @default(SUBMITTED)
+  submittedAt     DateTime                   @default(now())
+  submitterUserId String?
+  adminMemo       String?
+  createdAt       DateTime                   @default(now())
+  updatedAt       DateTime                   @updatedAt
+
+  form          IntakeForm         @relation(fields: [formId], references: [id], onDelete: Cascade)
+  submitterUser User?              @relation("IntakeFormSubmissionSubmitter", fields: [submitterUserId], references: [id], onDelete: SetNull)
+  answers       IntakeFormAnswer[]
+
+  @@index([formId, submittedAt])
+  @@index([formId, status])
+}
+
+model IntakeFormAnswer {
+  id                 String            @id @default(cuid())
+  submissionId       String
+  fieldId            String?
+  fieldLabelSnapshot String
+  fieldTypeSnapshot  IntakeFormFieldType
+  valueJson          Json
+
+  submission IntakeFormSubmission @relation(fields: [submissionId], references: [id], onDelete: Cascade)
+  field      IntakeFormField?     @relation(fields: [fieldId], references: [id], onDelete: SetNull)
+
+  @@index([submissionId])
+}
+
+// --- 협회 일정 (대회 Event·Bracket과 분리) ---
+
+enum AssociationScheduleType {
+  TOURNAMENT
+  EDUCATION
+  MEETING
+  EVENT
+  EXAM
+  OTHER
+}
+
+enum AssociationScheduleVisibility {
+  PRIVATE
+  MEMBER_GYMS
+}
+
+model AssociationSchedule {
+  id                String                        @id @default(cuid())
+  organizerId       String
+  title             String
+  type              AssociationScheduleType
+  startsAt          DateTime
+  endsAt            DateTime?
+  allDay            Boolean                       @default(false)
+  location          String?
+  description       String?
+  visibility        AssociationScheduleVisibility @default(PRIVATE)
+  relatedUrl        String?
+  relatedFormId     String?
+  relatedNoticeId   String?
+  createdByUserId   String?
+  createdAt         DateTime                      @default(now())
+  updatedAt         DateTime                      @updatedAt
+  deletedAt         DateTime?
+
+  organizer     Organizer          @relation(fields: [organizerId], references: [id], onDelete: Cascade)
+  relatedForm     IntakeForm?        @relation("ScheduleRelatedForm", fields: [relatedFormId], references: [id], onDelete: SetNull)
+  relatedNotice AssociationNotice? @relation("ScheduleRelatedNotice", fields: [relatedNoticeId], references: [id], onDelete: SetNull)
+  createdByUser User?              @relation("AssociationScheduleCreator", fields: [createdByUserId], references: [id], onDelete: SetNull)
+
+  @@index([organizerId, deletedAt, startsAt])
+  @@index([organizerId, visibility, startsAt])
+  @@index([relatedFormId])
+  @@index([relatedNoticeId])
 }

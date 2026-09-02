@@ -12,6 +12,7 @@ export const associationNoticeUpsertSchema = z.object({
     .min(1, "내용을 입력해 주세요.")
     .max(20000, "내용은 20,000자 이내로 입력해 주세요."),
   isPinned: z.boolean(),
+  relatedFormId: z.string().trim().optional().nullable(),
 });
 
 export type AssociationNoticeUpsertInput = z.infer<

@@ -1,40 +1,39 @@
 import Link from "next/link";
 import { notFound } from "next/navigation";
-import { AssociationNoticeForm } from "@/components/domain/association-notices/AssociationNoticeForm";
 import { OrganizerDashboardPageHeader } from "@/components/dashboard/OrganizerDashboardPageHeader";
+import { IntakeFormSubmissionDetail } from "@/components/domain/intake-forms/IntakeFormSubmissionDetail";
 import { buttonVariants } from "@/components/ui/button";
 import { requireActor, redirectUnlessDashboardRole } from "@/lib/auth/actor";
 import { PermissionError } from "@/lib/auth/permission-error";
 import { AppError } from "@/lib/errors/app-error";
 import { requireAssociationOrganizerPage } from "@/lib/permissions";
-import { associationNoticeService } from "@/lib/services/association-notice.service";
 import { intakeFormService } from "@/lib/services/intake-form.service";
 import { cn } from "@/lib/utils";
 
 export const dynamic = "force-dynamic";
 
-export default async function OrganizerNoticeEditPage({
+export default async function OrganizerIntakeFormSubmissionPage({
   params,
 }: {
-  params: Promise<{ noticeId: string }>;
+  params: Promise<{ formId: string; submissionId: string }>;
 }) {
   const actor = await requireActor();
   redirectUnlessDashboardRole(actor, ["organizer", "admin"]);
   requireAssociationOrganizerPage(actor);
-  const { noticeId } = await params;
+  const { formId, submissionId } = await params;
 
-  let notice;
-  let formOptions;
+  let submission;
+  let formTitle = "";
   try {
-    notice = await associationNoticeService.getForAssociation(actor, noticeId);
-    formOptions = await intakeFormService.listFormOptionsForOrganizer(actor);
+    const formData = await intakeFormService.getForOrganizer(actor, formId);
+    formTitle = formData.form.title;
+    submission = await intakeFormService.getSubmissionForOrganizer(
+      actor,
+      formId,
+      submissionId,
+    );
   } catch (e) {
-    if (
-      e instanceof AppError &&
-      (e.code === "NOT_FOUND" || e.code === "FORBIDDEN")
-    ) {
-      notFound();
-    }
+    if (e instanceof AppError && e.code === "NOT_FOUND") notFound();
     if (e instanceof PermissionError) notFound();
     throw e;
   }
@@ -42,27 +41,20 @@ export default async function OrganizerNoticeEditPage({
   return (
     <>
       <OrganizerDashboardPageHeader
-        title="공지 수정"
-        description={notice.title}
+        title="신청 상세"
+        description={formTitle}
       >
         <Link
-          href={`/organizer/notices/${notice.id}`}
+          href={`/organizer/intake-forms/${formId}`}
           className={cn(buttonVariants({ variant: "outline" }))}
         >
-          상세
+          신청자 목록
         </Link>
       </OrganizerDashboardPageHeader>
       <div className="mt-6">
-        <AssociationNoticeForm
-          mode="edit"
-          noticeId={notice.id}
-          initial={{
-            title: notice.title,
-            content: notice.content,
-            isPinned: notice.isPinned,
-            relatedFormId: notice.relatedFormId,
-          }}
-          formOptions={formOptions}
+        <IntakeFormSubmissionDetail
+          formId={formId}
+          submission={submission}
         />
       </div>
     </>

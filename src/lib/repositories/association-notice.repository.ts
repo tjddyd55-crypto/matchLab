@@ -49,6 +49,7 @@ export const associationNoticeRepository = {
     content: string;
     isPinned: boolean;
     createdByUserId: string;
+    relatedFormId?: string | null;
   }) {
     return prisma.associationNotice.create({
       data: {
@@ -57,6 +58,7 @@ export const associationNoticeRepository = {
         content: input.content,
         isPinned: input.isPinned,
         createdByUserId: input.createdByUserId,
+        relatedFormId: input.relatedFormId ?? null,
         publishedAt: new Date(),
       },
     });
@@ -64,11 +66,21 @@ export const associationNoticeRepository = {
 
   async update(
     noticeId: string,
-    data: { title: string; content: string; isPinned: boolean },
+    data: {
+      title: string;
+      content: string;
+      isPinned: boolean;
+      relatedFormId?: string | null;
+    },
   ) {
     return prisma.associationNotice.update({
       where: { id: noticeId },
-      data,
+      data: {
+        title: data.title,
+        content: data.content,
+        isPinned: data.isPinned,
+        relatedFormId: data.relatedFormId ?? null,
+      },
     });
   },
 

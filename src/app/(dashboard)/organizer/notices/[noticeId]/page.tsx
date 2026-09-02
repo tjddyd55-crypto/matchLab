@@ -10,6 +10,8 @@ import { formatPublicDateTime } from "@/lib/date-display";
 import { AppError } from "@/lib/errors/app-error";
 import { requireAssociationOrganizerPage } from "@/lib/permissions";
 import { associationNoticeService } from "@/lib/services/association-notice.service";
+import { prisma } from "@/lib/prisma";
+import { buildIntakeFormPublicPath } from "@/lib/intake-form/public-url";
 import { cn } from "@/lib/utils";
 
 export const dynamic = "force-dynamic";
@@ -37,6 +39,13 @@ export default async function OrganizerNoticeDetailPage({
     if (e instanceof PermissionError) notFound();
     throw e;
   }
+
+  const relatedForm = notice.relatedFormId
+    ? await prisma.intakeForm.findFirst({
+        where: { id: notice.relatedFormId, deletedAt: null },
+        select: { title: true, publicToken: true },
+      })
+    : null;
 
   return (
     <>
@@ -77,6 +86,20 @@ export default async function OrganizerNoticeDetailPage({
         <div className="whitespace-pre-wrap text-[15px] leading-relaxed text-matchon-text-primary">
           {notice.content}
         </div>
+        {relatedForm ? (
+          <div className="mt-6 border-t border-matchon-border pt-4">
+            <Link
+              href={buildIntakeFormPublicPath(relatedForm.publicToken)}
+              className={cn(buttonVariants())}
+              target="_blank"
+            >
+              신청하기
+            </Link>
+            <p className="mt-2 text-xs text-matchon-text-secondary">
+              연결된 신청 폼: {relatedForm.title}
+            </p>
+          </div>
+        ) : null}
       </article>
     </>
   );

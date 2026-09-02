@@ -4,6 +4,7 @@ import { OrganizerDashboardPageHeader } from "@/components/dashboard/OrganizerDa
 import { buttonVariants } from "@/components/ui/button";
 import { requireActor, redirectUnlessDashboardRole } from "@/lib/auth/actor";
 import { requireAssociationOrganizerPage } from "@/lib/permissions";
+import { intakeFormService } from "@/lib/services/intake-form.service";
 import { cn } from "@/lib/utils";
 
 export const dynamic = "force-dynamic";
@@ -12,6 +13,7 @@ export default async function OrganizerNoticeCreatePage() {
   const actor = await requireActor();
   redirectUnlessDashboardRole(actor, ["organizer", "admin"]);
   requireAssociationOrganizerPage(actor);
+  const formOptions = await intakeFormService.listFormOptionsForOrganizer(actor);
 
   return (
     <>
@@ -27,7 +29,7 @@ export default async function OrganizerNoticeCreatePage() {
         </Link>
       </OrganizerDashboardPageHeader>
       <div className="mt-6">
-        <AssociationNoticeForm mode="create" />
+        <AssociationNoticeForm mode="create" formOptions={formOptions} />
       </div>
     </>
   );

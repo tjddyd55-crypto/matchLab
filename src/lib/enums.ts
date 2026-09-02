@@ -95,4 +95,10 @@ export {
   BillingPaymentStatus,
   BillingCouponType,
   BillingCouponApplicablePlan,
+  IntakeFormOwnerType,
+  IntakeFormStatus,
+  IntakeFormFieldType,
+  IntakeFormSubmissionStatus,
+  AssociationScheduleType,
+  AssociationScheduleVisibility,
 } from "@/generated/prisma";

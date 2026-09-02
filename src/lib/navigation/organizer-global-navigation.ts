@@ -46,6 +46,8 @@ export function getOrganizerGlobalNavGroups(input: {
         },
         { href: "/organizer/member-gyms", label: "회원사 목록" },
         { href: "/organizer/member-gyms/settings", label: "환경 설정" },
+        { href: "/organizer/schedules", label: "일정 관리" },
+        { href: "/organizer/intake-forms", label: "신청 폼" },
         { href: "/organizer/notices", label: "공지사항" },
       ],
     });
