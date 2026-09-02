@@ -1,5 +1,6 @@
 import { BracketsEmptyState } from "@/components/domain/brackets/BracketsEmptyState";
 import { OrganizerBracketPrintActions } from "@/components/domain/brackets/OrganizerBracketPrintActions";
+import { OrganizerJudgeScoreSheetActions } from "@/components/domain/judge-score-sheet/OrganizerJudgeScoreSheetActions";
 import { OrganizerCourtBracketPanel } from "@/components/domain/courts/OrganizerCourtBracketPanel";
 import { requireActor } from "@/lib/auth/actor";
 import { requireOrganizerForEventPage } from "@/lib/permissions";
@@ -27,7 +28,10 @@ export async function OrganizerCourtViewSection({
       <div className="flex flex-wrap items-center justify-between gap-2">
         <h2 className="text-lg font-semibold">경기장별 대진표</h2>
         {eventMatches.length > 0 ? (
-          <OrganizerBracketPrintActions eventId={eventId} variant="view" />
+          <div className="flex flex-wrap items-center gap-2">
+            <OrganizerBracketPrintActions eventId={eventId} variant="view" />
+            <OrganizerJudgeScoreSheetActions eventId={eventId} />
+          </div>
         ) : null}
       </div>
 

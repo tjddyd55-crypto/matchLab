@@ -144,6 +144,7 @@
     "verify:gym-member-ssot": "tsx scripts/verify-gym-member-ssot.ts",
     "verify:gym-member-template": "tsx scripts/verify-gym-member-template.ts",
     "verify:member-template-admin": "tsx scripts/verify-member-template-admin.ts",
+    "verify:judge-score-sheet-pdf": "tsx scripts/verify-judge-score-sheet-pdf.ts",
     "verify:gym-member-ui-v2-phase1": "tsx scripts/verify-gym-member-ui-v2-phase1.ts",
     "verify:gym-member-new-this-month-filter": "tsx scripts/verify-gym-member-new-this-month-filter.ts",
     "verify:gym-member-registration-v3": "tsx scripts/verify-gym-member-registration-v3.ts",

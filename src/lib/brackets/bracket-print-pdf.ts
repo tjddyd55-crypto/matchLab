@@ -66,6 +66,21 @@ export async function generateWeighInSheetPdfBuffer(params: {
   });
 }
 
+export async function generateJudgeScoreSheetPdfBuffer(params: {
+  eventId: string;
+  cookieHeader: string | null;
+  judges: Array<1 | 2 | 3>;
+  courtId?: string | null;
+}): Promise<Buffer> {
+  const qs = new URLSearchParams();
+  qs.set("judges", params.judges.join(","));
+  if (params.courtId) qs.set("courtId", params.courtId);
+  return renderPrintPathToPdfBuffer({
+    path: `/organizer/events/${params.eventId}/judge-score-sheet?${qs.toString()}`,
+    cookieHeader: params.cookieHeader,
+  });
+}
+
 async function renderPrintPathToPdfBuffer(params: {
   path: string;
   cookieHeader: string | null;

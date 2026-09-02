@@ -6,6 +6,7 @@ import { MatchListEditor } from "@/components/domain/brackets/MatchListEditor";
 import { BracketApprovedCandidatesSection } from "@/components/domain/brackets/BracketApprovedCandidatesSection";
 import { OrganizerBracketPrintActions } from "@/components/domain/brackets/OrganizerBracketPrintActions";
 import { OrganizerUnmatchedPrintActions } from "@/components/domain/brackets/OrganizerUnmatchedPrintActions";
+import { OrganizerJudgeScoreSheetActions } from "@/components/domain/judge-score-sheet/OrganizerJudgeScoreSheetActions";
 import { EventDivisionPickDialog } from "@/components/domain/brackets/EventDivisionPickDialog";
 import { BracketsEmptyState } from "@/components/domain/brackets/BracketsEmptyState";
 import { OrganizerApplicationEditPanel } from "@/components/domain/applications/OrganizerApplicationEditPanel";
@@ -188,6 +189,9 @@ export function OrganizerAllMatchesWorkspaceClient({
               variant="view"
               printMode="all-matches"
             />
+          ) : null}
+          {data.matches.length > 0 ? (
+            <OrganizerJudgeScoreSheetActions eventId={eventId} />
           ) : null}
           <OrganizerUnmatchedPrintActions
             eventId={eventId}

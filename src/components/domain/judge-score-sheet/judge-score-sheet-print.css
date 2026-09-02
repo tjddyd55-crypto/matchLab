@@ -1,0 +1,282 @@
+/* 심판 채점표 — A4 portrait, 1경기×1심판 = 1페이지 */
+
+@import url("https://fonts.googleapis.com/css2?family=Noto+Sans+KR:wght@400;500;700&display=block");
+
+.judge-score-sheet-page {
+  --jss-ink: #111;
+  --jss-border: #222;
+  --jss-muted: #555;
+  --jss-red-tint: #f5f5f5;
+  --jss-blue-tint: #ececec;
+  color: var(--jss-ink);
+  background: #fff;
+  font-family:
+    "Noto Sans KR",
+    "Noto Sans CJK KR",
+    "Malgun Gothic",
+    sans-serif;
+}
+
+.judge-score-sheet-toolbar {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: 0.5rem;
+  padding: 0.75rem 1rem;
+  border-bottom: 1px solid #ddd;
+  background: #fafafa;
+}
+
+.judge-score-sheet-document {
+  padding: 0;
+}
+
+.judge-score-sheet-sheet {
+  box-sizing: border-box;
+  width: 100%;
+  min-height: calc(297mm - 12mm);
+  padding: 4mm 2mm 6mm;
+  display: flex;
+  flex-direction: column;
+  gap: 3.5mm;
+  page-break-after: always;
+  break-after: page;
+}
+
+.judge-score-sheet-sheet:last-child {
+  page-break-after: auto;
+  break-after: auto;
+}
+
+.judge-score-sheet-top {
+  text-align: center;
+}
+
+.judge-score-sheet-judge-title {
+  margin: 0;
+  font-size: 16pt;
+  font-weight: 700;
+  letter-spacing: 0.02em;
+}
+
+.judge-score-sheet-event-name {
+  margin: 1.5mm 0 0;
+  font-size: 11pt;
+  font-weight: 500;
+}
+
+.judge-score-sheet-meta {
+  display: grid;
+  grid-template-columns: 1fr 1fr 1.4fr;
+  gap: 2mm;
+  border: 1px solid var(--jss-border);
+  padding: 2.5mm;
+  font-size: 9.5pt;
+}
+
+.judge-score-sheet-meta-item {
+  min-width: 0;
+}
+
+.judge-score-sheet-meta-label {
+  display: block;
+  font-size: 8pt;
+  color: var(--jss-muted);
+  margin-bottom: 0.8mm;
+}
+
+.judge-score-sheet-meta-value {
+  font-weight: 700;
+  word-break: break-word;
+  overflow-wrap: anywhere;
+}
+
+.judge-score-sheet-corners {
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: 2.5mm;
+}
+
+.judge-score-sheet-corner {
+  border: 1.5px solid var(--jss-border);
+  padding: 2.5mm 3mm;
+  min-width: 0;
+}
+
+.judge-score-sheet-corner--red {
+  background: var(--jss-red-tint);
+}
+
+.judge-score-sheet-corner--blue {
+  background: var(--jss-blue-tint);
+}
+
+.judge-score-sheet-corner-badge {
+  font-size: 10pt;
+  font-weight: 700;
+  margin-bottom: 1.5mm;
+}
+
+.judge-score-sheet-corner-name {
+  font-size: 13pt;
+  font-weight: 700;
+  word-break: break-word;
+  overflow-wrap: anywhere;
+  line-height: 1.25;
+}
+
+.judge-score-sheet-corner-gym {
+  margin-top: 1mm;
+  font-size: 9pt;
+  color: var(--jss-muted);
+  word-break: break-word;
+  overflow-wrap: anywhere;
+}
+
+.judge-score-sheet-manual {
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: 3mm;
+  font-size: 9.5pt;
+}
+
+.judge-score-sheet-write-line {
+  display: flex;
+  align-items: flex-end;
+  gap: 2mm;
+  min-height: 9mm;
+  border-bottom: 1px solid var(--jss-border);
+  padding-bottom: 1mm;
+}
+
+.judge-score-sheet-write-label {
+  flex-shrink: 0;
+  font-weight: 500;
+}
+
+.judge-score-sheet-table {
+  width: 100%;
+  border-collapse: collapse;
+  table-layout: fixed;
+  font-size: 10pt;
+}
+
+.judge-score-sheet-table th,
+.judge-score-sheet-table td {
+  border: 1.25px solid var(--jss-border);
+  text-align: center;
+  vertical-align: middle;
+  padding: 0;
+}
+
+.judge-score-sheet-table th {
+  background: #f3f3f3;
+  font-weight: 700;
+  font-size: 9pt;
+  height: 9mm;
+}
+
+.judge-score-sheet-table td {
+  height: 12mm;
+}
+
+.judge-score-sheet-table td:first-child {
+  font-weight: 700;
+  width: 14%;
+  background: #fafafa;
+}
+
+.judge-score-sheet-decision {
+  border: 1px solid var(--jss-border);
+  padding: 3mm;
+}
+
+.judge-score-sheet-decision-title {
+  font-size: 10pt;
+  font-weight: 700;
+  margin-bottom: 2.5mm;
+}
+
+.judge-score-sheet-decision-options {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 5mm 8mm;
+  font-size: 10pt;
+}
+
+.judge-score-sheet-check {
+  display: inline-flex;
+  align-items: center;
+  gap: 2mm;
+}
+
+.judge-score-sheet-checkbox {
+  display: inline-block;
+  width: 4.5mm;
+  height: 4.5mm;
+  border: 1.5px solid var(--jss-border);
+  flex-shrink: 0;
+}
+
+.judge-score-sheet-notes {
+  border: 1px solid var(--jss-border);
+  padding: 2.5mm 3mm;
+  flex: 1 1 auto;
+  min-height: 22mm;
+}
+
+.judge-score-sheet-notes-title {
+  font-size: 9.5pt;
+  font-weight: 700;
+  margin-bottom: 2mm;
+}
+
+.judge-score-sheet-notes-lines {
+  display: flex;
+  flex-direction: column;
+  gap: 6mm;
+}
+
+.judge-score-sheet-notes-line {
+  border-bottom: 1px solid #999;
+  height: 0;
+}
+
+.judge-score-sheet-footer {
+  margin-top: auto;
+  padding-top: 2mm;
+  font-size: 8pt;
+  color: var(--jss-muted);
+  text-align: center;
+}
+
+.judge-score-sheet-empty {
+  padding: 20mm 10mm;
+  text-align: center;
+  font-size: 12pt;
+}
+
+@media print {
+  .no-print {
+    display: none !important;
+  }
+
+  .judge-score-sheet-page {
+    background: #fff;
+  }
+
+  .judge-score-sheet-document {
+    padding: 0;
+  }
+
+  .judge-score-sheet-sheet {
+    min-height: auto;
+    height: auto;
+    padding: 0;
+  }
+
+  @page {
+    size: A4 portrait;
+    margin: 8mm;
+  }
+}
