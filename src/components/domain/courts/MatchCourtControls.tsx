@@ -1,6 +1,6 @@
 "use client";
 
-import { useEffect, useMemo, useRef, useState, useTransition } from "react";
+import { useEffect, useMemo, useRef, useState } from "react";
 import { useRouter } from "next/navigation";
 import { setMatchCourtFormAction } from "@/features/event-courts/actions";
 import { Button } from "@/components/ui/button";
@@ -127,7 +127,7 @@ export function MatchCourtControls({
     [courtId, courts, activeCourts],
   );
 
-  const [pending, startTransition] = useTransition();
+  const [pending, setPending] = useState(false);
   const [localCourtId, setLocalCourtId] = useState(resolved.selectValue);
   const [localOrder, setLocalOrder] = useState(
     courtOrder != null ? String(courtOrder) : "",
@@ -154,7 +154,7 @@ export function MatchCourtControls({
     setLocalOrder(courtOrder != null ? String(courtOrder) : "");
   }, [resolved.selectValue, courtOrder, matchId]);
 
-  function save(nextCourtId?: string, nextOrder?: string) {
+  async function save(nextCourtId?: string, nextOrder?: string) {
     const court = nextCourtId ?? selectValue;
     const order = nextOrder ?? localOrder;
     if (!court) {
@@ -165,9 +165,10 @@ export function MatchCourtControls({
       setMessage("활성 경기장을 선택해 주세요.");
       return;
     }
+    if (pending) return;
     setMessage(null);
-
-    startTransition(async () => {
+    setPending(true);
+    try {
       let mergeFields: Record<string, string> = { ...(extraFormFields ?? {}) };
       if (beforeSave) {
         const result = await beforeSave();
@@ -198,7 +199,13 @@ export function MatchCourtControls({
       }
       setMessage(immediate ? null : "저장됨");
       router.refresh();
-    });
+    } catch (err) {
+      setMessage(
+        err instanceof Error ? err.message : "저장 중 오류가 발생했습니다.",
+      );
+    } finally {
+      setPending(false);
+    }
   }
 
   const saveRef = useRef(save);

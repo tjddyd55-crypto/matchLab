@@ -193,16 +193,12 @@ export async function setMatchCourtFormAction(
       typeof targetDivisionIdRaw === "string" && targetDivisionIdRaw.trim()
         ? targetDivisionIdRaw.trim()
         : null;
-    const clearIncompatible =
-      formData.get("clearIncompatibleFighters") === "on" ||
-      formData.get("clearIncompatibleFighters") === "true";
 
     if (targetDivisionId) {
       await bracketService.changeMatchDivision(actor, {
         eventId,
         matchId,
         targetDivisionId,
-        clearIncompatibleFighters: clearIncompatible,
       });
     }
 

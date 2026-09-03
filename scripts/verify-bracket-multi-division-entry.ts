@@ -44,10 +44,8 @@ function main() {
   assert.match(service, /retainedExistingMatches/);
   assert.match(service, /applicationDivisionMutated: false/);
   assert.doesNotMatch(service, /updateApplicationDivisionAssignment/);
-  assert.match(
-    service,
-    /findApprovedApplicationForEventPlacement[\s\S]*findApprovedApplicationForBracketPlacement/,
-  );
+  assert.match(service, /findApprovedApplicationForEventPlacement/);
+  assert.match(service, /findApprovedApplicationForBracketPlacement/);
 
   assert.match(autoMatch, /listPlacedFighterIdsByDivision/);
   assert.doesNotMatch(

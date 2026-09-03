@@ -75,6 +75,8 @@ export type OrganizerApplicationEditFormDTO = {
   insuranceRrnMasked: string | null;
   structuralEditBlocked: boolean;
   structuralBlockReason: string | null;
+  /** 대진 배정 여부 — 수정은 허용, 안내만 표시 */
+  hasBracketAssignment: boolean;
 };
 
 function resolveApplicationRecordForEdit(row: {
@@ -185,12 +187,7 @@ function assertNoStructuralChangeWhenBlocked(
       "경기 결과가 있는 신청자는 성별·체급을 변경할 수 없습니다.",
     );
   }
-  if (deps.hasBracketAssignment && changingStructural) {
-    throw new AppError(
-      "CONFLICT",
-      "이미 대진에 배정된 선수입니다. 경기구분/체급을 변경하려면 먼저 대진 배정을 해제해주세요.",
-    );
-  }
+  // 대진 배정 여부는 application edit 차단 사유가 아님 (Bracket과 Application 독립)
   if (deps.hasWeighIn && (changingStructural || changingWeight)) {
     throw new AppError(
       "CONFLICT",
@@ -280,8 +277,8 @@ export const applicationOrganizerLifecycleService = {
       row.fighterId,
       row.id,
     );
-    const structuralEditBlocked =
-      deps.hasBracketAssignment || deps.hasMatchResult || deps.hasWeighIn;
+    // 대진 배정만으로는 structural edit 차단하지 않음 (Application ↔ Bracket 독립)
+    const structuralEditBlocked = deps.hasMatchResult || deps.hasWeighIn;
 
     // placeholder Gym / 미연결은 표시명 snapshot 편집(manual)이 SSOT.
     // existing 모드로 열면 options.gyms에 없어 저장이 실패하거나 무반응처럼 보인다.
@@ -328,11 +325,12 @@ export const applicationOrganizerLifecycleService = {
       structuralEditBlocked,
       structuralBlockReason: deps.hasMatchResult
         ? "경기 결과가 있어 성별·체급 변경이 제한됩니다."
-        : deps.hasBracketAssignment
-          ? "대진 배정 상태입니다. 성별·체급 변경 전 대진을 해제해주세요."
-          : deps.hasWeighIn
-            ? "계체 기록이 있어 체중/체급 변경이 제한됩니다."
+        : deps.hasWeighIn
+          ? "계체 기록이 있어 체중/체급 변경이 제한됩니다."
+          : deps.hasBracketAssignment
+            ? "신청정보가 변경되어도 현재 편성된 대진은 자동으로 변경되지 않습니다."
             : null,
+      hasBracketAssignment: deps.hasBracketAssignment,
     };
   },
 
@@ -371,8 +369,7 @@ export const applicationOrganizerLifecycleService = {
             .applicationWeightKg as number)
         : null;
 
-    const structuralLocked =
-      deps.hasBracketAssignment || deps.hasMatchResult || deps.hasWeighIn;
+    const structuralLocked = deps.hasMatchResult || deps.hasWeighIn;
 
     type DivisionRow = {
       id: string;

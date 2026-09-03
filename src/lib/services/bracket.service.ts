@@ -914,7 +914,8 @@ export const bracketService = {
   /**
    * Match의 경기구분(Bracket.divisionId) 변경.
    * EventApplication.divisionId는 변경하지 않는다.
-   * matchNumber / courtId / courtOrder 유지. Match.id 유지.
+   * RED/BLUE 선수·matchNumber·courtId·courtOrder·Match.id 유지.
+   * 신청 division과 달라도 수동 운영 편성이므로 선수를 해제하지 않는다.
    */
   async changeMatchDivision(
     actor: ActorContext,
@@ -922,7 +923,6 @@ export const bracketService = {
       eventId: string;
       matchId: string;
       targetDivisionId: string;
-      clearIncompatibleFighters?: boolean;
     },
   ): Promise<{ bracketId: string }> {
     requireRole(actor, ["organizer", "admin"]);
@@ -982,68 +982,6 @@ export const bracketService = {
         return { bracketId: targetBracketId };
       }
 
-      const incompatibleSlots: Array<"red" | "blue"> = [];
-      for (const slot of ["red", "blue"] as const) {
-        const fighterId =
-          slot === "red" ? match.fighterRedId : match.fighterBlueId;
-        if (!fighterId) continue;
-        const app =
-          await bracketRepository.findApprovedApplicationForEventPlacement(
-            input.eventId,
-            fighterId,
-            tx,
-          );
-        if (!app || app.divisionId !== input.targetDivisionId) {
-          incompatibleSlots.push(slot);
-        }
-      }
-
-      if (
-        incompatibleSlots.length > 0 &&
-        !input.clearIncompatibleFighters
-      ) {
-        throw new AppError(
-          "CONFLICT",
-          "경기구분을 변경하면 현재 배정된 선수 중 새 경기구분과 맞지 않는 선수가 있습니다. 배정을 해제하고 변경하시겠습니까?",
-          { code: "DIVISION_INCOMPATIBLE_FIGHTERS", incompatibleSlots },
-        );
-      }
-
-      const clearPatch: Prisma.BracketMatchUncheckedUpdateInput = {};
-      for (const slot of incompatibleSlots) {
-        if (slot === "red") {
-          clearPatch.fighterRedId = null;
-          clearPatch.fighterRedSnapshot = Prisma.JsonNull;
-        } else {
-          clearPatch.fighterBlueId = null;
-          clearPatch.fighterBlueSnapshot = Prisma.JsonNull;
-        }
-      }
-      if (Object.keys(clearPatch).length > 0) {
-        await bracketRepository.updateBracketMatch(
-          input.matchId,
-          clearPatch,
-          tx,
-        );
-        for (const slot of incompatibleSlots) {
-          await appendChangeLog(tx, {
-            eventId: input.eventId,
-            bracketId: match.bracketId,
-            matchId: input.matchId,
-            changedByUserId: actor.userId,
-            bracketType: match.bracket.type,
-            changeType: BracketChangeType.fighter_removed,
-            beforeData: {
-              slot,
-              fighterId:
-                slot === "red" ? match.fighterRedId : match.fighterBlueId,
-            },
-            afterData: { slot, fighterId: null },
-            reason: "경기구분 변경 — 비호환 선수 해제",
-          });
-        }
-      }
-
       const nextOrder =
         (await bracketRepository.getMaxMatchOrderForBracket(
           targetBracketId,
@@ -1073,6 +1011,8 @@ export const bracketService = {
           matchNumber: match.matchNumber,
           courtId: match.courtId,
           courtOrder: match.courtOrder,
+          fighterRedId: match.fighterRedId,
+          fighterBlueId: match.fighterBlueId,
         },
         afterData: {
           bracketId: targetBracketId,
@@ -1081,9 +1021,12 @@ export const bracketService = {
           matchNumber: match.matchNumber,
           courtId: match.courtId,
           courtOrder: match.courtOrder,
-          clearedSlots: incompatibleSlots,
+          fighterRedId: match.fighterRedId,
+          fighterBlueId: match.fighterBlueId,
+          applicationDivisionMutated: false,
+          retainedFighters: true,
         },
-        reason: "경기구분 변경",
+        reason: "경기구분 변경 — 선수 유지 · 신청 division 불변",
       });
 
       return { bracketId: targetBracketId };

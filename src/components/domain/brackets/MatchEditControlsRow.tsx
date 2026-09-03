@@ -10,12 +10,10 @@ import {
   CourtScheduleMatchReorderControls,
   type CourtScheduleReorderMatch,
 } from "@/components/domain/courts/CourtScheduleMatchReorderControls";
-import { useAppConfirmDialog } from "@/components/shared/app-confirm-dialog";
 import { Button } from "@/components/ui/button";
 import { matchCourtSaveButtonClass } from "@/lib/ui/match-grid-layout";
 import type { EventCourtVM } from "@/lib/services/event-court.service";
 import type {
-  OrganizerApprovedFighterOptionVM,
   OrganizerBracketMatchVM,
   OrganizerEventAllMatchesDivisionOptionVM,
 } from "@/lib/services/bracket.service";
@@ -33,7 +31,6 @@ export function MatchEditControlsRow({
   currentDivisionId,
   draftDivisionId,
   onDraftDivisionIdChange,
-  options,
   matchWeightKg,
   savedMatchWeightKg = null,
   courtScheduleReorder = null,
@@ -49,7 +46,8 @@ export function MatchEditControlsRow({
   currentDivisionId?: string | null;
   draftDivisionId?: string | null;
   onDraftDivisionIdChange?: (divisionId: string) => void;
-  options?: OrganizerApprovedFighterOptionVM[];
+  /** @deprecated 경기구분 변경 시 선수 유지 — 호환용으로 남겨둠 */
+  options?: unknown;
   matchWeightKg?: string;
   /** dirty 기준 — 정식 필드 또는 legacy memo 추출값 */
   savedMatchWeightKg?: number | null;
@@ -59,7 +57,6 @@ export function MatchEditControlsRow({
     courtMatches: CourtScheduleReorderMatch[];
   } | null;
 }) {
-  const { confirm } = useAppConfirmDialog();
   const [organizerMemo, setOrganizerMemo] = useState(match.organizerMemo ?? "");
   const [saveControls, setSaveControls] = useState<{
     save: () => void;
@@ -93,41 +90,6 @@ export function MatchEditControlsRow({
     return { targetDivisionId: draftDivisionId };
   }, [divisionDirty, draftDivisionId]);
 
-  const beforeSave = useCallback(async () => {
-    if (!divisionDirty || !draftDivisionId || !options) return true;
-
-    const fighterIds = [match.fighterRedId, match.fighterBlueId].filter(
-      (id): id is string => Boolean(id),
-    );
-    if (fighterIds.length === 0) return true;
-
-    const incompatible = fighterIds.some((fighterId) => {
-      const opt = options.find((o) => o.fighterId === fighterId);
-      return !opt || opt.divisionId !== draftDivisionId;
-    });
-    if (!incompatible) return true;
-
-    const ok = await confirm({
-      title: "경기구분 변경",
-      description:
-        "경기구분을 변경하면 현재 배정된 선수 중 새 경기구분과 맞지 않는 선수가 있습니다. 배정을 해제하고 변경하시겠습니까?",
-      confirmLabel: "배정 해제 후 변경",
-      cancelLabel: "취소",
-      variant: "danger",
-    });
-    if (!ok) return false;
-    return {
-      extraFields: { clearIncompatibleFighters: "true" },
-    };
-  }, [
-    confirm,
-    divisionDirty,
-    draftDivisionId,
-    match.fighterBlueId,
-    match.fighterRedId,
-    options,
-  ]);
-
   return (
     <div className="flex w-full min-w-0 flex-col gap-1.5">
       <BracketMatchControlsRow
@@ -156,7 +118,6 @@ export function MatchEditControlsRow({
             }
             extraFormFields={extraFormFields}
             extraDirty={divisionDirty}
-            beforeSave={beforeSave}
           />
         }
         center={

@@ -169,7 +169,14 @@ export function OrganizerApplicationEditPanel({
             ) : null}
             <div className="min-h-0 flex-1 overflow-x-hidden overflow-y-auto px-4 py-3">
               {form.structuralBlockReason ? (
-                <p className="mb-3 rounded-md border border-amber-500/40 bg-amber-500/10 px-3 py-2 text-xs text-amber-950">
+                <p
+                  className={cn(
+                    "mb-3 rounded-md border px-3 py-2 text-xs",
+                    form.structuralEditBlocked
+                      ? "border-amber-500/40 bg-amber-500/10 text-amber-950"
+                      : "border-border bg-muted/40 text-muted-foreground",
+                  )}
+                >
                   {form.structuralBlockReason}
                 </p>
               ) : null}
