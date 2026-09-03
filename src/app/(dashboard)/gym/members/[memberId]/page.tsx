@@ -29,6 +29,7 @@ import { GymMemberProfileDetailSections } from "@/components/domain/gym-members/
 import { GymMemberUpcomingSchedulesSection } from "@/components/domain/gym-members/GymMemberUpcomingSchedulesSection";
 import { GymMemberDetailActions } from "@/components/domain/gym-members/GymMemberDetailActions";
 import { GymMemberMembershipPanel } from "@/components/domain/gym-members/GymMemberMembershipPanel";
+import { GymMemberOpsActionBar } from "@/components/domain/gym-members/GymMemberOpsActionBar";
 import { GymMemberLockerPanel } from "@/components/domain/gym-members/GymMemberLockerPanel";
 import { GymProfileMissingBanner } from "@/components/domain/gym/GymProfileMissingBanner";
 import { buttonVariants } from "@/components/ui/button";
@@ -37,6 +38,10 @@ import { GymMemberGroupClassesSection } from "@/components/domain/gym-group-clas
 import { gymGroupClassService } from "@/lib/services/gym-group-class.service";
 import { gymScheduleService } from "@/lib/services/gym-schedule.service";
 import { gymStaffService } from "@/lib/services/gym-staff.service";
+import { gymProductService } from "@/lib/services/gym-product.service";
+import { gymProductCategoryLabel } from "@/lib/gym-products/labels";
+import { formatSeoulDateTime } from "@/lib/gym-attendance/seoul-date";
+import { GymMemberSubscriptionStatus } from "@/lib/enums";
 import { MemberAlert } from "@/components/domain/gym-members/MemberAlert";
 import { MemberCopyPhoneButton } from "@/components/domain/gym-members/MemberCopyPhoneButton";
 import {
@@ -50,6 +55,24 @@ import {
   matchonSectionTitleClass,
 } from "@/lib/ui/matchon-layout";
 import { cn } from "@/lib/utils";
+
+const SUBSCRIPTION_STATUS_LABEL: Record<string, string> = {
+  [GymMemberSubscriptionStatus.active]: "사용 중",
+  [GymMemberSubscriptionStatus.paused]: "일시정지",
+  [GymMemberSubscriptionStatus.ended]: "종료",
+  [GymMemberSubscriptionStatus.cancelled]: "취소",
+};
+
+function subscriptionStatusLabel(status: string): string {
+  return SUBSCRIPTION_STATUS_LABEL[status] ?? status;
+}
+
+function parseMembershipOp(
+  raw: unknown,
+): "sale" | "renew" | "collect" | null {
+  if (raw === "sale" || raw === "renew" || raw === "collect") return raw;
+  return null;
+}
 
 export const dynamic = "force-dynamic";
 
@@ -138,6 +161,9 @@ export default async function GymMemberDetailPage({
   const { memberId } = await params;
   const sp = await searchParams;
   const tab = parseTab(typeof sp.tab === "string" ? sp.tab : undefined);
+  const membershipOp = parseMembershipOp(
+    typeof sp.op === "string" ? sp.op : undefined,
+  );
 
   if (!actor.gymId) {
     return (
@@ -182,6 +208,9 @@ export default async function GymMemberDetailPage({
   let profileCtx: Awaited<
     ReturnType<typeof gymMemberProfileService.getMemberProfileContext>
   > | null = null;
+  let products: Awaited<
+    ReturnType<typeof gymProductService.listProducts>
+  > = [];
   const access = await resolveGymPortalAccess(actor).catch(() => null);
   try {
     [
@@ -196,6 +225,7 @@ export default async function GymMemberDetailPage({
       upcomingSchedules,
       upcomingGroupClasses,
       profileCtx,
+      products,
     ] = await Promise.all([
       gymMemberService.getMemberDetail(actor, memberId),
       gymMembershipPlanService.listPlans(actor, false).catch(() => []),
@@ -215,6 +245,11 @@ export default async function GymMemberDetailPage({
       gymMemberProfileService
         .getMemberProfileContext(actor, memberId)
         .catch(() => null),
+      access?.canManageSales
+        ? gymProductService
+            .listProducts(actor, { activeOnly: true })
+            .catch(() => [])
+        : Promise.resolve([]),
     ]);
   } catch (e) {
     if (e instanceof AppError && e.code === "NOT_FOUND") notFound();
@@ -244,6 +279,23 @@ export default async function GymMemberDetailPage({
   const nextPt = upcomingSchedules[0];
   const nextGroup = upcomingGroupClasses[0];
   const latestPayment = salesSummary?.payments[0];
+  const recentPayments = salesSummary?.payments.slice(0, 5) ?? [];
+  const recentAttendance = [...attendanceCalendar.days]
+    .sort(
+      (a, b) =>
+        new Date(b.attendedAt).getTime() - new Date(a.attendedAt).getTime(),
+    )
+    .slice(0, 5);
+  const canWriteMembers = Boolean(access?.canWriteMembers);
+  const canManageSales = Boolean(access?.canManageSales);
+  const productOptions = products.map((p) => ({
+    id: p.id,
+    name: p.name,
+    category: p.category,
+    categoryLabel: gymProductCategoryLabel(p.category),
+    defaultPrice: p.defaultPrice,
+  }));
+  const salesDrilldownHref = `/gym/sales?memberNameQ=${encodeURIComponent(member.name)}`;
 
   const attendanceQs: Record<string, string | undefined> = {
     attendanceYear:
@@ -357,44 +409,25 @@ export default async function GymMemberDetailPage({
             </div>
 
             <div className="flex flex-wrap items-center gap-2">
-              {selfRegistrationDocument ? (
-                <Link
-                  href={`/gym/members/registrations/${selfRegistrationDocument.id}`}
-                  className={cn(
-                    buttonVariants({ variant: "outline", size: "sm" }),
-                    "min-h-11",
-                  )}
-                >
-                  가입 신청서 보기
-                </Link>
-              ) : null}
-              <Link
-                href={`/gym/members/${member.id}/edit`}
-                className={cn(
-                  buttonVariants({ variant: "outline", size: "sm" }),
-                  "min-h-11",
-                )}
-              >
-                회원 수정
-              </Link>
+              <GymMemberOpsActionBar
+                memberId={member.id}
+                memberName={member.name}
+                canWriteMembers={canWriteMembers}
+                canManageSales={canManageSales}
+                products={productOptions}
+                selfRegistrationHref={
+                  selfRegistrationDocument
+                    ? `/gym/members/registrations/${selfRegistrationDocument.id}`
+                    : null
+                }
+                hasFighter={Boolean(member.fighter)}
+                fighterEditHref={
+                  member.fighter
+                    ? `/gym/fighters/${member.fighter.id}/edit`
+                    : null
+                }
+              />
               <MemberCopyPhoneButton phone={formatPhoneNumber(member.phone)} />
-              <Link
-                href={`/gym/members/${member.id}?tab=membership`}
-                className={cn(buttonVariants({ size: "sm" }), "min-h-11")}
-              >
-                회원권·결제
-              </Link>
-              {member.fighter ? (
-                <Link
-                  href={`/gym/fighters/${member.fighter.id}/edit`}
-                  className={cn(
-                    buttonVariants({ variant: "outline", size: "sm" }),
-                    "min-h-11",
-                  )}
-                >
-                  선수 정보
-                </Link>
-              ) : null}
             </div>
           </div>
         </div>
@@ -498,13 +531,21 @@ export default async function GymMemberDetailPage({
 
             <section className="rounded-[10px] border border-matchon-border bg-white p-3">
               <h2 className={cn(matchonSectionTitleClass, "mb-2 text-xs")}>
-                현재 회원권
+                현재 이용권
               </h2>
               {currentSubscription ? (
                 <>
                   <InfoRow
                     label="상품"
                     value={currentSubscription.planNameSnapshot}
+                  />
+                  <InfoRow
+                    label="상태"
+                    value={membershipStatusLabel}
+                  />
+                  <InfoRow
+                    label="이용권 상태"
+                    value={subscriptionStatusLabel(currentSubscription.status)}
                   />
                   <InfoRow
                     label="기간"
@@ -514,21 +555,130 @@ export default async function GymMemberDetailPage({
                         : ""
                     }`}
                   />
-                  <InfoRow label="상태" value={currentSubscription.status} />
-                  <InfoRow label="만료" value={expirationDisplay} />
-                  <div className="pt-3">
+                  <InfoRow
+                    label="잔여"
+                    value={
+                      daysRemaining != null
+                        ? daysRemaining >= 0
+                          ? `${daysRemaining}일 남음`
+                          : `${Math.abs(daysRemaining)}일 지남`
+                        : expirationDisplay
+                    }
+                  />
+                  <div className="flex flex-wrap gap-2 pt-3">
                     <Link
                       href={`/gym/members/${member.id}?tab=membership`}
                       className={cn(buttonVariants({ size: "sm" }), "min-h-11")}
                     >
                       회원권·결제 관리
                     </Link>
+                    {canWriteMembers ? (
+                      <Link
+                        href={`/gym/members/${member.id}?tab=membership&op=sale`}
+                        className={cn(
+                          buttonVariants({ variant: "outline", size: "sm" }),
+                          "min-h-11",
+                        )}
+                      >
+                        이용권 등록
+                      </Link>
+                    ) : null}
                   </div>
                 </>
               ) : (
-                <p className="text-sm text-matchon-text-secondary">
-                  배정된 이용권이 없습니다.
+                <div className="space-y-3">
+                  <p className="text-sm text-matchon-text-secondary">
+                    배정된 이용권이 없습니다.
+                  </p>
+                  {canWriteMembers ? (
+                    <Link
+                      href={`/gym/members/${member.id}?tab=membership&op=sale`}
+                      className={cn(buttonVariants({ size: "sm" }), "min-h-11")}
+                    >
+                      이용권 등록
+                    </Link>
+                  ) : null}
+                </div>
+              )}
+            </section>
+
+            <section className="rounded-[10px] border border-matchon-border bg-white p-3">
+              <div className="mb-2 flex flex-wrap items-center justify-between gap-2">
+                <h2 className={cn(matchonSectionTitleClass, "text-xs")}>
+                  결제 내역
+                </h2>
+                {canManageSales ? (
+                  <Link
+                    href={salesDrilldownHref}
+                    className="text-[11px] font-medium text-matchon-primary"
+                  >
+                    전체 보기
+                  </Link>
+                ) : null}
+              </div>
+              {recentPayments.length === 0 ? (
+                <p className="text-xs text-matchon-text-secondary">
+                  결제 기록이 없습니다.
                 </p>
+              ) : (
+                <ul className="space-y-1.5">
+                  {recentPayments.map((p) => (
+                    <li
+                      key={p.id}
+                      className="flex flex-wrap items-baseline justify-between gap-2 border-b border-matchon-border py-1.5 text-xs last:border-0"
+                    >
+                      <span className="text-matchon-text-secondary">
+                        {formatUtcDateOnly(p.paidAt)}
+                        <span className="mx-1">·</span>
+                        {p.categoryLabel ?? "결제"}
+                      </span>
+                      <span className="font-medium text-matchon-text-primary">
+                        {formatWon(p.amount)}
+                        <span className="ml-1 font-normal text-matchon-text-secondary">
+                          {p.paymentMethodLabel}
+                        </span>
+                      </span>
+                    </li>
+                  ))}
+                </ul>
+              )}
+            </section>
+
+            <section className="rounded-[10px] border border-matchon-border bg-white p-3 lg:col-span-2">
+              <div className="mb-2 flex flex-wrap items-center justify-between gap-2">
+                <h2 className={cn(matchonSectionTitleClass, "text-xs")}>
+                  최근 출석
+                </h2>
+                <a
+                  href="#attendance"
+                  className="text-[11px] font-medium text-matchon-primary"
+                >
+                  출석 달력
+                </a>
+              </div>
+              {recentAttendance.length === 0 ? (
+                <p className="text-xs text-matchon-text-secondary">
+                  이번 달 출석 기록이 없습니다.
+                  {attendanceSummary.latestAttendedAt
+                    ? ` · 최근 ${formatSeoulDateTime(attendanceSummary.latestAttendedAt)}`
+                    : ""}
+                </p>
+              ) : (
+                <ul className="space-y-1">
+                  {recentAttendance.map((row) => (
+                    <li
+                      key={row.id}
+                      className="border-b border-matchon-border py-1.5 text-xs text-matchon-text-primary last:border-0"
+                    >
+                      {formatSeoulDateTime(row.attendedAt)}
+                      {row.membershipStatusLabel ? (
+                        <span className="ml-2 text-matchon-text-secondary">
+                          · {row.membershipStatusLabel}
+                        </span>
+                      ) : null}
+                    </li>
+                  ))}
+                </ul>
               )}
             </section>
 
@@ -546,7 +696,7 @@ export default async function GymMemberDetailPage({
               />
             </div>
 
-            <div className="lg:col-span-2">
+            <div className="lg:col-span-2" id="attendance">
               <GymMemberAttendanceCalendar
                 memberId={member.id}
                 memberName={member.name}
@@ -588,6 +738,8 @@ export default async function GymMemberDetailPage({
               timeline={membershipTimeline}
               subscriptionHistory={subscriptionHistory}
               statusLabel={membershipStatusLabel}
+              daysRemaining={daysRemaining}
+              initialOp={membershipOp}
             />
             {detailActions}
           </div>

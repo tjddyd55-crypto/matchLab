@@ -153,6 +153,7 @@
     "verify:gym-member-new-this-month-filter": "tsx scripts/verify-gym-member-new-this-month-filter.ts",
     "verify:gym-member-registration-v3": "tsx scripts/verify-gym-member-registration-v3.ts",
     "verify:gym-membership-sale": "tsx scripts/verify-gym-membership-sale.ts",
+    "verify:gym-member-operations": "tsx scripts/verify-gym-member-operations.ts",
     "verify:gym-membership-renewal": "tsx scripts/verify-gym-membership-sale.ts",
     "verify:gym-membership-extension": "tsx scripts/verify-gym-membership-sale.ts",
     "verify:gym-membership-correction": "tsx scripts/verify-gym-membership-sale.ts",

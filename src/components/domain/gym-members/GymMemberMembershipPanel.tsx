@@ -146,6 +146,8 @@ export function GymMemberMembershipPanel({
   timeline,
   subscriptionHistory,
   statusLabel,
+  daysRemaining = null,
+  initialOp = null,
 }: {
   memberId: string;
   plans: PlanOption[];
@@ -154,6 +156,8 @@ export function GymMemberMembershipPanel({
   timeline: MembershipTimelineItem[];
   subscriptionHistory: SubscriptionHistoryVM;
   statusLabel: string;
+  daysRemaining?: number | null;
+  initialOp?: "sale" | "renew" | "collect" | null;
 }) {
   const router = useRouter();
   const { confirm } = useAppConfirmDialog();
@@ -161,8 +165,26 @@ export function GymMemberMembershipPanel({
   const [error, setError] = useState<string | null>(null);
   const [message, setMessage] = useState<string | null>(null);
   const [modal, setModal] = useState<ModalKind>(null);
+  const [opConsumed, setOpConsumed] = useState(false);
 
   const today = todayUtcDateOnlyString();
+
+  useEffect(() => {
+    if (opConsumed || !initialOp) return;
+    if (initialOp === "sale") {
+      setModal("sale");
+    } else if (initialOp === "renew") {
+      setModal(currentSubscription ? "renew" : "sale");
+    } else if (
+      initialOp === "collect" &&
+      money &&
+      money.outstanding > 0 &&
+      money.primaryReceivableId
+    ) {
+      setModal("collect");
+    }
+    setOpConsumed(true);
+  }, [initialOp, opConsumed, currentSubscription, money]);
 
   function run(
     fn: () => Promise<{ ok: boolean; error?: { message?: string } }>,
@@ -219,6 +241,13 @@ export function GymMemberMembershipPanel({
                     )}
                   </span>
                 </p>
+                {daysRemaining != null ? (
+                  <p className="text-xs text-matchon-text-secondary">
+                    {daysRemaining >= 0
+                      ? `${daysRemaining}일 남음`
+                      : `${Math.abs(daysRemaining)}일 지남`}
+                  </p>
+                ) : null}
                 {money ? (
                   <p className="text-xs text-matchon-text-secondary">
                     <span className="font-medium text-matchon-text-primary">
