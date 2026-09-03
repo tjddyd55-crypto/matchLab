@@ -195,14 +195,16 @@ export function buildManualMatchConfirmDescription(input: {
   if (input.moveFighters.length > 0) {
     for (const mover of input.moveFighters) {
       lines.push(
-        `${mover.fighterName} 선수는 현재 「${mover.currentDivisionLabel}」에 배정되어 있습니다.`,
+        `${mover.fighterName} 선수의 원 신청 경기구분은 「${mover.currentDivisionLabel}」입니다.`,
       );
       lines.push(
-        `이 경기를 만들면 ${mover.fighterName} 선수를 「${input.targetDivisionLabel}」으로 이동한 뒤 경기를 생성합니다.`,
+        `이 경기를 만들면 ${mover.fighterName} 선수를 「${input.targetDivisionLabel}」 대진에 편성합니다.`,
       );
       lines.push("");
     }
-    lines.push("원래 신청정보는 변경되지 않습니다.");
+    lines.push(
+      "원 신청 경기구분(EventApplication)은 변경되지 않습니다. 대진에서 제거하면 원 신청 기준으로 미배정에 돌아갑니다.",
+    );
   } else if (
     (input.red.assignmentCount ?? 0) === 0 &&
     (input.blue.assignmentCount ?? 0) === 0

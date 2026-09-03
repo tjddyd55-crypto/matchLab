@@ -2390,19 +2390,24 @@ export const bracketService = {
         return { row, placed };
       }
 
-      async function ensureAssignedToBracketDivision(
+      /**
+       * 교차 경기구분 수동 편성 허용 검사.
+       * EventApplication.divisionId / divisionSelectionType 은 원 신청 SSOT —
+       * bracket 편성 path에서 절대 변경하지 않는다.
+       */
+      async function assertCrossDivisionPlacementAllowed(
         row: ApprovedApplicationForBracketRow,
         alreadyPlaced: number,
-      ): Promise<ApprovedApplicationForBracketRow> {
+      ): Promise<void> {
         if (!ctx.divisionId) {
           throw new AppError(
             "VALIDATION_ERROR",
             "경기구분이 없는 대진표에서는 교차 편성할 수 없습니다.",
           );
         }
-        if (row.divisionId === ctx.divisionId) return row;
+        if (row.divisionId === ctx.divisionId) return;
 
-        // 이미 배정된 선수의 division 이동 금지 (복수 출전 안전장치)
+        // 이미 배정된 선수의 교차 복수 출전 금지 (same-division만 허용)
         if (alreadyPlaced > 0) {
           throw new AppError(
             "VALIDATION_ERROR",
@@ -2421,13 +2426,6 @@ export const bracketService = {
           );
         }
 
-        const fromDivisionId = row.divisionId;
-        await applicationRepository.updateApplicationDivisionAssignment(
-          row.id,
-          ctx.divisionId,
-          tx,
-        );
-
         await appendChangeLog(tx, {
           eventId: ctx.eventId,
           bracketId: input.bracketId,
@@ -2437,36 +2435,24 @@ export const bracketService = {
           beforeData: {
             applicationId: row.id,
             fighterId: row.fighterId,
-            fromDivisionId,
+            originalApplicationDivisionId: row.divisionId,
           },
           afterData: {
             applicationId: row.id,
             fighterId: row.fighterId,
-            toDivisionId: ctx.divisionId,
+            bracketDivisionId: ctx.divisionId,
+            originalApplicationDivisionId: row.divisionId,
+            applicationDivisionMutated: false,
             source: "cross_division_manual_match",
           },
-          reason: "교차 경기구분 수동 편성 — 배정 이동",
+          reason: "교차 경기구분 수동 편성 — 신청 division 유지",
         });
-
-        const moved =
-          await bracketRepository.findApprovedApplicationForEventPlacement(
-            ctx.eventId,
-            row.fighterId,
-            tx,
-          );
-        if (!moved) {
-          throw new AppError(
-            "CONFLICT",
-            "선수 배정 상태가 변경되었습니다. 목록을 새로고침합니다.",
-          );
-        }
-        return moved;
       }
 
       const redLoaded = await loadUnmatchedForManualPair(input.redFighterId);
       const blueLoaded = await loadUnmatchedForManualPair(input.blueFighterId);
-      let redRow = redLoaded.row;
-      let blueRow = blueLoaded.row;
+      const redRow = redLoaded.row;
+      const blueRow = blueLoaded.row;
 
       const crossDivisionMove = Boolean(
         ctx.divisionId &&
@@ -2474,14 +2460,8 @@ export const bracketService = {
             (blueRow.divisionId && blueRow.divisionId !== ctx.divisionId)),
       );
 
-      redRow = await ensureAssignedToBracketDivision(
-        redRow,
-        redLoaded.placed,
-      );
-      blueRow = await ensureAssignedToBracketDivision(
-        blueRow,
-        blueLoaded.placed,
-      );
+      await assertCrossDivisionPlacementAllowed(redRow, redLoaded.placed);
+      await assertCrossDivisionPlacementAllowed(blueRow, blueLoaded.placed);
 
       const nextOrder =
         (await bracketRepository.getMaxMatchOrderForBracket(

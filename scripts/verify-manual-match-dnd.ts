@@ -40,10 +40,9 @@ function main() {
   assert.match(section, /미매칭 선수/);
 
   assert.match(service, /createManualMatchWithPair/);
-  assert.match(
-    service,
-    /선수 배정 상태가 변경되었습니다/,
-  );
+  assert.match(service, /assertCrossDivisionPlacementAllowed/);
+  assert.match(service, /applicationDivisionMutated: false/);
+  assert.doesNotMatch(service, /updateApplicationDivisionAssignment/);
   assert.match(actions, /createManualMatchWithPairAction/);
 
   console.log("verify:manual-match-dnd OK");

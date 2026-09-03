@@ -38,9 +38,12 @@ function main() {
   assert.match(service, /eventWideUnmatchedOptions/);
   assert.match(service, /findApprovedApplicationForEventPlacement/);
   assert.match(service, /countFighterAssignmentsInEvent/);
-  assert.match(service, /updateApplicationDivisionAssignment/);
-  assert.match(service, /ensureAssignedToBracketDivision/);
+  assert.doesNotMatch(service, /updateApplicationDivisionAssignment/);
+  assert.doesNotMatch(service, /ensureAssignedToBracketDivision/);
+  assert.match(service, /assertCrossDivisionPlacementAllowed/);
+  assert.match(service, /applicationDivisionMutated: false/);
   assert.match(service, /cross_division_manual_match/);
+  assert.match(service, /신청 division 유지/);
 
   assert.match(repo, /findApprovedApplicationForEventPlacement/);
   assert.match(repo, /countFighterAssignmentsInEvent/);
@@ -51,7 +54,8 @@ function main() {
   assert.match(section, /다른 경기구분/);
 
   assert.match(panel, /다른 경기구분 선수와 매칭할까요/);
-  assert.match(panel, /이동하여 경기 생성/);
+  assert.match(panel, /교차 편성하여 경기 생성/);
+  assert.doesNotMatch(panel, /이동하여 경기 생성/);
   assert.match(panel, /buildManualMatchConfirmDescription/);
 
   const move = fightersRequiringDivisionMove(
@@ -125,8 +129,10 @@ function main() {
     ],
     warnings,
   });
-  assert.match(desc, /원래 신청정보는 변경되지 않습니다/);
+  assert.match(desc, /원 신청 경기구분\(EventApplication\)은 변경되지 않습니다/);
   assert.match(desc, /일반부 · 남성/);
+  assert.match(desc, /고등부 · 남성.*대진에 편성/);
+  assert.doesNotMatch(desc, /이동한 뒤 경기를 생성/);
   assert.match(desc, /68\.2kg/);
   assert.match(desc, /전적 정보 없음/);
   assert.match(desc, /70\.1kg/);

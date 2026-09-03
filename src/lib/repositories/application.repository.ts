@@ -354,7 +354,12 @@ export const applicationRepository = {
     });
   },
 
-  /** 수동 교차 편성 — 현재 배정 EventDivision만 변경 (신청 snapshot 불변). */
+  /**
+   * @deprecated Bracket 교차 편성에서 사용 금지.
+   * EventApplication.divisionId 는 원 신청 경기구분 SSOT.
+   * 명시적 신청 수정(organizer application edit)만 division을 변경한다.
+   * Bracket assignment path must not mutate application division SSOT.
+   */
   async updateApplicationDivisionAssignment(
     applicationId: string,
     divisionId: string,

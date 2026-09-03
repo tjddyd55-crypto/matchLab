@@ -429,7 +429,7 @@ export function ManualMatchCreatePanel({
       confirmLabel: hasDuplicate
         ? "추가 배정하여 경기 생성"
         : isCrossDivision
-          ? "이동하여 경기 생성"
+          ? "교차 편성하여 경기 생성"
           : "경기 생성",
       cancelLabel: "취소",
     });
