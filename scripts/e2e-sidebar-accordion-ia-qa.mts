@@ -107,7 +107,7 @@ async function main() {
   await login(page, "admin", pw);
   await page.goto(`${BASE}/admin`, { waitUntil: "networkidle", timeout: 120_000 });
   await page.screenshot({ path: join(OUT, "01-admin-home.png"), fullPage: false });
-  for (const label of ["회원·조직", "선수", "대회", "결제·구독", "시스템"]) {
+  for (const label of ["회원·조직", "선수", "대회", "MATCHON 결제", "시스템"]) {
     if ((await page.locator(`[data-nav-section="${label}"]`).count()) === 0) {
       fail(`admin missing section ${label}`);
     }
@@ -169,7 +169,7 @@ async function main() {
     "선수 관리",
     "대회",
     "체육관 운영",
-    "결제·구독",
+    "MATCHON 결제",
   ]) {
     if ((await page.locator(`[data-nav-section="${label}"]`).count()) === 0) {
       fail(`gym owner missing section ${label}`);

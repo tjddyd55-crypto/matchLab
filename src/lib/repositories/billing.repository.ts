@@ -43,14 +43,60 @@ export const billingPlanRepository = {
   },
 };
 
+const subscriptionInclude = {
+  plan: true,
+  paymentMethod: true,
+} as const;
+
 export const billingSubscriptionRepository = {
   async findLatestByUserId(userId: string, tx?: Tx) {
     const db = tx ?? prisma;
     return db.billingSubscription.findFirst({
       where: { userId },
       orderBy: { createdAt: "desc" },
-      include: { plan: true, paymentMethod: true },
+      include: subscriptionInclude,
     });
+  },
+
+  async findLatestByGymId(gymId: string, tx?: Tx) {
+    const db = tx ?? prisma;
+    return db.billingSubscription.findFirst({
+      where: { gymId },
+      orderBy: { createdAt: "desc" },
+      include: subscriptionInclude,
+    });
+  },
+
+  async findLatestByOrganizerId(organizerId: string, tx?: Tx) {
+    const db = tx ?? prisma;
+    return db.billingSubscription.findFirst({
+      where: { organizerId },
+      orderBy: { createdAt: "desc" },
+      include: subscriptionInclude,
+    });
+  },
+
+  /**
+   * Org-first then legacy user subscription.
+   * New org subscriptions are SSOT when gymId/organizerId is set.
+   */
+  async findLatestForOrgOrUser(
+    input: {
+      gymId?: string | null;
+      organizerId?: string | null;
+      userId: string;
+    },
+    tx?: Tx,
+  ) {
+    if (input.gymId) {
+      const orgSub = await this.findLatestByGymId(input.gymId, tx);
+      if (orgSub) return orgSub;
+    }
+    if (input.organizerId) {
+      const orgSub = await this.findLatestByOrganizerId(input.organizerId, tx);
+      if (orgSub) return orgSub;
+    }
+    return this.findLatestByUserId(input.userId, tx);
   },
 
   async findDueForRenewal(now: Date, take = 50, tx?: Tx) {
@@ -73,6 +119,8 @@ export const billingSubscriptionRepository = {
         plan: true,
         paymentMethod: true,
         user: { select: { id: true, tossCustomerKey: true } },
+        gym: { select: { id: true, tossCustomerKey: true } },
+        organizer: { select: { id: true, tossCustomerKey: true } },
       },
       orderBy: { nextBillingAt: "asc" },
     });
@@ -171,6 +219,43 @@ export const billingPaymentRepository = {
       take,
       include: { plan: true },
     });
+  },
+
+  async listByGymId(gymId: string, take = 50) {
+    return prisma.billingPayment.findMany({
+      where: { gymId },
+      orderBy: { createdAt: "desc" },
+      take,
+      include: { plan: true },
+    });
+  },
+
+  async listByOrganizerId(organizerId: string, take = 50) {
+    return prisma.billingPayment.findMany({
+      where: { organizerId },
+      orderBy: { createdAt: "desc" },
+      take,
+      include: { plan: true },
+    });
+  },
+
+  async listForOrgOrUser(
+    input: {
+      gymId?: string | null;
+      organizerId?: string | null;
+      userId: string;
+    },
+    take = 50,
+  ) {
+    if (input.gymId) {
+      const rows = await this.listByGymId(input.gymId, take);
+      if (rows.length > 0) return rows;
+    }
+    if (input.organizerId) {
+      const rows = await this.listByOrganizerId(input.organizerId, take);
+      if (rows.length > 0) return rows;
+    }
+    return this.listByUserId(input.userId, take);
   },
 
   async listForAdmin(input: { q?: string; take?: number }) {

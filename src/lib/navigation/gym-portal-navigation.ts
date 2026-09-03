@@ -2,7 +2,7 @@
  * 체육관(/gym) 포털 글로벌 네비 SSOT.
  * PC sidebar · 모바일 Sheet가 동일 소스를 사용한다.
  *
- * Owner 업무 그룹: 회원 / 선수 / 대회 / 체육관 운영 / 결제·구독 (+ 협회 공지)
+ * Owner 업무 그룹: 회원 / 선수 / 대회 / 체육관 운영 / 매출 관리 (+ MATCHON 구독 하단)
  * Staff: 일정 / 회원만 (기존 permission 유지)
  */
 
@@ -127,13 +127,12 @@ export function getGymPortalNavGroups(
       ],
     },
     {
-      id: "billing",
-      label: "결제·구독",
+      id: "revenue",
+      label: "매출 관리",
       items: [
-        { href: "/gym/sales", label: "매출 현황" },
+        { href: "/gym/sales", label: "매출 관리" },
         { href: "/gym/sales/receivables", label: "매출 등록" },
         { href: "/gym/products", label: "상품 관리" },
-        { href: "/gym/billing/account", label: "이용권 / 결제" },
       ],
     },
   );
@@ -155,6 +154,14 @@ export function getGymPortalNavGroups(
       })),
     });
   }
+
+  groups.push({
+    id: "matchon",
+    label: "MATCHON",
+    items: [
+      { href: "/gym/billing/account", label: "MATCHON 구독" },
+    ],
+  });
 
   return groups;
 }

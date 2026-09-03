@@ -220,9 +220,10 @@ export function AdminBillingSettingsClient({
       <div className={cn(adminContentCardClass, "p-4")}>
         <h2 className="mb-3 text-sm font-semibold">결제 연동 상태</h2>
         <StatusRow label="상태" value={initial.connectionLabel} />
+        <StatusRow label="준비도" value={initial.readinessLabel} />
         <StatusRow label="Provider" value={d.runtimeProvider} />
         <StatusRow
-          label="Environment"
+          label="현재 결제 환경"
           value={d.runtimeEnvironment ?? "—"}
           highlight={d.runtimeEnvironment === "TEST"}
         />
@@ -286,10 +287,10 @@ export function AdminBillingSettingsClient({
               startTransition(async () => {
                 if (enabled && environment === "LIVE") {
                   const ok = await confirm({
-                    title: "운영 결제 활성화",
+                    title: "라이브 결제 활성화",
                     description:
-                      "운영(LIVE) 결제가 활성화됩니다. 실제 결제가 발생할 수 있습니다. 계속하시겠습니까?",
-                    confirmLabel: "활성화",
+                      "라이브 결제를 활성화하면 실제 금액이 청구될 수 있습니다.",
+                    confirmLabel: "라이브 활성화",
                     variant: "danger",
                   });
                   if (!ok) return;
@@ -328,7 +329,7 @@ export function AdminBillingSettingsClient({
               });
             }}
           >
-            설정 검증
+            연결 확인
           </Button>
         </div>
         {message ? (

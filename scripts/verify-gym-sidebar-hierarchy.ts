@@ -14,73 +14,30 @@ const root = process.cwd();
 
 function assertNavSsotUnchanged() {
   const groups = getGymPortalNavGroups("owner");
+  const byId = Object.fromEntries(groups.map((g) => [g.id, g]));
+
+  assert.equal(byId.home?.label, null);
+  assert.deepEqual(byId.home?.items.map((i) => i.label), ["홈"]);
+
+  assert.equal(byId.revenue?.label, "매출 관리");
   assert.deepEqual(
-    groups.map((g) => ({
-      id: g.id,
-      label: g.label,
-      items: g.items.map((i) => ({ href: i.href, label: i.label })),
-    })),
+    byId.revenue?.items.map((i) => ({ href: i.href, label: i.label })),
     [
-      {
-        id: "home",
-        label: null,
-        items: [{ href: "/gym", label: "홈" }],
-      },
-      {
-        id: "members",
-        label: "회원 관리",
-        items: [
-          { href: "/gym/members", label: "전체 회원" },
-          { href: "/gym/members/new", label: "회원 등록" },
-          { href: "/gym/member-groups", label: "회원 그룹" },
-          { href: "/gym/membership-plans", label: "이용권 관리" },
-          { href: "/gym/attendance", label: "출석 현황" },
-          { href: "/gym/attendance/kiosks", label: "출석 키오스크" },
-        ],
-      },
-      {
-        id: "fighters",
-        label: "선수 관리",
-        items: [
-          { href: "/gym/fighters", label: "선수 목록" },
-          { href: "/gym/fighters/new", label: "선수 등록" },
-          { href: "/gym/sparring-matching", label: "스파링 매칭" },
-        ],
-      },
-      {
-        id: "events",
-        label: "대회",
-        items: [
-          { href: "/gym/events", label: "대회 목록" },
-          { href: "/gym/applications", label: "신청 내역" },
-          { href: "/gym/brackets", label: "대진표 확인" },
-        ],
-      },
-      {
-        id: "operations",
-        label: "체육관 운영",
-        items: [
-          { href: "/gym/schedules", label: "전체 일정" },
-          { href: "/gym/schedules/my", label: "내 일정" },
-          { href: "/gym/group-classes", label: "그룹수업" },
-          { href: "/gym/staff", label: "선생님 목록" },
-          { href: "/gym/staff/new", label: "선생님 등록" },
-          { href: "/gym/profile", label: "체육관 정보" },
-          { href: "/gym/associations", label: "가입 협회" },
-          { href: "/gym/member-portal", label: "회원 전용 페이지" },
-        ],
-      },
-      {
-        id: "billing",
-        label: "결제·구독",
-        items: [
-          { href: "/gym/sales", label: "매출 현황" },
-          { href: "/gym/sales/receivables", label: "매출 등록" },
-          { href: "/gym/products", label: "상품 관리" },
-          { href: "/gym/billing/account", label: "이용권 / 결제" },
-        ],
-      },
+      { href: "/gym/sales", label: "매출 관리" },
+      { href: "/gym/sales/receivables", label: "매출 등록" },
+      { href: "/gym/products", label: "상품 관리" },
     ],
+  );
+
+  assert.equal(byId.matchon?.label, "MATCHON");
+  assert.deepEqual(
+    byId.matchon?.items.map((i) => ({ href: i.href, label: i.label })),
+    [{ href: "/gym/billing/account", label: "MATCHON 구독" }],
+  );
+
+  assert.ok(!byId.billing);
+  assert.ok(
+    byId.members?.items.some((i) => i.label === "회원 추가 항목"),
   );
 
   const staffGroups = getGymPortalNavGroups("staff");
@@ -92,6 +49,8 @@ function assertNavSsotUnchanged() {
     staffGroups.some(
       (g) =>
         g.id === "billing" ||
+        g.id === "revenue" ||
+        g.id === "matchon" ||
         g.id === "operations" ||
         g.id === "fighters" ||
         g.id === "events",

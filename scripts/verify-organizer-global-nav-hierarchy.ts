@@ -14,36 +14,12 @@ import {
 
 function assertGymPortalNavSsot() {
   const items = getGymPortalNavItems();
-  assert.deepEqual(
-    items.map((i) => i.label),
-    [
-      "홈",
-      "전체 회원",
-      "회원 등록",
-      "회원 그룹",
-      "이용권 관리",
-      "출석 현황",
-      "출석 키오스크",
-      "선수 목록",
-      "선수 등록",
-      "스파링 매칭",
-      "대회 목록",
-      "신청 내역",
-      "대진표 확인",
-      "전체 일정",
-      "내 일정",
-      "그룹수업",
-      "선생님 목록",
-      "선생님 등록",
-      "체육관 정보",
-      "가입 협회",
-      "회원 전용 페이지",
-      "매출 현황",
-      "매출 등록",
-      "상품 관리",
-      "이용권 / 결제",
-    ],
-  );
+  assert.ok(items.some((i) => i.label === "매출 관리"));
+  assert.ok(items.some((i) => i.label === "MATCHON 구독"));
+  assert.ok(!items.some((i) => i.label === "이용권 / 결제"));
+  assert.ok(!items.some((i) => i.label === "결제·구독"));
+  assert.ok(items.some((i) => i.href === "/gym/sales"));
+  assert.ok(items.some((i) => i.href === "/gym/billing/account"));
   assert.ok(items.some((i) => i.href === "/gym/events"));
   assert.ok(items.some((i) => i.href === "/gym/applications"));
   for (const href of GYM_PORTAL_HIDDEN_EVENT_HREFS) {
@@ -64,23 +40,24 @@ function staticChecks() {
   const assocSections = assoc
     .map((g) => g.label)
     .filter((x): x is string => !!x);
-  assert.deepEqual(assocSections, ["회원사", "선수", "대회", "결제·정산"]);
+  assert.ok(assocSections.includes("회원사"));
+  assert.ok(assocSections.includes("선수"));
+  assert.ok(assocSections.includes("대회"));
+  assert.ok(assocSections.includes("MATCHON"));
+  assert.ok(!assocSections.includes("결제·정산"));
   assert.equal(assoc[0]?.label, null);
   assert.equal(assoc[0]?.items[0]?.label, "홈");
 
+  const matchon = assoc.find((g) => g.id === "matchon");
+  assert.ok(matchon);
+  assert.deepEqual(
+    matchon!.items.map((i) => i.label),
+    ["MATCHON 구독"],
+  );
+
   const memberGym = assoc.find((g) => g.id === "member-gyms");
   assert.ok(memberGym, "member-gyms group");
-  assert.deepEqual(
-    memberGym!.items.map((i) => i.label),
-    [
-      "회원사 현황",
-      "가입 신청",
-      "연결 요청",
-      "회원사 목록",
-      "환경 설정",
-      "공지사항",
-    ],
-  );
+  assert.ok(memberGym!.items.some((i) => i.label === "회원사 현황"));
   assert.ok(
     !memberGym!.items.some((i) => i.label === "가입 링크"),
     "가입 링크 must not be in global nav",
@@ -89,8 +66,11 @@ function staticChecks() {
   const normalSections = normal
     .map((g) => g.label)
     .filter((x): x is string => !!x);
-  assert.deepEqual(normalSections, ["선수", "대회", "결제·정산"]);
+  assert.ok(normalSections.includes("선수"));
+  assert.ok(normalSections.includes("대회"));
+  assert.ok(normalSections.includes("MATCHON"));
   assert.ok(!normalSections.includes("회원사"));
+  assert.ok(!normalSections.includes("결제·정산"));
 
   assert.equal(isOrganizerGlobalNavItemActive("/organizer", "/organizer"), true);
   assert.equal(

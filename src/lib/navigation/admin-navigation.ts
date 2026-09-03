@@ -56,7 +56,7 @@ export function getAdminNavGroups(): DashboardSidebarNavGroup[] {
     },
     {
       id: "billing",
-      label: "결제·구독",
+      label: "MATCHON 결제",
       items: [
         { href: "/admin/billing/plans", label: "요금제" },
         { href: "/admin/billing/subscriptions", label: "구독" },

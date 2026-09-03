@@ -17,7 +17,17 @@ import {
   billingPaymentRepository,
   billingSubscriptionRepository,
 } from "@/lib/repositories/billing.repository";
-import { randomUUID } from "crypto";
+
+/**
+ * Stable renewal orderId — subscriptionId + period start date (UTC date).
+ * No random suffix: duplicate triggers must hit the same row.
+ */
+export function renewalOrderId(
+  subscriptionId: string,
+  periodStart: Date,
+): string {
+  return `renew_${subscriptionId}_${periodStart.toISOString().slice(0, 10)}`;
+}
 
 /**
  * Process due renewals. Idempotent per (subscriptionId, period key via orderId).
@@ -49,6 +59,13 @@ export async function runBillingRenewals(limit = 50): Promise<{
   };
 }
 
+/** TEST/DEV-safe: renew a single subscription by id (no production UI). */
+export async function runSubscriptionBilling(
+  subscriptionId: string,
+): Promise<"ok" | "fail" | "skip"> {
+  return processOneRenewal(subscriptionId);
+}
+
 async function processOneRenewal(
   subscriptionId: string,
 ): Promise<"ok" | "fail" | "skip"> {
@@ -65,6 +82,8 @@ async function processOneRenewal(
         plan: true,
         paymentMethod: true,
         user: { select: { id: true, tossCustomerKey: true } },
+        gym: { select: { id: true, tossCustomerKey: true } },
+        organizer: { select: { id: true, tossCustomerKey: true } },
       },
     });
     if (!sub) return "skip";
@@ -73,9 +92,17 @@ async function processOneRenewal(
     if (!sub.paymentMethod || sub.paymentMethod.deletedAt) return "skip";
     if (!["ACTIVE", "TRIAL"].includes(sub.status)) return "skip";
 
-    // Expire cancelled-at-period-end handled elsewhere; charge snapshot price
+    // Environment isolation: do not charge LIVE method under TEST runtime (and vice versa)
+    if (
+      sub.paymentMethod.providerEnvironment &&
+      sub.providerEnvironment &&
+      sub.paymentMethod.providerEnvironment !== sub.providerEnvironment
+    ) {
+      return "skip";
+    }
+
     const amount = sub.currentPrice;
-    const orderId = `renew_${sub.id}_${sub.nextBillingAt.toISOString().slice(0, 10)}_${randomUUID().slice(0, 8)}`;
+    const orderId = renewalOrderId(sub.id, sub.nextBillingAt);
 
     const existing = await tx.billingPayment.findUnique({
       where: { orderId },
@@ -89,6 +116,10 @@ async function processOneRenewal(
       : await billingPaymentRepository.create(
           {
             user: { connect: { id: sub.userId } },
+            ...(sub.gymId ? { gym: { connect: { id: sub.gymId } } } : {}),
+            ...(sub.organizerId
+              ? { organizer: { connect: { id: sub.organizerId } } }
+              : {}),
             subscription: { connect: { id: sub.id } },
             plan: { connect: { id: sub.planId } },
             orderId,
@@ -97,16 +128,53 @@ async function processOneRenewal(
             discountAmount: Math.max(0, sub.basePrice - amount),
             status: BillingPaymentStatus.READY,
             provider: "toss",
+            providerEnvironment: sub.providerEnvironment ?? undefined,
             metadata: {
               purpose: "renewal",
               subscriptionId: sub.id,
+              periodStart: sub.nextBillingAt.toISOString(),
             } as Prisma.InputJsonValue,
           },
           tx,
         );
 
+    if (payment.status === BillingPaymentStatus.FAILED) {
+      await billingPaymentRepository.update(
+        payment.id,
+        {
+          status: BillingPaymentStatus.READY,
+          failedAt: null,
+          failureCode: null,
+          failureMessage: null,
+        },
+        tx,
+      );
+    }
+
     const customerKey =
-      sub.user.tossCustomerKey || sub.paymentMethod.customerKey;
+      sub.gym?.tossCustomerKey ||
+      sub.organizer?.tossCustomerKey ||
+      sub.paymentMethod.customerKey ||
+      sub.user.tossCustomerKey;
+
+    if (!customerKey) {
+      await billingPaymentRepository.update(
+        payment.id,
+        {
+          status: BillingPaymentStatus.FAILED,
+          failedAt: new Date(),
+          failureCode: "MISSING_CUSTOMER_KEY",
+          failureMessage: "customerKey가 없습니다.",
+        },
+        tx,
+      );
+      await billingSubscriptionRepository.update(
+        sub.id,
+        { status: BillingSubscriptionStatus.PAST_DUE },
+        tx,
+      );
+      return "fail";
+    }
 
     try {
       const charged = await tossBillingApi.charge({

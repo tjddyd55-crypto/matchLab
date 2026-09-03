@@ -645,6 +645,7 @@ model User {
   associationSchedulesCreated             AssociationSchedule[]                   @relation("AssociationScheduleCreator")
   billingSubscriptions                    BillingSubscription[]
   billingPayments                         BillingPayment[]
+  billingPaymentsAsActor                  BillingPayment[]                        @relation("BillingPaymentActor")
   billingCouponRedemptions                BillingCouponRedemption[]
   billingCouponsCreated                   BillingCoupon[]                         @relation("BillingCouponCreator")
   billingPaymentMethods                   BillingPaymentMethod[]
@@ -696,6 +697,8 @@ model Organizer {
   /// @deprecated 메인 하단 자동 노출에 사용하지 않음. 필드 유지(호환). 신규 저장은 false.
   publicLogoVisible Boolean  @default(false)
   websiteUrl String?
+  /// Toss Billing customerKey (org SSOT). User.tossCustomerKey와 분리.
+  tossCustomerKey String? @unique
   createdAt DateTime         @default(now())
   updatedAt DateTime         @updatedAt
 
@@ -717,6 +720,10 @@ model Organizer {
   associationApplicationsCreated   AssociationApplication[] @relation("AssociationApplicationCreatedOrganizer")
   associationGymConnectionRequests AssociationGymConnectionRequest[]
   eventExternalRegistrationLinks   EventExternalRegistrationLink[]
+
+  billingSubscriptions  BillingSubscription[]
+  billingPaymentMethods BillingPaymentMethod[]
+  billingPayments       BillingPayment[]
 }
 
 model Gym {
@@ -782,6 +789,12 @@ model Gym {
   memberSportTemplateId          String?
   gymMemberCustomFields          GymMemberCustomField[]
   sportTemplateAssignments       GymSportTemplateAssignment[]
+  /// Toss Billing customerKey (org SSOT). User.tossCustomerKey와 분리.
+  tossCustomerKey                String?                        @unique
+
+  billingSubscriptions  BillingSubscription[]
+  billingPaymentMethods BillingPaymentMethod[]
+  billingPayments       BillingPayment[]
 
   @@index([memberSportTemplateId])
 }
@@ -3486,7 +3499,12 @@ model BillingPlan {
 
 model BillingSubscription {
   id                     String                    @id @default(cuid())
+  /// Legacy / actor fallback owner. Org SSOT는 gymId 또는 organizerId.
   userId                 String
+  /// Org owner (Gym). Null = legacy user subscription.
+  gymId                  String?
+  /// Org owner (Association/Organizer). Null = legacy user subscription.
+  organizerId            String?
   planId                 String
   status                 BillingSubscriptionStatus @default(PENDING)
   billingInterval        BillingPlanInterval
@@ -3507,18 +3525,24 @@ model BillingSubscription {
   autoRenew              Boolean                   @default(true)
   paymentMethodId        String?
   provider               String                    @default("none")
+  /// TEST | LIVE — org/legacy 신규 write 시 기록. TEST billingKey를 LIVE에서 재사용 금지.
+  providerEnvironment    BillingProviderEnvironment?
   providerCustomerId     String?
   providerSubscriptionId String?
   createdAt              DateTime                  @default(now())
   updatedAt              DateTime                  @updatedAt
 
   user          User                   @relation(fields: [userId], references: [id], onDelete: Cascade)
+  gym           Gym?                   @relation(fields: [gymId], references: [id], onDelete: Cascade)
+  organizer     Organizer?             @relation(fields: [organizerId], references: [id], onDelete: Cascade)
   plan          BillingPlan            @relation(fields: [planId], references: [id], onDelete: Restrict)
   paymentMethod BillingPaymentMethod?  @relation(fields: [paymentMethodId], references: [id], onDelete: SetNull)
   payments      BillingPayment[]
   redemptions   BillingCouponRedemption[]
 
   @@index([userId, status])
+  @@index([gymId, status])
+  @@index([organizerId, status])
   @@index([status, currentPeriodEnd])
   @@index([status, trialEndAt])
   @@index([status, nextBillingAt, autoRenew])
@@ -3529,7 +3553,11 @@ model BillingSubscription {
 model BillingPaymentMethod {
   id          String    @id @default(cuid())
   userId      String
+  gymId       String?
+  organizerId String?
   provider    String    @default("toss")
+  /// TEST | LIVE isolation. TEST key로 발급된 billingKey는 LIVE에서 사용 금지.
+  providerEnvironment BillingProviderEnvironment?
   customerKey String
   /// 서버 전용. 클라이언트/관리자 UI에 원문 노출 금지.
   billingKey  String
@@ -3541,15 +3569,23 @@ model BillingPaymentMethod {
   deletedAt   DateTime?
 
   user          User                  @relation(fields: [userId], references: [id], onDelete: Cascade)
+  gym           Gym?                  @relation(fields: [gymId], references: [id], onDelete: Cascade)
+  organizer     Organizer?            @relation(fields: [organizerId], references: [id], onDelete: Cascade)
   subscriptions BillingSubscription[]
 
   @@index([userId, deletedAt, isDefault])
+  @@index([gymId, deletedAt, isDefault])
+  @@index([organizerId, deletedAt, isDefault])
   @@index([customerKey])
 }
 
 model BillingPayment {
   id                String               @id @default(cuid())
   userId            String
+  /// 결제를 실행한 로그인 사용자 (org owner와 다를 수 있음).
+  actorUserId       String?
+  gymId             String?
+  organizerId       String?
   subscriptionId    String?
   planId            String
   orderId           String               @unique
@@ -3559,6 +3595,7 @@ model BillingPayment {
   status            BillingPaymentStatus @default(READY)
   paymentMethod     String?
   provider          String               @default("none")
+  providerEnvironment BillingProviderEnvironment?
   providerPaymentId String?
   failureCode       String?
   failureMessage    String?
@@ -3570,11 +3607,17 @@ model BillingPayment {
   updatedAt         DateTime             @updatedAt
 
   user         User                      @relation(fields: [userId], references: [id], onDelete: Cascade)
+  actorUser    User?                     @relation("BillingPaymentActor", fields: [actorUserId], references: [id], onDelete: SetNull)
+  gym          Gym?                      @relation(fields: [gymId], references: [id], onDelete: Cascade)
+  organizer    Organizer?                @relation(fields: [organizerId], references: [id], onDelete: Cascade)
   subscription BillingSubscription?      @relation(fields: [subscriptionId], references: [id], onDelete: SetNull)
   plan         BillingPlan               @relation(fields: [planId], references: [id], onDelete: Restrict)
   redemptions  BillingCouponRedemption[]
 
   @@index([userId, createdAt])
+  @@index([gymId, createdAt])
+  @@index([organizerId, createdAt])
+  @@index([actorUserId, createdAt])
   @@index([subscriptionId])
   @@index([status, createdAt])
   @@index([planId])

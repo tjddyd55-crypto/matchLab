@@ -7,6 +7,7 @@ import {
 } from "@/lib/billing/billing-flags";
 import { isBillingBusinessEnforcementActive } from "@/lib/billing/billing-provider-config";
 import { isEntitledSubscription } from "@/lib/billing/checkout-calculator";
+import { resolveBillingOrgOwner } from "@/lib/billing/org-billing-owner";
 import { prisma } from "@/lib/prisma";
 import { billingSubscriptionRepository } from "@/lib/repositories/billing.repository";
 
@@ -34,7 +35,8 @@ export type BillingEntitlementResult = {
 };
 
 /**
- * Per-user billing requirement (Phase 2) takes priority over global ENFORCE.
+ * Org-first entitlement (Gym/Association subscription SSOT),
+ * then legacy userId subscription fallback.
  *
  * - admin / fighter / gym_staff: exempt
  * - billingExempt: exempt
@@ -88,9 +90,12 @@ export async function evaluateBillingEntitlement(
     };
   }
 
-  const sub = await billingSubscriptionRepository.findLatestByUserId(
-    actor.userId,
-  );
+  const org = await resolveBillingOrgOwner(actor);
+  const sub = await billingSubscriptionRepository.findLatestForOrgOrUser({
+    gymId: org?.gymId ?? null,
+    organizerId: org?.organizerId ?? null,
+    userId: actor.userId,
+  });
 
   if (sub) {
     const entitled = isEntitledSubscription({

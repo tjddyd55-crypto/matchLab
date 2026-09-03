@@ -21,6 +21,15 @@ import {
 } from "@/lib/billing/billing-flags";
 import { isBillingBusinessEnforcementActive } from "@/lib/billing/billing-provider-config";
 import {
+  actorCanAccessPayment,
+  ensureOrgTossCustomerKey,
+  mapProviderEnvironment,
+  orgOwnerConnect,
+  paymentMethodDefaultWhere,
+  requireBillingOrgOwner,
+  resolveBillingOrgOwner,
+} from "@/lib/billing/org-billing-owner";
+import {
   TossBillingApiError,
   tossBillingApi,
 } from "@/lib/billing/toss-billing-api";
@@ -83,23 +92,6 @@ function toCouponInput(c: {
   return { ...c };
 }
 
-async function ensureTossCustomerKey(
-  userId: string,
-  tx: Prisma.TransactionClient,
-): Promise<string> {
-  const user = await tx.user.findUnique({
-    where: { id: userId },
-    select: { tossCustomerKey: true },
-  });
-  if (user?.tossCustomerKey) return user.tossCustomerKey;
-  const key = randomUUID();
-  await tx.user.update({
-    where: { id: userId },
-    data: { tossCustomerKey: key },
-  });
-  return key;
-}
-
 async function loadCheckoutCalc(
   userId: string,
   planId: string,
@@ -156,10 +148,28 @@ function generateOrderId(): string {
   return `bill_${Date.now()}_${randomUUID().replace(/-/g, "").slice(0, 16)}`;
 }
 
+async function resolveActorSubscription(
+  actor: ActorContext,
+  tx?: Prisma.TransactionClient,
+) {
+  const org = await resolveBillingOrgOwner(actor, tx);
+  return billingSubscriptionRepository.findLatestForOrgOrUser(
+    {
+      gymId: org?.gymId ?? null,
+      organizerId: org?.organizerId ?? null,
+      userId: actor.userId,
+    },
+    tx,
+  );
+}
+
 export const billingLifecycleService = {
   async getOrCreateCustomerKey(actor: ActorContext) {
     requireRole(actor, ["gym", "organizer"]);
-    return prisma.$transaction((tx) => ensureTossCustomerKey(actor.userId, tx));
+    return prisma.$transaction(async (tx) => {
+      const org = await requireBillingOrgOwner(actor, tx);
+      return ensureOrgTossCustomerKey(org, tx);
+    });
   },
 
   /**
@@ -180,6 +190,10 @@ export const billingLifecycleService = {
     const env = await getTossBillingEnv();
 
     return prisma.$transaction(async (tx) => {
+      const org = await requireBillingOrgOwner(input.actor, tx);
+      const orgConnect = orgOwnerConnect(org);
+      const providerEnvironment = mapProviderEnvironment(env.isTestKey);
+
       const { plan, calc, couponRow } = await loadCheckoutCalc(
         input.actor.userId,
         input.planId,
@@ -205,12 +219,14 @@ export const billingLifecycleService = {
         );
       }
 
-      const customerKey = await ensureTossCustomerKey(input.actor.userId, tx);
+      const customerKey = await ensureOrgTossCustomerKey(org, tx);
       const orderId = generateOrderId();
 
       const payment = await billingPaymentRepository.create(
         {
-          user: { connect: { id: input.actor.userId } },
+          user: { connect: { id: org.ownerUserId } },
+          actorUser: { connect: { id: input.actor.userId } },
+          ...orgConnect,
           plan: { connect: { id: plan.id } },
           orderId,
           amount: calc.finalAmount,
@@ -218,6 +234,7 @@ export const billingLifecycleService = {
           discountAmount: calc.discountAmount,
           status: BillingPaymentStatus.READY,
           provider: "toss",
+          providerEnvironment,
           metadata: {
             planId: plan.id,
             couponCode: calc.coupon?.code ?? null,
@@ -225,6 +242,7 @@ export const billingLifecycleService = {
             freeMonths: calc.freeMonths,
             customerKey,
             purpose: calc.finalAmount === 0 ? "trial_pm" : "initial_charge",
+            orgKind: org.kind,
           } as Prisma.InputJsonValue,
         },
         tx,
@@ -247,7 +265,7 @@ export const billingLifecycleService = {
 
   /**
    * Toss success callback: issue billingKey → charge if needed → activate subscription.
-   * Idempotent on orderId.
+   * Idempotent on orderId. Org owner is SSOT; actor is authorized payer.
    */
   async completeTossBillingAuth(input: {
     actor: ActorContext;
@@ -264,11 +282,19 @@ export const billingLifecycleService = {
     }
 
     return prisma.$transaction(async (tx) => {
+      const org = await requireBillingOrgOwner(input.actor, tx);
+      const orgConnect = orgOwnerConnect(org);
+      const env = await getTossBillingEnv();
+      const providerEnvironment = mapProviderEnvironment(env.isTestKey);
+
       const payment = await billingPaymentRepository.findByOrderId(
         input.orderId,
         tx,
       );
-      if (!payment || payment.userId !== input.actor.userId) {
+      if (
+        !payment ||
+        !actorCanAccessPayment(input.actor, payment, org)
+      ) {
         throw new AppError("NOT_FOUND", "결제 주문을 찾을 수 없습니다.");
       }
 
@@ -302,6 +328,16 @@ export const billingLifecycleService = {
         );
       }
 
+      if (
+        payment.providerEnvironment &&
+        payment.providerEnvironment !== providerEnvironment
+      ) {
+        throw new AppError(
+          "VALIDATION_ERROR",
+          "결제 환경(TEST/LIVE)이 일치하지 않습니다. 결제수단을 다시 등록해주세요.",
+        );
+      }
+
       const meta = (payment.metadata ?? {}) as Record<string, unknown>;
       const expectedCustomerKey = String(meta.customerKey ?? "");
       if (
@@ -314,8 +350,8 @@ export const billingLifecycleService = {
         );
       }
 
-      const userKey = await ensureTossCustomerKey(input.actor.userId, tx);
-      if (userKey !== input.customerKey) {
+      const orgKey = await ensureOrgTossCustomerKey(org, tx);
+      if (orgKey !== input.customerKey) {
         throw new AppError(
           "VALIDATION_ERROR",
           "등록된 customerKey와 일치하지 않습니다.",
@@ -331,19 +367,17 @@ export const billingLifecycleService = {
         tx,
       );
 
+      // Server SSOT amount — never trust client amount
       if (calc.finalAmount !== payment.amount) {
-        // Re-verify — update READY amount if coupon still valid
-        if (calc.finalAmount !== payment.amount) {
-          await billingPaymentRepository.update(
-            payment.id,
-            {
-              amount: calc.finalAmount,
-              originalAmount: calc.originalAmount,
-              discountAmount: calc.discountAmount,
-            },
-            tx,
-          );
-        }
+        await billingPaymentRepository.update(
+          payment.id,
+          {
+            amount: calc.finalAmount,
+            originalAmount: calc.originalAmount,
+            discountAmount: calc.discountAmount,
+          },
+          tx,
+        );
       }
 
       let issued;
@@ -370,20 +404,18 @@ export const billingLifecycleService = {
         throw new AppError("VALIDATION_ERROR", message);
       }
 
-      // Soft-delete previous default methods
       await tx.billingPaymentMethod.updateMany({
-        where: {
-          userId: input.actor.userId,
-          deletedAt: null,
-          isDefault: true,
-        },
+        where: paymentMethodDefaultWhere(org, org.ownerUserId),
         data: { isDefault: false },
       });
 
       const method = await tx.billingPaymentMethod.create({
         data: {
-          userId: input.actor.userId,
+          userId: org.ownerUserId,
+          gymId: org.kind === "gym" ? org.gymId : null,
+          organizerId: org.kind === "organizer" ? org.organizerId : null,
           provider: "toss",
+          providerEnvironment,
           customerKey: issued.customerKey,
           billingKey: issued.billingKey,
           cardCompany: issued.cardCompany,
@@ -441,7 +473,8 @@ export const billingLifecycleService = {
 
       const subscription = await billingSubscriptionRepository.create(
         {
-          user: { connect: { id: input.actor.userId } },
+          user: { connect: { id: org.ownerUserId } },
+          ...orgConnect,
           plan: { connect: { id: plan.id } },
           status: isTrial
             ? BillingSubscriptionStatus.TRIAL
@@ -459,6 +492,7 @@ export const billingLifecycleService = {
           cancelAtPeriodEnd: false,
           paymentMethod: { connect: { id: method.id } },
           provider: "toss",
+          providerEnvironment,
           providerCustomerId: issued.customerKey,
         },
         tx,
@@ -474,6 +508,7 @@ export const billingLifecycleService = {
           paidAt: now,
           paymentMethod: "card",
           providerPaymentId,
+          providerEnvironment,
           subscription: { connect: { id: subscription.id } },
           metadata: {
             ...meta,
@@ -528,9 +563,7 @@ export const billingLifecycleService = {
 
   async cancelAtPeriodEnd(actor: ActorContext) {
     requireRole(actor, ["gym", "organizer"]);
-    const sub = await billingSubscriptionRepository.findLatestByUserId(
-      actor.userId,
-    );
+    const sub = await resolveActorSubscription(actor);
     if (!sub || !["ACTIVE", "TRIAL"].includes(sub.status)) {
       throw new AppError("VALIDATION_ERROR", "해지할 구독이 없습니다.");
     }
@@ -543,9 +576,7 @@ export const billingLifecycleService = {
 
   async resumeAutoRenew(actor: ActorContext) {
     requireRole(actor, ["gym", "organizer"]);
-    const sub = await billingSubscriptionRepository.findLatestByUserId(
-      actor.userId,
-    );
+    const sub = await resolveActorSubscription(actor);
     if (!sub || sub.status === "EXPIRED" || sub.status === "CANCELLED") {
       throw new AppError("VALIDATION_ERROR", "재개할 구독이 없습니다.");
     }
@@ -581,11 +612,16 @@ export const billingLifecycleService = {
     }
 
     return prisma.$transaction(async (tx) => {
-      const customerKey = await ensureTossCustomerKey(actor.userId, tx);
+      const org = await requireBillingOrgOwner(actor, tx);
+      const orgConnect = orgOwnerConnect(org);
+      const providerEnvironment = mapProviderEnvironment(env.isTestKey);
+      const customerKey = await ensureOrgTossCustomerKey(org, tx);
       const orderId = generateOrderId();
       await billingPaymentRepository.create(
         {
-          user: { connect: { id: actor.userId } },
+          user: { connect: { id: org.ownerUserId } },
+          actorUser: { connect: { id: actor.userId } },
+          ...orgConnect,
           plan: { connect: { id: plan.id } },
           orderId,
           amount: 0,
@@ -593,9 +629,11 @@ export const billingLifecycleService = {
           discountAmount: 0,
           status: BillingPaymentStatus.READY,
           provider: "toss",
+          providerEnvironment,
           metadata: {
             purpose: "replace_payment_method",
             customerKey,
+            orgKind: org.kind,
           } as Prisma.InputJsonValue,
         },
         tx,
@@ -618,11 +656,18 @@ export const billingLifecycleService = {
   }) {
     requireRole(input.actor, ["gym", "organizer"]);
     return prisma.$transaction(async (tx) => {
+      const org = await requireBillingOrgOwner(input.actor, tx);
+      const env = await getTossBillingEnv();
+      const providerEnvironment = mapProviderEnvironment(env.isTestKey);
+
       const payment = await billingPaymentRepository.findByOrderId(
         input.orderId,
         tx,
       );
-      if (!payment || payment.userId !== input.actor.userId) {
+      if (
+        !payment ||
+        !actorCanAccessPayment(input.actor, payment, org)
+      ) {
         throw new AppError("NOT_FOUND", "주문을 찾을 수 없습니다.");
       }
       const meta = (payment.metadata ?? {}) as Record<string, unknown>;
@@ -633,8 +678,8 @@ export const billingLifecycleService = {
         return { ok: true as const, already: true };
       }
 
-      const userKey = await ensureTossCustomerKey(input.actor.userId, tx);
-      if (userKey !== input.customerKey) {
+      const orgKey = await ensureOrgTossCustomerKey(org, tx);
+      if (orgKey !== input.customerKey) {
         throw new AppError("VALIDATION_ERROR", "customerKey 불일치");
       }
 
@@ -644,17 +689,16 @@ export const billingLifecycleService = {
       });
 
       const oldDefaults = await tx.billingPaymentMethod.findMany({
-        where: {
-          userId: input.actor.userId,
-          deletedAt: null,
-          isDefault: true,
-        },
+        where: paymentMethodDefaultWhere(org, org.ownerUserId),
       });
 
       const method = await tx.billingPaymentMethod.create({
         data: {
-          userId: input.actor.userId,
+          userId: org.ownerUserId,
+          gymId: org.kind === "gym" ? org.gymId : null,
+          organizerId: org.kind === "organizer" ? org.organizerId : null,
           provider: "toss",
+          providerEnvironment,
           customerKey: issued.customerKey,
           billingKey: issued.billingKey,
           cardCompany: issued.cardCompany,
@@ -671,10 +715,7 @@ export const billingLifecycleService = {
         await tossBillingApi.deleteBillingKey(old.billingKey);
       }
 
-      const sub = await billingSubscriptionRepository.findLatestByUserId(
-        input.actor.userId,
-        tx,
-      );
+      const sub = await resolveActorSubscription(input.actor, tx);
       if (sub) {
         await billingSubscriptionRepository.update(
           sub.id,
@@ -689,6 +730,7 @@ export const billingLifecycleService = {
           status: BillingPaymentStatus.PAID,
           paidAt: new Date(),
           paymentMethod: "card",
+          providerEnvironment,
           metadata: {
             ...meta,
             cardLast4: issued.cardLast4,

@@ -19,6 +19,11 @@ import {
   type CheckoutPlanInput,
 } from "@/lib/billing/checkout-calculator";
 import { isBillingBusinessEnforcementActive } from "@/lib/billing/billing-provider-config";
+import {
+  orgOwnerConnect,
+  requireBillingOrgOwner,
+  resolveBillingOrgOwner,
+} from "@/lib/billing/org-billing-owner";
 import { getPaymentProvider } from "@/lib/billing/payment-provider";
 import { AppError } from "@/lib/errors/app-error";
 import { requireRole } from "@/lib/permissions";
@@ -172,6 +177,9 @@ export const billingService = {
     }
 
     return prisma.$transaction(async (tx) => {
+      const org = await requireBillingOrgOwner(input.actor, tx);
+      const orgConnect = orgOwnerConnect(org);
+
       const plan = await billingPlanRepository.findById(input.planId, tx);
       if (!plan || !plan.isActive) {
         throw new AppError("NOT_FOUND", "요금제를 찾을 수 없습니다.");
@@ -231,7 +239,8 @@ export const billingService = {
 
         const subscription = await billingSubscriptionRepository.create(
           {
-            user: { connect: { id: input.actor.userId } },
+            user: { connect: { id: org.ownerUserId } },
+            ...orgConnect,
             plan: { connect: { id: plan.id } },
             status: isTrial
               ? BillingSubscriptionStatus.TRIAL
@@ -254,7 +263,9 @@ export const billingService = {
 
         const payment = await billingPaymentRepository.create(
           {
-            user: { connect: { id: input.actor.userId } },
+            user: { connect: { id: org.ownerUserId } },
+            actorUser: { connect: { id: input.actor.userId } },
+            ...orgConnect,
             subscription: { connect: { id: subscription.id } },
             plan: { connect: { id: plan.id } },
             orderId,
@@ -311,7 +322,9 @@ export const billingService = {
       // Paid path — create READY order; do not fake PG success.
       const payment = await billingPaymentRepository.create(
         {
-          user: { connect: { id: input.actor.userId } },
+          user: { connect: { id: org.ownerUserId } },
+          actorUser: { connect: { id: input.actor.userId } },
+          ...orgConnect,
           plan: { connect: { id: plan.id } },
           orderId,
           amount: calc.finalAmount,
@@ -363,12 +376,22 @@ export const billingService = {
 
   async getMySubscription(actor: ActorContext) {
     requireRole(actor, ["gym", "organizer", "admin"]);
-    return billingSubscriptionRepository.findLatestByUserId(actor.userId);
+    const org = await resolveBillingOrgOwner(actor);
+    return billingSubscriptionRepository.findLatestForOrgOrUser({
+      gymId: org?.gymId ?? null,
+      organizerId: org?.organizerId ?? null,
+      userId: actor.userId,
+    });
   },
 
   async getMyPayments(actor: ActorContext) {
     requireRole(actor, ["gym", "organizer", "admin"]);
-    return billingPaymentRepository.listByUserId(actor.userId);
+    const org = await resolveBillingOrgOwner(actor);
+    return billingPaymentRepository.listForOrgOrUser({
+      gymId: org?.gymId ?? null,
+      organizerId: org?.organizerId ?? null,
+      userId: actor.userId,
+    });
   },
 
   // --- Admin ---

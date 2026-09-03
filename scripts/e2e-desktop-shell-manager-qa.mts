@@ -233,7 +233,7 @@ async function main() {
   await page.goto(`${BASE}/organizer/billing/account`, {
     waitUntil: "domcontentloaded",
   });
-  await page.getByRole("heading", { name: "이용권 / 결제관리" }).waitFor({ timeout: 30_000 });
+  await page.getByRole("heading", { name: "MATCHON 구독" }).waitFor({ timeout: 30_000 });
   if (!(await page.locator("aside").first().isVisible())) fail("billing sidebar");
   pass("billing organizer shell");
 

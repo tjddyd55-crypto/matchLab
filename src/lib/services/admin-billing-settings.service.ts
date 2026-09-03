@@ -16,6 +16,7 @@ import {
   resolveBillingProviderConfig,
 } from "@/lib/billing/billing-provider-config";
 import {
+  formatBillingReadinessLabel,
   formatConnectionStatusLabel,
   getBillingSettingsDiagnostics,
   providerSlotStatus,
@@ -35,6 +36,7 @@ import { prisma } from "@/lib/prisma";
 export type AdminBillingSettingsVM = {
   diagnostics: BillingSettingsDiagnostics;
   connectionLabel: string;
+  readinessLabel: string;
   runtime: {
     provider: BillingProviderKind;
     environment: BillingProviderEnvironment | null;
@@ -91,6 +93,17 @@ export const adminBillingSettingsService = {
     return {
       diagnostics,
       connectionLabel: formatConnectionStatusLabel(resolved.connectionStatus),
+      readinessLabel: formatBillingReadinessLabel({
+        testClient: testSlot.clientKeyConfigured,
+        testSecret: testSlot.secretKeyConfigured,
+        liveClient: liveSlot.clientKeyConfigured,
+        liveSecret: liveSlot.secretKeyConfigured,
+        encryptionKeyConfigured: diagnostics.encryptionKeyConfigured,
+        runtimeProvider: diagnostics.runtimeProvider,
+        runtimeEnvironment: diagnostics.runtimeEnvironment,
+        runtimeEnabled: diagnostics.runtimeEnabled,
+        activePlanCount: diagnostics.activePlanCount,
+      }),
       runtime: {
         provider: runtime.provider,
         environment: runtime.environment,

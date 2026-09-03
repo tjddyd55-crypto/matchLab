@@ -13,8 +13,8 @@ export type OrganizerGlobalNavGroup = {
 
 /**
  * 주최자 글로벌 메뉴 SSOT (PC sidebar · 모바일 Sheet 공통).
- * association: 회원사 / 선수 / 대회 / 결제·정산
- * individual 등: 대회 / 선수 / 결제·정산 (회원사 없음)
+ * association: 회원사 / 선수 / 대회 / 크레딧 (+ MATCHON 구독 하단)
+ * individual 등: 대회 / 선수 / 크레딧 (회원사 없음)
  */
 export function getOrganizerGlobalNavGroups(input: {
   organizerType?: OrganizerType | null;
@@ -73,12 +73,18 @@ export function getOrganizerGlobalNavGroups(input: {
       ],
     },
     {
-      id: "billing",
-      label: "결제·정산",
+      id: "credits",
+      label: "크레딧",
       items: [
         { href: "/organizer/credits", label: "크레딧" },
-        { href: "/organizer/billing/account", label: "이용권 / 결제" },
         { href: "/notifications", label: "알림" },
+      ],
+    },
+    {
+      id: "matchon",
+      label: "MATCHON",
+      items: [
+        { href: "/organizer/billing/account", label: "MATCHON 구독" },
       ],
     },
   );

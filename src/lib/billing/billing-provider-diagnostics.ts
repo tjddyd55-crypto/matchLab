@@ -147,6 +147,42 @@ export function formatConnectionStatusLabel(status: string): string {
   }
 }
 
+/**
+ * Operator-facing readiness for TEST/LIVE rollout.
+ * LIVE charge still requires explicit runtime enable — keys alone are not enough.
+ */
+export function formatBillingReadinessLabel(input: {
+  testClient: boolean;
+  testSecret: boolean;
+  liveClient: boolean;
+  liveSecret: boolean;
+  encryptionKeyConfigured: boolean;
+  runtimeProvider: string;
+  runtimeEnvironment: string | null;
+  runtimeEnabled: boolean;
+  activePlanCount: number;
+}): string {
+  const testReady =
+    input.testClient &&
+    input.testSecret &&
+    input.encryptionKeyConfigured;
+  const liveKeys =
+    input.liveClient &&
+    input.liveSecret &&
+    input.encryptionKeyConfigured;
+  const liveOps =
+    liveKeys &&
+    input.runtimeProvider === "Toss Payments" &&
+    input.runtimeEnvironment === "LIVE" &&
+    input.runtimeEnabled &&
+    input.activePlanCount > 0;
+
+  if (liveOps) return "LIVE 운영 준비 완료";
+  if (liveKeys) return "LIVE 키 등록 완료";
+  if (testReady) return "TEST 준비 완료";
+  return "설정 안 됨";
+}
+
 export function providerSlotStatus(slot: BillingProviderSlotDiagnostics): {
   clientLabel: string;
   secretLabel: string;
