@@ -1,128 +1,130 @@
 /**
- * 체급표 재구성 재배정 plan 단위 검증 (DB 없음).
- *
+ * Template apply plan SSOT — Application 재분류 없음
  *   npm run verify:event-division-rebuild
+ *   npm run verify:event-division-template-application-ssot
  */
 import assert from "node:assert/strict";
-import { planDivisionRebuildAssignments } from "../src/lib/services/event-division-rebuild-plan";
-import type { DivisionRebuildAppInput } from "../src/lib/services/event-division-rebuild-plan";
+import { readFileSync } from "node:fs";
+import { join } from "node:path";
+import { planTemplateDivisionApply } from "../src/lib/services/event-division-template-apply-plan";
 import type { EventDivisionFromTemplateRow } from "../src/lib/division-template/division-template-row";
 
-function division(
-  id: string,
-  limit: string,
-  name: string,
-): EventDivisionFromTemplateRow & { id: string } {
+function row(
+  partial: Partial<EventDivisionFromTemplateRow> & {
+    ageGroup: string;
+    weightClass: string;
+  },
+): EventDivisionFromTemplateRow {
   return {
-    id,
     sportType: "킥복싱",
     ruleType: null,
     gender: "male",
-    ageGroup: "일반부",
-    weightClass: `${name} ${limit}`,
-    weightClassName: name,
-    weightLimitText: limit,
+    ageGroup: partial.ageGroup,
+    weightClass: partial.weightClass,
+    weightClassName: partial.weightClassName ?? null,
+    weightLimitText: partial.weightLimitText ?? null,
     skillLevel: null,
   };
 }
 
-function app(input: {
-  id: string;
-  kg: number | null;
-  ageGroup?: string;
-  selection?: "REGISTERED" | "OTHER";
-  requested?: string | null;
-}): DivisionRebuildAppInput {
-  return {
-    id: input.id,
-    divisionSelectionType: input.selection ?? "REGISTERED",
-    requestedDivisionText: input.requested ?? null,
-    fighterSnapshot: {
-      name: `선수${input.id}`,
-      applicationWeightKg: input.kg,
-    },
-    gymSnapshot: { name: "테스트관" },
-    gymNameSnapshot: "테스트관",
-    fighter: { id: `f-${input.id}`, name: `선수${input.id}`, gender: "male" },
-    division: {
-      id: "old-div",
-      sportType: "킥복싱",
-      gender: "male",
-      ageGroup: input.ageGroup ?? "일반부",
-      weightClass: "웰터급 -67kg",
-      weightClassName: "웰터급",
-      weightLimitText: "-67kg",
-      skillLevel: null,
-      ruleType: null,
-    },
-    gym: { id: "g1", name: "테스트관" },
-  };
-}
-
 function main() {
-  const table = [
-    division("u60", "-60kg", "밴텀급"),
-    division("u65", "-65kg", "라이트급"),
-    division("u70", "-70kg", "웰터급"),
-  ];
-
-  const full = planDivisionRebuildAssignments({
-    apps: [app({ id: "a1", kg: 58 }), app({ id: "a2", kg: 64.5 })],
-    divisionRows: table,
-    templateSportType: "킥복싱",
+  const high55 = row({
+    ageGroup: "고등부",
+    weightClass: "라이트급 -55kg",
+    weightClassName: "라이트급",
+    weightLimitText: "-55kg",
   });
-  assert.equal(full.autoReassign, 2);
-  assert.equal(full.needsReview, 0);
-  assert.equal(full.unassigned, 0);
-  assert.equal(full.plans[0]?.targetDivisionId, "u60");
-  assert.equal(full.plans[1]?.targetDivisionId, "u65");
-
-  const unassigned = planDivisionRebuildAssignments({
-    apps: [app({ id: "b1", kg: null }), app({ id: "b2", kg: 90 })],
-    divisionRows: table,
-    templateSportType: "킥복싱",
+  const high60 = row({
+    ageGroup: "고등부",
+    weightClass: "웰터급 -60kg",
+    weightClassName: "웰터급",
+    weightLimitText: "-60kg",
   });
-  assert.equal(unassigned.autoReassign, 0);
-  assert.ok(unassigned.unassigned >= 2);
-  assert.equal(unassigned.plans.every((p) => p.targetDivisionId == null), true);
+  const middle50 = row({
+    ageGroup: "중등부",
+    weightClass: "밴텀급 -50kg",
+    weightClassName: "밴텀급",
+    weightLimitText: "-50kg",
+  });
 
-  const other = planDivisionRebuildAssignments({
-    apps: [
-      app({
-        id: "c1",
-        kg: 60,
-        selection: "OTHER",
-        requested: "웰터급 -70kg",
-      }),
-      app({
-        id: "c2",
-        kg: 60,
-        selection: "OTHER",
-        requested: "없는체급 XYZ",
-      }),
+  // Case A: same semantic → KEEP
+  const same = planTemplateDivisionApply({
+    existing: [
+      {
+        id: "d1",
+        ...high55,
+        applicantCount: 3,
+      },
     ],
-    divisionRows: table,
-    templateSportType: "킥복싱",
+    templateRows: [high55],
   });
-  assert.equal(other.plans[0]?.reasonCode, "other_exact");
-  assert.equal(other.plans[0]?.targetDivisionId, "u70");
-  assert.equal(other.plans[1]?.reasonCode, "other_unmatched");
-  assert.equal(other.plans[1]?.targetDivisionId, null);
+  assert.equal(same.keep.length, 1);
+  assert.equal(same.created.length, 0);
+  assert.equal(same.removed.length, 0);
+  assert.equal(same.blockedByRemovedApplicants, false);
+  assert.equal(same.keep[0]?.existingDivisionId, "d1");
 
-  const ambiguousTable = [
-    division("dup1", "-65kg", "라이트급"),
-    division("dup2", "-65kg", "라이트급"),
-  ];
-  ambiguousTable[1]!.weightClass = "라이트급 -65kg";
-  const amb = planDivisionRebuildAssignments({
-    apps: [app({ id: "d1", kg: 63 })],
-    divisionRows: ambiguousTable,
-    templateSportType: "킥복싱",
+  // Case B: add division → NEW + KEEP
+  const add = planTemplateDivisionApply({
+    existing: [{ id: "d1", ...high55, applicantCount: 2 }],
+    templateRows: [high55, high60],
   });
-  assert.equal(amb.plans[0]?.targetDivisionId, null);
-  assert.ok(amb.needsReview + amb.unassigned >= 1);
+  assert.equal(add.keep.length, 1);
+  assert.equal(add.created.length, 1);
+  assert.equal(add.removed.length, 0);
+
+  // Case C: remove used division → block
+  const removeUsed = planTemplateDivisionApply({
+    existing: [{ id: "d1", ...high55, applicantCount: 3 }],
+    templateRows: [high60],
+  });
+  assert.equal(removeUsed.removed.length, 1);
+  assert.equal(removeUsed.removedWithApplicants.length, 1);
+  assert.equal(removeUsed.removedApplicantTotal, 3);
+  assert.equal(removeUsed.blockedByRemovedApplicants, true);
+  assert.equal(removeUsed.created.length, 1);
+
+  // Case D: remove unused → allow remove
+  const removeUnused = planTemplateDivisionApply({
+    existing: [
+      { id: "d1", ...high55, applicantCount: 1 },
+      { id: "d2", ...middle50, applicantCount: 0 },
+    ],
+    templateRows: [high55],
+  });
+  assert.equal(removeUnused.keep.length, 1);
+  assert.equal(removeUnused.removed.length, 1);
+  assert.equal(removeUnused.removed[0]?.applicantCount, 0);
+  assert.equal(removeUnused.blockedByRemovedApplicants, false);
+
+  const service = readFileSync(
+    join(process.cwd(), "src/lib/services/event-division-rebuild.service.ts"),
+    "utf8",
+  );
+  assert.doesNotMatch(service, /clearDivisionIdsForEvent/);
+  assert.doesNotMatch(service, /planDivisionRebuildAssignments\(/);
+  assert.doesNotMatch(
+    service,
+    /eventApplication\.updateMany[\s\S]{0,80}divisionId/,
+  );
+  assert.match(service, /applicationMutations: 0/);
+  assert.match(service, /blockedByRemovedApplicants/);
+  assert.match(service, /planTemplateDivisionApply/);
+  assert.match(service, /onDelete=Cascade/);
+
+  const panel = readFileSync(
+    join(
+      process.cwd(),
+      "src/components/domain/division-templates/ApplyDivisionTemplatePanel.tsx",
+    ),
+    "utf8",
+  );
+  assert.doesNotMatch(panel, /신청 선수는 새 경기구분 기준으로 다시 배정됩니다/);
+  assert.match(panel, /기존 신청 경기구분은 자동 변경하지 않습니다/);
+  assert.match(panel, /blockedByRemovedApplicants/);
 
   console.log("PASS verify-event-division-rebuild");
+  console.log("PASS verify-event-division-template-application-ssot");
 }
 
 main();

@@ -1,6 +1,14 @@
 ﻿/**
- * Preview DB — 체급표 재구성 보존/detach/MatchResult blocker 스모크.
- * Development yamanote:45288 only. Production/yamabiko write 금지.
+ * DEV(yamanote) only — template apply Application SSOT QA.
+ * Fresh QA event (PREFIX). NEVER touches production event ids.
+ * NEVER uses yamabiko.
+ *
+ * Cases:
+ *   A — same semantic KEEP (divisionId preserved)
+ *   B — add NEW division
+ *   C — remove used division → BLOCK (no EA mutation)
+ *   D — remove unused division → delete OK
+ *   E — successful apply resets brackets; apps/snapshots unchanged
  *
  *   npx tsx scripts/e2e-event-division-rebuild-preview-qa.mts
  */
@@ -9,7 +17,7 @@ import { execSync } from "node:child_process";
 import Module from "node:module";
 import { randomBytes } from "node:crypto";
 
-const PREFIX = "DIV_REBUILD_QA_";
+const PREFIX = "DIV_TPL_SSOT_QA_";
 const stamp = Date.now().toString(36);
 
 function railwayJson(service: string): Record<string, string> {
@@ -44,6 +52,31 @@ mod._load = function (request, parent, isMain) {
   return originalLoad(request, parent, isMain);
 };
 
+type Item = {
+  sportType: string;
+  gender: string;
+  ageGroup: string;
+  weightClassName: string;
+  weightLimitText: string;
+  weightClass: string;
+  isActive: boolean;
+};
+
+function item(
+  name: string,
+  limit: string,
+): Item {
+  return {
+    sportType: "킥복싱",
+    gender: "male",
+    ageGroup: "일반부",
+    weightClassName: name,
+    weightLimitText: limit,
+    weightClass: `${name} ${limit}`,
+    isActive: true,
+  };
+}
+
 async function main() {
   const vars = railwayJson("Postgres");
   const databaseUrl = vars.DATABASE_PUBLIC_URL ?? "";
@@ -57,7 +90,6 @@ async function main() {
   const pool = new Pool({ connectionString: databaseUrl });
   const prisma = new PrismaClient({ adapter: new PrismaPg(pool) });
 
-  // service의 @/lib/prisma 도 동일 URL을 쓰도록 env 설정 후 import
   const { eventDivisionRebuildService } = await import(
     "../src/lib/services/event-division-rebuild.service"
   );
@@ -89,43 +121,21 @@ async function main() {
     const gym = await prisma.gym.findFirst({ orderBy: { createdAt: "asc" } });
     assert.ok(gym, "gym required");
 
-    const template = await prisma.divisionTemplate.create({
-      data: {
-        organizerId: organizer.id,
-        title: `${PREFIX}template`,
-        sportType: "킥복싱",
-        isActive: true,
-        items: [
-          {
-            sportType: "킥복싱",
-            gender: "male",
-            ageGroup: "일반부",
-            weightClassName: "밴텀급",
-            weightLimitText: "-60kg",
-            weightClass: "밴텀급 -60kg",
-            isActive: true,
-          },
-          {
-            sportType: "킥복싱",
-            gender: "male",
-            ageGroup: "일반부",
-            weightClassName: "라이트급",
-            weightLimitText: "-65kg",
-            weightClass: "라이트급 -65kg",
-            isActive: true,
-          },
-          {
-            sportType: "킥복싱",
-            gender: "male",
-            ageGroup: "일반부",
-            weightClassName: "웰터급",
-            weightLimitText: "-70kg",
-            weightClass: "웰터급 -70kg",
-            isActive: true,
-          },
-        ],
-      },
-    });
+    const bantam = item("밴텀급", "-60kg");
+    const light = item("라이트급", "-65kg");
+    const welter = item("웰터급", "-70kg");
+
+    async function createTemplate(title: string, items: Item[]) {
+      return prisma.divisionTemplate.create({
+        data: {
+          organizerId: organizer!.id,
+          title: `${PREFIX}${title}`,
+          sportType: "킥복싱",
+          isActive: true,
+          items,
+        },
+      });
+    }
 
     const eventDate = new Date("2030-06-01T00:00:00.000Z");
     const event = await prisma.event.create({
@@ -136,20 +146,31 @@ async function main() {
         eventDate,
         registrationStartDate: new Date("2030-01-01T00:00:00.000Z"),
         registrationEndDate: new Date("2030-05-01T00:00:00.000Z"),
-        publicSlug: `div-rebuild-qa-${stamp}`,
+        publicSlug: `div-tpl-ssot-qa-${stamp}`,
         locationName: "QA",
       },
     });
 
-    const oldDiv = await prisma.eventDivision.create({
+    const keepDiv = await prisma.eventDivision.create({
       data: {
         eventId: event.id,
         sportType: "킥복싱",
         gender: "male",
         ageGroup: "일반부",
-        weightClass: "웰터급 -67kg",
-        weightClassName: "웰터급",
-        weightLimitText: "-67kg",
+        weightClass: bantam.weightClass,
+        weightClassName: bantam.weightClassName,
+        weightLimitText: bantam.weightLimitText,
+      },
+    });
+    const unusedDiv = await prisma.eventDivision.create({
+      data: {
+        eventId: event.id,
+        sportType: "킥복싱",
+        gender: "male",
+        ageGroup: "일반부",
+        weightClass: welter.weightClass,
+        weightClassName: welter.weightClassName,
+        weightLimitText: welter.weightLimitText,
       },
     });
 
@@ -160,18 +181,16 @@ async function main() {
           gender: "male",
           phone: `010${randomBytes(4).toString("hex").slice(0, 8)}`,
           fighterCode: `${PREFIX}${randomBytes(4).toString("hex")}`,
-          currentGymId: gym.id,
+          currentGymId: gym!.id,
         },
       });
     }
 
     const fighterA = await createFighter(`${PREFIX}A`);
     const fighterB = await createFighter(`${PREFIX}B`);
-    const fighterC = await createFighter(`${PREFIX}C`);
-
     const snap = (name: string, kg: number) => ({
       name,
-      gymName: gym.name,
+      gymName: gym!.name,
       applicationWeightKg: kg,
     });
 
@@ -180,7 +199,7 @@ async function main() {
         eventId: event.id,
         fighterId: fighterA.id,
         gymId: gym.id,
-        divisionId: oldDiv.id,
+        divisionId: keepDiv.id,
         divisionSelectionType: "REGISTERED",
         status: "approved",
         paymentStatus: "paid",
@@ -199,7 +218,7 @@ async function main() {
         eventId: event.id,
         fighterId: fighterB.id,
         gymId: gym.id,
-        divisionId: oldDiv.id,
+        divisionId: keepDiv.id,
         divisionSelectionType: "REGISTERED",
         status: "approved",
         paymentStatus: "unpaid",
@@ -210,26 +229,11 @@ async function main() {
         memo: "preserve-b",
       },
     });
-    const appC = await prisma.eventApplication.create({
-      data: {
-        eventId: event.id,
-        fighterId: fighterC.id,
-        gymId: gym.id,
-        divisionId: oldDiv.id,
-        divisionSelectionType: "REGISTERED",
-        status: "approved",
-        paymentStatus: "paid",
-        fighterSnapshot: snap(`${PREFIX}C`, 90),
-        gymSnapshot: { name: gym.name },
-        gymNameSnapshot: gym.name,
-        memo: "preserve-c",
-      },
-    });
 
     const bracket = await prisma.bracket.create({
       data: {
         eventId: event.id,
-        divisionId: oldDiv.id,
+        divisionId: keepDiv.id,
         title: `${PREFIX}bracket`,
         type: "match_list",
         isPublic: true,
@@ -244,49 +248,108 @@ async function main() {
       },
     });
 
-    assert.equal(
-      await prisma.eventApplication.count({ where: { eventId: event.id } }),
-      3,
-    );
+    // ---- Case C: remove used division → BLOCK ----
+    const tplRemoveUsed = await createTemplate("remove-used", [light, welter]);
+    const previewC = await eventDivisionRebuildService.previewRebuild(actor, {
+      eventId: event.id,
+      templateId: tplRemoveUsed.id,
+    });
+    assert.equal(previewC.blockedByRemovedApplicants, true);
+    assert.equal(previewC.blocked, true);
+    assert.ok(previewC.removedApplicantTotal >= 2);
 
-    // Scenario A — 대진만 초기화
-    await prisma.bracketMatch.deleteMany({
-      where: { bracket: { eventId: event.id } },
-    });
-    const afterReset = await prisma.eventApplication.findMany({
-      where: { eventId: event.id },
-    });
-    assert.equal(afterReset.length, 3);
-    assert.equal(afterReset.every((a) => a.divisionId === oldDiv.id), true);
+    let blockedC = false;
+    try {
+      await eventDivisionRebuildService.rebuild(actor, {
+        eventId: event.id,
+        templateId: tplRemoveUsed.id,
+      });
+    } catch (e) {
+      blockedC = true;
+      const msg = e instanceof Error ? e.message : String(e);
+      assert.match(msg, /신청자가 있어 적용할 수 없습니다/);
+    }
+    assert.equal(blockedC, true);
     assert.equal(
       await prisma.bracketMatch.count({
         where: { bracket: { eventId: event.id } },
       }),
-      0,
+      1,
+      "blocked apply must not reset matches",
     );
-    console.log("Scenario A PASS");
-
-    await prisma.bracketMatch.create({
-      data: {
-        bracketId: bracket.id,
-        matchOrder: 0,
-        fighterRedId: fighterA.id,
-        fighterBlueId: fighterB.id,
-      },
+    const appsAfterC = await prisma.eventApplication.findMany({
+      where: { eventId: event.id },
+      orderBy: { id: "asc" },
     });
+    assert.equal(appsAfterC.length, 2);
+    assert.equal(appsAfterC.every((a) => a.divisionId === keepDiv.id), true);
+    console.log("Case C PASS (remove used → block, EA/matches untouched)");
+
+    // ---- Cases A/B/D/E: KEEP + NEW + remove unused ----
+    const tplSafe = await createTemplate("safe-keep-add", [bantam, light]);
+    const previewSafe = await eventDivisionRebuildService.previewRebuild(actor, {
+      eventId: event.id,
+      templateId: tplSafe.id,
+    });
+    assert.equal(previewSafe.blocked, false);
+    assert.equal(previewSafe.keepDivisions, 1);
+    assert.equal(previewSafe.newDivisions, 1);
+    assert.equal(previewSafe.removedDivisions, 1);
+    assert.equal(previewSafe.removedApplicantTotal, 0);
+    assert.equal(previewSafe.autoReassign, 0);
+
+    const beforeAppIds = {
+      aDiv: appA.divisionId,
+      bDiv: appB.divisionId,
+      aSnap: appA.fighterSnapshot,
+      bSnap: appB.fighterSnapshot,
+      aMemo: appA.memo,
+      aPay: appA.paymentStatus,
+      aWeigh: appA.weighInWeightKg,
+      aRecord: appA.recordText,
+    };
 
     const result = await eventDivisionRebuildService.rebuild(actor, {
       eventId: event.id,
-      templateId: template.id,
+      templateId: tplSafe.id,
     });
+
+    assert.equal(result.applicationMutations, 0);
+    assert.equal(result.keptDivisions, 1);
+    assert.equal(result.createdDivisions, 1);
+    assert.equal(result.deletedUnusedDivisions, 1);
+    assert.equal(result.deletedMatches, 1);
+    assert.equal(result.autoReassign, 0);
 
     const afterApps = await prisma.eventApplication.findMany({
       where: { eventId: event.id },
     });
-    assert.equal(afterApps.length, 3);
+    assert.equal(afterApps.length, 2);
+    const afterA = afterApps.find((a) => a.id === appA.id)!;
+    const afterB = afterApps.find((a) => a.id === appB.id)!;
+    assert.equal(afterA.divisionId, beforeAppIds.aDiv);
+    assert.equal(afterB.divisionId, beforeAppIds.bDiv);
+    assert.equal(afterA.divisionId, keepDiv.id);
+    assert.deepEqual(afterA.fighterSnapshot, beforeAppIds.aSnap);
+    assert.deepEqual(afterB.fighterSnapshot, beforeAppIds.bSnap);
+    assert.equal(afterA.memo, beforeAppIds.aMemo);
+    assert.equal(afterA.paymentStatus, beforeAppIds.aPay);
+    assert.equal(afterA.weighInWeightKg, beforeAppIds.aWeigh);
+    assert.equal(afterA.recordText, beforeAppIds.aRecord);
+    assert.equal(afterA.divisionSelectionType, "REGISTERED");
+
+    assert.ok(
+      await prisma.eventDivision.findUnique({ where: { id: keepDiv.id } }),
+      "KEEP division row must still exist",
+    );
     assert.equal(
-      await prisma.fighter.count({ where: { name: { startsWith: PREFIX } } }),
-      3,
+      await prisma.eventDivision.findUnique({ where: { id: unusedDiv.id } }),
+      null,
+      "unused REMOVED division deleted",
+    );
+    assert.equal(
+      await prisma.eventDivision.count({ where: { eventId: event.id } }),
+      2,
     );
     assert.equal(
       await prisma.bracketMatch.count({
@@ -298,49 +361,13 @@ async function main() {
       await prisma.bracket.count({ where: { eventId: event.id } }),
       0,
     );
-    assert.equal(
-      await prisma.eventDivision.count({ where: { eventId: event.id } }),
-      3,
-    );
-    assert.equal(result.autoReassign, 2);
-    assert.ok(result.unassigned >= 1);
 
-    const afterA = afterApps.find((a) => a.id === appA.id)!;
-    const afterB = afterApps.find((a) => a.id === appB.id)!;
-    const afterC = afterApps.find((a) => a.id === appC.id)!;
-    assert.notEqual(afterA.divisionId, null);
-    assert.notEqual(afterB.divisionId, null);
-    assert.equal(afterC.divisionId, null);
-    assert.deepEqual(afterA.fighterSnapshot, snap(`${PREFIX}A`, 58));
-    assert.deepEqual(afterB.fighterSnapshot, snap(`${PREFIX}B`, 64));
-    assert.deepEqual(afterC.fighterSnapshot, snap(`${PREFIX}C`, 90));
-    assert.equal(afterA.paymentStatus, "paid");
-    assert.equal(afterB.paymentStatus, "unpaid");
-    assert.equal(afterA.status, "approved");
-    assert.equal(afterA.weighInWeightKg, 58.5);
-    assert.equal(afterA.weighInStatus, "pass");
-    assert.equal(afterA.memo, "preserve-me");
-    assert.equal(afterA.recordText, "3전 2승 1패");
-    assert.equal(afterA.careerText, "3년");
-    console.log("Scenario B/C PASS");
+    console.log("Case A PASS (same division KEEP, EA divisionId preserved)");
+    console.log("Case B PASS (NEW division created)");
+    console.log("Case D PASS (unused REMOVED deleted)");
+    console.log("Case E PASS (bracket reset; apps/snapshots unchanged)");
 
-    // Scenario D
-    const newDiv = await prisma.eventDivision.findFirst({
-      where: { eventId: event.id, weightLimitText: "-70kg" },
-    });
-    assert.ok(newDiv);
-    await prisma.eventApplication.update({
-      where: { id: appC.id },
-      data: { divisionId: newDiv.id, divisionSelectionType: "REGISTERED" },
-    });
-    const resolvedC = await prisma.eventApplication.findUniqueOrThrow({
-      where: { id: appC.id },
-    });
-    assert.equal(resolvedC.divisionId, newDiv.id);
-    assert.deepEqual(resolvedC.fighterSnapshot, snap(`${PREFIX}C`, 90));
-    console.log("Scenario D PASS");
-
-    // Scenario E — MatchResult blocker
+    // MatchResult blocker still works
     const divForBlock = await prisma.eventDivision.findFirst({
       where: { eventId: event.id },
     });
@@ -389,44 +416,28 @@ async function main() {
       ],
     });
 
-    const appsBeforeBlock = await prisma.eventApplication.count({
-      where: { eventId: event.id },
-    });
-    let blocked = false;
+    let blockedResults = false;
     try {
       await eventDivisionRebuildService.rebuild(actor, {
         eventId: event.id,
-        templateId: template.id,
+        templateId: tplSafe.id,
       });
     } catch (e) {
-      blocked = true;
+      blockedResults = true;
       const msg = e instanceof Error ? e.message : String(e);
       assert.match(msg, /경기 결과가 등록된 대진/);
     }
-    assert.equal(blocked, true);
-    assert.equal(
-      await prisma.eventApplication.count({ where: { eventId: event.id } }),
-      appsBeforeBlock,
-    );
-    assert.equal(
-      await prisma.bracketMatch.count({
-        where: { bracket: { eventId: event.id } },
-      }),
-      1,
-    );
-    console.log("Scenario E PASS");
+    assert.equal(blockedResults, true);
+    console.log("MatchResult blocker PASS");
 
     console.log(
       JSON.stringify(
         {
           dbFingerprint: "yamanote:45288",
-          applicationDelta: 0,
-          fighterDelta: 0,
-          autoReassign: result.autoReassign,
-          unassigned: result.unassigned,
-          newDivisions: result.newDivisions,
-          weighInPreserved: true,
-          paymentPreserved: true,
+          qaPrefix: PREFIX,
+          productionEventTouched: "NONE",
+          applicationMutations: 0,
+          autoReassign: 0,
           productionDbWrite: "NONE",
         },
         null,

@@ -10,24 +10,26 @@ import {
 import { AppError } from "@/lib/errors/app-error";
 import { requireOrganizerForEvent, requireRole } from "@/lib/permissions";
 import { prisma } from "@/lib/prisma";
-import { applicationRepository } from "@/lib/repositories/application.repository";
 import { bracketRepository } from "@/lib/repositories/bracket.repository";
 import { divisionTemplateRepository } from "@/lib/repositories/division-template.repository";
 import { eventRepository } from "@/lib/repositories/event.repository";
 import {
-  planDivisionRebuildAssignments,
-  type RebuildPendingApplicantVM,
-} from "@/lib/services/event-division-rebuild-plan";
+  planTemplateDivisionApply,
+  type TemplateDivisionApplyPlan,
+  type TemplateDivisionPlanItem,
+} from "@/lib/services/event-division-template-apply-plan";
 import type {
   DivisionTemplateItemInput,
   RebuildEventDivisionsFromTemplateInput,
 } from "@/lib/validators/division-template.validator";
 
+/** @deprecated future reclassification only — template apply must NOT use */
 export type {
   RebuildAssignmentReasonCode,
   RebuildPendingApplicantVM,
 } from "@/lib/services/event-division-rebuild-plan";
 
+/** @deprecated future reclassification only — template apply must NOT use */
 export { planDivisionRebuildAssignments } from "@/lib/services/event-division-rebuild-plan";
 
 export type RebuildEventDivisionsPreviewVM = {
@@ -37,19 +39,37 @@ export type RebuildEventDivisionsPreviewVM = {
   currentMatches: number;
   applicants: number;
   expectedNewDivisions: number;
+  keepDivisions: number;
+  newDivisions: number;
+  removedDivisions: number;
+  removedWithApplicants: number;
+  removedApplicantTotal: number;
+  /** @deprecated always 0 — Application 재분류 제거 */
   autoReassign: number;
+  /** @deprecated always 0 */
   needsReview: number;
+  /** @deprecated always 0 */
   unassigned: number;
   blockedByResults: boolean;
+  blockedByRemovedApplicants: boolean;
+  blocked: boolean;
+  blockReason: string | null;
   matchesWithResults: number;
-  pendingApplicants: RebuildPendingApplicantVM[];
+  keepItems: TemplateDivisionPlanItem[];
+  newItems: TemplateDivisionPlanItem[];
+  removedItems: TemplateDivisionPlanItem[];
+  removedApplicantItems: TemplateDivisionPlanItem[];
+  /** @deprecated empty — Application 재분류 UI 제거 */
+  pendingApplicants: [];
 };
 
 export type RebuildEventDivisionsResultVM = RebuildEventDivisionsPreviewVM & {
-  removedDivisions: number;
   deletedMatches: number;
   deletedBrackets: number;
-  newDivisions: number;
+  createdDivisions: number;
+  deletedUnusedDivisions: number;
+  keptDivisions: number;
+  applicationMutations: 0;
 };
 
 function parseTemplateItemsFromJson(
@@ -125,6 +145,117 @@ async function loadTemplateActiveRows(templateId: string) {
   return { tpl, activeRows };
 }
 
+async function buildApplyPlan(
+  eventId: string,
+  activeRows: EventDivisionFromTemplateRow[],
+): Promise<{
+  plan: TemplateDivisionApplyPlan;
+  currentDivisions: number;
+  currentMatches: number;
+  applicants: number;
+  matchesWithResults: number;
+}> {
+  const existing = await eventRepository.listEventDivisions(eventId);
+  const withCounts = await Promise.all(
+    existing.map(async (d) => ({
+      id: d.id,
+      sportType: d.sportType,
+      ruleType: d.ruleType,
+      gender: d.gender,
+      ageGroup: d.ageGroup,
+      weightClass: d.weightClass,
+      weightClassName: d.weightClassName,
+      weightLimitText: d.weightLimitText,
+      skillLevel: d.skillLevel,
+      applicantCount: await eventRepository.countApplicationsByDivision(d.id),
+    })),
+  );
+
+  const [currentMatches, applicants, matchesWithResults] = await Promise.all([
+    bracketRepository.countMatchesByEvent(eventId),
+    eventRepository.countApplicationsByEvent(eventId),
+    bracketRepository.countEventMatchesWithOfficialResults(eventId),
+  ]);
+
+  const plan = planTemplateDivisionApply({
+    existing: withCounts,
+    templateRows: activeRows,
+  });
+
+  return {
+    plan,
+    currentDivisions: existing.length,
+    currentMatches,
+    applicants,
+    matchesWithResults,
+  };
+}
+
+function toPreviewVm(input: {
+  templateId: string;
+  templateName: string;
+  plan: TemplateDivisionApplyPlan;
+  currentDivisions: number;
+  currentMatches: number;
+  applicants: number;
+  matchesWithResults: number;
+  expectedNewDivisions: number;
+}): RebuildEventDivisionsPreviewVM {
+  const blockedByResults = input.matchesWithResults > 0;
+  const blockedByRemovedApplicants = input.plan.blockedByRemovedApplicants;
+  const blocked = blockedByResults || blockedByRemovedApplicants;
+
+  let blockReason: string | null = null;
+  if (blockedByResults) {
+    blockReason =
+      "경기 결과가 등록된 대진이 있어 새 체급표로 재구성할 수 없습니다.";
+  } else if (blockedByRemovedApplicants) {
+    const lines = input.plan.removedWithApplicants
+      .map((r) => `· ${r.label}: ${r.applicantCount}명`)
+      .join("\n");
+    blockReason = [
+      "새 템플릿에서 사라지는 경기구분에 신청자가 있어 적용할 수 없습니다.",
+      "신청 경기구분은 자동으로 변경하지 않습니다. 신청자를 직접 수정한 뒤 다시 시도하세요.",
+      "",
+      lines,
+    ].join("\n");
+  }
+
+  return {
+    templateId: input.templateId,
+    templateName: input.templateName,
+    currentDivisions: input.currentDivisions,
+    currentMatches: input.currentMatches,
+    applicants: input.applicants,
+    expectedNewDivisions: input.expectedNewDivisions,
+    keepDivisions: input.plan.keep.length,
+    newDivisions: input.plan.created.length,
+    removedDivisions: input.plan.removed.length,
+    removedWithApplicants: input.plan.removedWithApplicants.length,
+    removedApplicantTotal: input.plan.removedApplicantTotal,
+    autoReassign: 0,
+    needsReview: 0,
+    unassigned: 0,
+    blockedByResults,
+    blockedByRemovedApplicants,
+    blocked,
+    blockReason,
+    matchesWithResults: input.matchesWithResults,
+    keepItems: input.plan.keep,
+    newItems: input.plan.created,
+    removedItems: input.plan.removed,
+    removedApplicantItems: input.plan.removedWithApplicants,
+    pendingApplicants: [],
+  };
+}
+
+/**
+ * Template apply = EventDivision KEEP/NEW/REMOVED + optional bracket reset.
+ * EventApplication.divisionId / selectionType / snapshots 절대 변경하지 않음.
+ *
+ * FK note: EventApplication.division onDelete=Cascade
+ * → 신청자가 있는 EventDivision 삭제는 신청 삭제와 동일하므로 차단.
+ */
 export const eventDivisionRebuildService = {
   async previewRebuild(
     actor: ActorContext,
@@ -142,38 +273,17 @@ export const eventDivisionRebuildService = {
       );
     }
 
-    const [apps, currentDivisions, currentMatches, matchesWithResults] =
-      await Promise.all([
-        applicationRepository.listApplicationsForDivisionRebuild(input.eventId),
-        eventRepository.countEventDivisions(input.eventId),
-        bracketRepository.countMatchesByEvent(input.eventId),
-        bracketRepository.countEventMatchesWithOfficialResults(input.eventId),
-      ]);
-
-    const synthetic = activeRows.map((row, idx) => ({
-      ...row,
-      id: `preview-${idx}`,
-    }));
-    const planned = planDivisionRebuildAssignments({
-      apps,
-      divisionRows: synthetic,
-      templateSportType: tpl.sportType,
-    });
-
-    return {
+    const built = await buildApplyPlan(input.eventId, activeRows);
+    return toPreviewVm({
       templateId: tpl.id,
       templateName: tpl.title,
-      currentDivisions,
-      currentMatches,
-      applicants: apps.length,
+      plan: built.plan,
+      currentDivisions: built.currentDivisions,
+      currentMatches: built.currentMatches,
+      applicants: built.applicants,
+      matchesWithResults: built.matchesWithResults,
       expectedNewDivisions: activeRows.length,
-      autoReassign: planned.autoReassign,
-      needsReview: planned.needsReview,
-      unassigned: planned.unassigned,
-      blockedByResults: matchesWithResults > 0,
-      matchesWithResults,
-      pendingApplicants: planned.pendingApplicants,
-    };
+    });
   },
 
   async rebuild(
@@ -192,128 +302,98 @@ export const eventDivisionRebuildService = {
       );
     }
 
-    const matchesWithResults =
-      await bracketRepository.countEventMatchesWithOfficialResults(
-        input.eventId,
-      );
-    if (matchesWithResults > 0) {
+    const built = await buildApplyPlan(input.eventId, activeRows);
+    const preview = toPreviewVm({
+      templateId: tpl.id,
+      templateName: tpl.title,
+      plan: built.plan,
+      currentDivisions: built.currentDivisions,
+      currentMatches: built.currentMatches,
+      applicants: built.applicants,
+      matchesWithResults: built.matchesWithResults,
+      expectedNewDivisions: activeRows.length,
+    });
+
+    if (preview.blocked) {
       throw new AppError(
         "CONFLICT",
-        "경기 결과가 등록된 대진이 있어 새 체급표로 재구성할 수 없습니다.",
+        preview.blockReason ?? "새 템플릿을 적용할 수 없습니다.",
       );
     }
 
-    const appsBefore =
-      await applicationRepository.listApplicationsForDivisionRebuild(
-        input.eventId,
-      );
-    const currentDivisions = await eventRepository.countEventDivisions(
-      input.eventId,
-    );
-    const currentMatches = await bracketRepository.countMatchesByEvent(
-      input.eventId,
-    );
-
     const result = await prisma.$transaction(
       async (tx) => {
-      // Cascade 방지: EventDivision 삭제 전 반드시 detach
-      await applicationRepository.clearDivisionIdsForEvent(input.eventId, tx);
+        // Bracket reset only — Application rows untouched
+        const { deletedMatches, deletedBrackets } =
+          await bracketRepository.deleteAllEventBrackets(input.eventId, tx);
 
-      const { deletedMatches, deletedBrackets } =
-        await bracketRepository.deleteAllEventBrackets(input.eventId, tx);
-
-      const removedDivisions = await eventRepository.deleteAllEventDivisions(
-        input.eventId,
-        tx,
-      );
-
-      const createdDivisions: Array<
-        EventDivisionFromTemplateRow & { id: string }
-      > = [];
-      const seenKeys = new Set<string>();
-
-      for (const normalized of activeRows) {
-        const key = normalizeEventDivisionKey(normalized);
-        if (seenKeys.has(key)) continue;
-        seenKeys.add(key);
-
-        const created = await eventRepository.createEventDivision(
-          {
-            event: { connect: { id: input.eventId } },
-            sportType: normalized.sportType.trim(),
-            ruleType: normalized.ruleType?.trim() || null,
-            gender: normalized.gender?.trim() || null,
-            ageGroup: normalized.ageGroup?.trim() || null,
-            weightClass: normalized.weightClass?.trim() || null,
-            weightClassName: normalized.weightClassName?.trim() || null,
-            weightLimitText: normalized.weightLimitText?.trim() || null,
-            skillLevel: normalized.skillLevel?.trim() || null,
-          },
-          tx,
+        // KEEP: existing EventDivision rows preserved (Application FK intact)
+        let createdDivisions = 0;
+        const seenKeys = new Set(
+          built.plan.keep.map((k) => k.key),
         );
-        createdDivisions.push({ ...normalized, id: created.id });
-      }
 
-      const planned = planDivisionRebuildAssignments({
-        apps: appsBefore,
-        divisionRows: createdDivisions,
-        templateSportType: tpl.sportType,
-      });
+        for (const item of built.plan.created) {
+          const row = item.templateRow;
+          if (!row) continue;
+          const key = normalizeEventDivisionKey(row);
+          if (seenKeys.has(key)) continue;
+          seenKeys.add(key);
 
-      // divisionId별 배치 연결 (트랜잭션 시간 단축)
-      const byDivision = new Map<string, string[]>();
-      const otherExactIds: string[] = [];
-      for (const plan of planned.plans) {
-        if (!plan.targetDivisionId) continue;
-        const list = byDivision.get(plan.targetDivisionId) ?? [];
-        list.push(plan.applicationId);
-        byDivision.set(plan.targetDivisionId, list);
-        if (plan.reasonCode === "other_exact") {
-          otherExactIds.push(plan.applicationId);
+          await eventRepository.createEventDivision(
+            {
+              event: { connect: { id: input.eventId } },
+              sportType: row.sportType.trim(),
+              ruleType: row.ruleType?.trim() || null,
+              gender: row.gender?.trim() || null,
+              ageGroup: row.ageGroup?.trim() || null,
+              weightClass: row.weightClass?.trim() || null,
+              weightClassName: row.weightClassName?.trim() || null,
+              weightLimitText: row.weightLimitText?.trim() || null,
+              skillLevel: row.skillLevel?.trim() || null,
+            },
+            tx,
+          );
+          createdDivisions += 1;
         }
-      }
 
-      for (const [divisionId, applicationIds] of byDivision) {
-        await tx.eventApplication.updateMany({
-          where: { id: { in: applicationIds } },
-          data: { divisionId },
-        });
-      }
-      if (otherExactIds.length > 0) {
-        await tx.eventApplication.updateMany({
-          where: { id: { in: otherExactIds } },
-          data: { divisionSelectionType: "REGISTERED" },
-        });
-      }
+        // REMOVED without applicants only (Cascade-safe)
+        let deletedUnusedDivisions = 0;
+        for (const item of built.plan.removed) {
+          if (item.applicantCount > 0) {
+            throw new AppError(
+              "CONFLICT",
+              "신청자가 있는 경기구분은 삭제할 수 없습니다.",
+            );
+          }
+          if (!item.existingDivisionId) continue;
+          await eventRepository.deleteEventDivision(
+            item.existingDivisionId,
+            tx,
+          );
+          deletedUnusedDivisions += 1;
+        }
 
-      return {
-        deletedMatches,
-        deletedBrackets,
-        removedDivisions,
-        newDivisions: createdDivisions.length,
-        planned,
-      };
+        // SSOT: never clear/reassign EventApplication.divisionId
+        return {
+          deletedMatches,
+          deletedBrackets,
+          createdDivisions,
+          deletedUnusedDivisions,
+          keptDivisions: built.plan.keep.length,
+        };
       },
       { timeout: 60_000, maxWait: 10_000 },
     );
 
     return {
-      templateId: tpl.id,
-      templateName: tpl.title,
-      currentDivisions,
-      currentMatches,
-      applicants: appsBefore.length,
-      expectedNewDivisions: activeRows.length,
-      autoReassign: result.planned.autoReassign,
-      needsReview: result.planned.needsReview,
-      unassigned: result.planned.unassigned,
-      blockedByResults: false,
-      matchesWithResults: 0,
-      pendingApplicants: result.planned.pendingApplicants,
-      removedDivisions: result.removedDivisions,
+      ...preview,
       deletedMatches: result.deletedMatches,
       deletedBrackets: result.deletedBrackets,
-      newDivisions: result.newDivisions,
+      createdDivisions: result.createdDivisions,
+      deletedUnusedDivisions: result.deletedUnusedDivisions,
+      keptDivisions: result.keptDivisions,
+      applicationMutations: 0,
     };
   },
 };

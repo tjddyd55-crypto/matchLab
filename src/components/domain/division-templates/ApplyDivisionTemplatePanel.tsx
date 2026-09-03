@@ -7,11 +7,9 @@ import type { DivisionTemplateDetailVM } from "@/lib/services/division-template.
 import type {
   RebuildEventDivisionsPreviewVM,
   RebuildEventDivisionsResultVM,
-  RebuildPendingApplicantVM,
 } from "@/lib/services/event-division-rebuild.service";
 import { DIVISION_TEMPLATE_SPORT_LABELS } from "@/lib/division-template/division-template-constants";
 import { DivisionTemplatePreview } from "@/components/domain/division-templates/WeightClassRowsEditor";
-import { OrganizerResolveOtherDivisionDialog } from "@/components/domain/applications/OrganizerResolveOtherDivisionDialog";
 import { useAppConfirmDialog } from "@/components/shared/app-confirm-dialog";
 import { Button } from "@/components/ui/button";
 import {
@@ -30,12 +28,15 @@ function PreflightStrip({
   if (!preview) return null;
   const items = [
     { label: "현재 경기구분", value: `${preview.currentDivisions}개` },
+    { label: "유지", value: `${preview.keepDivisions}개` },
+    { label: "신규", value: `${preview.newDivisions}개` },
+    { label: "삭제 예정", value: `${preview.removedDivisions}개` },
     { label: "현재 경기", value: `${preview.currentMatches}경기` },
     { label: "신청자", value: `${preview.applicants}명` },
-    { label: "새 경기구분 예상", value: `${preview.expectedNewDivisions}개` },
-    { label: "자동 재배정 예상", value: `${preview.autoReassign}명` },
-    { label: "확인 필요 예상", value: `${preview.needsReview}명` },
-    { label: "미배정 예상", value: `${preview.unassigned}명` },
+    {
+      label: "삭제 경기구분 신청자",
+      value: `${preview.removedApplicantTotal}명`,
+    },
   ];
   return (
     <div className="grid grid-cols-2 gap-2 sm:grid-cols-3 md:grid-cols-4">
@@ -52,142 +53,16 @@ function PreflightStrip({
   );
 }
 
-function PendingApplicantsList({
-  eventId,
-  rows,
-  divisions,
-  onResolved,
-}: {
-  eventId: string;
-  rows: RebuildPendingApplicantVM[];
-  divisions: Array<{
-    id: string;
-    label: string;
-    gender: string | null;
-    ageGroup: string | null;
-    weightClass: string | null;
-    weightClassName: string | null;
-    weightLimitText: string | null;
-  }>;
-  onResolved?: (applicationId: string) => void;
-}) {
-  const [active, setActive] = useState<RebuildPendingApplicantVM | null>(null);
-
-  if (rows.length === 0) return null;
-
-  return (
-    <div className="space-y-2">
-      <p className="text-sm font-medium">확인 필요 · 미배정 신청자</p>
-      <div className="hidden overflow-x-auto md:block">
-        <table className="w-full min-w-[720px] text-left text-sm">
-          <thead className="text-xs text-muted-foreground">
-            <tr className="border-b">
-              <th className="py-2 pr-2 font-medium">선수</th>
-              <th className="py-2 pr-2 font-medium">체육관</th>
-              <th className="py-2 pr-2 font-medium">신청 당시 체급</th>
-              <th className="py-2 pr-2 font-medium">신청체중</th>
-              <th className="py-2 pr-2 font-medium">후보</th>
-              <th className="py-2 pr-2 font-medium">사유</th>
-              <th className="py-2 font-medium">관리</th>
-            </tr>
-          </thead>
-          <tbody>
-            {rows.map((row) => (
-              <tr key={row.applicationId} className="border-b align-top">
-                <td className="py-2 pr-2 font-medium">{row.fighterName}</td>
-                <td className="py-2 pr-2">{row.gymName}</td>
-                <td className="py-2 pr-2">{row.appliedDivisionLabel}</td>
-                <td className="py-2 pr-2 tabular-nums">
-                  {row.applicationWeightKg != null
-                    ? `${row.applicationWeightKg}kg`
-                    : "—"}
-                </td>
-                <td className="py-2 pr-2">{row.candidateSummary}</td>
-                <td className="py-2 pr-2">{row.reasonLabel}</td>
-                <td className="py-2">
-                  <Button
-                    type="button"
-                    size="sm"
-                    variant="outline"
-                    onClick={() => setActive(row)}
-                  >
-                    경기구분 지정
-                  </Button>
-                </td>
-              </tr>
-            ))}
-          </tbody>
-        </table>
-      </div>
-
-      <ul className="space-y-2 md:hidden">
-        {rows.map((row) => (
-          <li
-            key={row.applicationId}
-            className="rounded-lg border bg-background px-3 py-3"
-          >
-            <p className="font-medium">{row.fighterName}</p>
-            <p className="text-muted-foreground text-xs">{row.gymName}</p>
-            <p className="mt-1 text-xs">
-              {row.appliedDivisionLabel}
-              {row.applicationWeightKg != null
-                ? ` · ${row.applicationWeightKg}kg`
-                : ""}
-            </p>
-            <p className="mt-1 text-sm">{row.reasonLabel}</p>
-            <Button
-              type="button"
-              size="sm"
-              variant="outline"
-              className="mt-2"
-              onClick={() => setActive(row)}
-            >
-              경기구분 지정
-            </Button>
-          </li>
-        ))}
-      </ul>
-
-      {active ? (
-        <OrganizerResolveOtherDivisionDialog
-          open={Boolean(active)}
-          onOpenChange={(open) => {
-            if (!open) setActive(null);
-          }}
-          eventId={eventId}
-          applicationId={active.applicationId}
-          fighterName={active.fighterName}
-          gender={active.fighterGender}
-          requestedDivisionText={active.appliedDivisionLabel}
-          applicationWeightKg={active.applicationWeightKg}
-          recordText={null}
-          careerText={null}
-          divisions={divisions}
-          onSuccess={() => onResolved?.(active.applicationId)}
-        />
-      ) : null}
-    </div>
-  );
-}
-
 export function ApplyDivisionTemplatePanel({
   eventId,
   templates,
   templateDetails,
-  divisionsForResolve = [],
 }: {
   eventId: string;
   templates: { id: string; title: string; sportType: string | null }[];
   templateDetails: DivisionTemplateDetailVM[];
-  divisionsForResolve?: Array<{
-    id: string;
-    label: string;
-    gender: string | null;
-    ageGroup: string | null;
-    weightClass: string | null;
-    weightClassName: string | null;
-    weightLimitText: string | null;
-  }>;
+  /** @deprecated Application 재분류 UI 제거 — 호환용 */
+  divisionsForResolve?: unknown;
 }) {
   const router = useRouter();
   const { confirm, alert } = useAppConfirmDialog();
@@ -200,7 +75,6 @@ export function ApplyDivisionTemplatePanel({
   );
   const [lastResult, setLastResult] =
     useState<RebuildEventDivisionsResultVM | null>(null);
-  const [dismissedIds, setDismissedIds] = useState<Set<string>>(new Set());
 
   const selected = useMemo(
     () => templateDetails.find((t) => t.id === templateId) ?? null,
@@ -212,7 +86,6 @@ export function ApplyDivisionTemplatePanel({
     setLastResult(null);
     setMessage(null);
     setError(null);
-    setDismissedIds(new Set());
     if (!templateId) return;
 
     let cancelled = false;
@@ -308,23 +181,31 @@ export function ApplyDivisionTemplatePanel({
       setError("적용할 체급표 템플릿을 선택해 주세요.");
       return;
     }
-    if (preview?.blockedByResults) {
+    if (preview?.blocked) {
       setError(
-        "경기 결과가 등록된 대진이 있어 새 체급표로 재구성할 수 없습니다.",
+        preview.blockReason ??
+          "새 템플릿을 적용할 수 없습니다. preview를 확인하세요.",
       );
       return;
     }
 
     const ok = await confirm({
-      title: "새 체급표로 경기구분을 다시 구성할까요?",
+      title: "새 경기구분 템플릿을 적용할까요?",
       description: [
-        "기존 대진과 경기구분이 초기화됩니다.",
-        "신청자 정보는 삭제되지 않습니다.",
+        "새 경기구분 템플릿을 적용합니다.",
+        "",
+        "- 현재 대진표와 경기 편성은 초기화됩니다.",
+        `- 삭제될 경기: ${preview?.currentMatches ?? 0}경기`,
+        "- 신청자 자체는 삭제되지 않습니다.",
+        "- 기존 신청 경기구분은 자동 변경하지 않습니다.",
+        "- 동일한 경기구분은 기존 항목을 유지합니다.",
+        "- 새 템플릿에서 사라지는 경기구분에 신청자가 있으면 적용할 수 없습니다.",
+        "",
+        `유지 ${preview?.keepDivisions ?? 0} · 신규 ${preview?.newDivisions ?? 0} · 삭제(미사용) ${preview?.removedDivisions ?? 0}`,
         "",
         `선택한 체급표: ${selected.title}`,
         "",
-        "신청 선수는 새 경기구분 기준으로 다시 배정됩니다.",
-        "자동으로 배정할 수 없는 선수는 '확인 필요' 상태로 남습니다.",
+        "계속하시겠습니까?",
       ].join("\n"),
       confirmLabel: "새 템플릿 적용",
       variant: "danger",
@@ -344,21 +225,16 @@ export function ApplyDivisionTemplatePanel({
       setLastResult(res.data);
       setMessage(
         [
-          `신청자 ${res.data.applicants}명 유지`,
-          `자동 재배정 ${res.data.autoReassign}명`,
-          `확인 필요 ${res.data.needsReview}명`,
-          `미배정 ${res.data.unassigned}명`,
-          `새 경기구분 ${res.data.newDivisions}개`,
-          `경기 0경기`,
+          `신청자 ${res.data.applicants}명 유지 (재분류 0)`,
+          `경기구분 유지 ${res.data.keptDivisions}개`,
+          `신규 ${res.data.createdDivisions}개`,
+          `미사용 삭제 ${res.data.deletedUnusedDivisions}개`,
+          `경기 삭제 ${res.data.deletedMatches}경기`,
         ].join(" · "),
       );
       router.refresh();
     });
   }
-
-  const pendingRows = (
-    lastResult?.pendingApplicants ?? preview?.pendingApplicants ?? []
-  ).filter((r) => !dismissedIds.has(r.applicationId));
 
   return (
     <div className="flex flex-col gap-4 rounded-lg border bg-muted/10 p-4 text-sm">
@@ -366,7 +242,7 @@ export function ApplyDivisionTemplatePanel({
         <div className="font-medium">체급표로 경기구분 생성</div>
         <p className="text-muted-foreground mt-1 text-xs leading-relaxed">
           선택한 체급표 기준으로 대회 경기구분을 추가하거나, 아래에서 대진·경기구분을
-          다시 구성할 수 있습니다.
+          다시 구성할 수 있습니다. 신청 경기구분은 자동으로 재계산하지 않습니다.
         </p>
       </div>
 
@@ -403,7 +279,7 @@ export function ApplyDivisionTemplatePanel({
       <div className="space-y-2 rounded-md border bg-background p-3">
         <p className="text-xs font-medium">체급표 추가 적용</p>
         <p className="text-muted-foreground text-xs">
-          기존 경기구분에 추가 · 동일 경기구분은 건너뜀
+          기존 경기구분에 추가 · 동일 경기구분은 건너뜀 · 신청자 변경 없음
         </p>
         <Button
           type="button"
@@ -419,8 +295,8 @@ export function ApplyDivisionTemplatePanel({
         <div>
           <p className="text-sm font-medium">대진 / 경기구분 다시 구성</p>
           <p className="text-muted-foreground mt-1 text-xs leading-relaxed">
-            현재 대진만 초기화하거나, 선택한 체급표 템플릿 기준으로 경기구분을 새로
-            구성할 수 있습니다.
+            대진만 초기화하거나, 템플릿으로 경기구분 구조를 맞출 수 있습니다.
+            신청 경기구분은 자동 재분류하지 않습니다.
           </p>
         </div>
 
@@ -428,8 +304,52 @@ export function ApplyDivisionTemplatePanel({
 
         {preview?.blockedByResults ? (
           <p className="text-destructive text-xs" role="alert">
-            완료된 경기 결과가 있어 재구성할 수 없습니다. ({preview.matchesWithResults}
-            건)
+            완료된 경기 결과가 있어 재구성할 수 없습니다. (
+            {preview.matchesWithResults}건)
+          </p>
+        ) : null}
+
+        {preview ? (
+          <div className="space-y-2 rounded-md border border-destructive/40 bg-destructive/5 px-3 py-2 text-xs">
+            {preview.blockedByRemovedApplicants ? (
+              <>
+                <p className="font-medium text-destructive" role="alert">
+                  새 템플릿에서 사라지는 경기구분에 신청자가 있어 적용할 수
+                  없습니다.
+                </p>
+                <p className="text-muted-foreground">
+                  신청 경기구분은 자동으로 변경하지 않습니다.{" "}
+                  <Link
+                    href={`/organizer/events/${eventId}/applications`}
+                    className="underline"
+                  >
+                    신청자 확인
+                  </Link>
+                  후 직접 수정하세요.
+                </p>
+                <ul className="space-y-1">
+                  {preview.removedApplicantItems.map((item) => (
+                    <li key={item.existingDivisionId ?? item.key}>
+                      · {item.label}: {item.applicantCount}명
+                    </li>
+                  ))}
+                </ul>
+              </>
+            ) : (
+              <p className="text-muted-foreground">
+                신청자 {preview.applicants}명 · 신청 경기구분 자동 변경 없음 ·
+                Application mutation 0
+              </p>
+            )}
+          </div>
+        ) : null}
+
+        {lastResult ? (
+          <p className="text-muted-foreground text-xs" role="status">
+            최근 적용: 유지 {lastResult.keptDivisions} · 신규{" "}
+            {lastResult.createdDivisions} · 미사용 삭제{" "}
+            {lastResult.deletedUnusedDivisions} · 경기 삭제{" "}
+            {lastResult.deletedMatches}
           </p>
         ) : null}
 
@@ -448,7 +368,7 @@ export function ApplyDivisionTemplatePanel({
             type="button"
             size="sm"
             variant="destructive"
-            disabled={pending || !templateId || Boolean(preview?.blockedByResults)}
+            disabled={pending || !templateId || Boolean(preview?.blocked)}
             onClick={() => void rebuildFromTemplate()}
           >
             {pending ? "처리 중…" : "새 템플릿으로 다시 구성"}
@@ -466,15 +386,6 @@ export function ApplyDivisionTemplatePanel({
           {message}
         </p>
       ) : null}
-
-      <PendingApplicantsList
-        eventId={eventId}
-        rows={pendingRows}
-        divisions={divisionsForResolve}
-        onResolved={(applicationId) => {
-          setDismissedIds((prev) => new Set(prev).add(applicationId));
-        }}
-      />
     </div>
   );
 }
