@@ -664,6 +664,8 @@ export type OrganizerBracketDetailVM = {
   approvedFighterOptions: OrganizerApprovedFighterOptionVM[];
   /** 대회 전체 — Match 미배정 + 배치 가능 선수 */
   eventWideUnmatchedOptions: OrganizerApprovedFighterOptionVM[];
+  /** 수동 편성 선택용 — 배정 여부와 무관하게 배치 가능 선수 전원 */
+  eventWideManualPickOptions: OrganizerApprovedFighterOptionVM[];
   /** 서버 매치 스냅샷이 바뀌면 값이 달라지며, 클라이언트 폼 상태 리마운트에 사용한다. */
   syncKey: string;
 };
@@ -690,6 +692,7 @@ export type OrganizerEventAllMatchesWorkspaceVM = {
   matches: OrganizerEventAllMatchVM[];
   approvedFighterOptions: OrganizerApprovedFighterOptionVM[];
   eventWideUnmatchedOptions: OrganizerApprovedFighterOptionVM[];
+  eventWideManualPickOptions: OrganizerApprovedFighterOptionVM[];
   divisions: OrganizerEventAllMatchesDivisionOptionVM[];
   syncKey: string;
 };
@@ -1147,6 +1150,25 @@ export const bracketService = {
         return a.fighterName.localeCompare(b.fighterName, "ko");
       });
 
+    const eventWideManualPickOptions = allEventApproved
+      .map((a) =>
+        mapApplicationToApprovedOption(
+          a,
+          eventFieldStatusMap.get(a.fighter.id),
+          full.divisionId,
+        ),
+      )
+      .filter((o) => o.isAssignableForBracket)
+      .sort((a, b) => {
+        if (a.isOtherDivision !== b.isOtherDivision) {
+          return a.isOtherDivision ? 1 : -1;
+        }
+        const wA = a.applicationWeightKg ?? Number.POSITIVE_INFINITY;
+        const wB = b.applicationWeightKg ?? Number.POSITIVE_INFINITY;
+        if (wA !== wB) return wA - wB;
+        return a.fighterName.localeCompare(b.fighterName, "ko");
+      });
+
     const matches: OrganizerBracketMatchVM[] = full.matches.map((m) => ({
       id: m.id,
       round: m.round,
@@ -1197,6 +1219,7 @@ export const bracketService = {
       matches,
       approvedFighterOptions,
       eventWideUnmatchedOptions,
+      eventWideManualPickOptions,
       syncKey,
     };
   },
@@ -1255,6 +1278,18 @@ export const bracketService = {
     const placedSet = new Set(placedFighterIds);
     const eventWideUnmatchedOptions = approvedFighterOptions
       .filter((o) => o.isAssignableForBracket && !placedSet.has(o.fighterId))
+      .sort((a, b) => {
+        if (a.isOtherDivision !== b.isOtherDivision) {
+          return a.isOtherDivision ? 1 : -1;
+        }
+        const wA = a.applicationWeightKg ?? Number.POSITIVE_INFINITY;
+        const wB = b.applicationWeightKg ?? Number.POSITIVE_INFINITY;
+        if (wA !== wB) return wA - wB;
+        return a.fighterName.localeCompare(b.fighterName, "ko");
+      });
+
+    const eventWideManualPickOptions = approvedFighterOptions
+      .filter((o) => o.isAssignableForBracket)
       .sort((a, b) => {
         if (a.isOtherDivision !== b.isOtherDivision) {
           return a.isOtherDivision ? 1 : -1;
@@ -1340,6 +1375,7 @@ export const bracketService = {
       matches,
       approvedFighterOptions,
       eventWideUnmatchedOptions,
+      eventWideManualPickOptions,
       divisions: divisionOptions,
       syncKey,
     };
@@ -1824,18 +1860,33 @@ export const bracketService = {
       }
 
       const row =
-        await bracketRepository.findApprovedApplicationForBracketPlacement(
+        (await bracketRepository.findApprovedApplicationForBracketPlacement(
           ctx.eventId,
           input.fighterId,
           ctx.divisionId,
           tx,
-        );
+        )) ??
+        (await bracketRepository.findApprovedApplicationForEventPlacement(
+          ctx.eventId,
+          input.fighterId,
+          tx,
+        ));
       if (!row) {
         throw new AppError(
           "VALIDATION_ERROR",
           "승인된 신청 선수만 배치할 수 있습니다.",
         );
       }
+
+      const isCrossDivisionSlot =
+        ctx.divisionId &&
+        row.divisionId &&
+        row.divisionId !== ctx.divisionId;
+      const crossAssignReason =
+        input.reason ??
+        (isCrossDivisionSlot
+          ? "교차 경기구분 수동 배정 (원 신청 유지)"
+          : undefined);
 
       const assignability = computeBracketAssignability({
         checkInStatus: row.checkInStatus,
@@ -1947,7 +1998,7 @@ export const bracketService = {
             fighterId: prevRedId,
           },
           afterData: { slot: "red", fighterId: input.fighterId },
-          reason: input.reason ?? undefined,
+          reason: crossAssignReason,
         });
       } else {
         if (prevRedId === input.fighterId) {
@@ -1982,7 +2033,7 @@ export const bracketService = {
             fighterId: prevBlueId,
           },
           afterData: { slot: "blue", fighterId: input.fighterId },
-          reason: input.reason ?? undefined,
+          reason: crossAssignReason,
         });
       }
 
@@ -2375,17 +2426,7 @@ export const bracketService = {
               "다른 관리자가 이미 이 선수를 경기에 배정했습니다. 목록을 새로고침합니다.",
             );
           }
-          // 복수 출전은 same-division만 — divisionId 이동이 기존 Match SSOT를 흔들 수 있음
-          if (
-            !ctx.divisionId ||
-            !row.divisionId ||
-            row.divisionId !== ctx.divisionId
-          ) {
-            throw new AppError(
-              "VALIDATION_ERROR",
-              "이미 배정된 선수의 다른 경기구분 복수 출전은 아직 지원하지 않습니다. 같은 경기구분 그룹에서만 추가 배정할 수 있습니다.",
-            );
-          }
+          // allowDuplicate: 다른 경기구분 포함 복수 출전 허용 (EA.divisionId 불변)
         }
         return { row, placed };
       }
@@ -2407,14 +2448,6 @@ export const bracketService = {
         }
         if (row.divisionId === ctx.divisionId) return;
 
-        // 이미 배정된 선수의 교차 복수 출전 금지 (same-division만 허용)
-        if (alreadyPlaced > 0) {
-          throw new AppError(
-            "VALIDATION_ERROR",
-            "이미 배정된 선수의 다른 경기구분 복수 출전은 아직 지원하지 않습니다.",
-          );
-        }
-
         const belongs = await eventRepository.findDivisionBelongsToEvent(
           ctx.divisionId,
           ctx.eventId,
@@ -2426,6 +2459,11 @@ export const bracketService = {
           );
         }
 
+        const reason =
+          alreadyPlaced > 0
+            ? "교차 경기구분 추가 출전 — 신청 division 유지"
+            : "교차 경기구분 수동 편성 — 신청 division 유지";
+
         await appendChangeLog(tx, {
           eventId: ctx.eventId,
           bracketId: input.bracketId,
@@ -2436,6 +2474,7 @@ export const bracketService = {
             applicationId: row.id,
             fighterId: row.fighterId,
             originalApplicationDivisionId: row.divisionId,
+            alreadyPlacedInEvent: alreadyPlaced > 0,
           },
           afterData: {
             applicationId: row.id,
@@ -2443,9 +2482,13 @@ export const bracketService = {
             bracketDivisionId: ctx.divisionId,
             originalApplicationDivisionId: row.divisionId,
             applicationDivisionMutated: false,
-            source: "cross_division_manual_match",
+            source:
+              alreadyPlaced > 0
+                ? "multi_division_manual_match"
+                : "cross_division_manual_match",
+            retainedExistingMatches: alreadyPlaced > 0,
           },
-          reason: "교차 경기구분 수동 편성 — 신청 division 유지",
+          reason,
         });
       }
 

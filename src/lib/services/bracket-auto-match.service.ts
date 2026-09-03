@@ -581,9 +581,8 @@ export const bracketAutoMatchService = {
 
     const applications =
       await bracketRepository.listApplicantApplicationsForAutoMatch(eventId);
-    const placedIds = new Set(
-      await bracketRepository.listPlacedFighterIdsForEvent(eventId),
-    );
+    const placedByDivision =
+      await bracketRepository.listPlacedFighterIdsByDivision(eventId);
 
     const result: UnmatchedBracketCandidateVM[] = [];
 
@@ -613,7 +612,10 @@ export const bracketAutoMatchService = {
         continue;
       }
 
-      if (placedIds.has(row.fighterId)) {
+      if (
+        row.divisionId &&
+        placedByDivision.get(row.divisionId)?.has(row.fighterId)
+      ) {
         result.push(mapUnmatchedRow(row, eligibility, "already_placed"));
         continue;
       }
@@ -648,9 +650,8 @@ export const bracketAutoMatchService = {
       );
     }
 
-    let placedIds = new Set(
-      await bracketRepository.listPlacedFighterIdsForEvent(input.eventId),
-    );
+    let placedByDivision =
+      await bracketRepository.listPlacedFighterIdsByDivision(input.eventId);
 
     const summary: AutoBracketGenerationSummary = {
       createdMatches: 0,
@@ -678,13 +679,16 @@ export const bracketAutoMatchService = {
       }
       summary.resetDeletedMatches =
         await bracketRepository.deleteAllEventBracketMatches(input.eventId);
-      placedIds = new Set();
+      placedByDivision = new Map();
     }
 
     const matchable: RecordMatchCandidate[] = [];
     const divisionReviewExcluded: AutoMatchApplicationRow[] = [];
     for (const row of applications) {
-      if (placedIds.has(row.fighterId)) {
+      if (
+        row.divisionId &&
+        placedByDivision.get(row.divisionId)?.has(row.fighterId)
+      ) {
         summary.excludedAlreadyPlaced += 1;
         continue;
       }

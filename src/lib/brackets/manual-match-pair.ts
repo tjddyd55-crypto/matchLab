@@ -187,7 +187,7 @@ export function buildManualMatchConfirmDescription(input: {
       lines.push(
         `${side.fighterName} 선수는 이미 ${side.assignmentCount}경기에 배정되어 있습니다.`,
       );
-      lines.push("추가로 이 경기에 배정하시겠습니까?");
+      lines.push("기존 경기는 유지되며, 추가로 이 경기에 배정하시겠습니까?");
       lines.push("");
     }
   }

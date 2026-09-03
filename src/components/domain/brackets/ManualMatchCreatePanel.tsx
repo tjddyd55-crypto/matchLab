@@ -446,7 +446,7 @@ export function ManualMatchCreatePanel({
       fd.set("redFighterId", red.fighterId);
       fd.set("blueFighterId", blue.fighterId);
       if (defaultCourtId) fd.set("defaultCourtId", defaultCourtId);
-      if (allowDuplicateAssignment) {
+      if (allowDuplicateAssignment || hasDuplicate) {
         fd.set("allowDuplicateAssignment", "1");
       }
       const res = await createManualMatchWithPairAction(fd);

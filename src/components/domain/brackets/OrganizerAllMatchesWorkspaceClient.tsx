@@ -245,6 +245,7 @@ export function OrganizerAllMatchesWorkspaceClient({
           <BracketApprovedCandidatesSection
             options={data.approvedFighterOptions}
             eventWideUnmatchedOptions={data.eventWideUnmatchedOptions}
+            eventWideManualPickOptions={data.eventWideManualPickOptions}
             matches={data.matches}
             bracketId={defaultBracketId || "pending"}
             bracketType={BracketType.match_list}

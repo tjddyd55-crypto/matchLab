@@ -121,6 +121,7 @@ export function OrganizerBracketEditor({
             <BracketApprovedCandidatesSection
               options={detail.approvedFighterOptions}
               eventWideUnmatchedOptions={detail.eventWideUnmatchedOptions}
+              eventWideManualPickOptions={detail.eventWideManualPickOptions}
               matches={detail.matches}
               bracketId={detail.id}
               bracketType={detail.type}
@@ -141,6 +142,7 @@ export function OrganizerBracketEditor({
           <BracketApprovedCandidatesSection
             options={detail.approvedFighterOptions}
             eventWideUnmatchedOptions={detail.eventWideUnmatchedOptions}
+            eventWideManualPickOptions={detail.eventWideManualPickOptions}
             matches={detail.matches}
             bracketId={detail.id}
             bracketType={detail.type}

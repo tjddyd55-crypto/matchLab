@@ -344,6 +344,7 @@ function CandidateColumn({
 export function BracketApprovedCandidatesSection({
   options,
   eventWideUnmatchedOptions,
+  eventWideManualPickOptions,
   matches,
   bracketId,
   bracketType,
@@ -357,6 +358,8 @@ export function BracketApprovedCandidatesSection({
 }: {
   options: OrganizerApprovedFighterOptionVM[];
   eventWideUnmatchedOptions: OrganizerApprovedFighterOptionVM[];
+  /** 배정 여부 무관 — 교차 경기구분 수동 편성용 */
+  eventWideManualPickOptions: OrganizerApprovedFighterOptionVM[];
   matches: OrganizerBracketMatchVM[];
   bracketId: string;
   bracketType: BracketType;
@@ -417,16 +420,23 @@ export function BracketApprovedCandidatesSection({
 
   const expandDock = useCallback(() => setDockExpanded(true), []);
 
-  /** 복수 경기 ON — 대회 승인·배정 가능 선수 전원 (미배정+기배정) */
-  const allAssignableFighters = useMemo(
-    () => options.filter((o) => o.isAssignableForBracket),
-    [options],
-  );
+  /** 복수 경기 ON — 대회 승인·배정 가능 선수 전원 (현재 그룹 + 교차 편성 후보) */
+  const allAssignableFighters = useMemo(() => {
+    const map = new Map<string, OrganizerApprovedFighterOptionVM>();
+    for (const o of options) {
+      if (o.isAssignableForBracket) map.set(o.fighterId, o);
+    }
+    for (const o of eventWideManualPickOptions) {
+      if (o.isAssignableForBracket) map.set(o.fighterId, o);
+    }
+    return [...map.values()];
+  }, [options, eventWideManualPickOptions]);
 
   const manualCandidateMap = useMemo(() => {
     const map = new Map<string, OrganizerApprovedFighterOptionVM>();
     for (const o of grouped.unassigned) map.set(o.fighterId, o);
     for (const o of eventWideUnmatchedOptions) map.set(o.fighterId, o);
+    for (const o of eventWideManualPickOptions) map.set(o.fighterId, o);
     if (multiMatchMode) {
       for (const o of allAssignableFighters) map.set(o.fighterId, o);
     }
@@ -434,6 +444,7 @@ export function BracketApprovedCandidatesSection({
   }, [
     grouped.unassigned,
     eventWideUnmatchedOptions,
+    eventWideManualPickOptions,
     multiMatchMode,
     allAssignableFighters,
   ]);
