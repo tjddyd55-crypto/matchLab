@@ -116,6 +116,19 @@ async function loadSendConfig(): Promise<MatchonPhoneVerificationConfig> {
   return platformAuthSmsService.loadPhoneVerificationConfigWithCredentials();
 }
 
+function assertProductionUserOtpAllowedWithDiagnostics(
+  config: MatchonPhoneVerificationConfig,
+) {
+  try {
+    assertProductionUserOtpAllowed(config);
+  } catch (e) {
+    platformAuthSmsService.logCredentialDiagnostics(
+      e instanceof Error ? e.message : "production_phone_otp_not_ready",
+    );
+    throw e;
+  }
+}
+
 async function invalidatePending(phoneNormalized: string, purpose: PhoneVerificationPurpose) {
   await prisma.phoneVerification.updateMany({
     where: {
@@ -144,7 +157,7 @@ export const matchonPhoneVerificationService = {
         "휴대폰 본인인증 기능은 준비 중입니다.",
       );
     }
-    assertProductionUserOtpAllowed(config);
+    assertProductionUserOtpAllowedWithDiagnostics(config);
     const phone = validateKrMobile(input.phone);
     if (!phone.ok) {
       throw new AppError("VALIDATION_ERROR", phone.message);
@@ -274,7 +287,7 @@ export const matchonPhoneVerificationService = {
         "휴대폰 본인인증 기능은 준비 중입니다.",
       );
     }
-    assertProductionUserOtpAllowed(config);
+    assertProductionUserOtpAllowedWithDiagnostics(config);
     const phone = validateKrMobile(input.phone);
     if (!phone.ok) {
       throw new AppError("VALIDATION_ERROR", phone.message);
@@ -453,7 +466,7 @@ export const matchonPhoneVerificationService = {
         "휴대폰 비밀번호 재설정 기능은 준비 중입니다. 관리자에게 문의해 주세요.",
       );
     }
-    assertProductionUserOtpAllowed(config);
+    assertProductionUserOtpAllowedWithDiagnostics(config);
     const started = Date.now();
     const loginId = normalizeLoginId(String(input.loginId ?? ""));
     const phone = validateKrMobile(input.phone);
@@ -580,7 +593,7 @@ export const matchonPhoneVerificationService = {
         "휴대폰 비밀번호 재설정 기능은 준비 중입니다. 관리자에게 문의해 주세요.",
       );
     }
-    assertProductionUserOtpAllowed(config);
+    assertProductionUserOtpAllowedWithDiagnostics(config);
     const loginId = normalizeLoginId(String(input.loginId ?? ""));
     const phone = validateKrMobile(input.phone);
     if (!loginId || !phone.ok) {
@@ -671,7 +684,7 @@ export const matchonPhoneVerificationService = {
         "휴대폰 비밀번호 재설정 기능은 준비 중입니다. 관리자에게 문의해 주세요.",
       );
     }
-    assertProductionUserOtpAllowed(config);
+    assertProductionUserOtpAllowedWithDiagnostics(config);
     const token = String(input.passwordResetToken ?? "").trim();
     if (!token) {
       throw new AppError("VALIDATION_ERROR", "인증이 필요합니다.");

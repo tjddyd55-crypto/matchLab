@@ -11,6 +11,7 @@ import {
 import { normalizeMessagingPhone } from "@/lib/messaging/messaging-phone";
 import { platformMessagingProviderConfigRepository } from "@/lib/repositories/platform-messaging-provider-config.repository";
 import {
+  areMatchonAligoCredentialsComplete,
   canMatchonAuthSmsRealSend,
   getMatchonPhoneVerificationRuntimeStatus,
   loadMatchonPhoneVerificationConfig,
@@ -72,7 +73,59 @@ function envAligoCredentials(
   };
 }
 
+export type PlatformAuthSmsCredentialDiagnostics = {
+  source: PlatformAuthSmsRuntimeVM["credentialsSource"];
+  dbConfigExists: boolean;
+  hasUserId: boolean;
+  hasApiKeyEncrypted: boolean;
+  decryptSuccess: boolean;
+  hasApiKeyResolved: boolean;
+  hasSender: boolean;
+  provider: string;
+  dryRun: boolean;
+  signupEnabled: boolean;
+  passwordResetEnabled: boolean;
+};
+
+function hasEncryptedApiKeyBlob(row: {
+  apiKeyCipher: Uint8Array | Buffer | null;
+  apiKeyIv: Uint8Array | Buffer | null;
+  apiKeyAuthTag: Uint8Array | Buffer | null;
+}): boolean {
+  return Boolean(row.apiKeyCipher && row.apiKeyIv && row.apiKeyAuthTag);
+}
+
 export const platformAuthSmsService = {
+  async getCredentialDiagnostics(): Promise<PlatformAuthSmsCredentialDiagnostics> {
+    const envConfig = loadMatchonPhoneVerificationConfig();
+    const row = await platformMessagingProviderConfigRepository.getDefault();
+    const hasEncrypted = row ? hasEncryptedApiKeyBlob(row) : false;
+    const decrypted = row ? decryptMessagingApiKey(row) : null;
+    const { credentials, source } = await this.resolveAligoCredentials();
+
+    return {
+      source,
+      dbConfigExists: Boolean(row),
+      hasUserId: Boolean(row?.loginId?.trim()),
+      hasApiKeyEncrypted: hasEncrypted,
+      decryptSuccess: hasEncrypted ? Boolean(decrypted) : false,
+      hasApiKeyResolved: Boolean(credentials?.apiKey),
+      hasSender: Boolean(
+        row?.senderPhone?.trim() || credentials?.senderPhone?.trim(),
+      ),
+      provider: envConfig.provider,
+      dryRun: envConfig.dryRun,
+      signupEnabled: envConfig.signupPhoneVerificationEnabled,
+      passwordResetEnabled: envConfig.passwordResetPhoneEnabled,
+    };
+  },
+
+  logCredentialDiagnostics(context: string) {
+    void this.getCredentialDiagnostics().then((diag) => {
+      console.error(`[phone-verification] credential_diagnostics (${context})`, diag);
+    });
+  },
+
   async resolveAligoCredentials(): Promise<{
     credentials: PlatformAuthAligoCredentials | null;
     source: PlatformAuthSmsRuntimeVM["credentialsSource"];
@@ -121,11 +174,9 @@ export const platformAuthSmsService = {
 
   async getRuntimeStatus(): Promise<PlatformAuthSmsRuntimeVM> {
     const config = await this.loadPhoneVerificationConfigWithCredentials();
-    const base = getMatchonPhoneVerificationRuntimeStatus();
+    const base = getMatchonPhoneVerificationRuntimeStatus(process.env, config);
     const { source } = await this.resolveAligoCredentials();
-    const credentialsConfigured = Boolean(
-      config.aligo.apiKey && config.aligo.userId && config.aligo.sender,
-    );
+    const credentialsConfigured = areMatchonAligoCredentialsComplete(config);
     const realSendAllowed = canMatchonAuthSmsRealSend(config);
 
     return {
@@ -137,8 +188,8 @@ export const platformAuthSmsService = {
       credentialsConfigured,
       credentialsSource: source,
       encryptionKeyConfigured: isMessagingCredentialEncryptionConfigured(),
-      productionReady: base.productionReady && credentialsConfigured,
-      blockingReason: credentialsConfigured ? base.blockingReason : "credentials_incomplete",
+      productionReady: base.productionReady,
+      blockingReason: base.blockingReason,
     };
   },
 

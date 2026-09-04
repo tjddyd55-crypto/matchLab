@@ -170,14 +170,21 @@ export function assertMatchonAuthSmsProviderConfigured(
 /**
  * 진단/게이트용 런타임 상태. credential 원문은 포함하지 않는다.
  */
-export function getMatchonPhoneVerificationRuntimeStatus(
-  env: NodeJS.ProcessEnv = process.env,
-): MatchonPhoneVerificationRuntimeStatus {
-  const config = loadMatchonPhoneVerificationConfig(env);
-  const isProductionRuntime = isMatchonProductionRuntime(env);
-  const credentialsComplete = Boolean(
+export function areMatchonAligoCredentialsComplete(
+  config: MatchonPhoneVerificationConfig,
+): boolean {
+  return Boolean(
     config.aligo.apiKey && config.aligo.userId && config.aligo.sender,
   );
+}
+
+export function getMatchonPhoneVerificationRuntimeStatus(
+  env: NodeJS.ProcessEnv = process.env,
+  configOverride?: MatchonPhoneVerificationConfig,
+): MatchonPhoneVerificationRuntimeStatus {
+  const config = configOverride ?? loadMatchonPhoneVerificationConfig(env);
+  const isProductionRuntime = isMatchonProductionRuntime(env);
+  const credentialsComplete = areMatchonAligoCredentialsComplete(config);
   const realSendAllowed = canMatchonAuthSmsRealSend(config);
   const e2eAllowed =
     !isProductionRuntime &&
@@ -230,7 +237,7 @@ export function assertProductionUserOtpAllowed(
   env: NodeJS.ProcessEnv = process.env,
 ): void {
   if (!isMatchonProductionRuntime(env)) return;
-  const status = getMatchonPhoneVerificationRuntimeStatus(env);
+  const status = getMatchonPhoneVerificationRuntimeStatus(env, config);
   if (!status.productionReady) {
     throw new Error(
       status.blockingReason || "production_phone_otp_not_ready",

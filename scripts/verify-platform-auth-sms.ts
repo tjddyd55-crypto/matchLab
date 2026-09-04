@@ -27,10 +27,51 @@ function assertPlatformAuthSmsService() {
   assert.match(service, /platformAuthSmsService/);
   assert.match(service, /resolveAligoCredentials/);
   assert.match(service, /loadPhoneVerificationConfigWithCredentials/);
+  assert.match(service, /getCredentialDiagnostics/);
+  assert.match(
+    service,
+    /getMatchonPhoneVerificationRuntimeStatus\(process\.env, config\)/,
+  );
   assert.match(service, /classifyAligoConnectionError/);
   assert.doesNotMatch(service, /tenantFeatureEntitlementService/);
   assert.doesNotMatch(service, /messagingProviderConfigRepository/);
   console.log("verify:platform-auth-sms-service: OK");
+}
+
+function assertRuntimeStatusMergedCredentials() {
+  const {
+    getMatchonPhoneVerificationRuntimeStatus,
+    loadMatchonPhoneVerificationConfig,
+  } = require("../src/server/phone-verification/config/matchon-phone-verification-config");
+
+  const prodEnv = {
+    NODE_ENV: "production",
+    RAILWAY_ENVIRONMENT_NAME: "production",
+    MATCHON_PHONE_VERIFICATION_ENABLED: "true",
+    MATCHON_PASSWORD_RESET_PHONE_ENABLED: "true",
+    MATCHON_AUTH_SMS_PROVIDER: "aligo",
+    MATCHON_AUTH_SMS_DRY_RUN: "false",
+    MATCHON_AUTH_SMS_ALLOW_REAL_SEND: "true",
+    MATCHON_PHONE_VERIFICATION_PEPPER: "p",
+  } as NodeJS.ProcessEnv;
+
+  const envOnly = getMatchonPhoneVerificationRuntimeStatus(prodEnv);
+  assert.equal(envOnly.blockingReason, "credentials_incomplete");
+
+  const base = loadMatchonPhoneVerificationConfig(prodEnv);
+  const merged = getMatchonPhoneVerificationRuntimeStatus(prodEnv, {
+    ...base,
+    aligo: {
+      ...base.aligo,
+      apiKey: "test-key",
+      userId: "test-user",
+      sender: "01012345678",
+    },
+  });
+  assert.equal(merged.credentialsComplete, true);
+  assert.equal(merged.productionReady, true);
+  assert.equal(merged.blockingReason, null);
+  console.log("verify:platform-auth-sms-merged-credentials: OK");
 }
 
 function assertAdminUi() {
@@ -100,6 +141,7 @@ async function assertDbModel() {
 async function main() {
   assertSchema();
   assertPlatformAuthSmsService();
+  assertRuntimeStatusMergedCredentials();
   assertAdminUi();
   assertCredentialSeparation();
   assertSmsCopy();
