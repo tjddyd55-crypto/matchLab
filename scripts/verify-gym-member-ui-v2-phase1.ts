@@ -25,7 +25,6 @@ const DETAIL_TABS = [
   "membership",
   "schedule",
   "participation",
-  "fighter",
 ] as const;
 
 function main() {
@@ -33,14 +32,29 @@ function main() {
   for (const h of HIDDEN_COLUMNS) {
     assert.equal(LIST_COLUMNS.includes(h as never), false);
   }
-  assert.equal(DETAIL_TABS.length, 5);
+  assert.equal(DETAIL_TABS.length, 4);
 
   const page = readFileSync(
     "src/app/(dashboard)/gym/members/page.tsx",
     "utf8",
   );
-  assert.match(page, /joined:\s*"this-month"/);
-  assert.match(page, /MemberMetricCard[\s\S]*이번 달 신규[\s\S]*href=/);
+  assert.match(page, /"this-month"/);
+  assert.match(page, /MemberCompactStatsStrip/);
+  assert.match(page, /parseJoined/);
+
+  const stats = readFileSync(
+    "src/components/domain/gym-members/MemberCompactStatsStrip.tsx",
+    "utf8",
+  );
+  assert.match(stats, /joined:\s*"this-month"/);
+
+  const tabs = readFileSync(
+    "src/components/domain/gym-members/MemberDetailTabs.tsx",
+    "utf8",
+  );
+  assert.doesNotMatch(tabs, /선수정보/);
+  assert.match(tabs, /개요/);
+  assert.match(tabs, /회원권·결제/);
 
   const today = new Date(Date.UTC(2026, 7, 5));
   const expiring = computeGymMemberMembershipStatus({

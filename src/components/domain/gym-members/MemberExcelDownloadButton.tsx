@@ -33,7 +33,10 @@ export function MemberExcelDownloadButton({
 
   return (
     <>
-      <ExcelExportTriggerButton onOpen={() => setOpen(true)} />
+      <ExcelExportTriggerButton
+        onOpen={() => setOpen(true)}
+        className="min-h-8 h-8"
+      />
       <SelectableExcelExportDialog
         open={open}
         onOpenChange={setOpen}

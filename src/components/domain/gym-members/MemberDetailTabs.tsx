@@ -11,8 +11,7 @@ export type MemberDetailTabId =
   | "overview"
   | "membership"
   | "schedule"
-  | "participation"
-  | "fighter";
+  | "participation";
 
 export const MEMBER_DETAIL_TABS: {
   id: MemberDetailTabId;
@@ -22,7 +21,6 @@ export const MEMBER_DETAIL_TABS: {
   { id: "membership", label: "회원권·결제" },
   { id: "schedule", label: "일정" },
   { id: "participation", label: "참여" },
-  { id: "fighter", label: "선수정보" },
 ];
 
 export function MemberDetailTabs({
@@ -54,7 +52,7 @@ export function MemberDetailTabs({
             href={href}
             className={cn(
               matchonUnderlineTabBaseClass,
-              "min-h-11 px-3 pt-2 text-[13px]",
+              "min-h-10 px-3 pt-1.5 text-[13px]",
               isActive
                 ? matchonUnderlineTabActiveClass
                 : matchonUnderlineTabInactiveClass,

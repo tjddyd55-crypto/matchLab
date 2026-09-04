@@ -48,9 +48,12 @@ function hasNoListChipFilter(query: MemberListQuery): boolean {
 export function MemberFilterBar({
   query,
   groups = [],
+  resultCountLabel,
 }: {
   query: MemberListQuery;
   groups?: { id: string; name: string }[];
+  /** Optional compact count shown beside search (replaces separate list title). */
+  resultCountLabel?: string;
 }) {
   const chips: {
     label: string;
@@ -149,10 +152,10 @@ export function MemberFilterBar({
   ];
 
   return (
-    <div className="space-y-3" id="member-list">
+    <div className="space-y-1.5" id="member-list">
       <form
         method="get"
-        className="flex flex-col gap-2 sm:flex-row sm:items-center"
+        className="flex flex-col gap-1.5 sm:flex-row sm:flex-wrap sm:items-center sm:gap-2"
       >
         {query.status ? (
           <input type="hidden" name="status" value={query.status} />
@@ -177,14 +180,19 @@ export function MemberFilterBar({
           name="q"
           defaultValue={query.q ?? ""}
           placeholder="이름·전화번호 검색"
-          className={cn(matchonFieldInputClass, "sm:max-w-sm")}
+          className={cn(matchonFieldInputClass, "min-h-8 sm:max-w-sm")}
         />
         <button
           type="submit"
-          className="inline-flex min-h-11 items-center justify-center rounded-lg bg-matchon-primary px-4 text-sm font-semibold text-white focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-matchon-primary/30"
+          className="inline-flex min-h-8 items-center justify-center rounded-lg bg-matchon-primary px-3 text-sm font-semibold text-white focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-matchon-primary/30"
         >
           검색
         </button>
+        {resultCountLabel ? (
+          <p className="text-[11px] font-medium text-matchon-text-secondary sm:ml-1">
+            {resultCountLabel}
+          </p>
+        ) : null}
       </form>
 
       <div className={matchonScrollablePillsClass} role="list">
@@ -195,7 +203,7 @@ export function MemberFilterBar({
             role="listitem"
             className={cn(
               matchonFilterPillBaseClass,
-              "min-h-11",
+              "min-h-8 px-2 text-[12px]",
               chip.active
                 ? matchonFilterPillActiveClass
                 : matchonFilterPillInactiveClass,

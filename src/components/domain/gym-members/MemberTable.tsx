@@ -41,45 +41,45 @@ export function MemberTable({
   members: GymMemberListItemVM[];
 }) {
   return (
-    <div className="hidden overflow-hidden rounded-[10px] border border-matchon-border bg-white lg:block">
+    <div className="hidden max-h-[min(70vh,52rem)] overflow-auto rounded-[10px] border border-matchon-border bg-white lg:block">
       <table className="w-full table-fixed text-left text-xs">
         <caption className="sr-only">회원 목록</caption>
-        <thead className="border-b border-matchon-border bg-matchon-surface text-[10px] font-semibold text-matchon-text-secondary">
+        <thead className="sticky top-0 z-10 border-b border-matchon-border bg-matchon-surface text-[10px] font-semibold text-matchon-text-secondary shadow-[0_1px_0_0_var(--matchon-border,rgba(0,0,0,0.06))]">
           <tr>
-            <th scope="col" className="w-8 px-1.5 py-2 text-center">
+            <th scope="col" className="w-8 px-1.5 py-1.5 text-center">
               #
             </th>
-            <th scope="col" className="w-[11%] px-1.5 py-2">
+            <th scope="col" className="w-[12%] px-1.5 py-1.5">
               회원명
             </th>
-            <th scope="col" className="w-[10%] px-1.5 py-2">
-              연락처
-            </th>
-            <th scope="col" className="w-[9%] px-1.5 py-2">
-              그룹
-            </th>
-            <th scope="col" className="w-[8%] px-1.5 py-2">
+            <th scope="col" className="w-[8%] px-1.5 py-1.5">
               상태
             </th>
-            <th scope="col" className="w-[12%] px-1.5 py-2">
+            <th scope="col" className="w-[12%] px-1.5 py-1.5">
               회원권
             </th>
-            <th scope="col" className="w-[8%] px-1.5 py-2">
-              이용시작일
+            <th scope="col" className="w-[8%] px-1.5 py-1.5">
+              만료
             </th>
-            <th scope="col" className="w-[8%] px-1.5 py-2">
-              이용종료일
+            <th scope="col" className="w-[10%] px-1.5 py-1.5">
+              연락처
             </th>
-            <th scope="col" className="w-[11%] px-1.5 py-2">
+            <th scope="col" className="w-[9%] px-1.5 py-1.5">
+              그룹
+            </th>
+            <th scope="col" className="w-[8%] px-1.5 py-1.5">
+              시작일
+            </th>
+            <th scope="col" className="w-[10%] px-1.5 py-1.5">
               이용기간/잔여
             </th>
-            <th scope="col" className="w-[7%] px-1.5 py-2 text-right">
-              출석횟수
+            <th scope="col" className="w-[7%] px-1.5 py-1.5 text-right">
+              출석
             </th>
-            <th scope="col" className="w-[8%] px-1.5 py-2 text-right">
-              결제금액
+            <th scope="col" className="w-[8%] px-1.5 py-1.5 text-right">
+              결제
             </th>
-            <th scope="col" className="w-[8%] px-1.5 py-2">
+            <th scope="col" className="w-[8%] px-1.5 py-1.5">
               관리
             </th>
           </tr>
@@ -88,12 +88,12 @@ export function MemberTable({
           {members.map((m) => (
             <tr
               key={m.id}
-              className="border-b border-matchon-border last:border-0 hover:bg-matchon-surface/60"
+              className="h-10 border-b border-matchon-border last:border-0 hover:bg-matchon-surface/60"
             >
-              <td className="px-1.5 py-1 text-center text-[11px] tabular-nums text-matchon-text-secondary">
+              <td className="px-1.5 py-0.5 text-center text-[11px] tabular-nums text-matchon-text-secondary">
                 {m.rowNumber}
               </td>
-              <td className="px-1.5 py-1">
+              <td className="px-1.5 py-0.5">
                 <div className="flex min-w-0 items-center gap-1.5">
                   <GymMemberAvatar
                     src={m.profileImageUrl}
@@ -112,41 +112,41 @@ export function MemberTable({
                   </div>
                 </div>
               </td>
-              <td className="px-1.5 py-1 whitespace-nowrap text-matchon-text-secondary">
-                {formatPhoneNumber(m.phone)}
-              </td>
-              <td className="px-1.5 py-1">
-                <GroupCell names={m.groupNames} />
-              </td>
-              <td className="px-1.5 py-1">
+              <td className="px-1.5 py-0.5">
                 <MemberStatusBadge
                   label={m.membershipStatusLabel}
                   tone={m.membershipStatus}
                 />
               </td>
-              <td className="px-1.5 py-1">
-                <span className="line-clamp-2 break-words text-xs">
+              <td className="px-1.5 py-0.5">
+                <span className="line-clamp-2 break-words text-xs font-medium text-matchon-text-primary">
                   {m.planName ?? "회원권 없음"}
                 </span>
               </td>
-              <td className="px-1.5 py-1 whitespace-nowrap text-matchon-text-secondary">
-                {m.startedAt ? formatUtcDateOnly(m.startedAt) : "—"}
-              </td>
-              <td className="px-1.5 py-1 whitespace-nowrap">
+              <td className="px-1.5 py-0.5 whitespace-nowrap">
                 <ExpirationCell member={m} />
               </td>
-              <td className="px-1.5 py-1">
-                <span className="line-clamp-2 text-xs text-matchon-text-primary">
+              <td className="px-1.5 py-0.5 whitespace-nowrap text-matchon-text-secondary">
+                {formatPhoneNumber(m.phone)}
+              </td>
+              <td className="px-1.5 py-0.5">
+                <GroupCell names={m.groupNames} />
+              </td>
+              <td className="px-1.5 py-0.5 whitespace-nowrap text-matchon-text-secondary">
+                {m.startedAt ? formatUtcDateOnly(m.startedAt) : "—"}
+              </td>
+              <td className="px-1.5 py-0.5">
+                <span className="line-clamp-2 text-xs text-matchon-text-secondary">
                   {m.periodRemainingLabel ?? "—"}
                 </span>
               </td>
-              <td className="px-1.5 py-1 text-right tabular-nums text-matchon-text-primary">
+              <td className="px-1.5 py-0.5 text-right tabular-nums text-matchon-text-secondary">
                 {m.attendanceCount == null ? "—" : `${m.attendanceCount}회`}
               </td>
-              <td className="px-1.5 py-1 text-right tabular-nums text-matchon-text-primary">
+              <td className="px-1.5 py-0.5 text-right tabular-nums text-matchon-text-secondary">
                 {m.paymentAmount == null ? "—" : formatWon(m.paymentAmount)}
               </td>
-              <td className="px-1.5 py-1">
+              <td className="px-1.5 py-0.5">
                 <div className="flex flex-wrap items-center gap-1.5">
                   <Link
                     href={`/gym/members/${m.id}`}

@@ -5,11 +5,9 @@ import { gymMemberGroupService } from "@/lib/services/gym-member-group.service";
 import { gymMemberProfileService } from "@/lib/services/gym-member-profile.service";
 import { GymMemberCreateForm } from "@/components/domain/gym-members/GymMemberCreateForm";
 import { GymProfileMissingBanner } from "@/components/domain/gym/GymProfileMissingBanner";
-import { buttonVariants } from "@/components/ui/button";
 import {
   matchonPageContainerClass,
   matchonPageDescClass,
-  matchonPageStackClass,
   matchonPageTitleClass,
 } from "@/lib/ui/matchon-layout";
 import { cn } from "@/lib/utils";
@@ -28,9 +26,7 @@ export default async function GymMemberNewPage({
   if (!actor.gymId) {
     return (
       <div className={matchonPageContainerClass}>
-        <div className={matchonPageStackClass}>
-          <GymProfileMissingBanner />
-        </div>
+        <GymProfileMissingBanner />
       </div>
     );
   }
@@ -42,27 +38,24 @@ export default async function GymMemberNewPage({
   ]);
 
   return (
-    <div className={matchonPageContainerClass}>
-      <div className={matchonPageStackClass}>
-        <div className="min-w-0">
+    <div className={cn(matchonPageContainerClass, "py-3 md:py-4")}>
+      <div className="mx-0 flex w-full max-w-[78rem] flex-col gap-3">
+        <header className="min-w-0 space-y-1">
           <Link
             href="/gym/members"
-            className={cn(
-              buttonVariants({ variant: "ghost", size: "sm" }),
-              "-ml-2 mb-2",
-            )}
+            className="inline-flex min-h-8 items-center text-xs font-medium text-matchon-text-secondary hover:text-matchon-primary"
           >
-            ← 전체 회원
+            ← 회원 목록
           </Link>
           <h1 className={matchonPageTitleClass}>
             {registerAsFighter ? "회원·선수 등록" : "회원 등록"}
           </h1>
-          <p className={matchonPageDescClass}>
+          <p className={cn(matchonPageDescClass, "text-xs")}>
             {registerAsFighter
               ? "회원 정보를 등록하면서 선수로도 함께 등록합니다."
               : "체육관 회원을 등록합니다. 이용권·결제는 선택 사항입니다."}
           </p>
-        </div>
+        </header>
 
         <GymMemberCreateForm
           plans={plans.map((p) => ({

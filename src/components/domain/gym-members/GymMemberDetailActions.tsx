@@ -7,7 +7,6 @@ import { useAppConfirmDialog } from "@/components/shared/app-confirm-dialog";
 import { Button } from "@/components/ui/button";
 import {
   pauseGymMemberAction,
-  promoteGymMemberToFighterAction,
   resumeGymMemberAction,
   setGymMemberStatusAction,
   softDeleteGymMemberAction,
@@ -16,15 +15,16 @@ import { GymMemberStatus } from "@/lib/enums";
 import { todayUtcDateOnlyString } from "@/lib/date-only";
 import { matchonFieldInputClass } from "@/lib/ui/matchon-shell-ui";
 
+/** Membership-tab operational actions (pause / withdraw / delete). Fighter registration lives on overview. */
 export function GymMemberDetailActions({
   memberId,
   memberStatus,
-  hasFighter,
-  defaultPrimarySport,
 }: {
   memberId: string;
   memberStatus: GymMemberStatus;
-  hasFighter: boolean;
+  /** @deprecated fighter promote moved to overview */
+  hasFighter?: boolean;
+  /** @deprecated */
   defaultPrimarySport?: string | null;
 }) {
   const router = useRouter();
@@ -32,7 +32,6 @@ export function GymMemberDetailActions({
   const [pending, startTransition] = useTransition();
   const [error, setError] = useState<string | null>(null);
   const [message, setMessage] = useState<string | null>(null);
-  const [createLogin, setCreateLogin] = useState(false);
   const today = todayUtcDateOnlyString();
 
   function run(
@@ -65,7 +64,7 @@ export function GymMemberDetailActions({
   const isPaused = memberStatus === GymMemberStatus.paused;
 
   return (
-    <div className="space-y-6">
+    <div className="space-y-4">
       {error ? (
         <p className="rounded-lg border border-red-200 bg-red-50 px-3 py-2 text-sm text-red-700">
           {error}
@@ -183,82 +182,6 @@ export function GymMemberDetailActions({
               삭제
             </Button>
           </div>
-        </section>
-      ) : null}
-
-      {!hasFighter && !isWithdrawn ? (
-        <section className="space-y-3 rounded-xl border border-matchon-border bg-white p-4">
-          <h3 className="text-sm font-semibold text-matchon-text-primary">
-            선수로 등록
-          </h3>
-          <p className="text-xs text-matchon-text-secondary">
-            생년월일·성별이 회원 정보에 있어야 합니다.
-          </p>
-          <form
-            action={(formData) => {
-              formData.set(
-                "createLoginAccount",
-                createLogin ? "true" : "false",
-              );
-              run(
-                () => promoteGymMemberToFighterAction(memberId, formData),
-                "선수로 등록했습니다.",
-              );
-            }}
-            className="space-y-2"
-          >
-            <label className="block space-y-1 text-sm">
-              <span>키 (cm)</span>
-              <input
-                name="height"
-                inputMode="decimal"
-                className={matchonFieldInputClass}
-              />
-            </label>
-            <label className="block space-y-1 text-sm">
-              <span>체중 (kg)</span>
-              <input
-                name="weight"
-                inputMode="decimal"
-                className={matchonFieldInputClass}
-              />
-            </label>
-            <label className="block space-y-1 text-sm">
-              <span>주 종목</span>
-              <input
-                name="primarySport"
-                defaultValue={defaultPrimarySport ?? ""}
-                className={matchonFieldInputClass}
-              />
-            </label>
-            <label className="flex items-center gap-2 text-sm">
-              <input
-                type="checkbox"
-                checked={createLogin}
-                onChange={(e) => setCreateLogin(e.target.checked)}
-              />
-              로그인 계정 생성
-            </label>
-            {createLogin ? (
-              <>
-                <label className="block space-y-1 text-sm">
-                  <span>로그인 아이디</span>
-                  <input name="loginId" className={matchonFieldInputClass} />
-                </label>
-                <label className="block space-y-1 text-sm">
-                  <span>초기 비밀번호 (비우면 자동 생성)</span>
-                  <input
-                    name="password"
-                    type="password"
-                    className={matchonFieldInputClass}
-                  />
-                </label>
-              </>
-            ) : null}
-            <Button type="submit" size="sm" disabled={pending}>
-              선수 등록
-            </Button>
-          </form>
         </section>
       ) : null}
     </div>

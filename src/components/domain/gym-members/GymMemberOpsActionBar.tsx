@@ -17,8 +17,6 @@ export function GymMemberOpsActionBar({
   canManageSales,
   products,
   selfRegistrationHref,
-  hasFighter,
-  fighterEditHref,
 }: {
   memberId: string;
   memberName: string;
@@ -26,32 +24,19 @@ export function GymMemberOpsActionBar({
   canManageSales: boolean;
   products: SalesEntryProductOption[];
   selfRegistrationHref?: string | null;
-  hasFighter?: boolean;
-  fighterEditHref?: string | null;
 }) {
   const [paymentOpen, setPaymentOpen] = useState(false);
   const [attendanceOpen, setAttendanceOpen] = useState(false);
 
   return (
     <>
-      <div className="flex flex-wrap items-center gap-2">
-        {selfRegistrationHref ? (
-          <Link
-            href={selfRegistrationHref}
-            className={cn(
-              buttonVariants({ variant: "outline", size: "sm" }),
-              "min-h-11",
-            )}
-          >
-            가입 신청서 보기
-          </Link>
-        ) : null}
+      <div className="flex flex-wrap items-center gap-1.5">
         {canWriteMembers ? (
           <Link
             href={`/gym/members/${memberId}/edit`}
             className={cn(
               buttonVariants({ variant: "outline", size: "sm" }),
-              "min-h-11",
+              "min-h-9",
             )}
           >
             수정
@@ -60,7 +45,7 @@ export function GymMemberOpsActionBar({
         {canWriteMembers ? (
           <Link
             href={`/gym/members/${memberId}?tab=membership&op=sale`}
-            className={cn(buttonVariants({ size: "sm" }), "min-h-11")}
+            className={cn(buttonVariants({ size: "sm" }), "min-h-9")}
           >
             이용권 등록
           </Link>
@@ -70,7 +55,7 @@ export function GymMemberOpsActionBar({
             type="button"
             variant="outline"
             size="sm"
-            className="min-h-11"
+            className="min-h-9"
             onClick={() => setPaymentOpen(true)}
           >
             결제
@@ -81,21 +66,21 @@ export function GymMemberOpsActionBar({
             type="button"
             variant="outline"
             size="sm"
-            className="min-h-11"
+            className="min-h-9"
             onClick={() => setAttendanceOpen(true)}
           >
             출석 처리
           </Button>
         ) : null}
-        {hasFighter && fighterEditHref ? (
+        {selfRegistrationHref ? (
           <Link
-            href={fighterEditHref}
+            href={selfRegistrationHref}
             className={cn(
-              buttonVariants({ variant: "outline", size: "sm" }),
-              "min-h-11",
+              buttonVariants({ variant: "ghost", size: "sm" }),
+              "min-h-9",
             )}
           >
-            선수 정보
+            가입 신청서
           </Link>
         ) : null}
       </div>

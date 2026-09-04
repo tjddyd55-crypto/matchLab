@@ -8,11 +8,9 @@ import { gymMemberGroupService } from "@/lib/services/gym-member-group.service";
 import { gymMemberProfileService } from "@/lib/services/gym-member-profile.service";
 import { GymMemberEditForm } from "@/components/domain/gym-members/GymMemberEditForm";
 import { GymProfileMissingBanner } from "@/components/domain/gym/GymProfileMissingBanner";
-import { buttonVariants } from "@/components/ui/button";
 import {
   matchonPageContainerClass,
   matchonPageDescClass,
-  matchonPageStackClass,
   matchonPageTitleClass,
 } from "@/lib/ui/matchon-layout";
 import { cn } from "@/lib/utils";
@@ -30,9 +28,7 @@ export default async function GymMemberEditPage({
   if (!actor.gymId) {
     return (
       <div className={matchonPageContainerClass}>
-        <div className={matchonPageStackClass}>
-          <GymProfileMissingBanner />
-        </div>
+        <GymProfileMissingBanner />
       </div>
     );
   }
@@ -58,15 +54,12 @@ export default async function GymMemberEditPage({
   const { member } = detail;
 
   return (
-    <div className={matchonPageContainerClass}>
-      <div className={matchonPageStackClass}>
-        <div className="min-w-0">
+    <div className={cn(matchonPageContainerClass, "py-3 md:py-4")}>
+      <div className="mx-0 flex w-full max-w-[78rem] flex-col gap-3">
+        <header className="min-w-0 space-y-1">
           <Link
             href={`/gym/members/${member.id}`}
-            className={cn(
-              buttonVariants({ variant: "ghost", size: "sm" }),
-              "-ml-2 mb-2",
-            )}
+            className="inline-flex min-h-8 items-center text-xs font-medium text-matchon-text-secondary hover:text-matchon-primary"
           >
             ← {member.name}
           </Link>
@@ -74,7 +67,7 @@ export default async function GymMemberEditPage({
           <p className={cn(matchonPageDescClass, "font-mono text-xs")}>
             {member.memberNumber}
           </p>
-        </div>
+        </header>
 
         <GymMemberEditForm
           memberId={member.id}

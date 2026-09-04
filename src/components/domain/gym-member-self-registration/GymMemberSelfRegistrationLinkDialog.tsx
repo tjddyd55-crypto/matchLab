@@ -142,7 +142,7 @@ export function GymMemberSelfRegistrationLinkButton() {
         type="button"
         variant="outline"
         size="sm"
-        className="min-h-11"
+        className="min-h-9"
         onClick={() => setOpen(true)}
       >
         셀프등록 링크

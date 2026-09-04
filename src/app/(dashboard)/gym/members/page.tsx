@@ -5,7 +5,7 @@ import { gymMemberService } from "@/lib/services/gym-member.service";
 import { gymMemberGroupService } from "@/lib/services/gym-member-group.service";
 import { GymProfileMissingBanner } from "@/components/domain/gym/GymProfileMissingBanner";
 import { MemberPageHeader } from "@/components/domain/gym-members/MemberPageHeader";
-import { MemberMetricCard } from "@/components/domain/gym-members/MemberMetricCard";
+import { MemberCompactStatsStrip } from "@/components/domain/gym-members/MemberCompactStatsStrip";
 import { MemberFilterBar } from "@/components/domain/gym-members/MemberFilterBar";
 import { MemberExcelDownloadButton } from "@/components/domain/gym-members/MemberExcelDownloadButton";
 import { MemberExcelImportButton } from "@/components/domain/gym-members/MemberExcelImportDialog";
@@ -15,11 +15,7 @@ import { MemberTable } from "@/components/domain/gym-members/MemberTable";
 import { MemberMobileCard } from "@/components/domain/gym-members/MemberMobileCard";
 import { MatchonEmptyState } from "@/components/shared/MatchonEmptyState";
 import { buttonVariants } from "@/components/ui/button";
-import {
-  matchonPageContainerClass,
-  matchonPageStackClass,
-} from "@/lib/ui/matchon-layout";
-import { matchonMemberMetricsGridClass } from "@/lib/ui/matchon-shell-ui";
+import { matchonPageContainerClass } from "@/lib/ui/matchon-layout";
 import { cn } from "@/lib/utils";
 
 export const dynamic = "force-dynamic";
@@ -81,10 +77,6 @@ function buildQuery(params: Record<string, string | undefined>): string {
   return s ? `?${s}` : "";
 }
 
-function filterHref(patch: Record<string, string | undefined>): string {
-  return `/gym/members${buildQuery(patch)}`;
-}
-
 export default async function GymMembersPage({
   searchParams,
 }: {
@@ -96,9 +88,7 @@ export default async function GymMembersPage({
   if (!actor.gymId) {
     return (
       <div className={cn(matchonPageContainerClass, "overflow-x-hidden")}>
-        <div className={matchonPageStackClass}>
-          <GymProfileMissingBanner />
-        </div>
+        <GymProfileMissingBanner />
       </div>
     );
   }
@@ -157,140 +147,90 @@ export default async function GymMembersPage({
       ? "필터를 초기화하거나 다른 조건을 선택해 보세요."
       : "첫 회원을 등록해 보세요.";
 
+  const countLabel = hasListFilter
+    ? `필터 결과 ${list.total}명 · 전체 ${summary.total}명`
+    : `전체 회원 ${summary.total}명`;
+
   return (
-    <div className={cn(matchonPageContainerClass, "overflow-x-hidden bg-matchon-surface")}>
-      <div className={matchonPageStackClass}>
+    <div
+      className={cn(
+        matchonPageContainerClass,
+        "overflow-x-hidden bg-matchon-surface py-2 md:py-3",
+      )}
+    >
+      <div className="mx-0 flex w-full max-w-[78rem] flex-col gap-2">
         <MemberPageHeader
           title="회원관리"
-          description="회원 현황과 오늘 처리할 업무를 확인하세요."
+          className="gap-1.5 sm:items-center [&_h1]:text-lg [&_h1]:md:text-xl"
           actions={
-            <>
-              <MemberExcelDownloadButton
-                filters={baseParams}
-                filteredCount={list.total}
-                totalCount={summary.total}
-                hasActiveFilters={hasListFilter}
-              />
-              <MemberExcelImportButton />
+            <div className="flex flex-wrap items-center gap-1.5">
               <Link
                 href="/gym/members/new"
-                className={cn(buttonVariants({ size: "sm" }), "min-h-11")}
+                className={cn(buttonVariants({ size: "sm" }), "min-h-8")}
               >
-                신규 회원 등록
+                + 신규 회원
               </Link>
-              <GymMemberSelfRegistrationLinkButton />
               <Link
                 href="/gym/members/registrations?status=pending"
                 className={cn(
                   buttonVariants({ variant: "outline", size: "sm" }),
-                  "min-h-11",
+                  "min-h-8",
                 )}
               >
                 등록 요청{pendingSelfReg > 0 ? ` ${pendingSelfReg}` : ""}
               </Link>
-              <Link
-                href="/gym/member-groups"
-                className={cn(
-                  buttonVariants({ variant: "outline", size: "sm" }),
-                  "min-h-11",
-                )}
-              >
-                그룹 관리
-              </Link>
-              <Link
-                href="/gym/membership-plans"
-                className={cn(
-                  buttonVariants({ variant: "outline", size: "sm" }),
-                  "min-h-11",
-                )}
-              >
-                이용권 관리
-              </Link>
-            </>
+              <details className="relative">
+                <summary className="cursor-pointer list-none rounded-md border border-matchon-border bg-white px-2.5 py-1.5 text-xs font-medium text-matchon-text-secondary hover:text-matchon-primary [&::-webkit-details-marker]:hidden">
+                  더보기 ▾
+                </summary>
+                <div className="absolute right-0 z-20 mt-1 flex min-w-[11rem] flex-col gap-0.5 rounded-md border border-matchon-border bg-white p-1.5 shadow-md">
+                  <div className="px-1 py-0.5">
+                    <MemberExcelDownloadButton
+                      filters={baseParams}
+                      filteredCount={list.total}
+                      totalCount={summary.total}
+                      hasActiveFilters={hasListFilter}
+                    />
+                  </div>
+                  <div className="px-1 py-0.5">
+                    <MemberExcelImportButton />
+                  </div>
+                  <div className="px-1 py-0.5">
+                    <GymMemberSelfRegistrationLinkButton />
+                  </div>
+                  <Link
+                    href="/gym/member-groups"
+                    className="rounded px-2 py-1.5 text-xs text-matchon-text-secondary hover:bg-matchon-surface hover:text-matchon-primary"
+                  >
+                    그룹 관리
+                  </Link>
+                  <Link
+                    href="/gym/membership-plans"
+                    className="rounded px-2 py-1.5 text-xs text-matchon-text-secondary hover:bg-matchon-surface hover:text-matchon-primary"
+                  >
+                    이용권 관리
+                  </Link>
+                  <Link
+                    href="/gym/member-portal"
+                    className="rounded px-2 py-1.5 text-xs text-matchon-text-secondary hover:bg-matchon-surface hover:text-matchon-primary"
+                  >
+                    회원전용
+                  </Link>
+                </div>
+              </details>
+            </div>
           }
         />
 
-        {/* 홈 지표 — countSummary SSOT. 오늘 PT·receivable은 loader 확장 후속. */}
-        <div className={matchonMemberMetricsGridClass}>
-          <MemberMetricCard
-            label="전체 회원"
-            value={summary.total}
-            href={filterHref({})}
-          />
-          <MemberMetricCard
-            label="이용 중"
-            value={summary.inUse}
-            href={filterHref({ expiration: "active" })}
-          />
-          <MemberMetricCard
-            label="만료 예정"
-            value={summary.expiring}
-            href={filterHref({ expiration: "expiring" })}
-          />
-          <MemberMetricCard
-            label="휴회 중"
-            value={summary.paused}
-            href={filterHref({ status: GymMemberStatus.paused })}
-          />
-          <MemberMetricCard
-            label="이번 달 신규"
-            value={summary.newThisMonth}
-            href={filterHref({ joined: "this-month" })}
-          />
-        </div>
-
-        <div className="flex flex-wrap items-center gap-x-3 gap-y-1 rounded-md border border-matchon-border bg-white px-2.5 py-1.5 text-[11px] text-matchon-text-secondary">
-          <span className="font-semibold text-matchon-text-primary">업무</span>
-          <Link
-            href={filterHref({ expiration: "expiring" })}
-            className="hover:text-matchon-primary hover:underline"
-          >
-            만료임박 {summary.expiring}
-          </Link>
-          <Link
-            href={filterHref({ status: GymMemberStatus.paused })}
-            className="hover:text-matchon-primary hover:underline"
-          >
-            휴회 {summary.paused}
-          </Link>
-          <Link
-            href={filterHref({ joined: "this-month" })}
-            className="hover:text-matchon-primary hover:underline"
-          >
-            이번달등록 {summary.newThisMonth}
-          </Link>
-          <span aria-hidden className="text-matchon-border">
-            |
-          </span>
-          <Link
-            href="/gym/members/new"
-            className="hover:text-matchon-primary hover:underline"
-          >
-            신규등록
-          </Link>
-          <Link
-            href="/gym/member-portal"
-            className="hover:text-matchon-primary hover:underline"
-          >
-            회원전용
-          </Link>
-          <Link
-            href="/gym/membership-plans"
-            className="hover:text-matchon-primary hover:underline"
-          >
-            이용권상품
-          </Link>
-        </div>
-
-        <div className="space-y-1">
-          <h2 className="text-base font-semibold text-matchon-text-primary">
-            회원 목록
-          </h2>
-          <p className="text-sm text-matchon-text-secondary">
-            전체 {summary.total}명
-            {hasListFilter ? ` · 필터 결과 ${list.total}명` : ""}
-          </p>
-        </div>
+        <MemberCompactStatsStrip
+          summary={summary}
+          active={{
+            expiration:
+              expirationFilter !== "all" ? expirationFilter : undefined,
+            status: status ?? undefined,
+            joined: joinedFilter !== "all" ? joinedFilter : undefined,
+          }}
+        />
 
         <MemberFilterBar
           query={{
@@ -302,6 +242,7 @@ export default async function GymMembersPage({
             groupId,
           }}
           groups={groups.map((g) => ({ id: g.id, name: g.name }))}
+          resultCountLabel={countLabel}
         />
 
         {list.items.length === 0 ? (
@@ -312,7 +253,7 @@ export default async function GymMembersPage({
               !hasListFilter ? (
                 <Link
                   href="/gym/members/new"
-                  className={cn(buttonVariants({ size: "sm" }), "min-h-11")}
+                  className={cn(buttonVariants({ size: "sm" }), "min-h-9")}
                 >
                   신규 회원 등록
                 </Link>
@@ -321,7 +262,7 @@ export default async function GymMembersPage({
                   href="/gym/members"
                   className={cn(
                     buttonVariants({ variant: "outline", size: "sm" }),
-                    "min-h-11",
+                    "min-h-9",
                   )}
                 >
                   필터 초기화
@@ -331,7 +272,7 @@ export default async function GymMembersPage({
           />
         ) : (
           <>
-            <div className="flex flex-col gap-3 overflow-x-hidden lg:hidden">
+            <div className="flex flex-col gap-2 overflow-x-hidden lg:hidden">
               {list.items.map((m) => (
                 <MemberMobileCard key={m.id} member={m} />
               ))}
@@ -349,7 +290,7 @@ export default async function GymMembersPage({
                     })}`}
                     className={cn(
                       buttonVariants({ variant: "outline", size: "sm" }),
-                      "min-h-11",
+                      "min-h-9",
                     )}
                   >
                     이전
@@ -366,7 +307,7 @@ export default async function GymMembersPage({
                     })}`}
                     className={cn(
                       buttonVariants({ variant: "outline", size: "sm" }),
-                      "min-h-11",
+                      "min-h-9",
                     )}
                   >
                     다음

@@ -125,7 +125,7 @@ export default async function GymFighterEditPage({
         ) : null}
 
         {careerProfile ? (
-          <div className="pt-2">
+          <div className="pt-2" id="career">
             <h2 className={matchonPageTitleClass}>경기 · 참가 이력</h2>
             <p className={cn(matchonPageDescClass, "mb-4")}>
               전체 전적은 MATCHON 공식 + 기존/외부 합산입니다. 아래 경기 목록은
