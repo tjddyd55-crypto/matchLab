@@ -71,6 +71,13 @@ GitHub → Railway 배포가 성공해도 **Postgres는 빈 DB**입니다. `publ
 - 업로드·조회는 **anon 클라이언트 정책만으로 열지 말고**, 서버에서 `SUPABASE_SERVICE_ROLE_KEY` 로 검증 후 **short-lived signed URL** 만 발급합니다(MVP 권장: 업로드 URL 약 5분).
 - 로컬 MVP에서는 CRM 손사인 UI를 **이 레포 안으로 복사·로컬화**한 `SignaturePad`를 사용합니다. 장기적으로는 전자서명 단독 서비스로 옮길 수 있도록 **`consent.service`/`completeGuardianConsentAction` 경계**를 유지합니다.
 
+
+### Storage · 대회 포스터·갤러리 (`SUPABASE_EVENT_IMAGE_BUCKET`)
+
+- Supabase **Storage**에 bucket **`event-images`**(또는 `SUPABASE_EVENT_IMAGE_BUCKET` 값)를 만들고 **Public(공개 읽기)** 로 설정합니다.
+- 업로드 signed URL은 서버(`upload.service.ts` + `SUPABASE_SERVICE_ROLE_KEY`)에서만 발급합니다.
+- 「업로드 URL 발급에 실패했습니다」→ bucket 미생성·env 누락·service role 오류 가능. `docs/deploy-railway.md` §6(A) 참고.
+
 ### Storage · 공식 신청서 PDF
 
 - Supabase **Storage**에 private bucket **`application-forms`**(템플릿 원본 PDF), **`application-documents`**(완료 overlay PDF)를 생성합니다.

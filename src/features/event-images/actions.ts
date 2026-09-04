@@ -23,7 +23,29 @@ function mapCaught<T>(
       return actionFailure(e.code, e.message, e.details);
     }
     if (e instanceof PermissionError) {
-      return actionFailure(permissionReasonToActionCode(e.reason), e.message);
+      const message =
+        e.reason === "UNAUTHORIZED"
+          ? "로그인이 필요합니다."
+          : e.reason === "NOT_FOUND"
+            ? e.message || "대회를 찾을 수 없습니다."
+            : e.reason === "FORBIDDEN"
+              ? "이 대회 이미지를 업로드할 권한이 없습니다."
+              : e.message;
+      return actionFailure(permissionReasonToActionCode(e.reason), message);
+    }
+    if (e instanceof Error) {
+      if (e.message.includes("NEXT_PUBLIC_SUPABASE_URL")) {
+        return actionFailure(
+          "INTERNAL",
+          "NEXT_PUBLIC_SUPABASE_URL이 설정되지 않았습니다. Railway Variables를 확인하세요.",
+        );
+      }
+      if (e.message.includes("SUPABASE_SERVICE_ROLE_KEY")) {
+        return actionFailure(
+          "INTERNAL",
+          "SUPABASE_SERVICE_ROLE_KEY가 설정되지 않았습니다. Storage signed URL 발급에 필요합니다.",
+        );
+      }
     }
     console.error(e);
     return actionFailure("INTERNAL", "처리 중 오류가 발생했습니다.");
