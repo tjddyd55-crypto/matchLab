@@ -54,8 +54,9 @@ jobs:
       - name: Generate Prisma client
         run: npm run db:generate
 
-      - name: Apply migrations
-        run: npm run db:migrate:deploy
+      # Baseline migration is a no-op marker; empty CI postgres needs schema via db push.
+      - name: Provision database schema (CI)
+        run: npm run db:push
 
       - name: Seed Golden Flow
         run: npm run seed:golden -- --ci

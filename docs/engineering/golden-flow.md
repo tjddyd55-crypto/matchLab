@@ -109,7 +109,7 @@ Workflow: `.github/workflows/golden-flow.yml`
 
 | Job | Trigger | 내용 |
 |-----|---------|------|
-| `golden-services` | push main, PR | postgres + migrate + seed --ci + verify services |
+| `golden-services` | push main, PR | postgres + `db push` (empty CI DB) + seed --ci + verify services |
 | `golden-browser` | `workflow_dispatch` only | secrets + Playwright (optional) |
 
 Fast CI(`ci.yml`)와 **분리**되어 있습니다. Golden browser는 안정화 전까지 required gate가 아닙니다.
