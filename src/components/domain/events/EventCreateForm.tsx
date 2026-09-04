@@ -20,6 +20,7 @@ import {
   readImageDimensionsFromFile,
 } from "@/lib/client/event-poster-aspect";
 import { Button } from "@/components/ui/button";
+import { Textarea } from "@/components/ui/textarea";
 import { ORGANIZER_FIELD_INPUT_CLASS } from "@/lib/organizer-dashboard-layout";
 import { cn } from "@/lib/utils";
 import { zodFlattenToFieldErrors } from "@/lib/validators/event-form-errors";
@@ -252,14 +253,7 @@ export function EventCreateForm({ actorRole }: { actorRole: UserRole }) {
         </label>
         <label className="space-y-1 text-sm md:col-span-2">
           <span className="text-muted-foreground">설명 (선택)</span>
-          <textarea
-            name="description"
-            rows={3}
-            maxLength={8000}
-            className={cn(
-              cn(ORGANIZER_FIELD_INPUT_CLASS, "min-h-[72px] py-2"),
-            )}
-          />
+          <Textarea name="description" maxLength={8000} />
         </label>
         <EventAddressInput fieldErrors={fieldErrors} />
         <label className="space-y-1 text-sm">

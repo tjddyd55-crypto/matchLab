@@ -1,11 +1,18 @@
-import { toSeoulDateKey, formatSeoulScheduleTime } from "@/lib/gym-schedule/seoul-schedule";
-import { formatSeoulTimeHm } from "@/lib/gym-attendance/seoul-date";
+import {
+  extractEventDatetimeLocalDateKey,
+  extractEventDatetimeLocalHm,
+} from "@/lib/date-display";
+import {
+  formatSeoulScheduleTime,
+  toSeoulDateKey,
+} from "@/lib/gym-schedule/seoul-schedule";
 
-/** Event.eventDate에서 Seoul 기준 의미 있는 시각(HH:mm) — 자정이면 null */
-export function extractSeoulTimeFromEventDate(eventDate: Date): string | null {
-  const hm = formatSeoulTimeHm(eventDate);
-  if (hm === "00:00") return null;
-  return hm;
+/**
+ * Event.eventDate에서 일정 prefill용 시각(HH:mm).
+ * 대회 기본정보 datetime-local 표시와 동일한 wall-clock(UTC 필드) 기준.
+ */
+export function extractEventScheduleTimeHm(eventDate: Date): string | null {
+  return extractEventDatetimeLocalHm(eventDate);
 }
 
 export type EventSchedulePrefill = {
@@ -26,8 +33,8 @@ export function buildEventSchedulePrefill(event: {
   location: string | null;
   locationName: string | null;
 }): EventSchedulePrefill {
-  const startsAtDate = toSeoulDateKey(event.eventDate).slice(0, 10);
-  const startsAtHm = extractSeoulTimeFromEventDate(event.eventDate);
+  const startsAtDate = extractEventDatetimeLocalDateKey(event.eventDate);
+  const startsAtHm = extractEventScheduleTimeHm(event.eventDate);
   const venue =
     event.locationName?.trim() ||
     event.location?.trim() ||

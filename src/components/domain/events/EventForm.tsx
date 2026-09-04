@@ -10,6 +10,8 @@ import { EventAddressInput } from "@/components/domain/events/EventAddressInput"
 import { EventCreateForm } from "@/components/domain/events/EventCreateForm";
 import { EventPosterUpload } from "@/components/domain/events/EventPosterUpload";
 import { Button } from "@/components/ui/button";
+import { Textarea } from "@/components/ui/textarea";
+import { eventDatetimeLocalValueFromIso } from "@/lib/date-display";
 import { ORGANIZER_FIELD_INPUT_CLASS } from "@/lib/organizer-dashboard-layout";
 import { cn } from "@/lib/utils";
 import { zodFlattenToFieldErrors } from "@/lib/validators/event-form-errors";
@@ -27,9 +29,7 @@ function EventFieldError({
 }
 
 function toDatetimeLocalValue(iso: string): string {
-  const d = new Date(iso);
-  if (Number.isNaN(d.getTime())) return "";
-  return d.toISOString().slice(0, 16);
+  return eventDatetimeLocalValueFromIso(iso);
 }
 
 type UpdateOk = ActionResult<{ ok: true }>;
@@ -103,14 +103,10 @@ export function EventForm({
         </label>
         <label className="space-y-1 text-sm md:col-span-2">
           <span className="text-muted-foreground">설명</span>
-          <textarea
+          <Textarea
             name="description"
-            rows={3}
             maxLength={8000}
             defaultValue={initial.description ?? ""}
-            className={cn(
-              cn(ORGANIZER_FIELD_INPUT_CLASS, "min-h-[72px] py-2"),
-            )}
           />
         </label>
         <EventAddressInput

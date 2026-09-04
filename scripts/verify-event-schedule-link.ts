@@ -7,9 +7,12 @@ import { readFileSync } from "node:fs";
 import { join } from "node:path";
 import {
   buildEventSchedulePrefill,
-  extractSeoulTimeFromEventDate,
+  extractEventScheduleTimeHm,
 } from "../src/lib/association-schedule/event-prefill";
-import { createSeoulDateTime } from "../src/lib/gym-schedule/seoul-schedule";
+import {
+  extractEventDatetimeLocalDateKey,
+  extractEventDatetimeLocalHm,
+} from "../src/lib/date-display";
 
 function read(rel: string): string {
   return readFileSync(join(process.cwd(), rel), "utf8");
@@ -37,26 +40,41 @@ assert.doesNotMatch(migrationSrc, /^\s*DELETE\s+/im);
 assert.doesNotMatch(migrationSrc, /DROP COLUMN/i);
 assert.match(migrationSrc, /relatedEventId/);
 
-const midnight = createSeoulDateTime("2026-09-05", "00:00");
-assert.equal(extractSeoulTimeFromEventDate(midnight), null);
-const withTime = createSeoulDateTime("2026-09-05", "08:00");
-assert.equal(extractSeoulTimeFromEventDate(withTime), "08:00");
+const midnight = new Date("2026-09-05T00:00:00.000Z");
+assert.equal(extractEventDatetimeLocalHm(midnight), null);
+assert.equal(extractEventScheduleTimeHm(midnight), null);
+
+const at11 = new Date("2026-09-05T11:00:00.000Z");
+assert.equal(extractEventDatetimeLocalHm(at11), "11:00");
+assert.equal(extractEventScheduleTimeHm(at11), "11:00");
+assert.equal(extractEventDatetimeLocalDateKey(at11), "2026-09-05");
 
 const prefill = buildEventSchedulePrefill({
   id: "evt1",
   title: "QA 대회",
-  eventDate: withTime,
+  eventDate: at11,
   location: "장소A",
   locationName: "체육관",
 });
 assert.equal(prefill.type, "TOURNAMENT");
 assert.equal(prefill.startsAtDate, "2026-09-05");
-assert.equal(prefill.startsAtHm, "08:00");
+assert.equal(prefill.startsAtHm, "11:00");
 assert.equal(prefill.allDay, false);
 assert.equal(prefill.location, "체육관");
 
-const dateOnly = buildEventSchedulePrefill({
+const at1430 = new Date("2026-09-05T14:30:00.000Z");
+const prefill1430 = buildEventSchedulePrefill({
   id: "evt2",
+  title: "오후 대회",
+  eventDate: at1430,
+  location: null,
+  locationName: null,
+});
+assert.equal(prefill1430.startsAtHm, "14:30");
+assert.equal(prefill1430.startsAtDate, "2026-09-05");
+
+const dateOnly = buildEventSchedulePrefill({
+  id: "evt3",
   title: "날짜만",
   eventDate: midnight,
   location: null,

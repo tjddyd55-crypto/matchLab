@@ -133,5 +133,5 @@ export {
   formControlTextareaRowsDefault,
 };
 
-/** Textarea 기본 — 약 3~4줄, resize-y */
+/** Textarea 기본 — 약 5줄, resize-y */
 export const matchonFieldTextareaClass = formControlTextareaClass;

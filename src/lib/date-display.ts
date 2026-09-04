@@ -48,3 +48,28 @@ export function formatPublicDateTime(iso: string): string {
 export function formatPublicPeriod(fromIso: string, toIso: string): string {
   return `${formatPublicDate(fromIso)} ~ ${formatPublicDate(toIso)}`;
 }
+
+/**
+ * Event `<input type="datetime-local">` 와 DB Date UTC 필드 간 wall-clock 매핑.
+ * EventForm `toISOString().slice(0,16)` 표시와 동일한 기준(Seoul shift 없음).
+ */
+export function extractEventDatetimeLocalDateKey(at: Date): string {
+  if (Number.isNaN(at.getTime())) return "";
+  return `${at.getUTCFullYear()}-${pad2(at.getUTCMonth() + 1)}-${pad2(at.getUTCDate())}`;
+}
+
+export function extractEventDatetimeLocalHm(at: Date): string | null {
+  if (Number.isNaN(at.getTime())) return null;
+  const h = at.getUTCHours();
+  const m = at.getUTCMinutes();
+  if (h === 0 && m === 0) return null;
+  return `${pad2(h)}:${pad2(m)}`;
+}
+
+export function eventDatetimeLocalValueFromIso(iso: string): string {
+  const d = new Date(iso);
+  if (Number.isNaN(d.getTime())) return "";
+  const dateKey = extractEventDatetimeLocalDateKey(d);
+  const hm = extractEventDatetimeLocalHm(d);
+  return hm ? `${dateKey}T${hm}` : `${dateKey}T00:00`;
+}
