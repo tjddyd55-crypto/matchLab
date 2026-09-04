@@ -10,6 +10,18 @@ concurrency:
   group: golden-flow-${{ github.workflow }}-${{ github.ref }}
   cancel-in-progress: true
 
+env:
+  GOLDEN_FLOW_CI: "1"
+  MATCHON_GOLDEN_TEST_AUTH: "1"
+  MATCHON_GOLDEN_TEST_AUTH_SECRET: ci-golden-test-auth-secret
+  AUTH_SECRET: ci-golden-flow-auth-secret-32chars-min
+  NEXTAUTH_SECRET: ci-golden-flow-nextauth-secret
+  MATCHON_PII_ENCRYPTION_KEY: 0123456789abcdef0123456789abcdef0123456789abcdef0123456789abcdef
+  CREDIT_LEDGER_HMAC_SECRET: ci-golden-flow-ledger-hmac-secret
+  NEXT_PUBLIC_SUPABASE_URL: https://example.supabase.co
+  NEXT_PUBLIC_SUPABASE_ANON_KEY: ci-anon-key
+  SUPABASE_SERVICE_ROLE_KEY: ci-service-role-key
+
 jobs:
   golden-services:
     name: Golden Flow (services)
@@ -32,14 +44,6 @@ jobs:
     env:
       DATABASE_URL: postgresql://ci:ci@localhost:5432/matchon_ci
       DIRECT_URL: postgresql://ci:ci@localhost:5432/matchon_ci
-      GOLDEN_FLOW_CI: "1"
-      AUTH_SECRET: ci-golden-flow-auth-secret-32chars-min
-      NEXTAUTH_SECRET: ci-golden-flow-nextauth-secret
-      MATCHON_PII_ENCRYPTION_KEY: 0123456789abcdef0123456789abcdef0123456789abcdef0123456789abcdef
-      CREDIT_LEDGER_HMAC_SECRET: ci-golden-flow-ledger-hmac-secret
-      NEXT_PUBLIC_SUPABASE_URL: https://example.supabase.co
-      NEXT_PUBLIC_SUPABASE_ANON_KEY: ci-anon-key
-      SUPABASE_SERVICE_ROLE_KEY: ci-service-role-key
     steps:
       - uses: actions/checkout@v4
 
@@ -75,21 +79,27 @@ jobs:
   golden-browser:
     name: Golden Flow (browser)
     runs-on: ubuntu-latest
-    timeout-minutes: 30
+    timeout-minutes: 45
     if: ${{ github.event_name == 'workflow_dispatch' || github.ref == 'refs/heads/main' }}
+    services:
+      postgres:
+        image: postgres:16
+        env:
+          POSTGRES_USER: ci
+          POSTGRES_PASSWORD: ci
+          POSTGRES_DB: matchon_ci
+        ports:
+          - 5432:5432
+        options: >-
+          --health-cmd pg_isready
+          --health-interval 10s
+          --health-timeout 5s
+          --health-retries 5
     env:
-      QA_BASE_URL: ${{ vars.GOLDEN_FLOW_BASE_URL || 'http://127.0.0.1:3000' }}
-      DEMO_PASSWORD: ${{ secrets.DEMO_PASSWORD }}
-      GOLDEN_PASSWORD: ${{ secrets.GOLDEN_PASSWORD }}
-      DATABASE_URL: ${{ secrets.GOLDEN_FLOW_DATABASE_URL }}
-      DIRECT_URL: ${{ secrets.GOLDEN_FLOW_DIRECT_URL }}
-      NEXT_PUBLIC_SUPABASE_URL: ${{ secrets.NEXT_PUBLIC_SUPABASE_URL }}
-      NEXT_PUBLIC_SUPABASE_ANON_KEY: ${{ secrets.NEXT_PUBLIC_SUPABASE_ANON_KEY }}
-      SUPABASE_SERVICE_ROLE_KEY: ${{ secrets.SUPABASE_SERVICE_ROLE_KEY }}
-      AUTH_SECRET: ${{ secrets.AUTH_SECRET }}
-      NEXTAUTH_SECRET: ${{ secrets.NEXTAUTH_SECRET }}
-      MATCHON_PII_ENCRYPTION_KEY: ${{ secrets.MATCHON_PII_ENCRYPTION_KEY }}
-      CREDIT_LEDGER_HMAC_SECRET: ${{ secrets.CREDIT_LEDGER_HMAC_SECRET }}
+      DATABASE_URL: postgresql://ci:ci@localhost:5432/matchon_ci
+      DIRECT_URL: postgresql://ci:ci@localhost:5432/matchon_ci
+      QA_BASE_URL: http://127.0.0.1:3000
+      CI: "true"
     steps:
       - uses: actions/checkout@v4
 
@@ -101,16 +111,26 @@ jobs:
       - name: Install dependencies
         run: npm ci
 
+      - name: Generate Prisma client
+        run: npm run db:generate
+
+      - name: Provision database schema (CI)
+        run: npm run db:push
+
+      - name: Seed Golden Flow
+        run: npm run seed:golden -- --ci
+
+      - name: Build application (production server)
+        run: npm run build
+
       - name: Install Playwright browsers
         run: npx playwright install chromium --with-deps
 
-      - name: Seed Golden Flow
-        if: env.DATABASE_URL != ''
-        run: npm run seed:golden
+      - name: Verify golden test auth safety
+        run: npm run verify:golden-test-auth-safety
 
-      - name: Run Golden Flow browser smoke
-        if: env.DEMO_PASSWORD != '' || env.GOLDEN_PASSWORD != ''
-        run: npm run test:golden
+      - name: Run Golden Flow browser mutations
+        run: npx playwright test -c playwright.golden.config.ts
 
       - name: Upload Playwright artifacts
         if: failure()

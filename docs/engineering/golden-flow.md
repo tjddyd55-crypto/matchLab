@@ -52,13 +52,62 @@ Idempotent: 매 실행 시 기존 golden 데이터 cleanup 후 재생성. 운영
 
 ## 계정 / Role
 
-| 환경 | Organizer | 비밀번호 |
-|------|-----------|----------|
-| Local dev | `organizer` (setup:demo-users) | `DEMO_PASSWORD` |
+| 환경 | Organizer | 인증 |
+|------|-----------|------|
+| Local dev | `organizer` (setup:demo-users) | Supabase + `DEMO_PASSWORD` |
 | CI services | `golden-organizer` (DB only) | — |
-| Browser E2E | seed context의 `organizerLoginId` | `DEMO_PASSWORD` / `GOLDEN_PASSWORD` |
+| CI browser | `golden-organizer` (seed `--ci`) | **CI test session** (아래) |
+| Local browser | seed context `organizerLoginId` | `DEMO_PASSWORD` / `GOLDEN_PASSWORD` |
 
 비밀번호를 코드에 하드코딩하지 않습니다.
+
+## CI Browser Auth (self-contained)
+
+GitHub Actions `golden-browser` job은 **외부 Supabase·DEMO_PASSWORD secret 없이** 실행됩니다.
+
+```text
+GOLDEN_FLOW_CI=1
+MATCHON_GOLDEN_TEST_AUTH=1
+MATCHON_GOLDEN_TEST_AUTH_SECRET=<workflow 고정값>
+```
+
+흐름:
+
+```text
+seed:golden --ci  →  golden-organizer User/Organizer 생성
+POST /api/internal/golden-flow/test-session  →  httpOnly session cookie
+getCurrentActor()  →  golden session → DB ActorContext (OrganizerGuard 통과)
+Playwright UI mutation (계체/결과)
+```
+
+Production guard (`src/lib/auth/golden-test-auth-policy.ts`):
+
+- `MATCHON_GOLDEN_TEST_AUTH=1` **and** `GOLDEN_FLOW_CI=1` **and** non-production runtime
+- `RAILWAY_ENVIRONMENT_NAME=production` → **항상 거부**
+- arbitrary user impersonation 불가 — `golden-organizer` loginId만 허용
+- secret header 불일치 → 404
+
+검증: `npm run verify:golden-test-auth-safety`
+
+## Local vs CI Browser
+
+| | Local | CI |
+|---|-------|-----|
+| DB | yamanote + setup:demo-users | CI postgres + `seed --ci` |
+| Server | `next dev` (Playwright webServer) | `next build` + `next start` |
+| Login | `/login` Supabase form | test-session bootstrap |
+| Password | `DEMO_PASSWORD` | 불필요 |
+
+Local에서 CI auth를 시뮬레이션하려면 CI postgres + 위 env + `seed --ci` 후 `npx playwright test` 실행.
+
+## Troubleshooting
+
+| 증상 | 확인 |
+|------|------|
+| `Failed to find Server Action` (dev) | dev HMR 노이즈 — CI `next start`에서는 재현 안 됨 |
+| login timeout (local) | dev server 응답, `DEMO_PASSWORD`, Supabase |
+| test-session 404 (CI) | `MATCHON_GOLDEN_TEST_AUTH`, `GOLDEN_FLOW_CI`, secret, `seed --ci` |
+| golden-organizer not seeded | `db:push` 후 `seed:golden --ci` 순서 |
 
 ## Local 실행
 
@@ -97,7 +146,7 @@ npm run verify:golden-flow-services
 `test:golden`은 `seed:golden` 후 Playwright로 **실제 UI Server Action mutation**을 검증합니다.
 
 - `--prep-onsite` 사용하지 않음 (계체 완료 상태를 seed로 미리 만들지 않음)
-- Playwright `webServer`가 로컬 Next dev(`127.0.0.1:3000`)를 기동·재사용
+- Playwright `webServer`: local은 `next dev` 재사용, CI는 `next start` (사전 `npm run build`)
 - mutation 후 `assert:golden-browser-state`로 DB read-only 검증
 
 검증 흐름:
@@ -118,8 +167,8 @@ Workflow: `.github/workflows/golden-flow.yml`
 
 | Job | Trigger | 내용 |
 |-----|---------|------|
-| `golden-services` | push main, PR | postgres + `db push` (empty CI DB) + seed --ci + verify services |
-| `golden-browser` | **push main**, `workflow_dispatch` | secrets + Playwright (optional; Supabase auth 필요) |
+| `golden-services` | push main, PR | postgres + `db push` + seed --ci + verify services |
+| `golden-browser` | **push main**, `workflow_dispatch` | self-contained postgres + seed + build + `next start` + Playwright |
 
 Fast CI(`ci.yml`)와 **분리**되어 있습니다. Golden browser는 required PR gate가 아닙니다.
 
@@ -143,5 +192,6 @@ Fast CI(`ci.yml`)와 **분리**되어 있습니다. Golden browser는 required P
 npm run seed:golden
 npm run seed:golden:cleanup
 npm run verify:golden-flow-services
+npm run verify:golden-test-auth-safety
 npm run test:golden
 ```
