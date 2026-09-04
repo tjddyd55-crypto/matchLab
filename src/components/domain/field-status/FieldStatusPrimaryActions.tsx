@@ -51,6 +51,7 @@ export function FieldStatusPrimaryActions({
           variant={isPass ? "default" : "outline"}
           className="h-9 text-xs"
           disabled={pending || isPass}
+          data-testid="weighin-pass-button"
           onClick={() =>
             startTransition(() => run(weighInPassFormAction))
           }

@@ -482,6 +482,7 @@ export function OrganizerFieldStatusBoard({
       <div
         ref={listRef}
         className={cn(organizerOperationWorkspaceClass, "hidden md:grid")}
+        data-testid="checkin-workspace"
       >
         <div className={organizerOperationListPaneClass}>
           <div className={organizerOperationListScrollClass}>{listContent}</div>

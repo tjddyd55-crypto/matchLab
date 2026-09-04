@@ -543,6 +543,7 @@ function OrganizerMatchOpsPanelBody(props: OrganizerMatchOpsPanelProps) {
               value="confirm"
               size={actionSize}
               disabled={pending}
+              data-testid="match-result-confirm"
               className={cn(
                 isOperation &&
                   cn(

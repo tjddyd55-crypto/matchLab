@@ -9,8 +9,15 @@ export default defineConfig({
   retries: 0,
   workers: 1,
   fullyParallel: false,
+  webServer: {
+    command: "npm run dev -- --port 3000",
+    url: "http://127.0.0.1:3000/login",
+    reuseExistingServer: !process.env.CI,
+    timeout: 120_000,
+  },
   use: {
     baseURL,
+    viewport: { width: 1440, height: 900 },
     headless: true,
     locale: "ko-KR",
     trace: "retain-on-failure",

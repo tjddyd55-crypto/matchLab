@@ -84,6 +84,7 @@ export function WinnerCornerPicker({
               key={c.key}
               type="button"
               disabled={disabled}
+              data-testid={`match-winner-${c.key}`}
               onClick={() => setSelected(active ? null : c.id)}
               className={cn(
                 "flex flex-col items-center justify-center rounded-md border px-2 text-center text-xs transition-colors",
