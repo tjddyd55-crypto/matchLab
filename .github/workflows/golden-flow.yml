@@ -1,0 +1,121 @@
+name: Golden Flow
+
+on:
+  push:
+    branches: [main]
+  pull_request:
+  workflow_dispatch:
+
+concurrency:
+  group: golden-flow-${{ github.workflow }}-${{ github.ref }}
+  cancel-in-progress: true
+
+jobs:
+  golden-services:
+    name: Golden Flow (services)
+    runs-on: ubuntu-latest
+    timeout-minutes: 25
+    services:
+      postgres:
+        image: postgres:16
+        env:
+          POSTGRES_USER: ci
+          POSTGRES_PASSWORD: ci
+          POSTGRES_DB: matchon_ci
+        ports:
+          - 5432:5432
+        options: >-
+          --health-cmd pg_isready
+          --health-interval 10s
+          --health-timeout 5s
+          --health-retries 5
+    env:
+      DATABASE_URL: postgresql://ci:ci@localhost:5432/matchon_ci
+      DIRECT_URL: postgresql://ci:ci@localhost:5432/matchon_ci
+      GOLDEN_FLOW_CI: "1"
+      AUTH_SECRET: ci-golden-flow-auth-secret-32chars-min
+      NEXTAUTH_SECRET: ci-golden-flow-nextauth-secret
+      MATCHON_PII_ENCRYPTION_KEY: 0123456789abcdef0123456789abcdef0123456789abcdef0123456789abcdef
+      CREDIT_LEDGER_HMAC_SECRET: ci-golden-flow-ledger-hmac-secret
+      NEXT_PUBLIC_SUPABASE_URL: https://example.supabase.co
+      NEXT_PUBLIC_SUPABASE_ANON_KEY: ci-anon-key
+      SUPABASE_SERVICE_ROLE_KEY: ci-service-role-key
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: actions/setup-node@v4
+        with:
+          node-version: "22"
+          cache: npm
+
+      - name: Install dependencies
+        run: npm ci
+
+      - name: Generate Prisma client
+        run: npm run db:generate
+
+      - name: Apply migrations
+        run: npm run db:migrate:deploy
+
+      - name: Seed Golden Flow
+        run: npm run seed:golden -- --ci
+
+      - name: Verify Golden Flow services
+        run: npm run verify:golden-flow-services
+
+      - name: Upload golden context (on failure)
+        if: failure()
+        uses: actions/upload-artifact@v4
+        with:
+          name: golden-flow-context
+          path: test-results/golden-flow/
+          if-no-files-found: ignore
+
+  golden-browser:
+    name: Golden Flow (browser)
+    runs-on: ubuntu-latest
+    timeout-minutes: 30
+    if: ${{ github.event_name == 'workflow_dispatch' }}
+    env:
+      QA_BASE_URL: ${{ vars.GOLDEN_FLOW_BASE_URL || 'http://127.0.0.1:3000' }}
+      DEMO_PASSWORD: ${{ secrets.DEMO_PASSWORD }}
+      GOLDEN_PASSWORD: ${{ secrets.GOLDEN_PASSWORD }}
+      DATABASE_URL: ${{ secrets.GOLDEN_FLOW_DATABASE_URL }}
+      DIRECT_URL: ${{ secrets.GOLDEN_FLOW_DIRECT_URL }}
+      NEXT_PUBLIC_SUPABASE_URL: ${{ secrets.NEXT_PUBLIC_SUPABASE_URL }}
+      NEXT_PUBLIC_SUPABASE_ANON_KEY: ${{ secrets.NEXT_PUBLIC_SUPABASE_ANON_KEY }}
+      SUPABASE_SERVICE_ROLE_KEY: ${{ secrets.SUPABASE_SERVICE_ROLE_KEY }}
+      AUTH_SECRET: ${{ secrets.AUTH_SECRET }}
+      NEXTAUTH_SECRET: ${{ secrets.NEXTAUTH_SECRET }}
+      MATCHON_PII_ENCRYPTION_KEY: ${{ secrets.MATCHON_PII_ENCRYPTION_KEY }}
+      CREDIT_LEDGER_HMAC_SECRET: ${{ secrets.CREDIT_LEDGER_HMAC_SECRET }}
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: actions/setup-node@v4
+        with:
+          node-version: "22"
+          cache: npm
+
+      - name: Install dependencies
+        run: npm ci
+
+      - name: Install Playwright browsers
+        run: npx playwright install chromium --with-deps
+
+      - name: Seed Golden Flow
+        if: env.DATABASE_URL != ''
+        run: npm run seed:golden
+
+      - name: Run Golden Flow browser smoke
+        if: env.DEMO_PASSWORD != '' || env.GOLDEN_PASSWORD != ''
+        run: npm run test:golden
+
+      - name: Upload Playwright artifacts
+        if: failure()
+        uses: actions/upload-artifact@v4
+        with:
+          name: golden-flow-playwright
+          path: |
+            test-results/golden-flow/
+          if-no-files-found: ignore
