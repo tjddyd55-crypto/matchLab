@@ -5,6 +5,7 @@ import type {
   AssociationScheduleType,
   AssociationScheduleVisibility,
 } from "@/lib/enums";
+import { toSeoulDateOnlyString } from "@/lib/gym-attendance/seoul-date";
 import { prisma } from "@/lib/prisma";
 
 function db(tx?: Prisma.TransactionClient) {
@@ -28,6 +29,7 @@ export const associationScheduleRepository = {
       include: {
         relatedForm: { select: { id: true, title: true, publicToken: true } },
         relatedNotice: { select: { id: true, title: true } },
+        relatedEvent: { select: { id: true, title: true } },
       },
     });
   },
@@ -38,8 +40,44 @@ export const associationScheduleRepository = {
       include: {
         relatedForm: { select: { id: true, title: true, publicToken: true } },
         relatedNotice: { select: { id: true, title: true } },
+        relatedEvent: { select: { id: true, title: true } },
       },
     });
+  },
+
+  async findActiveByRelatedEventId(organizerId: string, eventId: string) {
+    return prisma.associationSchedule.findFirst({
+      where: {
+        organizerId,
+        relatedEventId: eventId,
+        deletedAt: null,
+      },
+      select: { id: true, startsAt: true },
+    });
+  },
+
+  async mapActiveRelatedEventIds(organizerId: string, eventIds: string[]) {
+    if (eventIds.length === 0) {
+      return {} as Record<string, { scheduleId: string; dateKey: string }>;
+    }
+    const rows = await prisma.associationSchedule.findMany({
+      where: {
+        organizerId,
+        deletedAt: null,
+        relatedEventId: { in: eventIds },
+      },
+      select: { id: true, relatedEventId: true, startsAt: true },
+    });
+    const map: Record<string, { scheduleId: string; dateKey: string }> = {};
+    for (const row of rows) {
+      if (row.relatedEventId) {
+        map[row.relatedEventId] = {
+          scheduleId: row.id,
+          dateKey: toSeoulDateOnlyString(row.startsAt),
+        };
+      }
+    }
+    return map;
   },
 
   async create(data: Prisma.AssociationScheduleCreateInput) {

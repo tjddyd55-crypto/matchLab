@@ -1,6 +1,7 @@
 import Link from "next/link";
 import { EventStatusPill } from "@/components/domain/events/EventStatusPill";
 import { RegistrationStatusPill } from "@/components/domain/events/RegistrationStatusPill";
+import { AddEventToAssociationScheduleButton } from "@/components/domain/association-schedules/AddEventToAssociationScheduleButton";
 import { buttonVariants } from "@/components/ui/button";
 import type { OrganizerEventListItemVM } from "@/lib/services/event.service";
 import { EventStatus } from "@/lib/enums";
@@ -19,9 +20,17 @@ import { cn } from "@/lib/utils";
 export function OrganizerEventListTable({
   rows,
   showOrganizerColumn,
+  showScheduleActions,
+  eventScheduleLinks,
+  scheduleFormOptions,
+  scheduleNoticeOptions,
 }: {
   rows: OrganizerEventListItemVM[];
   showOrganizerColumn?: boolean;
+  showScheduleActions?: boolean;
+  eventScheduleLinks: Record<string, { scheduleId: string; dateKey: string }>;
+  scheduleFormOptions: Array<{ id: string; title: string; status: string }>;
+  scheduleNoticeOptions: Array<{ id: string; title: string }>;
 }) {
   return (
     <div className={organizerEventListTableWrapClass}>
@@ -34,7 +43,7 @@ export function OrganizerEventListTable({
           <col className="w-[8%]" />
           <col className="w-[10%]" />
           <col className="w-[10%]" />
-          <col className="w-[8%]" />
+          <col className="w-[14%]" />
         </colgroup>
         <thead className={listTableHeaderRowClass}>
           <tr>
@@ -118,15 +127,30 @@ export function OrganizerEventListTable({
               </td>
               <td className="px-2 py-2.5 align-middle text-center">
                 <div className="flex flex-col items-center gap-1">
-                  <Link
-                    href={`/organizer/events/${row.id}`}
-                    className={cn(
-                      buttonVariants({ size: "sm", variant: "outline" }),
-                      "h-8 min-w-[3.5rem] px-2.5 text-xs",
-                    )}
-                  >
-                    관리
-                  </Link>
+                  <div className="flex flex-wrap items-center justify-center gap-1">
+                    {showScheduleActions ? (
+                      <AddEventToAssociationScheduleButton
+                        eventId={row.id}
+                        eventTitle={row.title}
+                        linkedScheduleId={eventScheduleLinks[row.id]?.scheduleId}
+                        linkedScheduleDateKey={
+                          eventScheduleLinks[row.id]?.dateKey
+                        }
+                        formOptions={scheduleFormOptions}
+                        noticeOptions={scheduleNoticeOptions}
+                        compact
+                      />
+                    ) : null}
+                    <Link
+                      href={`/organizer/events/${row.id}`}
+                      className={cn(
+                        buttonVariants({ size: "sm", variant: "outline" }),
+                        "h-8 min-w-[3.5rem] px-2.5 text-xs",
+                      )}
+                    >
+                      관리
+                    </Link>
+                  </div>
                   {row.status === EventStatus.finished && row.hasActiveArchive ? (
                     <Link
                       href={`/organizer/events/${row.id}/archive`}

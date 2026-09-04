@@ -23,9 +23,17 @@ import Link from "next/link";
 export function OrganizerEventListClient({
   rows,
   showOrganizerColumn,
+  showScheduleActions,
+  eventScheduleLinks,
+  scheduleFormOptions,
+  scheduleNoticeOptions,
 }: {
   rows: OrganizerEventListItemVM[];
   showOrganizerColumn?: boolean;
+  showScheduleActions?: boolean;
+  eventScheduleLinks: Record<string, { scheduleId: string; dateKey: string }>;
+  scheduleFormOptions: Array<{ id: string; title: string; status: string }>;
+  scheduleNoticeOptions: Array<{ id: string; title: string }>;
 }) {
   const [filter, setFilter] = useState<OrganizerEventListFilter>("all");
 
@@ -81,6 +89,10 @@ export function OrganizerEventListClient({
           <OrganizerEventListTable
             rows={filtered}
             showOrganizerColumn={showOrganizerColumn}
+            showScheduleActions={showScheduleActions}
+            eventScheduleLinks={eventScheduleLinks}
+            scheduleFormOptions={scheduleFormOptions}
+            scheduleNoticeOptions={scheduleNoticeOptions}
           />
           <div className="flex flex-col gap-3 md:hidden">
             {filtered.map((row) => (
@@ -88,6 +100,11 @@ export function OrganizerEventListClient({
                 key={row.id}
                 row={row}
                 showOrganizer={showOrganizerColumn}
+                showScheduleActions={showScheduleActions}
+                linkedScheduleId={eventScheduleLinks[row.id]?.scheduleId}
+                linkedScheduleDateKey={eventScheduleLinks[row.id]?.dateKey}
+                scheduleFormOptions={scheduleFormOptions}
+                scheduleNoticeOptions={scheduleNoticeOptions}
               />
             ))}
           </div>

@@ -2,6 +2,7 @@
 
 import { useEffect, useState, useTransition } from "react";
 import { scheduleEffectStateUpdate } from "@/lib/react/schedule-effect-state-update";
+import type { EventSchedulePrefill } from "@/lib/association-schedule/event-prefill";
 import type { AssociationScheduleCalendarItem } from "@/lib/association-schedule/calendar";
 import { TEN_MINUTE_TIME_OPTIONS } from "@/lib/gym-schedule/hours";
 import {
@@ -24,6 +25,10 @@ import {
 type FormOption = { id: string; title: string; status: string };
 type NoticeOption = { id: string; title: string };
 
+export type AssociationScheduleFormPrefill = Partial<EventSchedulePrefill> & {
+  relatedEventTitle?: string | null;
+};
+
 function hmFromDate(d: Date): string {
   return formatSeoulScheduleTime(d);
 }
@@ -33,6 +38,7 @@ export function AssociationScheduleFormDialog({
   onOpenChange,
   defaultDateKey,
   schedule,
+  prefill,
   formOptions,
   noticeOptions,
   onSaved,
@@ -41,18 +47,17 @@ export function AssociationScheduleFormDialog({
   onOpenChange: (open: boolean) => void;
   defaultDateKey: string;
   schedule: AssociationScheduleCalendarItem | null;
+  prefill?: AssociationScheduleFormPrefill | null;
   formOptions: FormOption[];
   noticeOptions: NoticeOption[];
-  onSaved: () => void;
+  onSaved: (result: { scheduleId: string }) => void;
 }) {
   const [pending, startTransition] = useTransition();
   const [message, setMessage] = useState<string | null>(null);
   const [title, setTitle] = useState("");
   const [type, setType] = useState("EDUCATION");
   const [startsAtDate, setStartsAtDate] = useState(defaultDateKey);
-  const [startsAtHm, setStartsAtHm] = useState("09:00");
-  const [endsAtDate, setEndsAtDate] = useState("");
-  const [endsAtHm, setEndsAtHm] = useState("");
+  const [startsAtHm, setStartsAtHm] = useState("");
   const [allDay, setAllDay] = useState(false);
   const [location, setLocation] = useState("");
   const [description, setDescription] = useState("");
@@ -60,6 +65,10 @@ export function AssociationScheduleFormDialog({
   const [relatedUrl, setRelatedUrl] = useState("");
   const [relatedFormId, setRelatedFormId] = useState("");
   const [relatedNoticeId, setRelatedNoticeId] = useState("");
+  const [relatedEventId, setRelatedEventId] = useState("");
+  const [relatedEventTitle, setRelatedEventTitle] = useState<string | null>(
+    null,
+  );
 
   useEffect(() => {
     if (!open) return;
@@ -69,15 +78,7 @@ export function AssociationScheduleFormDialog({
         setTitle(schedule.title);
         setType(schedule.type);
         setStartsAtDate(toSeoulDateKey(schedule.startsAt).slice(0, 10));
-        setStartsAtHm(schedule.allDay ? "09:00" : hmFromDate(schedule.startsAt));
-        setEndsAtDate(
-          schedule.endsAt ? toSeoulDateKey(schedule.endsAt).slice(0, 10) : "",
-        );
-        setEndsAtHm(
-          schedule.endsAt && !schedule.allDay
-            ? hmFromDate(schedule.endsAt)
-            : "",
-        );
+        setStartsAtHm(schedule.allDay ? "" : hmFromDate(schedule.startsAt));
         setAllDay(schedule.allDay);
         setLocation(schedule.location ?? "");
         setDescription("");
@@ -85,13 +86,27 @@ export function AssociationScheduleFormDialog({
         setRelatedUrl(schedule.relatedUrl ?? "");
         setRelatedFormId(schedule.relatedForm?.id ?? "");
         setRelatedNoticeId(schedule.relatedNotice?.id ?? "");
+        setRelatedEventId(schedule.relatedEvent?.id ?? "");
+        setRelatedEventTitle(schedule.relatedEvent?.title ?? null);
+      } else if (prefill) {
+        setTitle(prefill.title ?? "");
+        setType(prefill.type ?? "EDUCATION");
+        setStartsAtDate(prefill.startsAtDate ?? defaultDateKey);
+        setStartsAtHm(prefill.startsAtHm ?? "");
+        setAllDay(prefill.allDay ?? !prefill.startsAtHm);
+        setLocation(prefill.location ?? "");
+        setDescription(prefill.description ?? "");
+        setVisibility("PRIVATE");
+        setRelatedUrl("");
+        setRelatedFormId("");
+        setRelatedNoticeId("");
+        setRelatedEventId(prefill.relatedEventId ?? "");
+        setRelatedEventTitle(prefill.relatedEventTitle ?? prefill.title ?? null);
       } else {
         setTitle("");
         setType("EDUCATION");
         setStartsAtDate(defaultDateKey);
-        setStartsAtHm("09:00");
-        setEndsAtDate("");
-        setEndsAtHm("");
+        setStartsAtHm("");
         setAllDay(false);
         setLocation("");
         setDescription("");
@@ -99,18 +114,18 @@ export function AssociationScheduleFormDialog({
         setRelatedUrl("");
         setRelatedFormId("");
         setRelatedNoticeId("");
+        setRelatedEventId("");
+        setRelatedEventTitle(null);
       }
     });
-  }, [open, schedule, defaultDateKey]);
+  }, [open, schedule, prefill, defaultDateKey]);
 
   function save() {
     const payload = {
       title,
       type,
       startsAtDate,
-      startsAtHm: allDay ? null : startsAtHm,
-      endsAtDate: endsAtDate || null,
-      endsAtHm: allDay ? null : endsAtHm || null,
+      startsAtHm: allDay ? null : startsAtHm || null,
       allDay,
       location: location || null,
       description: description || null,
@@ -118,6 +133,7 @@ export function AssociationScheduleFormDialog({
       relatedUrl: relatedUrl || null,
       relatedFormId: relatedFormId || null,
       relatedNoticeId: relatedNoticeId || null,
+      relatedEventId: relatedEventId || null,
     };
     startTransition(async () => {
       const result = schedule
@@ -128,7 +144,7 @@ export function AssociationScheduleFormDialog({
         return;
       }
       onOpenChange(false);
-      onSaved();
+      onSaved({ scheduleId: result.data.scheduleId });
     });
   }
 
@@ -141,6 +157,14 @@ export function AssociationScheduleFormDialog({
         <div className="grid gap-3">
           {message ? (
             <p className="text-destructive text-sm">{message}</p>
+          ) : null}
+          {relatedEventTitle ? (
+            <div className="rounded-md border border-matchon-border bg-matchon-surface/60 px-3 py-2 text-sm">
+              <span className="text-matchon-text-secondary">관련 대회</span>
+              <p className="mt-1 font-semibold text-matchon-text-primary">
+                {relatedEventTitle}
+              </p>
+            </div>
           ) : null}
           <label className="grid gap-1 text-sm">
             <span className="font-semibold">제목</span>
@@ -175,12 +199,13 @@ export function AssociationScheduleFormDialog({
           </label>
           <div className="grid gap-3 sm:grid-cols-2">
             <label className="grid gap-1 text-sm">
-              <span className="font-semibold">시작일</span>
+              <span className="font-semibold">시작일 *</span>
               <input
                 type="date"
                 value={startsAtDate}
                 onChange={(e) => setStartsAtDate(e.target.value)}
                 className={matchonFieldInputClass}
+                required
               />
             </label>
             {!allDay ? (
@@ -191,32 +216,7 @@ export function AssociationScheduleFormDialog({
                   onChange={(e) => setStartsAtHm(e.target.value)}
                   className={matchonFieldSelectClass}
                 >
-                  {TEN_MINUTE_TIME_OPTIONS.map((t) => (
-                    <option key={t} value={t}>{t}</option>
-                  ))}
-                </select>
-              </label>
-            ) : null}
-          </div>
-          <div className="grid gap-3 sm:grid-cols-2">
-            <label className="grid gap-1 text-sm">
-              <span className="font-semibold">종료일</span>
-              <input
-                type="date"
-                value={endsAtDate}
-                onChange={(e) => setEndsAtDate(e.target.value)}
-                className={matchonFieldInputClass}
-              />
-            </label>
-            {!allDay ? (
-              <label className="grid gap-1 text-sm">
-                <span className="font-semibold">종료시간</span>
-                <select
-                  value={endsAtHm}
-                  onChange={(e) => setEndsAtHm(e.target.value)}
-                  className={matchonFieldSelectClass}
-                >
-                  <option value="">—</option>
+                  <option value="">선택 안 함</option>
                   {TEN_MINUTE_TIME_OPTIONS.map((t) => (
                     <option key={t} value={t}>{t}</option>
                   ))}

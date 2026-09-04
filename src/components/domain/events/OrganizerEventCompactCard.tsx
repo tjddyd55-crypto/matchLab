@@ -1,6 +1,7 @@
 import Link from "next/link";
 import { EventStatusPill } from "@/components/domain/events/EventStatusPill";
 import { RegistrationStatusPill } from "@/components/domain/events/RegistrationStatusPill";
+import { AddEventToAssociationScheduleButton } from "@/components/domain/association-schedules/AddEventToAssociationScheduleButton";
 import { buttonVariants } from "@/components/ui/button";
 import type { OrganizerEventListItemVM } from "@/lib/services/event.service";
 import { EventStatus } from "@/lib/enums";
@@ -10,9 +11,19 @@ import { cn } from "@/lib/utils";
 export function OrganizerEventCompactCard({
   row,
   showOrganizer,
+  showScheduleActions,
+  linkedScheduleId,
+  linkedScheduleDateKey,
+  scheduleFormOptions,
+  scheduleNoticeOptions,
 }: {
   row: OrganizerEventListItemVM;
   showOrganizer?: boolean;
+  showScheduleActions?: boolean;
+  linkedScheduleId?: string | null;
+  linkedScheduleDateKey?: string | null;
+  scheduleFormOptions?: Array<{ id: string; title: string; status: string }>;
+  scheduleNoticeOptions?: Array<{ id: string; title: string }>;
 }) {
   return (
     <article className="rounded-xl border border-matchon-border bg-white px-4 py-3 shadow-sm">
@@ -63,6 +74,16 @@ export function OrganizerEventCompactCard({
       </dl>
 
       <div className="mt-3 flex flex-wrap gap-2 border-t border-matchon-border pt-3">
+        {showScheduleActions ? (
+          <AddEventToAssociationScheduleButton
+            eventId={row.id}
+            eventTitle={row.title}
+            linkedScheduleId={linkedScheduleId}
+            linkedScheduleDateKey={linkedScheduleDateKey}
+            formOptions={scheduleFormOptions ?? []}
+            noticeOptions={scheduleNoticeOptions ?? []}
+          />
+        ) : null}
         <Link
           href={`/organizer/events/${row.id}`}
           className={cn(

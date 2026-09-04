@@ -18,6 +18,8 @@ const ROOT_PREFIXES = [
   "src/features/association-schedules/",
   "src/components/domain/intake-forms/",
   "src/components/domain/association-schedules/",
+  "src/components/domain/events/OrganizerEventListTable.tsx",
+  "src/components/domain/events/OrganizerEventCompactCard.tsx",
 ];
 
 const FORBIDDEN = [

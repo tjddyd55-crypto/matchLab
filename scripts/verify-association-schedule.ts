@@ -59,5 +59,10 @@ assert.equal(sorted[2].id, "b");
 const schema = read("prisma/schema.prisma");
 assert.match(schema, /relatedFormId\s+String\?/);
 assert.match(schema, /relatedNoticeId\s+String\?/);
+assert.match(schema, /relatedEventId\s+String\?/);
+
+const formDialog = read("src/components/domain/association-schedules/AssociationScheduleFormDialog.tsx");
+assert.doesNotMatch(formDialog, /종료일/);
+assert.doesNotMatch(formDialog, /endsAtDate/);
 
 console.log("verify-association-schedule: OK");

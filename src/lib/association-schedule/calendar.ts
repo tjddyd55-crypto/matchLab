@@ -61,6 +61,7 @@ export type AssociationScheduleCalendarItem = {
   visibility: string;
   relatedForm?: { id: string; title: string; publicToken: string } | null;
   relatedNotice?: { id: string; title: string } | null;
+  relatedEvent?: { id: string; title: string } | null;
   relatedUrl?: string | null;
 };
 

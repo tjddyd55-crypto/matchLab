@@ -11,8 +11,11 @@ import { EventStatusControl } from "@/components/domain/events/EventStatusContro
 import { EventArchiveAccessBanner } from "@/components/domain/events/EventArchiveAccessBanner";
 import { OrganizerEventFlashBanner } from "@/components/domain/events/OrganizerEventFlashBanner";
 import { EventManagementPageHeader } from "@/components/domain/events/EventManagementPageHeader";
+import { AddEventToAssociationScheduleButton } from "@/components/domain/association-schedules/AddEventToAssociationScheduleButton";
 import { resolveOrganizerEventPageError } from "@/lib/permissions";
 import { requireActor } from "@/lib/auth/actor";
+import { OrganizerType } from "@/lib/enums";
+import { associationScheduleService } from "@/lib/services/association-schedule.service";
 import { resolveOrganizerRegistrationStatus } from "@/lib/event-organizer-status";
 import { EventStatus } from "@/lib/enums";
 import { EventApplicationFormTemplateSection } from "@/components/domain/events/EventApplicationFormTemplateSection";
@@ -73,6 +76,15 @@ export default async function OrganizerEventDetailPage({
   }
 
   const baseUrl = getServerAppBaseUrl(await headers());
+  const isAssociation = actor.organizerType === OrganizerType.association;
+  const [eventScheduleLink, scheduleFormOptions, scheduleNoticeOptions] =
+    isAssociation
+      ? await Promise.all([
+          associationScheduleService.getEventScheduleLink(actor, eventId),
+          associationScheduleService.listFormOptions(actor),
+          associationScheduleService.listNoticeOptions(actor),
+        ])
+      : [null, [], []];
 
   const linkedTemplate = linkedTemplateId
     ? formTemplates.find((t) => t.id === linkedTemplateId)
@@ -107,7 +119,18 @@ export default async function OrganizerEventDetailPage({
             })}
           </>
         }
-      />
+      >
+        {isAssociation ? (
+          <AddEventToAssociationScheduleButton
+            eventId={detail.id}
+            eventTitle={detail.title}
+            linkedScheduleId={eventScheduleLink?.scheduleId}
+            linkedScheduleDateKey={eventScheduleLink?.dateKey}
+            formOptions={scheduleFormOptions}
+            noticeOptions={scheduleNoticeOptions}
+          />
+        ) : null}
+      </EventManagementPageHeader>
 
       {detail.status === EventStatus.draft ? (
           <p className="rounded-md border border-amber-500/40 bg-amber-500/10 px-3 py-2 text-sm">

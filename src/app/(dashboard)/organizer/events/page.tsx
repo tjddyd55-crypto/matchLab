@@ -3,7 +3,9 @@ import { OrganizerEventList } from "@/components/domain/events/OrganizerEventLis
 import { OrganizerDashboardPageHeader } from "@/components/dashboard/OrganizerDashboardPageHeader";
 import { buttonVariants } from "@/components/ui/button";
 import { requireActor } from "@/lib/auth/actor";
+import { OrganizerType } from "@/lib/enums";
 import { eventService } from "@/lib/services/event.service";
+import { associationScheduleService } from "@/lib/services/association-schedule.service";
 import { cn } from "@/lib/utils";
 
 export const dynamic = "force-dynamic";
@@ -11,6 +13,18 @@ export const dynamic = "force-dynamic";
 export default async function OrganizerEventsPage() {
   const actor = await requireActor();
   const rows = await eventService.listOrganizerEvents(actor);
+  const isAssociation = actor.organizerType === OrganizerType.association;
+  const [eventScheduleLinks, scheduleFormOptions, scheduleNoticeOptions] =
+    isAssociation
+      ? await Promise.all([
+          associationScheduleService.mapEventScheduleLinks(
+            actor,
+            rows.map((row) => row.id),
+          ),
+          associationScheduleService.listFormOptions(actor),
+          associationScheduleService.listNoticeOptions(actor),
+        ])
+      : [{}, [], []];
 
   return (
     <>
@@ -34,6 +48,10 @@ export default async function OrganizerEventsPage() {
       <OrganizerEventList
         rows={rows}
         showOrganizerColumn={actor.role === "admin"}
+        showScheduleActions={isAssociation}
+        eventScheduleLinks={eventScheduleLinks}
+        scheduleFormOptions={scheduleFormOptions}
+        scheduleNoticeOptions={scheduleNoticeOptions}
       />
     </>
   );

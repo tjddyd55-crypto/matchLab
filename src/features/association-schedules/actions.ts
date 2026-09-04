@@ -30,6 +30,7 @@ function mapCaught<T>(
 
 function revalidateSchedulePaths() {
   revalidatePath("/organizer/schedules");
+  revalidatePath("/organizer/events");
 }
 
 export async function createAssociationScheduleAction(
@@ -46,6 +47,9 @@ export async function createAssociationScheduleAction(
     }
     const row = await associationScheduleService.create(actor, parsed.data);
     revalidateSchedulePaths();
+    if (parsed.data.relatedEventId) {
+      revalidatePath(`/organizer/events/${parsed.data.relatedEventId}`);
+    }
     return actionSuccess({ scheduleId: row.id });
   });
 }
@@ -63,9 +67,13 @@ export async function updateAssociationScheduleAction(
         parsed.error.issues[0]?.message ?? "입력값을 확인해 주세요.",
       );
     }
-    await associationScheduleService.update(actor, scheduleId, parsed.data);
+    const row = await associationScheduleService.update(
+      actor,
+      scheduleId,
+      parsed.data,
+    );
     revalidateSchedulePaths();
-    return actionSuccess({ scheduleId });
+    return actionSuccess({ scheduleId: row.id });
   });
 }
 
@@ -77,5 +85,24 @@ export async function deleteAssociationScheduleAction(
     await associationScheduleService.delete(actor, scheduleId);
     revalidateSchedulePaths();
     return actionSuccess({ scheduleId });
+  });
+}
+
+export async function getEventSchedulePrefillAction(
+  eventId: string,
+): Promise<
+  ActionResult<{
+    prefill: Awaited<
+      ReturnType<typeof associationScheduleService.getEventSchedulePrefill>
+    >;
+  }>
+> {
+  return mapCaught(async () => {
+    const actor = await requireActorFromMutation();
+    const prefill = await associationScheduleService.getEventSchedulePrefill(
+      actor,
+      eventId,
+    );
+    return actionSuccess({ prefill });
   });
 }

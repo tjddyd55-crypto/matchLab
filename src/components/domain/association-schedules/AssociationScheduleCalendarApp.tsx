@@ -9,7 +9,10 @@ import {
   ASSOCIATION_SCHEDULE_VISIBILITY_LABEL,
 } from "@/lib/intake-form/ui-labels";
 import { buildIntakeFormPublicPath } from "@/lib/intake-form/public-url";
-import { formatPublicDateTime } from "@/lib/date-display";
+import {
+  formatAssociationScheduleRange,
+  formatAssociationScheduleWhen,
+} from "@/lib/association-schedule/event-prefill";
 import { AssociationScheduleFormDialog } from "@/components/domain/association-schedules/AssociationScheduleFormDialog";
 import { Button } from "@/components/ui/button";
 import { cn } from "@/lib/utils";
@@ -215,9 +218,7 @@ export function AssociationScheduleCalendarApp({
                   >
                     <span className="font-semibold">{s.title}</span>
                     <span className="text-matchon-text-secondary ml-2 text-xs">
-                      {s.allDay
-                        ? "종일"
-                        : formatPublicDateTime(s.startsAt.toISOString())}
+                      {formatAssociationScheduleWhen(s)}
                     </span>
                   </button>
                 </li>
@@ -269,15 +270,21 @@ export function AssociationScheduleCalendarApp({
             </div>
           </div>
           <p className="text-sm">
-            {selectedSchedule.allDay
-              ? "종일"
-              : formatPublicDateTime(selectedSchedule.startsAt.toISOString())}
-            {selectedSchedule.endsAt
-              ? ` ~ ${formatPublicDateTime(selectedSchedule.endsAt.toISOString())}`
-              : ""}
+            {formatAssociationScheduleRange(selectedSchedule)}
           </p>
           {selectedSchedule.location ? (
             <p className="text-sm">장소: {selectedSchedule.location}</p>
+          ) : null}
+          {selectedSchedule.relatedEvent ? (
+            <p className="text-sm">
+              관련 대회:{" "}
+              <Link
+                href={`/organizer/events/${selectedSchedule.relatedEvent.id}`}
+                className="text-matchon-primary underline"
+              >
+                {selectedSchedule.relatedEvent.title}
+              </Link>
+            </p>
           ) : null}
           {selectedSchedule.relatedNotice ? (
             <p className="text-sm">
