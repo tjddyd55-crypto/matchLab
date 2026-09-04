@@ -3,6 +3,7 @@ import "server-only";
 import { redirect } from "next/navigation";
 import type { UserRole } from "@/lib/enums";
 import type { ActorContext } from "@/lib/auth/actor-context";
+import { getActorFromGoldenTestSession } from "@/lib/auth/golden-test-auth";
 import { PermissionError } from "@/lib/auth/permission-error";
 import { authService } from "@/lib/services/auth.service";
 import { createSupabaseServerClient } from "@/lib/supabase/server";
@@ -42,6 +43,9 @@ export function isSupabaseAuthConfigured(): boolean {
  * 세션 없음 → null. DB에 authUserId 매칭 User 없음 → null(onboarding·수동 연결 필요).
  */
 export async function getCurrentActor(): Promise<ActorContext | null> {
+  const goldenActor = await getActorFromGoldenTestSession();
+  if (goldenActor) return goldenActor;
+
   if (!isSupabaseConfigured()) return null;
 
   const supabase = await createSupabaseServerClient();

@@ -31,6 +31,7 @@ import {
 import { buildFighterBracketSnapshot } from "../../src/lib/bracket-snapshot";
 import { toUtcDateOnly } from "../../src/lib/date-only";
 import { prisma } from "../../src/lib/prisma";
+import { GOLDEN_CI_ORGANIZER_LOGIN_ID } from "../../src/lib/golden-flow/constants";
 import * as goldenConstants from "./constants";
 import {
   assertSafeForGoldenFlow,
@@ -155,7 +156,7 @@ async function ensureCiOrganizer(): Promise<{
   organizerId: string;
   loginId: string;
 }> {
-  const loginId = "golden-organizer";
+  const loginId = GOLDEN_CI_ORGANIZER_LOGIN_ID;
   const user = await prisma.user.upsert({
     where: { loginId },
     create: {

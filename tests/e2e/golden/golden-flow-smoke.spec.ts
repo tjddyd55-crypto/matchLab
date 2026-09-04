@@ -22,7 +22,7 @@ function assertGoldenDbReadOnly(phase: "weighin" | "result"): void {
 }
 
 test.describe("Golden Flow browser mutations", () => {
-  test.skip(!canRun, "DEMO_PASSWORD + seed:golden context required");
+  test.skip(!canRun, "golden context + credentials or CI test auth required");
 
   test("신청 → 계체 통과 → 결과 확정 (UI Server Action mutation)", async ({
     page,

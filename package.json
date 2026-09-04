@@ -23,6 +23,7 @@
     "seed:golden": "tsx scripts/golden/seed-golden-flow.ts",
     "seed:golden:cleanup": "tsx scripts/golden/seed-golden-flow.ts --cleanup-only",
     "verify:golden-flow-services": "tsx scripts/verify-golden-flow-services.ts",
+    "verify:golden-test-auth-safety": "tsx scripts/verify-golden-test-auth-safety.ts",
     "assert:golden-browser-state": "tsx scripts/golden/assert-golden-browser-state.ts",
     "test:golden": "tsx scripts/golden/seed-golden-flow.ts && playwright test -c playwright.golden.config.ts",
     "setup:demo-org-gym-fighters": "tsx scripts/setup-demo-org-gym-fighters.ts",

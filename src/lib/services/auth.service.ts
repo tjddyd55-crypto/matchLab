@@ -89,6 +89,11 @@ export const authService = {
     return userRepository.findUserByAuthUserId(authUserId);
   },
 
+  async findUserIdByLoginId(loginId: string): Promise<string | null> {
+    const row = await userRepository.findUserByLoginId(loginId);
+    return row?.id ?? null;
+  },
+
   async getActorByUserId(userId: string): Promise<ActorContext | null> {
     const row = await userRepository.findActorProfileByUserId(userId);
     if (!row) return null;
