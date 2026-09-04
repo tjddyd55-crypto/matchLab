@@ -12,6 +12,7 @@ import type { BracketDuplicateAssignmentIssue } from "@/lib/brackets/bracket-dup
 import { Button } from "@/components/ui/button";
 import {
   Dialog,
+  DialogBody,
   DialogContent,
   DialogDescription,
   DialogHeader,
@@ -91,8 +92,11 @@ export function BracketDuplicateValidationDialog({
 
   return (
     <Dialog open={open} onOpenChange={onOpenChange}>
-      <DialogContent className="flex max-h-[88dvh] w-[min(100vw-1.5rem,40rem)] max-w-none flex-col gap-0 overflow-hidden p-0 sm:max-w-none">
-        <DialogHeader className="shrink-0 space-y-1 border-b px-5 py-4 text-left">
+      <DialogContent
+        layout="shell"
+        className="w-[min(100vw-1.5rem,40rem)] max-w-none max-h-[88dvh] sm:max-w-none"
+      >
+        <DialogHeader className="space-y-1">
           <DialogTitle>대진 검증</DialogTitle>
           <DialogDescription>
             대회 전체에서 2경기 이상 배정된 선수를 확인하고, 의도된 복수 출전인지
@@ -100,7 +104,7 @@ export function BracketDuplicateValidationDialog({
           </DialogDescription>
         </DialogHeader>
 
-        <div className="min-h-0 flex-1 space-y-3 overflow-y-auto px-5 py-4">
+        <DialogBody className="space-y-3">
           {loading ? (
             <p className="text-muted-foreground text-sm">검사 중…</p>
           ) : null}
@@ -197,7 +201,7 @@ export function BracketDuplicateValidationDialog({
               </li>
             ))}
           </ul>
-        </div>
+        </DialogBody>
       </DialogContent>
     </Dialog>
   );

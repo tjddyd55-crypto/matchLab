@@ -17,6 +17,7 @@ import { FeedbackMessage } from "@/components/shared/FeedbackMessage";
 import { INSURANCE_PII_CONSENT_TEXT } from "@/lib/athlete-application/insurance-consent";
 import {
   Dialog,
+  DialogBody,
   DialogContent,
   DialogFooter,
   DialogHeader,
@@ -134,30 +135,31 @@ export function OrganizerApplicationEditPanel({
   return (
     <Dialog open={open} onOpenChange={onOpenChange}>
       <DialogContent
+        layout="shell"
         style={{
           width: EDIT_DIALOG_WIDTH,
           maxWidth: "1040px",
         }}
         className={cn(
-          "flex max-h-[82vh] flex-col gap-0 overflow-hidden p-0",
+          "max-h-[82vh]",
           // Dialog 기본: w-full max-w-[calc(100%-2rem)] sm:max-w-sm → 강제 덮어쓰기
           "!w-[min(1040px,calc(100vw-48px))] !max-w-[1040px]",
           "sm:!max-w-[1040px]",
         )}
       >
-        <DialogHeader className="shrink-0 border-b px-4 py-3 pr-12">
+        <DialogHeader>
           <DialogTitle>신청 수정</DialogTitle>
         </DialogHeader>
 
         {loading || !form ? (
-          <div className="space-y-3 px-4 py-6">
+          <DialogBody className="space-y-3">
             <p className="text-muted-foreground text-sm">불러오는 중…</p>
             {error ? (
               <FeedbackMessage tone="error" role="alert">
                 {error}
               </FeedbackMessage>
             ) : null}
-          </div>
+          </DialogBody>
         ) : (
           <form
             onSubmit={handleSubmit}
@@ -170,7 +172,7 @@ export function OrganizerApplicationEditPanel({
             {form.structuralEditBlocked ? (
               <input type="hidden" name="gender" value={gender} />
             ) : null}
-            <div className="min-h-0 flex-1 overflow-x-hidden overflow-y-auto px-4 py-3">
+            <DialogBody className="overflow-x-hidden">
               {form.structuralBlockReason ? (
                 <p
                   className={cn(
@@ -482,9 +484,9 @@ export function OrganizerApplicationEditPanel({
                   </div>
                 </section>
               </div>
-            </div>
+            </DialogBody>
 
-            <DialogFooter className="shrink-0 flex-col items-stretch gap-2 sm:flex-col sm:items-stretch">
+            <DialogFooter className="flex-col items-stretch gap-2 sm:flex-col sm:items-stretch">
               {error ? (
                 <FeedbackMessage tone="error" role="alert" className="text-sm">
                   저장하지 못했습니다. {error}

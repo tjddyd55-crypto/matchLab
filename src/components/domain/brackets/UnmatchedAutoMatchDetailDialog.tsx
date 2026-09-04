@@ -11,6 +11,7 @@ import type { UnmatchedDetailReasonCode } from "@/lib/brackets/explain-record-un
 import { Button } from "@/components/ui/button";
 import {
   Dialog,
+  DialogBody,
   DialogContent,
   DialogDescription,
   DialogFooter,
@@ -223,13 +224,14 @@ export function AutoBracketPreviewDialog({
   return (
     <Dialog open={open} onOpenChange={onOpenChange}>
       <DialogContent
+        layout="shell"
         className={cn(
-          "flex max-h-[85vh] flex-col gap-0 overflow-hidden p-0",
+          "max-h-[85vh]",
           "!w-[min(1100px,calc(100vw-2rem))] !max-w-[1100px] sm:!max-w-[1100px]",
         )}
         showCloseButton
       >
-        <DialogHeader className="shrink-0 space-y-3 border-b border-matchon-border px-5 py-4 text-left">
+        <DialogHeader className="space-y-3">
           <div className="space-y-1.5 pr-8">
             <DialogTitle className="text-base font-semibold sm:text-lg">
               자동매칭 미리보기
@@ -295,7 +297,7 @@ export function AutoBracketPreviewDialog({
           />
         </DialogHeader>
 
-        <div className="min-h-0 flex-1 overflow-y-auto px-5 py-3">
+        <DialogBody>
           {plannedMatchDetails.length > 0 ? (
             <div className="mb-4 space-y-2">
               <p className="text-xs font-medium text-matchon-text-secondary">
@@ -416,9 +418,9 @@ export function AutoBracketPreviewDialog({
                 : "조건에 맞는 미매칭 선수가 없습니다."}
             </p>
           ) : null}
-        </div>
+        </DialogBody>
 
-        <DialogFooter className="shrink-0 border-t border-matchon-border px-5 py-3 sm:justify-end">
+        <DialogFooter>
           <Button
             type="button"
             variant="outline"

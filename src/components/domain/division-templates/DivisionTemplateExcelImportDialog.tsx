@@ -17,11 +17,13 @@ import { FileDropzone } from "@/components/shared/FileDropzone";
 import { Button } from "@/components/ui/button";
 import {
   Dialog,
+  DialogBody,
   DialogContent,
   DialogDescription,
   DialogFooter,
   DialogHeader,
   DialogTitle,
+  dialogShellPaddingX,
 } from "@/components/ui/dialog";
 import { cn } from "@/lib/utils";
 
@@ -231,12 +233,12 @@ export function DivisionTemplateExcelImportDialog({
   return (
     <Dialog open={open} onOpenChange={handleOpenChange}>
       <DialogContent
+        layout="shell"
         className={cn(
-          "flex max-h-[90vh] w-full max-w-[calc(100vw-2rem)] flex-col gap-0 overflow-hidden p-0 sm:max-w-[25rem]",
-          "[&_[data-slot=dialog-close]]:top-4 [&_[data-slot=dialog-close]]:right-4",
+          "max-h-[90vh] w-full max-w-[calc(100vw-2rem)] sm:max-w-[25rem]",
         )}
       >
-        <DialogHeader className="gap-1.5 border-b px-4 pb-3.5 pt-4">
+        <DialogHeader className="gap-1.5">
           <DialogTitle>체급표 Excel 일괄 등록</DialogTitle>
           <DialogDescription className="leading-snug">
             샘플을 내려받아 작성한 뒤 업로드하세요. 파일 선택만으로 저장되지
@@ -244,7 +246,7 @@ export function DivisionTemplateExcelImportDialog({
           </DialogDescription>
         </DialogHeader>
 
-        <div className="flex gap-2 border-b px-4 py-2">
+        <div className={cn("flex shrink-0 gap-2 border-b py-2", dialogShellPaddingX)}>
           {(
             [
               ["upload", "업로드"],
@@ -266,7 +268,7 @@ export function DivisionTemplateExcelImportDialog({
           ))}
         </div>
 
-        <div className="min-h-0 flex-1 overflow-x-hidden overflow-y-auto px-4 py-4">
+        <DialogBody className="overflow-x-hidden">
           {error ? (
             <p className="mb-4 text-sm text-destructive" role="alert">
               {error}
@@ -398,9 +400,9 @@ export function DivisionTemplateExcelImportDialog({
           {step === "result" ? (
             <p className="text-sm">{resultMsg ?? "반영되었습니다."}</p>
           ) : null}
-        </div>
+        </DialogBody>
 
-        <DialogFooter className="mx-0 mb-0 flex min-h-14 shrink-0 flex-row items-center justify-end gap-2 border-t bg-muted/50 px-4 py-2.5">
+        <DialogFooter className="min-h-14 flex-row items-center justify-end gap-2">
           {step === "preview" ? (
             <>
               <Button

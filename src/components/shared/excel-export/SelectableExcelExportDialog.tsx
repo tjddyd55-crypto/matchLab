@@ -7,6 +7,7 @@ import { Button } from "@/components/ui/button";
 import { Checkbox } from "@/components/ui/checkbox";
 import {
   Dialog,
+  DialogBody,
   DialogContent,
   DialogDescription,
   DialogFooter,
@@ -160,13 +161,16 @@ export function SelectableExcelExportDialog({
 
   return (
     <Dialog open={open} onOpenChange={onOpenChange}>
-      <DialogContent className="flex max-h-[min(90vh,720px)] w-[min(560px,calc(100vw-1.5rem))] flex-col gap-0 overflow-hidden p-0 sm:max-w-[560px]">
-        <DialogHeader className="shrink-0 border-b px-4 py-3 pr-12">
+      <DialogContent
+        layout="shell"
+        className="w-[min(560px,calc(100vw-1.5rem))] sm:max-w-[560px]"
+      >
+        <DialogHeader>
           <DialogTitle>{title}</DialogTitle>
           <DialogDescription>{description}</DialogDescription>
         </DialogHeader>
 
-        <div className="min-h-0 flex-1 space-y-4 overflow-y-auto px-4 py-3">
+        <DialogBody className="space-y-4">
           <div className="flex flex-wrap items-center justify-between gap-2">
             <p className="text-sm font-medium">
               다운로드 항목 · {selectedCount}개 선택
@@ -260,9 +264,9 @@ export function SelectableExcelExportDialog({
               {error}
             </FeedbackMessage>
           ) : null}
-        </div>
+        </DialogBody>
 
-        <DialogFooter className="shrink-0 gap-2 border-t px-4 py-3 sm:justify-end">
+        <DialogFooter className="gap-2">
           <Button
             type="button"
             variant="outline"

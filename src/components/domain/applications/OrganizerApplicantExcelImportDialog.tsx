@@ -19,6 +19,7 @@ import type {
 import { Button } from "@/components/ui/button";
 import {
   Dialog,
+  DialogBody,
   DialogContent,
   DialogDescription,
   DialogFooter,
@@ -144,7 +145,7 @@ export function OrganizerApplicantExcelImportDialog({
 
   return (
     <Dialog open={open} onOpenChange={handleOpenChange}>
-      <DialogContent className="max-h-[90vh] overflow-y-auto sm:max-w-4xl">
+      <DialogContent layout="shell" className="max-h-[90vh] sm:max-w-4xl">
         <DialogHeader>
           <DialogTitle>선수 신청 엑셀 일괄 등록</DialogTitle>
           <DialogDescription>
@@ -154,6 +155,7 @@ export function OrganizerApplicantExcelImportDialog({
           </DialogDescription>
         </DialogHeader>
 
+        <DialogBody>
         {error ? (
           <p className="text-destructive rounded-md border border-red-200 bg-red-50 px-3 py-2 text-sm" role="alert">
             {error}
@@ -212,6 +214,7 @@ export function OrganizerApplicantExcelImportDialog({
             <p>실패 {result.failed}명</p>
           </div>
         ) : null}
+        </DialogBody>
 
         <DialogFooter className="gap-2 sm:justify-end">
           {step === "preview" ? (

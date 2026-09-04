@@ -7,12 +7,29 @@ import { cn } from "@/lib/utils"
 import { Button } from "@/components/ui/button"
 import { XIcon } from "lucide-react"
 
+type DialogLayout = "stack" | "shell"
+
+const DialogLayoutContext = React.createContext<DialogLayout>("stack")
+
+/** Shell 모달 header / body / footer 공통 패딩 (SSOT). */
+export const dialogShellPaddingX = "px-5"
+export const dialogShellHeaderClass =
+  "shrink-0 border-b px-5 py-4 pr-12 text-left"
+export const dialogShellBodyClass =
+  "min-h-0 flex-1 overflow-y-auto overscroll-contain px-5 py-4 [scrollbar-gutter:stable]"
+export const dialogShellFooterClass =
+  "shrink-0 border-t bg-muted/50 px-5 py-4"
+
 /**
  * Dialog SSOT (Base UI).
  *
  * 입력·확인·상태 변경 모달 기본 정책:
  * - 외부 overlay / outside press 로 닫히지 않는다 (`dismissible` 기본 false).
  * - 취소·닫기·X·저장/확인 후 프로그램적 닫기·Escape 는 허용.
+ *
+ * 레이아웃:
+ * - `stack`(기본): 단순 확인·입력 모달. Content `p-4`, Footer full-bleed.
+ * - `shell`: header / scroll body / footer 고정. `DialogBody` 와 함께 사용.
  *
  * 읽기 전용 네비 Sheet 등 바깥 클릭 닫힘이 필요하면 `dismissible`.
  */
@@ -67,48 +84,72 @@ function DialogContent({
   className,
   children,
   showCloseButton = true,
+  layout = "stack",
   ...props
 }: DialogPrimitive.Popup.Props & {
   showCloseButton?: boolean
+  /** `shell`: header·body·footer 고정 스크롤 레이아웃. */
+  layout?: DialogLayout
 }) {
+  const isShell = layout === "shell"
+
   return (
     <DialogPortal>
       <DialogOverlay />
-      <DialogPrimitive.Popup
-        data-slot="dialog-content"
-        className={cn(
-          "fixed top-1/2 left-1/2 z-50 grid w-full max-w-[calc(100%-2rem)] -translate-x-1/2 -translate-y-1/2 gap-4 rounded-xl bg-popover p-4 text-sm text-popover-foreground ring-1 ring-foreground/10 duration-100 outline-none sm:max-w-sm data-open:animate-in data-open:fade-in-0 data-open:zoom-in-95 data-closed:animate-out data-closed:fade-out-0 data-closed:zoom-out-95",
-          className
-        )}
-        {...props}
-      >
-        {children}
-        {showCloseButton && (
-          <DialogPrimitive.Close
-            data-slot="dialog-close"
-            render={
-              <Button
-                variant="ghost"
-                className="absolute top-2 right-2"
-                size="icon-sm"
-              />
-            }
-          >
-            <XIcon
-            />
-            <span className="sr-only">Close</span>
-          </DialogPrimitive.Close>
-        )}
-      </DialogPrimitive.Popup>
+      <DialogLayoutContext.Provider value={layout}>
+        <DialogPrimitive.Popup
+          data-slot="dialog-content"
+          className={cn(
+            "fixed top-1/2 left-1/2 z-50 grid w-full max-w-[calc(100%-2rem)] -translate-x-1/2 -translate-y-1/2 gap-4 rounded-xl bg-popover p-4 text-sm text-popover-foreground ring-1 ring-foreground/10 duration-100 outline-none sm:max-w-sm data-open:animate-in data-open:fade-in-0 data-open:zoom-in-95 data-closed:animate-out data-closed:fade-out-0 data-closed:zoom-out-95",
+            isShell &&
+              "flex max-h-[min(90vh,720px)] flex-col gap-0 overflow-hidden p-0 [&_[data-slot=dialog-close]]:top-4 [&_[data-slot=dialog-close]]:right-4",
+            className
+          )}
+          {...props}
+        >
+          {children}
+          {showCloseButton && (
+            <DialogPrimitive.Close
+              data-slot="dialog-close"
+              render={
+                <Button
+                  variant="ghost"
+                  className="absolute top-2 right-2"
+                  size="icon-sm"
+                />
+              }
+            >
+              <XIcon />
+              <span className="sr-only">Close</span>
+            </DialogPrimitive.Close>
+          )}
+        </DialogPrimitive.Popup>
+      </DialogLayoutContext.Provider>
     </DialogPortal>
   )
 }
 
 function DialogHeader({ className, ...props }: React.ComponentProps<"div">) {
+  const layout = React.useContext(DialogLayoutContext)
+
   return (
     <div
       data-slot="dialog-header"
-      className={cn("flex flex-col gap-2", className)}
+      className={cn(
+        "flex flex-col gap-2",
+        layout === "shell" && dialogShellHeaderClass,
+        className
+      )}
+      {...props}
+    />
+  )
+}
+
+function DialogBody({ className, ...props }: React.ComponentProps<"div">) {
+  return (
+    <div
+      data-slot="dialog-body"
+      className={cn(dialogShellBodyClass, className)}
       {...props}
     />
   )
@@ -122,11 +163,16 @@ function DialogFooter({
 }: React.ComponentProps<"div"> & {
   showCloseButton?: boolean
 }) {
+  const layout = React.useContext(DialogLayoutContext)
+
   return (
     <div
       data-slot="dialog-footer"
       className={cn(
-        "-mx-4 -mb-4 flex flex-col-reverse gap-2 rounded-b-xl border-t bg-muted/50 p-4 sm:flex-row sm:justify-end",
+        "flex flex-col-reverse gap-2 sm:flex-row sm:justify-end",
+        layout === "stack"
+          ? "-mx-4 -mb-4 rounded-b-xl border-t bg-muted/50 p-4"
+          : dialogShellFooterClass,
         className
       )}
       {...props}
@@ -172,6 +218,7 @@ function DialogDescription({
 
 export {
   Dialog,
+  DialogBody,
   DialogClose,
   DialogContent,
   DialogDescription,

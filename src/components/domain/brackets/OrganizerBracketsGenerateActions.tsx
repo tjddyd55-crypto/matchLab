@@ -7,6 +7,7 @@ import { BracketDuplicateValidationDialog } from "@/components/domain/brackets/B
 import { Button } from "@/components/ui/button";
 import {
   Dialog,
+  DialogBody,
   DialogContent,
   DialogDescription,
   DialogHeader,
@@ -65,14 +66,17 @@ export function OrganizerBracketsGenerateActions({
       />
 
       <Dialog open={autoMatchOpen} onOpenChange={setAutoMatchOpen}>
-        <DialogContent className="flex max-h-[88dvh] w-[min(100vw-1.5rem,42rem)] max-w-none flex-col gap-0 overflow-hidden p-0 sm:max-w-none">
-          <DialogHeader className="shrink-0 space-y-1 border-b px-5 py-4 text-left">
+        <DialogContent
+          layout="shell"
+          className="w-[min(100vw-1.5rem,42rem)] max-w-none max-h-[88dvh] sm:max-w-none"
+        >
+          <DialogHeader className="space-y-1">
             <DialogTitle>자동매칭</DialogTitle>
             <DialogDescription>
               조건을 설정하고 미리보기 후 적용하세요.
             </DialogDescription>
           </DialogHeader>
-          <div className="min-h-0 flex-1 overflow-y-auto px-5 py-4">
+          <DialogBody>
             <AutoBracketGenerationPanel
               eventId={eventId}
               courts={courts}
@@ -81,25 +85,28 @@ export function OrganizerBracketsGenerateActions({
               undividedApplicantCount={undividedApplicantCount}
               variant="plain"
             />
-          </div>
+          </DialogBody>
         </DialogContent>
       </Dialog>
 
       <Dialog open={groupCreateOpen} onOpenChange={setGroupCreateOpen}>
-        <DialogContent className="flex max-h-[88dvh] w-[min(100vw-1.5rem,36rem)] max-w-none flex-col gap-0 overflow-hidden p-0 sm:max-w-none">
-          <DialogHeader className="shrink-0 space-y-1 border-b px-5 py-4 text-left">
+        <DialogContent
+          layout="shell"
+          className="w-[min(100vw-1.5rem,36rem)] max-w-none max-h-[88dvh] sm:max-w-none"
+        >
+          <DialogHeader className="space-y-1">
             <DialogTitle>대진표 그룹 생성</DialogTitle>
             <DialogDescription>
               경기구분을 선택하고 대진 방식을 정한 뒤 생성하세요.
             </DialogDescription>
           </DialogHeader>
-          <div className="min-h-0 flex-1 overflow-y-auto px-5 py-4">
+          <DialogBody>
             <BracketCreateForm
               eventId={eventId}
               divisions={divisions}
               variant="plain"
             />
-          </div>
+          </DialogBody>
         </DialogContent>
       </Dialog>
     </>
