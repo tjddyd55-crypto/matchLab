@@ -1,6 +1,7 @@
 "use client";
 
 import { useEffect, useState, useTransition } from "react";
+import { scheduleEffectStateUpdate } from "@/lib/react/schedule-effect-state-update";
 import { useRouter } from "next/navigation";
 import { AppDateInput } from "@/components/shared/AppDateInput";
 import { useAppConfirmDialog } from "@/components/shared/app-confirm-dialog";
@@ -171,19 +172,21 @@ export function GymMemberMembershipPanel({
 
   useEffect(() => {
     if (opConsumed || !initialOp) return;
-    if (initialOp === "sale") {
-      setModal("sale");
-    } else if (initialOp === "renew") {
-      setModal(currentSubscription ? "renew" : "sale");
-    } else if (
-      initialOp === "collect" &&
-      money &&
-      money.outstanding > 0 &&
-      money.primaryReceivableId
-    ) {
-      setModal("collect");
-    }
-    setOpConsumed(true);
+    scheduleEffectStateUpdate(() => {
+      if (initialOp === "sale") {
+        setModal("sale");
+      } else if (initialOp === "renew") {
+        setModal(currentSubscription ? "renew" : "sale");
+      } else if (
+        initialOp === "collect" &&
+        money &&
+        money.outstanding > 0 &&
+        money.primaryReceivableId
+      ) {
+        setModal("collect");
+      }
+      setOpConsumed(true);
+    });
   }, [initialOp, opConsumed, currentSubscription, money]);
 
   function run(
@@ -865,25 +868,27 @@ function MembershipSaleDialog({
   // reset when opening
   useEffect(() => {
     if (!open) return;
-    const plan = plans.find((p) => p.id === defaultPlanId) ?? plans[0];
-    setPlanId(plan?.id ?? "");
-    setStartedAt(defaultStart);
-    if (plan) {
-      setListPrice(String(plan.price));
-      setPaidAmount(String(plan.price));
-      const start = new Date(`${defaultStart}T00:00:00.000Z`);
-      const ends = addMembershipDuration(
-        start,
-        plan.durationType,
-        plan.durationValue,
-      );
-      setEndsAt(toYmd(ends));
-    } else {
-      setListPrice("");
-      setPaidAmount("");
-      setEndsAt("");
-    }
-    setDiscountAmount("0");
+    scheduleEffectStateUpdate(() => {
+      const plan = plans.find((p) => p.id === defaultPlanId) ?? plans[0];
+      setPlanId(plan?.id ?? "");
+      setStartedAt(defaultStart);
+      if (plan) {
+        setListPrice(String(plan.price));
+        setPaidAmount(String(plan.price));
+        const start = new Date(`${defaultStart}T00:00:00.000Z`);
+        const ends = addMembershipDuration(
+          start,
+          plan.durationType,
+          plan.durationValue,
+        );
+        setEndsAt(toYmd(ends));
+      } else {
+        setListPrice("");
+        setPaidAmount("");
+        setEndsAt("");
+      }
+      setDiscountAmount("0");
+    });
   }, [open, defaultPlanId, defaultStart, plans]);
 
   const saleAmount = Math.max(

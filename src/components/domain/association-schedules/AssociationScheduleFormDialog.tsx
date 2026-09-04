@@ -1,6 +1,7 @@
 "use client";
 
 import { useEffect, useState, useTransition } from "react";
+import { scheduleEffectStateUpdate } from "@/lib/react/schedule-effect-state-update";
 import type { AssociationScheduleCalendarItem } from "@/lib/association-schedule/calendar";
 import { TEN_MINUTE_TIME_OPTIONS } from "@/lib/gym-schedule/hours";
 import {
@@ -62,42 +63,44 @@ export function AssociationScheduleFormDialog({
 
   useEffect(() => {
     if (!open) return;
-    setMessage(null);
-    if (schedule) {
-      setTitle(schedule.title);
-      setType(schedule.type);
-      setStartsAtDate(toSeoulDateKey(schedule.startsAt).slice(0, 10));
-      setStartsAtHm(schedule.allDay ? "09:00" : hmFromDate(schedule.startsAt));
-      setEndsAtDate(
-        schedule.endsAt ? toSeoulDateKey(schedule.endsAt).slice(0, 10) : "",
-      );
-      setEndsAtHm(
-        schedule.endsAt && !schedule.allDay
-          ? hmFromDate(schedule.endsAt)
-          : "",
-      );
-      setAllDay(schedule.allDay);
-      setLocation(schedule.location ?? "");
-      setDescription("");
-      setVisibility(schedule.visibility);
-      setRelatedUrl(schedule.relatedUrl ?? "");
-      setRelatedFormId(schedule.relatedForm?.id ?? "");
-      setRelatedNoticeId(schedule.relatedNotice?.id ?? "");
-    } else {
-      setTitle("");
-      setType("EDUCATION");
-      setStartsAtDate(defaultDateKey);
-      setStartsAtHm("09:00");
-      setEndsAtDate("");
-      setEndsAtHm("");
-      setAllDay(false);
-      setLocation("");
-      setDescription("");
-      setVisibility("PRIVATE");
-      setRelatedUrl("");
-      setRelatedFormId("");
-      setRelatedNoticeId("");
-    }
+    scheduleEffectStateUpdate(() => {
+      setMessage(null);
+      if (schedule) {
+        setTitle(schedule.title);
+        setType(schedule.type);
+        setStartsAtDate(toSeoulDateKey(schedule.startsAt).slice(0, 10));
+        setStartsAtHm(schedule.allDay ? "09:00" : hmFromDate(schedule.startsAt));
+        setEndsAtDate(
+          schedule.endsAt ? toSeoulDateKey(schedule.endsAt).slice(0, 10) : "",
+        );
+        setEndsAtHm(
+          schedule.endsAt && !schedule.allDay
+            ? hmFromDate(schedule.endsAt)
+            : "",
+        );
+        setAllDay(schedule.allDay);
+        setLocation(schedule.location ?? "");
+        setDescription("");
+        setVisibility(schedule.visibility);
+        setRelatedUrl(schedule.relatedUrl ?? "");
+        setRelatedFormId(schedule.relatedForm?.id ?? "");
+        setRelatedNoticeId(schedule.relatedNotice?.id ?? "");
+      } else {
+        setTitle("");
+        setType("EDUCATION");
+        setStartsAtDate(defaultDateKey);
+        setStartsAtHm("09:00");
+        setEndsAtDate("");
+        setEndsAtHm("");
+        setAllDay(false);
+        setLocation("");
+        setDescription("");
+        setVisibility("PRIVATE");
+        setRelatedUrl("");
+        setRelatedFormId("");
+        setRelatedNoticeId("");
+      }
+    });
   }, [open, schedule, defaultDateKey]);
 
   function save() {

@@ -142,7 +142,7 @@ export function FighterRegistrationForm({
           <CardHeader>
             <CardTitle className="text-base">전적</CardTitle>
             <CardDescription>
-              전적이 없으면 '무전' 버튼을 누르거나 그냥 두세요.
+              전적이 없으면 &apos;무전&apos; 버튼을 누르거나 그냥 두세요.
             </CardDescription>
           </CardHeader>
           <CardContent>

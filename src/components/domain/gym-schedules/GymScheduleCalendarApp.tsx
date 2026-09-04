@@ -10,6 +10,7 @@ import {
   useTransition,
   type RefObject,
 } from "react";
+import { scheduleEffectStateUpdate } from "@/lib/react/schedule-effect-state-update";
 import { usePathname, useRouter, useSearchParams } from "next/navigation";
 import { GymScheduleFormDialog } from "@/components/domain/gym-schedules/GymScheduleFormDialog";
 import { GymScheduleDetailSheet } from "@/components/domain/gym-schedules/GymScheduleDetailSheet";
@@ -190,7 +191,9 @@ export function GymScheduleCalendarApp({
   const [todayKey, setTodayKey] = useState(initialTodayKey);
 
   useEffect(() => {
-    setTodayKey(toSeoulDateKey(new Date()));
+    scheduleEffectStateUpdate(() => {
+      setTodayKey(toSeoulDateKey(new Date()));
+    });
   }, []);
 
   const [selected, setSelected] = useState<GymCalendarItem | null>(null);

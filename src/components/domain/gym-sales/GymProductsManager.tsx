@@ -1,6 +1,7 @@
 "use client";
 
 import { useEffect, useState, useTransition } from "react";
+import { scheduleEffectStateUpdate } from "@/lib/react/schedule-effect-state-update";
 import { useRouter } from "next/navigation";
 import { useAppConfirmDialog } from "@/components/shared/app-confirm-dialog";
 import { Button } from "@/components/ui/button";
@@ -63,7 +64,9 @@ export function GymProductsManager({
   >(null);
 
   useEffect(() => {
-    setProducts(initialProducts);
+    scheduleEffectStateUpdate(() => {
+      setProducts(initialProducts);
+    });
   }, [initialProducts]);
 
   function syncFromServer() {

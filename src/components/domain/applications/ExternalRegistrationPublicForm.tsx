@@ -5,6 +5,7 @@ import { submitExternalRegistrationBatchAction } from "@/features/external-regis
 import { EXTERNAL_REGISTRATION_MAX_ATHLETES } from "@/lib/validators/external-registration.validator";
 import { AppDateInput } from "@/components/shared/AppDateInput";
 import { Button } from "@/components/ui/button";
+import { scheduleEffectStateUpdate } from "@/lib/react/schedule-effect-state-update";
 import { cn } from "@/lib/utils";
 import {
   StructuredRecordFields,
@@ -160,35 +161,37 @@ export function ExternalRegistrationPublicForm({
   const [formReady, setFormReady] = useState(false);
 
   useEffect(() => {
-    setFormReady(true);
-    try {
-      const raw = sessionStorage.getItem(DRAFT_PREFIX + token);
-      if (!raw) return;
-      const parsed = JSON.parse(raw) as {
-        gym?: GymDraft;
-        athletes?: AthleteDraft[];
-      };
-      if (parsed.gym?.gymName?.trim()) {
-        setGym({
-          gymName: parsed.gym.gymName,
-          memo: parsed.gym.memo ?? "",
-        });
+    scheduleEffectStateUpdate(() => {
+      setFormReady(true);
+      try {
+        const raw = sessionStorage.getItem(DRAFT_PREFIX + token);
+        if (!raw) return;
+        const parsed = JSON.parse(raw) as {
+          gym?: GymDraft;
+          athletes?: AthleteDraft[];
+        };
+        if (parsed.gym?.gymName?.trim()) {
+          setGym({
+            gymName: parsed.gym.gymName,
+            memo: parsed.gym.memo ?? "",
+          });
+        }
+        if (parsed.athletes?.some((a) => a.fighterName?.trim())) {
+          setAthletes(
+            parsed.athletes.map((a) => ({
+              ...emptyAthlete(),
+              ...a,
+              gender:
+                a.gender === "female" || a.gender === "male" ? a.gender : "",
+              divisionOptionValue: a.divisionOptionValue ?? "",
+              otherDetailText: a.otherDetailText ?? "",
+            })),
+          );
+        }
+      } catch {
+        /* ignore */
       }
-      if (parsed.athletes?.some((a) => a.fighterName?.trim())) {
-        setAthletes(
-          parsed.athletes.map((a) => ({
-            ...emptyAthlete(),
-            ...a,
-            gender:
-              a.gender === "female" || a.gender === "male" ? a.gender : "",
-            divisionOptionValue: a.divisionOptionValue ?? "",
-            otherDetailText: a.otherDetailText ?? "",
-          })),
-        );
-      }
-    } catch {
-      /* ignore */
-    }
+    });
   }, [token]);
 
   useEffect(() => {

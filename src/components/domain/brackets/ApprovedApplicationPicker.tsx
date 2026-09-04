@@ -9,6 +9,7 @@ import {
   useRef,
   useState,
 } from "react";
+import { scheduleEffectStateUpdate } from "@/lib/react/schedule-effect-state-update";
 import { createPortal } from "react-dom";
 import type { OrganizerApprovedFighterOptionVM } from "@/lib/services/bracket.service";
 import type { FighterPickerOptionState } from "@/lib/bracket-fighter-picker";
@@ -269,11 +270,15 @@ export function ApprovedApplicationPicker({
   const activeFighterId = currentFighterId ?? value ?? internalValue;
 
   useEffect(() => {
-    setMounted(true);
+    scheduleEffectStateUpdate(() => {
+      setMounted(true);
+    });
   }, []);
 
   useEffect(() => {
-    setInternalValue(value);
+    scheduleEffectStateUpdate(() => {
+      setInternalValue(value);
+    });
   }, [value]);
 
   const updatePopupPosition = useCallback(() => {

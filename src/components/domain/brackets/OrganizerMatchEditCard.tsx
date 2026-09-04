@@ -1,6 +1,7 @@
 "use client";
 
 import { useEffect, useMemo, useState, useTransition } from "react";
+import { scheduleEffectStateUpdate } from "@/lib/react/schedule-effect-state-update";
 import { useRouter } from "next/navigation";
 import { OrganizerMatchEditSlot } from "@/components/domain/brackets/OrganizerMatchEditSlot";
 import {
@@ -96,11 +97,15 @@ export function OrganizerMatchEditCard({
   );
 
   useEffect(() => {
-    setDraftDivisionId(currentDivisionId ?? "");
+    scheduleEffectStateUpdate(() => {
+      setDraftDivisionId(currentDivisionId ?? "");
+    });
   }, [match.id, currentDivisionId]);
 
   useEffect(() => {
-    setDraftWeightKg(formatMatchWeightKgInputValue(match.matchWeightKg));
+    scheduleEffectStateUpdate(() => {
+      setDraftWeightKg(formatMatchWeightKgInputValue(match.matchWeightKg));
+    });
   }, [match.id, match.matchWeightKg]);
 
   const slotOptions = useMemo(() => {

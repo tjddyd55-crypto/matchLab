@@ -197,7 +197,7 @@ async function resolveEligibleTargetByLoginId(
 
   let accountType: AdminPasswordResetAccountType | null = null;
   let accountLabel = "";
-  let representativeName: string | null = user.name;
+  const representativeName: string | null = user.name;
   let organizerId: string | null = null;
   let gymId: string | null = null;
   let accountStatus = "unknown";

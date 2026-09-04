@@ -1,6 +1,7 @@
 "use client";
 
 import { useEffect, useState, useTransition } from "react";
+import { scheduleEffectStateUpdate } from "@/lib/react/schedule-effect-state-update";
 import { useRouter } from "next/navigation";
 import type {
   ApplicationCancellationSource,
@@ -68,7 +69,9 @@ export function OrganizerApplicationStatusBadgeToggle({
     useState<ApplicationStatus | null>(null);
 
   useEffect(() => {
-    setOptimisticStatus(null);
+    scheduleEffectStateUpdate(() => {
+      setOptimisticStatus(null);
+    });
   }, [applicationStatus]);
 
   const effectiveStatus = optimisticStatus ?? applicationStatus;

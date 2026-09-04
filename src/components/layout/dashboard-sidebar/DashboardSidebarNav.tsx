@@ -5,6 +5,7 @@ import {
   useState,
   type ReactNode,
 } from "react";
+import { scheduleEffectStateUpdate } from "@/lib/react/schedule-effect-state-update";
 import Link from "next/link";
 import { usePathname } from "next/navigation";
 import type { DashboardSidebarNavGroup } from "@/lib/navigation/dashboard-sidebar";
@@ -307,7 +308,9 @@ export function DashboardSidebarNav({
 
   useEffect(() => {
     if (!accordion) return;
-    setOpenGroupId(resolveOpenGroupId(groups, pathname, isItemActive));
+    scheduleEffectStateUpdate(() => {
+      setOpenGroupId(resolveOpenGroupId(groups, pathname, isItemActive));
+    });
     // groups 참조는 렌더마다 바뀌므로 id 키 + pathname만 동기화한다.
     // eslint-disable-next-line react-hooks/exhaustive-deps -- intentional
   }, [accordion, pathname, groupKey]);

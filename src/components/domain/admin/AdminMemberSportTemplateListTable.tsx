@@ -8,6 +8,7 @@ import {
   deleteMemberSportTemplateAction,
   duplicateMemberSportTemplateAction,
 } from "@/features/admin/member-sport-template-actions";
+import { useAppConfirmDialog } from "@/components/shared/app-confirm-dialog";
 import { buttonVariants } from "@/components/ui/button";
 import { cn } from "@/lib/utils";
 import { formatUtcDateOnly } from "@/lib/date-only";
@@ -18,13 +19,17 @@ export function AdminMemberSportTemplateListTable({
   templates: AdminMemberSportTemplateListItem[];
 }) {
   const router = useRouter();
+  const { confirm, alert } = useAppConfirmDialog();
   const [pending, startTransition] = useTransition();
 
   function duplicate(id: string) {
     startTransition(async () => {
       const result = await duplicateMemberSportTemplateAction(id);
       if (!result.ok) {
-        window.alert(result.error.message);
+        await alert({
+          title: "복제 실패",
+          description: result.error.message,
+        });
         return;
       }
       router.push(`/admin/member-sport-templates/${result.data.id}`);
@@ -32,16 +37,27 @@ export function AdminMemberSportTemplateListTable({
     });
   }
 
-  function remove(id: string, gymCount: number) {
+  async function remove(id: string, gymCount: number) {
     if (gymCount > 0) {
-      window.alert("체육관에서 사용 중인 템플릿은 삭제할 수 없습니다.");
+      await alert({
+        title: "삭제할 수 없음",
+        description: "체육관에서 사용 중인 템플릿은 삭제할 수 없습니다.",
+      });
       return;
     }
-    if (!window.confirm("이 템플릿을 삭제하시겠습니까?")) return;
+    const ok = await confirm({
+      title: "템플릿 삭제",
+      description: "이 템플릿을 삭제하시겠습니까?",
+      variant: "danger",
+    });
+    if (!ok) return;
     startTransition(async () => {
       const result = await deleteMemberSportTemplateAction(id);
       if (!result.ok) {
-        window.alert(result.error.message);
+        await alert({
+          title: "삭제 실패",
+          description: result.error.message,
+        });
         return;
       }
       router.refresh();
@@ -109,7 +125,7 @@ export function AdminMemberSportTemplateListTable({
                       buttonVariants({ variant: "ghost", size: "sm" }),
                       "text-destructive",
                     )}
-                    onClick={() => remove(t.id, t.gymCount)}
+                    onClick={() => void remove(t.id, t.gymCount)}
                   >
                     삭제
                   </button>

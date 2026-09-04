@@ -1,6 +1,7 @@
 "use client";
 
 import { useCallback, useEffect, useMemo, useState } from "react";
+import { scheduleEffectStateUpdate } from "@/lib/react/schedule-effect-state-update";
 import { Button } from "@/components/ui/button";
 import {
   Dialog,
@@ -51,8 +52,10 @@ export function OrganizerJudgeScoreSheetActions({
   useEffect(() => {
     if (!open) return;
     let cancelled = false;
-    setMetaLoading(true);
-    setMetaError(null);
+    scheduleEffectStateUpdate(() => {
+      setMetaLoading(true);
+      setMetaError(null);
+    });
     void fetch(
       `/api/organizer/events/${eventId}/judge-score-sheet-meta`,
       { credentials: "include" },

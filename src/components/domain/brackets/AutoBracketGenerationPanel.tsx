@@ -1,6 +1,7 @@
 "use client";
 
 import { useActionState, useEffect, useRef, useState } from "react";
+import { scheduleEffectStateUpdate } from "@/lib/react/schedule-effect-state-update";
 import { useRouter } from "next/navigation";
 import { generateAutoBracketMatchesAction } from "@/features/brackets/actions";
 import type { ActionResult } from "@/lib/action-result";
@@ -114,7 +115,9 @@ export function AutoBracketGenerationPanel({
 
   useEffect(() => {
     if (applyState?.ok && !applyState.data.previewOnly) {
-      setPreviewDialogOpen(false);
+      scheduleEffectStateUpdate(() => {
+        setPreviewDialogOpen(false);
+      });
       router.refresh();
     }
   }, [applyState, router]);
@@ -130,7 +133,9 @@ export function AutoBracketGenerationPanel({
 
   useEffect(() => {
     if (previewState?.ok && previewState.data.previewOnly) {
-      setPreviewDialogOpen(true);
+      scheduleEffectStateUpdate(() => {
+        setPreviewDialogOpen(true);
+      });
     }
   }, [previewState]);
 

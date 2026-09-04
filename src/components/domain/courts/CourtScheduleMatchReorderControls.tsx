@@ -7,6 +7,7 @@ import {
   useTransition,
   type KeyboardEvent,
 } from "react";
+import { scheduleEffectStateUpdate } from "@/lib/react/schedule-effect-state-update";
 import { useRouter } from "next/navigation";
 import { Button } from "@/components/ui/button";
 import { saveMatchScheduleFormAction } from "@/features/event-courts/actions";
@@ -65,7 +66,9 @@ export function CourtScheduleMatchReorderControls({
   const [draft, setDraft] = useState(String(displayNumber));
 
   useEffect(() => {
-    setDraft(String(displayNumber));
+    scheduleEffectStateUpdate(() => {
+      setDraft(String(displayNumber));
+    });
   }, [displayNumber, matchId]);
 
   const locked =

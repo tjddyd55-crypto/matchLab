@@ -1,6 +1,7 @@
 "use client";
 
 import { useCallback, useEffect, useMemo, useState } from "react";
+import { scheduleEffectStateUpdate } from "@/lib/react/schedule-effect-state-update";
 import type {
   OrganizerApprovedFighterOptionVM,
   OrganizerBracketMatchVM,
@@ -460,8 +461,10 @@ export function BracketApprovedCandidatesSection({
   );
 
   useEffect(() => {
-    if (red && !selectableIds.has(red.fighterId)) setRed(null);
-    if (blue && !selectableIds.has(blue.fighterId)) setBlue(null);
+    scheduleEffectStateUpdate(() => {
+      if (red && !selectableIds.has(red.fighterId)) setRed(null);
+      if (blue && !selectableIds.has(blue.fighterId)) setBlue(null);
+    });
   }, [selectableIds, red, blue]);
 
   const slotIds = useMemo(() => {

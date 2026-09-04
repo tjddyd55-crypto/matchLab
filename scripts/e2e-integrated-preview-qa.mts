@@ -1485,7 +1485,7 @@ async function main() {
     await selfDlg.waitFor({ timeout: 20_000 });
     const urlEl = selfDlg.locator("p.break-all");
     await urlEl.waitFor({ timeout: 20_000 });
-    let selfUrl = (await urlEl.innerText()).trim();
+    const selfUrl = (await urlEl.innerText()).trim();
     if (!selfUrl.includes("/gym-register/")) fail(`self-reg url unexpected: ${selfUrl}`);
     pass("self-reg-link");
     await gymPage.keyboard.press("Escape");

@@ -39,12 +39,14 @@ export function PasswordResetPhoneForm({
   const [error, setError] = useState<string | null>(null);
   const [info, setInfo] = useState<string | null>(null);
   const [resendAt, setResendAt] = useState<number | null>(null);
-  const [now, setNow] = useState(Date.now());
+  const [now, setNow] = useState(0);
   const [pending, startTransition] = useTransition();
 
   useEffect(() => {
     if (!resendAt) return;
-    const t = setInterval(() => setNow(Date.now()), 1000);
+    const tick = () => setNow(Date.now());
+    tick();
+    const t = setInterval(tick, 1000);
     return () => clearInterval(t);
   }, [resendAt]);
 

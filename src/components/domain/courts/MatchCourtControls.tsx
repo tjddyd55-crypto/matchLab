@@ -1,6 +1,7 @@
 "use client";
 
 import { useEffect, useMemo, useRef, useState } from "react";
+import { scheduleEffectStateUpdate } from "@/lib/react/schedule-effect-state-update";
 import { useRouter } from "next/navigation";
 import { setMatchCourtFormAction } from "@/features/event-courts/actions";
 import { Button } from "@/components/ui/button";
@@ -150,8 +151,10 @@ export function MatchCourtControls({
   const isDirty = courtDirty || memoDirty || weightDirty || extraDirty;
 
   useEffect(() => {
-    setLocalCourtId(resolved.selectValue);
-    setLocalOrder(courtOrder != null ? String(courtOrder) : "");
+    scheduleEffectStateUpdate(() => {
+      setLocalCourtId(resolved.selectValue);
+      setLocalOrder(courtOrder != null ? String(courtOrder) : "");
+    });
   }, [resolved.selectValue, courtOrder, matchId]);
 
   async function save(nextCourtId?: string, nextOrder?: string) {
@@ -209,7 +212,9 @@ export function MatchCourtControls({
   }
 
   const saveRef = useRef(save);
-  saveRef.current = save;
+  useEffect(() => {
+    saveRef.current = save;
+  });
   const saveDisabled = pending || !selectValue || !isDirty;
 
   useEffect(() => {

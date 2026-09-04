@@ -1,6 +1,7 @@
 "use client";
 
 import { useCallback, useEffect, useMemo, useState, type ReactNode } from "react";
+import { scheduleEffectStateUpdate } from "@/lib/react/schedule-effect-state-update";
 import { MatchBoutFormatToggle } from "@/components/domain/brackets/MatchBoutFormatToggle";
 import { BracketMatchControlsRow } from "@/components/domain/brackets/BracketMatchCompactRow";
 import { MatchOperationalSettingsSelect } from "@/components/domain/brackets/MatchOperationalSettingsSelect";
@@ -65,7 +66,9 @@ export function MatchEditControlsRow({
   } | null>(null);
 
   useEffect(() => {
-    setOrganizerMemo(match.organizerMemo ?? "");
+    scheduleEffectStateUpdate(() => {
+      setOrganizerMemo(match.organizerMemo ?? "");
+    });
   }, [match.id, match.organizerMemo]);
 
   const handleSaveControlsChange = useCallback(

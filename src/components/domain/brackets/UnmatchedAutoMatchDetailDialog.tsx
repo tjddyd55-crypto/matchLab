@@ -1,6 +1,7 @@
 "use client";
 
 import { useEffect, useMemo, useState } from "react";
+import { scheduleEffectStateUpdate } from "@/lib/react/schedule-effect-state-update";
 import type {
   AutoBracketCourtAssignmentSummary,
   AutoBracketPlannedMatchDetail,
@@ -168,8 +169,10 @@ export function AutoBracketPreviewDialog({
 
   useEffect(() => {
     if (!open) return;
-    setFilter("all");
-    setQuery("");
+    scheduleEffectStateUpdate(() => {
+      setFilter("all");
+      setQuery("");
+    });
   }, [open, unmatchedDetails]);
 
   const filterCounts = useMemo(() => {

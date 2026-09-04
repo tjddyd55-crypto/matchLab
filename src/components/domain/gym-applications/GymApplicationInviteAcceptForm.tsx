@@ -1,6 +1,7 @@
 "use client";
 
 import { useEffect, useRef, useState, useTransition } from "react";
+import { scheduleEffectStateUpdate } from "@/lib/react/schedule-effect-state-update";
 
 type AcceptStatus = "idle" | "submitting" | "success" | "error";
 type LoginIdCheckStatus =
@@ -41,9 +42,11 @@ export function GymApplicationInviteAcceptForm({
 
   useEffect(() => {
     if (!lockedLoginId) return;
-    setLoginId(lockedLoginId);
-    setCheckedLoginId(lockedLoginId);
-    setLoginIdCheck("available");
+    scheduleEffectStateUpdate(() => {
+      setLoginId(lockedLoginId);
+      setCheckedLoginId(lockedLoginId);
+      setLoginIdCheck("available");
+    });
   }, [lockedLoginId]);
 
   const formLocked = status === "submitting" || status === "success";

@@ -1,6 +1,7 @@
 "use client";
 
 import { useEffect, useId, useRef, useState } from "react";
+import { scheduleEffectStateUpdate } from "@/lib/react/schedule-effect-state-update";
 import {
   isDaumPostcodeReady,
   loadDaumPostcodeScript,
@@ -56,11 +57,15 @@ export function EventAddressInput({
 
   useEffect(() => {
     if (isDaumPostcodeReady()) {
-      setScriptReady(true);
+      scheduleEffectStateUpdate(() => {
+        setScriptReady(true);
+      });
       return;
     }
     let cancelled = false;
-    setScriptLoading(true);
+    scheduleEffectStateUpdate(() => {
+      setScriptLoading(true);
+    });
     void loadDaumPostcodeScript()
       .then(() => {
         if (!cancelled) {

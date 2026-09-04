@@ -1,6 +1,7 @@
 "use client";
 
 import { useEffect, useState, useTransition } from "react";
+import { scheduleEffectStateUpdate } from "@/lib/react/schedule-effect-state-update";
 import { QRCodeSVG } from "qrcode.react";
 import {
   getOrCreateSelfRegistrationLinkAction,
@@ -43,7 +44,9 @@ export function GymMemberSelfRegistrationLinkButton() {
   const [showQrLarge, setShowQrLarge] = useState(false);
 
   function load() {
-    setError(null);
+    scheduleEffectStateUpdate(() => {
+      setError(null);
+    });
     startTransition(async () => {
       const result = await getOrCreateSelfRegistrationLinkAction();
       if (!result.ok) {

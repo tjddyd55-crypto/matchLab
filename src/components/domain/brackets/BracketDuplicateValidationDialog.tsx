@@ -1,6 +1,7 @@
 "use client";
 
 import { useCallback, useEffect, useState, useTransition } from "react";
+import { scheduleEffectStateUpdate } from "@/lib/react/schedule-effect-state-update";
 import { useRouter } from "next/navigation";
 import {
   clearEventMultiMatchConfirmationAction,
@@ -36,8 +37,10 @@ export function BracketDuplicateValidationDialog({
   const [confirmedCount, setConfirmedCount] = useState(0);
 
   const reload = useCallback(async () => {
-    setLoading(true);
-    setError(null);
+    scheduleEffectStateUpdate(() => {
+      setLoading(true);
+      setError(null);
+    });
     const res = await listEventBracketDuplicateValidationAction(eventId);
     setLoading(false);
     if (!res.ok) {
@@ -51,7 +54,9 @@ export function BracketDuplicateValidationDialog({
 
   useEffect(() => {
     if (!open) return;
-    void reload();
+    scheduleEffectStateUpdate(() => {
+      void reload();
+    });
   }, [open, reload]);
 
   function confirmIssue(applicationId: string) {

@@ -14,7 +14,28 @@ const eslintConfig = defineConfig([
     "next-env.d.ts",
     "src/generated/**",
     "prisma/**",
+    // Build artifacts / archives (not source)
+    "desktop/dist/**",
+    "desktop/out-*/**",
+    "desktop/release/**",
+    "desktop/release-*/**",
+    "scripts/archive/**",
+    "test-results/**",
+    "tmp/**",
+    "outputs/**",
   ]),
+  {
+    files: ["**/*.cjs", "desktop/scripts/**", "scripts/**/*.ts", "scripts/**/*.mts"],
+    rules: {
+      "@typescript-eslint/no-require-imports": "off",
+    },
+  },
+  {
+    files: ["src/lib/brackets/max-weight-matching.ts"],
+    rules: {
+      "@typescript-eslint/ban-ts-comment": "off",
+    },
+  },
   {
     rules: {
       // MATCHON Modal SSOT: window.alert/confirm/prompt 금지

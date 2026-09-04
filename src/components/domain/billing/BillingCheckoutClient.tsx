@@ -1,6 +1,6 @@
 "use client";
 
-import { useMemo, useState, useTransition } from "react";
+import { useState, useTransition } from "react";
 import { useRouter } from "next/navigation";
 import { Button } from "@/components/ui/button";
 import { BRAND_NAME } from "@/lib/brand";
@@ -82,23 +82,21 @@ export function BillingCheckoutClient({
   const [pending, startTransition] = useTransition();
 
   const selected = plans.find((p) => p.id === planId) ?? monthly;
+  const selectedPrice = selected?.price ?? 0;
   const savings =
     monthly && yearly
       ? yearlySavingsLabel(monthly.price, yearly.price)
       : null;
 
-  const display = useMemo(() => {
-    if (preview) return preview;
-    const price = selected?.price ?? 0;
-    return {
-      originalAmount: price,
+  const display: PreviewState =
+    preview ?? {
+      originalAmount: selectedPrice,
       discountAmount: 0,
-      finalAmount: price,
+      finalAmount: selectedPrice,
       freeMonths: 0,
       trialEndAt: null,
       coupon: null,
-    } satisfies PreviewState;
-  }, [preview, selected]);
+    };
 
   const needsPaymentMethod =
     display.finalAmount > 0 ||

@@ -1,6 +1,7 @@
 "use client";
 
 import { useEffect, useMemo, useState, useTransition } from "react";
+import { scheduleEffectStateUpdate } from "@/lib/react/schedule-effect-state-update";
 import type { DivisionTemplateItemInput } from "@/lib/validators/division-template.validator";
 import {
   mergeWeightClassImportIntoItems,
@@ -50,7 +51,9 @@ export function DivisionTemplateExcelToolbar({
   const [dialogMounted, setDialogMounted] = useState(false);
 
   useEffect(() => {
-    setDialogMounted(true);
+    scheduleEffectStateUpdate(() => {
+      setDialogMounted(true);
+    });
   }, []);
 
   async function downloadSample() {

@@ -7,7 +7,7 @@
  *
  * Wrapped so undeclared assignments bind to local vars (ESM strict-safe).
  */
-/* eslint-disable @typescript-eslint/no-explicit-any, no-var, prefer-const */
+/* eslint-disable @typescript-eslint/no-explicit-any, no-var, prefer-const, @typescript-eslint/ban-ts-comment */
 
 export function maxWeightMatching(
   edges: Array<[number, number, number]>,
@@ -260,7 +260,7 @@ Edmonds.prototype.assignLabel = function (w, t, p) {
   this.labelEnd[w] = this.labelEnd[b] = p;
   this.bestEdge[w] = this.bestEdge[b] = -1;
   if (t === 1) {
-    this.queue.push.apply(this.queue, this.blossomLeaves(b));
+    this.queue.push(...this.blossomLeaves(b));
     //console.log('DEBUG: PUSH ' + this.blossomLeaves(b).toString());
   } else if (t === 2) {
     var base = this.blossomBase[b];

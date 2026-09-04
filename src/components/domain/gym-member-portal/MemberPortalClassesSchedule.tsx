@@ -1,6 +1,7 @@
 "use client";
 
 import { useEffect, useMemo, useState } from "react";
+import { scheduleEffectStateUpdate } from "@/lib/react/schedule-effect-state-update";
 import { useRouter } from "next/navigation";
 import { MemberPortalClassCard } from "@/components/domain/gym-member-portal/MemberPortalClassCard";
 import { MemberPortalClassDetailSheet } from "@/components/domain/gym-member-portal/MemberPortalClassDetailSheet";
@@ -67,7 +68,9 @@ export function MemberPortalClassesSchedule({
   const [detailId, setDetailId] = useState<string | null>(initialClassId);
 
   useEffect(() => {
-    setDetailId(initialClassId);
+    scheduleEffectStateUpdate(() => {
+      setDetailId(initialClassId);
+    });
   }, [initialClassId]);
 
   const byDay = useMemo(() => {

@@ -1,6 +1,7 @@
 "use client";
 
 import { useEffect, useState, useTransition } from "react";
+import { scheduleEffectStateUpdate } from "@/lib/react/schedule-effect-state-update";
 import { useRouter } from "next/navigation";
 import {
   createGymMembershipPlanAction,
@@ -57,7 +58,9 @@ export function GymMembershipPlanManager({
   const [dragId, setDragId] = useState<string | null>(null);
 
   useEffect(() => {
-    setPlans(initialPlans);
+    scheduleEffectStateUpdate(() => {
+      setPlans(initialPlans);
+    });
   }, [initialPlans]);
 
   function run(

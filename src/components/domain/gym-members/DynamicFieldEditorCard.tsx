@@ -5,6 +5,7 @@ import type { GymMemberDynamicFieldDefinition } from "@/lib/gym-member-profile/f
 import { GYM_MEMBER_DYNAMIC_FIELD_TYPES } from "@/lib/gym-member-profile/field-types";
 import { GYM_MEMBER_DYNAMIC_FIELD_TYPE_LABEL } from "@/lib/gym-member-profile/ui-labels";
 import { Button } from "@/components/ui/button";
+import { useAppConfirmDialog } from "@/components/shared/app-confirm-dialog";
 import { matchonFieldInputClass, matchonFieldTextareaClass } from "@/lib/ui/matchon-shell-ui";
 import { cn } from "@/lib/utils";
 
@@ -33,20 +34,27 @@ export function DynamicFieldEditorCard({
   onDelete: () => void;
   onDeactivateInstead?: () => void;
 }) {
+  const { confirm } = useAppConfirmDialog();
   const inactive = field.active === false;
   const hasValues = valueCount > 0;
 
-  function handleDeleteClick() {
+  async function handleDeleteClick() {
     if (hasValues) {
-      const ok = window.confirm(
-        "이 항목에는 저장된 회원 정보가 있어 바로 삭제할 수 없습니다.\n비활성화하면 기존 정보는 보존되고 신규 입력 화면에서는 숨겨집니다.\n\n비활성화하시겠습니까?",
-      );
+      const ok = await confirm({
+        title: "항목 비활성화",
+        description:
+          "이 항목에는 저장된 회원 정보가 있어 바로 삭제할 수 없습니다.\n비활성화하면 기존 정보는 보존되고 신규 입력 화면에서는 숨겨집니다.\n\n비활성화하시겠습니까?",
+        variant: "danger",
+      });
       if (ok) onDeactivateInstead?.() ?? onToggleActive();
       return;
     }
-    if (window.confirm("이 항목을 삭제하시겠습니까?")) {
-      onDelete();
-    }
+    const ok = await confirm({
+      title: "항목 삭제",
+      description: "이 항목을 삭제하시겠습니까?",
+      variant: "danger",
+    });
+    if (ok) onDelete();
   }
 
   return (
@@ -118,7 +126,7 @@ export function DynamicFieldEditorCard({
             variant="ghost"
             size="sm"
             className="h-7 px-2 text-destructive"
-            onClick={handleDeleteClick}
+            onClick={() => void handleDeleteClick()}
           >
             삭제
           </Button>

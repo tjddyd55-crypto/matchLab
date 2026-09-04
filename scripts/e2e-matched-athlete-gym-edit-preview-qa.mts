@@ -54,8 +54,8 @@ async function main() {
   });
   const prisma = new PrismaClient({ adapter: new PrismaPg(pool) });
 
-  const beforeGym = "??쇳럹吏?;
-  const afterGym = "??쇳렆MMA吏?;
+  const beforeGym = "테스트체육관";
+  const afterGym = "테스트MMA체육관";
 
   let eventId = "";
   let applicationId = "";
@@ -219,7 +219,7 @@ async function main() {
     const workspaceUrl = `${BASE}/organizer/events/${eventId}/brackets?tab=view&view=workspace`;
     await page.goto(workspaceUrl, { waitUntil: "networkidle" });
     // Filter to the seeded gym so the target card is visible.
-    const search = page.getByRole("textbox", { name: "?≫엺 寃쎄린 寃?? });
+    const search = page.getByRole("textbox", { name: "잡힌 경기 검색" });
     if (await search.count()) {
       await search.fill(beforeGym);
       await page.waitForTimeout(400);
@@ -231,7 +231,7 @@ async function main() {
       .filter({ hasText: beforeGym })
       .filter({ hasText: String(fighterRow?.name ?? "") })
       .first();
-    const editInCard = targetCard.getByRole("button", { name: "?좎닔?뺣낫 ?섏젙" });
+    const editInCard = targetCard.getByRole("button", { name: "선수정보 수정" });
     if ((await editInCard.count()) > 0) {
       await editInCard.first().click();
     } else {
@@ -245,7 +245,7 @@ async function main() {
         .filter({ hasText: beforeGym })
         .filter({ hasText: String(fighterRow?.name ?? "") })
         .first();
-      const editBtn = row.getByRole("button", { name: /?섏젙/ }).first();
+      const editBtn = row.getByRole("button", { name: /수정/ }).first();
       if (!(await editBtn.count())) {
         fail("could not find edit action for seeded gym athlete");
       }
@@ -257,7 +257,7 @@ async function main() {
     });
 
     // Ensure manual gym name mode.
-    const manualBtn = page.getByRole("button", { name: "?뚯냽紐?吏곸젒 ?낅젰" });
+    const manualBtn = page.getByRole("button", { name: "소속명 직접 입력" });
     if (await manualBtn.count()) await manualBtn.click();
 
     await page.waitForSelector("#edit-gymName", { timeout: 10000 });
@@ -271,7 +271,7 @@ async function main() {
     await page.screenshot({ path: join(OUT, "02-edit-dialog.png") });
 
     const dialogSave = page.getByRole("dialog").getByRole("button", {
-      name: "???,
+      name: "저장",
       exact: true,
     });
     await dialogSave.click();
@@ -280,7 +280,7 @@ async function main() {
     await page.waitForTimeout(800);
     const errVisible = await page
       .getByRole("dialog")
-      .getByText(/??ν븯吏 紐삵뻽?듬땲???깅퀎 ?뺣낫媛 ?꾨떖?섏? ?딆븯?듬땲???吏꾩뿉 諛곗젙??)
+      .getByText(/저장하지 못했습니다|성별 정보가 전달/)
       .isVisible()
       .catch(() => false);
     if (errVisible) {

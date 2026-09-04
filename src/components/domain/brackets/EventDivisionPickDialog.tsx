@@ -1,6 +1,7 @@
 "use client";
 
 import { useEffect, useMemo, useState } from "react";
+import { scheduleEffectStateUpdate } from "@/lib/react/schedule-effect-state-update";
 import { Button } from "@/components/ui/button";
 import {
   Dialog,
@@ -48,8 +49,10 @@ export function EventDivisionPickDialog({
 
   useEffect(() => {
     if (!open) return;
-    setDivisionId(suggestedDivisionId ?? divisions[0]?.id ?? "");
-    setCourtId(activeCourts[0]?.id ?? "");
+    scheduleEffectStateUpdate(() => {
+      setDivisionId(suggestedDivisionId ?? divisions[0]?.id ?? "");
+      setCourtId(activeCourts[0]?.id ?? "");
+    });
   }, [open, suggestedDivisionId, divisions, activeCourts]);
 
   return (

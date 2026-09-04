@@ -1,6 +1,7 @@
 "use client";
 
 import { useEffect, useState } from "react";
+import { scheduleEffectStateUpdate } from "@/lib/react/schedule-effect-state-update";
 import {
   nowHmLabel,
   nowLineTopPx,
@@ -33,7 +34,9 @@ export function ScheduleNowLine({
   const [now, setNow] = useState<Date | null>(null);
 
   useEffect(() => {
-    setNow(new Date());
+    scheduleEffectStateUpdate(() => {
+      setNow(new Date());
+    });
     const id = window.setInterval(() => setNow(new Date()), 30_000);
     return () => window.clearInterval(id);
   }, []);

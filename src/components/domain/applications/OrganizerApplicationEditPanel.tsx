@@ -1,6 +1,7 @@
 "use client";
 
 import { useEffect, useState, useTransition } from "react";
+import { scheduleEffectStateUpdate } from "@/lib/react/schedule-effect-state-update";
 import { useRouter } from "next/navigation";
 import {
   getOrganizerApplicationEditFormAction,
@@ -67,8 +68,10 @@ export function OrganizerApplicationEditPanel({
   useEffect(() => {
     if (!open) return;
     let cancelled = false;
-    setLoading(true);
-    setError(null);
+    scheduleEffectStateUpdate(() => {
+      setLoading(true);
+      setError(null);
+    });
     void getOrganizerApplicationEditFormAction(applicationId).then((res) => {
       if (cancelled) return;
       setLoading(false);

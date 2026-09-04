@@ -340,10 +340,10 @@ async function main() {
     step("Custom field reorder", "PASS", "swapped displayOrder");
 
     // refresh refs after reorder
-    let vehicleRef = await prisma.gymMemberCustomField.findUniqueOrThrow({
+    const vehicleRef = await prisma.gymMemberCustomField.findUniqueOrThrow({
       where: { id: vehicle.id },
     });
-    let pickupRef = await prisma.gymMemberCustomField.findUniqueOrThrow({
+    const pickupRef = await prisma.gymMemberCustomField.findUniqueOrThrow({
       where: { id: pickup.id },
     });
     void pickupRef;

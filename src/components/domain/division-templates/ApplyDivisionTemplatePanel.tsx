@@ -2,6 +2,7 @@
 
 import Link from "next/link";
 import { useEffect, useMemo, useState, useTransition } from "react";
+import { scheduleEffectStateUpdate } from "@/lib/react/schedule-effect-state-update";
 import { useRouter } from "next/navigation";
 import type { DivisionTemplateDetailVM } from "@/lib/services/division-template.service";
 import type {
@@ -82,10 +83,12 @@ export function ApplyDivisionTemplatePanel({
   );
 
   useEffect(() => {
-    setPreview(null);
-    setLastResult(null);
-    setMessage(null);
-    setError(null);
+    scheduleEffectStateUpdate(() => {
+      setPreview(null);
+      setLastResult(null);
+      setMessage(null);
+      setError(null);
+    });
     if (!templateId) return;
 
     let cancelled = false;

@@ -1,6 +1,7 @@
 "use client";
 
 import { useActionState, useEffect, useState } from "react";
+import { scheduleEffectStateUpdate } from "@/lib/react/schedule-effect-state-update";
 import {
   Dialog,
   DialogContent,
@@ -45,8 +46,10 @@ export function DesktopSupportInquiryModal({
 
   useEffect(() => {
     if (!open) return;
-    setCategory(defaultCategory);
-    setLoginId(initialLoginId.trim());
+    scheduleEffectStateUpdate(() => {
+      setCategory(defaultCategory);
+      setLoginId(initialLoginId.trim());
+    });
   }, [open, defaultCategory, initialLoginId]);
 
   useEffect(() => {

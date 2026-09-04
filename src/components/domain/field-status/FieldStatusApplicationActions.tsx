@@ -9,6 +9,7 @@ import {
   type FormEvent,
   type ReactNode,
 } from "react";
+import { scheduleEffectStateUpdate } from "@/lib/react/schedule-effect-state-update";
 import { useRouter } from "next/navigation";
 import {
   checkInActionFormAction,
@@ -291,13 +292,15 @@ export function WeighInWeightInput({
   }, [autoFocus, row.applicationId]);
 
   useEffect(() => {
-    setWeightInput(
-      row.weighInWeightKg != null ? String(row.weighInWeightKg) : "",
-    );
-    setSavedKg(row.weighInWeightKg);
-    setLastReason(null);
-    setLastAutoStatus(null);
-    setErrorMessage(null);
+    scheduleEffectStateUpdate(() => {
+      setWeightInput(
+        row.weighInWeightKg != null ? String(row.weighInWeightKg) : "",
+      );
+      setSavedKg(row.weighInWeightKg);
+      setLastReason(null);
+      setLastAutoStatus(null);
+      setErrorMessage(null);
+    });
   }, [row.applicationId, row.weighInWeightKg]);
 
   const parsedInput = weightInput.trim() ? Number(weightInput) : null;
@@ -444,7 +447,9 @@ export function FieldMemoForm({ row }: { row: FieldStatusRowDTO }) {
   const [memo, setMemo] = useState(row.fieldMemo ?? "");
 
   useEffect(() => {
-    setMemo(row.fieldMemo ?? "");
+    scheduleEffectStateUpdate(() => {
+      setMemo(row.fieldMemo ?? "");
+    });
   }, [row.applicationId, row.fieldMemo]);
 
   function handleSubmit(e: FormEvent<HTMLFormElement>) {
