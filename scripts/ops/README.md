@@ -2,6 +2,8 @@
 
 Production·staging 데이터에 영향을 줄 수 있는 스크립트. **기본은 dry-run / read-only.**
 
+운영 절차 SSOT: [`docs/operations/runbook.md`](../../docs/operations/runbook.md), [`docs/operations/backup-recovery.md`](../../docs/operations/backup-recovery.md).
+
 ## 실행 전 체크리스트
 
 1. `DATABASE_URL` host 확인 (yamanote = dev, yamabiko = production)
