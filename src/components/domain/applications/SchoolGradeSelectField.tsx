@@ -16,7 +16,7 @@ type SchoolGradeSelectFieldProps = {
 };
 
 /**
- * 학년 dropdown — 선택 안 함 + 초1~고3.
+ * 학년 dropdown — 선택 안 함 + 초1~고3 + 대학생 + 성인.
  * 저장 정규화는 parseSchoolGradeSelectValue SSOT.
  */
 export function SchoolGradeSelectField({

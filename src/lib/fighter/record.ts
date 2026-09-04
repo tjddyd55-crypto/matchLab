@@ -43,6 +43,7 @@ export const SCHOOL_LEVEL = {
   ELEMENTARY: "ELEMENTARY",
   MIDDLE: "MIDDLE",
   HIGH: "HIGH",
+  UNIVERSITY: "UNIVERSITY",
   ADULT: "ADULT",
 } as const;
 
@@ -91,6 +92,7 @@ const GRADE_PATTERNS: Array<{
   { re: /^초\s*([1-6])$/, level: "ELEMENTARY", gradeGroup: 1 },
   { re: /^중\s*([1-3])$/, level: "MIDDLE", gradeGroup: 1 },
   { re: /^고\s*([1-3])$/, level: "HIGH", gradeGroup: 1 },
+  { re: /^(대학생|대학)$/i, level: "UNIVERSITY", gradeGroup: null },
   { re: /^(성인|일반|adult)$/i, level: "ADULT", gradeGroup: null },
 ];
 
@@ -319,6 +321,9 @@ export function formatSchoolGradeCompactLabel(input: {
 }): string | null {
   const level = input.schoolLevel?.trim() ?? "";
   if (!level) return null;
+  if (level === SCHOOL_LEVEL.UNIVERSITY || level === "UNIVERSITY") {
+    return "대학생";
+  }
   if (level === SCHOOL_LEVEL.ADULT || level === "ADULT") return "성인";
   const grade = input.schoolGrade;
   if (grade == null || !Number.isFinite(grade)) return null;

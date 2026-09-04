@@ -1,6 +1,6 @@
 /**
  * 학년 입력/필터 SSOT.
- * UI는 compact label 하나(초1~고3), 저장은 schoolLevel + schoolGrade.
+ * UI는 compact label 하나(초1~고3, 대학생, 성인), 저장은 schoolLevel + schoolGrade.
  * formatSchoolGradeCompactLabel 재사용 — UI에서 직접 문자열 조합 금지.
  */
 
@@ -25,6 +25,8 @@ export const SCHOOL_GRADE_SELECT_OPTIONS = [
   "고1",
   "고2",
   "고3",
+  "대학생",
+  "성인",
 ] as const;
 
 export type SchoolGradeSelectOption =
@@ -45,6 +47,8 @@ const SORT_RANK: Record<SchoolGradeSelectOption, number> = {
   고1: 10,
   고2: 11,
   고3: 12,
+  대학생: 13,
+  성인: 14,
 };
 
 export type SchoolGradeFields = {
@@ -81,7 +85,27 @@ export function parseSchoolGradeSelectValue(
   if (!SELECT_SET.has(s)) {
     return {
       ok: false,
-      error: `학년 형식이 올바르지 않습니다: "${s}" (예: 초3, 중2, 고1)`,
+      error: `학년 형식이 올바르지 않습니다: "${s}" (예: 초3, 중2, 고1, 대학생, 성인)`,
+    };
+  }
+  if (s === "대학생") {
+    return {
+      ok: true,
+      fields: {
+        schoolLevel: SCHOOL_LEVEL.UNIVERSITY,
+        schoolGrade: null,
+      },
+      selectValue: s,
+    };
+  }
+  if (s === "성인") {
+    return {
+      ok: true,
+      fields: {
+        schoolLevel: SCHOOL_LEVEL.ADULT,
+        schoolGrade: null,
+      },
+      selectValue: s,
     };
   }
   const prefix = s[0]!;
@@ -125,7 +149,7 @@ export function schoolGradeSelectValueFromFields(input: {
     schoolLevel: input.schoolLevel,
     schoolGrade: input.schoolGrade,
   });
-  if (!label || label === "성인") return "";
+  if (!label) return "";
   return SELECT_SET.has(label) ? label : "";
 }
 
@@ -147,7 +171,6 @@ export function sortSchoolGradeCompactLabels(labels: string[]): string[] {
 
 /**
  * 신청/선수 snapshot 우선 표시 라벨.
- * ADULT → null (필터/메타에서 성인 라벨 생략 — 학년 없음과 동일 취급).
  */
 export function resolveApplicationSchoolGradeLabel(input: {
   schoolLevel?: string | null;
@@ -157,7 +180,7 @@ export function resolveApplicationSchoolGradeLabel(input: {
     schoolLevel: input.schoolLevel,
     schoolGrade: input.schoolGrade,
   });
-  if (!label || label === "성인") return null;
+  if (!label) return null;
   return label;
 }
 

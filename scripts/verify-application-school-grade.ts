@@ -4,6 +4,7 @@
  */
 import assert from "node:assert/strict";
 import { formatSchoolGradeCompactLabel } from "../src/lib/fighter/record";
+import { buildBracketFighterMetaLine } from "../src/lib/brackets/bracket-fighter-meta-line";
 import {
   buildSchoolGradeFilterOptions,
   parseSchoolGradeSelectValue,
@@ -119,6 +120,8 @@ function main() {
   assertParse("중3", { level: "MIDDLE", grade: 3 });
   assertParse("고1", { level: "HIGH", grade: 1 });
   assertParse("고3", { level: "HIGH", grade: 3 });
+  assertParse("대학생", { level: "UNIVERSITY", grade: null });
+  assertParse("성인", { level: "ADULT", grade: null });
 
   // invalid reject
   for (const bad of ["중 2", "중학교2", "2학년", "abc", "초7", "중4"]) {
@@ -139,8 +142,19 @@ function main() {
     "중2",
   );
   assert.equal(
-    formatSchoolGradeCompactLabel({ schoolLevel: "HIGH", schoolGrade: 1 }),
-    "고1",
+    formatSchoolGradeCompactLabel({ schoolLevel: "HIGH", schoolGrade: 2 }),
+    "고2",
+  );
+  assert.equal(
+    formatSchoolGradeCompactLabel({
+      schoolLevel: "UNIVERSITY",
+      schoolGrade: null,
+    }),
+    "대학생",
+  );
+  assert.equal(
+    formatSchoolGradeCompactLabel({ schoolLevel: "ADULT", schoolGrade: null }),
+    "성인",
   );
   assert.equal(
     formatSchoolGradeCompactLabel({ schoolLevel: null, schoolGrade: null }),
@@ -166,7 +180,14 @@ function main() {
       schoolLevel: "ADULT",
       schoolGrade: null,
     }),
-    "",
+    "성인",
+  );
+  assert.equal(
+    schoolGradeSelectValueFromFields({
+      schoolLevel: "UNIVERSITY",
+      schoolGrade: null,
+    }),
+    "대학생",
   );
 
   // Excel: missing column → category fallback
@@ -243,6 +264,58 @@ function main() {
   assert.deepEqual(buildSchoolGradeFilterOptions(options), ["중2", "고1"]);
   assert.equal(resolveApplicationSchoolGradeLabel(options[0]!), "중2");
   assert.equal(resolveApplicationSchoolGradeLabel(options[3]!), null);
+
+  // bracket meta line — grade segment from snapshot fields only
+  assert.equal(
+    buildBracketFighterMetaLine({
+      fighterGender: "male",
+      applicationWeightKg: 45,
+      schoolLevel: "ELEMENTARY",
+      schoolGrade: 5,
+      recordSummary: "0승 0패 0무",
+    }),
+    "남성 · 45kg · 초5 · 무전",
+  );
+  assert.equal(
+    buildBracketFighterMetaLine({
+      fighterGender: "male",
+      applicationWeightKg: 60,
+      schoolLevel: "HIGH",
+      schoolGrade: 2,
+      recordSummary: "0승 0패 0무",
+    }),
+    "남성 · 60kg · 고2 · 무전",
+  );
+  assert.equal(
+    buildBracketFighterMetaLine({
+      fighterGender: "male",
+      applicationWeightKg: 70,
+      schoolLevel: "UNIVERSITY",
+      schoolGrade: null,
+      recordSummary: "0승 0패 0무",
+    }),
+    "남성 · 70kg · 대학생 · 무전",
+  );
+  assert.equal(
+    buildBracketFighterMetaLine({
+      fighterGender: "male",
+      applicationWeightKg: 80,
+      schoolLevel: "ADULT",
+      schoolGrade: null,
+      recordSummary: "0승 0패 0무",
+    }),
+    "남성 · 80kg · 성인 · 무전",
+  );
+  assert.equal(
+    buildBracketFighterMetaLine({
+      fighterGender: "male",
+      applicationWeightKg: 55,
+      schoolLevel: null,
+      schoolGrade: null,
+      recordSummary: "0승 0패 0무",
+    }),
+    "남성 · 55kg · 무전",
+  );
 
   // unmatched filter
   const unmatched = filterUnmatchedQuickBarOptions(options, {
