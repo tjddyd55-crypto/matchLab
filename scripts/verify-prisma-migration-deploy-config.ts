@@ -27,28 +27,60 @@ const FORBIDDEN_IN_PREDEPLOY = [
   "continue-on-error",
 ];
 
-function assertPreDeployCommand() {
-  const railway = readJson("railway.json") as {
-    deploy?: { preDeployCommand?: string[] };
-  };
-  const commands = railway.deploy?.preDeployCommand;
-  assert.ok(Array.isArray(commands) && commands.length > 0, "railway.json deploy.preDeployCommand required");
+function assertRailwayDeployMigrationGate() {
+  const tomlPath = join(root, "railway.toml");
+  const iacPath = join(root, ".railway", "railway.ts");
 
-  const joined = commands.join(" ");
   assert.ok(
-    joined.includes("db:migrate:gate") || joined.includes("migrate deploy"),
-    "preDeployCommand must invoke db:migrate:gate or prisma migrate deploy",
+    existsSync(tomlPath) || existsSync(iacPath),
+    "railway.toml or .railway/railway.ts must exist",
+  );
+
+  const sources: string[] = [];
+  if (existsSync(tomlPath)) sources.push(readFileSync(tomlPath, "utf8"));
+  if (existsSync(iacPath)) sources.push(readFileSync(iacPath, "utf8"));
+
+  const combined = sources.join("\n");
+  assert.ok(
+    combined.includes("db:migrate:gate"),
+    "deploy config must invoke npm run db:migrate:gate (railway.toml preDeployCommand or IaC preDeploy)",
+  );
+
+  const deployCommandValues: string[] = [];
+  if (existsSync(tomlPath)) {
+    const toml = readFileSync(tomlPath, "utf8");
+    const match = toml.match(/preDeployCommand\s*=\s*\[([\s\S]*?)\]/);
+    if (match) deployCommandValues.push(match[1]);
+  }
+  if (existsSync(iacPath)) {
+    const iac = readFileSync(iacPath, "utf8");
+    const match = iac.match(/preDeploy\s*:\s*["'`]([^"'`]+)["'`]/);
+    if (match) deployCommandValues.push(match[1]);
+  }
+
+  assert.ok(deployCommandValues.length > 0, "preDeploy command must be defined");
+  const deployCommands = deployCommandValues.join(" ");
+  assert.ok(
+    deployCommands.includes("db:migrate:gate"),
+    "preDeploy must invoke npm run db:migrate:gate",
   );
 
   for (const forbidden of FORBIDDEN_IN_PREDEPLOY) {
     assert.equal(
-      joined.includes(forbidden),
+      deployCommands.includes(forbidden),
       false,
-      `preDeployCommand must not include ${JSON.stringify(forbidden)}`,
+      `preDeploy command must not include ${JSON.stringify(forbidden)}`,
     );
   }
 
-  console.log("verify:prisma-migration-deploy-config: preDeployCommand OK");
+  const legacyPath = join(root, "railway.json");
+  assert.equal(
+    existsSync(legacyPath),
+    false,
+    "deprecated railway.json must be removed (use railway.toml + .railway/railway.ts)",
+  );
+
+  console.log("verify:prisma-migration-deploy-config: deploy migration gate OK");
 }
 
 function assertPackageScripts() {
@@ -64,18 +96,32 @@ function assertPackageScripts() {
   assert.match(scripts["db:migrate:gate"], /db-migrate-deploy-gate/);
 
   assert.equal(scripts["start"], "next start", "start command must remain next start");
+  assert.equal(scripts["build"], "npm run db:generate && next build");
 
   console.log("verify:prisma-migration-deploy-config: package scripts OK");
 }
 
 function assertDocs() {
-  const doc = readFileSync(join(root, "docs/deploy-railway.md"), "utf8");
-  assert.ok(doc.includes("pre-deploy"), "docs/deploy-railway.md must document pre-deploy migration");
-  assert.ok(doc.includes("db:migrate:deploy"), "docs/deploy-railway.md must reference db:migrate:deploy");
+  const deployDoc = readFileSync(join(root, "docs/deploy-railway.md"), "utf8");
+  const runbook = readFileSync(join(root, "docs/operations/runbook.md"), "utf8");
+
+  assert.ok(deployDoc.includes("preDeploy"), "docs/deploy-railway.md must document preDeploy migration");
+  assert.ok(deployDoc.includes("db:migrate:gate"), "docs/deploy-railway.md must reference db:migrate:gate");
+  assert.ok(
+    deployDoc.includes("railway.toml") || deployDoc.includes(".railway/railway.ts"),
+    "docs/deploy-railway.md must reference deploy config SSOT",
+  );
+
+  assert.ok(runbook.includes("preDeploy"), "docs/operations/runbook.md must document preDeploy");
+  assert.ok(
+    runbook.includes("railway.toml") || runbook.includes(".railway/railway.ts"),
+    "docs/operations/runbook.md must reference deploy config SSOT",
+  );
+
   console.log("verify:prisma-migration-deploy-config: docs OK");
 }
 
-assertPreDeployCommand();
+assertRailwayDeployMigrationGate();
 assertPackageScripts();
 assertDocs();
 console.log("verify:prisma-migration-deploy-config: PASS");

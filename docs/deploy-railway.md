@@ -88,17 +88,39 @@ Railway에서 **빌드·배포가 성공해도** PostgreSQL은 **빈 데이터�
 - `db:seed`가 `User` 등 데이터를 만들거나 갱신할 수 있으므로, **시드 이후에 `setup:demo-users`를 다시 한 번 실행**하는 것을 권장합니다(데모 계정·DB 매핑 일치).
 - 운영 환경에서는 **마이그레이션 전략**(`db:migrate:deploy` / Railway pre-deploy)을 사용합니다. **`build` / `start`에 `db:push`를 자동으로 넣지 마세요.**
 
-### Production deploy migration gate (`railway.json`)
+### Production deploy migration gate (Railway)
 
 `main` → Production 자동 배포 흐름:
 
 1. **Build** — Railway Railpack 기본값 (`npm ci` → `npm run build` → `db:generate && next build`)
-2. **Pre-deploy** — `npm run db:migrate:gate` (`prisma migrate status` → `prisma migrate deploy`)
+2. **preDeploy** — `npm run db:migrate:gate` (`prisma migrate status` → `prisma migrate deploy`)
 3. **Start** — `npm start` (`next start`)
 
-설정은 레포 루트 `railway.json`의 `deploy.preDeployCommand`에 있습니다. migration 실패 시 pre-deploy가 non-zero로 종료되어 **새 release가 serving 되지 않습니다**.
+**레포 SSOT**
 
-로그에 `DATABASE_URL` 전체를 출력하지 않습니다. host / database / Railway environment만 fingerprint로 남깁니다.
+| 파일 | 역할 |
+|------|------|
+| [`railway.toml`](../../railway.toml) | 배포 시 읽히는 Config as Code (preDeployCommand) |
+| [`.railway/railway.ts`](../../.railway/railway.ts) | Railway IaC (`railway config apply`로 서비스 설정 동기화) |
+
+**Railway 서비스 설정**에 `preDeployCommand: ["npm run db:migrate:gate"]`가 반드시 있어야 한다. 레거시 `railway.json`만 두면 Railpack 배포에서 preDeploy가 **실행되지 않을 수 있음** (2026-09 `MessagingProviderConfig` P2021 사례).
+
+IaC/레포 변경 후 동기화:
+
+```bash
+railway config plan
+railway config apply
+```
+
+또는 Railway 대시보드 / API에서 `app` 서비스 Deploy → Pre-deploy Command 확인.
+
+migration 실패 시 preDeploy가 non-zero로 종료되어 **새 release가 serving 되지 않습니다** (fail-fast).
+
+### yamabiko migration drift (문서화만)
+
+Production DB(`yamabiko`) `_prisma_migrations`에 repo에 없는 `20260828120000_event_application_structural_audit`가 존재한다. 자동화에서 삭제·resolve하지 않는다. `migrate deploy`는 repo의 pending migration만 적용한다.
+
+로그에 `DATABASE_URL` 전체를 출력하지 않습니다. host / database / Railway environment / yamanote·yamabiko alias만 fingerprint로 남깁니다.
 
 검증:
 

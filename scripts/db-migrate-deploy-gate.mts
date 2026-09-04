@@ -39,11 +39,21 @@ const environment =
   process.env.NODE_ENV ??
   "unknown";
 
+function resolveDbAlias(host: string): string {
+  if (host.includes("yamanote")) return "yamanote (development)";
+  if (host.includes("yamabiko")) return "yamabiko (production)";
+  if (host === "postgres.railway.internal") {
+    return `railway-internal (${environment})`;
+  }
+  return "unknown";
+}
+
 console.log("[db:migrate:gate] database fingerprint", {
   host: fingerprint.host,
   port: fingerprint.port,
   database: fingerprint.database,
   environment,
+  alias: resolveDbAlias(fingerprint.host),
 });
 
 runStep("prisma migrate status", "npx prisma migrate status");

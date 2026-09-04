@@ -1,0 +1,10 @@
+# Railway deploy config (repo-side, read on each deployment).
+# SSOT for migration gate: preDeploy runs before app start.
+# See also .railway/railway.ts (IaC) and docs/deploy-railway.md.
+
+[build]
+builder = "RAILPACK"
+
+[deploy]
+preDeployCommand = ["npm run db:migrate:gate"]
+startCommand = "npm start"

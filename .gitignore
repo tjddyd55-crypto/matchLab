@@ -48,8 +48,10 @@ yarn-error.log*
 # vercel
 .vercel
 
-# railway (로컬 CLI 캐시 등)
-.railway
+# railway (로컬 CLI 캐시 등 — IaC SSOT 파일은 추적)
+.railway/*
+!.railway/railway.ts
+!.railway/README.md
 
 # logs
 *.log

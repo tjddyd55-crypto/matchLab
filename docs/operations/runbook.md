@@ -37,12 +37,18 @@ Production 배포는 **Railway `main` 연결**이 SSOT이다. GitHub Actions는 
 ```text
 main push
   → Railway build (npm ci → npm run build)
-  → pre-deploy: npm run db:migrate:gate
+  → preDeploy: npm run db:migrate:gate
        (prisma migrate status → prisma migrate deploy)
   → start: npm start (next start)
 ```
 
-설정: 루트 [`railway.json`](../../railway.json) `deploy.preDeployCommand`.
+설정 SSOT: [`railway.toml`](../../railway.toml) (repo, 배포 시 읽힘) + [`.railway/railway.ts`](../../.railway/railway.ts) (Railway IaC, `railway config apply`).
+
+레거시 `railway.json`은 Railpack 배포에서 **실행되지 않음** (2026-09 MessagingProviderConfig P2021 사례). Railway 서비스에 `preDeployCommand`가 dashboard/API로 설정되어 있어야 한다. 레포 변경 후 `railway config plan` → `railway config apply` 또는 Railway MCP/대시보드로 동기화한다.
+
+### 2.1.1 Migration drift (yamabiko, 문서화만)
+
+yamabiko `_prisma_migrations`에 repo에 없는 `20260828120000_event_application_structural_audit`가 존재한다. **이번 자동화에서는 삭제·resolve하지 않는다.** `prisma migrate deploy`는 pending repo migration만 적용한다.
 
 ### 2.2 실패 시 확인 위치
 
@@ -87,9 +93,12 @@ Development/수동 스키마 반영이 필요하면 [`deploy-railway.md`](../dep
 
 | 명령 | 용도 |
 |------|------|
-| `npm run db:migrate:gate` | Railway pre-deploy 전용 (status → deploy) |
-| `npm run db:migrate:deploy` | pending migration만 적용 |
+| `npm run db:migrate:gate` | Railway **preDeploy** 전용 (status → deploy) |
+| `npm run db:migrate:deploy` | pending migration만 적용 (수동·긴급) |
 | `npm run db:migrate:status` | pending 확인 (read-only) |
+| `railway config plan` / `apply` | IaC(`.railway/railway.ts`) 변경을 Railway에 반영 |
+
+preDeploy 실패 시 **새 deployment는 serving 되지 않음** (fail-fast). 이전 release가 계속 동작하는 경우가 많다.
 
 ### 3.2 Schema 변경 전 확인
 
