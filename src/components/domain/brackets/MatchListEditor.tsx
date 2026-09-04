@@ -44,6 +44,7 @@ import {
   bracketWorkspacePaneClass,
   bracketWorkspaceTitleRowClass,
 } from "@/lib/ui/bracket-workspace-ui";
+import type { EventDivisionDisplayInput } from "@/lib/event-division-fields";
 import { cn } from "@/lib/utils";
 
 function isEventAllMatch(
@@ -64,6 +65,7 @@ export function MatchListEditor({
   orderMode = "bracket",
   eventWide = false,
   divisionOptions,
+  bracketDivision,
   onRequestAddEmptyMatch,
   onEditAthleteProfile,
 }: {
@@ -81,6 +83,8 @@ export function MatchListEditor({
   /** 이벤트 전체 모드 — match.bracketId / divisionLabel 사용 */
   eventWide?: boolean;
   divisionOptions?: OrganizerEventAllMatchesDivisionOptionVM[];
+  /** 단일 bracket 그룹 편집 — Match division SSOT */
+  bracketDivision?: EventDivisionDisplayInput | null;
   /** 제공 시 빈 경기 추가 기본 action 대신 호출 */
   onRequestAddEmptyMatch?: () => void;
   onEditAthleteProfile?: (applicationId: string) => void;
@@ -240,6 +244,7 @@ export function MatchListEditor({
                   matchOrderLabel={matchOrderLabel}
                   divisionLabel={divisionLabel}
                   divisionOptions={eventWide ? divisionOptions : undefined}
+                  bracketDivision={eventWide ? undefined : bracketDivision}
                   onEditAthleteProfile={onEditAthleteProfile}
                   enableCourtScheduleReorder={orderMode === "courtSchedule"}
                 />

@@ -174,11 +174,23 @@ assert.ok(meta?.includes("중2"));
 assert.ok(meta?.includes("승"));
 assert.ok(meta?.includes("패"));
 
+const metaAdult = buildBracketFighterMetaLine({
+  matchDivisionAgeGroup: "일반부",
+  fighterGender: "female",
+  applicationWeightKg: 65,
+  recordSummary: "2승 1패 0무",
+});
+assert.ok(metaAdult?.startsWith("일반부"));
+assert.ok(metaAdult?.includes("여성"));
+assert.ok(metaAdult?.includes("65kg"));
+
 const metaNoGrade = buildBracketFighterMetaLine({
+  matchDivisionAgeGroup: "일반부",
   fighterGender: "female",
   applicationWeightKg: 48,
   recordSummary: "0승 0패 0무",
 });
+assert.ok(metaNoGrade?.includes("일반부"));
 assert.ok(metaNoGrade?.includes("여성"));
 assert.ok(!metaNoGrade?.includes("초"));
 assert.ok(!metaNoGrade?.includes("중"));

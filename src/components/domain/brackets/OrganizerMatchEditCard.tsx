@@ -34,6 +34,10 @@ import { CORNER_SLOT_STYLES } from "@/lib/corner-slot-styles";
 import { MatchWeightKgInput } from "@/components/domain/brackets/MatchWeightKgInput";
 import { formatMatchWeightKgInputValue } from "@/lib/brackets/extract-match-weight-from-memo";
 import { matchDivisionSelectClass } from "@/lib/ui/match-grid-layout";
+import {
+  type EventDivisionDisplayInput,
+  resolvePersistedMatchDivisionLabel,
+} from "@/lib/event-division-fields";
 import { cn } from "@/lib/utils";
 
 function isEventAllMatch(
@@ -57,6 +61,7 @@ export function OrganizerMatchEditCard({
   matchOrderLabel: matchOrderLabelProp,
   divisionLabel,
   divisionOptions,
+  bracketDivision,
   onEditAthleteProfile,
   enableCourtScheduleReorder = false,
 }: {
@@ -74,6 +79,8 @@ export function OrganizerMatchEditCard({
   divisionLabel?: string | null;
   /** event-wide 모드: 경기구분 select SSOT */
   divisionOptions?: OrganizerEventAllMatchesDivisionOptionVM[];
+  /** 단일 bracket 그룹 — Match division SSOT */
+  bracketDivision?: EventDivisionDisplayInput | null;
   onEditAthleteProfile?: (applicationId: string) => void;
   /** 대진표 보기와 동일 court schedule reorder */
   enableCourtScheduleReorder?: boolean;
@@ -170,6 +177,24 @@ export function OrganizerMatchEditCard({
     [match.fighterBlueId, slotOptions],
   );
 
+  const matchDivisionAgeGroup = useMemo(() => {
+    const activeDivisionId = draftDivisionId || currentDivisionId;
+    if (divisionOptions?.length && activeDivisionId) {
+      const fromDraft = divisionOptions.find((d) => d.id === activeDivisionId);
+      if (fromDraft?.ageGroup) return fromDraft.ageGroup;
+    }
+    if (isEventAllMatch(match) && match.matchDivisionAgeGroup) {
+      return match.matchDivisionAgeGroup;
+    }
+    return resolvePersistedMatchDivisionLabel(bracketDivision);
+  }, [
+    bracketDivision,
+    currentDivisionId,
+    divisionOptions,
+    draftDivisionId,
+    match,
+  ]);
+
   return (
     <BracketMatchCompactRow
       matchOrderLabel={orderLabel}
@@ -237,6 +262,7 @@ export function OrganizerMatchEditCard({
           hideCornerLabel
           applicationId={redApplicationId}
           onEditProfile={onEditAthleteProfile}
+          matchDivisionAgeGroup={matchDivisionAgeGroup}
           className={cn(
             CORNER_SLOT_STYLES["홍코너"].bg,
             "rounded-md border px-2 py-1.5",
@@ -273,6 +299,7 @@ export function OrganizerMatchEditCard({
           hideCornerLabel
           applicationId={blueApplicationId}
           onEditProfile={onEditAthleteProfile}
+          matchDivisionAgeGroup={matchDivisionAgeGroup}
           className={cn(
             CORNER_SLOT_STYLES["청코너"].bg,
             "rounded-md border px-2 py-1.5",

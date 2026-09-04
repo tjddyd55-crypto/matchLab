@@ -109,6 +109,7 @@ export function OrganizerBracketEditor({
               bracketIsPublic={detail.isPublic}
               matches={detail.matches}
               options={detail.approvedFighterOptions}
+              bracketDivision={detail.division}
               compactWorkspace
             />
           </div>

@@ -31,6 +31,7 @@ function resolveFighterDisplay(
   fighterId: string,
   snapshot: BracketFighterSnapshotPayload | null | undefined,
   options: OrganizerApprovedFighterOptionVM[],
+  matchDivisionAgeGroup: string | null | undefined,
 ) {
   const opt = options.find((o) => o.fighterId === fighterId);
   if (snapshot) {
@@ -42,7 +43,7 @@ function resolveFighterDisplay(
       ? optionsGym || "소속 미상"
       : snapGym;
     const metaLine = opt
-      ? buildBracketFighterMetaLineFromOption(opt)
+      ? buildBracketFighterMetaLineFromOption(opt, matchDivisionAgeGroup)
       : undefined;
     return {
       fighterName: opt?.fighterName?.trim() || snapshot.name,
@@ -58,7 +59,8 @@ function resolveFighterDisplay(
     return {
       ...resolved,
       metaLine:
-        buildBracketFighterMetaLineFromOption(opt) ?? resolved.metaLine,
+        buildBracketFighterMetaLineFromOption(opt, matchDivisionAgeGroup) ??
+        resolved.metaLine,
     };
   }
   return null;
@@ -78,6 +80,7 @@ export function OrganizerMatchEditSlot({
   className,
   applicationId,
   onEditProfile,
+  matchDivisionAgeGroup,
 }: {
   bracketId: string;
   matchId: string;
@@ -92,6 +95,8 @@ export function OrganizerMatchEditSlot({
   className?: string;
   applicationId?: string | null;
   onEditProfile?: (applicationId: string) => void;
+  /** 현재 Match/Bracket division 연령부 — 카드 meta 선두에 표시 */
+  matchDivisionAgeGroup?: string | null;
 }) {
   const router = useRouter();
   const { confirm, alert } = useAppConfirmDialog();
@@ -100,7 +105,12 @@ export function OrganizerMatchEditSlot({
 
   const style = CORNER_SLOT_STYLES[cornerLabel];
   const display = fighterId
-    ? resolveFighterDisplay(fighterId, snapshot, options)
+    ? resolveFighterDisplay(
+        fighterId,
+        snapshot,
+        options,
+        matchDivisionAgeGroup,
+      )
     : null;
 
   const optionStates = buildFighterPickerOptionStates({

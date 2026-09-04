@@ -23,6 +23,7 @@ import { computeBracketAssignability } from "@/lib/bracket-assignability";
 import { formatApplicationDivisionLabel } from "@/lib/applications/application-division-label";
 import {
   formatDivisionMainLabel,
+  resolvePersistedMatchDivisionLabel,
   formatAutoBracketGroupTitle,
   formatBracketTitleForDisplay,
   toEventDivisionDisplayInput,
@@ -675,6 +676,8 @@ export type OrganizerEventAllMatchVM = OrganizerBracketMatchVM & {
   bracketId: string;
   divisionId: string | null;
   divisionLabel: string | null;
+  /** Bracket→EventDivision.ageGroup — 선수 카드 meta SSOT */
+  matchDivisionAgeGroup: string | null;
   bracketType: BracketType;
   bracketIsPublic: boolean;
 };
@@ -682,6 +685,7 @@ export type OrganizerEventAllMatchVM = OrganizerBracketMatchVM & {
 export type OrganizerEventAllMatchesDivisionOptionVM = {
   id: string;
   label: string;
+  ageGroup: string | null;
   bracketId: string | null;
   gender: string | null;
 };
@@ -1252,6 +1256,7 @@ export const bracketService = {
         divisionLabel: division
           ? formatDivisionMainLabel(division)
           : null,
+        matchDivisionAgeGroup: resolvePersistedMatchDivisionLabel(division),
         bracketType: m.bracket.type,
         bracketIsPublic: m.bracket.isPublic,
         round: m.round,
@@ -1300,6 +1305,7 @@ export const bracketService = {
         return {
           id: d.id,
           label: input ? formatDivisionMainLabel(input) : d.id,
+          ageGroup: input ? resolvePersistedMatchDivisionLabel(input) : null,
           bracketId: bracketsByDivision.get(d.id) ?? null,
           gender: input?.gender ?? null,
         };

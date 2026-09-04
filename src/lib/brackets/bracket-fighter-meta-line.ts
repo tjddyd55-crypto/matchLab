@@ -2,6 +2,11 @@ import { formatSchoolGradeCompactLabel } from "@/lib/fighter/record";
 import { formatBracketCandidateRecordLabel } from "@/lib/bracket-fighter-assignment";
 
 export type BracketFighterMetaLineInput = {
+  /**
+   * 현재 Match/Bracket division 연령부 (EventDivision.ageGroup).
+   * 신청 division·birthDate로 재계산하지 않는다.
+   */
+  matchDivisionAgeGroup?: string | null;
   fighterGender?: string | null;
   divisionGender?: string | null;
   applicationWeightKg?: number | null;
@@ -27,11 +32,13 @@ function resolveGenderLabel(
 
 /**
  * 잡힌 경기 카드 2줄 메타.
- * 존재하는 값만 ` · ` 로 join. 학년/나이 없으면 생략.
+ * 권장 순서: [연령부] · [성별] · [신청체중] · [학년] · [전적]
+ * 존재하는 값만 ` · ` 로 join.
  */
 export function buildBracketFighterMetaLine(
   input: BracketFighterMetaLineInput,
 ): string | undefined {
+  const ageGroup = input.matchDivisionAgeGroup?.trim() || null;
   const gender = resolveGenderLabel(input.fighterGender, input.divisionGender);
   const weight =
     input.applicationWeightKg != null
@@ -46,7 +53,7 @@ export function buildBracketFighterMetaLine(
     ? formatBracketCandidateRecordLabel(input.recordSummary)
     : null;
 
-  const parts = [gender, weight, grade, age, record].filter(
+  const parts = [ageGroup, gender, weight, grade, age, record].filter(
     (part): part is string => Boolean(part && part.trim()),
   );
 
@@ -54,15 +61,19 @@ export function buildBracketFighterMetaLine(
   return parts.join(" · ");
 }
 
-export function buildBracketFighterMetaLineFromOption(option: {
-  fighterGender: string | null;
-  applicationWeightKg: number | null;
-  recordSummary: string;
-  schoolLevel?: string | null;
-  schoolGrade?: number | null;
-  division: { gender: string | null };
-}): string | undefined {
+export function buildBracketFighterMetaLineFromOption(
+  option: {
+    fighterGender: string | null;
+    applicationWeightKg: number | null;
+    recordSummary: string;
+    schoolLevel?: string | null;
+    schoolGrade?: number | null;
+    division: { gender: string | null };
+  },
+  matchDivisionAgeGroup?: string | null,
+): string | undefined {
   return buildBracketFighterMetaLine({
+    matchDivisionAgeGroup,
     fighterGender: option.fighterGender,
     divisionGender: option.division.gender,
     applicationWeightKg: option.applicationWeightKg,
