@@ -12,6 +12,9 @@ import { MemberExcelImportButton } from "@/components/domain/gym-members/MemberE
 import { GymMemberSelfRegistrationLinkButton } from "@/components/domain/gym-member-self-registration/GymMemberSelfRegistrationLinkDialog";
 import { gymMemberSelfRegistrationService } from "@/lib/services/gym-member-self-registration.service";
 import { GymMemberListWithBulkSms } from "@/components/domain/gym-members/GymMemberListWithBulkSms";
+import { TENANT_FEATURE_KEYS } from "@/lib/platform-features/tenant-feature-keys";
+import { tenantFeatureEntitlementService } from "@/lib/services/tenant-feature-entitlement.service";
+import { TenantFeatureOwnerType } from "@/generated/prisma";
 import { MatchonEmptyState } from "@/components/shared/MatchonEmptyState";
 import { buttonVariants } from "@/components/ui/button";
 import { matchonPageContainerClass } from "@/lib/ui/matchon-layout";
@@ -109,7 +112,8 @@ export default async function GymMembersPage({
       groupId,
   );
 
-  const [summary, list, groups, pendingSelfReg] = await Promise.all([
+  const [summary, list, groups, pendingSelfReg, messagingFeatureEnabled] =
+    await Promise.all([
     gymMemberService.getSummary(actor),
     gymMemberService.listMembers(actor, {
       q,
@@ -123,6 +127,11 @@ export default async function GymMembersPage({
     }),
     gymMemberGroupService.listGroups(actor, false).catch(() => []),
     gymMemberSelfRegistrationService.countPending(actor).catch(() => 0),
+    tenantFeatureEntitlementService.hasTenantFeature(
+      TenantFeatureOwnerType.gym,
+      actor.gymId!,
+      TENANT_FEATURE_KEYS.TENANT_MESSAGING,
+    ),
   ]);
 
   const totalPages = Math.max(1, Math.ceil(list.total / list.pageSize));
@@ -271,7 +280,10 @@ export default async function GymMembersPage({
           />
         ) : (
           <>
-            <GymMemberListWithBulkSms members={list.items} />
+            <GymMemberListWithBulkSms
+              members={list.items}
+              messagingFeatureEnabled={messagingFeatureEnabled}
+            />
 
             {totalPages > 1 ? (
               <div className="flex flex-wrap items-center justify-center gap-2">

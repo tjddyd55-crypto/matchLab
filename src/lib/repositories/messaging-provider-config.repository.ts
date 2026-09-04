@@ -22,7 +22,7 @@ export const messagingProviderConfigRepository = {
     ownerType: MessagingProviderOwnerType;
     ownerId: string;
     provider?: MessagingProviderKind;
-    enabled: boolean;
+    enabled?: boolean;
     loginId: string | null;
     senderPhone: string | null;
     apiKeyCipher?: Uint8Array | null;
@@ -61,7 +61,7 @@ export const messagingProviderConfigRepository = {
       return prisma.messagingProviderConfig.update({
         where: { id: existing.id },
         data: {
-          enabled: params.enabled,
+          ...(params.enabled !== undefined ? { enabled: params.enabled } : {}),
           loginId: params.loginId,
           senderPhone: params.senderPhone,
           updatedByUserId: params.updatedByUserId ?? null,
@@ -75,7 +75,7 @@ export const messagingProviderConfigRepository = {
         ownerType: params.ownerType,
         ownerId: params.ownerId,
         provider,
-        enabled: params.enabled,
+        enabled: params.enabled ?? false,
         loginId: params.loginId,
         senderPhone: params.senderPhone,
         updatedByUserId: params.updatedByUserId ?? null,

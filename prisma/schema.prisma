@@ -597,6 +597,56 @@ model MessagingProviderConfig {
   @@index([ownerType, ownerId])
 }
 
+/// 플랫폼 기능 카탈로그 (Admin entitlement SSOT)
+enum PlatformFeatureTargetType {
+  association
+  gym
+  both
+}
+
+enum TenantFeatureOwnerType {
+  association
+  gym
+}
+
+enum TenantFeatureEntitlementSource {
+  admin
+  plan
+  addon
+  promotion
+}
+
+model PlatformFeature {
+  key          String                    @id
+  name         String
+  description  String?
+  targetType   PlatformFeatureTargetType
+  active       Boolean                   @default(true)
+  createdAt    DateTime                  @default(now())
+  updatedAt    DateTime                  @updatedAt
+
+  entitlements TenantFeatureEntitlement[]
+}
+
+/// 협회(organizerId) / 체육관(gymId)별 플랫폼 기능 이용 권한
+model TenantFeatureEntitlement {
+  id         String                        @id @default(cuid())
+  ownerType  TenantFeatureOwnerType
+  ownerId    String
+  featureKey String
+  enabled    Boolean                       @default(false)
+  source     TenantFeatureEntitlementSource @default(admin)
+  startsAt   DateTime?
+  endsAt     DateTime?
+  createdAt  DateTime                      @default(now())
+  updatedAt  DateTime                      @updatedAt
+
+  feature PlatformFeature @relation(fields: [featureKey], references: [key], onDelete: Cascade)
+
+  @@unique([ownerType, ownerId, featureKey])
+  @@index([ownerType, ownerId])
+}
+
 enum BracketChangeType {
   bracket_created
   bracket_published

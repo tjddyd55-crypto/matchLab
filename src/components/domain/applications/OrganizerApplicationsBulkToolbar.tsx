@@ -24,6 +24,7 @@ export function OrganizerApplicationsBulkToolbar({
   selectedIds,
   onClearSelection,
   onRequestAdditionalInfo,
+  messagingFeatureEnabled,
 }: {
   eventId: string;
   gymId: string | null;
@@ -31,6 +32,7 @@ export function OrganizerApplicationsBulkToolbar({
   selectedIds: string[];
   onClearSelection: () => void;
   onRequestAdditionalInfo?: () => void;
+  messagingFeatureEnabled: boolean;
 }) {
   const router = useRouter();
   const [pending, startTransition] = useTransition();
@@ -101,10 +103,12 @@ export function OrganizerApplicationsBulkToolbar({
         {selectedIds.length > 0 ? (
           <>
             <div className="flex flex-wrap gap-2">
-              <EventApplicantBulkSmsButton
-                eventId={eventId}
-                selectedApplicationIds={selectedIds}
-              />
+              {messagingFeatureEnabled ? (
+                <EventApplicantBulkSmsButton
+                  eventId={eventId}
+                  selectedApplicationIds={selectedIds}
+                />
+              ) : null}
               {primaryActions.map((action) => (
                 <Button
                   key={action}

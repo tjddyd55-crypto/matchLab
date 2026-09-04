@@ -8,8 +8,10 @@ import { MemberMobileCard } from "@/components/domain/gym-members/MemberMobileCa
 
 export function GymMemberListWithBulkSms({
   members,
+  messagingFeatureEnabled,
 }: {
   members: GymMemberListItemVM[];
+  messagingFeatureEnabled: boolean;
 }) {
   const [selectedIds, setSelectedIds] = useState<Set<string>>(new Set());
 
@@ -40,10 +42,12 @@ export function GymMemberListWithBulkSms({
   return (
     <>
       <div className="flex flex-wrap items-center gap-2">
-        <GymMemberBulkSmsButton
-          memberIds={members.map((member) => member.id)}
-          selectedIds={[...selectedIds]}
-        />
+        {messagingFeatureEnabled ? (
+          <GymMemberBulkSmsButton
+            memberIds={members.map((member) => member.id)}
+            selectedIds={[...selectedIds]}
+          />
+        ) : null}
         {selectedIds.size > 0 ? (
           <span className="text-sm text-matchon-text-secondary">
             {selectedIds.size}명 선택

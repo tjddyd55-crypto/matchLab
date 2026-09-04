@@ -7,6 +7,7 @@ import {
   MatchonMessageRecipientStatus,
   MatchonMessageSourceType,
   MessagingProviderOwnerType,
+  TenantFeatureOwnerType,
 } from "@/generated/prisma";
 import type { ActorContext } from "@/lib/auth/actor";
 import { AppError } from "@/lib/errors/app-error";
@@ -17,6 +18,7 @@ import {
 } from "@/lib/messaging/messaging-phone";
 import { matchonMessageRepository } from "@/lib/repositories/matchon-message.repository";
 import { messagingProviderSettingsService } from "@/lib/services/messaging-provider-settings.service";
+import { tenantFeatureEntitlementService } from "@/lib/services/tenant-feature-entitlement.service";
 import { classifyMatchonSmsMessage } from "@/server/messaging/utils/matchon-sms-length";
 import { formatMatchonPhone } from "@/server/messaging/utils/matchon-phone";
 import { buildIdempotencyScope } from "@/server/messaging/domain/matchon-message-policy";
@@ -90,16 +92,32 @@ function resolveOwnerType(
   };
 }
 
+function toTenantFeatureOwnerType(
+  ownerType: MessagingProviderOwnerType,
+): TenantFeatureOwnerType {
+  return ownerType === MessagingProviderOwnerType.association
+    ? TenantFeatureOwnerType.association
+    : TenantFeatureOwnerType.gym;
+}
+
 async function resolveCredentials(owner: TenantMessagingOwner) {
   const scope = resolveOwnerType(owner);
+  const ownerId =
+    owner.ownerType === "gym" ? owner.gymId : owner.organizerId;
+
+  await tenantFeatureEntitlementService.requireTenantMessaging(
+    toTenantFeatureOwnerType(scope.providerOwnerType),
+    ownerId,
+  );
+
   const config = await messagingProviderSettingsService.resolveDecryptedConfig(
     scope.providerOwnerType,
-    owner.ownerType === "gym" ? owner.gymId : owner.organizerId,
+    ownerId,
   );
   if (!config) {
     throw new AppError(
       "VALIDATION_ERROR",
-      "문자 발송 설정이 완료되지 않았습니다. 설정 화면에서 알리고를 연결해 주세요.",
+      "문자 발송 설정이 완료되지 않았습니다.",
     );
   }
   return config;

@@ -4,6 +4,7 @@ import { tryResolveAdminResetClientTarget } from "@/lib/admin/try-resolve-admin-
 import { requireActor, redirectUnlessDashboardRole } from "@/lib/auth/actor";
 import { AppError } from "@/lib/errors/app-error";
 import { adminService } from "@/lib/services/admin.service";
+import { tenantFeatureEntitlementService } from "@/lib/services/tenant-feature-entitlement.service";
 import { loadMatchonAdminPasswordResetLinkConfig } from "@/server/admin-password-reset/config";
 import {
   adminPageContainerClass,
@@ -40,12 +41,22 @@ export default async function AdminGymDetailPage({
     ? await tryResolveAdminResetClientTarget(actor, detail.ownerUserId)
     : null;
 
+  const tenantFeatures =
+    tab === "platform-features"
+      ? await tenantFeatureEntitlementService.listAdminTenantFeatures(
+          actor,
+          "gym",
+          id,
+        )
+      : [];
+
   return (
     <div className={adminPageContainerClass}>
       <div className={adminPageStackClass}>
         <AdminGymDetailView
           detail={detail}
           tabParam={tab}
+          tenantFeatures={tenantFeatures}
           passwordReset={
             adminResetEnabled
               ? {

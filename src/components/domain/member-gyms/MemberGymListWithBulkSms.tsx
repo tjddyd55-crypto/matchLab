@@ -36,9 +36,11 @@ type MemberGymRow = {
 export function MemberGymListWithBulkSms({
   rows,
   totalCount,
+  messagingFeatureEnabled,
 }: {
   rows: MemberGymRow[];
   totalCount: number;
+  messagingFeatureEnabled: boolean;
 }) {
   const searchParams = useSearchParams();
   const [selectedIds, setSelectedIds] = useState<Set<string>>(new Set());
@@ -73,9 +75,11 @@ export function MemberGymListWithBulkSms({
   return (
     <>
       <div className="flex flex-wrap items-center gap-2">
-        <Button type="button" variant="outline" size="sm" onClick={() => setOpen(true)}>
-          문자 보내기
-        </Button>
+        {messagingFeatureEnabled ? (
+          <Button type="button" variant="outline" size="sm" onClick={() => setOpen(true)}>
+            문자 보내기
+          </Button>
+        ) : null}
         {selectedIds.size > 0 ? (
           <span className="text-sm text-matchon-text-secondary">
             {selectedIds.size}곳 선택
@@ -152,7 +156,7 @@ export function MemberGymListWithBulkSms({
       </div>
 
       <BulkSmsComposeDialog
-        open={open}
+        open={open && messagingFeatureEnabled}
         onOpenChange={setOpen}
         title="회원사 단체 문자"
         targetLabel={selectionLabel}

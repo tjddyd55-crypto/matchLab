@@ -69,11 +69,13 @@ export function OrganizerApplicationsBoard({
   rows,
   manualRegistrationOptions,
   externalRegistrationLink,
+  messagingFeatureEnabled,
 }: {
   eventId: string;
   rows: OrganizerApplicationRowVM[];
   manualRegistrationOptions: OrganizerManualRegistrationOptionsDTO;
   externalRegistrationLink: ExternalRegistrationLinkVM | null;
+  messagingFeatureEnabled: boolean;
 }) {
   const listRef = useRef<HTMLDivElement>(null);
   const [filters, setFilters] =
@@ -415,6 +417,7 @@ export function OrganizerApplicationsBoard({
         selectedIds={[...selectedIds]}
         onClearSelection={clearSelection}
         onRequestAdditionalInfo={() => setAdditionalInfoBulkOpen(true)}
+        messagingFeatureEnabled={messagingFeatureEnabled}
       />
 
       <OrganizerAdditionalInfoBulkDialog

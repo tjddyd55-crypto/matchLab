@@ -11,9 +11,11 @@ import {
   AdminOrganizationStatusPanel,
 } from "@/components/domain/admin/AdminOrganizationStatusPanel";
 import { canManageOrganizationStatus } from "@/lib/organization-platform-status";
+import type { TenantFeatureEntitlementVM } from "@/lib/services/tenant-feature-entitlement.service";
 import { AdminOrganizationSummary } from "@/components/domain/admin/AdminOrganizationSummary";
 import { AdminOrganizationTabs } from "@/components/domain/admin/AdminOrganizationTabs";
 import { AdminPasswordResetLinkPanel } from "@/components/domain/admin/AdminPasswordResetLinkPanel";
+import { AdminTenantFeaturePanel } from "@/components/domain/admin/AdminTenantFeaturePanel";
 import { formatAdminDateTime } from "@/components/domain/admin/admin-format";
 import { formatStoredAdminLoginId } from "@/lib/admin/admin-login-id-label";
 import {
@@ -25,6 +27,7 @@ import {
 
 const TABS = [
   { id: "overview", label: "기본정보" },
+  { id: "platform-features", label: "플랫폼 기능" },
   { id: "members", label: "회원/선수" },
   { id: "associations", label: "협회 연결" },
   { id: "events", label: "대회 참가" },
@@ -43,6 +46,7 @@ export function AdminGymDetailView({
   detail,
   tabParam,
   passwordReset = null,
+  tenantFeatures = [],
 }: {
   detail: AdminGymDetailDTO;
   tabParam?: string;
@@ -52,6 +56,7 @@ export function AdminGymDetailView({
     initialLoginId: string;
     initialTarget: AdminPasswordResetClientTarget | null;
   } | null;
+  tenantFeatures?: TenantFeatureEntitlementVM[];
 }) {
   const tab = resolveTab(tabParam);
   const baseHref = `/admin/gyms/${detail.id}`;
@@ -208,6 +213,14 @@ export function AdminGymDetailView({
               </>
             ) : null}
           </dl>
+        ) : null}
+
+        {tab === "platform-features" ? (
+          <AdminTenantFeaturePanel
+            kind="gym"
+            ownerId={detail.id}
+            initialFeatures={tenantFeatures}
+          />
         ) : null}
 
         {tab === "members" ? (

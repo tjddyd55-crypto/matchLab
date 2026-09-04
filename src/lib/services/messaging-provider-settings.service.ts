@@ -3,6 +3,7 @@ import "server-only";
 import {
   MessagingProviderKind,
   MessagingProviderOwnerType,
+  TenantFeatureOwnerType,
 } from "@/generated/prisma";
 import type { ActorContext } from "@/lib/auth/actor";
 import { AppError } from "@/lib/errors/app-error";
@@ -16,18 +17,19 @@ import { normalizeMessagingPhone } from "@/lib/messaging/messaging-phone";
 import { requireAssociationOrganizerPage } from "@/lib/permissions";
 import { resolveGymPortalAccess } from "@/lib/gym-portal-access";
 import { messagingProviderConfigRepository } from "@/lib/repositories/messaging-provider-config.repository";
+import { tenantFeatureEntitlementService } from "@/lib/services/tenant-feature-entitlement.service";
 import { prisma } from "@/lib/prisma";
 import { testTenantAligoConnection } from "@/server/messaging/services/tenant-aligo-connection-test";
 
 export type MessagingProviderSettingsVM = {
   ownerType: MessagingProviderOwnerType;
   ownerId: string;
-  enabled: boolean;
   loginId: string;
   senderPhone: string;
   apiKeyMasked: string;
   apiKeyConfigured: boolean;
   encryptionKeyConfigured: boolean;
+  messagingFeatureEnabled: boolean;
 };
 
 function assertAssociationActor(actor: ActorContext): string {
@@ -66,6 +68,14 @@ async function assertOwnerTenant(
   }
 }
 
+function toTenantFeatureOwnerType(
+  ownerType: MessagingProviderOwnerType,
+): TenantFeatureOwnerType {
+  return ownerType === MessagingProviderOwnerType.association
+    ? TenantFeatureOwnerType.association
+    : TenantFeatureOwnerType.gym;
+}
+
 export const messagingProviderSettingsService = {
   async getSettings(
     actor: ActorContext,
@@ -77,15 +87,21 @@ export const messagingProviderSettingsService = {
       ownerId,
     );
     const apiKey = row ? decryptMessagingApiKey(row) : null;
+    const messagingFeatureEnabled =
+      await tenantFeatureEntitlementService.hasTenantFeature(
+        toTenantFeatureOwnerType(ownerType),
+        ownerId,
+        "TENANT_MESSAGING",
+      );
     return {
       ownerType,
       ownerId,
-      enabled: row?.enabled ?? false,
       loginId: row?.loginId ?? "",
       senderPhone: row?.senderPhone ?? "",
       apiKeyMasked: maskMessagingApiKeyHint(apiKey),
       apiKeyConfigured: Boolean(apiKey),
       encryptionKeyConfigured: isMessagingCredentialEncryptionConfigured(),
+      messagingFeatureEnabled,
     };
   },
 
@@ -93,7 +109,6 @@ export const messagingProviderSettingsService = {
     actor: ActorContext,
     ownerType: MessagingProviderOwnerType,
     input: {
-      enabled: boolean;
       loginId: string;
       senderPhone: string;
       apiKey?: string;
@@ -122,7 +137,6 @@ export const messagingProviderSettingsService = {
     await messagingProviderConfigRepository.upsert({
       ownerType,
       ownerId,
-      enabled: input.enabled,
       loginId: loginId || null,
       senderPhone: senderPhone || null,
       apiKeyCipher,
@@ -185,7 +199,7 @@ export const messagingProviderSettingsService = {
       ownerType,
       ownerId,
     );
-    if (!row?.enabled) return null;
+    if (!row) return null;
     const apiKey = decryptMessagingApiKey(row);
     if (!row.loginId || !apiKey || !row.senderPhone) return null;
     return {

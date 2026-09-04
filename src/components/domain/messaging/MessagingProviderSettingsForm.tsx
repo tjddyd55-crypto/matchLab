@@ -2,7 +2,6 @@
 
 import { useState, useTransition } from "react";
 import { useRouter } from "next/navigation";
-import { MessagingProviderOwnerType } from "@/generated/prisma";
 import { Button } from "@/components/ui/button";
 import {
   saveMessagingProviderSettingsAction,
@@ -18,7 +17,6 @@ export function MessagingProviderSettingsForm({
   initial: MessagingProviderSettingsVM;
 }) {
   const router = useRouter();
-  const [enabled, setEnabled] = useState(initial.enabled);
   const [loginId, setLoginId] = useState(initial.loginId);
   const [senderPhone, setSenderPhone] = useState(initial.senderPhone);
   const [apiKey, setApiKey] = useState("");
@@ -26,29 +24,23 @@ export function MessagingProviderSettingsForm({
   const [error, setError] = useState<string | null>(null);
   const [pending, startTransition] = useTransition();
 
-  const ownerLabel =
-    initial.ownerType === MessagingProviderOwnerType.association
-      ? "협회"
-      : "체육관";
+  const description =
+    initial.ownerType === "association"
+      ? "이 협회에서 사용할 알리고 문자 발송 계정을 설정합니다."
+      : "이 체육관에서 사용할 알리고 문자 발송 계정을 설정합니다.";
 
   return (
     <div className={cn(adminContentCardClass, "space-y-4 p-4")}>
       <div>
         <h2 className="text-lg font-semibold">문자 발송 설정</h2>
-        <p className="mt-1 text-sm text-matchon-text-secondary">
-          {ownerLabel} 전용 알리고 계정을 연결합니다. 플랫폼 공용 계정은 사용하지
-          않습니다.
-        </p>
+        <p className="mt-1 text-sm text-matchon-text-secondary">{description}</p>
       </div>
 
-      <label className="flex items-center gap-2 text-sm">
-        <input
-          type="checkbox"
-          checked={enabled}
-          onChange={(e) => setEnabled(e.target.checked)}
-        />
-        알리고 사용
-      </label>
+      {!initial.messagingFeatureEnabled ? (
+        <p className="rounded border border-sky-200 bg-sky-50 px-3 py-2 text-sm text-sky-900">
+          문자 서비스 이용 권한은 플랫폼 관리자 설정에 따라 결정됩니다.
+        </p>
+      ) : null}
 
       <div className="grid gap-3 sm:grid-cols-2">
         <div className="space-y-1">
@@ -125,7 +117,6 @@ export function MessagingProviderSettingsForm({
               try {
                 await saveMessagingProviderSettingsAction({
                   ownerType: initial.ownerType,
-                  enabled,
                   loginId,
                   senderPhone,
                   apiKey: apiKey.trim() || undefined,

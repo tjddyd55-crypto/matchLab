@@ -11,6 +11,9 @@ import { resolveMemberGymOwnerAccountStatus } from "@/lib/member-gym/owner-accou
 import { MemberGymListExcelExport } from "@/components/domain/member-gyms/MemberGymListExcelExport";
 import { MemberGymListWithBulkSms } from "@/components/domain/member-gyms/MemberGymListWithBulkSms";
 import { MEMBER_GYM_STATUS_LABEL } from "@/lib/ui-labels/member-gym";
+import { TENANT_FEATURE_KEYS } from "@/lib/platform-features/tenant-feature-keys";
+import { tenantFeatureEntitlementService } from "@/lib/services/tenant-feature-entitlement.service";
+import { TenantFeatureOwnerType } from "@/generated/prisma";
 
 export const dynamic = "force-dynamic";
 
@@ -35,6 +38,13 @@ export default async function MemberGymListPage({
     q: sp.q,
   });
   const overview = await memberGymService.getOverview(actor);
+  const messagingFeatureEnabled = actor.organizerId
+    ? await tenantFeatureEntitlementService.hasTenantFeature(
+        TenantFeatureOwnerType.association,
+        actor.organizerId,
+        TENANT_FEATURE_KEYS.TENANT_MESSAGING,
+      )
+    : false;
   const hasActiveFilters = Boolean(sp.q?.trim() || status);
   const memberGymIds = rows.map((row) => row.id);
 
@@ -95,6 +105,7 @@ export default async function MemberGymListPage({
         </form>
         <MemberGymListWithBulkSms
           totalCount={overview.totals.memberGyms}
+          messagingFeatureEnabled={messagingFeatureEnabled}
           rows={rows.map((row) => ({
             id: row.id,
             memberCode: row.memberCode,

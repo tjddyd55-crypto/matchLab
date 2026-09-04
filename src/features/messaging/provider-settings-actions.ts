@@ -13,14 +13,12 @@ export async function getMessagingProviderSettingsAction(
 
 export async function saveMessagingProviderSettingsAction(input: {
   ownerType: MessagingProviderOwnerType;
-  enabled: boolean;
   loginId: string;
   senderPhone: string;
   apiKey?: string;
 }) {
   const actor = await requireActor();
   return messagingProviderSettingsService.saveSettings(actor, input.ownerType, {
-    enabled: input.enabled,
     loginId: input.loginId,
     senderPhone: input.senderPhone,
     apiKey: input.apiKey,
