@@ -51,6 +51,18 @@ MATCHON `scripts/` 분류 기준과 현재 상태. Phase A (2026-09-04) 기준.
 
 `scripts/archive/review-2026-09/` — Phase A에서 루트에서 제거한 untracked 40+ 파일. README 참고.
 
-## Alias scripts
+## Alias scripts (`verify:*`)
 
-`package.json`에 동일 파일을 가리키는 `verify:*` alias가 50+ 그룹 존재 (의도적 호환). Phase A에서 **제거하지 않음**.
+`package.json`에 동일 `scripts/` 파일을 가리키는 alias가 **53 그룹** 존재한다. Phase B에서도 **삭제하지 않고** 호환성을 유지한다.
+
+| 개념 | 설명 | 예 |
+|------|------|-----|
+| **canonical** | 도메인·주제를 가장 잘 드러내는 공식 명령 | `verify:application` |
+| **compatibility alias** | 과거 문서·CI·운영 습관용 동의어 | `verify:applications`, `verify:application-workflow` |
+
+정책:
+
+1. 신규 verify 추가 시 **canonical 1개**만 새로 만든다.
+2. 기존 alias는 breaking 없이 유지한다 (deprecated 주석은 `package.json` 또는 이 문서에만).
+3. CI·문서·runbook은 canonical을 우선 사용한다.
+4. alias 그룹 정리(삭제)는 별도 Phase에서 breaking change로 계획한다.
