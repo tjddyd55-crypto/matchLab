@@ -26,6 +26,9 @@ const detail = read(
 assert.ok(detail.includes("대진 현황"));
 assert.ok(!detail.includes("결과 및 대진"));
 assert.ok(detail.includes("FieldStatusBracketMatchCards"));
+assert.ok(!detail.includes("FighterMyMatchQrPanel"));
+assert.ok(!detail.includes("getFighterMyMatchPublicUrlAction"));
+assert.ok(!detail.includes("QR URL"));
 assert.ok(detail.includes("OrganizerBracketViewMatchCard") === false);
 assert.ok(detail.includes('title="메모"'));
 assert.ok(detail.includes("6. 관리"));

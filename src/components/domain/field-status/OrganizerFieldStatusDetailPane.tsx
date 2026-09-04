@@ -7,7 +7,6 @@ import { FieldStatusBracketMatchCards } from "@/components/domain/field-status/F
 import { FieldStatusBracketPanel } from "@/components/domain/field-status/FieldStatusBracketPanel";
 import { FieldStatusPrimaryActions } from "@/components/domain/field-status/FieldStatusPrimaryActions";
 import { FieldStatusResetButton } from "@/components/domain/field-status/FieldStatusResetButton";
-import { FighterMyMatchQrPanel } from "@/components/domain/my-match/FighterMyMatchQrPanel";
 import {
   FieldMemoForm,
   WeighInWeightInput,
@@ -64,13 +63,11 @@ function DetailSection({
 export function OrganizerFieldStatusDetailPane({
   row,
   eventId,
-  eventPublicSlug,
   onBack,
   onWeighInSaved,
 }: {
   row: FieldStatusRowDTO;
   eventId: string;
-  eventPublicSlug: string | null;
   onBack?: () => void;
   onWeighInSaved?: (info: {
     fighterName: string;
@@ -203,13 +200,6 @@ export function OrganizerFieldStatusDetailPane({
       </section>
 
       <DetailSection step={4} title="대진 현황">
-        {eventPublicSlug ? (
-          <FighterMyMatchQrPanel
-            eventSlug={eventPublicSlug}
-            fighterId={row.fighterId}
-            fighterName={row.fighterName}
-          />
-        ) : null}
         <FieldFinalResultCell row={row} />
         <FieldStatusBracketMatchCards row={row} eventId={eventId} />
         <FieldStatusBracketPanel row={row} outcomesOnly />

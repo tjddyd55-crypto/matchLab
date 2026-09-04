@@ -133,12 +133,10 @@ export function OrganizerFieldStatusBoard({
   rows,
   summary,
   eventId,
-  eventPublicSlug,
 }: {
   rows: FieldStatusRowDTO[];
   summary: FieldStatusSummaryDTO;
   eventId: string;
-  eventPublicSlug: string | null;
 }) {
   const listRef = useRef<HTMLDivElement>(null);
   const searchRef = useRef<HTMLInputElement>(null);
@@ -494,7 +492,6 @@ export function OrganizerFieldStatusBoard({
               key={selectedRow.applicationId}
               row={selectedRow}
               eventId={eventId}
-              eventPublicSlug={eventPublicSlug}
               onWeighInSaved={handleWeighInSaved}
             />
           ) : (
@@ -513,7 +510,6 @@ export function OrganizerFieldStatusBoard({
             key={selectedRow.applicationId}
             row={selectedRow}
             eventId={eventId}
-            eventPublicSlug={eventPublicSlug}
             onBack={() => setMobileShowDetail(false)}
             onWeighInSaved={handleWeighInSaved}
           />
