@@ -35,17 +35,40 @@ function GroupCell({ names }: { names: string[] }) {
   );
 }
 
+type MemberTableSelection = {
+  selectedIds: Set<string>;
+  onToggle: (id: string, checked: boolean) => void;
+  onToggleAll: (checked: boolean) => void;
+};
+
 export function MemberTable({
   members,
+  selection,
 }: {
   members: GymMemberListItemVM[];
+  selection?: MemberTableSelection;
 }) {
+  const allSelected =
+    selection &&
+    members.length > 0 &&
+    members.every((m) => selection.selectedIds.has(m.id));
+
   return (
     <div className="hidden max-h-[min(70vh,52rem)] overflow-auto rounded-[10px] border border-matchon-border bg-white lg:block">
       <table className="w-full table-fixed text-left text-xs">
         <caption className="sr-only">회원 목록</caption>
         <thead className="sticky top-0 z-10 border-b border-matchon-border bg-matchon-surface text-[10px] font-semibold text-matchon-text-secondary shadow-[0_1px_0_0_var(--matchon-border,rgba(0,0,0,0.06))]">
           <tr>
+            {selection ? (
+              <th scope="col" className="w-8 px-1.5 py-1.5 text-center">
+                <input
+                  type="checkbox"
+                  aria-label="현재 페이지 전체 선택"
+                  checked={Boolean(allSelected)}
+                  onChange={(e) => selection.onToggleAll(e.target.checked)}
+                />
+              </th>
+            ) : null}
             <th scope="col" className="w-8 px-1.5 py-1.5 text-center">
               #
             </th>
@@ -90,6 +113,16 @@ export function MemberTable({
               key={m.id}
               className="h-10 border-b border-matchon-border last:border-0 hover:bg-matchon-surface/60"
             >
+              {selection ? (
+                <td className="px-1.5 py-0.5 text-center">
+                  <input
+                    type="checkbox"
+                    checked={selection.selectedIds.has(m.id)}
+                    onChange={(e) => selection.onToggle(m.id, e.target.checked)}
+                    aria-label={`${m.name} 선택`}
+                  />
+                </td>
+              ) : null}
               <td className="px-1.5 py-0.5 text-center text-[11px] tabular-nums text-matchon-text-secondary">
                 {m.rowNumber}
               </td>
