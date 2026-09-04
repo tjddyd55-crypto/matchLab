@@ -13,8 +13,11 @@ import {
   requestEventPosterUploadAction,
 } from "@/features/event-images/actions";
 import { EventPosterOrganizerPreview } from "@/components/domain/events/EventPosterOrganizerPreview";
+import {
+  EventPosterAspectWarningBox,
+  EventPosterUploadGuide,
+} from "@/components/domain/events/EventPosterUploadGuide";
 import { stashPosterUploadFlashMessage } from "@/components/domain/events/OrganizerEventFlashBanner";
-import { EVENT_POSTER_UPLOAD_HINT } from "@/components/domain/events/public/public-event-layout";
 import {
   getEventPosterAspectWarning,
   readImageDimensionsFromFile,
@@ -296,11 +299,14 @@ export function EventCreateForm({ actorRole }: { actorRole: UserRole }) {
           <EventFieldError errors={fieldErrors} field="registrationEndDate" />
         </label>
 
-        <div className="md:col-span-2 space-y-2 rounded-lg border bg-muted/20 p-4">
-          <p className="text-sm font-medium">포스터 이미지 (선택)</p>
-          <p className="text-muted-foreground text-xs leading-relaxed">
-            {EVENT_POSTER_UPLOAD_HINT}. 대회 생성 직후 자동 업로드됩니다.
-          </p>
+        <div className="md:col-span-2 space-y-3 rounded-lg border bg-muted/20 p-4">
+          <EventPosterUploadGuide
+            title="포스터 이미지 (선택)"
+            footerNote="대회 생성 직후 자동 업로드됩니다."
+          />
+          {posterAspectWarning ? (
+            <EventPosterAspectWarningBox message={posterAspectWarning} />
+          ) : null}
           <input
             ref={posterInputRef}
             type="file"
@@ -309,10 +315,7 @@ export function EventCreateForm({ actorRole }: { actorRole: UserRole }) {
             onChange={onPosterPick}
           />
           <div className="flex flex-wrap items-start gap-4">
-            <EventPosterOrganizerPreview
-              src={posterPreviewUrl}
-              aspectWarning={posterAspectWarning}
-            />
+            <EventPosterOrganizerPreview src={posterPreviewUrl} />
             <div className="flex min-w-[140px] flex-col gap-2">
               <Button
                 type="button"

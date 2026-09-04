@@ -1,6 +1,7 @@
 "use client";
 
 import { EventPosterImage } from "@/components/domain/events/EventPosterImage";
+import { EVENT_POSTER_PREVIEW_CAPTION } from "@/components/domain/events/public/public-event-layout";
 import { cn } from "@/lib/utils";
 
 /**
@@ -8,15 +9,13 @@ import { cn } from "@/lib/utils";
  */
 export function EventPosterOrganizerPreview({
   src,
-  aspectWarning,
   className,
 }: {
   src: string | null;
-  aspectWarning?: string | null;
   className?: string;
 }) {
   return (
-    <div className={cn("flex min-w-0 flex-col gap-2", className)}>
+    <div className={cn("flex min-w-0 flex-col gap-1.5", className)}>
       <EventPosterImage
         src={src}
         alt="포스터 미리보기"
@@ -24,14 +23,9 @@ export function EventPosterOrganizerPreview({
         sizes="160px"
         placeholderLabel="미리보기 없음"
       />
-      {aspectWarning ? (
-        <p
-          className="max-w-xs text-xs leading-relaxed text-amber-800 dark:text-amber-200"
-          role="status"
-        >
-          {aspectWarning}
-        </p>
-      ) : null}
+      <p className="text-muted-foreground max-w-[11rem] text-[11px] leading-snug">
+        {EVENT_POSTER_PREVIEW_CAPTION}
+      </p>
     </div>
   );
 }
