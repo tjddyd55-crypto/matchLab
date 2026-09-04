@@ -422,6 +422,7 @@
     "verify:matchon-messaging-admin-access": "tsx scripts/verify-matchon-messaging.ts",
     "verify:tenant-messaging": "tsx scripts/verify-tenant-messaging.ts",
     "verify:tenant-feature-entitlement": "tsx scripts/verify-tenant-feature-entitlement.ts",
+    "verify:platform-auth-sms": "tsx scripts/verify-platform-auth-sms.ts",
     "verify:gym-member-is-person-ssot": "tsx scripts/verify-gym-member-ssot.ts",
     "verify:gym-member-access": "tsx scripts/verify-gym-member-ssot.ts",
     "verify:gym-member-navigation": "tsx scripts/verify-gym-member-ssot.ts",

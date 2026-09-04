@@ -19,6 +19,7 @@ import {
   loadMatchonPhoneVerificationConfig,
   type MatchonPhoneVerificationConfig,
 } from "../config/matchon-phone-verification-config";
+import { platformAuthSmsService } from "@/lib/services/platform-auth-sms.service";
 import {
   getMatchonAuthSmsE2eCode,
   isMatchonAuthSmsE2eInboxAllowed,
@@ -92,8 +93,27 @@ function assertIpRate(
   ipWindow.set(ipHash, arr);
 }
 
-function buildSmsBody(code: string, minutes: number): string {
-  return `[MATCHON] 인증번호 ${code} (유효 ${minutes}분). 본인이 요청하지 않았다면 무시하세요.`;
+function buildSignupSmsBody(code: string, minutes: number): string {
+  return `[MATCHON] 회원가입 인증번호는 ${code} 입니다. ${minutes}분 이내에 입력해 주세요.`;
+}
+
+function buildPasswordResetSmsBody(code: string, minutes: number): string {
+  return `[MATCHON] 비밀번호 재설정 인증번호는 ${code} 입니다. ${minutes}분 이내에 입력해 주세요.`;
+}
+
+function buildSmsBody(
+  purpose: PhoneVerificationPurpose,
+  code: string,
+  minutes: number,
+): string {
+  if (purpose === PhoneVerificationPurpose.password_reset) {
+    return buildPasswordResetSmsBody(code, minutes);
+  }
+  return buildSignupSmsBody(code, minutes);
+}
+
+async function loadSendConfig(): Promise<MatchonPhoneVerificationConfig> {
+  return platformAuthSmsService.loadPhoneVerificationConfigWithCredentials();
 }
 
 async function invalidatePending(phoneNormalized: string, purpose: PhoneVerificationPurpose) {
@@ -117,7 +137,7 @@ export const matchonPhoneVerificationService = {
     accountType: "association" | "gym";
     requestIp?: string | null;
   }): Promise<GenericRequestResult> {
-    const config = loadMatchonPhoneVerificationConfig();
+    const config = await loadSendConfig();
     if (!config.signupPhoneVerificationEnabled) {
       throw new AppError(
         "FORBIDDEN",
@@ -196,7 +216,11 @@ export const matchonPhoneVerificationService = {
     const provider = resolveProvider(config);
     const send = await provider.sendVerificationSms({
       phoneNormalized: phone.normalized,
-      body: buildSmsBody(code, Math.round(config.codeTtlMs / 60_000)),
+      body: buildSmsBody(
+        PhoneVerificationPurpose.signup,
+        code,
+        Math.round(config.codeTtlMs / 60_000),
+      ),
     });
     if (!send.accepted) {
       await prisma.phoneVerification.update({
@@ -422,7 +446,7 @@ export const matchonPhoneVerificationService = {
     phone: string;
     requestIp?: string | null;
   }): Promise<GenericRequestResult> {
-    const config = loadMatchonPhoneVerificationConfig();
+    const config = await loadSendConfig();
     if (!config.passwordResetPhoneEnabled) {
       throw new AppError(
         "FORBIDDEN",
@@ -512,7 +536,11 @@ export const matchonPhoneVerificationService = {
     const provider = resolveProvider(config);
     await provider.sendVerificationSms({
       phoneNormalized: phone.normalized,
-      body: buildSmsBody(code, Math.round(config.codeTtlMs / 60_000)),
+      body: buildSmsBody(
+        PhoneVerificationPurpose.password_reset,
+        code,
+        Math.round(config.codeTtlMs / 60_000),
+      ),
     });
     putMatchonAuthSmsE2eCode(config, {
       requestId: row.id,

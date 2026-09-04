@@ -67,6 +67,16 @@ export function getAdminNavGroups(): DashboardSidebarNavGroup[] {
       ],
     },
     {
+      id: "platform",
+      label: "플랫폼 설정",
+      items: [
+        {
+          href: "/admin/platform-settings/messaging",
+          label: "문자 설정",
+        },
+      ],
+    },
+    {
       id: "system",
       label: "시스템",
       items: [

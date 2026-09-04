@@ -136,9 +136,9 @@ function assertProductionDisabledWiring() {
   assert.match(resetForm, /passwordResetPhoneEnabled/);
   assert.match(resetForm, /관리자에게 문의/);
 
-  const assocPage = read("src/app/(public)/join/association/page.tsx");
+  const assocPage = read("src/app/(onboarding)/join/association/page.tsx");
   assert.match(assocPage, /signupPhoneVerificationEnabled/);
-  const gymPage = read("src/app/(public)/join/gym/page.tsx");
+  const gymPage = read("src/app/(onboarding)/join/gym/page.tsx");
   assert.match(gymPage, /signupPhoneVerificationEnabled/);
   const resetPage = read("src/app/(auth)/password-reset/page.tsx");
   assert.match(resetPage, /passwordResetPhoneEnabled/);
@@ -259,7 +259,12 @@ function main() {
   );
   assert.match(service, /codeHash/);
   assert.match(service, /consumeSignupToken/);
-  assert.match(service, /updateUserById/);
+  assert.match(service, /completePasswordReset/);
+  assert.match(service, /platformAuthSmsService/);
+  assert.match(service, /회원가입 인증번호는/);
+  assert.match(service, /비밀번호 재설정 인증번호는/);
+  const resetAuth = read("src/server/auth/complete-password-reset.ts");
+  assert.match(resetAuth, /updateUserById/);
   assert.match(service, /password_reset_by_phone_completed/);
   assert.doesNotMatch(service, /console\.log\([^\n]*\bcode\b/);
 

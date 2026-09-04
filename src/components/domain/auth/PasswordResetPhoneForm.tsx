@@ -119,7 +119,7 @@ export function PasswordResetPhoneForm({
     return (
       <div className={cn(authLoginFormClass, "space-y-4 text-center")}>
         <p className="text-base font-semibold text-matchon-text-primary">
-          비밀번호가 변경되었습니다.
+          비밀번호가 변경되었습니다. 새 비밀번호로 로그인해 주세요.
         </p>
         <p className={authLoginSecondaryNoteClass}>
           기존 세션은 만료되었습니다. 새 비밀번호로 다시 로그인해 주세요.

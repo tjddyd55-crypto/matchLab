@@ -597,6 +597,23 @@ model MessagingProviderConfig {
   @@index([ownerType, ownerId])
 }
 
+/// MATCHON 플랫폼 공용 Aligo credential (회원가입·비밀번호 재설정 OTP)
+model PlatformMessagingProviderConfig {
+  id              String                @id @default("default")
+  provider        MessagingProviderKind @default(aligo)
+  loginId         String?
+  apiKeyCipher    Bytes?
+  apiKeyIv        Bytes?
+  apiKeyAuthTag   Bytes?
+  apiKeyKeyVer    String?
+  senderPhone     String?
+  updatedByUserId String?
+  createdAt       DateTime              @default(now())
+  updatedAt       DateTime              @updatedAt
+
+  updatedBy User? @relation("PlatformMessagingProviderConfigUpdater", fields: [updatedByUserId], references: [id], onDelete: SetNull)
+}
+
 /// 플랫폼 기능 카탈로그 (Admin entitlement SSOT)
 enum PlatformFeatureTargetType {
   association
@@ -735,6 +752,7 @@ model User {
   billingPaymentMethods                   BillingPaymentMethod[]
   billingProviderConfigsUpdated           BillingProviderConfig[]                 @relation("BillingProviderConfigUpdater")
   messagingProviderConfigsUpdated         MessagingProviderConfig[]               @relation("MessagingProviderConfigUpdater")
+  platformMessagingProviderConfigsUpdated PlatformMessagingProviderConfig[]     @relation("PlatformMessagingProviderConfigUpdater")
   billingRuntimeConfigsUpdated            BillingRuntimeConfig[]                  @relation("BillingRuntimeConfigUpdater")
   associationApplicationsReviewed         AssociationApplication[]               @relation("AssociationApplicationReviewer")
   gymApplicationsReviewed                 GymApplication[]                       @relation("GymApplicationReviewer")
