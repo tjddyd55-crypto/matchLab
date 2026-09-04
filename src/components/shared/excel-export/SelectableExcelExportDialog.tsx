@@ -57,6 +57,8 @@ export type SelectableExcelExportDialogProps = {
     allOnly: (count: number) => string;
   };
   emptyScopeMessage: string;
+  scopeAddon?: React.ReactNode;
+  resolveDownloadCount?: (scope: ExcelExportScope) => number;
   onDownload: (input: {
     fieldKeys: string[];
     scope: ExcelExportScope;
@@ -78,6 +80,8 @@ export function SelectableExcelExportDialog({
   totalCount,
   scopeLabels,
   emptyScopeMessage,
+  scopeAddon,
+  resolveDownloadCount,
   onDownload,
 }: SelectableExcelExportDialogProps) {
   const { alert: showAlert } = useAppConfirmDialog();
@@ -95,9 +99,17 @@ export function SelectableExcelExportDialog({
   const allSelected = selectedCount === fields.length;
 
   const downloadCount = useMemo(() => {
+    if (resolveDownloadCount) {
+      return resolveDownloadCount(effectiveScope);
+    }
     if (effectiveScope === "all") return totalCount;
     return filteredCount;
-  }, [effectiveScope, totalCount, filteredCount]);
+  }, [
+    effectiveScope,
+    totalCount,
+    filteredCount,
+    resolveDownloadCount,
+  ]);
 
   const canDownload = selectedCount > 0 && downloadCount > 0 && !pending;
 
@@ -232,6 +244,7 @@ export function SelectableExcelExportDialog({
                 {scopeLabels.allOnly(totalCount)}
               </p>
             )}
+            {scopeAddon}
           </div>
 
           {selectedCount === 0 ? (

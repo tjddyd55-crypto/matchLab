@@ -20,6 +20,11 @@ import {
   buildApplicantAssignmentCountMap,
   resolveApplicantAssignmentCount,
 } from "@/lib/applications/applicant-list-filters";
+import {
+  DEFAULT_APPLICANT_EXCEL_CANCELLATION_INCLUDE,
+  shouldIncludeApplicantInExcelExport,
+  type ApplicantExcelCancellationInclude,
+} from "@/lib/applications/applicant-excel-export-scope";
 
 export type ApplicantExcelExportScope = "all" | "filtered";
 
@@ -29,6 +34,7 @@ export type ExportOrganizerApplicationsExcelInput = {
   scope: ApplicantExcelExportScope;
   /** scope=filtered 일 때 현재 필터 결과 applicationId (순서 유지) */
   applicationIds?: string[];
+  cancellationInclude?: ApplicantExcelCancellationInclude;
 };
 
 function toIso(d: Date): string {
@@ -189,6 +195,18 @@ export const applicantExcelExportService = {
       }
       selectedRows = ordered;
     }
+
+    const cancellationInclude =
+      input.cancellationInclude ?? DEFAULT_APPLICANT_EXCEL_CANCELLATION_INCLUDE;
+    selectedRows = selectedRows.filter((row) =>
+      shouldIncludeApplicantInExcelExport(
+        {
+          applicationStatus: row.applicationStatus,
+          cancellationSource: row.cancellationSource,
+        },
+        cancellationInclude,
+      ),
+    );
 
     if (selectedRows.length === 0) {
       throw new AppError(

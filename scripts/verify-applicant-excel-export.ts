@@ -13,6 +13,10 @@ import {
   sanitizeApplicantExcelFilenamePart,
   type ApplicantExcelExportRow,
 } from "../src/lib/applications/applicant-excel-export-fields";
+import {
+  countApplicantsForExcelExport,
+  shouldIncludeApplicantInExcelExport,
+} from "../src/lib/applications/applicant-excel-export-scope";
 import { MATCH_CATEGORY_WITH_WEIGHT_LABEL } from "../src/lib/ui-labels/match-category";
 
 function read(rel: string) {
@@ -113,6 +117,28 @@ async function main() {
     "승인",
   );
   assert.equal(
+    APPLICANT_EXCEL_EXPORT_FIELDS.find((f) => f.key === "applicationStatus")!
+      .extract(
+        sampleRow({
+          applicationStatus: "cancelled",
+          cancellationSource: "gym",
+        }),
+        1,
+      ),
+    "체육관취소",
+  );
+  assert.equal(
+    APPLICANT_EXCEL_EXPORT_FIELDS.find((f) => f.key === "applicationStatus")!
+      .extract(
+        sampleRow({
+          applicationStatus: "cancelled",
+          cancellationSource: "organizer",
+        }),
+        1,
+      ),
+    "주최측취소",
+  );
+  assert.equal(
     APPLICANT_EXCEL_EXPORT_FIELDS.find((f) => f.key === "paymentStatus")!
       .extract(row, 1),
     "입금완료",
@@ -178,6 +204,67 @@ async function main() {
     /^제_12회_마포_대회$/,
   );
 
+  const scopeRows = [
+    {
+      applicationId: "active",
+      applicationStatus: "approved" as const,
+      cancellationSource: null,
+    },
+    {
+      applicationId: "gym",
+      applicationStatus: "cancelled" as const,
+      cancellationSource: "gym" as const,
+    },
+    {
+      applicationId: "org",
+      applicationStatus: "cancelled" as const,
+      cancellationSource: "organizer" as const,
+    },
+  ];
+
+  assert.equal(
+    countApplicantsForExcelExport(scopeRows, {
+      includeGymCancelled: false,
+      includeOrganizerCancelled: false,
+    }),
+    1,
+  );
+  assert.equal(
+    countApplicantsForExcelExport(scopeRows, {
+      includeGymCancelled: true,
+      includeOrganizerCancelled: false,
+    }),
+    2,
+  );
+  assert.equal(
+    countApplicantsForExcelExport(scopeRows, {
+      includeGymCancelled: false,
+      includeOrganizerCancelled: true,
+    }),
+    2,
+  );
+  assert.equal(
+    countApplicantsForExcelExport(scopeRows, {
+      includeGymCancelled: true,
+      includeOrganizerCancelled: true,
+    }),
+    3,
+  );
+  assert.equal(
+    shouldIncludeApplicantInExcelExport(scopeRows[0], {
+      includeGymCancelled: false,
+      includeOrganizerCancelled: false,
+    }),
+    true,
+  );
+  assert.equal(
+    shouldIncludeApplicantInExcelExport(scopeRows[1], {
+      includeGymCancelled: false,
+      includeOrganizerCancelled: false,
+    }),
+    false,
+  );
+
   const board = read(
     "src/components/domain/applications/OrganizerApplicationsBoard.tsx",
   );
@@ -188,14 +275,18 @@ async function main() {
     "src/components/domain/applications/OrganizerApplicantExcelExportDialog.tsx",
   );
   assert.match(dialog, /SelectableExcelExportDialog/);
+  assert.match(dialog, /체육관 취소 신청자 포함/);
+  assert.match(dialog, /주최측 취소 신청자 포함/);
   assert.doesNotMatch(dialog, /\balert\(/);
 
   const actions = read("src/features/applications/actions.ts");
   assert.match(actions, /exportOrganizerApplicationsExcelAction/);
+  assert.match(actions, /includeGymCancelled/);
 
   const service = read("src/lib/services/applicant-excel-export.service.ts");
   assert.match(service, /requireOrganizerForEvent/);
   assert.match(service, /buildExcelWorkbook/);
+  assert.match(service, /shouldIncludeApplicantInExcelExport/);
   assert.doesNotMatch(service, /insuranceRrn/);
 
   console.log("verify:applicant-excel-export OK");

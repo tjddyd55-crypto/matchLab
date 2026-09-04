@@ -632,6 +632,8 @@ export async function exportOrganizerApplicationsExcelAction(input: {
   fieldKeys: string[];
   scope: "all" | "filtered";
   applicationIds?: string[];
+  includeGymCancelled?: boolean;
+  includeOrganizerCancelled?: boolean;
 }): Promise<ActionResult<{ base64: string; filename: string; rowCount: number }>> {
   return mapCaught(async () => {
     const actor = await requireActorFromMutation();
@@ -644,6 +646,10 @@ export async function exportOrganizerApplicationsExcelAction(input: {
         fieldKeys: input.fieldKeys,
         scope: input.scope,
         applicationIds: input.applicationIds,
+        cancellationInclude: {
+          includeGymCancelled: input.includeGymCancelled === true,
+          includeOrganizerCancelled: input.includeOrganizerCancelled === true,
+        },
       });
     return actionSuccess({
       base64: buffer.toString("base64"),

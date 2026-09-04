@@ -375,6 +375,11 @@ export function OrganizerApplicationsBoard({
         filteredCount={filtered.length}
         totalCount={rows.length}
         hasActiveFilters={Boolean(hasActiveFilters)}
+        applicationRows={rows.map((r) => ({
+          applicationId: r.applicationId,
+          applicationStatus: r.applicationStatus,
+          cancellationSource: r.cancellationSource,
+        }))}
       />
 
       <OrganizerApplicationsSummaryCards
