@@ -420,6 +420,7 @@
     "verify:matchon-messaging-owner-scope": "tsx scripts/verify-matchon-messaging.ts",
     "verify:matchon-messaging-secret-masking": "tsx scripts/verify-matchon-messaging.ts",
     "verify:matchon-messaging-admin-access": "tsx scripts/verify-matchon-messaging.ts",
+    "verify:tenant-messaging": "tsx scripts/verify-tenant-messaging.ts",
     "verify:gym-member-is-person-ssot": "tsx scripts/verify-gym-member-ssot.ts",
     "verify:gym-member-access": "tsx scripts/verify-gym-member-ssot.ts",
     "verify:gym-member-navigation": "tsx scripts/verify-gym-member-ssot.ts",

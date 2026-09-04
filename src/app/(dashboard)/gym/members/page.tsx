@@ -11,6 +11,7 @@ import { MemberExcelDownloadButton } from "@/components/domain/gym-members/Membe
 import { MemberExcelImportButton } from "@/components/domain/gym-members/MemberExcelImportDialog";
 import { GymMemberSelfRegistrationLinkButton } from "@/components/domain/gym-member-self-registration/GymMemberSelfRegistrationLinkDialog";
 import { gymMemberSelfRegistrationService } from "@/lib/services/gym-member-self-registration.service";
+import { GymMemberBulkSmsButton } from "@/components/domain/gym-members/GymMemberBulkSmsButton";
 import { MemberTable } from "@/components/domain/gym-members/MemberTable";
 import { MemberMobileCard } from "@/components/domain/gym-members/MemberMobileCard";
 import { MatchonEmptyState } from "@/components/shared/MatchonEmptyState";
@@ -164,6 +165,10 @@ export default async function GymMembersPage({
           className="gap-1.5 sm:items-center [&_h1]:text-lg [&_h1]:md:text-xl"
           actions={
             <div className="flex flex-wrap items-center gap-1.5">
+              <GymMemberBulkSmsButton
+                memberIds={list.items.map((r) => r.id)}
+                selectedIds={[]}
+              />
               <Link
                 href="/gym/members/new"
                 className={cn(buttonVariants({ size: "sm" }), "min-h-8")}

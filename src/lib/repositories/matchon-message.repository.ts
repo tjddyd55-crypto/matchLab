@@ -71,6 +71,7 @@ export const matchonMessageRepository = {
       dispatch: {
         ownerType: MatchonMessageOwnerType;
         gymId?: string | null;
+        organizerId?: string | null;
         sourceType: MatchonMessageSourceType;
         channel: MatchonMessageChannel;
         templateId?: string | null;
@@ -109,6 +110,7 @@ export const matchonMessageRepository = {
         data: {
           ownerType: params.dispatch.ownerType,
           gymId: params.dispatch.gymId ?? null,
+          organizerId: params.dispatch.organizerId ?? null,
           sourceType: params.dispatch.sourceType,
           channel: params.dispatch.channel,
           templateId: params.dispatch.templateId ?? null,

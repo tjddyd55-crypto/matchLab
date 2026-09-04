@@ -85,6 +85,14 @@ export function assertOwnerScope(command: CreateMessageDispatchCommand) {
       );
     }
   }
+  if (command.ownerType === "association") {
+    if (!command.organizerId) {
+      throw new MatchonMessagingError(
+        MatchonMessagingErrorCode.GYM_SCOPE_MISMATCH,
+        "협회 발송에는 organizerId가 필요합니다.",
+      );
+    }
+  }
   if (command.ownerType === "platform" && command.gymId) {
     // platform 발송이 gymId를 가질 수는 있으나 혼입 방지를 위해 명시적만 허용 — 현재는 null 권장
   }
@@ -93,7 +101,11 @@ export function assertOwnerScope(command: CreateMessageDispatchCommand) {
 export function buildIdempotencyScope(
   ownerType: string,
   gymId?: string | null,
+  organizerId?: string | null,
 ): string {
   if (ownerType === "gym" && gymId) return `gym:${gymId}`;
+  if (ownerType === "association" && organizerId) {
+    return `association:${organizerId}`;
+  }
   return "platform";
 }

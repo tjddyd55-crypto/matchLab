@@ -561,6 +561,40 @@ enum MatchonMessageRecipientStatus {
 enum MatchonMessageOwnerType {
   platform
   gym
+  association
+}
+
+/// 협회/체육관별 문자 Provider credential (tenant isolation)
+enum MessagingProviderOwnerType {
+  association
+  gym
+}
+
+enum MessagingProviderKind {
+  aligo
+}
+
+/// 협회(organizerId) 또는 체육관(gymId)별 알리고 연동 설정
+model MessagingProviderConfig {
+  id               String                   @id @default(cuid())
+  ownerType        MessagingProviderOwnerType
+  ownerId          String
+  provider         MessagingProviderKind    @default(aligo)
+  enabled          Boolean                  @default(false)
+  loginId          String?
+  apiKeyCipher     Bytes?
+  apiKeyIv         Bytes?
+  apiKeyAuthTag    Bytes?
+  apiKeyKeyVer     String?
+  senderPhone      String?
+  updatedByUserId  String?
+  createdAt        DateTime                 @default(now())
+  updatedAt        DateTime                 @updatedAt
+
+  updatedBy User? @relation("MessagingProviderConfigUpdater", fields: [updatedByUserId], references: [id], onDelete: SetNull)
+
+  @@unique([ownerType, ownerId, provider])
+  @@index([ownerType, ownerId])
 }
 
 enum BracketChangeType {
@@ -650,6 +684,7 @@ model User {
   billingCouponsCreated                   BillingCoupon[]                         @relation("BillingCouponCreator")
   billingPaymentMethods                   BillingPaymentMethod[]
   billingProviderConfigsUpdated           BillingProviderConfig[]                 @relation("BillingProviderConfigUpdater")
+  messagingProviderConfigsUpdated         MessagingProviderConfig[]               @relation("MessagingProviderConfigUpdater")
   billingRuntimeConfigsUpdated            BillingRuntimeConfig[]                  @relation("BillingRuntimeConfigUpdater")
   associationApplicationsReviewed         AssociationApplication[]               @relation("AssociationApplicationReviewer")
   gymApplicationsReviewed                 GymApplication[]                       @relation("GymApplicationReviewer")
@@ -3998,6 +4033,8 @@ model MatchonMessageDispatch {
   id                String                       @id @default(cuid())
   ownerType         MatchonMessageOwnerType
   gymId             String?
+  /// association 발송 시 organizerId (tenant credential scope)
+  organizerId       String?
   sourceType        MatchonMessageSourceType
   channel           MatchonMessageChannel
   templateId        String?
@@ -4029,6 +4066,7 @@ model MatchonMessageDispatch {
 
   @@unique([idempotencyScope, idempotencyKey])
   @@index([ownerType, gymId, createdAt])
+  @@index([ownerType, organizerId, createdAt])
   @@index([status, createdAt])
   @@index([channel, dryRun])
 }

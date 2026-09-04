@@ -9,6 +9,7 @@ import { FeedbackMessage } from "@/components/shared/FeedbackMessage";
 import { formatBulkApplicationResultSummary } from "@/lib/bulk-application-result-feedback";
 import type { BulkApplicationAction } from "@/lib/services/application-organizer-bulk.service";
 import { bulkApplicationActionFormAction } from "@/features/applications/bulk-actions";
+import { EventApplicantBulkSmsButton } from "@/components/domain/applications/EventApplicantBulkSmsButton";
 
 const ACTION_LABELS: Record<BulkApplicationAction, string> = {
   confirm_payment_approve: "입금확인(승인)",
@@ -100,6 +101,10 @@ export function OrganizerApplicationsBulkToolbar({
         {selectedIds.length > 0 ? (
           <>
             <div className="flex flex-wrap gap-2">
+              <EventApplicantBulkSmsButton
+                eventId={eventId}
+                selectedApplicationIds={selectedIds}
+              />
               {primaryActions.map((action) => (
                 <Button
                   key={action}

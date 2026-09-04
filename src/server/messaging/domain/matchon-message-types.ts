@@ -47,6 +47,7 @@ export type MatchonDispatchRecipientInput = {
 export type CreateMessageDispatchCommand = {
   ownerType: MessageOwnerType;
   gymId?: string | null;
+  organizerId?: string | null;
   sourceType: MessageSourceType;
   channel: MessageChannel;
   templateId?: string | null;

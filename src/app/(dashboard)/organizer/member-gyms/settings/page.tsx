@@ -5,6 +5,9 @@ import { OrganizerDashboardPageHeader } from "@/components/dashboard/OrganizerDa
 import { requireActor, redirectUnlessDashboardRole } from "@/lib/auth/actor";
 import { requireAssociationOrganizerPage } from "@/lib/permissions";
 import { memberGymService } from "@/lib/services/member-gym.service";
+import { MessagingProviderSettingsForm } from "@/components/domain/messaging/MessagingProviderSettingsForm";
+import { MessagingProviderOwnerType } from "@/generated/prisma";
+import { messagingProviderSettingsService } from "@/lib/services/messaging-provider-settings.service";
 import { organizerPublicLogoService } from "@/lib/services/organizer-public-logo.service";
 
 export const dynamic = "force-dynamic";
@@ -15,6 +18,10 @@ export default async function MemberGymSettingsPage() {
   requireAssociationOrganizerPage(actor);
   const { settings } = await memberGymService.getSettings(actor);
   const logoSettings = await organizerPublicLogoService.getSettings(actor);
+  const messagingSettings = await messagingProviderSettingsService.getSettings(
+    actor,
+    MessagingProviderOwnerType.association,
+  );
 
   return (
     <>
@@ -23,8 +30,9 @@ export default async function MemberGymSettingsPage() {
         description="회원사 가입 링크·신청서·첨부·승인 정책과 협회 공개 로고 설정입니다."
       />
       <MemberGymSubNav />
-      <div className="mt-4">
+      <div className="mt-4 space-y-6">
         <MemberGymSettingsForm initial={settings} />
+        <MessagingProviderSettingsForm initial={messagingSettings} />
         <AssociationPublicLogoForm
           initial={{
             logoUrl: logoSettings.logoUrl,

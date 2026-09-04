@@ -122,6 +122,7 @@ export function getGymPortalNavGroups(
         { href: "/gym/staff", label: "선생님 목록" },
         { href: "/gym/staff/new", label: "선생님 등록" },
         { href: "/gym/profile", label: "체육관 정보" },
+        { href: "/gym/settings/messaging", label: "문자 발송 설정" },
         { href: "/gym/associations", label: "가입 협회" },
         { href: "/gym/member-portal", label: "회원 전용 페이지" },
       ],

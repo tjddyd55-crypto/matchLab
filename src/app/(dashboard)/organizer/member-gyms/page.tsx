@@ -8,10 +8,9 @@ import { AssociationMemberGymStatus } from "@/lib/enums";
 import { requireAssociationOrganizerPage } from "@/lib/permissions";
 import { memberGymService } from "@/lib/services/member-gym.service";
 import { resolveMemberGymOwnerAccountStatus } from "@/lib/member-gym/owner-account";
-import { MEMBER_GYM_STATUS_LABEL } from "@/lib/ui-labels/member-gym";
-import { MEMBER_GYM_OWNER_ACCOUNT_STATUS_LABEL } from "@/lib/ui-labels/member-gym-owner";
-import { format } from "date-fns";
 import { MemberGymListExcelExport } from "@/components/domain/member-gyms/MemberGymListExcelExport";
+import { MemberGymListWithBulkSms } from "@/components/domain/member-gyms/MemberGymListWithBulkSms";
+import { MEMBER_GYM_STATUS_LABEL } from "@/lib/ui-labels/member-gym";
 
 export const dynamic = "force-dynamic";
 
@@ -94,93 +93,34 @@ export default async function MemberGymListPage({
             검색
           </button>
         </form>
-        <div className="hidden overflow-x-auto rounded-md border border-matchon-border md:block">
-          <table className="w-full min-w-[800px] text-left text-sm">
-            <thead className="bg-matchon-surface text-xs text-matchon-text-secondary">
-              <tr>
-                <th className="px-3 py-2">회원사명</th>
-                <th className="px-3 py-2">회원사 코드</th>
-                <th className="px-3 py-2">계정</th>
-                <th className="px-3 py-2">선수(전체/활동)</th>
-                <th className="px-3 py-2">상태</th>
-                <th className="px-3 py-2">승인일</th>
-                <th className="px-3 py-2">관리</th>
-              </tr>
-            </thead>
-            <tbody>
-              {rows.map((row) => {
-                const accountStatus = resolveMemberGymOwnerAccountStatus({
-                  owner: row.gym.ownerUser,
-                  ownerAccessSuspendedAt: row.ownerAccessSuspendedAt,
-                  ownerInviteTokenHash: row.ownerInviteTokenHash,
-                  ownerInviteExpiresAt: row.ownerInviteExpiresAt,
-                });
-                const activeFighters = row.gym.fighters.length;
-                return (
-                <tr key={row.id} className="border-t border-matchon-border">
-                  <td className="px-3 py-2 font-medium">{row.gym.name}</td>
-                  <td className="px-3 py-2 tabular-nums">{row.memberCode}</td>
-                  <td className="px-3 py-2">
-                    <span className="rounded bg-matchon-surface px-2 py-0.5 text-xs">
-                      {MEMBER_GYM_OWNER_ACCOUNT_STATUS_LABEL[accountStatus]}
-                    </span>
-                  </td>
-                  <td className="px-3 py-2 tabular-nums">
-                    {row.gym._count.fighters} / {activeFighters}
-                  </td>
-                  <td className="px-3 py-2">
-                    {MEMBER_GYM_STATUS_LABEL[row.status]}
-                  </td>
-                  <td className="px-3 py-2">
-                    {row.approvedAt
-                      ? format(row.approvedAt, "yyyy-MM-dd")
-                      : "-"}
-                  </td>
-                  <td className="px-3 py-2">
-                    <Link
-                      href={`/organizer/member-gyms/${row.id}`}
-                      className="text-matchon-primary underline"
-                    >
-                      상세
-                    </Link>
-                  </td>
-                </tr>
-              );
-              })}
-            </tbody>
-          </table>
-        </div>
-        <ul className="space-y-2 md:hidden">
-          {rows.map((row) => {
-            const accountStatus = resolveMemberGymOwnerAccountStatus({
+        <MemberGymListWithBulkSms
+          totalCount={overview.totals.memberGyms}
+          rows={rows.map((row) => ({
+            id: row.id,
+            memberCode: row.memberCode,
+            status: row.status,
+            approvedAt: row.approvedAt?.toISOString() ?? null,
+            ownerAccessSuspendedAt:
+              row.ownerAccessSuspendedAt?.toISOString() ?? null,
+            ownerInviteTokenHash: row.ownerInviteTokenHash,
+            ownerInviteExpiresAt:
+              row.ownerInviteExpiresAt?.toISOString() ?? null,
+            gym: {
+              name: row.gym.name,
+              ownerUser: row.gym.ownerUser
+                ? { authUserId: row.gym.ownerUser.authUserId }
+                : null,
+              fighters: row.gym.fighters,
+              _count: row.gym._count,
+            },
+            accountStatus: resolveMemberGymOwnerAccountStatus({
               owner: row.gym.ownerUser,
               ownerAccessSuspendedAt: row.ownerAccessSuspendedAt,
               ownerInviteTokenHash: row.ownerInviteTokenHash,
               ownerInviteExpiresAt: row.ownerInviteExpiresAt,
-            });
-            const activeFighters = row.gym.fighters.length;
-            return (
-              <li
-                key={row.id}
-                className="rounded-md border border-matchon-border bg-white p-3"
-              >
-                <Link
-                  href={`/organizer/member-gyms/${row.id}`}
-                  className="block"
-                >
-                  <p className="font-semibold">{row.gym.name}</p>
-                  <p className="mt-1 text-xs text-matchon-text-secondary">
-                    {row.memberCode} · {MEMBER_GYM_STATUS_LABEL[row.status]} ·{" "}
-                    {MEMBER_GYM_OWNER_ACCOUNT_STATUS_LABEL[accountStatus]}
-                  </p>
-                  <p className="mt-0.5 text-xs text-matchon-text-secondary">
-                    선수 {row.gym._count.fighters} / 활동 {activeFighters}
-                  </p>
-                </Link>
-              </li>
-            );
-          })}
-        </ul>
+            }),
+          }))}
+        />
         {rows.length === 0 ? (
           <p className="text-sm text-matchon-text-secondary">
             승인된 회원사가 없습니다.
