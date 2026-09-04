@@ -261,6 +261,15 @@ function main() {
   assert.match(service, /consumeSignupToken/);
   assert.match(service, /completePasswordReset/);
   assert.match(service, /platformAuthSmsService/);
+  assert.match(service, /verifySignupCode[\s\S]*?const config = await loadSendConfig\(\)/);
+  assert.match(
+    service,
+    /verifyPasswordResetCode[\s\S]*?const config = await loadSendConfig\(\)/,
+  );
+  assert.match(
+    service,
+    /resetPasswordWithToken[\s\S]*?const config = await loadSendConfig\(\)/,
+  );
   assert.match(service, /회원가입 인증번호는/);
   assert.match(service, /비밀번호 재설정 인증번호는/);
   const resetAuth = read("src/server/auth/complete-password-reset.ts");

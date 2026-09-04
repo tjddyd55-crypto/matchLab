@@ -280,7 +280,7 @@ export const matchonPhoneVerificationService = {
     phone: string;
     code: string;
   }): Promise<{ signupVerificationToken: string; expiresAt: string }> {
-    const config = loadMatchonPhoneVerificationConfig();
+    const config = await loadSendConfig();
     if (!config.signupPhoneVerificationEnabled) {
       throw new AppError(
         "FORBIDDEN",
@@ -586,7 +586,7 @@ export const matchonPhoneVerificationService = {
     phone: string;
     code: string;
   }): Promise<{ passwordResetToken: string; expiresAt: string }> {
-    const config = loadMatchonPhoneVerificationConfig();
+    const config = await loadSendConfig();
     if (!config.passwordResetPhoneEnabled) {
       throw new AppError(
         "FORBIDDEN",
@@ -677,7 +677,7 @@ export const matchonPhoneVerificationService = {
     newPassword: string;
     confirmPassword: string;
   }): Promise<{ ok: true }> {
-    const config = loadMatchonPhoneVerificationConfig();
+    const config = await loadSendConfig();
     if (!config.passwordResetPhoneEnabled) {
       throw new AppError(
         "FORBIDDEN",

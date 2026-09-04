@@ -74,6 +74,88 @@ function assertRuntimeStatusMergedCredentials() {
   console.log("verify:platform-auth-sms-merged-credentials: OK");
 }
 
+function extractServiceMethodBody(source: string, name: string): string {
+  const pattern = new RegExp(
+    `\\n  async ${name}\\([\\s\\S]*?(?=\\n  (?:async \\w+|peekE2eCode|getConfig\\())`,
+  );
+  const match = source.match(pattern);
+  assert.ok(match?.[0], `missing function ${name}`);
+  return match[0];
+}
+
+function assertOtpVerifyCredentialAwareConfig() {
+  const phoneSvc = read(
+    "src/server/phone-verification/services/matchon-phone-verification.service.ts",
+  );
+
+  for (const fn of [
+    "requestSignupCode",
+    "verifySignupCode",
+    "requestPasswordResetCode",
+    "verifyPasswordResetCode",
+    "resetPasswordWithToken",
+  ]) {
+    const body = extractServiceMethodBody(phoneSvc, fn);
+    assert.match(
+      body,
+      /const config = await loadSendConfig\(\)/,
+      `${fn} must use credential-aware loadSendConfig()`,
+    );
+    assert.doesNotMatch(
+      body,
+      /const config = loadMatchonPhoneVerificationConfig\(\)/,
+      `${fn} must not use env-only loadMatchonPhoneVerificationConfig() for OTP gate`,
+    );
+  }
+
+  const consumeSignup = extractServiceMethodBody(phoneSvc, "consumeSignupToken");
+  assert.doesNotMatch(
+    consumeSignup,
+    /assertProductionUserOtpAllowed/,
+    "consumeSignupToken must not re-check SMS provider credentials",
+  );
+  assert.match(
+    consumeSignup,
+    /loadMatchonPhoneVerificationConfig\(\)/,
+    "consumeSignupToken uses env config for pepper/token only",
+  );
+
+  const {
+    assertProductionUserOtpAllowed,
+    loadMatchonPhoneVerificationConfig,
+  } = require("../src/server/phone-verification/config/matchon-phone-verification-config");
+
+  const prodEnv = {
+    NODE_ENV: "production",
+    RAILWAY_ENVIRONMENT_NAME: "production",
+    MATCHON_PHONE_VERIFICATION_ENABLED: "true",
+    MATCHON_PASSWORD_RESET_PHONE_ENABLED: "true",
+    MATCHON_AUTH_SMS_PROVIDER: "aligo",
+    MATCHON_AUTH_SMS_DRY_RUN: "false",
+    MATCHON_AUTH_SMS_ALLOW_REAL_SEND: "true",
+    MATCHON_PHONE_VERIFICATION_PEPPER: "p",
+  } as NodeJS.ProcessEnv;
+
+  const base = loadMatchonPhoneVerificationConfig(prodEnv);
+  const dbMerged = {
+    ...base,
+    aligo: {
+      ...base.aligo,
+      apiKey: "db-only-key",
+      userId: "db-only-user",
+      sender: "01012345678",
+    },
+  };
+
+  assert.throws(
+    () => assertProductionUserOtpAllowed(base, prodEnv),
+    /credentials_incomplete/,
+  );
+  assert.doesNotThrow(() => assertProductionUserOtpAllowed(dbMerged, prodEnv));
+
+  console.log("verify:platform-auth-sms-otp-verify-gate: OK");
+}
+
 function assertAdminUi() {
   const page = read("src/app/(dashboard)/admin/platform-settings/messaging/page.tsx");
   assert.match(page, /AdminPlatformMessagingSettingsClient/);
@@ -142,6 +224,7 @@ async function main() {
   assertSchema();
   assertPlatformAuthSmsService();
   assertRuntimeStatusMergedCredentials();
+  assertOtpVerifyCredentialAwareConfig();
   assertAdminUi();
   assertCredentialSeparation();
   assertSmsCopy();

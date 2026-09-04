@@ -85,6 +85,13 @@ function main() {
   assert.match(phoneSvc, /loginId/);
   assert.match(phoneSvc, /matches\.length !== 1/);
 
+  // OTP verify must use DB credential-aware config (not env-only gate)
+  assert.match(phoneSvc, /verifySignupCode[\s\S]*?const config = await loadSendConfig\(\)/);
+  assert.match(
+    phoneSvc,
+    /verifyPasswordResetCode[\s\S]*?const config = await loadSendConfig\(\)/,
+  );
+
   console.log("verify:gym-signup-phone-verification: OK");
 }
 
