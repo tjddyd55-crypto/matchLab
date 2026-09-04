@@ -65,7 +65,7 @@ export function RequestedLoginIdField({
   return (
     <div className={authLoginFieldStackClass}>
       <label htmlFor={name} className={authLoginLabelClass}>
-        희망 로그인 아이디{required ? " *" : ""}
+        아이디{required ? " *" : ""}
       </label>
       <div className="flex flex-wrap gap-2">
         <input

@@ -49,10 +49,12 @@ export function BusinessNoInput({
   name,
   label,
   defaultValue = "",
+  required,
 }: {
   name: string;
   label: string;
   defaultValue?: string;
+  required?: boolean;
 }) {
   const [display, setDisplay] = useState(() =>
     formatBusinessRegistrationNumber(defaultValue),
@@ -62,11 +64,13 @@ export function BusinessNoInput({
   return (
     <label className="block text-xs">
       {label}
+      {required ? " *" : ""}
       <input type="hidden" name={name} value={digits} />
       <input
         type="text"
         inputMode="numeric"
         value={display}
+        required={required}
         onChange={(e) =>
           setDisplay(formatBusinessRegistrationNumber(e.target.value))
         }

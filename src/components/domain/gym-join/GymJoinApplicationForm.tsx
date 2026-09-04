@@ -407,7 +407,7 @@ export function GymJoinApplicationForm({
               phoneVerificationEnabled &&
               !signupVerificationToken
             ) {
-              setSubmitError("휴대폰 인증을 완료한 후 제출해 주세요.");
+              setSubmitError("대표자 연락처 인증을 완료한 후 제출해 주세요.");
               return;
             }
             const nextAttachments = await ensureSignatureAttachment();
@@ -606,22 +606,66 @@ export function GymJoinApplicationForm({
           />
         </div>
         {mode === "independent" ? (
-          <PhoneInput name="phone" label="체육관 연락처" />
+          phoneVerificationEnabled ? (
+            <>
+              <PhoneVerificationPanel
+                accountType="gym"
+                phone={mobilePhone}
+                onPhoneChange={setMobilePhone}
+                verificationToken={signupVerificationToken}
+                onVerified={setSignupVerificationToken}
+                onReset={() => setSignupVerificationToken(null)}
+                disabled={pending || isUploading}
+                phoneLabel="대표자 연락처"
+                compact
+              />
+              <input type="hidden" name="mobilePhone" value={mobilePhone} />
+              <input
+                type="hidden"
+                name="signupVerificationToken"
+                value={signupVerificationToken ?? ""}
+              />
+            </>
+          ) : (
+            <div className="space-y-2">
+              <PhoneInput
+                name="mobilePhone"
+                label="대표자 연락처"
+                required
+              />
+              <p className={authLoginSecondaryNoteClass} role="status">
+                휴대폰 본인인증은 준비 중입니다. 현재는 기존 방식으로 가입
+                신청할 수 있습니다.
+              </p>
+            </div>
+          )
         ) : (
           <PhoneInput name="gymPhone" label="체육관 연락처" />
         )}
         <AddressSearchField
-          label="체육관 주소"
+          label={mode === "independent" ? "주소" : "체육관 주소"}
           required
           postalName="postalCode"
           addressName="address"
           detailName="addressDetail"
           inputClassName={authLoginInputClass}
         />
-        <BusinessNoInput name="businessNo" label="사업자등록번호" />
+        <TextField
+          name="email"
+          label="이메일 주소"
+          type="email"
+          required
+        />
+        <div className={authLoginFieldStackClass}>
+          <BusinessNoInput
+            name="businessNo"
+            label="사업자등록번호"
+            required={mode === "independent"}
+          />
+        </div>
         {mode === "independent" && sportTemplateOptions.length > 0 ? (
           <div className={authLoginFieldStackClass}>
-            <span className={authLoginLabelClass}>운영 종목 *</span>
+            <span className={authLoginLabelClass}>운영종목 *</span>
             <p className={authLoginSecondaryNoteClass}>
               체육관에서 운영하는 종목을 1개 이상 선택해 주세요.
             </p>
@@ -650,7 +694,9 @@ export function GymJoinApplicationForm({
             </div>
           </div>
         ) : null}
-        <TextField name="sportType" label="운영 종목 (기타 설명)" />
+        {mode === "association_invite" ? (
+          <TextField name="sportType" label="운영 종목 (기타 설명)" />
+        ) : null}
         <div className={authLoginFieldStackClass}>
           <label htmlFor="description" className={authLoginLabelClass}>
             소개
@@ -697,41 +743,7 @@ export function GymJoinApplicationForm({
               />
             </div>
           </>
-        ) : (
-          <TextField name="contactName" label="담당자명" />
-        )}
-        {mode === "independent" ? (
-          phoneVerificationEnabled ? (
-            <>
-              <PhoneVerificationPanel
-                accountType="gym"
-                phone={mobilePhone}
-                onPhoneChange={setMobilePhone}
-                verificationToken={signupVerificationToken}
-                onVerified={setSignupVerificationToken}
-                onReset={() => setSignupVerificationToken(null)}
-                disabled={pending || isUploading}
-              />
-              <input type="hidden" name="mobilePhone" value={mobilePhone} />
-              <input
-                type="hidden"
-                name="signupVerificationToken"
-                value={signupVerificationToken ?? ""}
-              />
-            </>
-          ) : (
-            <div className="space-y-2">
-              <PhoneInput name="mobilePhone" label="개인 연락처" required />
-              <p className={authLoginSecondaryNoteClass} role="status">
-                휴대폰 본인인증은 준비 중입니다. 현재는 기존 방식으로 가입
-                신청할 수 있습니다.
-              </p>
-            </div>
-          )
-        ) : (
-          <PhoneInput name="mobilePhone" label="개인 연락처" required />
-        )}
-        <TextField name="email" label="이메일" type="email" required />
+        ) : null}
       </section>
 
       <section className="space-y-3 rounded-xl border border-matchon-border bg-white p-4 shadow-sm">

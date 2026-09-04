@@ -123,7 +123,7 @@ export const gymApplicationService = {
       "@/server/phone-verification/config/matchon-phone-verification-config"
     );
     const phoneConfig = loadMatchonPhoneVerificationConfig();
-    const mobilePhoneRaw = requireText(input.mobilePhone, "연락처");
+    const mobilePhoneRaw = requireText(input.mobilePhone, "대표자 연락처");
     let mobilePhoneNormalized = mobilePhoneRaw;
     if (phoneConfig.signupPhoneVerificationEnabled) {
       const { matchonPhoneVerificationService } = await import(
@@ -183,10 +183,12 @@ export const gymApplicationService = {
           data: {
             gymName: requireText(input.gymName, "체육관명"),
             representativeName: requireText(input.representativeName, "대표자명"),
-            contactName: requireText(input.contactName, "담당자명"),
-            phone: input.phone?.trim() || null,
+            contactName:
+              input.contactName?.trim() ||
+              requireText(input.representativeName, "대표자명"),
+            phone: input.phone?.trim() || mobilePhoneNormalized,
             mobilePhone: mobilePhoneNormalized,
-            email: requireText(input.email, "이메일"),
+            email: requireText(input.email, "이메일").trim().toLowerCase(),
             postalCode,
             address: input.address?.trim() || null,
             addressDetail: input.addressDetail?.trim() || null,

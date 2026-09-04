@@ -34,6 +34,8 @@ export function PasswordResetPhoneForm({
   const [passwordResetToken, setPasswordResetToken] = useState<string | null>(
     null,
   );
+  const [verifiedLoginId, setVerifiedLoginId] = useState<string | null>(null);
+  const [verifiedPhone, setVerifiedPhone] = useState<string | null>(null);
   const [newPassword, setNewPassword] = useState("");
   const [confirmPassword, setConfirmPassword] = useState("");
   const [error, setError] = useState<string | null>(null);
@@ -72,7 +74,7 @@ export function PasswordResetPhoneForm({
         );
       } else {
         setInfo(
-          "입력하신 정보가 일치하면 등록된 휴대폰으로 인증번호를 발송합니다.",
+          "입력하신 정보가 일치하면 등록된 연락처로 인증번호를 발송합니다.",
         );
       }
     });
@@ -93,6 +95,8 @@ export function PasswordResetPhoneForm({
         return;
       }
       setPasswordResetToken(res.data.passwordResetToken);
+      setVerifiedLoginId(loginId);
+      setVerifiedPhone(phone);
       setStep("password");
       setInfo("인증이 완료되었습니다. 새 비밀번호를 설정해 주세요.");
     });
@@ -100,6 +104,17 @@ export function PasswordResetPhoneForm({
 
   function resetPassword() {
     if (!passwordResetToken) return;
+    if (
+      verifiedLoginId !== loginId ||
+      verifiedPhone !== phone
+    ) {
+      setPasswordResetToken(null);
+      setVerifiedLoginId(null);
+      setVerifiedPhone(null);
+      setStep("request");
+      setError("계정 정보가 변경되었습니다. 다시 인증해 주세요.");
+      return;
+    }
     setError(null);
     startTransition(async () => {
       const res = await resetPasswordWithVerifiedPhoneAction({
@@ -128,7 +143,7 @@ export function PasswordResetPhoneForm({
           href="/login"
           className="font-semibold text-matchon-primary underline-offset-2 hover:underline"
         >
-          로그인으로 이동
+          로그인으로 돌아가기
         </Link>
       </div>
     );
@@ -172,7 +187,7 @@ export function PasswordResetPhoneForm({
         <>
           <div className={authLoginFieldStackClass}>
             <label htmlFor="reset-login-id" className={authLoginLabelClass}>
-              로그인 아이디
+              아이디 *
             </label>
             <input
               id="reset-login-id"
@@ -185,7 +200,7 @@ export function PasswordResetPhoneForm({
           </div>
           <div className={authLoginFieldStackClass}>
             <label htmlFor="reset-phone" className={authLoginLabelClass}>
-              등록된 휴대폰 번호
+              연락처 *
             </label>
             <input
               id="reset-phone"
@@ -216,7 +231,7 @@ export function PasswordResetPhoneForm({
         <div data-e2e-request-id={requestId ?? undefined}>
           <div className={authLoginFieldStackClass}>
             <label htmlFor="reset-code" className={authLoginLabelClass}>
-              인증번호
+              인증번호 *
             </label>
             <input
               id="reset-code"
@@ -257,7 +272,7 @@ export function PasswordResetPhoneForm({
         <>
           <div className={authLoginFieldStackClass}>
             <label htmlFor="new-password" className={authLoginLabelClass}>
-              새 비밀번호
+              새 비밀번호 *
             </label>
             <input
               id="new-password"
@@ -271,7 +286,7 @@ export function PasswordResetPhoneForm({
           </div>
           <div className={authLoginFieldStackClass}>
             <label htmlFor="confirm-password" className={authLoginLabelClass}>
-              새 비밀번호 확인
+              새 비밀번호 확인 *
             </label>
             <input
               id="confirm-password"
@@ -292,7 +307,7 @@ export function PasswordResetPhoneForm({
             onClick={resetPassword}
             className="w-full rounded-md bg-matchon-primary px-3 py-2.5 text-sm font-bold text-white disabled:opacity-50"
           >
-            {pending ? "변경 중…" : "비밀번호 재설정"}
+            {pending ? "변경 중…" : "비밀번호 변경"}
           </button>
         </>
       ) : null}
@@ -310,7 +325,7 @@ export function PasswordResetPhoneForm({
 
       <div className={cn(authLoginSecondaryNoteClass, "space-y-2 pt-2")}>
         <p>
-          등록된 휴대폰 번호를 사용할 수 없나요?{" "}
+          등록된 연락처를 사용할 수 없나요?{" "}
           <button
             type="button"
             className="font-semibold text-matchon-primary underline-offset-2 hover:underline"

@@ -46,6 +46,7 @@
     "verify:public-announcement-ssot": "tsx scripts/verify-public-announcement-ssot.ts",
     "verify:announcement-public-filter": "tsx scripts/verify-announcement-public-filter.ts",
     "verify:gym-signup-pending": "tsx scripts/verify-gym-signup-pending.ts",
+    "verify:gym-signup-phone-verification": "tsx scripts/verify-gym-signup-phone-verification.ts",
     "verify:gym-approval-route-guard": "tsx scripts/verify-gym-approval-route-guard.ts",
     "verify:gym-approval-direct-login": "tsx scripts/verify-gym-approval-direct-login.ts",
     "verify:gym-approval-no-invite-required": "tsx scripts/verify-gym-approval-direct-login.ts",

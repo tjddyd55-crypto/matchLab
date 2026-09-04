@@ -23,6 +23,10 @@ type Props = {
   onVerified: (token: string) => void;
   onReset: () => void;
   disabled?: boolean;
+  /** 기본: 휴대폰 번호 */
+  phoneLabel?: string;
+  /** 체육관 가입 등 필드 그룹 내 인라인 배치 */
+  compact?: boolean;
 };
 
 /**
@@ -37,6 +41,8 @@ export function PhoneVerificationPanel({
   onVerified,
   onReset,
   disabled,
+  phoneLabel = "휴대폰 번호",
+  compact = false,
 }: Props) {
   const [requestId, setRequestId] = useState<string | null>(null);
   const [code, setCode] = useState("");
@@ -118,55 +124,70 @@ export function PhoneVerificationPanel({
   const verified = Boolean(verificationToken);
 
   return (
-    <div className="space-y-3 rounded-lg border border-matchon-border p-3">
-      <p className={authLoginLabelClass}>휴대폰 인증 (필수)</p>
-      <p className={authLoginSecondaryNoteClass}>
-        본인 확인을 위해 휴대폰 인증이 필요합니다. 인증 전 가입 신청을 제출할 수
-        없습니다.
-      </p>
+    <div
+      className={cn(
+        compact ? "space-y-3" : "space-y-3 rounded-lg border border-matchon-border p-3",
+      )}
+    >
+      {!compact ? (
+        <>
+          <p className={authLoginLabelClass}>휴대폰 인증 (필수)</p>
+          <p className={authLoginSecondaryNoteClass}>
+            본인 확인을 위해 휴대폰 인증이 필요합니다. 인증 전 가입 신청을 제출할
+            수 없습니다.
+          </p>
+        </>
+      ) : null}
       <div className={authLoginFieldStackClass}>
         <label htmlFor="phone-verify-input" className={authLoginLabelClass}>
-          휴대폰 번호
+          {phoneLabel}
+          {" *"}
         </label>
-        <input
-          id="phone-verify-input"
-          name="contactPhoneVerifiedDisplay"
-          type="tel"
-          inputMode="tel"
-          autoComplete="tel"
-          value={phone}
-          disabled={disabled || verified || pending}
-          onChange={(e) => resetVerificationLocal(e.target.value)}
-          placeholder="010-1234-5678"
-          className={authLoginInputClass}
-        />
-        {phone ? (
+        <div className="flex flex-wrap gap-2">
+          <input
+            id="phone-verify-input"
+            name="contactPhoneVerifiedDisplay"
+            type="tel"
+            inputMode="tel"
+            autoComplete="tel"
+            value={phone}
+            disabled={disabled || verified || pending}
+            onChange={(e) => resetVerificationLocal(e.target.value)}
+            placeholder="010-1234-5678"
+            className={cn(authLoginInputClass, "min-w-0 flex-1")}
+          />
+          {!verified ? (
+            <button
+              type="button"
+              disabled={disabled || pending || !phone || resendRemainSec > 0}
+              onClick={requestCode}
+              className={cn(
+                "shrink-0 rounded-md border border-matchon-border px-3 py-2 text-sm font-semibold disabled:opacity-50",
+                !compact && "bg-matchon-primary text-white border-transparent",
+              )}
+            >
+              {pending
+                ? "처리 중…"
+                : resendRemainSec > 0
+                  ? `재발송 ${resendRemainSec}s`
+                  : requestId
+                    ? "재발송"
+                    : "인증번호 받기"}
+            </button>
+          ) : null}
+        </div>
+        {phone && !compact ? (
           <p className={authLoginSecondaryNoteClass}>
             정규화 미리보기: {formatPhoneNumber(phone) || "-"}
           </p>
         ) : null}
       </div>
 
-      {!verified ? (
-        <div className="flex flex-wrap gap-2">
-          <button
-            type="button"
-            disabled={disabled || pending || !phone || resendRemainSec > 0}
-            onClick={requestCode}
-            className={cn(
-              "rounded-md bg-matchon-primary px-3 py-2 text-sm font-semibold text-white disabled:opacity-50",
-            )}
-          >
-            {pending
-              ? "처리 중…"
-              : resendRemainSec > 0
-                ? `재발송 ${resendRemainSec}s`
-                : requestId
-                  ? "인증번호 재발송"
-                  : "인증번호 발송"}
-          </button>
-        </div>
-      ) : null}
+      {!verified ? null : (
+        <p className="text-sm font-medium text-emerald-700" role="status">
+          ✓ 인증 완료
+        </p>
+      )}
 
       {requestId && !verified ? (
         <div
@@ -202,12 +223,7 @@ export function PhoneVerificationPanel({
         </div>
       ) : null}
 
-      {verified ? (
-        <p className="text-sm font-medium text-emerald-700" role="status">
-          인증 완료
-        </p>
-      ) : null}
-      {deliveryMode ? (
+      {!compact && deliveryMode ? (
         <p className={authLoginSecondaryNoteClass}>발송 모드: {deliveryMode}</p>
       ) : null}
       {info ? (

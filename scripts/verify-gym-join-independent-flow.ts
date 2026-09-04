@@ -11,13 +11,13 @@ function read(rel: string) {
 }
 
 function main() {
-  const hub = read("src/app/(public)/join/page.tsx");
+  const hub = read("src/app/(onboarding)/join/page.tsx");
   assert.ok(hub.includes("체육관"));
   assert.ok(hub.includes("/join/gym"));
   assert.equal(hub.includes("회원사"), false);
   assert.equal(hub.includes("대회 주최자"), false);
 
-  const gym = read("src/app/(public)/join/gym/page.tsx");
+  const gym = read("src/app/(onboarding)/join/gym/page.tsx");
   assert.ok(gym.includes("GymJoinApplicationForm"));
   assert.ok(gym.includes('mode="independent"'));
   assert.equal(gym.includes("listJoinableAssociations"), false);
@@ -49,7 +49,7 @@ function main() {
   assert.equal(form.includes("회원사"), false);
 
   const invitePage = read(
-    "src/app/(public)/member-gym-register/[token]/page.tsx",
+    "src/app/(onboarding)/member-gym-register/[token]/page.tsx",
   );
   assert.ok(invitePage.includes("GymJoinApplicationForm"));
   assert.ok(invitePage.includes("association_invite"));
