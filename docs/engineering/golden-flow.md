@@ -12,9 +12,10 @@ MATCHON 대회 운영의 핵심 흐름(신청 → 현장 계체 → 경기 결�
 | 흐름 | 검증 |
 |------|------|
 | GF-APPLICATION | 승인된 신청자 2명 seed, organizer 신청 목록 표시 |
-| GF-WEIGHIN | 서비스: 몸무게 저장·계체 통과. 브라우저: 계체 통과 상태·대진 현황 표시 |
+| GF-CHECKIN | **N/A** — 현장 product는 weigh-in-first(별도 체크인 mutation 없음) |
+| GF-WEIGHIN | 브라우저: 체중 저장 + 계체 통과 Server Action, reload persistence, DB read-only 검증 |
 | GF-BRACKET | seed 대진·매치 존재, 경기 운영 화면에서 매치 조회 |
-| GF-RESULT | 서비스: 승자 확정·DB 지속성 PASS. 브라우저: 경기 운영 UI·결과 입력 폼 노출 검증 |
+| GF-RESULT | 브라우저: 승자 선택 + 결과 확정 Server Action, reload persistence, DB read-only 검증 |
 
 ## 제외 범위 (별도 Phase)
 
@@ -91,16 +92,24 @@ npm run seed:golden:cleanup
 npm run verify:golden-flow-services
 ```
 
-### 4. Browser smoke
+### 4. Browser mutation smoke
 
-`test:golden`은 내부적으로 `seed:golden --prep-onsite`를 실행한 뒤 Playwright를 수행합니다.
+`test:golden`은 `seed:golden` 후 Playwright로 **실제 UI Server Action mutation**을 검증합니다.
 
-결과 확정 mutation은 `verify:golden-flow-services`가 담당합니다. 브라우저 smoke는 신청·현장·경기 운영 UI 노출을 검증합니다.
+- `--prep-onsite` 사용하지 않음 (계체 완료 상태를 seed로 미리 만들지 않음)
+- Playwright `webServer`가 로컬 Next dev(`127.0.0.1:3000`)를 기동·재사용
+- mutation 후 `assert:golden-browser-state`로 DB read-only 검증
+
+검증 흐름:
+
+```text
+신청 목록 확인 → 홍/청 계체 통과(체중 저장 + 수동 통과) → 경기 결과 확정 → reload persistence
+```
 
 3회 연속 (flaky 검증):
 
 ```bash
-for i in 1 2 3; do npm run seed:golden && npm run test:golden || break; done
+for i in 1 2 3; do npm run seed:golden && npx playwright test -c playwright.golden.config.ts || break; done
 ```
 
 ## CI
@@ -110,9 +119,9 @@ Workflow: `.github/workflows/golden-flow.yml`
 | Job | Trigger | 내용 |
 |-----|---------|------|
 | `golden-services` | push main, PR | postgres + `db push` (empty CI DB) + seed --ci + verify services |
-| `golden-browser` | `workflow_dispatch` only | secrets + Playwright (optional) |
+| `golden-browser` | **push main**, `workflow_dispatch` | secrets + Playwright (optional; Supabase auth 필요) |
 
-Fast CI(`ci.yml`)와 **분리**되어 있습니다. Golden browser는 안정화 전까지 required gate가 아닙니다.
+Fast CI(`ci.yml`)와 **분리**되어 있습니다. Golden browser는 required PR gate가 아닙니다.
 
 ## 실패 artifact
 
