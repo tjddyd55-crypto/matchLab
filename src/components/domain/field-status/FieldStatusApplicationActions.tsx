@@ -360,6 +360,7 @@ export function WeighInWeightInput({
         </p>
       ) : null}
       <form
+        method="post"
         onSubmit={handleSubmit}
         className={cn(
           "flex items-center justify-start gap-1.5",
