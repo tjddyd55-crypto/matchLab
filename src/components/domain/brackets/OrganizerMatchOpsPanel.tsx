@@ -43,7 +43,6 @@ import {
   MatchOpsJudgeScoreSection,
   type MatchOpsJudgeScoreSectionHandle,
 } from "@/components/domain/operation/MatchOpsJudgeScoreSection";
-import { MatchOpsMatchInfoBar } from "@/components/domain/operation/MatchOpsMatchInfoBar";
 import { MatchOpsConfirmedResultPanel } from "@/components/domain/operation/MatchOpsConfirmedResultPanel";
 import { outcomeStylePublicLabel } from "@/lib/match-result-snapshot";
 import type { EventDivisionDisplayInput } from "@/lib/event-division-fields";
@@ -496,23 +495,6 @@ function OrganizerMatchOpsPanelBody(props: OrganizerMatchOpsPanelProps) {
         <FeedbackMessage tone="success" className={isOperation ? "mb-3" : undefined}>
           {success}
         </FeedbackMessage>
-      ) : null}
-
-      {isOperation && props.orderLabel ? (
-        <MatchOpsMatchInfoBar
-          orderLabel={props.orderLabel}
-          division={props.division ?? null}
-          divisionLabel={props.divisionLabel ?? null}
-          courtName={props.courtName ?? null}
-          status={props.status}
-          fighterRedName={props.fighterRedName}
-          fighterBlueName={props.fighterBlueName}
-          matchId={props.matchId}
-          resultMemo={
-            props.operationalResultMemo ?? props.resultMemo
-          }
-          readOnlyRules={props.hasOfficialResults && !editingCorrect}
-        />
       ) : null}
 
       <MatchOpsStatusSection
