@@ -18,6 +18,7 @@ import {
 import { Button } from "@/components/ui/button";
 import { useAppConfirmDialog } from "@/components/shared/app-confirm-dialog";
 import { markDisqualifiedFormAction } from "@/features/field-status/actions";
+import { appendOnsiteOpsToken, useOnsiteOpsToken } from "@/components/domain/onsite-ops/OnsiteOpsTokenContext";
 import { formatDivisionMainLabel } from "@/lib/event-division-fields";
 import {
   getFieldProgressStepHint,
@@ -78,6 +79,7 @@ export function OrganizerFieldStatusDetailPane({
 }) {
   const router = useRouter();
   const { alert } = useAppConfirmDialog();
+  const opsToken = useOnsiteOpsToken();
   const [pending, startTransition] = useTransition();
   const showReason = shouldShowFieldReasonSection(row);
   const [reasonExpanded, setReasonExpanded] = useState(false);
@@ -177,6 +179,7 @@ export function OrganizerFieldStatusDetailPane({
                   startTransition(async () => {
                     const fd = new FormData();
                     fd.set("applicationId", row.applicationId);
+                    appendOnsiteOpsToken(fd, opsToken);
                     const res = await markDisqualifiedFormAction(fd);
                     if (!res.ok) {
                       await alert(

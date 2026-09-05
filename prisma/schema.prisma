@@ -2094,6 +2094,7 @@ model Event {
   judgeScorecards   JudgeScorecard[]
   courts            EventCourt[]
   externalRegistrationLink EventExternalRegistrationLink?
+  onsiteOpsAccessLink      EventOnsiteOpsAccessLink?
   archives               EventArchive[]
   careerMatchRecords     FighterCareerMatchRecord[]
   linkedAssociationSchedules AssociationSchedule[] @relation("ScheduleRelatedEvent")
@@ -2264,6 +2265,27 @@ model EventStaffAccessLink {
 
   @@index([eventId])
   @@index([token])
+}
+
+/// 현장 운영관리 포털 — 계체·경기운영 모바일 접근 (이벤트당 1개 active link)
+model EventOnsiteOpsAccessLink {
+  id              String    @id @default(cuid())
+  eventId         String    @unique
+  /// 관리자 화면 재표시용 raw token (URL path segment)
+  publicToken     String?   @unique
+  /// resolve SSOT — SHA-256 hex
+  tokenHash       String    @unique
+  isActive        Boolean   @default(true)
+  createdByUserId String?
+  lastRotatedAt   DateTime?
+  revokedAt       DateTime?
+  createdAt       DateTime  @default(now())
+  updatedAt       DateTime  @updatedAt
+
+  event Event @relation(fields: [eventId], references: [id], onDelete: Cascade)
+
+  @@index([eventId, isActive])
+  @@index([tokenHash])
 }
 
 model EventDivision {

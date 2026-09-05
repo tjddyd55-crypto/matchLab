@@ -1,6 +1,7 @@
 import { EventManagementLayout } from "@/components/domain/events/EventManagementLayout";
 import { EventManagementPageHeader } from "@/components/domain/events/EventManagementPageHeader";
 import { EventQrPrintBoard } from "@/components/domain/events/qr/EventQrPrintBoard";
+import { OnsiteOpsLinkManager } from "@/components/domain/onsite-ops/OnsiteOpsLinkManager";
 import { requireActor } from "@/lib/auth/actor";
 import { requireOrganizerForEventPage, resolveOrganizerEventPageError } from "@/lib/permissions";
 import { loadEventManagementNavContext, eventManagementLayoutProps } from "@/lib/event-management-nav-context";
@@ -8,6 +9,7 @@ import { eventService } from "@/lib/services/event.service";
 import { eventCourtService } from "@/lib/services/event-court.service";
 import { getServerAppBaseUrl } from "@/lib/qr-url";
 import { buildCourtJudgeQrLinks } from "@/lib/services/judge-qr-entry.service";
+import { onsiteOpsAccessService } from "@/lib/services/onsite-ops-access.service";
 import { liveStreamService } from "@/lib/services/live-stream.service";
 import { headers } from "next/headers";
 
@@ -29,10 +31,11 @@ export default async function OrganizerEventQrPage({
     resolveOrganizerEventPageError(e);
   }
 
-  const [nav, courts, headersList] = await Promise.all([
+  const [nav, courts, headersList, onsiteOpsLink] = await Promise.all([
     loadEventManagementNavContext(eventId),
     eventCourtService.listForOrganizer(actor, eventId),
     headers(),
+    onsiteOpsAccessService.getOwnerLink(actor, eventId),
   ]);
 
   const baseUrl = getServerAppBaseUrl(headersList);
@@ -49,6 +52,14 @@ export default async function OrganizerEventQrPage({
         eventTitle={detail.title}
         description="경기장별 채점/주심 QR과 관람객 QR을 생성하고 인쇄합니다. 심판 QR 접속 후 이름과 생년월일을 입력하세요."
       />
+
+      <div className="mb-6 print:hidden">
+        <OnsiteOpsLinkManager
+          eventId={eventId}
+          baseUrl={baseUrl}
+          initialLink={onsiteOpsLink}
+        />
+      </div>
 
       <EventQrPrintBoard
         eventId={eventId}

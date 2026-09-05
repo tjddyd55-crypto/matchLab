@@ -9,7 +9,14 @@ import {
   NextMatchSlot,
   Prisma,
 } from "@/generated/prisma";
+import {
+  assertFieldOperationsActorRole,
+  assertFieldOperationsEventAccess,
+  type FieldOperationsCaller,
+  toActorCaller,
+} from "@/lib/field-operations-auth";
 import type { ActorContext } from "@/lib/auth/actor-context";
+import { AppError } from "@/lib/errors/app-error";
 import { PermissionError } from "@/lib/auth/permission-error";
 import { formatDivisionNameLabel } from "@/lib/bracket-snapshot";
 import type {
@@ -17,7 +24,6 @@ import type {
   PublicMatchResultDTO,
   PublicRecordFighterDTO,
 } from "@/lib/dto/public";
-import { AppError } from "@/lib/errors/app-error";
 import {
   buildAdvanceWinnerBracketSnapshot,
   buildMatchResultDivisionSnapshotJson,
@@ -114,11 +120,18 @@ async function loadMatchResultBracketCtx(matchId: string) {
   return { ...own, bracketType: bracketRow.type };
 }
 
-async function ensureMatchResultOrganizerContext(actor: ActorContext, matchId: string) {
-  requireRole(actor, ["organizer", "admin"]);
+async function ensureMatchResultFieldOpsContext(
+  caller: FieldOperationsCaller,
+  matchId: string,
+) {
+  assertFieldOperationsActorRole(caller);
   const ctx = await loadMatchResultBracketCtx(matchId);
-  await requireOrganizerForEvent(actor, ctx.eventId);
+  await assertFieldOperationsEventAccess(caller, ctx.eventId);
   return ctx;
+}
+
+async function ensureMatchResultOrganizerContext(actor: ActorContext, matchId: string) {
+  return ensureMatchResultFieldOpsContext(toActorCaller(actor), matchId);
 }
 
 function augmentStaffReason(
@@ -134,7 +147,8 @@ function augmentStaffReason(
 export type ConfirmMatchResultsPrincipal =
   | { kind: "organizer"; actor: ActorContext }
   | { kind: "staff"; link: ResolvedStaffRecorderLink }
-  | { kind: "court_head"; eventId: string; courtId: string; label?: string };
+  | { kind: "court_head"; eventId: string; courtId: string; label?: string }
+  | { kind: "onsite-ops"; eventId: string };
 
 function snapshotJson(value: unknown): Prisma.InputJsonValue {
   return JSON.parse(JSON.stringify(value)) as Prisma.InputJsonValue;
@@ -213,6 +227,14 @@ export const resultService = {
       );
       confirmedByUserId = principal.actor.userId;
       changedByStaffLinkId = null;
+    } else if (principal.kind === "onsite-ops") {
+      ctx = await loadMatchResultBracketCtx(input.matchId);
+      if (ctx.eventId !== principal.eventId) {
+        throw new AppError("FORBIDDEN", "해당 대회의 경기만 처리할 수 있습니다.");
+      }
+      confirmedByUserId = null;
+      changedByStaffLinkId = null;
+      staffLabel = "현장운영";
     } else if (principal.kind === "staff") {
       throw new AppError(
         "FORBIDDEN",
@@ -517,10 +539,12 @@ export const resultService = {
   },
 
   async correctMatchResult(
-    actor: ActorContext,
+    caller: FieldOperationsCaller,
     input: CorrectMatchResultInput,
   ): Promise<void> {
-    await ensureMatchResultOrganizerContext(actor, input.matchId);
+    const ctx = await ensureMatchResultFieldOpsContext(caller, input.matchId);
+    const changedByUserId =
+      caller.kind === "actor" ? caller.actor.userId : null;
 
     const match = await matchRepository.findMatchWithBracketContext(input.matchId);
     if (!match) throw new AppError("NOT_FOUND", "경기를 찾을 수 없습니다.");
@@ -667,7 +691,7 @@ export const resultService = {
           {
             matchResultId: p.row.id,
             matchId: input.matchId,
-            changedByUserId: actor.userId,
+            changedByUserId,
             beforeResult: beforePayload,
             afterResult: afterPayload,
             reason: input.reason,
@@ -710,10 +734,12 @@ export const resultService = {
   },
 
   async voidMatchResults(
-    actor: ActorContext,
+    caller: FieldOperationsCaller,
     input: VoidMatchResultsInput,
   ): Promise<void> {
-    const ctx = await ensureMatchResultOrganizerContext(actor, input.matchId);
+    const ctx = await ensureMatchResultFieldOpsContext(caller, input.matchId);
+    const changedByUserId =
+      caller.kind === "actor" ? caller.actor.userId : null;
 
     const official = await resultRepository.findOfficialResultsByMatchId(
       input.matchId,
@@ -748,7 +774,7 @@ export const resultService = {
           {
             matchResultId: row.id,
             matchId: input.matchId,
-            changedByUserId: actor.userId,
+            changedByUserId,
             beforeResult: beforePayload,
             afterResult: snapshotJson({ status: MatchRecordStatus.voided }),
             reason: input.reason,
@@ -768,7 +794,7 @@ export const resultService = {
         eventId: ctx.eventId,
         bracketId: ctx.bracketId,
         matchId: input.matchId,
-        changedByUserId: actor.userId,
+        changedByUserId,
         bracketType: ctx.bracketType,
         changeType: BracketChangeType.result_type_changed,
         beforeData: { note: "공식 MatchResult 무효 처리" },

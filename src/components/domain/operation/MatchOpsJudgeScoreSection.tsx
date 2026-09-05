@@ -26,6 +26,10 @@ import {
   organizerOperationSectionTitleClass,
 } from "@/lib/ui/organizer-operation-ui";
 import { cn } from "@/lib/utils";
+import {
+  appendOnsiteOpsToken,
+  useOnsiteOpsToken,
+} from "@/components/domain/onsite-ops/OnsiteOpsTokenContext";
 
 const POLL_MS = 4000;
 
@@ -48,10 +52,14 @@ function slotStatusLabel(status: MatchOpsJudgeSlotState["status"]): string {
 export function MatchOpsJudgeScoreSection({
   matchId,
   resetKey,
+  opsToken: opsTokenProp,
 }: {
   matchId: string;
   resetKey: string;
+  opsToken?: string;
 }) {
+  const contextOpsToken = useOnsiteOpsToken();
+  const opsToken = opsTokenProp ?? contextOpsToken;
   const [entry, setEntry] = useState<MatchOpsJudgeScoreEntryVM | null>(null);
   const [slots, setSlots] = useState<SlotDraft[]>([]);
   const [error, setError] = useState<string | null>(null);
@@ -81,13 +89,13 @@ export function MatchOpsJudgeScoreSection({
   }, []);
 
   const load = useCallback(async () => {
-    const res = await getMatchOpsJudgeScoresAction(matchId);
+    const res = await getMatchOpsJudgeScoresAction(matchId, opsToken ?? undefined);
     if (!res.ok) {
       setError(res.error.message);
       return;
     }
     applyEntry(res.data, true);
-  }, [applyEntry, matchId]);
+  }, [applyEntry, matchId, opsToken]);
 
   useEffect(() => {
     setError(null);
@@ -174,6 +182,7 @@ export function MatchOpsJudgeScoreSection({
     startTransition(async () => {
       const fd = new FormData();
       fd.set("matchId", matchId);
+      appendOnsiteOpsToken(fd, opsToken);
       fd.set(
         "slotsJson",
         JSON.stringify(

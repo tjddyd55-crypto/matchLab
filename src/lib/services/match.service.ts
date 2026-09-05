@@ -6,6 +6,12 @@ import {
   Prisma,
 } from "@/generated/prisma";
 import type { ActorContext } from "@/lib/auth/actor-context";
+import {
+  assertFieldOperationsActorRole,
+  assertFieldOperationsEventAccess,
+  type FieldOperationsCaller,
+  toActorCaller,
+} from "@/lib/field-operations-auth";
 import { formatDivisionNameLabel, formatRecordSummary, parseBracketFighterSnapshot } from "@/lib/bracket-snapshot";
 import { formatPreviewApplicationRecord } from "@/lib/brackets/explain-record-unmatched";
 import { resolveApplicationSchoolGradeLabel } from "@/lib/fighter/school-grade-input";
@@ -127,18 +133,34 @@ async function loadMatchBracketCtx(
   return { ...own, bracketType: bracketRow.type };
 }
 
+async function ensureMatchFieldOps(
+  caller: FieldOperationsCaller,
+  matchId: string,
+): Promise<
+  MatchOwnershipContext & {
+    bracketType: BracketType;
+    changedByUserId: string | null;
+  }
+> {
+  assertFieldOperationsActorRole(caller);
+  const ctx = await loadMatchBracketCtx(matchId);
+  await assertFieldOperationsEventAccess(caller, ctx.eventId);
+  return {
+    ...ctx,
+    changedByUserId: caller.kind === "actor" ? caller.actor.userId : null,
+  };
+}
+
 async function ensureMatchOrganizer(
   actor: ActorContext,
   matchId: string,
 ): Promise<
   MatchOwnershipContext & {
     bracketType: BracketType;
+    changedByUserId: string | null;
   }
 > {
-  requireRole(actor, ["organizer", "admin"]);
-  const ctx = await loadMatchBracketCtx(matchId);
-  await requireOrganizerForEvent(actor, ctx.eventId);
-
+  const ctx = await ensureMatchFieldOps(toActorCaller(actor), matchId);
   return ctx;
 }
 
@@ -298,188 +320,200 @@ export type OrganizerEventMatchListItemVM = {
   hasOfficialResults: boolean;
 };
 
+async function listOrganizerEventMatchesCore(
+  eventId: string,
+): Promise<OrganizerEventMatchListItemVM[]> {
+  const [rows, handicapRows, filterFieldRows, courts] = await Promise.all([
+    matchRepository.listMatchesByEvent(eventId),
+    applicationRepository.listFighterHandicapFieldsForEvent(eventId),
+    applicationRepository.listFighterBracketViewFilterFieldsForEvent(eventId),
+    eventCourtRepository.listAllByEvent(eventId),
+  ]);
+  const handicapMap = buildFighterHandicapMap(handicapRows);
+  const filterFieldMap = new Map(
+    filterFieldRows.map((row) => [row.fighterId, row]),
+  );
+
+  function readApplicationWeightKg(
+    fighterSnapshot: unknown,
+    weighInWeightKg: number | null,
+  ): number | null {
+    if (
+      fighterSnapshot &&
+      typeof fighterSnapshot === "object" &&
+      !Array.isArray(fighterSnapshot)
+    ) {
+      const raw = (fighterSnapshot as Record<string, unknown>)
+        .applicationWeightKg;
+      if (typeof raw === "number" && Number.isFinite(raw)) return raw;
+      if (typeof raw === "string" && raw.trim()) {
+        const n = Number(raw);
+        if (Number.isFinite(n)) return n;
+      }
+    }
+    return weighInWeightKg;
+  }
+
+  function resolveGenderLabel(
+    gender: string | null | undefined,
+  ): string | null {
+    const g = (gender ?? "").trim().toLowerCase();
+    if (g === "male") return "남성";
+    if (g === "female") return "여성";
+    return null;
+  }
+
+  function mapFighter(
+    f: NonNullable<Awaited<ReturnType<typeof matchRepository.listMatchesByEvent>>[number]["fighterRed"]>,
+    snapshot: unknown,
+  ): OrganizerEventMatchFighterVM {
+    const h = handicapMap.get(f.id);
+    const filterRow = filterFieldMap.get(f.id);
+    const parsed = parseBracketFighterSnapshot(snapshot);
+    const snapGym = parsed?.gymName?.trim() ?? "";
+    const currentGym = f.currentGym?.name?.trim() ?? "";
+    let gymName: string | null;
+    if (snapGym && !isExternalRegistrationPlaceholderGymName(snapGym)) {
+      gymName = snapGym;
+    } else if (
+      currentGym &&
+      !isExternalRegistrationPlaceholderGymName(currentGym)
+    ) {
+      gymName = currentGym;
+    } else {
+      gymName = "—";
+    }
+
+    const schoolLevel = filterRow?.schoolLevelSnapshot ?? null;
+    const schoolGrade = filterRow?.schoolGradeSnapshot ?? null;
+    const schoolGradeLabel = resolveApplicationSchoolGradeLabel({
+      schoolLevel,
+      schoolGrade,
+    });
+    const recordSummary = filterRow
+      ? formatPreviewApplicationRecord({
+          totalBoutsSnapshot: filterRow.totalBoutsSnapshot,
+          winsSnapshot: filterRow.winsSnapshot,
+          drawsSnapshot: filterRow.drawsSnapshot,
+          lossesSnapshot: filterRow.lossesSnapshot,
+          recordText: filterRow.recordText,
+          fighter: {
+            recordTotalBouts: filterRow.fighter.recordTotalBouts,
+            recordWin: filterRow.fighter.recordWin,
+            recordLoss: filterRow.fighter.recordLoss,
+            recordDraw: filterRow.fighter.recordDraw,
+          },
+        })
+      : (parsed?.recordSummary ??
+        formatRecordSummary({
+          recordWin: 0,
+          recordLoss: 0,
+          recordDraw: 0,
+        }));
+
+    return {
+      id: f.id,
+      fighterCode: f.fighterCode,
+      name: f.name,
+      gymName,
+      handicap:
+        h?.badgeLabel != null
+          ? { badgeLabel: h.badgeLabel, note: h.note }
+          : null,
+      genderLabel: resolveGenderLabel(filterRow?.fighter.gender),
+      applicationWeightKg: filterRow
+        ? readApplicationWeightKg(
+            filterRow.fighterSnapshot,
+            filterRow.weighInWeightKg,
+          )
+        : null,
+      schoolLevel,
+      schoolGrade,
+      schoolGradeLabel,
+      recordSummary,
+    };
+  }
+
+  const mapped = rows.map((m): OrganizerEventMatchListItemVM => {
+    const division = toEventDivisionDisplayInput(m.bracket.division);
+    const divisionLabel = division
+      ? formatDivisionNameLabel(division)
+      : null;
+
+    const results = m.matchResults ?? [];
+    const official = results.filter(
+      (r) =>
+        r.status === MatchRecordStatus.confirmed ||
+        r.status === MatchRecordStatus.corrected,
+    );
+    const hasOfficialResults = official.length >= 2;
+
+    return {
+      eventTitle: m.bracket.event?.title ?? "",
+      matchId: m.id,
+      bracketId: m.bracketId,
+      bracketTitle: m.bracket.title,
+      bracketType: m.bracket.type,
+      bracketIsPublic: m.bracket.isPublic,
+      matchIsPublicSparring: resolveMatchIsPublicSparring({
+        bracketType: m.bracket.type,
+        bracketIsPublic: m.bracket.isPublic,
+        resultMemo: m.resultMemo,
+      }),
+      division,
+      divisionLabel,
+      roundName: m.roundName,
+      matchOrder: m.matchOrder,
+      globalMatchOrder: m.globalMatchOrder,
+      matchNumber: m.matchNumber,
+      matNumber: m.matNumber,
+      courtId: m.courtId ?? null,
+      courtName: m.court?.name ?? null,
+      courtOrder: m.courtOrder ?? null,
+      status: m.status,
+      fighterRed: m.fighterRed
+        ? mapFighter(m.fighterRed, m.fighterRedSnapshot)
+        : null,
+      fighterBlue: m.fighterBlue
+        ? mapFighter(m.fighterBlue, m.fighterBlueSnapshot)
+        : null,
+      winnerId: m.winnerId,
+      loserId: m.loserId,
+      resultType: m.resultType,
+      resultMemo: m.resultMemo ?? null,
+      isFinishedOps: m.status === "finished",
+      hasOfficialResults,
+    };
+  });
+
+  return sortMatchesByCourtSchedule(
+    mapped.map((m) => ({ ...m, matchId: m.matchId })),
+    courts.map((c) => ({ id: c.id, sortOrder: c.sortOrder })),
+  );
+}
+
 export const matchService = {
+  async listEventMatches(
+    caller: FieldOperationsCaller,
+    eventId: string,
+  ): Promise<OrganizerEventMatchListItemVM[]> {
+    assertFieldOperationsActorRole(caller);
+    await assertFieldOperationsEventAccess(caller, eventId);
+    return listOrganizerEventMatchesCore(eventId);
+  },
+
   async listOrganizerEventMatches(
     actor: ActorContext,
     eventId: string,
   ): Promise<OrganizerEventMatchListItemVM[]> {
-    requireRole(actor, ["organizer", "admin"]);
-    await requireOrganizerForEvent(actor, eventId);
-
-    const [rows, handicapRows, filterFieldRows, courts] = await Promise.all([
-      matchRepository.listMatchesByEvent(eventId),
-      applicationRepository.listFighterHandicapFieldsForEvent(eventId),
-      applicationRepository.listFighterBracketViewFilterFieldsForEvent(eventId),
-      eventCourtRepository.listAllByEvent(eventId),
-    ]);
-    const handicapMap = buildFighterHandicapMap(handicapRows);
-    const filterFieldMap = new Map(
-      filterFieldRows.map((row) => [row.fighterId, row]),
-    );
-
-    function readApplicationWeightKg(
-      fighterSnapshot: unknown,
-      weighInWeightKg: number | null,
-    ): number | null {
-      if (
-        fighterSnapshot &&
-        typeof fighterSnapshot === "object" &&
-        !Array.isArray(fighterSnapshot)
-      ) {
-        const raw = (fighterSnapshot as Record<string, unknown>)
-          .applicationWeightKg;
-        if (typeof raw === "number" && Number.isFinite(raw)) return raw;
-        if (typeof raw === "string" && raw.trim()) {
-          const n = Number(raw);
-          if (Number.isFinite(n)) return n;
-        }
-      }
-      return weighInWeightKg;
-    }
-
-    function resolveGenderLabel(
-      gender: string | null | undefined,
-    ): string | null {
-      const g = (gender ?? "").trim().toLowerCase();
-      if (g === "male") return "남성";
-      if (g === "female") return "여성";
-      return null;
-    }
-
-    function mapFighter(
-      f: NonNullable<(typeof rows)[number]["fighterRed"]>,
-      snapshot: unknown,
-    ): OrganizerEventMatchFighterVM {
-      const h = handicapMap.get(f.id);
-      const filterRow = filterFieldMap.get(f.id);
-      const parsed = parseBracketFighterSnapshot(snapshot);
-      const snapGym = parsed?.gymName?.trim() ?? "";
-      const currentGym = f.currentGym?.name?.trim() ?? "";
-      let gymName: string | null;
-      if (snapGym && !isExternalRegistrationPlaceholderGymName(snapGym)) {
-        gymName = snapGym;
-      } else if (
-        currentGym &&
-        !isExternalRegistrationPlaceholderGymName(currentGym)
-      ) {
-        gymName = currentGym;
-      } else {
-        gymName = "—";
-      }
-
-      const schoolLevel = filterRow?.schoolLevelSnapshot ?? null;
-      const schoolGrade = filterRow?.schoolGradeSnapshot ?? null;
-      const schoolGradeLabel = resolveApplicationSchoolGradeLabel({
-        schoolLevel,
-        schoolGrade,
-      });
-      const recordSummary = filterRow
-        ? formatPreviewApplicationRecord({
-            totalBoutsSnapshot: filterRow.totalBoutsSnapshot,
-            winsSnapshot: filterRow.winsSnapshot,
-            drawsSnapshot: filterRow.drawsSnapshot,
-            lossesSnapshot: filterRow.lossesSnapshot,
-            recordText: filterRow.recordText,
-            fighter: {
-              recordTotalBouts: filterRow.fighter.recordTotalBouts,
-              recordWin: filterRow.fighter.recordWin,
-              recordLoss: filterRow.fighter.recordLoss,
-              recordDraw: filterRow.fighter.recordDraw,
-            },
-          })
-        : (parsed?.recordSummary ??
-          formatRecordSummary({
-            recordWin: 0,
-            recordLoss: 0,
-            recordDraw: 0,
-          }));
-
-      return {
-        id: f.id,
-        fighterCode: f.fighterCode,
-        name: f.name,
-        gymName,
-        handicap:
-          h?.badgeLabel != null
-            ? { badgeLabel: h.badgeLabel, note: h.note }
-            : null,
-        genderLabel: resolveGenderLabel(filterRow?.fighter.gender),
-        applicationWeightKg: filterRow
-          ? readApplicationWeightKg(
-              filterRow.fighterSnapshot,
-              filterRow.weighInWeightKg,
-            )
-          : null,
-        schoolLevel,
-        schoolGrade,
-        schoolGradeLabel,
-        recordSummary,
-      };
-    }
-
-    const mapped = rows.map((m): OrganizerEventMatchListItemVM => {
-      const division = toEventDivisionDisplayInput(m.bracket.division);
-      const divisionLabel = division
-        ? formatDivisionNameLabel(division)
-        : null;
-
-      const results = m.matchResults ?? [];
-      const official = results.filter(
-        (r) =>
-          r.status === MatchRecordStatus.confirmed ||
-          r.status === MatchRecordStatus.corrected,
-      );
-      const hasOfficialResults = official.length >= 2;
-
-      return {
-        eventTitle: m.bracket.event?.title ?? "",
-        matchId: m.id,
-        bracketId: m.bracketId,
-        bracketTitle: m.bracket.title,
-        bracketType: m.bracket.type,
-        bracketIsPublic: m.bracket.isPublic,
-        matchIsPublicSparring: resolveMatchIsPublicSparring({
-          bracketType: m.bracket.type,
-          bracketIsPublic: m.bracket.isPublic,
-          resultMemo: m.resultMemo,
-        }),
-        division,
-        divisionLabel,
-        roundName: m.roundName,
-        matchOrder: m.matchOrder,
-        globalMatchOrder: m.globalMatchOrder,
-        matchNumber: m.matchNumber,
-        matNumber: m.matNumber,
-        courtId: m.courtId ?? null,
-        courtName: m.court?.name ?? null,
-        courtOrder: m.courtOrder ?? null,
-        status: m.status,
-        fighterRed: m.fighterRed
-          ? mapFighter(m.fighterRed, m.fighterRedSnapshot)
-          : null,
-        fighterBlue: m.fighterBlue
-          ? mapFighter(m.fighterBlue, m.fighterBlueSnapshot)
-          : null,
-        winnerId: m.winnerId,
-        loserId: m.loserId,
-        resultType: m.resultType,
-        resultMemo: m.resultMemo ?? null,
-        isFinishedOps: m.status === "finished",
-        hasOfficialResults,
-      };
-    });
-
-    return sortMatchesByCourtSchedule(
-      mapped.map((m) => ({ ...m, matchId: m.matchId })),
-      courts.map((c) => ({ id: c.id, sortOrder: c.sortOrder })),
-    );
+    return this.listEventMatches(toActorCaller(actor), eventId);
   },
 
   async updateMatchStatus(
-    actor: ActorContext,
+    caller: FieldOperationsCaller,
     input: UpdateMatchStatusInput,
   ): Promise<void> {
-    const ctx = await ensureMatchOrganizer(actor, input.matchId);
+    const ctx = await ensureMatchFieldOps(caller, input.matchId);
 
     await prisma.$transaction(async (tx) => {
       const cur = await tx.bracketMatch.findUnique({
@@ -516,7 +550,7 @@ export const matchService = {
         eventId: ctx.eventId,
         bracketId: ctx.bracketId,
         matchId: input.matchId,
-        changedByUserId: actor.userId,
+        changedByUserId: ctx.changedByUserId,
         bracketType: ctx.bracketType,
         changeType: BracketChangeType.match_status_changed,
         beforeData: { status: cur.status },
@@ -534,10 +568,10 @@ export const matchService = {
   },
 
   async recordMatchOutcomeDraft(
-    actor: ActorContext,
+    caller: FieldOperationsCaller,
     input: RecordMatchOutcomeDraftInput,
   ): Promise<void> {
-    const ctx = await ensureMatchOrganizer(actor, input.matchId);
+    const ctx = await ensureMatchFieldOps(caller, input.matchId);
 
     const row = await matchRepository.findMatchWithBracketContext(input.matchId);
     if (!row) {
@@ -596,7 +630,7 @@ export const matchService = {
           eventId: ctx.eventId,
           bracketId: ctx.bracketId,
           matchId: input.matchId,
-          changedByUserId: actor.userId,
+          changedByUserId: ctx.changedByUserId,
           bracketType: ctx.bracketType,
           changeType: BracketChangeType.winner_changed,
           beforeData: {
@@ -613,7 +647,7 @@ export const matchService = {
           eventId: ctx.eventId,
           bracketId: ctx.bracketId,
           matchId: input.matchId,
-          changedByUserId: actor.userId,
+          changedByUserId: ctx.changedByUserId,
           bracketType: ctx.bracketType,
           changeType: BracketChangeType.result_type_changed,
           beforeData: { resultType: before?.resultType },
@@ -651,7 +685,7 @@ export const matchService = {
         eventId: ctx.eventId,
         bracketId: ctx.bracketId,
         matchId: input.matchId,
-        changedByUserId: actor.userId,
+        changedByUserId: ctx.changedByUserId,
         bracketType: ctx.bracketType,
         changeType: BracketChangeType.match_cancelled,
         beforeData: { status: cur.status },
@@ -692,7 +726,7 @@ export const matchService = {
         eventId: ctx.eventId,
         bracketId: ctx.bracketId,
         matchId,
-        changedByUserId: actor.userId,
+        changedByUserId: ctx.changedByUserId,
         bracketType: ctx.bracketType,
         changeType: BracketChangeType.match_status_changed,
         beforeData: { isPublicSparring: !isPublicSparring },
@@ -733,7 +767,7 @@ export const matchService = {
         eventId: ctx.eventId,
         bracketId: ctx.bracketId,
         matchId,
-        changedByUserId: actor.userId,
+        changedByUserId: ctx.changedByUserId,
         bracketType: ctx.bracketType,
         changeType: BracketChangeType.match_status_changed,
         afterData: patch,

@@ -10,6 +10,7 @@ import {
 import { Button } from "@/components/ui/button";
 import type { FieldStatusRowDTO } from "@/lib/services/field-status.service";
 import { CheckInStatus } from "@/lib/enums";
+import { appendOnsiteOpsToken, useOnsiteOpsToken } from "@/components/domain/onsite-ops/OnsiteOpsTokenContext";
 
 export function FieldStatusCheckInActions({
   row,
@@ -22,12 +23,14 @@ export function FieldStatusCheckInActions({
   const [pending, startTransition] = useTransition();
   const [error, setError] = useState<string | null>(null);
 
+  const opsToken = useOnsiteOpsToken();
   async function run(
     action: (fd: FormData) => Promise<{ ok: boolean; error?: { message: string } }>,
     extra?: Record<string, string>,
   ) {
     const fd = new FormData();
     fd.set("applicationId", row.applicationId);
+    appendOnsiteOpsToken(fd, opsToken);
     if (extra) {
       for (const [k, v] of Object.entries(extra)) fd.set(k, v);
     }

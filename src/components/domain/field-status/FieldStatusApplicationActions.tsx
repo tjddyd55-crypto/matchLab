@@ -29,6 +29,10 @@ import { useAppConfirmDialog } from "@/components/shared/app-confirm-dialog";
 import { Button } from "@/components/ui/button";
 import type { FieldStatusRowDTO } from "@/lib/services/field-status.service";
 import { cn } from "@/lib/utils";
+import {
+  appendOnsiteOpsToken,
+  useOnsiteOpsToken,
+} from "@/components/domain/onsite-ops/OnsiteOpsTokenContext";
 
 function formatSavedWeightKg(kg: number): string {
   const rounded = Math.round(kg * 10) / 10;
@@ -158,9 +162,11 @@ async function runAction(
   applicationId: string,
   action: (fd: FormData) => Promise<{ ok: boolean; error?: { message: string } }>,
   alert: (message: string) => Promise<void>,
+  opsToken?: string | null,
 ): Promise<void> {
   const fd = new FormData();
   fd.set("applicationId", applicationId);
+  appendOnsiteOpsToken(fd, opsToken);
   const result = await action(fd);
   if (!result.ok) {
     await alert(result.error?.message ?? "처리에 실패했습니다.");
@@ -175,13 +181,14 @@ export function FieldStatusRowActions({
   layout?: "stack" | "compact";
 }) {
   const { alert } = useAppConfirmDialog();
+  const opsToken = useOnsiteOpsToken();
   const id = row.applicationId;
   const name = row.fighterName;
   const inline = layout === "compact";
   const run = (
     applicationId: string,
     action: (fd: FormData) => Promise<{ ok: boolean; error?: { message: string } }>,
-  ) => runAction(applicationId, action, alert);
+  ) => runAction(applicationId, action, alert, opsToken);
 
   return (
     <div
@@ -268,6 +275,7 @@ export function WeighInWeightInput({
   }) => void;
 }) {
   const router = useRouter();
+  const opsToken = useOnsiteOpsToken();
   const hydrated = useHydrated();
   const inputRef = useRef<HTMLInputElement>(null);
   const submittingRef = useRef(false);
@@ -323,6 +331,7 @@ export function WeighInWeightInput({
         const fd = new FormData();
         fd.set("applicationId", row.applicationId);
         fd.set("weightKg", weightKg);
+        appendOnsiteOpsToken(fd, opsToken);
         const result = await recordWeighInWeightFormAction(fd);
         if (result.ok) {
           const kg = Number(weightKg);
@@ -443,6 +452,7 @@ export function WeighInWeightForm({ row }: { row: FieldStatusRowDTO }) {
 }
 
 export function FieldMemoForm({ row }: { row: FieldStatusRowDTO }) {
+  const opsToken = useOnsiteOpsToken();
   const { feedback, setFeedback } = useSaveFeedback();
   const [pending, startTransition] = useTransition();
   const [memo, setMemo] = useState(row.fieldMemo ?? "");
@@ -461,6 +471,7 @@ export function FieldMemoForm({ row }: { row: FieldStatusRowDTO }) {
       const fd = new FormData();
       fd.set("applicationId", row.applicationId);
       fd.set("memo", memo.trim());
+      appendOnsiteOpsToken(fd, opsToken);
       const result = await saveFieldMemoFormAction(fd);
       if (result.ok) {
         setFeedback({ kind: "success", message: "메모 저장됨" });

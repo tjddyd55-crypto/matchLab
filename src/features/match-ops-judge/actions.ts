@@ -6,11 +6,16 @@ import {
   type ActionResult,
 } from "@/lib/action-result";
 import { requireActor } from "@/lib/auth/actor";
+import { toActorCaller } from "@/lib/field-operations-auth";
 import { AppError } from "@/lib/errors/app-error";
 import {
   MATCH_OPS_JUDGE_SLOT_COUNT,
   parseJudgeScoreInput,
 } from "@/lib/match-ops-judge-score";
+import {
+  resolveFieldOpsCallerFromMutation,
+  resolveFieldOpsCallerFromToken,
+} from "@/lib/onsite-ops/resolve-caller";
 import {
   matchOpsJudgeScoreService,
   type MatchOpsJudgeScoreEntryVM,
@@ -28,13 +33,13 @@ function mapOpsJudge<T>(fn: () => Promise<ActionResult<T>>): Promise<ActionResul
 
 export async function getMatchOpsJudgeScoresAction(
   matchId: string,
+  opsToken?: string,
 ): Promise<ActionResult<MatchOpsJudgeScoreEntryVM>> {
   return mapOpsJudge(async () => {
-    const actor = await requireActor();
-    const entry = await matchOpsJudgeScoreService.getEntryForOrganizer(
-      actor,
-      matchId,
-    );
+    const caller = opsToken?.trim()
+      ? await resolveFieldOpsCallerFromToken(opsToken.trim())
+      : toActorCaller(await requireActor());
+    const entry = await matchOpsJudgeScoreService.getEntry(caller, matchId);
     return actionSuccess(entry);
   });
 }
@@ -86,7 +91,7 @@ export async function saveMatchOpsJudgeScoresAction(
   }
 
   return mapOpsJudge(async () => {
-    const actor = await requireActor();
+    const caller = await resolveFieldOpsCallerFromMutation(formData);
     const matchId = String(formData.get("matchId") ?? "").trim();
     const slotsJson = String(formData.get("slotsJson") ?? "").trim();
     if (!matchId || !slotsJson) {
@@ -94,7 +99,7 @@ export async function saveMatchOpsJudgeScoresAction(
     }
 
     const slots = parseSlotsJson(slotsJson);
-    const entry = await matchOpsJudgeScoreService.saveSlotsForOrganizer(actor, {
+    const entry = await matchOpsJudgeScoreService.saveSlots(caller, {
       matchId,
       slots,
     });

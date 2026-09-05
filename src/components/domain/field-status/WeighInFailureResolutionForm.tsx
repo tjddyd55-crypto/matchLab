@@ -12,6 +12,7 @@ import { Button } from "@/components/ui/button";
 import type { FieldStatusRowDTO } from "@/lib/services/field-status.service";
 import { WeighInFailureResolution } from "@/generated/prisma";
 import { cn } from "@/lib/utils";
+import { appendOnsiteOpsToken, useOnsiteOpsToken } from "@/components/domain/onsite-ops/OnsiteOpsTokenContext";
 
 /**
  * 계체 실패 처리 폼.
@@ -51,6 +52,7 @@ export function WeighInFailureResolutionForm({
 }) {
   const router = useRouter();
   const { confirm } = useAppConfirmDialog();
+  const opsToken = useOnsiteOpsToken();
   const [pending, startTransition] = useTransition();
   const [feedback, setFeedback] = useState<{
     tone: "success" | "error";
@@ -67,6 +69,7 @@ export function WeighInFailureResolutionForm({
       const fd = new FormData();
       fd.set("applicationId", row.applicationId);
       fd.set("resolution", resolutionValue);
+      appendOnsiteOpsToken(fd, opsToken);
       const res = await setWeighInFailureResolutionFormAction(fd);
       if (!res.ok) {
         setFeedback({
@@ -159,6 +162,7 @@ export function DisqualificationReasonForm({
 }) {
   const router = useRouter();
   const { alert } = useAppConfirmDialog();
+  const opsToken = useOnsiteOpsToken();
   const [pending, startTransition] = useTransition();
   const [feedback, setFeedback] = useState<{
     tone: "success" | "error";
@@ -196,6 +200,7 @@ export function DisqualificationReasonForm({
       const fd = new FormData();
       fd.set("applicationId", row.applicationId);
       fd.set("reason", reason);
+      appendOnsiteOpsToken(fd, opsToken);
       const res = await setDisqualificationReasonFormAction(fd);
       if (!res.ok) {
         setFeedback({

@@ -6,6 +6,12 @@ import {
   WeighInStatus,
 } from "@/generated/prisma";
 import type { ActorContext } from "@/lib/auth/actor-context";
+import {
+  assertFieldOperationsActorRole,
+  assertFieldOperationsEventAccess,
+  type FieldOperationsCaller,
+  toActorCaller,
+} from "@/lib/field-operations-auth";
 import { formatApplicationDivisionLabel } from "@/lib/applications/application-division-label";
 import {
   computeFieldEligibility,
@@ -171,18 +177,18 @@ function buildSummary(rows: FieldStatusRowDTO[]): FieldStatusSummaryDTO {
   };
 }
 
-async function assertOrganizerApplication(
-  actor: ActorContext,
+async function assertFieldOpsApplication(
+  caller: FieldOperationsCaller,
   applicationId: string,
 ): Promise<FieldStatusApplicationRow> {
-  requireRole(actor, ["organizer", "admin"]);
+  assertFieldOperationsActorRole(caller);
   const row = await fieldStatusRepository.findApprovedApplicationById(
     applicationId,
   );
   if (!row) {
     throw new AppError("NOT_FOUND", "승인된 신청을 찾을 수 없습니다.");
   }
-  await requireOrganizerForEvent(actor, row.eventId);
+  await assertFieldOperationsEventAccess(caller, row.eventId);
   return row;
 }
 
@@ -220,12 +226,12 @@ function dispatchFieldStatusNotification(
 }
 
 export const fieldStatusService = {
-  async listOrganizerEventFieldStatus(
-    actor: ActorContext,
+  async listEventFieldStatus(
+    caller: FieldOperationsCaller,
     eventId: string,
   ): Promise<{ rows: FieldStatusRowDTO[]; summary: FieldStatusSummaryDTO }> {
-    requireRole(actor, ["organizer", "admin"]);
-    await requireOrganizerForEvent(actor, eventId);
+    assertFieldOperationsActorRole(caller);
+    await assertFieldOperationsEventAccess(caller, eventId);
 
     const [raw, bracketMatches, handicapRows] = await Promise.all([
       fieldStatusRepository.listApprovedApplicationsForEvent(eventId),
@@ -242,6 +248,13 @@ export const fieldStatusService = {
       bracketAssignments: assignmentMap.get(r.fighterId) ?? [],
     }));
     return { rows, summary: buildSummary(rows) };
+  },
+
+  async listOrganizerEventFieldStatus(
+    actor: ActorContext,
+    eventId: string,
+  ): Promise<{ rows: FieldStatusRowDTO[]; summary: FieldStatusSummaryDTO }> {
+    return this.listEventFieldStatus(toActorCaller(actor), eventId);
   },
 
   async listGymEventFieldStatus(
@@ -343,7 +356,7 @@ export const fieldStatusService = {
       input.loserFighterId === redId ? blueId : redId;
     const memo = input.resultMemo?.trim() || undefined;
 
-    await matchService.recordMatchOutcomeDraft(actor, {
+    await matchService.recordMatchOutcomeDraft(toActorCaller(actor), {
       matchId: input.matchId,
       outcomeMode: "win_loss",
       winnerId,
@@ -369,10 +382,10 @@ export const fieldStatusService = {
 
   /** 계체 통과(또는 핸디캡 진행)로 출전 확정 조건 충족 — 현장 확인 선행 없음 */
   async quickConfirmEligibility(
-    actor: ActorContext,
+    caller: FieldOperationsCaller,
     applicationId: string,
   ): Promise<void> {
-    const row = await assertOrganizerApplication(actor, applicationId);
+    const row = await assertFieldOpsApplication(caller, applicationId);
     const eligibility = computeFieldEligibility({
       checkInStatus: row.checkInStatus,
       weighInStatus: row.weighInStatus,
@@ -397,7 +410,7 @@ export const fieldStatusService = {
       weighIn === WeighInStatus.manual_fail
     ) {
       await fieldStatusService.setWeighInFailureResolution(
-        actor,
+        caller,
         applicationId,
         WeighInFailureResolution.proceed_with_handicap,
       );
@@ -412,18 +425,18 @@ export const fieldStatusService = {
     }
 
     await fieldStatusService.setWeighInStatus(
-      actor,
+      caller,
       applicationId,
       WeighInStatus.pass,
     );
   },
 
   async setCheckInStatus(
-    actor: ActorContext,
+    caller: FieldOperationsCaller,
     applicationId: string,
     status: CheckInStatus,
   ): Promise<void> {
-    const row = await assertOrganizerApplication(actor, applicationId);
+    const row = await assertFieldOpsApplication(caller, applicationId);
     if (row.checkInStatus === status) return;
 
     await fieldStatusRepository.updateFieldStatus(applicationId, {
@@ -441,11 +454,11 @@ export const fieldStatusService = {
   },
 
   async setWeighInStatus(
-    actor: ActorContext,
+    caller: FieldOperationsCaller,
     applicationId: string,
     status: WeighInStatus,
   ): Promise<void> {
-    const row = await assertOrganizerApplication(actor, applicationId);
+    const row = await assertFieldOpsApplication(caller, applicationId);
     if (row.weighInStatus === status) return;
 
     await fieldStatusRepository.updateFieldStatus(applicationId, {
@@ -463,11 +476,11 @@ export const fieldStatusService = {
   },
 
   async recordWeighInWeight(
-    actor: ActorContext,
+    caller: FieldOperationsCaller,
     applicationId: string,
     weightKg: number,
   ): Promise<{ autoStatus: WeighInStatus | null; evaluationReason: string }> {
-    const row = await assertOrganizerApplication(actor, applicationId);
+    const row = await assertFieldOpsApplication(caller, applicationId);
 
     const evaluation = evaluateWeighInWeight(
       weightKg,
@@ -506,23 +519,23 @@ export const fieldStatusService = {
   },
 
   async saveFieldMemo(
-    actor: ActorContext,
+    caller: FieldOperationsCaller,
     applicationId: string,
     memo: string | null,
   ): Promise<void> {
-    await assertOrganizerApplication(actor, applicationId);
+    await assertFieldOpsApplication(caller, applicationId);
     await fieldStatusRepository.updateFieldStatus(applicationId, {
       fieldMemo: memo?.trim() || null,
     });
   },
 
   async setWeighInFailureResolution(
-    actor: ActorContext,
+    caller: FieldOperationsCaller,
     applicationId: string,
     resolution: import("@/generated/prisma").WeighInFailureResolution,
     handicapNote?: string | null,
   ): Promise<void> {
-    const row = await assertOrganizerApplication(actor, applicationId);
+    const row = await assertFieldOpsApplication(caller, applicationId);
     const isFailed =
       row.weighInStatus === WeighInStatus.fail ||
       row.weighInStatus === WeighInStatus.manual_fail;
@@ -548,11 +561,11 @@ export const fieldStatusService = {
   },
 
   async setDisqualificationReason(
-    actor: ActorContext,
+    caller: FieldOperationsCaller,
     applicationId: string,
     reason: string,
   ): Promise<void> {
-    await assertOrganizerApplication(actor, applicationId);
+    await assertFieldOpsApplication(caller, applicationId);
     await fieldStatusRepository.updateFieldStatus(applicationId, {
       checkInStatus: CheckInStatus.disqualified,
       disqualificationReason: reason.trim(),
@@ -561,10 +574,10 @@ export const fieldStatusService = {
 
   /** 계체·결과입력 값만 초기화 (신청/선수 정보 유지) */
   async resetFieldStatusInput(
-    actor: ActorContext,
+    caller: FieldOperationsCaller,
     applicationId: string,
   ): Promise<void> {
-    const row = await assertOrganizerApplication(actor, applicationId);
+    const row = await assertFieldOpsApplication(caller, applicationId);
 
     const hadFieldInput =
       row.checkInStatus !== CheckInStatus.pending ||

@@ -10,6 +10,7 @@ import {
 import { Button } from "@/components/ui/button";
 import { useAppConfirmDialog } from "@/components/shared/app-confirm-dialog";
 import type { FieldStatusRowDTO } from "@/lib/services/field-status.service";
+import { appendOnsiteOpsToken, useOnsiteOpsToken } from "@/components/domain/onsite-ops/OnsiteOpsTokenContext";
 
 export function FieldStatusPrimaryActions({
   row,
@@ -24,11 +25,13 @@ export function FieldStatusPrimaryActions({
   const [pending, startTransition] = useTransition();
   const [showDisqualifyHint, setShowDisqualifyHint] = useState(false);
 
+  const opsToken = useOnsiteOpsToken();
   async function run(
     action: (fd: FormData) => Promise<{ ok: boolean; error?: { message: string } }>,
   ) {
     const fd = new FormData();
     fd.set("applicationId", row.applicationId);
+    appendOnsiteOpsToken(fd, opsToken);
     const res = await action(fd);
     if (!res.ok) {
       await alert(res.error?.message ?? "처리에 실패했습니다.");

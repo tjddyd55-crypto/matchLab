@@ -8,7 +8,7 @@ import {
   type ActionResult,
 } from "@/lib/action-result";
 import { PermissionError } from "@/lib/auth/permission-error";
-import { requireActorFromMutation } from "@/lib/auth/actor";
+import { resolveFieldOpsCallerFromMutation } from "@/lib/onsite-ops/resolve-caller";
 import { AppError } from "@/lib/errors/app-error";
 import { fieldStatusService } from "@/lib/services/field-status.service";
 import {
@@ -62,7 +62,7 @@ export async function setCheckInStatusFormAction(
   formData: FormData,
 ): Promise<ActionResult<{ ok: true }>> {
   return mapCaught(async () => {
-    const actor = await requireActorFromMutation();
+    const caller = await resolveFieldOpsCallerFromMutation(formData);
     const parsed = setCheckInStatusSchema.safeParse({
       applicationId: formReq(formData, "applicationId"),
       status: formReq(formData, "status"),
@@ -71,7 +71,7 @@ export async function setCheckInStatusFormAction(
       return actionFailure("VALIDATION_ERROR", "입력값을 확인해 주세요.");
     }
     await fieldStatusService.setCheckInStatus(
-      actor,
+      caller,
       parsed.data.applicationId,
       parsed.data.status,
     );
@@ -84,7 +84,7 @@ export async function setWeighInStatusFormAction(
   formData: FormData,
 ): Promise<ActionResult<{ ok: true }>> {
   return mapCaught(async () => {
-    const actor = await requireActorFromMutation();
+    const caller = await resolveFieldOpsCallerFromMutation(formData);
     const parsed = setWeighInStatusSchema.safeParse({
       applicationId: formReq(formData, "applicationId"),
       status: formReq(formData, "status"),
@@ -93,7 +93,7 @@ export async function setWeighInStatusFormAction(
       return actionFailure("VALIDATION_ERROR", "입력값을 확인해 주세요.");
     }
     await fieldStatusService.setWeighInStatus(
-      actor,
+      caller,
       parsed.data.applicationId,
       parsed.data.status,
     );
@@ -111,7 +111,7 @@ export async function recordWeighInWeightFormAction(
   }>
 > {
   return mapCaught(async () => {
-    const actor = await requireActorFromMutation();
+    const caller = await resolveFieldOpsCallerFromMutation(formData);
     const parsed = recordWeighInWeightSchema.safeParse({
       applicationId: formReq(formData, "applicationId"),
       weightKg: formReq(formData, "weightKg"),
@@ -123,7 +123,7 @@ export async function recordWeighInWeightFormAction(
       );
     }
     const result = await fieldStatusService.recordWeighInWeight(
-      actor,
+      caller,
       parsed.data.applicationId,
       parsed.data.weightKg,
     );
@@ -139,7 +139,7 @@ export async function saveFieldMemoFormAction(
   formData: FormData,
 ): Promise<ActionResult<{ ok: true }>> {
   return mapCaught(async () => {
-    const actor = await requireActorFromMutation();
+    const caller = await resolveFieldOpsCallerFromMutation(formData);
     const parsed = saveFieldMemoSchema.safeParse({
       applicationId: formReq(formData, "applicationId"),
       memo: formReq(formData, "memo") || null,
@@ -148,7 +148,7 @@ export async function saveFieldMemoFormAction(
       return actionFailure("VALIDATION_ERROR", "메모를 확인해 주세요.");
     }
     await fieldStatusService.saveFieldMemo(
-      actor,
+      caller,
       parsed.data.applicationId,
       parsed.data.memo,
     );
@@ -284,12 +284,12 @@ export async function quickConfirmEligibilityFormAction(
   formData: FormData,
 ): Promise<ActionResult<{ ok: true }>> {
   return mapCaught(async () => {
-    const actor = await requireActorFromMutation();
+    const caller = await resolveFieldOpsCallerFromMutation(formData);
     const applicationId = formReq(formData, "applicationId");
     if (!applicationId) {
       return actionFailure("VALIDATION_ERROR", "신청 정보가 없습니다.");
     }
-    await fieldStatusService.quickConfirmEligibility(actor, applicationId);
+    await fieldStatusService.quickConfirmEligibility(caller, applicationId);
     await revalidateFieldStatusPaths(applicationId);
     return actionSuccess({ ok: true });
   });
@@ -311,7 +311,13 @@ export async function applyFieldBracketOutcomeFormAction(
   formData: FormData,
 ): Promise<ActionResult<{ ok: true }>> {
   return mapCaught(async () => {
-    const actor = await requireActorFromMutation();
+    const caller = await resolveFieldOpsCallerFromMutation(formData);
+    if (caller.kind === "onsite-ops") {
+      return actionFailure(
+        "FORBIDDEN",
+        "현장 운영 포털에서는 대진 패 처리를 할 수 없습니다.",
+      );
+    }
     const resultTypeRaw = formReq(formData, "resultType");
     const parsed = applyFieldBracketOutcomeSchema.safeParse({
       matchId: formReq(formData, "matchId"),
@@ -323,7 +329,7 @@ export async function applyFieldBracketOutcomeFormAction(
     if (!parsed.success) {
       return actionFailure("VALIDATION_ERROR", "패 처리 입력값을 확인해 주세요.");
     }
-    await fieldStatusService.applyFieldBracketOutcome(actor, parsed.data);
+    await fieldStatusService.applyFieldBracketOutcome(caller.actor, parsed.data);
     const row = await fieldStatusRepository.findApprovedApplicationById(
       formReq(formData, "applicationId"),
     );
@@ -346,7 +352,7 @@ export async function setWeighInFailureResolutionFormAction(
   formData: FormData,
 ): Promise<ActionResult<{ ok: true }>> {
   return mapCaught(async () => {
-    const actor = await requireActorFromMutation();
+    const caller = await resolveFieldOpsCallerFromMutation(formData);
     const parsed = setWeighInFailureResolutionSchema.safeParse({
       applicationId: formReq(formData, "applicationId"),
       resolution: formReq(formData, "resolution"),
@@ -359,7 +365,7 @@ export async function setWeighInFailureResolutionFormAction(
       );
     }
     await fieldStatusService.setWeighInFailureResolution(
-      actor,
+      caller,
       parsed.data.applicationId,
       parsed.data.resolution,
       parsed.data.handicapNote,
@@ -373,7 +379,7 @@ export async function setDisqualificationReasonFormAction(
   formData: FormData,
 ): Promise<ActionResult<{ ok: true }>> {
   return mapCaught(async () => {
-    const actor = await requireActorFromMutation();
+    const caller = await resolveFieldOpsCallerFromMutation(formData);
     const parsed = setDisqualificationReasonSchema.safeParse({
       applicationId: formReq(formData, "applicationId"),
       reason: formReq(formData, "reason"),
@@ -385,7 +391,7 @@ export async function setDisqualificationReasonFormAction(
       );
     }
     await fieldStatusService.setDisqualificationReason(
-      actor,
+      caller,
       parsed.data.applicationId,
       parsed.data.reason,
     );
@@ -398,7 +404,7 @@ export async function resetFieldStatusInputFormAction(
   formData: FormData,
 ): Promise<ActionResult<{ ok: true }>> {
   return mapCaught(async () => {
-    const actor = await requireActorFromMutation();
+    const caller = await resolveFieldOpsCallerFromMutation(formData);
     const parsed = resetFieldStatusInputSchema.safeParse({
       applicationId: formReq(formData, "applicationId"),
     });
@@ -406,7 +412,7 @@ export async function resetFieldStatusInputFormAction(
       return actionFailure("VALIDATION_ERROR", "신청 정보가 없습니다.");
     }
     await fieldStatusService.resetFieldStatusInput(
-      actor,
+      caller,
       parsed.data.applicationId,
     );
     await revalidateFieldStatusPaths(parsed.data.applicationId);

@@ -7,6 +7,12 @@ import {
   MatchRecordStatus,
 } from "@/generated/prisma";
 import type { ActorContext } from "@/lib/auth/actor-context";
+import {
+  assertFieldOperationsActorRole,
+  assertFieldOperationsEventAccess,
+  type FieldOperationsCaller,
+  toActorCaller,
+} from "@/lib/field-operations-auth";
 import { AppError } from "@/lib/errors/app-error";
 import { hashJudgePassword } from "@/lib/judge-password";
 import { readRequestClientMeta } from "@/lib/judge-request-meta";
@@ -118,13 +124,13 @@ async function resolveSlotCredentialId(
 }
 
 export const matchOpsJudgeScoreService = {
-  async getEntryForOrganizer(
-    actor: ActorContext,
+  async getEntry(
+    caller: FieldOperationsCaller,
     matchId: string,
   ): Promise<MatchOpsJudgeScoreEntryVM> {
-    requireRole(actor, ["organizer", "admin"]);
+    assertFieldOperationsActorRole(caller);
     const match = await loadMatchForOps(matchId);
-    await requireOrganizerForEvent(actor, match.bracket.eventId);
+    await assertFieldOperationsEventAccess(caller, match.bracket.eventId);
 
     const [assignments, scorecards] = await Promise.all([
       judgeAssignmentRepository.listByMatch(matchId),
@@ -165,13 +171,20 @@ export const matchOpsJudgeScoreService = {
     };
   },
 
-  async saveSlotsForOrganizer(
+  async getEntryForOrganizer(
     actor: ActorContext,
+    matchId: string,
+  ): Promise<MatchOpsJudgeScoreEntryVM> {
+    return this.getEntry(toActorCaller(actor), matchId);
+  },
+
+  async saveSlots(
+    caller: FieldOperationsCaller,
     input: SaveMatchOpsJudgeSlotsInput,
   ): Promise<MatchOpsJudgeScoreEntryVM> {
-    requireRole(actor, ["organizer", "admin"]);
+    assertFieldOperationsActorRole(caller);
     const match = await loadMatchForOps(input.matchId);
-    await requireOrganizerForEvent(actor, match.bracket.eventId);
+    await assertFieldOperationsEventAccess(caller, match.bracket.eventId);
 
     if (isMatchResultLocked(match.matchResults)) {
       throw new AppError(
@@ -283,6 +296,13 @@ export const matchOpsJudgeScoreService = {
       });
     }
 
-    return this.getEntryForOrganizer(actor, input.matchId);
+    return this.getEntry(caller, input.matchId);
+  },
+
+  async saveSlotsForOrganizer(
+    actor: ActorContext,
+    input: SaveMatchOpsJudgeSlotsInput,
+  ): Promise<MatchOpsJudgeScoreEntryVM> {
+    return this.saveSlots(toActorCaller(actor), input);
   },
 };

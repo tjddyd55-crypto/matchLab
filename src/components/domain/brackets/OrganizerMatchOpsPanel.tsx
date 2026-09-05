@@ -43,6 +43,10 @@ import { BoutFormatBadge } from "@/components/domain/shared/BoutFormatBadge";
 import { MatchOpsJudgeScoreSection } from "@/components/domain/operation/MatchOpsJudgeScoreSection";
 import { outcomeStylePublicLabel } from "@/lib/match-result-snapshot";
 import { cn } from "@/lib/utils";
+import {
+  appendOnsiteOpsToken,
+  useOnsiteOpsToken,
+} from "@/components/domain/onsite-ops/OnsiteOpsTokenContext";
 
 const STATUS_OPTIONS: { value: BracketMatchStatus; label: string }[] = [
   { value: BracketMatchStatus.waiting, label: BRACKET_MATCH_STATUS_LABELS.waiting },
@@ -346,6 +350,7 @@ export function OrganizerMatchOpsPanel(props: OrganizerMatchOpsPanelProps) {
 
 function OrganizerMatchOpsPanelBody(props: OrganizerMatchOpsPanelProps) {
   const router = useRouter();
+  const opsToken = useOnsiteOpsToken();
   const [pending, startTransition] = useTransition();
   const [pendingStatus, setPendingStatus] = useState<BracketMatchStatus | null>(
     null,
@@ -379,6 +384,7 @@ function OrganizerMatchOpsPanelBody(props: OrganizerMatchOpsPanelProps) {
         const fd = new FormData();
         fd.set("matchId", props.matchId);
         fd.set("status", status);
+        appendOnsiteOpsToken(fd, opsToken);
         const err = await runAction(() => updateMatchStatusAction(fd));
         setPendingStatus(null);
         setError(err);
@@ -404,6 +410,7 @@ function OrganizerMatchOpsPanelBody(props: OrganizerMatchOpsPanelProps) {
     setError(null);
     setSuccess(null);
     formData.set("matchId", props.matchId);
+    appendOnsiteOpsToken(formData, opsToken);
     const intent = String(formData.get("intent") ?? "draft");
     startTransition(async () => {
       const err = await runAction(() =>
@@ -427,6 +434,7 @@ function OrganizerMatchOpsPanelBody(props: OrganizerMatchOpsPanelProps) {
     setError(null);
     setSuccess(null);
     formData.set("matchId", props.matchId);
+    appendOnsiteOpsToken(formData, opsToken);
     startTransition(async () => {
       const err = await runAction(() => correctMatchResultAction(formData));
       setError(err);
@@ -442,6 +450,7 @@ function OrganizerMatchOpsPanelBody(props: OrganizerMatchOpsPanelProps) {
     setError(null);
     setSuccess(null);
     formData.set("matchId", props.matchId);
+    appendOnsiteOpsToken(formData, opsToken);
     startTransition(async () => {
       const err = await runAction(() => voidMatchResultsAction(formData));
       setError(err);

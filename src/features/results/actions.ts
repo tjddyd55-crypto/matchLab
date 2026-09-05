@@ -8,6 +8,8 @@ import {
 } from "@/lib/action-result";
 import { PermissionError } from "@/lib/auth/permission-error";
 import { requireActorFromMutation } from "@/lib/auth/actor";
+import { resolveFieldOpsCallerFromMutation } from "@/lib/onsite-ops/resolve-caller";
+import type { ConfirmMatchResultsPrincipal } from "@/lib/services/result.service";
 import { AppError } from "@/lib/errors/app-error";
 import { resultService } from "@/lib/services/result.service";
 import { matchRepository } from "@/lib/repositories/match.repository";
@@ -61,6 +63,16 @@ async function revalidateAfterResultMutation(matchId: string): Promise<void> {
   }
 }
 
+async function resolveConfirmPrincipal(
+  formData: FormData,
+): Promise<ConfirmMatchResultsPrincipal> {
+  const caller = await resolveFieldOpsCallerFromMutation(formData);
+  if (caller.kind === "onsite-ops") {
+    return { kind: "onsite-ops", eventId: caller.eventId };
+  }
+  return { kind: "organizer", actor: caller.actor };
+}
+
 export async function confirmMatchResultsAction(
   arg1: unknown,
   arg2?: FormData,
@@ -86,11 +98,8 @@ export async function confirmMatchResultsAction(
         parsed.error.flatten(),
       );
     }
-    const actor = await requireActorFromMutation();
-    await resultService.confirmMatchResults(
-      { kind: "organizer", actor },
-      parsed.data,
-    );
+    const principal = await resolveConfirmPrincipal(formData);
+    await resultService.confirmMatchResults(principal, parsed.data);
     await revalidateAfterResultMutation(parsed.data.matchId);
     return actionSuccess({ ok: true as const });
   });
@@ -121,8 +130,8 @@ export async function correctMatchResultAction(
         parsed.error.flatten(),
       );
     }
-    const actor = await requireActorFromMutation();
-    await resultService.correctMatchResult(actor, parsed.data);
+    const caller = await resolveFieldOpsCallerFromMutation(formData);
+    await resultService.correctMatchResult(caller, parsed.data);
     await revalidateAfterResultMutation(parsed.data.matchId);
     return actionSuccess({ ok: true as const });
   });
@@ -149,8 +158,8 @@ export async function voidMatchResultsAction(
         parsed.error.flatten(),
       );
     }
-    const actor = await requireActorFromMutation();
-    await resultService.voidMatchResults(actor, parsed.data);
+    const caller = await resolveFieldOpsCallerFromMutation(formData);
+    await resultService.voidMatchResults(caller, parsed.data);
     await revalidateAfterResultMutation(parsed.data.matchId);
     return actionSuccess({ ok: true as const });
   });

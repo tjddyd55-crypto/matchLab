@@ -9,6 +9,7 @@ import { Button } from "@/components/ui/button";
 import { canResetFieldStatusInput } from "@/lib/field-final-result";
 import type { FieldStatusRowDTO } from "@/lib/services/field-status.service";
 import { cn } from "@/lib/utils";
+import { appendOnsiteOpsToken, useOnsiteOpsToken } from "@/components/domain/onsite-ops/OnsiteOpsTokenContext";
 
 export function FieldStatusResetButton({
   row,
@@ -19,6 +20,7 @@ export function FieldStatusResetButton({
 }) {
   const router = useRouter();
   const { confirm, alert } = useAppConfirmDialog();
+  const opsToken = useOnsiteOpsToken();
   const [pending, startTransition] = useTransition();
   const [feedback, setFeedback] = useState<{
     tone: "success" | "error";
@@ -42,6 +44,7 @@ export function FieldStatusResetButton({
     startTransition(async () => {
       const fd = new FormData();
       fd.set("applicationId", row.applicationId);
+      appendOnsiteOpsToken(fd, opsToken);
       const res = await resetFieldStatusInputFormAction(fd);
       if (!res.ok) {
         const message = res.error.message;

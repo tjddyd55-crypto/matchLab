@@ -7,6 +7,7 @@ import {
   type ActionResult,
 } from "@/lib/action-result";
 import { PermissionError } from "@/lib/auth/permission-error";
+import { resolveFieldOpsCallerFromMutation } from "@/lib/onsite-ops/resolve-caller";
 import { requireActorFromMutation } from "@/lib/auth/actor";
 import { AppError } from "@/lib/errors/app-error";
 import { matchRepository } from "@/lib/repositories/match.repository";
@@ -67,8 +68,8 @@ export async function updateMatchStatusAction(
         parsed.error.flatten(),
       );
     }
-    const actor = await requireActorFromMutation();
-    await matchService.updateMatchStatus(actor, parsed.data);
+    const caller = await resolveFieldOpsCallerFromMutation(formData);
+    await matchService.updateMatchStatus(caller, parsed.data);
     const ctx = await matchRepository.findMatchOwnershipContext(parsed.data.matchId);
     if (ctx) {
       revalidateOrganizerMatchPaths(ctx.eventId, ctx.bracketId);
@@ -102,8 +103,8 @@ export async function recordMatchOutcomeDraftAction(
         parsed.error.flatten(),
       );
     }
-    const actor = await requireActorFromMutation();
-    await matchService.recordMatchOutcomeDraft(actor, parsed.data);
+    const caller = await resolveFieldOpsCallerFromMutation(formData);
+    await matchService.recordMatchOutcomeDraft(caller, parsed.data);
     const ctx = await matchRepository.findMatchOwnershipContext(parsed.data.matchId);
     if (ctx) {
       revalidateOrganizerMatchPaths(ctx.eventId, ctx.bracketId);
