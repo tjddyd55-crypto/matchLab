@@ -158,6 +158,7 @@
     "verify:member-template-admin": "tsx scripts/verify-member-template-admin.ts",
     "verify:judge-score-sheet-pdf": "tsx scripts/verify-judge-score-sheet-pdf.ts",
     "verify:judge-score-shared-ssot": "tsx scripts/verify-judge-score-shared-ssot.ts",
+    "verify:judge-scoring-manual-portal-separation": "tsx scripts/verify-judge-scoring-manual-portal-separation.ts",
     "verify:partial-round-score-save": "tsx scripts/verify-partial-round-score-save.ts",
     "verify:mobile-ops-portal": "tsx scripts/verify-mobile-ops-portal.ts",
     "verify:gym-member-ui-v2-phase1": "tsx scripts/verify-gym-member-ui-v2-phase1.ts",

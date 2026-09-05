@@ -21,16 +21,20 @@ import { computeScorecardTotals } from "@/lib/judge-score-aggregation";
 import { effectiveScoringRoundCountFromOps } from "@/lib/court-judge-rounds";
 import {
   buildMatchOpsSlotLoginId,
-  emptyRounds,
+  classifyScorecardSource,
   isJudgeSlotEmpty,
-  mapScorecardsToMatchOpsSlots,
-  MATCH_OPS_JUDGE_SLOT_COUNT,
+  isMatchOpsManualLoginId,
+  mapManualScorecardsToSlots,
+  mapPortalScorecards,
+  MATCH_OPS_JUDGE_DEFAULT_SLOT_COUNT,
+  parseManualSlotOrderFromLoginId,
+  resolveManualSlotCount,
   validateJudgeSlotForSave,
+  type MatchOpsJudgePortalEntry,
   type MatchOpsJudgeRoundInput,
   type MatchOpsJudgeSlotState,
 } from "@/lib/match-ops-judge-score";
 import { parseMatchOperationalSettings } from "@/lib/match-operational-settings";
-import { requireOrganizerForEvent, requireRole } from "@/lib/permissions";
 import { prisma } from "@/lib/prisma";
 import { judgeAssignmentRepository } from "@/lib/repositories/judge-assignment.repository";
 import { judgeCredentialRepository } from "@/lib/repositories/judge-credential.repository";
@@ -40,11 +44,14 @@ export type MatchOpsJudgeScoreEntryVM = {
   matchId: string;
   roundCount: number;
   isLocked: boolean;
-  slots: MatchOpsJudgeSlotState[];
+  manualSlots: MatchOpsJudgeSlotState[];
+  portalEntries: MatchOpsJudgePortalEntry[];
+  manualSlotCount: number;
 };
 
 export type SaveMatchOpsJudgeSlotsInput = {
   matchId: string;
+  manualSlotCount: number;
   slots: {
     judgeOrder: number;
     credentialId: string | null;
@@ -102,11 +109,43 @@ async function resolveSlotCredentialId(
   judgeOrder: number,
   existingCredentialId: string | null,
 ): Promise<string | null> {
-  if (existingCredentialId) return existingCredentialId;
+  if (existingCredentialId) {
+    const existing = await judgeCredentialRepository.findById(
+      existingCredentialId,
+    );
+    if (
+      existing &&
+      !isMatchOpsManualLoginId(existing.loginId, eventId)
+    ) {
+      throw new AppError(
+        "VALIDATION_ERROR",
+        "Judge Portal 채점은 경기운영에서 수정할 수 없습니다.",
+      );
+    }
+    return existingCredentialId;
+  }
 
   const assignments = await judgeAssignmentRepository.listByMatch(matchId);
   const assignment = assignments.find((a) => a.judgeOrder === judgeOrder);
-  if (assignment?.credentialId) return assignment.credentialId;
+  if (assignment?.credentialId) {
+    const assigned = await judgeCredentialRepository.findById(
+      assignment.credentialId,
+    );
+    if (
+      assigned &&
+      classifyScorecardSource({
+        loginId: assigned.loginId,
+        eventId,
+        assignmentJudgeOrder: judgeOrder,
+      }) === "JUDGE_PORTAL"
+    ) {
+      throw new AppError(
+        "VALIDATION_ERROR",
+        "Judge Portal 채점은 경기운영에서 수정할 수 없습니다.",
+      );
+    }
+    return assignment.credentialId;
+  }
 
   const loginId = buildMatchOpsSlotLoginId(eventId, judgeOrder);
   let credential = await judgeCredentialRepository.findByLoginId(loginId);
@@ -123,6 +162,42 @@ async function resolveSlotCredentialId(
   return credential.id;
 }
 
+async function buildScorecardsWithLogin(
+  eventId: string,
+  matchId: string,
+  assignments: { judgeOrder: number; credentialId: string | null }[],
+) {
+  const scorecards = await judgeScorecardRepository.listByMatch(matchId);
+  const credentialIds = [...new Set(scorecards.map((c) => c.credentialId))];
+  const credentials = await Promise.all(
+    credentialIds.map((id) => judgeCredentialRepository.findById(id)),
+  );
+  const loginByCredentialId = new Map(
+    credentials
+      .filter((c): c is NonNullable<typeof c> => c != null)
+      .map((c) => [c.id, c.loginId] as const),
+  );
+
+  return scorecards.map((card) => ({
+    scorecardId: card.id,
+    credentialId: card.credentialId,
+    loginId: loginByCredentialId.get(card.credentialId) ?? "",
+    judgeName: card.judgeName,
+    status: card.status,
+    updatedAt: card.updatedAt,
+    redTotal: card.redTotal,
+    blueTotal: card.blueTotal,
+    rounds: card.rounds.map((round) => ({
+      roundNumber: round.roundNumber,
+      redScore: round.redScore,
+      blueScore: round.blueScore,
+    })),
+    assignmentJudgeOrder:
+      assignments.find((a) => a.credentialId === card.credentialId)
+        ?.judgeOrder ?? null,
+  }));
+}
+
 export const matchOpsJudgeScoreService = {
   async getEntry(
     caller: FieldOperationsCaller,
@@ -132,42 +207,74 @@ export const matchOpsJudgeScoreService = {
     const match = await loadMatchForOps(matchId);
     await assertFieldOperationsEventAccess(caller, match.bracket.eventId);
 
-    const [assignments, scorecards] = await Promise.all([
-      judgeAssignmentRepository.listByMatch(matchId),
-      judgeScorecardRepository.listByMatch(matchId),
-    ]);
+    const assignments = await judgeAssignmentRepository.listByMatch(matchId);
+    const assignmentRows = assignments.map((a) => ({
+      judgeOrder: a.judgeOrder,
+      credentialId: a.credentialId,
+    }));
 
     const roundCount = resolveRoundCount(
       match.resultMemo,
       match.bracket.division?.sportType ?? null,
     );
 
-    const slots = mapScorecardsToMatchOpsSlots({
-      assignments: assignments.map((a) => ({
-        judgeOrder: a.judgeOrder,
-        credentialId: a.credentialId,
-      })),
-      scorecards: scorecards.map((card) => ({
-        credentialId: card.credentialId,
-        judgeName: card.judgeName,
-        status: card.status,
-        updatedAt: card.updatedAt,
-        redTotal: card.redTotal,
-        blueTotal: card.blueTotal,
-        rounds: card.rounds.map((round) => ({
-          roundNumber: round.roundNumber,
-          redScore: round.redScore,
-          blueScore: round.blueScore,
-        })),
-      })),
+    const scorecardsWithLogin = await buildScorecardsWithLogin(
+      match.bracket.eventId,
+      matchId,
+      assignmentRows,
+    );
+
+    const manualSlotOrdersFromData = scorecardsWithLogin
+      .filter(
+        (card) =>
+          classifyScorecardSource({
+            loginId: card.loginId,
+            eventId: match.bracket.eventId,
+            assignmentJudgeOrder: card.assignmentJudgeOrder,
+          }) === "OPERATOR_MANUAL",
+      )
+      .map((card) =>
+        parseManualSlotOrderFromLoginId(card.loginId, match.bracket.eventId),
+      )
+      .filter((order): order is number => order != null);
+
+    const manualSlotCount = resolveManualSlotCount({
+      manualSlotOrdersFromData,
+    });
+
+    const scorecardInputs = scorecardsWithLogin.map((card) => ({
+      scorecardId: card.scorecardId,
+      credentialId: card.credentialId,
+      loginId: card.loginId,
+      judgeName: card.judgeName,
+      status: card.status,
+      updatedAt: card.updatedAt,
+      redTotal: card.redTotal,
+      blueTotal: card.blueTotal,
+      rounds: card.rounds,
+    }));
+
+    const manualSlots = mapManualScorecardsToSlots({
+      eventId: match.bracket.eventId,
+      assignments: assignmentRows,
+      scorecards: scorecardInputs,
       roundCount,
+      slotCount: manualSlotCount,
+    });
+
+    const portalEntries = mapPortalScorecards({
+      eventId: match.bracket.eventId,
+      assignments: assignmentRows,
+      scorecards: scorecardInputs,
     });
 
     return {
       matchId,
       roundCount,
       isLocked: isMatchResultLocked(match.matchResults),
-      slots,
+      manualSlots,
+      portalEntries,
+      manualSlotCount,
     };
   },
 
@@ -198,8 +305,14 @@ export const matchOpsJudgeScoreService = {
       match.bracket.division?.sportType ?? null,
     );
 
-    if (input.slots.length !== MATCH_OPS_JUDGE_SLOT_COUNT) {
-      throw new AppError("VALIDATION_ERROR", "채점심판 슬롯 수가 올바르지 않습니다.");
+    if (
+      input.slots.length !== input.manualSlotCount ||
+      input.manualSlotCount < MATCH_OPS_JUDGE_DEFAULT_SLOT_COUNT
+    ) {
+      throw new AppError(
+        "VALIDATION_ERROR",
+        "채점심판 슬롯 수가 올바르지 않습니다.",
+      );
     }
 
     for (const slot of input.slots) {
@@ -223,6 +336,21 @@ export const matchOpsJudgeScoreService = {
         slot.credentialId,
       );
       if (!credentialId) continue;
+
+      const credential = await judgeCredentialRepository.findById(credentialId);
+      if (
+        credential &&
+        classifyScorecardSource({
+          loginId: credential.loginId,
+          eventId: match.bracket.eventId,
+          assignmentJudgeOrder: slot.judgeOrder,
+        }) === "JUDGE_PORTAL"
+      ) {
+        throw new AppError(
+          "VALIDATION_ERROR",
+          "Judge Portal 채점은 경기운영에서 수정할 수 없습니다.",
+        );
+      }
 
       const existing = await judgeScorecardRepository.findByMatchAndCredential(
         input.matchId,

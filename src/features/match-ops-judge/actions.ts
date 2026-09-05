@@ -9,8 +9,9 @@ import { requireActor } from "@/lib/auth/actor";
 import { toActorCaller } from "@/lib/field-operations-auth";
 import { AppError } from "@/lib/errors/app-error";
 import {
-  MATCH_OPS_JUDGE_SLOT_COUNT,
+  MATCH_OPS_JUDGE_DEFAULT_SLOT_COUNT,
   parseJudgeScoreInput,
+  resolveManualSlotCount,
 } from "@/lib/match-ops-judge-score";
 import {
   resolveFieldOpsCallerFromMutation,
@@ -55,9 +56,25 @@ type ParsedSlot = {
   }[];
 };
 
-function parseSlotsJson(raw: string): ParsedSlot[] {
+function parseSlotsJson(raw: string, manualSlotCount: number): ParsedSlot[] {
   const parsed = JSON.parse(raw) as ParsedSlot[];
-  if (!Array.isArray(parsed) || parsed.length !== MATCH_OPS_JUDGE_SLOT_COUNT) {
+  if (!Array.isArray(parsed)) {
+    throw new AppError("VALIDATION_ERROR", "채점심판 입력 형식이 올바르지 않습니다.");
+  }
+  const slotCount = resolveManualSlotCount({
+    requestedCount: manualSlotCount,
+    manualSlots: parsed.map((slot) => ({
+      judgeOrder: slot.judgeOrder,
+      credentialId: slot.credentialId,
+      judgeName: null,
+      status: "none" as const,
+      updatedAt: slot.updatedAt,
+      redTotal: null,
+      blueTotal: null,
+      rounds: slot.rounds,
+    })),
+  });
+  if (parsed.length !== slotCount) {
     throw new AppError("VALIDATION_ERROR", "채점심판 입력 형식이 올바르지 않습니다.");
   }
   return parsed.map((slot) => ({
@@ -94,13 +111,22 @@ export async function saveMatchOpsJudgeScoresAction(
     const caller = await resolveFieldOpsCallerFromMutation(formData);
     const matchId = String(formData.get("matchId") ?? "").trim();
     const slotsJson = String(formData.get("slotsJson") ?? "").trim();
+    const manualSlotCountRaw = Number(
+      String(formData.get("manualSlotCount") ?? "").trim(),
+    );
+    const manualSlotCount = resolveManualSlotCount({
+      requestedCount: Number.isFinite(manualSlotCountRaw)
+        ? manualSlotCountRaw
+        : MATCH_OPS_JUDGE_DEFAULT_SLOT_COUNT,
+    });
     if (!matchId || !slotsJson) {
       throw new AppError("VALIDATION_ERROR", "채점심판 입력이 올바르지 않습니다.");
     }
 
-    const slots = parseSlotsJson(slotsJson);
+    const slots = parseSlotsJson(slotsJson, manualSlotCount);
     const entry = await matchOpsJudgeScoreService.saveSlots(caller, {
       matchId,
+      manualSlotCount,
       slots,
     });
     return actionSuccess(entry);

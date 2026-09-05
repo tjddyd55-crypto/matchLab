@@ -1,6 +1,7 @@
 "use client";
 
-import { useCallback, useEffect, useMemo, useRef, useState, useTransition } from "react";
+import { useCallback, useEffect, useMemo, useRef, useState, useTransition, type ReactNode } from "react";
+import { ChevronDown, ChevronRight } from "lucide-react";
 import { FeedbackMessage } from "@/components/shared/FeedbackMessage";
 import { Button } from "@/components/ui/button";
 import {
@@ -9,8 +10,12 @@ import {
 } from "@/features/match-ops-judge/actions";
 import {
   calculateJudgeScoreTotals,
+  countManualSlotsWithInput,
+  countPortalSubmitted,
   emptyRounds,
+  MATCH_OPS_JUDGE_DEFAULT_SLOT_COUNT,
   parseJudgeScoreInput,
+  type MatchOpsJudgePortalEntry,
   type MatchOpsJudgeSlotState,
 } from "@/lib/match-ops-judge-score";
 import {
@@ -37,8 +42,8 @@ type SlotDraft = MatchOpsJudgeSlotState & {
   dirty: boolean;
 };
 
-function toDrafts(entry: MatchOpsJudgeScoreEntryVM): SlotDraft[] {
-  return entry.slots.map((slot) => ({ ...slot, dirty: false }));
+function toManualDrafts(entry: MatchOpsJudgeScoreEntryVM): SlotDraft[] {
+  return entry.manualSlots.map((slot) => ({ ...slot, dirty: false }));
 }
 
 function slotStatusLabel(status: MatchOpsJudgeSlotState["status"]): string {
@@ -47,6 +52,113 @@ function slotStatusLabel(status: MatchOpsJudgeSlotState["status"]): string {
   }
   if (status === "draft") return "임시저장";
   return "미입력";
+}
+
+function portalStatusLabel(status: MatchOpsJudgePortalEntry["status"]): string {
+  if (status === "submitted" || status === "revised" || status === "locked") {
+    return "제출완료";
+  }
+  if (status === "draft") return "임시저장";
+  return "미입력";
+}
+
+type CollapsibleSectionProps = {
+  title: string;
+  summary: string;
+  expanded: boolean;
+  onToggle: () => void;
+  children: ReactNode;
+};
+
+function CollapsibleSection({
+  title,
+  summary,
+  expanded,
+  onToggle,
+  children,
+}: CollapsibleSectionProps) {
+  const Chevron = expanded ? ChevronDown : ChevronRight;
+  return (
+    <div className="rounded-lg border bg-muted/10">
+      <button
+        type="button"
+        onClick={onToggle}
+        className="flex w-full items-center gap-2 px-3 py-2.5 text-left"
+        aria-expanded={expanded}
+      >
+        <Chevron className="text-muted-foreground size-4 shrink-0" aria-hidden />
+        <span className="min-w-0 flex-1 text-xs font-semibold text-[#0F172A]">
+          {title}
+        </span>
+        <span className="text-muted-foreground shrink-0 text-[11px]">
+          {summary}
+        </span>
+      </button>
+      {expanded ? (
+        <div className="space-y-2 border-t px-3 pb-3 pt-2">{children}</div>
+      ) : null}
+    </div>
+  );
+}
+
+function JudgeRoundGrid({
+  roundCount,
+  rounds,
+  disabled,
+  onRoundChange,
+}: {
+  roundCount: number;
+  rounds: MatchOpsJudgeSlotState["rounds"];
+  disabled: boolean;
+  onRoundChange: (
+    roundNumber: number,
+    patch: { redScore?: string; blueScore?: string },
+  ) => void;
+}) {
+  return (
+    <div className="space-y-2">
+      {rounds.map((round) => (
+        <div
+          key={round.roundNumber}
+          className="grid grid-cols-[44px_1fr_1fr] items-center gap-2"
+        >
+          <span className="text-muted-foreground text-[11px] font-medium">
+            {roundCount > 1 ? `${round.roundNumber}R` : "점수"}
+          </span>
+          <label className={organizerOperationDetailLabelControlClass}>
+            <span className={organizerOperationDetailFieldLabelClass}>RED</span>
+            <input
+              type="number"
+              inputMode="numeric"
+              min={0}
+              max={10}
+              value={round.redScore ?? ""}
+              disabled={disabled}
+              onChange={(e) =>
+                onRoundChange(round.roundNumber, { redScore: e.target.value })
+              }
+              className="border-input bg-background h-[34px] w-full rounded-md border px-2 text-sm"
+            />
+          </label>
+          <label className={organizerOperationDetailLabelControlClass}>
+            <span className={organizerOperationDetailFieldLabelClass}>BLUE</span>
+            <input
+              type="number"
+              inputMode="numeric"
+              min={0}
+              max={10}
+              value={round.blueScore ?? ""}
+              disabled={disabled}
+              onChange={(e) =>
+                onRoundChange(round.roundNumber, { blueScore: e.target.value })
+              }
+              className="border-input bg-background h-[34px] w-full rounded-md border px-2 text-sm"
+            />
+          </label>
+        </div>
+      ))}
+    </div>
+  );
 }
 
 export function MatchOpsJudgeScoreSection({
@@ -61,32 +173,60 @@ export function MatchOpsJudgeScoreSection({
   const contextOpsToken = useOnsiteOpsToken();
   const opsToken = opsTokenProp ?? contextOpsToken;
   const [entry, setEntry] = useState<MatchOpsJudgeScoreEntryVM | null>(null);
-  const [slots, setSlots] = useState<SlotDraft[]>([]);
+  const [manualSlots, setManualSlots] = useState<SlotDraft[]>([]);
+  const [portalEntries, setPortalEntries] = useState<MatchOpsJudgePortalEntry[]>(
+    [],
+  );
+  const [manualSlotCount, setManualSlotCount] = useState(
+    MATCH_OPS_JUDGE_DEFAULT_SLOT_COUNT,
+  );
+  const [manualExpanded, setManualExpanded] = useState(true);
+  const [portalExpanded, setPortalExpanded] = useState(false);
   const [error, setError] = useState<string | null>(null);
   const [success, setSuccess] = useState<string | null>(null);
   const [staleNotice, setStaleNotice] = useState(false);
   const [pending, startTransition] = useTransition();
   const dirtyRef = useRef(false);
   const pausePollRef = useRef(false);
+  const portalInitRef = useRef(false);
 
-  const applyEntry = useCallback((next: MatchOpsJudgeScoreEntryVM, preserveDirty = false) => {
-    setEntry(next);
-    if (!preserveDirty || !dirtyRef.current) {
-      setSlots(toDrafts(next));
-      dirtyRef.current = false;
-      setStaleNotice(false);
-      return;
-    }
+  const applyEntry = useCallback(
+    (next: MatchOpsJudgeScoreEntryVM, preserveDirty = false) => {
+      setEntry(next);
+      setPortalEntries(next.portalEntries);
+      setManualSlotCount(next.manualSlotCount);
 
-    setSlots((prev) =>
-      next.slots.map((slot) => {
-        const current = prev.find((p) => p.judgeOrder === slot.judgeOrder);
-        if (current?.dirty) return current;
-        return { ...slot, dirty: false };
-      }),
-    );
-    setStaleNotice(true);
-  }, []);
+      if (!portalInitRef.current) {
+        setPortalExpanded(next.portalEntries.length > 0);
+        portalInitRef.current = true;
+      }
+
+      if (!preserveDirty || !dirtyRef.current) {
+        setManualSlots(toManualDrafts(next));
+        dirtyRef.current = false;
+        setStaleNotice(false);
+        return;
+      }
+
+      setManualSlots((prev) => {
+        const nextOrders = new Set(next.manualSlots.map((s) => s.judgeOrder));
+        const preserved = prev.filter((slot) => nextOrders.has(slot.judgeOrder));
+        const merged = next.manualSlots.map((slot) => {
+          const current = preserved.find((p) => p.judgeOrder === slot.judgeOrder);
+          if (current?.dirty) return current;
+          return { ...slot, dirty: false };
+        });
+        for (const slot of preserved) {
+          if (!nextOrders.has(slot.judgeOrder) && slot.dirty) {
+            merged.push(slot);
+          }
+        }
+        return merged.sort((a, b) => a.judgeOrder - b.judgeOrder);
+      });
+      setStaleNotice(true);
+    },
+    [],
+  );
 
   const load = useCallback(async () => {
     const res = await getMatchOpsJudgeScoresAction(matchId, opsToken ?? undefined);
@@ -98,9 +238,11 @@ export function MatchOpsJudgeScoreSection({
   }, [applyEntry, matchId, opsToken]);
 
   useEffect(() => {
-    setError(null);
-    setSuccess(null);
-    void load();
+    portalInitRef.current = false;
+    const timer = window.setTimeout(() => {
+      void load();
+    }, 0);
+    return () => window.clearTimeout(timer);
   }, [load, resetKey]);
 
   useEffect(() => {
@@ -142,12 +284,12 @@ export function MatchOpsJudgeScoreSection({
     return () => window.clearInterval(timer);
   }, [load]);
 
-  function updateRound(
+  function updateManualRound(
     judgeOrder: number,
     roundNumber: number,
     patch: { redScore?: string; blueScore?: string },
   ) {
-    setSlots((prev) =>
+    setManualSlots((prev) =>
       prev.map((slot) => {
         if (slot.judgeOrder !== judgeOrder) return slot;
         return {
@@ -176,6 +318,27 @@ export function MatchOpsJudgeScoreSection({
     setSuccess(null);
   }
 
+  function addManualSlot() {
+    const nextOrder = Math.max(manualSlotCount, ...manualSlots.map((s) => s.judgeOrder)) + 1;
+    const roundCount = entry?.roundCount ?? MATCH_OPS_JUDGE_DEFAULT_SLOT_COUNT;
+    setManualSlotCount(nextOrder);
+    setManualSlots((prev) => [
+      ...prev,
+      {
+        judgeOrder: nextOrder,
+        credentialId: null,
+        judgeName: null,
+        status: "none",
+        updatedAt: null,
+        redTotal: null,
+        blueTotal: null,
+        rounds: emptyRounds(roundCount),
+        dirty: false,
+      },
+    ]);
+    setManualExpanded(true);
+  }
+
   function onSave() {
     setError(null);
     setSuccess(null);
@@ -183,10 +346,11 @@ export function MatchOpsJudgeScoreSection({
       const fd = new FormData();
       fd.set("matchId", matchId);
       appendOnsiteOpsToken(fd, opsToken);
+      fd.set("manualSlotCount", String(manualSlotCount));
       fd.set(
         "slotsJson",
         JSON.stringify(
-          slots.map((slot) => ({
+          manualSlots.map((slot) => ({
             judgeOrder: slot.judgeOrder,
             credentialId: slot.credentialId,
             updatedAt: slot.updatedAt,
@@ -204,13 +368,24 @@ export function MatchOpsJudgeScoreSection({
     });
   }
 
+  const manualInputCount = useMemo(
+    () => countManualSlotsWithInput(manualSlots),
+    [manualSlots],
+  );
+
+  const portalSubmittedCount = useMemo(
+    () => countPortalSubmitted(portalEntries),
+    [portalEntries],
+  );
+
   const totals = useMemo(
     () =>
       calculateJudgeScoreTotals({
         roundCount: entry?.roundCount ?? 0,
-        slots,
+        manualSlots,
+        portalEntries,
       }),
-    [entry?.roundCount, slots],
+    [entry?.roundCount, manualSlots, portalEntries],
   );
 
   if (!entry) {
@@ -223,7 +398,7 @@ export function MatchOpsJudgeScoreSection({
   }
 
   return (
-    <div className={organizerOperationDetailMajorSectionClass}>
+    <div className={cn(organizerOperationDetailMajorSectionClass, "space-y-4")}>
       <div className="flex items-center justify-between gap-2">
         <p className={organizerOperationSectionTitleClass}>채점심판</p>
         <p className="text-muted-foreground text-[11px]">
@@ -231,83 +406,104 @@ export function MatchOpsJudgeScoreSection({
         </p>
       </div>
 
-      <div className={organizerOperationDetailFieldStackClass}>
-        {slots.map((slot) => (
-          <div
-            key={slot.judgeOrder}
-            className="rounded-lg border bg-muted/10 px-3 py-2.5"
-          >
-            <div className="mb-2 flex items-center justify-between gap-2">
-              <p className="text-xs font-semibold text-[#0F172A]">
-                채점심판 {slot.judgeOrder}
-                {slot.judgeName ? (
-                  <span className="text-muted-foreground font-normal">
-                    {" "}
-                    · {slot.judgeName}
+      <div className={cn(organizerOperationDetailFieldStackClass, "gap-3")}>
+        <CollapsibleSection
+          title="수동 채점심판"
+          summary={`${manualInputCount}명 입력`}
+          expanded={manualExpanded}
+          onToggle={() => setManualExpanded((v) => !v)}
+        >
+          <div className="space-y-2">
+            {manualSlots.map((slot) => (
+              <div
+                key={slot.judgeOrder}
+                className="rounded-md border bg-background px-2.5 py-2"
+              >
+                <div className="mb-2 flex items-center justify-between gap-2">
+                  <p className="min-w-0 truncate text-xs font-semibold text-[#0F172A]">
+                    채점심판 {slot.judgeOrder}
+                    <span className="text-muted-foreground font-normal">
+                      {" "}
+                      · 수동입력
+                    </span>
+                  </p>
+                  <span className="text-muted-foreground shrink-0 text-[11px]">
+                    {slotStatusLabel(slot.status)}
                   </span>
+                </div>
+                <JudgeRoundGrid
+                  roundCount={entry.roundCount}
+                  rounds={slot.rounds}
+                  disabled={entry.isLocked || pending}
+                  onRoundChange={(roundNumber, patch) =>
+                    updateManualRound(slot.judgeOrder, roundNumber, patch)
+                  }
+                />
+                {slot.redTotal != null && slot.blueTotal != null ? (
+                  <p className="text-muted-foreground mt-2 text-[11px]">
+                    합계 RED {slot.redTotal} · BLUE {slot.blueTotal}
+                  </p>
                 ) : null}
-              </p>
-              <span className="text-muted-foreground text-[11px]">
-                {slotStatusLabel(slot.status)}
-              </span>
-            </div>
+              </div>
+            ))}
+          </div>
+          {!entry.isLocked ? (
+            <Button
+              type="button"
+              size="sm"
+              variant="ghost"
+              className="h-8 w-full text-xs"
+              onClick={addManualSlot}
+            >
+              수동 채점심판 추가
+            </Button>
+          ) : null}
+        </CollapsibleSection>
 
+        <CollapsibleSection
+          title="실제 심판"
+          summary={`${portalEntries.length}명 · ${portalSubmittedCount}명 제출`}
+          expanded={portalExpanded}
+          onToggle={() => setPortalExpanded((v) => !v)}
+        >
+          {portalEntries.length === 0 ? (
+            <p className="text-muted-foreground text-xs">
+              Judge Portal에서 제출된 채점이 없습니다.
+            </p>
+          ) : (
             <div className="space-y-2">
-              {slot.rounds.map((round) => (
+              {portalEntries.map((portal) => (
                 <div
-                  key={round.roundNumber}
-                  className="grid grid-cols-[44px_1fr_1fr] items-center gap-2"
+                  key={portal.credentialId}
+                  className="rounded-md border bg-background px-2.5 py-2"
                 >
-                  <span className="text-muted-foreground text-[11px] font-medium">
-                    {entry.roundCount > 1 ? `${round.roundNumber}R` : "점수"}
-                  </span>
-                  <label className={organizerOperationDetailLabelControlClass}>
-                    <span className={organizerOperationDetailFieldLabelClass}>
-                      RED
+                  <div className="mb-2 flex items-center justify-between gap-2">
+                    <p className="min-w-0 truncate text-xs font-semibold text-[#0F172A]">
+                      {portal.judgeName}
+                    </p>
+                    <span className="text-muted-foreground shrink-0 text-[11px]">
+                      {portalStatusLabel(portal.status)}
                     </span>
-                    <input
-                      type="number"
-                      min={0}
-                      max={10}
-                      value={round.redScore ?? ""}
-                      disabled={entry.isLocked || pending}
-                      onChange={(e) =>
-                        updateRound(slot.judgeOrder, round.roundNumber, {
-                          redScore: e.target.value,
-                        })
-                      }
-                      className="border-input bg-background h-[34px] w-full rounded-md border px-2 text-sm"
-                    />
-                  </label>
-                  <label className={organizerOperationDetailLabelControlClass}>
-                    <span className={organizerOperationDetailFieldLabelClass}>
-                      BLUE
-                    </span>
-                    <input
-                      type="number"
-                      min={0}
-                      max={10}
-                      value={round.blueScore ?? ""}
-                      disabled={entry.isLocked || pending}
-                      onChange={(e) =>
-                        updateRound(slot.judgeOrder, round.roundNumber, {
-                          blueScore: e.target.value,
-                        })
-                      }
-                      className="border-input bg-background h-[34px] w-full rounded-md border px-2 text-sm"
-                    />
-                  </label>
+                  </div>
+                  <p className="text-muted-foreground mb-2 text-[11px]">
+                    심판직접입력
+                  </p>
+                  <JudgeRoundGrid
+                    roundCount={entry.roundCount}
+                    rounds={portal.rounds}
+                    disabled
+                    onRoundChange={() => undefined}
+                  />
+                  {portal.redTotal != null && portal.blueTotal != null ? (
+                    <p className="text-muted-foreground mt-2 text-[11px]">
+                      합계 RED {portal.redTotal} · BLUE {portal.blueTotal}
+                    </p>
+                  ) : null}
                 </div>
               ))}
             </div>
-
-            {slot.redTotal != null && slot.blueTotal != null ? (
-              <p className="text-muted-foreground mt-2 text-[11px]">
-                합계 RED {slot.redTotal} · BLUE {slot.blueTotal}
-              </p>
-            ) : null}
-          </div>
-        ))}
+          )}
+        </CollapsibleSection>
       </div>
 
       <div className="rounded-lg border bg-muted/20 px-3 py-3">
@@ -320,24 +516,45 @@ export function MatchOpsJudgeScoreSection({
           <>
             <div className="mt-2 grid grid-cols-2 gap-3 text-center">
               <div>
-                <p className={cn("text-[11px] font-semibold", matchonRedCornerTextClass)}>
+                <p
+                  className={cn(
+                    "text-[11px] font-semibold",
+                    matchonRedCornerTextClass,
+                  )}
+                >
                   RED
                 </p>
-                <p className={cn("mt-1 text-2xl font-bold tabular-nums", matchonRedCornerTextClass)}>
+                <p
+                  className={cn(
+                    "mt-1 text-2xl font-bold tabular-nums",
+                    matchonRedCornerTextClass,
+                  )}
+                >
                   {totals.redTotal}
                 </p>
               </div>
               <div>
-                <p className={cn("text-[11px] font-semibold", matchonBlueCornerTextClass)}>
+                <p
+                  className={cn(
+                    "text-[11px] font-semibold",
+                    matchonBlueCornerTextClass,
+                  )}
+                >
                   BLUE
                 </p>
-                <p className={cn("mt-1 text-2xl font-bold tabular-nums", matchonBlueCornerTextClass)}>
+                <p
+                  className={cn(
+                    "mt-1 text-2xl font-bold tabular-nums",
+                    matchonBlueCornerTextClass,
+                  )}
+                >
                   {totals.blueTotal}
                 </p>
               </div>
             </div>
             <p className="text-muted-foreground mt-2 text-center text-[11px]">
-              {totals.completedJudgeCount}명 심판 점수 합산
+              수동 {totals.manualCompletedCount}명 · Portal{" "}
+              {totals.portalCompletedCount}명 합산
               {totals.isTie ? " · 동점" : ""}
             </p>
           </>

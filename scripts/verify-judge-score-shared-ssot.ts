@@ -10,7 +10,7 @@ import {
   calculateJudgeScoreTotals,
   emptyRounds,
   isJudgeSlotEmpty,
-  mapScorecardsToMatchOpsSlots,
+  mapManualScorecardsToSlots,
   validateJudgeSlotForSave,
 } from "../src/lib/match-ops-judge-score";
 
@@ -34,11 +34,15 @@ function assertStaticWiring() {
   assert.match(section, /dirty/);
   assert.match(section, /calculateJudgeScoreTotals/);
   assert.match(section, /최종 합계/);
+  assert.match(section, /수동 채점심판/);
+  assert.match(section, /실제 심판/);
   assert.doesNotMatch(section, /confirmMatchResults/);
 
   const service = read("src/lib/services/match-ops-judge-score.service.ts");
   assert.match(service, /judgeScorecardRepository\.upsertDraft/);
   assert.match(service, /deleteByMatchAndCredential/);
+  assert.match(service, /mapPortalScorecards/);
+  assert.match(service, /mapManualScorecardsToSlots/);
   assert.doesNotMatch(service, /confirmMatchResults/);
 
   const court = read("src/lib/services/judge-court.service.ts");
@@ -47,13 +51,17 @@ function assertStaticWiring() {
 
 function assertSlotMapping() {
   const roundCount = 3;
-  const slots = mapScorecardsToMatchOpsSlots({
+  const eventId = "evt-test";
+  const slots = mapManualScorecardsToSlots({
+    eventId,
     assignments: [
       { judgeOrder: 1, credentialId: "cred-1" },
       { judgeOrder: 3, credentialId: "cred-3" },
     ],
     scorecards: [
       {
+        scorecardId: "sc-1",
+        loginId: `matchops-${eventId}-slot-1`,
         credentialId: "cred-1",
         judgeName: "심판A",
         status: JudgeScorecardStatus.submitted,
@@ -67,6 +75,8 @@ function assertSlotMapping() {
         ],
       },
       {
+        scorecardId: "sc-2",
+        loginId: "court-c1-judge-19900101",
         credentialId: "cred-2",
         judgeName: "심판B",
         status: JudgeScorecardStatus.submitted,
@@ -81,11 +91,12 @@ function assertSlotMapping() {
       },
     ],
     roundCount,
+    slotCount: 3,
   });
 
   assert.equal(slots.length, 3);
   assert.equal(slots[0]?.credentialId, "cred-1");
-  assert.equal(slots[1]?.credentialId, "cred-2");
+  assert.equal(slots[1]?.status, "none");
   assert.equal(slots[2]?.credentialId, "cred-3");
   assert.equal(slots[2]?.status, "none");
 }
@@ -116,10 +127,9 @@ function assertValidation() {
 function assertJudgeScoreTotals() {
   const roundCount = 2;
 
-  // CASE A: 3 judges complete
   const caseA = calculateJudgeScoreTotals({
     roundCount,
-    slots: [
+    manualSlots: [
       {
         rounds: [
           { roundNumber: 1, redScore: 10, blueScore: 9 },
@@ -132,6 +142,8 @@ function assertJudgeScoreTotals() {
           { roundNumber: 2, redScore: 9, blueScore: 10 },
         ],
       },
+    ],
+    portalEntries: [
       {
         rounds: [
           { roundNumber: 1, redScore: 9, blueScore: 10 },
@@ -143,12 +155,13 @@ function assertJudgeScoreTotals() {
   assert.equal(caseA.redTotal, 58);
   assert.equal(caseA.blueTotal, 56);
   assert.equal(caseA.completedJudgeCount, 3);
+  assert.equal(caseA.manualCompletedCount, 2);
+  assert.equal(caseA.portalCompletedCount, 1);
   assert.equal(caseA.isTie, false);
 
-  // CASE B: 2 judges, slot 3 blank
   const caseB = calculateJudgeScoreTotals({
     roundCount,
-    slots: [
+    manualSlots: [
       {
         rounds: [
           { roundNumber: 1, redScore: 10, blueScore: 9 },
@@ -170,7 +183,6 @@ function assertJudgeScoreTotals() {
   assert.equal(caseB.blueTotal, 37);
   assert.equal(caseB.completedJudgeCount, 2);
 
-  // CASE C: 0 judges
   const caseC = calculateJudgeScoreTotals({
     roundCount,
     slots: [
@@ -183,10 +195,9 @@ function assertJudgeScoreTotals() {
   assert.equal(caseC.blueTotal, null);
   assert.equal(caseC.completedJudgeCount, 0);
 
-  // CASE D: score edit — change judge 2 BLUE round 2 from 10 to 8
   const caseD = calculateJudgeScoreTotals({
     roundCount,
-    slots: [
+    manualSlots: [
       {
         rounds: [
           { roundNumber: 1, redScore: 10, blueScore: 9 },
@@ -203,10 +214,9 @@ function assertJudgeScoreTotals() {
   });
   assert.equal(caseD.blueTotal, 35);
 
-  // CASE E: partial judge excluded (not complete)
   const caseE = calculateJudgeScoreTotals({
     roundCount,
-    slots: [
+    manualSlots: [
       {
         rounds: [
           { roundNumber: 1, redScore: 10, blueScore: 9 },
@@ -225,13 +235,10 @@ function assertJudgeScoreTotals() {
   assert.equal(caseE.blueTotal, 18);
   assert.equal(caseE.completedJudgeCount, 1);
 
-  // CASE F: tie
   const caseF = calculateJudgeScoreTotals({
     roundCount: 1,
-    slots: [
-      { rounds: [{ roundNumber: 1, redScore: 10, blueScore: 9 }] },
-      { rounds: [{ roundNumber: 1, redScore: 9, blueScore: 10 }] },
-    ],
+    manualSlots: [{ rounds: [{ roundNumber: 1, redScore: 10, blueScore: 9 }] }],
+    portalEntries: [{ rounds: [{ roundNumber: 1, redScore: 9, blueScore: 10 }] }],
   });
   assert.equal(caseF.redTotal, 19);
   assert.equal(caseF.blueTotal, 19);
