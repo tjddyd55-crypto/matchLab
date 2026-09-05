@@ -48,6 +48,7 @@ export type JudgeScorecardRow = {
   submittedIp: string | null;
   submittedUserAgent: string | null;
   rounds: JudgeRoundScoreRow[];
+  updatedAt: Date;
 };
 
 export const judgeScorecardRepository = {
@@ -190,6 +191,16 @@ export const judgeScorecardRepository = {
     await db(tx).judgeScorecard.updateMany({
       where: { matchId, status: { not: "locked" } },
       data: { status: "locked" },
+    });
+  },
+
+  async deleteByMatchAndCredential(
+    matchId: string,
+    credentialId: string,
+    tx?: Prisma.TransactionClient,
+  ): Promise<void> {
+    await db(tx).judgeScorecard.deleteMany({
+      where: { matchId, credentialId },
     });
   },
 

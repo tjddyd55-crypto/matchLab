@@ -157,6 +157,7 @@
     "seed:default-sport-templates": "tsx scripts/seed-default-sport-templates.ts",
     "verify:member-template-admin": "tsx scripts/verify-member-template-admin.ts",
     "verify:judge-score-sheet-pdf": "tsx scripts/verify-judge-score-sheet-pdf.ts",
+    "verify:judge-score-shared-ssot": "tsx scripts/verify-judge-score-shared-ssot.ts",
     "verify:gym-member-ui-v2-phase1": "tsx scripts/verify-gym-member-ui-v2-phase1.ts",
     "verify:gym-member-new-this-month-filter": "tsx scripts/verify-gym-member-new-this-month-filter.ts",
     "verify:gym-member-registration-v3": "tsx scripts/verify-gym-member-registration-v3.ts",

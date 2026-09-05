@@ -40,6 +40,7 @@ import {
 } from "@/lib/ui/match-status-ui";
 import { WinnerCornerPicker } from "@/components/domain/brackets/WinnerCornerPicker";
 import { BoutFormatBadge } from "@/components/domain/shared/BoutFormatBadge";
+import { MatchOpsJudgeScoreSection } from "@/components/domain/operation/MatchOpsJudgeScoreSection";
 import { outcomeStylePublicLabel } from "@/lib/match-result-snapshot";
 import { cn } from "@/lib/utils";
 
@@ -493,6 +494,13 @@ function OrganizerMatchOpsPanelBody(props: OrganizerMatchOpsPanelProps) {
         />
       ) : null}
 
+      {isOperation ? (
+        <MatchOpsJudgeScoreSection
+          matchId={props.matchId}
+          resetKey={`${props.matchId}:${props.hasOfficialResults}:${props.status}`}
+        />
+      ) : null}
+
       {canRecordOutcome ? (
         <form
           className={cn(
@@ -500,6 +508,9 @@ function OrganizerMatchOpsPanelBody(props: OrganizerMatchOpsPanelProps) {
           )}
           action={onOutcomeSubmit}
         >
+          {isOperation ? (
+            <p className={organizerOperationSectionTitleClass}>최종결과</p>
+          ) : null}
           <MatchOutcomeEntryFields
             resultType={resultType}
             onResultTypeChange={setResultType}
