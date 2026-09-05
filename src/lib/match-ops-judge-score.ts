@@ -1,4 +1,11 @@
 import type { JudgeScorecardStatus } from "@/generated/prisma";
+import {
+  hasAnyCompleteJudgeRound,
+  isJudgeAllRoundsBlank,
+  isJudgeRoundBlank,
+  sumCompleteJudgeRounds,
+  validateJudgeRounds,
+} from "@/lib/judge-round-score-validation";
 
 export const MATCH_OPS_JUDGE_SLOT_COUNT = 3;
 
@@ -42,19 +49,18 @@ export function buildMatchOpsSlotLoginId(
 }
 
 export function isJudgeSlotRoundEmpty(round: MatchOpsJudgeRoundInput): boolean {
-  return round.redScore == null && round.blueScore == null;
+  return isJudgeRoundBlank(round);
 }
 
 export function isJudgeSlotEmpty(rounds: MatchOpsJudgeRoundInput[]): boolean {
-  return rounds.every(isJudgeSlotRoundEmpty);
+  return isJudgeAllRoundsBlank(rounds);
 }
 
 export function isJudgeSlotComplete(
-  roundCount: number,
+  _roundCount: number,
   rounds: MatchOpsJudgeRoundInput[],
 ): boolean {
-  if (isJudgeSlotEmpty(rounds)) return false;
-  return validateJudgeSlotForSave(0, roundCount, rounds) === null;
+  return hasAnyCompleteJudgeRound(rounds);
 }
 
 export type JudgeScoreTotalsVM = {
@@ -64,7 +70,6 @@ export type JudgeScoreTotalsVM = {
   isTie: boolean;
 };
 
-/** 완료된 심판 슬롯의 라운드 점수를 합산한 경기운영 최종 합계(derived) */
 export function calculateJudgeScoreTotals(input: {
   roundCount: number;
   slots: { rounds: MatchOpsJudgeRoundInput[] }[];
@@ -74,12 +79,11 @@ export function calculateJudgeScoreTotals(input: {
   let completedJudgeCount = 0;
 
   for (const slot of input.slots) {
-    if (!isJudgeSlotComplete(input.roundCount, slot.rounds)) continue;
+    const summed = sumCompleteJudgeRounds(slot.rounds);
+    if (!summed) continue;
     completedJudgeCount += 1;
-    for (const round of slot.rounds) {
-      redTotal += round.redScore ?? 0;
-      blueTotal += round.blueScore ?? 0;
-    }
+    redTotal += summed.redTotal;
+    blueTotal += summed.blueTotal;
   }
 
   if (completedJudgeCount === 0) {
@@ -101,24 +105,11 @@ export function calculateJudgeScoreTotals(input: {
 
 export function validateJudgeSlotForSave(
   judgeOrder: number,
-  roundCount: number,
+  _roundCount: number,
   rounds: MatchOpsJudgeRoundInput[],
 ): string | null {
   if (isJudgeSlotEmpty(rounds)) return null;
-  if (rounds.length !== roundCount) {
-    return `채점심판 ${judgeOrder}: ${roundCount}라운드 점수를 입력해 주세요.`;
-  }
-  for (const round of rounds) {
-    const hasRed = round.redScore != null;
-    const hasBlue = round.blueScore != null;
-    if (!hasRed && !hasBlue) {
-      return `채점심판 ${judgeOrder}: ${round.roundNumber}라운드 점수를 모두 입력해 주세요.`;
-    }
-    if (hasRed !== hasBlue) {
-      return `채점심판 ${judgeOrder}: ${round.roundNumber}라운드 홍/청 점수를 모두 입력해 주세요.`;
-    }
-  }
-  return null;
+  return validateJudgeRounds(rounds, judgeOrder > 0 ? judgeOrder : undefined);
 }
 
 export function mapScorecardsToMatchOpsSlots(input: {

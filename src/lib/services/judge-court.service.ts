@@ -16,6 +16,10 @@ import {
 import { AppError } from "@/lib/errors/app-error";
 import { isExternalRegistrationPlaceholderGymName } from "@/lib/gym/external-registration-placeholder-gym";
 import { computeScorecardTotals } from "@/lib/judge-score-aggregation";
+import {
+  hasAnyCompleteJudgeRound,
+  validateJudgeRounds,
+} from "@/lib/judge-round-score-validation";
 import { hashJudgePassword } from "@/lib/judge-password";
 import { readRequestClientMeta } from "@/lib/judge-request-meta";
 import { defaultRoundCountForSport } from "@/lib/judge-round-count";
@@ -687,8 +691,8 @@ export const judgeCourtService = {
     birthDate: string;
     rounds: {
       roundNumber: number;
-      redScore: number;
-      blueScore: number;
+      redScore: number | null;
+      blueScore: number | null;
     }[];
     decisionMethod?: JudgeDecisionMethod | null;
     memo?: string | null;
@@ -698,8 +702,26 @@ export const judgeCourtService = {
     if (!match || match.id !== input.matchId) {
       throw new AppError("CONFLICT", "현재 진행중인 경기가 아닙니다.");
     }
-    if (input.rounds.length === 0) {
-      throw new AppError("VALIDATION_ERROR", "라운드 점수를 입력해 주세요.");
+
+    const ops = parseMatchOperationalSettings(match.resultMemo);
+    const expectedRounds = effectiveScoringRoundCountFromOps({
+      ...ops.settings,
+      roundCount: ops.settings.roundCount || defaultRoundCountForSport(match.bracket.division?.sportType ?? null),
+    });
+
+    if (input.rounds.length !== expectedRounds) {
+      throw new AppError(
+        "VALIDATION_ERROR",
+        `라운드 수가 일치하지 않습니다. (${expectedRounds}라운드)`,
+      );
+    }
+
+    const halfFilledError = validateJudgeRounds(input.rounds);
+    if (halfFilledError) {
+      throw new AppError("VALIDATION_ERROR", halfFilledError);
+    }
+    if (!hasAnyCompleteJudgeRound(input.rounds)) {
+      throw new AppError("VALIDATION_ERROR", "최소 1개 라운드 점수를 입력해 주세요.");
     }
 
     const { credential, birthSnapshot, judgeName } = await resolveCredentialForOpenJudge(
@@ -714,18 +736,6 @@ export const judgeCourtService = {
     );
     if (existing?.status === JudgeScorecardStatus.locked) {
       throw new AppError("CONFLICT", "종료된 경기 채점은 수정할 수 없습니다.");
-    }
-
-    const ops = parseMatchOperationalSettings(match.resultMemo);
-    const expectedRounds = effectiveScoringRoundCountFromOps({
-      ...ops.settings,
-      roundCount: ops.settings.roundCount || defaultRoundCountForSport(match.bracket.division?.sportType ?? null),
-    });
-    if (input.rounds.length !== expectedRounds) {
-      throw new AppError(
-        "VALIDATION_ERROR",
-        `라운드 수가 일치하지 않습니다. (${expectedRounds}라운드)`,
-      );
     }
 
     const rounds = input.rounds.map((r) => ({
@@ -757,7 +767,7 @@ export const judgeCourtService = {
       judgeRoleSnapshot: JudgeCredentialRole.SCORING_JUDGE,
       cornerRedFighterId: match.fighterRedId,
       cornerBlueFighterId: match.fighterBlueId,
-      roundCount: rounds.length,
+      roundCount: expectedRounds,
       status: nextStatus,
       redTotal: totals.redTotal,
       blueTotal: totals.blueTotal,

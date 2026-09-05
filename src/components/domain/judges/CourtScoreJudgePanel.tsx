@@ -12,6 +12,10 @@ import { FeedbackMessage } from "@/components/shared/FeedbackMessage";
 import { MatchonStatusBadge } from "@/components/shared/MatchonStatusBadge";
 import { BoutFormatBadge } from "@/components/domain/shared/BoutFormatBadge";
 import { effectiveScoringRoundCount } from "@/lib/court-judge-rounds";
+import {
+  hasAnyCompleteJudgeRound,
+  validateJudgeRounds,
+} from "@/lib/judge-round-score-validation";
 import type {
   CourtJudgeCourtVM,
   CourtJudgeMatchVM,
@@ -41,10 +45,12 @@ import {
 
 type RoundState = { roundNumber: number; redScore: string; blueScore: string };
 
-function normalizeScoreInput(value: string): number {
+function normalizeScoreInput(value: string): number | null {
   const trimmed = value.trim();
-  if (!trimmed) return 0;
-  return Number(trimmed);
+  if (!trimmed) return null;
+  const n = Number(trimmed);
+  if (!Number.isFinite(n)) return null;
+  return Math.max(0, Math.min(10, Math.round(n)));
 }
 
 function buildInitialRounds(count: number, existing?: CourtJudgeMyScorecardVM | null): RoundState[] {
@@ -181,6 +187,20 @@ function ScoreForm({
     startTransition(async () => {
       setError(null);
       setMessage(null);
+      const payloadRounds = rounds.map((round) => ({
+        roundNumber: round.roundNumber,
+        redScore: normalizeScoreInput(round.redScore),
+        blueScore: normalizeScoreInput(round.blueScore),
+      }));
+      const validationError = validateJudgeRounds(payloadRounds);
+      if (validationError) {
+        setError(validationError);
+        return;
+      }
+      if (!hasAnyCompleteJudgeRound(payloadRounds)) {
+        setError("최소 1개 라운드 점수를 입력해 주세요.");
+        return;
+      }
       const fd = new FormData();
       fd.set("courtId", match.courtId);
       fd.set("matchId", match.matchId);
@@ -188,16 +208,7 @@ function ScoreForm({
       fd.set("birthDate", birthDate);
       fd.set("decisionMethod", decisionMethod);
       fd.set("memo", memo);
-      fd.set(
-        "roundsJson",
-        JSON.stringify(
-          rounds.map((round) => ({
-            roundNumber: round.roundNumber,
-            redScore: normalizeScoreInput(round.redScore),
-            blueScore: normalizeScoreInput(round.blueScore),
-          })),
-        ),
-      );
+      fd.set("roundsJson", JSON.stringify(payloadRounds));
       const res = await submitCourtScorecardAction(fd);
       if (!res.ok) {
         setError(res.error.message);
@@ -244,7 +255,7 @@ function ScoreForm({
       ) : null}
 
       <div className="space-y-3">
-        <p className="text-muted-foreground text-xs">0점은 비워두면 됩니다.</p>
+        <p className="text-muted-foreground text-xs">입력한 라운드만 저장됩니다.</p>
         {rounds.map((round) => (
           <fieldset
             key={round.roundNumber}

@@ -11,6 +11,10 @@ import { formatBirthDateInput, judgeRoleCanScore, JUDGE_ROLE_LABELS } from "@/li
 import { readRequestClientMeta } from "@/lib/judge-request-meta";
 import { defaultRoundCountForSport } from "@/lib/judge-round-count";
 import {
+  hasAnyCompleteJudgeRound,
+  validateJudgeRounds,
+} from "@/lib/judge-round-score-validation";
+import {
   aggregateJudgeScorecards,
   computeScorecardTotals,
   type JudgeMatchAggregationVM,
@@ -353,15 +357,15 @@ export const judgeScorecardService = {
       : null;
 
     const roundCount = input.rounds.length;
-    if (input.submit) {
-      for (const r of input.rounds) {
-        if (r.redScore == null || r.blueScore == null) {
-          throw new AppError(
-            "VALIDATION_ERROR",
-            `${r.roundNumber}라운드 점수를 모두 입력해 주세요.`,
-          );
-        }
-      }
+    const halfFilledError = validateJudgeRounds(input.rounds);
+    if (halfFilledError) {
+      throw new AppError("VALIDATION_ERROR", halfFilledError);
+    }
+    if (input.submit && !hasAnyCompleteJudgeRound(input.rounds)) {
+      throw new AppError(
+        "VALIDATION_ERROR",
+        "최소 1개 라운드 점수를 입력해 주세요.",
+      );
     }
 
     const totals = computeScorecardTotals(input.rounds);

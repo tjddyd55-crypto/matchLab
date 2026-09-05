@@ -6,6 +6,10 @@ import {
   type ActionResult,
 } from "@/lib/action-result";
 import { AppError } from "@/lib/errors/app-error";
+import {
+  hasAnyCompleteJudgeRound,
+  validateJudgeRounds,
+} from "@/lib/judge-round-score-validation";
 import { judgeCourtService } from "@/lib/services/judge-court.service";
 import type { CourtJudgeMyScorecardVM } from "@/lib/services/judge-court.service";
 import { BracketMatchOutcomeStyle, JudgeDecisionMethod } from "@/lib/enums";
@@ -47,25 +51,27 @@ function scoreNumber(value: unknown): number | null {
   return Math.max(0, Math.min(10, Math.round(n)));
 }
 
-type RoundInput = { roundNumber: number; redScore: number; blueScore: number };
+type RoundInput = {
+  roundNumber: number;
+  redScore: number | null;
+  blueScore: number | null;
+};
 
 function parseRoundsJson(raw: string): RoundInput[] | null {
   if (!raw) return null;
   try {
     const parsed = JSON.parse(raw) as unknown;
-    if (!Array.isArray(parsed)) return null;
+    if (!Array.isArray(parsed) || parsed.length === 0) return null;
     const rounds: RoundInput[] = [];
     for (const item of parsed) {
       if (!item || typeof item !== "object") return null;
       const roundNumber = Number((item as { roundNumber?: unknown }).roundNumber);
+      if (!Number.isFinite(roundNumber) || roundNumber < 1) return null;
       const redScore = scoreNumber((item as { redScore?: unknown }).redScore);
       const blueScore = scoreNumber((item as { blueScore?: unknown }).blueScore);
-      if (!Number.isFinite(roundNumber) || redScore == null || blueScore == null) {
-        return null;
-      }
       rounds.push({ roundNumber, redScore, blueScore });
     }
-    return rounds.length > 0 ? rounds : null;
+    return rounds;
   } catch {
     return null;
   }
@@ -81,10 +87,21 @@ function parseRoundsFromForm(formData: FormData): RoundInput[] | null {
   for (let i = 1; i <= roundCount; i += 1) {
     const redScore = scoreNumber(formData.get(`redScore_${i}`));
     const blueScore = scoreNumber(formData.get(`blueScore_${i}`));
-    if (redScore == null || blueScore == null) return null;
     rounds.push({ roundNumber: i, redScore, blueScore });
   }
   return rounds;
+}
+
+function assertSubmittableRounds(rounds: RoundInput[] | null): string | null {
+  if (!rounds || rounds.length === 0) {
+    return "라운드 점수를 입력해 주세요.";
+  }
+  const halfFilledError = validateJudgeRounds(rounds);
+  if (halfFilledError) return halfFilledError;
+  if (!hasAnyCompleteJudgeRound(rounds)) {
+    return "최소 1개 라운드 점수를 입력해 주세요.";
+  }
+  return null;
 }
 
 export async function getMyCourtScorecardAction(
@@ -106,8 +123,9 @@ export async function submitCourtScorecardAction(
 ): Promise<ActionResult<{ ok: true }>> {
   return mapCaught(async () => {
     const rounds = parseRoundsFromForm(formData);
-    if (!rounds) {
-      return actionFailure("VALIDATION_ERROR", "모든 라운드 점수를 입력해 주세요.");
+    const roundsError = assertSubmittableRounds(rounds);
+    if (roundsError) {
+      return actionFailure("VALIDATION_ERROR", roundsError);
     }
     const decision = formReq(formData, "decisionMethod");
     const courtId = formReq(formData, "courtId");
@@ -117,7 +135,7 @@ export async function submitCourtScorecardAction(
       matchId,
       judgeName: formReq(formData, "judgeName"),
       birthDate: formReq(formData, "birthDate"),
-      rounds,
+      rounds: rounds!,
       decisionMethod: decision ? (decision as JudgeDecisionMethod) : null,
       memo: formReq(formData, "memo") || null,
     });
