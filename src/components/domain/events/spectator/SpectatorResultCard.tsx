@@ -1,5 +1,4 @@
 import type { PublicMatchResultDTO } from "@/lib/dto/public";
-import { MatchRecordOutcome } from "@/lib/enums";
 import { resolveBoutFormatKind, boutFormatLabel } from "@/lib/bout-format";
 import { bracketCardTextTokens } from "@/lib/ui/bracket-card-tokens";
 import { getCardClassName } from "@/lib/ui/card-tokens";
@@ -18,10 +17,14 @@ export function SpectatorResultCard({ result }: { result: PublicMatchResultDTO }
       ? `제${result.matchNumber}경기`
       : "경기";
 
-  const fighterName = result.fighter?.name ?? "—";
-  const opponentName = result.opponent?.name ?? "—";
-  const fighterWin = result.result === MatchRecordOutcome.win;
-  const opponentWin = result.result === MatchRecordOutcome.loss;
+  const redFighter = result.redFighter ?? result.fighter;
+  const blueFighter = result.blueFighter ?? result.opponent;
+  const redName = redFighter?.name ?? "—";
+  const blueName = blueFighter?.name ?? "—";
+  const redWin =
+    result.winnerId != null && result.winnerId === redFighter?.fighterId;
+  const blueWin =
+    result.winnerId != null && result.winnerId === blueFighter?.fighterId;
 
   return (
     <article className={getCardClassName("spectator")}>
@@ -44,7 +47,7 @@ export function SpectatorResultCard({ result }: { result: PublicMatchResultDTO }
         <div
           className={cn(
             "rounded-xl border px-3 py-3",
-            fighterWin
+            redWin
               ? "border-primary/40 bg-primary/5 ring-1 ring-primary/20"
               : getCornerCardClassName("홍코너"),
           )}
@@ -58,9 +61,9 @@ export function SpectatorResultCard({ result }: { result: PublicMatchResultDTO }
             홍코너
           </p>
           <p className={cn("mt-1", bracketCardTextTokens.spectatorFighterName)}>
-            {fighterName}
+            {redName}
           </p>
-          {fighterWin ? (
+          {redWin ? (
             <p className={cn(bracketCardTextTokens.badge, "text-primary mt-1")}>
               승자
             </p>
@@ -72,7 +75,7 @@ export function SpectatorResultCard({ result }: { result: PublicMatchResultDTO }
         <div
           className={cn(
             "rounded-xl border px-3 py-3",
-            opponentWin
+            blueWin
               ? "border-primary/40 bg-primary/5 ring-1 ring-primary/20"
               : getCornerCardClassName("청코너"),
           )}
@@ -86,9 +89,9 @@ export function SpectatorResultCard({ result }: { result: PublicMatchResultDTO }
             청코너
           </p>
           <p className={cn("mt-1", bracketCardTextTokens.spectatorFighterName)}>
-            {opponentName}
+            {blueName}
           </p>
-          {opponentWin ? (
+          {blueWin ? (
             <p className={cn(bracketCardTextTokens.badge, "text-primary mt-1")}>
               승자
             </p>

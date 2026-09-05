@@ -44,7 +44,7 @@ export function SpectatorResultsTab({
     <div className="space-y-4">
       <PublicResultsRealtimeBridge eventId={eventId} slug={slug} bracketIds={[]} />
       {sorted.map((result) => (
-        <SpectatorResultCard key={`${result.matchId}-${result.fighter?.fighterId ?? "x"}`} result={result} />
+        <SpectatorResultCard key={`${result.matchId}-${result.redFighter?.fighterId ?? result.fighter?.fighterId ?? "x"}`} result={result} />
       ))}
     </div>
   );

@@ -76,7 +76,7 @@ export function PublicEventResultsSection({
                 <div className="grid grid-cols-1 gap-4 lg:grid-cols-2">
                   {rows.map((r) => (
                     <PublicEventResultCard
-                      key={`${r.matchId}-${r.fighter?.fighterId ?? "x"}`}
+                      key={`${r.matchId}-${r.redFighter?.fighterId ?? r.fighter?.fighterId ?? "x"}`}
                       result={r}
                     />
                   ))}

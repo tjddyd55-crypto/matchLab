@@ -22,7 +22,6 @@ import { formatDivisionNameLabel } from "@/lib/bracket-snapshot";
 import type {
   PublicEventResultDTO,
   PublicMatchResultDTO,
-  PublicRecordFighterDTO,
 } from "@/lib/dto/public";
 import {
   buildAdvanceWinnerBracketSnapshot,
@@ -33,6 +32,7 @@ import {
   outcomeStylePublicLabel,
 } from "@/lib/match-result-snapshot";
 import { mergeDisplayResultMemo } from "@/lib/match-result-memo";
+import { mapPublicResultCorners } from "@/lib/public-result-corner-mapping";
 import {
   requireGymOwner,
   requireOrganizerForEvent,
@@ -152,20 +152,6 @@ export type ConfirmMatchResultsPrincipal =
 
 function snapshotJson(value: unknown): Prisma.InputJsonValue {
   return JSON.parse(JSON.stringify(value)) as Prisma.InputJsonValue;
-}
-
-function parseFighterSnapshot(raw: unknown): PublicRecordFighterDTO | null {
-  if (!raw || typeof raw !== "object") return null;
-  const o = raw as Record<string, unknown>;
-  if (typeof o.fighterId !== "string" || typeof o.name !== "string") return null;
-  return {
-    fighterId: o.fighterId,
-    fighterCode: typeof o.fighterCode === "string" ? o.fighterCode : "",
-    name: o.name,
-    gymName: typeof o.gymName === "string" ? o.gymName : null,
-    profileImageUrl:
-      typeof o.profileImageUrl === "string" ? o.profileImageUrl : null,
-  };
 }
 
 export type OrganizerEventResultRowVM = {
@@ -887,8 +873,18 @@ export const resultService = {
           typeof label === "string" && label.trim() ? label : null;
       }
 
-      const fighter = parseFighterSnapshot(rep.fighterSnapshot);
-      const opponent = parseFighterSnapshot(rep.opponentSnapshot);
+      const corners = mapPublicResultCorners({
+        match: {
+          fighterRedId: rep.match.fighterRedId,
+          fighterBlueId: rep.match.fighterBlueId,
+        },
+        rows: group.map((row) => ({
+          fighterId: row.fighterId,
+          fighterSnapshot: row.fighterSnapshot,
+          opponentSnapshot: row.opponentSnapshot,
+          result: row.result,
+        })),
+      });
 
       results.push({
         matchId: rep.matchId,
@@ -898,8 +894,11 @@ export const resultService = {
         matchNumber: rep.match.matchNumber,
         matNumber: rep.match.matNumber,
         matchDate: rep.matchDate.toISOString(),
-        fighter,
-        opponent,
+        redFighter: corners.redFighter,
+        blueFighter: corners.blueFighter,
+        winnerId: corners.winnerId,
+        fighter: corners.redFighter,
+        opponent: corners.blueFighter,
         result: rep.result,
         resultType: rep.resultType,
         resultTypeLabel: outcomeStylePublicLabel(rep.resultType),

@@ -214,7 +214,12 @@ export type PublicMatchResultDTO = {
   matchNumber: number | null;
   matNumber: number | null;
   matchDate: string;
+  redFighter: PublicRecordFighterDTO | null;
+  blueFighter: PublicRecordFighterDTO | null;
+  winnerId: string | null;
+  /** @deprecated BracketMatch 홍코너 — use redFighter */
   fighter: PublicRecordFighterDTO | null;
+  /** @deprecated BracketMatch 청코너 — use blueFighter */
   opponent: PublicRecordFighterDTO | null;
   result: MatchRecordOutcome;
   resultType: BracketMatchOutcomeStyle | null;

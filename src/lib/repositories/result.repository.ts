@@ -186,6 +186,8 @@ export const resultRepository = {
         id: true,
         matchId: true,
         bracketId: true,
+        fighterId: true,
+        opponentFighterId: true,
         result: true,
         resultType: true,
         eventTitleSnapshot: true,
@@ -198,6 +200,8 @@ export const resultRepository = {
           select: {
             matchNumber: true,
             matNumber: true,
+            fighterRedId: true,
+            fighterBlueId: true,
             bracket: { select: { title: true, type: true } },
           },
         },
