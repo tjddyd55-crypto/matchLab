@@ -1,10 +1,8 @@
 "use client";
 
-import { useEffect, useState } from "react";
-import { MatchOpsJudgeDecisionSummary } from "@/components/domain/operation/MatchOpsJudgeDecisionSummary";
-import { getMatchOpsJudgeScoresAction } from "@/features/match-ops-judge/actions";
 import { BracketMatchOutcomeStyle } from "@/lib/enums";
 import { outcomeStylePublicLabel } from "@/lib/match-result-snapshot";
+import { officialWinnerTextClass } from "@/components/domain/operation/MatchOpsJudgeUiParts";
 import { Badge } from "@/components/ui/badge";
 import { organizerOperationSectionTitleClass } from "@/lib/ui/organizer-operation-ui";
 import { cn } from "@/lib/utils";
@@ -16,22 +14,30 @@ function resolveWinnerSummary(input: {
   fighterBlueId: string | null;
   fighterRedName: string;
   fighterBlueName: string;
-}): string {
-  if (input.resultType === BracketMatchOutcomeStyle.draw) return "무승부";
+}): { text: string; corner: "red" | "blue" | "neutral" } {
+  if (input.resultType === BracketMatchOutcomeStyle.draw) {
+    return { text: "무승부", corner: "neutral" };
+  }
   if (input.resultType === BracketMatchOutcomeStyle.no_contest) {
-    return "노콘테스트";
+    return { text: "노콘테스트", corner: "neutral" };
   }
   if (input.winnerId && input.winnerId === input.fighterRedId) {
-    return `홍코너 ${input.fighterRedName} 승`;
+    return {
+      text: `홍코너 ${input.fighterRedName} 승`,
+      corner: "red",
+    };
   }
   if (input.winnerId && input.winnerId === input.fighterBlueId) {
-    return `청코너 ${input.fighterBlueName} 승`;
+    return {
+      text: `청코너 ${input.fighterBlueName} 승`,
+      corner: "blue",
+    };
   }
-  return "미정";
+  return { text: "미정", corner: "neutral" };
 }
 
+/** 공식 최종결과만 표시 — 심판별 상세는 채점심판 영역 SSOT */
 export function MatchOpsConfirmedResultPanel({
-  matchId,
   hasOfficialResults,
   winnerId,
   resultType,
@@ -39,10 +45,8 @@ export function MatchOpsConfirmedResultPanel({
   fighterBlueId,
   fighterRedName,
   fighterBlueName,
-  opsToken,
-  resetKey,
 }: {
-  matchId: string;
+  matchId?: string;
   hasOfficialResults: boolean;
   winnerId: string | null;
   resultType: BracketMatchOutcomeStyle | null;
@@ -51,40 +55,13 @@ export function MatchOpsConfirmedResultPanel({
   fighterRedName: string;
   fighterBlueName: string;
   opsToken?: string;
-  resetKey: string;
+  resetKey?: string;
 }) {
-  const [loading, setLoading] = useState(true);
-  const [roundCount, setRoundCount] = useState(0);
-  const [manualSlots, setManualSlots] = useState<
-    import("@/lib/match-ops-judge-score").MatchOpsJudgeSlotState[]
-  >([]);
-  const [portalEntries, setPortalEntries] = useState<
-    import("@/lib/match-ops-judge-score").MatchOpsJudgePortalEntry[]
-  >([]);
-
-  useEffect(() => {
-    let cancelled = false;
-    setLoading(true);
-    void (async () => {
-      const res = await getMatchOpsJudgeScoresAction(matchId, opsToken);
-      if (cancelled) return;
-      if (res.ok) {
-        setRoundCount(res.data.roundCount);
-        setManualSlots(res.data.manualSlots);
-        setPortalEntries(res.data.portalEntries);
-      }
-      setLoading(false);
-    })();
-    return () => {
-      cancelled = true;
-    };
-  }, [matchId, opsToken, resetKey]);
-
   if (!hasOfficialResults) return null;
 
   const methodLabel =
     (resultType ? outcomeStylePublicLabel(resultType) : null) ?? "—";
-  const winnerSummary = resolveWinnerSummary({
+  const winner = resolveWinnerSummary({
     winnerId,
     resultType,
     fighterRedId,
@@ -94,37 +71,39 @@ export function MatchOpsConfirmedResultPanel({
   });
 
   return (
-    <div className="space-y-3 rounded-lg border border-emerald-200/70 bg-emerald-50/30 px-3 py-3">
+    <div className="space-y-3 rounded-xl border-2 border-emerald-200/80 bg-emerald-50/40 px-4 py-4">
       <div className="flex flex-wrap items-center justify-between gap-2">
-        <p className={organizerOperationSectionTitleClass}>최종결과</p>
-        <Badge variant="resultConfirmed" className="text-[10px]">
+        <p className={cn(organizerOperationSectionTitleClass, "text-base sm:text-lg")}>
+          공식 최종결과
+        </p>
+        <Badge variant="resultConfirmed" className="text-xs">
           확정완료
         </Badge>
       </div>
 
-      <div className="space-y-1">
+      <div className="space-y-3 text-center">
         <p>
           <span
             className={cn(
-              "inline-flex rounded-md border px-2 py-0.5 text-xs font-semibold",
-              "border-primary/25 bg-primary/10 text-primary",
+              "inline-flex rounded-lg border px-3 py-1 text-sm font-bold sm:text-base",
+              "border-primary/30 bg-primary/10 text-primary",
             )}
           >
             {methodLabel}
           </span>
         </p>
-        <p className="text-sm font-semibold text-[#0F172A]">{winnerSummary}</p>
+        <p
+          className={cn(
+            "text-xl font-bold leading-snug sm:text-2xl",
+            officialWinnerTextClass({
+              resultType,
+              winnerCorner: winner.corner,
+            }),
+          )}
+        >
+          {winner.text}
+        </p>
       </div>
-
-      {loading ? (
-        <p className="text-muted-foreground text-xs">채점 내역을 불러오는 중…</p>
-      ) : (
-        <MatchOpsJudgeDecisionSummary
-          roundCount={roundCount}
-          manualSlots={manualSlots}
-          portalEntries={portalEntries}
-        />
-      )}
     </div>
   );
 }

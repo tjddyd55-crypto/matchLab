@@ -16,14 +16,12 @@ import { FeedbackMessage } from "@/components/shared/FeedbackMessage";
 import { Button } from "@/components/ui/button";
 import { JudgeCornerScoreQuickPick } from "@/components/domain/operation/JudgeCornerScoreQuickPick";
 import { MatchOpsJudgeDecisionSummary } from "@/components/domain/operation/MatchOpsJudgeDecisionSummary";
+import { JudgeSlotSummaryBlock } from "@/components/domain/operation/MatchOpsJudgeUiParts";
 import {
   getMatchOpsJudgeScoresAction,
   saveMatchOpsJudgeScoresAction,
 } from "@/features/match-ops-judge/actions";
-import {
-  calculateJudgeDecision,
-  judgeCornerDecisionBadgeLabel,
-} from "@/lib/match-ops-judge-decision";
+import { calculateJudgeDecision } from "@/lib/match-ops-judge-decision";
 import {
   countManualSlotsWithInput,
   countPortalSubmitted,
@@ -33,10 +31,6 @@ import {
   type MatchOpsJudgePortalEntry,
   type MatchOpsJudgeSlotState,
 } from "@/lib/match-ops-judge-score";
-import {
-  matchonBlueCornerTextClass,
-  matchonRedCornerTextClass,
-} from "@/lib/ui/judge-ui";
 import type { MatchOpsJudgeScoreEntryVM } from "@/lib/services/match-ops-judge-score.service";
 import {
   organizerOperationDetailFieldStackClass,
@@ -105,10 +99,10 @@ function CollapsibleSection({
         aria-expanded={expanded}
       >
         <Chevron className="text-muted-foreground size-4 shrink-0" aria-hidden />
-        <span className="min-w-0 flex-1 text-xs font-semibold text-[#0F172A]">
+        <span className="min-w-0 flex-1 text-sm font-bold text-[#0F172A] sm:text-base">
           {title}
         </span>
-        <span className="text-muted-foreground shrink-0 text-[11px]">
+        <span className="text-muted-foreground shrink-0 text-xs sm:text-sm">
           {summary}
         </span>
       </button>
@@ -134,13 +128,13 @@ function JudgeRoundGrid({
   ) => void;
 }) {
   return (
-    <div className="space-y-3">
+    <div className="space-y-3 sm:space-y-3.5">
       {rounds.map((round) => (
         <div
           key={round.roundNumber}
-          className="rounded-md border border-border/60 bg-background/50 p-2 sm:p-2.5"
+          className="rounded-md border border-border/60 bg-background/50 p-2.5 sm:p-3"
         >
-          <p className="text-muted-foreground mb-2 text-[11px] font-semibold">
+          <p className="mb-2.5 text-sm font-bold text-[#0F172A] sm:text-base">
             {roundCount > 1 ? `${round.roundNumber}R` : "점수"}
           </p>
           <div className="grid grid-cols-2 gap-2 sm:gap-3">
@@ -182,21 +176,12 @@ function JudgeSlotTotals({
   if (computed.redTotal == null || computed.blueTotal == null) return null;
 
   return (
-    <div className="mt-2 space-y-1 rounded-md border border-border/50 bg-muted/10 px-2 py-1.5">
-      <p className="text-[11px] font-medium text-[#0F172A]">
-        합계{" "}
-        <span className={matchonRedCornerTextClass}>홍 {computed.redTotal}</span>
-        {" : "}
-        <span className={matchonBlueCornerTextClass}>
-          {computed.blueTotal} 청
-        </span>
-      </p>
-      <p>
-        <span className="inline-flex rounded border border-primary/20 bg-primary/5 px-1.5 py-0.5 text-[10px] font-semibold text-[#0F172A]">
-          {judgeCornerDecisionBadgeLabel(computed.decision, computed.isPartial)}
-        </span>
-      </p>
-    </div>
+    <JudgeSlotSummaryBlock
+      redTotal={computed.redTotal}
+      blueTotal={computed.blueTotal}
+      decision={computed.decision}
+      isPartial={computed.isPartial}
+    />
   );
 }
 
@@ -465,7 +450,7 @@ export const MatchOpsJudgeScoreSection = forwardRef<
     <div className={cn(organizerOperationDetailMajorSectionClass, "space-y-3")}>
       <div className="flex items-center justify-between gap-2">
         <p className={organizerOperationSectionTitleClass}>채점심판</p>
-        <p className="text-muted-foreground text-[11px]">
+        <p className="text-muted-foreground text-xs sm:text-sm">
           {entry.roundCount}R · 0–10점
         </p>
       </div>
@@ -481,17 +466,17 @@ export const MatchOpsJudgeScoreSection = forwardRef<
             {manualSlots.map((slot) => (
               <div
                 key={slot.judgeOrder}
-                className="rounded-md border bg-background px-2.5 py-2"
+                className="rounded-md border bg-background px-3 py-2.5"
               >
-                <div className="mb-2 flex items-center justify-between gap-2">
-                  <p className="min-w-0 truncate text-xs font-semibold text-[#0F172A]">
+                <div className="mb-2.5 flex items-center justify-between gap-2">
+                  <p className="min-w-0 truncate text-sm font-bold text-[#0F172A] sm:text-base">
                     채점심판 {slot.judgeOrder}
-                    <span className="text-muted-foreground font-normal">
+                    <span className="text-muted-foreground text-xs font-medium sm:text-sm">
                       {" "}
                       · 수동입력
                     </span>
                   </p>
-                  <span className="text-muted-foreground shrink-0 text-[11px]">
+                  <span className="text-muted-foreground shrink-0 text-xs font-medium sm:text-sm">
                     {slotStatusLabel(slot.status)}
                   </span>
                 </div>
@@ -538,13 +523,13 @@ export const MatchOpsJudgeScoreSection = forwardRef<
               {portalEntries.map((portal) => (
                 <div
                   key={portal.credentialId}
-                  className="rounded-md border bg-background px-2.5 py-2"
+                  className="rounded-md border bg-background px-3 py-2.5"
                 >
-                  <div className="mb-2 flex items-center justify-between gap-2">
-                    <p className="min-w-0 truncate text-xs font-semibold text-[#0F172A]">
+                  <div className="mb-2.5 flex items-center justify-between gap-2">
+                    <p className="min-w-0 truncate text-sm font-bold text-[#0F172A] sm:text-base">
                       {portal.judgeName}
                     </p>
-                    <span className="text-muted-foreground shrink-0 text-[11px]">
+                    <span className="text-muted-foreground shrink-0 text-xs font-medium sm:text-sm">
                       {portalStatusLabel(portal.status)}
                     </span>
                   </div>

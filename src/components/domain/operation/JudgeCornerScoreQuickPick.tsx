@@ -31,7 +31,7 @@ export function JudgeCornerScoreQuickPick({
           className={cn(
             organizerOperationDetailFieldLabelClass,
             getCornerLabelClassName(cornerLabel),
-            "text-[10px] leading-tight sm:text-[11px]",
+            "text-xs leading-tight sm:text-sm",
           )}
         >
           <span className="font-semibold">{cornerLabel}</span>

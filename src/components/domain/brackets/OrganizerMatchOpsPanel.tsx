@@ -515,6 +515,26 @@ function OrganizerMatchOpsPanelBody(props: OrganizerMatchOpsPanelProps) {
         />
       ) : null}
 
+      <MatchOpsStatusSection
+        status={props.status}
+        pending={pending}
+        pendingStatus={pendingStatus}
+        hasOfficialResults={props.hasOfficialResults}
+        isOperation={isOperation}
+        actionSize={actionSize}
+        onStatus={onStatus}
+      />
+
+      {isOperation ? (
+        <MatchOpsJudgeScoreSection
+          ref={judgeScoreRef}
+          matchId={props.matchId}
+          resetKey={`${props.matchId}:${props.hasOfficialResults}:${props.status}`}
+          integratedSave={canRecordOutcome}
+          showVoteSummary
+        />
+      ) : null}
+
       {isOperation && props.hasOfficialResults && !editingCorrect ? (
         <MatchOpsConfirmedResultPanel
           matchId={props.matchId}
@@ -527,28 +547,6 @@ function OrganizerMatchOpsPanelBody(props: OrganizerMatchOpsPanelProps) {
           fighterBlueName={props.fighterBlueName}
           opsToken={opsToken ?? undefined}
           resetKey={`${props.matchId}:${props.hasOfficialResults}:${props.winnerId ?? ""}`}
-        />
-      ) : null}
-
-      {!isOperation ? (
-        <MatchOpsStatusSection
-          status={props.status}
-          pending={pending}
-          pendingStatus={pendingStatus}
-          hasOfficialResults={props.hasOfficialResults}
-          isOperation={isOperation}
-          actionSize={actionSize}
-          onStatus={onStatus}
-        />
-      ) : null}
-
-      {isOperation ? (
-        <MatchOpsJudgeScoreSection
-          ref={judgeScoreRef}
-          matchId={props.matchId}
-          resetKey={`${props.matchId}:${props.hasOfficialResults}:${props.status}`}
-          integratedSave={canRecordOutcome}
-          showVoteSummary={!props.hasOfficialResults || editingCorrect}
         />
       ) : null}
 
@@ -618,18 +616,6 @@ function OrganizerMatchOpsPanelBody(props: OrganizerMatchOpsPanelProps) {
             </Button>
           </div>
         </form>
-      ) : null}
-
-      {isOperation ? (
-        <MatchOpsStatusSection
-          status={props.status}
-          pending={pending}
-          pendingStatus={pendingStatus}
-          hasOfficialResults={props.hasOfficialResults}
-          isOperation={isOperation}
-          actionSize={actionSize}
-          onStatus={onStatus}
-        />
       ) : null}
 
       {!cancelled && props.hasOfficialResults ? (

@@ -11,7 +11,8 @@ function read(rel: string) {
 }
 
 const panel = read("src/components/domain/operation/MatchOpsConfirmedResultPanel.tsx");
-assert.ok(panel.includes("MatchOpsJudgeDecisionSummary"));
+assert.ok(!panel.includes("MatchOpsJudgeDecisionSummary"));
+assert.ok(panel.includes("공식 최종결과"));
 assert.ok(panel.includes("확정완료"));
 assert.ok(panel.includes("outcomeStylePublicLabel"));
 assert.ok(!panel.includes("DRAW"));
