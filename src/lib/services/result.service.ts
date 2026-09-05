@@ -32,6 +32,11 @@ import {
   outcomeStylePublicLabel,
 } from "@/lib/match-result-snapshot";
 import { mergeDisplayResultMemo } from "@/lib/match-result-memo";
+import {
+  hasVoidedResultsForBothCorners,
+  pickPublicMatchRepresentativeRow,
+  selectOfficialRowsForPublicMatch,
+} from "@/lib/match-result-public-selection";
 import { mapPublicResultCorners } from "@/lib/public-result-corner-mapping";
 import {
   requireGymOwner,
@@ -388,7 +393,79 @@ export const resultService = {
         tx,
       );
 
-      await resultRepository.createMatchResults(rows, tx);
+      const existingRows = await resultRepository.findResultsByMatchId(
+        input.matchId,
+        tx,
+      );
+      const shouldReactivateVoided = hasVoidedResultsForBothCorners({
+        rows: existingRows,
+        redFighterId: redId,
+        blueFighterId: blueId,
+      });
+
+      if (shouldReactivateVoided) {
+        const voidedByFighter = new Map(
+          existingRows
+            .filter((row) => row.status === MatchRecordStatus.voided)
+            .map((row) => [row.fighterId, row] as const),
+        );
+        const patchPair: Array<{
+          fighterId: string;
+          outcome: MatchRecordOutcome;
+          row: (typeof existingRows)[number];
+        }> = [
+          {
+            fighterId: redId,
+            outcome: redOutcome,
+            row: voidedByFighter.get(redId)!,
+          },
+          {
+            fighterId: blueId,
+            outcome: blueOutcome,
+            row: voidedByFighter.get(blueId)!,
+          },
+        ];
+
+        for (const patch of patchPair) {
+          if (!patch.row) {
+            throw new AppError(
+              "CONFLICT",
+              "무효 처리된 MatchResult가 불완전합니다. 관리자에게 문의해 주세요.",
+            );
+          }
+
+          const nextFighterSnap =
+            patch.fighterId === redId
+              ? buildMatchResultFighterSnapshotJson(redRow)
+              : buildMatchResultFighterSnapshotJson(blueRow);
+          const nextOpponentSnap =
+            patch.fighterId === redId
+              ? buildMatchResultOpponentSnapshotJson(blueRow)
+              : buildMatchResultOpponentSnapshotJson(redRow);
+
+          await resultRepository.updateMatchResultStatus(
+            patch.row.id,
+            {
+              result: patch.outcome,
+              resultType: input.resultType,
+              eventTitleSnapshot: eventTitle,
+              fighterSnapshot: snapshotJson(nextFighterSnap),
+              opponentSnapshot: snapshotJson(nextOpponentSnap),
+              divisionSnapshot: divisionSnap
+                ? snapshotJson(divisionSnap)
+                : undefined,
+              matchDate: now,
+              status: MatchRecordStatus.confirmed,
+              confirmedAt: now,
+              confirmedByUserId: confirmedByUserId,
+            },
+            tx,
+          );
+        }
+      } else {
+        await resultRepository.createMatchResults(rows, tx);
+      }
+
       await judgeScorecardRepository.lockByMatch(input.matchId, tx);
 
       await appendBracketChangeLog(tx, {
@@ -861,8 +938,10 @@ export const resultService = {
     const results: PublicMatchResultDTO[] = [];
 
     for (const [, group] of byMatch) {
-      const rep =
-        group.find((g) => g.result === MatchRecordOutcome.win) ?? group[0];
+      const officialGroup = selectOfficialRowsForPublicMatch(group);
+      if (officialGroup.length === 0) continue;
+
+      const rep = pickPublicMatchRepresentativeRow(officialGroup);
       if (!rep) continue;
 
       const divSnap = rep.divisionSnapshot;
@@ -878,7 +957,7 @@ export const resultService = {
           fighterRedId: rep.match.fighterRedId,
           fighterBlueId: rep.match.fighterBlueId,
         },
-        rows: group.map((row) => ({
+        rows: officialGroup.map((row) => ({
           fighterId: row.fighterId,
           fighterSnapshot: row.fighterSnapshot,
           opponentSnapshot: row.opponentSnapshot,

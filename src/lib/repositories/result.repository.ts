@@ -196,6 +196,7 @@ export const resultRepository = {
         divisionSnapshot: true,
         matchDate: true,
         status: true,
+        updatedAt: true,
         match: {
           select: {
             matchNumber: true,

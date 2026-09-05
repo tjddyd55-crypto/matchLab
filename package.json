@@ -568,6 +568,7 @@
     "verify:bracket-pdf-match-division-ssot": "tsx scripts/verify-bracket-pdf-match-division-ssot.ts",
     "verify:bracket-unmatched-pdf": "tsx scripts/verify-bracket-unmatched-pdf.ts",
     "verify:event-wide-match-sequence": "tsx scripts/verify-event-wide-match-sequence.ts",
+    "verify:result-cancel-reconfirm": "tsx scripts/verify-result-cancel-reconfirm.ts",
     "verify:public-result-corner-mapping": "tsx scripts/verify-public-result-corner-mapping.ts",
     "verify:public-bracket-global-order": "tsx scripts/verify-public-bracket-global-order.ts",
     "verify:unmatched-pdf-20-per-page": "tsx scripts/verify-unmatched-pdf-20-per-page.ts",
