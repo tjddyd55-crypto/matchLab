@@ -1,6 +1,6 @@
 "use client";
 
-import { useCallback, useEffect, useRef, useState, useTransition } from "react";
+import { useCallback, useEffect, useMemo, useRef, useState, useTransition } from "react";
 import { FeedbackMessage } from "@/components/shared/FeedbackMessage";
 import { Button } from "@/components/ui/button";
 import {
@@ -8,10 +8,15 @@ import {
   saveMatchOpsJudgeScoresAction,
 } from "@/features/match-ops-judge/actions";
 import {
+  calculateJudgeScoreTotals,
   emptyRounds,
   parseJudgeScoreInput,
   type MatchOpsJudgeSlotState,
 } from "@/lib/match-ops-judge-score";
+import {
+  matchonBlueCornerTextClass,
+  matchonRedCornerTextClass,
+} from "@/lib/ui/judge-ui";
 import type { MatchOpsJudgeScoreEntryVM } from "@/lib/services/match-ops-judge-score.service";
 import {
   organizerOperationDetailFieldLabelClass,
@@ -190,6 +195,15 @@ export function MatchOpsJudgeScoreSection({
     });
   }
 
+  const totals = useMemo(
+    () =>
+      calculateJudgeScoreTotals({
+        roundCount: entry?.roundCount ?? 0,
+        slots,
+      }),
+    [entry?.roundCount, slots],
+  );
+
   if (!entry) {
     return (
       <div className={organizerOperationDetailMajorSectionClass}>
@@ -285,6 +299,40 @@ export function MatchOpsJudgeScoreSection({
             ) : null}
           </div>
         ))}
+      </div>
+
+      <div className="rounded-lg border bg-muted/20 px-3 py-3">
+        <p className="text-xs font-semibold text-[#0F172A]">최종 합계</p>
+        {totals.completedJudgeCount === 0 ? (
+          <p className="text-muted-foreground mt-2 text-xs">
+            아직 입력된 채점 결과가 없습니다.
+          </p>
+        ) : (
+          <>
+            <div className="mt-2 grid grid-cols-2 gap-3 text-center">
+              <div>
+                <p className={cn("text-[11px] font-semibold", matchonRedCornerTextClass)}>
+                  RED
+                </p>
+                <p className={cn("mt-1 text-2xl font-bold tabular-nums", matchonRedCornerTextClass)}>
+                  {totals.redTotal}
+                </p>
+              </div>
+              <div>
+                <p className={cn("text-[11px] font-semibold", matchonBlueCornerTextClass)}>
+                  BLUE
+                </p>
+                <p className={cn("mt-1 text-2xl font-bold tabular-nums", matchonBlueCornerTextClass)}>
+                  {totals.blueTotal}
+                </p>
+              </div>
+            </div>
+            <p className="text-muted-foreground mt-2 text-center text-[11px]">
+              {totals.completedJudgeCount}명 심판 점수 합산
+              {totals.isTie ? " · 동점" : ""}
+            </p>
+          </>
+        )}
       </div>
 
       {staleNotice ? (

@@ -7,6 +7,7 @@ import { readFileSync } from "node:fs";
 import { join } from "node:path";
 import { JudgeScorecardStatus } from "@/generated/prisma";
 import {
+  calculateJudgeScoreTotals,
   emptyRounds,
   isJudgeSlotEmpty,
   mapScorecardsToMatchOpsSlots,
@@ -31,6 +32,9 @@ function assertStaticWiring() {
   assert.match(section, /getMatchOpsJudgeScoresAction/);
   assert.match(section, /POLL_MS = 4000/);
   assert.match(section, /dirty/);
+  assert.match(section, /calculateJudgeScoreTotals/);
+  assert.match(section, /최종 합계/);
+  assert.doesNotMatch(section, /confirmMatchResults/);
 
   const service = read("src/lib/services/match-ops-judge-score.service.ts");
   assert.match(service, /judgeScorecardRepository\.upsertDraft/);
@@ -109,10 +113,136 @@ function assertValidation() {
   assert.equal(validateJudgeSlotForSave(1, 3, complete), null);
 }
 
+function assertJudgeScoreTotals() {
+  const roundCount = 2;
+
+  // CASE A: 3 judges complete
+  const caseA = calculateJudgeScoreTotals({
+    roundCount,
+    slots: [
+      {
+        rounds: [
+          { roundNumber: 1, redScore: 10, blueScore: 9 },
+          { roundNumber: 2, redScore: 10, blueScore: 9 },
+        ],
+      },
+      {
+        rounds: [
+          { roundNumber: 1, redScore: 10, blueScore: 9 },
+          { roundNumber: 2, redScore: 9, blueScore: 10 },
+        ],
+      },
+      {
+        rounds: [
+          { roundNumber: 1, redScore: 9, blueScore: 10 },
+          { roundNumber: 2, redScore: 10, blueScore: 9 },
+        ],
+      },
+    ],
+  });
+  assert.equal(caseA.redTotal, 58);
+  assert.equal(caseA.blueTotal, 56);
+  assert.equal(caseA.completedJudgeCount, 3);
+  assert.equal(caseA.isTie, false);
+
+  // CASE B: 2 judges, slot 3 blank
+  const caseB = calculateJudgeScoreTotals({
+    roundCount,
+    slots: [
+      {
+        rounds: [
+          { roundNumber: 1, redScore: 10, blueScore: 9 },
+          { roundNumber: 2, redScore: 10, blueScore: 9 },
+        ],
+      },
+      {
+        rounds: [
+          { roundNumber: 1, redScore: 10, blueScore: 9 },
+          { roundNumber: 2, redScore: 9, blueScore: 10 },
+        ],
+      },
+      {
+        rounds: emptyRounds(roundCount),
+      },
+    ],
+  });
+  assert.equal(caseB.redTotal, 39);
+  assert.equal(caseB.blueTotal, 37);
+  assert.equal(caseB.completedJudgeCount, 2);
+
+  // CASE C: 0 judges
+  const caseC = calculateJudgeScoreTotals({
+    roundCount,
+    slots: [
+      { rounds: emptyRounds(roundCount) },
+      { rounds: emptyRounds(roundCount) },
+      { rounds: emptyRounds(roundCount) },
+    ],
+  });
+  assert.equal(caseC.redTotal, null);
+  assert.equal(caseC.blueTotal, null);
+  assert.equal(caseC.completedJudgeCount, 0);
+
+  // CASE D: score edit — change judge 2 BLUE round 2 from 10 to 8
+  const caseD = calculateJudgeScoreTotals({
+    roundCount,
+    slots: [
+      {
+        rounds: [
+          { roundNumber: 1, redScore: 10, blueScore: 9 },
+          { roundNumber: 2, redScore: 10, blueScore: 9 },
+        ],
+      },
+      {
+        rounds: [
+          { roundNumber: 1, redScore: 10, blueScore: 9 },
+          { roundNumber: 2, redScore: 9, blueScore: 8 },
+        ],
+      },
+    ],
+  });
+  assert.equal(caseD.blueTotal, 35);
+
+  // CASE E: partial judge excluded (not complete)
+  const caseE = calculateJudgeScoreTotals({
+    roundCount,
+    slots: [
+      {
+        rounds: [
+          { roundNumber: 1, redScore: 10, blueScore: 9 },
+          { roundNumber: 2, redScore: 10, blueScore: 9 },
+        ],
+      },
+      {
+        rounds: [
+          { roundNumber: 1, redScore: 10, blueScore: null },
+          { roundNumber: 2, redScore: null, blueScore: null },
+        ],
+      },
+    ],
+  });
+  assert.equal(caseE.redTotal, 20);
+  assert.equal(caseE.blueTotal, 18);
+  assert.equal(caseE.completedJudgeCount, 1);
+
+  // CASE F: tie
+  const caseF = calculateJudgeScoreTotals({
+    roundCount: 1,
+    slots: [
+      { rounds: [{ roundNumber: 1, redScore: 10, blueScore: 9 }] },
+      { rounds: [{ roundNumber: 1, redScore: 9, blueScore: 10 }] },
+    ],
+  });
+  assert.equal(caseF.redTotal, 19);
+  assert.equal(caseF.blueTotal, 19);
+  assert.equal(caseF.isTie, true);
+}
+
 function main() {
   assertStaticWiring();
   assertSlotMapping();
   assertValidation();
+  assertJudgeScoreTotals();
   console.log("verify:judge-score-shared-ssot: OK");
 }
 

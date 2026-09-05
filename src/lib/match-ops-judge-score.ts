@@ -49,6 +49,56 @@ export function isJudgeSlotEmpty(rounds: MatchOpsJudgeRoundInput[]): boolean {
   return rounds.every(isJudgeSlotRoundEmpty);
 }
 
+export function isJudgeSlotComplete(
+  roundCount: number,
+  rounds: MatchOpsJudgeRoundInput[],
+): boolean {
+  if (isJudgeSlotEmpty(rounds)) return false;
+  return validateJudgeSlotForSave(0, roundCount, rounds) === null;
+}
+
+export type JudgeScoreTotalsVM = {
+  redTotal: number | null;
+  blueTotal: number | null;
+  completedJudgeCount: number;
+  isTie: boolean;
+};
+
+/** 완료된 심판 슬롯의 라운드 점수를 합산한 경기운영 최종 합계(derived) */
+export function calculateJudgeScoreTotals(input: {
+  roundCount: number;
+  slots: { rounds: MatchOpsJudgeRoundInput[] }[];
+}): JudgeScoreTotalsVM {
+  let redTotal = 0;
+  let blueTotal = 0;
+  let completedJudgeCount = 0;
+
+  for (const slot of input.slots) {
+    if (!isJudgeSlotComplete(input.roundCount, slot.rounds)) continue;
+    completedJudgeCount += 1;
+    for (const round of slot.rounds) {
+      redTotal += round.redScore ?? 0;
+      blueTotal += round.blueScore ?? 0;
+    }
+  }
+
+  if (completedJudgeCount === 0) {
+    return {
+      redTotal: null,
+      blueTotal: null,
+      completedJudgeCount: 0,
+      isTie: false,
+    };
+  }
+
+  return {
+    redTotal,
+    blueTotal,
+    completedJudgeCount,
+    isTie: redTotal === blueTotal,
+  };
+}
+
 export function validateJudgeSlotForSave(
   judgeOrder: number,
   roundCount: number,
