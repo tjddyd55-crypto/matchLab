@@ -1,11 +1,8 @@
-import type {
-  PublicBracketDetailDTO,
-  PublicUnmatchedCandidateDTO,
-} from "@/lib/dto/public";
+import type { PublicBracketDetailDTO } from "@/lib/dto/public";
 import { PublicBracketRealtimeBridge } from "@/components/domain/brackets/PublicBracketRealtimeBridge";
-import { BracketGroupHeader } from "@/components/domain/brackets/BracketGroupHeader";
 import { SpectatorMatchCard } from "@/components/domain/events/spectator/SpectatorMatchCard";
 import { SpectatorWatchEmptyState } from "@/components/domain/events/spectator/SpectatorWatchEmptyState";
+import { flattenPublicBracketsForSpectator } from "@/lib/public-bracket-global-order";
 
 export function SpectatorBracketTab({
   eventId,
@@ -15,10 +12,7 @@ export function SpectatorBracketTab({
   eventId: string;
   slug: string;
   brackets: PublicBracketDetailDTO[];
-  unmatchedCandidates?: PublicUnmatchedCandidateDTO[];
 }) {
-  const bracketIds = brackets.map((b) => b.id);
-
   if (brackets.length === 0) {
     return (
       <SpectatorWatchEmptyState
@@ -28,38 +22,28 @@ export function SpectatorBracketTab({
     );
   }
 
+  const bracketIds = brackets.map((b) => b.id);
+  const matches = flattenPublicBracketsForSpectator(brackets);
+
   return (
-    <div className="space-y-6">
+    <div className="space-y-4">
       <PublicBracketRealtimeBridge
         eventId={eventId}
         slug={slug}
         bracketIds={bracketIds}
       />
-      {brackets.map((bracket) => {
-        const sorted = bracket.matches;
-        return (
-          <section key={bracket.id} className="space-y-3">
-            <div className="space-y-2">
-              <BracketGroupHeader
-                division={bracket.division}
-                fallbackTitle={bracket.displayTitle}
-                titleClassName="text-base font-semibold"
-              />
-            </div>
-            <div className="flex flex-col gap-4">
-              {sorted.map((match) => (
-                <SpectatorMatchCard
-                  key={match.id}
-                  match={match}
-                  division={bracket.division}
-                  bracketType={bracket.type}
-                  bracketIsPublic={match.matchIsPublicSparring}
-                />
-              ))}
-            </div>
-          </section>
-        );
-      })}
+      <div className="flex flex-col gap-4">
+        {matches.map((entry) => (
+          <SpectatorMatchCard
+            key={entry.match.id}
+            match={entry.match}
+            division={entry.division}
+            divisionLabel={entry.divisionLabel}
+            bracketType={entry.bracketType}
+            bracketIsPublic={entry.bracketIsPublicSparring}
+          />
+        ))}
+      </div>
     </div>
   );
 }

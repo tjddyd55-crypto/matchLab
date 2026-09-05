@@ -28,9 +28,10 @@ export function SpectatorMatchCard({
     matchIsPublicSparring: match.matchIsPublicSparring,
   });
 
-  const redName = match.fighterRed?.name ?? "—";
+  const redName = match.fighterRed?.name ?? "미배정";
   const blueName =
-    match.fighterBlue?.name ?? (match.fighterRed && !match.fighterBlue ? "부전승" : "—");
+    match.fighterBlue?.name ??
+    (match.fighterRed && !match.fighterBlue ? "부전승" : "미배정");
 
   const trailing = (
     <>
