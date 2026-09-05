@@ -2,20 +2,8 @@
 
 import { useEffect } from "react";
 import Link from "next/link";
+import { EVENT_QR_SECTION_IDS } from "@/lib/event-qr-section";
 import { cn } from "@/lib/utils";
-
-export const EVENT_QR_SECTION_IDS = {
-  public: "public-qr",
-  judge: "judge-qr",
-  onsiteOps: "onsite-ops",
-} as const;
-
-export function eventQrSectionHref(
-  eventId: string,
-  section: keyof typeof EVENT_QR_SECTION_IDS,
-): string {
-  return `/organizer/events/${eventId}/qr#${EVENT_QR_SECTION_IDS[section]}`;
-}
 
 const NAV_ITEMS: {
   id: (typeof EVENT_QR_SECTION_IDS)[keyof typeof EVENT_QR_SECTION_IDS];

@@ -8,7 +8,7 @@ import { loadEventManagementNavContext, eventManagementLayoutProps } from "@/lib
 import { eventCourtService } from "@/lib/services/event-court.service";
 import { matchService } from "@/lib/services/match.service";
 import { judgeScorecardService } from "@/lib/services/judge-scorecard.service";
-import { eventQrSectionHref } from "@/components/domain/events/qr/EventQrPageNav";
+import { eventQrSectionHref } from "@/lib/event-qr-section";
 import Link from "next/link";
 import { buttonVariants } from "@/components/ui/button";
 import { cn } from "@/lib/utils";

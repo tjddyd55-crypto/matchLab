@@ -9,7 +9,7 @@ import {
   courtFieldStatusCardVariant,
   type CourtFieldStatusVM,
 } from "@/lib/court-field-status-display";
-import { eventQrSectionHref } from "@/components/domain/events/qr/EventQrPageNav";
+import { eventQrSectionHref } from "@/lib/event-qr-section";
 import { cn } from "@/lib/utils";
 
 export function CourtFieldStatusCard({

@@ -21,7 +21,7 @@ import type { EventStatus } from "@/lib/enums";
 import { formatPublicDateTime } from "@/lib/date-display";
 import { triggerEventQrPrint } from "@/components/domain/judges/judge-qr-ui";
 import { formatCourtTabLabel } from "@/lib/court-tab-label";
-import { EVENT_QR_SECTION_IDS } from "./EventQrPageNav";
+import { EVENT_QR_SECTION_IDS } from "@/lib/event-qr-section";
 import "./event-qr-print.css";
 
 /** 레거시 심판 로그인 QR — 코드 유지, 출력 UI에서는 숨김 */

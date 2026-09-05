@@ -6,7 +6,7 @@ import {
 import { fieldStatusService } from "@/lib/services/field-status.service";
 import { OrganizerFieldStatusBoard } from "@/components/domain/field-status/OrganizerFieldStatusBoard";
 import { OrganizerWeighInSheetActions } from "@/components/domain/weigh-in/OrganizerWeighInSheetActions";
-import { eventQrSectionHref } from "@/components/domain/events/qr/EventQrPageNav";
+import { eventQrSectionHref } from "@/lib/event-qr-section";
 import Link from "next/link";
 import { buttonVariants } from "@/components/ui/button";
 import { cn } from "@/lib/utils";

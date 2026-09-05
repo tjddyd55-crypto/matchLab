@@ -2,7 +2,7 @@
 
 import { useState, useTransition } from "react";
 import { EventQrCard } from "@/components/domain/events/qr/EventQrCard";
-import { EVENT_QR_SECTION_IDS } from "@/components/domain/events/qr/EventQrPageNav";
+import { EVENT_QR_SECTION_IDS } from "@/lib/event-qr-section";
 import { FeedbackMessage } from "@/components/shared/FeedbackMessage";
 import { useAppConfirmDialog } from "@/components/shared/app-confirm-dialog";
 import { Button } from "@/components/ui/button";
