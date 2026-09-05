@@ -116,11 +116,7 @@ railway config apply
 
 migration 실패 시 preDeploy가 non-zero로 종료되어 **새 release가 serving 되지 않습니다** (fail-fast).
 
-### yamabiko migration drift (문서화만)
-
-Production DB(`yamabiko`) `_prisma_migrations`에 repo에 없는 `20260828120000_event_application_structural_audit`가 존재한다. 자동화에서 삭제·resolve하지 않는다. `migrate deploy`는 repo의 pending migration만 적용한다.
-
-로그에 `DATABASE_URL` 전체를 출력하지 않습니다. host / database / Railway environment / yamanote·yamabiko alias만 fingerprint로 남깁니다.
+`db:migrate:gate`는 `prisma migrate status`로 **history drift**를 감지한 뒤, pending migration만 있으면 `prisma migrate deploy`로 진행합니다.
 
 검증:
 

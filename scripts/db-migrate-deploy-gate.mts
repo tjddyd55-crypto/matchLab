@@ -26,6 +26,68 @@ function runStep(label: string, command: string) {
   execSync(command, { stdio: "inherit", env: process.env });
 }
 
+function runMigrateStatusObservability(): void {
+  console.log("[db:migrate:gate] prisma migrate status");
+  let output = "";
+  try {
+    output = execSync("npx prisma migrate status", {
+      encoding: "utf8",
+      env: process.env,
+    });
+    process.stdout.write(output);
+    return;
+  } catch (error) {
+    const err = error as { stdout?: string; stderr?: string; status?: number };
+    output = [err.stdout ?? "", err.stderr ?? ""].filter(Boolean).join("\n");
+    if (output) {
+      process.stdout.write(output);
+      if (!output.endsWith("\n")) process.stdout.write("\n");
+    }
+
+    if (isFatalMigrateStatus(output)) {
+      console.error("[db:migrate:gate] prisma migrate status — fatal drift detected");
+      process.exit(err.status ?? 1);
+    }
+
+    if (hasPendingMigrationsOnly(output)) {
+      console.log(
+        "[db:migrate:gate] prisma migrate status — pending migrations only; continuing to migrate deploy",
+      );
+      return;
+    }
+
+    console.error("[db:migrate:gate] prisma migrate status — unexpected non-zero exit");
+    process.exit(err.status ?? 1);
+  }
+}
+
+function isFatalMigrateStatus(output: string): boolean {
+  if (/failed migration|P3009|P3018/i.test(output)) return true;
+  if (/was modified after it was applied/i.test(output)) return true;
+  if (/checksum/i.test(output) && /does not match/i.test(output)) return true;
+
+  const historyMismatch =
+    /local migration history and the migrations table from your database are different/i.test(
+      output,
+    );
+  const missingLocally =
+    /migration from the database are not found locally in prisma\/migrations/i.test(
+      output,
+    );
+
+  return historyMismatch || missingLocally;
+}
+
+function hasPendingMigrationsOnly(output: string): boolean {
+  if (/Database schema is up to date/i.test(output)) return false;
+  if (isFatalMigrateStatus(output)) return false;
+
+  return (
+    /Following migrations? have not yet been applied/i.test(output) ||
+    /Database schema is not up to date/i.test(output)
+  );
+}
+
 const databaseUrl = process.env.DATABASE_URL;
 if (!databaseUrl) {
   console.error("[db:migrate:gate] DATABASE_URL is missing — aborting deploy");
@@ -56,7 +118,7 @@ console.log("[db:migrate:gate] database fingerprint", {
   alias: resolveDbAlias(fingerprint.host),
 });
 
-runStep("prisma migrate status", "npx prisma migrate status");
+runMigrateStatusObservability();
 runStep("prisma migrate deploy", "npx prisma migrate deploy");
 
 console.log("[db:migrate:gate] migration gate passed");

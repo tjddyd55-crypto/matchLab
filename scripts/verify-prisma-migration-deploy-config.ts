@@ -112,6 +112,14 @@ function assertDocs() {
     "docs/deploy-railway.md must reference deploy config SSOT",
   );
 
+  const gateScript = readFileSync(
+    join(root, "scripts/db-migrate-deploy-gate.mts"),
+    "utf8",
+  );
+  assert.match(gateScript, /hasPendingMigrationsOnly/);
+  assert.match(gateScript, /isFatalMigrateStatus/);
+  assert.match(gateScript, /pending migrations only; continuing to migrate deploy/);
+
   assert.ok(runbook.includes("preDeploy"), "docs/operations/runbook.md must document preDeploy");
   assert.ok(
     runbook.includes("railway.toml") || runbook.includes(".railway/railway.ts"),
