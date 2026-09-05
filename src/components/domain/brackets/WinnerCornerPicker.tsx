@@ -84,6 +84,7 @@ export function WinnerCornerPicker({
               key={c.key}
               type="button"
               disabled={disabled}
+              aria-pressed={active}
               data-testid={`match-winner-${c.key}`}
               onClick={() => setSelected(active ? null : c.id)}
               className={cn(

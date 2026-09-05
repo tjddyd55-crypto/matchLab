@@ -261,27 +261,34 @@ function MatchOutcomeEntryFields({
   const fields = (
     <>
       <input type="hidden" name="outcomeMode" value={outcomeMode} />
-      <label className={fieldWrapClass}>
+      <input type="hidden" name="resultType" value={resultType} />
+      <div className={fieldWrapClass}>
         <span className={labelClass}>결과 방식</span>
-        <select
-          name="resultType"
-          value={resultType}
-          disabled={pending}
-          onChange={(e) =>
-            onResultTypeChange(e.target.value as BracketMatchOutcomeStyle)
-          }
-          className={cn(
-            "border-input bg-background w-full rounded-md border px-2",
-            compact ? "h-[38px]" : "h-8",
-          )}
-        >
-          {OUTCOME_OPTIONS.map((o) => (
-            <option key={o} value={o}>
-              {outcomeStylePublicLabel(o)}
-            </option>
-          ))}
-        </select>
-      </label>
+        <div className="flex flex-wrap gap-1.5">
+          {OUTCOME_OPTIONS.map((option) => {
+            const active = resultType === option;
+            return (
+              <button
+                key={option}
+                type="button"
+                disabled={pending}
+                aria-pressed={active}
+                data-testid={`match-result-type-${option}`}
+                onClick={() => onResultTypeChange(option)}
+                className={cn(
+                  "rounded-md border px-2.5 text-xs font-medium transition-colors",
+                  compact ? "min-h-[34px]" : "min-h-[36px]",
+                  active
+                    ? "border-primary bg-primary/10 text-primary ring-1 ring-primary/30"
+                    : "border-input bg-background hover:bg-muted/50",
+                )}
+              >
+                {outcomeStylePublicLabel(option)}
+              </button>
+            );
+          })}
+        </div>
+      </div>
       {outcomeMode === "win_loss" ? (
         <WinnerCornerPicker
           key={winnerPickerKey}

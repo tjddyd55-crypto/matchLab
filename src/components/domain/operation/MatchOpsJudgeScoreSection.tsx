@@ -4,6 +4,7 @@ import { useCallback, useEffect, useMemo, useRef, useState, useTransition, type 
 import { ChevronDown, ChevronRight } from "lucide-react";
 import { FeedbackMessage } from "@/components/shared/FeedbackMessage";
 import { Button } from "@/components/ui/button";
+import { JudgeCornerScoreQuickPick } from "@/components/domain/operation/JudgeCornerScoreQuickPick";
 import {
   getMatchOpsJudgeScoresAction,
   saveMatchOpsJudgeScoresAction,
@@ -116,45 +117,32 @@ function JudgeRoundGrid({
   ) => void;
 }) {
   return (
-    <div className="space-y-2">
+    <div className="space-y-3">
       {rounds.map((round) => (
-        <div
-          key={round.roundNumber}
-          className="grid grid-cols-[44px_1fr_1fr] items-center gap-2"
-        >
-          <span className="text-muted-foreground text-[11px] font-medium">
+        <div key={round.roundNumber} className="space-y-2">
+          <p className="text-muted-foreground text-[11px] font-medium">
             {roundCount > 1 ? `${round.roundNumber}R` : "점수"}
-          </span>
-          <label className={organizerOperationDetailLabelControlClass}>
-            <span className={organizerOperationDetailFieldLabelClass}>RED</span>
-            <input
-              type="number"
-              inputMode="numeric"
-              min={0}
-              max={10}
-              value={round.redScore ?? ""}
-              disabled={disabled}
-              onChange={(e) =>
-                onRoundChange(round.roundNumber, { redScore: e.target.value })
-              }
-              className="border-input bg-background h-[34px] w-full rounded-md border px-2 text-sm"
-            />
-          </label>
-          <label className={organizerOperationDetailLabelControlClass}>
-            <span className={organizerOperationDetailFieldLabelClass}>BLUE</span>
-            <input
-              type="number"
-              inputMode="numeric"
-              min={0}
-              max={10}
-              value={round.blueScore ?? ""}
-              disabled={disabled}
-              onChange={(e) =>
-                onRoundChange(round.roundNumber, { blueScore: e.target.value })
-              }
-              className="border-input bg-background h-[34px] w-full rounded-md border px-2 text-sm"
-            />
-          </label>
+          </p>
+          <JudgeCornerScoreQuickPick
+            corner="RED"
+            value={round.redScore}
+            disabled={disabled}
+            onChange={(next) =>
+              onRoundChange(round.roundNumber, {
+                redScore: next == null ? "" : String(next),
+              })
+            }
+          />
+          <JudgeCornerScoreQuickPick
+            corner="BLUE"
+            value={round.blueScore}
+            disabled={disabled}
+            onChange={(next) =>
+              onRoundChange(round.roundNumber, {
+                blueScore: next == null ? "" : String(next),
+              })
+            }
+          />
         </div>
       ))}
     </div>
