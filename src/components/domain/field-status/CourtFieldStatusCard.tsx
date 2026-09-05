@@ -9,6 +9,7 @@ import {
   courtFieldStatusCardVariant,
   type CourtFieldStatusVM,
 } from "@/lib/court-field-status-display";
+import { eventQrSectionHref } from "@/components/domain/events/qr/EventQrPageNav";
 import { cn } from "@/lib/utils";
 
 export function CourtFieldStatusCard({
@@ -78,10 +79,10 @@ export function CourtFieldStatusCard({
             운영 화면
           </Link>
           <Link
-            href={`/organizer/events/${eventId}/qr`}
+            href={eventQrSectionHref(eventId, "onsiteOps")}
             className={cn(buttonVariants({ variant: "ghost", size: "field" }), "flex-1 sm:flex-none")}
           >
-            QR 보기
+            운영관리 QR
           </Link>
         </div>
       </CardContent>

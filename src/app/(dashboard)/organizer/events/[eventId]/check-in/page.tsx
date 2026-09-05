@@ -6,6 +6,10 @@ import {
 import { fieldStatusService } from "@/lib/services/field-status.service";
 import { OrganizerFieldStatusBoard } from "@/components/domain/field-status/OrganizerFieldStatusBoard";
 import { OrganizerWeighInSheetActions } from "@/components/domain/weigh-in/OrganizerWeighInSheetActions";
+import { eventQrSectionHref } from "@/components/domain/events/qr/EventQrPageNav";
+import Link from "next/link";
+import { buttonVariants } from "@/components/ui/button";
+import { cn } from "@/lib/utils";
 import { EventManagementLayout } from "@/components/domain/events/EventManagementLayout";
 import { EventManagementPageHeader } from "@/components/domain/events/EventManagementPageHeader";
 import {
@@ -42,6 +46,15 @@ export default async function OrganizerEventCheckInPage({
         description="승인된 신청자의 계체·경기 진행·실격·출전 상태를 관리합니다. 계체 통과 또는 계체 실패 후 핸디캡 경기 진행 시 출전 확정됩니다."
       >
         <OrganizerWeighInSheetActions eventId={eventId} />
+        <Link
+          href={eventQrSectionHref(eventId, "onsiteOps")}
+          className={cn(
+            buttonVariants({ variant: "outline", size: "sm" }),
+            "inline-flex h-9",
+          )}
+        >
+          운영관리 QR
+        </Link>
       </EventManagementPageHeader>
 
       <OrganizerFieldStatusBoard

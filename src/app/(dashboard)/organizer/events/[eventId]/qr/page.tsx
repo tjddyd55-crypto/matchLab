@@ -1,5 +1,6 @@
 import { EventManagementLayout } from "@/components/domain/events/EventManagementLayout";
 import { EventManagementPageHeader } from "@/components/domain/events/EventManagementPageHeader";
+import { EventQrPageNav } from "@/components/domain/events/qr/EventQrPageNav";
 import { EventQrPrintBoard } from "@/components/domain/events/qr/EventQrPrintBoard";
 import { OnsiteOpsLinkManager } from "@/components/domain/onsite-ops/OnsiteOpsLinkManager";
 import { requireActor } from "@/lib/auth/actor";
@@ -50,16 +51,10 @@ export default async function OrganizerEventQrPage({
       <EventManagementPageHeader
         title="QR 출력"
         eventTitle={detail.title}
-        description="경기장별 채점/주심 QR과 관람객 QR을 생성하고 인쇄합니다. 심판 QR 접속 후 이름과 생년월일을 입력하세요."
+        description="공개 대회 QR, 채점심판 QR, 운영관리 QR을 생성·복사·인쇄합니다."
       />
 
-      <div className="mb-6 print:hidden">
-        <OnsiteOpsLinkManager
-          eventId={eventId}
-          baseUrl={baseUrl}
-          initialLink={onsiteOpsLink}
-        />
-      </div>
+      <EventQrPageNav />
 
       <EventQrPrintBoard
         eventId={eventId}
@@ -76,6 +71,14 @@ export default async function OrganizerEventQrPage({
         baseUrl={baseUrl}
         courts={courtQrLinks}
       />
+
+      <div className="mt-8 border-t pt-6">
+        <OnsiteOpsLinkManager
+          eventId={eventId}
+          baseUrl={baseUrl}
+          initialLink={onsiteOpsLink}
+        />
+      </div>
     </EventManagementLayout>
   );
 }

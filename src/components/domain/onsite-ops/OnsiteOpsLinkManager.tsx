@@ -2,9 +2,10 @@
 
 import { useState, useTransition } from "react";
 import { EventQrCard } from "@/components/domain/events/qr/EventQrCard";
+import { EVENT_QR_SECTION_IDS } from "@/components/domain/events/qr/EventQrPageNav";
 import { FeedbackMessage } from "@/components/shared/FeedbackMessage";
+import { useAppConfirmDialog } from "@/components/shared/app-confirm-dialog";
 import { Button } from "@/components/ui/button";
-import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import {
   ensureOnsiteOpsLinkAction,
   rotateOnsiteOpsLinkAction,
@@ -21,10 +22,9 @@ export function OnsiteOpsLinkManager({
   baseUrl: string;
   initialLink: OnsiteOpsLinkOwnerVM | null;
 }) {
+  const { confirm } = useAppConfirmDialog();
   const [link, setLink] = useState(initialLink);
-  const [rawToken, setRawToken] = useState<string | null>(
-    initialLink?.hasDisplayableLink ? null : null,
-  );
+  const [rawToken, setRawToken] = useState<string | null>(null);
   const [feedback, setFeedback] = useState<{
     tone: "success" | "error";
     message: string;
@@ -36,24 +36,12 @@ export function OnsiteOpsLinkManager({
       ? buildOnsiteOpsPortalUrl(rawToken, baseUrl)
       : link?.url;
 
-  async function copyLink() {
-    if (!displayUrl) return;
-    try {
-      await navigator.clipboard.writeText(displayUrl);
-      setFeedback({ tone: "success", message: "링크가 복사되었습니다." });
-    } catch {
-      setFeedback({ tone: "error", message: "링크 복사에 실패했습니다." });
-    }
-  }
-
-  function runEnsure(rotate = false) {
+  function runEnsure() {
     setFeedback(null);
     startTransition(async () => {
       const fd = new FormData();
       fd.set("eventId", eventId);
-      const res = rotate
-        ? await rotateOnsiteOpsLinkAction(fd)
-        : await ensureOnsiteOpsLinkAction(fd);
+      const res = await ensureOnsiteOpsLinkAction(fd);
       if (!res.ok) {
         setFeedback({ tone: "error", message: res.error.message });
         return;
@@ -62,77 +50,107 @@ export function OnsiteOpsLinkManager({
       setRawToken(res.data.rawToken);
       setFeedback({
         tone: "success",
-        message: rotate
-          ? "운영관리 링크가 재발급되었습니다. 이전 링크는 더 이상 사용할 수 없습니다."
-          : "운영관리 링크가 준비되었습니다.",
+        message: "운영관리 링크가 준비되었습니다.",
+      });
+    });
+  }
+
+  async function runRotate() {
+    const ok = await confirm({
+      title: "운영관리 링크를 재발급할까요?",
+      description:
+        "재발급하면 기존 운영관리 링크는 사용할 수 없습니다. 현장에 배포된 QR·링크도 함께 교체해야 합니다.",
+      confirmLabel: "재발급",
+      variant: "danger",
+    });
+    if (!ok) return;
+
+    setFeedback(null);
+    startTransition(async () => {
+      const fd = new FormData();
+      fd.set("eventId", eventId);
+      const res = await rotateOnsiteOpsLinkAction(fd);
+      if (!res.ok) {
+        setFeedback({ tone: "error", message: res.error.message });
+        return;
+      }
+      setLink(res.data.link);
+      setRawToken(res.data.rawToken);
+      setFeedback({
+        tone: "success",
+        message: "운영관리 링크가 재발급되었습니다.",
       });
     });
   }
 
   return (
-    <Card className="border-amber-200/80 bg-amber-50/30">
-      <CardHeader className="pb-2">
-        <CardTitle className="text-base">운영관리</CardTitle>
-        <p className="text-muted-foreground text-sm">
-          현장 스태프가 휴대폰으로 계체 및 경기운영을 할 수 있는 링크입니다.
+    <section
+      id={EVENT_QR_SECTION_IDS.onsiteOps}
+      className="scroll-mt-20 space-y-3 print:hidden"
+    >
+      <header className="space-y-1">
+        <p className="text-muted-foreground text-[11px] font-semibold">
+          3. 운영관리 QR
         </p>
-        <p className="text-xs text-amber-900/80">
-          이 링크를 가진 사용자는 해당 대회의 계체 및 경기운영 정보를 수정할 수
-          있습니다.
+        <h2 className="text-lg font-semibold">운영관리 QR</h2>
+        <p className="text-muted-foreground text-sm leading-relaxed">
+          계체 및 경기운영 모바일 운영용입니다. 이 링크로 계체 및 경기운영
+          페이지에 접속할 수 있습니다.
         </p>
-      </CardHeader>
-      <CardContent className="space-y-3">
-        {displayUrl ? (
+        <p className="text-xs leading-relaxed text-amber-900/85">
+          {link?.warning ??
+            "이 링크를 가진 사용자는 해당 대회의 계체 및 경기운영 정보를 수정할 수 있습니다."}
+        </p>
+      </header>
+
+      {displayUrl ? (
+        <div className="space-y-3">
           <EventQrCard
+            layout="split"
             title="현장 운영관리"
-            description="계체 · 경기운영"
-            steps="QR 스캔 → 하단 탭에서 기능 선택"
+            description="모바일 하단 메뉴에서 계체 · 경기운영을 선택합니다."
+            steps="QR 스캔 → 계체 또는 경기운영 탭 선택"
             url={displayUrl}
-            printGroup="spectator-overview"
+            urlLabel="운영관리 링크"
+            printGroup="onsite-ops"
             badge="운영"
             downloadFileName={`matchon-onsite-ops-${eventId}`}
-            qrSize={180}
+            qrSize={168}
           />
-        ) : (
-          <p className="text-muted-foreground rounded-lg border border-dashed px-4 py-6 text-center text-sm">
-            아직 발급된 운영관리 링크가 없습니다.
-          </p>
-        )}
-
-        <div className="flex flex-wrap gap-2">
-          <Button
-            type="button"
-            size="sm"
-            variant="outline"
-            disabled={pending}
-            onClick={() => runEnsure(false)}
-          >
-            {link?.hasDisplayableLink ? "링크 다시 표시" : "링크 발급"}
-          </Button>
-          {displayUrl ? (
-            <Button type="button" size="sm" variant="outline" onClick={copyLink}>
-              링크 복사
-            </Button>
-          ) : null}
-          {link?.hasDisplayableLink || rawToken ? (
+          <div className="flex flex-wrap gap-2">
             <Button
               type="button"
               size="sm"
               variant="destructive"
               disabled={pending}
-              onClick={() => runEnsure(true)}
+              onClick={() => void runRotate()}
             >
               링크 재발급
             </Button>
-          ) : null}
+          </div>
         </div>
+      ) : (
+        <div className="rounded-lg border border-dashed border-amber-200/80 bg-amber-50/20 px-4 py-6 text-center">
+          <p className="text-muted-foreground text-sm">
+            아직 발급된 운영관리 링크가 없습니다.
+          </p>
+          <Button
+            type="button"
+            size="sm"
+            className="mt-3"
+            disabled={pending}
+            onClick={runEnsure}
+          >
+            운영관리 링크 생성
+          </Button>
+        </div>
+      )}
 
-        {feedback ? (
-          <FeedbackMessage tone={feedback.tone === "success" ? "success" : "error"}>
-            {feedback.message}
-          </FeedbackMessage>
-        ) : null}
-      </CardContent>
-    </Card>
+      {feedback ? (
+        <FeedbackMessage tone={feedback.tone === "success" ? "success" : "error"}>
+          {feedback.message}
+        </FeedbackMessage>
+      ) : null}
+    </section>
   );
 }

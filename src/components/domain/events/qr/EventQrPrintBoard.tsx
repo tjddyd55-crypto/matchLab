@@ -21,6 +21,7 @@ import type { EventStatus } from "@/lib/enums";
 import { formatPublicDateTime } from "@/lib/date-display";
 import { triggerEventQrPrint } from "@/components/domain/judges/judge-qr-ui";
 import { formatCourtTabLabel } from "@/lib/court-tab-label";
+import { EVENT_QR_SECTION_IDS } from "./EventQrPageNav";
 import "./event-qr-print.css";
 
 /** 레거시 심판 로그인 QR — 코드 유지, 출력 UI에서는 숨김 */
@@ -254,9 +255,48 @@ export function EventQrPrintBoard({
         ) : null}
       </div>
 
+      <section
+        id={EVENT_QR_SECTION_IDS.public}
+        className="scroll-mt-20 space-y-4"
+      >
+        <header className="space-y-1">
+          <p className="text-muted-foreground text-[11px] font-semibold">
+            1. 공개 대회 QR
+          </p>
+          <h2 className="text-lg font-semibold">관람객용 QR</h2>
+          <p className="text-muted-foreground text-sm">
+            대진표·결과·라이브 등 관람용 공개 페이지입니다. organizer·admin·judge
+            경로는 포함하지 않습니다.
+          </p>
+        </header>
+        <div className="grid gap-4 md:grid-cols-2 xl:grid-cols-3">
+          {spectatorCards.map((card) => (
+            <EventQrCard
+              key={card.printGroup}
+              printGroup={card.printGroup}
+              title={card.title}
+              description={card.description}
+              url={card.url}
+              disabled={card.disabled}
+              disabledReason={spectatorTabQrDisabledReason(
+                spectatorCtx,
+                card.tab,
+              )}
+              downloadFileName={`spectator-${card.printGroup}-${slug || eventId}.png`}
+            />
+          ))}
+        </div>
+      </section>
+
       {courts.length > 0 ? (
-        <section className="space-y-4">
+        <section
+          id={EVENT_QR_SECTION_IDS.judge}
+          className="scroll-mt-20 space-y-4"
+        >
           <header className="space-y-1">
+            <p className="text-muted-foreground text-[11px] font-semibold">
+              2. 채점심판 QR
+            </p>
             <h2 className="text-lg font-semibold">경기장별 심판 QR</h2>
             <p className="text-muted-foreground text-sm">
               각 경기장에 채점심판용/주심판용 QR을 따로 부착합니다. QR 접속 후
@@ -277,7 +317,7 @@ export function EventQrPrintBoard({
                 <CardContent className="grid gap-4 px-4 pt-3 md:grid-cols-2">
                   <EventQrCard
                     printGroup="judge-court-score"
-                    title={`채점심판`}
+                    title="채점심판"
                     description="진행중 경기만 채점합니다."
                     steps="이름·생년월일 입력 → 진행중 경기 확인 → 점수 전송"
                     url={court.scoreEntryUrl}
@@ -285,7 +325,7 @@ export function EventQrPrintBoard({
                   />
                   <EventQrCard
                     printGroup="judge-court-head"
-                    title={`주심판`}
+                    title="주심판"
                     description="경기 시작, 승패 입력, 완료, 경기취소를 처리합니다."
                     steps="이름·생년월일 입력 → 경기 시작 → 채점 확인 → 승패 입력/완료"
                     url={court.headEntryUrl}
@@ -297,9 +337,20 @@ export function EventQrPrintBoard({
           </div>
         </section>
       ) : (
-        <p className="text-muted-foreground rounded-lg border border-dashed p-4 text-sm">
-          활성 경기장이 없습니다. 경기장을 등록한 뒤 경기장별 심판 QR을 출력하세요.
-        </p>
+        <section
+          id={EVENT_QR_SECTION_IDS.judge}
+          className="scroll-mt-20 space-y-2"
+        >
+          <header className="space-y-1">
+            <p className="text-muted-foreground text-[11px] font-semibold">
+              2. 채점심판 QR
+            </p>
+            <h2 className="text-lg font-semibold">경기장별 심판 QR</h2>
+          </header>
+          <p className="text-muted-foreground rounded-lg border border-dashed p-4 text-sm">
+            활성 경기장이 없습니다. 경기장을 등록한 뒤 경기장별 심판 QR을 출력하세요.
+          </p>
+        </section>
       )}
 
       {SHOW_LEGACY_JUDGE_LOGIN_QR ? (
@@ -321,33 +372,6 @@ export function EventQrPrintBoard({
           </section>
         </>
       ) : null}
-
-      <section className="space-y-4">
-        <header className="space-y-1">
-          <h2 className="text-lg font-semibold">관람객용 QR</h2>
-          <p className="text-muted-foreground text-sm">
-            공개 페이지 URL만 사용합니다. organizer·admin·judge 경로는 포함하지
-            않습니다.
-          </p>
-        </header>
-        <div className="grid gap-4 md:grid-cols-2 xl:grid-cols-3">
-          {spectatorCards.map((card) => (
-            <EventQrCard
-              key={card.printGroup}
-              printGroup={card.printGroup}
-              title={card.title}
-              description={card.description}
-              url={card.url}
-              disabled={card.disabled}
-              disabledReason={spectatorTabQrDisabledReason(
-                spectatorCtx,
-                card.tab,
-              )}
-              downloadFileName={`spectator-${card.printGroup}-${slug || eventId}.png`}
-            />
-          ))}
-        </div>
-      </section>
     </div>
   );
 }

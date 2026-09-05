@@ -8,6 +8,7 @@ import { loadEventManagementNavContext, eventManagementLayoutProps } from "@/lib
 import { eventCourtService } from "@/lib/services/event-court.service";
 import { matchService } from "@/lib/services/match.service";
 import { judgeScorecardService } from "@/lib/services/judge-scorecard.service";
+import { eventQrSectionHref } from "@/components/domain/events/qr/EventQrPageNav";
 import Link from "next/link";
 import { buttonVariants } from "@/components/ui/button";
 import { cn } from "@/lib/utils";
@@ -54,13 +55,13 @@ export default async function OrganizerEventOperationPage({
         className="mb-3 gap-1 [&>div:first-child]:gap-1 [&_h1]:text-2xl [&_h1]:leading-tight"
       >
         <Link
-          href={`/organizer/events/${eventId}/qr`}
+          href={eventQrSectionHref(eventId, "onsiteOps")}
           className={cn(
             buttonVariants({ variant: "outline", size: "sm" }),
             "inline-flex h-9",
           )}
         >
-          현장 QR 출력
+          운영관리 QR
         </Link>
       </EventManagementPageHeader>
 
