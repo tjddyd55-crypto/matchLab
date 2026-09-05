@@ -29,7 +29,7 @@ assert.equal(
 );
 assert.equal(
   canRecoverCancelledMatchStatus(BracketMatchStatus.waiting, true),
-  false,
+  true,
 );
 
 assert.doesNotThrow(() =>
@@ -53,18 +53,11 @@ assert.doesNotThrow(() =>
     { hasOfficialResults: false },
   ),
 );
-assert.throws(() =>
+assert.doesNotThrow(() =>
   assertBracketMatchStatusTransition(
     BracketMatchStatus.cancelled,
     BracketMatchStatus.waiting,
     { hasOfficialResults: true },
-  ),
-);
-assert.throws(() =>
-  assertBracketMatchStatusTransition(
-    BracketMatchStatus.cancelled,
-    BracketMatchStatus.finished,
-    { hasOfficialResults: false },
   ),
 );
 
@@ -72,14 +65,14 @@ const panel = read(
   "src/components/domain/brackets/OrganizerMatchOpsPanel.tsx",
 );
 assert.ok(panel.includes("hasOfficialResults"));
-assert.ok(panel.includes("취소된 경기를 다시 진행 상태로 변경할까요?"));
+assert.ok(!panel.includes("cancelledNeedsVoid"));
 assert.ok(!panel.includes("경기취소는 되돌리기 어려울 수"));
 
 const actions = read(
   "src/components/domain/operation/OrganizerOperationActions.tsx",
 );
 assert.ok(actions.includes("경기준비로 복구"));
-assert.ok(actions.includes("결과 초기화 후 복구"));
+assert.ok(!actions.includes("결과 초기화 후 복구"));
 
 const service = read("src/lib/services/match.service.ts");
 assert.ok(service.includes("hasOfficialResults"));

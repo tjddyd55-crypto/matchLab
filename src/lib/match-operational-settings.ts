@@ -75,9 +75,23 @@ export function encodeMatchOperationalSettings(
 }
 
 export function formatOperationalSettingsLabel(settings: MatchOperationalSettings): string {
-  const base = `${settings.roundCount}R · ${Math.floor(settings.roundTimeSec / 60)}:${String(settings.roundTimeSec % 60).padStart(2, "0")}`;
+  const base = `${settings.roundCount}R · ${formatRoundDurationLabel(settings.roundTimeSec)}`;
   if (settings.overtimeEnabled && settings.overtimeRoundCount > 0) {
     return `${base} · 연장 ${settings.overtimeRoundCount}R`;
   }
   return base;
+}
+
+export function formatRoundDurationLabel(roundTimeSec: number): string {
+  const minutes = Math.floor(roundTimeSec / 60);
+  const seconds = roundTimeSec % 60;
+  return `${minutes}:${String(seconds).padStart(2, "0")}`;
+}
+
+export function getEffectiveMatchRules(input: {
+  resultMemo: string | null | undefined;
+  sportType?: string | null;
+}): MatchOperationalSettings & { displayMemo: string } {
+  const { settings, displayMemo } = parseMatchOperationalSettings(input.resultMemo);
+  return { ...settings, displayMemo };
 }

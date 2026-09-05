@@ -1,16 +1,30 @@
 "use client";
 
-import { useCallback, useEffect, useMemo, useRef, useState, useTransition, type ReactNode } from "react";
+import {
+  forwardRef,
+  useCallback,
+  useEffect,
+  useImperativeHandle,
+  useMemo,
+  useRef,
+  useState,
+  useTransition,
+  type ReactNode,
+} from "react";
 import { ChevronDown, ChevronRight } from "lucide-react";
 import { FeedbackMessage } from "@/components/shared/FeedbackMessage";
 import { Button } from "@/components/ui/button";
 import { JudgeCornerScoreQuickPick } from "@/components/domain/operation/JudgeCornerScoreQuickPick";
+import { MatchOpsJudgeDecisionSummary } from "@/components/domain/operation/MatchOpsJudgeDecisionSummary";
 import {
   getMatchOpsJudgeScoresAction,
   saveMatchOpsJudgeScoresAction,
 } from "@/features/match-ops-judge/actions";
 import {
-  calculateJudgeScoreTotals,
+  calculateJudgeDecision,
+  judgeCornerDecisionBadgeLabel,
+} from "@/lib/match-ops-judge-decision";
+import {
   countManualSlotsWithInput,
   countPortalSubmitted,
   emptyRounds,
@@ -25,9 +39,7 @@ import {
 } from "@/lib/ui/judge-ui";
 import type { MatchOpsJudgeScoreEntryVM } from "@/lib/services/match-ops-judge-score.service";
 import {
-  organizerOperationDetailFieldLabelClass,
   organizerOperationDetailFieldStackClass,
-  organizerOperationDetailLabelControlClass,
   organizerOperationDetailMajorSectionClass,
   organizerOperationSectionTitleClass,
 } from "@/lib/ui/organizer-operation-ui";
@@ -38,6 +50,11 @@ import {
 } from "@/components/domain/onsite-ops/OnsiteOpsTokenContext";
 
 const POLL_MS = 4000;
+
+export type MatchOpsJudgeScoreSectionHandle = {
+  saveScores: () => Promise<string | null>;
+  hasDirtyScores: () => boolean;
+};
 
 type SlotDraft = MatchOpsJudgeSlotState & {
   dirty: boolean;
@@ -154,15 +171,54 @@ function JudgeRoundGrid({
   );
 }
 
-export function MatchOpsJudgeScoreSection({
-  matchId,
-  resetKey,
-  opsToken: opsTokenProp,
+function JudgeSlotTotals({
+  rounds,
+  roundCount,
 }: {
-  matchId: string;
-  resetKey: string;
-  opsToken?: string;
+  rounds: MatchOpsJudgeSlotState["rounds"];
+  roundCount: number;
 }) {
+  const computed = calculateJudgeDecision(rounds, roundCount);
+  if (computed.redTotal == null || computed.blueTotal == null) return null;
+
+  return (
+    <div className="mt-2 space-y-1 rounded-md border border-border/50 bg-muted/10 px-2 py-1.5">
+      <p className="text-[11px] font-medium text-[#0F172A]">
+        합계{" "}
+        <span className={matchonRedCornerTextClass}>홍 {computed.redTotal}</span>
+        {" : "}
+        <span className={matchonBlueCornerTextClass}>
+          {computed.blueTotal} 청
+        </span>
+      </p>
+      <p>
+        <span className="inline-flex rounded border border-primary/20 bg-primary/5 px-1.5 py-0.5 text-[10px] font-semibold text-[#0F172A]">
+          {judgeCornerDecisionBadgeLabel(computed.decision, computed.isPartial)}
+        </span>
+      </p>
+    </div>
+  );
+}
+
+export const MatchOpsJudgeScoreSection = forwardRef<
+  MatchOpsJudgeScoreSectionHandle,
+  {
+    matchId: string;
+    resetKey: string;
+    opsToken?: string;
+    integratedSave?: boolean;
+    showVoteSummary?: boolean;
+  }
+>(function MatchOpsJudgeScoreSection(
+  {
+    matchId,
+    resetKey,
+    opsToken: opsTokenProp,
+    integratedSave = false,
+    showVoteSummary = true,
+  },
+  ref,
+) {
   const contextOpsToken = useOnsiteOpsToken();
   const opsToken = opsTokenProp ?? contextOpsToken;
   const [entry, setEntry] = useState<MatchOpsJudgeScoreEntryVM | null>(null);
@@ -312,7 +368,8 @@ export function MatchOpsJudgeScoreSection({
   }
 
   function addManualSlot() {
-    const nextOrder = Math.max(manualSlotCount, ...manualSlots.map((s) => s.judgeOrder)) + 1;
+    const nextOrder =
+      Math.max(manualSlotCount, ...manualSlots.map((s) => s.judgeOrder)) + 1;
     const roundCount = entry?.roundCount ?? MATCH_OPS_JUDGE_DEFAULT_SLOT_COUNT;
     setManualSlotCount(nextOrder);
     setManualSlots((prev) => [
@@ -332,31 +389,55 @@ export function MatchOpsJudgeScoreSection({
     setManualExpanded(true);
   }
 
+  const saveScores = useCallback(async (): Promise<string | null> => {
+    if (!entry || entry.isLocked) return null;
+
+    const fd = new FormData();
+    fd.set("matchId", matchId);
+    appendOnsiteOpsToken(fd, opsToken);
+    fd.set("manualSlotCount", String(manualSlotCount));
+    fd.set(
+      "slotsJson",
+      JSON.stringify(
+        manualSlots.map((slot) => ({
+          judgeOrder: slot.judgeOrder,
+          credentialId: slot.credentialId,
+          updatedAt: slot.updatedAt,
+          rounds: slot.rounds,
+        })),
+      ),
+    );
+    const res = await saveMatchOpsJudgeScoresAction(fd);
+    if (!res.ok) return res.error.message;
+    applyEntry(res.data);
+    return null;
+  }, [
+    applyEntry,
+    entry,
+    manualSlotCount,
+    manualSlots,
+    matchId,
+    opsToken,
+  ]);
+
+  useImperativeHandle(
+    ref,
+    () => ({
+      saveScores,
+      hasDirtyScores: () => dirtyRef.current,
+    }),
+    [saveScores],
+  );
+
   function onSave() {
     setError(null);
     setSuccess(null);
     startTransition(async () => {
-      const fd = new FormData();
-      fd.set("matchId", matchId);
-      appendOnsiteOpsToken(fd, opsToken);
-      fd.set("manualSlotCount", String(manualSlotCount));
-      fd.set(
-        "slotsJson",
-        JSON.stringify(
-          manualSlots.map((slot) => ({
-            judgeOrder: slot.judgeOrder,
-            credentialId: slot.credentialId,
-            updatedAt: slot.updatedAt,
-            rounds: slot.rounds,
-          })),
-        ),
-      );
-      const res = await saveMatchOpsJudgeScoresAction(fd);
-      if (!res.ok) {
-        setError(res.error.message);
+      const err = await saveScores();
+      if (err) {
+        setError(err);
         return;
       }
-      applyEntry(res.data);
       setSuccess("채점심판 점수가 저장되었습니다.");
     });
   }
@@ -371,16 +452,6 @@ export function MatchOpsJudgeScoreSection({
     [portalEntries],
   );
 
-  const totals = useMemo(
-    () =>
-      calculateJudgeScoreTotals({
-        roundCount: entry?.roundCount ?? 0,
-        manualSlots,
-        portalEntries,
-      }),
-    [entry?.roundCount, manualSlots, portalEntries],
-  );
-
   if (!entry) {
     return (
       <div className={organizerOperationDetailMajorSectionClass}>
@@ -391,11 +462,11 @@ export function MatchOpsJudgeScoreSection({
   }
 
   return (
-    <div className={cn(organizerOperationDetailMajorSectionClass, "space-y-4")}>
+    <div className={cn(organizerOperationDetailMajorSectionClass, "space-y-3")}>
       <div className="flex items-center justify-between gap-2">
         <p className={organizerOperationSectionTitleClass}>채점심판</p>
         <p className="text-muted-foreground text-[11px]">
-          {entry.roundCount}라운드 · 0–10점
+          {entry.roundCount}R · 0–10점
         </p>
       </div>
 
@@ -432,11 +503,10 @@ export function MatchOpsJudgeScoreSection({
                     updateManualRound(slot.judgeOrder, roundNumber, patch)
                   }
                 />
-                {slot.redTotal != null && slot.blueTotal != null ? (
-                  <p className="text-muted-foreground mt-2 text-[11px]">
-                    합계 RED {slot.redTotal} · BLUE {slot.blueTotal}
-                  </p>
-                ) : null}
+                <JudgeSlotTotals
+                  rounds={slot.rounds}
+                  roundCount={entry.roundCount}
+                />
               </div>
             ))}
           </div>
@@ -478,20 +548,16 @@ export function MatchOpsJudgeScoreSection({
                       {portalStatusLabel(portal.status)}
                     </span>
                   </div>
-                  <p className="text-muted-foreground mb-2 text-[11px]">
-                    심판직접입력
-                  </p>
                   <JudgeRoundGrid
                     roundCount={entry.roundCount}
                     rounds={portal.rounds}
                     disabled
                     onRoundChange={() => undefined}
                   />
-                  {portal.redTotal != null && portal.blueTotal != null ? (
-                    <p className="text-muted-foreground mt-2 text-[11px]">
-                      합계 RED {portal.redTotal} · BLUE {portal.blueTotal}
-                    </p>
-                  ) : null}
+                  <JudgeSlotTotals
+                    rounds={portal.rounds}
+                    roundCount={entry.roundCount}
+                  />
                 </div>
               ))}
             </div>
@@ -499,60 +565,13 @@ export function MatchOpsJudgeScoreSection({
         </CollapsibleSection>
       </div>
 
-      <div className="rounded-lg border bg-muted/20 px-3 py-3">
-        <p className="text-xs font-semibold text-[#0F172A]">최종 합계</p>
-        {totals.completedJudgeCount === 0 ? (
-          <p className="text-muted-foreground mt-2 text-xs">
-            아직 입력된 채점 결과가 없습니다.
-          </p>
-        ) : (
-          <>
-            <div className="mt-2 grid grid-cols-2 gap-3 text-center">
-              <div>
-                <p
-                  className={cn(
-                    "text-[11px] font-semibold",
-                    matchonRedCornerTextClass,
-                  )}
-                >
-                  RED
-                </p>
-                <p
-                  className={cn(
-                    "mt-1 text-2xl font-bold tabular-nums",
-                    matchonRedCornerTextClass,
-                  )}
-                >
-                  {totals.redTotal}
-                </p>
-              </div>
-              <div>
-                <p
-                  className={cn(
-                    "text-[11px] font-semibold",
-                    matchonBlueCornerTextClass,
-                  )}
-                >
-                  BLUE
-                </p>
-                <p
-                  className={cn(
-                    "mt-1 text-2xl font-bold tabular-nums",
-                    matchonBlueCornerTextClass,
-                  )}
-                >
-                  {totals.blueTotal}
-                </p>
-              </div>
-            </div>
-            <p className="text-muted-foreground mt-2 text-center text-[11px]">
-              수동 {totals.manualCompletedCount}명 · Portal{" "}
-              {totals.portalCompletedCount}명 합산
-              {totals.isTie ? " · 동점" : ""}
-            </p>
-          </>
-        )}
-      </div>
+      {showVoteSummary ? (
+        <MatchOpsJudgeDecisionSummary
+          roundCount={entry.roundCount}
+          manualSlots={manualSlots}
+          portalEntries={portalEntries}
+        />
+      ) : null}
 
       {staleNotice ? (
         <FeedbackMessage tone="info">
@@ -576,22 +595,28 @@ export function MatchOpsJudgeScoreSection({
         <FeedbackMessage tone="success">{success}</FeedbackMessage>
       ) : null}
 
-      {!entry.isLocked ? (
+      {!integratedSave && !entry.isLocked ? (
         <Button
           type="button"
           size="sm"
           variant="outline"
           disabled={pending}
           onClick={onSave}
-          className={cn("w-full sm:w-auto")}
+          className="w-full sm:w-auto"
         >
           채점 저장
         </Button>
-      ) : (
+      ) : null}
+
+      {entry.isLocked ? (
         <p className="text-muted-foreground text-xs">
           공식 결과가 확정되어 채점표는 읽기 전용입니다.
         </p>
-      )}
+      ) : integratedSave ? (
+        <p className="text-muted-foreground text-[11px]">
+          채점 점수는 임시저장·확정 시 함께 저장됩니다.
+        </p>
+      ) : null}
     </div>
   );
-}
+});

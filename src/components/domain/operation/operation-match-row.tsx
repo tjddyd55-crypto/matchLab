@@ -1,4 +1,3 @@
-import type { OrganizerEventMatchListItemVM } from "@/lib/services/match.service";
 import type { OrganizerMatchOpsPanelProps } from "@/components/domain/brackets/OrganizerMatchOpsPanel";
 import {
   formatOperationMatchOrder,
@@ -6,6 +5,8 @@ import {
   operationPhaseLabel,
   operationResultStatusLabel,
 } from "@/lib/match-operation-display";
+import { extractDisplayResultMemo } from "@/lib/match-result-memo";
+import type { OrganizerEventMatchListItemVM } from "@/lib/services/match.service";
 
 export type OperationMatchRowVM = OrganizerEventMatchListItemVM & {
   orderLabel: string;
@@ -32,10 +33,8 @@ export function toOperationMatchRow(
   };
 }
 
-import { extractDisplayResultMemo } from "@/lib/match-result-memo";
-
 export function toMatchOpsProps(
-  row: OrganizerEventMatchListItemVM,
+  row: OrganizerEventMatchListItemVM & { orderLabel?: string },
 ): OrganizerMatchOpsPanelProps {
   return {
     bracketType: row.bracketType,
@@ -50,5 +49,10 @@ export function toMatchOpsProps(
     winnerId: row.winnerId,
     resultType: row.resultType,
     resultMemo: extractDisplayResultMemo(row.resultMemo) || null,
+    operationalResultMemo: row.resultMemo,
+    orderLabel: row.orderLabel ?? formatOperationMatchOrder(row),
+    division: row.division,
+    divisionLabel: row.divisionLabel,
+    courtName: row.courtName,
   };
 }

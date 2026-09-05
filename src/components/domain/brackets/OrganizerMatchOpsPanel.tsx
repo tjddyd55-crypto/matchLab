@@ -1,6 +1,6 @@
 "use client";
 
-import { useState, useTransition } from "react";
+import { useRef, useState, useTransition } from "react";
 import { useRouter } from "next/navigation";
 import {
   recordMatchOutcomeDraftAction,
@@ -14,7 +14,6 @@ import {
 import { Button } from "@/components/ui/button";
 import { Card, CardContent } from "@/components/ui/card";
 import { FeedbackMessage } from "@/components/shared/FeedbackMessage";
-import { useAppConfirmDialog } from "@/components/shared/app-confirm-dialog";
 import type { ActionResult } from "@/lib/action-result";
 import {
   BracketMatchOutcomeStyle,
@@ -40,8 +39,14 @@ import {
 } from "@/lib/ui/match-status-ui";
 import { WinnerCornerPicker } from "@/components/domain/brackets/WinnerCornerPicker";
 import { BoutFormatBadge } from "@/components/domain/shared/BoutFormatBadge";
-import { MatchOpsJudgeScoreSection } from "@/components/domain/operation/MatchOpsJudgeScoreSection";
+import {
+  MatchOpsJudgeScoreSection,
+  type MatchOpsJudgeScoreSectionHandle,
+} from "@/components/domain/operation/MatchOpsJudgeScoreSection";
+import { MatchOpsMatchInfoBar } from "@/components/domain/operation/MatchOpsMatchInfoBar";
+import { MatchOpsConfirmedResultPanel } from "@/components/domain/operation/MatchOpsConfirmedResultPanel";
 import { outcomeStylePublicLabel } from "@/lib/match-result-snapshot";
+import type { EventDivisionDisplayInput } from "@/lib/event-division-fields";
 import { cn } from "@/lib/utils";
 import {
   appendOnsiteOpsToken,
@@ -81,26 +86,9 @@ function MatchOpsStatusSection({
   actionSize: "xs" | "sm" | "field";
   onStatus: (status: BracketMatchStatus) => void;
 }) {
-  const { confirm } = useAppConfirmDialog();
-  const finishedTerminal = status === BracketMatchStatus.finished;
-  const cancelledNeedsVoid =
-    status === BracketMatchStatus.cancelled && hasOfficialResults;
-
   function isOptionDisabled(optionValue: BracketMatchStatus): boolean {
     if (pending) return true;
-    if (isCurrentMatchStatus(status, optionValue)) return true;
-    if (finishedTerminal) return true;
-    if (status === BracketMatchStatus.cancelled) {
-      if (
-        optionValue === BracketMatchStatus.waiting ||
-        optionValue === BracketMatchStatus.called ||
-        optionValue === BracketMatchStatus.ongoing
-      ) {
-        return cancelledNeedsVoid;
-      }
-      return true;
-    }
-    return false;
+    return isCurrentMatchStatus(status, optionValue);
   }
 
   return (
@@ -152,14 +140,8 @@ function MatchOpsStatusSection({
                   }),
               )}
               aria-pressed={isCurrent ? "true" : "false"}
-              onClick={async () => {
+              onClick={() => {
                 if (isCurrent || disabled) return;
-                if (status === BracketMatchStatus.cancelled) {
-                  const ok = await confirm({
-                    title: "취소된 경기를 다시 진행 상태로 변경할까요?",
-                  });
-                  if (!ok) return;
-                }
                 onStatus(option.value);
               }}
             >
@@ -168,15 +150,18 @@ function MatchOpsStatusSection({
           );
         })}
       </div>
-      {status === BracketMatchStatus.cancelled && cancelledNeedsVoid ? (
-        <p className="text-amber-800 text-[11px] leading-snug">
-          공식 결과가 있습니다. 결과 초기화 후 대기·경기준비·경기진행중으로
-          복구할 수 있습니다.
+      {status === BracketMatchStatus.cancelled ? (
+        <p className="text-muted-foreground text-[11px] leading-snug">
+          취소된 경기도 운영 상태를 자유롭게 변경할 수 있습니다.
+          {hasOfficialResults
+            ? " 공식 결과는 유지되며, 결과 무효화는 별도 메뉴에서 처리합니다."
+            : null}
         </p>
       ) : null}
-      {status === BracketMatchStatus.cancelled && !cancelledNeedsVoid ? (
+      {status === BracketMatchStatus.finished && hasOfficialResults ? (
         <p className="text-muted-foreground text-[11px] leading-snug">
-          취소된 경기를 대기·경기준비·경기진행중으로 복구할 수 있습니다.
+          공식 결과가 확정된 경기도 운영 상태만 변경할 수 있습니다. 결과
+          데이터는 자동으로 삭제되지 않습니다.
         </p>
       ) : null}
     </div>
@@ -208,6 +193,12 @@ export type OrganizerMatchOpsPanelProps = {
   winnerId: string | null;
   resultType: BracketMatchOutcomeStyle | null;
   resultMemo: string | null;
+  /** 라운드/시간 등 운영 설정이 포함된 원본 resultMemo */
+  operationalResultMemo?: string | null;
+  orderLabel?: string | null;
+  division?: EventDivisionDisplayInput | null;
+  divisionLabel?: string | null;
+  courtName?: string | null;
   compact?: boolean;
   /** 경기 운영 화면 — field 버튼·피드백·상태 버튼 축소 */
   presentation?: "default" | "operation";
@@ -358,6 +349,7 @@ export function OrganizerMatchOpsPanel(props: OrganizerMatchOpsPanelProps) {
 function OrganizerMatchOpsPanelBody(props: OrganizerMatchOpsPanelProps) {
   const router = useRouter();
   const opsToken = useOnsiteOpsToken();
+  const judgeScoreRef = useRef<MatchOpsJudgeScoreSectionHandle>(null);
   const [pending, startTransition] = useTransition();
   const [pendingStatus, setPendingStatus] = useState<BracketMatchStatus | null>(
     null,
@@ -420,6 +412,14 @@ function OrganizerMatchOpsPanelBody(props: OrganizerMatchOpsPanelProps) {
     appendOnsiteOpsToken(formData, opsToken);
     const intent = String(formData.get("intent") ?? "draft");
     startTransition(async () => {
+      if (isOperation && judgeScoreRef.current) {
+        const scoreErr = await judgeScoreRef.current.saveScores();
+        if (scoreErr) {
+          setError(scoreErr);
+          return;
+        }
+      }
+
       const err = await runAction(() =>
         intent === "confirm"
           ? confirmMatchResultsAction(formData)
@@ -498,6 +498,38 @@ function OrganizerMatchOpsPanelBody(props: OrganizerMatchOpsPanelProps) {
         </FeedbackMessage>
       ) : null}
 
+      {isOperation && props.orderLabel ? (
+        <MatchOpsMatchInfoBar
+          orderLabel={props.orderLabel}
+          division={props.division ?? null}
+          divisionLabel={props.divisionLabel ?? null}
+          courtName={props.courtName ?? null}
+          status={props.status}
+          fighterRedName={props.fighterRedName}
+          fighterBlueName={props.fighterBlueName}
+          matchId={props.matchId}
+          resultMemo={
+            props.operationalResultMemo ?? props.resultMemo
+          }
+          readOnlyRules={props.hasOfficialResults && !editingCorrect}
+        />
+      ) : null}
+
+      {isOperation && props.hasOfficialResults && !editingCorrect ? (
+        <MatchOpsConfirmedResultPanel
+          matchId={props.matchId}
+          hasOfficialResults={props.hasOfficialResults}
+          winnerId={props.winnerId}
+          resultType={props.resultType}
+          fighterRedId={props.fighterRedId}
+          fighterBlueId={props.fighterBlueId}
+          fighterRedName={props.fighterRedName}
+          fighterBlueName={props.fighterBlueName}
+          opsToken={opsToken ?? undefined}
+          resetKey={`${props.matchId}:${props.hasOfficialResults}:${props.winnerId ?? ""}`}
+        />
+      ) : null}
+
       {!isOperation ? (
         <MatchOpsStatusSection
           status={props.status}
@@ -512,8 +544,11 @@ function OrganizerMatchOpsPanelBody(props: OrganizerMatchOpsPanelProps) {
 
       {isOperation ? (
         <MatchOpsJudgeScoreSection
+          ref={judgeScoreRef}
           matchId={props.matchId}
           resetKey={`${props.matchId}:${props.hasOfficialResults}:${props.status}`}
+          integratedSave={canRecordOutcome}
+          showVoteSummary={!props.hasOfficialResults || editingCorrect}
         />
       ) : null}
 

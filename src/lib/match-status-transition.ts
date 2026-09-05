@@ -8,64 +8,30 @@ export const CANCELLED_RECOVERY_STATUSES = new Set<BracketMatchStatus>([
   BracketMatchStatus.ongoing,
 ]);
 
+const FIELD_OPS_STATUSES = new Set<BracketMatchStatus>([
+  BracketMatchStatus.waiting,
+  BracketMatchStatus.called,
+  BracketMatchStatus.ongoing,
+  BracketMatchStatus.finished,
+  BracketMatchStatus.delayed,
+  BracketMatchStatus.cancelled,
+]);
+
 /**
- * `docs/status-machine.md` §5 허용 전이.
- * 취소(cancelled)는 결과 없는 경우 waiting/called/ongoing으로 복구 가능.
+ * 경기운영(주최자·현장) 화면 — BracketMatch.status 필드만 변경한다.
+ * MatchResult·JudgeScore·bracket progression 은 건드리지 않는다.
+ *
+ * 운영자는 waiting/called/ongoing/finished/cancelled 사이 자유 전환 가능
+ * (동일 상태 제외, backward transition 포함).
  */
 export function assertBracketMatchStatusTransition(
   from: BracketMatchStatus,
   to: BracketMatchStatus,
-  options?: { hasOfficialResults?: boolean },
+  _options?: { hasOfficialResults?: boolean },
 ): void {
   if (from === to) return;
 
-  if (from === BracketMatchStatus.cancelled) {
-    if (!CANCELLED_RECOVERY_STATUSES.has(to)) {
-      throw new AppError(
-        "CONFLICT",
-        "취소된 경기는 대기·경기준비·경기진행중으로만 복구할 수 있습니다.",
-      );
-    }
-    if (options?.hasOfficialResults) {
-      throw new AppError(
-        "CONFLICT",
-        "공식 결과가 있는 취소 경기는 결과 초기화 후 복구할 수 있습니다.",
-      );
-    }
-    return;
-  }
-
-  if (to === BracketMatchStatus.cancelled) return;
-
-  const allowed: Record<BracketMatchStatus, Set<BracketMatchStatus>> = {
-    [BracketMatchStatus.waiting]: new Set([
-      BracketMatchStatus.called,
-      BracketMatchStatus.ongoing,
-      BracketMatchStatus.finished,
-      BracketMatchStatus.cancelled,
-    ]),
-    [BracketMatchStatus.called]: new Set([
-      BracketMatchStatus.ongoing,
-      BracketMatchStatus.finished,
-      BracketMatchStatus.cancelled,
-    ]),
-    [BracketMatchStatus.ongoing]: new Set([
-      BracketMatchStatus.waiting,
-      BracketMatchStatus.finished,
-      BracketMatchStatus.cancelled,
-    ]),
-    [BracketMatchStatus.delayed]: new Set([
-      BracketMatchStatus.waiting,
-      BracketMatchStatus.ongoing,
-      BracketMatchStatus.finished,
-      BracketMatchStatus.cancelled,
-    ]),
-    [BracketMatchStatus.finished]: new Set([]),
-    [BracketMatchStatus.cancelled]: CANCELLED_RECOVERY_STATUSES,
-  };
-
-  const ok = allowed[from]?.has(to);
-  if (!ok) {
+  if (!FIELD_OPS_STATUSES.has(from) || !FIELD_OPS_STATUSES.has(to)) {
     throw new AppError(
       "CONFLICT",
       `허용되지 않는 경기 상태 전이입니다 (${from} → ${to}).`,
@@ -75,8 +41,7 @@ export function assertBracketMatchStatusTransition(
 
 export function canRecoverCancelledMatchStatus(
   to: BracketMatchStatus,
-  hasOfficialResults: boolean,
+  _hasOfficialResults?: boolean,
 ): boolean {
-  if (!CANCELLED_RECOVERY_STATUSES.has(to)) return false;
-  return !hasOfficialResults;
+  return CANCELLED_RECOVERY_STATUSES.has(to);
 }

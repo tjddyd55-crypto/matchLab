@@ -3,7 +3,6 @@
 import { useState, useTransition } from "react";
 import { useRouter } from "next/navigation";
 import { FeedbackMessage } from "@/components/shared/FeedbackMessage";
-import { useAppConfirmDialog } from "@/components/shared/app-confirm-dialog";
 import { updateMatchStatusAction } from "@/features/matches/actions";
 import { Button } from "@/components/ui/button";
 import type { ActionResult } from "@/lib/action-result";
@@ -39,13 +38,12 @@ export function OrganizerOperationActions({
   onOpenView?: () => void;
 }) {
   const router = useRouter();
-  const { confirm } = useAppConfirmDialog();
   const [pending, startTransition] = useTransition();
   const [error, setError] = useState<string | null>(null);
   const [success, setSuccess] = useState<string | null>(null);
 
   const cancelled = match.status === BracketMatchStatus.cancelled;
-  const canRecoverCancelled = cancelled && !match.hasOfficialResults;
+  const canRecoverCancelled = cancelled;
   const showPrepare =
     canPrepareMatch(match.status) || canRecoverCancelled;
   const showStart = canStartMatch(match.status);
@@ -78,10 +76,6 @@ export function OrganizerOperationActions({
 
   const handleAdvance = async () => {
     if (canRecoverCancelled) {
-      const ok = await confirm({
-        title: "취소된 경기를 다시 진행 상태로 변경할까요?",
-      });
-      if (!ok) return;
       runStatusUpdate(
         BracketMatchStatus.called,
         "경기준비 상태로 복구되었습니다.",
@@ -101,14 +95,6 @@ export function OrganizerOperationActions({
     runStatusUpdate(BracketMatchStatus.finished, "경기가 종료되었습니다.");
 
   const btnSize = compact ? "xs" : "sm";
-
-  if (cancelled && match.hasOfficialResults) {
-    return (
-      <p className="text-muted-foreground text-xs">
-        결과가 있는 취소 경기는 결과 초기화 후 복구할 수 있습니다.
-      </p>
-    );
-  }
 
   return (
     <div className={cn("space-y-2", compact ? "text-xs" : "text-sm")}>

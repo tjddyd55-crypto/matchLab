@@ -32,8 +32,12 @@ function assertStaticWiring() {
   assert.match(section, /getMatchOpsJudgeScoresAction/);
   assert.match(section, /POLL_MS = 4000/);
   assert.match(section, /dirty/);
-  assert.match(section, /calculateJudgeScoreTotals/);
-  assert.match(section, /최종 합계/);
+  assert.match(section, /calculateJudgeDecision/);
+  assert.match(section, /MatchOpsJudgeDecisionSummary/);
+  const summary = read(
+    "src/components/domain/operation/MatchOpsJudgeDecisionSummary.tsx",
+  );
+  assert.match(summary, /심판 판정 집계/);
   assert.match(section, /수동 채점심판/);
   assert.match(section, /실제 심판/);
   assert.doesNotMatch(section, /confirmMatchResults/);
