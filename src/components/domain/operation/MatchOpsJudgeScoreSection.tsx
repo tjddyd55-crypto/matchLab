@@ -119,30 +119,35 @@ function JudgeRoundGrid({
   return (
     <div className="space-y-3">
       {rounds.map((round) => (
-        <div key={round.roundNumber} className="space-y-2">
-          <p className="text-muted-foreground text-[11px] font-medium">
+        <div
+          key={round.roundNumber}
+          className="rounded-md border border-border/60 bg-background/50 p-2 sm:p-2.5"
+        >
+          <p className="text-muted-foreground mb-2 text-[11px] font-semibold">
             {roundCount > 1 ? `${round.roundNumber}R` : "점수"}
           </p>
-          <JudgeCornerScoreQuickPick
-            corner="RED"
-            value={round.redScore}
-            disabled={disabled}
-            onChange={(next) =>
-              onRoundChange(round.roundNumber, {
-                redScore: next == null ? "" : String(next),
-              })
-            }
-          />
-          <JudgeCornerScoreQuickPick
-            corner="BLUE"
-            value={round.blueScore}
-            disabled={disabled}
-            onChange={(next) =>
-              onRoundChange(round.roundNumber, {
-                blueScore: next == null ? "" : String(next),
-              })
-            }
-          />
+          <div className="grid grid-cols-2 gap-2 sm:gap-3">
+            <JudgeCornerScoreQuickPick
+              corner="RED"
+              value={round.redScore}
+              disabled={disabled}
+              onChange={(next) =>
+                onRoundChange(round.roundNumber, {
+                  redScore: next == null ? "" : String(next),
+                })
+              }
+            />
+            <JudgeCornerScoreQuickPick
+              corner="BLUE"
+              value={round.blueScore}
+              disabled={disabled}
+              onChange={(next) =>
+                onRoundChange(round.roundNumber, {
+                  blueScore: next == null ? "" : String(next),
+                })
+              }
+            />
+          </div>
         </div>
       ))}
     </div>

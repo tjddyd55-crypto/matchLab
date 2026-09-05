@@ -3,7 +3,6 @@
 import { cn } from "@/lib/utils";
 import {
   organizerOperationDetailFieldLabelClass,
-  organizerOperationDetailLabelControlClass,
 } from "@/lib/ui/organizer-operation-ui";
 import {
   getCornerLabelClassName,
@@ -26,22 +25,25 @@ export function JudgeCornerScoreQuickPick({
   const cornerLabel = corner === "RED" ? "홍코너" : "청코너";
 
   return (
-    <div className={organizerOperationDetailLabelControlClass}>
-      <div className="mb-1 flex items-center justify-between gap-2">
+    <div className="min-w-0">
+      <div className="mb-1 flex items-center justify-between gap-1">
         <span
           className={cn(
             organizerOperationDetailFieldLabelClass,
             getCornerLabelClassName(cornerLabel),
+            "text-[10px] leading-tight sm:text-[11px]",
           )}
         >
-          {corner}
+          <span className="font-semibold">{cornerLabel}</span>
+          <span className="mx-1 opacity-60">·</span>
+          <span className="font-bold">{corner}</span>
         </span>
         {value != null ? (
           <button
             type="button"
             disabled={disabled}
             onClick={() => onChange(null)}
-            className="text-muted-foreground hover:text-foreground text-[11px] underline-offset-2 hover:underline"
+            className="text-muted-foreground hover:text-foreground shrink-0 text-[10px] underline-offset-2 hover:underline"
           >
             지우기
           </button>
@@ -49,7 +51,7 @@ export function JudgeCornerScoreQuickPick({
       </div>
       <div
         className={cn(
-          "grid grid-cols-5 gap-1 rounded-md border p-1.5",
+          "grid grid-cols-5 gap-0.5 rounded-md border p-1 sm:grid-cols-10 sm:gap-1 sm:p-1.5",
           getCornerCardClassName(cornerLabel),
         )}
       >
@@ -64,9 +66,9 @@ export function JudgeCornerScoreQuickPick({
               data-testid={`judge-score-${corner.toLowerCase()}-${score}`}
               onClick={() => onChange(selected ? null : score)}
               className={cn(
-                "h-8 rounded-md border text-xs font-semibold tabular-nums transition-colors",
+                "h-7 min-w-0 rounded border text-[11px] font-semibold tabular-nums transition-colors sm:h-8 sm:text-xs",
                 selected
-                  ? "border-primary bg-primary text-primary-foreground"
+                  ? "border-primary bg-primary text-primary-foreground ring-1 ring-primary/40"
                   : "border-input bg-background hover:bg-muted/60",
               )}
             >
