@@ -1,4 +1,5 @@
 import { EventArchiveView } from "@/components/domain/events/EventArchiveView";
+import { EventArchiveDownloadPanel } from "@/components/domain/events/EventArchiveDownloadPanel";
 import { EventManagementLayout } from "@/components/domain/events/EventManagementLayout";
 import { EventManagementPageHeader } from "@/components/domain/events/EventManagementPageHeader";
 import { EmptyState } from "@/components/shared/EmptyState";
@@ -74,6 +75,7 @@ export default async function OrganizerEventArchivePage({
         eventTitle={detail.title}
         description={`기록 v${archive.version} · 종료 시점 데이터를 조회합니다.`}
       />
+      <EventArchiveDownloadPanel eventId={eventId} className="mb-4" />
       <EventArchiveView archive={archive} />
     </EventManagementLayout>
   );

@@ -1,11 +1,7 @@
 import "server-only";
 
 import { randomUUID } from "node:crypto";
-import {
-  JudgeCredentialRole,
-  JudgeScorecardStatus,
-  MatchRecordStatus,
-} from "@/generated/prisma";
+import { EventStatus, JudgeCredentialRole, JudgeScorecardStatus, MatchRecordStatus } from "@/generated/prisma";
 import type { ActorContext } from "@/lib/auth/actor-context";
 import {
   assertFieldOperationsActorRole,
@@ -14,6 +10,7 @@ import {
   toActorCaller,
 } from "@/lib/field-operations-auth";
 import { AppError } from "@/lib/errors/app-error";
+import { assertEventWritable } from "@/lib/event-completion-guard";
 import { hashJudgePassword } from "@/lib/judge-password";
 import { readRequestClientMeta } from "@/lib/judge-request-meta";
 import { defaultRoundCountForSport } from "@/lib/judge-round-count";
@@ -70,6 +67,7 @@ async function loadMatchForOps(matchId: string) {
       bracket: {
         select: {
           eventId: true,
+          event: { select: { status: true } },
           division: { select: { sportType: true } },
         },
       },
@@ -271,7 +269,9 @@ export const matchOpsJudgeScoreService = {
     return {
       matchId,
       roundCount,
-      isLocked: isMatchResultLocked(match.matchResults),
+      isLocked:
+        isMatchResultLocked(match.matchResults) ||
+        match.bracket.event.status === EventStatus.finished,
       manualSlots,
       portalEntries,
       manualSlotCount,
@@ -292,6 +292,7 @@ export const matchOpsJudgeScoreService = {
     assertFieldOperationsActorRole(caller);
     const match = await loadMatchForOps(input.matchId);
     await assertFieldOperationsEventAccess(caller, match.bracket.eventId);
+    await assertEventWritable(match.bracket.eventId);
 
     if (isMatchResultLocked(match.matchResults)) {
       throw new AppError(

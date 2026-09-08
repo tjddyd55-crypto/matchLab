@@ -25,6 +25,7 @@ import {
 } from "@/lib/fighter-handicap-display";
 import { sortMatchesByCourtSchedule } from "@/lib/court-match-order";
 import { AppError } from "@/lib/errors/app-error";
+import { assertEventWritable } from "@/lib/event-completion-guard";
 import { isExternalRegistrationPlaceholderGymName } from "@/lib/gym/external-registration-placeholder-gym";
 import { assertBracketMatchStatusTransition } from "@/lib/match-status-transition";
 import { resolveMatchIsPublicSparring } from "@/lib/match-bout-settings";
@@ -514,6 +515,7 @@ export const matchService = {
     input: UpdateMatchStatusInput,
   ): Promise<void> {
     const ctx = await ensureMatchFieldOps(caller, input.matchId);
+    await assertEventWritable(ctx.eventId);
 
     await prisma.$transaction(async (tx) => {
       const cur = await tx.bracketMatch.findUnique({
@@ -572,6 +574,7 @@ export const matchService = {
     input: RecordMatchOutcomeDraftInput,
   ): Promise<void> {
     const ctx = await ensureMatchFieldOps(caller, input.matchId);
+    await assertEventWritable(ctx.eventId);
 
     const row = await matchRepository.findMatchWithBracketContext(input.matchId);
     if (!row) {
@@ -708,6 +711,7 @@ export const matchService = {
     isPublicSparring: boolean,
   ): Promise<void> {
     const ctx = await ensureMatchOrganizer(actor, matchId);
+    await assertEventWritable(ctx.eventId);
     const row = await matchRepository.findMatchWithBracketContext(matchId);
     if (!row) {
       throw new AppError("NOT_FOUND", "경기를 찾을 수 없습니다.");
@@ -742,6 +746,7 @@ export const matchService = {
     patch: Pick<MatchOperationalSettings, "roundCount" | "roundTimeSec">,
   ): Promise<void> {
     const ctx = await ensureMatchOrganizer(actor, matchId);
+    await assertEventWritable(ctx.eventId);
     const row = await matchRepository.findMatchWithBracketContext(matchId);
     if (!row) {
       throw new AppError("NOT_FOUND", "경기를 찾을 수 없습니다.");

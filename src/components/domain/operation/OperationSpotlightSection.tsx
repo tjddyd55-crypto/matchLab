@@ -28,12 +28,14 @@ export function OperationSpotlightSection({
   focusedMatchId,
   onFocusMatch,
   onMatchStatusChanged,
+  eventOperationsReadOnly = false,
   className,
 }: {
   rows: OperationMatchRowVM[];
   focusedMatchId: string | null;
   onFocusMatch: (matchId: string) => void;
   onMatchStatusChanged?: (matchId: string, status: BracketMatchStatus) => void;
+  eventOperationsReadOnly?: boolean;
   className?: string;
 }) {
   const resultRef = useRef<HTMLElement>(null);
@@ -135,6 +137,7 @@ export function OperationSpotlightSection({
                 {...toMatchOpsProps(focusedMatch)}
                 presentation="operation"
                 onStatusChanged={onMatchStatusChanged}
+                eventOperationsReadOnly={eventOperationsReadOnly}
               />
             </div>
           </section>

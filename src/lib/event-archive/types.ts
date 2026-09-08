@@ -95,6 +95,8 @@ export type EventArchiveFinishSummary = {
   completedMatchCount: number;
   pendingMatchCount: number;
   divisionCount: number;
+  unconfirmedResultCount: number;
+  weighInPendingCount: number;
 };
 
 export type EventArchiveSummaryStats = {

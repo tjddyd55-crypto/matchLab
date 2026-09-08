@@ -76,6 +76,7 @@ function MatchOpsStatusSection({
   isOperation,
   actionSize,
   onStatus,
+  readOnly = false,
 }: {
   status: BracketMatchStatus;
   pending: boolean;
@@ -84,9 +85,10 @@ function MatchOpsStatusSection({
   isOperation: boolean;
   actionSize: "xs" | "sm" | "field";
   onStatus: (status: BracketMatchStatus) => void;
+  readOnly?: boolean;
 }) {
   function isOptionDisabled(optionValue: BracketMatchStatus): boolean {
-    if (pending) return true;
+    if (pending || readOnly) return true;
     return isCurrentMatchStatus(status, optionValue);
   }
 
@@ -163,6 +165,11 @@ function MatchOpsStatusSection({
           데이터는 자동으로 삭제되지 않습니다.
         </p>
       ) : null}
+      {readOnly ? (
+        <p className="text-muted-foreground text-xs leading-snug">
+          대회가 종료되어 경기 상태를 변경할 수 없습니다.
+        </p>
+      ) : null}
     </div>
   );
 }
@@ -203,6 +210,8 @@ export type OrganizerMatchOpsPanelProps = {
   presentation?: "default" | "operation";
   /** 상태 변경 성공 직후 운영 보드 client state 동기화 */
   onStatusChanged?: (matchId: string, status: BracketMatchStatus) => void;
+  /** 대회 종료 후 운영 입력 read-only */
+  eventOperationsReadOnly?: boolean;
 };
 
 async function runAction(
@@ -366,7 +375,10 @@ function OrganizerMatchOpsPanelBody(props: OrganizerMatchOpsPanelProps) {
   const canFillOutcome = Boolean(props.fighterRedId && props.fighterBlueId);
   const cancelled = props.status === BracketMatchStatus.cancelled;
   const canRecordOutcome =
-    !cancelled && canFillOutcome && !props.hasOfficialResults;
+    !cancelled &&
+    canFillOutcome &&
+    !props.hasOfficialResults &&
+    !props.eventOperationsReadOnly;
 
   const refresh = () => router.refresh();
 
@@ -497,6 +509,12 @@ function OrganizerMatchOpsPanelBody(props: OrganizerMatchOpsPanelProps) {
         </FeedbackMessage>
       ) : null}
 
+      {props.eventOperationsReadOnly ? (
+        <p className="mb-3 rounded-lg border border-amber-200/80 bg-amber-50/60 px-3 py-2 text-xs text-amber-950">
+          이 대회는 종료되었습니다. 운영 데이터는 조회만 가능하고 수정할 수 없습니다.
+        </p>
+      ) : null}
+
       <MatchOpsStatusSection
         status={props.status}
         pending={pending}
@@ -505,6 +523,7 @@ function OrganizerMatchOpsPanelBody(props: OrganizerMatchOpsPanelProps) {
         isOperation={isOperation}
         actionSize={actionSize}
         onStatus={onStatus}
+        readOnly={props.eventOperationsReadOnly}
       />
 
       {isOperation ? (

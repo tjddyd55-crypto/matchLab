@@ -24,7 +24,7 @@
 | closed | 신청 마감(미승인 처리 정책은 서비스 규칙) |
 | bracket_ready | 대진표 작업 허용 강조(운영 플래그, 선택적) |
 | ongoing | 대회 당일 운영 |
-| finished | 종료·기록 유지 |
+| finished | 대회 종료·기록 유지 |
 | cancelled | 폐지·환불 안내 등 운영 처리(결과·전적 정책은 서비스에서 명시) |
 
 ### 1.2 권장 전이
@@ -35,7 +35,9 @@ draft ──► open ──► closed ──► bracket_ready ──► ongoing 
    └────────┴─────────┴──────────────┴─────────────┴──► cancelled (조건부)
 ```
 
-- 뒤로 가는 전이(예: `finished` → `ongoing`)는 **admin 또는 명시적 보정 플로우** 만 허용하고 `AuditLog` 권장.
+- `finished` → `ongoing` : **대회 종료 해제** (주최자 confirm, `completedAt` null, AuditLog `EVENT_REOPENED`)
+- `closed` / `bracket_ready` / `ongoing` → `finished` : **대회 종료** (archive 생성, `completedAt` 설정)
+- 뒤로 가는 그 외 전이는 **admin 또는 명시적 보정 플로우** 만 허용하고 `AuditLog` 권장.
 - `cancelled` 이후 재개는 MVP에서는 비권장(필요 시 admin만).
 
 ---

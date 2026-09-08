@@ -45,11 +45,13 @@ export function OrganizerOperationBoard({
   courts,
   judgeSummaryByMatch,
   judgeBriefByMatch = {},
+  eventOperationsReadOnly = false,
 }: {
   matches: OrganizerEventMatchListItemVM[];
   courts: EventCourtVM[];
   judgeSummaryByMatch?: Record<string, JudgeMatchSummaryVM>;
   judgeBriefByMatch?: Record<string, { judgeName: string; winnerCorner: string }[]>;
+  eventOperationsReadOnly?: boolean;
 }) {
   const listRef = useRef<HTMLDivElement>(null);
   const [statusPatches, setStatusPatches] = useState<
@@ -190,6 +192,7 @@ export function OrganizerOperationBoard({
             focusedMatchId={effectiveFocusedMatchId}
             onFocusMatch={focusMatch}
             onMatchStatusChanged={handleMatchStatusChanged}
+            eventOperationsReadOnly={eventOperationsReadOnly}
           />
         </div>
 
@@ -200,6 +203,7 @@ export function OrganizerOperationBoard({
               focusedMatchId={expandedMatchId}
               onFocusMatch={focusMatch}
               onMatchStatusChanged={handleMatchStatusChanged}
+              eventOperationsReadOnly={eventOperationsReadOnly}
             />
           ) : null}
         </div>

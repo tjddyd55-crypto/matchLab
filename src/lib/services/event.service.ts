@@ -188,10 +188,18 @@ function assertEventStatusTransition(
   const allowed: Record<EventStatus, EventStatus[]> = {
     [EventStatus.draft]: [EventStatus.open, EventStatus.cancelled],
     [EventStatus.open]: [EventStatus.closed, EventStatus.cancelled],
-    [EventStatus.closed]: [EventStatus.bracket_ready, EventStatus.cancelled],
-    [EventStatus.bracket_ready]: [EventStatus.ongoing, EventStatus.cancelled],
+    [EventStatus.closed]: [
+      EventStatus.bracket_ready,
+      EventStatus.finished,
+      EventStatus.cancelled,
+    ],
+    [EventStatus.bracket_ready]: [
+      EventStatus.ongoing,
+      EventStatus.finished,
+      EventStatus.cancelled,
+    ],
     [EventStatus.ongoing]: [EventStatus.finished, EventStatus.cancelled],
-    [EventStatus.finished]: [],
+    [EventStatus.finished]: [EventStatus.ongoing],
     [EventStatus.cancelled]: [],
   };
   if (!allowed[current]?.includes(next)) {
@@ -307,6 +315,7 @@ export type OrganizerEventDetailVM = {
   registrationStartDate: string;
   registrationEndDate: string;
   status: EventStatus;
+  completedAt: string | null;
   posterUrl: string | null;
   spectatorAccessEnabled: boolean;
   spectatorAccessStartAt: string | null;
@@ -346,6 +355,7 @@ function mapOrganizerEventDetail(
     registrationStartDate: toIso(row.registrationStartDate),
     registrationEndDate: toIso(row.registrationEndDate),
     status: row.status,
+    completedAt: row.completedAt ? toIso(row.completedAt) : null,
     posterUrl: row.posterUrl,
     spectatorAccessEnabled: row.spectatorAccessEnabled,
     spectatorAccessStartAt: row.spectatorAccessStartAt
@@ -453,7 +463,7 @@ const EVENT_STATUS_LABEL_KO: Record<EventStatus, string> = {
   closed: "신청 마감",
   bracket_ready: "대진 준비",
   ongoing: "진행 중",
-  finished: "종료",
+  finished: "대회 종료",
   cancelled: "취소",
 };
 
@@ -1087,6 +1097,7 @@ export const eventService = {
     }
 
     if (input.status === EventStatus.finished) {
+      const completedAt = new Date();
       await prisma.$transaction(async (tx) => {
         const { created } = await eventArchiveService.createArchiveInTransaction(
           tx,
@@ -1108,7 +1119,12 @@ export const eventService = {
             );
           }
         }
-        await eventRepository.updateEventStatus(input.eventId, input.status, tx);
+        await eventRepository.updateEventStatus(
+          input.eventId,
+          input.status,
+          tx,
+          { completedAt },
+        );
         await auditRepository.createAuditLog(
           {
             actorUserId: actor.userId,
@@ -1119,6 +1135,8 @@ export const eventService = {
             afterData: {
               status: input.status,
               archiveVersion: 1,
+              completedAt: completedAt.toISOString(),
+              lifecycle: "EVENT_COMPLETED",
             },
           },
           tx,
@@ -1127,8 +1145,16 @@ export const eventService = {
       return;
     }
 
+    const isReopen =
+      row.status === EventStatus.finished && input.status === EventStatus.ongoing;
+
     await prisma.$transaction(async (tx) => {
-      await eventRepository.updateEventStatus(input.eventId, input.status, tx);
+      await eventRepository.updateEventStatus(
+        input.eventId,
+        input.status,
+        tx,
+        isReopen ? { completedAt: null } : undefined,
+      );
       await auditRepository.createAuditLog(
         {
           actorUserId: actor.userId,
@@ -1136,7 +1162,10 @@ export const eventService = {
           targetType: "Event",
           targetId: input.eventId,
           beforeData: { status: row.status },
-          afterData: { status: input.status },
+          afterData: {
+            status: input.status,
+            ...(isReopen ? { lifecycle: "EVENT_REOPENED" } : {}),
+          },
         },
         tx,
       );

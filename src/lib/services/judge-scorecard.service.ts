@@ -7,6 +7,7 @@ import {
 import type { ActorContext } from "@/lib/auth/actor-context";
 import { formatDivisionNameLabel } from "@/lib/bracket-snapshot";
 import { AppError } from "@/lib/errors/app-error";
+import { assertEventWritable } from "@/lib/event-completion-guard";
 import { formatBirthDateInput, judgeRoleCanScore, JUDGE_ROLE_LABELS } from "@/lib/judge-identity";
 import { readRequestClientMeta } from "@/lib/judge-request-meta";
 import { defaultRoundCountForSport } from "@/lib/judge-round-count";
@@ -329,6 +330,7 @@ export const judgeScorecardService = {
     );
 
     const m = await loadMatchContext(input.matchId);
+    await assertEventWritable(m.bracket.event.id);
     if (isMatchResultLocked(m.matchResults)) {
       throw new AppError(
         "FORBIDDEN",

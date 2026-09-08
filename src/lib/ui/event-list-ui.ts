@@ -100,7 +100,7 @@ export const ORGANIZER_EVENT_LIST_FILTER_TABS: {
   { id: "ongoing", label: "진행 중" },
   { id: "registration", label: "신청 중" },
   { id: "preparing", label: "준비 중" },
-  { id: "finished", label: "종료" },
+  { id: "finished", label: "대회 종료" },
 ];
 
 export function matchesOrganizerEventListFilter(

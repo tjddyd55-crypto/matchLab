@@ -271,10 +271,16 @@ export const eventRepository = {
     eventId: string,
     status: EventStatus,
     tx?: Prisma.TransactionClient,
+    meta?: { completedAt?: Date | null },
   ): Promise<void> {
     await db(tx).event.update({
       where: { id: eventId },
-      data: { status },
+      data: {
+        status,
+        ...(meta?.completedAt !== undefined
+          ? { completedAt: meta.completedAt }
+          : {}),
+      },
     });
   },
 

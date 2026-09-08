@@ -20,6 +20,7 @@ import {
   canAutoEvaluateWeighIn,
 } from "@/lib/field-eligibility";
 import { AppError } from "@/lib/errors/app-error";
+import { assertEventWritable } from "@/lib/event-completion-guard";
 import {
   requireGymOwner,
   requireOrganizerForEvent,
@@ -189,6 +190,7 @@ async function assertFieldOpsApplication(
     throw new AppError("NOT_FOUND", "승인된 신청을 찾을 수 없습니다.");
   }
   await assertFieldOperationsEventAccess(caller, row.eventId);
+  await assertEventWritable(row.eventId);
   return row;
 }
 

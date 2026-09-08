@@ -7,7 +7,7 @@ export const ORGANIZER_EVENT_STATUS_LABELS = {
   closed: "신청 마감",
   bracket_ready: "대진 준비",
   ongoing: "진행 중",
-  finished: "종료",
+  finished: "대회 종료",
   cancelled: "취소",
 } satisfies Record<EventStatusType, string>;
 

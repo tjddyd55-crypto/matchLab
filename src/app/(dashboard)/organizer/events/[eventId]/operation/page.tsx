@@ -8,6 +8,9 @@ import { loadEventManagementNavContext, eventManagementLayoutProps } from "@/lib
 import { eventCourtService } from "@/lib/services/event-court.service";
 import { matchService } from "@/lib/services/match.service";
 import { judgeScorecardService } from "@/lib/services/judge-scorecard.service";
+import { EventCompletionPanel } from "@/components/domain/events/EventCompletionPanel";
+import { EventStatus } from "@/lib/enums";
+import { eventService } from "@/lib/services/event.service";
 import { eventQrSectionHref } from "@/lib/event-qr-section";
 import Link from "next/link";
 import { buttonVariants } from "@/components/ui/button";
@@ -25,13 +28,14 @@ export default async function OrganizerEventOperationPage({
 
   await requireOrganizerForEventPage(actor, eventId);
 
-  const [nav, matches, courts, judgeSummaries, judgeBriefByMatch] =
+  const [nav, matches, courts, judgeSummaries, judgeBriefByMatch, eventDetail] =
     await Promise.all([
       loadEventManagementNavContext(eventId),
       matchService.listOrganizerEventMatches(actor, eventId),
       eventCourtService.listForOrganizer(actor, eventId),
       judgeScorecardService.getEventJudgeSummary(actor, eventId),
       judgeScorecardService.listSubmittedBriefByEvent(actor, eventId),
+      eventService.getOrganizerEventDetail(actor, eventId),
     ]);
 
   const judgeSummaryByMatch = new Map(
@@ -65,11 +69,20 @@ export default async function OrganizerEventOperationPage({
         </Link>
       </EventManagementPageHeader>
 
+      <EventCompletionPanel
+        eventId={eventId}
+        status={eventDetail.status}
+        completedAt={eventDetail.completedAt}
+        hasActiveArchive={eventDetail.hasActiveArchive}
+        className="mb-4"
+      />
+
       <OrganizerOperationBoard
         matches={matches}
         courts={courts}
         judgeSummaryByMatch={Object.fromEntries(judgeSummaryByMatch)}
         judgeBriefByMatch={judgeBriefByMatch}
+        eventOperationsReadOnly={eventDetail.status === EventStatus.finished}
       />
     </EventManagementLayout>
   );

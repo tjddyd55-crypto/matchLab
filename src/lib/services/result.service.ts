@@ -17,6 +17,7 @@ import {
 } from "@/lib/field-operations-auth";
 import type { ActorContext } from "@/lib/auth/actor-context";
 import { AppError } from "@/lib/errors/app-error";
+import { assertEventWritable } from "@/lib/event-completion-guard";
 import { PermissionError } from "@/lib/auth/permission-error";
 import { formatDivisionNameLabel } from "@/lib/bracket-snapshot";
 import type {
@@ -247,6 +248,8 @@ export const resultService = {
       changedByStaffLinkId = null;
       staffLabel = principal.label ?? "주심판";
     }
+
+    await assertEventWritable(ctx.eventId);
 
     const match = await matchRepository.findMatchWithBracketContext(input.matchId);
     if (!match) throw new AppError("NOT_FOUND", "경기를 찾을 수 없습니다.");
@@ -606,6 +609,7 @@ export const resultService = {
     input: CorrectMatchResultInput,
   ): Promise<void> {
     const ctx = await ensureMatchResultFieldOpsContext(caller, input.matchId);
+    await assertEventWritable(ctx.eventId);
     const changedByUserId =
       caller.kind === "actor" ? caller.actor.userId : null;
 
@@ -801,6 +805,7 @@ export const resultService = {
     input: VoidMatchResultsInput,
   ): Promise<void> {
     const ctx = await ensureMatchResultFieldOpsContext(caller, input.matchId);
+    await assertEventWritable(ctx.eventId);
     const changedByUserId =
       caller.kind === "actor" ? caller.actor.userId : null;
 

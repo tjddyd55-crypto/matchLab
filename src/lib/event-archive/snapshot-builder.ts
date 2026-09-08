@@ -23,7 +23,8 @@ import {
   BracketMatchStatus,
   MatchRecordOutcome,
   MatchRecordStatus,
-} from "@/lib/enums";
+  WeighInStatus,
+} from "@/generated/prisma";
 import {
   getBracketMatchStatusLabel,
 } from "@/lib/ui/match-status-ui";
@@ -116,10 +117,17 @@ function cornerFromSnapshot(
 export async function buildEventArchiveFinishSummary(
   eventId: string,
 ): Promise<EventArchiveFinishSummary> {
-  const [applicationCount, matches, divisions] = await Promise.all([
+  const [applicationCount, matches, divisions, weighInPendingCount] =
+    await Promise.all([
     prisma.eventApplication.count({ where: { eventId } }),
     matchRepository.listMatchesByEvent(eventId),
     prisma.eventDivision.count({ where: { eventId } }),
+    prisma.eventApplication.count({
+      where: {
+        eventId,
+        weighInStatus: WeighInStatus.pending,
+      },
+    }),
   ]);
 
   const terminal = new Set<string>([
@@ -130,12 +138,32 @@ export async function buildEventArchiveFinishSummary(
     terminal.has(m.status),
   ).length;
 
+  const matchIds = matches.map((m) => m.id);
+  let unconfirmedResultCount = matches.length;
+  if (matchIds.length > 0) {
+    const confirmedPairs = await prisma.matchResult.groupBy({
+      by: ["matchId"],
+      where: {
+        matchId: { in: matchIds },
+        status: {
+          in: [MatchRecordStatus.confirmed, MatchRecordStatus.corrected],
+        },
+      },
+    });
+    const confirmedMatchIds = new Set(confirmedPairs.map((r) => r.matchId));
+    unconfirmedResultCount = matches.filter(
+      (m) => !confirmedMatchIds.has(m.id),
+    ).length;
+  }
+
   return {
     applicantCount: applicationCount,
     totalMatchCount: matches.length,
     completedMatchCount,
     pendingMatchCount: matches.length - completedMatchCount,
     divisionCount: divisions,
+    unconfirmedResultCount,
+    weighInPendingCount,
   };
 }
 

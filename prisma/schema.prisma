@@ -2053,6 +2053,8 @@ model Event {
   registrationStartDate    DateTime
   registrationEndDate      DateTime
   status                   EventStatus @default(draft)
+  /// 운영자가 대회 종료를 확정한 시각 (자동 backfill 없음)
+  completedAt              DateTime?
   posterUrl                String?
   publicSlug               String      @unique
   photoRecordingEnabled    Boolean     @default(false)

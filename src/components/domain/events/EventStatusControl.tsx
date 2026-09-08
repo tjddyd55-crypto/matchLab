@@ -27,17 +27,23 @@ function transitionsFor(status: EventStatus): Transition[] {
     case EventStatus.closed:
       return [
         { next: EventStatus.bracket_ready, label: "대진표 준비 단계로" },
+        { next: EventStatus.finished, label: "대회 종료" },
         { next: EventStatus.cancelled, label: "대회 취소", warn: "취소 후 공개 목록에서 제외됩니다." },
       ];
     case EventStatus.bracket_ready:
       return [
         { next: EventStatus.ongoing, label: "대회 진행 시작" },
+        { next: EventStatus.finished, label: "대회 종료" },
         { next: EventStatus.cancelled, label: "대회 취소", warn: "취소 후 공개 목록에서 제외됩니다." },
       ];
     case EventStatus.ongoing:
       return [
         { next: EventStatus.finished, label: "대회 종료" },
         { next: EventStatus.cancelled, label: "대회 취소", warn: "취소 후 공개 목록에서 제외됩니다." },
+      ];
+    case EventStatus.finished:
+      return [
+        { next: EventStatus.ongoing, label: "대회 종료 해제" },
       ];
     default:
       return [];
@@ -97,32 +103,62 @@ export function EventStatusControl({
                 const form = e.currentTarget;
                 const isCancel = t.next === EventStatus.cancelled;
                 const isFinish = t.next === EventStatus.finished;
+                const isReopen =
+                  event.status === EventStatus.finished &&
+                  t.next === EventStatus.ongoing;
                 void (async () => {
                   if (isFinish) {
                     const summaryRes = await getEventArchiveFinishSummaryAction(
                       event.id,
                     );
                     const stats =
-                      summaryRes.ok === true
-                        ? summaryRes.data
-                        : null;
+                      summaryRes.ok === true ? summaryRes.data : null;
+                    const warningParts = [
+                      stats && stats.unconfirmedResultCount > 0
+                        ? `결과 미입력 경기가 ${stats.unconfirmedResultCount}건 있습니다.`
+                        : null,
+                      stats && stats.pendingMatchCount > 0
+                        ? `미종료 경기가 ${stats.pendingMatchCount}건 있습니다.`
+                        : null,
+                    ].filter(Boolean);
                     const description = [
-                      "현재 대회를 종료하면 신청자 명단, 최종 대진표, 경기 결과가 대회 기록으로 저장됩니다.",
+                      "종료 후:",
+                      "· 대회 상태가 \"대회 종료\"로 변경됩니다.",
+                      "· 신청자, 대진표, 계체, 경기 결과 등의 기록은 보존됩니다.",
+                      "· 종료 후에는 기본적으로 운영 데이터가 읽기 전용으로 전환됩니다.",
+                      "· 필요 시 기록을 다운로드할 수 있습니다.",
                       stats
                         ? [
                             "",
                             `신청자 ${stats.applicantCount}명`,
-                            `총 경기 ${stats.totalMatchCount}경기`,
-                            `결과 완료 ${stats.completedMatchCount}/${stats.totalMatchCount}`,
-                          ].join("\n")
+                            `총 경기 ${stats.totalMatchCount}경기 · 경기 종료 ${stats.completedMatchCount}경기`,
+                            stats.weighInPendingCount > 0
+                              ? `계체 미완료 ${stats.weighInPendingCount}명`
+                              : null,
+                          ]
+                            .filter(Boolean)
+                            .join("\n")
+                        : "",
+                      warningParts.length > 0
+                        ? `\n${warningParts.join(" ")} 그래도 종료하시겠습니까?`
                         : "",
                     ]
                       .filter(Boolean)
                       .join("\n");
                     const ok = await confirm({
-                      title: "대회 종료 및 기록 보관",
+                      title: "대회를 종료하시겠습니까?",
                       description,
-                      confirmLabel: "대회 종료 및 기록 보관",
+                      confirmLabel: "대회 종료",
+                      cancelLabel: "취소",
+                      variant: "default",
+                    });
+                    if (!ok) return;
+                  } else if (isReopen) {
+                    const ok = await confirm({
+                      title: "대회 종료 상태를 해제하시겠습니까?",
+                      description:
+                        "종료 해제 후 경기운영·계체·결과 입력 등 운영 데이터를 다시 수정할 수 있습니다.",
+                      confirmLabel: "종료 해제",
                       cancelLabel: "취소",
                       variant: "default",
                     });
@@ -159,7 +195,7 @@ export function EventStatusControl({
         </div>
       )}
       <p className="text-muted-foreground text-xs">
-        상태 뒤로 가기·보정 전이는 관리자 전용 플로우로 별도 설계 예정입니다.
+        종료된 대회는 &quot;대회 종료 해제&quot;로 운영 상태를 복구할 수 있습니다.
       </p>
     </div>
   );
