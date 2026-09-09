@@ -142,6 +142,8 @@
     "verify:confirmed-result-score-summary": "tsx scripts/verify-confirmed-result-score-summary.ts",
     "verify:event-completion-lifecycle": "tsx scripts/verify-event-completion-lifecycle.ts",
     "verify:event-completion-preserves-records": "tsx scripts/verify-event-completion-preserves-records.ts",
+    "verify:event-completion-write-guards": "tsx scripts/verify-event-completion-write-guards.ts",
+    "verify:event-archive-complete-package": "tsx scripts/verify-event-archive-complete-package.ts",
     "verify:event-archive-download": "tsx scripts/verify-event-archive-download.ts",
     "verify:match-ops-effective-round-rules": "tsx scripts/verify-match-ops-effective-round-rules.ts",
     "verify:result-label-korean": "tsx scripts/verify-result-label-korean.ts",

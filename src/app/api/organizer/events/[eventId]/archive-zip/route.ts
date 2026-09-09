@@ -16,7 +16,7 @@ function buildContentDisposition(filename: string): string {
 }
 
 export async function GET(
-  _request: Request,
+  request: Request,
   { params }: { params: Promise<{ eventId: string }> },
 ) {
   try {
@@ -25,6 +25,7 @@ export async function GET(
     const { buffer, filename } = await eventArchiveZipService.buildArchiveZip(
       actor,
       eventId,
+      { cookieHeader: request.headers.get("cookie") },
     );
 
     return new NextResponse(new Uint8Array(buffer), {

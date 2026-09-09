@@ -8,6 +8,7 @@ import { sanitizeApplicantExcelFilenamePart } from "@/lib/applications/applicant
 import { ymdFileStamp } from "@/lib/excel-export/filename";
 import { requireOrganizerForEvent } from "@/lib/permissions";
 import { eventArchiveApplicantExcelService } from "@/lib/services/event-archive-applicant-excel.service";
+import { eventArchivePackageExportService } from "@/lib/services/event-archive-package-export.service";
 import { eventArchiveService } from "@/lib/services/event-archive.service";
 
 async function bufferFromStream(stream: PassThrough): Promise<Buffer> {
@@ -23,26 +24,77 @@ export const eventArchiveZipService = {
   async buildArchiveZip(
     actor: ActorContext,
     eventId: string,
+    options?: { cookieHeader?: string | null },
   ): Promise<{ buffer: Buffer; filename: string }> {
     await requireOrganizerForEvent(actor, eventId);
     const archive = await eventArchiveService.requireActiveArchive(actor, eventId);
+    const cookieHeader = options?.cookieHeader ?? null;
 
-    const { buffer: applicantsBuffer } =
-      await eventArchiveApplicantExcelService.buildWorkbookFromArchive(
+    const [
+      { buffer: applicantsBuffer },
+      weighInXlsx,
+      resultsXlsx,
+      judgeScoresXlsx,
+      judgeScoreCount,
+      weighInCount,
+    ] = await Promise.all([
+      eventArchiveApplicantExcelService.buildWorkbookFromArchive(
         actor,
         eventId,
         defaultApplicantExcelExportFieldKeys(),
+      ),
+      eventArchivePackageExportService.buildWeighInWorkbook(actor, eventId),
+      eventArchivePackageExportService.buildResultsWorkbookFromSnapshot(
+        archive.resultsSnapshot,
+      ),
+      eventArchivePackageExportService.buildJudgeScoresWorkbook(actor, eventId),
+      eventArchivePackageExportService.countJudgeScores(eventId),
+      eventArchivePackageExportService.countWeighInRecords(eventId),
+    ]);
+
+    let bracketPdf: Buffer | null = null;
+    let weighInPdf: Buffer | null = null;
+    try {
+      bracketPdf = await eventArchivePackageExportService.buildBracketPdf(
+        actor,
+        eventId,
+        cookieHeader,
       );
+    } catch {
+      bracketPdf = null;
+    }
+    try {
+      weighInPdf = await eventArchivePackageExportService.buildWeighInPdf(
+        actor,
+        eventId,
+        cookieHeader,
+      );
+    } catch {
+      weighInPdf = null;
+    }
 
     const manifest = {
       eventId,
       eventName: archive.eventSnapshot.title,
       completedAt: archive.archivedAt,
       exportedAt: new Date().toISOString(),
+      archiveVersion: archive.version,
       applicationCount: archive.applicantsSnapshot.totalCount,
       matchCount: archive.bracketSnapshot.totalMatchCount,
       confirmedResultCount: archive.resultsSnapshot.totalCount,
-      archiveVersion: archive.version,
+      judgeScoreCount,
+      weighInCount,
+      sources: {
+        "01_event_info.json": "archive_snapshot",
+        "02_applications.xlsx": "archive_snapshot",
+        "03_weigh_in.xlsx": "live_read_only",
+        "03_weigh_in.pdf": weighInPdf ? "live_read_only" : "skipped",
+        "04_brackets.pdf": bracketPdf ? "live_read_only" : "skipped",
+        "04_brackets_snapshot.json": "archive_snapshot",
+        "05_match_results.xlsx": "archive_snapshot",
+        "05_match_results_snapshot.json": "archive_snapshot",
+        "07_judge_scores.xlsx": "live_read_only",
+      },
     };
 
     const pass = new PassThrough();
@@ -52,15 +104,24 @@ export const eventArchiveZipService = {
 
     zip.append(JSON.stringify(manifest, null, 2), { name: "manifest.json" });
     zip.append(JSON.stringify(archive.eventSnapshot, null, 2), {
-      name: "01_event_snapshot.json",
+      name: "01_event_info.json",
     });
     zip.append(applicantsBuffer, { name: "02_applications.xlsx" });
+    zip.append(weighInXlsx, { name: "03_weigh_in.xlsx" });
+    if (weighInPdf) {
+      zip.append(weighInPdf, { name: "03_weigh_in.pdf" });
+    }
+    if (bracketPdf) {
+      zip.append(bracketPdf, { name: "04_brackets.pdf" });
+    }
     zip.append(JSON.stringify(archive.bracketSnapshot, null, 2), {
       name: "04_brackets_snapshot.json",
     });
+    zip.append(resultsXlsx, { name: "05_match_results.xlsx" });
     zip.append(JSON.stringify(archive.resultsSnapshot, null, 2), {
       name: "05_match_results_snapshot.json",
     });
+    zip.append(judgeScoresXlsx, { name: "07_judge_scores.xlsx" });
 
     await zip.finalize();
     const buffer = await bufferFromStream(pass);

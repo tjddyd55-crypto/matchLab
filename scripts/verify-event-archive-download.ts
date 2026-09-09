@@ -14,7 +14,10 @@ function read(rel: string) {
 const zipService = read("src/lib/services/event-archive-zip.service.ts");
 assert.match(zipService, /manifest\.json/);
 assert.match(zipService, /02_applications\.xlsx/);
+assert.match(zipService, /03_weigh_in\.xlsx/);
+assert.match(zipService, /07_judge_scores\.xlsx/);
 assert.match(zipService, /eventArchiveApplicantExcelService/);
+assert.match(zipService, /eventArchivePackageExportService/);
 
 const route = read("src/app/api/organizer/events/[eventId]/archive-zip/route.ts");
 assert.match(route, /application\/zip/);
