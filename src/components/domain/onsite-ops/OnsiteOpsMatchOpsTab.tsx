@@ -21,12 +21,14 @@ import { cn } from "@/lib/utils";
 export function OnsiteOpsMatchOpsTab({
   matches,
   judgeSummaryByMatch = {},
+  eventOperationsReadOnly = false,
 }: {
   matches: OrganizerEventMatchListItemVM[];
   judgeSummaryByMatch?: Record<
     string,
     { assignedCount: number; submittedCount: number }
   >;
+  eventOperationsReadOnly?: boolean;
 }) {
   const [selectedMatchId, setSelectedMatchId] = useState<string | null>(null);
 
@@ -53,6 +55,7 @@ export function OnsiteOpsMatchOpsTab({
         <OrganizerMatchOpsPanel
           {...toMatchOpsProps(selectedRow)}
           presentation="operation"
+          eventOperationsReadOnly={eventOperationsReadOnly}
         />
       </div>
     );

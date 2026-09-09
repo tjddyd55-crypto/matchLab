@@ -262,12 +262,14 @@ export function WeighInWeightInput({
   row,
   touchFriendly = false,
   autoFocus = false,
+  readOnly = false,
   onSaved,
 }: {
   row: FieldStatusRowDTO;
   touchFriendly?: boolean;
   /** 선수 선택 직후 몸무게 입력 포커스 */
   autoFocus?: boolean;
+  readOnly?: boolean;
   onSaved?: (info: {
     weightKg: number;
     evaluationReason: string;
@@ -391,7 +393,8 @@ export function WeighInWeightInput({
           aria-label="실제 계체 몸무게"
           value={weightInput}
           onChange={(e) => setWeightInput(e.target.value)}
-          disabled={pending}
+          disabled={readOnly || pending}
+          readOnly={readOnly}
           className={cn(
             "border-input bg-background shrink-0 rounded-md border px-2 text-xs focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring",
             touchFriendly ? "h-11 w-full text-sm sm:w-[5.5rem]" : "h-8 w-[4.25rem]",
@@ -406,7 +409,7 @@ export function WeighInWeightInput({
             "shrink-0",
             touchFriendly ? "w-full sm:w-auto" : "h-8 min-w-[2.75rem] px-2 text-xs",
           )}
-          disabled={pending}
+          disabled={readOnly || pending}
         >
           {pending ? "저장 중…" : "저장"}
         </Button>
@@ -451,7 +454,13 @@ export function WeighInWeightForm({ row }: { row: FieldStatusRowDTO }) {
   );
 }
 
-export function FieldMemoForm({ row }: { row: FieldStatusRowDTO }) {
+export function FieldMemoForm({
+  row,
+  readOnly = false,
+}: {
+  row: FieldStatusRowDTO;
+  readOnly?: boolean;
+}) {
   const opsToken = useOnsiteOpsToken();
   const { feedback, setFeedback } = useSaveFeedback();
   const [pending, startTransition] = useTransition();
@@ -494,6 +503,8 @@ export function FieldMemoForm({ row }: { row: FieldStatusRowDTO }) {
           value={memo}
           onChange={(e) => setMemo(e.target.value)}
           placeholder="참가자에 대한 운영 메모를 입력하세요."
+          disabled={readOnly}
+          readOnly={readOnly}
           className="border-input bg-background max-h-[120px] min-h-[3.5rem] w-full resize-y rounded-md border px-2.5 py-2 text-xs"
         />
         <div className="flex items-center justify-between gap-2">
@@ -505,7 +516,7 @@ export function FieldMemoForm({ row }: { row: FieldStatusRowDTO }) {
             size="sm"
             variant="outline"
             className="h-8 shrink-0 px-3 text-xs"
-            disabled={pending}
+            disabled={readOnly || pending}
           >
             {pending ? "저장 중…" : "메모 저장"}
           </Button>

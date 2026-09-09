@@ -4,6 +4,7 @@ import { OnsiteOpsMatchOpsTab } from "@/components/domain/onsite-ops/OnsiteOpsMa
 import { OnsiteOpsShell } from "@/components/domain/onsite-ops/OnsiteOpsShell";
 import { OnsiteOpsTokenProvider } from "@/components/domain/onsite-ops/OnsiteOpsTokenContext";
 import { OnsiteOpsWeighInTab } from "@/components/domain/onsite-ops/OnsiteOpsWeighInTab";
+import { EventStatus } from "@/lib/enums";
 import { parseOnsiteOpsTab } from "@/lib/onsite-ops/token";
 import { loadOnsiteOpsPortalPage } from "@/lib/services/onsite-ops-portal.service";
 
@@ -24,6 +25,7 @@ export default async function OnsiteOpsPortalPage({
   if (!page) notFound();
 
   const { access, fieldStatus, matches, judgeSummaryByMatch } = page;
+  const eventFinished = access.eventStatus === EventStatus.finished;
 
   return (
     <OnsiteOpsTokenProvider token={token}>
@@ -31,6 +33,7 @@ export default async function OnsiteOpsPortalPage({
         token={token}
         eventTitle={access.eventTitle}
         eventLocation={access.eventLocation}
+        eventFinished={eventFinished}
       >
         <Suspense
           fallback={
@@ -41,12 +44,14 @@ export default async function OnsiteOpsPortalPage({
             <OnsiteOpsMatchOpsTab
               matches={matches}
               judgeSummaryByMatch={judgeSummaryByMatch}
+              eventOperationsReadOnly={eventFinished}
             />
           ) : (
             <OnsiteOpsWeighInTab
               eventId={access.eventId}
               rows={fieldStatus.rows}
               summary={fieldStatus.summary}
+              readOnly={eventFinished}
             />
           )}
         </Suspense>

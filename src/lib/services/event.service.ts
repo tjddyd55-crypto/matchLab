@@ -42,6 +42,7 @@ import {
   buildPublicRegistrationDisplay,
 } from "@/lib/event-public-display";
 import { AppError } from "@/lib/errors/app-error";
+import { assertEventWritable } from "@/lib/event-completion-guard";
 
 const EVENT_FINISH_TX_OPTIONS = { maxWait: 15_000, timeout: 60_000 } as const;
 import { geocodeVenueCoordinate } from "@/lib/naver-geocode.server";
@@ -657,6 +658,7 @@ export const eventService = {
   ): Promise<void> {
     requireRole(actor, ["organizer", "admin"]);
     await requireOrganizerForEvent(actor, eventId);
+    await assertEventWritable(eventId);
     await eventRepository.updateEvent(eventId, {
       publicUnmatchedListEnabled: enabled,
     });
@@ -952,6 +954,7 @@ export const eventService = {
     input: UpdateEventInput,
   ): Promise<void> {
     await requireOrganizerForEvent(actor, input.eventId);
+    await assertEventWritable(input.eventId);
     const current = await eventRepository.findOrganizerEventById(input.eventId);
     if (!current) throw new AppError("NOT_FOUND", "대회를 찾을 수 없습니다.");
 
@@ -1056,6 +1059,7 @@ export const eventService = {
     input: UpdateSpectatorAccessInput,
   ): Promise<void> {
     await requireOrganizerForEvent(actor, input.eventId);
+    await assertEventWritable(input.eventId);
     const cur = await eventRepository.findOrganizerEventById(input.eventId);
     if (!cur) throw new AppError("NOT_FOUND", "대회를 찾을 수 없습니다.");
 
@@ -1177,6 +1181,7 @@ export const eventService = {
     input: CreateEventDivisionInput,
   ): Promise<{ divisionId: string }> {
     await requireOrganizerForEvent(actor, input.eventId);
+    await assertEventWritable(input.eventId);
     const weight = normalizeEventDivisionWeightInput(input);
     const div = await eventRepository.createEventDivision({
       event: { connect: { id: input.eventId } },
@@ -1201,6 +1206,7 @@ export const eventService = {
       throw new AppError("NOT_FOUND", "경기구분을 찾을 수 없습니다.");
     }
     await requireOrganizerForEvent(actor, eventId);
+    await assertEventWritable(eventId);
 
     const data: Prisma.EventDivisionUpdateInput = {};
     if (input.sportType !== undefined) {
@@ -1256,6 +1262,7 @@ export const eventService = {
     input: DeleteEventDivisionInput,
   ): Promise<void> {
     await requireOrganizerForEvent(actor, input.eventId);
+    await assertEventWritable(input.eventId);
     const ok = await eventRepository.findDivisionBelongsToEvent(
       input.divisionId,
       input.eventId,
@@ -1296,6 +1303,7 @@ export const eventService = {
     input: UpsertEventPaymentSettingInput,
   ): Promise<void> {
     await requireOrganizerForEvent(actor, input.eventId);
+    await assertEventWritable(input.eventId);
     if (!input.feeEnabled) {
       await eventRepository.deleteEventPaymentSetting(input.eventId);
       return;

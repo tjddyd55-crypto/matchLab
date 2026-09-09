@@ -13,12 +13,21 @@ import {
   type CourtScheduleMatch,
 } from "@/lib/court-match-order";
 import { AppError } from "@/lib/errors/app-error";
+import { assertEventWritable } from "@/lib/event-completion-guard";
 import { requireOrganizerForEvent } from "@/lib/permissions";
 import { prisma } from "@/lib/prisma";
 import type { Prisma } from "@/generated/prisma";
 import { eventCourtRepository } from "@/lib/repositories/event-court.repository";
 import { eventRepository } from "@/lib/repositories/event.repository";
 import { matchRepository } from "@/lib/repositories/match.repository";
+
+async function requireWritableOrganizerEvent(
+  actor: ActorContext,
+  eventId: string,
+): Promise<void> {
+  await requireOrganizerForEvent(actor, eventId);
+  await assertEventWritable(eventId);
+}
 
 /**
  * courtOrder 변경 후 표시 SSOT(matchNumber)를 경기장 스케줄 순으로 1…N 맞춤.
@@ -149,7 +158,7 @@ export const eventCourtService = {
     eventId: string,
     name: string,
   ): Promise<EventCourtVM> {
-    await requireOrganizerForEvent(actor, eventId);
+    await requireWritableOrganizerEvent(actor, eventId);
     const trimmed = name.trim();
     if (!trimmed || trimmed.length > 100) {
       throw new AppError(
@@ -191,7 +200,7 @@ export const eventCourtService = {
       weightClassLabel?: string | null;
     },
   ): Promise<void> {
-    await requireOrganizerForEvent(actor, eventId);
+    await requireWritableOrganizerEvent(actor, eventId);
     const court = await eventCourtRepository.findById(courtId);
     if (!court || court.eventId !== eventId) {
       throw new AppError("NOT_FOUND", "경기장을 찾을 수 없습니다.");
@@ -240,7 +249,7 @@ export const eventCourtService = {
     eventId: string,
     ruleId: string,
   ): Promise<void> {
-    await requireOrganizerForEvent(actor, eventId);
+    await requireWritableOrganizerEvent(actor, eventId);
     await eventCourtRepository.deactivateDivisionRule(ruleId);
   },
 
@@ -253,7 +262,7 @@ export const eventCourtService = {
     organizerMemo?: string | null,
     matchWeightKg?: number | null,
   ): Promise<void> {
-    await requireOrganizerForEvent(actor, eventId);
+    await requireWritableOrganizerEvent(actor, eventId);
 
     const allRows = await matchRepository.listMatchesByEvent(eventId);
     const allMatches: CourtScheduleMatch[] = allRows.map((m) => ({
@@ -359,7 +368,7 @@ export const eventCourtService = {
     courtId: string,
     name: string,
   ): Promise<void> {
-    await requireOrganizerForEvent(actor, eventId);
+    await requireWritableOrganizerEvent(actor, eventId);
     const court = await eventCourtRepository.findById(courtId);
     if (!court || court.eventId !== eventId) {
       throw new AppError("NOT_FOUND", "경기장을 찾을 수 없습니다.");
@@ -390,7 +399,7 @@ export const eventCourtService = {
     eventId: string,
     orderedCourtIds: string[],
   ): Promise<void> {
-    await requireOrganizerForEvent(actor, eventId);
+    await requireWritableOrganizerEvent(actor, eventId);
     const courts = await eventCourtRepository.listAllByEvent(eventId);
     const validIds = new Set(courts.map((c) => c.id));
     for (const id of orderedCourtIds) {
@@ -406,7 +415,7 @@ export const eventCourtService = {
     eventId: string,
     courtId: string,
   ): Promise<void> {
-    await requireOrganizerForEvent(actor, eventId);
+    await requireWritableOrganizerEvent(actor, eventId);
     const court = await eventCourtRepository.findById(courtId);
     if (!court || court.eventId !== eventId) {
       throw new AppError("NOT_FOUND", "경기장을 찾을 수 없습니다.");
@@ -419,7 +428,7 @@ export const eventCourtService = {
     eventId: string,
     courtId: string,
   ): Promise<void> {
-    await requireOrganizerForEvent(actor, eventId);
+    await requireWritableOrganizerEvent(actor, eventId);
     const court = await eventCourtRepository.findById(courtId);
     if (!court || court.eventId !== eventId) {
       throw new AppError("NOT_FOUND", "경기장을 찾을 수 없습니다.");
@@ -443,7 +452,7 @@ export const eventCourtService = {
     eventId: string,
     updates: { matchId: string; courtId: string | null; courtOrder: number | null }[],
   ): Promise<void> {
-    await requireOrganizerForEvent(actor, eventId);
+    await requireWritableOrganizerEvent(actor, eventId);
 
     const allRows = await matchRepository.listMatchesByEvent(eventId);
     const state = new Map<string, CourtScheduleMatch>(

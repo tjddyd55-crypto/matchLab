@@ -2,6 +2,7 @@ import "server-only";
 
 import type { ActorContext } from "@/lib/auth/actor-context";
 import { AppError } from "@/lib/errors/app-error";
+import { assertEventWritable } from "@/lib/event-completion-guard";
 import { PermissionError } from "@/lib/auth/permission-error";
 import { getAppBaseUrl } from "@/lib/app-url";
 import {
@@ -140,6 +141,8 @@ export const onsiteOpsAccessService = {
       };
     }
 
+    await assertEventWritable(eventId);
+
     const { rawToken, tokenHash } = await allocateUniqueToken();
     const createdByUserId = actor.userId ?? null;
 
@@ -167,6 +170,7 @@ export const onsiteOpsAccessService = {
   ): Promise<{ link: OnsiteOpsLinkOwnerVM; rawToken: string }> {
     requireRole(actor, ["organizer", "admin"]);
     await requireOrganizerForEvent(actor, eventId);
+    await assertEventWritable(eventId);
 
     const existing = await onsiteOpsAccessRepository.findByEventId(eventId);
     if (!existing) {
@@ -185,6 +189,7 @@ export const onsiteOpsAccessService = {
   async revokeLink(actor: ActorContext, eventId: string): Promise<OnsiteOpsLinkOwnerVM> {
     requireRole(actor, ["organizer", "admin"]);
     await requireOrganizerForEvent(actor, eventId);
+    await assertEventWritable(eventId);
 
     const existing = await onsiteOpsAccessRepository.findByEventId(eventId);
     if (!existing) {

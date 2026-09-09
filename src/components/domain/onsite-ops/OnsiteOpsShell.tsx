@@ -2,6 +2,7 @@
 
 import Link from "next/link";
 import { useSearchParams } from "next/navigation";
+import { EventFinishedReadOnlyBanner } from "@/components/domain/events/EventFinishedReadOnlyBanner";
 import {
   onsiteOpsTabHref,
   parseOnsiteOpsTab,
@@ -51,11 +52,13 @@ export function OnsiteOpsShell({
   token,
   eventTitle,
   eventLocation,
+  eventFinished = false,
   children,
 }: {
   token: string;
   eventTitle: string;
   eventLocation: string | null;
+  eventFinished?: boolean;
   children: React.ReactNode;
 }) {
   return (
@@ -69,7 +72,8 @@ export function OnsiteOpsShell({
           <p className="text-muted-foreground mt-0.5 text-xs">{eventLocation}</p>
         ) : null}
       </header>
-      <main className="px-3 py-3 sm:px-4">
+      <main className="space-y-3 px-3 py-3 sm:px-4">
+        {eventFinished ? <EventFinishedReadOnlyBanner /> : null}
         {children}
       </main>
       <OnsiteOpsBottomNav token={token} />

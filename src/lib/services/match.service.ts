@@ -670,6 +670,7 @@ export const matchService = {
 
   async cancelMatch(actor: ActorContext, input: CancelMatchInput): Promise<void> {
     const ctx = await ensureMatchOrganizer(actor, input.matchId);
+    await assertEventWritable(ctx.eventId);
 
     await prisma.$transaction(async (tx) => {
       const cur = await tx.bracketMatch.findUnique({

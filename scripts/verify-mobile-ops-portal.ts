@@ -48,6 +48,14 @@ function assertStaticWiring() {
 
   const panel = read("src/components/domain/brackets/OrganizerMatchOpsPanel.tsx");
   assert.match(panel, /useOnsiteOpsToken/);
+  assert.match(panel, /eventOperationsReadOnly/);
+
+  const opsPage = read("src/app/ops/[token]/page.tsx");
+  assert.match(opsPage, /eventOperationsReadOnly/);
+  assert.match(opsPage, /readOnly/);
+
+  const shell = read("src/components/domain/onsite-ops/OnsiteOpsShell.tsx");
+  assert.match(shell, /EventFinishedReadOnlyBanner/);
 
   const bracketBlock = read("src/features/field-status/actions.ts");
   assert.match(bracketBlock, /대진 패 처리를 할 수 없습니다/);

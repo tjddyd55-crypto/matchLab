@@ -15,10 +15,12 @@ import { appendOnsiteOpsToken, useOnsiteOpsToken } from "@/components/domain/ons
 export function FieldStatusPrimaryActions({
   row,
   showDisqualify = false,
+  readOnly = false,
 }: {
   row: FieldStatusRowDTO;
   /** 상세 workflow에서는 실격을 사유 구역으로 분리 (기본 false) */
   showDisqualify?: boolean;
+  readOnly?: boolean;
 }) {
   const router = useRouter();
   const { alert } = useAppConfirmDialog();
@@ -53,7 +55,7 @@ export function FieldStatusPrimaryActions({
           size="sm"
           variant={isPass ? "default" : "outline"}
           className="h-9 text-xs"
-          disabled={pending || isPass}
+          disabled={readOnly || pending || isPass}
           data-testid="weighin-pass-button"
           onClick={() =>
             startTransition(() => run(weighInPassFormAction))
@@ -66,7 +68,7 @@ export function FieldStatusPrimaryActions({
           size="sm"
           variant={isFail ? "default" : "outline"}
           className="h-9 text-xs"
-          disabled={pending || isFail}
+          disabled={readOnly || pending || isFail}
           onClick={() =>
             startTransition(() => run(weighInFailFormAction))
           }
@@ -79,7 +81,7 @@ export function FieldStatusPrimaryActions({
             size="sm"
             variant="destructive"
             className="h-9 text-xs"
-            disabled={pending || isDisqualified}
+            disabled={readOnly || pending || isDisqualified}
             onClick={() => {
               setShowDisqualifyHint(true);
               startTransition(async () => {

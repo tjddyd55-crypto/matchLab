@@ -14,9 +14,11 @@ import { appendOnsiteOpsToken, useOnsiteOpsToken } from "@/components/domain/ons
 export function FieldStatusResetButton({
   row,
   touchFriendly = false,
+  readOnly = false,
 }: {
   row: FieldStatusRowDTO;
   touchFriendly?: boolean;
+  readOnly?: boolean;
 }) {
   const router = useRouter();
   const { confirm, alert } = useAppConfirmDialog();
@@ -66,7 +68,7 @@ export function FieldStatusResetButton({
         className={cn(
           touchFriendly ? "w-full sm:w-fit" : "h-8 w-fit px-2 text-xs",
         )}
-        disabled={pending || !canReset}
+        disabled={readOnly || pending || !canReset}
         onClick={handleReset}
         title={
           !canReset

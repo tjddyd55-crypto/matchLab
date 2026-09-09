@@ -1,5 +1,6 @@
 import Link from "next/link";
 import { MatchonLogo } from "@/components/common/MatchonLogo";
+import { EventFinishedReadOnlyBanner } from "@/components/domain/events/EventFinishedReadOnlyBanner";
 import { JudgeLogoutButton } from "@/components/domain/judges/JudgeLogoutButton";
 import type { ResolvedJudgeSession } from "@/lib/services/judge-credential.service";
 import { judgeDefaultRoute } from "@/lib/judge-identity";
@@ -13,7 +14,12 @@ export function JudgeSessionHeader({
 
   return (
     <header className="flex flex-wrap items-start justify-between gap-3 border-b border-matchon-border pb-4">
-      <div className="space-y-3">
+      <div className="w-full min-w-0 space-y-3">
+        {session.eventFinished ? (
+          <EventFinishedReadOnlyBanner
+            message="대회가 종료되어 채점 입력이 마감되었습니다. 기존 점수는 조회만 가능합니다."
+          />
+        ) : null}
         <MatchonLogo size="sm" variant="light" />
         <div className="space-y-1 text-sm">
         <p className="font-medium text-matchon-text-primary">

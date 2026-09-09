@@ -46,6 +46,10 @@ import {
   type FighterHandicapMapEntry,
 } from "@/lib/fighter-handicap-display";
 import { AppError } from "@/lib/errors/app-error";
+import {
+  assertEventWritable,
+  isEventFinishedStatus,
+} from "@/lib/event-completion-guard";
 
 const BRACKET_MUTATION_TX_OPTIONS = { maxWait: 10_000, timeout: 30_000 } as const;
 import { resolveMatchIsPublicSparring } from "@/lib/match-bout-settings";
@@ -310,6 +314,7 @@ async function ensureBracketOrganizer(
     throw new AppError("NOT_FOUND", "대진표를 찾을 수 없습니다.");
   }
   await requireOrganizerForEvent(actor, ctx.eventId);
+  await assertEventWritable(ctx.eventId);
   return ctx;
 }
 
@@ -819,6 +824,7 @@ export const bracketService = {
   ): Promise<{ bracketId: string }> {
     requireRole(actor, ["organizer", "admin"]);
     await requireOrganizerForEvent(actor, input.eventId);
+    await assertEventWritable(input.eventId);
 
     const ok = await eventRepository.findDivisionBelongsToEvent(
       input.divisionId,
@@ -902,6 +908,7 @@ export const bracketService = {
   ): Promise<void> {
     requireRole(actor, ["organizer", "admin"]);
     await requireOrganizerForEvent(actor, eventId);
+    await assertEventWritable(eventId);
     const peers = await prisma.bracketMatch.findMany({
       where: { bracket: { eventId } },
       select: { matchNumber: true },
@@ -931,6 +938,7 @@ export const bracketService = {
   ): Promise<{ bracketId: string }> {
     requireRole(actor, ["organizer", "admin"]);
     await requireOrganizerForEvent(actor, input.eventId);
+    await assertEventWritable(input.eventId);
 
     const ok = await eventRepository.findDivisionBelongsToEvent(
       input.targetDivisionId,
@@ -1182,7 +1190,7 @@ export const bracketService = {
       await Promise.all([
         prisma.event.findUnique({
           where: { id: eventId },
-          select: { id: true, title: true },
+          select: { id: true, title: true, status: true },
         }),
         matchRepository.listMatchesByEvent(eventId),
         bracketRepository.listPlacedFighterIdsForEvent(eventId),
@@ -1200,6 +1208,7 @@ export const bracketService = {
 
     let matchRows = initialMatchRows;
     if (
+      !isEventFinishedStatus(event.status) &&
       eventWideMatchNumbersNeedResequence(
         matchRows.map((m) => ({ matchNumber: m.matchNumber })),
       )
@@ -1336,6 +1345,7 @@ export const bracketService = {
   ): Promise<{ bracketId: string }> {
     requireRole(actor, ["organizer", "admin"]);
     await requireOrganizerForEvent(actor, input.eventId);
+    await assertEventWritable(input.eventId);
 
     if (!input.divisionId) {
       throw new AppError(
@@ -1464,6 +1474,7 @@ export const bracketService = {
   ): Promise<{ published: number }> {
     requireRole(actor, ["organizer", "admin"]);
     await requireOrganizerForEvent(actor, eventId);
+    await assertEventWritable(eventId);
     const brackets = await bracketRepository.listBracketsByEvent(eventId);
     let published = 0;
     for (const b of brackets) {
@@ -1486,6 +1497,7 @@ export const bracketService = {
   ): Promise<{ unpublished: number }> {
     requireRole(actor, ["organizer", "admin"]);
     await requireOrganizerForEvent(actor, eventId);
+    await assertEventWritable(eventId);
     const brackets = await bracketRepository.listBracketsByEvent(eventId);
     let unpublished = 0;
     for (const b of brackets) {
@@ -2942,6 +2954,7 @@ export const bracketService = {
   ): Promise<{ applicationId: string; signature: string }> {
     requireRole(actor, ["organizer", "admin"]);
     await requireOrganizerForEvent(actor, input.eventId);
+    await assertEventWritable(input.eventId);
 
     const app = await prisma.eventApplication.findFirst({
       where: { id: input.applicationId, eventId: input.eventId },
@@ -2985,6 +2998,7 @@ export const bracketService = {
   ): Promise<{ applicationId: string }> {
     requireRole(actor, ["organizer", "admin"]);
     await requireOrganizerForEvent(actor, input.eventId);
+    await assertEventWritable(input.eventId);
 
     const app = await prisma.eventApplication.findFirst({
       where: { id: input.applicationId, eventId: input.eventId },

@@ -39,6 +39,7 @@ import { formatCourtTabLabel } from "@/lib/court-tab-label";
 import { computeBracketAssignability } from "@/lib/bracket-assignability";
 import { computeFieldEligibility } from "@/lib/field-eligibility";
 import { AppError } from "@/lib/errors/app-error";
+import { assertEventWritable } from "@/lib/event-completion-guard";
 import { encodeMatchOperationalSettings } from "@/lib/match-operational-settings";
 import { requireOrganizerForEvent, requireRole } from "@/lib/permissions";
 import { safeNotify } from "@/lib/notifications/safe-dispatch";
@@ -555,6 +556,7 @@ export const bracketAutoMatchService = {
   ): Promise<{ deletedMatches: number }> {
     requireRole(actor, ["organizer", "admin"]);
     await requireOrganizerForEvent(actor, eventId);
+    await assertEventWritable(eventId);
 
     const resetCheck = await bracketAutoMatchService.canResetBracketSafely(
       actor,
@@ -637,6 +639,7 @@ export const bracketAutoMatchService = {
   ): Promise<AutoBracketGenerationSummary> {
     requireRole(actor, ["organizer", "admin"]);
     await requireOrganizerForEvent(actor, input.eventId);
+    await assertEventWritable(input.eventId);
 
     const applications =
       await bracketRepository.listApplicantApplicationsForAutoMatch(

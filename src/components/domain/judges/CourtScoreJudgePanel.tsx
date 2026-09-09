@@ -128,10 +128,12 @@ function ScoreForm({
   match,
   judgeName,
   birthDate,
+  eventFinished = false,
 }: {
   match: CourtJudgeMatchVM;
   judgeName: string;
   birthDate: string;
+  eventFinished?: boolean;
 }) {
   const router = useRouter();
   const [pending, startTransition] = useTransition();
@@ -228,7 +230,7 @@ function ScoreForm({
     });
   }
 
-  const readOnly = myScorecard?.isLocked ?? false;
+  const readOnly = eventFinished || (myScorecard?.isLocked ?? false);
 
   return (
     <Card variant="default" className="py-4">
@@ -426,12 +428,14 @@ function ScoreDetail({
   judgeName,
   birthDate,
   scoreSummary,
+  eventFinished = false,
 }: {
   match: CourtJudgeMatchVM | null;
   matches: CourtJudgeMatchVM[];
   judgeName: string;
   birthDate: string;
   scoreSummary?: CourtMatchScoreSummaryVM | null;
+  eventFinished?: boolean;
 }) {
   if (matches.length === 0) {
     return <CourtJudgeEmptyState scene="no_matches" matches={matches} role="score" />;
@@ -508,6 +512,7 @@ function ScoreDetail({
             match={match}
             judgeName={judgeName}
             birthDate={birthDate}
+            eventFinished={eventFinished}
           />
         )}
       </div>
@@ -524,6 +529,7 @@ export function CourtScoreJudgePanel({
   scoreSummariesByMatchId,
   judgeName,
   birthDate,
+  eventFinished = false,
 }: {
   court: CourtJudgeCourtVM;
   matches: CourtJudgeMatchVM[];
@@ -532,6 +538,7 @@ export function CourtScoreJudgePanel({
   scene: import("@/lib/court-judge-page-state").CourtJudgeScene;
   judgeName: string;
   birthDate: string;
+  eventFinished?: boolean;
 }) {
   return (
     <CourtJudgeRefreshShell>
@@ -547,6 +554,7 @@ export function CourtScoreJudgePanel({
             matches={matches}
             judgeName={judgeName}
             birthDate={birthDate}
+            eventFinished={eventFinished}
             scoreSummary={
               selected ? scoreSummariesByMatchId[selected.matchId] : undefined
             }

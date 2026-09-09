@@ -14,6 +14,10 @@ import {
   formatDivisionLabel,
 } from "@/lib/division-display";
 import { AppError } from "@/lib/errors/app-error";
+import {
+  assertEventWritable,
+  isEventFinishedStatus,
+} from "@/lib/event-completion-guard";
 import { isExternalRegistrationPlaceholderGymName } from "@/lib/gym/external-registration-placeholder-gym";
 import { computeScorecardTotals } from "@/lib/judge-score-aggregation";
 import {
@@ -60,6 +64,7 @@ export type CourtJudgePageLoadResult =
       scene: CourtJudgeScene;
       scoreSummariesByMatchId: Record<string, CourtMatchScoreSummaryVM>;
       scorecardsByMatchId: Record<string, CourtJudgeScorecardVM[]>;
+      eventFinished: boolean;
     };
 
 export type CourtJudgeMatchVM = {
@@ -303,7 +308,7 @@ async function resolveCourtForPage(courtId: string): Promise<
   | {
       kind: "active";
       court: Awaited<ReturnType<typeof prisma.eventCourt.findUnique>> & {
-        event: { id: string; title: string };
+        event: { id: string; title: string; status: string };
       };
     }
 > {
@@ -312,7 +317,7 @@ async function resolveCourtForPage(courtId: string): Promise<
 
   const court = await prisma.eventCourt.findUnique({
     where: { id: trimmedId },
-    include: { event: { select: { id: true, title: true } } },
+    include: { event: { select: { id: true, title: true, status: true } } },
   });
 
   if (!court) return { kind: "invalid" };
@@ -332,7 +337,7 @@ async function findCourt(courtId: string) {
   const court = await prisma.eventCourt.findUnique({
     where: { id: courtId },
     include: {
-      event: { select: { id: true, title: true, publicSlug: true } },
+      event: { select: { id: true, title: true, publicSlug: true, status: true } },
     },
   });
   if (!court || !court.isActive) {
@@ -513,7 +518,11 @@ function mapCourtMatchRows(
 }
 
 async function buildPageContext(
-  court: { id: string; name: string; event: { id: string; title: string } },
+  court: {
+    id: string;
+    name: string;
+    event: { id: string; title: string; status: string };
+  },
 ): Promise<{
   court: CourtJudgeCourtVM;
   matches: CourtJudgeMatchVM[];
@@ -521,6 +530,7 @@ async function buildPageContext(
   scene: CourtJudgeScene;
   scoreSummariesByMatchId: Record<string, CourtMatchScoreSummaryVM>;
   scorecardsByMatchId: Record<string, CourtJudgeScorecardVM[]>;
+  eventFinished: boolean;
 }> {
   const rows = await listCourtMatchRows(court.id);
   const matches = mapCourtMatchRows(court, rows);
@@ -553,6 +563,7 @@ async function buildPageContext(
     scene,
     scoreSummariesByMatchId: buildScoreSummaries(scorecardsByMatchId),
     scorecardsByMatchId,
+    eventFinished: isEventFinishedStatus(court.event.status),
   };
 }
 
@@ -582,6 +593,7 @@ async function loadCourtJudgePage(courtId: string): Promise<CourtJudgePageLoadRe
       scene: "no_matches",
       scoreSummariesByMatchId: {},
       scorecardsByMatchId: {},
+      eventFinished: isEventFinishedStatus(resolved.court.event.status),
     };
   }
 }
@@ -680,7 +692,9 @@ export const judgeCourtService = {
         redScore: r.redScore,
         blueScore: r.blueScore,
       })),
-      isLocked: card.status === JudgeScorecardStatus.locked,
+      isLocked:
+        card.status === JudgeScorecardStatus.locked ||
+        isEventFinishedStatus(court.event.status),
     };
   },
 
@@ -698,6 +712,7 @@ export const judgeCourtService = {
     memo?: string | null;
   }): Promise<void> {
     const court = await findCourt(input.courtId);
+    await assertEventWritable(court.event.id);
     const match = await findOngoingCourtMatch(input.courtId);
     if (!match || match.id !== input.matchId) {
       throw new AppError("CONFLICT", "현재 진행중인 경기가 아닙니다.");
@@ -783,6 +798,7 @@ export const judgeCourtService = {
 
   async prepareMatch(courtId: string, matchId: string): Promise<void> {
     const court = await findCourt(courtId);
+    await assertEventWritable(court.event.id);
     const target = await prisma.bracketMatch.findFirst({
       where: {
         id: matchId,
@@ -803,6 +819,7 @@ export const judgeCourtService = {
 
   async startMatch(courtId: string, matchId: string): Promise<void> {
     const court = await findCourt(courtId);
+    await assertEventWritable(court.event.id);
     const ongoing = await findOngoingCourtMatch(courtId);
     if (ongoing) {
       const label =
@@ -838,6 +855,7 @@ export const judgeCourtService = {
     settings: MatchOperationalSettings,
   ): Promise<void> {
     const court = await findCourt(courtId);
+    await assertEventWritable(court.event.id);
     const match = await prisma.bracketMatch.findFirst({
       where: {
         id: matchId,
@@ -866,6 +884,7 @@ export const judgeCourtService = {
 
   async addOvertimeRound(courtId: string, matchId: string): Promise<void> {
     const court = await findCourt(courtId);
+    await assertEventWritable(court.event.id);
     const match = await prisma.bracketMatch.findFirst({
       where: {
         id: matchId,
@@ -896,6 +915,7 @@ export const judgeCourtService = {
 
   async cancelMatch(courtId: string, matchId: string, reason?: string | null): Promise<void> {
     const court = await findCourt(courtId);
+    await assertEventWritable(court.event.id);
     await prisma.bracketMatch.updateMany({
       where: { id: matchId, courtId: court.id, bracket: { eventId: court.event.id } },
       data: {

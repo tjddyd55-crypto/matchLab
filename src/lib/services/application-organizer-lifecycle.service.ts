@@ -13,6 +13,7 @@ import {
 import type { ActorContext } from "@/lib/auth/actor-context";
 import { requireOrganizerForEvent, requireRole } from "@/lib/permissions";
 import { AppError } from "@/lib/errors/app-error";
+import { assertEventWritable } from "@/lib/event-completion-guard";
 import { prisma } from "@/lib/prisma";
 import { encryptInsuranceResidentNumber } from "@/lib/athlete-application/encrypt-insurance-rrn";
 import {
@@ -340,6 +341,7 @@ export const applicationOrganizerLifecycleService = {
   ): Promise<{ applicationId: string }> {
     requireRole(actor, ["organizer", "admin"]);
     await requireOrganizerForEvent(actor, input.eventId);
+    await assertEventWritable(input.eventId);
 
     const existing = await prisma.eventApplication.findUnique({
       where: { id: input.applicationId },
@@ -655,6 +657,7 @@ export const applicationOrganizerLifecycleService = {
     });
     if (!row) throw new AppError("NOT_FOUND", "신청을 찾을 수 없습니다.");
     await requireOrganizerForEvent(actor, row.eventId);
+    await assertEventWritable(row.eventId);
 
     const displaySource =
       row.status === ApplicationStatus.cancelled &&
@@ -718,6 +721,7 @@ export const applicationOrganizerLifecycleService = {
     });
     if (!row) throw new AppError("NOT_FOUND", "신청을 찾을 수 없습니다.");
     await requireOrganizerForEvent(actor, row.eventId);
+    await assertEventWritable(row.eventId);
 
     const deps = await loadDependencyFlags(
       row.eventId,

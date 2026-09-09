@@ -4,6 +4,8 @@ import { randomBytes } from "node:crypto";
 import type { JudgeCredentialRole } from "@/generated/prisma";
 import type { ActorContext } from "@/lib/auth/actor-context";
 import { AppError } from "@/lib/errors/app-error";
+import { assertEventWritable, isEventFinishedStatus } from "@/lib/event-completion-guard";
+import { prisma } from "@/lib/prisma";
 import {
   formatBirthDateInput,
   judgeDefaultRoute,
@@ -53,6 +55,7 @@ export type ResolvedJudgeSession = {
   roleLabel: string;
   verifiedName: string | null;
   identityConfirmedAt: string | null;
+  eventFinished: boolean;
 };
 
 function toListItemVM(
@@ -79,15 +82,18 @@ function toListItemVM(
   };
 }
 
-function toSessionVM(row: {
-  id: string;
-  eventId: string;
-  loginId: string;
-  displayName: string | null;
-  role: JudgeCredentialRole;
-  verifiedName: string | null;
-  identityConfirmedAt: Date | null;
-}): ResolvedJudgeSession {
+function toSessionVM(
+  row: {
+    id: string;
+    eventId: string;
+    loginId: string;
+    displayName: string | null;
+    role: JudgeCredentialRole;
+    verifiedName: string | null;
+    identityConfirmedAt: Date | null;
+  },
+  eventFinished: boolean,
+): ResolvedJudgeSession {
   return {
     credentialId: row.id,
     eventId: row.eventId,
@@ -97,6 +103,7 @@ function toSessionVM(row: {
     roleLabel: JUDGE_ROLE_LABELS[row.role],
     verifiedName: row.verifiedName,
     identityConfirmedAt: row.identityConfirmedAt?.toISOString() ?? null,
+    eventFinished,
   };
 }
 
@@ -122,6 +129,7 @@ export const judgeCredentialService = {
   ): Promise<{ credential: JudgeCredentialListItemVM; plainPassword: string }> {
     requireRole(actor, ["organizer", "admin"]);
     await requireOrganizerForEvent(actor, input.eventId);
+    await assertEventWritable(input.eventId);
 
     const plainPassword = input.password;
     const passwordHash = hashJudgePassword(plainPassword);
@@ -155,6 +163,7 @@ export const judgeCredentialService = {
     const row = await judgeCredentialRepository.findById(credentialId);
     if (!row) throw new AppError("NOT_FOUND", "심판 계정을 찾을 수 없습니다.");
     await requireOrganizerForEvent(actor, row.eventId);
+    await assertEventWritable(row.eventId);
 
     const plainPassword = generateTemporaryJudgePassword();
     await judgeCredentialRepository.updatePassword(
@@ -173,6 +182,7 @@ export const judgeCredentialService = {
     const row = await judgeCredentialRepository.findById(credentialId);
     if (!row) throw new AppError("NOT_FOUND", "심판 계정을 찾을 수 없습니다.");
     await requireOrganizerForEvent(actor, row.eventId);
+    await assertEventWritable(row.eventId);
     await judgeCredentialRepository.setActive(credentialId, isActive);
   },
 
@@ -213,7 +223,12 @@ export const judgeCredentialService = {
       throw new AppError("UNAUTHORIZED", "세션이 만료되었거나 유효하지 않습니다.");
     }
 
-    return toSessionVM(row);
+    const event = await prisma.event.findUnique({
+      where: { id: row.eventId },
+      select: { status: true },
+    });
+
+    return toSessionVM(row, event ? isEventFinishedStatus(event.status) : false);
   },
 
   async getIdentityForm(session: ResolvedJudgeSession): Promise<{

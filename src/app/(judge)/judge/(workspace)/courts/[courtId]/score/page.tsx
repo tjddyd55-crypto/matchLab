@@ -56,7 +56,14 @@ export default async function CourtScoreJudgePage({ params, searchParams }: Prop
     );
   }
 
-  const { court, matches, ongoingMatchId, scene, scoreSummariesByMatchId } = load;
+  const {
+    court,
+    matches,
+    ongoingMatchId,
+    scene,
+    scoreSummariesByMatchId,
+    eventFinished,
+  } = load;
 
   return (
     <CourtScoreJudgeScreen
@@ -65,6 +72,7 @@ export default async function CourtScoreJudgePage({ params, searchParams }: Prop
       ongoingMatchId={ongoingMatchId}
       scene={scene}
       scoreSummariesByMatchId={scoreSummariesByMatchId}
+      eventFinished={eventFinished}
     />
   );
 }

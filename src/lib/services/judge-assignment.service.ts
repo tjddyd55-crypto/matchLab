@@ -2,6 +2,7 @@ import "server-only";
 
 import type { ActorContext } from "@/lib/auth/actor-context";
 import { AppError } from "@/lib/errors/app-error";
+import { assertEventWritable } from "@/lib/event-completion-guard";
 import { ALLOWED_JUDGE_COUNTS } from "@/lib/judge-round-count";
 import { requireOrganizerForEvent, requireRole } from "@/lib/permissions";
 import { prisma } from "@/lib/prisma";
@@ -79,6 +80,7 @@ export const judgeAssignmentService = {
   ): Promise<JudgeAssignmentVM> {
     requireRole(actor, ["organizer", "admin"]);
     await requireOrganizerForEvent(actor, input.eventId);
+    await assertEventWritable(input.eventId);
 
     const match = await prisma.bracketMatch.findFirst({
       where: { id: input.matchId, bracket: { eventId: input.eventId } },
@@ -129,6 +131,7 @@ export const judgeAssignmentService = {
     const row = await judgeAssignmentRepository.findById(assignmentId);
     if (!row) throw new AppError("NOT_FOUND", "배정을 찾을 수 없습니다.");
     await requireOrganizerForEvent(actor, row.eventId);
+    await assertEventWritable(row.eventId);
 
     let hadSubmittedScorecard = false;
     if (row.credentialId) {

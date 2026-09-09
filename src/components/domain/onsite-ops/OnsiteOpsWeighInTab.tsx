@@ -28,10 +28,12 @@ export function OnsiteOpsWeighInTab({
   eventId,
   rows,
   summary,
+  readOnly = false,
 }: {
   eventId: string;
   rows: FieldStatusRowDTO[];
   summary: FieldStatusSummaryDTO;
+  readOnly?: boolean;
 }) {
   const [searchQuery, setSearchQuery] = useState("");
   const [gymFilter, setGymFilter] = useState("all");
@@ -102,6 +104,7 @@ export function OnsiteOpsWeighInTab({
       <OrganizerFieldStatusDetailPane
         row={selectedRow}
         eventId={eventId}
+        readOnly={readOnly}
         onBack={() => setSelectedId(null)}
         onWeighInSaved={() => setSelectedId(null)}
       />

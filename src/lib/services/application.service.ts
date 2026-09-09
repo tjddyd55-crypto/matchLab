@@ -17,6 +17,7 @@ import {
   requiresGuardianConsentFromFighterProfile,
 } from "@/lib/consent-policy";
 import { AppError } from "@/lib/errors/app-error";
+import { assertEventWritable } from "@/lib/event-completion-guard";
 import {
   requireGymOwner,
   requireOrganizerForEvent,
@@ -1622,6 +1623,7 @@ export const applicationService = {
       throw new AppError("NOT_FOUND", "신청을 찾을 수 없습니다.");
     }
     await requireOrganizerForEvent(actor, ctx.eventId);
+    await assertEventWritable(ctx.eventId);
 
     if (ctx.status !== ApplicationStatus.pending) {
       throw new AppError(
@@ -1684,6 +1686,7 @@ export const applicationService = {
       throw new AppError("NOT_FOUND", "신청을 찾을 수 없습니다.");
     }
     await requireOrganizerForEvent(actor, ctx.eventId);
+    await assertEventWritable(ctx.eventId);
 
     if (ctx.status !== ApplicationStatus.approved) {
       throw new AppError(
@@ -1794,6 +1797,7 @@ export const applicationService = {
       throw new AppError("NOT_FOUND", "신청을 찾을 수 없습니다.");
     }
     await requireOrganizerForEvent(actor, ctx.eventId);
+    await assertEventWritable(ctx.eventId);
 
     if (
       ctx.status !== ApplicationStatus.pending &&
@@ -1903,6 +1907,7 @@ export const applicationService = {
     try {
       requireRole(actor, ["organizer", "admin"]);
       await requireOrganizerForEvent(actor, input.eventId);
+      await assertEventWritable(input.eventId);
       logManualApplicationCreate("auth_checked", logBase);
 
       const event =
@@ -2747,6 +2752,7 @@ export const applicationService = {
   ): Promise<ApplicantExcelCommitResult> {
     requireRole(actor, ["organizer", "admin"]);
     await requireOrganizerForEvent(actor, input.eventId);
+    await assertEventWritable(input.eventId);
     const preview = await applicationService.analyzeOrganizerApplicantExcel(
       actor,
       input,
@@ -3051,6 +3057,7 @@ export const applicationService = {
     }
 
     await requireOrganizerForEvent(actor, row.eventId);
+    await assertEventWritable(row.eventId);
 
     const isOtherSelection = row.divisionSelectionType === "OTHER";
     const hasNullDivision = row.divisionId == null;

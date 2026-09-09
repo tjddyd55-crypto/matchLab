@@ -31,4 +31,13 @@ assert.match(fieldStatus, /assertEventWritable/);
 const judgePortal = read("src/lib/services/judge-scorecard.service.ts");
 assert.match(judgePortal, /assertEventWritable/);
 
+const application = read("src/lib/services/application.service.ts");
+assert.match(application, /assertEventWritable/);
+
+const bracket = read("src/lib/services/bracket.service.ts");
+assert.match(bracket, /assertEventWritable/);
+
+const judgeCourt = read("src/lib/services/judge-court.service.ts");
+assert.match(judgeCourt, /assertEventWritable/);
+
 console.log("verify:event-completion-preserves-records: OK");

@@ -64,11 +64,13 @@ function DetailSection({
 export function OrganizerFieldStatusDetailPane({
   row,
   eventId,
+  readOnly = false,
   onBack,
   onWeighInSaved,
 }: {
   row: FieldStatusRowDTO;
   eventId: string;
+  readOnly?: boolean;
   onBack?: () => void;
   onWeighInSaved?: (info: {
     fighterName: string;
@@ -124,6 +126,7 @@ export function OrganizerFieldStatusDetailPane({
           <WeighInWeightInput
             row={row}
             autoFocus
+            readOnly={readOnly}
             onSaved={(info) =>
               onWeighInSaved?.({
                 fighterName: row.fighterName,
@@ -131,7 +134,11 @@ export function OrganizerFieldStatusDetailPane({
               })
             }
           />
-          <FieldStatusPrimaryActions row={row} showDisqualify={false} />
+          <FieldStatusPrimaryActions
+            row={row}
+            showDisqualify={false}
+            readOnly={readOnly}
+          />
         </div>
       </DetailSection>
 
@@ -140,7 +147,7 @@ export function OrganizerFieldStatusDetailPane({
         title="경기 진행 여부"
         hint={getFieldProgressStepHint(row)}
       >
-        <WeighInFailureResolutionForm row={row} />
+        <WeighInFailureResolutionForm row={row} readOnly={readOnly} />
         {row.weighInFailureResolution === "proceed_with_handicap" ? (
           <p className="text-xs font-medium text-amber-800">
             핸디캡 경기로 진행합니다.
@@ -167,14 +174,14 @@ export function OrganizerFieldStatusDetailPane({
         </div>
         {reasonVisible ? (
           <div className="flex flex-col gap-2">
-            <DisqualificationReasonForm row={row} />
+            <DisqualificationReasonForm row={row} readOnly={readOnly} />
             {row.checkInStatus !== "disqualified" ? (
               <Button
                 type="button"
                 size="sm"
                 variant="destructive"
                 className="h-9 w-fit text-xs"
-                disabled={pending}
+                disabled={pending || readOnly}
                 onClick={() =>
                   startTransition(async () => {
                     const fd = new FormData();
@@ -209,12 +216,12 @@ export function OrganizerFieldStatusDetailPane({
       </DetailSection>
 
       <DetailSection step={5} title="메모">
-        <FieldMemoForm row={row} />
+        <FieldMemoForm row={row} readOnly={readOnly} />
       </DetailSection>
 
       <section className="flex flex-col gap-2 rounded-[10px] border border-rose-200 bg-rose-50/40 p-3">
         <h3 className="text-sm font-bold text-rose-900">6. 관리</h3>
-        <FieldStatusResetButton row={row} />
+        <FieldStatusResetButton row={row} readOnly={readOnly} />
       </section>
     </div>
   );

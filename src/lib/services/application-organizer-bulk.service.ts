@@ -8,6 +8,7 @@ import {
 } from "@/generated/prisma";
 import type { ActorContext } from "@/lib/auth/actor-context";
 import { AppError } from "@/lib/errors/app-error";
+import { assertEventWritable } from "@/lib/event-completion-guard";
 import { prisma } from "@/lib/prisma";
 import { requireOrganizerForEvent } from "@/lib/permissions";
 import { applicationRepository } from "@/lib/repositories/application.repository";
@@ -30,6 +31,7 @@ export const applicationOrganizerBulkService = {
     action: BulkApplicationAction,
   ): Promise<BulkApplicationResult> {
     await requireOrganizerForEvent(actor, eventId);
+    await assertEventWritable(eventId);
     const uniqueIds = [...new Set(applicationIds)];
     const result: BulkApplicationResult = {
       successCount: 0,

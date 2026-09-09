@@ -45,10 +45,12 @@ export function WeighInFailureResolutionForm({
   row,
   compact = false,
   touchFriendly = false,
+  readOnly = false,
 }: {
   row: FieldStatusRowDTO;
   compact?: boolean;
   touchFriendly?: boolean;
+  readOnly?: boolean;
 }) {
   const router = useRouter();
   const { confirm } = useAppConfirmDialog();
@@ -117,7 +119,7 @@ export function WeighInFailureResolutionForm({
             : "outline"
         }
         className={btnClass}
-        disabled={pending}
+        disabled={readOnly || pending}
         onClick={() => run(WeighInFailureResolution.proceed_with_handicap)}
       >
         경기진행
@@ -127,7 +129,7 @@ export function WeighInFailureResolutionForm({
         size={btnSize}
         variant="destructive"
         className={btnClass}
-        disabled={pending}
+        disabled={readOnly || pending}
         onClick={async () => {
           const message = isFailed
             ? `${row.fighterName} 선수의 계체 실패를 경기취소로 처리할까요?`
@@ -155,10 +157,12 @@ export function DisqualificationReasonForm({
   row,
   compact = false,
   touchFriendly = false,
+  readOnly = false,
 }: {
   row: FieldStatusRowDTO;
   compact?: boolean;
   touchFriendly?: boolean;
+  readOnly?: boolean;
 }) {
   const router = useRouter();
   const { alert } = useAppConfirmDialog();
@@ -239,6 +243,7 @@ export function DisqualificationReasonForm({
           className={cn(inputClass, compact && "min-w-0 flex-1")}
           value={preset}
           onChange={(e) => setPreset(e.target.value)}
+          disabled={readOnly}
           required
         >
           <option value="">사유 선택</option>
@@ -257,7 +262,7 @@ export function DisqualificationReasonForm({
               ? "w-full shrink-0 sm:w-fit"
               : "h-[34px] shrink-0 px-2 text-xs"
           }
-          disabled={pending}
+          disabled={readOnly || pending}
         >
           저장
         </Button>
@@ -271,6 +276,8 @@ export function DisqualificationReasonForm({
           placeholder="기타 사유 입력 (필수)"
           className={inputClass}
           maxLength={500}
+          disabled={readOnly}
+          readOnly={readOnly}
           required
         />
       ) : null}
