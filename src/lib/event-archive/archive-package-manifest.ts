@@ -80,8 +80,10 @@ const FILE_DESCRIPTIONS: Record<
   "05_match_results.xlsx": {
     title: "05_match_results.xlsx",
     lines: [
-      "- 최종 경기 결과",
-      "- 경기별 승/패/무승부, 승리방식, 확정 상태",
+      "- 대회 최종 경기 결과",
+      "- 경기당 1행으로 정리된 결과 파일",
+      "- 홍코너, 청코너, 승자, 승부방식, 확정상태 등을 포함",
+      "- RED/BLUE는 실제 대진표 배치 기준",
       "- 운영자가 직접 열람하는 파일",
     ],
   },

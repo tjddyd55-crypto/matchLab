@@ -98,6 +98,8 @@ assert.match(readme, /기록 생성일시:/);
 assert.match(readme, /Excel\/PDF 파일은 사람이 확인하기 위한 자료입니다/);
 assert.match(readme, /JSON 파일은 대회 종료 당시의 원본 데이터를 보존하는 파일이므로/);
 assert.match(readme, /05_match_results\.xlsx/);
+assert.match(readme, /경기당 1행으로 정리된 결과 파일/);
+assert.match(readme, /RED\/BLUE는 실제 대진표 배치 기준/);
 assert.match(readme, /07_judge_scores\.xlsx/);
 assert.match(readme, /manifest\.json/);
 assert.match(readme, /README\.txt/);
