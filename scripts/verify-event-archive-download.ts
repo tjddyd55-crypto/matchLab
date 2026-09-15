@@ -12,6 +12,7 @@ function read(rel: string) {
 }
 
 const zipService = read("src/lib/services/event-archive-zip.service.ts");
+assert.match(zipService, /README\.txt/);
 assert.match(zipService, /manifest\.json/);
 assert.match(zipService, /02_applications\.xlsx/);
 assert.match(zipService, /03_weigh_in\.xlsx/);

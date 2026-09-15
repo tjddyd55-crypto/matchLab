@@ -5,6 +5,11 @@ import { PassThrough } from "node:stream";
 import type { ActorContext } from "@/lib/auth/actor-context";
 import { defaultApplicantExcelExportFieldKeys } from "@/lib/applications/applicant-excel-export-fields";
 import { sanitizeApplicantExcelFilenamePart } from "@/lib/applications/applicant-excel-export-fields";
+import {
+  buildArchivePackageManifest,
+  buildArchiveReadmeText,
+  encodeArchiveReadmeUtf8,
+} from "@/lib/event-archive/archive-package-manifest";
 import { ymdFileStamp } from "@/lib/excel-export/filename";
 import { requireOrganizerForEvent } from "@/lib/permissions";
 import { eventArchiveApplicantExcelService } from "@/lib/services/event-archive-applicant-excel.service";
@@ -29,6 +34,7 @@ export const eventArchiveZipService = {
     await requireOrganizerForEvent(actor, eventId);
     const archive = await eventArchiveService.requireActiveArchive(actor, eventId);
     const cookieHeader = options?.cookieHeader ?? null;
+    const exportedAt = new Date().toISOString();
 
     const [
       { buffer: applicantsBuffer },
@@ -74,36 +80,35 @@ export const eventArchiveZipService = {
       weighInPdf = null;
     }
 
-    const manifest = {
+    const manifest = buildArchivePackageManifest({
       eventId,
       eventName: archive.eventSnapshot.title,
       completedAt: archive.archivedAt,
-      exportedAt: new Date().toISOString(),
+      exportedAt,
       archiveVersion: archive.version,
       applicationCount: archive.applicantsSnapshot.totalCount,
       matchCount: archive.bracketSnapshot.totalMatchCount,
       confirmedResultCount: archive.resultsSnapshot.totalCount,
       judgeScoreCount,
       weighInCount,
-      sources: {
-        "01_event_info.json": "archive_snapshot",
-        "02_applications.xlsx": "archive_snapshot",
-        "03_weigh_in.xlsx": "live_read_only",
-        "03_weigh_in.pdf": weighInPdf ? "live_read_only" : "skipped",
-        "04_brackets.pdf": bracketPdf ? "live_read_only" : "skipped",
-        "04_brackets_snapshot.json": "archive_snapshot",
-        "05_match_results.xlsx": "archive_snapshot",
-        "05_match_results_snapshot.json": "archive_snapshot",
-        "07_judge_scores.xlsx": "live_read_only",
-      },
-    };
+      includeWeighInPdf: weighInPdf != null,
+      includeBracketPdf: bracketPdf != null,
+    });
+
+    const readmeText = buildArchiveReadmeText({
+      eventName: manifest.eventName,
+      completedAt: manifest.completedAt,
+      exportedAt: manifest.exportedAt,
+      includedFiles: manifest.files,
+    });
+    const readmeBuffer = encodeArchiveReadmeUtf8(readmeText);
 
     const pass = new PassThrough();
     const zip = archiver("zip", { zlib: { level: 9 } });
     zip.on("error", (err) => pass.destroy(err));
     zip.pipe(pass);
 
-    zip.append(JSON.stringify(manifest, null, 2), { name: "manifest.json" });
+    zip.append(readmeBuffer, { name: "README.txt" });
     zip.append(JSON.stringify(archive.eventSnapshot, null, 2), {
       name: "01_event_info.json",
     });
@@ -123,6 +128,7 @@ export const eventArchiveZipService = {
       name: "05_match_results_snapshot.json",
     });
     zip.append(judgeScoresXlsx, { name: "07_judge_scores.xlsx" });
+    zip.append(JSON.stringify(manifest, null, 2), { name: "manifest.json" });
 
     await zip.finalize();
     const buffer = await bufferFromStream(pass);
