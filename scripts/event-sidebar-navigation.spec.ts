@@ -58,6 +58,10 @@ const ROUTES: RouteCase[] = [
     path: `${BASE}/application-batches`,
     activeLabel: "공식 신청서",
   },
+  {
+    path: `${BASE}/public-notice`,
+    activeLabel: "공개 공고",
+  },
 ];
 
 async function login(page: Page) {

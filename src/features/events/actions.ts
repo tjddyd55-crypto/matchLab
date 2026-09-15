@@ -59,6 +59,7 @@ function revalidatePublicAnnouncementPaths(options?: {
   revalidatePath("/organizer/events");
   if (options?.eventId) {
     revalidatePath(`/organizer/events/${options.eventId}`);
+    revalidatePath(`/organizer/events/${options.eventId}/public-notice`);
   }
   if (options?.publicSlug) {
     revalidatePath(`/events/${options.publicSlug}`);

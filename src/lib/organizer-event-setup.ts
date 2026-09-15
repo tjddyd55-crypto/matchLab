@@ -241,7 +241,7 @@ function buildPrePublishStep(input: EventSetupInput): EventSetupStep {
         : "공개 전에 필수 항목을 먼저 채워 주세요.",
     status,
     statusLabel: STATUS_LABEL[status],
-    href: `/events/${input.publicSlug}`,
+    href: `/organizer/events/${input.eventId}/public-notice`,
     actionLabel: "공개 페이지 보기",
     importance: "required",
   };
@@ -313,7 +313,7 @@ export function getNextRecommendedActions(
       stepId: "pre_publish",
       title: "공개 페이지 확인",
       description: "참가자가 보게 될 공개 공고를 미리 확인해 주세요.",
-      href: `/events/${input.publicSlug}`,
+      href: `/organizer/events/${input.eventId}/public-notice`,
       actionLabel: "공개 페이지 보기",
     });
   }

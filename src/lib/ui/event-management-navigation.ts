@@ -70,6 +70,10 @@ export function getEventManagementBasePath(eventId: string): string {
   return `/organizer/events/${eventId}`;
 }
 
+export function getEventPublicNoticeManagerPath(eventId: string): string {
+  return `${getEventManagementBasePath(eventId)}/public-notice`;
+}
+
 export function getEventManagementNavItems(
   eventId: string,
   publicSlug?: string | null,
@@ -144,11 +148,10 @@ export function getEventManagementNavItems(
     ...(publicSlug
       ? [
           {
-            href: `/events/${publicSlug}`,
+            href: getEventPublicNoticeManagerPath(eventId),
             label: "공개 공고",
             group: "public" as const,
             icon: "globe" as const,
-            external: true,
           },
         ]
       : []),
@@ -220,6 +223,10 @@ export function isEventManagementNavItemActive(
   }
 
   if (item.href === `${base}/archive`) {
+    return pathname === item.href || pathname.startsWith(`${item.href}/`);
+  }
+
+  if (item.href === `${base}/public-notice`) {
     return pathname === item.href || pathname.startsWith(`${item.href}/`);
   }
 
