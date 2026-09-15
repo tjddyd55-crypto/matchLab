@@ -1,13 +1,23 @@
 "use client";
 
+import Link from "next/link";
 import { useActionState, useEffect, useRef } from "react";
 import { useRouter } from "next/navigation";
-import { changeEventStatusAction, getEventArchiveFinishSummaryAction } from "@/features/events/actions";
+import {
+  changeEventStatusAction,
+  getEventArchiveFinishSummaryAction,
+} from "@/features/events/actions";
 import type { ActionResult } from "@/lib/action-result";
 import { EventStatus } from "@/lib/enums";
 import type { OrganizerEventDetailVM } from "@/lib/services/event.service";
+import { ORGANIZER_EVENT_STATUS_LABELS } from "@/lib/event-organizer-status";
+import { buildEventFinishConfirmDescription } from "@/lib/event-completion-ui";
+import { formatPublicDateTime } from "@/lib/date-display";
+import { resolveOrganizerEventListMatchonStatus } from "@/lib/ui/event-list-ui";
 import { Button } from "@/components/ui/button";
 import { useAppConfirmDialog } from "@/components/shared/app-confirm-dialog";
+import { MatchonStatusBadge } from "@/components/shared/MatchonStatusBadge";
+import { EventArchiveDownloadPanel } from "@/components/domain/events/EventArchiveDownloadPanel";
 import { cn } from "@/lib/utils";
 
 type Transition = { next: EventStatus; label: string; warn?: string };
@@ -17,36 +27,69 @@ function transitionsFor(status: EventStatus): Transition[] {
     case EventStatus.draft:
       return [
         { next: EventStatus.open, label: "신청 공개 (OPEN)" },
-        { next: EventStatus.cancelled, label: "대회 취소", warn: "취소 후 공개 목록에서 제외됩니다." },
+        {
+          next: EventStatus.cancelled,
+          label: "대회 취소",
+          warn: "취소 후 공개 목록에서 제외됩니다.",
+        },
       ];
     case EventStatus.open:
       return [
         { next: EventStatus.closed, label: "신청 마감" },
-        { next: EventStatus.cancelled, label: "대회 취소", warn: "취소 후 공개 목록에서 제외됩니다." },
+        {
+          next: EventStatus.cancelled,
+          label: "대회 취소",
+          warn: "취소 후 공개 목록에서 제외됩니다.",
+        },
       ];
     case EventStatus.closed:
       return [
         { next: EventStatus.bracket_ready, label: "대진표 준비 단계로" },
         { next: EventStatus.finished, label: "대회 종료" },
-        { next: EventStatus.cancelled, label: "대회 취소", warn: "취소 후 공개 목록에서 제외됩니다." },
+        {
+          next: EventStatus.cancelled,
+          label: "대회 취소",
+          warn: "취소 후 공개 목록에서 제외됩니다.",
+        },
       ];
     case EventStatus.bracket_ready:
       return [
         { next: EventStatus.ongoing, label: "대회 진행 시작" },
         { next: EventStatus.finished, label: "대회 종료" },
-        { next: EventStatus.cancelled, label: "대회 취소", warn: "취소 후 공개 목록에서 제외됩니다." },
+        {
+          next: EventStatus.cancelled,
+          label: "대회 취소",
+          warn: "취소 후 공개 목록에서 제외됩니다.",
+        },
       ];
     case EventStatus.ongoing:
       return [
         { next: EventStatus.finished, label: "대회 종료" },
-        { next: EventStatus.cancelled, label: "대회 취소", warn: "취소 후 공개 목록에서 제외됩니다." },
+        {
+          next: EventStatus.cancelled,
+          label: "대회 취소",
+          warn: "취소 후 공개 목록에서 제외됩니다.",
+        },
       ];
     case EventStatus.finished:
-      return [
-        { next: EventStatus.ongoing, label: "대회 종료 해제" },
-      ];
+      return [{ next: EventStatus.ongoing, label: "대회 종료 해제" }];
     default:
       return [];
+  }
+}
+
+function statusHelpText(status: EventStatus): string | null {
+  switch (status) {
+    case EventStatus.open:
+      return "신청을 마감한 후 대진표 준비 및 대회 종료를 진행할 수 있습니다.";
+    case EventStatus.closed:
+    case EventStatus.bracket_ready:
+    case EventStatus.ongoing:
+      return "모든 경기 운영이 끝난 후 대회를 종료할 수 있습니다.";
+    case EventStatus.finished:
+      return '종료된 대회는 "대회 종료 해제"로 운영 상태를 복구할 수 있습니다.';
+    default:
+      return null;
   }
 }
 
@@ -68,10 +111,38 @@ export function EventStatusControl({
   }, [state, router]);
 
   const steps = transitionsFor(event.status);
+  const helpText = statusHelpText(event.status);
+  const isFinished = event.status === EventStatus.finished;
 
   return (
     <div className="ring-foreground/10 space-y-3 rounded-xl border bg-card p-4 shadow-sm md:p-6">
-      <h2 className="text-lg font-semibold">상태 변경</h2>
+      <div className="flex flex-wrap items-start justify-between gap-3">
+        <div className="space-y-2">
+          <h2 className="text-lg font-semibold">상태 변경</h2>
+          <div className="flex flex-wrap items-center gap-2">
+            <MatchonStatusBadge
+              status={resolveOrganizerEventListMatchonStatus(event.status)}
+              label={ORGANIZER_EVENT_STATUS_LABELS[event.status]}
+            />
+            {isFinished && event.completedAt ? (
+              <span className="text-muted-foreground text-xs">
+                {formatPublicDateTime(event.completedAt)} 종료
+              </span>
+            ) : null}
+          </div>
+        </div>
+        {event.hasActiveArchive ? (
+          <Link
+            href={`/organizer/events/${event.id}/archive`}
+            className={cn(
+              "inline-flex h-8 items-center rounded-md border px-3 text-xs font-medium",
+            )}
+          >
+            대회 기록 보기
+          </Link>
+        ) : null}
+      </div>
+
       {event.status === EventStatus.draft ? (
         <div className="rounded-lg border border-amber-500/40 bg-amber-500/10 px-3 py-2 text-sm">
           <p className="font-medium">공개 전 필수</p>
@@ -86,7 +157,9 @@ export function EventStatusControl({
         <p className="text-destructive text-sm">{state.error.message}</p>
       ) : null}
       {steps.length === 0 ? (
-        <p className="text-muted-foreground text-sm">이 상태에서는 전진 전이가 없습니다.</p>
+        <p className="text-muted-foreground text-sm">
+          이 상태에서는 전진 전이가 없습니다.
+        </p>
       ) : (
         <div className="flex flex-wrap gap-2">
           {steps.map((t) => (
@@ -113,41 +186,9 @@ export function EventStatusControl({
                     );
                     const stats =
                       summaryRes.ok === true ? summaryRes.data : null;
-                    const warningParts = [
-                      stats && stats.unconfirmedResultCount > 0
-                        ? `결과 미입력 경기가 ${stats.unconfirmedResultCount}건 있습니다.`
-                        : null,
-                      stats && stats.pendingMatchCount > 0
-                        ? `미종료 경기가 ${stats.pendingMatchCount}건 있습니다.`
-                        : null,
-                    ].filter(Boolean);
-                    const description = [
-                      "종료 후:",
-                      "· 대회 상태가 \"대회 종료\"로 변경됩니다.",
-                      "· 신청자, 대진표, 계체, 경기 결과 등의 기록은 보존됩니다.",
-                      "· 종료 후에는 기본적으로 운영 데이터가 읽기 전용으로 전환됩니다.",
-                      "· 필요 시 기록을 다운로드할 수 있습니다.",
-                      stats
-                        ? [
-                            "",
-                            `신청자 ${stats.applicantCount}명`,
-                            `총 경기 ${stats.totalMatchCount}경기 · 경기 종료 ${stats.completedMatchCount}경기`,
-                            stats.weighInPendingCount > 0
-                              ? `계체 미완료 ${stats.weighInPendingCount}명`
-                              : null,
-                          ]
-                            .filter(Boolean)
-                            .join("\n")
-                        : "",
-                      warningParts.length > 0
-                        ? `\n${warningParts.join(" ")} 그래도 종료하시겠습니까?`
-                        : "",
-                    ]
-                      .filter(Boolean)
-                      .join("\n");
                     const ok = await confirm({
                       title: "대회를 종료하시겠습니까?",
-                      description,
+                      description: buildEventFinishConfirmDescription(stats),
                       confirmLabel: "대회 종료",
                       cancelLabel: "취소",
                       variant: "default",
@@ -184,7 +225,9 @@ export function EventStatusControl({
               <Button
                 type="submit"
                 disabled={pending}
-                variant={t.next === EventStatus.cancelled ? "destructive" : "secondary"}
+                variant={
+                  t.next === EventStatus.cancelled ? "destructive" : "secondary"
+                }
                 size="sm"
                 className={cn(t.next === EventStatus.open && "border-primary")}
               >
@@ -194,9 +237,14 @@ export function EventStatusControl({
           ))}
         </div>
       )}
-      <p className="text-muted-foreground text-xs">
-        종료된 대회는 &quot;대회 종료 해제&quot;로 운영 상태를 복구할 수 있습니다.
-      </p>
+
+      {isFinished && event.hasActiveArchive ? (
+        <EventArchiveDownloadPanel eventId={event.id} />
+      ) : null}
+
+      {helpText ? (
+        <p className="text-muted-foreground text-xs">{helpText}</p>
+      ) : null}
     </div>
   );
 }

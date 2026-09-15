@@ -8,7 +8,6 @@ import { EventPaymentSettingForm } from "@/components/domain/events/EventPayment
 import { EventRecordingStreamingSettings } from "@/components/domain/events/EventRecordingStreamingSettings";
 import { SpectatorSettingsSection } from "@/components/domain/events/SpectatorSettingsSection";
 import { EventStatusControl } from "@/components/domain/events/EventStatusControl";
-import { EventCompletionPanel } from "@/components/domain/events/EventCompletionPanel";
 import { EventArchiveAccessBanner } from "@/components/domain/events/EventArchiveAccessBanner";
 import { OrganizerEventFlashBanner } from "@/components/domain/events/OrganizerEventFlashBanner";
 import { EventManagementPageHeader } from "@/components/domain/events/EventManagementPageHeader";
@@ -157,13 +156,6 @@ export default async function OrganizerEventDetailPage({
       ) : null}
 
       <OrganizerEventSetupChecklist checklist={setupChecklist} />
-
-      <EventCompletionPanel
-        eventId={detail.id}
-        status={detail.status}
-        completedAt={detail.completedAt}
-        hasActiveArchive={detail.hasActiveArchive}
-      />
 
       <EventStatusControl event={detail} />
 

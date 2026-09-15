@@ -26,8 +26,9 @@ assert.match(guard, /assertEventWritable/);
 const labels = read("src/lib/event-organizer-status.ts");
 assert.match(labels, /finished: "대회 종료"/);
 
-const panel = read("src/components/domain/events/EventCompletionPanel.tsx");
-assert.match(panel, /대회 종료/);
-assert.match(panel, /대회 종료 해제/);
+const statusControl = read("src/components/domain/events/EventStatusControl.tsx");
+assert.match(statusControl, /대회 종료/);
+assert.match(statusControl, /대회 종료 해제/);
+assert.match(statusControl, /getEventArchiveFinishSummaryAction/);
 
 console.log("verify:event-completion-lifecycle: OK");
