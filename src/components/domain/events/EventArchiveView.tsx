@@ -7,6 +7,7 @@ import {
   defaultApplicantExcelExportFieldKeys,
 } from "@/lib/applications/applicant-excel-export-fields";
 import { extractApplicantArchiveDisplayLabels } from "@/lib/event-archive/applicant-display";
+import { projectArchiveMatchResults } from "@/lib/event-archive/match-result-projection";
 import type { EventArchiveViewModel } from "@/lib/services/event-archive.service";
 import {
   ExcelExportTriggerButton,
@@ -57,14 +58,13 @@ export function EventArchiveView({ archive }: { archive: EventArchiveViewModel }
     [archive.bracketSnapshot.matches],
   );
 
-  const sortedResults = useMemo(
+  const projectedResults = useMemo(
     () =>
-      [...archive.resultsSnapshot.rows].sort((a, b) => {
-        const an = a.matchNumber ?? 0;
-        const bn = b.matchNumber ?? 0;
-        return an - bn;
+      projectArchiveMatchResults({
+        bracketSnapshot: archive.bracketSnapshot,
+        resultsSnapshot: archive.resultsSnapshot,
       }),
-    [archive.resultsSnapshot.rows],
+    [archive.bracketSnapshot, archive.resultsSnapshot],
   );
 
   return (
@@ -257,38 +257,44 @@ export function EventArchiveView({ archive }: { archive: EventArchiveViewModel }
             "event-archive-tab-panel event-archive-tab-results ring-foreground/10 overflow-x-auto rounded-xl border bg-card shadow-sm",
           )}
         >
-          <table className="w-full min-w-[900px] text-left text-sm">
+          <table className="w-full min-w-[1040px] text-left text-sm">
             <thead className="bg-muted/50 text-muted-foreground border-b text-xs">
               <tr>
-                <th className="px-3 py-2 font-medium">경기</th>
+                <th className="px-3 py-2 font-medium">경기번호</th>
                 <th className="px-3 py-2 font-medium">경기구분</th>
-                <th className="px-3 py-2 font-medium">선수</th>
-                <th className="px-3 py-2 font-medium">상대</th>
+                <th className="px-3 py-2 font-medium">홍코너</th>
+                <th className="px-3 py-2 font-medium">홍코너 체육관</th>
+                <th className="px-3 py-2 font-medium">청코너</th>
+                <th className="px-3 py-2 font-medium">청코너 체육관</th>
                 <th className="px-3 py-2 font-medium">결과</th>
-                <th className="px-3 py-2 font-medium">승리방식</th>
-                <th className="px-3 py-2 font-medium">상태</th>
+                <th className="px-3 py-2 font-medium">승자</th>
+                <th className="px-3 py-2 font-medium">승부방식</th>
+                <th className="px-3 py-2 font-medium">확정상태</th>
+                <th className="px-3 py-2 font-medium">경기일</th>
               </tr>
             </thead>
             <tbody>
-              {sortedResults.map((r) => (
-                <tr key={r.resultId} className="border-b last:border-0">
-                  <td className="whitespace-nowrap px-3 py-2 tabular-nums">
+              {projectedResults.map((r) => (
+                <tr key={r.matchId} className="border-b last:border-0">
+                  <td className="whitespace-nowrap px-3 py-2 tabular-nums font-medium">
                     {r.matchNumber != null ? `${r.matchNumber}경기` : "—"}
                   </td>
-                  <td className="text-muted-foreground max-w-[140px] truncate px-3 py-2">
+                  <td className="text-muted-foreground max-w-[160px] truncate px-3 py-2">
                     {r.divisionLabel ?? "—"}
                   </td>
-                  <td className="px-3 py-2">
-                    {r.fighterName}
-                    {r.fighterGymName ? ` (${r.fighterGymName})` : ""}
-                  </td>
+                  <td className="px-3 py-2">{r.redFighterName}</td>
                   <td className="text-muted-foreground px-3 py-2">
-                    {r.opponentName ?? "—"}
-                    {r.opponentGymName ? ` (${r.opponentGymName})` : ""}
+                    {r.redGymName ?? "—"}
                   </td>
-                  <td className="px-3 py-2 font-medium">{r.resultLabel}</td>
+                  <td className="px-3 py-2">{r.blueFighterName}</td>
+                  <td className="text-muted-foreground px-3 py-2">
+                    {r.blueGymName ?? "—"}
+                  </td>
+                  <td className="px-3 py-2 font-medium">{r.outcomeLabel}</td>
+                  <td className="px-3 py-2">{r.winnerName ?? "—"}</td>
                   <td className="px-3 py-2">{r.resultTypeLabel ?? "—"}</td>
                   <td className="px-3 py-2">{r.statusLabel}</td>
+                  <td className="px-3 py-2">{r.matchDateLabel ?? "—"}</td>
                 </tr>
               ))}
             </tbody>

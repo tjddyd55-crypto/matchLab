@@ -144,6 +144,7 @@
     "verify:event-completion-preserves-records": "tsx scripts/verify-event-completion-preserves-records.ts",
     "verify:event-completion-write-guards": "tsx scripts/verify-event-completion-write-guards.ts",
     "verify:manager-public-notice-layout": "tsx scripts/verify-manager-public-notice-layout.ts",
+    "verify:event-result-export-one-row-per-match": "tsx scripts/verify-event-result-export-one-row-per-match.ts",
     "verify:event-archive-complete-package": "tsx scripts/verify-event-archive-complete-package.ts",
     "verify:event-archive-download": "tsx scripts/verify-event-archive-download.ts",
     "verify:match-ops-effective-round-rules": "tsx scripts/verify-match-ops-effective-round-rules.ts",

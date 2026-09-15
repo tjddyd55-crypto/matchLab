@@ -45,6 +45,7 @@ export const eventArchiveZipService = {
       ),
       eventArchivePackageExportService.buildWeighInWorkbook(actor, eventId),
       eventArchivePackageExportService.buildResultsWorkbookFromSnapshot(
+        archive.bracketSnapshot,
         archive.resultsSnapshot,
       ),
       eventArchivePackageExportService.buildJudgeScoresWorkbook(actor, eventId),

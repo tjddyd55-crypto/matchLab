@@ -1,7 +1,12 @@
 import "server-only";
 
 import type { ActorContext } from "@/lib/auth/actor-context";
-import type { EventArchiveResultsSnapshot } from "@/lib/event-archive/types";
+import { projectArchiveMatchResults } from "@/lib/event-archive/match-result-projection";
+import type { EventArchiveMatchResultProjectionRow } from "@/lib/event-archive/match-result-projection";
+import type {
+  EventArchiveBracketSnapshot,
+  EventArchiveResultsSnapshot,
+} from "@/lib/event-archive/types";
 import { buildExcelWorkbook } from "@/lib/excel-export/build-workbook";
 import type { ExcelExportField } from "@/lib/excel-export/types";
 import { isMatchOpsManualLoginId } from "@/lib/match-ops-judge-score";
@@ -23,7 +28,7 @@ type WeighInExportRow = {
   fieldMemo: string;
 };
 
-type ResultExportRow = EventArchiveResultsSnapshot["rows"][number];
+type ResultExportRow = EventArchiveMatchResultProjectionRow;
 
 type JudgeScoreExportRow = {
   matchNumber: string;
@@ -52,15 +57,22 @@ const WEIGH_IN_FIELDS: ReadonlyArray<ExcelExportField<string, WeighInExportRow>>
 ];
 
 const RESULT_FIELDS: ReadonlyArray<ExcelExportField<string, ResultExportRow>> = [
-  { key: "matchNumber", label: "경기번호", defaultSelected: true, extract: (r) => String(r.matchNumber ?? "") },
-  { key: "bracketTitle", label: "대진표", defaultSelected: true, extract: (r) => r.bracketTitle },
+  {
+    key: "matchNumber",
+    label: "경기번호",
+    defaultSelected: true,
+    extract: (r) =>
+      r.matchNumber != null ? `${r.matchNumber}경기` : "",
+  },
   { key: "divisionLabel", label: "경기구분", defaultSelected: true, extract: (r) => r.divisionLabel ?? "" },
-  { key: "fighterName", label: "선수", defaultSelected: true, extract: (r) => r.fighterName },
-  { key: "fighterGymName", label: "체육관", defaultSelected: true, extract: (r) => r.fighterGymName ?? "" },
-  { key: "opponentName", label: "상대", defaultSelected: true, extract: (r) => r.opponentName ?? "" },
-  { key: "resultLabel", label: "결과", defaultSelected: true, extract: (r) => r.resultLabel },
-  { key: "resultTypeLabel", label: "승부 방식", defaultSelected: true, extract: (r) => r.resultTypeLabel ?? "" },
-  { key: "statusLabel", label: "확정 상태", defaultSelected: true, extract: (r) => r.statusLabel },
+  { key: "redFighterName", label: "홍코너", defaultSelected: true, extract: (r) => r.redFighterName },
+  { key: "redGymName", label: "홍코너 체육관", defaultSelected: true, extract: (r) => r.redGymName ?? "" },
+  { key: "blueFighterName", label: "청코너", defaultSelected: true, extract: (r) => r.blueFighterName },
+  { key: "blueGymName", label: "청코너 체육관", defaultSelected: true, extract: (r) => r.blueGymName ?? "" },
+  { key: "outcomeLabel", label: "결과", defaultSelected: true, extract: (r) => r.outcomeLabel },
+  { key: "winnerName", label: "승자", defaultSelected: true, extract: (r) => r.winnerName ?? "—" },
+  { key: "resultTypeLabel", label: "승부방식", defaultSelected: true, extract: (r) => r.resultTypeLabel ?? "" },
+  { key: "statusLabel", label: "확정상태", defaultSelected: true, extract: (r) => r.statusLabel },
   { key: "matchDateLabel", label: "경기일", defaultSelected: true, extract: (r) => r.matchDateLabel ?? "" },
 ];
 
@@ -123,12 +135,17 @@ export const eventArchivePackageExportService = {
   },
 
   buildResultsWorkbookFromSnapshot(
+    bracketSnapshot: EventArchiveBracketSnapshot,
     resultsSnapshot: EventArchiveResultsSnapshot,
   ): Promise<Buffer> {
+    const rows = projectArchiveMatchResults({
+      bracketSnapshot,
+      resultsSnapshot,
+    });
     return buildExcelWorkbook({
       sheetName: "경기결과",
       fields: RESULT_FIELDS,
-      rows: resultsSnapshot.rows,
+      rows,
     });
   },
 

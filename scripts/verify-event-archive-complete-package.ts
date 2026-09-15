@@ -24,6 +24,8 @@ assert.match(zipService, /eventArchivePackageExportService/);
 
 assert.match(packageExport, /buildWeighInWorkbook/);
 assert.match(packageExport, /buildResultsWorkbookFromSnapshot/);
+assert.match(packageExport, /projectArchiveMatchResults/);
+assert.match(packageExport, /redFighterName/);
 assert.match(packageExport, /buildJudgeScoresWorkbook/);
 
 const route = read("src/app/api/organizer/events/[eventId]/archive-zip/route.ts");
