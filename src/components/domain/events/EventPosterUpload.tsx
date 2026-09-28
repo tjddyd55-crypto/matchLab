@@ -3,6 +3,10 @@
 import { useRouter } from "next/navigation";
 import { useEffect, useRef, useState, useTransition } from "react";
 import { EventPosterOrganizerPreview } from "@/components/domain/events/EventPosterOrganizerPreview";
+import {
+  EventPosterAspectWarningBox,
+  EventPosterUploadGuide,
+} from "@/components/domain/events/EventPosterUploadGuide";
 import { putFileToEventSignedUploadUrl } from "@/lib/client/event-image-storage-upload";
 import {
   getEventPosterAspectWarning,
@@ -10,7 +14,6 @@ import {
   readImageDimensionsFromUrl,
 } from "@/lib/client/event-poster-aspect";
 import { EVENT_IMAGE_MAX_BYTES } from "@/lib/constants/event-image-upload";
-import { EVENT_POSTER_UPLOAD_HINT } from "@/components/domain/events/public/public-event-layout";
 import { Button } from "@/components/ui/button";
 import {
   finalizeEventPosterUploadAction,
@@ -158,23 +161,15 @@ export function EventPosterUpload({
 
   return (
     <div className="space-y-3 rounded-lg border bg-muted/20 p-4">
-      <div>
-        <p className="text-sm font-medium">포스터 이미지</p>
-        <p className="text-muted-foreground mt-1 text-xs leading-relaxed">
-          {EVENT_POSTER_UPLOAD_HINT} (JPEG, PNG, WebP · 최대{" "}
-          {Math.round(EVENT_IMAGE_MAX_BYTES / (1024 * 1024))}MB)
-        </p>
-      </div>
+      <EventPosterUploadGuide />
+      {aspectWarning ? <EventPosterAspectWarningBox message={aspectWarning} /> : null}
       {error ? (
         <p className="text-destructive text-xs" role="alert">
           {error}
         </p>
       ) : null}
       <div className="flex flex-wrap items-start gap-4">
-        <EventPosterOrganizerPreview
-          src={displaySrc}
-          aspectWarning={aspectWarning}
-        />
+        <EventPosterOrganizerPreview src={displaySrc} />
         <div className="flex min-w-[140px] flex-col gap-2">
           <input
             ref={inputRef}
