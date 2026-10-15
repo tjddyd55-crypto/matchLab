@@ -186,6 +186,80 @@ function eventImagesBucket(): string {
   );
 }
 
+export function getEventImagesBucketName(): string {
+  return eventImagesBucket();
+}
+
+function assertEventImageServerConfig(): void {
+  if (!process.env.NEXT_PUBLIC_SUPABASE_URL?.trim()) {
+    throw new AppError(
+      "INTERNAL",
+      "NEXT_PUBLIC_SUPABASE_URL이 설정되지 않았습니다. Railway Variables를 확인하세요.",
+    );
+  }
+  if (!process.env.SUPABASE_SERVICE_ROLE_KEY?.trim()) {
+    throw new AppError(
+      "INTERNAL",
+      "SUPABASE_SERVICE_ROLE_KEY가 설정되지 않았습니다. Storage signed URL 발급에 필요합니다.",
+    );
+  }
+}
+
+type StorageLikeError = {
+  message?: string;
+  statusCode?: string | number;
+};
+
+function toEventImageSignedUploadError(
+  error: StorageLikeError | null | undefined,
+  bucket: string,
+): AppError {
+  const raw = error?.message?.trim() ?? "";
+  const lower = raw.toLowerCase();
+  const status = String(error?.statusCode ?? "");
+
+  if (
+    lower.includes("bucket not found") ||
+    lower.includes("does not exist") ||
+    status === "404"
+  ) {
+    return new AppError(
+      "INTERNAL",
+      `Supabase Storage 버킷 '${bucket}'을 찾을 수 없습니다. Supabase에서 '${bucket}' 버킷(공개 읽기)을 생성하고 SUPABASE_EVENT_IMAGE_BUCKET 값을 맞춰 주세요.`,
+    );
+  }
+
+  if (
+    lower.includes("invalid") &&
+    (lower.includes("jwt") ||
+      lower.includes("apikey") ||
+      lower.includes("api key") ||
+      lower.includes("key"))
+  ) {
+    return new AppError(
+      "INTERNAL",
+      "Supabase 서비스 키가 올바르지 않습니다. SUPABASE_SERVICE_ROLE_KEY를 확인하세요.",
+    );
+  }
+
+  if (
+    lower.includes("unauthorized") ||
+    lower.includes("signature") ||
+    lower.includes("invalid claim")
+  ) {
+    return new AppError(
+      "INTERNAL",
+      "Supabase Storage 인증에 실패했습니다. SUPABASE_SERVICE_ROLE_KEY를 확인하세요.",
+    );
+  }
+
+  const hint = raw ? ` (${raw.slice(0, 120)})` : "";
+  return new AppError(
+    "INTERNAL",
+    `업로드 URL 발급에 실패했습니다.${hint} Supabase bucket '${bucket}' 및 env 설정을 확인하세요.`,
+  );
+}
+
 function extensionForEventImageMime(mimeType: string): "jpg" | "png" | "webp" {
   const m = mimeType.trim();
   if (m === "image/jpeg") return "jpg";
@@ -241,12 +315,13 @@ export async function createEventImageSignedUploadUrl(
     kind: "poster" | "gallery";
   },
 ): Promise<{ uploadUrl: string; path: string; publicUrl: string }> {
+  assertEventImageServerConfig();
   await requireOrganizerForEvent(actor, input.eventId);
   const mimeType = input.mimeType.trim();
   if (!ALLOWED_EVENT_IMAGE_MIME.has(mimeType)) {
     throw new AppError(
       "VALIDATION_ERROR",
-      "허용되지 않는 이미지 형식입니다.",
+      "허용되지 않는 이미지 형식입니다. JPEG, PNG, WebP만 가능합니다.",
     );
   }
 
@@ -258,16 +333,28 @@ export async function createEventImageSignedUploadUrl(
   const supabase = createSupabaseAdminClient();
   const bucket = eventImagesBucket();
 
+  const { error: bucketError } = await supabase.storage.getBucket(bucket);
+  if (bucketError) {
+    console.error("[event-image-upload] getBucket failed", {
+      bucket,
+      message: bucketError.message,
+      statusCode: bucketError.statusCode,
+    });
+    throw toEventImageSignedUploadError(bucketError, bucket);
+  }
+
   const { data, error } = await supabase.storage
     .from(bucket)
     .createSignedUploadUrl(path, { upsert: true });
 
   if (error || !data?.signedUrl) {
-    throw new AppError(
-      "INTERNAL",
-      "업로드 URL 발급에 실패했습니다.",
-      error?.message,
-    );
+    console.error("[event-image-upload] createSignedUploadUrl failed", {
+      bucket,
+      kind: input.kind,
+      message: error?.message,
+      statusCode: error?.statusCode,
+    });
+    throw toEventImageSignedUploadError(error, bucket);
   }
 
   const publicUrl = buildPublicStorageUrlForEventImages(path);
